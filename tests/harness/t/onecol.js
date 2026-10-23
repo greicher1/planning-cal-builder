@@ -115,7 +115,7 @@ window.addEventListener('load', function () { (async function () {
     // BLOCK by the hovered week's own calendar year (`String(weekIso).slice(0,4)`) across ten
     // sites -- correct while there was exactly one block per year. In one-column mode there is a
     // single block labelled with the FIRST year, so a cell in Feb 2027 reported year 2027, the
-    // code looked up `y2027:s1`, found no such column and returned: the Swap Block button simply
+    // code looked up `y2027:s1`, found no such column and returned: the Swap Column button simply
     // never appeared. No error, nothing in the console. blockYearOf() is the fix.
     function ptr(t, el, x, y, b) {
       el.dispatchEvent(new PointerEvent(t, { bubbles:true, cancelable:true, composed:true,
@@ -190,7 +190,13 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var s0 = m.index + m[0].length, en = latin.indexOf('endstream', s0);
         if (en < 0) continue;
-        while (en > s0 && (bytes[en-1] === 10 || bytes[en-1] === 13 || bytes[en-1] === 32)) en--;
+        // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in its
+        // Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85 (main's 58e6b6a, from
+        // header-zoom's 6547512; hdrversion went red on the date 10.22.26 alone). The writer frames every stream as
+        // `/Length N` ... `stream\n` + N bytes.
+        var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+        if (dictLen) en = s0 + (+dictLen[1]);
+        else while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
         try {
           var ds = new DecompressionStream('deflate'); var w = ds.writable.getWriter();
           w.write(bytes.subarray(s0, en)); w.close();

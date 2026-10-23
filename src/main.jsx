@@ -62,6 +62,14 @@ import '@mantine/core/styles/Menu.layer.css'
 import '@mantine/core/styles/Modal.layer.css'
 import '@mantine/core/styles/NumberInput.layer.css'
 import '@mantine/core/styles/Tooltip.layer.css'
+// Preferences ▸ "Label Production by" (MONTH-PILL-LABEL-PLAN step 3, 16 Oct 2026). Placed by the same
+// byte-offset reading as the rest: its first class sits after Tooltip's and before Stack's in
+// styles.layer.css. It shares FloatingIndicator (imported above) for the sliding segment.
+import '@mantine/core/styles/SegmentedControl.layer.css'
+// The calendar zoom's track (ZoomControl.jsx, 20 Oct 2026). By the same byte-offset reading: Slider's
+// first class (m_dd36362e, 213234) sits after SegmentedControl's (203615) and before Stack's (222981).
+// It has no !important declaration, so the print-colour fence above is unaffected.
+import '@mantine/core/styles/Slider.layer.css'
 import '@mantine/core/styles/Stack.layer.css'
 // ⛔ AFTER Stack, and that position is DERIVED, NOT ALPHABETICAL. These share one @layer, so
 // order decides the cascade -- sorting this list once put UnstyledButton after Button and
@@ -69,6 +77,10 @@ import '@mantine/core/styles/Stack.layer.css'
 // order here is Mantine's own, read off the byte offsets of each component's first class in
 // node_modules/@mantine/core/styles.layer.css; Switch sits last of the ones this app uses.
 import '@mantine/core/styles/Switch.layer.css'
+// The Settings window's tabs (owner ruling 12, 20 Oct 2026). LAST, by the same derived reading: Tabs'
+// first class sits after Switch's in styles.layer.css. Tab is an UnstyledButton, so its own rules must
+// come after UnstyledButton's reset or every tab loses its padding -- the round-7 Button trap again.
+import '@mantine/core/styles/Tabs.layer.css'
 import './styles/inter.css'
 import './styles/legacy.css'
 
@@ -76,10 +88,13 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, RegionCard, HolidaysCard, AppCard, PreferencesCard, HeadersCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, CalendarRangeCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
+import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
+import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -114,7 +129,13 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
-      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /><PreferencesCard /><HeadersCard /><AppCard /></>, '#sidebar-static')}
+      {/* The calendar range (owner ruling 3) is the Show tab's, so it stays in the sidebar. Its two ids are
+          swept into fields.byId, ahead of the Settings window's Region ids, as on its own branch. */}
+      {portal(<><ShowInfoCard /><CalendarRangeCard /></>, '#sidebar-static')}
+      {/* The Settings window (owner ruling 12): Region & holidays, the preferences, the header presets
+          and Export App With Data moved out of the sidebar's old Settings tab into it. Its host sits
+          right after #sidebar-static ON PURPOSE -- see SettingsWindow.jsx, point 1. */}
+      {portal(<SettingsWindow />, '#settings-host')}
       {/* The All-phase hiatus card's rows are engine-generated, so the card itself cannot be a
           React component -- but its header is static markup, so its "i" portals in here. Keeps
           one InfoHint implementation rather than a CSS-only lookalike for this one card. */}
@@ -133,6 +154,10 @@ function Chrome() {
       <DatePop />
       <SelectPop />
       <Dialogs />
+      {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
+      <ExportPdfDialog />
+      {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
+      <ZoomControl />
     </>
   )
 }

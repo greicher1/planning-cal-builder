@@ -176,7 +176,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- L11: a note half-typed in the editor counts as unsaved work ---------------------------
     var td = document.querySelector('td.sheet-note-cell[data-week]');
-    td.click(); await T.sleep(400);
+    T.openCell(td); await T.sleep(400);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
     var ta = document.querySelector('.note-editor textarea');
     if(ta){ ta.value = 'HALF TYPED NOTE'; ta.dispatchEvent(new Event('input', {bubbles: true})); }
     window.__launch([window.__mkHandle('Test Show.sptcal', 'A')]);

@@ -16,6 +16,9 @@ tests/harness/*.json
 tests/harness/*.xlsx
 tests/harness/*.pdf
 tests/harness/*.txt
+# A leg's minted calendar (out.sptcal -> <leg>.sptcal, parse.js): copied into tests/fixtures/ by hand when it is
+# meant to be one, never tracked here.
+tests/harness/*.sptcal
 
 # Vite build. node_modules is never committed; dist/ is BUILD OUTPUT and the owner chose the
 # GitHub Action deploy path (MANTINE-MIGRATION.md Q3), which builds it on GitHub rather than

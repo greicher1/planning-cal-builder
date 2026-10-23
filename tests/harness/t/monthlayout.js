@@ -92,7 +92,8 @@ window.addEventListener('load', function () { (async function () {
     var ttfSrc = slice('function ttfRead(bytes){', 'return w * sizePt / t.unitsPerEm;\n  }', 'ttfRead..ttfTextWidth');
     var hiSrc = slice('const PDF_WINANSI_HI = {', '};', 'PDF_WINANSI_HI');
     var mvlSrc = slice('  const MVL_GEOMETRY = (function(){',
-      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };\n  }',
+      // ⚠️ Re-anchored 20 Oct 2026: buildMonthLayout passes the bar font's width too (MONTH-NOTES-PLAN.md §6).
+      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };\n  }',
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.
@@ -121,7 +122,8 @@ window.addEventListener('load', function () { (async function () {
     var outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
-                 'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout'];
+                 'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout',
+                 'mvlHalfInset', 'mvlInsetCols'];
     var has = function (n, t) { return new RegExp('\\b' + n + '\\b').test(t); };
     var used = NAMES.filter(function (n) { return has(n, outside); });
     var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
@@ -265,8 +267,10 @@ window.addEventListener('load', function () { (async function () {
       r.dow = []; re = /<div class="mv-dow">([^<]*)<\/div>/g; while((m = re.exec(raw))) r.dow.push(decode(m[1]));
       raw.split('<div class="mv-week"').slice(1).forEach(function (wk) {
         var w = {cells: [], bars: []};
-        var cre = /<div class="(mv-daycell[^"]*)"><span class="mv-daynum">(\d+)<\/span><\/div>/g;
-        while((m = cre.exec(wk))) w.cells.push({cls: ' ' + m[1] + ' ', n: parseInt(m[2], 10)});
+        // data-shoot-day: "Number Production Days" (19 Oct 2026) writes it on a shoot day's square while the switch
+        // is on, and the model reads it as `sd` (0 when absent), so this reading does too.
+        var cre = /<div class="(mv-daycell[^"]*)"(?: data-shoot-day="(\d+)")?><span class="mv-daynum">(\d+)<\/span><\/div>/g;
+        while((m = cre.exec(wk))) w.cells.push({cls: ' ' + m[1] + ' ', n: parseInt(m[3], 10), sd: m[2] ? parseInt(m[2], 10) : 0});
         var bre = /<div class="mv-bar ([^"]*)"((?:\s+[\w-]+="[^"]*")*)>([\s\S]*?)<\/div>/g;
         while((m = bre.exec(wk))){
           var cls = ' ' + m[1] + ' ';
@@ -286,6 +290,9 @@ window.addEventListener('load', function () { (async function () {
             note: cls.indexOf(' mv-note-block ') >= 0 ? {kind: a['data-note-kind'], day: a['data-note-day'],
                    index: 'data-note-index' in a ? parseInt(a['data-note-index'], 10) : null} : null,
             halfLayers: (st.match(/linear-gradient\(/g) || []).length,
+            // A switch day's half-day inset (HALF-SQUARE-BARS-PLAN.md, 16 Oct 2026): margin-left starts the bar half way
+            // through its first day, margin-right ends it half way through its last.
+            halfStart: /(?:^|;)\s*margin-left:\s*calc\(/.test(st), halfEnd: /(?:^|;)\s*margin-right:\s*calc\(/.test(st),
           });
         }
         r.weeks.push(w);
@@ -325,12 +332,12 @@ window.addEventListener('load', function () { (async function () {
             var exp = {iso: dd.toISOString().slice(0, 10), n: dd.getUTCDate(), out: lc.cls.indexOf(' mv-out ') >= 0,
                        weekend: lc.cls.indexOf(' mv-weekend ') >= 0,
                        mark: lc.cls.indexOf(' mv-day-off ') >= 0 ? 'off' : lc.cls.indexOf(' mv-day-on ') >= 0 ? 'on' : '',
-                       half: lc.cls.indexOf(' mv-day-half ') >= 0};
+                       half: lc.cls.indexOf(' mv-day-half ') >= 0, sd: lc.sd};
             if(lc.n !== exp.n || !same(c, exp)) bad.P0.push(wWhere + ' day ' + (i + 1) + ': ' + JSON.stringify(c) + ' vs ' + JSON.stringify(exp));
           });
           if(w.items.length !== lw.bars.length) { bad.P0.push(wWhere + ': ' + w.items.length + ' bars vs ' + lw.bars.length); return; }
           // L0: the control -- the copy of takeLane at the print document's OWN spans.
-          var ctl = F.mvlPackLanes(lw.bars.map(function (b) { return {from: b.from, to: b.to, s: b.lanes}; }), function (it) { return it.s; });
+          var ctl = F.mvlPackLanes(lw.bars.map(function (b) { return {from: b.from, to: b.to, s: b.lanes, halfStart: b.halfStart, halfEnd: b.halfEnd}; }), function (it) { return it.s; });
           ctl.forEach(function (p, k) { if(p.lane !== lw.bars[k].lane || p.lanes !== lw.bars[k].lanes) bad.L0.push(wWhere + ' bar ' + (k + 1)); });
           // The parse stage carries the screen's spans; they must be the print document's.
           parsed.weeks[wi].items.forEach(function (it, k) { if(it.htmlLane !== lw.bars[k].lane || it.htmlLanes !== lw.bars[k].lanes) bad.P0.push(wWhere + ' bar ' + (k + 1) + ': placement'); });
@@ -339,8 +346,10 @@ window.addEventListener('load', function () { (async function () {
             var b = lw.bars[k], bWhere = wWhere + ' bar ' + (k + 1) + ' (' + it.kind + ')';
             totals.items++; dt.items++;
             // P0: everything but the lane.
-            var mine = {kind: it.kind, from: it.from, to: it.to, fill: it.fill, ink: it.ink, text: it.text, tag: it.tag, ph: it.ph, note: it.note};
-            var theirs = {kind: b.kind, from: b.from, to: b.to, fill: b.fill, ink: b.ink, text: b.text, tag: b.tag, ph: b.ph, note: b.note};
+            var mine = {kind: it.kind, from: it.from, to: it.to, fill: it.fill, ink: it.ink, text: it.text, tag: it.tag, ph: it.ph, note: it.note,
+                        halfStart: !!it.halfStart, halfEnd: !!it.halfEnd};
+            var theirs = {kind: b.kind, from: b.from, to: b.to, fill: b.fill, ink: b.ink, text: b.text, tag: b.tag, ph: b.ph, note: b.note,
+                          halfStart: b.halfStart, halfEnd: b.halfEnd};
             if(!same(mine, theirs)) bad.P0.push(bWhere + ': ' + JSON.stringify(mine) + ' vs ' + JSON.stringify(theirs));
             if(it.halves.length !== b.halfLayers) bad.P0.push(bWhere + ': ' + it.halves.length + ' half slices vs ' + b.halfLayers);
             // P1: the half slices against the day cells' ½ marks.

@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Month Day Menu</title>
+<!-- MOCKUP, not the app. MONTH-CONTEXT-MENU-PLAN.md describes what is real. The calendar below is
+     the month view captured from the real build (tests/fixtures/halfdays.sptcal, a synthetic
+     calendar), markup and CSS verbatim, so the menu is judged against what users actually see. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- captured from the build: the month view's own rules ---------- */
+:root{--border-strong:#cdcabf;--bg:#f7f6f3;--text-muted:#726f68;--text:#1e1d1b;--text-faint:#6e6a62;--edit-accent:#7030a0;--mantine-radius-sm:5px;--edit-accent-bg:#f6effb;--mantine-color-gray-4:#C4C1B6;--mantine-color-white:#fff;--mantine-color-black:#1E1D1B;--mantine-radius-default:7px;--mantine-color-gray-0:#F7F6F3;--mantine-primary-color-filled:#2C3E50}
+*, ::before, ::after { box-sizing: border-box; }
+input, button, textarea, select { font: inherit; }
+button, select { text-transform: none; }
+* { box-sizing: border-box; }
+.month-view { border: 1px solid var(--border-strong); background: rgb(255, 255, 255); border-radius: 8px; padding: 18px; }
+.mv-tools { display: flex; }
+#mv-hdr-mode-btn { border: 1px solid var(--border-strong); background: var(--bg); color: var(--text-muted); cursor: pointer; border-radius: 6px; padding: 3px 8px; font-family: Inter, sans-serif; font-size: 10px; line-height: normal; }
+#mv-hdr-mode-btn:hover { color: var(--text); background: rgb(255, 255, 255); }
+.mv-header { margin-bottom: 14px; }
+.mv-titlebar { align-items: baseline; gap: 12px; display: flex; }
+.mv-title { text-align: center; flex: 1 1 0%; font-size: 22px; font-weight: 700; }
+.mv-today { color: rgb(0, 0, 0); white-space: nowrap; font-size: 20px; font-weight: 700; }
+.mv-tleft { min-width: var(--mv-today-w,84px); white-space: nowrap; flex: 0 0 auto; font-size: 20px; font-weight: 700; }
+.mv-subtitle { text-align: center; color: var(--text); margin-top: 2px; font-size: 16px; font-weight: 400; }
+.mv-arrow { cursor: pointer; border: 1px solid var(--border-strong); color: var(--text-muted); background: rgb(255, 255, 255); border-radius: 6px; padding: 6px 10px; font-family: inherit; font-size: 13px; line-height: 1; }
+.mv-arrow:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.mv-monthbar { background: rgb(237, 237, 237); border-width: 1px 1px medium; border-style: solid solid none; border-color: rgb(0, 0, 0) rgb(0, 0, 0) currentcolor; border-image: none; justify-content: center; align-items: center; gap: 16px; padding: 7px 10px; display: flex; }
+.mv-monthyear { letter-spacing: 0.01em; font-size: 17px; font-weight: 700; }
+.mv-dowrow { background: rgb(247, 247, 247); border-width: 1px 1px medium; border-style: solid solid none; border-color: rgb(0, 0, 0) rgb(0, 0, 0) currentcolor; border-image: none; grid-template-columns: repeat(7, 1fr); display: grid; }
+.mv-dow { text-align: center; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 0px; font-size: 11px; font-weight: 700; }
+.mv-body { border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(0, 0, 0) rgb(0, 0, 0); border-image: none; }
+.mv-week { border-top: 1px solid rgb(0, 0, 0); position: relative; }
+.mv-week:first-child { border-top-width: medium; border-top-style: none; border-top-color: currentcolor; }
+.mv-daygrid { grid-template-columns: repeat(7, 1fr); display: grid; position: absolute; inset: 0px; }
+.mv-daycell { border-left: 1px solid rgb(0, 0, 0); padding: 3px 5px; }
+.mv-daycell:first-child { border-left-width: medium; border-left-style: none; border-left-color: currentcolor; }
+.mv-daynum { color: rgb(51, 51, 51); font-size: 11px; font-weight: 600; }
+.mv-out { background: rgb(250, 250, 249); }
+.mv-out .mv-daynum { opacity: 0.35; }
+.mv-weekend { background: rgb(244, 243, 240); }
+.mv-bars { z-index: 1; pointer-events: none; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 17px; gap: 2px 0px; padding: 24px 3px 14px; display: grid; position: relative; }
+.mv-row-expand { height: 11px; color: var(--text-faint); cursor: pointer; pointer-events: auto; opacity: 0; border-top: 1px dashed var(--border-strong); background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.05)); justify-content: center; align-items: center; font-size: 11px; line-height: 1; transition: opacity 0.12s; display: flex; position: absolute; bottom: 0px; left: 0px; right: 0px; }
+.mv-week:hover .mv-row-expand { opacity: 0.5; }
+.mv-row-expand:hover { opacity: 1; color: var(--text); background: rgba(0, 0, 0, 0.07); }
+.mv-bar { white-space: nowrap; text-overflow: ellipsis; border: 1px solid rgba(0, 0, 0, 0.18); margin: 0px 1px; padding: 1px 8px; font-size: 10px; font-weight: 600; line-height: 1.5; overflow: hidden; }
+.mv-pill { border-radius: 9px; }
+.mv-pill-block { color: rgb(92, 100, 112); vertical-align: top; margin-left: 7px; font-size: 9px; font-weight: 500; }
+#table-wrap .mv-pill { pointer-events: auto; cursor: grab; }
+#table-wrap .mv-daycell { cursor: pointer; }
+#table-wrap .mv-daycell:hover .mv-daynum { background: var(--edit-accent); color: rgb(255, 255, 255); border-radius: var(--mantine-radius-sm); margin: -1px -5px; padding: 1px 5px; }
+#table-wrap .mv-daycell:hover { background: var(--edit-accent-bg); }
+#table-wrap .mv-out:hover .mv-daynum { opacity: 1; }
+.mv-note-block { white-space: pre-wrap; text-overflow: clip; word-break: break-word; hyphens: auto; border-radius: 0px; padding: 2px 4px; font-weight: 500; line-height: 1.3; overflow: hidden; }
+.hdr-line { border-radius: 4px; outline: none; min-height: 14px; padding: 0px 3px; }
+.hdr-fmt-spacer { flex: 1 1 0%; }
+#notes-reset-btn, #hdr-mode-btn, #mv-hdr-mode-btn { border: 1px solid var(--mantine-color-gray-4); background: var(--mantine-color-white); height: 30px; color: var(--mantine-color-black); border-radius: var(--mantine-radius-default); cursor: pointer; flex: 0 0 auto; padding: 0px 14px; font-family: inherit; font-size: 11px; font-weight: 500; line-height: 1; transition: background-color 0.1s, border-color 0.1s, color 0.1s; }
+#notes-reset-btn:hover, #hdr-mode-btn:hover, #mv-hdr-mode-btn:hover { background: var(--mantine-color-gray-0); border-color: var(--mantine-color-gray-4); color: var(--mantine-color-black); }
+#notes-reset-btn:focus-visible, #hdr-mode-btn:focus-visible, #mv-hdr-mode-btn:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
+#hdr-mode-btn, #notes-reset-btn, #mv-hdr-mode-btn { display: none; }
+.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable) { display: none; }
+.mv-note-click { cursor: pointer; pointer-events: auto; }
+.mv-note-add { color: var(--text-faint); border: 1px dashed var(--border-strong); text-align: center; opacity: 0; background: 0px 0px; border-radius: 3px; font-size: 10px; line-height: 1; transition: opacity 0.12s; }
+.mv-week:hover .mv-note-add { opacity: 0.5; }
+.mv-note-add:hover { color: var(--text); background: rgb(255, 255, 255); border-style: solid; opacity: 1 !important; }
+
+/* ---------- mockup page ---------- */
+:root{
+  --line:#e3e1da; --hover:#f1efe9; --accent:#7030a0; --accent-bg:#f6effb;
+  --danger:#c92a2a; --danger-bg:#fff0f0; --slate:#2c3e50;
+}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"Segoe UI",sans-serif}
+.mk-top{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);background:#fff}
+.mk-top h1{font-size:15px;font-weight:700;margin:0}
+.mk-tag{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border-radius:5px;padding:2px 7px}
+.mk-top p{margin:0;color:var(--text-muted);font-size:12px}
+.mk-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
+@media (max-width:960px){.mk-layout{grid-template-columns:minmax(0,1fr);padding:16px}}
+#table-wrap{min-width:0;overflow-x:auto}
+.mk-side{background:#fff;border:1px solid var(--border-strong);border-radius:8px;padding:16px 18px;position:sticky;top:16px}
+.mk-side h2{font-size:13px;margin:0 0 6px}
+.mk-side h3{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 6px}
+.mk-side p{margin:0 0 8px;font-size:12.5px;color:var(--text)}
+.mk-try{display:flex;flex-wrap:wrap;gap:6px}
+.mk-try button{font:inherit;font-size:12px;border:1px solid var(--mantine-color-gray-4);background:#fff;border-radius:7px;padding:5px 10px;cursor:pointer}
+.mk-try button:hover{background:var(--mantine-color-gray-0)}
+.mk-explain{font-size:12.5px;background:var(--mantine-color-gray-0);border:1px solid var(--line);border-radius:7px;padding:10px 12px;min-height:64px}
+.mk-explain b{display:block;margin-bottom:3px}
+.mk-explain .mk-calls{display:block;margin-top:6px;font-size:11px;color:var(--text-muted)}
+.mk-explain code,.mk-side code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:4px;padding:0 3px}
+.mk-side ul{margin:0;padding-left:18px;font-size:12.5px}
+.mk-side li{margin:0 0 5px}
+.mk-kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff}
+
+/* the day the menu is for stays marked while the menu is open */
+#table-wrap .mv-daycell.mk-target{background:var(--accent-bg);box-shadow:inset 0 0 0 2px var(--accent)}
+#table-wrap .mv-daycell.mk-target .mv-daynum{background:var(--accent);color:#fff;border-radius:var(--mantine-radius-sm);margin:-1px -5px;padding:1px 5px}
+#table-wrap .mv-pill.mk-target-pill{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- the menu: the app's Mantine Menu, measured from the File menu ---------- */
+.cm{position:fixed;z-index:300;min-width:244px;max-width:300px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;font:12px/18px Inter,sans-serif;color:var(--text);
+    user-select:none;outline:none}
+.cm-head{padding:7px 10px 6px}
+.cm-date{font-weight:700;font-size:12.5px}
+.cm-ctx{color:var(--text-muted);font-size:11px;line-height:15px;margin-top:1px}
+.cm-label{padding:7px 10px 3px;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.cm-swatch{width:9px;height:9px;border-radius:3px;border:1px solid rgba(0,0,0,.18);flex:none}
+.cm-div{border-top:1px solid var(--line);margin:4px 0}
+.cm-item{display:flex;align-items:center;gap:9px;width:100%;box-sizing:border-box;border:0;background:none;font:inherit;color:inherit;
+         text-align:left;padding:6px 10px;border-radius:7px;cursor:default;min-height:30px}
+.cm-item:focus{outline:none}
+.cm-item[aria-disabled="true"]{color:var(--text-faint);opacity:.55}
+.cm-item:not([aria-disabled="true"]).is-active{background:var(--hover)}
+.cm-item.is-danger{color:var(--danger)}
+.cm-item.is-danger.is-active{background:var(--danger-bg)}
+.cm-ico{width:16px;height:16px;flex:none;color:var(--text-muted)}
+.cm-item.is-danger .cm-ico{color:var(--danger)}
+.cm-text{flex:1;min-width:0}
+.cm-text small{display:block;color:var(--text-muted);font-size:10.5px;line-height:14px}
+.cm-right{flex:none;color:var(--text-faint);font-size:11px;display:flex;align-items:center}
+.cm-check{width:14px;height:14px;flex:none;color:var(--accent)}
+.cm-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--mantine-color-gray-4);flex:none;box-sizing:border-box}
+.cm-radio.on{border:4px solid var(--accent)}
+.cm-foot{padding:5px 10px 4px;font-size:10.5px;color:var(--text-faint);border-top:1px solid var(--line);margin-top:4px}
+
+.mk-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);background:var(--slate);color:#fff;
+          border-radius:8px;padding:9px 14px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;
+          transition:opacity .15s,transform .15s;max-width:min(560px,calc(100vw - 32px))}
+.mk-toast.on{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<header class="mk-top">
+  <span class="mk-tag">Mockup</span>
+  <h1>Month view day menu</h1>
+  <p>Not the app. Right-click any day, bar or note, or click a day’s number.</p>
+</header>
+
+<div class="mk-layout">
+  <main class="preview-panel"><div id="table-wrap"></div></main>
+  <aside class="mk-side">
+    <h2>Try it</h2>
+    <p>Right-click anywhere on the calendar (two-finger click on a trackpad), or click a day’s number. Or open the menu on one of these:</p>
+    <div class="mk-try" id="mk-try"></div>
+
+    <h3>What the item would do</h3>
+    <div class="mk-explain" id="mk-explain">Point at a menu item to see what it would do and which existing code it calls.</div>
+
+    <h3>How it behaves</h3>
+    <ul>
+      <li>The menu is for <b>the day under the pointer</b>. “This day” is always first, so <b>Add 1-day phase here</b> and <b>Add 1-week phase here</b> never move. Below it is one section for each thing on the day: the bar you clicked, the shoot day, a hiatus, a holiday.</li>
+      <li>A choice the app refuses is <b>greyed out with its reason</b>, never hidden.</li>
+      <li><span class="mk-kbd">Shift</span> + right-click still opens the browser’s own menu.</li>
+      <li>In the open menu: <span class="mk-kbd">↑</span> <span class="mk-kbd">↓</span> move, <span class="mk-kbd">→</span> opens a submenu, <span class="mk-kbd">Enter</span> chooses, <span class="mk-kbd">Esc</span> closes.</li>
+      <li>Each item is one undo step.</li>
+      <li><b>Left-click on a day’s number</b> opens the same menu, under the number. It replaces the Full day/Off popover. Click the number again to close it. A click on a “+” slot or a note still opens the note editor, and a bar still drags.</li>
+    </ul>
+
+    <h3>Left out on purpose</h3>
+    <ul>
+      <li><b>Shift From, Anchor To, Rebuild From.</b> Owner, 19 Oct 2026. They stay in the toolbar.</li>
+      <li><b>Marking a half day.</b> Withdrawn on 15 Oct 2026. A half day is where an episode or block switches.</li>
+      <li><b>Renaming or recolouring a hiatus.</b> Only the waterfall has that editor today.</li>
+      <li><b>Opening the menu from the keyboard.</b> No day in the month view can take focus, and adding that would change the frozen renderer.</li>
+    </ul>
+  </aside>
+</div>
+
+<template id="m-july"><div class="month-view">
+      
+      <div class="mv-header">
+        <div class="mv-titlebar">
+          <div class="hdr-line mv-tleft hdr-empty" data-mvhid="tleft" spellcheck="false" style=""></div>
+          <div class="hdr-line mv-title" data-mvhid="title" spellcheck="false" style="">Half Days Test S2 Full Prelim Production Calendar</div>
+          <div class="hdr-line mv-today" data-mvhid="today" spellcheck="false" style="">10.19.26</div>
+        </div>
+        <div class="hdr-line mv-subtitle hdr-empty hdr-slot" data-mvhid="subtitle" spellcheck="false" style=""></div>
+      </div>
+      <div class="mv-monthbar">
+        <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month">◀</button>
+        <div class="mv-monthyear">July 2026</div>
+        <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month">▶</button>
+      </div>
+      <div class="mv-dowrow"><div class="mv-dow">Sun</div><div class="mv-dow">Mon</div><div class="mv-dow">Tue</div><div class="mv-dow">Wed</div><div class="mv-dow">Thu</div><div class="mv-dow">Fri</div><div class="mv-dow">Sat</div></div>
+      <div class="mv-body"><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-out mv-weekend"><span class="mv-daynum">28</span></div><div class="mv-daycell mv-out"><span class="mv-daynum">29</span></div><div class="mv-daycell mv-out"><span class="mv-daynum">30</span></div><div class="mv-daycell"><span class="mv-daynum">1</span></div><div class="mv-daycell"><span class="mv-daynum">2</span></div><div class="mv-daycell"><span class="mv-daynum">3</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">4</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 6; grid-row:1;background:#E2F0D9; color:#375623;" title="Ep. 201 · Production Week 1">Ep. 201<span class="mv-pill-block">Production Week 1</span></div><div class="mv-bar mv-note-block mv-note-click" data-note-week="2026-06-29" data-note-day="2026-06-29" data-note-kind="wf" style="grid-column:2 / 3; grid-row:2 / span 2;background:#7030A0; color:#FFFFFF;" title="Start Principal Photography 6/29/26 — click to edit (also updates the Waterfall)">Start Principal Photography 6/29/26</div><div class="mv-bar mv-note-block mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-03" data-note-kind="wf" style="grid-column:6 / 7; grid-row:1 / span 2;background:#7030A0; color:#FFFFFF;" title="Independence Day (Observed) 7/3/26 — click to edit (also updates the Waterfall)">Independence Day (Observed) 7/3/26</div><div class="mv-bar mv-note-block mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-04" data-note-kind="wf" style="grid-column:7 / 8; grid-row:1;background:#7030A0; color:#FFFFFF;" title="Independence Day 7/4/26 — click to edit (also updates the Waterfall)">Independence Day 7/4/26</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-22" data-note-day="2026-06-28" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 6/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-22" data-note-day="2026-06-28" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 6/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-22" data-note-day="2026-06-28" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 6/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-22" data-note-day="2026-06-28" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 6/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-06-29" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 6/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-06-30" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 6/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-06-30" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 6/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-06-30" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 6/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-01" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 7/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-01" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 7/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-01" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 7/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-02" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 7/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-02" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 7/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-02" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 7/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-03" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 7/3/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-03" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 7/3/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-04" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 7/4/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-04" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 7/4/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-04" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 7/4/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-06-22" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">5</span></div><div class="mv-daycell"><span class="mv-daynum">6</span></div><div class="mv-daycell"><span class="mv-daynum">7</span></div><div class="mv-daycell"><span class="mv-daynum">8</span></div><div class="mv-daycell"><span class="mv-daynum">9</span></div><div class="mv-daycell"><span class="mv-daynum">10</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">11</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 3; grid-row:1;background:#E2F0D9; color:#375623;" title="Ep. 201">Ep. 201</div><div class="mv-bar mv-pill" data-ph="production" style="grid-column:3 / 7; grid-row:1;background:#E2F0D9; color:#375623;" title="Ep. 202 · Production Week 2">Ep. 202<span class="mv-pill-block">Production Week 2</span></div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-05" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 7/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-05" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 7/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-05" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 7/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-06-29" data-note-day="2026-07-05" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 7/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-06" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 7/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-06" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 7/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-06" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 7/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-07" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 7/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-07" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 7/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-07" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 7/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-08" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 7/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-08" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 7/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-08" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 7/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-09" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 7/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-09" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 7/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-09" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 7/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-10" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 7/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-10" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 7/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-10" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 7/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-11" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 7/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-11" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 7/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-11" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 7/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-11" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 7/11/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-06-29" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">12</span></div><div class="mv-daycell"><span class="mv-daynum">13</span></div><div class="mv-daycell"><span class="mv-daynum">14</span></div><div class="mv-daycell"><span class="mv-daynum">15</span></div><div class="mv-daycell"><span class="mv-daynum">16</span></div><div class="mv-daycell"><span class="mv-daynum">17</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">18</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 3; grid-row:1;background:#E2F0D9; color:#375623; margin-right:calc(50.0000% + 1px);" title="Ep. 202">Ep. 202</div><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 7; grid-row:1;background:#E2F0D9; color:#375623; margin-left:calc(10.0000% + 1px);" title="Ep. 203 · Production Week 3">Ep. 203<span class="mv-pill-block">Production Week 3</span></div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-12" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 7/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-12" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 7/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-12" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 7/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-06" data-note-day="2026-07-12" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 7/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-13" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 7/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-13" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 7/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-13" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 7/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-14" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 7/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-14" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 7/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-14" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 7/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-15" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 7/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-15" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 7/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-15" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 7/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-16" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 7/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-16" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 7/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-16" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 7/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-17" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 7/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-17" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 7/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-17" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 7/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-18" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 7/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-18" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 7/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-18" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 7/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-18" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 7/18/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-07-06" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">19</span></div><div class="mv-daycell"><span class="mv-daynum">20</span></div><div class="mv-daycell"><span class="mv-daynum">21</span></div><div class="mv-daycell"><span class="mv-daynum">22</span></div><div class="mv-daycell"><span class="mv-daynum">23</span></div><div class="mv-daycell"><span class="mv-daynum">24</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">25</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 7; grid-row:1;background:#E2F0D9; color:#375623; margin-right:calc(10.0000% + 1px);" title="Ep. 204 · Production Week 4">Ep. 204<span class="mv-pill-block">Production Week 4</span></div><div class="mv-bar mv-pill" data-ph="production" style="grid-column:6 / 7; grid-row:1;background:#E2F0D9; color:#375623; margin-left:calc(50.0000% + 1px);" title="Ep. 205">Ep. 205</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-19" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 7/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-19" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 7/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-19" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 7/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-13" data-note-day="2026-07-19" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 7/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-20" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 7/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-20" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 7/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-20" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 7/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-21" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 7/21/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-21" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 7/21/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-21" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 7/21/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-22" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 7/22/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-22" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 7/22/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-22" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 7/22/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-23" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 7/23/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-23" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 7/23/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-23" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 7/23/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-24" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 7/24/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-24" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 7/24/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-24" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 7/24/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-25" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 7/25/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-25" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 7/25/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-25" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 7/25/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-25" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 7/25/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-07-13" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">26</span></div><div class="mv-daycell"><span class="mv-daynum">27</span></div><div class="mv-daycell"><span class="mv-daynum">28</span></div><div class="mv-daycell"><span class="mv-daynum">29</span></div><div class="mv-daycell"><span class="mv-daynum">30</span></div><div class="mv-daycell"><span class="mv-daynum">31</span></div><div class="mv-daycell mv-out mv-weekend"><span class="mv-daynum">1</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="production" style="grid-column:2 / 6; grid-row:1;background:#E2F0D9; color:#375623;" title="Ep. 205 · Production Week 5">Ep. 205<span class="mv-pill-block">Production Week 5</span></div><div class="mv-bar mv-pill" data-ph="production" style="grid-column:6 / 7; grid-row:1;background:#E2F0D9; color:#375623;" title="Ep. 206">Ep. 206</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-26" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 7/26/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-26" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 7/26/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-26" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 7/26/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-20" data-note-day="2026-07-26" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 7/26/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-27" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 7/27/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-27" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 7/27/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-27" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 7/27/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-28" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 7/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-28" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 7/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-28" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 7/28/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-29" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 7/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-29" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 7/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-29" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 7/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-30" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 7/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-30" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 7/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-30" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 7/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-31" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 7/31/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-31" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 7/31/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-07-31" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 7/31/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-08-01" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 8/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-08-01" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 8/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-08-01" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 8/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-07-27" data-note-day="2026-08-01" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 8/1/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-07-20" title="Add another line to this week">+</div></div>
+      </div></div>
+    </div></template>
+<template id="m-december"><div class="month-view">
+      
+      <div class="mv-header">
+        <div class="mv-titlebar">
+          <div class="hdr-line mv-tleft hdr-empty" data-mvhid="tleft" spellcheck="false" style=""></div>
+          <div class="hdr-line mv-title" data-mvhid="title" spellcheck="false" style="">Half Days Test S2 Full Prelim Production Calendar</div>
+          <div class="hdr-line mv-today" data-mvhid="today" spellcheck="false" style="">10.19.26</div>
+        </div>
+        <div class="hdr-line mv-subtitle hdr-empty hdr-slot" data-mvhid="subtitle" spellcheck="false" style=""></div>
+      </div>
+      <div class="mv-monthbar">
+        <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month">◀</button>
+        <div class="mv-monthyear">December 2026</div>
+        <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month">▶</button>
+      </div>
+      <div class="mv-dowrow"><div class="mv-dow">Sun</div><div class="mv-dow">Mon</div><div class="mv-dow">Tue</div><div class="mv-dow">Wed</div><div class="mv-dow">Thu</div><div class="mv-dow">Fri</div><div class="mv-dow">Sat</div></div>
+      <div class="mv-body"><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-out mv-weekend"><span class="mv-daynum">29</span></div><div class="mv-daycell mv-out"><span class="mv-daynum">30</span></div><div class="mv-daycell"><span class="mv-daynum">1</span></div><div class="mv-daycell"><span class="mv-daynum">2</span></div><div class="mv-daycell"><span class="mv-daynum">3</span></div><div class="mv-daycell"><span class="mv-daynum">4</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">5</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="post" style="grid-column:2 / 7; grid-row:1;background:#FBE5D6; color:#8A4A1F;" title="Post Week 5">Post Week 5</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-23" data-note-day="2026-11-29" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 11/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-23" data-note-day="2026-11-29" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 11/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-23" data-note-day="2026-11-29" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 11/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-23" data-note-day="2026-11-29" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 11/29/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-11-30" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 11/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-11-30" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 11/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-11-30" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 11/30/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-01" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 12/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-01" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 12/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-01" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 12/1/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-02" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 12/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-02" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 12/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-02" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 12/2/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-03" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 12/3/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-03" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 12/3/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-03" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 12/3/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-04" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 12/4/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-04" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 12/4/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-04" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 12/4/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-05" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 12/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-05" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 12/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-05" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 12/5/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-05" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 12/5/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-11-23" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">6</span></div><div class="mv-daycell"><span class="mv-daynum">7</span></div><div class="mv-daycell"><span class="mv-daynum">8</span></div><div class="mv-daycell"><span class="mv-daynum">9</span></div><div class="mv-daycell"><span class="mv-daynum">10</span></div><div class="mv-daycell"><span class="mv-daynum">11</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">12</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="post" style="grid-column:2 / 7; grid-row:1;background:#FBE5D6; color:#8A4A1F;" title="Post Week 6">Post Week 6</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-06" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 12/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-06" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 12/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-06" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 12/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-11-30" data-note-day="2026-12-06" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 12/6/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-07" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 12/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-07" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 12/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-07" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 12/7/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-08" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 12/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-08" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 12/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-08" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 12/8/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-09" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 12/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-09" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 12/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-09" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 12/9/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-10" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 12/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-10" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 12/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-10" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 12/10/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-11" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 12/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-11" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 12/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-11" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 12/11/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-12" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 12/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-12" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 12/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-12" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 12/12/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-12" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 12/12/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-11-30" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">13</span></div><div class="mv-daycell"><span class="mv-daynum">14</span></div><div class="mv-daycell"><span class="mv-daynum">15</span></div><div class="mv-daycell"><span class="mv-daynum">16</span></div><div class="mv-daycell"><span class="mv-daynum">17</span></div><div class="mv-daycell"><span class="mv-daynum">18</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">19</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-pill" data-ph="post" style="grid-column:2 / 7; grid-row:1;background:#FBE5D6; color:#8A4A1F;" title="Post Week 7">Post Week 7</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-13" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 12/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-13" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 12/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-13" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 12/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-07" data-note-day="2026-12-13" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 12/13/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-14" data-note-kind="day" style="grid-column:2 / 3; grid-row:2;" title="Add a note on 12/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-14" data-note-kind="day" style="grid-column:2 / 3; grid-row:3;" title="Add a note on 12/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-14" data-note-kind="day" style="grid-column:2 / 3; grid-row:4;" title="Add a note on 12/14/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-15" data-note-kind="day" style="grid-column:3 / 4; grid-row:2;" title="Add a note on 12/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-15" data-note-kind="day" style="grid-column:3 / 4; grid-row:3;" title="Add a note on 12/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-15" data-note-kind="day" style="grid-column:3 / 4; grid-row:4;" title="Add a note on 12/15/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-16" data-note-kind="day" style="grid-column:4 / 5; grid-row:2;" title="Add a note on 12/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-16" data-note-kind="day" style="grid-column:4 / 5; grid-row:3;" title="Add a note on 12/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-16" data-note-kind="day" style="grid-column:4 / 5; grid-row:4;" title="Add a note on 12/16/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-17" data-note-kind="day" style="grid-column:5 / 6; grid-row:2;" title="Add a note on 12/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-17" data-note-kind="day" style="grid-column:5 / 6; grid-row:3;" title="Add a note on 12/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-17" data-note-kind="day" style="grid-column:5 / 6; grid-row:4;" title="Add a note on 12/17/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-18" data-note-kind="day" style="grid-column:6 / 7; grid-row:2;" title="Add a note on 12/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-18" data-note-kind="day" style="grid-column:6 / 7; grid-row:3;" title="Add a note on 12/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-18" data-note-kind="day" style="grid-column:6 / 7; grid-row:4;" title="Add a note on 12/18/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-19" data-note-kind="day" style="grid-column:7 / 8; grid-row:1;" title="Add a note on 12/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-19" data-note-kind="day" style="grid-column:7 / 8; grid-row:2;" title="Add a note on 12/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-19" data-note-kind="day" style="grid-column:7 / 8; grid-row:3;" title="Add a note on 12/19/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-19" data-note-kind="day" style="grid-column:7 / 8; grid-row:4;" title="Add a note on 12/19/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-12-07" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">20</span></div><div class="mv-daycell"><span class="mv-daynum">21</span></div><div class="mv-daycell"><span class="mv-daynum">22</span></div><div class="mv-daycell"><span class="mv-daynum">23</span></div><div class="mv-daycell"><span class="mv-daynum">24</span></div><div class="mv-daycell"><span class="mv-daynum">25</span></div><div class="mv-daycell mv-weekend"><span class="mv-daynum">26</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-hiatus-bar" style="grid-column:2 / 7; grid-row:1;background:#FF0000; color:#FFFFFF;">Hiatus</div><div class="mv-bar mv-note-block mv-note-click" data-note-week="2026-12-21" data-note-day="2026-12-25" data-note-kind="wf" style="grid-column:6 / 7; grid-row:2;background:#7030A0; color:#FFFFFF;" title="Christmas Day 12/25/26 — click to edit (also updates the Waterfall)">Christmas Day 12/25/26</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-20" data-note-kind="day" style="grid-column:1 / 2; grid-row:1;" title="Add a note on 12/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-20" data-note-kind="day" style="grid-column:1 / 2; grid-row:2;" title="Add a note on 12/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-20" data-note-kind="day" style="grid-column:1 / 2; grid-row:3;" title="Add a note on 12/20/26 (month view only)">+</div><div class="mv-bar mv-note-add mv-note-click" data-note-week="2026-12-14" data-note-day="2026-12-20" data-note-kind="day" style="grid-column:1 / 2; grid-row:4;" title="Add a note on 12/20/26 (month view only)">+</div><div class="mv-row-expand" data-expand-week="2026-12-14" title="Add another line to this week">+</div></div>
+      </div><div class="mv-week">
+        <div class="mv-daygrid"><div class="mv-daycell mv-weekend"><span class="mv-daynum">27</span></div><div class="mv-daycell"><span class="mv-daynum">28</span></div><div class="mv-daycell"><span class="mv-daynum">29</span></div><div class="mv-daycell"><span class="mv-daynum">30</span></div><div class="mv-daycell"><span class="mv-daynum">31</span></div><div class="mv-daycell mv-out"><span class="mv-daynum">1</span></div><div class="mv-daycell mv-out mv-weekend"><span class="mv-daynum">2</span></div></div>
+        <div class="mv-bars"><div class="mv-bar mv-hiatus-bar" style="grid-column:2 / 7; grid-row:1;background:#FF0000; color:#FFFFFF;">Hiatus</div><div class="mv-bar mv-note-block mv-note-click" data-note-week="2026-12-28" data-note-day="2027-01-01" data-note-kind="wf" style="grid-column:6 / 7; grid-row:2;background:#7030A0; color:#FFFFFF;" title="New Year's Day 1/1/27 — click to edit (also updates the Waterfall)">New Year's Day 1/1/27</div><div class="mv-row-expand" data-expand-week="2026-12-21" title="Add another line to this week">+</div></div>
+      </div></div>
+    </div></template>
+
+<div class="mk-toast" id="mk-toast" role="status"></div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- the captured calendar (synthetic: tests/fixtures/halfdays.sptcal) ----------
+  const MONTHS = [
+    {id:'m-july',     y:2026, m:6},
+    {id:'m-december', y:2026, m:11},
+  ];
+  const HOLIDAYS = {
+    '2026-07-03':'Independence Day (Observed)', '2026-07-04':'Independence Day',
+    '2026-12-25':'Christmas Day', '2027-01-01':"New Year's Day",
+  };
+  const PHASE_NAMES = {writersRoom:"Writer's Rm", prePrep:'Pre Prep', prodPrep:'Prod Prep', production:'Production',
+                       post:'Post', localization:'Localization'};
+  const ALL_PHASES = ['writersRoom','prePrep','prodPrep','production','post','localization'];
+  const PROD_START = '2026-06-29';
+  let cur = 0;
+
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const utc = (y,m,d)=> new Date(Date.UTC(y,m,d));
+  const iso = d => d.toISOString().slice(0,10);
+  const addDays = (d,n)=> new Date(d.getTime() + n*864e5);
+  const fmtLong = d => DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  const fmtShort = d => (d.getUTCMonth()+1) + '/' + d.getUTCDate() + '/' + String(d.getUTCFullYear()).slice(2);
+
+  const wrap = document.getElementById('table-wrap');
+  let model = null;   // per-day facts for the month on screen, derived from the captured markup
+
+  function show(i){
+    cur = i;
+    wrap.innerHTML = document.getElementById(MONTHS[i].id).innerHTML;
+    const prev = wrap.querySelector('[aria-label="Previous month"]'), next = wrap.querySelector('[aria-label="Next month"]');
+    if(prev){ prev.disabled = (i === 0); prev.onclick = ()=> show(i-1); }
+    if(next){ next.disabled = (i === MONTHS.length-1); next.onclick = ()=> show(i+1); }
+    model = deriveModel(MONTHS[i]);
+    renderTry();
+  }
+
+  // Read the month the way the real menu would: the date from the cell's position (the app's
+  // cellDate() does this), and everything else about the day from the schedule. The mockup has no
+  // schedule, so it reads the bars back out of the markup instead.
+  function deriveModel(M){
+    const first = utc(M.y, M.m, 1);
+    const gridStart = addDays(first, -first.getUTCDay());
+    const days = {};
+    const weeks = [...wrap.querySelectorAll('.mv-week')];
+    weeks.forEach((wk, w)=>{
+      [...wk.querySelectorAll('.mv-daycell')].forEach((cell, c)=>{
+        const d = addDays(gridStart, w*7 + c);
+        cell.dataset.mkIso = iso(d);
+        days[iso(d)] = {date:d, cell, phases:[], hiatus:false, holiday:HOLIDAYS[iso(d)] || null, out: cell.classList.contains('mv-out')};
+      });
+      const cols = el => { const m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(el.getAttribute('style')||''); return m ? [+m[1]-1, +m[2]-1] : null; };
+      wk.querySelectorAll('.mv-pill').forEach(p=>{
+        const r = cols(p); if(!r) return;
+        const label = (p.firstChild && p.firstChild.nodeType === 3) ? p.firstChild.textContent.trim() : p.textContent.trim();
+        const block = p.querySelector('.mv-pill-block');
+        for(let c = r[0]; c < r[1]; c++){
+          const k = iso(addDays(gridStart, w*7 + c));
+          if(days[k]) days[k].phases.push({key:p.dataset.ph, label, sub: block ? block.textContent.trim() : '', color:p.style.background, pill:p});
+        }
+      });
+      wk.querySelectorAll('.mv-hiatus-bar').forEach(b=>{
+        const r = cols(b); if(!r) return;
+        for(let c = r[0]; c < r[1]; c++){ const k = iso(addDays(gridStart, w*7 + c)); if(days[k]) days[k].hiatus = true; }
+      });
+    });
+    // shoot-day numbers: Production weekdays that are not holidays, counted from its start
+    let n = 0;
+    Object.keys(days).sort().forEach(k=>{
+      const d = days[k];
+      const prod = d.phases.find(p=>p.key === 'production');
+      if(!prod || k < PROD_START) return;
+      const wd = d.date.getUTCDay();
+      d.inShoot = true;
+      if(wd === 0 || wd === 6) d.shootKind = 'weekend';
+      else if(d.holiday) d.shootKind = 'holiday';
+      else { d.shootKind = 'shoot'; d.shootDay = ++n; }
+    });
+    return {days, gridStart};
+  }
+
+  // ---------- target resolution ----------
+  // Bars sit ABOVE the day cells (.mv-bars is pointer-events:none, but pills and notes are auto), so
+  // the day is whichever .mv-daycell is under the pointer, found with elementsFromPoint.
+  function dayAt(x, y){
+    const cell = document.elementsFromPoint(x, y).find(el => el.classList && el.classList.contains('mv-daycell'));
+    return cell && model.days[cell.dataset.mkIso] ? model.days[cell.dataset.mkIso] : null;
+  }
+
+  wrap.addEventListener('contextmenu', e=>{
+    if(e.shiftKey) return;                       // Shift + right-click: the browser's own menu
+    const day = dayAt(e.clientX, e.clientY);
+    if(!day) return;                             // the title, the month bar: leave the browser's menu
+    e.preventDefault();
+    const pillEl = e.target.closest && e.target.closest('.mv-pill');
+    const noteEl = e.target.closest && e.target.closest('.mv-note-block');
+    const phase = pillEl ? day.phases.find(p=>p.pill === pillEl) || null : null;
+    openMenu({day, phase, note: noteEl ? {text: noteEl.textContent.trim(), kind: noteEl.dataset.noteKind} : null}, e.clientX, e.clientY);
+  });
+
+  // ---------- the menu's contents ----------
+  const ICONS = {
+    note:'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
+    plus:'M12 5v14M5 12h14',
+    pause:'M6 5h4v14H6zM14 5h4v14h-4z',
+    start:'M14 12H4M10 8l4 4-4 4M20 4v16',
+    end:'M10 12h10M14 8l-4 4 4 4M4 4v16',
+    anchor:'M12 9V21M12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 14a7 7 0 0 0 14 0M3 14h4M17 14h4',
+    rebuild:'M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4',
+    shift:'M7 8l-4 4 4 4M17 8l4 4-4 4M3 12h18',
+    palette:'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
+    sidebar:'M4 5h16v14H4zM9 5v14',
+    lock:'M6 11h12v9H6zM8 11V7a4 4 0 0 1 8 0v4',
+    trash:'M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+    eye:'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    movie:'M4 4h16v16H4zM8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4',
+    table:'M4 5h16v14H4zM4 10h16M10 5v14',
+    text:'M5 7V5h14v2M12 5v14M9 19h6',
+    chev:'M9 6l6 6-6 6',
+    check:'M5 12l5 5L20 7',
+  };
+  const svg = (k, cls) => `<svg class="${cls||'cm-ico'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
+
+  const mondayOf = d => addDays(d, -((d.getUTCDay() + 6) % 7));
+  const fmtDM = d => DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
+  const SHOOT_LAST = '2026-08-31';     // the mockup's shoot window (the app reads productionInfo.shootDays)
+  const phaseName = k => PHASE_NAMES[k] || k;
+
+  // The order is fixed: THIS DAY first, so the two "Add … phase here" items are always in the same place,
+  // then one section for each thing that is on the day, then the way out to the waterfall.
+  function buildMenu(ctx){
+    const d = ctx.day, ph = ctx.phase, k = iso(d.date);
+    const wd = d.date.getUTCDay(), weekend = (wd === 0 || wd === 6);
+    const wkMon = mondayOf(d.date);
+    const inShoot = k >= PROD_START && k <= SHOOT_LAST;
+
+    // ---- the header: the date, then what is on it ----
+    const facts = [];
+    if(inShoot && d.shootDay) facts.push('Shoot day ' + d.shootDay);
+    const prod = d.phases.find(p=>p.key === 'production');
+    if(prod) facts.push(prod.label + (prod.sub ? ' · ' + prod.sub : ''));
+    d.phases.filter(p=>p.key !== 'production').forEach(p=> facts.push(p.label));
+    if(d.hiatus) facts.push('Hiatus');
+    if(d.holiday) facts.push(d.holiday);
+    if(!facts.length) facts.push(weekend ? 'Weekend' : 'Nothing scheduled');
+
+    const sections = [];
+
+    // ---- this day ----
+    const running = [...new Map(d.phases.map(p=>[p.key, p])).values()];
+    const hiatusSub = {sections:[
+      {items:[{icon:'pause', text:'All phases', note:'Week of ' + fmtDM(wkMon) + ' · 2 weeks',
+               desc:'Adds a row to the All-phase hiatus card starting the week of ' + fmtLong(wkMon) + ', 2 weeks long. A hiatus always covers whole Monday-to-Sunday weeks, so it starts on that Monday rather than on the day you clicked. It is locked in place, as a new row is today.',
+               calls:'<code>addHiatusRow(iso, 2)</code>, then <code>update()</code>, as one undo step',
+               toast:'adds an all-phase hiatus for the 2 weeks from ' + fmtLong(wkMon)}]},
+    ]};
+    if(running.length) hiatusSub.sections.push({label:'One phase only', items: running.map(p=>({
+      icon:'pause', text: phaseName(p.key) + ' only', note:'Week of ' + fmtDM(wkMon) + ' · 2 weeks',
+      desc:'Turns on ' + phaseName(p.key) + '’s own hiatus, starting the week of ' + fmtLong(wkMon) + '. It pauses only ' + phaseName(p.key) + '; the other phases carry on. A phase has one hiatus of its own, so on a phase that already has one this item moves it here instead, and says so.',
+      calls:'the phase row’s <code>phiatus-en-&lt;key&gt;</code>, <code>-start-</code>, <code>-weeks-</code>, then <code>refreshPhaseHiatusUI()</code> and <code>update()</code>',
+      toast:'turns on ' + phaseName(p.key) + '’s own hiatus from the week of ' + fmtLong(wkMon)}))});
+
+    sections.push({items:[
+      {icon:'note', text:'Add note', disabled: d.hiatus, note: d.hiatus ? 'A hiatus day has no note lanes' : '',
+       desc: d.hiatus ? 'Greyed out, with its reason: the month view draws no note lanes on a day inside an all-phase hiatus, so there is nothing for the note editor to open on. That is today’s behaviour, and the menu does not get round it.'
+                      : 'Opens the month-view note editor on this day, exactly as clicking the day’s “+” does. A note added here shows in the month view only.',
+       calls:'<code>openMvNoteEditor()</code> on the day’s own “+” (<code>.mv-note-add</code>)',
+       toast:'opens the note editor on ' + fmtLong(d.date)},
+      {icon:'plus', text:'Add 1-day phase here', disabled: weekend || d.hiatus,
+       note: weekend ? 'A phase can’t be drawn on a weekend' : d.hiatus ? 'A phase can’t be drawn inside a hiatus' : 'Custom phase · ' + fmtDM(d.date) + ' only',
+       desc: (weekend || d.hiatus)
+         ? 'Greyed out, with its reason. The month view never draws a phase on a ' + (weekend ? 'Saturday or Sunday' : 'day inside an all-phase hiatus') + ', so a one-day phase here would exist in the sidebar and show nothing on the day you clicked. “Add 1-week phase here” is still offered.'
+         : 'Adds a custom phase covering exactly ' + fmtLong(d.date) + '. It is a Dates phase whose start and end are both this day. Then the sidebar switches to Phases with the cursor in the new row’s name box, so the next thing you do is type its name.',
+       calls:'<code>addCustomPhaseRow()</code>, then the new row’s <code>unit-</code> (Dates), <code>start-</code> and <code>end-</code> boxes, <code>update()</code> and <code>setSidebarTab(\'phases\')</code>, as one undo step',
+       toast:'adds a one-day custom phase on ' + fmtLong(d.date) + ' and opens its row in the Phases card'},
+      {icon:'plus', text:'Add 1-week phase here', note:'Custom phase · from ' + fmtDM(d.date),
+       desc:'Adds a custom phase, 1 week long, that starts on ' + fmtLong(d.date) + ': exactly the day you clicked, not that week’s Monday. Then the sidebar switches to Phases with the cursor in the new row’s name box. Change its length or unit in the row.' + (weekend ? ' It starts on this weekend day, so the first day it is drawn is the Monday.' : ''),
+       calls:'<code>addCustomPhaseRow()</code>, then the new row’s <code>start-</code>, <code>weeks-</code> (1) and <code>snap-</code> boxes, <code>update()</code> and <code>setSidebarTab(\'phases\')</code>, as one undo step',
+       toast:'adds a one-week custom phase starting ' + fmtLong(d.date) + ' and opens its row in the Phases card'},
+      {icon:'pause', text:'Add hiatus', sub: hiatusSub,
+       desc:'A hiatus for everything, or for one of the phases running on this day.'},
+    ]});
+
+    // ---- the phase bar under the pointer ----
+    if(ph){
+      const name = phaseName(ph.key), isProd = ph.key === 'production';
+      sections.push({label: isProd ? 'Production · ' + ph.label : name, swatch: ph.color, items:[
+        {icon:'start', text:'Start ' + name + ' here', note:'Moves it. Its length stays',
+         desc:'Moves ' + name + ' so it starts on ' + fmtLong(d.date) + ', keeping its length: the same thing as dragging its bar to this day. Nothing else moves.' + (isProd ? ' Production’s day marks travel with it by shoot-day number, as they do on every move.' : ''),
+         calls: isProd ? '<code>setPhaseStart(\'production\', iso)</code> inside <code>asShootDayMove()</code>' : '<code>setPhaseStart(key, iso)</code>',
+         toast:'moves ' + name + ' to start on ' + fmtLong(d.date)},
+        {icon:'end', text:'End ' + name + ' here', disabled: isProd,
+         note: isProd ? 'Its end comes from the shoot days' : 'Keeps its start. Changes its length',
+         desc: isProd ? 'Greyed out, with its reason. Production ends where its episodes’ shoot days run out, so a day cannot simply be its end. Drag its end handle to lengthen or shorten the last episode.'
+                      : 'Ends ' + name + ' on ' + fmtLong(d.date) + ' and keeps its start: the same thing as dragging its end handle to this day. A phase measured in weeks switches to Dates first, as the handle does, because whole weeks cannot end on any day.',
+         calls:'the end handle’s own rule, moved out of <code>installPhaseEdgeHandles</code> so both use it',
+         toast:'ends ' + name + ' on ' + fmtLong(d.date)},
+        {icon:'palette', text:'Colour…',
+         desc:'Opens the phase colour picker beside the bar. It is the same picker as the swatch in the Phases card.',
+         calls:'<code>openPhaseColorPop(bar, index, onPick)</code>', toast:'opens the colour picker for ' + name},
+        {icon:'sidebar', text:'Show in Phases card',
+         desc:'Switches the sidebar to Phases and scrolls to ' + name + '’s row.',
+         calls:'<code>setSidebarTab(\'phases\')</code>, then scrolls the row into view', toast:'shows ' + name + '’s row in the Phases card'},
+      ]});
+    }
+
+    // ---- a note under the pointer ----
+    if(ctx.note){
+      sections.push({label:'Note', items:[
+        {icon:'note', text:'Edit note…', note: ctx.note.kind === 'wf' ? 'Also changes the waterfall' : '',
+         desc:'Opens the note editor on this note, as clicking it does. ' + (ctx.note.kind === 'wf' ? 'This one comes from the waterfall, so an edit shows there too.' : ''),
+         calls:'<code>openMvNoteEditor()</code> on the note', toast:'opens the note editor on “' + ctx.note.text + '”'},
+      ]});
+    }
+
+    // ---- the shoot day: the same choices the left-click popover offers ----
+    if(inShoot){
+      let rows;
+      if(d.hiatus) rows = [{text:'Work this day', radio:false, disabled:true, note:'Inside Hiatus — shorten the hiatus to work these days'}];
+      else if(weekend || d.holiday) rows = [
+        {text: d.holiday ? 'Holiday — not shot' : 'Weekend — not shot', radio:true},
+        {text:'Work this day', radio:false, note: d.holiday ? 'Overrides ' + d.holiday : ''}];
+      else rows = [{text:'Full day', radio:true}, {text:'Off', radio:false}];
+      rows.forEach(r=>{
+        r.desc = 'The choices the shoot-day popover offers when you click a day in the shoot, and only those. They are built by the same code, so the menu and the popover cannot disagree. Off and Work this day move the wrap; the wrap’s new date shows at once.';
+        r.calls = '<code>setOverride(iso, value)</code>, which is one undo step already';
+        r.toast = r.text === 'Full day' || /not shot/.test(r.text) ? 'leaves ' + fmtLong(d.date) + ' on automatic' : 'marks ' + fmtLong(d.date) + ' “' + r.text + '”';
+      });
+      sections.push({label: d.shootDay ? 'Shoot day ' + d.shootDay : 'Shoot', items: rows});
+    }
+
+    // ---- the hiatus covering this day ----
+    if(d.hiatus){
+      sections.push({label:'Hiatus', swatch:'#FF0000', items:[
+        {check:true, text:'Lock in place', note:'Stays on these dates when the calendar is shifted',
+         desc:'The hiatus row’s own “Lock in place” box. Ticked, the shift tools leave this hiatus on its dates; unticked, it moves with the calendar.',
+         calls:'the covering row’s <code>.hiatus-locked</code>, then <code>update()</code>', toast:'unlocks this hiatus'},
+        {icon:'sidebar', text:'Show in Phases card',
+         desc:'Switches the sidebar to Phases and scrolls to this hiatus’s row in the All-phase hiatus card.',
+         calls:'<code>setSidebarTab(\'phases\')</code>, then scrolls the row into view', toast:'shows this hiatus in the All-phase hiatus card'},
+        {icon:'trash', text:'Remove hiatus', danger:true, note:'Asks first',
+         desc:'Removes the whole hiatus, every week of it, after the same “Remove this hiatus?” question the row’s × asks.',
+         calls:'the row’s own remove (<code>uiConfirm</code>, then <code>row.remove()</code> and <code>update()</code>)', toast:'asks “Remove this hiatus?”'},
+      ]});
+    }
+
+    // ---- the holiday on this day: the three boxes from the holiday list ----
+    if(d.holiday){
+      const counts = inShoot && !weekend;
+      sections.push({label:'Holiday · ' + d.holiday, swatch:'#7030A0', items:[
+        {check:true, text:'Enabled', note: counts ? 'Off: Production shoots this day' : 'Off: it no longer shows anywhere',
+         desc:'The holiday list’s Enable box. ' + (counts ? 'Turning it off recomputes the shoot, so it asks first when that could leave a note beside the wrong day, as the box does.' : 'This day is not a shoot day, so turning it off only removes its label.'),
+         calls:'<code>holidayOff[hid]</code> after <code>confirmHolidayRecompute()</code>', toast:'turns off ' + d.holiday},
+        {check:true, text:'Show in month view',
+         desc:'The holiday list’s Month box. It only changes what is drawn.', calls:'<code>holidayView[hid].month</code>, then <code>render()</code>', toast:'hides ' + d.holiday + ' in the month view'},
+        {check:false, text:'Show in waterfall',
+         desc:'The holiday list’s Waterfall box. It only changes what is drawn.', calls:'<code>holidayView[hid].sheet</code>, then <code>render()</code>', toast:'shows ' + d.holiday + ' in the waterfall'},
+      ]});
+    }
+
+    // ---- the way out ----
+    sections.push({items:[
+      {icon:'table', text:'Show this week in the waterfall',
+       desc:'Switches to the waterfall and scrolls it to the week of ' + fmtLong(wkMon) + '.',
+       calls:'<code>setViewMode(\'sheet\')</code>, then scrolls that week’s row into view', toast:'switches to the waterfall at the week of ' + fmtLong(wkMon)},
+    ]});
+
+    return {head:{title: fmtLong(d.date), ctx: facts.join(' · ')}, sections,
+            foot: inShoot ? 'Double-click a marked day to clear it · Shift + right-click: browser menu'
+                          : 'Shift + right-click opens the browser’s own menu'};
+  }
+
+  // ---------- the menu itself ----------
+  let menu = null, stack = [];
+  const explain = document.getElementById('mk-explain');
+  const toast = document.getElementById('mk-toast');
+  let toastT = 0;
+
+  function closeAll(){
+    stack.forEach(m=>m.el.remove()); stack = []; menu = null; menuIso = null;
+    wrap.querySelectorAll('.mk-target').forEach(el=>el.classList.remove('mk-target'));
+    wrap.querySelectorAll('.mk-target-pill').forEach(el=>el.classList.remove('mk-target-pill'));
+  }
+  function closeFrom(level){ while(stack.length > level){ stack.pop().el.remove(); } }
+
+  let menuIso = null;
+  function openMenu(ctx, x, y, dayRect){
+    closeAll();
+    menuIso = iso(ctx.day.date);
+    ctx.day.cell.classList.add('mk-target');
+    if(ctx.phase) ctx.phase.pill.classList.add('mk-target-pill');
+    const spec = buildMenu(ctx);
+    menu = renderPanel(spec, 0);
+    place(menu.el, x, y, null, dayRect || null);
+    menu.el.focus();
+    setActive(menu, firstEnabled(menu, 0, 1));
+  }
+
+  function renderPanel(spec, level){
+    const el = document.createElement('div');
+    el.className = 'cm'; el.setAttribute('role','menu'); el.tabIndex = -1;
+    const items = [];
+    let html = '';
+    if(spec.head) html += `<div class="cm-head"><div class="cm-date">${spec.head.title}</div>${spec.head.ctx ? `<div class="cm-ctx">${spec.head.ctx}</div>` : ''}</div>`;
+    spec.sections.forEach((sec, si)=>{
+      if(si > 0 || spec.head) html += '<div class="cm-div"></div>';
+      if(sec.label) html += `<div class="cm-label">${sec.swatch ? `<span class="cm-swatch" style="background:${sec.swatch}"></span>` : ''}${sec.label}</div>`;
+      sec.items.forEach(it=>{
+        const i = items.length; items.push(it);
+        let lead = it.radio !== undefined ? `<span class="cm-radio${it.radio ? ' on' : ''}"></span>`
+                 : it.check !== undefined ? (it.check ? svg('check','cm-check') : '<span class="cm-check"></span>')
+                 : svg(it.icon || 'plus');
+        const right = it.sub ? svg('chev','cm-check') : (it.right ? it.right : '');
+        html += `<button type="button" class="cm-item${it.danger ? ' is-danger' : ''}" role="${it.radio !== undefined ? 'menuitemradio' : it.check !== undefined ? 'menuitemcheckbox' : 'menuitem'}"`
+              + `${it.radio !== undefined ? ` aria-checked="${!!it.radio}"` : ''}${it.check !== undefined ? ` aria-checked="${!!it.check}"` : ''}`
+              + `${it.disabled ? ' aria-disabled="true"' : ''}${it.sub ? ' aria-haspopup="menu"' : ''} data-i="${i}" tabindex="-1">`
+              + `${lead}<span class="cm-text">${it.text}${it.note ? `<small>${it.note}</small>` : ''}</span><span class="cm-right">${right}</span></button>`;
+      });
+    });
+    if(spec.foot) html += `<div class="cm-foot">${spec.foot}</div>`;
+    el.innerHTML = html;
+    document.body.appendChild(el);
+    const panel = {el, items, level, active:-1, btns:[...el.querySelectorAll('.cm-item')]};
+    stack[level] = panel;
+    el.addEventListener('mousemove', e=>{
+      const b = e.target.closest('.cm-item'); if(!b) return;
+      const i = +b.dataset.i;
+      if(panel.active !== i){ setActive(panel, i); closeFrom(level+1); if(panel.items[i].sub && !panel.items[i].disabled) openSub(panel, i); }
+    });
+    el.addEventListener('click', e=>{
+      const b = e.target.closest('.cm-item'); if(!b) return;
+      choose(panel, +b.dataset.i);
+    });
+    el.addEventListener('contextmenu', e=> e.preventDefault());
+    return panel;
+  }
+
+  function setActive(panel, i){
+    panel.btns.forEach((b,j)=> b.classList.toggle('is-active', j === i));
+    panel.active = i;
+    const it = panel.items[i];
+    if(it){
+      explain.innerHTML = `<b>${it.title || it.text}</b>${it.desc || ''}${it.calls ? `<span class="mk-calls">Calls: ${it.calls}</span>` : ''}`;
+      panel.btns[i].focus({preventScroll:true});
+    }
+  }
+  function firstEnabled(panel, from, dir){
+    for(let k = 0; k < panel.items.length; k++){
+      const i = (from + k*dir + panel.items.length*4) % panel.items.length;
+      if(!panel.items[i].disabled) return i;
+    }
+    return -1;
+  }
+  function openSub(panel, i){
+    const it = panel.items[i];
+    const sub = renderPanel(it.sub, panel.level + 1);
+    const r = panel.btns[i].getBoundingClientRect();
+    place(sub.el, r.right - 2, r.top - 5, r);
+    return sub;
+  }
+  function choose(panel, i){
+    const it = panel.items[i];
+    if(!it || it.disabled) return;
+    if(it.sub){ closeFrom(panel.level+1); const s = openSub(panel, i); setActive(s, firstEnabled(s, 0, 1)); return; }
+    closeAll();
+    say('Mockup: ' + (it.toast || it.text));
+  }
+  function say(text){
+    clearTimeout(toastT);
+    toast.textContent = text;
+    toast.classList.add('on');
+    toastT = setTimeout(()=> toast.classList.remove('on'), 3200);
+  }
+
+  // ---------- left-click on the day itself (ruling L1) ----------
+  // The day number strip, or anywhere on a hiatus day: the only places the day cell, not a "+" slot,
+  // a note or a bar, is what the pointer is on. It replaces the Full day/Off popover. A click on
+  // the day whose menu is open closes it, which is what keeps double-click = clear working.
+  wrap.addEventListener('click', e=>{
+    if(e.target.closest('.mv-arrow')) return;
+    const note = e.target.closest('.mv-note-click');
+    if(note){ closeAll(); say(note.classList.contains('mv-note-add') ? 'Unchanged: a click on a “+” still opens the note editor' : 'Unchanged: a click on a note still opens it in the note editor'); return; }
+    if(e.target.closest('.mv-pill')) return;
+    const cell = e.target.closest('.mv-daycell');
+    const day = cell && model.days[cell.dataset.mkIso];
+    if(!day) return;
+    if(menuIso === cell.dataset.mkIso){ closeAll(); return; }
+    const num = cell.querySelector('.mv-daynum').getBoundingClientRect();
+    openMenu({day, phase:null, note:null}, Math.round(num.left - 4), Math.round(num.bottom + 4), num);
+  });
+
+  // Next to the pointer, kept inside the window: flip left or up rather than run off the edge.
+  // Opened from a day number (dayRect), it sits under the number and flips ABOVE it when it would run
+  // off the bottom -- the shoot-day popover's place() rule -- so it never covers the day it is for.
+  function place(el, x, y, anchorRect, dayRect){
+    const w = el.offsetWidth, h = el.offsetHeight, vw = innerWidth, vh = innerHeight, m = 8;
+    let left = x, top = y;
+    if(left + w > vw - m) left = anchorRect ? anchorRect.left - w + 2 : x - w;
+    if(top + h > vh - m && dayRect && dayRect.top - h - 4 >= m) top = dayRect.top - h - 4;
+    else if(top + h > vh - m){
+      top = Math.max(m, vh - m - h);
+      // Fits neither below nor above (a short window): stand beside the number instead of on it.
+      if(dayRect){ left = dayRect.right + 6; if(left + w > vw - m) left = dayRect.left - w - 6; }
+    }
+    el.style.left = Math.max(m, left) + 'px';
+    el.style.top = Math.max(m, top) + 'px';
+  }
+
+  document.addEventListener('keydown', e=>{
+    if(!stack.length) return;
+    const panel = stack[stack.length-1];
+    if(e.key === 'Escape'){ e.preventDefault(); if(stack.length > 1){ closeFrom(stack.length-1); const p = stack[stack.length-1]; setActive(p, p.active); } else closeAll(); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); setActive(panel, firstEnabled(panel, panel.active+1, 1)); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); setActive(panel, firstEnabled(panel, panel.active-1+panel.items.length, -1)); }
+    else if(e.key === 'ArrowRight'){ const it = panel.items[panel.active]; if(it && it.sub){ e.preventDefault(); choose(panel, panel.active); } }
+    else if(e.key === 'ArrowLeft'){ if(stack.length > 1){ e.preventDefault(); closeFrom(stack.length-1); const p = stack[stack.length-1]; setActive(p, p.active); } }
+    else if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choose(panel, panel.active); }
+  });
+  document.addEventListener('mousedown', e=>{
+    if(!stack.length || e.target.closest('.cm')) return;
+    // A press on the open day itself is left to the click, which closes (toggles) the menu.
+    const cell = e.target.closest('.mv-daycell');
+    if(cell && cell.dataset.mkIso === menuIso && e.button === 0) return;
+    closeAll();
+  });
+  addEventListener('resize', closeAll);
+  addEventListener('scroll', closeAll, true);
+  addEventListener('blur', closeAll);
+
+  // ---------- "open it on one of these" ----------
+  const TRY = [
+    {label:'A Production bar',  m:0, iso:'2026-07-08', pill:'production'},
+    {label:'A shoot-day holiday', m:0, iso:'2026-07-03'},
+    {label:'A weekend in the shoot', m:0, iso:'2026-07-12'},
+    {label:'A Post bar',        m:1, iso:'2026-12-09', pill:'post'},
+    {label:'A hiatus day',      m:1, iso:'2026-12-22'},
+    {label:'Christmas, in a hiatus', m:1, iso:'2026-12-25'},
+  ];
+  function renderTry(){
+    const box = document.getElementById('mk-try');
+    box.innerHTML = '';
+    TRY.forEach(t=>{
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = t.label;
+      b.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        if(cur !== t.m) show(t.m);
+        const day = model.days[t.iso];
+        const phase = t.pill ? day.phases.find(p=>p.key === t.pill) : null;
+        const r = (phase ? phase.pill : day.cell).getBoundingClientRect();
+        const x = Math.round(r.left + Math.min(r.width/2, 60)), y = Math.round(phase ? r.top + r.height/2 : r.top + 30);
+        openMenu({day, phase, note:null}, x, y);
+      });
+      box.appendChild(b);
+    });
+  }
+
+  show(0);
+})();
+</script>
+</body>
+</html>

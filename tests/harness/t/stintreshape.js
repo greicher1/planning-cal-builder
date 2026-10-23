@@ -78,28 +78,27 @@ window.addEventListener('load', function () { (async function () {
     // 2. Select Pre Prep's block. The swap is offered -- and the warning is specific, amber, and
     //    painted over the weeks it is about, all BEFORE the commit.
     await hover(cellOf('prePrep'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'prePrep'; }, 'Swap Block on Pre Prep', 60, 100);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'prePrep'; }, 'Swap Column on Pre Prep', 60, 100);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 150, 100);
     await T.sleep(300);
-    var chip = document.querySelector('.grid-swap-layer .grid-swap-chip');
-    out.chipClass = chip ? chip.className : '';
-    out.chipText = chip ? chip.textContent : '';
+    // ⭐ Since 21 Oct 2026 (owner, 21 Oct 2026: no chip except "Double click to expand cells" and a refused swap's reason) the amber outlines are the ONLY warning before
+    // the commit. It used to be said in words too ("⚠ Writer's Rm would widen to 2 columns in 28 weeks").
+    var chips = document.querySelectorAll('.grid-sel-layer .grid-sel-chip, .grid-swap-layer .grid-swap-chip');
+    out.chipText = Array.prototype.map.call(chips, function (c) { return c.className + ': ' + c.textContent; }).join(' | ');
     out.amberRects = document.querySelectorAll('.grid-sel-layer .grid-swap-collateral').length;
-    out.warnIsAmber = /is-warn/.test(out.chipClass);
-    // ⭐ The phase, the new width and the extent -- not a bare count, which is what it used to say.
-    out.warnNamesIt = /Writer.s Rm would widen to 2 columns in 28 weeks/.test(out.chipText);
+    out.noWordsBefore = !/swap|widen|⚠/i.test(out.chipText);
     out.amberMatchesCount = out.amberRects === 28;
 
-    // 3. It commits, and the confirmation says the same thing in the past tense.
+    // 3. It commits, and says nothing (owner, by picker: "Never"; it used to say "⚠ … widened …").
     T.altSwap(-1);   // Alt+Left / Alt+Right: the Swap buttons went with owner ruling 2
     await T.until(function () { return (snap().prePrep || '').indexOf('slot0 ') === 0; }, 'the swap to land', 150, 100);
     await T.sleep(400);
     out.after = snap();
     out.swapped = /^slot0 span1 n7$/.test(out.after.prePrep || '') && /^slot1 /.test(out.after.writersRoom || '');
     out.widened = /span1\/2 n31$/.test(out.after.writersRoom || '');
-    out.flash = (document.querySelector('.grid-swap-layer .grid-swap-chip.is-flash') || {}).textContent || '';
-    out.flashNamesIt = /Writer.s Rm widened to 2 columns in 28 weeks/.test(out.flash);
+    out.flash = (document.querySelector('.grid-swap-layer .grid-swap-chip') || {}).textContent || '';
+    out.flashSilent = !document.querySelector('.grid-swap-layer .grid-swap-chip');
     // Reshaping is not cell loss, and it must not clip: the width model is untouched by a swap.
     out.nothingLost = (out.after.writersRoom || '').indexOf('n31') > 0 && (out.after.prePrep || '').indexOf('n7') > 0;
     out.clipped = T.clippedCells();
@@ -113,8 +112,8 @@ window.addEventListener('load', function () { (async function () {
     out.reversedExactly = same(out.afterReverse, out.before);
 
     out.errors = (window.__ERR || []).slice(0, 6);
-    out.PASS = out.threeColumns && out.narrowBefore && out.warnIsAmber && out.warnNamesIt &&
-               out.amberMatchesCount && out.swapped && out.widened && out.flashNamesIt &&
+    out.PASS = out.threeColumns && out.narrowBefore && out.noWordsBefore &&
+               out.amberMatchesCount && out.swapped && out.widened && out.flashSilent &&
                out.nothingLost && out.reversedExactly && out.errors.length === 0 &&
                !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {

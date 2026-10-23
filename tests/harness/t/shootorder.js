@@ -19,19 +19,25 @@ window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   function order() {
     return [].map.call(document.querySelectorAll('#episode-rows .episode-row'), function (r) {
-      return r.querySelector('.ep-name').value.replace(/^Episode /, '');
+      return r.querySelector('.ep-name').value.replace(/^(?:Episode|Shoot Ep\.) /, '');
     });
   }
   function meta() { return ((document.getElementById('meta-production') || {}).textContent || '').trim(); }
-  // Production's pills in the month on screen: [label, grey text] per pill.
+  // Production's pills in the month on screen: [label, grey text] per pill. The label's episode as "Ep. N", whether the
+  // bar reads "Shoot Ep. N" or an older file's "Episode N" (owner, 20 Oct 2026): this leg is about shooting order, and
+  // epnames holds the names.
   function pills() {
     return [].map.call(document.querySelectorAll('#table-wrap .mv-pill[data-ph="production"]'), function (p) {
       var sp = p.querySelector('.mv-pill-block');
-      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim(),
+      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '),
               sp ? sp.textContent : ''];
     });
   }
-  function shown(id) { var el = document.getElementById(id); return !!el && el.getClientRects().length > 0; }
+  async function settingsRows() {
+    return { onecol: await T.shownInSettings('one-col-btn'), label: await T.shownInSettings('mv-prod-label-week'),
+             week: await T.shownInSettings('pref-mv-week'), blocks: await T.shownInSettings('pref-mv-blocks'),
+             eps: await T.shownInSettings('pref-mv-episodes') };
+  }
   function tab(name) { var b = document.querySelector('.side-tab-btn[data-tab="' + name + '"]'); if (b) b.click(); }
   async function settle() {
     var last = -1, st = 0;
@@ -77,12 +83,19 @@ window.addEventListener('load', function () { (async function () {
     // ---- 2. ruling 8: Production's pill + the episodes as grey text, in shooting order ----------
     await toMonth('July 2026');
     out.julyPills = pills();
-    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill'),
+    // The renderer's dormant episode-pill branch draws "Episode N" pills that are NOT Production's own. Production's
+    // own bars may read "Episode 205" themselves now: an episode's bar reads its name, and this older file keeps its
+    // "Episode N" names (owner, 20 Oct 2026). So only pills without data-ph="production" count.
+    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill:not([data-ph="production"])'),
       function (p) { return /^Episode\b/.test(p.textContent.trim()); }).length;
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------
-    tab('settings'); await T.sleep(200);
-    out.rowsInMonth = { onecol: shown('one-col-btn'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    // These rows are in the Settings window since owner ruling 12 (20 Oct 2026) -- all in its Preferences tab
+    // since the owner merged the Calendar tab into it -- so each is judged on its own tab.
+    // ⚠️ Since MONTH-PILL-LABEL-PLAN step 3 (16 Oct 2026) the Show rows are CONTEXTUAL (plan §5.2): on this Episodes
+    // calendar with no label chosen the bar names the episode, so only Show Production Week is offered. The
+    // label control itself is month-only like them. pilllabel holds the whole table.
+    out.rowsInMonth = await settingsRows();
     document.getElementById('pref-mv-episodes').click();
     await settle();
     out.pillsEpsOff = pills();
@@ -93,7 +106,8 @@ window.addEventListener('load', function () { (async function () {
     out.pillsEpsBackOn = pills();
     document.getElementById('view-sheet-btn').click();
     await settle();
-    out.rowsInSheet = { onecol: shown('one-col-btn'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    out.rowsInSheet = await settingsRows();
+    await T.closeSettings();   // it lies over the sidebar, and section 4 drags in the Phases card
 
     // ---- 4. ruling 9: a drag re-sequences the shoot; no date moves; one undo step ---------------
     // ⚠️ The Phases tab must be VISIBLE: a hidden panel measures 0x0, so every drop would read as

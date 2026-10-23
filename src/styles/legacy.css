@@ -237,19 +237,19 @@
      has a newer version". Sharing the structural rules and varying only the hue keeps them
      reading as one family -- this app already has more warning looks than it should
      (HANDOFF §6), and a second strip built from scratch would have made that worse. */
-  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice{
+  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice{
     display:flex; align-items:center; gap:9px; padding:8px 28px;
     border-bottom:1px solid; font-size:12px;
   }
   #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
-  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden]{ display:none; }
+  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden]{ display:none; }
   /* A paused column order is a state to notice, not a failure: amber like the legacy strip
      rather than red, because nothing is broken and no data is at risk -- the override is still
      stored and resumes by itself when the schedule allows it again. */
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
-  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon{ font-size:13px; flex:none; }
-  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text{ flex:1; min-width:0; }
+  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text{ flex:1; min-width:0; }
   #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong{ font-weight:600; }
   #legacy-notice .ln-go, #update-notice .ln-go{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
@@ -259,7 +259,7 @@
   #legacy-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
   #update-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
   #update-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
-  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x{
+  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x{
     flex:none; border:none; background:none; font-size:16px; line-height:1;
     cursor:pointer; padding:0 2px; border-radius:4px;
   }
@@ -270,6 +270,11 @@
   #holiday-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #holiday-notice .ln-x{ color:#A98B3D; }
   #holiday-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* The calendar range's cut (owner ruling 3): the same amber, for the same reason -- the calendar is
+     not showing everything you entered, and nothing has failed. */
+  #calrange-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #calrange-notice .ln-x{ color:#A98B3D; }
+  #calrange-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   #update-notice .ln-x{ color:#6D93BF; }
   #update-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
   /* Audit L-20: the Chrome/Edge strip. The update strip's blue, because both are about the APP. */
@@ -338,7 +343,9 @@
     .form-panel section.card{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 
-  .preview-panel{flex:1; min-width:0; padding:20px 28px;}
+  /* The 44px at the bottom is the room the fixed help button and zoom pill sit in (the bottom strip,
+     #help-fab below): stacked, the page scrolls, so at its end the last of the preview clears them. */
+  .preview-panel{flex:1; min-width:0; padding:20px 28px 44px;}
 
   /* ---------- The app shell: the WINDOW never scrolls (owner, 22 Sep 2026) ----------
      "Make the app behave like a standard app window." Above the 960px stack point the window is a
@@ -381,8 +388,145 @@
     body > *{ flex:none; }
     body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
     .form-panel{ align-self:stretch; min-height:0; max-height:none; }
-    .preview-panel{ min-height:0; overflow:auto; }
+    /* ⭐ The bottom strip (#help-fab) is a MARGIN here, not padding: padding sits inside the panel's
+       scroll box, so the month view, which scrolls in .preview-panel, would still pass under the help
+       button and the zoom pill. A margin ends the scroller 44px up, so nothing scrolls into the strip.
+       The waterfall needs nothing more: the grid fit (app.js, "THE APP SHELL'S GRID FIT") measures the
+       panel's clientHeight, so the grid simply ends 44px up as well. */
+    .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:44px; }
   }
+
+  /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------
+     Colour keys and text boxes beside the waterfall. ⛔ OUTSIDE #table-wrap: two .side-col hosts AFTER
+     it in main.preview-panel (so .view-toggle-row -> #table-wrap stays the sibling pair the contracts
+     above need), placed left and right by a grid on the panel that exists ONLY while a box exists, in
+     the Waterfall view, above the 960px stack point. Nothing here is a .sheet-* / .mv-* rule.
+
+     ⛔ HIDDEN IN THE MONTH VIEW BY THE BUTTON'S CLASS, not by a class the engine sets after a render:
+     setViewMode() and applyStateSnapshot() both set #view-month-btn.active BEFORE their render, so
+     renderMonthView() never measures a #table-wrap narrowed by a side column -- whose width
+     repaginates the month PDF (MANTINE-SEAM §5.3; the sideboxes leg holds it to the pixel). */
+  .side-col[hidden]{ display:none !important; }
+  body:has(#view-month-btn.active) .side-col{ display:none !important; }
+  body:has(#view-month-btn.active) #tb-side-boxes-btn{ display:none; }
+  .side-col{ display:flex; align-items:flex-start; min-width:0; }
+  /* The width handle sits on the INNER edge, the one beside the grid. */
+  .side-col.side-right{ flex-direction:row-reverse; }
+  /* Each box is placed on its own rows (app.js, positionSideBoxes: level with the grid's rows, which is
+     where it prints), so the column is a positioned box, not a flow; the sizer gives it its length. */
+  .sb-stack{ width:var(--sb-w, 145px); flex:none; position:relative;
+    overflow-y:auto; overflow-x:hidden;
+    /* Room under the last box for its "Hide from Exports" tab (.sb-noexp), which hangs into the empty row
+       below a box. Without it the tab, hidden or not, would make every stack scroll by its own height. */
+    box-sizing:border-box; padding-bottom:20px; }
+  .sb-sizer{ width:1px; pointer-events:none; }
+  .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
+  .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
+  .sb-width:hover::before, body.sb-resizing .sb-width::before{ background:var(--edit-accent); }
+  @media screen and (width > 960px){
+    body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{
+      display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:start;
+      grid-template-areas:"hint hint hint" "gap gap gap" "bar bar bar" "left main right";
+      /* ⛔ The rows sit at the TOP. The default (normal = stretch) hands any free height to every auto
+         row, so a grid box shorter than the panel pushed itself down by its own shortfall; the grid fit
+         then measured that lower top and filled to the bottom from there, and stayed. Found with the
+         calendar zoom (owner, 20 Oct 2026), where zooming out makes the box shorter at once. At 100%
+         the fit leaves no free height, so nothing moves. */
+      align-content:start;
+    }
+    .preview-panel.has-side-boxes > #span-hint{ grid-area:hint; }
+    .preview-panel.has-side-boxes > #gap-warning{ grid-area:gap; }
+    .preview-panel.has-side-boxes > .view-toggle-row{ grid-area:bar; }
+    .preview-panel.has-side-boxes > #table-wrap{ grid-area:main; min-width:0; }
+    .preview-panel.has-side-boxes > .side-left{ grid-area:left; }
+    .preview-panel.has-side-boxes > .side-right{ grid-area:right; }
+    /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
+       the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
+       solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
+       asserts the two computed max-heights are equal, which is what catches this copy drifting.
+       ⚠️ TIMES THE CALENDAR ZOOM: the grid box is zoomed and the side boxes are not (owner, 21 Oct
+       2026), so the fit solves this value in the zoomed box's own px. --cal-zoom is set on .side-col by
+       applyCalZoom(), and absent (1) at 100%. */
+    .side-col .sb-stack{ max-height:calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1)); }
+  }
+  @media screen and (max-width:960px){
+    .side-col{ margin-top:14px; }
+  }
+  /* The boxes are drawn like the grid, not like the chrome, because they print: Carlito 11px, the
+     20px row pitch, a dark frame, the screen grid header's grey for the title. */
+  .sb-box{ position:absolute; left:0; right:0; top:0; border:1px solid #1E1D1B; background:#fff; color:#000;
+    font-family:'Carlito','Calibri',sans-serif; font-size:11px; line-height:1.35; }
+  .sb-box.sb-dragging{ opacity:.45; }
+  .sb-edit{ display:block; box-sizing:border-box; padding:2px 4px; outline:none; cursor:text;
+    white-space:pre-wrap; overflow-wrap:anywhere; }
+  .sb-title{ background-color:#F2F2F2; border-bottom:1px solid #1E1D1B; }
+  .sb-edit:focus, .sb-key-name:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); }
+  .sb-edit:empty::before, .sb-key-name:empty::before{ content:attr(data-ph); color:var(--text-faint); font-weight:400; font-style:italic; }
+  .sb-key{ position:relative; display:flex; align-items:center; justify-content:center; height:20px;
+    font-weight:700; overflow:hidden; }
+  .sb-key-name{ outline:none; white-space:nowrap; padding:0 3px; min-width:16px; cursor:text; }
+  /* Chrome inside the box: shown on hover or focus, never printed (the writers draw from the store). */
+  .sb-chrome{ position:absolute; z-index:1; top:0; left:0; right:0; height:20px; display:flex;
+    justify-content:space-between; align-items:center; pointer-events:none; opacity:0; }
+  .sb-box:hover .sb-chrome, .sb-box:focus-within .sb-chrome{ opacity:1; }
+  .sb-grip, .sb-del, .sb-key-hide{ pointer-events:auto; border:0; padding:0; width:18px; height:18px;
+    margin:0 1px; border-radius:var(--mantine-radius-sm); background:#F2F2F2;
+    color:var(--mantine-color-gray-7); font:12px/1 Inter, sans-serif; cursor:pointer; }
+  .sb-grip{ cursor:grab; letter-spacing:-3px; padding-right:3px; }
+  .sb-grip:hover, .sb-del:hover, .sb-key-hide:hover{ color:var(--mantine-color-black); background:var(--mantine-color-gray-2); }
+  .sb-grip:focus-visible, .sb-del:focus-visible, .sb-key-hide:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:0; }
+  .sb-key-hide{ position:absolute; right:1px; top:1px; opacity:0; background:rgba(255,255,255,.85); }
+  .sb-key:hover .sb-key-hide, .sb-key-hide:focus-visible{ opacity:1; }
+  .sb-unhide{ display:block; width:100%; border:0; border-top:1px dashed var(--mantine-color-gray-4);
+    background:#fff; color:var(--mantine-color-gray-6); font:var(--mantine-font-size-xxs) Inter, sans-serif;
+    padding:3px; cursor:pointer; }
+  .sb-unhide:hover{ color:var(--mantine-color-black); }
+  /* "Hide from Exports" (owner, 21 Oct 2026): a tab under the box's bottom edge, in the empty row below
+     it, so it covers no text at any box width. Shown on hover or focus; while the box is hidden it stays
+     shown and pressed (the light accent fill is this app's "on"), and the box's frame turns dashed grey --
+     together, the screen's word that the box will not print. visibility, not opacity, at rest: the tab sits
+     in empty space, where an invisible but clickable control would be a trap. */
+  .sb-noexp{ position:absolute; z-index:1; top:calc(100% + 1px); left:-1px; max-width:calc(100% + 2px);
+    height:17px; box-sizing:border-box; padding:0 6px; border:1px solid var(--mantine-color-gray-4);
+    border-top:0; border-radius:0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+    background:var(--mantine-color-white); color:var(--mantine-color-gray-7);
+    font:500 10px/15px Inter, sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    cursor:pointer; visibility:hidden; }
+  .sb-box:hover > .sb-noexp, .sb-box:focus-within > .sb-noexp, .sb-noexp[aria-pressed="true"]{ visibility:visible; }
+  .sb-noexp:hover{ color:var(--mantine-color-black); background:var(--mantine-color-gray-0); }
+  .sb-noexp:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:0; }
+  .sb-noexp[aria-pressed="true"]{ background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+    border-color:var(--mantine-color-gray-5); }
+  .sb-noexp[aria-pressed="true"]:hover{ background:var(--mantine-primary-color-light-hover); }
+  /* No check mark: at the default 20-unit width (109px) the words alone (100px) just fit, and a mark cut
+     them to "Hide from Expo…". The owner asked for the button to "just say" its words. */
+  .sb-box.sb-noexport{ border-style:dashed; border-color:var(--mantine-color-gray-6); }
+  .sb-box.sb-noexport > .sb-title{ border-bottom-style:dashed; border-bottom-color:var(--mantine-color-gray-6); }
+  /* The format bar: the header's controls (.hf-*), on a body-level panel of its own. */
+  .sb-fmt{ position:absolute; z-index:210; display:flex; align-items:center; gap:3px; padding:4px 6px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-md); box-shadow:var(--mantine-shadow-md); }
+  /* The Side boxes menu, the header mode menu's look. */
+  .sb-menu{ position:absolute; z-index:200; background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
+    padding:var(--mantine-spacing-xs); box-shadow:var(--mantine-shadow-md);
+    display:flex; flex-direction:column; gap:2px; width:230px; }
+  .sb-menu-item{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%;
+    padding:7px 10px; border:0; border-radius:var(--mantine-radius-sm); background:transparent;
+    font-family:inherit; font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9);
+    text-align:left; cursor:pointer; }
+  .sb-menu-item:hover, .sb-menu-item:focus-visible{ background:var(--mantine-color-gray-0); outline:none; }
+  .sb-menu-where{ color:var(--mantine-color-gray-6); font-size:var(--mantine-font-size-xs); }
+  .sb-menu-sep{ height:1px; background:var(--mantine-color-gray-2); margin:3px 2px; }
+  /* Moving a box: an outline where it will land, beside the grid's rows, or the same over the grid's
+     edge for a side with no box yet. */
+  .sb-drop{ position:fixed; z-index:220; pointer-events:none; box-sizing:border-box; }
+  .sb-drop-ghost{ border:2px dashed var(--edit-accent); border-radius:2px; background:rgba(112, 48, 160, .07); }
+  .sb-drop-zone{ display:flex; align-items:center; justify-content:center; text-align:center;
+    border:2px dashed var(--edit-accent); border-radius:8px; background:rgba(112, 48, 160, .07);
+    color:var(--edit-accent); font:600 12px Inter, sans-serif; }
+  body.sb-moving, body.sb-moving *{ cursor:grabbing !important; user-select:none; }
+  body.sb-resizing, body.sb-resizing *{ cursor:col-resize !important; user-select:none; }
 
   /* The Mantine UI "application card": white on the grey ground, a hairline gray-3 border, md
      radius, md padding. Nothing else -- no shadow at rest, which is what keeps a column of them
@@ -453,28 +597,97 @@
      itself from the theme -- including the on-state, which is the app's primary colour, so it
      matches the active tab without a rule here. Nothing to override; the class is gone with it. */
 
+  /* The rail is the two tabs plus the Settings BUTTON (owner ruling 12, 20 Oct 2026): Settings opens
+     the Settings window rather than switching the sidebar, so it sits outside the tablist. flex 2:1
+     keeps the three the same width as when all three were tabs. */
+  .side-tabs{ display:flex; gap:var(--mantine-spacing-xxs); }
   .side-tabs-track{
-    display:flex; gap:var(--mantine-spacing-xxs);
+    display:flex; gap:var(--mantine-spacing-xxs); flex:2 1 0; min-width:0;
   }
-  .side-tab-btn{
+  .side-settings-btn{ flex:1 1 0; min-width:0; }
+  .side-tab-btn, .side-settings-btn{
     flex:1; display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500; letter-spacing:.01em;
     border:none; background:transparent; color:var(--mantine-color-gray-6);
     padding:8px 6px; border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:color .12s ease, background .12s ease;
   }
-  .side-tab-btn .tab-ic{ width:15px; height:15px; flex:none; }
+  .side-tab-btn .tab-ic, .side-settings-btn .tab-ic{ width:15px; height:15px; flex:none; }
   .side-tab-btn.active{
     background:var(--mantine-primary-color-light);
     color:var(--mantine-primary-color-light-color);
     font-weight:600;
   }
-  .side-tab-btn:hover:not(.active){ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
-  .side-tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .side-tab-btn:hover:not(.active), .side-settings-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  .side-tab-btn:focus-visible, .side-settings-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .card.tab-hidden{ display:none !important; }
   @media (max-width:960px){
     /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
     .side-tabs{ position:static; }
+  }
+
+  /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
+     "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
+     visible, so changes show live." It is laid over aside.form-panel -- exactly the sidebar's box,
+     the rail included -- and never over .preview-panel, so the grid, the grid fit and every popover
+     anchored to a cell are untouched by it.
+     ⛔ CLOSED IS display:none, NEVER UNMOUNTED. collectFieldValues() and readState() read the
+     window's controls by id on every save and every update; display:none is what `.tab-hidden` did to
+     these same cards whenever the sidebar showed another tab, so the engine has always coped with it.
+     The slide is a transform: @starting-style gives the way in, and `display ... allow-discrete` keeps
+     it displayed for the way out (Chrome/Edge are the targets, CLAUDE.md).
+     ⚠️ CONTAINING BLOCK = THE SIDEBAR'S SCROLL BOX. .form-panel is position:sticky, so it holds the
+     window -- and an absolute child of a scroll box scrolls with its content. SettingsWindow.jsx sets
+     `top` to the sidebar's scrollTop, and .settings-open stops the sidebar scrolling underneath; the
+     window scrolls inside its own tab panel instead.
+     z-index 110: above the sticky .side-tabs (100) in the sidebar's own stacking context (sticky
+     makes one), and so below every body-level popover (300) and the help modal (200). */
+  .settings-window{
+    display:none; flex-direction:column;
+    position:absolute; left:0; top:0; width:100%; height:100%; z-index:110;
+    background:var(--mantine-color-white);
+    transform:translateX(-100%);
+    transition:transform 180ms ease, display 180ms allow-discrete;
+  }
+  .settings-window.is-open{ display:flex; transform:none; }
+  @starting-style{ .settings-window.is-open{ transform:translateX(-100%); } }
+  @media (prefers-reduced-motion:reduce){ .settings-window{ transition:none; } }
+  .form-panel.settings-open{ overflow:hidden; }
+  /* The head lines up with the rail it covers: same padding, same rule under it. */
+  .sw-head{
+    flex:none; display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-md) var(--mantine-spacing-xl);
+    border-bottom:1px solid var(--mantine-color-gray-2);
+  }
+  .sw-head-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-7); }
+  .sw-title{ margin:0; flex:1; min-width:0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--mantine-color-gray-9); }
+  .sw-tabs{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  .sw-tablist{ flex:none; padding:0 var(--mantine-spacing-md); }
+  /* Tab labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
+     the 280 px floor on one line. Sized for four; three since the Calendar tab merged into Preferences. */
+  .sw-tab{ padding:10px 6px; font-size:var(--mantine-font-size-sm); font-weight:500; }
+  /* The panel is the window's ONE scroller, padded as .side-content is so the cards sit as they did. */
+  .sw-panel{
+    flex:1 1 0; min-height:0; overflow-y:auto;
+    padding:0 var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  }
+  .sw-scope{
+    display:flex; align-items:flex-start; gap:var(--mantine-spacing-sm);
+    padding:var(--mantine-spacing-lg) 0 var(--mantine-spacing-xs);
+    line-height:var(--mantine-line-height-sm);
+  }
+  .sw-scope-ic{ width:14px; height:14px; flex:none; margin-top:1px; color:var(--mantine-color-gray-5); }
+  /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
+     goes IN FLOW and takes the sidebar's place instead of lying over it. */
+  @media (max-width:960px){
+    .settings-window{ position:static; width:auto; height:auto; transform:none; transition:none; }
+    /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
+       nothing here, where the window's height is its content's, and they paint over the preview. */
+    .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
+    .settings-window .sw-panel{ overflow:visible; }
+    .form-panel.settings-open{ overflow:visible; }
+    .form-panel.settings-open .side-tabs,
+    .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
   .phase-row{
@@ -868,6 +1081,15 @@
   .phiatus-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
+  /* A phase hiatus's "Number weeks" (owner ruling 8, 20 Oct 2026): the custom phase's Number weeks look,
+     on its own line under the snap note. (0,2,1), to beat the column rule above AND the type rule
+     further down (`.phase-hiatus-fields label`, (0,1,1)), for the same reason .phase-snap needs it. */
+  .phase-hiatus-fields label.phiatus-wknum{
+    display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
+    gap:6px; flex:0 0 100%;
+    font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
+  }
+  .phiatus-wknum input{ margin:0; cursor:pointer; flex:none; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
   /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
   .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled); cursor:pointer; text-align:left; }
@@ -880,6 +1102,11 @@
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
   .phase-meta{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); margin-top:6px;
     white-space:pre-line; line-height:1.5;}
+  /* Column reuse's row note (COLUMN-REUSE-PLAN.md §4): there only when a phase was moved by hand. Quiet
+     like .phase-meta; amber when the hand move can't apply right now. */
+  .col-move-note{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); margin-top:4px; line-height:1.5;}
+  .col-move-note.is-stale{color:var(--mantine-color-orange-8);}
+  .col-move-reset{font:inherit; color:var(--mantine-color-blue-7); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;}
   .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
   .phase-name-input{font-weight:500; font-size:var(--mantine-font-size-md); font-family:inherit; border:1px solid transparent; border-radius:var(--mantine-radius-sm); padding:3px 5px; flex:1; background:transparent; color:var(--mantine-color-black); min-width:0;}
   .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
@@ -894,6 +1121,30 @@
      §12. When a rule hides text so a pseudo-element can replace it, nothing more specific may
      set font-size on the same element. */
   .custom-phase-header .icon-btn{width:24px; height:24px; flex:none;}
+  /* Phase card caret (owner, 20 Oct 2026; app.js "THE CARET ON EVERY PHASE CARD"): folds a card down
+     to its colour bar and name line, the name still editable. Reads as Mantine's ActionIcon
+     variant="subtle": no border until hovered, so the name stays the line's subject. The chevron is
+     drawn geometry, like the remove ×, so it centres exactly and paints currentColor. Down while the
+     card is open, right while it is folded. The negative margin pulls it into the card's padding so
+     the name moves as little as possible. */
+  .phase-collapse-btn{
+    width:24px; height:24px; flex:none; padding:0; margin-left:-6px;
+    border:0; border-radius:var(--mantine-radius-default); background:transparent;
+    color:var(--mantine-color-gray-6); cursor:pointer; font-family:inherit;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:background-color 100ms ease, color 100ms ease;
+  }
+  .phase-collapse-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-black); }
+  .phase-collapse-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .phase-collapse-btn::before{
+    content:""; width:14px; height:14px; background:currentColor; transition:transform 150ms ease;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .phase-collapse-btn[aria-expanded="false"]::before{ transform:rotate(-90deg); }
+  /* The fold itself. !important because the engine shows and hides some of these children with an
+     inline style.display (#ep-panel, the sim-post rows), which would otherwise beat this rule. */
+  .phase-row.is-collapsed > :not(.swatch):not(.custom-phase-header){ display:none !important; }
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
   /* ============================================================================================
@@ -987,6 +1238,17 @@
     -webkit-appearance:none; appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
+    padding-right:28px;
+  }
+  /* The Show info card's copy of the Production Region (Sidebar.jsx, owner 21 Oct 2026). A plain select,
+     because a NativeSelect mints an id the save sweep would pick up, so it draws NativeSelect's own
+     look by hand, to sit under the card's Season and Schedule by selects: Mantine's ComboboxChevron path
+     (the up/down one, not the tool popovers' down arrow) at its xs size (14px) in gray-6, centred in
+     the 28px right section an xs input reserves (1px border + 6px + 7px = 14px from the edge). */
+  select.region-mirror{
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 15 15' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Cpath d='M4.93179 5.43179C4.75605 5.60753 4.75605 5.89245 4.93179 6.06819C5.10753 6.24392 5.39245 6.24392 5.56819 6.06819L7.49999 4.13638L9.43179 6.06819C9.60753 6.24392 9.89245 6.24392 10.0682 6.06819C10.2439 5.89245 10.2439 5.60753 10.0682 5.43179L7.81819 3.18179C7.73379 3.0974 7.61933 3.04999 7.49999 3.04999C7.38064 3.04999 7.26618 3.0974 7.18179 3.18179L4.93179 5.43179ZM10.0682 9.56819C10.2439 9.39245 10.2439 9.10753 10.0682 8.93179C9.89245 8.75606 9.60753 8.75606 9.43179 8.93179L7.49999 10.8636L5.56819 8.93179C5.39245 8.75606 5.10753 8.75606 4.93179 8.93179C4.75605 9.10753 4.75605 9.39245 4.93179 9.56819L7.18179 11.8182C7.35753 11.9939 7.64245 11.9939 7.81819 11.8182L10.0682 9.56819Z' fill='%23726F68' fill-rule='evenodd' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center; background-size:14px 14px;
     padding-right:28px;
   }
   /* Number inputs joined the one family (29 Aug 2026): the mono face kept digits aligned down a
@@ -1267,6 +1529,27 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* The four SHIFTING tools wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
+     exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
+     Header button and undo/redo: white, a navy-6 border, navy-6 text and caret.
+     ⛔ NOT the light accent FILL. That went live first and the owner saw at once that the four buttons
+     ("it looks like those buttons are all selected"): navy-1 is the selected sidebar tab's ground (.side-tab-btn.active),
+     so a resting control filled with it reads as switched on. In this app a light accent fill means
+     selected; colour a resting control by its border and ink (UI-CONVENTIONS §3b). Owner's pick of four
+     mockups, "option A (navy outline only)". Hover and an open popover take navy-0, the faintest wash.
+     Tokens, never hex. These rules are unlayered, so they outrank Mantine's layered Button colours
+     without !important; that is also why the hover and open states are spelled out here, since
+     Mantine's own hover is layered too. */
+  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-6); }
+  .shift-btn, .tools-wrap > .tools-btn{
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
+  }
+  .shift-btn + .shift-btn{ border-left-color:var(--mantine-color-navy-2); }
+  .shift-btn:hover, .shift-main[aria-expanded="true"],
+  .tools-wrap > .tools-btn:hover, .tools-wrap > .tools-btn[aria-expanded="true"]{
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-7);
+  }
+  .tools-wrap > .tools-btn .caret{ color:inherit; }
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
      as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
      outranks Mantine's layered Button background without !important. */
@@ -1474,6 +1757,28 @@
      tinted rather than subtle on purpose: this one should never pass unnoticed. */
   .mv-day-on{ background:#FFF4E2; }
   .mv-day-on .mv-daynum{ color:#7A5B14; }
+  /* ---- Shoot-day numbers. ⛔ FROZEN EDIT (owner-approved 19 Oct 2026 by picker, "Approve with that
+     gate"). renderMonthView puts data-shoot-day="N" on a shoot day's cell only while the calendar's
+     "Number Production Days" setting is on, so with it off this rule matches nothing and every
+     calendar renders and prints exactly as before.
+     - HEIGHT-NEUTRAL like the marks above: a pseudo-element of a cell, and the cells live in
+       .mv-daygrid (position:absolute; inset:0), so nothing here can move a row.
+     - ::after, FLOATED RIGHT, on purpose. As the cell's last child it follows the date (and its ½) on
+       the first line, at the right edge, when they fit side by side. In a cell too narrow for both it
+       drops to the next line, under the bars, and the DATE NEVER MOVES -- a ::before float would have
+       pushed the date down instead.
+     - line-height:24px puts its baseline on the date's: the date's line is the cell's 14 px strut at
+       line-height 1.5 (21 px, baseline 16), and 10 px Inter in a 24 px line also sits 16 px down.
+       The month-PDF writer derives both from the fonts (mvlLineMetrics), not from this comment.
+     - The ink is .mv-pill-block's grey, the month view's existing "secondary label" colour; an
+       out-of-month day fades it as .mv-out fades the date.
+     ⚠️ The month-PDF writer copies these numbers (MVL_PAINT.shootDay); change one, change both. */
+  .mv-daycell[data-shoot-day]::after{
+    content:'Day ' attr(data-shoot-day);
+    float:right; white-space:nowrap;
+    font-size:10px; font-weight:500; line-height:24px; color:#5C6470;
+  }
+  .mv-out[data-shoot-day]::after{ opacity:.35; }
   /* Bars sit in normal flow ON TOP of the day grid, so tall content (a wrapped note) grows
      the week row rather than spilling over the week below. */
   .mv-bars{
@@ -1510,6 +1815,28 @@
   }
   /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
   .mv-pill{ border-radius:9px; }
+  /* ---- FROZEN EDIT (owner-approved 21 Oct 2026 in chat, SPAN-NOTES-PLAN.md §1 D1: "go for the darker outline for
+     phases"): a phase reads as a phase because it is ringed in its own ink, which no note is. Every pill -- a phase's,
+     an episode's, Simultaneous Post's -- takes a 1.5 px ring in currentColor, the dark shade of its own hue the
+     renderer already writes as `color:` (PHASES[].textColor, PHASE_COLOR_OPTIONS[].text, SIMPOST_TEXT). Notes and
+     hiatus bands keep .mv-bar's 18% rim.
+     ⛔ LAYOUT-NEUTRAL BY CONSTRUCTION: the border stays .mv-bar's 1 px (only its colour changes) and the other half
+     pixel is an INSET box-shadow, which paints inside the padding edge and takes no space. Under box-sizing:border-box
+     a 1.5 px border would have shrunk every pill's content box by a pixel and cut more labels with "…", which is what
+     the freeze exists to stop. So the screen DOM, the print document and every line break are what they were; only
+     paint moves. The writer paints the same ring (mvlPaintBar, MVL_PAINT.bar.pillRim). */
+  .mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor; }
+  /* ---- FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §6: "Wrap to two lines"; ruling Q3
+     "Any one-day piece"): a one-day piece of a CUSTOM phase whose label does not fit one line. renderMonthView
+     gives it two lanes and this class (mvPillLanes), so it wraps where .mv-bar cuts, and a label that needs more
+     than two lines is cut with "…" at the end of the second (-webkit-line-clamp). word-break as a note's, so one
+     long word cannot run out of the bar; the line height, padding and border are .mv-bar's, which is what
+     mvPillLineCount measures. ⚠️ INERT on every calendar without such a pill: no other bar has the class. The
+     month-PDF writer wraps the same pills at its own width (mvlPillLines). */
+  .mv-pill.mv-pill-2l{
+    white-space:normal; word-break:break-word;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  }
   /* ---- FROZEN EDIT (owner-approved 16 Sep 2026, BLOCKS-PLAN.md §5; placed by the owner 22 Sep):
      the block tag, INSIDE Production's pill -- "smaller grey text next to production wk". It
      inherits the pill's nowrap + ellipsis, so on a pill piece too short for it the tail truncates
@@ -1612,6 +1939,14 @@
     white-space:pre-wrap; overflow:hidden; text-overflow:clip;
     line-height:1.3; padding:2px 4px; word-break:break-word; hyphens:auto;
   }
+  /* ---- FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §8 Q2: "No box at all"): a
+     No fill note is its text alone. Its fill is #FFFFFF00, transparent, which the frozen renderer writes as
+     `background:#FFFFFF00` (MV_NOTE_NOFILL), and this clears the 18% rim every bar has. The border keeps its
+     1 px WIDTH, transparent, so the note's box and its line count (mvNoteLineCount measures a 1 px border)
+     are a coloured note's exactly. Screen and #print-root alike, so the print path prints what is shown.
+     ⚠️ INERT on every calendar saved before it: no colour the app wrote before 20 Oct 2026 matches. `i`,
+     because a hand-edited file may spell the digits in lower case and sanitizeSnapshot lets either through. */
+  .mv-note-block[style*="background:#FFFFFF00" i]{ border-color:transparent; }
   .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
 
   /* Episodes live inside the Production phase row (month view only). */
@@ -2011,12 +2346,10 @@
   .grid-swap-chip{ position:absolute; max-width:340px; white-space:normal; pointer-events:none;
     font:11px/1.35 'Inter',system-ui,sans-serif; padding:3px 8px; border-radius:10px;
     background:rgba(45,45,48,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28); }
+  /* The swap layer's chip is only ever why a swap was refused, after a press or a drop (owner, 21 Oct
+     2026; drawSwapLayer). Its amber .is-warn went with the reshape warning it carried in words: the
+     amber outlines (.grid-swap-collateral) are now that warning. */
   .grid-swap-chip.is-flash{ background:#0E7C8C; }
-  /* A block swap that would RESHAPE a block. Amber, matching .grid-swap-collateral's rects, because
-     it is describing exactly those weeks -- and distinct from the neutral dark chip, which is the
-     point: the promise of a block swap is that blocks keep their shape, so the exception has to look
-     like one. Owner ruling 2 Sep 2026: keep offering the swap, warn harder. */
-  .grid-swap-chip.is-warn{ background:#8A5A12; }
   /* The frozen render replaces the table synchronously, so the real cells teleport. These two ghosts
      carry the eye across in each phase's own colour; --dx is the measured delta and --lift arcs them
      past each other in opposite directions. */
@@ -2031,12 +2364,12 @@
      nothing about either layer -- hide rather than let them go stale. */
   body.grid-resizing .grid-swap-layer{ display:none; }
   body.grid-swapping{ user-select:none; cursor:grabbing; }
-  /* Feature 1's count chip is drawn just above the selection, which is exactly where the amber
+  /* The selection's chip is drawn just above the selection, which is exactly where the amber
      collateral rects appear -- and those are the one thing the user has to be able to read BEFORE
-     letting go. Once the knob is grabbed, the batch-expand count is noise: hide it for the gesture.
+     letting go. Once the knob is grabbed, the drag's own ghosts say what will move: hide it for the gesture.
      Done in CSS rather than JS so there is only one place either chip's visibility is decided. */
   body.grid-swapping .grid-sel-chip{ display:none; }
-  /* The "Swap Block" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;
+  /* The "Swap Column" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;
      teal like the knob, because it belongs to the swap vocabulary and not to the purple resize one.
      Sized to sit inside a 20px row (ROW_DEFAULT_PX) without touching the cell's borders. */
   .grid-stint-btn{
@@ -2147,6 +2480,27 @@
      Later than the look above on purpose, at the same ID specificity, so display is the one thing
      this changes: fence.js still measures their unchanged font, line-height and padding. */
   #hdr-mode-btn, #notes-reset-btn, #mv-hdr-mode-btn{ display:none; }
+  /* Header: Off (owner ruling 10, 20 Oct 2026; HEADER-ROW-PLAN.md §2). The frozen renderer still
+     emits the title block, with every line empty; the engine sets body.wf-hdr-off (reflectHeaderOff)
+     and the block goes, so the grid starts at the top. Off <body>, not #table-wrap, so the print
+     fallback in #print-root loses it too. .hdr-tools goes with it: over a Manual header it would
+     otherwise show the line-format strip for lines nobody can see. The month view's header is
+     .mv-header and is untouched. */
+  body.wf-hdr-off .cal-header-bar, body.wf-hdr-off .hdr-tools{ display:none; }
+  /* ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, "At every zoom"; app.js, same heading).
+     The title block and the Manual-mode format strip stop at the grid's last column instead of running
+     to the edge of the scroll box. --wf-grid-w is the grid's own width, written on .preview-panel by the
+     engine; without it (before the first render, the print copy) the cap is off. Width only: the
+     header's padding, fonts and lines are untouched, and a calendar wider than the view keeps the
+     header across the visible width.
+     ⛔ min-width:fit-content is the floor, and it is what keeps the HEIGHT unchanged: the header is never
+     narrower than its lines need on one line (or than the scroll box, when they never fitted), so no
+     line wraps that did not wrap before. Measured: a 320px grid squeezed the title block from 71px to
+     199px tall. So on a calendar narrower than its own header text, the header runs past the last
+     column by just what the text needs -- the owner's own ruling for paper (10 Sep 2026, single column:
+     "the header should look/work exactly the same as it always does"). */
+  #table-wrap > .sheet-scroll > .cal-header-bar,
+  #table-wrap > .sheet-scroll > .hdr-tools{ max-width:var(--wf-grid-w, none); min-width:fit-content; }
 
   /* ---------- Alignment dropdown ---------- */
   .hf-align-wrap{ position:relative; display:inline-flex; }
@@ -2256,6 +2610,53 @@
     flex:none;
   }
 
+  /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
+     One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
+     header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
+  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools. */
+  .view-toggle-row > .style-bar-host{ flex:1 1 100%; min-width:0; }
+  .style-bar{
+    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
+    min-width:0;
+    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-sm);
+  }
+  .style-bar::before{
+    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  }
+  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
+     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
+     below it. */
+  .style-bar:not(.has-target)::after{
+    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
+  }
+  .style-bar .hf-swatch[hidden]{ display:none; }
+  /* A highlight that is part one look and part another: outlined in the accent, not filled. */
+  .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }
+  /* The in-calendar header strips retire: the bar above does their job (TEXT-STYLE-BAR-PLAN.md §2). Scoped to
+     #table-wrap, so the header editor's own copy of the controls is untouched. .hdr-tools collapses to
+     nothing, as it always has outside Manual mode. */
+  #table-wrap .hdr-fmt{ display:none; }
+  /* A header line picked for the bar in Auto or Template mode, where there is no caret to show it. An outline
+     takes no room, so the header never moves. */
+  #table-wrap .hdr-line.is-style-target{ outline:2px solid var(--edit-accent); outline-offset:1px; border-radius:2px; }
+  /* The highlight over the grid (D2): the gridSel layer's place and rules -- a sibling inside .sheet-grid-wrap,
+     z-index 1 under the sticky heading row, clipped, no pointer events. Headings get a STICKY strip of their
+     own at the wrap's top, so their boxes stay on the heading row while the body scrolls under it; z-index 3
+     puts them over that row (z 2). Both hidden while a resize drag moves the grid live, as gridSel's is. */
+  .text-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .text-sel-head{ position:sticky; top:0; height:0; z-index:3; pointer-events:none; }
+  .text-sel-cell{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.75);
+    background:rgba(112,48,160,.10); }
+  .text-sel-cell.is-active{ border-width:2px; }
+  .text-sel-marquee{ position:absolute; border:1px dashed rgba(112,48,160,.7); background:rgba(112,48,160,.05); }
+  body.grid-resizing .text-sel-layer, body.grid-resizing .text-sel-head{ display:none; }
+
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
      min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift
      the layout for people who never use them. Hidden until they hold text OR the header is in
@@ -2344,6 +2745,75 @@
     font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
+  /* Custom column headings (owner ruling 2, 20 Oct 2026; HEADER-ROW-PLAN.md §4). The heading cells
+     keep every frozen th rule -- fill, type, padding, the sticky row -- and only gain the click-to-edit
+     cursor and a hover ring, scoped to #table-wrap so the print fallback in #print-root never sees
+     either. The editor is a .note-pop: one field for the whole heading, then ← Merge / Split / Merge →
+     (the Split/Merge redesign, 20 Oct 2026), and .hdrrow-ring, a body-level ring over the heading being
+     edited -- the same accent as the hover ring, never a class on the cell. */
+  #table-wrap th.hdrrow-cell{ cursor:text; }
+  #table-wrap th.hdrrow-cell:hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
+  .hdrrow-ring{
+    position:absolute; z-index:59; pointer-events:none; border-radius:1px;
+    box-shadow:inset 0 0 0 2px var(--edit-accent);
+  }
+  .hdrrow-input{
+    width:100%; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-black); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    padding:4px var(--mantine-spacing-sm);
+  }
+  .hdrrow-btns{ display:flex; gap:var(--mantine-spacing-xs); margin-top:var(--mantine-spacing-sm); }
+  .hdrrow-btn{
+    flex:1 1 0; min-width:0; white-space:nowrap;
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+    padding:5px 4px; cursor:pointer;
+  }
+  .hdrrow-btn:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .hdrrow-btn:disabled{ color:var(--mantine-color-gray-5); background:var(--mantine-color-gray-0); cursor:default; }
+  .hdrrow-meta{
+    display:flex; align-items:baseline; justify-content:space-between; gap:var(--mantine-spacing-sm);
+    margin-top:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6);
+  }
+  .hdrrow-reset{
+    font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled);
+    background:none; border:0; padding:0; cursor:pointer;
+  }
+  .hdrrow-reset:hover{ text-decoration:underline; }
+  /* Hidden Notes columns: the panel's parts (HIDE-NOTES-PLAN.md §2). Chrome, never in the grid. The title row
+     carries the "Has notes" badge (Mantine's dot badge: white, a hairline, a violet dot); the Hide button is a
+     Mantine default button, full width, the heading editor's .hdrrow-btn look. */
+  .wf-notes-pop{ width:220px; }
+  .wf-notes-pop-head{
+    display:flex; align-items:center; justify-content:space-between; gap:var(--mantine-spacing-md);
+    margin-bottom:var(--mantine-spacing-md);
+  }
+  .wf-notes-pop-head .note-pop-title{ margin-bottom:0; }
+  .wf-notes-badge{
+    display:inline-flex; align-items:center; gap:5px; height:18px; padding:0 8px; flex:none;
+    border:1px solid var(--mantine-color-gray-2); border-radius:9px; background:var(--mantine-color-white);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--mantine-color-gray-7); white-space:nowrap;
+  }
+  .wf-notes-badge .wf-notes-dot, .wf-hidden-pill .wf-notes-dot{ display:inline-block; }
+  .wf-notes-pop-sep{ border-top:1px solid var(--mantine-color-gray-1); margin:var(--mantine-spacing-lg) calc(-1 * var(--mantine-spacing-lg)); }
+  .wf-notes-hide{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; height:28px;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md); cursor:pointer;
+  }
+  .wf-notes-hide svg{ color:var(--mantine-color-gray-7); flex:none; }
+  .wf-notes-hide:hover{ background:var(--mantine-color-gray-0); }
+  .wf-notes-hide:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* The Settings row's pills (Waterfall card): Mantine's Pill shape, in the theme's warm gray. */
+  .wf-hidden-pill{
+    display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 2px 0 9px;
+    background:var(--mantine-color-gray-1); border-radius:11px;
+    font-size:var(--mantine-font-size-sm); font-weight:500; color:var(--mantine-color-black);
+  }
   td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
   td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
   /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
@@ -2388,56 +2858,142 @@
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
 
-  /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4). ----
-     ⭐ NOT FROZEN, and the distinction is exact: this is a BODY-LEVEL panel anchored to a day cell,
-     never markup inside the grid, so none of these selectors is a `.mv-*` rule and none of them can
-     reach #print-root. The month-view MARKS the overrides produce (.mv-day-half/off/on) are the
-     frozen half, and they are already shipped -- this only styles the menu that sets them.
-     Sized and shaped to match .mv-note-pop deliberately: the two open from the same grid, on the
-     same gesture, and a user should not have to learn two panels. */
-  .day-ov-pop{
-    position:absolute; z-index:60; width:228px; padding:var(--mantine-spacing-lg);
+  /* ---- Paste notes… (MONTH-NOTES-PLAN.md §5, openPasteNotes) ----
+     ⭐ NOT FROZEN: a body-level dialog over the app, like the template header editor (.hde-overlay) whose tier
+     and scrim it shares, never markup in the grid, so nothing here can reach #print-root (and the print rule
+     `body.printing-calendar > *:not(#print-root)` hides it anyway). Matched to the app's Mantine modals. */
+  .paste-notes-overlay{
+    position:fixed; inset:0; z-index:400; display:flex; align-items:flex-start; justify-content:center;
+    padding:64px 16px 28px; overflow-y:auto; background:rgba(30,29,27,.34);
+  }
+  .paste-notes{
+    width:min(560px, 100%); box-sizing:border-box; padding:var(--mantine-spacing-lg);
     background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
-  }
-  .day-ov-pop-day{
-    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em;
-    text-transform:uppercase; color:var(--mantine-color-gray-6);
-    margin-bottom:var(--mantine-spacing-sm);
-  }
-  .day-ov-opts{ display:flex; flex-direction:column; gap:4px; }
-  .day-ov-opt{
-    display:block; width:100%; text-align:left; font-family:inherit;
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-xl);
     font-size:var(--mantine-font-size-sm); color:var(--mantine-color-black);
-    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4);
-    border-radius:var(--mantine-radius-md);
-    padding:var(--mantine-spacing-xs) var(--mantine-spacing-md);
-    cursor:pointer; line-height:1.3;
   }
-  .day-ov-opt:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
-  /* The state the day is in now. A tick rather than a fill, so the row still reads as a button --
-     picking it again is a no-op, not a second state. */
-  .day-ov-opt.is-current{ border-color:var(--edit-accent); font-weight:600; }
-  .day-ov-opt.is-current::after{ content:"\2713"; float:right; color:var(--edit-accent); }
-  /* ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT WITH ITS REASON,
-     rather than hiding the option. Greyed, not absent -- a refusal must name itself. */
-  .day-ov-opt.is-disabled, .day-ov-opt:disabled{
-    cursor:default; color:var(--text-faint); background:var(--mantine-color-gray-0);
-    border-color:var(--mantine-color-gray-3);
+  .paste-notes-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--mantine-spacing-xs); }
+  .paste-notes-title{ font-size:var(--mantine-font-size-md); font-weight:600; }
+  .paste-notes-x{
+    width:28px; height:28px; border:0; border-radius:var(--mantine-radius-md); background:none;
+    font-size:20px; line-height:1; color:var(--mantine-color-gray-6); cursor:pointer;
   }
-  .day-ov-reason{
-    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
-    color:var(--text-faint); line-height:var(--mantine-line-height-xs); font-weight:400;
+  .paste-notes-x:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .paste-notes-hint{
+    margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs);
+    line-height:var(--mantine-line-height-sm); color:var(--text-muted);
   }
-  /* ⚠️ Working a union holiday overrides the thing the whole holiday dataset exists to protect.
-     It is allowed, and it is never silent. */
-  .day-ov-warn{
-    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
-    color:#7A5B14; line-height:var(--mantine-line-height-xs); font-weight:400;
+  .paste-notes-text{
+    width:100%; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-black); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); resize:vertical; line-height:1.45;
   }
-  .day-ov-stale, .day-ov-hint{
-    font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
-    line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
+  .paste-notes-text:focus{ outline:none; border-color:var(--mantine-primary-color-filled); }
+  .paste-notes-sum{ min-height:18px; margin:var(--mantine-spacing-sm) 0 4px; font-size:var(--mantine-font-size-xs); font-weight:600; color:var(--mantine-color-gray-7); }
+  .paste-notes-sum.is-error{ color:var(--mantine-color-red-7); }
+  .paste-notes-preview{ max-height:220px; overflow-y:auto; }
+  .paste-row{
+    display:flex; align-items:center; gap:8px; padding:3px 2px;
+    border-top:1px solid var(--mantine-color-gray-1); font-size:var(--mantine-font-size-xs); line-height:16px;
+  }
+  .paste-row:first-child{ border-top:0; }
+  .paste-row .color-swatch{ flex:none; width:12px; height:12px; cursor:default; }
+  .paste-row .color-swatch:hover{ transform:none; }
+  .paste-row-n{ flex:none; width:48px; color:var(--text-faint); }
+  .paste-row-date{ flex:none; width:84px; font-weight:600; }
+  .paste-row-text{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .paste-row.is-error .paste-row-err{ flex:1; color:var(--mantine-color-red-7); }
+  .paste-notes-foot{ display:flex; align-items:center; gap:var(--mantine-spacing-xs); margin-top:var(--mantine-spacing-md); }
+  .paste-notes-keys{ flex:1; font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
+  .paste-notes-cancel, .paste-notes-add{
+    height:30px; padding:0 14px; border-radius:var(--mantine-radius-md); font:inherit;
+    font-size:var(--mantine-font-size-xs); font-weight:600; cursor:pointer;
+  }
+  .paste-notes-cancel{ border:1px solid var(--mantine-color-gray-4); background:var(--mantine-color-white); color:var(--mantine-color-black); }
+  .paste-notes-cancel:hover{ background:var(--mantine-color-gray-0); }
+  .paste-notes-add{ border:1px solid transparent; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white); }
+  .paste-notes-add:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
+  .paste-notes-add:disabled{ background:var(--mantine-color-gray-2); color:var(--mantine-color-gray-5); cursor:default; }
+
+  /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4): RETIRED 19 Oct 2026. ----
+     Day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, owner ruling L1): a left-click on a day opens the day
+     menu below, and the popover's choices are its shoot-day section. Its .day-ov-* rules went with it.
+     Two of its looks carry over, restyled as menu items: the tick on the current choice (the checked
+     radio's icon) and the warning ink of "Overrides <holiday>" (.day-menu-warn). */
+
+  /* ---- The month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, installMonthDayMenu) ----
+     ⭐ NOT FROZEN, for .day-ov-pop's reason: a BODY-LEVEL panel opened over a day, never markup in
+     the grid, so no selector here is a `.mv-*` rule and none can reach #print-root.
+     Matched to the app's Mantine menus, measured from the File menu (plan §4): 4 px padding, the lg
+     radius, the md shadow, a gray-2 (#E3E1DA) border, 12 px items, gray-1 under the active item. The
+     300 tier of the z-index ladder, "every popover and menu" (UI-CONVENTIONS §6).
+     ⛔ Nothing inside carries an id: collectFieldValues() sweeps id'd controls into every calendar. */
+  .day-menu{
+    position:fixed; z-index:300; min-width:244px; max-width:300px;
+    padding:var(--mantine-spacing-xs); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-lg);
+    box-shadow:var(--mantine-shadow-md);
+    font-size:var(--mantine-font-size-sm); line-height:18px; color:var(--mantine-color-black);
+    user-select:none; outline:none;
+  }
+  .day-menu-head{ padding:7px 10px 6px; }
+  .day-menu-date{ font-weight:600; }
+  .day-menu-ctx{ margin-top:1px; font-size:var(--mantine-font-size-xs); line-height:15px; color:var(--text-muted); }
+  .day-menu-sep{ border-top:1px solid var(--mantine-color-gray-2); margin:var(--mantine-spacing-xs) 0; }
+  .day-menu-item{
+    display:flex; align-items:center; gap:9px; width:100%; min-height:30px;
+    padding:6px 10px; border:0; border-radius:var(--mantine-radius-md);
+    background:none; font:inherit; color:inherit; text-align:left; cursor:default;
+  }
+  .day-menu-item:focus{ outline:none; }
+  .day-menu-item.is-active:not(.is-disabled){ background:var(--mantine-color-gray-1); }
+  .day-menu-ico{ width:16px; height:16px; flex:none; color:var(--text-muted); }
+  .day-menu-text{ flex:1; min-width:0; }
+  .day-menu-text small{
+    display:block; font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-muted);
+  }
+  /* Greyed out WITH ITS REASON (owner ruling 1, 18 Sep 2026): the label and icon dim, and the reason
+     under it stays at the readable faint ink, since it is the one line that explains the refusal. */
+  .day-menu-item.is-disabled, .day-menu-item.is-disabled .day-menu-ico{ color:var(--mantine-color-gray-5); }
+  .day-menu-item.is-disabled small{ color:var(--text-faint); }
+  /* Step 2's submenu (Add hiatus ▸): the item it hangs from stays lit while it is open, and carries a
+     chevron. The submenu is the same panel, beside the item; a section in it may carry a small label. */
+  .day-menu-item[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
+  .day-menu-chev{ width:14px; height:14px; flex:none; color:var(--text-faint); }
+  .day-menu-sub{ min-width:220px; }
+  .day-menu-label{
+    padding:7px 10px 3px; font-size:var(--mantine-font-size-xxs); line-height:14px; font-weight:600;
+    letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted);
+    display:flex; align-items:center; gap:6px;
+  }
+  /* Step 3: the bar's section is headed by its name and its colour, a small swatch like the sidebar's. */
+  .day-menu-swatch{ width:9px; height:9px; flex:none; border-radius:3px; border:1px solid rgba(0,0,0,.18); }
+  .day-menu-foot{
+    margin-top:var(--mantine-spacing-xs); padding:5px 10px 4px;
+    border-top:1px solid var(--mantine-color-gray-2);
+    font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
+  }
+  /* Step 4: the shoot day's rows (the retired popover's choices) are radio items. The checked one
+     carries a tick in the accent ink, where an icon would be; the others leave the icon's space empty,
+     so the labels line up. ⚠️ Working a union holiday overrides the thing the whole holiday dataset
+     exists to protect: allowed, and never silent, so its second line keeps the popover's warning ink.
+     A stored value no row offers gets a notice line under the section, indented to the labels. */
+  .day-menu-item[aria-checked="true"] .day-menu-ico{ color:var(--edit-accent); }
+  .day-menu-item[role="menuitemradio"][aria-checked="true"] .day-menu-text{ font-weight:600; }
+  .day-menu-text small.day-menu-warn{ color:#7A5B14; font-weight:400; }
+  .day-menu-text small{ font-weight:400; }
+  /* A destructive item (Remove <phase>…, step 4) reads in red, as Mantine's menus mark one. */
+  .day-menu-item.is-danger:not(.is-disabled), .day-menu-item.is-danger:not(.is-disabled) .day-menu-ico{ color:var(--mantine-color-red-7); }
+  .day-menu-notice{
+    padding:2px 10px 4px 35px; font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
+  }
+  /* The day the open menu is for, LAID OVER its cell (body-level, like the edge handles), never a
+     class written into the grid. Under the menu (299), and it takes no pointer. */
+  .day-menu-ring{
+    position:fixed; z-index:299; pointer-events:none; border-radius:2px;
+    box-shadow:inset 0 0 0 2px var(--edit-accent);
+    background:color-mix(in srgb, var(--edit-accent) 6%, transparent);
   }
 
   .note-day-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
@@ -2466,6 +3022,14 @@
   .color-swatch:hover{ transform:scale(1.15); }
   /* Selected ring in the chrome's primary, not the old white-outline-plus-black-shadow. */
   .color-swatch.selected{ box-shadow:0 0 0 1px var(--mantine-color-white), 0 0 0 3px var(--mantine-primary-color-filled); }
+  /* No fill (the month note palette, MONTH-NOTES-PLAN.md §2): white with the usual red stroke for "none". */
+  .color-swatch.is-nofill{
+    background:linear-gradient(to top right, #fff calc(50% - 1px), #E03131 calc(50% - 1px) calc(50% + 1px), #fff calc(50% + 1px));
+  }
+  /* The day-note editor's two swatch rows: the standard ten, then No fill, the tints and the greys. Tighter than
+     the waterfall palette's gap so ten fit the popover's width on one row. */
+  .mv-note-pop .note-color-row{ gap:5px; }
+  .mv-note-pop .note-color-row + .note-color-row{ padding-top:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */
@@ -2520,6 +3084,37 @@
   table.sheet-table tr:first-child th{border-top:2px solid var(--text);}
   table.sheet-table tr:last-child td{border-bottom:2px solid var(--text);}
   table.sheet-table td.sheet-empty{background:#fff;}
+  /* Hidden Notes columns (HIDE-NOTES-PLAN.md, the owner's option B, 22 Oct 2026). New rules only; no
+     rule above changes. ⛔ FROZEN EDIT R4 (owner sign-off): the first rule draws the grid's 2 px right
+     edge on whatever cell ends each row once the LAST year's Notes column is hidden -- `wf-notes-end` is
+     set on the table only then, so it matches nothing on any other calendar, on screen or in print.
+     The strip (one 14 px column per hidden Notes column) is drawn on screen only: renderSpreadsheetView
+     never puts it in #print-root (X1). Its label is ::after text, so every frozen reader that skips an
+     empty cell skips it, and it overflows its first cell (overflow:visible, positioned) down the strip. */
+  table.sheet-table.wf-notes-end tr > :last-child{ border-right:2px solid var(--text); }
+  table.sheet-table th.wf-notes-strip, table.sheet-table td.wf-notes-strip{
+    background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-6); padding:0; cursor:pointer;
+  }
+  table.sheet-table th.wf-notes-strip svg{ display:block; margin:0 auto; }
+  table.sheet-table td.wf-notes-strip{ position:relative; overflow:visible; }
+  .wf-notes-strip-label{
+    position:absolute; top:7px; left:0; right:0; z-index:1; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .wf-notes-strip-label::after{
+    content:"Notes"; writing-mode:vertical-rl; font:500 10px/1 'Inter',-apple-system,sans-serif;
+    letter-spacing:.3px; color:var(--mantine-color-gray-6);
+  }
+  /* "Has notes": the one flag, the same violet as the note editor's accent (owner: flag it, don't spell it out). */
+  .wf-notes-dot{ display:block; width:6px; height:6px; border-radius:50%; background:var(--edit-accent); flex:none; }
+  /* Hover: one body-level ring over the whole strip, as .hdrrow-ring is over a heading -- never a class on a cell. */
+  .wf-notes-ring{
+    position:absolute; z-index:59; pointer-events:none; border-radius:1px;
+    background:rgba(30,29,27,.05); box-shadow:inset 0 0 0 1px var(--mantine-color-gray-4);
+  }
+  /* The strip holds nothing, so it is never resized. The handle stays in the DOM (repositionColHandles pairs
+     handles with <col>s by index) and is only taken out of the layout. */
+  .grid-resize.is-col[data-ckey$=":notesoff"]{ display:none; }
 
   table.week-table{width:100%; border-collapse:collapse; font-size:12.5px;}
   table.week-table th{
@@ -2537,16 +3132,46 @@
   footer.assumptions{margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faint); line-height:1.6;}
   footer.assumptions strong{color:var(--text-muted);}
 
-  /* Help button + modal */
+  /* Help button + modal.
+     ⭐ The help button and the zoom pill share THE BOTTOM STRIP (owner, 21 Oct 2026: the zoom control
+     covered the grid's last rows and its horizontal scrollbar; "add a little more space at the bottom
+     of the app to give it room", and the help button, which covered the grid's corner the same way,
+     shrunk into the strip with it). Both are centred 22px up: the button is 28 tall at bottom 8, so
+     its top is 36px up, 8px under the 44px strip (.preview-panel's margin-bottom, the app shell
+     above). Its right edge lines up with the grid's (.preview-panel's 28px side padding). */
   #help-fab{
-    position:fixed; right:22px; bottom:22px; z-index:60;
-    width:46px; height:46px; border-radius:50%;
+    position:fixed; right:28px; bottom:8px; z-index:60;
+    width:28px; height:28px; border-radius:50%;
     border:1px solid var(--border-strong); background:var(--accent); color:#fff;
-    font-size:22px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
-    box-shadow:0 3px 10px rgba(0,0,0,.22); transition:transform .12s ease, background .12s ease;
+    font-size:15px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.2); transition:transform .12s ease, background .12s ease;
   }
   #help-fab:hover{ background:var(--accent-hover); transform:translateY(-1px); }
   #help-fab:active{ transform:translateY(0); }
+
+  /* ---------- Calendar zoom (owner, 20 Oct 2026; src/chrome/ZoomControl.jsx, app.js "CALENDAR ZOOM") ----------
+     A pill just left of the help button, in the bottom strip with it (see #help-fab above), its centre
+     on the button's centre (22px up; the pill is 26 tall, so 9px), 8px clear of it (28 + 28 + 8 = 64).
+     Fixed, so it stays in the corner. The zoom itself is CSS `zoom` on #table-wrap, written by the
+     engine. Made compact the same day (it was 32 tall and 229 wide). */
+  .cal-zoom{
+    position:fixed; right:64px; bottom:9px; z-index:60;
+    display:flex; align-items:center; gap:1px; height:26px; padding:0 2px;
+    background:var(--panel); border:1px solid var(--border-strong); border-radius:999px;
+    box-shadow:0 1px 5px rgba(0,0,0,.12);
+  }
+  .cal-zoom .cal-zoom-slider{ width:80px; margin:0 5px; }
+  .cal-zoom .cal-zoom-pct{
+    min-width:36px; padding:2px 4px; border-radius:6px; text-align:center;
+    font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
+  }
+  .cal-zoom .cal-zoom-pct:hover{ background:var(--bg); }
+  /* ⛔ While zoomed, the waterfall's resize handles are hidden. Frozen installGridResizers places them,
+     and the frozen drag sizes them, by mixing screen px with the grid's own px, which agree only at
+     100%: zoomed, a row drag would SAVE the zoomed height into rowHeights, and so into the workbook
+     and the PDF. Paint only (MANTINE-SEAM §3.3): the overlay layer goes, no cell's box changes. The
+     engine re-installs them on the way back to 100%. */
+  body.cal-zoomed #table-wrap .grid-resize-layer{ display:none; }
 
   #help-overlay{
     display:none; position:fixed; inset:0; z-index:70;
@@ -2607,9 +3232,28 @@
   /* Preferences rows that belong to one view (owner, 22 Sep 2026): Single Column Mode is a
      waterfall layout, the two "Show … in Month View" switches are month-only. Keyed off the view
      toggle's `.active`, which setViewMode() maintains and the markup ships on Waterfall -- the one
-     place the current view already lives -- so nothing can show a row for the view you are not in. */
+     place the current view already lives -- so nothing can show a row for the view you are not in.
+     The Show tab's Calendar range card (owner ruling 3) carries .pref-view-sheet too: waterfall only. */
   body:has(#view-month-btn.active) .pref-view-sheet,
   body:not(:has(#view-month-btn.active)) .pref-view-month{ display:none; }
+  /* The Prep row (EPISODE-PREP-PLAN.md §6, owner ruling P1): per-episode prep is drawn in the month view
+     and its PDF only, so its row shows only there, off the same toggle as the rule above. Hidden, never
+     cleared: #prep-days and #prep-name are written by id, and keep their values in the waterfall. */
+  body:not(:has(#view-month-btn.active)) #prep-row{ display:none; }
+  /* The month box's "Show" switches follow "Label Production by" (MONTH-PILL-LABEL-PLAN §5.2, owner
+     ruling Q3): only the items the grey text can carry right now are offered. A switch hides while
+     its item is the bar's text (the control's CHECKED radio, which is the label the bars are drawn
+     in), and Show Blocks hides on a calendar with no blocks (#show-mode's checked option, the
+     Schedule-by rule above). Off the controls themselves, like the rules above, so no restore, undo
+     or Load path can leave the rows out of step. Each row carries its own divider, so hiding one
+     never strands another. ⛔ display:none, never unmounted: the engine writes .checked by id. */
+  /* ⚠️ body:has, not .prefs-card:has: from the Settings window (ruling 12) until its Calendar tab was
+     merged into Preferences (owner, 20 Oct 2026), "Label Production by" and the switches sat in two cards
+     on two tabs. They share the Month view card again, but body:has holds wherever either one sits. */
+  body:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
+  body:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
+  body:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,
+  body:not(:has(#show-mode option[value="blocks"]:checked)) .pref-mv-row-blocks{ display:none; }
   /* ---- Production's total + the episode/block lists: Mantine's look (owner, 22 Sep 2026) ----
      "Can we restyle this to be nicer looking and extend across. Style using mantine. Also restyle
      the block/episode selector to look nicer and follow mantine styling as well."
@@ -2684,13 +3328,13 @@
     font-style:italic; text-align:center;
   }
   /* A row: grip, name edited in place, (Episodes mode) its day count. Hairlines between rows. */
-  #episode-rows .episode-row{
+  #episode-rows .episode-row, #prep-rows .prep-unit-row{
     display:flex; align-items:center; gap:var(--mantine-spacing-sm); min-height:34px;
     padding:0 var(--mantine-spacing-md) 0 var(--mantine-spacing-sm);
     border-bottom:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-white);
   }
-  #episode-rows .episode-row:last-child{ border-bottom:none; }
-  #episode-rows .episode-row:hover{ background:var(--mantine-color-gray-0); }
+  #episode-rows .episode-row:last-child, #prep-rows .prep-unit-row:last-child{ border-bottom:none; }
+  #episode-rows .episode-row:hover, #prep-rows .prep-unit-row:hover{ background:var(--mantine-color-gray-0); }
   #episode-rows .episode-row.is-dragging{ opacity:.4; }
   /* INSET, because the card clips (overflow:hidden) and an outer line would vanish at its edges. */
   #episode-rows .episode-row.drop-before{ box-shadow:inset 0 2px 0 var(--mantine-primary-color-filled); }
@@ -2705,22 +3349,38 @@
   #episode-rows .episode-row input.ep-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   /* A compact number field with its unit INSIDE, like a Mantine NumberInput's rightSection. The
      <label> wrapper is what draws the input's border, so a click on "days" focuses the number. */
-  #episode-rows .num-suffix{
+  #episode-rows .num-suffix, #prep-rows .num-suffix{
     display:inline-flex; align-items:center; flex:none; height:26px; box-sizing:border-box;
     border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
     background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
   }
-  #episode-rows .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
-  #episode-rows .num-suffix input{
+  #episode-rows .num-suffix:focus-within, #prep-rows .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  #episode-rows .num-suffix input, #prep-rows .num-suffix input{
     width:34px; height:24px; border:0; padding:0 4px 0 var(--mantine-spacing-md); background:transparent;
     font-size:var(--mantine-font-size-sm); text-align:right; box-shadow:none; outline:none;
     -moz-appearance:textfield; appearance:textfield;
   }
   #episode-rows .num-suffix input::-webkit-inner-spin-button,
-  #episode-rows .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
-  #episode-rows .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
+  #episode-rows .num-suffix input::-webkit-outer-spin-button,
+  #prep-rows .num-suffix input::-webkit-inner-spin-button,
+  #prep-rows .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  #episode-rows .num-suffix span, #prep-rows .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   /* A block's day count that someone has typed (the per-block override) keeps a quiet cue. */
   #episode-rows .num-suffix input.blk-days.is-edited{ font-weight:700; }
+  /* The Prep row's list (EPISODE-PREP-PLAN.md §6): the episode list's rows, a name and one box. Its own
+     length, typed over the default, gets the per-block override's bold cue. */
+  #prep-rows .prep-unit-name{ flex:1; min-width:0; padding:0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
+    font-weight:500; color:var(--mantine-color-black); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #prep-rows .num-suffix input.is-edited{ font-weight:700; }
+  #prep-rows .num-suffix input::placeholder{ color:var(--mantine-color-gray-5); }
+  #prep-rows .num-suffix:has(input.is-invalid){
+    border-color:var(--mantine-color-danger-6); box-shadow:0 0 0 2px var(--mantine-color-danger-1);
+  }
+  #prep-rows .prep-unit-row[data-whole-err]{ flex-wrap:wrap; }
+  #prep-rows .prep-unit-row[data-whole-err]::after{ flex-basis:100%; text-align:right; padding-bottom:4px; }
+  .prep-caption{ grid-column:2; font-size:var(--mantine-font-size-xxs); line-height:1.45; color:var(--mantine-color-gray-6); margin:2px 5px 0; }
+  .prep-panel{ grid-column:1 / -1; }
+  .prep-panel:has(#prep-rows:not(:empty)){ margin-top:var(--mantine-spacing-md); }
 
   /* Production Hiatus keeps the SOLID rule every phase's hiatus has (owner, 22 Sep 2026: "why is it
      a dashed line above Production hiatus instead of a solid line as it is with all the other
@@ -2740,7 +3400,8 @@
      .05em uppercase tracking, "W'FALL" ran past its box into "MONTH" and the two read as one
      jammed word. The tracking stays on HOLIDAY (it has the row to itself). */
   .hv-head span{ width:46px; text-align:center; line-height:1.3; flex:none; letter-spacing:0; }
-  .hv-head span:last-child{ width:44px; }  /* lockstep with .hv-cell-month */
+  .hv-head .hv-head-month{ width:44px; }  /* lockstep with .hv-cell-month. A class, not :last-child:
+                                             the × slot is the last child now. */
   .hv-head .hv-head-name{ flex:1; width:auto; text-align:left; letter-spacing:.05em; }
 
   /* The holiday rows themselves -- engine-generated by renderHolidayVisList(), which used to carry
@@ -2772,7 +3433,19 @@
      SOURCE ORDER rather than specificity: this rule and `.remove-custom-phase, .remove-hiatus,
      .hv-del{font-size:0}` are both 0,1,0, and this one comes later, so it wins and un-hides the
      engine's `&times;` next to the masked ::before × -- "××" again. */
-  .hv-del{ width:18px; height:18px; line-height:1; padding:0; margin-left:4px; flex:none; }
+  .hv-del{ width:18px; height:18px; line-height:1; padding:0; flex:none; }
+  /* The × column. Every row and the header carry one, so a custom row's three boxes sit under the
+     same headers as a built-in row's; before, the × was the custom row's only extra child and
+     pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
+     row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
+  /* The Automatic notes card (owner ruling 9): one checkbox row per kind, the holiday list's type scale. The
+     boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
+  .autonote-list{ display:flex; flex-direction:column; gap:var(--mantine-spacing-sm); }
+  .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
+  .autonote-row input{ margin:0; flex:none; }
+  .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
+  #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 
   /* .hv-custom is its own .side-block now; the old border-top section break retired with it. */
 
@@ -2789,12 +3462,62 @@
      18 Sep 2026. Both the built-in and the custom-phase builders nest this inside `.phase-fields`,
      so one selector covers both. ⚠️ Keep flex-direction EXPLICIT: the competing rule sets column,
      so relying on the row default silently loses again. */
-  .phase-fields label.phase-snap{
+  /* A custom phase's "Number weeks" (PHASE-NUMBERING-PLAN.md) is the same quiet toggle, on its own line
+     under Snap to Mon, and shown in every unit (it carries no .pu-* class). So is the Prep row's "Pause
+     prep on days marked Off" (owner, 20 Oct 2026), on its own line under Default prep days. */
+  .phase-fields label.phase-snap, .phase-fields label.phase-wknum, .phase-fields label.prep-pause-off{
     display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
     gap:6px; flex:0 0 100%;                 /* own line, like the labels above it -- but left-aligned */
     font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
   }
-  .phase-snap input{ margin:0; cursor:pointer; flex:none; }
+  .phase-snap input, .phase-wknum input, .prep-pause-off input{ margin:0; cursor:pointer; flex:none; }
+
+  /* A phase's Length: Weeks / Days / Dates (CUSTOM-PHASE-UNITS-PLAN.md). Since 16 Oct 2026 the
+     select sits IN the length column's caption, "By [Weeks ▾]" over the box, instead of on a
+     "Length" line of its own (owner: "a "By" where "Weeks" is currently written ... and then the
+     "Weeks" is its own small drop down menu"). The column (byUnitHtml) is a flex item exactly like
+     the Start date <label> beside it, so the two share a line and wrap together. */
+  /* ⚠️ The gap is 6 px, not the xxs a text caption gets, and the select is NOT squeezed into the
+     caption's line box. The first build did that (22 px select, -2 px margins, xxs gap), and the
+     select's border sat about a pixel above the box's: owner, 16 Oct 2026, "There needs to be a gap
+     between the drop down and the text box below it. Right now it sits right on top and looks
+     awkward". */
+  .phase-fields .pu-by{
+    display:flex; flex-direction:column; gap:6px; flex:1 1 116px; min-width:0;
+  }
+  /* Its boxes keep their own <label>s (byUnitHtml says why), and `.phase-fields label` gives every
+     label flex:1 1 116px -- which, in this COLUMN, would be a 116 px HEIGHT. */
+  .phase-fields .pu-by > label{ flex:none; }
+  /* The caption line is the select's 22 px, and the Start date label beside it gets the same line
+     and the same gap, so the two boxes beneath stay level. The select wears the engine-owned
+     selects' NativeSelect look (the .tools-menu recipe): no UA arrow, Mantine's chevron, at caption
+     scale. */
+  .pu-by-cap{
+    display:flex; align-items:center; gap:6px; height:22px;
+    font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9);
+  }
+  .phase-fields:has(> .pu-by) > label:not(.phase-snap):not(.phase-wknum){ gap:6px; line-height:22px; }
+  .phase-unit{
+    width:auto; min-width:0; height:22px;
+    padding:0 22px 0 8px; font-size:var(--mantine-font-size-xs);
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center; background-size:12px 12px;
+  }
+  /* Which boxes show is pure CSS off the select's CHECKED OPTION -- the #show-mode pattern -- so no
+     restore, undo or load path can leave the visible boxes disagreeing with the unit actually
+     scheduling. Hidden boxes keep their values. Production is the one row with no .phase-unit, so
+     none of this can match it. */
+  .phase-row:has(select.phase-unit option[value="days"]:checked) .pu-weeks,
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) .pu-weeks,
+  .phase-row:not(:has(select.phase-unit option[value="days"]:checked)) .pu-days,
+  .phase-row:not(:has(select.phase-unit option[value="dates"]:checked)) .pu-dates{ display:none; }
+  /* The hint line: frozen render() writes meta-<key> in weeks terms, and the engine writes a Days or
+     Dates phase's own line into its sibling .unit-meta (see refreshCustomUnitMeta). Show the one that
+     matches the unit. */
+  .phase-row:has(select.phase-unit option[value="days"]:checked) > [id^="meta-"],
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) > [id^="meta-"],
+  .phase-row:has(select.phase-unit option[value="weeks"]:checked) > .unit-meta{ display:none; }
 
   /* Why the wrap moved. Only appears when a day override is in range, so it is silent on every
      calendar that has none -- which is all of them until the marking UI ships. */
@@ -2825,3 +3548,81 @@
   margin:10px 0 0; padding:9px 11px; border-radius:7px; font-size:11px; line-height:1.5;
   background:#FEF6E7; border:1px solid #F0D9A8; color:#7A5B14;   /* warn 0 / 2 / 9 */
 }
+
+/* ---- Production's handles (MONTH-VIEW-PLAN.md §6.7, rulings 3a and 9a-9c, 15 Oct 2026) ---------
+   BODY-LEVEL chrome laid over the month grid by installProductionEdgeHandles(), never markup inside
+   #table-wrap, and no `.mv-*` rule: the frozen month view is untouched. The print path hides every
+   direct child of <body> except #print-root, so neither month PDF can carry one. A handle sits
+   INSIDE the pill (at an edge, or centred on an episode's last-day line) and takes the pill's text
+   colour, which reads on the pill's own fill. z-index 50: above the grid, below the body-level
+   popovers (60) that may open over a pill. */
+.phase-edge-handle{
+  position:fixed; z-index:50; width:10px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:ew-resize; user-select:none;
+}
+.phase-edge-handle[hidden]{ display:none; }
+.phase-edge-handle::before{
+  content:''; width:3px; height:62%; min-height:8px; border-radius:2px;
+  background:currentColor; opacity:.5;
+}
+.phase-edge-handle:hover::before{ opacity:.9; }
+/* A WEEK's edge (it writes day marks) reads lighter and shorter than an episode's or the shoot's
+   (which change a day count), so the two kinds are told apart before the title tooltip appears. */
+.phase-edge-handle.is-week::before{ width:2px; height:44%; opacity:.35; }
+.phase-edge-handle.is-week:hover::before{ opacity:.75; }
+/* Owns the pointer for the length of one edge drag: one cursor everywhere, and no hover effects or
+   text selection underneath. Removed on release; a release outside the window is caught on the next
+   move (the mousemove's buttons test). */
+.phase-edge-shield{ position:fixed; inset:0; z-index:300; cursor:ew-resize; }   /* the popover tier; last in the DOM, so on top */
+
+/* ---- The hiatus drag (HIATUS-DRAG-PLAN.md, 19 Oct 2026) -----------------------------------------
+   Body-level chrome laid over a month-view hiatus band by installHiatusDrag(), on the same terms as
+   the phase handles above: nothing inside #table-wrap, no `.mv-*` rule, and nothing the print path can
+   reach. A band is click-through (.mv-bars{pointer-events:none}), so the LAYER is what the pointer
+   grabs: transparent, over the band's visible box, the band's own radius. The grips sit on top of it.
+   A week is a row, so the grips and the edge shield say up/down. z-index 49/50: under the popovers. */
+.hiatus-drag-layer{ position:fixed; z-index:49; border-radius:9px; cursor:grab; }
+.hiatus-drag-layer[hidden]{ display:none; }
+/* Ruling 1: a locked hiatus says so, and does nothing. */
+.hiatus-drag-layer.is-locked{ cursor:not-allowed; }
+.hiatus-grip{
+  position:fixed; z-index:50; width:10px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:ns-resize; user-select:none;
+}
+.hiatus-grip[hidden]{ display:none; }
+.hiatus-grip::before{
+  content:''; width:3px; height:62%; min-height:8px; border-radius:2px;
+  background:currentColor; opacity:.5;
+}
+.hiatus-grip:hover::before{ opacity:.9; }
+.hiatus-drag-shield{ position:fixed; inset:0; z-index:300; cursor:ns-resize; }
+.hiatus-drag-shield.is-move{ cursor:grabbing; }
+
+/* ---- The month view's reorder grip and moving copy (MONTH-ORDER-PLAN.md, 21 Oct 2026) -------------
+   Body-level chrome on the edge grips' terms (above): nothing inside #table-wrap, no `.mv-*` rule, and
+   nothing the print path can reach (it hides every direct child of <body> but #print-root). The grip sits
+   inside a bar's left end, right of the start grip, on the bar's own fill in its own text colour (both set
+   by installMonthOrderDrag), so it covers the label's first letter cleanly while hovered: six dots, the
+   sidebar rows' "drag me" mark, so it reads as "move this up or down" rather than as an edge. */
+.mv-order-grip{
+  position:fixed; z-index:50; width:12px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; user-select:none; border-radius:3px;
+}
+.mv-order-grip[hidden]{ display:none; }
+.mv-order-grip::before{
+  content:''; width:7px; height:11px; opacity:.6;
+  background-image:radial-gradient(circle, currentColor 1.15px, transparent 1.45px);
+  background-size:3.5px 3.67px; background-position:0 0;
+}
+.mv-order-grip:hover::before{ opacity:.95; }
+/* The copy in the hand: lifted (a soft shadow, a touch see-through) so it never passes for the bar it
+   came from, which the live redraw keeps drawing where it will land. pointer-events:none, so it never
+   hides from hit-testing what is under it. Above the shield, which owns the cursor. */
+.mv-drag-ghost{
+  position:fixed; z-index:301; pointer-events:none; opacity:.9;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
+}
+.mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }

@@ -37,12 +37,9 @@ window.addEventListener('load', function () { (async function () {
     }, 'the row count to settle', 150, 100);
     out.health = T.appHealth();
 
-    var settingsTab = null;
-    document.querySelectorAll('.side-tab-btn').forEach(function (b) {
-      if (b.dataset.tab === 'settings') settingsTab = b;
-    });
-    if (settingsTab) settingsTab.click();
-    await T.sleep(300);
+    // The header presets are in the Settings window's Presets tab (owner ruling 12, 20 Oct 2026); it was
+    // the sidebar's Settings tab. Opened so the controls are laid out.
+    await T.openSettings('presets');
 
     var readPrefs = function () {
       try { return JSON.parse(localStorage.getItem('sptcal.prefs') || '{}'); } catch (e) { return {}; }
@@ -144,8 +141,16 @@ window.addEventListener('load', function () { (async function () {
       };
     }
     stubOpen(written, 'Studio standard.spthdr');
+    var countBeforeImport = presetCount();
     document.querySelector('[data-hdrpreset="import"]').click();
-    await T.sleep(900);
+    // ⛔ Wait for the IMPORT, not for 900 ms (22 Oct 2026). The import reads the file off-thread (getFile, then
+    // text()), and under the harness's virtual clock a fixed sleep can run out before that read lands in real time:
+    // the leg then saw the OLD list (freshId false), and the import landing a moment later made both refusal counts
+    // below read one too many. It failed that way on some builds and not others, depending only on which other
+    // timers the page had pending (HANDOFF records it as a flake more than once). Waiting for the count to move is
+    // what the harness does everywhere else ("wait for the THING, not for a duration", run.sh).
+    await T.until(function () { return presetCount() > countBeforeImport; }, 'the imported preset to be stored', 100, 100);
+    await T.sleep(200);
     var afterImport = readPrefs().headerPresets || [];
     out.countAfterImport = afterImport.length;
     var imported = afterImport[afterImport.length - 1];

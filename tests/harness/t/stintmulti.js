@@ -58,24 +58,24 @@ window.addEventListener('load', function () { (async function () {
 
     // A. From the LONG side. Hover Writer's Rm week 11, take the button, read the knob and the chip.
     await hover(cell('2026-03-16', 'writersRoom'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Block on Writer\'s Rm', 40, 50);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Column on Writer\'s Rm', 40, 50);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 120, 100);
     out.knobA = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label') || '';
-    var info = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
+    var info = document.querySelector('.grid-sel-layer .grid-sel-chip');
     out.modeA = info ? info.textContent : '';
-    // ⭐ Both partners named, before anything moves.
-    out.namesBothA = /Post and Localization/.test(out.knobA) && /All 20 weeks of Writer/.test(out.modeA) &&
-                     /trades the whole block with Post and Localization/.test(out.modeA);
+    // ⭐ Both partners named, before anything moves -- by the knob alone since 21 Oct 2026 (owner, 21 Oct 2026: no chip except "Double click to expand cells" and a refused swap's reason).
+    out.namesBothA = /Post and Localization/.test(out.knobA) && !/swap/i.test(out.modeA);
     T.altSwap(1);
     await T.until(function () { return same(layout().slots, SWAPPED); }, 'the group swap to land', 120, 100);
     await T.sleep(200);
     out.afterA = layout();
     out.groupMovedA = same(out.afterA.slots, SWAPPED) && same(out.afterA.spans, ONE) && same(out.afterA.weeks, COUNTS);
-    // A move with several partners is never silent.
-    var flash = document.querySelector('.grid-swap-layer .grid-swap-chip.is-flash');
+    // ⛔ Silent once it worked, even with several partners (owner, 21 Oct 2026, by picker: "Never").
+    // It used to say "Swapped the 2026 block of Writer's Rm ↔ Post and Localization."
+    var flash = document.querySelector('.grid-swap-layer .grid-swap-chip');
     out.flashA = flash ? flash.textContent : '';
-    out.flashNamesAllA = /Swapped the 2026 block of Writer/.test(out.flashA) && /Post and Localization/.test(out.flashA);
+    out.flashSilentA = !flash;
     // Swap back from the same selection: natural order returns exactly.
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 120, 100);
     T.altSwap(-1);
@@ -86,16 +86,14 @@ window.addEventListener('load', function () { (async function () {
     // B. From the SHORT side. Hover Post: its block is the 4 weeks; the swap is with Writer's Rm, and
     //    Localization -- which shares Post's column inside Writer's Rm's run -- must move with it.
     await hover(cell('2026-02-16', 'post'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'post'; }, 'Swap Block on Post', 40, 50);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'post'; }, 'Swap Column on Post', 40, 50);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob on Post', 120, 100);
     out.knobB = document.querySelector('.grid-swap-knob[data-dir="-1"]').getAttribute('aria-label') || '';
-    // The confirmation from A's reverse is still up for ~4s and takes the chip's one slot; wait it out.
-    await T.until(function () { return !!document.querySelector('.grid-swap-layer .grid-swap-chip.is-info'); }, 'the mode line after the flash', 120, 100);
-    info = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
+    info = document.querySelector('.grid-sel-layer .grid-sel-chip');
     out.modeB = info ? info.textContent : '';
     out.namesCompanionB = /block of Post with Writer/.test(out.knobB) && /Localization moves with it/.test(out.knobB) &&
-                          /All 4 weeks of Post/.test(out.modeB) && /Localization moves with it/.test(out.modeB);
+                          !/swap/i.test(out.modeB);
     out.noRightKnobB = !document.querySelector('.grid-swap-knob[data-dir="1"]');
     T.altSwap(-1);
     await T.until(function () { return same(layout().slots, SWAPPED); }, 'the group swap from Post to land', 120, 100);
@@ -113,7 +111,7 @@ window.addEventListener('load', function () { (async function () {
     out.colKeysOk = out.colKeys === 'y2026:date,y2026:s0,y2026:s1,y2026:notes';
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells ? T.clippedCells() : 'n/a';
-    out.PASS = out.naturalOrder && out.namesBothA && out.groupMovedA && out.flashNamesAllA && out.reversedA &&
+    out.PASS = out.naturalOrder && out.namesBothA && out.groupMovedA && out.flashSilentA && out.reversedA &&
                out.namesCompanionB && out.noRightKnobB && out.groupMovedB && out.reversedB && out.colKeysOk &&
                out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {

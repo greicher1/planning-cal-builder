@@ -213,6 +213,18 @@ export function PreviewToolbar() {
           </div>
         </div>
 
+        {/* Side boxes (owner ruling 7 + Q7, 20 Oct 2026; SIDE-BOXES-PLAN.md): adds a colour key or a
+            text box beside the waterfall. The engine opens its menu (openSideMenu) by DELEGATION,
+            exactly as it does the header mode menu below, because React owns this node. Waterfall
+            view only: legacy.css hides it while #view-month-btn is active. A <button>, never an
+            id'd input/select/textarea, so collectFieldValues() cannot sweep it into a saved file. */}
+        <Button id="tb-side-boxes-btn" className="tools-btn" type="button" size="xs" variant="default"
+                title="Add a colour key or a text box beside the waterfall"
+                aria-haspopup="true" aria-expanded="false"
+                rightSection={<span className="caret" aria-hidden="true">▾</span>}>
+          Side Boxes
+        </Button>
+
         {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
             used to live INSIDE the calendar -- #hdr-mode-btn / #mv-hdr-mode-btn, emitted by the
             frozen renderers, which still emit them: they are hidden by CSS, never deleted. This is
@@ -228,18 +240,24 @@ export function PreviewToolbar() {
                 type="button" size="xs" variant="default"
                 title={hdr.view === 'month'
                   ? 'Choose how the Month view’s header is written: Auto, Template or Manual'
-                  : 'Choose how the header is written: Auto, Template or Manual'}
+                  : 'Choose how the header is written: Auto, Template or Manual, or turn it Off'}
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
-          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual' : 'Header: Auto'}
+          {/* 'off' is the waterfall's Header: Off (owner ruling 10, 20 Oct 2026); the month never sends it. */}
+          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
+            : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>
+
+        {/* Paste notes… lived here (MONTH-NOTES-PLAN.md §5) until the owner moved it into the Settings
+            window's Calendar tab, Month view card (20 Oct 2026, "put paste notes into settings"). Same id,
+            same engine listener: see CalendarMonthCard in Sidebar.jsx. */}
 
         {/* ⛔ THE BATCH-EXPAND BUTTON ("Expand N" / "Pull back N") AND THE TWO SWAP BUTTONS ("◀ Swap" /
             "Swap ▶") USED TO SIT HERE, and are gone (owner ruling 2, relayed 30 Sep 2026; built
             after v1.4.1). They only duplicated gestures on the grid itself: double-click (or Enter)
             on a selected cell expands or pulls back, Alt+Left / Alt+Right swaps its column, and the
-            swap knob takes a click or a drag. The selection's count chip on the grid names both
-            ("double-click to expand · Alt+←/→ to swap"). Their delegated engine listeners went in
+            swap knob takes a click or a drag. The selection's chip on the grid says "Double click to
+            expand cells" (owner, 21 Oct 2026); the Help has the swap keys. Their delegated engine listeners went in
             the same change; the engine keeps pushing chrome.gridSelection, which nothing renders. */}
 
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
@@ -253,6 +271,14 @@ export function PreviewToolbar() {
           </Tooltip>
         </Group>
       </div>
+
+      {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026): a full-width second line
+          of this row, under the toggle and the tools, outside the calendar. EMPTY here and filled once by the
+          engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once
+          and never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside.
+          ⛔ Inside .view-toggle-row on purpose: a sibling between that row and #table-wrap would break the pair
+          the contracts above need. ⛔ No id on anything in it (collectFieldValues). */}
+      <div className="style-bar-host"></div>
     </>
   )
 }

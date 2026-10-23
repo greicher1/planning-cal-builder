@@ -200,6 +200,89 @@ exactly that and was proven to fail without it (the old calendar then scheduled 
 Unchanged by this: **`sig`, `rows` 52, `cells` 154, `gridWidthPt` 324, `bytes` 756473,
 `hClip` 0.** Only `form` was replaced.
 
+## ✅ `restore.json`'s `form` RE-CUT — 62 keys to 72 (15 Oct 2026, Dates mode on the built-ins)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 15 Oct 2026: "Re-cut it").
+CUSTOM-PHASE-UNITS-PLAN.md §7a (step 6) gives the five built-in Weeks phases a Length of Weeks or Dates.
+MONTH-VIEW-PLAN ruling 9d fixed the ids at two per phase, and every id'd control is swept into
+`fields.byId`, so gate 5 is *supposed* to fail until this is re-cut.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (10)** | `unit-writersRoom`, `unit-prePrep`, `unit-prodPrep`, `unit-post`, `unit-localization` | **`"weeks"`** |
+| | `end-writersRoom`, `end-prePrep`, `end-prodPrep`, `end-post`, `end-localization` | `""` |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `"weeks"`.** `v1.0.0-saved.html` predates units, has none of these keys, and
+restores every built-in as Weeks with no end date, so its schedule cannot move. On these STATIC rows that is
+`applyStateSnapshot()`'s explicit absent-means-default, not the markup's. The `builtindates` leg proves it the
+way `blocks` did: loading an older calendar after one in Dates mode must give Weeks. **It was proven to fail
+without the default.** With the two default lines removed, that older calendar's Pre Prep kept the previous
+file's Dates mode and end date, and ran *Mon 4/6/26 → Tue 2/23/27 (47 wk)*.
+
+Unchanged by this: **`sig`, `rows`, `cells`, `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended.
+
+## ✅ `restore.json`'s `form` RE-CUT — 72 keys to 74 (19 Oct 2026, per-episode prep)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 19 Oct 2026: "Re-cut it"). EPISODE-PREP-PLAN.md
+§7 adds the Prep row's two id'd fields, and every id'd control is swept into `fields.byId`, so gate 5 is *supposed* to
+fail until this is re-cut. The full gate on build `9b3f13ad1af1e310…` reported exactly this and nothing else in gate 5.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (2)** | `prep-name` | **`"Prep"`** |
+| | `prep-days` | **`""`** |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `""`.** `v1.0.0-saved.html` predates prep and has neither key, and it restores with no
+default prep length, so it draws no prep at all. The Prep row is STATIC markup, so that is `applyStateSnapshot()`'s
+explicit absent-means-default (beside `show-mode`), not the markup's. The `episodeprep` leg's R11 proves it the way
+`blocks` and `builtindates` did: the same calendar with every prep key removed, loaded after one with a default of 5 and a
+picked colour, opens with no prep, the name "Prep" and the default colour.
+
+Inserted after `simpost-count`, where the two fields sit in the DOM (the Prep row follows Production's), so the diff is
+those two lines. Gate 5 compares the key set and values, not the order. Unchanged by this: **`sig`, `rows`, `cells`,
+`gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended, by a script that aborted on any other difference.
+
+## ✅ `restore.json`'s `form` RE-CUT — `prep-name` "Prep" → "Episodic Prep" (19 Oct 2026, the Prep row's default name)
+
+A deliberate change of one DEFAULT value, re-cut on the owner's sign-off (picker, 19 Oct 2026: "Re-cut it"). The owner
+asked for the Prep row's default name to follow Schedule by: "Episodic Prep" or "Block Prep" (EPISODE-PREP-PLAN.md §14).
+`v1.0.0-saved.html` has no `prep-name`, restores to the old default "Prep", and the `update()` after the restore renames
+that default to its mode's own, so `fields.byId` now reads "Episodic Prep". The full gate on build `e778ffb3…` reported
+exactly this and nothing else in gate 5: **lost none, gained none, changed `['prep-name']`**, still 74 ids. Only that one
+value in `restore.json` was edited, and the result was checked equal to the gated run's `form`.
+
+⭐ **The back-compat proof is that it is not "Prep".** "Prep" is still read as the default (`PREP_AUTO_NAMES`), so every
+calendar saved with it opens on the new name; the `episodeprep` leg's R0 and K0 hold that on both prep fixtures, which
+were minted with "Prep" and must stay so.
+
+## ✅ `restore.json`'s `form` RE-CUT — 74 keys to 76 (20 Oct 2026, the calendar range)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 20 Oct 2026: "Re-cut it"). Owner ruling 3
+adds the Show tab's Calendar range card, whose two date fields are id'd, so `collectFieldValues()` sweeps them into
+`fields.byId` and gate 5 is *supposed* to fail until this is re-cut. The `restore` leg on build `af58730a…` (commit
+`705a1d8`) reported exactly this and nothing else in gate 5.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (2)** | `cal-range-start` | **`""`** |
+| | `cal-range-end` | **`""`** |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `""`.** `v1.0.0-saved.html` predates the range and has neither key, and it restores
+with no range, so its waterfall keeps its full calendar years. The card is React markup a restore never rebuilds, so
+that is `applyStateSnapshot()`'s explicit absent-means-default (beside `show-mode`), not the markup's. The `calrange`
+leg's R12 proves the trap: the same saved calendar with both ids removed, loaded after one with a range, opens with
+none.
+
+Inserted after `show-version`, where the two fields sit in the DOM (the card follows Show info), so the diff is those
+two lines. Unchanged by this: **`sig`, `rows`, `cells`, `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended,
+by a script that aborted on any other difference and checked the result equal to the leg's `form`.
+
 ## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
 
 A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut

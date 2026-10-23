@@ -29,6 +29,28 @@ window.__T = (function(){
     nativeSet(e, v); ['input','change'].forEach(function(t){e.dispatchEvent(new Event(t,{bubbles:true}));});
   }
   function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+  // ⭐ THE EXPORT PDF DIALOG (PAPER-SIZE-PLAN.md §5a, 21 Oct 2026) is ANSWERED AT ITS DEFAULTS the moment it
+  // opens, in every leg that has not taken it over with T.pdfDialog('manual'). Since the dialog exists, every
+  // waterfall-PDF export -- about twenty legs through captureExport, more that click the button themselves --
+  // stops on it, and a leg that read "whatever modal is up" after the click would have read the dialog
+  // instead of the character warning it waits for.
+  //  - It CLICKS the dialog's own Export, so the real path runs: the engine's askPdfPageSetup() applies the
+  //    defaults, which must change nothing. That makes every PDF the gate byte-compares the proof that
+  //    "Export at the defaults = the PDF from before the dialog existed". A switch that skipped the dialog
+  //    inside the app would have hidden exactly that.
+  //  - modalText() leaves the dialog out while in this mode, for the moment between its opening and the click.
+  //  - t/pdfdialog.js takes it over ('manual') to drive it the way a user does.
+  var pdfDialogMode = 'auto', pdfDialogAnswered = 0;
+  function answerPdfDialog(){
+    if(pdfDialogMode !== 'auto') return;
+    var b = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
+    if(b && !b.__tAnswered){ b.__tAnswered = true; pdfDialogAnswered++; b.click(); }
+  }
+  new MutationObserver(answerPdfDialog).observe(document.documentElement, {childList: true, subtree: true});
+  function pdfDialog(mode){
+    if(mode === 'auto' || mode === 'manual') pdfDialogMode = mode;
+    return { mode: pdfDialogMode, answered: pdfDialogAnswered };
+  }
   // Alt+Left / Alt+Right on the document: the column swap's keyboard path. The toolbar's
   // ◀ Swap / Swap ▶ buttons only duplicated it, and they went with owner ruling 2 (30 Sep 2026),
   // so the swap legs press the keys. The engine's handler needs a live selection in the
@@ -70,10 +92,17 @@ window.__T = (function(){
     return n;
   }
   // A free-text note typed by the user: the path that must stay pixel-identical.
+  // A waterfall note, band or custom heading opens on a DOUBLE-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md
+  // D5: "a single click highlights it, like Excel"). Dispatched on the cell itself, at its centre.
+  function openCell(el){
+    var r=el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2,
+      clientX:Math.round(r.left+r.width/2),clientY:Math.round(r.top+r.height/2)}));
+  }
   async function typeUserNote(weekIso, text){
     var td=document.querySelector('td.sheet-note-cell[data-week="'+weekIso+'"]');
     if(!td) throw new Error('no note cell for '+weekIso);
-    td.click();
+    openCell(td);
     await sleep(300);
     var ta=document.querySelector('.note-editor textarea');
     if(!ta) throw new Error('note editor did not open');
@@ -399,6 +428,7 @@ window.__T = (function(){
   // modal -- which made one audit result claim "no dialog" when the app had shown one.
   function modalText(){
     return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .filter(function(d){ return pdfDialogMode !== 'auto' || !d.closest('.export-pdf-dlg'); })
       .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); })
       .filter(Boolean).join(' || ');
   }
@@ -473,12 +503,70 @@ window.__T = (function(){
     for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
     return (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
   }
+  // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
+  // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
+  // 'prefs' | 'region' | 'presets' (Mantine derives the tab ids from #settings-tabs). 'calendar' is still
+  // accepted and opens 'prefs': the Calendar tab was merged into Preferences (owner, 20 Oct 2026), and a
+  // leg written before that names it. Every
+  // control in it is in the DOM whether or not it is open, so a leg that only SETS values by id needs
+  // none of this; one that clicks, hit-tests or measures a control must open it first, on the right
+  // tab, and wait out the 180 ms slide.
+  async function openSettings(tab){
+    var win = document.getElementById('settings-window');
+    if(!win) throw new Error('no #settings-window');
+    // ⚠️ THE SLIDE NEVER FINISHES HEADLESS. It is a CSS transition, and this harness's Chrome produces no
+    // frames (the same reason requestAnimationFrame never fires here), so the window would sit at
+    // translateX(-100%) forever -- and, closing, `display ... allow-discrete` would keep it displayed
+    // forever. Switched off on the element, test-only; what the window shows and stores is unchanged.
+    win.style.transition = 'none';
+    if(!win.classList.contains('is-open')){
+      var b = document.querySelector('.side-settings-btn');
+      if(!b) throw new Error('no .side-settings-btn');
+      b.click();
+    }
+    if(tab === 'calendar') tab = 'prefs';
+    if(tab){
+      var t = document.getElementById('settings-tabs-tab-' + tab);
+      if(!t) throw new Error('no Settings tab ' + tab);
+      t.click();
+    }
+    var aside = document.querySelector('.form-panel');
+    await until(function(){
+      var r = win.getBoundingClientRect(), a = aside.getBoundingClientRect();
+      return win.classList.contains('is-open') && Math.abs(r.left - a.left) < 1 && Math.abs(r.top - a.top) < 1;
+    }, 'the Settings window to open', 40, 50);
+  }
+  async function closeSettings(){
+    var win = document.getElementById('settings-window');
+    if(!win || !win.classList.contains('is-open')) return;
+    win.style.transition = 'none';   // see openSettings
+    var c = win.querySelector('.sw-close'); if(c) c.click();
+    await until(function(){ return getComputedStyle(win).display === 'none'; }, 'the Settings window to close', 40, 50);
+  }
+  // Which Settings tab holds an element ('prefs' | 'region' | 'presets'), or null.
+  function settingsTabOf(el){
+    var p = el && el.closest && el.closest('#settings-window [role="tabpanel"]');
+    var m = p && /-panel-(\w+)$/.exec(p.id);
+    return m ? m[1] : null;
+  }
+  // Is a control laid out where the user would see it? For one in the Settings window, opens the tab
+  // that holds it first: only one tab is displayed at a time, and the by-view and contextual rules
+  // hide cards and rows with display:none.
+  async function shownInSettings(id){
+    var el = document.getElementById(id);
+    if(!el) return false;
+    var t = settingsTabOf(el);
+    if(t) await openSettings(t);
+    return el.getClientRects().length > 0;
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
-          typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
+          typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages};
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
+          openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
+          pdfDialog:pdfDialog};
 })();

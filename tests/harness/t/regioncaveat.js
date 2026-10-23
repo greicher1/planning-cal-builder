@@ -28,7 +28,7 @@ window.addEventListener('load', function () { (async function () {
   async function place(key){ T.set('union-place', key); await T.sleep(500); return caveat(); }
   var AGREEMENT_PHRASES = ['presence in Local 52 is inferred', 'add Easter Monday as a custom holiday',
     'ON4.02 ends in a catch-all', 'EXCEPT on Band 4 productions', 'Melbourne Cup Day applies statewide',
-    'moves WORKING days around holidays'];
+    'moves WORKING days around holidays', 'adds Good Friday and 26 December'];
   function agreementLines(text){ return AGREEMENT_PHRASES.filter(function (ph) { return (text || '').indexOf(ph) >= 0; }); }
   var WANT = [
     ['A1', 'us-new-york', 'presence in Local 52 is inferred'],
@@ -40,7 +40,9 @@ window.addEventListener('load', function () { (async function () {
     ['A7', 'uk-wales', 'EXCEPT on Band 4 productions'],
     ['A8', 'uk-belfast', 'EXCEPT on Band 4 productions'],
     ['A9', 'au-melbourne', 'Melbourne Cup Day applies statewide'],
-    ['A10', 'eu-lithuania', 'moves WORKING days around holidays']
+    ['A10', 'eu-lithuania', 'moves WORKING days around holidays'],
+    // France (20 Oct 2026, LABELS-SETUP-PLAN.md item 8): Alsace-Moselle's two days and the solidarity day.
+    ['A11', 'eu-france', 'adds Good Friday and 26 December']
   ];
   try {
     await T.appReady();

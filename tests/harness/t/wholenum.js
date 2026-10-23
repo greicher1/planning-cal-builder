@@ -16,9 +16,10 @@
 //   W4  the 12/21/26 hiatus's weeks 1.5: ringed with "Whole weeks only"
 //   W5  Post's own hiatus's weeks 1.5 (enabled): ringed with "Whole weeks only"
 //   W6  Sim Post's offset 2.5 (enabled): ringed with "Whole weeks only"
-//   W7  an episode's days 7.5: its day box is ringed, "Whole days only" under the row, and
-//       Production's total is the one it is with 7
-//   W8  Blocks mode, a block's days 10.5: its day box is ringed with "Whole days only"
+//   W7  an episode's days 7.3: its day box is ringed, "Whole or half days only" under the row, and
+//       Production's total is the one it is with 7. ✅ 7.5 is NOT ringed and counts 7.5 (half days,
+//       owner 15 Oct 2026: an episode or block day count may end in .5 -- the halfdays leg)
+//   W8  Blocks mode, a block's days 10.3: ringed with "Whole or half days only"; 10.5 is not
 //   W9  everything whole again: nothing ringed, no message anywhere
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -48,7 +49,7 @@ window.addEventListener('load', function () { (async function () {
   function sig(){ return JSON.stringify(T.gridSignature()); }
   function total(){ return ((document.getElementById('prod-total-readout') || {}).textContent || '').replace(/\s+/g, ' ').trim(); }
   function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
-  var WEEKS = 'Whole weeks only', DAYS = 'Whole days only';
+  var WEEKS = 'Whole weeks only', DAYS = 'Whole or half days only';
   try {
     await T.appReady();
     T.buildFixture();
@@ -103,12 +104,19 @@ window.addEventListener('load', function () { (async function () {
     var restBorder = boxBorder(ep);
     setEl(ep, '7'); await T.sleep(1000);
     var total7 = total();
-    setEl(ep, '7.5'); await T.sleep(1000);
+    setEl(ep, '7.3'); await T.sleep(1000);
     ep = document.querySelector('#episode-rows .ep-days');   // the list re-renders
-    add('W7', 'an episode at 7.5 days: its day box is ringed, "Whole days only" under the row, and Production\'s total is the 7-day one',
+    add('W7', 'an episode at 7.3 days: its day box is ringed, "Whole or half days only" under the row, and Production\'s total is the 7-day one',
       ep.classList.contains('is-invalid') && boxBorder(ep) !== restBorder && said(ep) === DAYS && total() === total7,
       {ringed: ringed(), border: boxBorder(ep), restBorder: restBorder, said: said(ep), total: total(), total7: total7},
       {said: DAYS, total: total7});
+    setEl(ep, '7.5'); await T.sleep(1000);
+    ep = document.querySelector('#episode-rows .ep-days');
+    var total75 = total();
+    add('W7h', 'an episode at 7.5 days is a HALF day, not a typo: not ringed, no message, and the total moves by exactly 0.5',
+      !ep.classList.contains('is-invalid') && said(ep) === '' && total75 !== total7
+        && parseFloat((/([\d.]+)\s*days/.exec(total75) || [])[1]) === parseFloat((/([\d.]+)\s*days/.exec(total7) || [])[1]) + 0.5,
+      {ringed: ringed(), said: said(ep), total: total75, total7: total7}, 'clean, +0.5');
     setEl(ep, '8'); await T.sleep(1000);
 
     T.set('show-mode', 'blocks'); await T.sleep(800);
@@ -116,14 +124,18 @@ window.addEventListener('load', function () { (async function () {
     var bd = document.querySelector('#episode-rows .blk-days');
     if(bd){
       var bRest = boxBorder(bd);
-      setEl(bd, '10.5'); await T.sleep(1000);
+      setEl(bd, '10.3'); await T.sleep(1000);
       bd = document.querySelector('#episode-rows .blk-days');
-      add('W8', 'Blocks mode, a block at 10.5 days: its day box is ringed with "Whole days only"',
+      add('W8', 'Blocks mode, a block at 10.3 days: its day box is ringed with "Whole or half days only"',
         bd.classList.contains('is-invalid') && boxBorder(bd) !== bRest && said(bd) === DAYS,
         {ringed: ringed(), border: boxBorder(bd), rest: bRest, said: said(bd)}, {said: DAYS});
+      setEl(bd, '10.5'); await T.sleep(1000);
+      bd = document.querySelector('#episode-rows .blk-days');
+      add('W8h', 'a block at 10.5 days is a half day: not ringed, no message',
+        !bd.classList.contains('is-invalid') && said(bd) === '', {ringed: ringed(), said: said(bd)}, 'clean');
       setEl(bd, '16'); await T.sleep(800);
     } else {
-      add('W8', 'Blocks mode, a block at 10.5 days', false, 'no .blk-days field appeared', 'a block row');
+      add('W8', 'Blocks mode, a block at 10.3 days', false, 'no .blk-days field appeared', 'a block row');
     }
     T.set('show-mode', 'episodes'); await T.sleep(1200);
 

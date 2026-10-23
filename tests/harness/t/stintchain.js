@@ -72,16 +72,17 @@ window.addEventListener('load', function () { (async function () {
     out.storedSwapApplied = /^2 x1 n13$/.test(out.before.post || '') && /^1 x1 n8$/.test(out.before.prePrep || '');
     out.naturalRest = /^0 x1 n20$/.test(out.before.writersRoom || '') && /^1 x1 n7$/.test(out.before.production || '');
 
-    // 2. ⭐ The swap that used to be refused is OFFERED, and the chip says it re-flows nothing.
+    // 2. ⭐ The swap that used to be refused is OFFERED (its knob is up, labelled with the partner), and
+    //    no chip says anything about it (owner, 21 Oct 2026: no chip except "Double click to expand cells" and a refused swap's reason).
     await hover(cellOf('writersRoom'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Block on Writer\'s Rm', 60, 100);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Column on Writer\'s Rm', 60, 100);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 150, 100);
     out.knob = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label') || '';
-    var info = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
+    var info = document.querySelector('.grid-sel-layer .grid-sel-chip');
     out.mode = info ? info.textContent : '';
-    out.offered = /block of Writer.s Rm with Production/.test(out.knob) &&
-                  /All 20 weeks of Writer/.test(out.mode) && /nothing re-flows/.test(out.mode);
+    out.offered = /block of Writer.s Rm with Production/.test(out.knob) && !/swap|re-flow|⚠/i.test(out.mode) &&
+                  !document.querySelector('.grid-swap-layer .grid-swap-chip');
     // The old defect, asserted directly so it cannot come back silently.
     out.noCollideMessage = !/same column in the same week/.test(out.mode);
 

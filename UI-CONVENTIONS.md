@@ -328,7 +328,16 @@ app's answer in two places before it was written down — `.side-tab-btn.active`
 `button.secondary.add-hiatus-btn`, whose comment calls it *"a deliberate echo of the active tab so
 the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third.
 
-Three rules go with it:
+Four rules go with it:
+
+- ⛔ **A row of RESTING controls never wears the tint, because the tint also means SELECTED.** It is the
+  active sidebar tab's ground, so a control filled with it at rest reads as switched on. Learned 21 Oct
+  2026: the preview toolbar's four shifting tools went live in the tint and the owner saw at once that
+  *"it looks like those buttons are all selected"*. The tint suits a single action button that stands
+  alone in a panel (the three above), not a row of tools beside other buttons. To set a group of
+  toolbar controls apart, colour the **border and ink** and keep the white fill: the shifting tools
+  (`.shift-btn`, `.tools-wrap > .tools-btn`) take a navy-6 outline and navy-6 text, with `navy-0` on
+  hover and while their popover is open (owner's pick of four mockups, "option A").
 
 - ⛔ **Reach for the tokens, never the hex.** `#D3DAE1` in a rule is a copy that stops tracking the
   theme, and the failure is invisible: the two grounds simply drift apart.
@@ -565,9 +574,10 @@ over a modal.
 
 | Tier | Members |
 |---:|---|
-| **100** | app header, sidebar tab strip, help FAB |
+| **50** | The month view's edge handles (`.phase-edge-handle`): Production's (15 Oct 2026) and, since 16 Oct 2026, every other phase's start and end (`installPhaseEdgeHandles`, a second pool with the same class). Body-level, over the month grid, below every popover so one opened over a pill covers them |
+| **100** | app header, sidebar tab strip, help FAB, and the calendar zoom pill beside it (`.cal-zoom`, 20 Oct 2026; both are `z-index:60` in practice) |
 | **200** | help modal **and its backdrop** |
-| **300** | every popover and menu, and the shift readout |
+| **300** | every popover and menu, and the shift readout. Also `.phase-edge-shield`, for the length of one edge drag only: it is appended last, so DOM order puts it on top |
 
 ⚠️ **Mantine's `overlay: 400` tier is dead in 9.5.2** — `Overlay`'s default zIndex is
 `getDefaultZIndex('modal')` = 200, and `getDefaultZIndex("overlay")` is read by no component in the
@@ -793,6 +803,8 @@ page scrolls, exactly as before.
 | the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
 | the month view | `.preview-panel{overflow:auto}` — the view has no scroll box of its own, and it is not scaled or restyled |
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
+| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
+| the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md.)* A full-width second line of `.view-toggle-row` (`.view-toggle-row > .style-bar-host{flex:1 1 100%}`; the row already wraps), 34 px tall at 1600×1200, so it costs one toolbar line of grid height at every width. ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit already observes `.view-toggle-row` (its ResizeObserver), so the grid still ends at the panel's bottom with no change; `calzoom` W1b and `textstyle` B3 hold it |
 
 ⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
 `body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct
@@ -827,9 +839,10 @@ popovers are absolute inside the toolbar and hang left from their button. At 102
 now cut it off, and leftward overflow is the one direction a scroll container can never scroll to.
 `openPop()` now slides an open panel right until it fits (`keepPopInPanel`), and does so again on
 resize. **Any new absolutely-positioned panel inside `.preview-panel` must be measured at 1024 px
-for the same reason.** Body-level popovers (`.note-pop`, `.mv-note-pop`, `.day-ov-pop`, the date and
-select pops) are unaffected, and their capture-phase scroll listeners follow the panel's scroll —
-verified by real wheel scrolls.
+for the same reason.** Body-level popovers (`.note-pop`, `.mv-note-pop`, the date and select pops, and
+`.day-ov-pop` until the month day menu retired it on 19 Oct 2026) are unaffected, and their capture-phase
+scroll listeners follow the panel's scroll — verified by real wheel scrolls. The day menu (`.day-menu`)
+does not follow: it closes on any scroll.
 
 **Measured on the build, `blocks.sptcal`** — `document.scrollingElement.scrollHeight === innerHeight`
 in both views at every size:
@@ -870,7 +883,7 @@ page, one job. Its conventions are its own, and deliberately not the app's:
 
 ---
 
-## 8. ⛔ Seven verified traps
+## 8. ⛔ Nine verified traps
 
 **Every one of these was a decision that looked right and was wrong.** They were caught by reading
 the installed Mantine source, not by reasoning about it. Each would have broken the save format or
@@ -924,6 +937,12 @@ textarea, the hiatus rows, the episode rows, and 5–6 `SegmentedControl` radios
 *before* any Mantine input is placed in those places: either pass a stable `name`/`id`, or widen
 `collectFieldValues()`'s skip test — and ship that guard **in the same change** as the component
 swap.
+
+**A third way, for a second copy of a saved control** (21 Oct 2026, the Production Region in Show
+info): a plain `<select>` with no id at all, inside `Input.Wrapper labelElement="div"` for the label
+and with an `aria-label`, drawing NativeSelect's chevron by hand (`select.region-mirror` in
+`legacy.css`). The id'd original stays the only control the save reads; the engine forwards the
+copy's change to it and writes its value back (`reflectRegionUI()`). Leg `regionmirror`.
 
 ### 8.4 `Popover` portals by default, defeating the `.tools-menu` escape
 
@@ -989,6 +1008,35 @@ grep assertion to `tools/check-refs.py` that the block contains no unwrapped Man
 
 **And decide explicitly whether the size increase is acceptable for the "email it around" property**
 — that is an owner question, not an engineering one.
+
+### 8.8 `Tabs` keeps inactive panels mounted through `<Activity>`, which renders them LATE (20 Oct 2026)
+
+Found building the Settings window. `@mantine/core` 9.5.2's `Tabs` defaults to `keepMounted: true`
+**and `keepMountedMode: "activity"`**: `Tabs.Panel` wraps an inactive panel's children in React's
+`<Activity mode="hidden">`. A hidden Activity renders its children at a lower priority, after the
+visible content, so they are **not in the DOM when `main.jsx`'s `flushSync` returns** and
+`initLegacyApp()` binds by id. It also unmounts their effects, so a component inside that installs a
+bridge function from `useLayoutEffect` (ProdLabelControl, HeaderPresets) never installs it.
+
+**Pass `keepMountedMode="display-none"`.** Every panel then renders in the first commit and the
+inactive ones get `display:none`, the old `.tab-hidden` contract. The `settingswin` leg's W1 finds
+every moved id in its tab on a fresh page; in Activity mode three of the four tabs would be missing.
+
+### 8.9 A Mantine `Switch` puts its OWN state back over the engine's on any re-render (20 Oct 2026)
+
+`Switch` is "uncontrolled" only from the outside. Inside it calls `useUncontrolled()` and renders
+`<input checked={state}>`, so it IS a React-controlled input. The engine writes `.checked` directly
+(`reflectSingleColumn()`, `refreshPrepUI()`, `reflectMonthTagPrefs()`), on every undo, Load and New.
+React never sees those writes, and the next time it re-renders that Switch it writes its remembered
+state back. After a Load of a file with Pause prep off, opening the Settings window showed it on.
+
+It never showed in the sidebar because those cards never re-rendered after mount. The Settings
+window re-renders on every open, close and tab change. **The fix is not to re-render the cards:** the
+four panels' contents are module-level constants (`SettingsWindow.jsx`, `CALENDAR_PANEL` …), so React
+gets the same element objects each render and skips their subtrees. ⚠️ **Any Switch, Checkbox or
+SegmentedControl whose value the engine writes must sit in a subtree that never re-renders, or take
+its value through the bridge** (`mvProdLabel` does). `settingswin` W9 holds it: undo, then re-render
+the window, and the switch must still show the engine's value. `offweek` R12 and R14 caught it first.
 
 ---
 
@@ -1092,8 +1140,9 @@ Nothing in this document ships without all of these, every stage:
    Assert the panel's `[id]` set is **empty**, open, the way `hdreditor` and `hdrpreset` both do. The
    alternative — adding the panel's class to the skip list — is fine, but it has to happen **first**.
 10. **NEW — the month PDF is unchanged** (22 Sep 2026), automated by `gate.sh`'s `monthprint` leg
-    against `tests/baselines/2026-09-22-monthprint/` on nine calendars (four when added; `blocks` and
-    `blocksoff` 22 Sep; `dayoverrides-onhalf`, `month-lanecap` and `hiatus-blanklabel` 29 Sep 2026): the document `exportMonthPdf`
+    against `tests/baselines/2026-09-22-monthprint/` on ten calendars (four when added; `blocks` and
+    `blocksoff` 22 Sep; `dayoverrides-onhalf`, `month-lanecap` and `hiatus-blanklabel` 29 Sep 2026; `halfdays` 15 Oct
+    2026, with every case re-cut that day for one bar per episode, signed off by the owner): the document `exportMonthPdf`
     hands to `window.print()` is **byte-identical** (today stamp normalised), and Chrome's real print
     of it has **one sheet per month**. Both halves are needed — a CSS-only edit to a frozen `.mv-*`
     rule changes the printout without changing the document, and was proven to (16 sheets → 32).
@@ -1137,7 +1186,29 @@ Nothing in this document ships without all of these, every stage:
     - `cmdprint`: Cmd/Ctrl+P runs the view's export;
     - `loadfail` AS/AR: the autosave path after a refused load, and a rollback case with teeth;
     - `pilldrag.mjs`, a Node script with its own block: a month pill dragged out and back keeps
-      Snap to Mon, driven with trusted CDP mouse input.
+      Snap to Mon, driven with trusted CDP mouse input. Since 15 Oct 2026 it also holds Production's
+      handles (E0–E13, MONTH-VIEW-PLAN §6.7), each pressed where it is topmost:
+      - the first shoot day and the wrap, which move by shoot day and hold the other end;
+      - every episode or block end, where later rows slide;
+      - each week's edges, which write off and worked marks;
+      - one drag is one undo step, Blocks mode is covered, and print media hides the handles.
+    - `phaseedge.mjs` (16 Oct 2026), pilldrag's sibling with the same trusted input: the start and end
+      handles on every phase with a Length select (MONTH-VIEW-PLAN §6.7, rulings 7 and 8). F0–F12 cover
+      every edge × unit, custom and built-in; the held end never moving; the Weeks → Dates switch with
+      one undo; floors; weekend, holiday and hiatus step-overs; out-and-back and Escape banking nothing;
+      and print media.
+    - `hiatusdrag.mjs` (19 Oct 2026), the same trusted input on a hiatus band (HIATUS-DRAG-PLAN.md,
+      owner rulings 1–4). H0–H12 cover:
+      - where the move layer and the two grips appear, and that a locked or ambiguous band gets none;
+      - a week at a time by row (a Sunday drop means that row's week);
+      - an all-phase drag asking Keep or Undo, with Ctrl+Z held under the question;
+      - a phase's own hiatus never asking, and never leaving its phase;
+      - no overlap, and the floors;
+      - the band's look travelling with it;
+      - the half day staying on its date;
+      - Escape, and print media.
+      ⚠️ The crash-backup half of the hold can't be seen headless (IndexedDB never settles there), so it
+      was proved in the app pane.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
 
@@ -1147,9 +1218,10 @@ Nothing in this document ships without all of these, every stage:
       anchors the mode menu; the Manual-only editor strip; nothing above the header in Auto or
       Template; the view-split notes reset in the app header; "Reset hiatus bands" in the sidebar;
       one undo step each. `sharecopy2` also requires the new React host empty in a shareable copy.
-    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's count chip
-      ends with "Alt+←/→ to swap" and shows whole on a narrow grid; Alt+arrows and double-click
-      still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
+    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's only chip
+      over a selection is the double-click hint (owner, 21 Oct 2026): "Double click to expand cells",
+      "…pull back cells" once expanded, none where there is no room, never any swap text; Alt+arrows
+      and double-click still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
 
     The month-PDF writer's step 1 (1 Oct 2026, `MONTH-PDF-WRITER-PLAN.md` §8) adds `interfonts`.
     It reads the four static Inter programs with the frozen `ttf*` functions, and requires every
@@ -1170,6 +1242,16 @@ Nothing in this document ships without all of these, every stage:
     (K14). ⌘S and ⌘P are unchanged. End to end, Save As on a linked calendar writes a new file and
     switches to it. `nofsa` gains B5: without the API, ⇧⌘S stays plain Save.
 
+    The dialog-keys fix (19 Oct 2026) adds `dlgkeys` (no state; it loads its own linked file through
+    the fake picker). Plain ⌘S, ⌘Z and ⇧⌘Z now do nothing while a dialog or the template header editor
+    is up, as ⇧⌘S, ⌘N and ⇧⌘E already did. It opens twelve questions (D1–D12), presses the three keys
+    under each, and then answers. Each key must be prevented and do nothing (no Save, no write, no undo
+    or redo, the same question still up), and the answer must still do what it says. Before the fix,
+    ⌘Z under "Remove hiatus?" made Remove do nothing, and under "Remove phase?" it left a ghost row.
+    ⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change. Kept:
+    ⌘Z inside a field, the header editor's included, is the field's own undo (X1, X2), and with no
+    dialog the three keys work as before (X3).
+
     Double-click to open (1 Oct 2026) adds `launchopen`: a `.sptcal` the OS hands the app through
     `launchQueue` loads as Load… does. It covers a cold launch (no recovery question on top, the
     backup kept), the linked file Save writes back to, the unsaved-work question (Cancel and Load),
@@ -1186,8 +1268,9 @@ Nothing in this document ships without all of these, every stage:
     stripped) still passes. Run `cspproof.mjs` after anything that loads something.
 13. **NEW — the WRITTEN month PDF is unchanged** (5 Oct 2026, MONTH-PDF-WRITER-PLAN.md step 6).
     Since step 5, Export PDF in the month view runs the direct writer, so item 10 now holds the
-    rollback. This gate holds what users get. `gate.sh`'s `monthexport` runs export seventeen
-    calendars through the BUILT app with the clock pinned. `monthbase.py` holds each file **byte for
+    rollback. This gate holds what users get. `gate.sh`'s `monthexport` runs export eighteen
+    calendars through the BUILT app with the clock pinned (`halfdays` added, and every case re-cut for one
+    bar per episode with the owner's sign-off, 15 Oct 2026). `monthbase.py` holds each file **byte for
     byte** to `tests/baselines/2026-10-05-monthwriter/`. They were cut after the owner signed off a
     real Export in Preview (2 Oct 2026). On a mismatch it says which of two things happened, and fails
     either way:
@@ -1199,6 +1282,27 @@ Nothing in this document ships without all of these, every stage:
     `monthbase.py sheets`' old | new | difference contact sheets in front of the owner, and is re-cut
     only on a yes. The one exception is a compressor-only change: it is re-cut with that proof
     recorded in the baselines' README, and the owner is told. Never re-cut a red you cannot explain.
+14. **NEW — boxes beside the waterfall stay beside it** (20 Oct 2026, SIDE-BOXES-PLAN.md). `gate.sh`'s
+    `sideboxes` leg: the boxes live outside `#table-wrap` and never in the month view, whose
+    `#table-wrap` width must be identical with and without them (it repaginates the month PDF,
+    MANTINE-SEAM §5.3); no id anywhere in a side column or its body-level panels (item 9); the
+    workbook and the waterfall PDF read back with the boxes beside the grid; and deleting the last box
+    puts the save file and the PDF page back exactly. Items 2 and 3 are the other half: a calendar
+    with no box exports byte for byte as before. Since 21 Oct 2026 a box sits on any row: drawn level
+    with the grid's row at any zoom and scrolling with it, on the same row in the workbook and the PDF.
+15. **NEW — a box hidden from exports stays on screen and leaves both writers** (21 Oct 2026,
+    SIDE-BOXES-PLAN.md §14). `gate.sh`'s `sbnoexport` leg: the "Hide from Exports" tab carries no id
+    and covers nothing; the hidden box stays drawn; the workbook and the waterfall PDF read back
+    without it; every box hidden gives the PDF content and the grid of a calendar with no box; and
+    `noExport` is only ever written as `true`. ⛔ It is also what catches a new screen-side caller of
+    `sideBoxLayoutSafe()` that forgets `SIDE_SCREEN` (H1/N1 go red: the hidden box vanishes).
+16. **NEW — a hidden Notes column leaves every output the same way** (22 Oct 2026, HIDE-NOTES-PLAN.md).
+    `gate.sh`'s `notescols` leg: the screen draws a strip with one cell per row (⛔ never a rowspan,
+    which would shift `applyCellFitLive`'s and the span handles' column walk), its resize handle
+    hidden, and 0 clipped cells; the workbook keeps the column HIDDEN with its width and notes, its
+    right rule and hiatus band ending at the last phase column; the PDF draws no heading or note for
+    it; and the print fallback never carries the strip. Items 2 and 3 are the other half: with nothing
+    hidden, every frozen edit it took (W1–W2, R1–R5, X1, E1–E3, P1–P3) is byte for byte inert.
 
 ---
 

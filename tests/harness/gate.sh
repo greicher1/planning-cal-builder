@@ -186,9 +186,12 @@ PY
 #   mvheader        the month header in Template mode, all four slots
 #   mvheaderlegacy  a Manual header saved before templates existed -- braces must print literally
 #   blocks          block shooting ON: the step-4 block tag (BLOCKS-PLAN §5), a frozen edit
-#   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all, held to the
-#                   REFERENCE baseline -- BLOCKS-PLAN §5 condition 3 ("no change at all with Blocks
-#                   off") as byte identity against a baseline cut before Blocks existed
+#   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all -- BLOCKS-PLAN §5
+#                   condition 3 ("no change at all with Blocks off"). It was held to the REFERENCE baseline
+#                   until 20 Oct 2026 (late), when an episode's bar began reading its NAME: this fixture,
+#                   saved by an older build, reads "Episode N" and reference (typed in fresh) "Shoot Ep. N".
+#                   So it has its own baseline now, and the block after this loop still holds it to
+#                   reference's, byte for byte, once both names are read as the episode
 #   dayoverrides-onhalf  ⭐ ADDED 29 Sep 2026 (batch-3 step 0): 'onhalf' marks -- a weekend or holiday
 #                   worked as a half day -- which bdfec60's frozen renderMonthView edit draws. A NEW
 #                   case, not a re-cut; cut before 3.6 edits the same function
@@ -196,13 +199,19 @@ PY
 #                   60-lane cap (L-16) -- and its August is in SCALE mode, the first case that exercises
 #                   exportMonthPdf's shrink-to-fit branch at all
 #   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
+#   mvnotes         ⭐ ADDED 20 Oct 2026 (MONTH-NOTES-PLAN.md): an edge month that prints because it holds notes and a
+#                   custom holiday, No fill / tint / grey day notes, a note on a hiatus day, one-day custom pills that wrap
+#   halfdays        ⭐ ADDED 15 Oct 2026: episodes of 4.5 days (one of 5), so Production's bars split per episode
+#                   and STACKED on each switch day ("Stacked bars, always"). ⭐ Since 16 Oct 2026
+#                   (HALF-SQUARE-BARS-PLAN.md) the two meet half way through the square in ONE lane
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
 for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
-              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
+              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:blocksoff \
               dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
-              month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel; do
+              month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel \
+              halfdays:halfdays:halfdays mvnotes:mvnotes:mvnotes; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
@@ -211,6 +220,19 @@ for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvhea
   MPLABEL="$MPCASE"; [[ $MPBCASE != $MPCASE ]] && MPLABEL="$MPCASE (vs the $MPBCASE baseline)"
   python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPBCASE" "$MPLABEL" || FAIL=1
 done
+# ⭐ BLOCKS-PLAN §5 condition 3, kept when blocksoff took its own baseline (20 Oct 2026): Blocks switched off prints
+# exactly the reference calendar, once each document's episode names ("Episode N" in this older file, "Shoot Ep. N" in
+# reference, typed in fresh) are read as the episode, and the dotted date stamp as a stamp.
+python3 - "$HERE/monthprint-blocksoff.json" "$MPBASE/reference.html" <<'PYBO' || FAIL=1
+import json,re,sys
+try: new=json.load(open(sys.argv[1]))['printHtml']; ref=open(sys.argv[2]).read()
+except Exception as e:
+    print('  FAIL  monthprint blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
+norm=lambda s: re.sub(r'\b\d{1,2}\.\d{1,2}\.\d{2}\b','STAMP',re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s))
+ok=norm(new)==norm(ref) and len(re.findall(r'Episode \d+',new))>0
+print(('  PASS  ' if ok else '  FAIL  ')+'monthprint blocksoff: ⭐ identical to reference\'s baseline once episode names are read as the episode (Blocks off changes nothing)')
+sys.exit(0 if ok else 1)
+PYBO
 
 # ---- colswap: the grid COLUMN-ORDER reconciler, end to end through a real restore path ----------
 # Driven by HARNESS_STATE, which substitutes a fixture into the page's own <script id="saved-state">
@@ -308,8 +330,8 @@ chk(a.get('rightNoOp') and a.get('chipExplains'),
     f"move: the unavailable direction moves nothing and says why -- {str(a.get('chipText'))[:80]}")
 chk(a.get('wholeRunMoved'), f"move: one gesture moved the whole 4-week run {a.get('movedWeeks')}/4")
 chk(a.get('aboveKeptSlot'), "move: unselected weeks kept their phase and slot")
-chk(a.get('aboveWidened') and a.get('confirmReportsCollateral'),
-    f"move: magnitude-1 collateral applied AND reported -- {str(a.get('confirmText'))[:80]}")
+chk(a.get('aboveWidened') and a.get('confirmSilent'),
+    f"move: magnitude-1 collateral applied, and NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('confirmText'))[:80]!r}")
 chk(a.get('knobFollowed'), "move: the affordance followed the move")
 chk(a.get('reverseRestoredExactly'), f"move: moving back deleted the pair {a.get('afterReverse')}")
 chk(not a.get('errors'), f"move: 0 console errors {a.get('errors')}")
@@ -346,8 +368,8 @@ chk(a.get('labelNamesOverlap'), f"mid: the run is the shared stretch -- {a.get('
 chk(a.get('wholeOverlapMoved'), f"mid: one gesture moved all 6 shared weeks ({a.get('movedWeeks')}/6)")
 chk(a.get('wrTailWidened') and a.get('ppTailWidened'),
     "mid: both 6-week tails kept their slot and widened by exactly one column")
-chk(a.get('chipReportsTwelve'),
-    f"mid: 12 collateral weeks allowed AND reported -- {str(a.get('chipText'))[:80]}")
+chk(a.get('chipSilent'),
+    f"mid: 12 collateral weeks allowed, and NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('chipText'))[:80]!r}")
 chk(not a.get('errors'), f"mid: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"mid: 0 horizontally clipped cells {hv.get('h')}")
@@ -528,7 +550,7 @@ chk(not a.get('errors'), f"oneside: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 
-# ---- stintbtn: the "Swap Block" hover button and the mode inference, through the real user path --------
+# ---- stintbtn: the "Swap Column" hover button and the mode inference, through the real user path --------
 # COLUMN-ORDER-PLAN.md sections 2.2 and 6 item 5, on the owner's screenshot shape with NO order stored.
 # Hover a middle week -> the button appears on the block's FIRST week, survives travel across the
 # block, re-anchors on another phase, disappears off the phases. Click -> every cell selected as ONE
@@ -550,17 +572,17 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  stintbtn threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('naturalNarrow'), "btn: pre-state is the natural order, Prod Prep held to one column")
-chk(a.get('btnText')=='Swap Block' and a.get('btnPhase')=='prodPrep/2026', f"btn: the button says Swap Block for the hovered block ({a.get('btnText')}, {a.get('btnPhase')})")
+chk(a.get('btnText')=='Swap Column' and a.get('btnPhase')=='prodPrep/2026', f"btn: the button says Swap Column for the hovered block ({a.get('btnText')}, {a.get('btnPhase')})")
 chk(a.get('btnOnFirstWeek') and a.get('btnInsideCell'), "btn: anchored to the block's FIRST week, inside the cell")
 chk(a.get('btnSurvivedTravel'), "btn: survives the pointer travelling across the block toward it")
 chk(a.get('btnFollowsPhase') and a.get('btnGoneOffPhase'), "btn: re-anchors on another phase, gone off the phases")
 chk(a.get('outlines')==1, f"btn: the whole block is drawn as ONE outline ({a.get('outlines')})")
-chk(a.get('modeSaysBlock') and a.get('knobSaysBlock'), f"btn: the chip states the BLOCK mode and the partner before commit -- {str(a.get('modeText'))[:90]}")
+chk(a.get('modeSaysBlock') and a.get('knobSaysBlock'), f"btn: the knob states the BLOCK mode and the partner before commit; the chip is only the hint -- {str(a.get('modeText'))[:90]}")
 chk(a.get('noLeftKnob'), "btn: no knob offered where there is no partner")
 chk(a.get('wholeBlockMoved') and a.get('noCellWidened'), "btn: all six weeks moved and NOT ONE changed width")
 chk(a.get('knobFollowed'), "btn: the affordance followed the move")
 chk(a.get('reverseRestoredExactly'), "btn: swapping back deleted the entry and restored the natural layout exactly")
-chk(a.get('partialSaysWeek') and a.get('partialOutlines')==2, f"btn: a partial selection resolves to the per-week mode and says so, drawn as two outlines across the gap (E3) -- {str(a.get('partialText'))[:90]}")
+chk(a.get('partialSaysWeek') and a.get('partialOutlines')==2, f"btn: a partial selection resolves to the per-week mode and the knob says so, drawn as two outlines across the gap (E3) -- {str(a.get('partialText'))[:90]}")
 chk(a.get('noBtnSingleColumn'), "btn: no button on a block with one phase column")
 chk(not a.get('errors'), f"btn: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
@@ -589,7 +611,7 @@ if 'EX' in a:
 chk(a.get('naturalOrder'), "multi: pre-state is the natural order, every cell one column wide")
 chk(a.get('namesBothA'), f"multi: from the long side, BOTH partners named before commit -- {str(a.get('knobA'))[:90]}")
 chk(a.get('groupMovedA'), f"multi: all three blocks traded, nothing lost, nothing wider {a.get('afterA')}")
-chk(a.get('flashNamesAllA'), f"multi: the confirmation names every block that moved -- {str(a.get('flashA'))[:90]}")
+chk(a.get('flashSilentA'), f"multi: NO message after the group swap (owner, 21 Oct 2026) -- {str(a.get('flashA'))[:90]!r}")
 chk(a.get('reversedA'), "multi: swapping back restored the natural layout exactly")
 chk(a.get('namesCompanionB') and a.get('noRightKnobB'), f"multi: from the short side, the companion is named -- {str(a.get('knobB'))[:90]}")
 chk(a.get('groupMovedB') and a.get('reversedB'), "multi: the same swap from the short side lands and reverses exactly")
@@ -687,12 +709,11 @@ if 'EX' in a:
     print('  FAIL  stintreshape threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('threeColumns') and a.get('narrowBefore'),
     f"reshape: three phase columns, Writer's Rm held to one for all 31 weeks {a.get('before')}")
-chk(a.get('warnNamesIt'),
-    f"reshape: the warning NAMES the phase, the new width and the extent -- {str(a.get('chipText'))[:110]}")
-chk(a.get('warnIsAmber'), f"reshape: the chip is the amber warning, not the neutral one ({a.get('chipClass')})")
+chk(a.get('noWordsBefore'),
+    f"reshape: no chip says anything about the swap before commit (owner, 21 Oct 2026) -- {str(a.get('chipText'))[:110]!r}")
 chk(a.get('amberMatchesCount'), f"reshape: one amber rectangle per affected week before commit ({a.get('amberRects')}/28)")
 chk(a.get('swapped') and a.get('widened'), f"reshape: the swap lands and the widening is real {a.get('after')}")
-chk(a.get('flashNamesIt'), f"reshape: the confirmation says the same thing -- {str(a.get('flash'))[:110]}")
+chk(a.get('flashSilent'), f"reshape: NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('flash'))[:110]!r}")
 chk(a.get('nothingLost'), "reshape: reshaping is not cell loss -- every week of both blocks survives")
 chk(a.get('reversedExactly'), f"reshape: reversing restores the year exactly {a.get('afterReverse')}")
 chk(not a.get('errors'), f"reshape: 0 console errors {a.get('errors')}")
@@ -922,7 +943,7 @@ chk(a.get('tplIsTemplate'), f"hdrtemplate: the third mode reads 'Header: Templat
 chk(a.get('tplLockedHere'),
     f"hdrtemplate: ⭐ Template mode is READ-ONLY on the calendar and the styling bar is gone -- owner, 10 Sep (contenteditable={a.get('tplEditableAttr')!r}, toolbar gone={a.get('tplToolbarGone')}, spacer={a.get('tplSpacerInstead')})")
 chk(a.get('clickOpensEditor') and a.get('clickSelectsThatLine'),
-    f"hdrtemplate: ...and clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
+    f"hdrtemplate: ...and double-clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
 chk(a.get('resolvesOnScreen'), f"hdrtemplate: tokens resolve on screen ({a.get('c4Resolved')!r})")
 chk(a.get('unknownSurvives'), f"hdrtemplate: an unknown token and an escape survive as typed ({a.get('c2Resolved')!r})")
 chk(a.get('groupsWork'),
@@ -1253,6 +1274,69 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
+# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
+# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
+# drag to fix a pick, and a row note only when something was moved by hand.
+#
+# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
+# frozen computeBlockLayout derives fewer columns from `col` as data. The byte-compare above, on
+# calendars that never tick it, is the inertness proof. This leg proves the rules, on a SYNTHETIC
+# calendar (2030-2032) with one phase per rule of the plan's §3.
+# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
+# LIVE's own snapshot.
+for CRSTATE in "" colreuse; do
+  rm -f "$HERE/colreuse.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
+  python3 - "$HERE/colreuse.json" "colreuse (${CRSTATE:-live})" <<'PYCR' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+if a.get('mode') == 'live':
+    chk(a.get('boxExists') and a.get('boxStartsOff') and a.get('boxSkippedBySweep'),
+        'the box exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
+    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
+        'OFF saves no colReuse/colFollow key and shows no row note: a calendar that never ticks it is unchanged')
+    oc=a.get('onCols') or {}
+    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
+    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
+    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
+    chk(a.get('newColumn'), 'nothing free: a new column')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
+    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
+    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
+        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(a.get('selectedMix') and a.get('moved'),
+        f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
+    chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
+    chk(a.get('pdfExported'), 'the waterfall PDF exports')
+    chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
+        f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
+    chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
+else:
+    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
+    chk(a.get('newClears'), 'New clears the box and the hand moves')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYCR
+done
+
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
 # ⛔ THE FORWARD-COMPATIBILITY HALF of moving rowHeights from row-index keys to week keys, and the
 # risky half: every calendar anyone has ever dragged a row in stores `rowHeights: {"<index>": px}`.
@@ -1329,8 +1413,8 @@ chk(a.get('epMeta')==EP_META and '8-Day Shooting Schedule' in (a.get('epHdr') or
     and a.get('epRowsShown')==10 and a.get('epBlockRows')==0,
     f"blocks: Episodes mode schedules from the episode list, byte-identical header ({a.get('epMeta')})")
 chk(a.get('roundTrip'), f"blocks: ⭐ ROUND TRIP -- back to Blocks restores the dates and the hand arrangement ({a.get('backMeta')})")
-chk(a.get('mvEpisodePills')==0 and (a.get('mvProductionPills') or 0)>0,
-    f"blocks: month view draws Production's pills, no episode pills (ruling 5) -- {a.get('mvProductionPills')} / {a.get('mvEpisodePills')}")
+chk(a.get('mvEpisodePills')==0 and (a.get('mvProductionPills') or 0)>0 and (a.get('mvBlockPills') or 0)>0,
+    f"blocks: month view draws Production's own pills, one bar per block (15 Oct 2026), no episode pills -- {a.get('mvProductionPills')} / {a.get('mvBlockPills')} / {a.get('mvEpisodePills')}")
 chk(a.get('loadGuardAnswered') and a.get('oldMode')=='episodes' and a.get('oldNumBlocks')=='' and a.get('oldDaysPerBlock')==''
     and '10/27/26' in (a.get('oldMeta') or '') and (a.get('oldMeta') or '').startswith('80 shoot days')
     and a.get('oldBlockRows')==0 and a.get('oldEpisodeRows')==10,
@@ -1344,7 +1428,7 @@ tp, t3, ts = a.get('tagPrint') or {}, a.get('tagPrint3') or {}, a.get('tagScreen
 chk((tp.get('n') or 0) > 0 and not tp.get('clipped') and not ts.get('clipped'),
     f"blocks: ⭐ the block tag prints in Production's pill and is never clipped ({tp.get('n')} tags, headroom >= {tp.get('minSlack')}px)")
 chk(len(a.get('threeBlockWeek') or [])>=1 and not t3.get('clipped'),
-    f"blocks: a row touching THREE blocks names all three and still fits ({(a.get('threeBlockWeek') or ['none'])[0]!r}, headroom {t3.get('minSlack')}px)")
+    f"blocks: a row touching THREE blocks draws all three bars and their tags still fit ({(a.get('threeBlockWeek') or ['none'])[0]!r}, headroom {t3.get('minSlack')}px)")
 chk((t3.get('oneDayPieces') or 0) >= 1 and t3.get('oneDayTagged') == 0 and tp.get('oneDayTagged') == 0,
     f"blocks: a ONE-DAY pill piece carries no tag (ruling 7) -- {t3.get('oneDayPieces')} such piece(s), {t3.get('oneDayTagged')} tagged")
 chk(not a.get('errors'), f"blocks: 0 console errors {a.get('errors')}")
@@ -1373,15 +1457,23 @@ chk(a.get('mode')=='episodes' and a.get('restoredOrder')==['205','202','203','20
     and a.get('restoredMeta')==META,
     f"shootorder: restores its hand shooting order, on the SAME dates as natural order ({a.get('restoredMeta')})")
 jp=a.get('julyPills') or []
-chk(a.get('episodePills')==0 and jp[:2]==[['Production Week 1','Ep. 205'],['Production Week 2','Ep. 205, 202']],
-    f"shootorder: ⭐ RULING 8 -- 'Production Week N' with the episodes as grey text, in SHOOTING order {jp[:2]}")
+# ⭐ "Stacked bars, always" (owner, 15 Oct 2026) replaced ruling 8's one bar per week: one bar per episode,
+# in SHOOTING order, its Production Week as the grey text. 7/10 is 202's first day, a one-day piece (ruling 7).
+chk(a.get('episodePills')==0 and jp[:3]==[['Ep. 205','Production Week 1'],['Ep. 205','Production Week 2'],['Ep. 202','']],
+    f"shootorder: ⭐ one bar per episode in SHOOTING order, the week as grey text {jp[:3]}")
 chk(a.get('undoDisabledBefore') is True and a.get('undoDisabledAfterPref') is True and a.get('undoDisabledAfterBoth') is True,
     "shootorder: a Preferences switch pushes NO undo step (Undo stays disabled through off and on)")
-chk(a.get('prefIdsInFields')==[] and all(p[1]=='' for p in (a.get('pillsEpsOff') or [['','x']]))
-    and a.get('pillsEpsBackOn')==jp,
-    "shootorder: 'Show Episodes' off drops the grey text, on restores it, and no pref- id is in fields.byId")
-chk(a.get('rowsInMonth')=={'onecol':False,'blocks':True,'eps':True} and a.get('rowsInSheet')=={'onecol':True,'blocks':False,'eps':False},
-    f"shootorder: Preferences rows follow the view -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
+# ⚠️ REVISED 15 Oct 2026 (owner's picker, MONTH-PILL-LABEL-PLAN): a "Show" switch edits the grey text ONLY. With no
+# label chosen an Episodes calendar's bar NAMES the episode and its grey text is the week, so Show Episodes off has
+# nothing to take away. It used to drop the grey text of ruling 8's week pills. The pilllabel leg holds what the
+# switch does where the episodes ARE grey text (Week mode).
+chk(a.get('prefIdsInFields')==[] and jp and a.get('pillsEpsOff')==jp and a.get('pillsEpsBackOn')==jp,
+    "shootorder: 'Show Episodes' off changes nothing while the bar names the episode, and no pref- id is in fields.byId")
+# ⚠️ REVISED 16 Oct 2026 (MONTH-PILL-LABEL-PLAN step 3): the month box now opens on the "Label Production by" control,
+# and its Show rows are contextual (plan 5.2). On this Episodes calendar, with no label chosen, the bar names the
+# episode: only Show Production Week is offered. pilllabel C3 holds the full table on eight calendars.
+chk(a.get('rowsInMonth')=={'onecol':False,'label':True,'week':True,'blocks':False,'eps':False} and a.get('rowsInSheet')=={'onecol':True,'label':False,'week':False,'blocks':False,'eps':False},
+    f"shootorder: Preferences rows follow the view and the label -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
 chk((a.get('afterBefore') or [''])[0]=='210' and a.get('afterAfter')==['210','205','202','204','201','203','206','207','208','209'],
     "shootorder: dragging a grip drops BEFORE (upper half) and AFTER (lower half) a row")
 chk(a.get('dragMetaSame') and a.get('dragGridSame'),
@@ -1390,6 +1482,116 @@ chk(a.get('oneUndoExact'), "shootorder: each move is ONE undo step")
 chk(not a.get('errors'), f"shootorder: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYS
+
+# ---- pilllabel: Production's month bars labelled by Week, Episode or Block (MONTH-PILL-LABEL-PLAN.md step 2) -------
+# ⭐ ADDED 15 Oct 2026, rebuilt on half-days. No control exists yet (step 3), so each label is opened the way a saved
+# calendar delivers it: the fixture's own JSON with `mvProdLabel` set or removed, through the real Load path. Every
+# label is held to the same file with no key (not chosen, which follows Schedule by and is what gates 10 and 13 hold):
+# labelled by Week, ONE BAR PER WEEK (owner's picker) exactly over base's days with ruling 8's grey text; labelled by
+# Episode on a Blocks calendar, base's own bars (Q6, text only) with the plan's text. Also: the default label, 'block'
+# on an Episodes calendar (Q11), a no-key file after a labelled one and a bad value are byte-identical to no key; the
+# Show switches edit grey text only (Q9); Save writes the key back, and never writes one nobody chose (Q10). The
+# sanitizer's warning for the bad value is the one console line allowed.
+# ⭐ STEP 3 (16 Oct 2026): the same leg then drives the REAL control, Preferences > "Label Production by", by
+# clicking its segments: C (what it shows on open; plan 5.2's Show rows), B (Block disabled on an Episodes
+# calendar, its tooltip, Q11's guard), S (the Show switches: no undo step, never in the file) and M (each label
+# picked: the file-with-that-key's month view byte for byte, dirty, ONE undo step, Redo, Save, the Load round trip,
+# and Schedule by's own label clearing the key). Virtual budget 1500 (was 900), for the extra loads.
+for PLSTATE in blocks blocksoff dayoverrides dayoverrides-onhalf shootorder month-dense60 carry-rich halfdays; do
+  rm -f "$HERE/pilllabel.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PLSTATE" "$HERE/run.sh" pilllabel 1500 >/dev/null 2>&1
+  python3 - "$HERE/pilllabel.json" "$PLSTATE" <<'PYPL' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+st=sys.argv[2]; L='pilllabel ('+st+')'
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  '+L+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+L+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+blk = a.get('scheduleBy') == 'blocks'
+chk(a.get('bars',0) > 0 and a.get('fixtureHasKey') is False, f"{L}: {a.get('bars')} Production bars in {a.get('months')} months, Schedule by {a.get('scheduleBy')}, the fixture carries no key")
+chk(a.get('W0') is True, f"{L}: W0 the label Schedule by gives ('{'block' if blk else 'episode'}') is byte-identical to no key {a.get('W0')}")
+if not blk: chk(a.get('W1') is True, f"{L}: W1 'block' on an Episodes calendar follows Schedule by -- byte-identical to no key {a.get('W1')}")
+chk(a.get('W2') is True, f"{L}: W2 a no-key file opened after a 'week' file is byte-identical to no key (restored unconditionally) {a.get('W2')}")
+chk(a.get('W3') is True, f"{L}: W3 an unknown value opens as no key {a.get('W3')}")
+wk = a.get('week') or {}
+chk(wk.get('bars',0) > 0 and wk.get('notRuns') == [] and wk.get('wrong') == [] and wk.get('oneDayTagged') == [],
+    f"{L}: WK labelled by Week, ONE BAR PER WEEK: each row's bars are exactly base's runs of days (no stacking), 'Production Week K', ruling 8's grey text, none on a one-day bar ({wk.get('bars')} bars) {wk.get('notRuns') or ''} {wk.get('wrong') or ''}")
+if wk.get('unknownWeek'): print(f"  INFO  {L}: Week: {wk['unknownWeek']} bar(s) in a row with no week to compare against (text checked by pattern)")
+if blk:
+    ep = a.get('episode') or {}
+    chk(a.get('G') is True, f"{L}: G labelled by Episode draws the SAME bars as no key -- month, row, columns, lane {a.get('G')}")
+    chk(ep.get('bars') == a.get('bars') and ep.get('wrong') == [] and ep.get('slash') == [] and ep.get('oneDayTagged') == [],
+        f"{L}: T labelled by Episode: every bar's text and grey text is the plan's table, no ' / ', no grey on a one-day bar {ep.get('wrong') or ''}")
+    if ep.get('fallback'): print(f"  INFO  {L}: Episode: read as Week (a block with no episodes): {ep['fallback'][:3]}")
+chk(a.get('X1') is True and a.get('X1back') is True,
+    f"{L}: X1 the unit's own Show switch ({'Blocks' if blk else 'Episodes'}) off changes NOTHING while the bar names it -- ruling Q9 {a.get('X1')}")
+X2 = a.get('X2') or {}
+chk(X2 and all(v.get('bars') is True and v.get('text') is True for v in X2.values()),
+    f"{L}: X2 in Week mode each Show switch drops only its item from each list in the grey text, and no bar moves {X2}")
+chk(a.get('K0') == {'has': True, 'value': 'week'}, f"{L}: K0 Save writes mvProdLabel back {a.get('K0')}")
+chk(a.get('K1') == {'has': False}, f"{L}: K1 Save of a file nobody labelled writes NO key {a.get('K1')}")
+# ---- step 3: the real control, Preferences > "Label Production by" (16 Oct 2026) ----
+dflt = 'block' if blk else 'episode'
+C = a.get('C') or {}
+CK = ['none', 'week', 'episode', 'block']
+chk(all(C.get(k, {}).get('ids') == 'mv-prod-label-week,mv-prod-label-episode,mv-prod-label-block' for k in CK),
+    f"{L}: C0 the control's three radios carry STABLE ids on every open (its explicit name), so nothing re-rolls per load")
+shown = {k: C.get(k, {}).get('got') for k in CK}
+chk(shown == {'none': dflt, 'week': 'week', 'episode': 'episode', 'block': dflt},
+    f"{L}: C1 on open the control shows the label the bars are drawn in -- no key = Schedule by ({dflt}), 'block' on an Episodes calendar = Episode (Q7, Q10, Q11) {shown}")
+chk(all(C.get(k, {}).get('blockDisabled') is (not blk) for k in CK),
+    f"{L}: C2 Block is {'enabled on a Blocks' if blk else 'DISABLED on an Episodes'} calendar")
+chk(all(C.get(k, {}).get('rowsOk') is True for k in CK),
+    f"{L}: C3 the Show rows are plan 5.2's table for each label -- {[(k, C.get(k, {}).get('rows')) for k in CK]}")
+B = a.get('B') or {}
+if blk:
+    chk(B.get('tooltipRef') is False, f"{L}: B an enabled Block carries no tooltip")
+else:
+    chk(B.get('afterBlockClick') == 'episode' and B.get('undoOffAfterBlockClick') is True,
+        f"{L}: B1 a click on the disabled Block changes nothing -- no pick, no undo step {B}")
+    chk(B.get('describedBefore') is None and bool(B.get('describedAfter')),
+        f"{L}: B2 hovering the disabled Block opens its reason tooltip (aria-describedby {B.get('describedBefore')} -> {B.get('describedAfter')})")
+    chk(B.get('undoOffAfterEpisodeClick') is True and B.get('savedKey') == 'block',
+        f"{L}: B3 Q11's guard: Episode clicked where a stored 'block' already shows as Episode is not a pick -- no undo step, Save keeps 'block' {B.get('savedKey')}")
+S = a.get('S') or {}
+chk(S.get('undoBefore') is True and S.get('undoAfterOff') is True and S.get('undoAfterOn') is True and S.get('statusAfterOff') == S.get('statusBefore'),
+    f"{L}: S1 the three Show switches, each off then on, push NO undo step and leave the calendar clean {S.get('statusBefore')!r} -> {S.get('statusAfterOff')!r}")
+chk(S.get('allOff') == [False, False, False] and S.get('stored') == [False, False, False] and S.get('storedAfterOn') == [],
+    f"{L}: S2 they are per user: stored in localStorage while off (absent = on), gone again when on {S.get('stored')} {S.get('storedAfterOn')}")
+SF = S.get('file') or {}
+chk(SF.get('n', 0) > 0 and SF.get('bad') == [] and SF.get('top') == [],
+    f"{L}: S3 saved with all three off, the file carries none of them -- no mvWeek/mvBlocks/mvEpisodes key, no pref-/mv-prod-label id in fields.byId ({SF.get('n')} ids) {SF}")
+M = a.get('M') or {}
+chk(sorted(M.keys()) == (['episode', 'week'] if blk else ['week']),
+    f"{L}: M the control can pick {sorted(M.keys())} away from the default ({dflt})")
+for m, R in sorted(M.items()):
+    chk(R.get('view') is True and R.get('rows') is True,
+        f"{L}: M {m}: picked by the control, the month view is byte-identical to the file opened with mvProdLabel '{m}', and the rows follow {R.get('view')}")
+    sa, sb = R.get('statusAfter') or '', R.get('statusBefore') or ''
+    chk(sa != sb and ('Unsaved' in sa or 'Autosave' in sa),
+        f"{L}: M {m}: the pick dirties the calendar {sb!r} -> {sa!r}")
+    chk(R.get('undoBefore') is True and R.get('undoAfter') is False and R.get('undoView') is True and R.get('undoEmpty') is True,
+        f"{L}: M {m}: ONE undo step -- one Undo restores no key's month view and empties the stack")
+    chk(R.get('redoReady') is True and R.get('redoView') is True,
+        f"{L}: M {m}: Redo re-applies it, byte-identical")
+    RF = R.get('savedFields') or {}
+    chk(R.get('savedKey') == m and RF.get('bad') == [] and RF.get('top') == [] and RF.get('n') == SF.get('n'),
+        f"{L}: M {m}: Save writes mvProdLabel '{R.get('savedKey')}', and fields.byId is unchanged ({RF.get('n')} ids, none of the control's)")
+    chk(R.get('reopened') == m and R.get('reopenView') is True,
+        f"{L}: M {m}: Save -> Load round trip: the control shows '{R.get('reopened')}' and the month view is the same")
+    chk(R.get('defaultView') is True and R.get('defaultSavedHasKey') is False,
+        f"{L}: M {m}: picking Schedule by's own label ({dflt}) draws no key's view and Save writes NO key (Q10)")
+errs = [e for e in (a.get('errors') or []) if 'were not in a form the app writes' not in e]
+chk(not errs, f"{L}: 0 console errors beyond the bad value's warning {errs}")
+sys.exit(bad)
+PYPL
+done
 
 # ---- the audit-fix legs (FIX-PLAN batches 1, 2 + 3): one generic block -----------------------------
 # ⛔ ADDED 29 Sep 2026. FIX-PLAN §1 says a leg that guards the save format, an export or a date is
@@ -1402,6 +1604,9 @@ PYS
 # since batch 5 (30 Sep 2026): its AS/AR cases wait out two autosave ticks.
 # halfworked is not an audit fix: it guards the 'onhalf' day override (29 Sep 2026) -- a date (the
 # wrap) and the month view's marks -- which is exactly the kind of leg FIX-PLAN §1 says belongs here.
+# Since 15 Oct 2026 the 'half'/'onhalf' marks are WITHDRAWN as choices (a half day is an episode's .5,
+# the halfdays leg), so it loads dayoverrides-onhalf and guards the saved marks: honoured, shown,
+# moved with the calendar, clearable, and never offered again.
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
@@ -1416,24 +1621,107 @@ PYS
 # and every note's line breaks against Chrome's own breaker on the same font program.
 # filekeys guards the file actions' keyboard shortcuts (owner, 1 Oct 2026): ⌘N New, ⇧⌘S Save As and
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
+# dlgkeys guards ⌘S, ⌘Z and ⇧⌘Z under the app's dialogs (19 Oct 2026): none of them may act while a question
+# (or the template header editor) is up. Before, ⌘Z under "Remove hiatus?" made Remove do nothing, under "Remove
+# phase?" it left a ghost row, and ⌘S under the Region's "Continue?" on a file changed on disk dropped the Region
+# change. It loads its own linked file through the fake picker, so it takes no state. In-field undo stays (X1, X2).
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
+# halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
+# switch day carries both units' bars in the month view. It cut tests/fixtures/halfdays.sptcal. Since 16 Oct 2026
+# (HALF-SQUARE-BARS-PLAN.md, a frozen edit the owner approved by picker) the two bars share ONE lane and meet half way
+# through the day's square; they used to stack.
+# halfmarks (16 Oct 2026, same plan) puts a saved ½ mark inside such a bar: dayoverrides-onhalf with Episode 201 at 4.5,
+# so the switch days land ON marked days. It measures where every shade lands (the frozen halfSlices re-fit) and cut
+# tests/fixtures/halfmarks.sptcal, on which monthlayout (P1: the writer reads each slice back to its marked day; L0:
+# the writer's half-aware lane packing) and monthwriter (hm, below) then run. monthlayout on halfdays holds the writer's
+# packing to the print document's one-lane switch days.
+# mvmenu guards the month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, 19 Oct 2026): a right-click on a day, its
+# guards and close rules, and its items, each one undo step, on halfdays.sptcal. Every right-click is hit-tested
+# (dispatched on elementFromPoint). It grows with each plan step. Since step 4 (ruling L1) also the LEFT-click on a
+# day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
+# double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
+# halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
+# mvnotes guards bundle A of the 20 Oct 2026 gap list (MONTH-NOTES-PLAN.md, the owner's rulings by picker): the day-note
+# editor's palette, No fill and remembered colour (P), one month each side and the custom holidays drawn there (E),
+# notes on every hiatus day (H), Paste notes… (V) and one-day custom pills that wrap (W). LIVE builds the synthetic
+# calendar through the UI and mints tests/fixtures/mvnotes.sptcal; the second run holds that file to the same facts.
+# labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
+# the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
+# Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
+# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… and Number weeks (C). Twenty
+# mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
+# phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
+# waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
+# box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
+# trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
+# Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
+# writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
+# key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
+# the M-5 trap, and New.
+# phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
+# order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
+# fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
+# new custom phase's default colour still cycling through the first nine only.
+# calrange guards the calendar range (owner ruling 3, 20 Oct 2026): the Show tab's start/end dates replace the
+# waterfall's full-year padding. On a synthetic calendar, every expectation derived from the same calendar with the
+# range blank: the rows kept (and their labels), the strip naming the phases cut, Excel's Date columns, the waterfall
+# PDF's text, the month view identical month by month, Single Column Mode, the shift tools, bad dates, Save/Load
+# with the M-5 trap, the shareable copy and New.
+# hdrrow guards the waterfall's header text and dates (owner rulings 2, 4 and 10, 20 Oct 2026; HEADER-ROW-PLAN.md):
+# Header: Off, the 1/6/2025 date format and custom column headings -- each inert by default (its I cases), each
+# driven through its real control and read back from the screen, the workbook and the waterfall PDF, each one undo
+# step, saved, loaded and immune to the M-5 trap. Red on the pre-change build; eight mutants, each red. Its own
+# line, mid-list, so sessions appending at the end never conflict with it. Since 20 Oct 2026 it also drives the
+# heading editor's Split / ← Merge / Merge → buttons and the `headerRowSplits` key (cases S1-S5).
+# settingswin guards the Settings window (owner ruling 12, 20 Oct 2026), which took over the sidebar's old Settings
+# tab: every moved id is in it once, on its tab; fields.byId gets #union-place and the two custom-holiday fields in
+# their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;
+# opening it is no undo step; a re-render never puts a Mantine Switch's stale state over the engine's (W9); it covers
+# the sidebar and moves neither the preview nor the grid box; and an old file's sidebarTab 'settings' opens on Show.
+# phasefold guards the caret on every phase card (owner, 20 Oct 2026): a hit-tested click folds a card to its colour
+# bar and name line, the name still editable; the fold is session UI (the calendar is not marked changed, the grid is
+# unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
+# folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
+# Its own line, mid-list, so sessions appending at the end never conflict with it.
+# papersize guards the paper the waterfall PDF and the workbook are laid out for (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md,
+# rulings R1-R4): the Paper select in Settings ▸ Preferences ▸ Waterfall, inert on Letter (no key, a Letter page box,
+# Excel paper 1), Legal and Tabloid read back from the PDF's page box and Excel's paper number (5, 3), the PDF and the
+# workbook turning the same way on one to four year blocks, side boxes, Header: Off and Single Column (which follows
+# the paper, R3), Save/Load with the M-5 trap, one undo step, New. pdfdialog guards the Export PDF dialog (§5a,
+# rulings D1-D3), driven by hand: it is the one leg that takes the dialog over from t/lib.js, which answers it at its
+# defaults in every other leg -- so every PDF this gate compares went through it. Own lines, mid-list.
+# regionmirror guards the Production Region's second select (owner, 21 Oct 2026), under Version in Show info: the
+# id-less select.region-mirror, right after #show-version, offering #union-place's exact options; a pick there goes
+# through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
+# both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
+# write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
               monthnotes:monthnotes:150 conflict:-:2400 backupslots:-:120 \
-              halfworked:dayoverrides:150 monthlanes:month-lanecap:150 hiatuslabel:-:150 \
+              halfworked:dayoverrides-onhalf:150 monthlanes:month-lanecap:150 hiatuslabel:-:150 \
               notewrap:-:150 hdrcut:hdr-cut:150 xlsxlimits:-:150 xlsxdates:-:150 \
               legacyparse:-:900 hdroverrides:-:150 badyear:-:120 spanhint:-:150 \
               wholenum:-:150 regionlock:-:150 nofsa:-:150 exportrefused:-:150 \
               regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
-              filekeys:v1.4.2-saved:150 \
-              launchopen:-:240; do
+              hdrrow:-:400 \
+              regionmirror:-:150 \
+              papersize:-:500 \
+              pdfdialog:-:500 \
+              phasefold:-:300 \
+              filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
+              launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
+              monthlayout:halfdays:150 monthlayout:halfmarks:150 \
+              mvmenu:halfdays:150 \
+              mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
+              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1455,6 +1743,33 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
+# ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
+# by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut
+# with "…" at the end of its second line. `monthemit` cannot see this: it compares only weeks the writer lays out as the
+# print document does, and a pill that stops wrapping changes its week's lanes. Mutant m11 (the writer never wraps) is
+# green there and red here.
+python3 - "$HERE/mvnotes.month.pdf" <<'PYMN' || FAIL=1
+import subprocess, sys
+bad = 0
+def chk(c, m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ') + m)
+    if not c: bad = 1
+try: txt = subprocess.run(['pdftotext', '-layout', sys.argv[1], '-'], capture_output=True, text=True, check=True).stdout
+except Exception as e:
+    print('  FAIL  mvnotes month PDF: unreadable: ' + str(e)); sys.exit(1)
+L = [l.strip() for l in txt.split('\n')]
+def follows(a, b): return any(L[i].startswith(a) and i + 1 < len(L) and L[i + 1].startswith(b) for i in range(len(L)))
+chk(follows('Network Table Read and', 'Studio Notes Session'),
+    'mvnotes month PDF: the one-day phase\'s name wraps to two lines ("Network Table Read and" / "Studio Notes Session")')
+chk(sum(1 for l in L if l == 'Camera Tests With Th\u2026') == 2 and sum(1 for l in L if l.startswith('Costume and Hair') and l == 'Costume and Hair') == 2,
+    'mvnotes month PDF: the Friday piece wraps and is cut with "\u2026" at the end of its second line, on both pages that show 5/1/26')
+chk(any(l.startswith('Costume and Hair Camera Tests With The Director Week 2') for l in L),
+    'mvnotes month PDF: the same phase\'s full-week piece stays one line')
+sys.exit(bad)
+PYMN
+
 # ---- monthemit (MONTH-PDF-WRITER-PLAN.md §8 step 3): the month-PDF writer's emitter + serializer --------
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer out of src/legacy/app.js (owner ruling: "slice it, no hook"
 # extends to the emitter), lays every print document out in Chrome with the app's print rules, hands the emitter
@@ -1472,7 +1787,9 @@ done
 # no comparison here needs pdfcmp.py's date exemption.
 MEA="/tmp/gate${GTAG}-mea"; MEB="/tmp/gate${GTAG}-meb"
 rm -rf "$MEA" "$MEB"; mkdir -p "$MEA" "$MEB"
-for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse"; do
+# mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md) adds No fill notes (listed, never painted) and one-day custom pills that wrap.
+for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse" \
+              "na:-:-:mvnotes"; do
   MERUN="${MESPEC%%:*}"; MEREST="${MESPEC#*:}"; METZ="${MEREST%%:*}"; MEREST="${MEREST#*:}"
   MEWIN="${MEREST%%:*}"; MESTATE=""; [[ "$MEREST" == *:* ]] && MESTATE="${MEREST#*:}"
   [[ $METZ == - ]] && METZ=""; [[ $MEWIN == - ]] && MEWIN=""
@@ -1547,9 +1864,13 @@ PYMF
 #   win   notewrap again, in a 1280 x 800 window: ⛔ its writer file byte-identical to nw's, while the print DOCUMENT
 #         must differ -- the print path's note spans follow the window, the writer's do not, and a control that changed
 #         nothing would pass vacuously.
+#   mv    mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md): a printed edge month, No fill notes, one-day custom pills that wrap.
+#   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
+#         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
-              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap"; do
+              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
+              "hm:-:-:halfmarks" "mv:-:-:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -1630,7 +1951,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -1699,19 +2020,33 @@ PYMXC
 #                                       Re-cut with that output in the baselines' README, and tell the owner.
 #   "THE CONTENT MOVED"                 each part that differs, named (page and month, font, page tree). Never re-cut
 #                                       without the owner's sign-off on `monthbase.py sheets`' contact sheets.
-# rz and rw (UTC+14, a 1280 px window) and blocksoff (Blocks switched to Episodes) have no baseline of their own: they
-# are held to reference's, as gate 10 holds blocksoff.
+# rz and rw (UTC+14, a 1280 px window) have no baseline of their own: they are held to reference's. blocksoff (Blocks
+# switched to Episodes) has its own since 20 Oct 2026 (its older file reads "Episode N", reference "Shoot Ep. N"); the
+# block after this loop still holds its text to reference's once both names are read as the episode.
 MWBASE="$HERE/../baselines/2026-10-05-monthwriter"
 for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:reference:reference, a 1280 px window" \
-              "b:blocks:blocks" "bo:reference:blocksoff, held to reference" "ms:monthscale:monthscale" \
+              "b:blocks:blocks" "bo:blocksoff:blocksoff" "ms:monthscale:monthscale" \
               "sp:colswap-simpost-refuse:colswap-simpost-refuse" "sr:stintswap-reshape:stintswap-reshape" \
               "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
-              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich"; do
+              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
+              "nn:mvnotes:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
+# ⭐ The written PDF's half of the same condition: blocksoff's text is reference's, page by page, once both names are read
+# as the episode. (Bytes cannot match: "Episode 201" and "Shoot Ep. 201" set different glyphs and widths.)
+python3 - "$MXA/bo.pdf" "$MWBASE/reference.pdf" <<'PYBO13' || FAIL=1
+import re,subprocess,sys
+try: a,b=[subprocess.run(['pdftotext','-raw',f,'-'],capture_output=True,text=True,check=True).stdout for f in sys.argv[1:3]]
+except Exception as e:
+    print('  FAIL  gate 13 blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
+norm=lambda s: re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s)
+ok=norm(a)==norm(b) and 'Episode ' in a
+print(('  PASS  ' if ok else '  FAIL  ')+'gate 13 month PDF (blocksoff): ⭐ its text is reference\'s once episode names are read as the episode')
+sys.exit(0 if ok else 1)
+PYBO13
 
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
@@ -1765,8 +2100,22 @@ PYPP
 # point to point; dispatchEvent skips hit-testing). Red before the fix on D1 (back at the origin,
 # Snap to Mon stayed off, with no undo step) and D4 (through a Tuesday onto the next Monday). D3
 # guards the 18 Sep ruling: dropped on a Tuesday, snap comes off and one Ctrl+Z restores both.
+# ⭐ 15 Oct 2026: E0-E13 hold Production's handles (MONTH-VIEW-PLAN.md §6.7): the shoot's two ends,
+# every episode/block end and every week's edges, each pressed where elementsFromPoint has the handle
+# topmost. E5 and E13 load blocks.sptcal, and E14 halfdays.sptcal (a half switch day's two bars, 15 Oct 2026), so the label names all three.
+# ⛔ 19 Oct 2026: an episode's end grip REMOVES days and never pushes (owner, replacing ruling 9b). E9, E10,
+# E13 and E14 were rewritten from the push and E15 is new (days taken back, then one from the next episode);
+# all five ran red on the old build before this landed. The same day each episode's START got its own grip
+# (`head`, the mirror; owner: "Were also missing the drag handle at the beginning of episodes/blocks/
+# weeks"): E8 and E14 count it, E16-E18 drive it. All nine changed cases are red on the old build.
+# ⭐ 19 Oct 2026: E19-E21 and D5 load autonote-grips.sptcal. An EDITED auto-note ("Start Principal Photography
+# 6/29/26" + a line of the user's) follows the start grip, the wrap grip and a body-drag, as the shift tools'
+# R5 rewrite does (owner: "it doesnt move the comment with it"). All four were red on the build before the fix.
+# E22 and E23 hold two owner-approved frozen lines in notesForWaterfallDate (same day): a line dated the 1st-9th is
+# drawn on its own day, not its week's Monday, and a line dated outside its note's week is drawn on the Monday (or
+# its pinned day) instead of on no day at all. Both were red on the build before those lines.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved)" <<'PYPD' || FAIL=1
+python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays, autonote-grips)" <<'PYPD' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
@@ -1779,6 +2128,87 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPD
+
+# ---- phaseedge: the start and end handles on every phase with a Length select ----------------------
+# ⭐ ADDED 16 Oct 2026 (MONTH-VIEW-PLAN.md §6.7, owner rulings 7 and 8; CUSTOM-PHASE-UNITS-PLAN.md step
+# 6). pilldrag's sibling, for the same reason a Node script: trusted CDP input, each press where
+# elementsFromPoint has the handle topmost. Every edge x unit on customunits.sptcal (custom Weeks,
+# Days, Dates; built-in Weeks) and builtindates.sptcal (built-in Dates): the held end never moves, a
+# Dates start is written directly (F5 -- setPhaseStart would carry the end), a Weeks edge switches the
+# phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
+# land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
+# print media hides the handles (F12). Run red on three mutants before it was wired in. F13 (19 Oct 2026,
+# autonote-grips.sptcal): an edited "Writer's Room Opens" follows the start grip; red before the fix.
+# ⭐ 19 Oct 2026, G0-G8 (PREP-GRIP-PLAN.md): the prep START grip on episodeprep.sptcal and its Blocks twin. The grip finds
+# its prep by the ORDER of the row's prep pills (two can start on the same day: Prep 303/304 from Mon 3/1/27), writes
+# that unit's own prep length, floors at one working day, and out-and-back or Escape banks nothing. Four mutants were
+# each red before it was wired in: choosing the pill by date (G0, G1), writing the default (G1-G7), writing the number
+# back at the start (G3, G6), and no floor (G5).
+node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, autonote-grips, episodeprep)" <<'PYPE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYPE
+
+# ---- mvorder: drag bars and notes up and down in the month view, and the moving copy ---------------------
+# ⭐ ADDED 21 Oct 2026 (MONTH-ORDER-PLAN.md, owner rulings R1-R4). pilldrag's sibling, for the same reason a Node
+# script: trusted CDP input, the reorder grip pressed where elementsFromPoint has it topmost. On mvorder.sptcal (and
+# mvorder-notes, mvorder-hostile): a phase's grip reorders it in every week (O2) with ONE undo (O3); Save writes
+# mvPhaseOrder (O4); ⭐ the WRITTEN month PDF stacks the bars in that order (O5, text y read out of the PDF); Back to
+# date order (O6); out-and-back and Escape bank nothing (O7, O8). Notes: on top of the bars (N1), among the day's notes
+# (N2), a waterfall line on top (N3), and its place follows the line when Production moves (N4); a click still edits
+# (N5); editing keeps a note on top (N6); Escape (N7). A hostile file's values are ignored and no prototype is touched
+# (H1). The moving copy on a body drag (G1). Run on a mutant without frozen edits E1 and E2: O2, O3, O5, O7, O8, N1,
+# N3, N4 and N6 red. ⛔ Gates 10 and 13 are what prove the two edits INERT on every calendar without an order.
+node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile)" <<'PYMO' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMO
+
+# ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
+# ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
+# reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
+# where elementsFromPoint has the body-level layer or grip topmost (H0). On hiatusdrag.sptcal: a
+# week at a time by ROW (a Sunday drop is that row's week, H4); a locked hiatus offers nothing (H0);
+# an all-phase drag asks Keep or Undo, Ctrl+Z is held under the question, and Undo banks nothing (H1,
+# H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
+# band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
+# stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
+# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# settles in headless Chrome); it was proved in the app pane.
+node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHD
 
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
@@ -1803,6 +2233,503 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYCS
+
+# ---- customunits: a custom phase's length in Weeks, Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md) -----
+# Two runs. LIVE builds the synthetic calendar through the UI and asserts what a user sees while
+# editing (which boxes each unit shows, the select hit-testable, a unit switch that moves nothing and
+# is one undo step, end-before-start, whole days, a weekend start). RESTORE loads
+# tests/fixtures/customunits.sptcal, minted from that LIVE run's real Save, and asserts it comes
+# back day for day: units, boxes, hint lines, waterfall rows, month pills, and the {key.close}
+# header tokens (the bug §9 fixed: a mid-week end used to name the Sunday before). RESTORE then runs
+# every MOVER on it (plan §8): Shift All, Anchor To, Rebuild From both ways and the month drag must
+# move a Dates phase's start AND end, and one undo must put every date back.
+# ⚠️ The JSON is removed first: run.sh does not, and a leg that fails to load would otherwise be
+# judged on the previous run's result.
+for CUSTATE in "" customunits; do
+  rm -f "$HERE/customunits.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CUSTATE" "$HERE/run.sh" customunits 120 >/dev/null 2>&1
+  python3 - "$HERE/customunits.json" "customunits (${CUSTATE:-live})" <<'PYCU' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYCU
+done
+
+# ---- builtindates: Dates mode on the five built-in phases (CUSTOM-PHASE-UNITS-PLAN.md §7a, step 6) -----
+# LIVE builds the synthetic calendar through the UI and asserts the rows (Weeks/Dates only, Production
+# without), "Start after previous phase" moving both ends, and the trap these STATIC rows carry: an
+# OLDER calendar loaded after one in Dates mode, and New, must both put every built-in back in Weeks
+# (audit M-5's shape). RESTORE loads tests/fixtures/builtindates.sptcal, minted from LIVE's real Save,
+# and runs every mover on the built-in Dates phases with one undo after each.
+for BDSTATE in "" builtindates; do
+  rm -f "$HERE/builtindates.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BDSTATE" "$HERE/run.sh" builtindates 150 >/dev/null 2>&1
+  python3 - "$HERE/builtindates.json" "builtindates (${BDSTATE:-live})" <<'PYBD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYBD
+done
+
+# ---- phasenum: a custom phase's "Number weeks" (PHASE-NUMBERING-PLAN.md, owner rulings 19 Oct 2026) -----
+# Two runs. LIVE builds the synthetic calendar through the UI and asserts the automatic flips as they
+# happen: By -> Days / Dates unticks the box, the day menu's "Add 1-day phase here" unticks it and its
+# 1-week item does not, the box shows in every unit and is hit-testable, and the built-ins have none (R2).
+# It mints tests/fixtures/phasenumbering.sptcal from its real Save. RESTORE holds every output's TEXT to a
+# hand trace: the waterfall rows, the month pills, the day menu's header, the workbook's cells, and the text
+# runs of the waterfall PDF and the WRITTEN month PDF (read here, from the files the leg hands back). Then:
+# unticking is one undo step, By -> Dates unticks and one undo restores unit and box, back to Weeks ticks it
+# (Q2), Days <-> Dates keeps the user's tick, the month edge drag's Weeks -> Dates switch leaves the box alone
+# (Q3), and the M-5 shape: customunits.sptcal (no wknum- ids) loaded after it opens with every box ticked.
+for PNSTATE in "" phasenumbering; do
+  rm -f "$HERE/phasenum.json" "$HERE/phasenum.pdf" "$HERE/phasenum.month.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PNSTATE" "$HERE/run.sh" phasenum 300 >/dev/null 2>&1
+  python3 - "$HERE/phasenum.json" "phasenum (${PNSTATE:-live})" "$PNSTATE" "$HERE/phasenum.pdf" "$HERE/phasenum.month.pdf" <<'PYPN' || FAIL=1
+import json,sys,re,zlib
+from collections import Counter
+path, label, state, wfpdf, mvpdf = sys.argv[1:6]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+ok = a.get('pass') is True and bool(a.get('checks'))
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if state:
+    # Every Flate stream's "(text) Tj" runs: both writers set a line of text as one literal string.
+    TJ = re.compile(rb'\(((?:\\.|[^\\)])*)\) Tj')
+    NAMES = ('Pre Prep', 'Table Read', 'Scout', 'Stage Lock', 'Rigging', 'Fitting', 'Camera Test')
+    def runs(p):
+        b = open(p, 'rb').read(); out = []
+        for m in re.finditer(rb'stream\r?\n', b):
+            s = m.end(); e = b.find(b'endstream', s)
+            try: d = zlib.decompress(b[s:e])
+            except Exception: continue
+            out += [re.sub(rb'\\(.)', rb'\1', x.group(1)).decode('latin-1') for x in TJ.finditer(d)]
+        return Counter(r for r in out if r.startswith(NAMES))
+    WANT = {
+      'waterfall PDF': (wfpdf, {'Pre Prep Wk 1': 1, 'Pre Prep Wk 2': 1, 'Pre Prep Wk 3': 1, 'Stage Lock': 2, 'Rigging wk 1': 1,
+                                'Rigging wk 2': 1, 'Table Read': 1, 'Scout': 2, 'Fitting': 1, 'Camera Test wk 1': 1}),
+      # Camera Test's one week runs Mon 3/29 - Fri 4/2, so it is drawn on the March page AND the April page.
+      'written month PDF': (mvpdf, {'Pre Prep Week 1': 1, 'Pre Prep Week 2': 1, 'Pre Prep Week 3': 1, 'Stage Lock': 2,
+                                    'Rigging Week 1': 1, 'Rigging Week 2': 1, 'Table Read': 1, 'Scout': 2, 'Fitting': 1,
+                                    'Camera Test Week 1': 2}),
+    }
+    for what, (p, want) in WANT.items():
+        try: got = runs(p)
+        except Exception as e: got = 'unreadable: ' + str(e)
+        good = got == Counter(want)
+        ok = ok and good
+        print(('  PASS  ' if good else '  FAIL  ')+label+': '+what+' text runs: the unnumbered phases bare, the numbered keep their week'
+              + ('' if good else ' -- got '+str(dict(got) if isinstance(got, Counter) else got)[:300]))
+sys.exit(0 if ok else 1)
+PYPN
+done
+
+# ---- episodeprep: per-episode prep, derived from the shoot, month view only (EPISODE-PREP-PLAN.md §11) -----
+# Three runs. LIVE builds the synthetic calendar through the UI (a blank default draws nothing; the two
+# ids in fields.byId and none in the list; the row hidden in the waterfall; the drop warning; the list in
+# shooting order; hit-testable controls; one undo per edit; "Whole days only"; overrides and 0; no Show
+# Info; the colour picker) and mints tests/fixtures/episodeprep.sptcal and its Blocks twin from its real
+# Saves. RESTORE holds every prep run to a hand trace of plan §5 (a union holiday inside two preps, a
+# locked hiatus between two episodes, a shuffled shooting order, two overlaps, one of them two preps from
+# the same Monday in separate lanes with their own names), then Shift All, a first prep's own month, a
+# shooting-order drag, undo, rename, Save/Load, the colour, and ⛔ the M-5 trap (the same calendar with
+# no prep keys, loaded after it, opens with NO prep, and with the Pause prep switch unticked). BLOCKS does prep per
+# block (P4). LIVE also checks the "Pause prep on days marked Off" box (20 Oct 2026): in the Prep row, unticked,
+# NO id (so fields.byId cannot move), hit-testable, one undo step, and absent from the minted file.
+# ⭐ "MONTH VIEW ONLY" IS PROVEN HERE, not asserted: RESTORE exports the workbook and the waterfall PDF
+# with prep ON and again with it OFF, and every Excel part (bar core.xml's timestamp) and the PDF must be
+# byte-identical, while every non-prep bar of the month view is identical too.
+for EPSTATE in "" episodeprep episodeprep-blocks; do
+  rm -f "$HERE/episodeprep.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$EPSTATE" "$HERE/run.sh" episodeprep 400 >/dev/null 2>&1
+  python3 - "$HERE/episodeprep.json" "episodeprep (${EPSTATE:-live})" <<'PYEP' || FAIL=1
+import json,sys,base64,io,zipfile
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    def parts(b):
+        z = zipfile.ZipFile(io.BytesIO(base64.b64decode(b)))
+        return {n: z.read(n) for n in z.namelist()}
+    try:
+        xa, xb = parts(a['xlsxOn']), parts(a['xlsxOff'])
+        diff = [n for n in sorted(set(xa) | set(xb)) if n != 'docProps/core.xml' and xa.get(n) != xb.get(n)]
+        ok = not diff and len(xa) > 5 and b'Production' in xa.get('xl/sharedStrings.xml', b'')
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the workbook is byte-identical with prep on and off ({len(xa)} parts, core.xml excluded){" -- differ: "+str(diff[:4]) if diff else ""}')
+        bad = bad or not ok
+        pa, pb = base64.b64decode(a['pdfOn']), base64.b64decode(a['pdfOff'])
+        ok = pa == pb and len(pa) > 10000
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the waterfall PDF is byte-identical with prep on and off ({len(pa)} vs {len(pb)} bytes)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYEP
+done
+
+# ---- offweek: a Production week with no shoot days reads and counts as a Production hiatus (OFF-WEEK-PLAN.md) --
+# Two runs. LIVE builds the synthetic calendar through the UI, marks every day off (and one Saturday worked)
+# through the month view's day popover, hit-tested, and mints tests/fixtures/offweek.sptcal from its real Save.
+# RESTORE holds the waterfall to the hand trace in the leg's header (two off weeks banded, one of them Labor
+# Day plus four offs; a Saturday-worked week and the Q3 leading week still numbered; the own hiatus and the
+# all-phase hiatus as they were), the header span and the {production.weeks} token, the workbook read back
+# with ExcelJS, the month band (Mon-Fri, no bar, the hatching kept), Full day + one undo, a rename seen in both
+# views through Save/Load, Shift All, a calendar with no off week loaded after it, and (R11-R14) prep with a 5-day
+# default and the Prep row's "Pause prep on days marked Off" switch (owner, 20 Oct 2026; EPISODE-PREP-PLAN §15):
+# ticked, prep skips the in-shoot Off days and Production's own hiatus; unticked, the default and a file with no
+# key, it runs through them; one undo step; saved as prepPauseOff and restored unconditionally; New unticks it. Here, the waterfall PDF's
+# own text (pdftotext): three Production Hiatus cells and wk 1 to wk 10 once each.
+# ⛔ Gates 10 and 13 are the other half of this proof: no fixture they read holds an off week, so the frozen
+# month-band edit (OFF-WEEK-PLAN §3.5, Q7) must leave every one of their files byte-identical.
+for OWSTATE in "" offweek; do
+  rm -f "$HERE/offweek.json" "$HERE/offweek.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$OWSTATE" "$HERE/run.sh" offweek 600 >/dev/null 2>&1
+  python3 - "$HERE/offweek.json" "$HERE/offweek.pdf" "offweek (${OWSTATE:-live})" <<'PYOW' || FAIL=1
+import json,sys,re,subprocess,os
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    try:
+        txt = subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout
+        wks = sorted(int(n) for n in re.findall(r'Production wk (\d+)', txt))
+        hi = len(re.findall(r'Production Hiatus', txt))
+        ok = wks == list(range(1, 11)) and hi == 3
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': the waterfall PDF reads Production wk 1 to wk 10 once each and three Production Hiatus cells (got wk {wks}, {hi} bands)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the waterfall PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYOW
+done
+
+# ---- weeknum: the month view numbers weeks as the waterfall does (OFF-WEEK-PLAN.md step B, ruling Q5) ---------
+# N0 on each calendar: every month-view bar whose label carries "Week N", in every month and for every phase
+# but prep, names the waterfall's own number for that phase and week (prodWeekLabel reads seg.weekNo, which
+# the week loop records; it used to count calendar weeks, and disagreed after every hiatus). N1 guards against
+# a page that drew nothing. dayoverrides adds the fixed cases (Production Week 3 after Summer Break, Post Week 8
+# after the winter hiatus, a hiatus-free phase unchanged, the day menu's header); offweek adds two off weeks.
+for WNSTATE in dayoverrides offweek carry-rich customunits blocks halfdays episodeprep; do
+  rm -f "$HERE/weeknum.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$WNSTATE" "$HERE/run.sh" weeknum 900 >/dev/null 2>&1
+  python3 - "$HERE/weeknum.json" "weeknum ($WNSTATE)" <<'PYWN' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what'))[:170])
+if a.get('mismatch'): print('        mismatches: '+str(a['mismatch'][:4]))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYWN
+done
+
+# ---- sideboxes: boxes beside the waterfall (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ------------
+# A colour key and a text box on screen beside the grid (never inside #table-wrap), in the workbook (frozen
+# edits E1-E3: the grid moves two columns right for a left box) and in the waterfall PDF (E4-E6: the fit,
+# the header band and the orientation taken over grid + boxes). The leg reads both exports back, drives every
+# gesture through the hit stack, holds #table-wrap's month-view width to the pixel (it repaginates the month
+# PDF), and proves that deleting the last box gives back the very same PDF content and no `sideBoxes` key.
+# Since 21 Oct 2026 (group R) a box sits on any row: drawn level with the grid's row, at any zoom, scrolling
+# with the grid; dragged to row 10 it is on row 11 of the workbook and beside row 11's date in the PDF.
+# ⭐ The other half of "inert without boxes" is gates 2 and 3 above: every existing calendar's waterfall PDF
+# and Excel parts stay byte-identical to the baseline.
+rm -f "$HERE/sideboxes.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=sideboxes "$HERE/run.sh" sideboxes 900 >/dev/null 2>&1
+python3 - "$HERE/sideboxes.json" <<'PYSB' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  sideboxes produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  sideboxes threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'sideboxes: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYSB
+
+# ---- sbnoexport: "Hide from Exports" on a side box (owner, 21 Oct 2026) -----------------------------------------
+# A box hidden from exports stays on screen and leaves both writers. No frozen line changed: the writers' own
+# sideBoxLayoutSafe(schedule) call now means the PRINTED layout, and the screen asks for SIDE_SCREEN. The leg
+# reads the workbook and the PDF back with one box hidden, proves every box hidden gives the no-box PDF content
+# and grid, and holds the file shape (noExport only ever `true`). ⚠️ It is also the check that a NEW screen-side
+# caller of sideBoxLayoutSafe passes SIDE_SCREEN: miss it and a hidden box vanishes from the screen (H1, N1).
+rm -f "$HERE/sbnoexport.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=sideboxes "$HERE/run.sh" sbnoexport 900 >/dev/null 2>&1
+python3 - "$HERE/sbnoexport.json" <<'PYSN' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  sbnoexport produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  sbnoexport threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'sbnoexport: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYSN
+
+# ---- notescols: hide a year's Notes column (HIDE-NOTES-PLAN.md, owner's option B, 22 Oct 2026) ---------------
+# The frozen edits W1-W2, R1-R5, X1, E1-E3, P1-P3 (signed off 22 Oct 2026) are inert with nothing hidden, which
+# every byte-compared gate above proves; this leg proves them with columns hidden. On colreuse (three blocks, two
+# with notes, an all-phase hiatus in 2031): the Notes panel by double-click, the strip (one cell per row, never a
+# rowspan, its resize handle hidden, the dot), the grid's right edge, 0 clipped; the workbook's columns HIDDEN with
+# width and notes kept, the right rule and the hiatus band's merge at the last phase column; the PDF's headings
+# and notes; the print fallback (localhost route sptcal.wfPdfTest) with no strip; Custom Column Headings and
+# Single Column Mode; the file key (absent when empty, Load, hostile values, New). Red on the pre-change build.
+rm -f "$HERE/notescols.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse "$HERE/run.sh" notescols 1200 >/dev/null 2>&1
+python3 - "$HERE/notescols.json" <<'PYNC' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  notescols produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  notescols threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'notescols: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYNC
+
+# ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
+# CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
+# no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place
+# beside the help button, the grid fit at four zooms, the frozen resize handles hidden while zoomed and back on
+# their rows at 100%, the selection and swap overlays on their cells, the month view as a pure magnification
+# (columns and note lanes unchanged), and that a zoom never dirties the file, adds an undo step or travels in a copy.
+rm -f "$HERE/calzoom.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" calzoom 300 >/dev/null 2>&1
+python3 - "$HERE/calzoom.json" <<'PYCZ' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  calzoom produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  calzoom threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'calzoom: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYCZ
+
+# ---- hdrfit: the waterfall's header ends with the calendar (owner, 21 Oct 2026, "At every zoom") ----------------
+# The title block and the Manual-mode format strip are capped at the grid's own width (--wf-grid-w on .preview-panel),
+# floored at what their lines need on one line. colreuse is an Auto header over a grid a little wider than the
+# harness window at 100%; hdrmanualbraces a Manual header (the strip up) over a narrower one. The leg holds where the
+# header ends at six zooms, that its height never changes, a live column resize, the month view, the print copy (which
+# cannot see the cap) and a shareable copy (which carries none). Chrome only: nothing a writer reads.
+for HFSTATE in colreuse hdrmanualbraces; do
+  rm -f "$HERE/hdrfit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$HFSTATE" "$HERE/run.sh" hdrfit 300 >/dev/null 2>&1
+  python3 - "$HERE/hdrfit.json" "$HFSTATE" <<'PYHF' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrfit ('+sys.argv[2]+') produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  hdrfit ('+sys.argv[2]+') threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'hdrfit ('+sys.argv[2]+'): '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYHF
+done
+# ---- textstyle: the text style bar (TEXT-STYLE-BAR-PLAN.md; owner rulings D1-D5 + F1-F4, 21 Oct 2026) -----------
+# One bar under the toolbar styles any waterfall text: Excel's highlight over the grid (click, sweep, Cmd/Shift-click,
+# Cmd+A), header lines in any mode or view, side-box lines. Sizes 6-12 in the grid (D1), so no row may grow and nothing
+# new may be cut. The leg holds the bar's place and empty state, every kind styled on screen, in the workbook (read back
+# by ExcelJS) and in the PDF (bold program, slant, colour), one undo step per press, the save key (absent when nothing
+# is styled, no new fields.byId id), restore-unconditionally, and D5: a click opens nothing, double-click / Enter /
+# typing open a note (typing ADDS at the end). The byte gates above are the proof that an unstyled calendar is untouched.
+rm -f "$HERE/textstyle.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=carry-rich "$HERE/run.sh" textstyle 400 >/dev/null 2>&1
+python3 - "$HERE/textstyle.json" <<'PYTS' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  textstyle produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  textstyle threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'textstyle: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYTS
+
+# ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
+# Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
+# names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off
+# the names it stores, re-derived on every Load); prep pills and episode lists keep the number; a switch day's one-day
+# half bar keeps "Ep. N"; a v1.6.0 file's own prefix still draws as it did until its episode is renamed. halfdays
+# carries the N-cases and writes the month PDF, whose text is read here; blocks carries the B-cases.
+for ENSTATE in halfdays blocks; do
+  rm -f "$HERE/epnames.json" "$HERE/epnames.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$ENSTATE" "$HERE/run.sh" epnames 300 >/dev/null 2>&1
+  python3 - "$HERE/epnames.json" "$HERE/epnames.pdf" "epnames ($ENSTATE)" "$ENSTATE" <<'PYEN' || FAIL=1
+import json,sys,os,subprocess
+path, pdf, label, st = sys.argv[1:5]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+bad = not cases or any(c.get('pass') is not True for c in cases)
+if st == 'halfdays':
+    try:
+        txt = subprocess.run(['pdftotext', '-raw', pdf, '-'], capture_output=True, text=True, check=True).stdout
+        ok = 'Shoot Ep. 201' in txt and 'Pilot' in txt and 'Shoot Ep. 202' not in txt and 'Episode' not in txt
+        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Shoot Ep. 201" and "Pilot", and neither "Shoot Ep. 202" nor "Episode"')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = True
+sys.exit(1 if bad else 0)
+PYEN
+done
+
+# ---- shootdays: "Number Production Days", "Day N" on every shoot day in the month view (19 Oct 2026) -------------
+# Off by default; calendar data (captureSnapshot's mvNumberShootDays, an ABSENT key when off); shown whatever labels the
+# bars. Its frozen edit (renderMonthView's data-shoot-day attribute, legacy.css's ::after) was approved with a gate:
+# gates 10 and 13, byte-identical with it off, are one half; this block is the other.
+#   shootdays leg   on offweek (the hand trace), dayoverrides-onhalf (half days) and blocks (all three labels): the
+#                   switch, every square against the day menu's "Shoot day N", only the attribute moving (every month
+#                   byte-identical with it taken out, every week as tall), the ::after on the date's baseline, one undo
+#                   step, Save/Load, restore unconditionally, off written as NO key, and the month PDF the app writes.
+#                   Here, that PDF's text (pdftotext -raw), page by page, against the numbers the screen showed.
+#   monthemit       on shootdays and shootdays-onhalf (minted by the leg): every "Day N" the writer draws, held to
+#                   Chrome's own print layout of the same pages (D0's start/end/baseline, K0's font and ink, X3, X4),
+#                   and at least one judged. Their files are NOT the 15 the time-zone check counts.
+#   monthwriter     on shootdays-onhalf, and monthab.py on its file against Chrome's real print (P0-P5). ⚠️ NOT on
+#                   shootdays: offweek fails P5 the same way WITH THE SETTING OFF (cell-sized "lines" unpaired in its
+#                   off weeks, August and September 2027), so that is offweek's, found 19 Oct 2026 and not yet traced.
+#   monthexport     on shootdays: the BUILT app's month PDF is byte-identical to the sliced source's (X2).
+for SDSTATE in offweek dayoverrides-onhalf blocks; do
+  rm -f "$HERE/shootdays.json" "$HERE/shootdays.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" shootdays 900 >/dev/null 2>&1
+  python3 - "$HERE/shootdays.json" "$HERE/shootdays.pdf" "shootdays ($SDSTATE)" <<'PYSD' || FAIL=1
+import json,sys,re,subprocess
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+bad = 0
+# The checks first, even from a run that threw: a mutant that breaks restore shows its own named case (A9a) and THEN
+# the timeout it causes further on, which says far more than the timeout alone.
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+# The written month PDF: each page reads its month's numbers, in order, as the screen showed them. "Labor Day 9/6/27"
+# is a holiday's name, not a number: (?!/) keeps "Day 9/..." out.
+try:
+    exp = a.get('pdfExpect') or []
+    got, wrong = [], []
+    for i, m in enumerate(exp):
+        txt = subprocess.run(['pdftotext', '-raw', '-f', str(i + 1), '-l', str(i + 1), pdf, '-'], capture_output=True, text=True, check=True).stdout
+        days = [int(n) for n in re.findall(r'\bDay (\d+)\b(?!/)', txt)]
+        got.append(len(days))
+        if days != m.get('days'): wrong.append(m.get('title') + ': ' + str(days[:8]) + ' vs ' + str((m.get('days') or [])[:8]))
+    ok = bool(exp) and not wrong and sum(got) > 0
+    print(('  PASS  ' if ok else '  FAIL  ')+label+f': the written month PDF reads every month\'s "Day N" in order, as on screen ({sum(got)} on {len(exp)} pages){(" -- " + "; ".join(wrong[:3])) if wrong else ""}')
+    bad = bad or not ok
+except Exception as e:
+    print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYSD
+done
+for SDSTATE in shootdays shootdays-onhalf; do
+  rm -f "$HERE/monthemit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+  python3 - "$HERE/monthemit.json" "monthemit ($SDSTATE)" <<'PYSDE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+n = (info.get('totals') or {}).get('shootDays') or 0
+print(('  PASS  ' if n > 0 else '  FAIL  ')+label+f': D0 judged {n} "Day N" against Chrome (Chrome kerns them up to {(info.get("kerning") or {}).get("shootDay")} px narrower)')
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) and n > 0 else 1)
+PYSDE
+done
+rm -f "$HERE/monthwriter.json"; rm -f -- "$HERE"/monthwriter.*.pdf(N)
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays-onhalf HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthwriter 300 >/dev/null 2>&1
+python3 - "$HERE/monthwriter.json" "monthwriter (shootdays-onhalf)" <<'PYSDW' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYSDW
+python3 "$HERE/monthab.py" "$HERE/monthwriter.json" "$HERE/monthwriter.print.pdf" --label "monthwriter (shootdays-onhalf)" --no-pixels || FAIL=1
+rm -f "$HERE/monthexport.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays "$HERE/run.sh" monthexport 300 >/dev/null 2>&1
+python3 - "$HERE/monthexport.json" "monthexport (shootdays)" <<'PYSDX' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
+PYSDX
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

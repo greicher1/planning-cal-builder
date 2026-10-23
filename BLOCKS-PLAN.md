@@ -55,6 +55,13 @@ problem of this feature — everything else is comparatively easy.
 This matches the request: in Blocks mode the owner enters *blocks* and *days per block*, not days per
 episode. Episode count is still entered, because episodes still need to exist to be assigned.
 
+> ✅ **SUPERSEDED BY THE OWNER, 20 Oct 2026** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 4, by
+> picker: *"Optional; old files keep dates"*). In Blocks mode the episode count is now **optional**:
+> Production is Σ block days with or without episodes, and with none the blocks are labelled by name
+> alone. A count-less Blocks file saved before the change keeps the old rule (Production waits for a
+> count) until its next Show Info edit, so it opens with its dates unmoved. The snapshot marks a new
+> count-less Blocks calendar with `blocksEpisodesOptional: true`; its absence is what identifies an old one.
+
 ⚠️ **Switching mode changes the schedule**, so it must be reversible without data loss: keep both
 `episodeDefs[].days` and the block numbers stored, and let the mode decide which is read. Switching
 back to Episodes must restore the previous dates exactly. **Never discard the other mode's inputs.**
@@ -189,7 +196,7 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 | 5 | *(22 Sep)* What Production's lane shows in Blocks mode | **Production's own pills, no episode pills — and the week tag names the block AND its episodes**, e.g. `Block 1 · 201, 202` |
 | 6 | *(22 Sep)* The waterfall header's "8-Day Shooting Schedule" in Blocks mode | **`… / 5 Shooting Blocks`** — the block count, which stays true when blocks differ in length |
 | 7 | *(22 Sep)* A pill piece too short for the tag (a one-day piece) | **Omit the tag on one-day pieces** (offered: shrink to fit; ellipsis) |
-| 8 | *(22 Sep)* Episodes mode, too | **"Production Week N" is always the pill's primary text; the episodes being shot are the grey text** — episode pills are retired in both modes |
+| 8 | *(22 Sep)* Episodes mode, too | **"Production Week N" is always the pill's primary text; the episodes being shot are the grey text** — episode pills are retired in both modes. ⚠️ **Superseded 15 Oct 2026 ("Stacked bars, always", HANDOFF):** Production is one bar per episode (per block), "Ep. 201" / "Block 1", with the week in grey; a half-day switch day carries both bars |
 | 9 | *(22 Sep)* Shooting order | **Drag episodes to reorder in Episodes mode.** Numbers never change; only which days each episode occupies. The order also drives Blocks' automatic split |
 | 10 | *(22 Sep)* Turning the grey text off | **Per-user Preferences, "Show Blocks in Month View" / "Show Episodes in Month View", default on** — accepting that two people printing one calendar can differ |
 

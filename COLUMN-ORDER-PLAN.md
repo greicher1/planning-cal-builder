@@ -12,6 +12,15 @@ Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 > own gestures instead. Double-click (or Enter) on a selected cell expands or pulls back, Alt+←/→
 > swaps its column, and the knob takes a click or a drag. The selection's count chip names them
 > ("double-click to expand · Alt+←/→ to swap"). HANDOFF.md, the header-controls build, has the record.
+>
+> ⛔ **21 Oct 2026 (owner): NO CHIP OVER A SELECTION but the double-click hint and a refused swap's
+> reason.** *"remove the chip entirely, except say 'Double click to expand cells' when you highlight
+> phase blocks. then only if can't do a swap does it tell you why with a chip"*, and by picker: "Double
+> click to pull back cells" when already expanded, nothing when there is no room, and **no message
+> after a swap that works, "Never"**. So this plan's MODE LINE (§2.2) is gone, and E1's "nothing moves
+> unannounced" is now carried by the knob's label/tooltip before the press and the amber collateral
+> outlines; the reshape warning in words and every after-swap confirmation are gone. A refused
+> direction says why when pressed (`flashSwapMsg`).
 
 > ✅ **STATUS, 2 Sep 2026: steps 1–6 are BUILT, GATED and PUSHED (`2a75929`).** The store, the
 > reconciler, the one authorised frozen line (E0), the "Swap Block" button (E2), the mode inference,
@@ -293,6 +302,9 @@ the reason it changed is their own earlier ruling (D10) that the UI must never s
 column change, because the three controls a few pixels away — *← 1 wk*, *Shift All*, *1 wk →* — move
 the calendar in **time**. *Swap Block* names the outcome, matches the toolbar's existing
 *◀ Swap / Swap ▶*, and cannot be read as a shift in time. ⛔ Do not "improve" it back to *Move*.
+
+✅ **Renamed "Swap Column"** (owner, 15 Oct 2026). The verb is still *swap*, so D10 holds. Only the
+button's own text and tooltip changed; the chip, confirmation and undo label still say "block".
 
 ### 2.3 One outline cannot honestly wrap a ragged selection
 

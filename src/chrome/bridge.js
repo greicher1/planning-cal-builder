@@ -96,6 +96,38 @@ export const chrome = {
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
   // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
   notesResetBtn: noop,
+  // { value: 'week'|'episode'|'block', blockAvailable } — Settings ▸ Preferences ▸ Month view ▸ "Label Production by"
+  // (MONTH-PILL-LABEL-PLAN.md §5.1). `value` is the label the month bars are DRAWN in, so with nothing
+  // chosen it is what Schedule by gives; the engine's mvProdLabel is the only store. Bridged because a
+  // SegmentedControl's indicator follows React state: an engine write to a radio's .checked would be
+  // undone by the next commit. The input half needs no bridge: the radios' native `click` reaches the
+  // engine's document listener by their name, `mv-prod-label`. ⛔ Click, not change: a controlled
+  // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
+  mvProdLabel: noop,
+  // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
+  // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
+  // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
+  // step, and a Load or an undo leaves it as it is.
+  settingsWindow: noop,
+  // { cols: [{ year, has }] } — the hidden Notes columns (HIDE-NOTES-PLAN.md), for the Waterfall card's
+  // "Hidden Notes columns" row: the years whose column is hidden, and whether each holds notes (the dot).
+  // The engine's `hiddenNotesCols` is the only store. The input half needs no bridge: a pill's × and Show
+  // all carry `data-shownotes`, which the engine catches on document, as it does on the grid's strip.
+  hiddenNotes: noop,
+  // { view: 'sheet'|'month', zoom, visible } — the calendar zoom control (ZoomControl.jsx), bottom
+  // right in both views. The engine holds one zoom per view and applies it; this is only what the
+  // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.
+  // A per-machine preference: never in captureSnapshot(), never an undo step.
+  calZoom: noop,
+  // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
+  // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
+  // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes
+  // out exactly as it did before the dialog existed, and nothing about the calendar changes.
+  pdfExportDialog: (opts) => Promise.resolve({
+    paper: opts.paper,
+    orientation: opts.orientation || ((opts.fits || {})[opts.paper] || {}).recommended || '',
+    gridlines: opts.gridlines,
+  }),
 }
 
 export function installChrome(impl) {

@@ -14,6 +14,13 @@ Gated (exit 1 on any failure), printed as the gate prints:
   P4  every page's text is the same: the same whitespace-separated tokens, as a multiset (pdftotext). ⚠️ STRICT. The
       plan expected to normalise Chrome's automatic hyphenation and the two files' different "…" cut points; not one
       page of tier 1 or tier 2 needed either, so neither is applied. A calendar that does will show its tokens here.
+      ONE normalisation IS applied (19 Oct 2026): a half day's "½" is always its own token (half_tokens). Both files
+      set it as its own glyph run 2 px after the date, at the same place to 0.07 pt, and whether pdftotext calls
+      "3½" one word or two depends on how it groups the LINE, which it does from each file's font boxes (Chrome's
+      embedded Inter and the writer's report different ones). Measured on shootdays-onhalf: with "Day 4" (the
+      shoot-day number, "Number Production Days") 9 pt before July's "3½", the print reads "Day 4 3 ½" as one line
+      and the writer "3½" on its own. Splitting it off on both sides changes nothing on a page whose two files
+      already agreed.
   P5  the grid's lines: every black rectangle either file paints -- the frame, the month bar's and weekday row's
       borders, every week's top line, every day's left line -- read from both files' own vector coordinates, must pair
       one for one, each edge within 1.5 CSS px, in every month whose weeks all keep today's fit. ⚠️ Not 1 px, as first
@@ -42,6 +49,14 @@ GREY_TOL = 24                  # levels, the pixel report
 def run(args):
     r = subprocess.run(args, capture_output=True)
     return r.stdout, r.stderr.decode('utf-8', 'replace').strip()
+
+
+# P4's tokens: whitespace-separated, with every "½" split off as its own (see the docstring).
+def half_tokens(text):
+    out = []
+    for t in text.split():
+        out.extend(x for x in re.split(r'(½)', t) if x)
+    return out
 
 
 # ---- a PDF's objects and page content, enough for both files (no xref needed) ------------------------------------
@@ -245,7 +260,7 @@ def main(argv):
             where = d['name'] + ' / ' + m['label']
             if m['label'] not in wt or m['label'] not in ct:
                 p3.append(where)
-            tw, tc = Counter(wt.split()), Counter(ct.split())
+            tw, tc = Counter(half_tokens(wt)), Counter(half_tokens(ct))
             if tw != tc:
                 p4.append('%s: writer-only %s, print-only %s' % (where, list((tw - tc).elements())[:6], list((tc - tw).elements())[:6]))
             mine, theirs = black_rects(wpages[i]), black_rects(print_pages[cp - 1])

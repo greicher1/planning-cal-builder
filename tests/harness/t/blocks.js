@@ -142,7 +142,10 @@ window.addEventListener('load', function () { (async function () {
     out.mvMonth = (document.querySelector('#table-wrap .mv-monthyear') || {}).textContent;
     var pills = [].map.call(document.querySelectorAll('#table-wrap .mv-pill'), function (p) { return (p.textContent || '').trim(); });
     out.mvEpisodePills = pills.filter(function (t) { return /^Episode\b/.test(t); }).length;
-    out.mvProductionPills = pills.filter(function (t) { return /^Production\b/.test(t); }).length;
+    // Since 15 Oct 2026 ("Stacked bars, always") Production is drawn as ONE BAR PER BLOCK, named
+    // "Block N" -- so a Production pill is known by data-ph, not by its text.
+    out.mvProductionPills = document.querySelectorAll('#table-wrap .mv-pill[data-ph="production"]').length;
+    out.mvBlockPills = pills.filter(function (t) { return /^Block \d/.test(t); }).length;
 
     // ---- 4b. the block tag (step 4): present, and never clipped -------------------------------
     // ⛔ BLOCKS-PLAN §5.1: "measure it at the narrowest month-view column before assuming it fits".
@@ -177,8 +180,17 @@ window.addEventListener('load', function () { (async function () {
         var m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(p.getAttribute('style') || '');
         return m && (+m[2] - +m[1]) === 1;
       }).length;
+      // The distinct blocks each week row draws (one bar per block since 15 Oct 2026).
+      var weekBlocks = [].map.call(root.querySelectorAll('.mv-week'), function (wk) {
+        var seen = [];
+        [].forEach.call(wk.querySelectorAll('.mv-pill[data-ph="production"]'), function (p) {
+          var lbl = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim();
+          if (/^Block \d/.test(lbl) && seen.indexOf(lbl) < 0) seen.push(lbl);
+        });
+        return seen;
+      });
       return { n: tags.length, clipped: clipped, minSlack: tags.length ? minSlack : null,
-               oneDayTagged: oneDayTagged, oneDayPieces: oneDayPieces,
+               oneDayTagged: oneDayTagged, oneDayPieces: oneDayPieces, weekBlocks: weekBlocks,
                texts: [].map.call(tags, function (t) { return t.textContent; }),
                pills: [].map.call(tags, function (t) { return t.closest('.mv-pill').textContent; }) };
     }
@@ -207,7 +219,8 @@ window.addEventListener('load', function () { (async function () {
     d2.dispatchEvent(new Event('input', { bubbles: true }));
     await settle();
     out.tagPrint3 = await printFit();
-    out.threeBlockWeek = out.tagPrint3.texts.filter(function (t) { return (t.match(/Block /g) || []).length >= 3; });
+    // A row touching three blocks now draws three bars, one per block (15 Oct 2026).
+    out.threeBlockWeek = out.tagPrint3.weekBlocks.filter(function (b) { return b.length >= 3; }).map(function (b) { return b.join(' | '); });
 
     document.getElementById('view-sheet-btn').click();
     await settle();
