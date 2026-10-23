@@ -349,12 +349,18 @@ export function initLegacyApp() {
     const head = table.tHead && table.tHead.rows[0];
     if(!cols.length || !head) return;
 
+    // ⛔ FROZEN EDIT Z1 (owner sign-off by picker, 22 Oct 2026: "Yes, apply it"; resize at any zoom).
+    // Under the calendar zoom a rect is SCREEN px while a handle's inline px are the grid's own, so every
+    // rect-derived length below is divided by the zoom. gridZoom() is 1 at 100%, and x / 1 is x exactly,
+    // so at 100% every handle lands where it always did. Z2-Z6 are the same division in the helpers and
+    // drags after this.
+    const z = gridZoom(wrap);
     const wrapBox = wrap.getBoundingClientRect();
     const tableBox = table.getBoundingClientRect();
-    const tableH = tableBox.height;
+    const tableH = tableBox.height / z;
 
     // Column boundaries: walk the declared widths, which table-layout:fixed honours exactly.
-    let x = tableBox.left - wrapBox.left;
+    let x = (tableBox.left - wrapBox.left) / z;
     cols.forEach((col, i)=>{
       x += parseFloat(col.style.width) || 0;
       const h = document.createElement('div');
@@ -378,9 +384,9 @@ export function initLegacyApp() {
       const rb = tr.getBoundingClientRect();
       const h = document.createElement('div');
       h.className = 'grid-resize is-row';
-      h.style.left = (tableBox.left - wrapBox.left) + 'px';
+      h.style.left = ((tableBox.left - wrapBox.left) / z) + 'px';
       h.style.width = firstDateW + 'px';
-      h.style.top = (rb.bottom - wrapBox.top) + 'px';
+      h.style.top = ((rb.bottom - wrapBox.top) / z) + 'px';
       h.dataset.row = String(r);
       h.title = 'Drag to resize the row · double-click to reset';
       layer.appendChild(h);
@@ -392,7 +398,7 @@ export function initLegacyApp() {
     // whole height of the grid and would otherwise take every grab aimed at a cell edge.
     const colX = [];
     {
-      let cx = tableBox.left - wrapBox.left;
+      let cx = (tableBox.left - wrapBox.left) / z;
       cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
       colX[cols.length] = cx;
     }
@@ -405,7 +411,7 @@ export function initLegacyApp() {
     });
     rows.forEach(tr=>{
       const rb = tr.getBoundingClientRect();
-      const top = rb.top - wrapBox.top, rowH = rb.height;
+      const top = (rb.top - wrapBox.top) / z, rowH = rb.height / z;
       let ci = 0;
       [...tr.cells].forEach(td=>{
         const span = td.colSpan || 1;
@@ -447,7 +453,8 @@ export function initLegacyApp() {
     if(!table) return null;
     const cols = [...table.querySelectorAll('colgroup col')];
     const colX = [];
-    let cx = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    // ⛔ FROZEN EDIT Z2 (Z1's sign-off): the rect offset in the grid's own px, like the widths it is added to.
+    let cx = (table.getBoundingClientRect().left - wrap.getBoundingClientRect().left) / gridZoom(wrap);
     cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
     colX[cols.length] = cx;
     return { wrap, colX };
@@ -523,7 +530,8 @@ export function initLegacyApp() {
     if(!table) return;
     const cols = [...table.querySelectorAll('colgroup col')];
     const handles = [...wrap.querySelectorAll('.grid-resize.is-col')];
-    let x = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    // ⛔ FROZEN EDIT Z3 (Z1's sign-off): Z2's division, for the same reason.
+    let x = (table.getBoundingClientRect().left - wrap.getBoundingClientRect().left) / gridZoom(wrap);
     cols.forEach((c, i)=>{
       x += parseFloat(c.style.width) || 0;
       if(handles[i]) handles[i].style.left = x + 'px';
@@ -535,11 +543,13 @@ export function initLegacyApp() {
     if(!table || !table.tBodies[0]) return;
     const top = wrap.getBoundingClientRect().top;
     const handles = [...wrap.querySelectorAll('.grid-resize.is-row')];
+    // ⛔ FROZEN EDIT Z4 (Z1's sign-off): both rect lengths in the grid's own px.
+    const z = gridZoom(wrap);
     [...table.tBodies[0].rows].forEach((tr, r)=>{
-      if(handles[r]) handles[r].style.top = (tr.getBoundingClientRect().bottom - top) + 'px';
+      if(handles[r]) handles[r].style.top = ((tr.getBoundingClientRect().bottom - top) / z) + 'px';
     });
     // a taller row makes the whole grid taller, so the column handles have to grow with it
-    const h = table.getBoundingClientRect().height + 'px';
+    const h = (table.getBoundingClientRect().height / z) + 'px';
     wrap.querySelectorAll('.grid-resize.is-col').forEach(el=>{ el.style.height = h; });
   }
 
@@ -586,7 +596,8 @@ export function initLegacyApp() {
     let moved = false;
 
     const onMove = ev=>{
-      const x = ev.clientX - wrap.getBoundingClientRect().left;
+      // ⛔ FROZEN EDIT Z5 (Z1's sign-off): the pointer in the grid's own px, which colX is in.
+      const x = (ev.clientX - wrap.getBoundingClientRect().left) / gridZoom(wrap);
       // Nearest legal boundary. For the left edge the boundary is the slot's own left side;
       // for the right edge it is the slot AFTER it, hence the +1.
       let best = lo, bestD = Infinity;
@@ -636,7 +647,11 @@ export function initLegacyApp() {
     const col = isCol ? cols[colIdx] : null;
     const startW = col ? (parseFloat(col.style.width) || 0) : 0;
     const tr = isCol ? null : table.tBodies[0].rows[rowIdx];
-    const startH = tr ? tr.getBoundingClientRect().height : 0;
+    // ⛔ FROZEN EDIT Z6 (Z1's sign-off): the row's height and both pointer deltas in the grid's own px,
+    // so a drag while zoomed SAVES what the same drag at 100% would (it used to save the zoomed height,
+    // which is why the handles were hidden while zoomed). z is 1 at 100%.
+    const z = gridZoom(table);
+    const startH = tr ? tr.getBoundingClientRect().height / z : 0;
     // Heights a row drag snaps to: the default, and whatever every OTHER row is already set to.
     // Without this you end up with a 21 beside a 20 -- invisible on screen, obvious in print --
     // and no way to get back to matching except by deleting the override. Collected once per
@@ -657,7 +672,7 @@ export function initLegacyApp() {
 
     const onMove = ev=>{
       if(isCol){
-        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), Math.round(startW + (ev.clientX - startX)));
+        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), Math.round(startW + (ev.clientX - startX) / z));
         col.style.width = px + 'px';
         // ** The table's explicit width MUST move with the columns. table-layout:fixed scales
         // ** the declared column widths to whatever the table's width is, so widening one column
@@ -668,13 +683,13 @@ export function initLegacyApp() {
         cols.forEach(c=>{ sum += parseFloat(c.style.width) || 0; });
         table.style.width = sum + 'px';
       } else {
-        let px = Math.max(8, Math.round(startH + (ev.clientY - startY)));
+        let px = Math.max(8, Math.round(startH + (ev.clientY - startY) / z));
         // Snap to the nearest matching height when the pointer gets close, so rows end up equal
         // rather than one pixel apart. Nearest wins if several are in range.
         let best = null, bestD = ROW_SNAP_PX + 1;
         snapTargets.forEach(t=>{ const d = Math.abs(t - px); if(d < bestD){ bestD = d; best = t; } });
         if(best !== null) px = best;
-        h.classList.toggle('snapped', best !== null && best !== Math.round(startH + (ev.clientY - startY)));
+        h.classList.toggle('snapped', best !== null && best !== Math.round(startH + (ev.clientY - startY) / z));
         tr.style.height = px + 'px';
       }
       moved = true;
@@ -851,8 +866,8 @@ export function initLegacyApp() {
   // ⚠️ `z` is the calendar zoom (see "CALENDAR ZOOM"): wrapRect and every td rect are SCREEN px,
   // while colX and anything written to an overlay's style are the grid's own px. Divide a rect delta
   // by z to place something inside the grid; multiply a colX by z to compare it with the pointer.
-  // colX is grid px because the table sits at the wrap's own left edge (frozen spanHandleGeometry adds
-  // that screen-px offset, and it is 0).
+  // colX is grid px: frozen spanHandleGeometry divides its rect offset by the zoom (frozen edit Z2;
+  // before it, colX was grid px only because that offset is 0).
   function selGeom(){
     const geo = spanHandleGeometry();
     if(!geo) return null;
@@ -20610,9 +20625,12 @@ export function initLegacyApp() {
   // ⚠️ WHAT ZOOM BREAKS, measured (Chrome's standardised zoom): inside a zoomed box,
   // getBoundingClientRect() and clientX are in screen px while inline px and offsetWidth are not.
   // Frozen code that mixes the two is wrong at any zoom but 100%:
-  //   * the waterfall's resize handles (installGridResizers and the drag after it). A row drag
-  //     would SAVE the zoomed height into rowHeights, so the handles are hidden while zoomed
-  //     (body.cal-zoomed, legacy.css) and re-installed on the way back to 100%;
+  //   * the waterfall's resize handles (installGridResizers and the drags after it). A row drag
+  //     SAVED the zoomed height into rowHeights, so until 22 Oct 2026 the handles were hidden while
+  //     zoomed. Fixed IN them, by frozen edits Z1-Z6 the owner approved (22 Oct 2026, "Yes, apply
+  //     it"): every rect and pointer length is divided by the zoom, 1 at 100%. A zoomed layout's rows
+  //     are not quite its 100% rows (20.00 px at 200%, ~20.84 at 100%), so the handles are re-placed
+  //     once the zoom settles (setCalZoom);
   //   * mvNoteBoxWidth() read the day column's ON-SCREEN width, so a month render made while zoomed
   //     (paging a month, any edit) sized note lanes for the zoomed width. Fixed IN it, by a one-line
   //     frozen edit the owner approved (21 Oct 2026): it divides by the zoom, which is 1 at 100%.
@@ -20692,8 +20710,10 @@ export function initLegacyApp() {
       if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
     }
     if(v === 'sheet') redrawGridOverlay(null);
-    // Settled, not per slider step: the stored value, and the re-render at 100% that puts the
-    // waterfall's resize handles back where a zoomed render (installGridResizers) placed them wrong.
+    // Settled, not per slider step: the stored value, and the waterfall's resize handles re-placed on
+    // the rows as this zoom lays them out (frozen installGridResizers rebuilds only its own layer, so
+    // nothing else in the grid is touched). This used to be a full re-render at 100% only, when the
+    // handles were hidden at every other zoom (see "WHAT ZOOM BREAKS").
     clearTimeout(_calZoomTimer);
     _calZoomTimer = setTimeout(()=>{
       _calZoomTimer = 0;
@@ -20701,7 +20721,7 @@ export function initLegacyApp() {
       ['sheet','month'].forEach(k=>{ if(calZoom[k] !== 1) store[k] = calZoom[k]; });
       if(Object.keys(store).length) prefs.calZoom = store; else delete prefs.calZoom;
       savePrefs();
-      if(calZoom[calZoomView()] === 1 && currentSchedule) render(currentSchedule);
+      if(calZoomView() === 'sheet') installGridResizers();
     }, 150);
   }
   // The control speaks through one DOM event (ZoomControl.jsx), the way DatePop hands a date back.

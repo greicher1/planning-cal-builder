@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — resize columns and rows at any zoom (22 Oct 2026)
+
+The owner: *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
+viewport"*. Since the calendar zoom (20 Oct), the waterfall's column, row and cell-edge handles were hidden at any
+zoom but 100%.
+- **The handles now show and drag at every zoom, 25–200%.** A drag follows the pointer, and saves what the same
+  drag on the grid saves at 100%: a column exactly, a row within a pixel (a zoomed grid lays its rows out a fraction
+  of a pixel differently, and a drag starts from the row as you see it).
+- **Why they were hidden:** the frozen handle code (`installGridResizers` and the drags) mixed on-screen pixels with
+  the grid's own. Zoomed, a row drag saved the zoomed height into the calendar, and so into Excel and the PDF.
+- **The fix is a frozen edit the owner approved by picker** ("Yes, apply it"): Z1–Z6 in `installGridResizers`,
+  `spanHandleGeometry`, `repositionColHandles`, `repositionRowHandles`, `beginSpanDrag` and the column/row drag divide
+  each on-screen length by the zoom. The zoom is 1 at 100%, and dividing by 1 changes nothing, so the exports and
+  the 100% grid cannot move. The handles are re-placed once a zoom change settles, and the hide rule is gone
+  (`body.cal-zoomed … .grid-resize-layer{display:none}`), as is the zoom button's "resize at 100%" tooltip.
+- Handles scale with the grid, like everything else in it: at 25% they are under 2 px wide on screen.
+- No saved-file change.
+- **Verified:** new leg `zoomresize` (40 checks, in `gate.sh` after `calzoom`): at 100/50/150/200%, every row,
+  column and cell-edge handle on its place and on top where grabbed, then a column, a row and a cell edge dragged
+  and undone, each compared with the 100% drag. Red on the build before the edits (at 50% the column saved 194 px not
+  203, the row 20 not 36, the cell edge did not move). `calzoom` 24/24 with W3 changed from "hidden while zoomed" to
+  "on their rows at 90%" (and W4/W5 made to measure the grid and click the cell rather than a handle), `hdrfit` 8/8 on
+  both fixtures, `sideboxes` 74/74, `npm run check` 40/40; by hand at 150%, a real mouse drag widened the Date column
+  30 px for 45 px of pointer travel and a row drag saved 40 px. **Full gate on build `d80112ba`: 2,801 PASS, 0 FAIL,
+  GATE PASSED**, every baseline comparison identical (the waterfall PDF, every Excel part, the month PDF).
+
 ### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
 
 The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in

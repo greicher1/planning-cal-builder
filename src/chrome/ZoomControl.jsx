@@ -44,11 +44,9 @@ export function ZoomControl() {
   // The buttons step to the next whole ten, so 105% goes to 110% or 100%, never 115% or 95%.
   const out = () => send(Math.max(MIN, (Math.ceil(pct / 10) - 1) / 10))
   const inn = () => send(Math.min(MAX, (Math.floor(pct / 10) + 1) / 10))
-  // The waterfall's column and row handles are frozen code that only measures right at 100%, so they
-  // are hidden while it is zoomed (app.js, "CALENDAR ZOOM"). Said here, where the way back is.
-  const resetTitle = pct === 100 ? 'Zoom: 100%'
-    : st.view === 'sheet' ? 'Back to 100%. Columns and rows can be resized at 100%.'
-    : 'Back to 100%'
+  // Until 22 Oct 2026 this also said the waterfall could be resized only at 100%; its handles now work
+  // at every zoom (app.js, "CALENDAR ZOOM", frozen edits Z1-Z6).
+  const resetTitle = pct === 100 ? 'Zoom: 100%' : 'Back to 100%'
 
   return (
     <div className="cal-zoom" role="group" aria-label="Calendar zoom">
