@@ -48,7 +48,7 @@ nothing linking them. To compare them you open one, then the other, and remember
   scroll position, so flipping back and forth shows what moved. "+" duplicates the tab you're on.
 - **Compare?** Two ways. Flip between tabs to see the shape change. Open **Compare** for a table: one column per
   scenario and one row per key date. A value that differs from the scenario on screen is bold, with how much it
-  differs ("+2 wks"). A row that is the same everywhere is grey.
+  differs ("Pushed 2 wks" for a date, "+2" for a count). A row that is the same everywhere is grey.
 - **Version numbers?** No, and keeping the two apart is the main thing that stops this getting complicated.
   - A **scenario** is an *alternative*: A and B exist at the same time, and one of them will win.
   - A **version** is the *same plan over time*: the v3 you sent last week, and the v4 you'll send next week.
@@ -115,7 +115,7 @@ Each decision has a recommendation, listed first.
    - **Flip:** a switch keeps the view, the zoom and the scroll position, so the grid changes in place and your eye
      catches what moved. Ctrl+Page Down and Ctrl+Page Up flip without the mouse, as in Excel.
    - **Compare table:** a window with one column per scenario and one row per key date. A value that differs from the
-     tab you're on is bold, with the difference under it ("+2 wks", "−1 day", "−2"). A row that is the same everywhere
+     tab you're on is bold, with the difference under it ("Pushed 2 wks", "Pulled 1 day", "−2"). A row that is the same everywhere
      is grey. It exports to Excel or PDF, or copies as a table, ready to paste into an email or a sheet. §2
      has the details.
 2. **Also draw another scenario's phases as dashed outlines on the calendar.** A later step if flipping isn't enough.
@@ -207,7 +207,8 @@ Each decision has a recommendation, listed first.
   remove all the random explainations at the bottom and top. remember clean and simple"*.
   - **Built as a real Mantine component,** `mockups/scenarios-compare/CompareDialog.jsx`, meant to move into
     `src/chrome/` as it stands.
-  - **It holds a table and two buttons, and nothing else.** No explanation lines above or below it, and no toggles.
+  - **It holds a table and its buttons, and nothing else.** No explanation lines above or below it. Its one toggle,
+    Only differences, came later (below).
   - **One column per scenario.** The tab on screen comes first, marked with an "On screen" `Badge`.
   - **Every row shows every value.** The rows, in order:
     - Episodes (or Blocks), Shoot days, Location;
@@ -215,8 +216,23 @@ Each decision has a recommendation, listed first.
     - First shoot day and Wrap after Prod Prep;
     - Production span, weeks from first phase to last, Version.
   - **A value that differs from the tab on screen is bold.** The difference sits under it in a small light `Badge` in
-    the `warn` colour: "+2 wks", "−1 day", "−2", or "start +2 wks, end same" for a range that moved at one end.
+    the `warn` colour. A date says "Pushed 2 wks" or "Pulled 1 day", or "Start pushed 2 wks, end same" for a range
+    that moved at one end. A count keeps its sign: "+2" episodes, "+9" shoot days, "+2 wks" of production span.
   - **A row that is the same everywhere is grey.**
+  - **The owner's notes after it went live** (23 Oct 2026, the same evening):
+    - *"It should hide phases that aren't used/empty"*: a phase none of the columns shown has gets no row. A phase only
+      some of them have keeps its row, with a dash in the others, because that is a difference.
+    - *"There should be a button to hide comparisons that are the same"*: an **Only differences** switch, top right,
+      beside the chips. It hides every row that is the same in every column shown. It is remembered while the app is
+      open, as the chips are.
+    - *"lets use pushed and pulled instead of + and -"* for dates, then *"days and eps can stay + and - as they are
+      counts and not dates"*.
+    - The holidays behind a moved shoot date. The owner first asked for their names next to the "± days". Then:
+      *"lets not name the specific holidays, lets just say + or - a number of holidays with the same yellow chip"*.
+      So First shoot day and Wrap carry a second chip beside their Pushed/Pulled, "+1 holiday". It is how many more
+      days that scenario's shoot lost to a holiday than the one on screen's, each from its own production walk
+      (`holidaysHit`). First shoot day counts only the holidays before it. Equal counts make no chip.
+    - The exports and Copy table follow the table as shown, so all four reach them.
   - **Dates read as the waterfall writes them:** 6/29/26, and ranges as 5/18/26 – 6/26/26.
   - **Footer:** Export to Excel, Export PDF and Copy table on the left, Done on the right. Escape and the × close it
     too.
@@ -226,7 +242,7 @@ Each decision has a recommendation, listed first.
     - **Excel:** ExcelJS, which the app already loads (no new resource for the CSP). One sheet, "Compare", with:
       - the title and the file's name;
       - the label column and the header row frozen;
-      - each difference bold, with its "+2 wks" on a second line on the `warn` tint;
+      - each difference bold, with its "Pushed 2 wks" (and any "+1 holiday") on a second line on the `warn` tint;
       - same rows grey;
       - landscape, one page wide.
     - **PDF:** written directly, as the month PDF is, from that writer's machinery (the embedded Inter, the shared

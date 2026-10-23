@@ -4,8 +4,15 @@
 //
 // One column per scenario, the one on screen first, up to twelve (owner: "compare up to 12 scenarios at once,
 // scrolling left to right"). Every row shows every value. A value that differs from the one on screen is bold, with
-// the difference under it ("+2 wks"); a row that is the same everywhere is grey. The window grows with the table up
+// the difference under it ("Pushed 2 wks", "+2"); a row that is the same everywhere is grey. The window grows with the table up
 // to the browser window, then the table scrolls sideways with the row labels pinned.
+//
+// Owner, 23 Oct 2026, three notes on the window:
+//   - a phase no column shows has no row ("hide phases that aren't used/empty");
+//   - "Only differences" hides the rows that are the same everywhere;
+//   - a date that moved says "Pushed"/"Pulled", never + or − (counts keep their signs);
+//   - a shoot date that moved counts the holidays behind it, in a second chip ("+1 holiday").
+// The exports and Copy table take the table as shown, so all three reach them too.
 //
 // The engine works out every value (openCompareScenarios in app.js: the header's own tokens, probing tabs not
 // visited since Load) and pushes them here. This only lays them out; Export to Excel / Export PDF hand the table
@@ -14,33 +21,37 @@
 // ⛔ The root carries .compare-dlg: collectFieldValues() skips it, because Mantine mints an id for every Chip's
 // checkbox and a crash backup or undo push taken while this is open must not carry them.
 import { useState, useLayoutEffect } from 'react'
-import { Modal, Table, Text, Badge, Button, Group, Chip, Stack } from '@mantine/core'
+import { Modal, Table, Text, Badge, Button, Group, Chip, Stack, Switch } from '@mantine/core'
 import { installChrome } from './bridge.js'
 
 const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); more than fit scroll sideways
 const LABEL_W = 180
-const COL_W = 160
+const COL_W = 184     // room for "Pushed 12 days" and "+1 holiday" side by side (168 px inside the padding)
 
 const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
 const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
 const days = (a, b) => Math.round((parse(b).t - parse(a).t) / 864e5)
 const sign = (n) => (n > 0 ? '+' : '−') + Math.abs(n)
-const dayDelta = (n) => (n % 7 === 0 ? sign(n / 7) + ' wk' + (Math.abs(n) === 7 ? '' : 's') : sign(n) + ' day' + (Math.abs(n) === 1 ? '' : 's'))
+// A date that moved is PUSHED (later) or PULLED (earlier), never "+" or "−" (owner, 23 Oct 2026: "lets use pushed
+// and pulled instead of + and -"). A count or a length keeps its sign: "+2" episodes, "+2 wks" of production.
+const amount = (n) => (n % 7 === 0 ? Math.abs(n / 7) + ' wk' + (Math.abs(n) === 7 ? '' : 's') : Math.abs(n) + ' day' + (Math.abs(n) === 1 ? '' : 's'))
+const moved = (n) => (n > 0 ? 'Pushed ' : 'Pulled ') + amount(n)
+const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1)
 const missing = (v) => v == null || v === ''
 
-// One cell against the one on screen: {text, diff, delta}. A value one of them lacks (a phase only one scenario
-// has, an unset count) is a dash, and a difference, with nothing to subtract.
+// One cell against the one on screen: {text, diff, delta, none}. A value one of them lacks (a phase only one
+// scenario has, an unset count) is a dash, and a difference, with nothing to subtract.
 function cell(row, value, ref) {
   if (missing(value) || missing(ref)) {
-    return { text: missing(value) ? '—' : show(row, value), diff: missing(value) !== missing(ref), delta: '' }
+    return { text: missing(value) ? '—' : show(row, value), diff: missing(value) !== missing(ref), delta: '', none: missing(value) }
   }
   if (row.type === 'date') {
     const n = days(ref, value)
-    return { text: fmt(value), diff: n !== 0, delta: n ? dayDelta(n) : '' }
+    return { text: fmt(value), diff: n !== 0, delta: n ? moved(n) : '' }
   }
   if (row.type === 'range') {
     const a = days(ref[0], value[0]), b = days(ref[1], value[1])
-    const delta = a || b ? (a === b ? dayDelta(a) : 'start ' + (a ? dayDelta(a) : 'same') + ', end ' + (b ? dayDelta(b) : 'same')) : ''
+    const delta = a || b ? (a === b ? moved(a) : 'Start ' + (a ? lower(moved(a)) : 'same') + ', end ' + (b ? lower(moved(b)) : 'same')) : ''
     return { text: show(row, value), diff: !!(a || b), delta }
   }
   if (row.type === 'number') {
@@ -54,6 +65,28 @@ function show(row, v) {
   if (row.type === 'range') return fmt(v[0]) + ' – ' + fmt(v[1])
   if (row.type === 'number') return v + (row.unit || '')
   return String(v)
+}
+
+// The holidays behind a moved shoot date, as a COUNT in a second chip beside its "Pushed"/"Pulled" (owner, 23 Oct
+// 2026: "lets not name the specific holidays, lets just say + or - a number of holidays with the same yellow
+// chip"). It is how many more days this scenario's shoot lost to a holiday than the one on screen's, each from its
+// own production walk (values.hols, the days it actually skipped); equal counts make no chip. A count, so it keeps
+// its sign. First shoot day counts only the holidays before it, the ones that held up the start.
+function holidayDelta(which, mine, theirs) {
+  const lost = (v) => (v.hols || []).filter((h) => which !== 'first' || h.d < v.first).length
+  const n = lost(mine) - lost(theirs)
+  return n ? sign(n) + ' holiday' + (Math.abs(n) === 1 ? '' : 's') : ''
+}
+
+// The yellow chip under a value that differs. Wraps rather than clips: "Start pushed 1 wk, end same" is wider than
+// a column.
+function DeltaChip({ children }) {
+  return (
+    <Badge size="sm" variant="light" color="warn" radius="sm" tt="none" fw={500}
+           styles={{ root: { height: 'auto', paddingBlock: 2, maxWidth: '100%' }, label: { whiteSpace: 'normal', overflow: 'visible' } }}>
+      {children}
+    </Badge>
+  )
 }
 
 function Icon({ d, ...props }) {
@@ -76,6 +109,7 @@ export function CompareDialog() {
   const [dlg, setDlg] = useState(null)                    // {scenarios, currentId, rows}, or null when closed
   const [picked, setPicked] = useState({ ref: null, ids: null })
   const [copied, setCopied] = useState(false)
+  const [onlyDiff, setOnlyDiff] = useState(false)          // kept while the app is open, like the chips
 
   useLayoutEffect(() => {
     installChrome({ compareDialog: (opts) => { setCopied(false); setDlg(opts) } })
@@ -96,18 +130,27 @@ export function CompareDialog() {
   const cols = [ref].concat(others.filter((o) => pick.includes(o.id)))
 
   const table = rows.map((r) => {
-    const cells = cols.map((s) => cell(r, s.values[r.key], ref.values[r.key]))
+    const cells = cols.map((s) => {
+      const c = cell(r, s.values[r.key], ref.values[r.key])
+      c.holidays = r.hols && c.delta ? holidayDelta(r.hols, s.values, ref.values) : ''
+      return c
+    })
     return { row: r, cells, same: cells.every((c) => !c.diff) }
   })
+    // A phase none of the columns has is no row at all; then, if asked, nor is a row that is the same everywhere.
+    .filter((t) => !(t.row.phase && t.cells.every((c) => c.none)))
+    .filter((t) => !onlyDiff || !t.same)
   const tableW = LABEL_W + COL_W * cols.length
   const model = () => ({
     cols: cols.map((s, i) => ({ name: s.name, onScreen: i === 0 })),
-    rows: table.map((t) => ({ label: t.row.label, same: t.same, cells: t.cells.map((c) => ({ text: c.text, delta: c.delta, diff: c.diff })) })),
+    rows: table.map((t) => ({ label: t.row.label, same: t.same,
+                              cells: t.cells.map((c) => ({ text: c.text, delta: c.delta, diff: c.diff, holidays: c.holidays })) })),
   })
   const exportAs = (kind) => document.dispatchEvent(new CustomEvent('sptcal-compare-export', { detail: { kind, model: model() } }))
   const copy = () => {
     const head = [''].concat(cols.map((c) => c.name)).join('\t')
-    const body = table.map((t) => [t.row.label].concat(t.cells.map((c) => c.text + (c.delta ? ' (' + c.delta + ')' : ''))).join('\t'))
+    const note = (c) => (c.delta ? ' (' + [c.delta, c.holidays].filter(Boolean).join(', ') + ')' : '')
+    const body = table.map((t) => [t.row.label].concat(t.cells.map((c) => c.text + note(c))).join('\t'))
     const text = [head].concat(body).join('\n')
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => setCopied(true), () => {})
   }
@@ -127,18 +170,26 @@ export function CompareDialog() {
       overlayProps={{ backgroundOpacity: 0.35 }}
     >
       <Stack gap="lg">
-        {showChips && (
-          <Chip.Group multiple value={pick} onChange={(v) => setPicked({ ref: ref.id, ids: v.slice(0, MAX_COLS - 1) })}>
-            <Group gap="xs">
-              {others.map((o) => (
-                <Chip key={o.id} value={o.id} size="xs" variant="outline"
-                      disabled={!pick.includes(o.id) && pick.length >= MAX_COLS - 1}>
-                  {o.name}
-                </Chip>
-              ))}
-            </Group>
-          </Chip.Group>
-        )}
+        <Group justify="space-between" align="flex-start" wrap="nowrap" gap="lg">
+          {showChips ? (
+            <Chip.Group multiple value={pick} onChange={(v) => setPicked({ ref: ref.id, ids: v.slice(0, MAX_COLS - 1) })}>
+              <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                {others.map((o) => (
+                  <Chip key={o.id} value={o.id} size="xs" variant="outline"
+                        disabled={!pick.includes(o.id) && pick.length >= MAX_COLS - 1}>
+                    {o.name}
+                  </Chip>
+                ))}
+              </Group>
+            </Chip.Group>
+          ) : <span />}
+          {/* The label beside the switch, as every switch in Settings has it: the app imports no InlineInput CSS,
+              so a Switch's own label would stack under its track. */}
+          <Group gap={8} wrap="nowrap" className="sc-compare-onlydiff" style={{ flex: 'none' }}>
+            <Text size="sm" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setOnlyDiff((v) => !v)}>Only differences</Text>
+            <Switch size="sm" checked={onlyDiff} aria-label="Only differences" onChange={(e) => setOnlyDiff(e.currentTarget.checked)} />
+          </Group>
+        </Group>
 
         {/* A narrow window scrolls the table sideways inside the dialog; the dialog never outgrows the window. */}
         <Table.ScrollContainer minWidth={tableW} type="native">
@@ -166,12 +217,22 @@ export function CompareDialog() {
                         {/* Dates and counts stay on one line; a text value (a location) wraps inside its column. */}
                         <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined}
                               style={t.row.type === 'text' ? { overflowWrap: 'anywhere' } : { whiteSpace: 'nowrap' }}>{c.text}</Text>
-                        {c.delta && <Badge size="sm" variant="light" color="warn" radius="sm" tt="none" fw={500}>{c.delta}</Badge>}
+                        {c.delta && (
+                          <Group gap={4} wrap="wrap">
+                            <DeltaChip>{c.delta}</DeltaChip>
+                            {c.holidays && <DeltaChip>{c.holidays}</DeltaChip>}
+                          </Group>
+                        )}
                       </Stack>
                     </Table.Td>
                   ))}
                 </Table.Tr>
               ))}
+              {!table.length && (
+                <Table.Tr>
+                  <Table.Td colSpan={cols.length + 1}><Text size="sm" c="dimmed">No differences</Text></Table.Td>
+                </Table.Tr>
+              )}
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>

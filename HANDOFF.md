@@ -4,6 +4,42 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
+
+- **Asked** (owner, after Scenarios went live), four notes on the Compare window. On the tracker as
+  `compare-refinements`.
+  1. *"It should hide phases that aren't used/empty."*
+  2. *"There should be a button to hide comparisons that are the same (only show items with differences)."*
+  3. *"lets use pushed and pulled instead of + and -"* for dates. Then: *"days and eps can stay + and - as they are
+     counts and not dates."* A memory, `pushed-pulled-for-dates`, now carries this for all new copy.
+  4. The holidays behind a moved shoot date. First, the owner asked for their names. Then: *"lets not name the
+     specific holidays, lets just say + or - a number of holidays with the same yellow chip."*
+- **Built** (SCENARIOS-PLAN.md §2 has the rules; README has the entry). No frozen edit and no save-format change:
+  - `src/chrome/CompareDialog.jsx`:
+    - phase rows (`row.phase`) drop when every column shown is a dash;
+    - an Only differences switch, a plain label beside a label-less `Switch`;
+    - `moved()` gives Pushed / Pulled;
+    - `holidayDelta()` gives the "+1 holiday" chip (`DeltaChip`);
+    - wider columns (`COL_W`, now 184 px, was 160 px), so the two chips fit side by side.
+  - `app.js`:
+    - `scenarioFacts()` adds `values.hols`, the production walk's own `holidaysHit`;
+    - `compareRows()` marks `phase` and `hols`;
+    - the Excel and PDF writers draw the second chip.
+- ⚠️ **Traps found:**
+  - **The app imports no `InlineInput.layer.css`,** so a Mantine `Switch` (or Checkbox) given its own `label` stacks
+    the label UNDER the track. Every switch in Settings avoids it with a separate label. Do the same; don't import
+    the file just for this, because it would re-lay-out every switch in Settings.
+  - **In the leg, the tab a duplicate makes is the one on screen,** so it is the Compare's reference column (S18–S21).
+- **Verified:**
+  - `scenarios` 22/22 (S18–S21 new);
+  - `npm run check` 40/40;
+  - `monthemit` 16/16, `monthwriter` 12/12, `monthlayout` 14/14, F0 green in all three;
+  - the browser pane on `scenarios-3`;
+  - the written PDF (rendered) and the workbook's strings.
+  - No full gate. Nothing frozen, saved or printed by the calendar changed: the Compare exports are new code with no
+    baseline.
+- ⏭ **Next:** nothing owed. Check that the live page serves this build (the session that pushed records it below).
+
 ### ✅ 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT AND LIVE — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*); ✅ **LIVE at `d25eaf6`** (verified byte-identical, `75968ba8`; no version cut); MERGED INTO LOCAL `main` beside Scenarios ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
 
 - **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the

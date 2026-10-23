@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026)
+
+These are the owner's notes on the Compare window, made after Scenarios went live
+([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md) §2). Each change is in the window, the Excel export, the PDF export and
+Copy table, because all four take the table as shown.
+
+- **A phase none of the columns shown has gets no row.** A phase only some of them have keeps its row, with a dash
+  in the others: that is a difference.
+- **"Only differences"**, a switch above the table, hides every row that is the same in every column.
+- **A date that moved says "Pushed 2 wks" or "Pulled 1 day"** (owner: *"lets use pushed and pulled instead of + and
+  -"*). Counts keep their signs: "+2" episodes, "+9" shoot days, "+2 wks" of production span.
+- **First shoot day and Wrap count the holidays behind a move** in a second yellow chip, "+1 holiday". The owner
+  asked for the holidays' names first, then for a count instead (*"lets not name the specific holidays"*).
+  - The count is how many more days that scenario's shoot lost to a holiday than the one on screen's.
+  - Each count comes from that scenario's own production walk, the days it actually skipped.
+  - First shoot day counts only the holidays before it.
+  - Equal counts make no chip.
+- Columns are 184 px (were 160) so the two chips sit side by side.
+
+Verified: `scenarios` 22/22 (S18–S21 are new: empty phase hidden, holiday count, Only differences and its export,
+a one-sided phase kept). `npm run check` 40/40, and `monthemit`, `monthwriter`, `monthlayout` each pass F0 (the Compare
+PDF still reaches the writer only through `buildListPdf`). Also checked in the browser pane on
+`tests/fixtures/scenarios-3.sptcal`, and in the written PDF and workbook.
+
 ### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026; live at `d25eaf6`, with Header: Off for the Month view)
 
 Item 5 of the owner's Excel-gaps list. A right-click on a waterfall cell opens a short menu of what that cell can

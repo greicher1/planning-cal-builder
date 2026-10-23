@@ -254,6 +254,51 @@ window.addEventListener('load', function () { (async function () {
       /damaged/.test(refusals.tooMany) && /damaged/.test(refusals.dupId) && /damaged/.test(refusals.noCurrent) && /damaged/.test(refusals.badSnap) &&
       /newer version/.test(refusals.newer) && document.getElementById('show-title').value === titleBefore && document.querySelectorAll('.sc-tab').length === 0,
       refusals, 'four "damaged", one "newer version", the calendar unchanged');
+
+    // S18-S21 -- the owner's notes on the window (23 Oct 2026). Toronto, alone again, loses its Localization; a copy
+    // of it, US, moves to Elsewhere in the U.S. and is the tab on screen, so US is the first column and Toronto the
+    // second. Same 36.5 shoot days, so the wrap moves by holidays alone.
+    T.set('start-localization', ''); await T.sleep(700);
+    addBtn().click(); await T.sleep(600);
+    await rename('US');
+    T.set('union-place', 'us-general'); await T.sleep(500);
+    await answerAnyModal(); await T.sleep(700);
+    await openCompare();
+    var rowsAll = [].slice.call(document.querySelectorAll('.compare-dlg tbody tr')).map(function(r){ return r.children[0].innerText.trim(); });
+    var usWrap = compareRow('Wrap'), usFirst = compareRow('First shoot day');
+    add('S18', 'a phase neither column has gets no row (Localization), and the others all stay',
+      rowsAll.indexOf('Localization') === -1 && rowsAll.indexOf('Post') !== -1 && rowsAll.indexOf('Wrap') !== -1,
+      {rows: rowsAll}, 'no Localization row; Post and Wrap still there');
+    // S19 -- a date that moved says Pushed or Pulled (owner: "lets use pushed and pulled instead of + and -"), with
+    // the holidays behind it as a count in a second chip, never their names ("lets not name the specific holidays").
+    // Toronto loses Canada Day and Civic Holiday, US loses Independence Day (Observed): one more for Toronto.
+    add('S19', 'Toronto\'s wrap reads "Pushed 1 day" and "+1 holiday", names no holiday; the column on screen and the unmoved first day carry no chip',
+      !!usWrap && usWrap[1] === '8/20/26 Pushed 1 day +1 holiday' && !/Pushed|Pulled|holiday/.test(usWrap[0]) &&
+      !!usFirst && !/Pushed|Pulled|holiday/.test(usFirst.join(' ')),
+      {wrap: usWrap, first: usFirst}, '8/19/26 | 8/20/26 Pushed 1 day +1 holiday');
+    // S20 -- Only differences keeps the rows that differ, and the exports take the table as shown.
+    var seen = null, grab = function(e){ seen = e.detail; e.stopImmediatePropagation(); };
+    document.addEventListener('sptcal-compare-export', grab, true);
+    [].slice.call(document.querySelectorAll('.compare-dlg .sc-compare-onlydiff p'))[0].click(); await T.sleep(400);
+    var rowsDiff = [].slice.call(document.querySelectorAll('.compare-dlg tbody tr')).map(function(r){ return r.children[0].innerText.trim(); });
+    [].slice.call(document.querySelectorAll('.compare-dlg button')).filter(function(b){ return b.textContent.trim() === 'Export PDF'; })[0].click();
+    await T.sleep(300);
+    document.removeEventListener('sptcal-compare-export', grab, true);
+    var mRows = seen && seen.model ? seen.model.rows.map(function(r){ return r.label; }) : null;
+    var mWrap = seen && seen.model ? seen.model.rows.filter(function(r){ return r.label === 'Wrap'; })[0] : null;
+    add('S20', 'Only differences leaves the rows that differ, and the export gets exactly those, holidays included',
+      rowsDiff.join('|') === 'Location|Wrap' && !!mRows && mRows.join('|') === rowsDiff.join('|') && !!mWrap &&
+      mWrap.cells[1].delta === 'Pushed 1 day' && mWrap.cells[1].holidays === '+1 holiday',
+      {rows: rowsDiff, exported: mRows, wrap: mWrap && mWrap.cells[1]}, 'Location | Wrap, both on screen and in the export');
+    [].slice.call(document.querySelectorAll('.compare-dlg .sc-compare-onlydiff p'))[0].click(); await T.sleep(300);
+    await closeCompare();
+    // S21 -- a phase only ONE column has keeps its row: that is a difference, not an empty phase.
+    T.set('start-localization', '2027-03-01'); await T.sleep(700);
+    await openCompare();
+    var loc = compareRow('Localization');
+    add('S21', 'a phase only one scenario has keeps its row, a dash in the other',
+      !!loc && /^3\/1\/27/.test(loc[0]) && loc[1] === '—', {localization: loc}, '3/1/27 – … | —');
+    await closeCompare();
   } catch(e){
     add('ERR', 'the leg threw', false, String(e && e.stack || e), 'no error');
   }

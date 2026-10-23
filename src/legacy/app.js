@@ -23564,6 +23564,9 @@ export function initLegacyApp() {
       first: day(t['production.open']),
       wrap: day(t['production.wrap']),
       span: num(t['production.weeks']),
+      // The holidays that cost this shoot a day: the production walk's own list (holidaysHit), so the holidays
+      // Compare counts for a moved wrap are the days the schedule actually skipped, not a second copy of the rule.
+      hols: ((sch && sch.productionInfo && sch.productionInfo.holidaysHit) || []).map(h => ({ d: isoOf(h.date), n: h.name })),
     };
     const phases = [];
     getAllPhaseDefs().forEach(p => {
@@ -23616,7 +23619,9 @@ export function initLegacyApp() {
   }
   // The rows, in the owner's order (22 Oct 2026: "the content of the old version"): the show, then every phase in
   // phase order with Production as its first shoot day, wrap and span, then the whole calendar's length and Version.
-  // A phase only some scenarios have gets its row; the others show a dash.
+  // A phase only some scenarios have gets its row; the others show a dash. `phase` marks a phase's rows: the window
+  // hides them when no column it shows has that phase (owner, 23 Oct 2026: "hide phases that aren't used/empty").
+  // `hols` marks the two shoot dates a holiday can move: their "± days" names the holidays behind it.
   function compareRows(all){
     const rows = [{ key: 'eps', label: 'Episodes', type: 'number' }];
     if(all.some(s => s.facts && s.facts.blocks)) rows.push({ key: 'blocks', label: 'Blocks', type: 'number' });
@@ -23626,9 +23631,10 @@ export function initLegacyApp() {
       if(seen.has(p.key)) return;
       seen.add(p.key);
       if(p.key === 'production'){
-        rows.push({ key: 'first', label: 'First shoot day', type: 'date' }, { key: 'wrap', label: 'Wrap', type: 'date' },
-                  { key: 'span', label: 'Production span', type: 'number', unit: ' wks' });
-      } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range' });
+        rows.push({ key: 'first', label: 'First shoot day', type: 'date', phase: true, hols: 'first' },
+                  { key: 'wrap', label: 'Wrap', type: 'date', phase: true, hols: 'wrap' },
+                  { key: 'span', label: 'Production span', type: 'number', unit: ' wks', phase: true });
+      } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range', phase: true });
     }));
     rows.push({ key: 'weeks', label: 'Weeks, first phase to last', type: 'number' }, { key: 'ver', label: 'Version', type: 'text' });
     return rows;
@@ -23654,7 +23660,8 @@ export function initLegacyApp() {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
   // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
-  // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff}]}]}
+  // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
+  // is a moved shoot date's second chip ("+1 holiday", or ''), written beside its delta in both files.
   async function exportCompareExcel(model){
     if(typeof ExcelJS === 'undefined'){ uiAlert('Excel export needs the ExcelJS library, which hasn’t loaded. Check the internet connection and try again.'); return; }
     const wb = new ExcelJS.Workbook();
@@ -23685,7 +23692,7 @@ export function initLegacyApp() {
         const cell = row.getCell(ci + 2);
         if(c.delta){
           cell.value = { richText: [{ text: c.text, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
-                                    { text: '\n' + c.delta, font: { name: 'Calibri', size: 9, color: { argb: 'FF7A5B14' } } }] };
+                                    { text: '\n' + [c.delta, c.holidays].filter(Boolean).join('   '), font: { name: 'Calibri', size: 9, color: { argb: 'FF7A5B14' } } }] };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF6E7' } };
           cell.alignment = { wrapText: true, vertical: 'top' };
         } else {
@@ -23743,19 +23750,34 @@ export function initLegacyApp() {
     y += 8;
     list.push({ k: 'fill', c: C.rule, x: M, y, w: pageW - 2 * M, h: 1, r: 0 });
     // The rows.
+    // A cell's chips: its delta, then the holiday count beside it, or under it when the two do not fit side by side.
+    const chipSize = Math.max(6, size - 2);
+    const chipsOf = (c, room) => {
+      const out = [];
+      let cx = 0, line = 0;
+      [c.delta, c.holidays].filter(Boolean).forEach(s => {
+        const ds = fit(s, '500', chipSize, room - 8), w = width(s, '500', ds) + 8;
+        if(cx && cx + w > room){ cx = 0; line++; }
+        out.push({ s, ds, w, dx: cx, line });
+        cx += w + 4;
+      });
+      return out;
+    };
     model.rows.forEach(r => {
       const hasDelta = r.cells.some(c => c.delta);
-      const rowH = hasDelta ? size * 2.9 : size * 1.9;
+      const chipLines = Math.max(1, ...r.cells.map(c => chipsOf(c, colW - 2 * pad).reduce((m, k) => Math.max(m, k.line + 1), 0)));
+      // Room for the value and its chips (each line of them ends chipSize + 9 below the one before).
+      const rowH = hasDelta ? size * 1.35 + chipLines * (chipSize + 9) + 6 : size * 1.9;
       const base = y + size * 1.35;
       text(r.label, M + pad, base, '500', fit(r.label, '500', size, labelW - 2 * pad), r.same ? C.grey : C.ink);
       r.cells.forEach((c, i) => {
         const x = M + labelW + i * colW + pad, room = colW - 2 * pad, wt = c.diff ? '600' : '400';
         text(c.text, x, base, wt, fit(c.text, wt, size, room), r.same ? C.grey : C.ink);
-        if(c.delta){
-          const ds = fit(c.delta, '500', Math.max(6, size - 2), room - 8), dw = width(c.delta, '500', ds) + 8;
-          list.push({ k: 'fill', c: C.warnBg, x, y: base + 4, w: dw, h: ds + 5, r: 3 });
-          text(c.delta, x + 4, base + ds + 5.5, '500', ds, C.warnInk);
-        }
+        chipsOf(c, room).forEach(k => {
+          const top = base + 4 + k.line * (chipSize + 9);
+          list.push({ k: 'fill', c: C.warnBg, x: x + k.dx, y: top, w: k.w, h: k.ds + 5, r: 3 });
+          text(k.s, x + k.dx + 4, top + k.ds + 1.5, '500', k.ds, C.warnInk);
+        });
       });
       y += rowH;
       list.push({ k: 'fill', c: C.line, x: M, y, w: pageW - 2 * M, h: 0.75, r: 0 });
