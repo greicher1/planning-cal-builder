@@ -81,7 +81,7 @@
   approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
   it lands, never from an older `main`.
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); live `d25eaf6` merged in beside it (local `main` = `99a145e`); **FULL GATE ON `99a145e`: 3,040 / 1** (`launchopen` L6, green alone 16/16 three times); NOT PUSHED, the owner's call
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); live `d25eaf6` merged in beside it (local `main` = `99a145e`); **FULL GATE ON `99a145e`: 3,040 / 1** (`launchopen` L6, green alone 16/16 three times); ✅ **LIVE at `d08832e`** (owner-approved push, 23 Oct 2026, 16:17); no version cut
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
@@ -154,8 +154,13 @@
       load: another session's gate was queued behind this one.
     - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, and every month print and the
       written month PDF. Clipped cells = 0. All scenario checks pass, and so does `scenariocompat` on both releases.
-    - Push only on the owner's per-action yes. Before pushing, check that local `main` is still `99a145e` (or that
-      only docs moved) and that `origin/main` is still `d25eaf6`.
+  - ✅ **PUSHED AND LIVE.** The owner said yes in the push picker. Before the push, both refs were checked: local `main`
+    was `d08832e` (the gated tree plus this note), and `origin/main` was still `d25eaf6`. Then ONE
+    `git push origin main` at 16:17:46 (`d25eaf6..d08832e`). The "Build and deploy" run succeeded at 16:18:59. The live
+    `index.html` (1,816,316 bytes) has the same sha256 as the gated `dist/index.html` (`8d487ff6…`), and it carries
+    the scenario events and menu text. No version was cut: `APP_VERSION` and `version.json` are unchanged.
+  - ⏭ **Next, if the owner wants them:** "Add a calendar file as a scenario…" and the overflow ◀ ▶ / ▾ list. Also
+    cutting a version (APP_VERSION + version.json + tag + `releases/`, CLAUDE.md "Cut a version").
 - ⚠️ **Traps for whoever touches this:**
   - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
   - `buildHeaderCtx()` returns `{tokens}`.

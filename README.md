@@ -58,7 +58,7 @@ on that cell and the cell has no one-gesture way to do it already (a double-clic
   view: combined full gate on build `75968ba8…` 3,010 PASS, 2 FAIL, both load timeouts (`hdrrow`, one `monthexport`
   time-zone run) that pass alone on the same build.
 
-### Unreleased — Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026)
+### Unreleased — Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026; live at `d08832e`)
 
 The owner: *"comparing multiple scenarios is HUGE"*, then *"start building it"*. [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md)
 holds the rulings (D1–D6, the 50-scenario cap, no highlight on a flip, the Compare window's look and content, its chips,
