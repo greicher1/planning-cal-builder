@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; FULL GATE: QUEUED (see below); NOT merged into `main`, NOT pushed
+### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); NOT merged into `main`, NOT pushed
 
 - **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
   cal? Really it should only reccomend between letter size and legal"*. Then *"Yes, build the Letter/Legal paper
@@ -33,10 +33,18 @@
   clicked orientation ignored → P3, tag pre-selects Legal → P4 (source restored, `shasum`-checked, rebuild
   `c6634df9` again). `npm run check` 40/40. In the browser pane (`?state=v1.7.0-saved`): Letter tagged with no
   line; in Single Column, Legal tagged, *"Legal prints this calendar about 31% larger."*, Letter still selected.
-- **Full gate:** queued behind the `resize-zoom` session's gate (running when this was built), on HARNESS_PORT
-  9763; log at `.claude/worktrees/paper-recommend-gate.log`. *(Result to be filled in here.)*
-- ⏭ **Next:** the gate result, then the owner's merge / push pickers. Landing is a fast-forward of `main` while
-  `main` stays at `55a9c61`.
+- ✅ **Full gate on build `c6634df9…` (HARNESS_PORT 9763, 22 Oct 21:22:05–21:50:16, alone, queued behind the
+  `resize-zoom` session's gate): 2,765 PASS, 0 FAIL, GATE PASSED.** 0 clipped; waterfall PDF identical to the
+  baseline (date stamp only) with every PDF leg through the dialog at its defaults; every Excel part identical;
+  `fields.byId` 76 ids; every month-print document identical; `pdfdialog` 15/15. Log:
+  `.claude/worktrees/paper-recommend-gate.log`.
+- ⚠️ **Landing is NOT a fast-forward any more.** While the gate ran, local `main` moved `55a9c61` → `83ee71d` (side
+  boxes scroll separately, live at `f77c353`; the waterfall right-click menu's plan and rulings; HIDE-NOTES-PLAN),
+  and `origin/main` moved to `7856d98` (`resize-zoom`, frozen edits Z1–Z6), which local `main` does not hold. A
+  trial `git merge-tree` of local `main` with this branch: `src/legacy/app.js` merges clean, and only `HANDOFF.md`
+  and `README.md` conflict (both sides added entries at the top). So landing = merge the then-current `main` (and
+  `origin/main`) into this branch, keep every doc entry, and run the full gate once more on the combined build.
+- ⏭ **Next:** the owner's merge / push pickers. Nothing else is open on this feature.
 
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
