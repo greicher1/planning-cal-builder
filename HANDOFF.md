@@ -151,7 +151,7 @@
   - Save to a legacy `.html` must embed every tab (`buildSavedHtml({allScenarios:true})`).
   - `.compare-dlg` is skipped by `collectFieldValues()` (Chip ids).
 
-### ✅ 23 Oct 2026: HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED (`1af8782`); ✅ **LIVE at `d25eaf6`** with the waterfall right-click menu (the combined landing, top entry; verified byte-identical, `75968ba8`). Its heading here used to read: 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED locally (`1af8782`) and MERGED with `origin/main` (`2c6a822`, the month-drag-fix work); NOT PUSHED; no version cut
+### ✅ 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout as `1af8782`; ✅ **LIVE at `d25eaf6`**, carried by ANOTHER session's combined landing (the waterfall right-click menu, owner-approved push); this session pushed nothing; no version cut
 
 - **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
   header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
@@ -202,8 +202,17 @@
   session, so the clean-worktree gate already queued for `1af8782` alone was stopped, and local `main` merged
   `origin/main`. Only HANDOFF.md and README.md conflicted: both sides added top entries, and both were kept. The merged
   build is `637b9428…`, and `npm run check` gives 40/40 on it.
-- ⏭ **Next:** a full gate on the MERGED tree, in a clean worktree, then the owner's picker on push. Watch gates 10 and
-  13 and `mvorder`: both pieces of work touch the month view.
+- **Full gate on the merged tree** (`cc9a8ad`, build `637b9428…`, clean worktree with the committed fixtures): 2,980
+  PASS, 1 FAIL. The one was `loadcarry` EX, a Load timeout ("title Non-dense Custom Key", 20 s). Alone on the same build
+  it passed 6/6 twice, which is the same flake the month-drag-fix gate saw. Every month PDF baseline matched, and
+  `mvhdroff` and `mvorder` were green.
+- **How it went live:** while that gate ran, the waterfall right-click-menu session merged `main` (at `1af8782`) into
+  its branch (`ade4231`), then `origin/main` (`31f7599`). It gated the combined tree (its commit says 3,010 / 2) and
+  pushed `d25eaf6` on the owner's approval. The deploy succeeded at 15:36. The live `index.html` (fetched with a
+  cache-buster, sha256 `75968ba8…`) carries `mvHeaderOff` and the month tooltip's "or turn it Off". This session did
+  NOT check that file byte for byte against a build of `d25eaf6`: that check belongs to the session that pushed.
+  `cc9a8ad` / `78aa285` (this session's merge) are not on origin. Their content is, through `31f7599`.
+- ⏭ **Next:** nothing for this feature.
 
 ### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); in local `main` since `cc9a8ad`, where the Header: Off session merged `origin/main` on top of its unpushed `1af8782` ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
 
