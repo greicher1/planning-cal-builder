@@ -21540,7 +21540,10 @@ export function initLegacyApp() {
       if(keep.top > keep.y0) panel.scrollTop = keep.y0 + (keep.top - keep.y0) * r;
       if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
     }
-    if(v === 'sheet') redrawGridOverlay(null);
+    // Both overlays are drawn in the grid's own px, and Chrome lays the rows out at a different height in
+    // those px at each zoom (20 at 100%, 20.8 at 50%, 20.1 at 200%), so a box drawn at one zoom drifts at
+    // another: a text style highlight 45 rows down sat 76 px off its cell at 200% (22 Oct 2026, calzoom W8).
+    if(v === 'sheet'){ redrawGridOverlay(null); if(textSel.size) redrawTextSel(null); }
     // Settled, not per slider step: the stored value, the re-render at 100% (anything a zoomed layout
     // placed, back on its 100% rows), and at every other zoom the waterfall's resize handles re-placed on
     // the rows as this zoom lays them out (see "WHAT ZOOM BREAKS"; frozen installGridResizers rebuilds

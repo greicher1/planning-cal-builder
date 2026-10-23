@@ -362,6 +362,34 @@
 - ⏭ **Next:** merging into `main` and pushing are the owner's, each asked separately; the owner held both (22 Oct),
   perhaps to land with `undo-keys`. `sideboxes` R16 wants its own look (above; proposed as its own session).
 
+### 🔨 22 Oct 2026: THE TEXT STYLE HIGHLIGHT STAYS ON ITS CELLS WHEN YOU ZOOM — branch `textsel-zoom` (worktree `.claude/worktrees/textsel-zoom`), from `main` at `4b95581`; COMMITTED on the branch on the owner's word (picker, 22 Oct: *"Commit on the branch"*, push *"Not yet"*), NOT merged into `main`, NOT pushed
+
+- **Asked:** *"are there any other features that dont work at every zoom level"* (a fork of the resize-while-zoomed
+  session), then *"Fix the text highlight drift here (the one-line redraw in setCalZoom plus a calzoom check)"*.
+- **The audit** (every `getBoundingClientRect` / `clientX` / `offsetWidth` site in `app.js`, ~170, plus a browser
+  pass at 50/150/200% on `colreuse`): only two things break at a zoom other than 100%. (1) The resize handles,
+  hidden while zoomed, fixed in their own session (`resize-zoom`, frozen edit owner-approved by picker, 22 Oct).
+  (2) The text style highlight, fixed here. Checked and fine: the phase selection and its outline, Swap Column, side
+  boxes, month bar move / edge / reorder drags (a two-day drag moved two days at 50% and at 200%), hiatus bands, the
+  day menu, the cell editors (pressing the zoom control closes them, so none is stranded), the grid fit, both print
+  paths (they lay out off screen in `#print-root`, unzoomed) and the writers (no DOM). Minor, not fixed: the month
+  grips keep their on-screen size, so at 25–30% a bar under 46 screen px gets no reorder grip.
+- ⚠️ **What was learned: rows lay out at a different height in the grid's OWN px at each zoom** — 20.0 at 100%,
+  20.8 at 50%, 20.1 at 200% (measured, `colreuse`, 1600×1000). So any box drawn inside `#table-wrap` in grid px at
+  one zoom drifts at another, ~0.4–0.8 px per row. A text highlight 45 rows down sat 19 px off at 50% and 76 px off
+  at 200%, until the settle timer's render at 100% redrew it. **Anything drawn in grid px must be redrawn after
+  every zoom change** — this is what the resize handles will need too (sent to that session, 22 Oct).
+- **Built** (no frozen code): `setCalZoom()` now redraws the text highlight beside the phase selection it already
+  redrew: `if(v === 'sheet'){ redrawGridOverlay(null); if(textSel.size) redrawTextSel(null); }`.
+- **Proof:** new `calzoom` W8 (press a date cell 45 rows down at 100%, zoom to 50% and 200%, highlight within 1 px of
+  the cell), red on the pre-change build (`z200: [0, 75.9, 0, 1.7]`), green after; `calzoom` 25/25, `textstyle`
+  51/51, `npm run check` 40/40, build `d4580885…`. In the browser: 0 px off at 50/150/200%, selected at 100% or 50%.
+  Full gate not run: the highlight is session UI, never in a cell, an export or a saved file.
+- ⚠️ **Will meet `resize-zoom`** in `setCalZoom()`: that branch edits the settle timer right under this line, so
+  expect a small textual conflict when both land. Keep both.
+- ⏭ **Next:** land it when the owner says (they chose *"Not yet"*; one option is together with `resize-zoom`, which edits
+  the same function). Merging into `main` and the push are each a separate ask.
+
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
 - **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side

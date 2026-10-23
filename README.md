@@ -181,6 +181,23 @@ note asks first. [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md) has the deta
   Paste, so the trusted leg's command path stands in for it. Full gate: 2,854 pass, 1 fail. The waterfall PDF and
   every Excel part are unchanged. The one failure, `sideboxes` R16, fails the same way on the build before this change.
 
+### Unreleased — the text style highlight stays on its cells when you zoom (22 Oct 2026)
+
+Found by a zoom audit the owner asked for (*"are there any other features that dont work at every zoom level"*).
+- **Cells highlighted for the text style bar now stay highlighted where they are at every zoom.** The highlight
+  was drawn once, so after a zoom change it sat off its cells: up to two rows away (19 px at 50% and 76 px at 200%
+  on a cell 45 rows down), until going back to 100% redrew it. Styling always went to the right cells; only the
+  highlight was misplaced.
+- **Why it drifted:** Chrome lays the waterfall's rows out at a slightly different height at each zoom (20 px at
+  100%, 20.8 at 50%, 20.1 at 200%, in the grid's own px), so a box drawn at one zoom no longer lines up at another.
+  The zoom already redrew the phase selection for this reason; it now redraws the text highlight too (`setCalZoom`,
+  one line, nothing frozen). Nothing changes in Excel, the PDFs or a saved file: the highlight is never saved.
+- The audit found nothing else broken by the zoom besides the resize handles, which are hidden while zoomed and
+  have their own fix under way. The same row drift applies to them: they will need re-placing after every zoom.
+- **Verified:** new `calzoom` check W8 (select at 100%, then 50% and 200%), red on the pre-change build (75.9 px off
+  at 200%), green after; `calzoom` 25/25, `textstyle` 51/51, `npm run check` 40/40. In the browser on the `colreuse`
+  fixture, where the drift was first measured: 0 px off at 50%, 150% and 200%, selected at 100% or at 50%.
+
 ### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
 
 The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your
