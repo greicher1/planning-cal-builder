@@ -4,6 +4,64 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
+
+- **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
+  excel but purely in the use case of creating this calendars"*). The answer, in chat: formatting is mostly covered,
+  and the gaps are Excel's EDITING habits (waterfall date drags, arrow keys / Delete, copy and paste, find and replace,
+  a right-click menu, fill on many cells) and its "duplicate the tab" habits (revision marking, scenarios, private
+  comments, paste into an email). From that list the owner picked:
+  - **Item 2 (arrow keys, Tab, Delete) and item 3 (copy / cut / paste notes, drag a note to another week):** given to
+    their own session, "Waterfall arrow keys, Delete, and copy/paste notes" (worktree). It asks its rulings by picker
+    before building. Tracker cards `waterfall-keyboard` and `waterfall-copy-paste-notes`.
+  - **Item 5, a waterfall right-click menu: a MOCKUP only** (this entry). Tracker card `waterfall-right-click-menu`.
+  - **Item 8, scenarios:** a full workup, written by the session "Scenarios plan: compare calendar options" in this
+    checkout (`SCENARIOS-PLAN.md`; it adds its own entry). Tracker card `scenarios`.
+- ⚠️ **A correction to that list.** It proposed "freeze panes" as a frozen edit. The heading row is ALREADY frozen
+  on screen (`.sheet-table th` is `position:sticky`) and repeats on every printed page. Only the exported workbook
+  has no frozen panes (`exportExcel`'s `views` carries no split), and a sticky date column makes no sense with year
+  blocks side by side.
+- **The mockup** is built the way `mockups/month-context-menu.html` was, and reuses that mockup's menu engine. The
+  waterfall is captured from the build (`dist/` of 21 Oct, `halfdays.sptcal`, synthetic) with headless Chrome
+  `--dump-dom`. It has `#table-wrap`'s markup verbatim minus the resize handles, and only the CSS rules that match
+  it. Open it through the harness server at `/mockups/waterfall-context-menu.html`.
+  - **Its shape:** the same look, keys and fixed order as the month day menu. A clipboard row first (Cut · Copy ·
+    Paste · Clear, as Excel's Paste Options row), then "This week" (Add / Edit this week's note · Add 1-week phase
+    here · Add hiatus ▸), then one section for the cell clicked: a phase week (Start / End <phase> this week, Expand
+    cells, Swap column left / right, Colour…, Show in Phases card), a note (Edit, colour, back to automatic text), a
+    hiatus band, a holiday in that week. Then Size (reset row height / column width), and Show this week in the
+    month view. A column heading gets a short menu of its own.
+  - **Right-click inside a highlight acts on all of it**; outside it, the cell is highlighted first.
+  - Refused items are greyed with their reason (the standing rule). The clipboard items only CALL the item 2/3
+    session's actions.
+- ✅ **Ruled (owner, 22 Oct 2026, in chat):** *"keep the clipboard row at the top. Clear can remove an automatic
+  note, and keep the Size section."* The mockup's side panel now records them.
+  1. **The clipboard row stays at the top**, as Excel's Paste Options row.
+  2. **Clear can remove an automatic note.** It is stored as cleared (`userNotes[week] = {text:''}`), stays empty
+     when dates move, and Reset Notes brings it back. This is the first Delete note in either menu; the month menu has
+     none (ruling Q5). The ruling was passed to the item 2/3 session, since its Delete key does the same thing.
+  3. **The Size section stays** (reset row height / column width).
+  4. **Show this DAY or week in the month view** (owner, 22 Oct 2026: *"should have show this day or week in the
+     month view button"*; by picker, "Day when it knows the day"). The mockup already ended with "Show this week",
+     which was easy to miss. Now:
+     - **on a dated note** it reads "Show this day in the month view" and lands on that day, highlighted for a
+       moment. The day comes from the note line's trailing date, by the rule `notesForWaterfallDate` already uses
+       to put a waterfall line on its day; only a date inside the note's own week counts. The mockup shows it on
+       the wrap note (Tue 1 Sep);
+     - **on a holiday shown in a Notes cell**, the same, on the holiday's day;
+     - **everywhere else** it stays "Show this week", and the week's row is highlighted.
+     The highlight must be drawn OVER the month view, never written into it: the month view is frozen.
+- ⚠️ **The menu is tall** (about 17 lines on a phase week), taller than a short window. The mockup caps it at the
+  window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
+  listener skips scrolls whose target is inside the menu. The build needs both.
+- ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
+  Paste / Clear actions.
+- **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
+  opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
+  `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
+- ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
+  its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
+
 ### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); NOT MERGED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
