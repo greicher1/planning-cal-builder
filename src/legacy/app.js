@@ -20705,10 +20705,10 @@ export function initLegacyApp() {
       if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
     }
     if(v === 'sheet') redrawGridOverlay(null);
-    // Settled, not per slider step: the stored value, and the waterfall's resize handles re-placed on
-    // the rows as this zoom lays them out (frozen installGridResizers rebuilds only its own layer, so
-    // nothing else in the grid is touched). This used to be a full re-render at 100% only, when the
-    // handles were hidden at every other zoom (see "WHAT ZOOM BREAKS").
+    // Settled, not per slider step: the stored value, the re-render at 100% (anything a zoomed layout
+    // placed, back on its 100% rows), and at every other zoom the waterfall's resize handles re-placed on
+    // the rows as this zoom lays them out (see "WHAT ZOOM BREAKS"; frozen installGridResizers rebuilds
+    // only its own layer, so nothing else in the grid is touched). The render installs them at 100%.
     clearTimeout(_calZoomTimer);
     _calZoomTimer = setTimeout(()=>{
       _calZoomTimer = 0;
@@ -20716,7 +20716,8 @@ export function initLegacyApp() {
       ['sheet','month'].forEach(k=>{ if(calZoom[k] !== 1) store[k] = calZoom[k]; });
       if(Object.keys(store).length) prefs.calZoom = store; else delete prefs.calZoom;
       savePrefs();
-      if(calZoomView() === 'sheet') installGridResizers();
+      if(calZoom[calZoomView()] === 1 && currentSchedule) render(currentSchedule);
+      else if(calZoomView() === 'sheet') installGridResizers();
     }, 150);
   }
   // The control speaks through one DOM event (ZoomControl.jsx), the way DatePop hands a date back.

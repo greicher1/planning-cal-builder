@@ -39,7 +39,7 @@ window.addEventListener('load', function () { (async function () {
   // The control speaks through this event; the buttons are also pressed for real below.
   async function zoomTo(z){
     document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: z}}));
-    await T.sleep(400);   // past the engine's 150 ms settle (the stored value, the handles re-placed)
+    await T.sleep(400);   // past the engine's 150 ms settle (the stored value, the re-render at 100%, the handles re-placed)
   }
   async function press(el){
     if(!hits(el)) throw new Error('not on top: ' + (el.getAttribute('aria-label') || el.className));
@@ -128,7 +128,7 @@ window.addEventListener('load', function () { (async function () {
           'M4 paging a month while zoomed to 150%, 200% and 50% leaves every note lane as at 100% (' + JSON.stringify(out.mvRerender) + ')');
     await zoomTo(1);
     check(lanes() === lanes0 && !$('table-wrap').hasAttribute('style'),
-          'M5 back at 100% every note lane is as it was, and nothing is left on #table-wrap');
+          'M5 back at 100% the month is re-rendered: every note lane as it was, and nothing left on #table-wrap');
     await zoomTo(1.25);
 
     // ---- W: the waterfall ----

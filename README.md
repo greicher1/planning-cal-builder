@@ -42,7 +42,8 @@ zoom but 100%.
 - **The fix is a frozen edit the owner approved by picker** ("Yes, apply it"): Z1–Z6 in `installGridResizers`,
   `spanHandleGeometry`, `repositionColHandles`, `repositionRowHandles`, `beginSpanDrag` and the column/row drag divide
   each on-screen length by the zoom. The zoom is 1 at 100%, and dividing by 1 changes nothing, so the exports and
-  the 100% grid cannot move. The handles are re-placed once a zoom change settles, and the hide rule is gone
+  the 100% grid cannot move. Once a zoom change settles the handles are re-placed at that zoom (the re-render at
+  100% stays, as before), and the hide rule is gone
   (`body.cal-zoomed … .grid-resize-layer{display:none}`), as is the zoom button's "resize at 100%" tooltip.
 - Handles scale with the grid, like everything else in it: at 25% they are under 2 px wide on screen.
 - No saved-file change.

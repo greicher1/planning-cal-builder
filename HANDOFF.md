@@ -17,8 +17,11 @@
   column/row pointerdown (`startH` and both pointer deltas). `gridZoom()` is a hoisted declaration in "CALENDAR ZOOM";
   it is 1 at 100% and x / 1 is x exactly, so 100% cannot move. Non-frozen: the `body.cal-zoomed …
   .grid-resize-layer{display:none}` rule is gone (a comment says not to bring it back), `setCalZoom()`'s settle now
-  calls `installGridResizers()` in the waterfall at ANY zoom instead of `render()` at 100% only (a zoomed layout's rows
-  are not its 100% rows: 20.00 px at 200% vs ~20.84, so handles placed at one zoom drift at another), the zoom
+  keeps its `render()` at 100% and now calls `installGridResizers()` in the waterfall at every OTHER zoom (a zoomed
+  layout's rows are not its 100% rows: 20.00 px at 200% vs ~20.84, so handles placed at one zoom drift at another).
+  ⚠️ The first build replaced the 100% render with `installGridResizers()` alone and gated green (2,801 / 0), but the
+  `textsel-zoom` session pointed out the text-style highlight relies on that render to snap back at 100%, so the
+  render was put back before anything was pushed (`calzoom` M5's wording with it), the zoom
   button's tooltip no longer says "resize at 100%", `selGeom`'s comment updated.
 - ⚠️ **Two things found that are not new, now visible:** (1) the last row's handle hangs 3 px below the table
   (`margin-top:-4px` on a 7 px handle) and the last column's ~1 px past it, so the layer adds 2 px of vertical and
