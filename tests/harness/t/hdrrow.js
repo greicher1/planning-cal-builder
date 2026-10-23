@@ -10,7 +10,8 @@
 // stream, inflated here).
 //
 //   I   -- inert: Date | year | Notes, m/d/yy, the title block, the 0.75in top; no new snapshot key.
-//   O   -- Header: Off (ruling 10, "Reclaim it"): the menu row (waterfall only), the title block gone on
+//   O   -- Header: Off (ruling 10, "Reclaim it"): the menu row (the month's menu has its own Off since 23 Oct
+//          2026, held by mvhdroff), the title block gone on
 //          screen and in the print fallback's CSS, no Excel page header and a 0.25in top, no PDF header
 //          text and the grid 18pt down, one undo step, Off over Manual keeps the lines, Save/Load and the
 //          M-5 trap (a file with no key opens with its header on).
@@ -306,8 +307,9 @@ window.addEventListener('load', function () { (async function () {
     var mrows = await menuRows();
     await closeMenu();
     byId('view-sheet-btn').click(); await settle('the waterfall');
-    kase('O1', 'the waterfall header menu offers Auto / Template / Manual / Off; the month view menu has no Off',
-      sameArr(rows, ['Auto', 'Template', 'Manual', 'Off']) && sameArr(mrows, ['Auto', 'Template', 'Manual']),
+    // The month view's menu has its own Off since 23 Oct 2026 (owner); mvhdroff holds what it does.
+    kase('O1', 'the waterfall header menu offers Auto / Template / Manual / Off, and so does the month view\'s',
+      sameArr(rows, ['Auto', 'Template', 'Manual', 'Off']) && sameArr(mrows, ['Auto', 'Template', 'Manual', 'Off']),
       { rows: rows, monthRows: mrows });
     var gridTopBefore = document.querySelector('#table-wrap .sheet-grid-wrap').getBoundingClientRect().top;
     await chooseMode('Off');

@@ -57,6 +57,166 @@
   approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
   it lands, never from an older `main`.
 
+### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, NOT COMMITTED yet; full gate queued; no version cut
+
+- **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
+  header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
+- **Built, with no frozen function edited** (CLAUDE.md's state table has the row):
+  - app.js: `mvHeaderOff` beside `headerOff`. `setMvHeaderMode()` now treats Off the way `setHeaderMode()` does: a
+    flag on top of the mode, so Off → the mode underneath brings the lines back, and each switch is one
+    `asOneHeaderStep`. `headerModeKey(true)` returns 'off', the menu's Off row lost `sheetOnly`, the template editor
+    and a month preset's Apply clear it, and New clears it. `captureSnapshot` writes `mvHeaderOff: true` only while it
+    is on, `sanitizeSnapshot` drops a non-boolean, and `applyStateSnapshot` restores it unconditionally (`=== true`).
+  - Screen and print rollback: `reflectHeaderOff()` also toggles `body.mv-hdr-off`, and legacy.css COLLAPSES
+    `.mv-header` (height 0, no margin, padding, shadow or fill, `visibility:hidden`). ⛔ **Never `display:none`.**
+    Frozen `exportMonthPdf` measures each page's reserve as the first week's top minus `.mv-header`'s top, with the
+    pages stacked in an off-screen host. A `display:none` header's rect is all zeros, so every page after the first
+    gets a distance of hundreds of px, fails the `< PAGE_H` test and falls back to 105.
+  - The direct writer: `exportMonthPdfDirect` stamps `headerOff: true` on each month of the model, between
+    `buildMonthLayout` and `fitMonthLayout`, only while it is on (so default layouts and bytes are unchanged). `mvlFrame`
+    then uses an empty header ending at `y0`. It reads the month, never the engine, so the writer's slices stay
+    self-contained. ⛔ **Never inside `buildMonthLayout`:** the first cut stamped it there, and `monthlayout` (all four
+    runs) failed with "could not locate the layout model (MVL_GEOMETRY..buildMonthLayout): re-anchor this leg". The
+    leg slices that function up to its last statement, verbatim. It is back to byte-identical, and the stamp is a
+    plain loop in the export, which adds no writer name to the F0 checks (`monthlayout`, `monthemit`, `monthwriter`).
+  - `mvHeaderLine()` is deliberately unchanged (unlike the waterfall's `headerLine()`, which returns '' while Off):
+    nothing that prints reads it while the header is collapsed, and the Template → Manual bake must read real lines.
+  - Help page: the Header paragraph names Off and what it does in each view. PreviewToolbar's month tooltip mentions Off.
+- **Legs:** new `mvhdroff` (in gate.sh's AFSPEC list, 400 s), M0–M7 + E0. `hdrrow` O1 now expects Off in BOTH menus.
+- **Proof so far,** build `c7b90c4f…`: `mvhdroff` 9/9. M2: the reserve is 119 → 72 px on all 16 pages, the same 47 px
+  the month bar moves on screen (M1). M3: the written PDF has none of the header's lines and its first month label sits
+  35 pt higher. Also `hdrrow` 37/37, `hdrcontrols (carry-rich)` 12/12, `npm run check` 40/40. In the browser pane on
+  carry-rich (a Manual month header), Off collapses it, the button reads Header: Off, and the month bar sits at the
+  card's top.
+  - ⚠️ A first cut of M2 measured the weeks' total height and saw +0 on every page. In screen media the print page is
+    not a fixed-height box, so the weeks never stretch (that is CSS flex in print media). What the fit decides from is
+    the reserve, which M2 now measures exactly as the frozen code does.
+- **Full gate, first run** (build `c7b90c4f…`, main checkout, after two other sessions' gates): 2,907 PASS, 6 FAIL.
+  - 4 × `monthlayout` EX: the slice anchor above. Fixed. The build is now `0016e649…`.
+  - `stintreshape` (grid never rendered) and gate 13's `stintswap-reshape` ("THE CONTENT MOVED", 102,988 → 116,655
+    bytes): ⚠️ **the main checkout's `tests/fixtures/stintswap-reshape.sptcal` has been modified in the working tree
+    since 21 Oct, uncommitted, and not by this work** (+378 / −30 lines; the untracked `Reshape Fixture 2026-09-29.sptcal`
+    sits beside it). Every full gate run in the MAIN checkout reads that file, so it fails these two until someone
+    decides what that change is. That is why earlier sessions gated in worktrees. Do not commit it without looking:
+    fixtures must stay synthetic (see the confidentiality memory).
+  - Every month PDF baseline except that fixture matched, gate 10 included.
+- ⏭ **Next:** the full gate's verdict, then the owner's picker on commit and push.
+
+### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner): *"Delete the following: Saved in this calendar’s file, so they travel with it — except Grid
+  Lines in Exports, which stays on this computer. / Saved in this calendar’s file, so they travel with it. /
+  Presets stay on this computer. The header you apply is saved with the calendar. / All the subtext for all 4
+  options in the Header Selector"*. On the tracker as `remove-settings-header-subtext`.
+- **Built** (chrome only; no frozen code, no saved key, no id):
+  - `SettingsWindow.jsx`: `ScopeLine` and all four of its uses are gone, so every tab opens on its first card.
+    `IconFile` / `IconMonitor` (icons.jsx) had no other user and went too. `.sw-scope*` is gone from legacy.css, and
+    `.sw-panel` takes `padding-top: sm` (the sidebar's `.side-content` value) so the first card does not butt
+    against the tabs.
+  - app.js `HDR_MODE_CHOICES`: no `desc` strings, and `openHeaderModePop()` builds the name only. `.hdr-mode-desc`
+    is gone from legacy.css.
+  - ⚠️ **Decisions made without a picker:** (1) the MONTH view's twin of the Preferences line ("… except the
+    grey-text switches …") went too. The owner listed only the Waterfall one, which is the one they could see.
+    (2) Kept in the Header menu: Template's "Open the template editor…" link (an action, not a description) and
+    Manual's red "Freezes today’s values and removes the tokens." (shown only while in Template; the header plan
+    requires that warning before the click). Each is one block to restore or remove.
+  - Now nothing on screen says which settings stay on this computer, apart from the Headers card's ⓘ and the Help
+    page's presets paragraph. The Help page explains Auto, Template and Manual but has never covered Header: Off.
+  - **Then, mid-turn** (owner): *"make the header dropdown tighter (less wide) now that we dont need all the
+    subtext"*. `.hdr-mode-pop` is `width:170px`, down from 290. Its widest line is Template's "Open the template
+    editor…" link (~125 px, measured), so the menu needs ~153 px with its padding. Manual's warning, shown only in
+    Template, wraps onto two lines. A fixed width rather than `max-content` on purpose: `max-content` would let that
+    warning stretch the menu to ~260 px in Template.
+- **Legs:** `settingswin` W13 now requires no `.sw-scope` and no "travel with it" / "on this computer" text in the
+  window. `hdrcontrols` T2 requires the four rows to be names alone (Template's carrying its link) and the menu at most
+  180 px with nothing spilling out of a row (`popFit()`). T4 opens the menu in Template and requires the same, with
+  Manual's warning shown.
+- **Proof:** build `3ff90ce4…` (the deletions): `settingswin` 21/21, `hdrcontrols (carry-rich)` 12/12, `npm run
+  check` 40/40. Final build `ca14dbe6…` (plus the 170 px menu, which `settingswin` never opens):
+  `hdrcontrols (carry-rich)` 12/12 (T2 and T4 both measure 170 px with no spill), `npm run check` 40/40. In the
+  browser pane: Preferences, Region and Presets each open on their first card. The Header menu reads Auto /
+  Template (with its link) / Manual / Off at 170 px, and in Template, Manual's warning wraps onto two lines inside
+  it.
+  - ⚠️ **Harness trap seen here:** `run.sh` on its default port 8231 `pkill`s whatever `srv.js 8231` is running, so
+    two sessions on the default port kill each other's server. Pass `HARNESS_PORT=<free port>`. And run.sh's stdout
+    is only a 4 KB preview: read `tests/harness/<leg>.json` for the cases.
+- No full gate: chrome only, which neither print path nor any writer can see.
+- ✅ **LIVE.** ONE `git push origin main` at 13:03:50 (`58b94bf..01793cf`, carrying `e7d6ee0` too). Deploy run
+  40016296351 succeeded. At 13:04:51 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `ca14dbe6…`, 1,753,193 bytes, `cmp`). `version.json` is still 1.8.0. This note is a local commit,
+  not pushed.
+- The owner's answer on the Month line (same picker): *"delete it too, but also add "Off" for the month view
+  header"*. So the Month view's line stays deleted, and **Header: Off for the Month view is a new request**
+  (tracker `mv-header-off`), not part of this commit.
+- ⏭ **Next:** Header: Off for the Month view. The month header is drawn by frozen `renderMonthView`, and both month
+  PDFs read it, so scope that before building.
+
+### ✅ 23 Oct 2026 (later): SETTINGS APPEARS AT ONCE, NO SLIDE — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner, right after the entry below went live): *"can we just have the menu already there rather than
+  still sliding in"*. On the tracker as `settings-no-slide`.
+- **Built:** `.settings-window` loses `transform:translateX(-100%)`, its 180 ms transition (with `display …
+  allow-discrete` for the way out) and the `@starting-style` rule, so open is displayed and closed is not. The
+  reduced-motion rule and the ≤960 px `transform:none; transition:none` went with them. legacy.css's comment says
+  not to bring an animation back without asking.
+- **Legs:** `settingswin` W15 (new): with the leg's own transition switch-off removed, the stylesheet gives no
+  transition and no transform, nothing animates, it is under the rail as soon as React marks it open, and gone as
+  soon as it closes. `lib.js` still switches transitions off (a no-op now; kept for older builds).
+- **Proof:** build `9b37b6e6…`: `settingswin` 21/21; `mvnotes` 30 + 14; `mvmenu (halfdays)` 89; `offweek (offweek)`
+  44; `npm run check` 40/40. On the live build `5804869a…` (untracked `dist-pre/`, since removed) only W15 fails:
+  `0.18s, 0.18s`, `matrix(1, 0, 0, 1, -383, 0)`, and still `display:flex` after closing. In the browser pane, wide
+  (1400 px) and narrow: no transform, no animation, in place on the first frame.
+- ✅ **LIVE.** ONE `git push origin main` at 12:51:28 (`06c8770..58b94bf`, carrying `d655286` too). Deploy run
+  40014703330 succeeded. At 12:52:28 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `9b37b6e6…`, 1,755,093 bytes, `cmp`). `version.json` is still 1.8.0. This note is a local commit,
+  not pushed.
+- ⏭ **Next:** nothing.
+
+### ✅ 23 Oct 2026: SETTINGS OPENS BELOW THE SHOW / PHASES / SETTINGS RAIL — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner): *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it
+  should appear right below it with the preferences/region/presets menu below"*. On the tracker as
+  `settings-below-rail`.
+- **Built** (chrome only; no frozen code, no engine logic, no saved key):
+  - `SettingsWindow.jsx`: the window's `top` is the sidebar's scrollTop PLUS the rail's measured height, and
+    `--sw-rail-h` takes the same off its height (legacy.css). It is measured from the rail's on-screen bottom edge,
+    so it holds with the sticky rail pinned over a scrolled sidebar, and a ResizeObserver re-measures it.
+  - The rail is no longer `inert`; only the cards under the window are.
+  - A click on Show or Phases, or an arrow key on the rail's tablist, closes the window (document delegation, like
+    the Settings button). ⛔ Never from `setSidebarTab()`, which undo and Load replay; `revealSidebarTab()` still
+    closes it for "Show in Phases card".
+  - The "Settings ×" head is gone: it repeated the button right above it. The dialog is named by
+    `aria-label="Settings"`. Close = the Settings button (a toggle), Show / Phases, or Escape from inside.
+  - legacy.css: while open, the Settings button takes the selected tab's look and the engine's `.active` sidebar tab
+    gives it up (its class stays: that is where Show / Phases go back to). At 960 px and below the rail now stays
+    visible above the in-flow window.
+  - ⚠️ **Decision made without a picker:** dropping the head and its ×. One block to restore if the owner wants it.
+- **Legs:** `lib.js` `openSettings` waits for the window's top at the RAIL's bottom; `closeSettings` presses the
+  Settings button (an older build's × is still used where present). `settingswin` W10 and W11 rewritten, W14 new.
+- **Proof:**
+  - Build `ac0cbf40…`: `settingswin` 20/20; `npm run check` 40/40. The final build `5804869a…` differs from it by one
+    HTML comment (`#settings-host`'s), and on it: `settingswin` 20/20 again, `npm run check` 40/40.
+  - The live build `d2ac914e…` (served from an untracked `dist-pre/`, with a helper that accepted either top): W10,
+    W11 and W14 FAIL there. W14's failure is the owner's complaint itself: "the Phases tab is covered (sw-title)".
+  - In the browser pane: the window's top is the rail's bottom (114 px) and its bottom is the sidebar's, scrolled or
+    not; a real click on Phases closes it; the Settings button toggles it; stacked at 768 px the rail stays above it.
+  - ⚠️ `settingswin`'s Load ("the loaded file's name in the file menu") timed out in 3 of 6 runs, on BOTH builds,
+    at load average ~7. A flake of the leg, not this change.
+  - Every other leg that opens or closes the window, on `ac0cbf40…`, port 9851, one at a time, judged by gate.sh's
+    own evaluators: `hostile` 13, `sharecopy2` pass, `dlgkeys` 16, `undokeys` 11, `mvmenu (halfdays)` 89 (P6w
+    included), `autonotekinds` 16, `hdrfile` 14, `hdrexcel` 7, `hdrpreset` 19, `shootorder` 9, `offweek` 6 + 44,
+    `episodeprep` 34 + 28 + 12, `pilllabel (carry-rich)` 29, `notescols` 49, `shootdays` 16, `mvnotes` 30 + 14, all
+    green. Two failed under load ~10 and passed alone on the final build: `pilllabel (blocks)` (4 FAIL, "months 1 vs
+    18", the known cut-short month walk) → 35/35, and `sideboxes` (a Load timeout; it never opens Settings) → 78/78.
+- No full gate: this is chrome CSS and React chrome, which neither print path nor any writer can see (chrome changes
+  get targeted legs). The commit leaves the main checkout's two unrelated fixture changes (`stintswap-reshape.sptcal`
+  modified, `Reshape Fixture 2026-09-29.sptcal` untracked) as they were.
+- ✅ **LIVE.** ONE `git push origin main` at 12:45:05 (`b7d5307..06c8770`, carrying `8cc8357` too). Deploy run
+  40013869260 succeeded. At 12:46:08 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `5804869a…`, 1,755,368 bytes, `cmp`). `version.json` is still 1.8.0, so installed copies pick it up
+  silently. This note is a local commit, not pushed.
+- ⏭ **Next:** nothing.
+
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready

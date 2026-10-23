@@ -628,65 +628,62 @@
 
   /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
      "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
-     visible, so changes show live." It is laid over aside.form-panel -- exactly the sidebar's box,
-     the rail included -- and never over .preview-panel, so the grid, the grid fit and every popover
-     anchored to a cell are untouched by it.
+     visible, so changes show live." It is laid over aside.form-panel BELOW THE RAIL -- the sidebar's
+     box from the rail's bottom edge down -- and never over .preview-panel, so the grid, the grid fit
+     and every popover anchored to a cell are untouched by it. ⭐ Below the rail, not over it (owner,
+     23 Oct 2026: "it should not cover the Show/phases/settings bar. Instead it should appear right
+     below it"): SettingsWindow.jsx measures the rail into --sw-rail-h and adds it to `top`.
      ⛔ CLOSED IS display:none, NEVER UNMOUNTED. collectFieldValues() and readState() read the
      window's controls by id on every save and every update; display:none is what `.tab-hidden` did to
      these same cards whenever the sidebar showed another tab, so the engine has always coped with it.
-     The slide is a transform: @starting-style gives the way in, and `display ... allow-discrete` keeps
-     it displayed for the way out (Chrome/Edge are the targets, CLAUDE.md).
+     ⭐ NO SLIDE (owner, 23 Oct 2026: "can we just have the menu already there rather than still sliding
+     in"). It slid in from the left for 180 ms (a transform with @starting-style, and `display ...
+     allow-discrete` for the way out); now open is simply displayed and closed simply not. Do not bring
+     an animation back without asking.
      ⚠️ CONTAINING BLOCK = THE SIDEBAR'S SCROLL BOX. .form-panel is position:sticky, so it holds the
      window -- and an absolute child of a scroll box scrolls with its content. SettingsWindow.jsx sets
      `top` to the sidebar's scrollTop, and .settings-open stops the sidebar scrolling underneath; the
      window scrolls inside its own tab panel instead.
      z-index 110: above the sticky .side-tabs (100) in the sidebar's own stacking context (sticky
-     makes one), and so below every body-level popover (300) and the help modal (200). */
+     makes one), and below every body-level popover (300) and the help modal (200). */
   .settings-window{
     display:none; flex-direction:column;
-    position:absolute; left:0; top:0; width:100%; height:100%; z-index:110;
+    position:absolute; left:0; top:0; width:100%; height:calc(100% - var(--sw-rail-h, 0px)); z-index:110;
     background:var(--mantine-color-white);
-    transform:translateX(-100%);
-    transition:transform 180ms ease, display 180ms allow-discrete;
   }
-  .settings-window.is-open{ display:flex; transform:none; }
-  @starting-style{ .settings-window.is-open{ transform:translateX(-100%); } }
-  @media (prefers-reduced-motion:reduce){ .settings-window{ transition:none; } }
+  .settings-window.is-open{ display:flex; }
   .form-panel.settings-open{ overflow:hidden; }
-  /* The head lines up with the rail it covers: same padding, same rule under it. */
-  .sw-head{
-    flex:none; display:flex; align-items:center; gap:var(--mantine-spacing-sm);
-    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-md) var(--mantine-spacing-xl);
-    border-bottom:1px solid var(--mantine-color-gray-2);
+  /* Open, the rail says where you are: Settings takes the selected tab's look and Show / Phases give
+     it up (the engine's .active stays on the sidebar tab underneath, which is where a click on either
+     goes back to). The window has no head of its own; the button is its title. */
+  .form-panel.settings-open .side-tab-btn.active{ background:transparent; color:var(--mantine-color-gray-6); font-weight:500; }
+  .form-panel.settings-open .side-tab-btn.active:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  .form-panel.settings-open .side-settings-btn{
+    background:var(--mantine-primary-color-light);
+    color:var(--mantine-primary-color-light-color);
+    font-weight:600;
   }
-  .sw-head-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-7); }
-  .sw-title{ margin:0; flex:1; min-width:0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--mantine-color-gray-9); }
   .sw-tabs{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
   .sw-tablist{ flex:none; padding:0 var(--mantine-spacing-md); }
   /* Tab labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
      the 280 px floor on one line. Sized for four; three since the Calendar tab merged into Preferences. */
   .sw-tab{ padding:10px 6px; font-size:var(--mantine-font-size-sm); font-weight:500; }
-  /* The panel is the window's ONE scroller, padded as .side-content is so the cards sit as they did. */
+  /* The panel is the window's ONE scroller, padded as .side-content is so the cards sit as they did.
+     The top padding was the scope line's until the owner deleted those lines (23 Oct 2026). */
   .sw-panel{
     flex:1 1 0; min-height:0; overflow-y:auto;
-    padding:0 var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
   }
-  .sw-scope{
-    display:flex; align-items:flex-start; gap:var(--mantine-spacing-sm);
-    padding:var(--mantine-spacing-lg) 0 var(--mantine-spacing-xs);
-    line-height:var(--mantine-line-height-sm);
-  }
-  .sw-scope-ic{ width:14px; height:14px; flex:none; margin-top:1px; color:var(--mantine-color-gray-5); }
   /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
      goes IN FLOW and takes the sidebar's place instead of lying over it. */
   @media (max-width:960px){
-    .settings-window{ position:static; width:auto; height:auto; transform:none; transition:none; }
+    .settings-window{ position:static; width:auto; height:auto; }
     /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
        nothing here, where the window's height is its content's, and they paint over the preview. */
     .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
     .settings-window .sw-panel{ overflow:visible; }
     .form-panel.settings-open{ overflow:visible; }
-    .form-panel.settings-open .side-tabs,
+    /* The rail stays, as above 960 px; the window takes the place of everything under it. */
     .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
@@ -724,12 +721,15 @@
      #hdr-mode-btn, built by openHeaderModePop() the same way the colour picker above is built --
      so it takes the same white/gray-3/shadow-md treatment every other floating panel wears.
      ⛔ Nothing in here carries an id: collectFieldValues() sweeps id'd controls into every saved
-     calendar, so this menu is buttons and classes only. */
+     calendar, so this menu is buttons and classes only.
+     170 px, not the 290 px it was while each row had a line of description (the owner deleted those
+     and asked for a tighter menu, 23 Oct 2026). Its widest line is Template's "Open the template
+     editor…" link, ~125 px; Manual's warning, shown only while in Template, wraps to two lines. */
   .hdr-mode-pop{
     position:absolute; z-index:200; background:var(--mantine-color-white);
     border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
     padding:var(--mantine-spacing-xs); box-shadow:var(--mantine-shadow-md);
-    display:flex; flex-direction:column; gap:2px; width:290px;
+    display:flex; flex-direction:column; gap:2px; width:170px;
   }
   .hdr-mode-choice{
     display:flex; flex-direction:column; gap:1px; align-items:flex-start; text-align:left;
@@ -742,7 +742,6 @@
      dead control -- full-strength ink, and a tinted ground instead of the usual grey-out. */
   .hdr-mode-choice:disabled{ cursor:default; background:var(--mantine-color-gray-1); }
   .hdr-mode-name{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-gray-9); }
-  .hdr-mode-desc{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.35; }
   /* The bake warning on Template -> Manual. Said before the click, because the tokens do not
      come back except through undo. */
   .hdr-mode-warn{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-danger-9); line-height:1.35; }
@@ -2485,8 +2484,18 @@
      and the block goes, so the grid starts at the top. Off <body>, not #table-wrap, so the print
      fallback in #print-root loses it too. .hdr-tools goes with it: over a Manual header it would
      otherwise show the line-format strip for lines nobody can see. The month view's header is
-     .mv-header and is untouched. */
+     .mv-header and has its own Off, below. */
   body.wf-hdr-off .cal-header-bar, body.wf-hdr-off .hdr-tools{ display:none; }
+  /* The month view's Header: Off (owner, 23 Oct 2026), off body.mv-hdr-off (reflectHeaderOff), so the print
+     rollback in #print-root loses it too. COLLAPSED, not display:none: frozen exportMonthPdf measures each
+     page's reserve from .mv-header's top to the first week, and a display:none box has no top, which would
+     send every page after the first to the 105 px fallback. Collapsed, the reserve is the month bar and the
+     weekday row, exactly what the page still prints. The padding, shadow and background are a Manual
+     header's lavender box (.mv-header.hdr-manual-mode), which would otherwise draw as a sliver. */
+  body.mv-hdr-off .mv-header{
+    height:0; min-height:0; margin:0; padding:0; border:0; overflow:hidden; visibility:hidden;
+    box-shadow:none; background:none;
+  }
   /* ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, "At every zoom"; app.js, same heading).
      The title block and the Manual-mode format strip stop at the grid's last column instead of running
      to the edge of the scroll box. --wf-grid-w is the grid's own width, written on .preview-panel by the

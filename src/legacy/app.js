@@ -14853,7 +14853,8 @@ export function initLegacyApp() {
     reflectMvNumberShootDays();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
-  // window first, because it lies over the whole sidebar and would hide the row being revealed.
+  // window first, because it lies over the sidebar's cards (everything below the rail) and would
+  // hide the row being revealed.
   // ⛔ Only these calls. setSidebarTab() itself must never close it: every undo, redo and Load
   // replays the saved sidebarTab through it, and an undo of a change made IN the window would
   // otherwise shut the window under the user's hands.
@@ -17131,9 +17132,23 @@ export function initLegacyApp() {
   //     starts 18pt down like the sides, and sheetPageOrientation turns both outputs the same way.
   //   * the screen and the print fallback hide .cal-header-bar off a <body> class (reflectHeaderOff).
   // ⛔ CALENDAR DATA: captureSnapshot()'s `headerOff`, written only as `true`, so a calendar that never
-  // turns it off saves byte for byte as before. The month view's header has no Off (the ruling names
-  // the waterfall).
+  // turns it off saves byte for byte as before.
   let headerOff = false;
+  // The month view's Header: Off (owner, 23 Oct 2026: *"also add "Off" for the month view header"*). Ruling
+  // 10 named the waterfall only; this is its twin for the month's own, independent header, built the same way
+  // and with no frozen function edited:
+  //   * the screen and the print rollback collapse .mv-header off a <body> class (reflectHeaderOff). It is
+  //     COLLAPSED to zero height, not display:none, because frozen exportMonthPdf measures each page's
+  //     reserve from .mv-header's top to the first week: a collapsed header still has a top, so the
+  //     rollback gives the weeks exactly the room the header left.
+  //   * the direct writer: exportMonthPdfDirect stamps `headerOff` on each month of the model before the fit,
+  //     and mvlFrame then draws no header and starts the month bar at the top, so the weeks share the freed
+  //     height. (Not in buildMonthLayout: the monthlayout leg slices that function to its last statement.)
+  //   * mvHeaderLine() is NOT changed: nothing that prints reads it while the header is collapsed, and the
+  //     Template -> Manual bake must keep reading the real lines.
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `mvHeaderOff`, written only as `true`, so a calendar whose month
+  // header is on saves byte for byte as before.
+  let mvHeaderOff = false;
   // The month view has its own header with its own auto/manual switch. It's deliberately
   // INDEPENDENT of the waterfall header above: the two documents are printed separately and
   // often want different wording, so taking one manual never touches the other.
@@ -19055,7 +19070,8 @@ export function initLegacyApp() {
     // templates with no tokens. Either way it is the existing transition, and therefore one undo
     // step -- opening the editor is never a silent, unrepeatable change.
     if(mv){
-      if(!(mvHeaderMode === 'manual' && mvHeaderTemplates)) setMvHeaderMode('template');
+      // mvHeaderOff too, for the waterfall's reason below.
+      if(mvHeaderOff || !(mvHeaderMode === 'manual' && mvHeaderTemplates)) setMvHeaderMode('template');
     } else {
       // headerOff too: editing lines that stay hidden would be editing blind. From Off over a
       // Template this only clears the flag (setHeaderMode).
@@ -19500,6 +19516,7 @@ export function initLegacyApp() {
           mvHeaderFormat = cleanHeaderFormatMap(p.month.format || {}, { n: 0 });
           mvHeaderTemplates = true;
           mvHeaderMode = 'manual';
+          mvHeaderOff = false;   // as the waterfall's below: applying a header shows it
         } else {
           headerManual = cleanHeaderLineMap(p.sheet.lines, { n: 0 });
           headerFormat = cleanHeaderFormatMap(p.sheet.format || {}, { n: 0 });
@@ -20436,9 +20453,15 @@ export function initLegacyApp() {
   // happened to call markDirty() at the end; this makes it structural -- one exit path, and it
   // always marks and always renders. Same fix setHeaderMode() records for the waterfall.
   function setMvHeaderMode(next){
-    const from = mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual');
-    if(next === from) return;
+    // Off sits on top of the mode underneath, exactly as the waterfall's does (setHeaderMode): Off -> the
+    // mode underneath only clears the flag, so the lines come back as they were.
+    const shown = headerModeKey(true);
+    if(next === shown) return;
     asOneHeaderStep(()=>{
+      if(next === 'off'){ mvHeaderOff = true; render(currentSchedule); markDirty(); return; }
+      mvHeaderOff = false;
+      const from = mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual');
+      if(next === from){ render(currentSchedule); markDirty(); return; }
       if(next === 'auto'){
         // Discards hand edits AND formatting, exactly as "Header: Auto" always has.
         mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderFormat = {}; mvHeaderTemplates = false;
@@ -20496,37 +20519,30 @@ export function initLegacyApp() {
     if(activeHdrModeAnchor && activeHdrModeAnchor.contains(e.target)) return;   // the anchor's click decides
     if(activeHdrModePop && !activeHdrModePop.contains(e.target)) closeHeaderModePop();
   }
+  // Each row is its name alone. Each had a line of description under it until the owner deleted
+  // them, 23 Oct 2026. The Help page still explains Auto, Template and Manual; it never covered Off.
   const HDR_MODE_CHOICES = [
-    { key:'auto',     label:'Auto',
-      desc:'Every line mirrors Show Info and the schedule. Not editable.' },
-    { key:'template', label:'Template',
-      desc:'Lines you write, with live data in {braces}. Edit a line to see its tokens.' },
-    { key:'manual',   label:'Manual',
-      desc:'Plain text you type. Nothing updates itself.' },
-    // Owner ruling 10 (20 Oct 2026). Waterfall only: openHeaderModePop() leaves it out of the month's menu.
-    { key:'off',      label:'Off', sheetOnly: true,
-      desc:'No title block. The grid starts at the top; Excel and the PDF print no header.' },
+    { key:'auto',     label:'Auto' },
+    { key:'template', label:'Template' },
+    { key:'manual',   label:'Manual' },
+    // Owner ruling 10 (20 Oct 2026) for the waterfall; the month view's menu has it too since 23 Oct 2026.
+    { key:'off',      label:'Off' },
   ];
-  // `mv` selects which header the menu drives. The rows, the copy and the bake warning are the
-  // same in both views -- the modes mean the same thing -- so this is one menu, not two.
+  // `mv` selects which header the menu drives. The rows and the bake warning are the same in both
+  // views -- the modes mean the same thing -- so this is one menu, not two.
   function openHeaderModePop(anchorEl, mv){
     closeHeaderModePop();
     const current = headerModeKey(mv);
     const pop = document.createElement('div');
     pop.className = 'hdr-mode-pop';
     HDR_MODE_CHOICES.forEach(c=>{
-      if(mv && c.sheetOnly) return;
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'hdr-mode-choice' + (c.key === current ? ' is-current' : '');
       const name = document.createElement('span');
       name.className = 'hdr-mode-name';
       name.textContent = c.label;
-      const desc = document.createElement('span');
-      desc.className = 'hdr-mode-desc';
-      desc.textContent = c.desc;
       row.appendChild(name);
-      row.appendChild(desc);
       // ⚠️ The bake warning is stated ON THE ROW, before the click, because Template -> Manual
       // throws the tokens away. The plan requires it be said first; an undo step is the only way
       // back.
@@ -20596,7 +20612,7 @@ export function initLegacyApp() {
   // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
   // evaluation time (HANDOFF §2b-3's law).
   function headerModeKey(mv){
-    if(!mv && headerOff) return 'off';
+    if(mv ? mvHeaderOff : headerOff) return 'off';
     const auto = mv ? mvHeaderMode === 'auto' : headerMode === 'auto';
     return auto ? 'auto' : ((mv ? mvHeaderTemplates : headerTemplates) ? 'template' : 'manual');
   }
@@ -20616,7 +20632,10 @@ export function initLegacyApp() {
   // print fallback renders into #print-root, which is <body>'s child and not inside #table-wrap.
   // Run off the same re-render observer as the buttons above: every way headerOff changes -- the
   // menu, an undo, a Load, New -- ends in render() rebuilding #table-wrap (sanctioned pattern 3).
-  function reflectHeaderOff(){ document.body.classList.toggle('wf-hdr-off', headerOff); }
+  function reflectHeaderOff(){
+    document.body.classList.toggle('wf-hdr-off', headerOff);
+    document.body.classList.toggle('mv-hdr-off', mvHeaderOff);   // the month's twin (23 Oct 2026)
+  }
   new MutationObserver(reflectHeaderOff).observe(document.getElementById('table-wrap'), { childList: true });
   reflectHeaderOff();
   document.addEventListener('click', e=>{
@@ -22700,7 +22719,7 @@ export function initLegacyApp() {
     episodeShootOrder = [];
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {}; headerTemplates = false; headerOff = false;
-    mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false;
+    mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false; mvHeaderOff = false;
     headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
@@ -23299,6 +23318,9 @@ export function initLegacyApp() {
       // 20 Oct 2026, owner ruling 10 (HEADER-ROW-PLAN.md §2): Header: Off. ⛔ PERMANENT key, written
       // only as `true`, so a calendar whose header is on saves byte for byte as before.
       ...(headerOff ? {headerOff: true} : {}),
+      // 23 Oct 2026 (owner): the month view's Header: Off. ⛔ PERMANENT key, written only as `true`, the same
+      // shape as headerOff, so a calendar whose month header is on saves byte for byte as before.
+      ...(mvHeaderOff ? {mvHeaderOff: true} : {}),
       // 20 Oct 2026, owner ruling 4 (HEADER-ROW-PLAN.md §3): the waterfall's date format. ⛔ PERMANENT key
       // and value ('m/d/yyyy'); the default, 1/6/25, is an ABSENT key.
       ...(dateFormat ? {dateFormat} : {}),
@@ -28106,7 +28128,10 @@ export function initLegacyApp() {
   function mvlFrame(month, fonts){
     const G = MVL_GEOMETRY, P = MVL_PAINT, ln = P.line;
     const x0 = G.margin + G.pagePad, y0 = G.margin + G.pagePad, W = G.contentW - 2 * G.pagePad;
-    const hdr = mvlHeader(month, fonts, x0, y0, W);
+    // Header: Off (month.headerOff, stamped by exportMonthPdfDirect): no header and no gap under it, so the
+    // month bar starts at the top and the weeks share the height it left, as the print rollback's collapsed
+    // .mv-header gives them.
+    const hdr = month.headerOff ? { back: [], text: [], boxes: [], bottom: y0 } : mvlHeader(month, fonts, x0, y0, W);
     const MB = P.monthBar, mbY = hdr.bottom, mbH = ln + 2 * MB.padY + MB.size * P.lineHeight;
     const DR = P.dowRow, drY = mbY + mbH, drH = ln + 2 * DR.padY + DR.size * P.lineHeight;
     const bodyTop = drY + drH;
@@ -28703,7 +28728,13 @@ export function initLegacyApp() {
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
-        const layout = fitMonthLayout(buildMonthLayout(currentSchedule, fonts['500'], fonts['600']), fonts);
+        const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600']);
+        // The month header's Off (23 Oct 2026): stamped here, between the model and the fit, and only while it is
+        // on, so a calendar whose header shows writes byte for byte as before. Not inside buildMonthLayout: the
+        // monthlayout leg slices that function to its last statement, and mvlFrame reads the flag off the month,
+        // never off the engine, so every slice of the writer stays self-contained.
+        if(mvHeaderOff) model.months.forEach(function(m){ m.headerOff = true; });
+        const layout = fitMonthLayout(model, fonts);
         places = mvlUnprintable(layout, fonts);
         bytes = await buildMonthPdf(layout);
       } catch(err){
@@ -29859,6 +29890,7 @@ export function initLegacyApp() {
     // KEPT (a round trip must never lose data); autoNotesForView() simply never meets a note of that kind.
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
+    if('mvHeaderOff' in s && typeof s.mvHeaderOff !== 'boolean'){ bad.n++; delete s.mvHeaderOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
     if('paperSize' in s && !PAPER_SIZES.includes(s.paperSize)){ bad.n++; delete s.paperSize; }
     if('pageOrientation' in s && !PAGE_ORIENTATIONS.includes(s.pageOrientation)){ bad.n++; delete s.pageOrientation; }
@@ -30193,6 +30225,7 @@ export function initLegacyApp() {
     headerTemplates = snap.headerTemplates === true;
     // ⛔ UNCONDITIONAL, the same way: a file with no key has its header on -- never the previous file's Off.
     headerOff = snap.headerOff === true;
+    mvHeaderOff = snap.mvHeaderOff === true;   // the month's twin, the same way
     headerOverridesNeedDefaults = false;   // unconditional: set only by the legacy branch below
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';
