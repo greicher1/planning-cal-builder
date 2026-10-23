@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; FULL GATE QUEUED; NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,970 / 1 (build `95bf3fd4`; the 1 a `loadcarry` load-timing flake, green alone twice); NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
 
 - **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
   sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
@@ -47,10 +47,14 @@
 - ⚠️ **Learned: a harness probe that measures an element BEFORE a drag and uses it AFTER gets a zero rect** (the redraw
   replaced it), so its "drop" lands at (0, 0). It looked like a bug (a note landed on Sun 3/1) and was the probe's. It
   did expose a real gap, fixed as D10.
-- ⚠️ **Not done here:** `gate.sh`'s comment and label for `mvorder` still describe 21 Oct's cases (edit it only when no
-  gate is running: zsh reads a running script as it goes).
-- ⏭ **Next:** the full gate (queued behind the scenarios session's, port 9807), then the owner's picker on merging and on
-  pushing.
+- ✅ **Full gate on `95bf3fd4…`** (1,763,999 bytes; port 9807, 13:27:37–13:56:38, alone: the scenarios session's gate
+  ended 13:26, the next began 13:57): **2,970 PASS, 1 FAIL.** All 90 month-PDF lines (gate 10's print documents, gate
+  13's written PDFs) identical to the baselines, which is the R4/§9.5 proof that E3 and E4 are inert on every calendar
+  never rearranged; `mvorder` 30/30. The FAIL: `loadcarry` stopped after C4 ("EX: harness") in C5, which waits up to 20 s
+  for a legacy `.html` to Load. Alone on the same build, twice: 6/6, no errors. A Load-timing flake (the `offweek` R8
+  kind), not this change, which does not touch the Load path or that leg's views.
+- `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
+- ⏭ **Next:** the owner's picker on merging into `main` and, separately, on pushing.
 
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 

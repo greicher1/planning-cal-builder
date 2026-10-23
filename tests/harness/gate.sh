@@ -2176,8 +2176,14 @@ PYPE
 # (N5); editing keeps a note on top (N6); Escape (N7). A hostile file's values are ignored and no prototype is touched
 # (H1). The moving copy on a body drag (G1). Run on a mutant without frozen edits E1 and E2: O2, O3, O5, O7, O8, N1,
 # N3, N4 and N6 red. ⛔ Gates 10 and 13 are what prove the two edits INERT on every calendar without an order.
+# ⭐ GREW 23 Oct 2026 (MONTH-ORDER-PLAN.md §9, frozen edits E3 + E4, owner-approved by picker), on mvdrag.sptcal: an
+# untouched note stays under its bar when a note goes on top (M1) or a phase is reordered (M2) -- the owner's two bugs;
+# a note between two phases, on screen, in the save and in the WRITTEN month PDF (M3); a note to another day with its
+# date rewritten (M4), a waterfall line into another week's waterfall note (M5), an auto-note moved a day (M6); a
+# holiday stays (M7); out and back (M8) and a drop off the grid (M10) bank nothing; no anchor on an untouched calendar
+# (M9). On the 23 Oct live build (d2ac914e) M1-M6 and M8 are red.
 node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile)" <<'PYMO' || FAIL=1
+python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile, mvdrag)" <<'PYMO' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
