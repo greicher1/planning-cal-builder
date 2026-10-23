@@ -164,6 +164,59 @@
   silently. This note is a local commit, not pushed.
 - ⏭ **Next:** nothing.
 
+### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; ✅ FULL GATE 2,976 / 2 (build `c82fd1ab…`), BOTH FAILS GREEN ALONE ON THE SAME BUILD; NOT merged, NOT pushed ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
+
+- **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
+  four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
+- ⛔ **Then the owner, in this session, before any code:** *"I want you to be more cautious in adding extra buttons to
+  the right click menu. I want you to think very carefully about which buttons we actually need in each right click
+  menu. For example, we really dont need the swap collumn feature in the right click menu. We dont need an add notes
+  button at all. right now the right click menu especially on phases is huge"*. The mockup's phase week ran to ~17
+  lines; it is 4 now. **The test every item had to pass** (plan §1.1): it is what you reach for on THAT cell, and the
+  cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). Plan §1.2
+  lists what was cut and why. Saved as a feedback memory (`lean-right-click-menus`).
+- **Ruled by picker, 23 Oct 2026:** R5 *"Both"* (a week offers Add 1-week phase here and Add hiatus; the
+  recommendation was Neither); R6 *"Leave it out"* (an item that cannot act on the cell is left out, not greyed;
+  Start / End stay a greyed pair); R7 *"Trim the month menu too"*, as its own task after this one (tracker card
+  `month-menu-trim`, requested; NOT this branch).
+- **What it is** (plan §2): phase week = Start / End ‹phase› this week, Add 1-week phase here, Add hiatus ▸; Notes
+  cell = Cut · Copy · Paste · Clear (one row) and Back to automatic text on an edited automatic note; band = Remove
+  hiatus…; date / empty / Sim Post = the two adds; a highlight of several = the clipboard row; Size only after a hand
+  resize; last line Show this day / week in the month view (no undo step, a ring over the day for 1.7 s). No menu on
+  a heading (double-click edits it), the title block, or with Shift.
+- **How:** inside `installMonthDayMenu`, one engine with the month menu (`wfContextAt`, `wfPrepare`,
+  `wfMenuSections`, the `wf*` items). No frozen code, no snapshot key, no id. Calls `setPhaseStart` (in
+  `asShootDayMove`), `phaseEdgePlan` / `phaseEdgeWrite` / `phaseEdgeLanded`, the month menu's `addPhaseHere`,
+  `hiatusSections` (now told a span: 7 days in the waterfall, overlap like the scheduler's rows), `removeHiatusHere`,
+  `wfNotesCopy` / `wfNotesClear` / `wfNotesPaste`, `wfNoteStep`. End on a Weeks phase keeps Weeks and gets a new
+  count (no switch to Dates); Start moves by whole weeks, keeping the weekday. Cut writes `navigator.clipboard` BEFORE
+  it clears, so a refused clipboard never loses the note (not `wfNotesCut()`, which clears first). The Mac Ctrl+click
+  guard is now on the text highlight's and the phase selection's presses. `.day-menu` is capped at the window height
+  and scrolls inside (the month menu too).
+- ⚠️ **Learned, measured: Chrome can deliver a scroll event LATE, with nothing moved.** In the leg (headless, virtual
+  time) a scroll event arrived after the menu opened, either for the grid's box at the exact position it had at the
+  right-click, or for the SIDEBAR settling after an earlier undo, and closed the menu: a different case each run, and
+  a fixed sleep or "wait until quiet" did not cure it. So the WATERFALL menu now closes only when a box around its
+  cell really moved (`scrollBoxes` / `movedSinceOpen`), or on a render. ⛔ The month menu keeps "any scroll outside
+  it" (`mvmenu` C1 dispatches an unmoved scroll and expects a close); change it in its own trim, not here. In the app
+  pane, a real browser, no scroll fired after a right-click on any of four cell kinds.
+- **Proof so far:** new leg `wfmenu` (38 cases, in `gate.sh`'s audit-fix block beside `mvmenu`), 38/38 three runs in
+  a row, **red on the pre-change build** (`8cc8357`, built with `git archive`, sha256 `d2ac914e…` = the live file:
+  stops at V1, no menu). `mvmenu` 89/89 with G3 flipped (it asserted no menu in the waterfall), `wfkeys` 84/84,
+  `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40 on build `c82fd1ab…`. In the app pane (port 9843,
+  preview `wfmenu-9843` in this worktree's `.claude/launch.json`): the menu on a phase, a note, an empty note, a band,
+  a date and an empty cell; End Post 16 → 9 weeks and one undo; Start; Show this day landing on 1 Sep with its ring.
+- ✅ **Full gate on `d4e5654` (build `c82fd1ab…`, 1,767,962 bytes; port 9842, 12:21:06–12:49:43, no other gate
+  running at its start): 2,976 PASS, 2 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every
+  Excel part, the month print documents and gate 13's written month PDFs; 0 clipped; 76 ids. `wfmenu` 38/38 inside it.
+  The two FAILs are load timeouts, not assertions: `launchopen` "EX: harness" after L0–L9 passed, and `textstyle`
+  "timed out waiting for: the loaded calendar". **Both green alone on the same build right after:** `launchopen`
+  16/16, `textstyle` 51/51.
+- ⏭ **Next:** merging into `main` and the push are each the owner's picker (the code and these docs are committed
+  on the branch, as CLAUDE.md allows). Then the month menu's trim (`month-menu-trim`): propose its short list for
+  approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
+  it lands, never from an older `main`.
+
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready
@@ -641,7 +694,8 @@
   window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
   listener skips scrolls whose target is inside the menu. The build needs both.
 - ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
-  Paste / Clear actions.
+  Paste / Clear actions. ✅ **Planned and built 23 Oct 2026, CUT DOWN by the owner first** (the entry at the top,
+  "THE WATERFALL RIGHT-CLICK MENU, CUT DOWN…"): the mockup's long menu below is NOT what was built.
 - **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
   opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
   `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
