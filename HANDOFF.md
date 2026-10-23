@@ -19,7 +19,11 @@
   44; `npm run check` 40/40. On the live build `5804869a…` (untracked `dist-pre/`, since removed) only W15 fails:
   `0.18s, 0.18s`, `matrix(1, 0, 0, 1, -383, 0)`, and still `display:flex` after closing. In the browser pane, wide
   (1400 px) and narrow: no transform, no animation, in place on the first frame.
-- ⏭ **Next:** nothing. The live check after the push is recorded in the commit after this one.
+- ✅ **LIVE.** ONE `git push origin main` at 12:51:28 (`06c8770..58b94bf`, carrying `d655286` too). Deploy run
+  40014703330 succeeded. At 12:52:28 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `9b37b6e6…`, 1,755,093 bytes, `cmp`). `version.json` is still 1.8.0. This note is a local commit,
+  not pushed.
+- ⏭ **Next:** nothing.
 
 ### ✅ 23 Oct 2026: SETTINGS OPENS BELOW THE SHOW / PHASES / SETTINGS RAIL — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
