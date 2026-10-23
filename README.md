@@ -50,12 +50,14 @@ there is no one-gesture way to do it already. The owner approved the short list 
 - **"Double-click a marked day to clear it"** shows only on a day that holds a mark.
 - **It closes only when the calendar scrolls**, the waterfall menu's rule: scrolling the sidebar leaves it open.
 - Production's bar on a shoot day: 11 lines to 8. A hiatus day with Christmas on it: 13 to 8. A plain day: 5 to 4.
-- No frozen code, no saved key, no new id. Built on the waterfall menu's branch, so landing this lands that too.
+- No frozen code, no saved key, no new id. Built on the waterfall menu's engine, merged up to `origin/main` at `d25eaf6`.
 - **Verified:** `mvmenu` 81/81, with every menu it checks held to its exact item list and a new case (T1) watching all
   75 month menus the leg opens for a cut item or a stray greyed one; red on the pre-trim build (21 cases). `wfmenu`
   38/38, `phasefold` 11/11 and `labelsetup` 41/41 (each moved off a cut item), `halfdays`, `halfworked`, `epnames`,
   `npm run check` 40/40. In the app pane: the trimmed menu on Production's bar, and a sidebar scroll of 118 px leaving it
-  open while a calendar scroll of 60 px closed it.
+  open while a calendar scroll of 60 px closed it. Full gate on the build merged up to `origin/main` (`6ac77d19…`):
+  3,012 PASS, 1 FAIL, the recorded `pilllabel` month-walk flake (green alone 7 times on the same build); every frozen
+  output identical to its baseline. Not merged, not pushed.
 
 ### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026, branch `claude/goofy-austin-fa2c05`)
 

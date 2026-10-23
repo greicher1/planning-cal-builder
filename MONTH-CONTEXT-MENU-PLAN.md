@@ -595,7 +595,8 @@ waterfall's (WATERFALL-CONTEXT-MENU-PLAN.md ruling R7). Tracker card `month-menu
 
 Built on branch `claude/adoring-chaum-0206c1`: `main` at `1af8782` with the waterfall menu's branch
 (`claude/goofy-austin-fa2c05`, `d4e5654`) merged in, because that branch reshaped `installMonthDayMenu` into one engine
-for both menus. So landing this lands the waterfall menu too.
+for both menus. That menu went live in `origin/main` at `d25eaf6` while this was built, and `origin/main` was merged in
+(`62233d0`) before the full gate.
 
 ### 13.2 The test
 
@@ -720,3 +721,6 @@ Where the build adds to the plan:
    otherwise fold the two into one undo step.
 5. **Red on the pre-trim build** (`f88d8ac`, built with `git archive`, sha256 `5171a79a…`): 60/81, the 21 failing
    cases H1s, H2, H3, I2a, C4, L1s, L2, L3, L3b, L7, H4, K1, H5, A3, A7, P1, R1, V1, V6, V9 and T1.
+6. **The full gate**, on the branch merged up to `origin/main` (`62233d0`, build `6ac77d19…`): 3,012 PASS, 1 FAIL, every
+   frozen output identical to its baseline (gate 13's written month PDFs byte for byte). The FAIL is `pilllabel
+   (blocksoff)` W2's cut-short month walk, a flake on record in HANDOFF; green alone 7 times on the same build.

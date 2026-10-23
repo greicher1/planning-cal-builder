@@ -4,13 +4,15 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` at `1af8782` + the waterfall menu's branch merged in (`f88d8ac`); plan `a7eda85`, build `07096a5`; FULL GATE: PENDING; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
+### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), on `origin/main` at `d25eaf6` (merged in at `62233d0`); plan `a7eda85`, build `07096a5`; ✅ FULL GATE 3,012 / 1 on the merged build (`6ac77d19…`), the 1 the recorded `pilllabel` month-walk flake, green alone 7 times; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
 
 - **Asked** (relayed by the session that started this one): the waterfall menu's ruling R7, *"Trim the month menu
   too"*, as its own task. Tracker card `month-menu-trim`.
-- ⚠️ **This branch CARRIES the waterfall menu** (`claude/goofy-austin-fa2c05`, `d4e5654`, not yet in `main`), merged in
-  first because that branch reshaped `installMonthDayMenu` into one engine for both menus. Landing this lands that.
-  The merge's only conflicts were the two changelog tops (HANDOFF, README), both kept.
+- **Base:** cut from `main` at `1af8782` with the waterfall menu's branch (`claude/goofy-austin-fa2c05`) merged in
+  (`f88d8ac`), because that branch reshaped `installMonthDayMenu` into one engine for both menus. That menu then went
+  LIVE in `origin/main` at `d25eaf6` (15:36), and `origin/main` was merged in here at `62233d0` before the gate: the
+  menu block merged clean (`main`'s month-drag changes are all outside it), and the only conflicts were the changelog
+  tops. So this branch carries nothing unlanded but the trim. It does NOT have local `main`'s unpushed Scenarios work.
 - **Ruled by ONE picker, 23 Oct 2026, every answer the recommendation** (plan §13.4): T1 *"Trim to this list"* (Add
   note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the Shift footer line go;
   Prep's Start / End go; previewed on Production's bar and a plain day; declined: also cutting Start / End); T2 all
@@ -32,15 +34,23 @@
   append a spacer to the panel they scroll (chrome, outside `#table-wrap`) and remove it after. And the sidebar's own
   boxes bank undo through `markDirty`'s 500 ms debounce, so a leg moving from a menu item (an explicit step) to the
   row's box must let a title typed before it bank first (`labelsetup` C1 now waits 700 ms).
-- **Proof so far** (build of `07096a5`): `mvmenu` 81/81: every menu it checks held to its EXACT item list, new T1
+- **Proof so far** (build of `07096a5`; on the merged build `6ac77d19…`, `mvmenu` 81/81, `wfmenu` 38/38, `phasefold`
+  11/11, `labelsetup` 41/41, `mvorder` 30/30 and `npm run check` 40/40 again): `mvmenu` 81/81: every menu it checks held to its EXACT item list, new T1
   watching all 75 month menus (+10 submenus) the leg opens for a cut item / Shift line / stray greyed item, new C4 and a
   real-scroll C1 for T4. **Red on the pre-trim build** (`f88d8ac`, `5171a79a…`): 60/81. `wfmenu` 38/38 (the shared
   engine), `phasefold` 11/11 (F8 moved off Show in Phases card), `labelsetup` 41/41 (C1 ticks the row's box),
   `halfdays` 27/27, `halfworked` 24/24, `epnames` 10/10 + 5/5, `npm run check` 40/40. In the app pane (preview
   `mvtrim-9871`): the trimmed menu on Production's bar (8 items, no footer), and at 1100 x 700 a sidebar scroll of
   118 px left it open while a calendar scroll of 60 px closed it.
-- ⏭ **Next:** the full gate (it waits for two other sessions' gates that were running at 14:58). Then merging into
-  `main` and the push are each the owner's picker. The tracker card is `building` until the gate is green.
+- ✅ **Full gate on `62233d0` (build `6ac77d19…`; port 9874, 16:10:38–16:39:41, no other gate running): 3,012 PASS,
+  1 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every Excel part, the printed month
+  documents, all 22 of gate 13's written month PDFs byte for byte; 0 clipped; 76 ids. `mvmenu` 81/81 and `wfmenu` 38/38
+  inside it. The 1 FAIL: `pilllabel (blocksoff)` W2, "months 1 vs 18", the cut-short month walk already on record here
+  (and the scenarios session's gate hit the same W2 on `shootorder` today, on a build without this trim). The leg never
+  opens a menu, and the trim's code runs only while one is open. Alone on the same build: a first re-run failed W1 the
+  same way, then 7 runs 29/29; on `origin/main`'s own build (`75968ba8…`, the live file) 7 runs 29/29.
+- ⏭ **Next:** merging into `main` and the push are each the owner's picker. ⚠️ Local `main` is ahead of `origin/main`
+  (`99a145e`, Scenarios, unpushed); this branch is on `origin/main`, so merge it into local `main` as it stands. The tracker card is `building` until the gate is green.
 
 ### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*) ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
 
