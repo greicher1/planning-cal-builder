@@ -41,7 +41,13 @@
   `mockups/scenarios-compare/CompareDialog.jsx`, bundled into the mockup. Owner, after one round:
   - *"the styling of this new version but the content of the old version"*: every row and every value, the
     difference bold with a "+2 wks" tag, same rows grey;
-  - *"remove all the random explainations"*: it is a table, Copy table and Done, nothing else.
+  - *"remove all the random explainations"*: it is a table and its buttons, nothing else.
+  - *"i do want to add the chip selector"*: chips pick the columns whenever there are three or more scenarios.
+  - 23 Oct: *"compare up to 12 scenarios at once, scrolling left to right ... make the popup window larger ... export
+    the table to excel or pdf"*. Now: up to twelve columns, a window that grows to the screen, pinned row labels, and
+    Export to Excel / Export PDF.
+    - In the mockup, Excel is a real ExcelJS 4.4.0 workbook.
+    - The PDF prints through Save as PDF. The app would write it directly.
 
   Plan §2 has the rules.
   ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.

@@ -49,7 +49,7 @@ nothing linking them. To compare them you open one, then the other, and remember
   - A scenario is a whole calendar. Nothing is shared or linked between scenarios, so there is never a question of
     which field affects which tab.
   - Nothing new appears until you make a second scenario.
-  - There can be up to 50, and Compare shows up to six at a time.
+  - There can be up to 50, and Compare shows up to twelve side by side.
   - Everything you already know, from exports to undo, works on the tab you're on.
 
 ---
@@ -67,8 +67,10 @@ Each decision has a recommendation, listed first.
 - **D6:** exports are of the tab on screen and named after it. This includes the one-line frozen edit to the Excel
   and waterfall-PDF download names (name only), approved in principle. §7's byte-identical measurement is its gate.
   The shareable copy carries this tab only.
-- **The cap** (asked after the six rulings): up to 50 scenarios, with Compare showing six at a time (§2). The plan
-  had said six in all.
+- **The cap** (asked after the six rulings): up to 50 scenarios (the plan had said six in all).
+  - Compare showed six at a time until the owner raised it on 23 Oct 2026: *"you should be able to compare up to 12
+    scenarios at once, scrolling left to right to see them all ... Make sure you can export the table to excel or pdf"*
+    (§2).
 
 ### D1 · Where scenarios live
 
@@ -103,7 +105,7 @@ Each decision has a recommendation, listed first.
      catches what moved. Ctrl+Page Down and Ctrl+Page Up flip without the mouse, as in Excel.
    - **Compare table:** a window with one column per scenario and one row per key date. A value that differs from the
      tab you're on is bold, with the difference under it ("+2 wks", "−1 day", "−2"). A row that is the same everywhere
-     is grey. A **Copy table** button puts it on the clipboard as a table, ready to paste into an email or a sheet. §2
+     is grey. It exports to Excel or PDF, or copies as a table, ready to paste into an email or a sheet. §2
      has the details.
 2. **Also draw another scenario's phases as dashed outlines on the calendar.** A later step if flipping isn't enough.
    It needs no frozen edit (an overlay outside the grid, as the text-style highlight is), but it is the most work on
@@ -163,11 +165,15 @@ Each decision has a recommendation, listed first.
   - Tabs that don't fit scroll sideways, with ◀ ▶ at the strip's ends and a ▾ that lists every scenario, as Excel's
     sheet tabs do.
   - Default names run Scenario A to Z, then AA, AB and so on, as Excel's columns do.
-- **Compare shows up to six columns at once:** the tab on screen plus five others.
-  - With six tabs or fewer, it shows them all.
-  - With more, a row of Mantine `Chip`s above the table chooses which, starting with the next five in tab order.
-    Once five are ticked the rest grey out. The choice lasts while the file is open.
-  - Six is what fits side by side and stays readable. It is the only six left in the plan.
+- **Compare shows up to twelve columns at once** (owner, 23 Oct 2026): the tab on screen plus eleven others.
+  - **With three or more scenarios, a row of Mantine `Chip`s above the table picks which to compare** (owner: *"i do
+    want to add the chip selector"*).
+    - Every other scenario is ticked to start, up to eleven: the next ones in tab order.
+    - Untick one to drop its column. Once eleven are ticked, the rest grey out.
+    - The choice lasts while the same scenario is on screen. With another on screen it starts afresh, so the old
+      reference can't silently drop out of the table.
+  - **The window grows with the table, up to the browser window.** Past that, the table scrolls left to right inside
+    it, and the row labels stay pinned on the left.
 - **"+" duplicates the tab you're on.** There is no blank scenario: a blank calendar is File ▸ New. The copy opens at
   once, named with the next free letter, its name ready to type over.
 - **The tab menu** (right-click, or the ▾ on the tab you're on): Rename… · Duplicate · Compare scenarios… · Save this
@@ -201,8 +207,22 @@ Each decision has a recommendation, listed first.
     the `warn` colour: "+2 wks", "−1 day", "−2", or "start +2 wks, end same" for a range that moved at one end.
   - **A row that is the same everywhere is grey.**
   - **Dates read as the waterfall writes them:** 6/29/26, and ranges as 5/18/26 – 6/26/26.
-  - **Footer:** Copy table and Done. Escape and the × close it too.
-  - **More than six scenarios:** a row of `Chip`s above the table picks the five to compare with (see above).
+  - **Footer:** Export to Excel, Export PDF and Copy table on the left, Done on the right. Escape and the × close it
+    too.
+  - **Three or more scenarios:** a row of `Chip`s above the table picks the columns (see above).
+  - **Export to Excel and Export PDF write the table exactly as shown:** the same columns, rows and marks. The window
+    only builds the table's model; the engine writes the file.
+    - **Excel:** ExcelJS, which the app already loads (no new resource for the CSP). One sheet, "Compare", with:
+      - the title and the file's name;
+      - the label column and the header row frozen;
+      - each difference bold, with its "+2 wks" on a second line on the `warn` tint;
+      - same rows grey;
+      - landscape, one page wide.
+    - **PDF:** written directly, as the month PDF is, from that writer's machinery (the embedded Inter, the shared
+      serializer). Landscape Letter, one page wide, with smaller type past seven columns. The mockup prints the table
+      through the browser's Save as PDF instead.
+    - **File names:** "<title> Scenario Comparison.xlsx" / ".pdf".
+    - **Both are new code, not frozen writers.** No frozen edit.
   - **Mantine parts only:**
     - `Modal` (centered, `radius="lg"`, `shadow="xl"`, overlay 0.35, as the Export PDF dialog);
     - `Table` in a `Table.ScrollContainer`, so a narrow window scrolls the table sideways rather than outgrowing the
@@ -364,7 +384,7 @@ calendar that is in the DOM. An inactive tab has a snapshot, not a schedule.
   month cursor (`monthCursorRecheck`), `episodeNamesLegacy` (derived; re-derived on the way back), an open editor
   (closed first). Step 4 lists every module-scope variable `applyStateSnapshot()` writes. The leg in §11 proves the
   current calendar is byte-identical (`captureSnapshot()` and the rendered grid) before and after a probe.
-- **Cost:** one apply and one compute per column Compare shows (five at most), and none while you work. So the cost
+- **Cost:** one apply and one compute per column Compare shows (eleven at most), and none while you work. So the cost
   does not grow with the number of tabs. If it measures slow, each tab's key dates are cached as it is switched away
   from (it can't change while inactive), and only tabs never visited since Load are probed.
 - **The current tab** needs no probe: its tokens come from the live schedule.
@@ -429,7 +449,7 @@ name (§7): the download's name only, never a byte of the file. Everything else:
 | Old builds | v1.3.0+ refuse a multi-scenario file whole. v1.1–v1.2 open the current tab (§3.2). One-scenario files are unchanged everywhere. |
 | A crafted file | The container is validated whole before anything is applied, capped at 50 tabs, and names are plain text (§3.3). |
 | 50 tabs × 100 undo steps | ~25 MB worst case. An inactive tab's history is trimmed if that measures badly (§6). |
-| Too many tabs to see | Tabs scroll, with ◀ ▶ and a ▾ list of every scenario. Compare shows six at a time, and you tick which (§2). |
+| Too many tabs to see | Tabs scroll, with ◀ ▶ and a ▾ list of every scenario. Compare shows up to twelve, scrolled sideways, and chips pick which (§2). |
 
 ## 10. Steps
 
@@ -442,7 +462,7 @@ Each step lands on its own branch with its own gate run, in this order. Each one
 2. **The engine:** `switchScenario`, duplicate, rename, delete, and per-tab undo, driven from a test hook only.
 3. **The tab strip:** + Scenario, tabs, rename, the tab menu, drag to reorder, Ctrl+Page Up/Down.
 4. **Compare:** the probe, the window (move `mockups/scenarios-compare/CompareDialog.jsx` into `src/chrome/` and feed
-   it through the bridge), Copy table.
+   it through the bridge), Copy table, and the Excel and PDF exports of the table.
 5. **Exports:** file names and the `{scenario}` token, and the shareable-copy rule if D6 changes it. The Excel and
    waterfall-PDF names only after the frozen-edit sign-off (§7).
 6. **The bridges:** Save this scenario as its own file…, Add a calendar file as a scenario…, Keep only this
@@ -465,6 +485,11 @@ Each step lands on its own branch with its own gate run, in this order. Each one
   - `releases/v1.2.0.html` opens its current tab;
   - crafted containers (51 tabs, a duplicate id, a missing current, a bad snapshot, a `version: 3`) are each
     refused whole.
+- **`scenariocompare`** (new leg):
+  - with three tabs the chips show and unticking one drops its column;
+  - twelve columns scroll with the labels pinned;
+  - the Excel export's cells, bold, tint and frozen panes match the window;
+  - the PDF is written and opens.
 - **`scenarioprobe`** (new leg):
   - Compare's values for each tab equal that tab's own header tokens when it is current;
   - the current calendar's `captureSnapshot()` and its rendered `#table-wrap` are identical before and after opening
