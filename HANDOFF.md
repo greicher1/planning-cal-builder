@@ -4,7 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); ⚠️ NOT in local `main`, which has the unpushed `1af8782` (Header: Off for the Month view) and must merge `origin/main` before its push ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED locally (`1af8782`) and MERGED with `origin/main` (`2c6a822`, the month-drag-fix work); NOT PUSHED; no version cut
+
+- **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
+  header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
+- **Built, with no frozen function edited** (CLAUDE.md's state table has the row):
+  - app.js: `mvHeaderOff` beside `headerOff`. `setMvHeaderMode()` now treats Off the way `setHeaderMode()` does: a
+    flag on top of the mode, so Off → the mode underneath brings the lines back, and each switch is one
+    `asOneHeaderStep`. `headerModeKey(true)` returns 'off', the menu's Off row lost `sheetOnly`, the template editor
+    and a month preset's Apply clear it, and New clears it. `captureSnapshot` writes `mvHeaderOff: true` only while it
+    is on, `sanitizeSnapshot` drops a non-boolean, and `applyStateSnapshot` restores it unconditionally (`=== true`).
+  - Screen and print rollback: `reflectHeaderOff()` also toggles `body.mv-hdr-off`, and legacy.css COLLAPSES
+    `.mv-header` (height 0, no margin, padding, shadow or fill, `visibility:hidden`). ⛔ **Never `display:none`.**
+    Frozen `exportMonthPdf` measures each page's reserve as the first week's top minus `.mv-header`'s top, with the
+    pages stacked in an off-screen host. A `display:none` header's rect is all zeros, so every page after the first
+    gets a distance of hundreds of px, fails the `< PAGE_H` test and falls back to 105.
+  - The direct writer: `exportMonthPdfDirect` stamps `headerOff: true` on each month of the model, between
+    `buildMonthLayout` and `fitMonthLayout`, only while it is on (so default layouts and bytes are unchanged). `mvlFrame`
+    then uses an empty header ending at `y0`. It reads the month, never the engine, so the writer's slices stay
+    self-contained. ⛔ **Never inside `buildMonthLayout`:** the first cut stamped it there, and `monthlayout` (all four
+    runs) failed with "could not locate the layout model (MVL_GEOMETRY..buildMonthLayout): re-anchor this leg". The
+    leg slices that function up to its last statement, verbatim. It is back to byte-identical, and the stamp is a
+    plain loop in the export, which adds no writer name to the F0 checks (`monthlayout`, `monthemit`, `monthwriter`).
+  - `mvHeaderLine()` is deliberately unchanged (unlike the waterfall's `headerLine()`, which returns '' while Off):
+    nothing that prints reads it while the header is collapsed, and the Template → Manual bake must read real lines.
+  - Help page: the Header paragraph names Off and what it does in each view. PreviewToolbar's month tooltip mentions Off.
+- **Legs:** new `mvhdroff` (in gate.sh's AFSPEC list, 400 s), M0–M7 + E0. `hdrrow` O1 now expects Off in BOTH menus.
+- **Proof so far,** build `c7b90c4f…`: `mvhdroff` 9/9. M2: the reserve is 119 → 72 px on all 16 pages, the same 47 px
+  the month bar moves on screen (M1). M3: the written PDF has none of the header's lines and its first month label sits
+  35 pt higher. Also `hdrrow` 37/37, `hdrcontrols (carry-rich)` 12/12, `npm run check` 40/40. In the browser pane on
+  carry-rich (a Manual month header), Off collapses it, the button reads Header: Off, and the month bar sits at the
+  card's top.
+  - ⚠️ A first cut of M2 measured the weeks' total height and saw +0 on every page. In screen media the print page is
+    not a fixed-height box, so the weeks never stretch (that is CSS flex in print media). What the fit decides from is
+    the reserve, which M2 now measures exactly as the frozen code does.
+- **Full gate, first run** (build `c7b90c4f…`, main checkout, after two other sessions' gates): 2,907 PASS, 6 FAIL.
+  - 4 × `monthlayout` EX: the slice anchor above. Fixed. The build is now `0016e649…`.
+  - `stintreshape` (grid never rendered) and gate 13's `stintswap-reshape` ("THE CONTENT MOVED", 102,988 → 116,655
+    bytes): ⚠️ **the main checkout's `tests/fixtures/stintswap-reshape.sptcal` has been modified in the working tree
+    since 21 Oct, uncommitted, and not by this work** (+378 / −30 lines; the untracked `Reshape Fixture 2026-09-29.sptcal`
+    sits beside it). Every full gate run in the MAIN checkout reads that file, so it fails these two until someone
+    decides what that change is. That is why earlier sessions gated in worktrees. Do not commit it without looking:
+    fixtures must stay synthetic (see the confidentiality memory).
+  - Every month PDF baseline except that fixture matched, gate 10 included.
+- **origin/main moved under it.** The "Month view drag-to-reorder bugs" session pushed `2c6a822` (owner-approved; per
+  that session, live and verified byte-identical, `d34f917a`). Its work edits frozen `renderMonthView` (E3/E4,
+  owner-approved), the writer's lane packing and the month note drag (its own entry is just below). It told this
+  session, so the clean-worktree gate already queued for `1af8782` alone was stopped, and local `main` merged
+  `origin/main`. Only HANDOFF.md and README.md conflicted: both sides added top entries, and both were kept. The merged
+  build is `637b9428…`, and `npm run check` gives 40/40 on it.
+- ⏭ **Next:** a full gate on the MERGED tree, in a clean worktree, then the owner's picker on push. Watch gates 10 and
+  13 and `mvorder`: both pieces of work touch the month view.
+
+### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); in local `main` since `cc9a8ad`, where the Header: Off session merged `origin/main` on top of its unpushed `1af8782` ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
 
 - **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
   sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
@@ -68,13 +120,14 @@
   the Settings session's HANDOFF note `5a3d5da` plus this work). Deploy run 40030164760 succeeded; at 14:56:24 the live
   `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (`cmp`; sha256 `d34f917ab0549815…`).
   The "Calendar header selector subtext" session was messaged: local `main` must `git merge origin/main` and gate the
-  combination before Header: Off is pushed. ⚠️ **Local `main` does NOT contain this work yet**; that merge brings it.
+  combination before Header: Off is pushed. It did: `cc9a8ad` (HANDOFF / README conflicts only), build `637b9428`,
+  `npm run check` 40/40, its full gate on the merged tree queued; push waits on the owner.
 - No version cut: `version.json` still 1.8.0, so installed copies pick this up without an update notice.
 - ⭐ **Learned: on a busy day, local `main` can move twice during one landing.** Check `git log main -1` right before the
   fast-forward, not only before the gate. And a branch head that contains `origin/main` can be pushed straight to
   `origin/main` (`git push origin HEAD:main`) without touching local `main` or the main checkout, which another
   session may be gating.
-- ⏭ **Next:** nothing on this feature. The Header: Off session merges `origin/main` into local `main`.
+- ⏭ **Next:** nothing on this feature.
 
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
