@@ -4,26 +4,39 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — PLANNED (PAPER-SIZE-PLAN.md §9), RULED, NOT BUILT
+### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; FULL GATE: QUEUED (see below); NOT merged into `main`, NOT pushed
 
 - **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
-  cal? Really it should only reccomend between letter size and legal"*. Tracker card `paper-recommend`.
-- **Answer:** yes, cheaply. `askPdfPageSetup()` already asks the frozen page-turn rule about every paper before the
-  dialog opens (`pageFitFor`), so the recommendation compares numbers the dialog already has: no frozen edit, no new
-  snapshot key, no format change.
+  cal? Really it should only reccomend between letter size and legal"*. Then *"Yes, build the Letter/Legal paper
+  recommendation per PAPER-SIZE-PLAN.md §9 on a branch, and run the full gate. Don't merge or push."* Tracker card
+  `paper-recommend`.
 - ✅ **Ruled by picker, 22 Oct 2026:** P-R1 *"15% larger"*: Legal is Recommended when it prints more than 15% larger
-  than Letter (the orientation rule's bar), otherwise Letter; Tabloid never. P-R2 *"Mark it only"*: a tag in the
-  paper control plus *"Legal prints this calendar about N% larger."*; the dialog still opens on the calendar's own
-  paper, so Export at the defaults stays today's PDF.
-- **Measured (the legs' calendars, v1.7.0):** `pdfdialog`'s one-year calendar 87% → 96%, +10% → Letter; Single
-  Column 68% → 90%, +32% → Legal. ⚠️ The dialog reads Letter ~3 points low on a tall calendar (header band), which
-  flatters Legal: one reason 15% beats 10%.
-- ⛔ **Trap for the builder:** `t/pdfdialog.js`'s `recommended()` takes the FIRST /Recommended/ label in the dialog.
-  The paper row is above the orientation row, so a paper tag silently turns it into a paper reader. Scope it to
-  `[aria-label="Orientation"]` before adding the tag.
-- ⏭ **Next:** build on a branch per §9 (engine `recommendPaper(fits)` beside `pageFitFor`, the component's third
-  segment line, Help clause, `pdfdialog` case P + four mutants, full gate) on the owner's go-ahead. Plan and HANDOFF
-  edits are uncommitted in the main checkout.
+  than Letter (the orientation rule's bar, strict), otherwise Letter; Tabloid never. P-R2 *"Mark it only"*: a tag in
+  the paper control plus *"Legal prints this calendar about N% larger."*; the dialog still opens on the calendar's
+  own paper, so Export at the defaults stays today's PDF.
+- **Built** (no frozen code, no snapshot key, no format change):
+  - `app.js`, beside `pageFitFor`: `PAPER_REC_BAR = 1.15` and `recommendPaper(fits)`, which returns `{ follow,
+    portrait, landscape }`, each `{ paper, gain }`: each paper compared in the orientation the dialog would print it
+    in. `askPdfPageSetup()` passes it as `paperRec`. The engine decides; React only picks the case for its
+    orientation state (`orient || 'follow'`).
+  - `ExportPdfDialog.jsx`: `SegLabel` takes an optional `tag`, a third line that is always rendered (a no-break
+    space when empty) so the three paper segments stay one height; the line `.pdfdlg-paperrec` shows only while
+    Legal is Recommended. Nothing selects a paper.
+  - Help's *Exporting* paragraph: one clause.
+- ⛔ **Test trap fixed first:** `t/pdfdialog.js`'s `recommended()` took the FIRST /Recommended/ label in the dialog.
+  The paper row is above the orientation row, so a paper tag would silently have turned it into a paper reader. It
+  now reads a tag by its segment's value (`taggedAll(values)`), with a twin `papersTagged()`.
+- **Measured (the dialog's numbers, `pdfdialog`'s calendar):** one-year 87% Letter vs 96% Legal (+10%) → Letter;
+  Single Column 67% vs 88% (+31%) → Legal; Single Column with Landscape clicked 50% vs 50% → Letter (the tag moves).
+- **Proof so far** (build `c6634df9…`, 1,732,594 bytes): `pdfdialog` **15/15** with new P1–P4; red on the
+  pre-change build (P1–P4, every D case still green) and on four mutants: bar 1.0 → P1, Tabloid allowed → P2–P4,
+  clicked orientation ignored → P3, tag pre-selects Legal → P4 (source restored, `shasum`-checked, rebuild
+  `c6634df9` again). `npm run check` 40/40. In the browser pane (`?state=v1.7.0-saved`): Letter tagged with no
+  line; in Single Column, Legal tagged, *"Legal prints this calendar about 31% larger."*, Letter still selected.
+- **Full gate:** queued behind the `resize-zoom` session's gate (running when this was built), on HARNESS_PORT
+  9763; log at `.claude/worktrees/paper-recommend-gate.log`. *(Result to be filled in here.)*
+- ⏭ **Next:** the gate result, then the owner's merge / push pickers. Landing is a fast-forward of `main` while
+  `main` stays at `55a9c61`.
 
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 

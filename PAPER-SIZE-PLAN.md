@@ -18,7 +18,7 @@ build departed from this plan, or measured something the plan guessed at, it say
 HANDOFF has the proof.
 
 **Third ask, 22 Oct 2026 (after v1.7.0 went live):** recommend Letter or Legal for the calendar. That is §9:
-📝 planned, both rulings made by picker, not built.
+both rulings made by picker; built on branch `paper-recommend`, not merged.
 
 This plan makes **frozen edits** (CLAUDE.md's symbol list), and the change is **inert by default**. A calendar left on
 Letter saves, renders and exports byte for byte as it does today, so every existing baseline (waterfall PDF,
@@ -313,8 +313,11 @@ The options as they were put:
 
 Owner, 22 Oct 2026, after v1.7.0 went live: *"could the app reccomend a paper size based on the waterfall cal?
 Really it should only reccomend between letter size and legal"*. On the feature tracker as `paper-recommend`.
-Status: **📝 PLANNED, not built. ✅ Both rulings were made by picker the same day, each the recommended option:**
-P-R1 *"15% larger"*, P-R2 *"Mark it only"*. Building waits on the owner's go-ahead.
+Status: ✅ Both rulings were made by picker the same day, each the recommended option: P-R1 *"15% larger"*,
+P-R2 *"Mark it only"*. **🔨 BUILT 22 Oct 2026** on branch `paper-recommend` (worktree
+`.claude/worktrees/paper-recommend`), on the owner's *"Yes, build the Letter/Legal paper recommendation per
+PAPER-SIZE-PLAN.md §9 on a branch, and run the full gate. Don't merge or push."* As-built notes are marked
+*(As built: …)*; HANDOFF has the proof.
 
 **What already exists.** `askPdfPageSetup()` asks the frozen page-turn rule about every paper before the dialog
 opens (`pageFitFor`, under the probe), so the dialog already holds each paper's size in each orientation. A paper
@@ -334,7 +337,9 @@ and legal"), and exactly one of Letter or Legal always carries the tag, as one o
   absorbs that; a 10% bar would not have (below).
 - **Where the rule lives:** in the engine, beside `pageFitFor`: `recommendPaper(fits)` returns the paper for each
   case (`{ follow, portrait, landscape }`) and travels in the dialog's opts. The component only picks the entry for
-  its current orientation state, so the rule has one copy and React never decides it.
+  its current orientation state, so the rule has one copy and React never decides it. *(As built: each case is
+  `{ paper, gain }`, `gain` = round((legal ÷ letter − 1) × 100), and the opts key is `paperRec`; the bar is
+  `PAPER_REC_BAR = 1.15`.)*
 
 **Measured on the legs' own calendars (v1.7.0, the dialog's numbers):**
 
@@ -343,6 +348,8 @@ and legal"), and exactly one of Letter or Legal always carries the tag, as one o
 | `pdfdialog`'s one-year calendar (portrait) | 87% | 96% | 10% (the real PDFs: 90% vs 96%, 7%) | **Letter** |
 | `papersize`'s one-year calendar (PDF scales) | 90% | 100% | 11% | **Letter** |
 | `papersize`'s Single Column calendar (PDF scales) | 68% | 90% | 32% | **Legal** |
+| *(As built)* `pdfdialog`'s calendar in Single Column, the dialog's numbers | 67% | 88% | 31% | **Legal** |
+| *(As built)* the same, Landscape clicked | 50% | 50% | 0% | **Letter** |
 | §3's made-up 500 × 1000 pt grid | 72% | 93% | 29% | **Legal** |
 
 So Legal is recommended for a calendar Letter shrinks hard on the side Legal lengthens: a long portrait one (many
@@ -376,9 +383,15 @@ twin, `recommendedPaper()`, scoped to `[aria-label="Paper"]`.
 **Proof (the acceptance gate):**
 - `pdfdialog` grows a case P: on its one-year calendar Letter is tagged and no line shows; on a Single Column
   calendar Legal is tagged, the line reads the dialog's own two numbers, and Tabloid is never tagged; clicking an
-  orientation re-asks; Export with the tag untouched writes no `paperSize`.
+  orientation re-asks; Export with the tag untouched writes no `paperSize`. *(As built: P1–P4, one case each, and
+  every one also checks that clicking Letter then Legal never moves the tag. The leg's expected tag is worked from
+  the numbers the dialog shows, not hard-coded, except that P1 must come out Letter and P2 Legal, so the leg proves
+  both outcomes happen. 15/15 on build `c6634df9`.)*
 - **Mutants**, each must turn P red: the bar at 1.0 (any gain), Tabloid allowed, the tag read from Letter's
-  orientation whatever was clicked, the tag pre-selecting Legal.
+  orientation whatever was clicked, the tag pre-selecting Legal. *(As built, all red: bar 1.0 → P1; Tabloid
+  allowed → P2–P4; the clicked orientation ignored → P3; pre-selecting Legal → P4. The pre-change build → P1–P4,
+  with every D case still green under the scoped `recommended()`. Source restored and `shasum`-checked; the
+  rebuild is `c6634df9` again.)*
 - The rest of the gate stays byte-identical with no re-cut: the change cannot reach a PDF unless a paper is
   clicked. A full `gate.sh` run on the branch.
 - `npm run check`, and a look at the dialog in the pane on both calendars.
