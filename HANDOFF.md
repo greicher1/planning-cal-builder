@@ -105,7 +105,7 @@
 - ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
   its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
 
-### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); NOT MERGED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
+### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); MERGED INTO LOCAL `main` 23 Oct 2026, NOT PUSHED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
   switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
@@ -147,13 +147,12 @@
   picker, 22 Oct 2026: Q1 "Bring them back", and H1–H3 signed off.** ⏭ Build it on a branch after `hide-notes`
   lands.
 - The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker).
-- ⏭ **MERGE APPROVED by the owner's picker (22 Oct 2026): "Merge into local main"; "Don't push".** `main`'s three
-  newer docs-only commits (the right-click menu plan and mockup) were merged INTO this branch as `a61d8e9` (one
-  HANDOFF conflict, both entries kept). The build is byte-identical to the gated one (`f85c9814`). The fast-forward
-  of local `main` was REFUSED by git, safely: the scenarios session has an uncommitted 34-line `HANDOFF.md` edit in
-  the main checkout. ⛔ Don't stash or overwrite it. Once it is committed, merge `hide-notes` into `main`
-  (`git merge hide-notes` from the main checkout; expect the same HANDOFF top-of-file overlap, and keep both).
-  Not pushed.
+- ✅ **MERGED into local `main` (owner's picker, 22 Oct 2026: "Merge into local main"; "Don't push").** `main` was
+  merged INTO the branch twice first: the right-click menu docs as `a61d8e9` (one HANDOFF conflict, both entries
+  kept), then the Scenarios plan `4fd32aa` as `ca49652`, after its session committed the HANDOFF edit that had
+  blocked the fast-forward. Both merges are docs and mockups only (`git diff 7b3aa6c` over `src`, `tests` and
+  `tools` is empty), so the gated build `f85c9814…` stands. Then `main` was fast-forwarded. ⛔ **NOT PUSHED.** A push
+  of local `main` would now also ship the right-click menu and Scenarios docs commits.
 
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
