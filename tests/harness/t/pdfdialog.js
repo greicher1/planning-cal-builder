@@ -22,6 +22,10 @@
 //          fields.byId.
 //   D9  -- the probe: opening the dialog asks about all three papers, and in Single Column (whose widths follow
 //          the paper) the screen does not move while it is open or after.
+//   P   -- Letter or Legal marked Recommended (PAPER-SIZE-PLAN.md §9, rulings P-R1 "15% larger", P-R2 "Mark it
+//          only"): exactly one of the two, never Tabloid; Legal only when the dialog's own sizes put it more
+//          than 15% above Letter, in the orientation the dialog would print; the line names that gain; the tag
+//          follows an orientation click; and it never selects anything, so Export at the defaults stays Letter.
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
 window.addEventListener('load', function () { (async function () {
@@ -59,10 +63,21 @@ window.addEventListener('load', function () { (async function () {
   }
   function radios(d) { return Array.from((d || dlg()).querySelectorAll('input[type="radio"]')); }
   function checked(d) { return radios(d).filter(function (i) { return i.checked; }).map(function (i) { return i.value; }); }
-  function recommended(d) {
-    var lab = Array.from((d || dlg()).querySelectorAll('label')).find(function (l) { return /Recommended/.test(l.textContent || ''); });
-    var inp = lab && lab.htmlFor && byId(lab.htmlFor);
-    return inp ? inp.value : null;
+  // ⛔ SCOPED BY THE SEGMENT'S VALUE. This used to take the FIRST /Recommended/ label in the dialog, which was the
+  // orientation's while only it carried a tag. The paper row sits above it and has carried one since §9, so an
+  // unscoped search silently read the paper and compared it with an orientation.
+  function taggedAll(values, d) {
+    return Array.from((d || dlg()).querySelectorAll('label')).map(function (l) {
+      var inp = l.htmlFor && byId(l.htmlFor);
+      return (inp && values.indexOf(inp.value) >= 0 && /Recommended/.test(l.textContent || '')) ? inp.value : null;
+    }).filter(Boolean);
+  }
+  function recommended(d) { return taggedAll(['portrait', 'landscape'], d)[0] || null; }
+  function papersTagged(d) { return taggedAll(['letter', 'legal', 'tabloid'], d); }
+  function paperLine(d) {
+    var t = (((d || dlg()).querySelector('.pdfdlg-paperrec') || {}).textContent || '').trim();
+    var m = t.match(/^Legal prints this calendar about (-?\d+)% larger\.(?![\s\S])/);   // (?![\s\S]) = end: no dollar sign here
+    return t ? { text: t, gain: m ? +m[1] : null } : null;
   }
   function sizes(d) {
     var t = (((d || dlg()).querySelector('.pdfdlg-sizes') || {}).textContent || '');
@@ -302,6 +317,59 @@ window.addEventListener('load', function () { (async function () {
       w0.length > 0 && sameArr(wOpen, w0) && sameArr(wPicked, w0) && sameArr(wAfter, w0) && sameArr(wRedrawn, w0),
       { before: w0, open: wOpen, picked: wPicked, after: wAfter, redrawn: wRedrawn });
     byId('one-col-btn').click(); await settle('the grid out of Single Column');
+
+    // ===== P: Letter or Legal marked Recommended (PAPER-SIZE-PLAN.md §9) =====================================
+    // What the tag must be, worked from the dialog's OWN numbers: each paper's size in the orientation the dialog
+    // would print it in (the clicked one, or with none clicked, that paper's own checked one), Legal only when it
+    // is more than 15% above Letter. Read by clicking Letter and then Legal, which never moves the tag.
+    async function paperCase(label) {
+      var e = { label: label, tagged: papersTagged(), line: paperLine() };
+      await pick('letter'); var L = sizes(), oL = checked()[1];
+      e.taggedAfterLetter = papersTagged();
+      await pick('legal'); var G = sizes(), oG = checked()[1];
+      e.taggedAfterLegal = papersTagged();
+      e.letter = L && L[oL]; e.legal = G && G[oG]; e.orient = [oL, oG];
+      e.expect = (e.letter && e.legal && e.legal > e.letter * 1.15) ? 'legal' : 'letter';
+      e.expectGain = (e.letter && e.legal) ? Math.round((e.legal / e.letter - 1) * 100) : null;
+      e.ok = sameArr(e.tagged, [e.expect]) && sameArr(e.taggedAfterLetter, e.tagged) && sameArr(e.taggedAfterLegal, e.tagged) &&
+             (e.expect === 'legal' ? (!!e.line && e.line.gain === e.expectGain) : e.line === null);
+      return e;
+    }
+    var pc = {};
+    // P1: the leg's own one-year calendar (87% on Letter, 96% on Legal at v1.7.0: +10%, under the bar) -> Letter.
+    d = await open('click');
+    pc.base = await paperCase('one-year calendar, following');
+    await exportIt(function () { document.querySelector('.export-pdf-dlg [data-pdfdlg="cancel"]').click(); });
+    // P2: Single Column, which fills Letter's width at Letter's height-bound scale, so Legal's extra height prints
+    // it much larger -> Legal. Then an orientation click re-asks (P3), and Export at the defaults stays Letter (P4).
+    byId('one-col-btn').click(); await settle('the grid in Single Column');
+    d = await open('click');
+    var opened = checked(d);
+    pc.onecol = await paperCase('Single Column, following');
+    var otherO = (pc.onecol.orient[0] === 'portrait') ? 'landscape' : 'portrait';
+    await pick(otherO);
+    pc.onecolOther = await paperCase('Single Column, ' + otherO + ' clicked');
+    await exportIt(function () { document.querySelector('.export-pdf-dlg [data-pdfdlg="cancel"]').click(); });
+    d = await open('click');
+    var openedAgain = checked(d), tagAgain = papersTagged(d);
+    var bP = await exportIt();
+    var pP = bP ? await pdfOf(bP) : null;
+    var sP = await save();
+    byId('one-col-btn').click(); await settle('the grid out of Single Column');
+    out.paperRec = pc;
+    var neverTabloid = [pc.base, pc.onecol, pc.onecolOther].every(function (e) {
+      return [e.tagged, e.taggedAfterLetter, e.taggedAfterLegal].every(function (t) { return t.length === 1 && t[0] !== 'tabloid'; });
+    });
+    kase('P1', 'the one-year calendar: exactly one paper is marked Recommended and it is Letter (Legal is under 15% larger), with no "Legal prints" line, and clicking papers never moves the tag',
+      pc.base.ok && pc.base.expect === 'letter', { base: pc.base });
+    kase('P2', 'Single Column: Legal is marked Recommended (more than 15% larger on the dialog\'s own numbers), the line names that gain, and Tabloid is never marked in any case',
+      pc.onecol.ok && pc.onecol.expect === 'legal' && neverTabloid, { onecol: pc.onecol, neverTabloid: neverTabloid });
+    kase('P3', 'clicking the other orientation re-asks: the tag is the rule applied to both papers in that orientation',
+      pc.onecolOther.ok, { other: otherO, onecolOther: pc.onecolOther });
+    kase('P4', 'the tag never selects: with Legal Recommended the dialog opens on the calendar\'s own Letter, and Export at the defaults writes a Letter PDF and no paperSize',
+      opened[0] === 'letter' && openedAgain[0] === 'letter' && sameArr(tagAgain, ['legal']) &&
+      !!pP && pP.w === (pP.orient === 'landscape' ? 792 : 612) && pP.h === (pP.orient === 'landscape' ? 612 : 792) && !('paperSize' in sP),
+      { opened: opened, openedAgain: openedAgain, tagAgain: tagAgain, pdf: pP, paperSize: sP.paperSize });
 
     // ===== D1 (month): no dialog in the month view ===========================================================
     byId('view-month-btn').click();

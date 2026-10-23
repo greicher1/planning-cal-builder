@@ -13,6 +13,10 @@
 //  - `orientation: ''` means "follow the recommendation", and the selection then FOLLOWS the paper: clicking
 //    Tabloid moves it to Tabloid's recommended orientation. Once an orientation is clicked, or when the
 //    calendar already carries one (D1), it stays put whatever paper is clicked.
+//  - `paperRec` is the ENGINE'S answer to "Letter or Legal?" (recommendPaper, PAPER-SIZE-PLAN.md §9):
+//    { follow, portrait, landscape }, each { paper: 'letter'|'legal', gain }. The component only picks the case
+//    for its orientation state ('' = follow) and shows it. It MARKS a paper and never selects one (ruling P-R2),
+//    so the dialog still opens on the calendar's own paper. Tabloid is never marked.
 //
 // ⛔ THE ROOT'S CLASS, export-pdf-dlg, IS LOAD-BEARING. Mantine mints an id for every control it renders
 // (UI-CONVENTIONS §8.3), and collectFieldValues() sweeps every input[id] in the document; it skips this class.
@@ -35,12 +39,14 @@ const ORIENTS = [
 ]
 
 // A segment's two lines. The second line always renders (a no-break space when empty), so the two
-// orientation segments stay the same height whichever one is recommended.
-function SegLabel({ main, sub, strong }) {
+// orientation segments stay the same height whichever one is recommended. A paper segment passes `tag` as
+// well, a third line that is always there for the same reason, holding "Recommended" on Letter or Legal.
+function SegLabel({ main, sub, strong, tag }) {
   return (
     <Stack gap={0} align="center">
       <Text size="sm" fw={500} lh={1.3}>{main}</Text>
       <Text size="xs" c={strong ? undefined : 'dimmed'} fw={strong ? 600 : 400} lh={1.3}>{sub || ' '}</Text>
+      {tag !== undefined && <Text size="xs" fw={600} lh={1.3}>{tag || ' '}</Text>}
     </Stack>
   )
 }
@@ -89,6 +95,7 @@ export function ExportPdfDialog() {
   const fits = dlg.fits || {}
   const fit = fits[paper] || fits.letter || { recommended: 'portrait', portrait: 100, landscape: 100 }
   const shown = orient || fit.recommended
+  const paperRec = (dlg.paperRec || {})[orient || 'follow'] || { paper: 'letter', gain: 0 }
   const gridData = GRID_OPTIONS.some((g) => g.value === grid)
     ? GRID_OPTIONS : GRID_OPTIONS.concat([{ value: grid, label: grid.charAt(0).toUpperCase() + grid.slice(1) }])
   const doExport = () => finish({ paper, orientation: shown, gridlines: grid })
@@ -120,7 +127,15 @@ export function ExportPdfDialog() {
         <Stack gap="md">
           <Row label="Paper">
             <SegmentedControl fullWidth size="sm" value={paper} onChange={setPaper} aria-label="Paper"
-              data={(dlg.papers || []).map((p) => ({ value: p.value, label: <SegLabel main={p.label} sub={p.size} /> }))} />
+              data={(dlg.papers || []).map((p) => ({
+                value: p.value,
+                label: <SegLabel main={p.label} sub={p.size} tag={p.value === paperRec.paper ? 'Recommended' : ''} />,
+              }))} />
+            {paperRec.paper === 'legal' && (
+              <Text size="xs" c="dimmed" mt={6} className="pdfdlg-paperrec">
+                Legal prints this calendar about {paperRec.gain}% larger.
+              </Text>
+            )}
           </Row>
           <Row label="Orientation">
             <SegmentedControl fullWidth size="sm" value={shown} onChange={setOrient} aria-label="Orientation"

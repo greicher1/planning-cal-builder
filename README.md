@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Export PDF recommends Letter or Legal (22 Oct 2026)
+
+The owner: *"could the app reccomend a paper size based on the waterfall cal? Really it should only reccomend
+between letter size and legal"*. Ruled by picker the same day: P-R1 *"15% larger"*, P-R2 *"Mark it only"*
+(PAPER-SIZE-PLAN.md §9).
+- **The Export PDF dialog marks Letter or Legal *Recommended*** for this calendar, under the paper's size, as it
+  already marks an orientation. Legal earns it only when it prints the calendar **more than 15% larger** than
+  Letter, the bar the orientation rule uses for "meaningfully larger"; otherwise Letter does. **Tabloid is never
+  marked.** While Legal is marked, a line under the paper says *"Legal prints this calendar about N% larger."*
+- **It compares the sizes the dialog already shows**, each paper the way it would print: in the orientation you
+  clicked (or the calendar saved), or with none clicked, each paper's own recommended one. So clicking an
+  orientation can move the tag.
+- **It only marks.** The dialog still opens on the calendar's own paper, and Export without changing anything gives
+  exactly the PDF it gave before. The app can't see what paper is in the printer.
+- **In practice:** a calendar that prints at or near full size on Letter gets Letter. Legal is marked for one that
+  Letter shrinks on the side Legal lengthens: a long portrait calendar (many weeks, Single Column), or a wide
+  landscape one. Measured: the harness's one-year calendar 87% on Letter vs 96% on Legal (+10%), Letter; the same
+  calendar in Single Column 67% vs 88% (+31%), Legal; Single Column turned landscape 50% vs 50%, Letter.
+- **No frozen code, no new saved key, no format change.** The engine's `recommendPaper()` reads the sizes
+  `pageFitFor()` already asks the frozen page-turn rule for, and hands the dialog one answer per orientation state.
+- **Test fixed on the way:** the `pdfdialog` leg read "the recommended orientation" from the FIRST *Recommended*
+  label in the dialog, which a paper tag above it would have silently become. It now reads each by its segment's
+  value.
+- **Verified:** `pdfdialog` 15/15 with new cases P1–P4, red on the pre-change build and on four mutants (the bar at
+  any gain, Tabloid allowed, the clicked orientation ignored, the tag selecting Legal). `npm run check` 40/40.
+  Full gate: see HANDOFF.
+
 ### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
 
 The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in

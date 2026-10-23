@@ -24292,6 +24292,27 @@ export function initLegacyApp() {
       return { recommended: r.orientation, portrait: pct(r.portrait), landscape: pct(r.landscape) };
     } finally { paperProbe = null; }
   }
+  // ⛔ WHICH PAPER THE DIALOG MARKS RECOMMENDED (owner, 22 Oct 2026; PAPER-SIZE-PLAN.md §9, rulings P-R1 "15%
+  // larger" and P-R2 "Mark it only"): Letter or Legal, NEVER Tabloid ("only between letter size and legal").
+  // Legal earns it only when it prints this calendar MORE than 15% larger than Letter: the bar, and the strict
+  // comparison, sheetPageOrientation uses for "meaningfully larger". Compared on the dialog's own numbers (whole
+  // percent, capped at 100%), so the tag always agrees with the sizes the dialog shows. ⚠️ On a tall calendar those
+  // read Letter about 3 points LOW (the rule leaves out the header band, which the PDF does not), and that flatters
+  // Legal; the 15% bar absorbs it, where 10% would have tipped the pdfdialog leg's calendar (real gain 7%) to Legal.
+  // Each paper is compared the way it would print: in the orientation picked in the dialog (or saved, D1), or with
+  // none picked, in each paper's own recommended one. The orientation can change while the dialog is open, so the
+  // answer is given for all three cases and the component only picks one: the rule has one copy, here.
+  // It only MARKS a paper. Nothing here selects one, so Export at the dialog's defaults is unchanged (P-R2).
+  const PAPER_REC_BAR = 1.15;
+  function recommendPaper(fits){
+    const at = (f, o) => f[o || f.recommended];
+    const caseFor = o => {
+      const letter = at(fits.letter, o), legal = at(fits.legal, o);
+      return { paper: legal > letter * PAPER_REC_BAR ? 'legal' : 'letter',
+               gain: Math.round((legal / letter - 1) * 100) };
+    };
+    return { follow: caseFor(''), portrait: caseFor('portrait'), landscape: caseFor('landscape') };
+  }
   // Open the dialog and apply its answer. Resolves false for Cancel, which changes nothing at all.
   // ⛔ Export at the dialog's defaults changes nothing either -- no undo step, no dirty file, no write to the
   // preference store -- so a calendar exported without touching it comes out exactly as before the dialog
@@ -24304,7 +24325,8 @@ export function initLegacyApp() {
       orientation: pageOrientation,
       gridlines: SHEET_GRIDLINES,
       papers: Object.keys(SHEET_PAPERS).map(k=>({ value: k, label: SHEET_PAPERS[k].label, size: SHEET_PAPERS[k].size })),
-      fits
+      fits,
+      paperRec: recommendPaper(fits)
     });
     if(!choice) return false;
     const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
