@@ -1,6 +1,8 @@
 # WATERFALL-CONTEXT-MENU-PLAN.md
 
-**Status: RULED 23 Oct 2026, NOT BUILT.** Branch `claude/goofy-austin-fa2c05`. Tracker card `waterfall-right-click-menu`.
+**Status: BUILT AND GATED 23 Oct 2026** on branch `claude/goofy-austin-fa2c05` (`d4e5654`; full gate 2,976 / 2, both
+fails load timeouts green alone), not merged, not pushed. §10 has
+what the build changed from this plan. Tracker card `waterfall-right-click-menu`.
 **Mockup:** [`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html) (22 Oct 2026). ⚠️ The mockup is the
 LONG menu the owner then cut down (§1). Read §2 of this plan for what is built, not the mockup.
 **Written against:** `8cc8357` (the 23 Oct landing, live at `b7d5307`).
@@ -305,3 +307,32 @@ before it clears (§3.5); Back to automatic restores text only (§3.6).
 - **`mvmenu`** must stay green: it guards the shared engine (and `hiatusSections`' one-day answers).
 - **`wfkeys`, `wfkeysreal`, `textstyle`, `undokeys`** stay green: the Ctrl guard touches the highlight's press.
 - **`npm run check`.** The menu loads nothing, so the CSP is untouched.
+
+---
+
+## 10. As built (23 Oct 2026, `d4e5654`)
+
+Everything in §2 and §3 as written, inside `installMonthDayMenu` (`wfContextAt`, `wfPrepare`, `wfMenuSections` and
+the `wf*` items beside the month menu's own). Where the build differs or adds:
+
+1. ⚠️ **The close-on-scroll rule had to change for the waterfall menu.** Measured in the `wfmenu` leg: Chrome
+   delivered scroll events LATE (under headless virtual time), after the menu had opened. One reported the grid's
+   box at exactly the scroll position it had at the right-click; another came from the SIDEBAR, settling after an
+   earlier step's undo. Each closed the menu under the pointer, a different case each run. So the open waterfall
+   menu remembers where every box around its cell stood (`scrollBoxes`), and only a scroll that MOVED one of them
+   closes it (`movedSinceOpen`). A sidebar scroll moves no cell. In the app pane, a real browser, no scroll fired
+   after a right-click on any of four kinds of cell, so users never saw it; the rule is robustness, not a fix for
+   something they hit. ⛔ **The month menu keeps "any scroll outside it"**: its `mvmenu` C1 dispatches an unmoved
+   scroll and expects a close, and the place to change a live menu is its own trim (tracker `month-menu-trim`).
+2. **Render-only close.** As planned (§4): the waterfall menu closes only on a direct child change of `#table-wrap`.
+3. **One more item kind in the header:** inside a highlight of several cells the header reads "N cells highlighted"
+   and "Weeks of … – …".
+4. **`mvmenu` G3 flipped.** It asserted that the browser kept its own menu in the waterfall; it now asserts that a
+   right-click there opens the WATERFALL menu (`data-view="sheet"`, no `data-day`), never the day menu.
+5. **Help:** one sentence at the end of "Moving around, and moving notes" in `src/index.html`.
+6. **The `wfmenu` leg** (38 cases) waits for scrolling to go quiet before each right-click, and records any
+   prevented right-click that left no menu in `out.lost`; that record is how item 1 was found. It stubs
+   `navigator.clipboard` (headless Chrome grants neither read nor write). Red on the pre-change build
+   (`d2ac914e…`, the live file): it stops at V1, no menu.
+7. **Not done, deliberately:** no mutants beyond the pre-change build. The exact item lists (H-cases) are what holds
+   the owner's cut.

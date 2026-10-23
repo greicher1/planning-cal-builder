@@ -1340,6 +1340,14 @@ Nothing in this document ships without all of these, every stage:
     screen, in Excel and in the PDF; and a Reset that leaves nothing typed gives back row 1 of the workbook
     and the PDF's content stream identical to an untouched export (H9). Items 2 and 3 are the other half:
     no baseline types a heading, so H1–H3 are byte for byte inert there.
+19. **NEW — the waterfall's right-click menu stays short, and each item is one undo step** (23 Oct 2026,
+    WATERFALL-CONTEXT-MENU-PLAN.md). `gate.sh`'s `wfmenu` leg (`halfdays`), every right-click hit-tested: the EXACT
+    item list per kind of cell (owner, 23 Oct 2026: no Swap column, no Add note; ruling R6: an item that cannot act
+    is left out, Start / End a greyed pair), so an item that creeps back is red; each item's effect and its one
+    undo step; Show this day / week in the month view banking none; Cut keeping the note when the clipboard
+    refuses; the highlight rule; no menu on a heading or with Shift; a render closing the menu, a repaint or an
+    unmoved scroll not; no id, and `fields.byId` unchanged. ⚠️ Before adding a menu item anywhere, read that plan's
+    §1.1: an item must be what you reach for on that cell AND have no one-gesture way there already.
 
 ---
 
