@@ -1348,6 +1348,15 @@ Nothing in this document ships without all of these, every stage:
     refuses; the highlight rule; no menu on a heading or with Shift; a render closing the menu, a repaint or an
     unmoved scroll not; no id, and `fields.byId` unchanged. ⚠️ Before adding a menu item anywhere, read that plan's
     §1.1: an item must be what you reach for on that cell AND have no one-gesture way there already.
+20. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
+    rulings T1–T4). `gate.sh`'s `mvmenu` leg: the EXACT item list of every menu it checks (a bar on a shoot day, a
+    weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the
+    left-click menu), and T1, which watches every month menu and submenu the leg opens (75 of them) for a cut item
+    (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks), a "Shift + right-click" footer
+    line, or anything greyed but the Start / End pair and ruling 1's Work this day inside a hiatus (T3: an item
+    that cannot act is left out). C1 and C4 hold the waterfall menu's close-on-scroll rule (T4): a scroll that moves
+    the day closes it; an unmoved event or a sidebar scroll does not. `phasefold` F8 and `labelsetup` C1 moved off
+    the cut items. Red on the pre-trim build (21 cases).
 
 ---
 

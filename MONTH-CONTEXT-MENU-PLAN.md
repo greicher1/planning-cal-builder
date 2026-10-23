@@ -687,3 +687,36 @@ Footer: "Double-click a marked day to clear it", only on a day holding a mark. N
 - **`wfmenu` 38/38** (the shared engine), `mvorder` O6 (Back to date order), `halfdays`, `halfworked`, `offweek`,
   `epnames`, `phasenum`, `shootdays`, `weeknum`.
 - **`npm run check`**, then the full `tests/harness/gate.sh`, every frozen output identical: the menu changes no cell.
+
+### 13.8 As built (23 Oct 2026)
+
+Everything in §13.5 and §13.6 as written. Measured on `halfdays.sptcal` in the app pane, before → after:
+
+| Day | Lines before | After |
+|---|---|---|
+| Wed 8 Jul, Production's bar (a shoot day) | 11 (+ 2 footer lines) | 8 (no footer) |
+| Tue 14 Jul, a shoot day's number | 7 | 6 |
+| Sun 12 Jul, a weekend in the shoot | 7 (one greyed) | 5 |
+| Fri 3 Jul, a weekday holiday in the shoot | 10 | 9 |
+| Wed 11 Nov, Post's bar | 9 | 6 |
+| Fri 25 Dec, the hiatus and Christmas | 13 (one greyed) | 8 |
+| Wed 17 Jun, a plain day | 5 | 4 |
+
+Where the build adds to the plan:
+
+1. **`mvmenu` C1 needed room to scroll.** At the harness's 1600 x 1200 window July fits, so the panel holding the
+   month cannot scroll at all (measured: `scrollHeight` = `clientHeight`), and neither can the sidebar on the Show
+   tab. C1 and C4 append a tall spacer to the panel they scroll (chrome, outside `#table-wrap`, so the menu's render
+   rule never sees it) and take it out after. In the app pane at 1100 x 700, where both really scroll, a sidebar scroll
+   of 118 px left the menu open and a calendar scroll of 60 px closed it.
+2. **T1, a watch over the whole leg.** A `MutationObserver` on `<body>` records every month menu and submenu as it is
+   built (75 menus and 10 submenus in one run), and T1 fails on any cut item id, any "Shift + right-click" footer, or
+   any greyed item but `phase-start`, `phase-end` and `ov-on`. So a cut item that comes back in any section, on any
+   day a case happens to open, is red without a case of its own.
+3. **`phasefold` F8** asserted that Show in Phases card unfolds a folded card. Nothing else reveals a card that way, so
+   F8 now holds that the bar's menu offers no such item and that opening and closing it leaves the card folded.
+4. **`labelsetup` C1** ticked Number weeks from the menu. It now proves the item is gone, then ticks the row's own box
+   after the title typed before it has banked: the sidebar's 500 ms debounce, unlike the menu's explicit step, would
+   otherwise fold the two into one undo step.
+5. **Red on the pre-trim build** (`f88d8ac`, built with `git archive`, sha256 `5171a79a…`): 60/81, the 21 failing
+   cases H1s, H2, H3, I2a, C4, L1s, L2, L3, L3b, L7, H4, K1, H5, A3, A7, P1, R1, V1, V6, V9 and T1.

@@ -4,6 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` at `1af8782` + the waterfall menu's branch merged in (`f88d8ac`); plan `a7eda85`, build `07096a5`; FULL GATE: PENDING; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
+
+- **Asked** (relayed by the session that started this one): the waterfall menu's ruling R7, *"Trim the month menu
+  too"*, as its own task. Tracker card `month-menu-trim`.
+- ⚠️ **This branch CARRIES the waterfall menu** (`claude/goofy-austin-fa2c05`, `d4e5654`, not yet in `main`), merged in
+  first because that branch reshaped `installMonthDayMenu` into one engine for both menus. Landing this lands that.
+  The merge's only conflicts were the two changelog tops (HANDOFF, README), both kept.
+- **Ruled by ONE picker, 23 Oct 2026, every answer the recommendation** (plan §13.4): T1 *"Trim to this list"* (Add
+  note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the Shift footer line go;
+  Prep's Start / End go; previewed on Production's bar and a plain day; declined: also cutting Start / End); T2 all
+  four of the owner's own items stay (Add 1-day phase here, Remove ‹phase›…, a hiatus's Colour…, the holiday
+  section); T3 *"Leave it out"* (the waterfall's R6; Start / End a greyed pair, ruling 1's Work this day inside a
+  hiatus still greyed); T4 *"Only when the calendar scrolls"*.
+- **What it is now** (plan §13.5): This day = Add 1-day phase here (not on a weekend or in a hiatus) · Add 1-week
+  phase here · Add hiatus ▸; a bar = Start / End here (not on Prep) · Back to date order (while it can act) · Remove
+  ‹phase›… (custom); the shoot rows unchanged; a hiatus = Colour… · Remove hiatus…; a phase's own hiatus = Remove; a
+  holiday = Enabled (+ the two Show items while it is on); Show this week in the waterfall. The double-click hint
+  only on a marked day. Production's bar on a shoot day 11 lines → 8; Christmas in the hiatus 13 → 8.
+- **How:** inside `installMonthDayMenu`, no frozen code, no snapshot key, no id. The cut items' helpers went with them
+  (`addNote`, `noteAnchor`, `phaseColourHere`, `showPhaseRow`, `lockHiatusHere`, `numberHiatusHere`,
+  `showHiatusRow`, icons `note` and `sidebar`). The scroll listener is now `movedSinceOpen` for both menus (the
+  month's `scrollBoxes` were already taken). ⚠️ `hiatusSections` is SHARED: *Move ‹phase›'s hiatus here* is now left
+  out in the week it already starts in the WATERFALL's Add hiatus ▸ too, which its own R6 already asked for.
+- ⚠️ **Learned, measured:** at the harness's 1600 x 1200 window the month's panel and the Show-tab sidebar do not
+  scroll at all (`scrollHeight` = `clientHeight`), so a "real scroll" case there scrolls nothing. `mvmenu` C1 / C4
+  append a spacer to the panel they scroll (chrome, outside `#table-wrap`) and remove it after. And the sidebar's own
+  boxes bank undo through `markDirty`'s 500 ms debounce, so a leg moving from a menu item (an explicit step) to the
+  row's box must let a title typed before it bank first (`labelsetup` C1 now waits 700 ms).
+- **Proof so far** (build of `07096a5`): `mvmenu` 81/81: every menu it checks held to its EXACT item list, new T1
+  watching all 75 month menus (+10 submenus) the leg opens for a cut item / Shift line / stray greyed item, new C4 and a
+  real-scroll C1 for T4. **Red on the pre-trim build** (`f88d8ac`, `5171a79a…`): 60/81. `wfmenu` 38/38 (the shared
+  engine), `phasefold` 11/11 (F8 moved off Show in Phases card), `labelsetup` 41/41 (C1 ticks the row's box),
+  `halfdays` 27/27, `halfworked` 24/24, `epnames` 10/10 + 5/5, `npm run check` 40/40. In the app pane (preview
+  `mvtrim-9871`): the trimmed menu on Production's bar (8 items, no footer), and at 1100 x 700 a sidebar scroll of
+  118 px left it open while a calendar scroll of 60 px closed it.
+- ⏭ **Next:** the full gate (it waits for two other sessions' gates that were running at 14:58). Then merging into
+  `main` and the push are each the owner's picker. The tracker card is `building` until the gate is green.
+
 ### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, NOT COMMITTED yet; full gate queued; no version cut
 
 - **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view

@@ -111,6 +111,10 @@ and the band.
 
 *"Trim the month menu too"*. Once this is built, the month view's day menu gets the same test (§1.1) as a separate task
 with its own short list for the owner to approve. Tracker card `month-menu-trim`. Not this branch.
+✅ **Done, 23 Oct 2026** (MONTH-CONTEXT-MENU-PLAN.md §13, rulings T1–T4, branch `claude/adoring-chaum-0206c1`, which
+carries this branch merged in). Two things there touch this menu: the month menu now closes on scroll by this menu's rule
+(§10 item 1), and *Move ‹phase›'s hiatus here*, in the Add hiatus ▸ submenu both menus share, is left out rather than
+greyed in the week its hiatus already starts (this plan's own R6).
 
 ---
 
@@ -322,8 +326,11 @@ the `wf*` items beside the month menu's own). Where the build differs or adds:
    menu remembers where every box around its cell stood (`scrollBoxes`), and only a scroll that MOVED one of them
    closes it (`movedSinceOpen`). A sidebar scroll moves no cell. In the app pane, a real browser, no scroll fired
    after a right-click on any of four kinds of cell, so users never saw it; the rule is robustness, not a fix for
-   something they hit. ⛔ **The month menu keeps "any scroll outside it"**: its `mvmenu` C1 dispatches an unmoved
-   scroll and expects a close, and the place to change a live menu is its own trim (tracker `month-menu-trim`).
+   something they hit. ~~⛔ **The month menu keeps "any scroll outside it"**: its `mvmenu` C1 dispatches an unmoved
+   scroll and expects a close, and the place to change a live menu is its own trim (tracker `month-menu-trim`).~~
+   ✅ **The month menu takes this rule too since its trim** (owner ruling T4, 23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md
+   §13): one rule for both menus. `mvmenu` C1 now scrolls the month's panel for real and expects a close; C4 holds that
+   an unmoved event and a sidebar scroll leave it open.
 2. **Render-only close.** As planned (§4): the waterfall menu closes only on a direct child change of `#table-wrap`.
 3. **One more item kind in the header:** inside a highlight of several cells the header reads "N cells highlighted"
    and "Weeks of … – …".

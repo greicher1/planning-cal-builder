@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month view's day menu, trimmed by the owner (23 Oct 2026, branch `claude/adoring-chaum-0206c1`)
+
+The owner asked for the waterfall's right-click menu to be cut down (*"we really dont need the swap collumn feature …
+We dont need an add notes button at all. right now the right click menu especially on phases is huge"*), then chose
+*"Trim the month menu too"*. The same test was applied to every item of the month view's day menu (the right-click
+menu, and the one a click on a day's number opens): it stays only if it is what you reach for on that day or bar and
+there is no one-gesture way to do it already. The owner approved the short list by picker
+([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13, rulings T1–T4).
+- **Gone:** Add note (click the day's "+"), Colour… and Show in Phases card on a bar (the phase row), Lock in place,
+  Number weeks and Show in Phases card on a hiatus (the hiatus row and its boxes), and the "Shift + right-click opens
+  the browser's own menu" footer line. On a Prep bar, Start / End, which could never act there, go too.
+- **Kept, as the owner's own earlier asks:** Add 1-day and 1-week phase here, Remove ‹phase>… on a custom bar, a
+  hiatus's Colour…, and the holiday section. Also kept: Add hiatus ▸, Start / End here, Back to date order, the shoot
+  day's Full day / Off rows, Remove hiatus…, Show this week in the waterfall.
+- **An item that cannot act on the day is left out, not greyed** (as in the waterfall): Add 1-day phase here on a
+  weekend or hiatus day, a holiday's Show items while it is off, Back to date order when the bars are already in date
+  order, and *Move ‹phase›'s hiatus here* in the week it already starts (in the Add hiatus ▸ submenu both menus share).
+  Start / End stay a greyed pair, and Work this day inside a hiatus stays greyed with its reason.
+- **"Double-click a marked day to clear it"** shows only on a day that holds a mark.
+- **It closes only when the calendar scrolls**, the waterfall menu's rule: scrolling the sidebar leaves it open.
+- Production's bar on a shoot day: 11 lines to 8. A hiatus day with Christmas on it: 13 to 8. A plain day: 5 to 4.
+- No frozen code, no saved key, no new id. Built on the waterfall menu's branch, so landing this lands that too.
+- **Verified:** `mvmenu` 81/81, with every menu it checks held to its exact item list and a new case (T1) watching all
+  75 month menus the leg opens for a cut item or a stray greyed one; red on the pre-trim build (21 cases). `wfmenu`
+  38/38, `phasefold` 11/11 and `labelsetup` 41/41 (each moved off a cut item), `halfdays`, `halfworked`, `epnames`,
+  `npm run check` 40/40. In the app pane: the trimmed menu on Production's bar, and a sidebar scroll of 118 px leaving it
+  open while a calendar scroll of 60 px closed it.
+
 ### Unreleased — Header: Off for the Month view (23 Oct 2026)
 
 The owner: *"also add "Off" for the month view header"*.
