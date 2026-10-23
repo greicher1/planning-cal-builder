@@ -290,6 +290,48 @@
   `hiatusdrag` 13/13, `dlgkeys` 16/16, `filekeys` 16/16, `labelsetup` 41/41. **`mvmenu` re-run on the same build after
   its fix: 89/89** (another session's gate was running by then; it passed anyway).
 
+### 🔧 22 Oct 2026 (late): `sideboxes` R16 WAS A FLAKY LEG, NOT A REGRESSION — FIXED IN THE LEG; NO APP CHANGE — branch `claude/hungry-chandrasekhar-519cf8` (worktree), from `main` at `83ee71d`
+
+- **Reported:** R16 (*"a box carried to the bottom of its column scrolls that column, not the grid"*) failed in
+  another session's full gate, `{"left":0,"grid":120,"gridWas":120}`, and 77/78 alone four times on `main`'s build.
+  The `sidebox-own-scroll` session had gated the same leg 78/78 that afternoon.
+- **Same bytes, different result.** `main`'s build here is sha256 `57056dcb…`, byte-identical to the build that
+  passed 78/78 and to the live file. `src/` has not changed since `f77c353`. Alone it failed 3 of 3 runs.
+- **Cause, measured with a probe leg (since deleted):** under `--virtual-time-budget`, `requestAnimationFrame`
+  never fires. That was 0 frames in a bare 400 ms sleep, and 0 with this drag held at the edge for 5 s while waiting
+  for the scroll (the drag asked for 1–2 frames and got none). So "wait for the thing" alone cannot fix it: the thing
+  never happens. With frames fed from `setTimeout(16)` the app's own tick scrolled the column 60 px in 100 ms, and
+  the grid did not move. The 400 ms sleep passed only when a stray frame landed, which the afternoon's run happened
+  to get.
+- **The app is fine, checked in the in-app browser** (`?state=sideboxes`, 1024 × 768, `main`'s build):
+  - With a real mouse, a drag from the left box's grip to the column's bottom scrolled the column 10 px in the
+    21 ms between press and release, and the grid stayed at 0.
+  - Held at the bottom edge, the column scrolled to its end (703 px = scroll height − view) over 81 frames. The grid
+    stayed at 0 and the drop outline stayed up.
+  - Escape left the box where it was, cleared the outline, and made no undo step.
+  - ⚠️ **The pane was HIDDEN** (this session was not open in a window), so the page ran as a background page and
+    made frames only now and then: one held run got 1 frame in 400 ms. A screenshot forces a frame, so the
+    held-drag proof was taken by screenshotting while the drag was held. Don't read frame timing from a hidden pane.
+- **The fix, in `tests/harness/t/sideboxes.js` only:** for R16's one drag, `window.requestAnimationFrame` /
+  `cancelAnimationFrame` are swapped for virtual-time timer versions, and the leg waits (`T.until`, 30 × 50 ms) for
+  the column to scroll instead of sleeping 400 ms. They are put back in a `finally` only AFTER Escape, so the drag's
+  `end()` cancels a pending timer frame. With the native cancel, that frame would run the tick on a finished drag
+  (`sideDrag` is null there) and throw. `out.r16` now also records `frames`.
+- **Proof:**
+  - Old R16 on `main`'s build: 77/78, 3 of 3 runs.
+  - New leg on the same build: 78/78, 5 runs in a row, identical numbers each time (`{"left":30,"grid":120,"gridWas":120,"frames":4}`).
+  - Mutant M1 (the tick always scrolls the grid, the pre-`sidebox-own-scroll` behaviour): red at R16 alone, column
+    0, grid 120 → 390.
+  - Mutant M2 (no auto-scroll): red at R16 alone, nothing moved.
+  - F13 (no console errors) stayed green in all runs, so the timer frames disturb nothing else.
+  - Full gate NOT run: one leg file changed, no `src/`. Other `sideboxes` checks and the gate's count of 78 are
+    unchanged.
+- ⭐ **Learned, for any leg testing rAF-driven behaviour** (drag auto-scroll, Mantine transitions, anything on a
+  frame loop): waiting is not enough, because frames never come. Supply them for the duration of the gesture,
+  restore them after it ends, and keep the assertion about WHAT moved, not how far. A leg that passes on rAF is
+  passing on luck.
+- ⏭ **Next:** commit on this branch is the owner's call (picker). Nothing to push: the app did not change.
+
 ### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
 
 - **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
@@ -521,6 +563,8 @@
   nothing in `#table-wrap`, the writers or the save path (memory: chrome changes get targeted legs).
 - ⚠️ **Headless trap, new:** headless Chrome runs few animation frames in a leg, so a rAF-driven auto-scroll moves
   ~10 px in 400 ms. R16 asserts "the column scrolled at all, the grid not at all", never a distance.
+  ⚠️ **CORRECTED the same evening (the entry at the top):** "few" was ZERO on an idle machine. The 78/78 here got
+  one stray frame, and R16 then failed every run with the same bytes. The leg now supplies its own frames.
 - ✅ **PUSHED AND LIVE.** Local `main` fast-forwarded `55a9c61` → `f77c353` in the main checkout (its two
   pre-existing fixture changes, `stintswap-reshape.sptcal` and the untracked `Reshape Fixture …`, left alone). ONE
   `git push origin main` at 19:16:36 (`7f68d88..f77c353`, this change plus the earlier HANDOFF-only `55a9c61`).
