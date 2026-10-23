@@ -239,11 +239,11 @@ export function PreviewToolbar() {
         <Button id="tb-hdr-mode-btn" className={'tools-btn' + (hdr.mode === 'auto' ? '' : ' is-manual')}
                 type="button" size="xs" variant="default"
                 title={hdr.view === 'month'
-                  ? 'Choose how the Month view’s header is written: Auto, Template or Manual'
+                  ? 'Choose how the Month view’s header is written: Auto, Template or Manual, or turn it Off'
                   : 'Choose how the header is written: Auto, Template or Manual, or turn it Off'}
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
-          {/* 'off' is the waterfall's Header: Off (owner ruling 10, 20 Oct 2026); the month never sends it. */}
+          {/* 'off' is Header: Off: the waterfall's (owner ruling 10, 20 Oct 2026) and, since 23 Oct 2026, the month's. */}
           {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
             : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>

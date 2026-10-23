@@ -4,6 +4,51 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, NOT COMMITTED yet; full gate queued; no version cut
+
+- **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
+  header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
+- **Built, with no frozen function edited** (CLAUDE.md's state table has the row):
+  - app.js: `mvHeaderOff` beside `headerOff`. `setMvHeaderMode()` now treats Off the way `setHeaderMode()` does: a
+    flag on top of the mode, so Off → the mode underneath brings the lines back, and each switch is one
+    `asOneHeaderStep`. `headerModeKey(true)` returns 'off', the menu's Off row lost `sheetOnly`, the template editor
+    and a month preset's Apply clear it, and New clears it. `captureSnapshot` writes `mvHeaderOff: true` only while it
+    is on, `sanitizeSnapshot` drops a non-boolean, and `applyStateSnapshot` restores it unconditionally (`=== true`).
+  - Screen and print rollback: `reflectHeaderOff()` also toggles `body.mv-hdr-off`, and legacy.css COLLAPSES
+    `.mv-header` (height 0, no margin, padding, shadow or fill, `visibility:hidden`). ⛔ **Never `display:none`.**
+    Frozen `exportMonthPdf` measures each page's reserve as the first week's top minus `.mv-header`'s top, with the
+    pages stacked in an off-screen host. A `display:none` header's rect is all zeros, so every page after the first
+    gets a distance of hundreds of px, fails the `< PAGE_H` test and falls back to 105.
+  - The direct writer: `exportMonthPdfDirect` stamps `headerOff: true` on each month of the model, between
+    `buildMonthLayout` and `fitMonthLayout`, only while it is on (so default layouts and bytes are unchanged). `mvlFrame`
+    then uses an empty header ending at `y0`. It reads the month, never the engine, so the writer's slices stay
+    self-contained. ⛔ **Never inside `buildMonthLayout`:** the first cut stamped it there, and `monthlayout` (all four
+    runs) failed with "could not locate the layout model (MVL_GEOMETRY..buildMonthLayout): re-anchor this leg". The
+    leg slices that function up to its last statement, verbatim. It is back to byte-identical, and the stamp is a
+    plain loop in the export, which adds no writer name to the F0 checks (`monthlayout`, `monthemit`, `monthwriter`).
+  - `mvHeaderLine()` is deliberately unchanged (unlike the waterfall's `headerLine()`, which returns '' while Off):
+    nothing that prints reads it while the header is collapsed, and the Template → Manual bake must read real lines.
+  - Help page: the Header paragraph names Off and what it does in each view. PreviewToolbar's month tooltip mentions Off.
+- **Legs:** new `mvhdroff` (in gate.sh's AFSPEC list, 400 s), M0–M7 + E0. `hdrrow` O1 now expects Off in BOTH menus.
+- **Proof so far,** build `c7b90c4f…`: `mvhdroff` 9/9. M2: the reserve is 119 → 72 px on all 16 pages, the same 47 px
+  the month bar moves on screen (M1). M3: the written PDF has none of the header's lines and its first month label sits
+  35 pt higher. Also `hdrrow` 37/37, `hdrcontrols (carry-rich)` 12/12, `npm run check` 40/40. In the browser pane on
+  carry-rich (a Manual month header), Off collapses it, the button reads Header: Off, and the month bar sits at the
+  card's top.
+  - ⚠️ A first cut of M2 measured the weeks' total height and saw +0 on every page. In screen media the print page is
+    not a fixed-height box, so the weeks never stretch (that is CSS flex in print media). What the fit decides from is
+    the reserve, which M2 now measures exactly as the frozen code does.
+- **Full gate, first run** (build `c7b90c4f…`, main checkout, after two other sessions' gates): 2,907 PASS, 6 FAIL.
+  - 4 × `monthlayout` EX: the slice anchor above. Fixed. The build is now `0016e649…`.
+  - `stintreshape` (grid never rendered) and gate 13's `stintswap-reshape` ("THE CONTENT MOVED", 102,988 → 116,655
+    bytes): ⚠️ **the main checkout's `tests/fixtures/stintswap-reshape.sptcal` has been modified in the working tree
+    since 21 Oct, uncommitted, and not by this work** (+378 / −30 lines; the untracked `Reshape Fixture 2026-09-29.sptcal`
+    sits beside it). Every full gate run in the MAIN checkout reads that file, so it fails these two until someone
+    decides what that change is. That is why earlier sessions gated in worktrees. Do not commit it without looking:
+    fixtures must stay synthetic (see the confidentiality memory).
+  - Every month PDF baseline except that fixture matched, gate 10 included.
+- ⏭ **Next:** the full gate's verdict, then the owner's picker on commit and push.
+
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
 - **Asked** (owner): *"Delete the following: Saved in this calendar’s file, so they travel with it — except Grid

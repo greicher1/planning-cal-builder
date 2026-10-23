@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Header: Off for the Month view (23 Oct 2026)
+
+The owner: *"also add "Off" for the month view header"*.
+- **What users see:** the Header menu in the Month view has Off, as the Waterfall's has had since 20 Oct. Off hides
+  the month header: the month bar moves to the top, and in the Month PDF each page starts with the month bar, so
+  the weeks get the space. The two views' headers stay independent: turning one off leaves the other alone. Choosing
+  Template or Manual again brings back the lines you had, "Open the template editor…" turns it back on, and each
+  switch is one undo step. Saved with the calendar.
+- **How (no frozen function edited):**
+  - `mvHeaderOff`, saved as `mvHeaderOff: true` only while on, so other calendars save byte for byte as before.
+  - Screen and the print rollback: `body.mv-hdr-off` COLLAPSES `.mv-header` to zero height rather than hiding it.
+    Frozen `exportMonthPdf` measures each page's room from the header's top, which a hidden header would not have.
+  - The direct writer: `exportMonthPdfDirect` marks each month before the fit, and `mvlFrame` then draws no header.
+- **Verified:** a new leg, `mvhdroff`, 9/9. It covers the menu, the collapsed header with the waterfall's untouched,
+  the print rollback's measured room dropping by the same 47 px on all 16 pages, and the written PDF with no header
+  text and its month bar higher. It also covers one undo step, Off over Manual, Save/Load, a file with no key, a junk
+  value, and the template editor. `hdrrow` 37/37 (O1 now expects Off in both menus), `hdrcontrols` 12/12,
+  `npm run check` 40/40. Full gate: see HANDOFF.
+
 ### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
 
 The owner asked to delete four pieces of explanatory text, then: *"make the header dropdown tighter (less wide) now

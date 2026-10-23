@@ -1659,6 +1659,10 @@ done
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
 # box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
 # trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# mvhdroff (owner, 23 Oct 2026) is the month view's Header: Off: the menu row, the header collapsed on screen with the
+# waterfall's untouched, the PRINT rollback's weeks gaining the same height on every page (the frozen fit measures
+# from .mv-header's top, which a display:none header would not have), the written month PDF with no header lines and
+# its month bar higher, one undo step, Off over Manual, Save/Load, the M-5 trap, a junk value, and the template editor.
 # autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
 # Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
 # writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
@@ -1728,7 +1732,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
-              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300; do
+              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
+              mvhdroff:-:400; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
