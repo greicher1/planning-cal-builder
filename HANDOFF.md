@@ -41,6 +41,19 @@
      when dates move, and Reset Notes brings it back. This is the first Delete note in either menu; the month menu has
      none (ruling Q5). The ruling was passed to the item 2/3 session, since its Delete key does the same thing.
   3. **The Size section stays** (reset row height / column width).
+  4. **Show this DAY or week in the month view** (owner, 22 Oct 2026: *"should have show this day or week in the
+     month view button"*; by picker, "Day when it knows the day"). The mockup already ended with "Show this week",
+     which was easy to miss. Now:
+     - **on a dated note** it reads "Show this day in the month view" and lands on that day, highlighted for a
+       moment. The day comes from the note line's trailing date, by the rule `notesForWaterfallDate` already uses
+       to put a waterfall line on its day; only a date inside the note's own week counts. The mockup shows it on
+       the wrap note (Tue 1 Sep);
+     - **on a holiday shown in a Notes cell**, the same, on the holiday's day;
+     - **everywhere else** it stays "Show this week", and the week's row is highlighted.
+     The highlight must be drawn OVER the month view, never written into it: the month view is frozen.
+- ⚠️ **The menu is tall** (about 17 lines on a phase week), taller than a short window. The mockup caps it at the
+  window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
+  listener skips scrolls whose target is inside the menu. The build needs both.
 - ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
   Paste / Clear actions.
 - **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,

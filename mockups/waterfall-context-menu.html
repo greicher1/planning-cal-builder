@@ -200,6 +200,8 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
 #table-wrap td.mk-sel, #table-wrap th.mk-sel{box-shadow:inset 0 0 0 1px rgba(112,48,160,.75);background-image:linear-gradient(rgba(112,48,160,.10),rgba(112,48,160,.10))}
 #table-wrap td.mk-target, #table-wrap th.mk-target{box-shadow:inset 0 0 0 2px rgba(112,48,160,.9)}
 #table-wrap td, #table-wrap th{cursor:cell}
+/* A phase week's menu runs to about 17 lines, taller than a short window: it scrolls inside itself instead. */
+.cm{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain}
 /* the clipboard strip: Excel's "Paste Options" row, four buttons side by side */
 .cm-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px}
 .cm-strip .cm-item{flex-direction:column;gap:2px;padding:6px 4px 5px;min-height:0;text-align:center;justify-content:center}
@@ -238,6 +240,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
     <p class="mk-q"><b>1. The clipboard row stays at the top.</b><span>As Excel’s Paste Options row, rather than plain lines inside the Note section.</span></p>
     <p class="mk-q"><b>2. Clear can remove an automatic note.</b><span>It is kept as “cleared”, so it stays empty when dates move, and Reset Notes brings it back. The first Delete note in either menu (the month menu has none, ruling Q5).</span></p>
     <p class="mk-q"><b>3. The Size section stays.</b><span>Reset row height / column width, which today only a double-click on the edge does.</span></p>
+    <p class="mk-q"><b>4. Show this day or week in the month view.</b><span>On a dated note (or a holiday shown in a Notes cell) it reads “Show this day” and lands on that day, highlighted for a moment. Everywhere else it is “Show this week”, and the week is highlighted. Try it on “The wrap note”, dated Tuesday 9/1.</span></p>
     <h3>Left out on purpose</h3>
     <ul>
       <li><b>Shift From, Anchor To, Rebuild From.</b> Kept out of the month menu by your ruling M1, so kept out here too.</li>
@@ -606,11 +609,28 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
        calls:'deletes <code>colWidths[key]</code>, then <code>update()</code>', toast:'resets the column width'},
     ]});
 
-    // ---- the way out ----
-    sections.push({items:[
-      {icon:'cal', text:'Show this week in the month view',
-       desc:'Switches to the month view at the month holding the week of ' + fmtLong(mon) + ', the twin of the month menu’s “Show this week in the waterfall”.',
-       calls:'<code>setViewMode(\'month\')</code>, then shows that month', toast:'switches to the month view at the week of ' + fmtLong(mon)},
+    // ---- the way out: a DAY when the cell names one, else the week (owner ruling, 22 Oct 2026) ----
+    // A dated note names its day by its trailing date, the rule the month view already uses to put a waterfall
+    // note line on its day. Only a date inside the note's own week counts, as there. A holiday shown in a Notes
+    // cell names its own day too (this calendar shows none in the waterfall, so the mockup has no such cell).
+    let day = null;
+    if(here.kind === 'note' && here.noteText && !many){
+      const end = addDays(mon, 7);
+      for(const m of here.noteText.matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g)){
+        const y = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+        const d = utc(y, +m[1]-1, +m[2]);
+        if(d >= mon && d < end){ day = d; break; }
+      }
+    }
+    sections.push({items:[ day
+      ? {icon:'cal', text:'Show this day in the month view', note: fmtLong(day),
+         desc:'Switches to the month view at ' + MON[day.getUTCMonth()] + ' ' + day.getUTCFullYear() + ' and highlights ' + fmtLong(day) + ' for a moment: the day this note’s date names. A note with no date, or any other cell, gets “Show this week” instead.',
+         calls:'<code>setViewMode(\'month\')</code>, then shows that month; the day comes from the note line’s trailing date, as <code>notesForWaterfallDate</code> places it. The highlight is drawn over the day, never into the grid',
+         toast:'switches to the month view and highlights ' + fmtLong(day)}
+      : {icon:'cal', text:'Show this week in the month view', note:'Week of ' + fmtDM(mon),
+         desc:'Switches to the month view at the month holding the week of ' + fmtLong(mon) + ' and highlights that week’s row for a moment. It is the twin of the month menu’s “Show this week in the waterfall”. On a dated note it reads “Show this day” and lands on that day.',
+         calls:'<code>setViewMode(\'month\')</code>, then shows that month. The highlight is drawn over the row, never into the grid',
+         toast:'switches to the month view and highlights the week of ' + fmtLong(mon)},
     ]});
 
     return {head:{title, ctx: ctxLine}, sections, foot:'Shift + right-click opens the browser’s own menu'};
@@ -744,7 +764,10 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
   addEventListener('resize', closeAll);
   // A scroll closes the menu, as in the app, except the one a "Try it" button makes to bring its cell into view.
   let quietUntil = 0;
-  addEventListener('scroll', ()=>{ if(performance.now() > quietUntil) closeAll(); }, true);
+  addEventListener('scroll', e=>{
+    if(e.target && e.target.closest && e.target.closest('.cm')) return;   // the menu scrolling inside itself
+    if(performance.now() > quietUntil) closeAll();
+  }, true);
   addEventListener('blur', closeAll);
 
   // Open on the first line below the clipboard row (see firstEnabled).
@@ -756,6 +779,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
   const TRY = [
     {label:'A Production week', cells:()=>[q('td.sheet-phase-cell[data-pkey="production"][data-week="2026-07-06"]')]},
     {label:'An automatic note', cells:()=>[q('td.sheet-note-cell.has-note[data-week="2026-06-29"]')]},
+    {label:'The wrap note (a Tuesday)', cells:()=>[q('td.sheet-note-cell.has-note[data-week="2026-08-31"]')]},
     {label:'Three notes highlighted', cells:()=>['2026-06-29','2026-07-06','2026-07-13'].map(w=>q('td.sheet-note-cell[data-week="' + w + '"]'))},
     {label:'A Post week (2027)', cells:()=>[q('td.sheet-phase-cell[data-pkey="post"][data-week="2027-01-11"]')]},
     {label:'A hiatus band', cells:()=>[q('td.sheet-hiatus-cell[data-week="2026-12-21"]')]},
