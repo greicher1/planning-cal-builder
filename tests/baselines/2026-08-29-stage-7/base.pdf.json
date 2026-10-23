@@ -1,13 +1,13 @@
 {
  "file": "base.pdf",
- "bytes": 76568,
+ "bytes": 76567,
  "mediaBox": [
   612,
   792
  ],
  "textOps": 204,
  "rectOps": 279,
- "contentLen": 28882,
+ "contentLen": 28880,
  "gridLeft": 19.08,
  "gridRight": 592.92,
  "gridDrawnW": 573.84,
@@ -15,7 +15,7 @@
  "gridBottom": 165.6,
  "gridDrawnH": 572.4,
  "textXmin": 19.08,
- "textXmax": 561.314,
+ "textXmax": 564.333,
  "sampleTexts": [
   "8.29.26",
   "Test Show S2",
