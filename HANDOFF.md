@@ -46,6 +46,76 @@
   `origin/main`) into this branch, keep every doc entry, and run the full gate once more on the combined build.
 - ⏭ **Next:** the owner's merge / push pickers. Nothing else is open on this feature.
 
+### 🔨 22 Oct 2026: RESIZE COLUMNS AND ROWS AT ANY ZOOM — branch `resize-zoom` (worktree `.claude/worktrees/resize-zoom`), from `main` at `55a9c61`; SIX FROZEN EDITS (Z1–Z6), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,801 / 0 (build `d80112ba`); not committed, not merged, not pushed
+
+- **Asked:** *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
+  viewport"* (also asked 21 Oct as *"what happened to my ability to adjust the horizontal size of columns in the
+  waterfall?"*; tracker card `resize-while-zoomed`).
+- **Ruled by picker:** *"Yes, apply it"*, offered as the frozen edit with this acceptance gate: drags at 50/150/200%
+  save what the same drag saves at 100%, every handle on its row/column, and the full gate byte-identical.
+- **Built.** Frozen edits, each commented in place as `⛔ FROZEN EDIT Zn`: Z1 `installGridResizers` (every rect length
+  ÷ `gridZoom(wrap)`: column handle height, the table's offset, row-handle tops, span-handle top/height), Z2
+  `spanHandleGeometry`, Z3 `repositionColHandles`, Z4 `repositionRowHandles`, Z5 `beginSpanDrag`'s pointer x, Z6 the
+  column/row pointerdown (`startH` and both pointer deltas). `gridZoom()` is a hoisted declaration in "CALENDAR ZOOM";
+  it is 1 at 100% and x / 1 is x exactly, so 100% cannot move. Non-frozen: the `body.cal-zoomed …
+  .grid-resize-layer{display:none}` rule is gone (a comment says not to bring it back), `setCalZoom()`'s settle now
+  keeps its `render()` at 100% and now calls `installGridResizers()` in the waterfall at every OTHER zoom (a zoomed
+  layout's rows are not its 100% rows: 20.00 px at 200% vs ~20.84, so handles placed at one zoom drift at another).
+  ⚠️ The first build replaced the 100% render with `installGridResizers()` alone and gated green (2,801 / 0), but the
+  `textsel-zoom` session pointed out the text-style highlight relies on that render to snap back at 100%, so the
+  render was put back before anything was pushed (`calzoom` M5's wording with it), the zoom
+  button's tooltip no longer says "resize at 100%", `selGeom`'s comment updated.
+- ⚠️ **Two things found that are not new, now visible:** (1) the last row's handle hangs 3 px below the table
+  (`margin-top:-4px` on a 7 px handle) and the last column's ~1 px past it, so the layer adds 2 px of vertical and
+  1 px of horizontal scroll to the grid box. True at 100% in the shipped app; at 50% it made `calzoom` W4's "the whole
+  grid fits" (scrollHeight ≤ clientHeight) false, so W4 now measures the TABLE against the box. (2) A wide spanning
+  cell's middle can sit on a column boundary, where the column handle takes the pointerdown, so `calzoom` W5 now
+  clicks a point on the cell. Neither is a frozen-code change; the overhang could be clipped later (`.grid-resize-layer`
+  is not frozen CSS, but clipping it would trim the last handles' grab area at 100% too, so it was left).
+- **Handles scale with the grid** (7 px at 100%, under 2 px on screen at 25%). Not changed: their offsets (+4/-11,
+  the 9 px clearance) are grid px in frozen code.
+- **Proof so far:** new leg `tests/harness/t/zoomresize.js`, 40/40, wired into `gate.sh` after `calzoom` (red on a
+  build of `main`: 50% column 194 vs 203, row 20 vs 36, cell edge unmoved, handles hidden); `calzoom` 24/24, `hdrfit`
+  8/8 on colreuse and hdrmanualbraces, `sideboxes` 74/74, `npm run check` 40/40; by hand in the app's browser at 150%
+  (real mouse drags: Date column 53 → 83 px for 45 px of pointer, a row to 40 px).
+- ✅ **Full gate** (build `d80112ba…`, HARNESS_PORT 9683, 19:07–19:34, alone): **2,801 PASS, 0 FAIL, GATE PASSED**,
+  `zoomresize` 40/40 and `calzoom` 24/24 among them, every baseline comparison identical (waterfall PDF, Excel parts,
+  month PDF print path and writer).
+- ⏭ **Next:** commit on `resize-zoom`, merge into `main` and push, each only on the
+  owner's word.
+
+### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
+
+- **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
+  boxes live up and down. instead it should only scroll the viewport or only scroll the sidebar with the boxes
+  dependent on where your cursor is"*. Not ruled further.
+- ⛔ **This reverses free positions' "the side columns scroll with the grid"** (the entry below, a choice made in
+  that session). `syncSideScroll()` and its capturing `scroll` listener are GONE: do not put a scroll link back.
+  The wheel scrolls whatever is under the pointer, so a colour key stays in view while the grid scrolls.
+- **What did not change:** a box is still drawn level with its sheet row in its own column (`sideRowMap`), so the
+  two line up whenever scrolled alike; a drop reads the row off the column as drawn. Writers, layout, save format:
+  untouched. No frozen code.
+- **Two things made to fit:** (1) a column that has only just appeared opens level with the grid
+  (`sideLevelWithGrid`, called from `renderSideBoxes` when there was no old stack), so a box dropped on an empty
+  side shows where it was let go; (2) the drag's auto-scroll (`beginSideDrag`'s `tick`) scrolls the column the box
+  is over, and the grid only over an empty side.
+- **Proof (build from this branch):** `sideboxes` 78/78 (R6/R7 rewritten, R15–R18 new), **red on the pre-change
+  build** at R6, R7, R16; `sbnoexport` 28/28; `calzoom` 24/24; `textstyle` 51/51; `npm run check` 40/40. In the
+  in-app browser with a real mouse wheel (1024 px wide): grid 300 px with both columns at 0; right column to its
+  end with the grid and the page unmoved; a drop with the two scrolled differently landed where let go; a drop on
+  the emptied left side opened that column level with the grid. Full gate NOT run: screen-only chrome change,
+  nothing in `#table-wrap`, the writers or the save path (memory: chrome changes get targeted legs).
+- ⚠️ **Headless trap, new:** headless Chrome runs few animation frames in a leg, so a rAF-driven auto-scroll moves
+  ~10 px in 400 ms. R16 asserts "the column scrolled at all, the grid not at all", never a distance.
+- ✅ **PUSHED AND LIVE.** Local `main` fast-forwarded `55a9c61` → `f77c353` in the main checkout (its two
+  pre-existing fixture changes, `stintswap-reshape.sptcal` and the untracked `Reshape Fixture …`, left alone). ONE
+  `git push origin main` at 19:16:36 (`7f68d88..f77c353`, this change plus the earlier HANDOFF-only `55a9c61`).
+  Deploy run 39888684975 success. At 19:17:27 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to this branch's build** (sha256 `57056dcb340d7617…`, 1,731,389 bytes, `cmp`); `version.json`
+  still 1.8.0, so installed copies pick it up silently. This HANDOFF note is a local commit, not pushed.
+- ⏭ **Next:** nothing. The `sidebox-own-scroll` worktree can be removed on the owner's word. A version cut is the
+  owner's call whenever they want the update notice shown.
+
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
@@ -71,7 +141,8 @@
   `sideRowMap()` turns a row into the side stack's own px (wide: level with the grid with both scrolled to the top;
   narrow, under 960 px: from the column's top). Boxes are absolutely positioned in `.sb-stack`, a `.sb-sizer` gives it
   at least the grid's scroll length, and `syncSideScroll()` keeps the columns and the grid scrolled together (a side
-  taller than the grid may scroll on past the grid's end). Line heights are the grid's real rows: ⚠️ **on screen a
+  taller than the grid may scroll on past the grid's end). ⚠️ **Superseded 22 Oct 2026** (the entry above): the
+  columns scroll on their own again and `syncSideScroll()` is gone. Line heights are the grid's real rows: ⚠️ **on screen a
   grid row is ~20.84 px, not 20** (the heading 21.34), so the old `rows × 20px` drifted a row every ~25 rows.
   Re-placed on every grid render (the `#table-wrap` observer now also watches its `style`, for the zoom), on resize,
   and by a ResizeObserver on the `.sheet-scroll`'s children (a wrapping header bar moves every row).

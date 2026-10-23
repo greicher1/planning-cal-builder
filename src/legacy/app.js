@@ -349,12 +349,18 @@ export function initLegacyApp() {
     const head = table.tHead && table.tHead.rows[0];
     if(!cols.length || !head) return;
 
+    // ⛔ FROZEN EDIT Z1 (owner sign-off by picker, 22 Oct 2026: "Yes, apply it"; resize at any zoom).
+    // Under the calendar zoom a rect is SCREEN px while a handle's inline px are the grid's own, so every
+    // rect-derived length below is divided by the zoom. gridZoom() is 1 at 100%, and x / 1 is x exactly,
+    // so at 100% every handle lands where it always did. Z2-Z6 are the same division in the helpers and
+    // drags after this.
+    const z = gridZoom(wrap);
     const wrapBox = wrap.getBoundingClientRect();
     const tableBox = table.getBoundingClientRect();
-    const tableH = tableBox.height;
+    const tableH = tableBox.height / z;
 
     // Column boundaries: walk the declared widths, which table-layout:fixed honours exactly.
-    let x = tableBox.left - wrapBox.left;
+    let x = (tableBox.left - wrapBox.left) / z;
     cols.forEach((col, i)=>{
       x += parseFloat(col.style.width) || 0;
       const h = document.createElement('div');
@@ -378,9 +384,9 @@ export function initLegacyApp() {
       const rb = tr.getBoundingClientRect();
       const h = document.createElement('div');
       h.className = 'grid-resize is-row';
-      h.style.left = (tableBox.left - wrapBox.left) + 'px';
+      h.style.left = ((tableBox.left - wrapBox.left) / z) + 'px';
       h.style.width = firstDateW + 'px';
-      h.style.top = (rb.bottom - wrapBox.top) + 'px';
+      h.style.top = ((rb.bottom - wrapBox.top) / z) + 'px';
       h.dataset.row = String(r);
       h.title = 'Drag to resize the row · double-click to reset';
       layer.appendChild(h);
@@ -392,7 +398,7 @@ export function initLegacyApp() {
     // whole height of the grid and would otherwise take every grab aimed at a cell edge.
     const colX = [];
     {
-      let cx = tableBox.left - wrapBox.left;
+      let cx = (tableBox.left - wrapBox.left) / z;
       cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
       colX[cols.length] = cx;
     }
@@ -405,7 +411,7 @@ export function initLegacyApp() {
     });
     rows.forEach(tr=>{
       const rb = tr.getBoundingClientRect();
-      const top = rb.top - wrapBox.top, rowH = rb.height;
+      const top = (rb.top - wrapBox.top) / z, rowH = rb.height / z;
       let ci = 0;
       [...tr.cells].forEach(td=>{
         const span = td.colSpan || 1;
@@ -447,7 +453,8 @@ export function initLegacyApp() {
     if(!table) return null;
     const cols = [...table.querySelectorAll('colgroup col')];
     const colX = [];
-    let cx = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    // ⛔ FROZEN EDIT Z2 (Z1's sign-off): the rect offset in the grid's own px, like the widths it is added to.
+    let cx = (table.getBoundingClientRect().left - wrap.getBoundingClientRect().left) / gridZoom(wrap);
     cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
     colX[cols.length] = cx;
     return { wrap, colX };
@@ -523,7 +530,8 @@ export function initLegacyApp() {
     if(!table) return;
     const cols = [...table.querySelectorAll('colgroup col')];
     const handles = [...wrap.querySelectorAll('.grid-resize.is-col')];
-    let x = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    // ⛔ FROZEN EDIT Z3 (Z1's sign-off): Z2's division, for the same reason.
+    let x = (table.getBoundingClientRect().left - wrap.getBoundingClientRect().left) / gridZoom(wrap);
     cols.forEach((c, i)=>{
       x += parseFloat(c.style.width) || 0;
       if(handles[i]) handles[i].style.left = x + 'px';
@@ -535,11 +543,13 @@ export function initLegacyApp() {
     if(!table || !table.tBodies[0]) return;
     const top = wrap.getBoundingClientRect().top;
     const handles = [...wrap.querySelectorAll('.grid-resize.is-row')];
+    // ⛔ FROZEN EDIT Z4 (Z1's sign-off): both rect lengths in the grid's own px.
+    const z = gridZoom(wrap);
     [...table.tBodies[0].rows].forEach((tr, r)=>{
-      if(handles[r]) handles[r].style.top = (tr.getBoundingClientRect().bottom - top) + 'px';
+      if(handles[r]) handles[r].style.top = ((tr.getBoundingClientRect().bottom - top) / z) + 'px';
     });
     // a taller row makes the whole grid taller, so the column handles have to grow with it
-    const h = table.getBoundingClientRect().height + 'px';
+    const h = (table.getBoundingClientRect().height / z) + 'px';
     wrap.querySelectorAll('.grid-resize.is-col').forEach(el=>{ el.style.height = h; });
   }
 
@@ -586,7 +596,8 @@ export function initLegacyApp() {
     let moved = false;
 
     const onMove = ev=>{
-      const x = ev.clientX - wrap.getBoundingClientRect().left;
+      // ⛔ FROZEN EDIT Z5 (Z1's sign-off): the pointer in the grid's own px, which colX is in.
+      const x = (ev.clientX - wrap.getBoundingClientRect().left) / gridZoom(wrap);
       // Nearest legal boundary. For the left edge the boundary is the slot's own left side;
       // for the right edge it is the slot AFTER it, hence the +1.
       let best = lo, bestD = Infinity;
@@ -636,7 +647,11 @@ export function initLegacyApp() {
     const col = isCol ? cols[colIdx] : null;
     const startW = col ? (parseFloat(col.style.width) || 0) : 0;
     const tr = isCol ? null : table.tBodies[0].rows[rowIdx];
-    const startH = tr ? tr.getBoundingClientRect().height : 0;
+    // ⛔ FROZEN EDIT Z6 (Z1's sign-off): the row's height and both pointer deltas in the grid's own px,
+    // so a drag while zoomed SAVES what the same drag at 100% would (it used to save the zoomed height,
+    // which is why the handles were hidden while zoomed). z is 1 at 100%.
+    const z = gridZoom(table);
+    const startH = tr ? tr.getBoundingClientRect().height / z : 0;
     // Heights a row drag snaps to: the default, and whatever every OTHER row is already set to.
     // Without this you end up with a 21 beside a 20 -- invisible on screen, obvious in print --
     // and no way to get back to matching except by deleting the override. Collected once per
@@ -657,7 +672,7 @@ export function initLegacyApp() {
 
     const onMove = ev=>{
       if(isCol){
-        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), Math.round(startW + (ev.clientX - startX)));
+        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), Math.round(startW + (ev.clientX - startX) / z));
         col.style.width = px + 'px';
         // ** The table's explicit width MUST move with the columns. table-layout:fixed scales
         // ** the declared column widths to whatever the table's width is, so widening one column
@@ -668,13 +683,13 @@ export function initLegacyApp() {
         cols.forEach(c=>{ sum += parseFloat(c.style.width) || 0; });
         table.style.width = sum + 'px';
       } else {
-        let px = Math.max(8, Math.round(startH + (ev.clientY - startY)));
+        let px = Math.max(8, Math.round(startH + (ev.clientY - startY) / z));
         // Snap to the nearest matching height when the pointer gets close, so rows end up equal
         // rather than one pixel apart. Nearest wins if several are in range.
         let best = null, bestD = ROW_SNAP_PX + 1;
         snapTargets.forEach(t=>{ const d = Math.abs(t - px); if(d < bestD){ bestD = d; best = t; } });
         if(best !== null) px = best;
-        h.classList.toggle('snapped', best !== null && best !== Math.round(startH + (ev.clientY - startY)));
+        h.classList.toggle('snapped', best !== null && best !== Math.round(startH + (ev.clientY - startY) / z));
         tr.style.height = px + 'px';
       }
       moved = true;
@@ -851,8 +866,8 @@ export function initLegacyApp() {
   // ⚠️ `z` is the calendar zoom (see "CALENDAR ZOOM"): wrapRect and every td rect are SCREEN px,
   // while colX and anything written to an overlay's style are the grid's own px. Divide a rect delta
   // by z to place something inside the grid; multiply a colX by z to compare it with the pointer.
-  // colX is grid px because the table sits at the wrap's own left edge (frozen spanHandleGeometry adds
-  // that screen-px offset, and it is 0).
+  // colX is grid px: frozen spanHandleGeometry divides its rect offset by the zoom (frozen edit Z2;
+  // before it, colX was grid px only because that offset is 0).
   function selGeom(){
     const geo = spanHandleGeometry();
     if(!geo) return null;
@@ -14951,7 +14966,7 @@ export function initLegacyApp() {
     SIDE_SIDES.forEach(side=>{
       const col = sideCols[side], S = L[side];
       const old = col.querySelector('.sb-stack');
-      scrolled[side] = old ? old.scrollTop : 0;
+      scrolled[side] = old ? old.scrollTop : null;
       if(!S){ col.hidden = true; col.replaceChildren(); return; }
       col.hidden = false;
       col.style.setProperty('--sb-w', charsToScreenPx(S.chars) + 'px');
@@ -14961,9 +14976,13 @@ export function initLegacyApp() {
         + `<div class="sb-width" role="separator" aria-orientation="vertical" title="Drag to change this side's width; double-click for the default" aria-label="Side width"></div>`;
     });
     positionSideBoxes(L);
-    // A rebuild starts each column scrolled to the top; put it back where it was, then level with the grid.
-    SIDE_SIDES.forEach(side=>{ const st = L[side] && sideCols[side].querySelector('.sb-stack'); if(st) st.scrollTop = scrolled[side]; });
-    syncSideScroll(null);
+    // A rebuild starts each column scrolled to the top; put it back where it was. A column that has only
+    // just appeared opens level with the grid instead, so a box dropped on an empty side shows where it
+    // was let go. From there each column scrolls on its own (sideScrollOwn).
+    SIDE_SIDES.forEach(side=>{
+      const st = L[side] && sideCols[side].querySelector('.sb-stack');
+      if(st) st.scrollTop = scrolled[side] !== null ? scrolled[side] : sideLevelWithGrid(side);
+    });
     if(keep){
       const sel = `.sb-box[data-i="${keep.i}"] ` + (keep.hex ? `.sb-key[data-hex="${keep.hex}"] .sb-key-name` : `.sb-edit[data-li="${keep.li}"]`);
       const el = sidePanel.querySelector('.side-col ' + sel);
@@ -15036,14 +15055,15 @@ export function initLegacyApp() {
                screen: r => G ? t + G.rel(r) : r * ROW_DEFAULT_PX };
     }
     const zs = gridZoom(col), sr = stack.getBoundingClientRect(), st = stack.scrollTop;
-    // Wide: the stack's content top sits where the grid's table top sits with both scrolled to the top
-    // (syncSideScroll keeps them scrolled together). Narrow: row 0 is the stack's own top.
+    // Wide: the stack's content top sits where the grid's table top sits with both scrolled to the top,
+    // so the two line up whenever they are scrolled alike; each scrolls on its own (sideScrollOwn), and
+    // `screen` reads this column's own scroll. Narrow: row 0 is the stack's own top.
     const base = (G && wide) ? (G.top0() - sr.top) / zs : 0;
     const css = r => base + (G ? G.rel(r) : r * ROW_DEFAULT_PX * zs) / zs;
     return { stack, zs, css, screen: r => sr.top + (css(r) - st) * zs };
   }
   // Puts every drawn box on its rows, every line at the height of the rows it takes, and the column's
-  // scroll length to at least the grid's, so the two can scroll together to the end.
+  // scroll length to at least the grid's, so a box can be carried down beside any of the grid's rows.
   function positionSideBoxes(L){
     if(!sideCols.left || !sideCols.right) return;
     if(!L) L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
@@ -15082,42 +15102,30 @@ export function initLegacyApp() {
       });
       let h = Math.max(M.css(S.rows) + 2, bottom);   // + the box's frame
       // Wide: at least the grid's whole scroll length (+ its 2 px frame and a little), so the column can
-      // scroll as far as the grid does. Read off the grid, which is observed, never off the column's own
+      // reach every row the grid can. Read off the grid, which is observed, never off the column's own
       // height cap: that moves with the grid fit, which settles after this runs and signals nothing.
       if(G && sideWide()) h = Math.max(h, G.scroll.scrollHeight * zg / M.zs + 4);
       const sizer = M.stack.querySelector(':scope > .sb-sizer');
       if(sizer) sizer.style.height = Math.ceil(h) + 'px';
     });
   }
-  // The side columns scroll WITH the grid, so a box stays beside its rows (wide only). `src` is the
-  // element that scrolled, or null to bring the columns level with the grid. A side taller than the
-  // grid may go on scrolling past the grid's end; the grid simply stays at its end.
-  function syncSideScroll(src){
-    if(!sideWide()) return;
+  // sideScrollOwn: each side column and the grid scroll ON THEIR OWN. Owner, 22 Oct 2026: *"it should
+  // only scroll the viewport or only scroll the sidebar with the boxes dependent on where your cursor
+  // is"* -- the wheel scrolls whatever is under the pointer, so a colour key can stay in view while the
+  // grid scrolls under it. ⛔ This REVERSES free positions' "the side columns scroll with the grid"
+  // (21 Oct, a choice made in that session, never ruled): there is deliberately no scroll listener
+  // tying the two together any more. A box is still drawn level with its sheet row in its own column
+  // (sideRowMap), so the two line up whenever they are scrolled alike -- at the top, for instance -- and
+  // a drop lands on the row as drawn in the column it is dropped in.
+  //
+  // Where a side's column would be scrolled to sit level with the grid as scrolled now: a column that
+  // has only just appeared opens there (renderSideBoxes).
+  function sideLevelWithGrid(side){
+    if(!sideWide()) return 0;
     const tw = document.getElementById('table-wrap');
     const g = tw && tw.querySelector(':scope > .sheet-scroll');
-    if(!g) return;
-    const zg = gridZoom(tw), gMax = g.scrollHeight - g.clientHeight;
-    SIDE_SIDES.forEach(side=>{
-      const col = sideCols[side], st = !col.hidden && col.querySelector('.sb-stack');
-      if(!st) return;
-      const zs = gridZoom(col);
-      if(src === st){
-        const want = st.scrollTop * zs / zg;
-        if(Math.abs(g.scrollTop - want) > 0.5) g.scrollTop = want;
-      } else if(src === g || src === null){
-        const want = g.scrollTop * zg / zs;
-        if((g.scrollTop < gMax - 1 || st.scrollTop < want) && Math.abs(st.scrollTop - want) > 0.5) st.scrollTop = want;
-      }
-    });
+    return g ? g.scrollTop * gridZoom(tw) / gridZoom(sideCols[side]) : 0;
   }
-  // 'scroll' does not bubble, so one capturing listener hears the grid's box and both columns.
-  document.addEventListener('scroll', e=>{
-    const t = e.target;
-    if(!t || !t.classList) return;
-    if(t.classList.contains('sb-stack') && t.closest('.side-col')) syncSideScroll(t);
-    else if(t.classList.contains('sheet-scroll') && t.parentElement && t.parentElement.id === 'table-wrap') syncSideScroll(t);
-  }, true);
   window.addEventListener('resize', ()=>{ if(sideBoxes.length) positionSideBoxes(null); });
   // One committed structural edit is ONE undo step, banked deterministically on both sides of the write
   // (the day menu's pattern) rather than left to the 500 ms debounce. Typing still coalesces through it.
@@ -15644,22 +15652,24 @@ export function initLegacyApp() {
       sideDrag.target = sideDropTarget(sideDrag.x, sideDrag.y - sideDrag.dy, sideDrag.from);
       showSideDrop(sideDrag.target);
     };
-    // Near the top or bottom of the grid's box, the grid (and the columns with it) scrolls, so a box can
-    // be carried to a row that is not in view. Past the grid's end, the side's own column scrolls on.
+    // Near the top or bottom of the column the box is being carried down, THAT column scrolls, so a box
+    // can be carried to a row that is not in view. The columns scroll on their own (sideScrollOwn), so it
+    // is never the grid -- except over an empty side, which has no column yet: its drop zone is drawn over
+    // the grid's edge and read off the grid's rows (sideRowMap), so there the grid is what scrolls.
     const tick = ()=>{
       sideDrag.raf = 0;
-      const G = sideWide() && sideGridRows();
-      if(!G) return;
-      const r = G.scroll.getBoundingClientRect(), edge = 36;
+      if(!sideWide()) return;
+      const t = sideDrag.target;
+      const st = t && !t.empty ? sideCols[t.side].querySelector('.sb-stack') : null;
+      const G = st ? null : sideGridRows();
+      const el = st || (G && G.scroll);
+      if(!el) return;
+      const r = el.getBoundingClientRect(), edge = 36;
       const v = sideDrag.y < r.top + edge ? -Math.ceil((r.top + edge - sideDrag.y) / 3)
               : sideDrag.y > r.bottom - edge ? Math.ceil((sideDrag.y - (r.bottom - edge)) / 3) : 0;
       if(!v) return;
-      const before = G.scroll.scrollTop;
-      G.scroll.scrollTop = before + v / G.z;
-      if(G.scroll.scrollTop === before && v > 0){
-        const st = sideCols[sideDrag.target ? sideDrag.target.side : 'left'].querySelector('.sb-stack');
-        if(st) st.scrollTop += v;
-      }
+      if(st) st.scrollTop += v / gridZoom(sideCols[t.side]);
+      else G.scroll.scrollTop += v / G.z;
       aim();
       sideDrag.raf = requestAnimationFrame(tick);
     };
@@ -20610,9 +20620,12 @@ export function initLegacyApp() {
   // ⚠️ WHAT ZOOM BREAKS, measured (Chrome's standardised zoom): inside a zoomed box,
   // getBoundingClientRect() and clientX are in screen px while inline px and offsetWidth are not.
   // Frozen code that mixes the two is wrong at any zoom but 100%:
-  //   * the waterfall's resize handles (installGridResizers and the drag after it). A row drag
-  //     would SAVE the zoomed height into rowHeights, so the handles are hidden while zoomed
-  //     (body.cal-zoomed, legacy.css) and re-installed on the way back to 100%;
+  //   * the waterfall's resize handles (installGridResizers and the drags after it). A row drag
+  //     SAVED the zoomed height into rowHeights, so until 22 Oct 2026 the handles were hidden while
+  //     zoomed. Fixed IN them, by frozen edits Z1-Z6 the owner approved (22 Oct 2026, "Yes, apply
+  //     it"): every rect and pointer length is divided by the zoom, 1 at 100%. A zoomed layout's rows
+  //     are not quite its 100% rows (20.00 px at 200%, ~20.84 at 100%), so the handles are re-placed
+  //     once the zoom settles (setCalZoom);
   //   * mvNoteBoxWidth() read the day column's ON-SCREEN width, so a month render made while zoomed
   //     (paging a month, any edit) sized note lanes for the zoomed width. Fixed IN it, by a one-line
   //     frozen edit the owner approved (21 Oct 2026): it divides by the zoom, which is 1 at 100%.
@@ -20692,8 +20705,10 @@ export function initLegacyApp() {
       if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
     }
     if(v === 'sheet') redrawGridOverlay(null);
-    // Settled, not per slider step: the stored value, and the re-render at 100% that puts the
-    // waterfall's resize handles back where a zoomed render (installGridResizers) placed them wrong.
+    // Settled, not per slider step: the stored value, the re-render at 100% (anything a zoomed layout
+    // placed, back on its 100% rows), and at every other zoom the waterfall's resize handles re-placed on
+    // the rows as this zoom lays them out (see "WHAT ZOOM BREAKS"; frozen installGridResizers rebuilds
+    // only its own layer, so nothing else in the grid is touched). The render installs them at 100%.
     clearTimeout(_calZoomTimer);
     _calZoomTimer = setTimeout(()=>{
       _calZoomTimer = 0;
@@ -20702,6 +20717,7 @@ export function initLegacyApp() {
       if(Object.keys(store).length) prefs.calZoom = store; else delete prefs.calZoom;
       savePrefs();
       if(calZoom[calZoomView()] === 1 && currentSchedule) render(currentSchedule);
+      else if(calZoomView() === 'sheet') installGridResizers();
     }, 150);
   }
   // The control speaks through one DOM event (ZoomControl.jsx), the way DatePop hands a date back.

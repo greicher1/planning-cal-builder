@@ -406,7 +406,8 @@ both writers. This replaces §3.3's "stack top to bottom" for any box that has b
   unchanged and §6's frozen edits were not touched.
 - **Screen:** a box is drawn level with the grid's sheet row (read off the table's rows), the side columns scroll with
   the grid, and each line is as tall as the grid rows it takes. §4.1's "each side column scrolls on its own" is
-  replaced by "scrolls with the grid".
+  replaced by "scrolls with the grid". ⚠️ **Reversed again 22 Oct 2026 (§15):** each column scrolls on its
+  own once more, and the boxes stay drawn level with their rows.
 - **Moving:** drag by the grip (a dashed outline shows the landing rows), or Alt+Up/Down (a row, or a swap with the
   neighbour it is against) and Alt+Left/Right (the other side, same row). A box dropped in another's upper half takes
   its place; in its lower half it goes under it. A move writes every box on the sides it touches to the row it is drawn
@@ -451,3 +452,25 @@ app"*. **Ruled by picker:** per box, not one switch for all, and *"button should
   `filekeys` (contention, 16/16 alone) and `hdrversion` (a date-dependent bug in that leg's PDF reader, fixed on
   the live branch the same night; HANDOFF). The v1.7.0 Export PDF dialog's `pageFitFor()` calls the layout with no
   opts, so its recommendation measures the printed page, hidden boxes left out.
+
+## 15. Each side column scrolls on its own again (22 Oct 2026, branch `sidebox-own-scroll`)
+
+Owner, 22 Oct 2026: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on
+where your cursor is. If the cursor is over the viewport it should scroll that around, if its hovering over the
+right edge, it should move that around"*. This puts back §4.1's "each side column scrolls on its own" and undoes
+§13's "the side columns scroll with the grid", which was a choice made in that session, never ruled.
+
+- **Screen only.** The writers, the layout and the save format are untouched; nothing frozen changed.
+- `syncSideScroll()` and its capturing `scroll` listener are gone; nothing ties the grid's scroll to a column's.
+- **Rows.** A box is still placed level with its sheet row in its own column (`sideRowMap`: the column's content
+  top is where the grid's table top would be with the grid at the top), so the two line up whenever they are
+  scrolled alike. A drop reads the row off the column it lands in, as drawn there.
+- **A column that has only just appeared opens level with the grid** (`sideLevelWithGrid`, from
+  `renderSideBoxes`), so a box dropped on an empty side shows where it was let go. An existing column keeps its
+  own scroll through a rebuild. Alt+Left/Right focuses the box afterwards, which scrolls it into view.
+- **The drag's auto-scroll aims at the column the box is over**, not the grid. Over an empty side (no column yet,
+  the drop zone drawn over the grid's edge and read off the grid's rows) the grid is still what scrolls.
+- The column's scroll length is still at least the grid's, so a box can be carried down beside any of its rows.
+- **Proof:** `sideboxes` R6/R7 rewritten (the other one stays put), R15 (scrolled alike they line up), R16 (a drag
+  at a column's bottom scrolls that column, not the grid), R17 (a drop on an empty side opens level), R18 (two
+  undos put it back). 78/78; red on the pre-change build at R6, R7 and R16.
