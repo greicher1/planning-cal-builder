@@ -54,7 +54,9 @@ on that cell and the cell has no one-gesture way to do it already (a double-clic
 - **Verified:** new leg `wfmenu` (38 cases, in `gate.sh`), red on the pre-change build; `mvmenu` 89/89 (G3 now
   expects the waterfall's own menu), `wfkeys` 84/84, `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40.
   Full gate on build `c82fd1ab…`: 2,976 PASS, 2 FAIL, both load timeouts (`launchopen`, `textstyle`) that pass alone
-  on the same build; every frozen output identical to its baseline. Not merged, not pushed.
+  on the same build; every frozen output identical to its baseline. Landed together with Header: Off for the Month
+  view: combined full gate on build `75968ba8…` 3,010 PASS, 2 FAIL, both load timeouts (`hdrrow`, one `monthexport`
+  time-zone run) that pass alone on the same build.
 
 ### Unreleased — Header: Off for the Month view (23 Oct 2026)
 

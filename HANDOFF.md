@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; ✅ FULL GATE 2,976 / 2 (build `c82fd1ab…`), BOTH FAILS GREEN ALONE ON THE SAME BUILD; NOT merged, NOT pushed ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
+### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*) ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
 
 - **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
   four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
@@ -52,8 +52,23 @@
   The two FAILs are load timeouts, not assertions: `launchopen` "EX: harness" after L0–L9 passed, and `textstyle`
   "timed out waiting for: the loaded calendar". **Both green alone on the same build right after:** `launchopen`
   16/16, `textstyle` 51/51.
-- ⏭ **Next:** merging into `main` and the push are each the owner's picker (the code and these docs are committed
-  on the branch, as CLAUDE.md allows). Then the month menu's trim (`month-menu-trim`): propose its short list for
+- **The landing (owner, by picker, 23 Oct 2026).** Asked to merge and push, `main` was found to hold another
+  session's unpushed "Header: Off for the Month view" (`1af8782`), whose own gate was running. Asked again, the owner
+  chose *"Land both together"*: `main` merged in as `ade4231` (only the HANDOFF / README top entries conflicted;
+  both kept). While waiting for that session's gate, `origin/main` moved to `2c6a822` (the month-drag fix, live), so
+  it was merged in too as `31f7599`. Then local `main` gained **Scenarios** (`57a3650`, unpushed, its own gate still
+  owed), so a push of `main` would have shipped it ungated. Asked a third time, the owner chose *"Push what was
+  gated"*: `31f7599` (plus this docs commit) goes to `origin/main`, then merges into local `main` beside Scenarios.
+  ⚠️ **Scenarios' own gate must then include the right-click menu.**
+- ✅ **Combined full gate on `31f7599` (build `75968ba8…`, 1,775,069 bytes; port 9842, 14:58:17–15:27:37): 3,010 PASS,
+  2 FAIL.** Every frozen output identical to its baseline (the waterfall PDF, every Excel part, the month print
+  documents, gate 13's written month PDFs), 0 clipped, 76 ids; `wfmenu` 38, `mvmenu` 89, `mvhdroff` 9 inside it.
+  The two FAILs are load timeouts: `hdrrow` EX (*"timed out waiting for: the loaded calendar (its sidebar tab)"*,
+  its 17th Load, after H1–H10 passed) and `monthexport (reference, Pacific/Kiritimati)` X6. Kiritimati: 9/9 alone.
+  `hdrrow` on the same build: one more EX (run alongside the month-menu-trim session's gate, started 15:27:50), then
+  5 × 37/37. Header: Off + month-drag WITHOUT the menu: 5 × 37/37, and every input build alone 37/37, so whether the
+  menu raises that leg's load-timeout rate is not settled by 7 runs. Nothing in the menu runs during a Load.
+- ⏭ **Next:** the push and its live check, then the merge into local `main`. Then the month menu's trim (`month-menu-trim`): propose its short list for
   approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
   it lands, never from an older `main`.
 
