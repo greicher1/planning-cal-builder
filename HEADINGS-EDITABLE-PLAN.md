@@ -1,6 +1,7 @@
 # HEADINGS-EDITABLE-PLAN.md: column headings editable all the time, no switch
 
-**Status: PLANNED, 22 Oct 2026. Nothing built. Question Q1 (§4) and the frozen edits in §5 await the owner.** Build
+**Status: PLANNED AND SIGNED OFF, 22 Oct 2026. Nothing built.** Owner's picker the same day: Q1 **"Bring them
+back"** (§4, option a), and the frozen edits H1–H3 in §5 **signed off** with §6's gate. Build
 it after `hide-notes` (HIDE-NOTES-PLAN.md) is merged, on its own branch (`headings-editable`). It edits the same
 three frozen heading paths, and it retires that branch's headings-off Notes panel (§3).
 
@@ -84,7 +85,7 @@ Today they print `Date | year | Notes`. Under §2 their typed headings come back
 - **(b) Drop them on load.** A file with labels but no `headerRowCustom: true` loses them. This needs a marker
   key on new saves, so that a calendar whose headings were typed after this change keeps them.
 
-## 5. The frozen edits (for sign-off)
+## 5. The frozen edits (signed off by the owner, 22 Oct 2026)
 
 | | Edit | Inert when |
 |---|---|---|

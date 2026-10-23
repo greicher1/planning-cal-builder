@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FROZEN EDITS SIGNED OFF; `notescols` 48/48; FULL GATE QUEUED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
+### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); NOT MERGED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
   switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
@@ -27,8 +27,14 @@
   into the waterfall's print fallback.
 - **Proof so far:** `notescols` 48/48 (new, in `gate.sh`), red on the pre-change build (built from `main` with
   `git archive`), and `npm run check` 40/40. In the pane, a real double-click opened the panel, Hide drew the strip,
-  and the Settings pills, undo and redo, and Show all worked. ⏭ **The full gate is queued** behind another session's
-  gate (two at once stall each other). Its result goes here.
+  and the Settings pills, undo and redo, and Show all worked.
+- ✅ **Full gate on build `f85c9814…` (port 9759, 22 Oct 20:28–20:54, run alone after another session's gate):
+  2,812 PASS, 1 FAIL.** The waterfall PDF, every Excel part, every month print document and gate 13's written month
+  PDFs are byte-identical to the baselines; 0 clipped; 76 ids; `notescols` 48/48. The one FAIL is `sideboxes` R16
+  (*"a box carried to the bottom of its column scrolls that column, not the grid"*). ⚠️ **It is not this branch's:**
+  run alone, it failed on the PRE-change build (`main` at `fc818b8`, built with `git archive`) 2 out of 2, and on
+  this build once out of 2. It belongs to the side boxes' separate-scroll change already in `main`, and is a flake
+  there (its README entry reported 78/78).
 - ⚠️ **Mid-build the owner asked for a second change:** *"remove the custom column headings toggle in settings and
   just make it editable all the time"*. Ruled by picker: untouched calendars keep Date | year | Notes, and calendars
   saved with the switch on keep the year over Date. On the tracker as `headings-always-editable`. NOT started: it
@@ -36,8 +42,9 @@
   headings-off Notes panel (`openNotesColPop`) redundant.
   **Planned** in [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md) (on this branch): `headerRowTyped()`
   replaces the switch as the path condition (H1–H3, a one-word frozen edit each). The Date column's default becomes
-  `Date` unless the file has `headerRowCustom: true`. A double-click on any heading opens the editor. ⏭ Waiting on
-  the owner for Q1 (typed headings on a calendar that turned the switch off) and the H1–H3 sign-off.
+  `Date` unless the file has `headerRowCustom: true`. A double-click on any heading opens the editor. **Owner's
+  picker, 22 Oct 2026: Q1 "Bring them back", and H1–H3 signed off.** ⏭ Build it on a branch after `hide-notes`
+  lands.
 - The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker). Nothing here is merged
   or pushed.
 

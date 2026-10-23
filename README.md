@@ -59,7 +59,9 @@ mantine style"*. Plan and rulings: [`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md).
   workbook's hidden columns, rules and band merges, the PDF's headings and notes, the print fallback, Custom Column
   Headings, Single Column Mode, and the file key (Load, hostile values, New). `npm run check` passed 40/40. In the
   browser pane, a real double-click opened the panel and Hide drew the strip; the Settings row, undo and redo, and
-  Show all all worked.
+  Show all all worked. **Full gate: 2,812 PASS, 1 FAIL.** Every baseline is byte-identical (waterfall PDF, Excel
+  parts, month print documents, written month PDFs), with 0 clipped cells and 76 ids. The one FAIL, `sideboxes` R16,
+  also fails on the pre-change build, so it is an existing flake.
 
 ### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
 
