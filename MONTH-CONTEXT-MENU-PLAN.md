@@ -1,5 +1,10 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
+> ⛔ **TRIMMED BY THE OWNER, 23 Oct 2026 (§13, rulings T1–T4).** The menu described in §2–§3 below is the menu as
+> first built. Add note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the
+> "Shift + right-click" footer line are GONE, and an item that cannot act on the day is left out rather than greyed.
+> Read §13 for what the menu is now, and WATERFALL-CONTEXT-MENU-PLAN.md §1.1 before adding anything to it.
+
 **Status: ALL FIVE STEPS BUILT, 19 Oct 2026** (§10). Step 1 went live at `dac24c9`, and steps 2–4 (Add hiatus ▸,
 the bar's own section, the left-click with the popover retired) at `8400b38`. Step 5 (the hiatus and holiday sections)
 is on `day-menu-step5`, cut from the step-4 merge, and not merged. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
@@ -574,3 +579,111 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
   server at `/mockups/month-context-menu.html`. It loads Inter from Google Fonts, which the product's CSP never sees,
   because this is not the product.
 - The side panel explains each item as you point at it, and lists what is left out on purpose.
+
+---
+
+## 13. The trim (23 Oct 2026, rulings T1–T4)
+
+### 13.1 The request
+
+The owner, 23 Oct 2026, reviewing the waterfall's right-click menu before it was built: *"I want you to be more
+cautious in adding extra buttons to the right click menu. I want you to think very carefully about which buttons we
+actually need in each right click menu. For example, we really dont need the swap collumn feature in the right click
+menu. We dont need an add notes button at all. right now the right click menu especially on phases is huge"*. Asked by
+picker whether this live menu should get the same cut, they chose *"Trim the month menu too"*, as its own task after the
+waterfall's (WATERFALL-CONTEXT-MENU-PLAN.md ruling R7). Tracker card `month-menu-trim`.
+
+Built on branch `claude/adoring-chaum-0206c1`: `main` at `1af8782` with the waterfall menu's branch
+(`claude/goofy-austin-fa2c05`, `d4e5654`) merged in, because that branch reshaped `installMonthDayMenu` into one engine
+for both menus. So landing this lands the waterfall menu too.
+
+### 13.2 The test
+
+The waterfall's (its plan §1.1): an item stays only if it is what someone reaches for on **that** day or bar, **and**
+there is no one-gesture way to do it already. The gestures the month view already has:
+
+| Gesture | Already does |
+|---|---|
+| click a day's "+" | a new note on that day and line |
+| click a note | edit it |
+| drag a bar's body / an edge handle | move it / change its start or end (only within the month on screen) |
+| the phase row's swatch, its ×, its fold caret | colour it, remove it, show it |
+| the hiatus row's *Lock in place* and *Number weeks* boxes | lock it, number its weeks |
+| the holiday list's three boxes | enable it, show it per view (for every holiday inside a phase, which is every one drawn) |
+| double-click a marked day | clear the mark |
+
+### 13.3 The audit, item by item (measured on `halfdays.sptcal`, the build of `f88d8ac`)
+
+| Section | Item | Verdict | Why |
+|---|---|---|---|
+| This day | Add note | **Gone** | The owner's rule ("no add notes button at all"); click the day's "+" |
+| This day | Add 1-day phase here | Stays (T2) | Ruling Q1, the owner's own. No other one-step way |
+| This day | Add 1-week phase here | Stays | Ruling Q1; the waterfall's R5 kept it |
+| This day | Add hiatus ▸ | Stays | No other one-step way; the waterfall's R5 kept it |
+| The bar | Start / End ‹phase› here | Stays, a pair | The waterfall's pair. A drag does it only when the old edge and the day are in the same month |
+| The bar | Colour… | **Gone** | The phase row's swatch (the waterfall's §1.2 cut it) |
+| The bar | Show in Phases card | **Gone** | The phase row itself (the waterfall's §1.2) |
+| The bar | Back to date order | Stays | The only way back from a reorder (MONTH-ORDER-PLAN §3.1); shown only while an order is set |
+| The bar | Remove ‹phase›… | Stays (T2) | The owner's own ask, 19 Oct 2026 (§3.7a) |
+| A Prep bar | Start / End, both greyed | **Gone** | Neither can ever act on Prep, so the pair reads as nothing but noise there |
+| Shoot day | Full day / Off, Weekend — not shot / Work this day, … | Stays | Ruling L1: the only way to mark a day |
+| Hiatus | Lock in place | **Gone** | The hiatus row's own box (the waterfall's §1.2) |
+| Hiatus | Number weeks | **Gone** | The hiatus row's own box. It came with LABELS-SETUP item 9; the owner's ruling there was *"Per hiatus row"*, and the box stays on the row |
+| Hiatus | Colour… | Stays (T2) | The owner's *"Recolour from day menu"* (20 Oct 2026). The only way to colour a whole hiatus at once |
+| Hiatus | Show in Phases card | **Gone** | The hiatus row itself |
+| Hiatus | Remove hiatus… | Stays | The waterfall's band menu has it; asks first (Q4) |
+| A phase's own hiatus | Remove ‹phase›'s hiatus | Stays | The same, for a phase's own band |
+| Holiday | Enabled · Show in month view · Show in waterfall | Stays (T2) | Ruling Q6, the owner's own; the waterfall cut its holiday section *because* this one has it |
+| The way out | Show this week in the waterfall | Stays | The waterfall's R4 kept its twin |
+| Footer | "Shift + right-click opens the browser's own menu" | **Gone** | The waterfall dropped the same line; Shift + right-click still opens it, unadvertised |
+| Footer | "Double-click a marked day to clear it" | Only on a marked day | The one place the gesture can act |
+
+### 13.4 Rulings (owner, 23 Oct 2026, one picker of four questions, each answered with the recommendation)
+
+| # | Question | Ruling |
+|---|---|---|
+| ✅ T1 | Trim to the short list (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks and the Shift footer line go; Prep's Start / End go)? Previewed on Production's bar and on a plain day | **"Trim to this list"**. Declined: also cutting Start / End here |
+| ✅ T2 | Which of the owner's own earlier items stay: Add 1-day phase here (Q1), Remove ‹phase›… (19 Oct), hiatus Colour… (20 Oct), the holiday section (Q6)? | **All four** |
+| ✅ T3 | An item that cannot act on the day: left out, or greyed with its reason? | **"Leave it out"**, the waterfall's R6. Start / End stay a greyed pair; *Work this day* inside a hiatus stays greyed with its reason (owner ruling 1, 18 Sep 2026) |
+| ✅ T4 | Close on any scroll, or only when the calendar itself scrolls? | **"Only when the calendar scrolls"**: the waterfall menu's rule, so one rule for both menus |
+
+This session's calls, each cheap to change: Prep's greyed pair goes (T1's wording named it); the double-click hint shows
+only on a marked day; *Move ‹phase›'s hiatus here* in the shared Add hiatus ▸ submenu is left out in the week its hiatus
+already starts (T3), which the waterfall's submenu shares, and the waterfall's own R6 already asks for.
+
+### 13.5 What the menu is now
+
+| Section | Shows when | Items |
+|---|---|---|
+| *(This day)* | always | Add 1-day phase here (not on a weekend or inside an all-phase hiatus) · Add 1-week phase here · Add hiatus ▸ |
+| *‹phase›* | the pointer is on that phase's bar, and the section has an item | Start / End ‹phase› here (a greyed pair; not on Prep) · Back to date order (while an order is set and differs from date order) · Remove ‹phase›… (custom phases) |
+| Shoot day N | the day is inside the shoot | the shoot rows, unchanged (L1) |
+| ‹hiatus› · dates | the day is inside an all-phase hiatus | Colour… · Remove hiatus… |
+| ‹phase›'s hiatus · dates | the day is inside a phase's own hiatus | Remove ‹phase›'s hiatus |
+| Holiday · ‹name› | a holiday falls on the day | Enabled · Show in month view · Show in waterfall (the two Show items only while the holiday is on) |
+| *(last)* | always | Show this week in the waterfall |
+
+Footer: "Double-click a marked day to clear it", only on a day holding a mark. No other footer line.
+
+### 13.6 How
+
+- **Inside `installMonthDayMenu`, no frozen code, no snapshot key, no id.** The items that go take their helpers with
+  them (`addNote`, `noteAnchor`, `phaseColourHere`, `showPhaseRow`, `lockHiatusHere`, `numberHiatusHere`,
+  `showHiatusRow`). Nothing they called is removed: the swatch, the rows' boxes and `revealSidebarTab` stay, with
+  every other caller.
+- **The shoot rows are untouched** (`dayOverrideRows` / `shootSection`): ruling 1's greyed *Work this day* stays.
+- **The close-on-scroll rule** is the waterfall's (§10 item 1 of its plan): the open menu remembers where each box around
+  its day stood (`scrollBoxes`, already taken for the month menu too), and only a scroll that MOVED one closes it
+  (`movedSinceOpen`). The month view's subtree render rule stays as it was.
+- **The `wf*` half is not touched**, except through the shared submenu (§13.4's last call).
+
+### 13.7 The gate
+
+- **`mvmenu`**: every menu it opens is checked against its EXACT item list (so an item that creeps back is red), the
+  cut items' cases go or flip (I2a, I2b, I2c, I6, I6u, P5, P5u, P6, P6u, P6w, V2, V3; C1 split), and new cases hold the
+  scroll rule (a scroll that moves the day closes it; an unmoved one or a sidebar scroll does not) and the footer.
+- **Legs that used a cut item:** `phasefold` F8 (Show in Phases card unfolding a folded card) and `labelsetup` C1
+  (Number weeks from the menu) move to what remains, and a case asserts each item is absent.
+- **`wfmenu` 38/38** (the shared engine), `mvorder` O6 (Back to date order), `halfdays`, `halfworked`, `offweek`,
+  `epnames`, `phasenum`, `shootdays`, `weeknum`.
+- **`npm run check`**, then the full `tests/harness/gate.sh`, every frozen output identical: the menu changes no cell.
