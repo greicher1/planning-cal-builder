@@ -109,6 +109,11 @@ export const chrome = {
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
   // step, and a Load or an undo leaves it as it is.
   settingsWindow: noop,
+  // { cols: [{ year, has }] } — the hidden Notes columns (HIDE-NOTES-PLAN.md), for the Waterfall card's
+  // "Hidden Notes columns" row: the years whose column is hidden, and whether each holds notes (the dot).
+  // The engine's `hiddenNotesCols` is the only store. The input half needs no bridge: a pill's × and Show
+  // all carry `data-shownotes`, which the engine catches on document, as it does on the grid's strip.
+  hiddenNotes: noop,
   // { view: 'sheet'|'month', zoom, visible } — the calendar zoom control (ZoomControl.jsx), bottom
   // right in both views. The engine holds one zoom per view and applies it; this is only what the
   // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.

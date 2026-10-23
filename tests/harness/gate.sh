@@ -2512,6 +2512,28 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSN
 
+# ---- notescols: hide a year's Notes column (HIDE-NOTES-PLAN.md, owner's option B, 22 Oct 2026) ---------------
+# The frozen edits W1-W2, R1-R5, X1, E1-E3, P1-P3 (signed off 22 Oct 2026) are inert with nothing hidden, which
+# every byte-compared gate above proves; this leg proves them with columns hidden. On colreuse (three blocks, two
+# with notes, an all-phase hiatus in 2031): the Notes panel by double-click, the strip (one cell per row, never a
+# rowspan, its resize handle hidden, the dot), the grid's right edge, 0 clipped; the workbook's columns HIDDEN with
+# width and notes kept, the right rule and the hiatus band's merge at the last phase column; the PDF's headings
+# and notes; the print fallback (localhost route sptcal.wfPdfTest) with no strip; Custom Column Headings and
+# Single Column Mode; the file key (absent when empty, Load, hostile values, New). Red on the pre-change build.
+rm -f "$HERE/notescols.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse "$HERE/run.sh" notescols 1200 >/dev/null 2>&1
+python3 - "$HERE/notescols.json" <<'PYNC' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  notescols produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  notescols threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'notescols: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYNC
+
 # ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
 # CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
 # no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place

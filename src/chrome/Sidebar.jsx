@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
-import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
+import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip, CloseButton } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
@@ -372,6 +372,48 @@ function SettingRow({ htmlFor, label, children }) {
   )
 }
 
+// "Hidden Notes columns" (HIDE-NOTES-PLAN.md, the owner's option B, 22 Oct 2026): the years whose Notes
+// column is hidden, as pills, each with an × that shows it again, and Show all once two or more are hidden.
+// A violet dot marks a column that holds notes -- the one flag, never a count (owner: "just flag that a
+// collumn contains notes ... keep things clean and elegant and in mantine style").
+// ⛔ CALENDAR DATA, the engine's `hiddenNotesCols` (captureSnapshot's own key), which this only REFLECTS:
+// the list comes in through bridge.js (chrome.hiddenNotes), and a click goes out as the native click on an
+// element carrying `data-shownotes`, which the engine catches on document. No id anywhere, so nothing
+// here can enter fields.byId even outside .prefs-card.
+function HiddenNotesRow() {
+  const [cols, setCols] = useState([])
+
+  useLayoutEffect(() => {
+    installChrome({ hiddenNotes: (next) => setCols(Array.isArray(next && next.cols) ? next.cols : []) })
+  }, [])
+
+  return (
+    <>
+      <Divider my="sm" />
+      <Group justify="space-between" wrap="nowrap" gap="sm" align="flex-start" className="wf-hidden-notes">
+        <Text size="sm" style={{ whiteSpace: 'nowrap' }}>Hidden Notes columns</Text>
+        {cols.length ? (
+          <Group gap={6} justify="flex-end" wrap="wrap">
+            {cols.map((c) => (
+              <span key={c.year} className="wf-hidden-pill">
+                {c.has ? <span className="wf-notes-dot" title="Has notes" /> : null}
+                <span>{c.year}</span>
+                <CloseButton size="xs" radius="xl" data-shownotes={String(c.year)}
+                             aria-label={`Show ${c.year}’s Notes column`} title={`Show ${c.year}’s Notes column`} />
+              </span>
+            ))}
+            {cols.length > 1 ? (
+              <Button variant="subtle" size="compact-xs" color="navy" data-shownotes="all">Show all</Button>
+            ) : null}
+          </Group>
+        ) : (
+          <Text size="sm" c="dimmed">None</Text>
+        )}
+      </Group>
+    </>
+  )
+}
+
 export function WaterfallCard() {
   return (
     <section className="card prefs-card pref-view-sheet">
@@ -383,7 +425,9 @@ export function WaterfallCard() {
         <InfoHint label="Waterfall" width={320}>
           How the waterfall reads, on screen and in Excel and the PDF. With Custom Column Headings on,
           the year moves over the Date column and you click any heading to type your own; neighbouring
-          columns with the same heading merge. Paper is the sheet the PDF and the Excel file are laid
+          columns with the same heading merge. Double-click a year's Notes heading to hide that
+          column on screen and in Excel and the PDF; click its thin strip, or its year below, to bring
+          it back. Paper is the sheet the PDF and the Excel file are laid
           out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
           cell borders in Excel and the PDF only; the grid on screen is unchanged.
         </InfoHint>
@@ -445,6 +489,7 @@ export function WaterfallCard() {
           <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
                   title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
         </SettingRow>
+        <HiddenNotesRow />
         {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`
             snapshot key, so it sits with the calendar settings above Grid Lines, not after it. The same
             .prefs-card rule as #wf-date-format: the sweep skips the id, and the engine owns the value.

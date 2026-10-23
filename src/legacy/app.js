@@ -3139,6 +3139,51 @@ export function initLegacyApp() {
   let headerRowCustom = false;
   let headerRowLabels = {};
   let headerRowSplits = {};
+  // ⭐ `hiddenNotesCols` (22 Oct 2026, HIDE-NOTES-PLAN.md, the owner's option B): the years whose Notes
+  // column is hidden, keyed by the width model's own column key (`y2031:notes`) -- {key: true} in memory,
+  // a sorted array in the file, written only when non-empty. ⛔ CALENDAR DATA: it changes what Excel and
+  // the PDF contain, so it travels with the calendar. Read through notesHiddenFor(); with nothing hidden
+  // every frozen edit it gates (the plan's W1-W2, R1-R5, X1, E1-E3, P1-P3) runs exactly what ran before.
+  // Single Column Mode's one block is the first year's, so it reads that year's key, as headings do.
+  let hiddenNotesCols = {};
+  const NOTES_COL_KEY = /^y\d{4}:notes$/;
+  function notesHiddenFor(year){ return hiddenNotesCols['y' + year + ':notes'] === true; }
+  // True only while exportWaterfallPdf (the print fallback, X1) is rendering into #print-root: the
+  // on-screen strip that stands in for a hidden Notes column must never reach a printed page.
+  let wfPrintRender = false;
+  // Does a year block's Notes column hold anything? The width model's own test, string for string
+  // (sheetColumnWidths measures exactly these, and skips an all-phase hiatus week, whose band covers the
+  // column): an automatic note counts, a note cleared to '' does not, a kind switched off in Automatic
+  // notes does not. It is the violet dot on the strip, in the Notes panel and on the Settings pill.
+  function blockHasNotes(schedule, b){
+    const notesByIdx = (schedule && schedule.notesByIdx) || {};
+    for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+      const w = schedule.weeks[i];
+      if(!w || (w.cells.length && w.cells[0].type === 'hiatus')) continue;
+      if(effectiveNoteText(w.date.toISOString().slice(0,10), autoNotesForView(notesByIdx[i], 'sheet'))) return true;
+    }
+    return false;
+  }
+  // THE STRIP: what a hidden Notes column leaves on SCREEN (owner's mockup, 22 Oct 2026). A 14 px column
+  // per block, one cell per row -- ⛔ never a rowspan: applyCellFitLive and the span handles map cells to
+  // columns by walking each row, and a rowspan would shift every block to its right by one column. Its
+  // text is CSS (::after), so every frozen reader that skips an empty cell skips it; its <col> key
+  // (`y2031:notesoff`) matches no heading, swap or width key, and its resize handle is hidden by CSS.
+  // A click anywhere on it shows the column again (the #table-wrap listener by openNotesColPop).
+  const NOTES_STRIP_PX = 14;
+  const EYE_OFF_SVG = '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.6 6.6a2 2 0 0 0 2.8 2.8"/>'
+    + '<path d="M11.3 11.3A6.6 6.6 0 0 1 8 12.5c-2.9 0-5-2-6.5-4.5.8-1.4 1.8-2.5 2.9-3.3M6.7 3.6A6.3 6.3 0 0 1 8 3.5'
+    + 'c2.9 0 5 2 6.5 4.5-.5.9-1 1.6-1.6 2.3"/><path d="M2 2l12 12"/></svg>';
+  function notesStripTitle(year){ return `Show ${year}’s Notes column`; }
+  function notesStripTh(b){
+    return `<th class="wf-notes-strip" data-shownotes="${b.year}" title="${notesStripTitle(b.year)}">${EYE_OFF_SVG}</th>`;
+  }
+  // Row 0 carries the label (and the dot when the column holds notes); the rest are plain strip.
+  function notesStripTd(b, r, has){
+    const label = r === 0 ? `<span class="wf-notes-strip-label">${has ? '<span class="wf-notes-dot"></span>' : ''}</span>` : '';
+    return `<td class="wf-notes-strip" data-shownotes="${b.year}" title="${notesStripTitle(b.year)}">${label}</td>`;
+  }
   const HDR_ROW_KEY = /^y\d{4}:(?:date|notes|s\d{1,3})$/;
   const HDR_ROW_MAX = 200;   // characters; a heading is one line, and Excel caps a cell at 32,767
   function headerRowDefault(block, key){ return /:notes$/.test(key) ? 'Notes' : String(block.year); }
@@ -12744,6 +12789,13 @@ export function initLegacyApp() {
     const notesColspan = 1; // Notes only; Simultaneous Post now lives in the phase area
     const maxRows = sheetRowCount(schedule, yearBlocks);
     const notesByIdx = schedule.notesByIdx || {};
+    // ⛔ FROZEN EDIT R5 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): which blocks' Notes columns
+    // are hidden (W1 already took them out of `cols`), and whether the strip stands in for one -- on
+    // screen only, never in the print fallback (X1). With nothing hidden every entry is false, and R1-R4
+    // below draw exactly what they always drew.
+    const notesGone = colWidthsFor.map(bk => bk.notesHidden === true);
+    const notesStrip = notesGone.map(g => g && !wfPrintRender);
+    const notesHas = yearBlocks.map((b, bi) => notesStrip[bi] && blockHasNotes(schedule, b));
 
     let headerHtml = '';
     yearBlocks.forEach((b, bi)=>{
@@ -12757,7 +12809,9 @@ export function initLegacyApp() {
       if(headerRowCustom){
         const runs = headerRowRuns(b, colWidthsFor[bi].cols);
         runs.forEach((run, ri)=>{
-          const edge = ((isFirst && ri === 0) ? ' sheet-blockstart' : '') + ((isLast && ri === runs.length - 1) ? ' sheet-blockend' : '');
+          // ⛔ FROZEN EDIT R1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): with a strip after it the last
+          // run is not the grid's edge -- the strip is, and R4 rules it. `!notesStrip[bi]` is true with nothing hidden.
+          const edge = ((isFirst && ri === 0) ? ' sheet-blockstart' : '') + ((isLast && ri === runs.length - 1 && !notesStrip[bi]) ? ' sheet-blockend' : '');
           const sc = headerRowFit(run.text, run.chars);
           // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled heading appends its style; a chosen
           // size shrinks with the fit (11·sc is what fits, so min(size, 11·sc) does too). The title says
@@ -12768,6 +12822,7 @@ export function initLegacyApp() {
           headerHtml += `<th${run.span > 1 ? ` colspan="${run.span}"` : ''} class="hdrrow-cell${edge}" data-hcol="${run.keys[0]}"`
             + ` title="Double-click to edit this heading"${hts ? (hcss ? ` style="${hcss.trim()}"` : '') : (sc < 1 ? ` style="font-size:${(11 * sc).toFixed(2)}px"` : '')}>${escHtml(run.text)}</th>`;
         });
+        if(notesStrip[bi]) headerHtml += notesStripTh(b);   // R1: the runs above come from `cols`, so a hidden Notes column is already out of them
         return;
       }
       // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): each default heading appends its style, keyed
@@ -12776,7 +12831,10 @@ export function initLegacyApp() {
         return ` style="${((f.size ? textSizeCss(f.size, ROW_DEFAULT_PX) : '') + textStyleCss(f)).trim()}"`; };
       headerHtml += `<th class="${isFirst?'sheet-blockstart':''}"${thTs('y' + b.year + ':date')}>Date</th>`;
       headerHtml += `<th colspan="${mc}"${thTs('y' + b.year + ':s0')}>${b.year}</th>`;
-      headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}"${thTs('y' + b.year + ':notes')}>Notes</th>`;
+      // ⛔ FROZEN EDIT R1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column draws no
+      // heading -- the strip's on screen, nothing in print. With nothing hidden this is the line it always was.
+      if(!notesGone[bi]) headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}"${thTs('y' + b.year + ':notes')}>Notes</th>`;
+      else if(notesStrip[bi]) headerHtml += notesStripTh(b);
     });
 
     // <colgroup> + table-layout:fixed is what gives columns an identity at all. Without it the
@@ -12791,6 +12849,12 @@ export function initLegacyApp() {
         gridPxTotal += px;
         colsHtml += `<col data-ckey="${c.key}" style="width:${px}px">`;
       });
+      // ⛔ FROZEN EDIT R2 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): the strip's own column, on screen
+      // only, counted into the table's width (table-layout:fixed scales every column to it otherwise).
+      if(notesStrip[bi]){
+        gridPxTotal += NOTES_STRIP_PX;
+        colsHtml += `<col data-ckey="y${b.year}:notesoff" style="width:${NOTES_STRIP_PX}px">`;
+      }
     });
 
     let bodyHtml = '';
@@ -12804,9 +12868,15 @@ export function initLegacyApp() {
       yearBlocks.forEach((b, bi)=>{
         const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
         const mc = blockMaxConcurrent[bi];
+        // ⛔ FROZEN EDIT R3 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column spans
+        // nothing (nCs 0), and a cell followed by the strip is not the grid's edge (edgeLast). With nothing
+        // hidden nCs is notesColspan and edgeLast is isLast: the expressions below are the ones that ran.
+        const nCs = notesGone[bi] ? 0 : notesColspan;
+        const edgeLast = isLast && !notesStrip[bi];
         if(r >= b.count){
           bodyHtml += `<td class="sheet-empty ${isFirst?'sheet-blockstart':''}"></td>`;
-          bodyHtml += `<td class="sheet-empty" colspan="${mc+notesColspan}" ${isLast?'style="border-right:2px solid var(--text);"':''}></td>`;
+          bodyHtml += `<td class="sheet-empty" colspan="${mc+nCs}" ${edgeLast?'style="border-right:2px solid var(--text);"':''}></td>`;
+          if(notesStrip[bi]) bodyHtml += notesStripTd(b, r, notesHas[bi]);   // R3
           return;
         }
         const idx = b.startIdx + r;
@@ -12838,7 +12908,7 @@ export function initLegacyApp() {
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
             + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
-          bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
+          bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+nCs}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${edgeLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -12929,7 +12999,11 @@ export function initLegacyApp() {
           const weekDateKey = w.date.toISOString().slice(0,10);
           const noteText = effectiveNoteText(weekDateKey, autoNotes);
           const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-          if(noteText){
+          // ⛔ FROZEN EDIT R3 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column has no
+          // cell; the strip's goes in below, after either branch. With nothing hidden this test is false.
+          if(notesGone[bi]){
+            // nothing: the note stays saved and returns with the column
+          } else if(noteText){
             const nc = noteColorFor(weekDateKey);
             // The row's height buys a line budget; the note wraps into it and only shrinks
             // when even that is not enough. A size the user picked for this note wins outright.
@@ -12952,6 +13026,7 @@ export function initLegacyApp() {
             bodyHtml += `<td class="sheet-note-cell" title="Double-click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
         }
+        if(notesStrip[bi]) bodyHtml += notesStripTd(b, r, notesHas[bi]);   // R3: one strip cell per row, never a rowspan
       });
       bodyHtml += '</tr>';
     }
@@ -13014,11 +13089,15 @@ export function initLegacyApp() {
       </div></div>
     </div>`;
 
+    // ⛔ FROZEN EDIT R4 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): the grid's 2 px right edge lives on
+    // the last block's Notes cells. With that column hidden, `wf-notes-end` has one new rule draw it on whatever
+    // cell ends each row instead (the strip on screen, the last phase column in print). '' with nothing hidden.
+    const notesEndCls = notesGone[notesGone.length - 1] ? ' wf-notes-end' : '';
     const html = `
       <div class="sheet-scroll" id="sheet-scroll-container">
         ${headerBar}
         <div class="sheet-grid-wrap">
-          <table class="sheet-table" style="width:${gridPxTotal}px">
+          <table class="sheet-table${notesEndCls}" style="width:${gridPxTotal}px">
             <colgroup>${colsHtml}</colgroup>
             <thead><tr>${headerHtml}</tr></thead>
             <tbody>${bodyHtml}</tbody>
@@ -13682,6 +13761,10 @@ export function initLegacyApp() {
       ws.getColumn(dateCol).width = xlW(widths.date);
       for(let k=0;k<maxConcurrent;k++) ws.getColumn(labelColStart+k).width = xlW(widths.labels[k]);
       ws.getColumn(notesCol).width = xlW(widths.notes);
+      // ⛔ FROZEN EDIT E1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6, D2): a hidden Notes column is
+      // HIDDEN here, not deleted -- it keeps its width and its notes, so unhiding it in Excel brings both
+      // back, and every column after it keeps its letter. Nothing is set with nothing hidden.
+      if(widths.notesHidden) ws.getColumn(notesCol).hidden = true;
 
       // Clamped to the same trimmed height the screen uses, so the workbook does not carry a
       // trailing empty row the preview has dropped.
@@ -13774,14 +13857,19 @@ export function initLegacyApp() {
           const hKey = week.date.toISOString().slice(0,10);
           const hTxt = hiatusTextFor(hKey);
           const hCol = hiatusColorFor(hKey);
-          ws.mergeCells(excelRow, labelColStart, excelRow, notesCol);
+          // ⛔ FROZEN EDIT E2 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): with the Notes column hidden
+          // the band ends at the last phase column -- Excel draws a merge's edge from its edge cells, so a band
+          // merged into the hidden column would lose the block's right rule -- and fits that width. With
+          // nothing hidden, bandEnd is notesCol and the three lines are the ones that ran.
+          const bandEnd = widths.notesHidden ? labelColEnd : notesCol;
+          if(bandEnd > labelColStart) ws.mergeCells(excelRow, labelColStart, excelRow, bandEnd);
           const hCell = ws.getRow(excelRow).getCell(labelColStart);
           hCell.value = hTxt;
           // Same fit the screen applies, over the same span: every column of the block but the
           // date one.
           let hAvail = 0;
           for(let k=0;k<maxConcurrent;k++) hAvail += (widths.labels[k] || 0);
-          hAvail += widths.notes;
+          if(!widths.notesHidden) hAvail += widths.notes;
           const hSize = hiatusFontSizeFor(hKey);
           // F2: measured in its weight, as the screen's (F1).
           const hts = textStyleOf('hiatus', hKey);
@@ -13799,7 +13887,7 @@ export function initLegacyApp() {
           setFill(hCell, hCol);
           hCell.border = isLastRow ? {bottom:thin} : {};
           // the rightmost cell of a merged range needs its own border set for the edge to render
-          const rightCell = ws.getRow(excelRow).getCell(notesCol);
+          const rightCell = ws.getRow(excelRow).getCell(bandEnd);   // E2: notesCol with nothing hidden
           rightCell.border = Object.assign({right:thin}, isLastRow?{bottom:thin}:{});
         } else {
           // Lay out the phase area exactly like the live view: stable slots, lone phases
@@ -13902,6 +13990,15 @@ export function initLegacyApp() {
             baseStyle(nCell);
           }
           nCell.border = Object.assign({right:thin}, isLastRow?{bottom:thin}:{});
+        }
+      }
+      // ⛔ FROZEN EDIT E3 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): the block's right rule is drawn
+      // on its Notes cells, which a hidden column does not show, so it moves to the last phase column, header
+      // row included, merged into each cell's own borders. Skipped with nothing hidden.
+      if(widths.notesHidden){
+        for(let er = 1; er <= rowsInBlock + 1; er++){
+          const ec = ws.getRow(er).getCell(labelColEnd);
+          ec.border = Object.assign({}, ec.border || {}, {right: thin});
         }
       }
     }
@@ -16298,6 +16395,20 @@ export function initLegacyApp() {
       return { date, labels, notes, cols };
     });
 
+    // ⛔ FROZEN EDIT W1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column leaves
+    // `cols`, so everything that walks `cols` -- the screen's <colgroup>, the grid metrics and with them the
+    // page orientation and the PDF's fit, the PDF's columns and frame, the side boxes, the custom heading
+    // runs -- loses it at once. `notes` keeps its measured width: Excel keeps the column, hidden (E1), so
+    // unhiding it there brings the width back. Runs BEFORE the single-column post-pass, which then fills the
+    // page with the columns that are left. Skipped outright with nothing hidden.
+    if(Object.keys(hiddenNotesCols).length){
+      out.forEach((bk, bi)=>{
+        if(!notesHiddenFor(yearBlocks[bi].year)) return;
+        bk.cols = bk.cols.slice(0, -1);
+        bk.notesHidden = true;
+      });
+    }
+
     // ⭐ SINGLE-COLUMN MODE: GROW THE COLUMNS TO FILL THE PAGE WIDTH (owner, 10 Sep 2026: "how
     // would you make adjustments such that the collumn fills the vertical page as shown in the
     // example").
@@ -16347,8 +16458,15 @@ export function initLegacyApp() {
           // widths.labels/notes while the renderer walks cols -- so they have to move together or
           // the workbook and the screen disagree about the same column.
           bk.date  = bk.cols[0].chars;
+          // ⛔ FROZEN EDIT W2 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): with its Notes column
+          // hidden (W1) the block's last column is a phase column, so it is a label and `notes` stays the
+          // measured width. Without `notesHidden` these are the two lines that always ran.
+          if(bk.notesHidden){
+            bk.labels = bk.cols.slice(1).map(c => c.chars);
+          } else {
           bk.notes = bk.cols[bk.cols.length - 1].chars;
           bk.labels = bk.cols.slice(1, -1).map(c => c.chars);
+          }
         });
       }
     }
@@ -20270,8 +20388,29 @@ export function initLegacyApp() {
     }
     return next;
   }
+  // A heading's panel and ring, placed under (or, short of room, over) the heading. Shared by the custom
+  // heading editor and the Notes panel (openNotesColPop), so the two sit exactly alike.
+  function placeHeadingPop(th, pop, ring){
+    const r = th.getBoundingClientRect();
+    // The ring is clipped to the grid's scroll box, so a heading scrolled sideways out of view takes
+    // its ring with it instead of leaving it floating over the sidebar.
+    const box = th.closest('.sheet-scroll');
+    const c = box ? box.getBoundingClientRect() : r;
+    const left = Math.max(r.left, c.left), right = Math.min(r.right, c.right);
+    const top = Math.max(r.top, c.top), bottom = Math.min(r.bottom, c.bottom);
+    ring.hidden = !(right > left && bottom > top);
+    Object.assign(ring.style, { left: (window.scrollX + left) + 'px', top: (window.scrollY + top) + 'px',
+      width: Math.max(0, right - left) + 'px', height: Math.max(0, bottom - top) + 'px' });
+    pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
+    if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
+  }
   function openHeaderRowPop(th){
     closeHeaderRowPop();
+    closeNotesColPop();
     if(!currentSchedule || !currentSchedule.weeks) return;
     // Re-derive the heading from the model rather than trusting the markup: the same blocks and column
     // list the renderer used, found by the heading's first column key.
@@ -20284,9 +20423,14 @@ export function initLegacyApp() {
     });
     if(!runs) return;
     const run = runs[ri], n = run.keys.length;
+    // A heading over a Notes column offers to hide it (HIDE-NOTES-PLAN.md §2, D7): "Hide column" when the
+    // heading IS the Notes column, "Hide Notes column" when it also covers a phase column, which stays.
+    const notesKey = run.keys.find(k => NOTES_COL_KEY.test(k)) || null;
+    const notesHas = notesKey ? blockHasNotes(currentSchedule, block) : false;
     const pop = document.createElement('div');
     pop.className = 'note-pop hdrrow-pop';
-    pop.innerHTML = `<div class="note-pop-title">${escHtml('Heading · ' + block.year)}</div>
+    const titleHtml = `<div class="note-pop-title">${escHtml('Heading · ' + block.year)}</div>`;
+    pop.innerHTML = `${notesHas ? `<div class="wf-notes-pop-head">${titleHtml}${NOTES_BADGE_HTML}</div>` : titleHtml}
       <input type="text" class="hdrrow-input" aria-label="Heading" maxlength="${HDR_ROW_MAX}" spellcheck="false" value="${escHtml(run.text)}">
       <div class="hdrrow-btns">
         <button type="button" class="hdrrow-btn" data-act="left"${ri > 0 ? '' : ' disabled'} title="Join this heading with the one on its left">← Merge</button>
@@ -20294,29 +20438,13 @@ export function initLegacyApp() {
         <button type="button" class="hdrrow-btn" data-act="right"${ri < runs.length - 1 ? '' : ' disabled'} title="Join this heading with the one on its right">Merge →</button>
       </div>
       <div class="hdrrow-meta"><span class="hdrrow-covers">Covers ${n} column${n === 1 ? '' : 's'}</span><button type="button" class="hdrrow-reset" title="Put these columns back to their original heading">Reset</button></div>
+      ${notesKey ? `<div class="wf-notes-pop-sep"></div>${notesHideBtnHtml(n === 1 ? 'Hide column' : 'Hide Notes column', block.year)}` : ''}
       <div class="note-pop-hint">Enter to save · Esc to cancel</div>`;
     const ring = document.createElement('div');
     ring.className = 'hdrrow-ring';
     document.body.appendChild(ring);
     document.body.appendChild(pop);
-    const place = ()=>{
-      const r = th.getBoundingClientRect();
-      // The ring is clipped to the grid's scroll box, so a heading scrolled sideways out of view takes
-      // its ring with it instead of leaving it floating over the sidebar.
-      const box = th.closest('.sheet-scroll');
-      const c = box ? box.getBoundingClientRect() : r;
-      const left = Math.max(r.left, c.left), right = Math.min(r.right, c.right);
-      const top = Math.max(r.top, c.top), bottom = Math.min(r.bottom, c.bottom);
-      ring.hidden = !(right > left && bottom > top);
-      Object.assign(ring.style, { left: (window.scrollX + left) + 'px', top: (window.scrollY + top) + 'px',
-        width: Math.max(0, right - left) + 'px', height: Math.max(0, bottom - top) + 'px' });
-      pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
-      pop.style.left = (window.scrollX + r.left) + 'px';
-      const pr = pop.getBoundingClientRect();
-      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
-      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
-      if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
-    };
+    const place = ()=> placeHeadingPop(th, pop, ring);
     place();
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
@@ -20324,7 +20452,7 @@ export function initLegacyApp() {
     activeHdrRowPop = { pop, ring, th, place, block, runs, ri, input };
     // ⛔ stopPropagation on every button: the document's click-outside handler runs after this one, and
     // by then the editor may be open again on a NEW heading whose panel does not contain this button.
-    pop.querySelectorAll('.hdrrow-btn').forEach(b=>{
+    pop.querySelectorAll('.hdrrow-btn[data-act]').forEach(b=>{
       b.addEventListener('click', e=>{
         e.stopPropagation();
         const key = commitHeaderRowEdit(b.dataset.act);
@@ -20333,6 +20461,13 @@ export function initLegacyApp() {
       });
     });
     pop.querySelector('.hdrrow-reset').addEventListener('click', e=>{ e.stopPropagation(); commitHeaderRowEdit('reset'); });
+    // Hide: the typed text is saved first (its own step, only if it changed), then the column goes.
+    const hideBtn = pop.querySelector('.wf-notes-hide');
+    if(hideBtn) hideBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      commitHeaderRowEdit('text');
+      setNotesColsHidden([notesKey], true);
+    });
     input.focus();
     input.select();
   }
@@ -20365,6 +20500,153 @@ export function initLegacyApp() {
   // (sanctioned pattern 3), and the edit is dropped, as the cell it was for may no longer exist.
   new MutationObserver(()=>{
     if(activeHdrRowPop && !activeHdrRowPop.th.isConnected) closeHeaderRowPop();
+  }).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ---------- Hidden Notes columns: the panel, the strip, Settings (HIDE-NOTES-PLAN.md §2, §4) ----------
+  // The owner's option B (22 Oct 2026): hide a year's Notes column by hand, from its heading, and flag a
+  // column that holds notes with a dot -- never a count or the text ("keep things clean and elegant").
+  // All of this is chrome AROUND the grid: the panel and the strip's hover ring are body-level, and the
+  // strip itself is drawn by renderSpreadsheetView (R1-R3), never added to the grid from here.
+  //
+  // Hiding and showing are calendar data: one undo step and a dirty file, setDateFormat's shape. render(),
+  // not update(): nothing scheduled moves, only which columns draw.
+  function setNotesColsHidden(keys, hide){
+    const want = keys.filter(k => typeof k === 'string' && NOTES_COL_KEY.test(k) && (hiddenNotesCols[k] === true) !== !!hide);
+    if(!want.length || !currentSchedule) return;
+    closeNotesColPop();
+    asOneHeaderStep(()=>{
+      want.forEach(k=>{ if(hide) hiddenNotesCols[k] = true; else delete hiddenNotesCols[k]; });
+      render(currentSchedule);
+      markDirty();
+    });
+  }
+  const NOTES_BADGE_HTML = '<span class="wf-notes-badge"><span class="wf-notes-dot"></span>Has notes</span>';
+  function notesHideBtnHtml(label, year){
+    const icon = EYE_OFF_SVG.replace('width="10" height="10"', 'width="14" height="14"');
+    return `<button type="button" class="wf-notes-hide" title="Hide ${year}’s Notes column on screen, in Excel and in the PDF. Its notes stay saved.">${icon}<span>${escHtml(label)}</span></button>`;
+  }
+
+  // The Notes panel: what a DOUBLE-click on a default Notes heading opens (D1 -- a click picks the heading
+  // for the text style bar, as every grid text does). With Custom Column Headings on, the heading editor
+  // opens instead and carries the same Hide button (openHeaderRowPop). Built like that editor: a .note-pop
+  // (buildSavedHtml strips it) with the .hdrrow-ring over its heading, placed by placeHeadingPop.
+  let activeNotesColPop = null;   // { pop, ring, th, place, key }
+  function closeNotesColPop(){
+    if(!activeNotesColPop) return;
+    const { pop, ring, place } = activeNotesColPop;
+    window.removeEventListener('scroll', place, true);
+    window.removeEventListener('resize', place);
+    pop.remove();
+    ring.remove();
+    activeNotesColPop = null;
+  }
+  function openNotesColPop(th, key){
+    closeNotesColPop();
+    closeHeaderRowPop();
+    if(!currentSchedule || !currentSchedule.weeks) return;
+    const year = +key.slice(1, 5);
+    const block = computeYearBlocks(currentSchedule.weeks).find(b => b.year === year);
+    if(!block) return;
+    const pop = document.createElement('div');
+    pop.className = 'note-pop wf-notes-pop';
+    pop.innerHTML = `<div class="wf-notes-pop-head"><div class="note-pop-title">${escHtml('Notes · ' + year)}</div>`
+      + `${blockHasNotes(currentSchedule, block) ? NOTES_BADGE_HTML : ''}</div>${notesHideBtnHtml('Hide column', year)}`;
+    const ring = document.createElement('div');
+    ring.className = 'hdrrow-ring';
+    document.body.appendChild(ring);
+    document.body.appendChild(pop);
+    const place = ()=> placeHeadingPop(th, pop, ring);
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    activeNotesColPop = { pop, ring, th, place, key };
+    const btn = pop.querySelector('.wf-notes-hide');
+    btn.addEventListener('click', e=>{ e.stopPropagation(); setNotesColsHidden([key], true); });
+    // Focused so Enter hides, but without the keyboard ring a mouse-opened panel does not need.
+    btn.focus({ focusVisible: false });
+  }
+  document.getElementById('table-wrap').addEventListener('dblclick', e=>{
+    if(viewMode !== 'sheet') return;
+    const th = e.target && e.target.closest ? e.target.closest('#table-wrap table.sheet-table thead th') : null;
+    if(!th || th.classList.contains('hdrrow-cell')) return;   // a custom heading opens its own editor
+    const key = headingColKey(th);
+    if(!key || !NOTES_COL_KEY.test(key)) return;
+    e.stopPropagation();
+    if(activeNotesColPop && activeNotesColPop.th === th) return;
+    openNotesColPop(th, key);
+  });
+  document.addEventListener('click', e=>{
+    if(!activeNotesColPop) return;
+    if(activeNotesColPop.pop.contains(e.target) || activeNotesColPop.th.contains(e.target)) return;
+    closeNotesColPop();
+  });
+  document.addEventListener('keydown', e=>{
+    if(activeNotesColPop && e.key === 'Escape'){ e.preventDefault(); closeNotesColPop(); }
+  });
+
+  // Showing a column again: a click anywhere on its strip, or a Settings pill's × / Show all (the React
+  // row renders them with this same attribute, so one delegated listener serves both). 'all' = every one.
+  document.addEventListener('click', e=>{
+    const el = e.target && e.target.closest ? e.target.closest('[data-shownotes]') : null;
+    if(!el) return;
+    const v = el.getAttribute('data-shownotes');
+    if(v === 'all') setNotesColsHidden(Object.keys(hiddenNotesCols), false);
+    else if(/^\d{4}$/.test(v)) setNotesColsHidden(['y' + v + ':notes'], false);
+  });
+
+  // The strip's hover: ONE body-level ring over its whole column, so the strip reads as one control.
+  // Never a class on a cell (the grid is the frozen renderer's), and clipped to the grid's scroll box.
+  let notesRing = null, notesRingYear = null;
+  function placeNotesRing(){
+    if(!notesRing) return;
+    const table = document.querySelector('#table-wrap table.sheet-table');
+    const sel = '.wf-notes-strip[data-shownotes="' + notesRingYear + '"]';
+    const th = table && table.querySelector('th' + sel);
+    const tds = table ? table.querySelectorAll('td' + sel) : [];
+    if(!th || !tds.length){ hideNotesRing(); return; }
+    const r = th.getBoundingClientRect(), last = tds[tds.length - 1].getBoundingClientRect();
+    const box = th.closest('.sheet-scroll'), c = box ? box.getBoundingClientRect() : r;
+    const left = Math.max(r.left, c.left), right = Math.min(r.right, c.right);
+    const top = Math.max(r.top, c.top), bottom = Math.min(last.bottom, c.bottom);
+    notesRing.hidden = !(right > left && bottom > top);
+    Object.assign(notesRing.style, { left: (window.scrollX + left) + 'px', top: (window.scrollY + top) + 'px',
+      width: Math.max(0, right - left) + 'px', height: Math.max(0, bottom - top) + 'px' });
+  }
+  function showNotesRing(year){
+    if(notesRing && notesRingYear === year) return;
+    if(!notesRing){
+      notesRing = document.createElement('div');
+      notesRing.className = 'wf-notes-ring';
+      document.body.appendChild(notesRing);
+      window.addEventListener('scroll', placeNotesRing, true);
+    }
+    notesRingYear = year;
+    placeNotesRing();
+  }
+  function hideNotesRing(){
+    if(!notesRing) return;
+    window.removeEventListener('scroll', placeNotesRing, true);
+    notesRing.remove();
+    notesRing = null; notesRingYear = null;
+  }
+  document.getElementById('table-wrap').addEventListener('mouseover', e=>{
+    const s = e.target && e.target.closest ? e.target.closest('.wf-notes-strip[data-shownotes]') : null;
+    if(s) showNotesRing(s.getAttribute('data-shownotes')); else hideNotesRing();
+  });
+  document.getElementById('table-wrap').addEventListener('mouseleave', hideNotesRing);
+
+  // The Settings row (Waterfall card): which years are hidden, and which of them hold notes. Pushed after
+  // every grid rebuild -- observed, not hooked (sanctioned pattern 3) -- so a hide, an undo, a Load, a
+  // range change or a new note all reach it. Only years in the calendar now are listed (D10).
+  function pushHiddenNotesToChrome(){
+    const sch = currentSchedule;
+    const blocks = (sch && sch.weeks && sch.weeks.length) ? computeYearBlocks(sch.weeks) : [];
+    chrome.hiddenNotes({ cols: blocks.filter(b => notesHiddenFor(b.year)).map(b => ({ year: b.year, has: blockHasNotes(sch, b) })) });
+  }
+  new MutationObserver(()=>{
+    if(activeNotesColPop && !activeNotesColPop.th.isConnected) closeNotesColPop();
+    hideNotesRing();
+    pushHiddenNotesToChrome();
   }).observe(document.getElementById('table-wrap'), { childList: true });
 
   // ---------- Column reuse: the box, the row notes, Reset (COLUMN-REUSE-PLAN.md §4) ----------
@@ -21325,6 +21607,7 @@ export function initLegacyApp() {
     dateFormat = ''; reflectDateFormat();
     paperSize = ''; pageOrientation = ''; reflectPaperSize();   // Letter, the rule's orientation
     headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {}; reflectHeaderRowCustom();
+    hiddenNotesCols = {};   // every Notes column shows on a new calendar
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     mvNumberShootDays = false; reflectMvNumberShootDays();
@@ -21534,7 +21817,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring').forEach(el=>el.remove());
+    // .wf-notes-ring added 22 Oct 2026 with hidden Notes columns (HIDE-NOTES-PLAN.md): the strip's hover ring,
+    // body-level beside the grid; its panel is a .note-pop with an .hdrrow-ring, both already stripped.
     // .mv-order-grip / .mv-drag-ghost / .mv-drag-shield added 21 Oct 2026 with the month view's reorder grip and
     // moving copy (MONTH-ORDER-PLAN.md): body-level chrome over the month grid, on the edge grips' terms.
     // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
@@ -21974,6 +22259,9 @@ export function initLegacyApp() {
       // same as the column before. ⛔ PERMANENT key; a sorted array, written only when non-empty, so a
       // calendar that never splits a heading saves byte for byte as before.
       ...(Object.keys(headerRowSplits).length ? {headerRowSplits: Object.keys(headerRowSplits).sort()} : {}),
+      // 22 Oct 2026 (HIDE-NOTES-PLAN.md §5): the hidden Notes columns. ⛔ PERMANENT key; a sorted array of
+      // column keys, written only when non-empty, so a calendar that hides none saves byte for byte as before.
+      ...(Object.keys(hiddenNotesCols).length ? {hiddenNotesCols: Object.keys(hiddenNotesCols).sort()} : {}),
       // 20 Oct 2026 (SIDE-BOXES-PLAN.md, owner ruling 7): the boxes beside the waterfall. ⛔ PERMANENT key.
       // Written ONLY while a box exists, so a calendar with none saves byte for byte as before.
       // 21 Oct 2026: each box's `row` (optional) -- where it sits on its side. Boxes are written through
@@ -24214,6 +24502,17 @@ export function initLegacyApp() {
     }
     return 'direct';
   }
+  // ⛔ THE WATERFALL PDF'S TWIN (HIDE-NOTES-PLAN.md §6, gate 2, 22 Oct 2026): WF_PDF_MODE is a const with no
+  // test route, so the print fallback (frozen exportWaterfallPdf, the rollback) was unreachable from a leg.
+  // Same shape and same limits as monthPdfMode(): localhost ONLY, localStorage 'sptcal.wfPdfTest' = 'print',
+  // read at click time. No user can reach it.
+  function waterfallPdfMode(){
+    if(WF_PDF_MODE !== 'direct') return 'print';
+    if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+      try { if(window.localStorage.getItem('sptcal.wfPdfTest') === 'print') return 'print'; } catch(e){}
+    }
+    return 'direct';
+  }
 
   document.getElementById('export-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
@@ -24249,7 +24548,7 @@ export function initLegacyApp() {
 
   document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
-    if(WF_PDF_MODE === 'direct'){
+    if(waterfallPdfMode() === 'direct'){
       // The Export PDF dialog (PAPER-SIZE-PLAN.md §5a): the paper, the orientation and the grid lines,
       // confirmed or changed. FIRST, so the character check below names what the chosen page will print.
       // Only the direct writer: the print rollback is pinned to Letter and turns the page its own way.
@@ -24372,6 +24671,7 @@ export function initLegacyApp() {
       const years = new Set(yearBlocks.map(b => 'y' + b.year + ':'));
       Object.keys(headerRowLabels).forEach(k=>{
         if(!years.has(k.slice(0, k.indexOf(':') + 1))) return;
+        if(hiddenNotesCols[k] === true) return;   // a hidden Notes column's heading is not drawn (P1)
         const label = headerRowLabels[k];
         scan(label, 'hr|' + label, ()=> 'in the column heading \u201c' + label + '\u201d');
       });
@@ -24402,6 +24702,8 @@ export function initLegacyApp() {
               scan(cell.label, 'p|' + key, ()=> 'in the phase \u201c' + name + '\u201d (from ' + when + ')');
             }
           });
+        // A hidden Notes column's notes are not drawn (P3), so they cannot print as "?" either.
+        if(!notesHiddenFor(b.year))
         scan(effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx + r], 'sheet')),
              'n|' + wk, ()=> 'in the note for the week of ' + when);
       }
@@ -25332,8 +25634,15 @@ export function initLegacyApp() {
         return;
       }
       put('Date', S(cols[0].w), 'y' + b.year + ':date');
+      // ⛔ FROZEN EDIT P1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): with the Notes column hidden (W1
+      // took it out of `cols`) the year spans every column after the date and no "Notes" is drawn. With
+      // nothing hidden these are the two put() calls that always ran.
+      if(colWidthsFor[bi].notesHidden){
+        put(String(b.year), S(cols.slice(1).reduce((a,c)=>a+c.w,0)), 'y' + b.year + ':s0');
+      } else {
       put(String(b.year), S(cols.slice(1,-1).reduce((a,c)=>a+c.w,0)), 'y' + b.year + ':s0');
       put('Notes', S(cols[cols.length-1].w), 'y' + b.year + ':notes');
+      }
     });
     page.line(originX, hy+hh, originX + S(gridW), hy+hh, HDR_RULE, 0.75);
 
@@ -25397,7 +25706,9 @@ export function initLegacyApp() {
         // colspan and exportExcel passes to mergeCells, empty cells included -- plus the date edge
         // and the notes edge. Slots the layout does not reach stay ruled, as they always were.
         if(interior){
-          const nSlots = cols.length - 2, set = new Set([0, nSlots]);
+          // ⛔ FROZEN EDIT P2 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a block without its Notes
+          // column has one more phase slot per `cols` entry. `- 2` with nothing hidden, as it always was.
+          const nSlots = cols.length - (colWidthsFor[bi].notesHidden ? 1 : 2), set = new Set([0, nSlots]);
           let s = 0;
           layout.forEach(cell=>{ s += cell.colspan; set.add(s); });
           for(let k = s; k < nSlots; k++) set.add(k);
@@ -25446,6 +25757,9 @@ export function initLegacyApp() {
         });
 
         // notes cell
+        // ⛔ FROZEN EDIT P3 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column draws
+        // nothing -- its last `cols` entry is a phase column now. Never true with nothing hidden.
+        if(colWidthsFor[bi].notesHidden) return;
         const nw = S(cols[cols.length-1].w);
         const nx = bx + S(cols.reduce((a,c)=>a+c.w,0)) - nw;
         const wk = w.date.toISOString().slice(0,10);
@@ -25569,7 +25883,12 @@ export function initLegacyApp() {
     host.innerHTML = '';
 
     try {
+      // ⛔ FROZEN EDIT X1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): a hidden Notes column's on-screen
+      // strip never reaches paper (renderSpreadsheetView's R5 reads the flag). Inert with nothing hidden.
+      wfPrintRender = true;
+      try {
       host.innerHTML = '<div class="wf-print wf-grid-' + SHEET_GRIDLINES + '">' + renderSpreadsheetView(currentSchedule) + '</div>';
+      } finally { wfPrintRender = false; }
       const tools = host.querySelector('.hdr-tools'); // interactive toolbar -- never on paper
       if(tools) tools.remove();
     } catch(err){
@@ -28403,6 +28722,19 @@ export function initLegacyApp() {
       if(!Array.isArray(s.headerRowSplits)){ bad.n++; delete s.headerRowSplits; }
       else s.headerRowSplits = s.headerRowSplits.filter(k=>{ if(typeof k === 'string' && HDR_ROW_KEY.test(k)) return true; bad.n++; return false; });
     }
+    // The hidden Notes columns (HIDE-NOTES-PLAN.md §5): Notes column keys only, once each, at most 64 --
+    // the app never writes anything else, so anything else is dropped and counted.
+    if('hiddenNotesCols' in s){
+      if(!Array.isArray(s.hiddenNotesCols)){ bad.n++; delete s.hiddenNotesCols; }
+      else {
+        const seen = {};
+        s.hiddenNotesCols = s.hiddenNotesCols.filter(k=>{
+          if(typeof k === 'string' && NOTES_COL_KEY.test(k) && !seen[k]){ seen[k] = true; return true; }
+          bad.n++; return false;
+        });
+        if(s.hiddenNotesCols.length > 64){ bad.n += s.hiddenNotesCols.length - 64; s.hiddenNotesCols.length = 64; }
+      }
+    }
     // Side boxes (SIDE-BOXES-PLAN.md §7): every string, format, colour key and width checked here, and
     // an empty set dropped -- the app never writes one, and absent already means "no boxes".
     if('sideBoxes' in s){
@@ -28781,6 +29113,9 @@ export function initLegacyApp() {
     headerRowSplits = {};
     if(Array.isArray(snap.headerRowSplits)) snap.headerRowSplits.forEach(k=>{ if(typeof k === 'string') headerRowSplits[k] = true; });
     reflectHeaderRowCustom();
+    // ⛔ UNCONDITIONAL: no key = every Notes column shows, never the previous file's hidden ones.
+    hiddenNotesCols = {};
+    if(Array.isArray(snap.hiddenNotesCols)) snap.hiddenNotesCols.forEach(k=>{ if(typeof k === 'string' && NOTES_COL_KEY.test(k)) hiddenNotesCols[k] = true; });
     // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
     // never whatever the previously open file chose.
     mvProdLabel = MV_PROD_LABELS.includes(snap.mvProdLabel) ? snap.mvProdLabel : null;

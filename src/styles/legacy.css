@@ -2782,6 +2782,38 @@
     background:none; border:0; padding:0; cursor:pointer;
   }
   .hdrrow-reset:hover{ text-decoration:underline; }
+  /* Hidden Notes columns: the panel's parts (HIDE-NOTES-PLAN.md §2). Chrome, never in the grid. The title row
+     carries the "Has notes" badge (Mantine's dot badge: white, a hairline, a violet dot); the Hide button is a
+     Mantine default button, full width, the heading editor's .hdrrow-btn look. */
+  .wf-notes-pop{ width:220px; }
+  .wf-notes-pop-head{
+    display:flex; align-items:center; justify-content:space-between; gap:var(--mantine-spacing-md);
+    margin-bottom:var(--mantine-spacing-md);
+  }
+  .wf-notes-pop-head .note-pop-title{ margin-bottom:0; }
+  .wf-notes-badge{
+    display:inline-flex; align-items:center; gap:5px; height:18px; padding:0 8px; flex:none;
+    border:1px solid var(--mantine-color-gray-2); border-radius:9px; background:var(--mantine-color-white);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--mantine-color-gray-7); white-space:nowrap;
+  }
+  .wf-notes-badge .wf-notes-dot, .wf-hidden-pill .wf-notes-dot{ display:inline-block; }
+  .wf-notes-pop-sep{ border-top:1px solid var(--mantine-color-gray-1); margin:var(--mantine-spacing-lg) calc(-1 * var(--mantine-spacing-lg)); }
+  .wf-notes-hide{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; height:28px;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md); cursor:pointer;
+  }
+  .wf-notes-hide svg{ color:var(--mantine-color-gray-7); flex:none; }
+  .wf-notes-hide:hover{ background:var(--mantine-color-gray-0); }
+  .wf-notes-hide:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* The Settings row's pills (Waterfall card): Mantine's Pill shape, in the theme's warm gray. */
+  .wf-hidden-pill{
+    display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 2px 0 9px;
+    background:var(--mantine-color-gray-1); border-radius:11px;
+    font-size:var(--mantine-font-size-sm); font-weight:500; color:var(--mantine-color-black);
+  }
   td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
   td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
   /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
@@ -3052,6 +3084,37 @@
   table.sheet-table tr:first-child th{border-top:2px solid var(--text);}
   table.sheet-table tr:last-child td{border-bottom:2px solid var(--text);}
   table.sheet-table td.sheet-empty{background:#fff;}
+  /* Hidden Notes columns (HIDE-NOTES-PLAN.md, the owner's option B, 22 Oct 2026). New rules only; no
+     rule above changes. ⛔ FROZEN EDIT R4 (owner sign-off): the first rule draws the grid's 2 px right
+     edge on whatever cell ends each row once the LAST year's Notes column is hidden -- `wf-notes-end` is
+     set on the table only then, so it matches nothing on any other calendar, on screen or in print.
+     The strip (one 14 px column per hidden Notes column) is drawn on screen only: renderSpreadsheetView
+     never puts it in #print-root (X1). Its label is ::after text, so every frozen reader that skips an
+     empty cell skips it, and it overflows its first cell (overflow:visible, positioned) down the strip. */
+  table.sheet-table.wf-notes-end tr > :last-child{ border-right:2px solid var(--text); }
+  table.sheet-table th.wf-notes-strip, table.sheet-table td.wf-notes-strip{
+    background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-6); padding:0; cursor:pointer;
+  }
+  table.sheet-table th.wf-notes-strip svg{ display:block; margin:0 auto; }
+  table.sheet-table td.wf-notes-strip{ position:relative; overflow:visible; }
+  .wf-notes-strip-label{
+    position:absolute; top:7px; left:0; right:0; z-index:1; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .wf-notes-strip-label::after{
+    content:"Notes"; writing-mode:vertical-rl; font:500 10px/1 'Inter',-apple-system,sans-serif;
+    letter-spacing:.3px; color:var(--mantine-color-gray-6);
+  }
+  /* "Has notes": the one flag, the same violet as the note editor's accent (owner: flag it, don't spell it out). */
+  .wf-notes-dot{ display:block; width:6px; height:6px; border-radius:50%; background:var(--edit-accent); flex:none; }
+  /* Hover: one body-level ring over the whole strip, as .hdrrow-ring is over a heading -- never a class on a cell. */
+  .wf-notes-ring{
+    position:absolute; z-index:59; pointer-events:none; border-radius:1px;
+    background:rgba(30,29,27,.05); box-shadow:inset 0 0 0 1px var(--mantine-color-gray-4);
+  }
+  /* The strip holds nothing, so it is never resized. The handle stays in the DOM (repositionColHandles pairs
+     handles with <col>s by index) and is only taken out of the layout. */
+  .grid-resize.is-col[data-ckey$=":notesoff"]{ display:none; }
 
   table.week-table{width:100%; border-collapse:collapse; font-size:12.5px;}
   table.week-table th{
