@@ -36,7 +36,7 @@ Two year blocks, 52 rows.
 | Column widths | `2026: 53 / 88 / 88 / 179` · `2027: 53 / 86 / 86 / 164` | `base.json` → `cols` |
 | Rows | 52 | |
 | Excel | 10,169 B → **10,542 B since the 29 Sep 2026 re-cut** (the Date column's cached values, see below) · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
-| Waterfall PDF | 76,568 B · 612×792 · 204 text ops · 279 rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
+| Waterfall PDF | 76,568 B → **76,567 B since the 5 Oct 2026 re-cut** (the header's clearance, see below) · 612×792 · 204 text ops · 279 rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
 | `v1.0.0-saved.html` restore | 52 rows / 154 cells / **55 fields** · 0 clipped · grid 324 pt | `restore.json` |
 
 `base.pdf.json` is `pdf-info.js` run over `base.pdf`; `base.pdf.txt` is every string the PDF draws,
@@ -228,6 +228,40 @@ passes the new file: header 238/255, 75 merges, 0 overlapping, portrait.
 
 Unchanged by this: `base.pdf` (the waterfall writer does not read the Date formulas), `base.json`,
 `restore.json`.
+
+## ✅ `base.pdf` RE-CUT — 4 pt between the header and the grid, not 1 (5 Oct 2026)
+
+**A deliberate change to the waterfall PDF.** It is a frozen edit to `buildWaterfallPdf`, owner-approved on 5 Oct 2026.
+The owner saw the before and after of a real calendar and signed off before this re-cut.
+- **The complaint.** With three header lines, the centre section's last line ("Writer's Room Opens") ended **1 pt**
+  above the grid, while the right section's ended about 4 pt above it.
+- **The fix.** The header band now leaves **4 pt** under its last line (`HDR_CLEAR_PT`). PDF only:
+  - the grid does not move;
+  - the Excel header is untouched;
+  - a header that already fits with 4 pt to spare draws exactly as before.
+
+  One that does not fit shrinks its type a little more, all three sections by one factor, as it already did.
+
+| what | before → after | why |
+|---|---|---|
+| the 7 header text operations | type 9.025 / 6.564 pt → **8.163 / 5.936 pt**, each line re-centred or re-aligned in its section and raised to match | the band is 3 pt shorter, so the three lines shrink to fit it (×0.904) |
+| the lowest header text's bottom | 53.0 pt → **50.0 pt** from the top; the grid starts at 54 pt | 1 pt → **4 pt** of clearance, measured by `pdftotext -bbox` |
+| every other operation of the page (682 lines of content), and both font streams | **identical** | nothing else reads the band |
+| `base.pdf.txt`, every string drawn | **identical** | the text is unchanged; only its size and position moved |
+| `base.pdf.json` | bytes 76,568 → 76,567, `contentLen` 28,882 → 28,880, `textXmax` 561.314 → 564.333 | the right section's longest line is narrower at the smaller size |
+
+**How it was cut.** This mirrors the Excel re-cut of 29 Sep, because gate 2 normalises ONE fixed stamp, `8.29.26`
+(`BASEDATE`). The new file is the `base` leg run on the new build with the page's clock pinned to local noon on 29 Aug
+2026 (a throwaway copy of the leg with `monthexport`'s clock pin in front), so it carries the baseline's own stamp. Before
+writing, three things were proven:
+1. that run equals today's run of the same build, bar the stamp (`pdfcmp.py`);
+2. against the old baseline only the 7 header text lines differ;
+3. against the new baseline, the new build passes and the OLD build fails (`pdfcmp.py` exit 1).
+
+The same A/B on `stintswap-reshape`, `hdrtemplated` and `carry-rich`: only header text moved (7 or 8 lines each), and
+the clearance went from 1.0 to 4.0 pt on every one.
+
+Unchanged by this: `base.xlsx`, `base.json`, `restore.json`.
 
 ## Reproducing it
 

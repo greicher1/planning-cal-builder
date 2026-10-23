@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The waterfall PDF's header leaves 4 pt above the grid, not 1 (5 Oct 2026)
+
+**Users see a small change** in the waterfall PDF. With three header lines, the centre's last line ("Writer's Room
+Opens …") used to end 1 pt above the grid, close enough to read as touching. Now it ends 4 pt above, level with the
+right section's.
+- **How:** the header band leaves 4 pt under its last line (`HDR_CLEAR_PT`, a frozen edit to `buildWaterfallPdf`,
+  owner-approved after seeing a before and after of a real calendar). The cost is that a three-line header's type is
+  about 10% smaller (title 9.0 → 8.2 pt), all three sections by the same factor.
+- **What does not change:**
+  - the grid, its position and every cell;
+  - the Excel file and its header;
+  - a header short enough to fit already;
+  - the month PDF.
+- **Asked and left alone:** the wider white space between the left section (the date) and the title. It is Excel's
+  own three-section header, with the title centred on the page, and the PDF matches an Excel print on purpose.
+- **Verified:**
+  - **A/B on four calendars** (the reference, `stintswap-reshape`, `hdrtemplated`, `carry-rich`): only the 7 or 8
+    header text operations moved, and 0 others. The clearance went from 1.0 to 4.0 pt on every one.
+  - **The reshape calendar's export before the change** was byte-identical to the one the owner downloaded from the
+    live app.
+  - **Gate 2's `base.pdf` re-cut**, owner-approved, with the clock pinned so it keeps the baseline's 8.29.26 stamp.
+    The new build passes it, and the old build fails it.
+  - **The full gate:** **1,278 PASS, 0 FAIL, GATE PASSED** on build `75db63a6…` (13 min 24 s). Gate 2 matches the re-cut baseline, every Excel part is identical, there are 0 clipped cells, `fields.byId` has 62 ids, and gate 13's month PDFs are byte-identical.
+
 ### Unreleased — The month PDF the writer makes is byte-baselined: the direct writer's step 6 (5 Oct 2026)
 
 Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, the last step. **Users see no change.** This is

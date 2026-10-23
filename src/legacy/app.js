@@ -16629,7 +16629,14 @@ export function initLegacyApp() {
       // What has to fit is the FIRST ASCENDER to the LAST DESCENDER, not a sum of line boxes:
       // sizing by line boxes left the final line's baseline sitting exactly on the grid edge
       // with its descenders below it, so "Writer's Room Opens" was sliced by the header row.
-      const bandH = MARGIN_PT.t - MARGIN_PT.hdr - 1;      // 1pt so it never quite touches
+      // ⛔ FROZEN EDIT (owner-approved 5 Oct 2026): 4 pt of clearance under the last line, not 1. With three
+      // lines the CENTRE's last line ("Writer's Room Opens") ended 1 pt above the grid, close enough to read
+      // as touching, while the right section's ended about 4 pt above it; the owner asked for more white
+      // space there. PDF ONLY: the grid still starts at the top margin, Excel's header is untouched, and a
+      // header that fits with 4 pt to spare draws exactly as before (hS stays 1). One that does not shrinks
+      // its type a little more, all three sections by the same factor, as it already did.
+      const HDR_CLEAR_PT = 4;
+      const bandH = MARGIN_PT.t - MARGIN_PT.hdr - HDR_CLEAR_PT;
       const asc = reg.ascent / reg.unitsPerEm, dsc = Math.abs(reg.descent / reg.unitsPerEm);
       const needAt1 = asc*HDR_TITLE_PT
         + (hdrLines > 1 ? HDR_TITLE_PT*1.35 + (hdrLines-2)*HDR_SUB_PT*1.35 : 0)

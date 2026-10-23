@@ -4,6 +4,55 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 5 Oct 2026 (evening): THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved (same session)
+
+- **The ask.** Looking at a waterfall PDF, the owner asked two things:
+  - why there is more white space between the header's left section and its centre;
+  - for more white space between the centre's bottom line and the grid.
+
+  A first answer was about the MONTH PDF's header, by mistake. Then the owner said "my bad i meant for the waterfal
+  cal".
+- **The left gap: explained, left alone** (owner's picker: "Leave it, matching Excel"). The waterfall header IS
+  Excel's three-section header (&L/&C/&R):
+  - left at the grid's left edge;
+  - the centre centred on the page;
+  - the right ending at the grid's right edge.
+
+  A short date on the left and three long lines on the right leave about 310 pt against 170 pt of white. An Excel
+  print shows the same.
+- **The bottom gap: changed** (picker: "More clearance, PDF only", then "Yes: re-cut and gate it" after a before and
+  after of the owner's own calendar). The header lives in Excel's top-margin band (21.6 pt to 54 pt), and three lines
+  are shrunk to fit it. The band used to leave 1 pt; it now leaves 4 pt (`HDR_CLEAR_PT` in `buildWaterfallPdf`, with
+  a ⛔ FROZEN EDIT comment).
+  - The cost: a three-line header's type is about 10% smaller (×0.904; title 9.025 → 8.163 pt, the other lines
+    6.564 → 5.936 pt).
+  - Unchanged: the grid, Excel, a header that fits already, and the month PDF.
+- **State:** branch `wf-header-clear` in `.claude/worktrees/month-baselines`, cut from `main` at `c7017a9`. **UNCOMMITTED** in the worktree: the frozen
+  edit, gate 2's re-cut, the changelog and this note. The owner's commit/push picker was interrupted when the app quit
+  (5 Oct 2026). Committing and pushing are the owner's call; ask with the picker.
+- **Proof:**
+  - **The owner's downloaded PDF was byte-identical** to the harness's export of `stintswap-reshape` on the
+    pre-change build, so the A/B shows exactly what the owner gets.
+  - **A/B** on the reference, `stintswap-reshape`, `hdrtemplated` and `carry-rich`, decompressed: only 7 or 8
+    header `Tj` operations differ, 0 others, and the font streams are identical. The lowest header text's bottom went
+    from 53.0 to 50.0 pt (`pdftotext -bbox`), against the grid's 54 pt.
+  - **Gate 2's `base.pdf` re-cut**, recorded in `tests/baselines/2026-08-29-stage-7/README.md`:
+    - it was cut with the page's clock pinned to 29 Aug 2026, so it keeps the `BASEDATE` stamp, as the 29 Sep Excel
+      re-cut did;
+    - the pinned run equals today's run bar the stamp;
+    - it differs from the old baseline by the 7 header lines only;
+    - the new build passes it and the old build fails it (`pdfcmp.py` exit 1);
+    - `base.pdf.txt` is identical, and `base.pdf.json` changed only in bytes, `contentLen` and `textXmax`.
+  - **`npm run check`** 40/40.
+  - ✅ **Full gate: 1,278 PASS, 0 FAIL, GATE PASSED,** on build `75db63a6…` (13 min 24 s). Gate 2 matches the re-cut baseline, every Excel part is identical, there are 0 clipped cells, `fields.byId` has 62 ids, and gate 13's month PDFs are byte-identical.
+- ⭐ **Learned:**
+  1. **"The header" is ambiguous between the two PDFs**, as "the grid" was (CLAUDE.md). Ask which PDF before
+     answering.
+  2. **The waterfall PDF's header type was ALREADY shrunk** from its nominal 11/8 pt to about 9.0/6.6 pt to fit three
+     lines in the 32 pt band. Any more room under it costs type size, unless the band itself grows. Growing it means
+     a smaller header margin or a larger top margin, both shared with Excel, so the Excel export would change too.
+  3. **A PDF baseline with a date in a deflated stream** is re-cut by pinning the page's clock, not by editing bytes.
+
 ### ✅ 5 Oct 2026: MONTH-PDF WRITER STEP 6, THE BYTE BASELINES — CUT AND GATED (session "SPT Calendar Builder month PDF writer baselines")
 
 - ⏭ **RESUME HERE.** Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done, so all six steps are
