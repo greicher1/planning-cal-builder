@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Settings opens below the Show / Phases / Settings bar (23 Oct 2026)
+
+The owner: *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it should
+appear right below it with the preferences/region/presets menu below"*.
+- **What users see:** the bar at the top of the sidebar stays in view while Settings is open, with Settings
+  highlighted. The Preferences / Region / Presets tabs sit right under it. Clicking Show or Phases closes Settings
+  and goes there; clicking Settings again closes it, as does Escape.
+- **What went:** the window's own "Settings ×" title row. It repeated the button right above it.
+- **How:** `SettingsWindow.jsx` measures the bar and starts the window at its bottom edge (`top` plus
+  `--sw-rail-h`). The bar is no longer marked `inert`. Chrome only: no grid, export or save-file change.
+- **Verified:** `settingswin` 20/20, with W10 and W11 rewritten and a new W14 (the bar stays usable; hit-tested
+  clicks on Phases, Show and Settings; an arrow key; an undo leaves the window open). On the live build, `d2ac914e…`,
+  W10, W11 and W14 fail. `npm run check` 40/40. The other legs that open Settings were run too (see HANDOFF).
+
 ### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
 
 The owner: *"anything built and in the "ready to merge" section, merge it into main"*, then *"push everything at

@@ -14339,7 +14339,8 @@ export function initLegacyApp() {
     reflectMvNumberShootDays();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
-  // window first, because it lies over the whole sidebar and would hide the row being revealed.
+  // window first, because it lies over the sidebar's cards (everything below the rail) and would
+  // hide the row being revealed.
   // ⛔ Only these calls. setSidebarTab() itself must never close it: every undo, redo and Load
   // replays the saved sidebarTab through it, and an undo of a change made IN the window would
   // otherwise shut the window under the user's hands.

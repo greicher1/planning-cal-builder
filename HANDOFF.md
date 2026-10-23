@@ -4,6 +4,47 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 23 Oct 2026: SETTINGS OPENS BELOW THE SHOW / PHASES / SETTINGS RAIL — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner): *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it
+  should appear right below it with the preferences/region/presets menu below"*. On the tracker as
+  `settings-below-rail`.
+- **Built** (chrome only; no frozen code, no engine logic, no saved key):
+  - `SettingsWindow.jsx`: the window's `top` is the sidebar's scrollTop PLUS the rail's measured height, and
+    `--sw-rail-h` takes the same off its height (legacy.css). It is measured from the rail's on-screen bottom edge,
+    so it holds with the sticky rail pinned over a scrolled sidebar, and a ResizeObserver re-measures it.
+  - The rail is no longer `inert`; only the cards under the window are.
+  - A click on Show or Phases, or an arrow key on the rail's tablist, closes the window (document delegation, like
+    the Settings button). ⛔ Never from `setSidebarTab()`, which undo and Load replay; `revealSidebarTab()` still
+    closes it for "Show in Phases card".
+  - The "Settings ×" head is gone: it repeated the button right above it. The dialog is named by
+    `aria-label="Settings"`. Close = the Settings button (a toggle), Show / Phases, or Escape from inside.
+  - legacy.css: while open, the Settings button takes the selected tab's look and the engine's `.active` sidebar tab
+    gives it up (its class stays: that is where Show / Phases go back to). At 960 px and below the rail now stays
+    visible above the in-flow window.
+  - ⚠️ **Decision made without a picker:** dropping the head and its ×. One block to restore if the owner wants it.
+- **Legs:** `lib.js` `openSettings` waits for the window's top at the RAIL's bottom; `closeSettings` presses the
+  Settings button (an older build's × is still used where present). `settingswin` W10 and W11 rewritten, W14 new.
+- **Proof:**
+  - Build `ac0cbf40…`: `settingswin` 20/20; `npm run check` 40/40. The final build `5804869a…` differs from it by one
+    HTML comment (`#settings-host`'s), and on it: `settingswin` 20/20 again, `npm run check` 40/40.
+  - The live build `d2ac914e…` (served from an untracked `dist-pre/`, with a helper that accepted either top): W10,
+    W11 and W14 FAIL there. W14's failure is the owner's complaint itself: "the Phases tab is covered (sw-title)".
+  - In the browser pane: the window's top is the rail's bottom (114 px) and its bottom is the sidebar's, scrolled or
+    not; a real click on Phases closes it; the Settings button toggles it; stacked at 768 px the rail stays above it.
+  - ⚠️ `settingswin`'s Load ("the loaded file's name in the file menu") timed out in 3 of 6 runs, on BOTH builds,
+    at load average ~7. A flake of the leg, not this change.
+  - Every other leg that opens or closes the window, on `ac0cbf40…`, port 9851, one at a time, judged by gate.sh's
+    own evaluators: `hostile` 13, `sharecopy2` pass, `dlgkeys` 16, `undokeys` 11, `mvmenu (halfdays)` 89 (P6w
+    included), `autonotekinds` 16, `hdrfile` 14, `hdrexcel` 7, `hdrpreset` 19, `shootorder` 9, `offweek` 6 + 44,
+    `episodeprep` 34 + 28 + 12, `pilllabel (carry-rich)` 29, `notescols` 49, `shootdays` 16, `mvnotes` 30 + 14, all
+    green. Two failed under load ~10 and passed alone on the final build: `pilllabel (blocks)` (4 FAIL, "months 1 vs
+    18", the known cut-short month walk) → 35/35, and `sideboxes` (a Load timeout; it never opens Settings) → 78/78.
+- No full gate: this is chrome CSS and React chrome, which neither print path nor any writer can see (chrome changes
+  get targeted legs). The commit leaves the main checkout's two unrelated fixture changes (`stintswap-reshape.sptcal`
+  modified, `Reshape Fixture 2026-09-29.sptcal` untracked) as they were.
+- ⏭ **Next:** nothing. The live check after the push is recorded in the commit after this one.
+
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready

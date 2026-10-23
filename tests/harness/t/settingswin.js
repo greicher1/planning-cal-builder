@@ -29,16 +29,21 @@
 //   W8  opening, switching tabs and closing push no undo step and do not dirty the calendar
 //   W9  ⛔ the stale-switch trap: after a Load and after an undo, re-rendering the window (tabs, close, open)
 //       leaves each switch showing the ENGINE's value, not Mantine's remembered one
-//   W10 it covers exactly the sidebar; the preview panel and the grid box do not move; with the sidebar
-//       scrolled it still sits on the sidebar, and closing leaves the sidebar's scroll where it was
-//   W11 open: aria-expanded, `inert` on what it covers, focus on the selected tab. Escape from inside closes it
-//       and puts focus back on the button; an Escape elsewhere does not close it
+//   W10 it covers the sidebar from the rail's bottom edge down, leaving the rail (Show / Phases / Settings) in
+//       view (owner, 23 Oct 2026); the preview panel and the grid box do not move; with the sidebar scrolled it
+//       still sits right under the rail, and closing leaves the sidebar's scroll where it was
+//   W11 open: aria-expanded, `inert` on what it covers but never on the rail, focus on the selected tab. Escape
+//       from inside closes it and puts focus back on the button; an Escape elsewhere does not close it
 //   W12 a file saved with the old Settings tab up (sidebarTab 'settings') opens on Show, the window closed
 //   W13 the merged Preferences tab, BY VIEW: in the waterfall it shows ONE Waterfall card holding the old Calendar
 //       tab's waterfall settings and Grid Lines, Automatic notes and App, no Month view card, and the opening line
 //       that names Grid Lines; in the month view ONE Month view card holding Label Production by, the grey-text
 //       switches, Pause prep and Number Production Days, Automatic notes and App, no Waterfall card, and the line
 //       that names the grey-text switches. Exactly one opening line shows in each view
+//   W14 the rail stays live while it is open (owner, 23 Oct 2026): no head of its own, its tabs straight under
+//       the rail; the Settings button takes the selected look and the sidebar tab gives it up; a hit-tested click
+//       on Phases or Show closes it and goes there, as does an arrow key on the rail; the Settings button closes
+//       it again; an undo of a change made in it leaves it open
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
@@ -301,21 +306,28 @@ window.addEventListener('load', function () { (async function () {
     var scroller = document.getElementById('sheet-scroll-container') || document.querySelector('#table-wrap .sheet-scroll');
     var p0 = rectOf(document.querySelector('.preview-panel')), g0 = scroller ? rectOf(scroller) : null;
     await T.openSettings('prefs');
+    var rail = document.querySelector('.side-tabs');
     var w10 = rectOf(win), a10 = rectOf(aside), p1 = rectOf(document.querySelector('.preview-panel')), g1 = scroller ? rectOf(scroller) : null;
+    var wB10 = win.getBoundingClientRect(), aB10 = aside.getBoundingClientRect(), rB10 = rail.getBoundingClientRect();
     await T.closeSettings();
     // The Phases tab, so the sidebar has something to scroll (Show info is shorter than the window).
     document.querySelector('.side-tab-btn[data-tab="phases"]').click(); await settle();
     aside.scrollTop = 300; await T.sleep(200);
     var st0 = aside.scrollTop;
     await T.openSettings('region');
-    var wS = win.getBoundingClientRect(), aS = aside.getBoundingClientRect(), stOpen = aside.scrollTop;
+    var wS = win.getBoundingClientRect(), aS = aside.getBoundingClientRect(), rS = rail.getBoundingClientRect(), stOpen = aside.scrollTop;
     await T.closeSettings();
-    out.w10 = {win: w10, aside: a10, preview: [p0, p1], grid: [g0, g1], scrolled: {st: st0, winTop: Math.round(wS.top), asideTop: Math.round(aS.top), stOpen: stOpen, stAfter: aside.scrollTop}};
+    out.w10 = {win: w10, aside: a10, preview: [p0, p1], grid: [g0, g1],
+               edges: {railTop: rB10.top, railBottom: rB10.bottom, winTop: wB10.top, winBottom: wB10.bottom, asideTop: aB10.top, asideBottom: aB10.bottom},
+               scrolled: {st: st0, winTop: wS.top, railTop: rS.top, railBottom: rS.bottom, asideTop: aS.top, winBottom: wS.bottom, asideBottom: aS.bottom, stOpen: stOpen, stAfter: aside.scrollTop}};
     out.w10.asideInner = aside.clientWidth;
     // The sidebar's own 1 px right border stays visible beside the window: the window is its padding box.
-    add('W10', 'Open, it covers exactly the sidebar (inside its 1 px border); the preview panel and the grid box do not move; with the sidebar scrolled it still sits on the sidebar, and the sidebar keeps its scroll',
-      w10[0] === a10[0] && w10[1] === a10[1] && w10[3] === a10[3] && near(w10[2], aside.clientWidth) && eq(p0, p1) && !!g0 && eq(g0, g1) && st0 > 0 && near(wS.top, aS.top) && near(wS.height, aS.height) && stOpen === st0 && aside.scrollTop === st0,
-      out.w10, 'win = aside; preview and grid unmoved');
+    // ⭐ Its top is the rail's bottom edge, and the rail is at the sidebar's top: it is in view, not under the window.
+    add('W10', 'Open, it covers the sidebar (inside its 1 px border) from the rail\'s bottom edge down, the rail in view at the sidebar\'s top; the preview panel and the grid box do not move; with the sidebar scrolled it still sits right under the rail, and the sidebar keeps its scroll',
+      w10[0] === a10[0] && near(wB10.top, rB10.bottom) && near(rB10.top, aB10.top) && rB10.bottom > rB10.top + 20 && near(wB10.bottom, aB10.bottom)
+        && near(w10[2], aside.clientWidth) && eq(p0, p1) && !!g0 && eq(g0, g1)
+        && st0 > 0 && near(rS.top, aS.top) && near(wS.top, rS.bottom) && near(wS.bottom, aS.bottom) && stOpen === st0 && aside.scrollTop === st0,
+      out.w10, 'win = aside below the rail; preview and grid unmoved');
     aside.scrollTop = 0;
 
     // ---- W11: focus, inert, Escape ------------------------------------------------------------------------------
@@ -336,9 +348,9 @@ window.addEventListener('load', function () { (async function () {
     out.w11.after = {expanded: btn.getAttribute('aria-expanded'), focusOnBtn: document.activeElement === btn,
                      inert: document.querySelectorAll('[inert]').length, settingsOpen: aside.classList.contains('settings-open'),
                      display: getComputedStyle(win).display};
-    add('W11', 'Opened by a click: aria-expanded, focus on the selected tab, `inert` on the rail and the covered cards but not the window; an Escape outside leaves it open; Escape inside closes it, focus back on the button, nothing left inert',
-      out.w11.expanded === 'true' && out.w11.focusRole === 'tab' && out.w11.focusSel === 'true' && out.w11.focusInWin && out.w11.tabsInert
-        && !out.w11.winInert && out.w11.settingsOpen && inert.length >= 3 && out.w11.openAfterOutsideEsc === true
+    add('W11', 'Opened by a click: aria-expanded, focus on the selected tab, `inert` on the covered cards but not the window and NOT the rail; an Escape outside leaves it open; Escape inside closes it, focus back on the button, nothing left inert',
+      out.w11.expanded === 'true' && out.w11.focusRole === 'tab' && out.w11.focusSel === 'true' && out.w11.focusInWin && !out.w11.tabsInert
+        && !out.w11.winInert && out.w11.settingsOpen && inert.length >= 2 && out.w11.openAfterOutsideEsc === true
         && out.w11.after.expanded === 'false' && out.w11.after.focusOnBtn && out.w11.after.inert === 0 && !out.w11.after.settingsOpen
         && out.w11.after.display === 'none', out.w11, 'as described');
 
@@ -388,6 +400,70 @@ window.addEventListener('load', function () { (async function () {
         && l13m.scope.length === 1 && /grey-text switches, which stay on this computer/.test(l13m.scope[0])
         && l13mShown.label && l13mShown.pause && l13mShown.days && mvRows.length >= 1,
       out.w13, 'one card per view, its own line');
+
+    // ---- W14: the rail stays live while the window is open (owner, 23 Oct 2026) --------------------------------
+    // "it should not cover the Show/phases/settings bar. Instead it should appear right below it with the
+    // preferences/region/presets menu below". Every click here is hit-tested, so a rail left covered fails.
+    await view('sheet');
+    await T.closeSettings();
+    function tabBtn(t){ return document.querySelector('.side-tab-btn[data-tab="' + t + '"]'); }
+    function bg(e){ return getComputedStyle(e).backgroundColor; }
+    win.style.transition = 'none';
+    [].forEach.call(document.querySelectorAll('.side-tab-btn, .side-settings-btn'), function (b) { b.style.transition = 'none'; });
+    hitClick(tabBtn('show'), 'the Show tab'); await T.sleep(300);
+    var selBg = bg(tabBtn('show'));                      // the selected look, read off the selected tab before opening
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return isOpen(); }, 'the window to open', 30, 50);
+    await T.sleep(200);
+    var list = win.querySelector('[role="tablist"]'), rB = document.querySelector('.side-tabs').getBoundingClientRect();
+    out.w14 = {selBg: selBg, open: {settingsBg: bg(btn), showBg: bg(tabBtn('show')), showStillActive: tabBtn('show').classList.contains('active'),
+               // No head: nothing of its own above the tabs (the cards inside have h2 headings of their own).
+               head: !!win.querySelector('.sw-head, .sw-close, #settings-window-title') || !(win.firstElementChild && win.firstElementChild.classList.contains('sw-tabs')),
+               label: win.getAttribute('aria-label'),
+               listTop: list && list.getBoundingClientRect().top, railBottom: rB.bottom,
+               firstTab: list && (list.querySelector('[role="tab"]') || {}).textContent}};
+    hitClick(tabBtn('phases'), 'the Phases tab');
+    await T.until(function () { return !isOpen(); }, 'Phases to close the window', 30, 50);
+    await T.sleep(200);
+    out.w14.phases = {tab: activeTab(), open: isOpen(), inert: document.querySelectorAll('[inert]').length, expanded: btn.getAttribute('aria-expanded'),
+                      cardShown: shown(document.querySelector('.form-panel section.card[data-tab="phases"]'))};
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return isOpen(); }, 'the window to reopen', 30, 50);
+    hitClick(tabBtn('show'), 'the Show tab');
+    await T.until(function () { return !isOpen(); }, 'Show to close the window', 30, 50);
+    out.w14.show = {tab: activeTab(), open: isOpen()};
+    // The arrow keys move along the rail's tablist (app.js) and leave Settings the same way.
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return isOpen(); }, 'the window to reopen', 30, 50);
+    tabBtn('show').focus();
+    tabBtn('show').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+    await T.until(function () { return !isOpen(); }, 'an arrow key on the rail to close the window', 30, 50).catch(function () {});
+    out.w14.arrow = {tab: activeTab(), open: isOpen()};
+    hitClick(tabBtn('show'), 'the Show tab'); await T.sleep(300);
+    // The Settings button closes it again: a toggle.
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return isOpen(); }, 'the window to reopen', 30, 50);
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return !isOpen(); }, 'the Settings button to close the window', 30, 50).catch(function () {});
+    out.w14.toggled = {open: isOpen(), settingsBg: bg(btn), showBg: bg(tabBtn('show'))};
+    // An undo of a change made IN the window replays the saved sidebar tab (setSidebarTab) and must not close it.
+    await T.openSettings('prefs');
+    var one = el('one-col-btn').checked;
+    hitClick(track('one-col-btn'), 'Single Column Mode');
+    await settle();
+    el('undo-btn').click();
+    await settle();
+    out.w14.undo = {open: isOpen(), back: el('one-col-btn').checked === one};
+    await T.closeSettings();
+    var o14 = out.w14;
+    add('W14', 'The rail stays live while it is open: no head, its tabs (Preferences first) straight under the rail; Settings looks selected and Show gives it up; a click on Phases or Show, or an arrow key on the rail, closes it and goes there; the Settings button closes it again; an undo of a change made in it leaves it open',
+      o14.open.settingsBg === selBg && selBg !== 'rgba(0, 0, 0, 0)' && o14.open.showBg !== selBg && o14.open.showStillActive
+        && !o14.open.head && o14.open.label === 'Settings' && near(o14.open.listTop, o14.open.railBottom) && o14.open.firstTab === 'Preferences'
+        && o14.phases.tab === 'phases' && !o14.phases.open && o14.phases.inert === 0 && o14.phases.expanded === 'false' && o14.phases.cardShown
+        && o14.show.tab === 'show' && !o14.show.open && o14.arrow.tab === 'phases' && !o14.arrow.open
+        && !o14.toggled.open && o14.toggled.settingsBg !== selBg && o14.toggled.showBg === selBg
+        && o14.undo.open && o14.undo.back,
+      out.w14, 'as described');
   } catch (e) { out.EX = String(e && e.stack || e); add('EX', 'the leg ran to the end', false, out.EX, 'no exception'); }
   out.errors = (window.__ERR || []).slice(0, 10);
   add('E0', '0 console errors', out.errors.length === 0, out.errors, []);

@@ -628,9 +628,11 @@
 
   /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
      "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
-     visible, so changes show live." It is laid over aside.form-panel -- exactly the sidebar's box,
-     the rail included -- and never over .preview-panel, so the grid, the grid fit and every popover
-     anchored to a cell are untouched by it.
+     visible, so changes show live." It is laid over aside.form-panel BELOW THE RAIL -- the sidebar's
+     box from the rail's bottom edge down -- and never over .preview-panel, so the grid, the grid fit
+     and every popover anchored to a cell are untouched by it. ⭐ Below the rail, not over it (owner,
+     23 Oct 2026: "it should not cover the Show/phases/settings bar. Instead it should appear right
+     below it"): SettingsWindow.jsx measures the rail into --sw-rail-h and adds it to `top`.
      ⛔ CLOSED IS display:none, NEVER UNMOUNTED. collectFieldValues() and readState() read the
      window's controls by id on every save and every update; display:none is what `.tab-hidden` did to
      these same cards whenever the sidebar showed another tab, so the engine has always coped with it.
@@ -641,10 +643,11 @@
      `top` to the sidebar's scrollTop, and .settings-open stops the sidebar scrolling underneath; the
      window scrolls inside its own tab panel instead.
      z-index 110: above the sticky .side-tabs (100) in the sidebar's own stacking context (sticky
-     makes one), and so below every body-level popover (300) and the help modal (200). */
+     makes one), so the slide passes under nothing, and below every body-level popover (300) and the
+     help modal (200). */
   .settings-window{
     display:none; flex-direction:column;
-    position:absolute; left:0; top:0; width:100%; height:100%; z-index:110;
+    position:absolute; left:0; top:0; width:100%; height:calc(100% - var(--sw-rail-h, 0px)); z-index:110;
     background:var(--mantine-color-white);
     transform:translateX(-100%);
     transition:transform 180ms ease, display 180ms allow-discrete;
@@ -653,14 +656,16 @@
   @starting-style{ .settings-window.is-open{ transform:translateX(-100%); } }
   @media (prefers-reduced-motion:reduce){ .settings-window{ transition:none; } }
   .form-panel.settings-open{ overflow:hidden; }
-  /* The head lines up with the rail it covers: same padding, same rule under it. */
-  .sw-head{
-    flex:none; display:flex; align-items:center; gap:var(--mantine-spacing-sm);
-    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-md) var(--mantine-spacing-xl);
-    border-bottom:1px solid var(--mantine-color-gray-2);
+  /* Open, the rail says where you are: Settings takes the selected tab's look and Show / Phases give
+     it up (the engine's .active stays on the sidebar tab underneath, which is where a click on either
+     goes back to). The window has no head of its own; the button is its title. */
+  .form-panel.settings-open .side-tab-btn.active{ background:transparent; color:var(--mantine-color-gray-6); font-weight:500; }
+  .form-panel.settings-open .side-tab-btn.active:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  .form-panel.settings-open .side-settings-btn{
+    background:var(--mantine-primary-color-light);
+    color:var(--mantine-primary-color-light-color);
+    font-weight:600;
   }
-  .sw-head-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-7); }
-  .sw-title{ margin:0; flex:1; min-width:0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--mantine-color-gray-9); }
   .sw-tabs{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
   .sw-tablist{ flex:none; padding:0 var(--mantine-spacing-md); }
   /* Tab labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
@@ -686,7 +691,7 @@
     .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
     .settings-window .sw-panel{ overflow:visible; }
     .form-panel.settings-open{ overflow:visible; }
-    .form-panel.settings-open .side-tabs,
+    /* The rail stays, as above 960 px; the window takes the place of everything under it. */
     .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
