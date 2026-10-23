@@ -4,6 +4,58 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 22 Oct 2026: ⌘Z / ⇧⌘Z AFTER EVERY KIND OF EDIT, AND A VIEW SWITCH IS NO UNDO STEP — branch `undo-keys` (worktree `.claude/worktrees/undo-keys`), from `main` at `55a9c61`; FULL GATE 2,770 / 2 (both `mvmenu`, expectations of the old rule, fixed and re-run 89/89 on the same build); NOT COMMITTED YET
+
+- **Asked:** *"Does command z and command shift z works for EVERYTHING?"* Investigated with real key presses in the
+  pane, two gaps reported, and the owner said *"Yes, fix both"*. Mid-fix: *"also command z should not count switching
+  between views as an undo step"*.
+- **Gap 1, checkbox / switch / date box.** The keydown handler left ⌘Z to any focused `<input>` (so the browser's
+  typing undo could run). Chrome leaves focus on a checkbox or switch after a click, and neither has an undo, so ⌘Z
+  right after ticking a phase's Hiatus box or any Settings switch did NOTHING. ⭐ **A date box is the same, measured:**
+  `document.execCommand('undo')` returns false in one after typing a date (true in text and number boxes). So ⌘Z after
+  typing any phase start date did nothing either. Fix: `fieldOwnsUndoKeys()`: textarea, contenteditable, and inputs of
+  type text/search/url/tel/email/password/number that are not read-only.
+- **Gap 2, grid drag with a sidebar box focused.** The grid's drags `preventDefault()` their pointerdown (no text
+  selection), which also stops the browser moving focus. Type a title, drag a column, ⌘Z: the keys went to the title
+  and the drag stayed. Fix: a capture `pointerdown` on the document marks the focused input (`fieldUndoKeysStale`)
+  when the press lands in `#table-wrap` or `.side-col` and the input is outside both. The app's undo then runs until
+  the input gets `input`, a press inside it, or `focusin`. ⛔ **Marked, not blurred:** a blur fires the input's
+  change event, which re-renders the grid mid-drag under frozen drag code holding the old DOM. ⚠️ Only an `<input>`
+  is marked: a textarea / contenteditable is a note or header editor whose own buttons cancel the mousedown on
+  purpose to keep the text focused.
+- **View switch.** `viewMode` stays in `captureSnapshot()` (a file opens in its saved view, and a switch still dirties
+  the file), but the undo history uses `undoStateJSON()` (the snapshot without `viewMode`) for the stack, the
+  baseline and the compare, so a switch banks nothing and keeps the redo. `applySnapshotJSON()` writes the CURRENT
+  view into the step before applying it, so undo/redo never change the view. Chosen here, the owner's to overturn:
+  an undo of a month-only change made in the month view, pressed in the waterfall, changes nothing you can see.
+- **Not changed, for the owner:** `sidebarTab` is still in the history, so an undo can flip the sidebar between Show
+  and Phases (the step's snapshot holds the tab it was banked on). Same class as the view switch; not asked.
+- **No frozen code touched.** All three are in the undo section and the keydown handler of `src/legacy/app.js`.
+- **Proof:** new leg **`undokeys`** (in-page, no state, `gate.sh` AFSPEC beside `dlgkeys`), 11/11: K1 Hiatus box, K2
+  Single Column switch, K3 date box (each focused, ⌘Z and ⇧⌘Z), K4 title + column drag, K5 click back in the title,
+  K6 typing in it, K7 view switch, X1 text box keeps its keys, X2 a sidebar press does not take them, X3 the backup
+  still records `viewMode`, E0. **Red on the unfixed engine at K1–K4 and K7**; mutants: old INPUT test → K1–K3, no
+  stale mark → K4, `viewMode` kept in the history → K7. In the pane, real keys, on the dev build: the Hiatus box
+  unticked/reticked, ⌘Z after a column drag put the width back with the title kept, ⌘Z in a date box cleared it,
+  and undo/redo in the Month view stayed there with redo surviving two switches.
+- ⚠️ **Traps for legs:** (1) `phaseedge` F9/F10 and `hiatusdrag` H2/H3/H10/H11 proved "nothing banked" by a Ctrl+Z
+  landing on the view switch. They now check the Undo button is off and a Ctrl+Z changes nothing (after `load()`
+  the stack is empty). Seven in-page legs' comments said a switch is an undo step; reworded to "until 22 Oct 2026",
+  their logic left alone (still valid). (2) An undo restores the sidebar tab, which can hide the control a leg is
+  about to focus (K1, K3 re-open Phases). (3) Headless Chrome drops focus from a date box once its date is set; the
+  pane keeps it. (4) The pane's `computer` key cannot fire Chrome's native editing undo, so in-field ⌘Z cannot be
+  observed there; `document.execCommand('undo')` is the proxy.
+- ⭐ **The month view's "Show this week in the waterfall" is a view switch too, so it banks nothing now.** One Undo
+  after it takes back the edit BEFORE it and stays in the waterfall. `mvmenu` K2u/I7u asserted the old rule (one undo
+  goes back to the month view) and were the gate's only two failures; they now assert the new one (undo goes past the
+  item, stays in the waterfall, redo puts the earlier edit back). The other three items are still one step each.
+- `npm run check` 40/40, build `d007e3cf…`.
+- **Full gate on build `d007e3cf…` (port 8712, 22 Oct 19:34:17–20:01:13, alone; it waited for the resize-zoom
+  session's gate): 2,770 PASS, 2 FAIL** (`mvmenu` K2u, I7u: above). Every frozen output identical to baseline:
+  waterfall PDF, Excel parts, the month print documents, 0 clipped, 76 ids. `undokeys` 11/11, `phaseedge` 23/23,
+  `hiatusdrag` 13/13, `dlgkeys` 16/16, `filekeys` 16/16, `labelsetup` 41/41. **`mvmenu` re-run on the same build after
+  its fix: 89/89** (another session's gate was running by then; it passed anyway).
+
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
@@ -3470,7 +3522,7 @@
   - **The day is ringed** while the menu is open. The ring is a body-level `.day-menu-ring` laid over the cell, never a
     class in the grid. It comes from the mockup, not from the plan text.
   - **The items:** Add note · Add 1-day phase here · Add 1-week phase here · Show this week in the waterfall. Each one is
-    exactly one undo step. A greyed-out item says why, as its second line.
+    exactly one undo step. *(Since 22 Oct 2026 "Show this week in the waterfall" is none: a view switch banks nothing.)* A greyed-out item says why, as its second line.
 - **Code** (no frozen symbol touched):
   - `src/legacy/app.js`:
     - `installMonthDayMenu` (right after `installDayOverrideUI`).

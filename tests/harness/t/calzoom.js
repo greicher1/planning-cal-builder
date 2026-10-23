@@ -187,7 +187,8 @@ window.addEventListener('load', function () { (async function () {
     await zoomTo(0.75);
 
     // ---- F: the file and the preference ----
-    // The view switches above are edits of their own (viewMode is saved state), so the zoom-only window
+    // The view switches above are edits of their own (viewMode is saved state: they mark the file unsaved,
+    // though since 22 Oct 2026 they bank no undo step), so the zoom-only window
     // starts here: from now on only the zoom changes.
     var save1 = (q('.save-status') || {}).textContent || '';
     var undoOff1 = !!($('undo-btn') && $('undo-btn').hasAttribute('data-disabled'));

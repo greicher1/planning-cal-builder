@@ -605,10 +605,16 @@ window.addEventListener('load', function () { (async function () {
     add('K2', 'Enter chooses: Show this week in the waterfall on 25 Dec switches to the waterfall with the week of Mon 21 Dec (a hiatus band) inside the scroll box',
       sheetActive() && !!band && bc.top >= br.top && bc.bottom <= br.bottom && !menuEl(),
       {sheet: sheetActive(), band: !!band, box: br && [br.top, br.bottom], row: bc && [bc.top, bc.bottom]}, 'the 12/21 band in view');
+    // ⭐ The item is a VIEW SWITCH, and since 22 Oct 2026 (owner: "command z should not count switching between
+    // views as an undo step") it banks nothing. So one undo goes PAST it, to the edit before it, and stays in the
+    // waterfall; a redo puts that edit back. (Until then K2u asserted the undo went back to the month view.)
     await T.sleep(700);
     await undo();
-    add('K2u', 'One undo goes back to the month view on December, with fields.byId as it was',
-      !sheetActive() && !!document.querySelector('#table-wrap .mv-daygrid') && eq(sig(), s4), {sheet: sheetActive(), diff: sigDiff(s4, sig())}, 'month');
+    var k2u = {sheet: sheetActive(), diff: sigDiff(s4, sig())}, k2went = !eq(sig(), s4);
+    await redo();
+    k2u.redoSheet = sheetActive(); k2u.redoDiff = sigDiff(s4, sig());
+    add('K2u', 'The item banks no undo step (a view switch): one undo takes back the edit before it and stays in the waterfall; redo puts it back',
+      k2u.sheet && k2went && k2u.redoSheet && eq(sig(), s4), k2u, 'waterfall, the earlier edit undone and redone');
 
     // I3: Add 1-day phase here on a weekday holiday, 3 Jul.
     await toMonth('July 2026');
@@ -858,8 +864,12 @@ window.addEventListener('load', function () { (async function () {
     var g3 = nc ? rclickAt(Math.round(nc.left + 5), Math.round(nc.top + nc.height / 2)) : {prevented: true};
     add('G3', 'In the waterfall a right-click is left to the browser', !g3.prevented && !menuEl(), {prevented: g3.prevented}, 'not prevented');
     await T.sleep(700);
-    await undo();
-    add('I7u', 'One undo goes back to the month view', !sheetActive() && eq(sig(), s7), {sheet: sheetActive(), diff: sigDiff(s7, sig())}, 'month');
+    await undo();                                          // the item banks nothing (see K2u)
+    var i7u = {sheet: sheetActive(), diff: sigDiff(s7, sig())}, i7went = !eq(sig(), s7);
+    await redo();
+    i7u.redoSheet = sheetActive(); i7u.redoDiff = sigDiff(s7, sig());
+    add('I7u', 'The item banks no undo step: one undo takes back the edit before it and stays in the waterfall; redo puts it back',
+      i7u.sheet && i7went && i7u.redoSheet && eq(sig(), s7), i7u, 'waterfall, the earlier edit undone and redone');
 
     // ---- G4-G6: a macOS Ctrl+click starts no month drag (plan §5) ----
     // Forced to a Mac for the guard and to Windows for the control, so the leg means the same on any host.

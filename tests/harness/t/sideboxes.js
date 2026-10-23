@@ -445,8 +445,8 @@ window.addEventListener('load', function () { (async function () {
     var p2b = await pdfContent(await exportAgain('export-wf-pdf-btn', 'the PDF with none again'));
     check(stampless(p1b.content) !== stampless(p0b.content) && stampless(p2b.content) === stampless(p0b.content),
           'F8 a box changes the PDF, and taking it away gives back the very same page content');
-    // ⚠️ AFTER the undo/redo above: a view switch is itself an undo step (viewMode is saved), so taking this
-    // measurement first put the undo on the switch instead of on the delete.
+    // ⚠️ AFTER the undo/redo above: until 22 Oct 2026 a view switch was itself an undo step (viewMode is
+    // saved), so taking this measurement first put the undo on the switch instead of on the delete.
     $('view-month-btn').click(); await settle();
     var monthNoBox = $('table-wrap').getBoundingClientRect().width;
     check(Math.abs(monthNoBox - out.monthWrapW) < 0.01, 'F4 #table-wrap is exactly as wide in the month view with boxes as without (' + out.monthWrapW + ' / ' + monthNoBox + ')');

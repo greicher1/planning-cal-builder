@@ -69,8 +69,8 @@ window.addEventListener('load', function () { (async function () {
     out.gridSig = JSON.stringify(T.gridSignature());
 
     // ---- 1b. a preference pushes NO undo step -------------------------------------------------
-    // ⚠️ HERE, before anything else happens: switching to the month view is itself an undo step
-    // (viewMode is calendar state), so measured any later the Undo button is already enabled and
+    // ⚠️ HERE, before anything else happens: until 22 Oct 2026 switching to the month view was itself an
+    // undo step (viewMode is calendar state), so measured any later the Undo button was already enabled and
     // "still enabled afterwards" would prove nothing. The first cut of this leg did exactly that.
     out.undoDisabledBefore = document.getElementById('undo-btn').disabled;
     document.getElementById('pref-mv-episodes').click();

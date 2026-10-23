@@ -234,7 +234,7 @@ window.addEventListener('load', function () { (async function () {
     });
 
     await step('A8', async function () {
-      // ⚠️ From a clean step: the view switches above are undo steps of their own (viewMode is saved state).
+      // ⚠️ From a clean step: until 22 Oct 2026 the view switches above were undo steps of their own.
       await clickBox('principalWrap');                 // on
       await clickBox('principalWrap');                 // off: the step under test
       $('undo-btn').click(); await settle();

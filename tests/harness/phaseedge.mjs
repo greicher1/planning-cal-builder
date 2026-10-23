@@ -44,8 +44,8 @@
 //   F8  BUILT-IN WEEKS start right a day (prePrep, Snap on): Dates, start Tue 1/5, end held Fri 1/29,
 //       Snap to Mon untouched; ONE Ctrl+Z -> Weeks, Mon 1/4
 //   F9  WEEKS end out and back in ONE gesture: Dates mid-gesture, then Weeks exactly as it was, and no
-//       undo step banked: the next Ctrl+Z undoes the switch to the month view (viewMode is in the
-//       snapshot), which it could not reach past a banked step
+//       undo step banked: Undo is still off, and the next Ctrl+Z changes nothing (since 22 Oct 2026 a
+//       view switch is no undo step, so the load and the switch to the month view leave the stack empty)
 //   F10 Escape mid-drag (DATES end): put back, the shield gone, no undo step banked (F9's probe)
 //   F11 BUILT-IN DATES start left a day (post): start Wed 3/31, end still 5/12; ONE Ctrl+Z
 //   F12 print: the handle is display:none under body.printing-calendar in print media, and never in
@@ -378,16 +378,17 @@ try {
   const mids9 = [];
   if (h9 && tue9 && wed9) await dragPath(h9, [[...toward(h9, tue9, wed9), true], [h9.x, h9.y]], 'custom1', mids9);
   const f9b = await fields('custom1');
-  // ⭐ "Banked nothing", observed: switching to the month view is itself an undo step (viewMode is in
-  // the snapshot), so the ONE Ctrl+Z after the gesture must take the calendar back to the waterfall.
-  // Had the gesture banked a step, that Ctrl+Z would land on it and stay in the month view.
+  // ⭐ "Banked nothing", observed. Since 22 Oct 2026 (owner) a view switch is no undo step, so after load()
+  // the stack is EMPTY: Undo is off before the gesture (f9a), and the Ctrl+Z after it must change nothing.
+  // Had the gesture banked a step -- even an intermediate one, mid-drag -- that Ctrl+Z would land on it.
+  // (Until then the probe was that this Ctrl+Z undid the switch to the month view.)
   await ctrlZ();
   const f9u = await fields('custom1');
   out.F9 = { before: f9a, mid: mids9[0], back: f9b, undone: f9u };
   const same = (a, b) => JSON.stringify(Object.assign({}, a, { shield: 0 })) === JSON.stringify(Object.assign({}, b, { shield: 0 }));
-  kase('F9', 'WEEKS end out a day and back, ONE gesture: Dates mid-gesture, then Weeks exactly as it was; the next Ctrl+Z undoes the VIEW switch (nothing banked)',
-       !!h9 && f9a.month === true && !!mids9[0] && mids9[0].unit === 'dates' && mids9[0].end === '2027-01-27'
-       && same(f9b, f9a) && f9u.month === false && f9u.unit === 'weeks' && f9u.end === f9a.end && f9u.weeks === f9a.weeks, out.F9);
+  kase('F9', 'WEEKS end out a day and back, ONE gesture: Dates mid-gesture, then Weeks exactly as it was; Undo still off and the next Ctrl+Z changes nothing (nothing banked)',
+       !!h9 && f9a.month === true && f9a.undoOff === true && !!mids9[0] && mids9[0].unit === 'dates' && mids9[0].end === '2027-01-27'
+       && same(f9b, f9a) && same(f9u, f9a), out.F9);
 
   // ---- F10: Escape mid-drag -------------------------------------------------------------------------
   await load('customunits', 'February 2027');
@@ -409,13 +410,13 @@ try {
     await sleep(700);
   }
   const f10b = await fields('custom3');
-  await ctrlZ();                                   // F9's probe: this must undo the view switch
+  await ctrlZ();                                   // F9's probe: this must change nothing
   const f10u = await fields('custom3');
   out.F10 = { before: f10a, mid: f10mid, after: f10b, undone: f10u };
-  kase('F10', 'Escape mid-drag (DATES end at 2/25): back to 2/23, the shield gone; the next Ctrl+Z undoes the VIEW switch (nothing banked)',
+  kase('F10', 'Escape mid-drag (DATES end at 2/25): back to 2/23, the shield gone; Undo still off and the next Ctrl+Z changes nothing (nothing banked)',
        !!h10 && !!f10mid && f10mid.end === '2027-02-25' && f10mid.shield === true
        && f10b.end === '2027-02-23' && f10b.start === '2027-02-10' && f10b.shield === false && f10b.month === true
-       && f10u.month === false && f10u.end === '2027-02-23', out.F10);
+       && f10a.undoOff === true && JSON.stringify(Object.assign({}, f10u, { shield: 0 })) === JSON.stringify(Object.assign({}, f10a, { shield: 0 })), out.F10);
 
   // ---- F11: BUILT-IN DATES start left a day (post) ---------------------------------------------------
   // April 2027's row 0 is Sun 3/28 - Sat 4/3; Thu 4/1 is column 4.
@@ -506,9 +507,9 @@ try {
   const prepBoxes = () => ev(`Object.fromEntries(Array.from(document.querySelectorAll('#prep-rows .prep-unit-row')).map(r => {
     const i = r.querySelector('.prep-unit-days');
     return [r.querySelector('.prep-unit-name').textContent.trim(), { v: i.value, edited: i.classList.contains('is-edited') }]; }))`);
-  // ⚠️ "Nothing banked" is read off the Undo button, not F9's Ctrl+Z probe: episodeprep.sptcal is SAVED in the
-  // month view, so load()'s click on the month button is no step, and the stack starts empty. G2 shows the
-  // button enabled after a real drag, so the probe can see a banked step.
+  // ⚠️ "Nothing banked" is read off the Undo button. The stack starts empty after load() (a view switch is no
+  // undo step since 22 Oct 2026; before that, it held here only because episodeprep.sptcal is SAVED in the month
+  // view). G2 shows the button enabled after a real drag, so the probe can see a banked step.
   const undoOff = () => ev(`(() => { const u = document.getElementById('undo-btn'); return !!u && (u.disabled || u.hasAttribute('data-disabled')); })()`);
   const spanOf = (ps, label) => { const m = ps.filter(p => p.label === label).sort((a, b) => a.from < b.from ? -1 : 1);
     return m.length ? { from: m[0].from, to: m[m.length - 1].to } : null; };

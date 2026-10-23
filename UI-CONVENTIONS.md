@@ -1252,6 +1252,19 @@ Nothing in this document ships without all of these, every stage:
     ⌘Z inside a field, the header editor's included, is the field's own undo (X1, X2), and with no
     dialog the three keys work as before (X3).
 
+    The undo-keys fix (22 Oct 2026, owner) adds `undokeys` (no state). ⌘Z and ⇧⌘Z must act right
+    after a phase's Hiatus box is ticked (K1), Settings ▸ Single Column Mode is flipped (K2) and a
+    start date is typed (K3), each with focus still on that control, and after a column drag that
+    left the cursor in the title (K4: the drag is undone, the title kept). A click back in the title
+    (K5) or typing in it (K6) gives it the keys back. A view switch is no undo step (K7): ⌘Z in the
+    Month view undoes the last edit there, and redo survives the switches. Kept: a text box being
+    typed in keeps ⌘Z (X1), a press outside the calendar does not take it (X2), and the saved file
+    still records its view (X3). Red on the unfixed engine at K1–K4 and K7; three mutants, each red
+    only on its own cases. `phaseedge` (F9, F10) and `hiatusdrag` (H2, H3, H10, H11) used to prove
+    "nothing banked" by a Ctrl+Z landing on the view switch. They now read the Undo button (off) and
+    check that Ctrl+Z changes nothing. `mvmenu` K2u/I7u now expect "Show this week in the waterfall" to
+    bank nothing: one undo after it takes back the edit before it and stays in the waterfall.
+
     Double-click to open (1 Oct 2026) adds `launchopen`: a `.sptcal` the OS hands the app through
     `launchQueue` loads as Load… does. It covers a cold launch (no recovery question on top, the
     backup kept), the linked file Save writes back to, the unsaved-work question (Cancel and Load),

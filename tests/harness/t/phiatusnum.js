@@ -207,7 +207,7 @@ window.addEventListener('load', function () { (async function () {
     });
 
     await step('H7', async function () {
-      // ⚠️ From a clean step: the view switches above are undo steps of their own (viewMode is saved state).
+      // ⚠️ From a clean step: until 22 Oct 2026 the view switches above were undo steps of their own.
       await clickBox('prePrep');                         // untick
       await clickBox('prePrep');                         // tick: the step under test
       $('undo-btn').click(); await settle();

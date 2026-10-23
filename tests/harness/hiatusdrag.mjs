@@ -37,8 +37,9 @@
 //       nothing; Post Pause has the layer and both grips
 //   H1  move up a row, Keep: the question names the old and new weeks; Ctrl+Z under it does nothing; Keep
 //       -> 3/15, the typed label and colour on the 3/15 band, no band on 3/22; ONE Ctrl+Z -> 3/22
-//   H2  move down a row, Undo: back to 3/22 exactly, the look there; nothing banked (the next Ctrl+Z
-//       undoes the switch to the month view)
+//   H2  move down a row, Undo: back to 3/22 exactly, the look there; nothing banked (Undo is off and the
+//       next Ctrl+Z changes nothing: since 22 Oct 2026 a view switch is no undo step, so after load() the
+//       stack is empty. Until then the probe was that this Ctrl+Z undid the switch to the month view)
 //   H3  sideways within the row: nothing written, no question
 //   H4  dropped on the SUNDAY of the next row: that row's week (3/29), not mondayOf(Sun) = 3/22
 //   H5  no overlap: Easter Week dragged onto the locked Shutdown's row stops one week short, at 4/12
@@ -166,7 +167,12 @@ try {
     return { rows, by: Object.fromEntries(rows.map(r => [r.name, r.start + '/' + r.weeks])),
       post: $('phiatus-start-post').value + '/' + $('phiatus-weeks-post').value,
       question: q, month: !!document.querySelector('#table-wrap .mv-monthyear'),
+      undoOff: (u => !!u && (u.disabled || u.hasAttribute('data-disabled')))($('undo-btn')),
       shield: !!document.querySelector('.hiatus-drag-shield'), prod: ($('meta-production') || {}).textContent || '' }; })()`);
+  // "Nothing banked": after load() the stack is empty (a view switch is no undo step, 22 Oct 2026), so the
+  // Ctrl+Z after the case must change nothing. A banked step -- even an intermediate one -- would be undone.
+  const banked0 = (after, next) => next.month === true && next.undoOff === true && !next.question
+    && JSON.stringify(next.by) === JSON.stringify(after.by) && next.post === after.post;
   // A week row's hiatus band (the first), with its centre, box and look; and the row's own box.
   const band = row => ev(`(() => {
     const w = document.querySelectorAll('#table-wrap .mv-body > .mv-week')[${row}]; if (!w) return null;
@@ -279,10 +285,10 @@ try {
     await ctrlZ();
     const next = await state();
     out.H2 = { q, mid, undid, after, r3, r4, next };
-    kase('H2', 'move down a row, Undo: back to 3/22 exactly with its look, no band on 3/29; nothing banked (the next Ctrl+Z leaves the month view)',
+    kase('H2', 'move down a row, Undo: back to 3/22 exactly with its look, no band on 3/29; nothing banked (Undo off, the next Ctrl+Z changes nothing)',
          q && mid.by['Spring Break'] === '2027-03-29/1' && undid && !after.question
          && after.by['Spring Break'] === '2027-03-22/1' && r3.text === 'Spring Break (typed)' && r3.bg === PURPLE && r4.none === true
-         && next.month === false, out.H2);
+         && banked0(after, next), out.H2);
   }
 
   // ---- H3: sideways within the row -------------------------------------------------------------------
@@ -295,7 +301,7 @@ try {
     const next = await state();
     out.H3 = { q, after, next };
     kase('H3', 'sideways within the row: nothing written, no question, nothing banked',
-         !q && after.by['Spring Break'] === '2027-03-22/1' && !after.question && next.month === false, out.H3);
+         !q && after.by['Spring Break'] === '2027-03-22/1' && !after.question && banked0(after, next), out.H3);
   }
 
   // ---- H4: dropped on the Sunday of the next row ----------------------------------------------------------
@@ -395,7 +401,7 @@ try {
     const next = await state();
     out.H10 = { q, after, r3, next };
     kase('H10', "Post Pause down a row (5/24, after Post's last working week): refused, still 5/17 with its band, no question, nothing banked",
-         !q && after.post === '2027-05-17/1' && r3.text === 'Post Pause' && next.month === false, out.H10);
+         !q && after.post === '2027-05-17/1' && r3.text === 'Post Pause' && banked0(after, next), out.H10);
   }
 
   // ---- H11: Escape mid-drag -------------------------------------------------------------------------------------------
@@ -418,7 +424,7 @@ try {
     out.H11 = { mid, q, after, next };
     kase('H11', 'Escape mid-drag (at 3/15): back to 3/22, the shield gone, no question; nothing banked',
          mid.by['Spring Break'] === '2027-03-15/1' && mid.shield === true && !q
-         && after.by['Spring Break'] === '2027-03-22/1' && after.shield === false && next.month === false, out.H11);
+         && after.by['Spring Break'] === '2027-03-22/1' && after.shield === false && banked0(after, next), out.H11);
   }
 
   // ---- H12: print -----------------------------------------------------------------------------------------------------------

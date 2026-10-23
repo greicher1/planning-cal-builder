@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — ⌘Z and ⇧⌘Z after every kind of edit; a view switch is no undo step (22 Oct 2026)
+
+The owner: *"Does command z and command shift z works for EVERYTHING?"* It did not, and then: *"also command z
+should not count switching between views as an undo step"*.
+- **Right after a checkbox, a switch or a date box, ⌘Z and ⇧⌘Z now undo and redo.** Before, they did nothing there.
+  The keys were left to any focused `<input>`, so the browser's own typing undo could run, and Chrome leaves focus on a
+  checkbox or switch after a click. Neither has an undo of its own, and nor does a date box (measured:
+  `document.execCommand('undo')` returns false in one). That covered a phase's Hiatus box, every switch in the
+  Settings window, and every start date typed in. Only a field you type text into keeps the keys now: text and number
+  boxes, text areas, and the header's editable lines.
+- **After a drag on the calendar, ⌘Z undoes the drag** even if the cursor is still in a sidebar box. The grid's drags
+  cancel the mouse press (so no text gets selected), which also kept focus in the box last typed in, and ⌘Z went to
+  that box: the drag stayed. A press on the calendar now hands the keys to the app's undo until you type in the box
+  or click back into it.
+- **Switching between Waterfall and Month is no longer an undo step.** ⌘Z after a switch used to switch back, and a
+  switch threw away the redo history. Now undo and redo skip the view entirely and leave you in the view you are
+  looking at. The file still remembers which view it was saved in, and a switch still counts as an unsaved change.
+- **The month view's "Show this week in the waterfall"** is a view switch too, so it is no longer an undo step: one
+  Undo after it takes back the edit before it and leaves you in the waterfall.
+- **Not changed:** typing in a text box keeps ⌘Z for that box's typing. The keys still do nothing while a dialog is
+  open. An undo can still switch the sidebar between Show and Phases, because the tab is in the saved state.
+- **Verified:** new leg `undokeys` 11/11, red on the unfixed engine at K1–K4 and K7, and three mutants each red only
+  on their own cases. `phaseedge` and `hiatusdrag` used a Ctrl+Z on the view switch to prove a drag banked nothing,
+  and now read the Undo button instead; `mvmenu` K2u/I7u now expect the waterfall item to bank nothing. Each change
+  checked in the app with real key presses. `npm run check` 40/40. Full gate on build `d007e3cf…`: 2,770 pass, 2 fail
+  (those two `mvmenu` checks, then 89/89 on the same build); every frozen output identical to its baseline.
+
 ### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
 
 The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in

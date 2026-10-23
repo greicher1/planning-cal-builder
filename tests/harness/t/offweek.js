@@ -362,8 +362,8 @@ window.addEventListener('load', function () { (async function () {
         out.r5lanes = {band830: (band('2027-08-30')[0] || {}).lane, pill816: ln('2027-08-16'), pill913: ln('2027-09-13')};
       });
 
-      // ⚠️ A view switch is an undo step of its own (viewMode is in the snapshot), so the undo here comes
-      // straight after the choice, in the same view, and the waterfall is read after a REDO.
+      // ⚠️ The undo here comes straight after the choice, in the same view, and the waterfall is read after a
+      // REDO: until 22 Oct 2026 a view switch was an undo step of its own (viewMode is in the snapshot).
       await step('R6', async function () {
         await toMonth('September 2027');
         await mark(1, '');

@@ -716,8 +716,19 @@ in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pus
 - **Cmd+S** calls the Save button's own click handler (not `saveToFile()` directly) so it keeps
   the in-flight guard, the flash, and the error handling. `saveToFile()` already means "picker if
   no handle, write in place otherwise".
-- Cmd+Z / Cmd+Shift+Z are skipped while focus is in an `input`/`textarea`/contenteditable, so
-  the browser's own in-field undo still works there.
+- Cmd+Z / Cmd+Shift+Z are skipped while focus is in a field you TYPE into (a text or number
+  input, a textarea, a contenteditable: `fieldOwnsUndoKeys()`), so the browser's own in-field undo
+  still works there. ⚠️ Since 22 Oct 2026 (owner) that is no longer "any `input`": a checkbox, a
+  switch or a date box has no undo of its own in Chrome (`document.execCommand('undo')` returns
+  false in a date box), so ⌘Z there did nothing; the app's undo runs now. And a press on the
+  calendar (`#table-wrap`, `.side-col`) while a sidebar input still has focus marks that input
+  (`fieldUndoKeysStale`): the grid's drags cancel the mousedown, so focus never left the box, and
+  ⌘Z went to the box instead of the drag. The app's undo runs until the box is typed in, clicked
+  in or focused again. Marked, not blurred: a blur fires the box's change event mid-drag.
+- **A view switch is not an undo step** (owner, 22 Oct 2026). `viewMode` stays in
+  `captureSnapshot()` (a file opens in the view it was saved in), but the undo history compares
+  and stores snapshots without it (`undoStateJSON()`), and a step is applied in the view on
+  screen. A switch still marks the file unsaved.
 - **The file shortcuts (1 Oct 2026, owner ruling):** ⌘N New, ⇧⌘S Save As and ⇧⌘E Export click
   their buttons, the same way Cmd+S does. They stand in for the native File-menu items the owner
   asked for, because Chrome builds an installed web app's menu bar and no web API adds to it.

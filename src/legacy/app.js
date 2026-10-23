@@ -22112,9 +22112,21 @@ export function initLegacyApp() {
   let applyingUndoRedo = false;      // true while restoring a snapshot, so restoring doesn't itself push a step
   let undoPushTimer = null;
 
+  // ⛔ A VIEW SWITCH IS NOT AN UNDO STEP (owner, 22 Oct 2026: "command z should not count switching
+  // between views as an undo step"). viewMode stays in captureSnapshot(), because a saved calendar
+  // opens in the view it was saved in. Only the undo history leaves it out: a switch then changes
+  // nothing the history compares, so it banks no step, and undo/redo put back every OTHER part of
+  // the calendar while leaving you in the view you are looking at (applySnapshotJSON()). Before
+  // this, ⌘Z after a switch just switched back, and an undo across one flipped the view under you.
+  function undoStateJSON(){
+    const snap = captureSnapshot();
+    delete snap.viewMode;
+    return JSON.stringify(snap);
+  }
+
   function pushUndoSnapshot(){
     if(applyingUndoRedo || suppressDirty) return;
-    const json = JSON.stringify(captureSnapshot());
+    const json = undoStateJSON();
     if(json === lastPushedSnapshotJSON) return; // nothing actually changed
     if(lastPushedSnapshotJSON !== null){
       undoStack.push(lastPushedSnapshotJSON);
@@ -22147,7 +22159,7 @@ export function initLegacyApp() {
     undoStack = [];
     redoStack = [];
     clearTimeout(undoPushTimer);
-    lastPushedSnapshotJSON = JSON.stringify(captureSnapshot());
+    lastPushedSnapshotJSON = undoStateJSON();
     refreshUndoRedoUI();
   }
   // ---------- All-or-nothing restore (audit M-1, FIX-PLAN.md 1.5, 25 Sep 2026) ----------
@@ -22176,7 +22188,12 @@ export function initLegacyApp() {
   function applySnapshotJSON(json){
     applyingUndoRedo = true;
     suppressDirty = true;
-    applyStateSnapshot(JSON.parse(json));
+    // The history carries no viewMode (undoStateJSON()), so the step is applied in the view on
+    // screen. Written in rather than left out: applyStateSnapshot() must never be the thing that
+    // decides what an absent key means here.
+    const snap = JSON.parse(json);
+    snap.viewMode = viewMode;
+    applyStateSnapshot(snap);
     // refreshAfterRestore(), not a bare update(): undo/redo is applying a snapshot, so it needs
     // the same post-restore UI refresh that loading a file does. With only update() here, an undo
     // that changed the episode count put the field back but left the old episode rows on screen.
@@ -24008,6 +24025,8 @@ export function initLegacyApp() {
   // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
   // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
   // focus leaves the field (matches the existing Escape/Tab handling in the note editor).
+  // ⚠️ "Editable field" means one with an undo of its OWN, and two kinds of focus used to be
+  // mistaken for it (fieldOwnsUndoKeys() and fieldUndoKeysStale, below).
   //
   // ⛔ WHY THE FILE ACTIONS ARE KEYS AND NOT MENU ITEMS (owner, 1 Oct 2026, picker). The owner asked
   // for New / Save / Save As / Export in the installed app's native File menu. That menu is
@@ -24020,6 +24039,45 @@ export function initLegacyApp() {
   // File ▸ New Window still works from the mouse; the ⌘N the menu prints beside it is now stale.
   // Like Cmd+S, each one CLICKS its button, so the button's guards come along: New's
   // unsaved-changes question, the re-click guard, Export's "Nothing to export".
+  //
+  // ⛔ WHICH FIELDS KEEP ⌘Z FOR THEMSELVES (owner, 22 Oct 2026: "Does command z and command shift z
+  // works for EVERYTHING?"). The test used to be `tagName === 'INPUT'`, which also matched a ticked
+  // CHECKBOX or SWITCH: Chrome leaves focus on one after a click, so ⌘Z right after ticking a phase's
+  // Hiatus box, or flipping any switch in the Settings window, went to the box, which has no undo,
+  // and did nothing. A DATE box is the same: Chrome keeps no undo history for one
+  // (document.execCommand('undo') returns false in it, measured), so ⌘Z after typing a phase's start
+  // date did nothing either. Only a field you TYPE text into keeps the keys: a textarea, a
+  // contenteditable, and the input types Chrome keeps an undo history for (text and number measured).
+  // A read-only input has nothing typed to undo.
+  const OWN_UNDO_INPUT_TYPES = ['text', 'search', 'url', 'tel', 'email', 'password', 'number'];
+  function fieldOwnsUndoKeys(el){
+    if(!el) return false;
+    if(el.tagName === 'TEXTAREA' || el.isContentEditable) return true;
+    return el.tagName === 'INPUT' && !el.readOnly && OWN_UNDO_INPUT_TYPES.includes(el.type);
+  }
+  // ⛔ A PRESS ON THE CALENDAR TAKES ⌘Z BACK FROM A SIDEBAR FIELD (same day). The grid's drags (column
+  // and row resizers, span handles, the month view's bars and edges) and the side boxes' drags cancel
+  // the mousedown so the page does not select text, and cancelling it also stops the browser moving
+  // focus. So after typing a title and then dragging a column, the cursor was still in the title and
+  // ⌘Z went to the title: the drag stayed. A press like that now marks the field, and ⌘Z / ⇧⌘Z run
+  // the app's undo until the field is typed in, clicked in, or focused again.
+  // Marked, deliberately not blurred: a blur fires the field's change event, which re-renders the
+  // grid in the middle of the drag that just started -- under frozen drag code that holds the old DOM.
+  // Only an <input> OUTSIDE the calendar is marked. A textarea or contenteditable is a note or header
+  // editor whose own buttons cancel the mousedown on purpose, to keep the text focused.
+  let fieldUndoKeysStale = null;
+  document.addEventListener('pointerdown', e=>{
+    const a = document.activeElement;
+    if(!a || a === document.body) return;
+    if(a.contains(e.target)){ fieldUndoKeysStale = null; return; } // a click IN the field gives it the keys back
+    const t = e.target;
+    if(a.tagName === 'INPUT' && fieldOwnsUndoKeys(a) && !a.closest('#table-wrap, .side-col') &&
+       t && t.closest && t.closest('#table-wrap, .side-col')){
+      fieldUndoKeysStale = a;
+    }
+  }, true);
+  document.addEventListener('input', e=>{ if(e.target === fieldUndoKeysStale) fieldUndoKeysStale = null; }, true);
+  document.addEventListener('focusin', e=>{ if(e.target === fieldUndoKeysStale) fieldUndoKeysStale = null; }, true);
   document.addEventListener('keydown', e=>{
     const meta = e.metaKey || e.ctrlKey;
     if(!meta) return;
@@ -24080,8 +24138,7 @@ export function initLegacyApp() {
     }
     if(key !== 'z') return;
     const active = document.activeElement;
-    const isEditable = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
-    if(isEditable) return;
+    if(fieldOwnsUndoKeys(active) && active !== fieldUndoKeysStale) return;
     e.preventDefault();
     // ⛔ Not under one of the app's dialogs (19 Oct 2026, the dlgkeys leg). Mantine traps focus on the
     // dialog's own button, which is not a field, so the exemption above never applied and the app's
