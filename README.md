@@ -57,6 +57,54 @@ MONTH-ORDER-PLAN.md §9.
   PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Not
   merged, not pushed.
 
+### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
+
+The owner asked to delete four pieces of explanatory text, then: *"make the header dropdown tighter (less wide) now
+that we dont need all the subtext"*.
+- **What users see:**
+  - The Settings tabs open straight on their first card. Three lines are gone:
+    - Preferences' "Saved in this calendar’s file, so they travel with it — except …" line (the Waterfall
+      version and its Month view twin);
+    - Region's "Saved in this calendar’s file, so they travel with it.";
+    - Presets' "Presets stay on this computer. The header you apply is saved with the calendar."
+  - The Header menu lists Auto, Template, Manual and Off with no description under any of them. Template keeps
+    its "Open the template editor…" link. Manual keeps the warning it shows when you are in Template, since that
+    switch throws the tokens away.
+  - The Header menu is 170 px wide, down from 290. Manual's warning wraps onto two lines.
+- **How:** chrome only. `ScopeLine` and its two icons are gone from `SettingsWindow.jsx` / `icons.jsx`. `.sw-panel`
+  takes the top padding the line used to give, the same as the sidebar's. `HDR_MODE_CHOICES` drops its `desc`
+  strings (app.js), `.hdr-mode-desc` goes from legacy.css, and `.hdr-mode-pop` is 170 px. No saved key, id or
+  frozen code is touched.
+- **Verified:** `settingswin` 21/21, with W13 now requiring no scope line in any tab and no "travel with it" /
+  "on this computer" text in the window. `hdrcontrols` 12/12: T2 now requires four bare rows and a menu at most
+  180 px wide with nothing spilling out of a row, and T4 requires the same while in Template, with the warning
+  showing. `npm run check` 40/40.
+
+### Unreleased — Settings appears at once instead of sliding in (23 Oct 2026)
+
+The owner: *"can we just have the menu already there rather than still sliding in"*.
+- **What users see:** clicking Settings shows the window at once, under the Show / Phases / Settings bar. It no
+  longer slides in from the left over 0.18 s, and closing it is instant too.
+- **How:** the transform, the transition and the `@starting-style` rule are gone from `.settings-window`
+  (legacy.css). Chrome only.
+- **Verified:** `settingswin` 21/21 with a new W15 (no transition, no transform, nothing animating, in place the
+  moment it opens, gone the moment it closes). W15 fails on the build that was live, `5804869a…`. Also green:
+  `mvnotes` 30 and 14, `mvmenu (halfdays)` 89, `offweek (offweek)` 44. `npm run check` 40/40.
+
+### Unreleased — Settings opens below the Show / Phases / Settings bar (23 Oct 2026)
+
+The owner: *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it should
+appear right below it with the preferences/region/presets menu below"*.
+- **What users see:** the bar at the top of the sidebar stays in view while Settings is open, with Settings
+  highlighted. The Preferences / Region / Presets tabs sit right under it. Clicking Show or Phases closes Settings
+  and goes there; clicking Settings again closes it, as does Escape.
+- **What went:** the window's own "Settings ×" title row. It repeated the button right above it.
+- **How:** `SettingsWindow.jsx` measures the bar and starts the window at its bottom edge (`top` plus
+  `--sw-rail-h`). The bar is no longer marked `inert`. Chrome only: no grid, export or save-file change.
+- **Verified:** `settingswin` 20/20, with W10 and W11 rewritten and a new W14 (the bar stays usable; hit-tested
+  clicks on Phases, Show and Settings; an arrow key; an undo leaves the window open). On the live build, `d2ac914e…`,
+  W10, W11 and W14 fail. `npm run check` 40/40. The other legs that open Settings were run too (see HANDOFF).
+
 ### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
 
 The owner: *"anything built and in the "ready to merge" section, merge it into main"*, then *"push everything at

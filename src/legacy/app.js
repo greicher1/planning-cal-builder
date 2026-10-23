@@ -14514,7 +14514,8 @@ export function initLegacyApp() {
     reflectMvNumberShootDays();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
-  // window first, because it lies over the whole sidebar and would hide the row being revealed.
+  // window first, because it lies over the sidebar's cards (everything below the rail) and would
+  // hide the row being revealed.
   // ⛔ Only these calls. setSidebarTab() itself must never close it: every undo, redo and Load
   // replays the saved sidebarTab through it, and an undo of a change made IN the window would
   // otherwise shut the window under the user's hands.
@@ -20154,19 +20155,17 @@ export function initLegacyApp() {
     if(activeHdrModeAnchor && activeHdrModeAnchor.contains(e.target)) return;   // the anchor's click decides
     if(activeHdrModePop && !activeHdrModePop.contains(e.target)) closeHeaderModePop();
   }
+  // Each row is its name alone. Each had a line of description under it until the owner deleted
+  // them, 23 Oct 2026. The Help page still explains Auto, Template and Manual; it never covered Off.
   const HDR_MODE_CHOICES = [
-    { key:'auto',     label:'Auto',
-      desc:'Every line mirrors Show Info and the schedule. Not editable.' },
-    { key:'template', label:'Template',
-      desc:'Lines you write, with live data in {braces}. Edit a line to see its tokens.' },
-    { key:'manual',   label:'Manual',
-      desc:'Plain text you type. Nothing updates itself.' },
+    { key:'auto',     label:'Auto' },
+    { key:'template', label:'Template' },
+    { key:'manual',   label:'Manual' },
     // Owner ruling 10 (20 Oct 2026). Waterfall only: openHeaderModePop() leaves it out of the month's menu.
-    { key:'off',      label:'Off', sheetOnly: true,
-      desc:'No title block. The grid starts at the top; Excel and the PDF print no header.' },
+    { key:'off',      label:'Off', sheetOnly: true },
   ];
-  // `mv` selects which header the menu drives. The rows, the copy and the bake warning are the
-  // same in both views -- the modes mean the same thing -- so this is one menu, not two.
+  // `mv` selects which header the menu drives. The rows and the bake warning are the same in both
+  // views -- the modes mean the same thing -- so this is one menu, not two.
   function openHeaderModePop(anchorEl, mv){
     closeHeaderModePop();
     const current = headerModeKey(mv);
@@ -20180,11 +20179,7 @@ export function initLegacyApp() {
       const name = document.createElement('span');
       name.className = 'hdr-mode-name';
       name.textContent = c.label;
-      const desc = document.createElement('span');
-      desc.className = 'hdr-mode-desc';
-      desc.textContent = c.desc;
       row.appendChild(name);
-      row.appendChild(desc);
       // ⚠️ The bake warning is stated ON THE ROW, before the click, because Template -> Manual
       // throws the tokens away. The plan requires it be said first; an undo step is the only way
       // back.

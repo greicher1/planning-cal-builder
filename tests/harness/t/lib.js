@@ -518,6 +518,8 @@ window.__T = (function(){
     // frames (the same reason requestAnimationFrame never fires here), so the window would sit at
     // translateX(-100%) forever -- and, closing, `display ... allow-discrete` would keep it displayed
     // forever. Switched off on the element, test-only; what the window shows and stores is unchanged.
+    // (Since 23 Oct 2026 the build has no slide at all -- owner: "just have the menu already there" -- so
+    // this does nothing there. It stays for an older build, a rollback or a leg on an older branch.)
     win.style.transition = 'none';
     if(!win.classList.contains('is-open')){
       var b = document.querySelector('.side-settings-btn');
@@ -530,17 +532,22 @@ window.__T = (function(){
       if(!t) throw new Error('no Settings tab ' + tab);
       t.click();
     }
-    var aside = document.querySelector('.form-panel');
+    // Open, it sits on the sidebar BELOW the rail (owner, 23 Oct 2026: it no longer covers Show / Phases /
+    // Settings), so its top is the rail's bottom edge, not the sidebar's top.
+    var aside = document.querySelector('.form-panel'), rail = document.querySelector('.side-tabs');
     await until(function(){
       var r = win.getBoundingClientRect(), a = aside.getBoundingClientRect();
-      return win.classList.contains('is-open') && Math.abs(r.left - a.left) < 1 && Math.abs(r.top - a.top) < 1;
+      var top = rail ? rail.getBoundingClientRect().bottom : a.top;
+      return win.classList.contains('is-open') && Math.abs(r.left - a.left) < 1 && Math.abs(r.top - top) < 1;
     }, 'the Settings window to open', 40, 50);
   }
+  // Closed the way a user closes it now: the rail's Settings button again (the window lost its x with
+  // its head, 23 Oct 2026). A leg on an older branch still has the x, so that is used when it is there.
   async function closeSettings(){
     var win = document.getElementById('settings-window');
     if(!win || !win.classList.contains('is-open')) return;
     win.style.transition = 'none';   // see openSettings
-    var c = win.querySelector('.sw-close'); if(c) c.click();
+    var c = win.querySelector('.sw-close') || document.querySelector('.side-settings-btn'); if(c) c.click();
     await until(function(){ return getComputedStyle(win).display === 'none'; }, 'the Settings window to close', 40, 50);
   }
   // Which Settings tab holds an element ('prefs' | 'region' | 'presets'), or null.
