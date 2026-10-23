@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🟡 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
 - **Asked** (owner): *"Delete the following: Saved in this calendar’s file, so they travel with it — except Grid
   Lines in Exports, which stays on this computer. / Saved in this calendar’s file, so they travel with it. /
@@ -43,6 +43,10 @@
     two sessions on the default port kill each other's server. Pass `HARNESS_PORT=<free port>`. And run.sh's stdout
     is only a 4 KB preview: read `tests/harness/<leg>.json` for the cases.
 - No full gate: chrome only, which neither print path nor any writer can see.
+- ✅ **LIVE.** ONE `git push origin main` at 13:03:50 (`58b94bf..01793cf`, carrying `e7d6ee0` too). Deploy run
+  40016296351 succeeded. At 13:04:51 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `ca14dbe6…`, 1,753,193 bytes, `cmp`). `version.json` is still 1.8.0. This note is a local commit,
+  not pushed.
 - The owner's answer on the Month line (same picker): *"delete it too, but also add "Off" for the month view
   header"*. So the Month view's line stays deleted, and **Header: Off for the Month view is a new request**
   (tracker `mv-header-off`), not part of this commit.
