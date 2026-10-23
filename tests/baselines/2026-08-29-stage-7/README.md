@@ -346,6 +346,10 @@ the clearance went from 1.0 to 4.0 pt on every one.
 
 Unchanged by this: `base.xlsx`, `base.json`, `restore.json`.
 
+**Still valid after merging main on 23 Oct 2026** (`59dd0cd`): nothing between `c7017a9` and it touched `base.pdf`.
+The `base` leg on the merged build (`2626faea…`) passes this file bar the stamp and fails main's old one, first diff
+`/F1 6.564 Tf` → `/F1 5.936 Tf`.
+
 ## Reproducing it
 
 ```bash

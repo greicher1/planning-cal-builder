@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — The waterfall PDF's header leaves 4 pt above the grid, not 1 (5 Oct 2026)
+### Unreleased — The waterfall PDF's header leaves 4 pt above the grid, not 1 (built 5 Oct, merged 23 Oct 2026)
 
 **Users see a small change** in the waterfall PDF. With three header lines, the centre's last line ("Writer's Room
 Opens …") used to end 1 pt above the grid, close enough to read as touching. Now it ends 4 pt above, level with the
@@ -52,6 +52,9 @@ right section's.
   - **Gate 2's `base.pdf` re-cut**, owner-approved, with the clock pinned so it keeps the baseline's 8.29.26 stamp.
     The new build passes it, and the old build fails it.
   - **The full gate:** **1,278 PASS, 0 FAIL, GATE PASSED** on build `75db63a6…` (13 min 24 s). Gate 2 matches the re-cut baseline, every Excel part is identical, there are 0 clipped cells, `fields.byId` has 62 ids, and gate 13's month PDFs are byte-identical.
+  - **Merged with main on 23 Oct** (`59dd0cd`, 400 commits on; main had not touched `base.pdf`). On the merged build
+    `2626faea…`, gate 2's `base` leg matches the re-cut baseline bar the stamp, and the clearance measures 4.0 pt.
+    `npm run check` 40/40. Its full gate is the combined one of the 23 Oct landing (`land-ready-1023`).
 
 ### Unreleased — hide a year's Notes column (22 Oct 2026)
 

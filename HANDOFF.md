@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 5 Oct 2026 (evening): THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved (same session)
+### ✅ 5 Oct 2026 (evening), landed 23 Oct: THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved; branch `wf-header-clear` (worktree `.claude/worktrees/month-baselines`), COMMITTED `a71514c` and `main` (`59dd0cd`) MERGED IN as `d950b78` on the owner's *"merge … into main"* (23 Oct 2026)
 
 - **The ask.** Looking at a waterfall PDF, the owner asked two things:
   - why there is more white space between the header's left section and its centre;
@@ -27,9 +27,25 @@
   - The cost: a three-line header's type is about 10% smaller (×0.904; title 9.025 → 8.163 pt, the other lines
     6.564 → 5.936 pt).
   - Unchanged: the grid, Excel, a header that fits already, and the month PDF.
-- **State:** branch `wf-header-clear` in `.claude/worktrees/month-baselines`, cut from `main` at `c7017a9`. **UNCOMMITTED** in the worktree: the frozen
-  edit, gate 2's re-cut, the changelog and this note. The owner's commit/push picker was interrupted when the app quit
-  (5 Oct 2026). Committing and pushing are the owner's call; ask with the picker.
+- **State:** branch `wf-header-clear` in `.claude/worktrees/month-baselines`, cut from `main` at `c7017a9`. It sat
+  UNCOMMITTED for 18 days: the owner's commit/push picker was interrupted when the app quit on 5 Oct. On 23 Oct the
+  owner asked to *"merge 'More space under the waterfall PDF header' into main"* (the tracker card's name). So:
+  - committed as `a71514c`;
+  - `main` at `59dd0cd`, 400 commits on, merged in as `d950b78`. Only HANDOFF and README conflicted (both top
+    entries kept). `git diff main` over `src`, `tests` and `tools` is exactly this change: `HDR_CLEAR_PT`, the re-cut
+    `base.pdf` with its `.json`, and the baseline README's section;
+  - main had not touched `base.pdf` since `c7017a9`, so the 5 Oct re-cut still stands. On the merged build
+    (`2626faea…`), `base` alone (port 9811) matches it bar the stamp (`pdfcmp.py` exit 0), and differs from main's old
+    baseline in the header only (exit 1, first diff `/F1 6.564 Tf` → `/F1 5.936 Tf`). `npm run check` 40/40;
+  - ⛔ **NOT fast-forwarded into `main` by this branch, and NO full gate run on it here.** The owner's direction,
+    relayed by the "Hide unused notes columns" session (23 Oct): *"i want this to merge into main along with all the
+    other features we are trying to merge, then push everything at once"*. So `wf-header-clear` lands through the
+    "Merge ready branches" session's `land-ready-1023`, with ONE full gate on the combination and ONE push;
+  - ⚠️ **What that combined gate must show for this change:** gate 2 matches the RE-CUT `base.pdf` (bar the stamp).
+    Any other leg that reads the waterfall PDF's header TYPE SIZE or the lowest line's position now sees ×0.904 on a
+    three-line header (title 9.025 → 8.163 pt, other lines 6.564 → 5.936 pt). A FAIL there is this change, not a
+    regression; legs written after 5 Oct (side boxes' band E5, paper size, header off, text styles, hide-notes P1–P3)
+    have never run against it.
 - **Proof:**
   - **The owner's downloaded PDF was byte-identical** to the harness's export of `stintswap-reshape` on the
     pre-change build, so the A/B shows exactly what the owner gets.
