@@ -2484,8 +2484,18 @@
      and the block goes, so the grid starts at the top. Off <body>, not #table-wrap, so the print
      fallback in #print-root loses it too. .hdr-tools goes with it: over a Manual header it would
      otherwise show the line-format strip for lines nobody can see. The month view's header is
-     .mv-header and is untouched. */
+     .mv-header and has its own Off, below. */
   body.wf-hdr-off .cal-header-bar, body.wf-hdr-off .hdr-tools{ display:none; }
+  /* The month view's Header: Off (owner, 23 Oct 2026), off body.mv-hdr-off (reflectHeaderOff), so the print
+     rollback in #print-root loses it too. COLLAPSED, not display:none: frozen exportMonthPdf measures each
+     page's reserve from .mv-header's top to the first week, and a display:none box has no top, which would
+     send every page after the first to the 105 px fallback. Collapsed, the reserve is the month bar and the
+     weekday row, exactly what the page still prints. The padding, shadow and background are a Manual
+     header's lavender box (.mv-header.hdr-manual-mode), which would otherwise draw as a sliver. */
+  body.mv-hdr-off .mv-header{
+    height:0; min-height:0; margin:0; padding:0; border:0; overflow:hidden; visibility:hidden;
+    box-shadow:none; background:none;
+  }
   /* ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, "At every zoom"; app.js, same heading).
      The title block and the Manual-mode format strip stop at the grid's last column instead of running
      to the edge of the scroll box. --wf-grid-w is the grid's own width, written on .preview-panel by the

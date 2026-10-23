@@ -1659,6 +1659,10 @@ done
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
 # box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
 # trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# mvhdroff (owner, 23 Oct 2026) is the month view's Header: Off: the menu row, the header collapsed on screen with the
+# waterfall's untouched, the PRINT rollback's weeks gaining the same height on every page (the frozen fit measures
+# from .mv-header's top, which a display:none header would not have), the written month PDF with no header lines and
+# its month bar higher, one undo step, Off over Manual, Save/Load, the M-5 trap, a junk value, and the template editor.
 # autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
 # Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
 # writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
@@ -1728,7 +1732,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
-              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300; do
+              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
+              mvhdroff:-:400; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -2176,8 +2181,14 @@ PYPE
 # (N5); editing keeps a note on top (N6); Escape (N7). A hostile file's values are ignored and no prototype is touched
 # (H1). The moving copy on a body drag (G1). Run on a mutant without frozen edits E1 and E2: O2, O3, O5, O7, O8, N1,
 # N3, N4 and N6 red. ⛔ Gates 10 and 13 are what prove the two edits INERT on every calendar without an order.
+# ⭐ GREW 23 Oct 2026 (MONTH-ORDER-PLAN.md §9, frozen edits E3 + E4, owner-approved by picker), on mvdrag.sptcal: an
+# untouched note stays under its bar when a note goes on top (M1) or a phase is reordered (M2) -- the owner's two bugs;
+# a note between two phases, on screen, in the save and in the WRITTEN month PDF (M3); a note to another day with its
+# date rewritten (M4), a waterfall line into another week's waterfall note (M5), an auto-note moved a day (M6); a
+# holiday stays (M7); out and back (M8) and a drop off the grid (M10) bank nothing; no anchor on an untouched calendar
+# (M9). On the 23 Oct live build (d2ac914e) M1-M6 and M8 are red.
 node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile)" <<'PYMO' || FAIL=1
+python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile, mvdrag)" <<'PYMO' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))

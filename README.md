@@ -73,6 +73,54 @@ up to twelve columns, its Excel and PDF exports). Built on branch `scenarios`, s
 Full gate: see HANDOFF. **Not built yet:** "Add a calendar file as a scenario…", and ◀ ▶ arrows with a ▾ list when tabs
 overflow (they scroll with the wheel today).
 
+### Unreleased — Header: Off for the Month view (23 Oct 2026)
+
+The owner: *"also add "Off" for the month view header"*.
+- **What users see:** the Header menu in the Month view has Off, as the Waterfall's has had since 20 Oct. Off hides
+  the month header: the month bar moves to the top, and in the Month PDF each page starts with the month bar, so
+  the weeks get the space. The two views' headers stay independent: turning one off leaves the other alone. Choosing
+  Template or Manual again brings back the lines you had, "Open the template editor…" turns it back on, and each
+  switch is one undo step. Saved with the calendar.
+- **How (no frozen function edited):**
+  - `mvHeaderOff`, saved as `mvHeaderOff: true` only while on, so other calendars save byte for byte as before.
+  - Screen and the print rollback: `body.mv-hdr-off` COLLAPSES `.mv-header` to zero height rather than hiding it.
+    Frozen `exportMonthPdf` measures each page's room from the header's top, which a hidden header would not have.
+  - The direct writer: `exportMonthPdfDirect` marks each month before the fit, and `mvlFrame` then draws no header.
+- **Verified:** a new leg, `mvhdroff`, 9/9. It covers the menu, the collapsed header with the waterfall's untouched,
+  the print rollback's measured room dropping by the same 47 px on all 16 pages, and the written PDF with no header
+  text and its month bar higher. It also covers one undo step, Off over Manual, Save/Load, a file with no key, a junk
+  value, and the template editor. `hdrrow` 37/37 (O1 now expects Off in both menus), `hdrcontrols` 12/12,
+  `npm run check` 40/40. Full gate: see HANDOFF.
+
+### Unreleased — Month view: notes stay put when you rearrange, sit between phases, and drag to another day (23 Oct 2026)
+
+The owner: *"sometimes when you move one phase or note it moves others in adjacent days … notes need to be able to
+individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one day
+to another and for auto notes or notes with dates, have the date auto adjust"*. Branch `month-drag-fix`;
+MONTH-ORDER-PLAN.md §9.
+- **The bug, and its cause.** An untouched note took the first free line of its day. A drag that pushed a week's bars
+  down a line (a note put on top, or a phase reordered) opened a line above the bars on the week's other days, and
+  their notes rose into it. Now, once a calendar has any order or note place, each untouched note stays under the bar
+  it sat under in the untouched layout. Calendars never rearranged draw exactly as before.
+- **Notes in or around the phases.** A note dragged on its day can now sit above every bar, under any phase, or under
+  every bar. A bar it now sits above drops one line for that week, as on top already did, and the day's other notes
+  keep their places.
+- **Notes to another day.** Drag a note sideways or into another week. A date in it that names its old day changes to
+  the new one. A Waterfall line moves into the new week's Waterfall note with its new date; an auto-note dragged this
+  way becomes an edited note (its phase does not move). Holidays stay on their day. Letting go off the calendar puts
+  the note back. One undo per drag.
+- **How:** two frozen edits to `renderMonthView`, owner-approved by picker with the gate below: E3 (a note's lowest
+  allowed line, and `data-note-anchor` for the PDF writer) and E4 (notes under a phase placed right after it). Both
+  do nothing on a calendar with no order or place. The month-PDF writer keeps an anchored note under the same bar.
+  Save file: `under` and `bottom` on a month note, and `under`, `bottom` and `day` on a Waterfall line's place; older
+  builds ignore them. No `SNAPSHOT_VERSION` bump.
+- **Verified:** `mvorder` 30/30 with ten new cases (M1–M10, on the new synthetic `mvdrag.sptcal`), including the
+  written month PDF stacking a between-phases note between its bars; M1–M6 and M8 fail on the live build `d2ac914e`.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13, `npm run check` 40/40. Full gate on `95bf3fd4…`: 2,970
+  PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Then,
+  with `main`'s three Settings changes merged in, 2,974 PASS / 0 FAIL on `d34f917a…`. **Live at `2c6a822`**, verified
+  byte-identical; no version cut.
+
 ### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
 
 The owner asked to delete four pieces of explanatory text, then: *"make the header dropdown tighter (less wide) now

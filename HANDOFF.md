@@ -64,6 +64,131 @@
   - Save to a legacy `.html` must embed every tab (`buildSavedHtml({allScenarios:true})`).
   - `.compare-dlg` is skipped by `collectFieldValues()` (Chip ids).
 
+### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED locally (`1af8782`) and MERGED with `origin/main` (`2c6a822`, the month-drag-fix work); NOT PUSHED; no version cut
+
+- **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
+  header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
+- **Built, with no frozen function edited** (CLAUDE.md's state table has the row):
+  - app.js: `mvHeaderOff` beside `headerOff`. `setMvHeaderMode()` now treats Off the way `setHeaderMode()` does: a
+    flag on top of the mode, so Off → the mode underneath brings the lines back, and each switch is one
+    `asOneHeaderStep`. `headerModeKey(true)` returns 'off', the menu's Off row lost `sheetOnly`, the template editor
+    and a month preset's Apply clear it, and New clears it. `captureSnapshot` writes `mvHeaderOff: true` only while it
+    is on, `sanitizeSnapshot` drops a non-boolean, and `applyStateSnapshot` restores it unconditionally (`=== true`).
+  - Screen and print rollback: `reflectHeaderOff()` also toggles `body.mv-hdr-off`, and legacy.css COLLAPSES
+    `.mv-header` (height 0, no margin, padding, shadow or fill, `visibility:hidden`). ⛔ **Never `display:none`.**
+    Frozen `exportMonthPdf` measures each page's reserve as the first week's top minus `.mv-header`'s top, with the
+    pages stacked in an off-screen host. A `display:none` header's rect is all zeros, so every page after the first
+    gets a distance of hundreds of px, fails the `< PAGE_H` test and falls back to 105.
+  - The direct writer: `exportMonthPdfDirect` stamps `headerOff: true` on each month of the model, between
+    `buildMonthLayout` and `fitMonthLayout`, only while it is on (so default layouts and bytes are unchanged). `mvlFrame`
+    then uses an empty header ending at `y0`. It reads the month, never the engine, so the writer's slices stay
+    self-contained. ⛔ **Never inside `buildMonthLayout`:** the first cut stamped it there, and `monthlayout` (all four
+    runs) failed with "could not locate the layout model (MVL_GEOMETRY..buildMonthLayout): re-anchor this leg". The
+    leg slices that function up to its last statement, verbatim. It is back to byte-identical, and the stamp is a
+    plain loop in the export, which adds no writer name to the F0 checks (`monthlayout`, `monthemit`, `monthwriter`).
+  - `mvHeaderLine()` is deliberately unchanged (unlike the waterfall's `headerLine()`, which returns '' while Off):
+    nothing that prints reads it while the header is collapsed, and the Template → Manual bake must read real lines.
+  - Help page: the Header paragraph names Off and what it does in each view. PreviewToolbar's month tooltip mentions Off.
+- **Legs:** new `mvhdroff` (in gate.sh's AFSPEC list, 400 s), M0–M7 + E0. `hdrrow` O1 now expects Off in BOTH menus.
+- **Proof so far,** build `c7b90c4f…`: `mvhdroff` 9/9. M2: the reserve is 119 → 72 px on all 16 pages, the same 47 px
+  the month bar moves on screen (M1). M3: the written PDF has none of the header's lines and its first month label sits
+  35 pt higher. Also `hdrrow` 37/37, `hdrcontrols (carry-rich)` 12/12, `npm run check` 40/40. In the browser pane on
+  carry-rich (a Manual month header), Off collapses it, the button reads Header: Off, and the month bar sits at the
+  card's top.
+  - ⚠️ A first cut of M2 measured the weeks' total height and saw +0 on every page. In screen media the print page is
+    not a fixed-height box, so the weeks never stretch (that is CSS flex in print media). What the fit decides from is
+    the reserve, which M2 now measures exactly as the frozen code does.
+- **Full gate, first run** (build `c7b90c4f…`, main checkout, after two other sessions' gates): 2,907 PASS, 6 FAIL.
+  - 4 × `monthlayout` EX: the slice anchor above. Fixed. The build is now `0016e649…`.
+  - `stintreshape` (grid never rendered) and gate 13's `stintswap-reshape` ("THE CONTENT MOVED", 102,988 → 116,655
+    bytes): ⚠️ **the main checkout's `tests/fixtures/stintswap-reshape.sptcal` has been modified in the working tree
+    since 21 Oct, uncommitted, and not by this work** (+378 / −30 lines; the untracked `Reshape Fixture 2026-09-29.sptcal`
+    sits beside it). Every full gate run in the MAIN checkout reads that file, so it fails these two until someone
+    decides what that change is. That is why earlier sessions gated in worktrees. Do not commit it without looking:
+    fixtures must stay synthetic (see the confidentiality memory).
+  - Every month PDF baseline except that fixture matched, gate 10 included.
+- **origin/main moved under it.** The "Month view drag-to-reorder bugs" session pushed `2c6a822` (owner-approved; per
+  that session, live and verified byte-identical, `d34f917a`). Its work edits frozen `renderMonthView` (E3/E4,
+  owner-approved), the writer's lane packing and the month note drag (its own entry is just below). It told this
+  session, so the clean-worktree gate already queued for `1af8782` alone was stopped, and local `main` merged
+  `origin/main`. Only HANDOFF.md and README.md conflicted: both sides added top entries, and both were kept. The merged
+  build is `637b9428…`, and `npm run check` gives 40/40 on it.
+- ⏭ **Next:** a full gate on the MERGED tree, in a clean worktree, then the owner's picker on push. Watch gates 10 and
+  13 and `mvorder`: both pieces of work touch the month view.
+
+### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); in local `main` since `cc9a8ad`, where the Header: Off session merged `origin/main` on top of its unpushed `1af8782` ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+
+- **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
+  sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
+  phase up or down its going to move that phase to the same position on every week but notes need to be able to
+  individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one
+  day to another and for auto notes or notes with dates, have the date auto adjust"*. Tracker cards
+  `month-reorder-fixes` and `month-note-day-drag`.
+- ⭐ **The cause (reproduced, both triggers):** frozen `renderMonthView` places every note first-fit, so an untouched
+  note takes the first free line of its DAY. Anything that pushes a week's bars down a line opens a line above the
+  bars on that week's OTHER days, and their notes rise into it. (1) A note dragged on top of Wed 3/4: "Tue note" and
+  "Thu note" jumped above the bars. (2) Prod Prep's grip dragged to the top in the week of 3/15: the order is the whole
+  calendar's (D1), so the week of 3/8, where Prod Prep runs Thu–Fri only, re-stacked and its Mon–Wed notes jumped above
+  both bars.
+- **The fix, no new state:** once a calendar holds any order or note place (`mvIsArranged()`), each month render first
+  asks the frozen renderer for the UNTOUCHED layout (`mvRefMode`: date order, no places), reads off the bar directly
+  above every note on its day (`mvReferenceAnchors`), and places each untouched note no higher than the line under that
+  bar. A note with no bar above it there is placed as before. A never-rearranged calendar takes the old path exactly.
+  Render cost on a rearranged calendar: ~6 → ~15 ms per month.
+- **New, per the ask:** a dragged note lands above every bar (`top`), under a phase (`under: '<key>'`) or under every
+  bar (`bottom: true`), and the day it lands on is written note by note at the places they are drawn. A note can go to
+  ANOTHER day: dates naming its old day are rewritten (any typed form); a waterfall line moves into the new week's
+  waterfall note through `saveNoteEdit`, its trailing date rewritten or stamped; an auto-note so moved becomes an edit
+  (its phase does not move). Defaults taken, plan §9.2 D9–D12: holidays stay on their day; a drop >24 px off the grid
+  puts the note back; waterfall lines only into weeks the waterfall has; one place per waterfall-line text.
+- **Frozen edits (picker, 23 Oct: *"Approve with that gate"*):** E3, `takeLane`/`place` take an optional `minLane`, and
+  the notes loop passes it plus `data-note-anchor` (the row index of the bar above); E4, each phase's iteration ends by
+  placing the notes under it (`placeNotes('u:' + key, notesFrom)`). The month-PDF writer (not frozen) reads the anchor
+  and starts that note's re-pack search under the same item.
+- **Save format:** `under` / `bottom` on a `dayNotes` entry; `under` / `bottom` / `day` on an `mvWfNotePlace` value.
+  `day` fixes a second, smaller bug: a place was keyed by text alone, so one arrangement moved every same-text line
+  (yearly holidays, a line typed into several weeks). Sanitized and restored field by field; no `SNAPSHOT_VERSION` bump.
+- **The note drag was rewritten** (`installMonthNoteDrag`): every redraw starts from the stores as they were at the
+  press (`dayNotes`, `userNotes`, `mvWfNotePlace`, `noteColors` copied), so nothing accumulates; a drop that draws the
+  month exactly as before (out and back, Escape) restores the very state and banks no step.
+- **Proof so far (build `95bf3fd4…`, 1,763,999 bytes; commits `51ecdc1`, `6cd0d37`, `81c7ffc`):** `npm run check`
+  40/40; `mvorder` 30/30 with M1–M10 on the new synthetic `tests/fixtures/mvdrag.sptcal` (M3 reads the WRITTEN month
+  PDF: the between-phases note's y lies between its two bars'); on the live build `d2ac914e` M1–M6 and M8 are red.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13. In the pane: a between-phases drop and a Tue→Thu drop with
+  the date rewritten. N3's expectation now includes the place's `day`.
+- ⚠️ **Learned: a harness probe that measures an element BEFORE a drag and uses it AFTER gets a zero rect** (the redraw
+  replaced it), so its "drop" lands at (0, 0). It looked like a bug (a note landed on Sun 3/1) and was the probe's. It
+  did expose a real gap, fixed as D10.
+- ✅ **Full gate on `95bf3fd4…`** (1,763,999 bytes; port 9807, 13:27:37–13:56:38, alone: the scenarios session's gate
+  ended 13:26, the next began 13:57): **2,970 PASS, 1 FAIL.** All 90 month-PDF lines (gate 10's print documents, gate
+  13's written PDFs) identical to the baselines, which is the R4/§9.5 proof that E3 and E4 are inert on every calendar
+  never rearranged; `mvorder` 30/30. The FAIL: `loadcarry` stopped after C4 ("EX: harness") in C5, which waits up to 20 s
+  for a legacy `.html` to Load. Alone on the same build, twice: 6/6, no errors. A Load-timing flake (the `offweek` R8
+  kind), not this change, which does not touch the Load path or that leg's views.
+- `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
+- **Landing (owner's pickers):** *"Merge into local main"* and *"Push after the combined gate"*. `main` had moved (three
+  live Settings changes, `06c8770`..`5a3d5da`), so it was merged into the branch as `2c6a822` (HANDOFF / README top
+  entries both kept). `npm run check` 40/40. ✅ **Combined full gate on `d34f917a…`** (1,761,781 bytes; port 9807,
+  14:24:57–14:53:30, after the main checkout's own gate): **2,974 PASS, 0 FAIL, GATE PASSED**; all 90 month-PDF lines
+  identical to the baselines, `mvorder` 30/30.
+- ⚠️ **Then local `main` moved AGAIN** during that gate: another session committed `1af8782` "Header: Off for the Month
+  view" (app.js, the month header, gate.sh, a new `mvhdroff` leg), UNPUSHED, and started its own gate. A fast-forward
+  of local `main` was impossible, and merging would have put an ungated combination into the `main` that session was
+  about to push. Asked by picker; the owner chose *"Push mine now"*: push exactly the gated build, leave local `main` to
+  the Header: Off session, and tell it.
+- ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main` from the worktree at 14:55:12 (`01793cf..2c6a822`, 7 commits:
+  the Settings session's HANDOFF note `5a3d5da` plus this work). Deploy run 40030164760 succeeded; at 14:56:24 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (`cmp`; sha256 `d34f917ab0549815…`).
+  The "Calendar header selector subtext" session was messaged: local `main` must `git merge origin/main` and gate the
+  combination before Header: Off is pushed. It did: `cc9a8ad` (HANDOFF / README conflicts only), build `637b9428`,
+  `npm run check` 40/40, its full gate on the merged tree queued; push waits on the owner.
+- No version cut: `version.json` still 1.8.0, so installed copies pick this up without an update notice.
+- ⭐ **Learned: on a busy day, local `main` can move twice during one landing.** Check `git log main -1` right before the
+  fast-forward, not only before the gate. And a branch head that contains `origin/main` can be pushed straight to
+  `origin/main` (`git push origin HEAD:main`) without touching local `main` or the main checkout, which another
+  session may be gating.
+- ⏭ **Next:** nothing on this feature.
+
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
 - **Asked** (owner): *"Delete the following: Saved in this calendar’s file, so they travel with it — except Grid
