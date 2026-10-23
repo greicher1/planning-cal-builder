@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Excel's editing keys in the waterfall: arrows, Tab, Delete, copy, cut, paste, and dragging notes (22 Oct 2026)
+
+The owner picked these two from the list of Excel features SPTCal lacks: *"arrow keys, Tab and Delete on the
+selection"* and *"copy, cut and paste notes, and drag a note to another week"*. Ruled by picker the same day (all four
+recommended answers): Delete empties the Notes cells; a copied note carries its look; a paste replaces; a drag onto a
+note asks first. [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md) has the detail.
+- **Moving around.** With something highlighted in the Waterfall, the arrow keys move the highlight a cell at a time
+  and Shift+arrow stretches it into a rectangle, as in Excel. Tab and Shift+Tab move right and left. An empty Notes
+  cell is a stop, so you can arrow to a week and start typing (Enter and typing open the note, as before). A blank gap
+  in a phase column can't be highlighted, so the keys step over it. A hiatus band is a stop, and the column you went
+  in by comes back on the far side. The grid scrolls to keep the cell in view, below the sticky heading row.
+- **Delete / Backspace** empties the highlighted Notes cells, an automatic note included (it stays empty until you type
+  or undo), with its colour, size and style. Dates, phases, headings and hiatus bands are left alone.
+- **⌘C / ⌘X / ⌘V.** Copy puts the highlighted notes on the clipboard as plain text, one line per week, with a
+  multi-line note quoted the way Excel quotes one, so they paste into Excel, Mail or back into SPTCal. Inside SPTCal
+  a copied note keeps its colour, size and style. Cut is copy and then Delete. Paste writes down the Notes column
+  from the first highlighted note, one week per line, stepping over hiatus rows. One line pasted over several
+  highlighted notes fills each of them. A note pinned to a day keeps its weekday, and its stamped date follows. Lines
+  that would run past the last week are not pasted, and the grid says so. Text from anywhere else pastes in the look
+  of the cell it lands in.
+- **Drag a note.** Highlight a note, then drag it to another week. Several highlighted notes move together and keep
+  their spacing. A drop on a week that already has a note asks first. Escape, or a drop anywhere but a Notes cell,
+  changes nothing. A press on a note that isn't highlighted still sweeps a highlight, as before.
+- Each Delete, cut, paste and drop is one undo step. Moving the highlight is none. A focused field, the note
+  editor and the app's dialogs keep their own keys and their own clipboard.
+- **No setting, no new save key, no frozen code.** It writes the same note stores the note editor writes, through the
+  editor's own save rule, so a pasted or moved note looks exactly like the same note typed. The Help has a new
+  paragraph, "Moving around, and moving notes".
+- **Verified:** new leg `wfkeys` 84/84 (fixture `wfkeys.sptcal`), red on the pre-change build (52 of 84) and on four
+  mutants. New trusted-input leg `wfkeysreal.mjs` 6/6 (real ⌘C / ⌘X / ⌘V through Chrome's own Copy, Cut and Paste
+  commands, SPTCal's colour surviving the clipboard across a reload, real arrows, Delete and a mouse drag), 0 of 6 on
+  the pre-change build. `npm run check` 40/40. In the app pane: real clicks and keys moved and stretched the
+  highlight; a real drag moved a note with its look; a drop on a note asked; Delete and ⌘Z did what they say.
+  ⚠️ Not verified with a physical keyboard in the installed app window: the pane can't fire Chrome's own Copy and
+  Paste, so the trusted leg's command path stands in for it. Full gate: 2,854 pass, 1 fail. The waterfall PDF and
+  every Excel part are unchanged. The one failure, `sideboxes` R16, fails the same way on the build before this change.
+
 ### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
 
 The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your

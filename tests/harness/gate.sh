@@ -2574,6 +2574,44 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYTS
 
+# ---- wfkeys + wfkeysreal: Excel's editing keys in the waterfall (WATERFALL-KEYS-PLAN.md; rulings Q1-Q4, 22 Oct 2026) ----
+# The arrow keys, Tab and Delete on the text style bar's highlight; copy / cut / paste notes; dragging notes to another
+# week. wfkeys (t/ leg, dispatched events, wfkeys.sptcal) holds the moves (blank gaps stepped over, empty Notes cells
+# and bands as stops, the column kept across a band, Shift's rectangle, the edges, scrolling below the sticky heading),
+# Delete (Q1: Notes cells only, an automatic note as the explicit clear), copy / paste (Q2 the look travels, Q3
+# replace, Excel's quoting, the hiatus rows stepped over, past the end refused and said, hostile clipboard data held
+# to a saved file's rules), the drag (Q4 ask before replacing; Escape; refusals), one undo step per gesture, and no new
+# id or snapshot key. Red on the pre-change build (52 of 84) and on four mutants. wfkeysreal (Node, trusted CDP input)
+# holds the chain a user's keys go through: ⌘C / ⌘X / ⌘V as Chrome's own Copy / Cut / Paste commands, SPTCal's data
+# surviving Chrome's clipboard across a reload, real arrows, Delete and a real mouse drag. 0 of 6 on the pre-change build.
+rm -f "$HERE/wfkeys.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=wfkeys "$HERE/run.sh" wfkeys 400 >/dev/null 2>&1
+python3 - "$HERE/wfkeys.json" <<'PYWK' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  wfkeys produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  wfkeys threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'wfkeys: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYWK
+node "$HERE/wfkeysreal.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/wfkeysreal.json" "wfkeysreal (wfkeys)" <<'PYWR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 6 and all(c.get('pass') is True for c in cases) else 1)
+PYWR
+
 # ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
 # Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
 # names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off

@@ -2655,6 +2655,14 @@
     background:rgba(112,48,160,.10); }
   .text-sel-cell.is-active{ border-width:2px; }
   .text-sel-marquee{ position:absolute; border:1px dashed rgba(112,48,160,.7); background:rgba(112,48,160,.05); }
+  /* Excel's editing keys (WATERFALL-KEYS-PLAN.md): where a dragged note would land, and the one message (why a
+     paste or a drop did not do everything). On the highlight's layer, never in a cell, never printed. The chip is
+     the swap chip's look (.grid-swap-chip.is-flash). */
+  .text-sel-drop{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.9);
+    background:rgba(112,48,160,.14); }
+  .text-sel-chip{ position:absolute; z-index:2; max-width:340px; white-space:nowrap; pointer-events:none;
+    font:11px/1.35 'Inter',system-ui,sans-serif; padding:3px 8px; border-radius:10px;
+    background:#0E7C8C; color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28); }
   body.grid-resizing .text-sel-layer, body.grid-resizing .text-sel-head{ display:none; }
 
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
