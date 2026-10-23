@@ -34,6 +34,10 @@
   saved with the switch on keep the year over Date. On the tracker as `headings-always-editable`. NOT started: it
   edits the same frozen heading code (R1, P1, the Excel header), so it waits for this branch. It will make the
   headings-off Notes panel (`openNotesColPop`) redundant.
+  **Planned** in [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md) (on this branch): `headerRowTyped()`
+  replaces the switch as the path condition (H1–H3, a one-word frozen edit each). The Date column's default becomes
+  `Date` unless the file has `headerRowCustom: true`. A double-click on any heading opens the editor. ⏭ Waiting on
+  the owner for Q1 (typed headings on a calendar that turned the switch off) and the H1–H3 sign-off.
 - The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker). Nothing here is merged
   or pushed.
 
