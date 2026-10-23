@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); NOT MERGED, NOT PUSHED
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN (`5a3d5da`) MERGED IN as `2c2c68a`, QUICK CHECKS GREEN; NOT IN `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
@@ -45,6 +45,18 @@
     - Alone on the same build it passes 3/3, as the 19 Oct entry found for R and AS.
     - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, every month print document.
     - All 23 scenario checks pass.
+- **Main merged in** (`5a3d5da`: Settings opens below the rail with no slide, and the scope lines and header-menu
+  descriptions are gone), as `2c2c68a`. Owner's choice, by button: *"merge main into the scenarios branch … run the
+  scenario legs, settingswin, hdrcontrols and npm run check. Full gate before the next push."*
+  - The code merged automatically. Only the top entries of HANDOFF and README conflicted; both are kept.
+  - On the merged build:
+    - `npm run check` 40/40;
+    - `settingswin` 21/21;
+    - `hdrcontrols` (carry-rich) 12/12;
+    - `scenarios` 18/18;
+    - `scenariocompat` green on both releases (v1.2.0 needed a re-run: one run left no result, then 3/3).
+  - ⛔ **A FULL GATE IS STILL OWED before this is pushed** (save format plus frozen edits S1/S2). The owner chose to
+    run it before the next push rather than now.
 - ⚠️ **Traps for whoever touches this:**
   - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
   - `buildHeaderCtx()` returns `{tokens}`.
