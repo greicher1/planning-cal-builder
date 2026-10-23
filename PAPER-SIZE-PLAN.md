@@ -17,6 +17,9 @@ the paper setting and the Export PDF dialog per PAPER-SIZE-PLAN.md, on a branch,
 build departed from this plan, or measured something the plan guessed at, it says so in *(As built: …)* notes below.
 HANDOFF has the proof.
 
+**Third ask, 22 Oct 2026 (after v1.7.0 went live):** recommend Letter or Legal for the calendar. That is §9:
+📝 planned, both rulings made by picker, not built.
+
 This plan makes **frozen edits** (CLAUDE.md's symbol list), and the change is **inert by default**. A calendar left on
 Letter saves, renders and exports byte for byte as it does today, so every existing baseline (waterfall PDF,
 every Excel part, the clipped-cell count, `fields.byId`, both month PDFs) must stay green without a re-cut.
@@ -303,3 +306,85 @@ The options as they were put:
    under D1 (a)) and PROJECT-CONTEXT's width-model notes.
 6. The owner's merge picker. A version cut and a push happen only on the owner's word. Nothing is pushed from
    the building session.
+
+---
+
+## 9. Recommending Letter or Legal (the owner's third ask, 22 Oct 2026)
+
+Owner, 22 Oct 2026, after v1.7.0 went live: *"could the app reccomend a paper size based on the waterfall cal?
+Really it should only reccomend between letter size and legal"*. On the feature tracker as `paper-recommend`.
+Status: **📝 PLANNED, not built. ✅ Both rulings were made by picker the same day, each the recommended option:**
+P-R1 *"15% larger"*, P-R2 *"Mark it only"*. Building waits on the owner's go-ahead.
+
+**What already exists.** `askPdfPageSetup()` asks the frozen page-turn rule about every paper before the dialog
+opens (`pageFitFor`, under the probe), so the dialog already holds each paper's size in each orientation. A paper
+recommendation is a comparison of numbers the dialog has. It needs **no frozen edit, no new snapshot key and no
+file-format change.**
+
+**The rule (P-R1, "15% larger"):** Legal is Recommended when it prints this calendar **more than 15% larger** than
+Letter (`legal > letter × 1.15`, strict, the same bar and the same comparison `sheetPageOrientation` uses for
+"meaningfully larger"). Otherwise Letter is. **Tabloid is never Recommended** (owner: "only between letter size
+and legal"), and exactly one of Letter or Legal always carries the tag, as one orientation always does.
+- **Which sizes are compared:** each paper at the orientation the dialog would print it in: the orientation the
+  user has clicked or the calendar has saved (D1) when there is one, otherwise each paper's own recommended
+  orientation. So the tag can move when an orientation is clicked, as the sizes line already does. (Legal
+  practically never turns a page differently from Letter, §7, so in practice this is one orientation.)
+- **The numbers are the dialog's own:** whole percent, capped at 100%. ⚠️ On a tall calendar they read Letter
+  about 3 points LOW (the rule leaves out the 21.6 pt header band, §7's D3 note), which flatters Legal. The 15% bar
+  absorbs that; a 10% bar would not have (below).
+- **Where the rule lives:** in the engine, beside `pageFitFor`: `recommendPaper(fits)` returns the paper for each
+  case (`{ follow, portrait, landscape }`) and travels in the dialog's opts. The component only picks the entry for
+  its current orientation state, so the rule has one copy and React never decides it.
+
+**Measured on the legs' own calendars (v1.7.0, the dialog's numbers):**
+
+| Calendar | Letter | Legal | Legal is larger by | Recommended |
+|---|---|---|---|---|
+| `pdfdialog`'s one-year calendar (portrait) | 87% | 96% | 10% (the real PDFs: 90% vs 96%, 7%) | **Letter** |
+| `papersize`'s one-year calendar (PDF scales) | 90% | 100% | 11% | **Letter** |
+| `papersize`'s Single Column calendar (PDF scales) | 68% | 90% | 32% | **Legal** |
+| §3's made-up 500 × 1000 pt grid | 72% | 93% | 29% | **Legal** |
+
+So Legal is recommended for a calendar Letter shrinks hard on the side Legal lengthens: a long portrait one (many
+weeks, Single Column), or a wide landscape one with three or more year blocks. Any calendar that prints at 100% on
+Letter gets Letter.
+
+**What the dialog shows (P-R2, "Mark it only"):**
+```
+ Paper   [ Letter      | Legal        | Tabloid ]
+           8.5 × 11      8.5 × 14       11 × 17
+                         Recommended
+         Legal prints this calendar about 30% larger.
+```
+- It still **opens on the calendar's own paper** (R2). The tag never selects anything, so Export at the dialog's
+  defaults still gives exactly today's PDF, and the whole gate keeps proving it (every PDF leg answers the dialog
+  at its defaults). Reason given with the ruling: the app cannot see what paper is in the printer.
+- The tag is a **third line** in each paper segment (a no-break space where empty, so the three stay one height),
+  styled as the orientation's tag is.
+- The line *"Legal prints this calendar about N% larger."* appears under the paper control **only while Legal is
+  Recommended**, N from the same two numbers. With Letter Recommended there is no line.
+- **Not in Settings ▸ Paper.** The recommendation is shown only in the dialog, where the sizes are; the Settings
+  select stays as it is (keep it simple).
+- Help's *Exporting* paragraph gets one clause: the paper choice marks Letter or Legal *Recommended*.
+
+**⛔ Trap found while planning:** `tests/harness/t/pdfdialog.js`'s `recommended()` returns the FIRST label in the
+dialog whose text matches /Recommended/. The paper row sits above the orientation row, so once the paper carries a
+tag, `recommended()` silently returns `'letter'` or `'legal'` and D2, D3, D5 and D6 compare an orientation against
+a paper. Scope it to the orientation control (`[aria-label="Orientation"]`) **before** adding the tag, and add a
+twin, `recommendedPaper()`, scoped to `[aria-label="Paper"]`.
+
+**Proof (the acceptance gate):**
+- `pdfdialog` grows a case P: on its one-year calendar Letter is tagged and no line shows; on a Single Column
+  calendar Legal is tagged, the line reads the dialog's own two numbers, and Tabloid is never tagged; clicking an
+  orientation re-asks; Export with the tag untouched writes no `paperSize`.
+- **Mutants**, each must turn P red: the bar at 1.0 (any gain), Tabloid allowed, the tag read from Letter's
+  orientation whatever was clicked, the tag pre-selecting Legal.
+- The rest of the gate stays byte-identical with no re-cut: the change cannot reach a PDF unless a paper is
+  clicked. A full `gate.sh` run on the branch.
+- `npm run check`, and a look at the dialog in the pane on both calendars.
+
+**The rulings as they were put (22 Oct 2026, by picker):**
+- **P-R1. How much larger must Legal print?** (a) ✅ *15% larger*, the orientation rule's bar. (b) 10%, which
+  tips `pdfdialog`'s calendar to Legal although its real PDF grows only 7%. (c) Any gain.
+- **P-R2. Mark or pick?** (a) ✅ *Mark it only.* (b) Open on Legal: because Letter is an absent key, a calendar
+  kept on Letter on purpose would reopen on Legal every time unless a new saved key remembered the choice.

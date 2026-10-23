@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — PLANNED (PAPER-SIZE-PLAN.md §9), RULED, NOT BUILT
+
+- **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
+  cal? Really it should only reccomend between letter size and legal"*. Tracker card `paper-recommend`.
+- **Answer:** yes, cheaply. `askPdfPageSetup()` already asks the frozen page-turn rule about every paper before the
+  dialog opens (`pageFitFor`), so the recommendation compares numbers the dialog already has: no frozen edit, no new
+  snapshot key, no format change.
+- ✅ **Ruled by picker, 22 Oct 2026:** P-R1 *"15% larger"*: Legal is Recommended when it prints more than 15% larger
+  than Letter (the orientation rule's bar), otherwise Letter; Tabloid never. P-R2 *"Mark it only"*: a tag in the
+  paper control plus *"Legal prints this calendar about N% larger."*; the dialog still opens on the calendar's own
+  paper, so Export at the defaults stays today's PDF.
+- **Measured (the legs' calendars, v1.7.0):** `pdfdialog`'s one-year calendar 87% → 96%, +10% → Letter; Single
+  Column 68% → 90%, +32% → Legal. ⚠️ The dialog reads Letter ~3 points low on a tall calendar (header band), which
+  flatters Legal: one reason 15% beats 10%.
+- ⛔ **Trap for the builder:** `t/pdfdialog.js`'s `recommended()` takes the FIRST /Recommended/ label in the dialog.
+  The paper row is above the orientation row, so a paper tag silently turns it into a paper reader. Scope it to
+  `[aria-label="Orientation"]` before adding the tag.
+- ⏭ **Next:** build on a branch per §9 (engine `recommendPaper(fits)` beside `pageFitFor`, the component's third
+  segment line, Help clause, `pdfdialog` case P + four mutants, full gate) on the owner's go-ahead. Plan and HANDOFF
+  edits are uncommitted in the main checkout.
+
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
