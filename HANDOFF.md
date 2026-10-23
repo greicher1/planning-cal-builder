@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882`; FULL GATE RUNNING; NOT MERGED, NOT PUSHED
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); NOT MERGED, NOT PUSHED
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
@@ -32,6 +32,19 @@
   - `scenariocompat`: v1.8.0 refuses `tests/fixtures/scenarios-3.sptcal` whole; v1.2.0 opens its current tab;
   - both in `gate.sh`, and `npm run check` 40/40;
   - checked in the browser pane with real clicks and typing.
+- **Gates:**
+  - **Gate 1** on `4946882`: 2,883 / 27.
+    - The 27 were F0 in `monthlayout` / `monthemit` / `monthwriter`: "only the month export reaches the writer". The
+      Compare PDF named the writer's internals.
+    - Five of them came from my own mid-gate edit. Those legs slice `src/legacy/app.js` LIVE, so an edit while a gate
+      runs reaches it. ⛔ Never edit `app.js` while a gate is running.
+    - Fixed in `9faf3da`: the writer's second public entry is `buildListPdf(paint)`, and the three legs know the
+      second caller.
+    - ⚠️ `buildListPdf` must not end with `buildMonthPdf`'s closing text (the slice marker).
+  - **Gate 2** on `9faf3da`: **2,981 PASS, 1 FAIL**, `loadfail` AR, run on a fast-forwarded clock under load.
+    - Alone on the same build it passes 3/3, as the 19 Oct entry found for R and AS.
+    - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, every month print document.
+    - All 23 scenario checks pass.
 - ⚠️ **Traps for whoever touches this:**
   - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
   - `buildHeaderCtx()` returns `{tokens}`.
