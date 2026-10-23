@@ -63,6 +63,60 @@ mantine style"*. Plan and rulings: [`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md).
   parts, month print documents, written month PDFs), with 0 clipped cells and 76 ids. The one FAIL, `sideboxes` R16,
   also fails on the pre-change build, so it is an existing flake.
 
+### Unreleased — Export PDF recommends Letter or Legal (22 Oct 2026)
+
+The owner: *"could the app reccomend a paper size based on the waterfall cal? Really it should only reccomend
+between letter size and legal"*. Ruled by picker the same day: P-R1 *"15% larger"*, P-R2 *"Mark it only"*
+(PAPER-SIZE-PLAN.md §9).
+- **The Export PDF dialog marks Letter or Legal *Recommended*** for this calendar, under the paper's size, as it
+  already marks an orientation. Legal earns it only when it prints the calendar **more than 15% larger** than
+  Letter, the bar the orientation rule uses for "meaningfully larger"; otherwise Letter does. **Tabloid is never
+  marked.** While Legal is marked, a line under the paper says *"Legal prints this calendar about N% larger."*
+- **It compares the sizes the dialog already shows**, each paper the way it would print: in the orientation you
+  clicked (or the calendar saved), or with none clicked, each paper's own recommended one. So clicking an
+  orientation can move the tag.
+- **It only marks.** The dialog still opens on the calendar's own paper, and Export without changing anything gives
+  exactly the PDF it gave before. The app can't see what paper is in the printer.
+- **In practice:** a calendar that prints at or near full size on Letter gets Letter. Legal is marked for one that
+  Letter shrinks on the side Legal lengthens: a long portrait calendar (many weeks, Single Column), or a wide
+  landscape one. Measured: the harness's one-year calendar 87% on Letter vs 96% on Legal (+10%), Letter; the same
+  calendar in Single Column 67% vs 88% (+31%), Legal; Single Column turned landscape 50% vs 50%, Letter.
+- **No frozen code, no new saved key, no format change.** The engine's `recommendPaper()` reads the sizes
+  `pageFitFor()` already asks the frozen page-turn rule for, and hands the dialog one answer per orientation state.
+- **Test fixed on the way:** the `pdfdialog` leg read "the recommended orientation" from the FIRST *Recommended*
+  label in the dialog, which a paper tag above it would have silently become. It now reads each by its segment's
+  value.
+- **Verified:** `pdfdialog` 15/15 with new cases P1–P4, red on the pre-change build and on four mutants (the bar at
+  any gain, Tabloid allowed, the clicked orientation ignored, the tag selecting Legal). `npm run check` 40/40.
+  Full gate: see HANDOFF.
+
+### Unreleased — resize columns and rows at any zoom (22 Oct 2026)
+
+The owner: *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
+viewport"*. Since the calendar zoom (20 Oct), the waterfall's column, row and cell-edge handles were hidden at any
+zoom but 100%.
+- **The handles now show and drag at every zoom, 25–200%.** A drag follows the pointer, and saves what the same
+  drag on the grid saves at 100%: a column exactly, a row within a pixel (a zoomed grid lays its rows out a fraction
+  of a pixel differently, and a drag starts from the row as you see it).
+- **Why they were hidden:** the frozen handle code (`installGridResizers` and the drags) mixed on-screen pixels with
+  the grid's own. Zoomed, a row drag saved the zoomed height into the calendar, and so into Excel and the PDF.
+- **The fix is a frozen edit the owner approved by picker** ("Yes, apply it"): Z1–Z6 in `installGridResizers`,
+  `spanHandleGeometry`, `repositionColHandles`, `repositionRowHandles`, `beginSpanDrag` and the column/row drag divide
+  each on-screen length by the zoom. The zoom is 1 at 100%, and dividing by 1 changes nothing, so the exports and
+  the 100% grid cannot move. Once a zoom change settles the handles are re-placed at that zoom (the re-render at
+  100% stays, as before), and the hide rule is gone
+  (`body.cal-zoomed … .grid-resize-layer{display:none}`), as is the zoom button's "resize at 100%" tooltip.
+- Handles scale with the grid, like everything else in it: at 25% they are under 2 px wide on screen.
+- No saved-file change.
+- **Verified:** new leg `zoomresize` (40 checks, in `gate.sh` after `calzoom`): at 100/50/150/200%, every row,
+  column and cell-edge handle on its place and on top where grabbed, then a column, a row and a cell edge dragged
+  and undone, each compared with the 100% drag. Red on the build before the edits (at 50% the column saved 194 px not
+  203, the row 20 not 36, the cell edge did not move). `calzoom` 24/24 with W3 changed from "hidden while zoomed" to
+  "on their rows at 90%" (and W4/W5 made to measure the grid and click the cell rather than a handle), `hdrfit` 8/8 on
+  both fixtures, `sideboxes` 74/74, `npm run check` 40/40; by hand at 150%, a real mouse drag widened the Date column
+  30 px for 45 px of pointer travel and a row drag saved 40 px. **Full gate on build `d80112ba`: 2,801 PASS, 0 FAIL,
+  GATE PASSED**, every baseline comparison identical (the waterfall PDF, every Excel part, the month PDF).
+
 ### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
 
 The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your

@@ -47,6 +47,86 @@
   ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.
 - **Not committed.** Written in the main checkout by a side session. No `src/` change.
 
+### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); NOT merged into `main`, NOT pushed
+
+- **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
+  cal? Really it should only reccomend between letter size and legal"*. Then *"Yes, build the Letter/Legal paper
+  recommendation per PAPER-SIZE-PLAN.md §9 on a branch, and run the full gate. Don't merge or push."* Tracker card
+  `paper-recommend`.
+- ✅ **Ruled by picker, 22 Oct 2026:** P-R1 *"15% larger"*: Legal is Recommended when it prints more than 15% larger
+  than Letter (the orientation rule's bar, strict), otherwise Letter; Tabloid never. P-R2 *"Mark it only"*: a tag in
+  the paper control plus *"Legal prints this calendar about N% larger."*; the dialog still opens on the calendar's
+  own paper, so Export at the defaults stays today's PDF.
+- **Built** (no frozen code, no snapshot key, no format change):
+  - `app.js`, beside `pageFitFor`: `PAPER_REC_BAR = 1.15` and `recommendPaper(fits)`, which returns `{ follow,
+    portrait, landscape }`, each `{ paper, gain }`: each paper compared in the orientation the dialog would print it
+    in. `askPdfPageSetup()` passes it as `paperRec`. The engine decides; React only picks the case for its
+    orientation state (`orient || 'follow'`).
+  - `ExportPdfDialog.jsx`: `SegLabel` takes an optional `tag`, a third line that is always rendered (a no-break
+    space when empty) so the three paper segments stay one height; the line `.pdfdlg-paperrec` shows only while
+    Legal is Recommended. Nothing selects a paper.
+  - Help's *Exporting* paragraph: one clause.
+- ⛔ **Test trap fixed first:** `t/pdfdialog.js`'s `recommended()` took the FIRST /Recommended/ label in the dialog.
+  The paper row is above the orientation row, so a paper tag would silently have turned it into a paper reader. It
+  now reads a tag by its segment's value (`taggedAll(values)`), with a twin `papersTagged()`.
+- **Measured (the dialog's numbers, `pdfdialog`'s calendar):** one-year 87% Letter vs 96% Legal (+10%) → Letter;
+  Single Column 67% vs 88% (+31%) → Legal; Single Column with Landscape clicked 50% vs 50% → Letter (the tag moves).
+- **Proof so far** (build `c6634df9…`, 1,732,594 bytes): `pdfdialog` **15/15** with new P1–P4; red on the
+  pre-change build (P1–P4, every D case still green) and on four mutants: bar 1.0 → P1, Tabloid allowed → P2–P4,
+  clicked orientation ignored → P3, tag pre-selects Legal → P4 (source restored, `shasum`-checked, rebuild
+  `c6634df9` again). `npm run check` 40/40. In the browser pane (`?state=v1.7.0-saved`): Letter tagged with no
+  line; in Single Column, Legal tagged, *"Legal prints this calendar about 31% larger."*, Letter still selected.
+- ✅ **Full gate on build `c6634df9…` (HARNESS_PORT 9763, 22 Oct 21:22:05–21:50:16, alone, queued behind the
+  `resize-zoom` session's gate): 2,765 PASS, 0 FAIL, GATE PASSED.** 0 clipped; waterfall PDF identical to the
+  baseline (date stamp only) with every PDF leg through the dialog at its defaults; every Excel part identical;
+  `fields.byId` 76 ids; every month-print document identical; `pdfdialog` 15/15. Log:
+  `.claude/worktrees/paper-recommend-gate.log`.
+- ⚠️ **Landing is NOT a fast-forward any more.** While the gate ran, local `main` moved `55a9c61` → `83ee71d` (side
+  boxes scroll separately, live at `f77c353`; the waterfall right-click menu's plan and rulings; HIDE-NOTES-PLAN),
+  and `origin/main` moved to `7856d98` (`resize-zoom`, frozen edits Z1–Z6), which local `main` does not hold. A
+  trial `git merge-tree` of local `main` with this branch: `src/legacy/app.js` merges clean, and only `HANDOFF.md`
+  and `README.md` conflict (both sides added entries at the top). So landing = merge the then-current `main` (and
+  `origin/main`) into this branch, keep every doc entry, and run the full gate once more on the combined build.
+- ⏭ **Next:** the owner's merge / push pickers. Nothing else is open on this feature.
+
+### 🔨 22 Oct 2026: RESIZE COLUMNS AND ROWS AT ANY ZOOM — branch `resize-zoom` (worktree `.claude/worktrees/resize-zoom`), from `main` at `55a9c61`; SIX FROZEN EDITS (Z1–Z6), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,801 / 0 (build `d80112ba`); not committed, not merged, not pushed
+
+- **Asked:** *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
+  viewport"* (also asked 21 Oct as *"what happened to my ability to adjust the horizontal size of columns in the
+  waterfall?"*; tracker card `resize-while-zoomed`).
+- **Ruled by picker:** *"Yes, apply it"*, offered as the frozen edit with this acceptance gate: drags at 50/150/200%
+  save what the same drag saves at 100%, every handle on its row/column, and the full gate byte-identical.
+- **Built.** Frozen edits, each commented in place as `⛔ FROZEN EDIT Zn`: Z1 `installGridResizers` (every rect length
+  ÷ `gridZoom(wrap)`: column handle height, the table's offset, row-handle tops, span-handle top/height), Z2
+  `spanHandleGeometry`, Z3 `repositionColHandles`, Z4 `repositionRowHandles`, Z5 `beginSpanDrag`'s pointer x, Z6 the
+  column/row pointerdown (`startH` and both pointer deltas). `gridZoom()` is a hoisted declaration in "CALENDAR ZOOM";
+  it is 1 at 100% and x / 1 is x exactly, so 100% cannot move. Non-frozen: the `body.cal-zoomed …
+  .grid-resize-layer{display:none}` rule is gone (a comment says not to bring it back), `setCalZoom()`'s settle now
+  keeps its `render()` at 100% and now calls `installGridResizers()` in the waterfall at every OTHER zoom (a zoomed
+  layout's rows are not its 100% rows: 20.00 px at 200% vs ~20.84, so handles placed at one zoom drift at another).
+  ⚠️ The first build replaced the 100% render with `installGridResizers()` alone and gated green (2,801 / 0), but the
+  `textsel-zoom` session pointed out the text-style highlight relies on that render to snap back at 100%, so the
+  render was put back before anything was pushed (`calzoom` M5's wording with it), the zoom
+  button's tooltip no longer says "resize at 100%", `selGeom`'s comment updated.
+- ⚠️ **Two things found that are not new, now visible:** (1) the last row's handle hangs 3 px below the table
+  (`margin-top:-4px` on a 7 px handle) and the last column's ~1 px past it, so the layer adds 2 px of vertical and
+  1 px of horizontal scroll to the grid box. True at 100% in the shipped app; at 50% it made `calzoom` W4's "the whole
+  grid fits" (scrollHeight ≤ clientHeight) false, so W4 now measures the TABLE against the box. (2) A wide spanning
+  cell's middle can sit on a column boundary, where the column handle takes the pointerdown, so `calzoom` W5 now
+  clicks a point on the cell. Neither is a frozen-code change; the overhang could be clipped later (`.grid-resize-layer`
+  is not frozen CSS, but clipping it would trim the last handles' grab area at 100% too, so it was left).
+- **Handles scale with the grid** (7 px at 100%, under 2 px on screen at 25%). Not changed: their offsets (+4/-11,
+  the 9 px clearance) are grid px in frozen code.
+- **Proof so far:** new leg `tests/harness/t/zoomresize.js`, 40/40, wired into `gate.sh` after `calzoom` (red on a
+  build of `main`: 50% column 194 vs 203, row 20 vs 36, cell edge unmoved, handles hidden); `calzoom` 24/24, `hdrfit`
+  8/8 on colreuse and hdrmanualbraces, `sideboxes` 74/74, `npm run check` 40/40; by hand in the app's browser at 150%
+  (real mouse drags: Date column 53 → 83 px for 45 px of pointer, a row to 40 px).
+- ✅ **Full gate** (build `d80112ba…`, HARNESS_PORT 9683, 19:07–19:34, alone): **2,801 PASS, 0 FAIL, GATE PASSED**,
+  `zoomresize` 40/40 and `calzoom` 24/24 among them, every baseline comparison identical (waterfall PDF, Excel parts,
+  month PDF print path and writer).
+- ⏭ **Next:** commit on `resize-zoom`, merge into `main` and push, each only on the
+  owner's word.
+
 ### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
 
 - **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace

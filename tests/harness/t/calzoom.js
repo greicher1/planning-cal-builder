@@ -11,8 +11,9 @@
 //    anywhere in it, 100% writes nothing at all (no style on #table-wrap, no body class), and both it and the
 //    help button in the bottom strip, below the preview's scroll box (Z5, W1b; owner, 21 Oct 2026).
 // W  the waterfall: a step through the hit stack, the grid box ending at the panel's bottom at every zoom with
-//    the panel never scrolling, the frozen resize handles hidden while zoomed and back ON their rows and
-//    columns at 100%, the selection outline on its cell and the swap button in the same grid place at 150%.
+//    the panel never scrolling, the frozen resize handles shown while zoomed and ON their rows and columns at
+//    90% and back at 100% (frozen edits Z1-Z6, 22 Oct 2026; the drags themselves are leg zoomresize), the
+//    selection outline on its cell and the swap button in the same grid place at 150%.
 // M  the month view: its own zoom, the day columns and every note lane exactly as at 100% (a magnification,
 //    nothing reflows), sideways scroll when zoomed in, and the zoom it remembers for the waterfall untouched.
 // F  the file: a zoom is not an edit (no dirty mark, no undo step), a shareable copy carries no zoom and no
@@ -38,7 +39,7 @@ window.addEventListener('load', function () { (async function () {
   // The control speaks through this event; the buttons are also pressed for real below.
   async function zoomTo(z){
     document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: z}}));
-    await T.sleep(400);   // past the engine's 150 ms settle (the stored value, the re-render at 100%)
+    await T.sleep(400);   // past the engine's 150 ms settle (the stored value, the re-render at 100%, the handles re-placed)
   }
   async function press(el){
     if(!hits(el)) throw new Error('not on top: ' + (el.getAttribute('aria-label') || el.className));
@@ -50,8 +51,12 @@ window.addEventListener('load', function () { (async function () {
     var s = $('sheet-scroll-container'), pp = q('main.preview-panel');
     var r = s.getBoundingClientRect(), pr = pp.getBoundingClientRect();
     var floor = pr.bottom - parseFloat(getComputedStyle(pp).paddingBottom);
-    // Either it reaches the panel's floor, or the whole grid fits above it (zoomed far out).
-    return {bottom: r.bottom, floor: floor, fits: s.scrollHeight <= s.clientHeight + 1,
+    // Either it reaches the panel's floor, or the whole grid fits above it (zoomed far out). The GRID, not the
+    // box's scrollHeight: the last row's resize handle hangs 3 px below the table (frozen installGridResizers,
+    // margin-top -4px on a 7 px handle), which has always added a few px of scroll at 100% and, since the handles
+    // show at every zoom (22 Oct 2026), does at 50% too.
+    var t = q('#table-wrap table.sheet-table').getBoundingClientRect();
+    return {bottom: r.bottom, floor: floor, fits: t.bottom <= r.bottom + 1 && s.scrollTop === 0,
             panelScrolls: pp.scrollHeight > pp.clientHeight + 1};
   }
   // The bottom strip (owner, 21 Oct 2026: the control covered the grid's last rows and its scrollbar). The
@@ -61,10 +66,12 @@ window.addEventListener('load', function () { (async function () {
     out.strip = [b, c.top, f.top].map(Math.round);
     return b <= Math.min(c.top, f.top) - 8 + 0.5;
   }
-  function handlesOnRows(){
+  // In the grid's own px: a handle's inline top against its row's screen offset divided by the zoom.
+  function handlesOnRows(z){
+    z = z || 1;
     var wrap = q('.sheet-grid-wrap'), wr = wrap.getBoundingClientRect();
     var rows = Array.from(q('table.sheet-table').tBodies[0].rows), hs = qa('.grid-resize.is-row', wrap), bad = 0;
-    hs.forEach(function (h, i){ if(!near(parseFloat(h.style.top), rows[i].getBoundingClientRect().bottom - wr.top, 0.6)) bad++; });
+    hs.forEach(function (h, i){ if(!near(parseFloat(h.style.top), (rows[i].getBoundingClientRect().bottom - wr.top) / z, 0.6)) bad++; });
     var cols = qa('table.sheet-table colgroup col'), ch = qa('.grid-resize.is-col', wrap), x = 0, badc = 0;
     cols.forEach(function (c, i){ x += parseFloat(c.style.width) || 0; if(!ch[i] || !near(parseFloat(ch[i].style.left), x, 0.6)) badc++; });
     return {rows: hs.length, bad: bad, cols: ch.length, badc: badc};
@@ -133,8 +140,11 @@ window.addEventListener('load', function () { (async function () {
     await press(q('.cal-zoom [aria-label="Zoom out"]'));
     check(pct() === '90%' && $('table-wrap').style.zoom === '0.9' && document.body.classList.contains('cal-zoomed'),
           'W2 Zoom out, pressed through the hit stack, steps to 90%');
-    check(getComputedStyle(q('.grid-resize-layer')).display === 'none',
-          'W3 zoomed, the frozen resize handles are hidden (a row drag would save the zoomed height)');
+    // Until 22 Oct 2026 the handles were hidden while zoomed (a row drag saved the zoomed height).
+    var h90 = handlesOnRows(0.9);
+    out.handles90 = h90;
+    check(getComputedStyle(q('.grid-resize-layer')).display !== 'none' && h90.rows > 0 && !h90.bad && !h90.badc,
+          'W3 zoomed to 90%, the resize handles show, every one on its row or column (' + JSON.stringify(h90) + ')');
     out.fit = {};
     var fitOk = true;
     for(var zs of [0.5, 0.9, 1.5, 2]){
@@ -148,7 +158,12 @@ window.addEventListener('load', function () { (async function () {
     var tds = qa('#table-wrap td.sheet-phase-cell').filter(function (t){ return t.dataset.own !== undefined; });
     var td = tds[Math.min(12, tds.length - 1)];
     td.scrollIntoView({block: 'center', inline: 'center'}); await T.sleep(200);
-    var p = mid(td), tgt = topAt(p);
+    // A point on the cell itself: a spanned cell's middle can sit on a column boundary, where the column's
+    // resize handle (shown at every zoom since 22 Oct 2026, and always at 100%) takes the pointerdown.
+    var p = mid(td), tgt = topAt(p), tr0 = td.getBoundingClientRect();
+    for(var dx = 0; tgt && tgt.closest('.grid-resize') && dx < tr0.width / 2; dx += 4){
+      p = {x: Math.round(tr0.left + tr0.width / 2 + dx), y: p.y}; tgt = topAt(p);
+    }
     var po = {bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, button: 0, buttons: 1, metaKey: true, pointerType: 'mouse', pointerId: 9, isPrimary: true};
     tgt.dispatchEvent(new PointerEvent('pointerdown', po));
     tgt.dispatchEvent(new PointerEvent('pointerup', Object.assign({}, po, {buttons: 0})));
@@ -178,12 +193,12 @@ window.addEventListener('load', function () { (async function () {
     // Within a pixel: the button's own text is laid out at the zoomed size, so its width rounds.
     check(!!out.stint1 && !!out.stint15 && out.stint1.every(function (v, i){ return near(v, out.stint15[i], 1.5); }),
           'W6 the Swap column button sits in the same grid place at 150% as at 100% (' + out.stint1 + ' / ' + out.stint15 + ')');
-    // Back to 100%: the handles come back, on their rows and columns.
+    // Back to 100%: the handles are re-placed, on their rows and columns.
     await zoomTo(1);
     var h = handlesOnRows();
     out.handles = h;
     check(getComputedStyle(q('.grid-resize-layer')).display !== 'none' && h.rows > 0 && !h.bad && !h.badc && !document.body.classList.contains('cal-zoomed'),
-          'W7 at 100% the resize handles are back, every one on its row or column (' + JSON.stringify(h) + ')');
+          'W7 at 100% the resize handles are re-placed, every one on its row or column (' + JSON.stringify(h) + ')');
     await zoomTo(0.75);
 
     // ---- F: the file and the preference ----

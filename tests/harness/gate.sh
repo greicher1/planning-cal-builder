@@ -2537,8 +2537,8 @@ PYNC
 # ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
 # CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
 # no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place
-# beside the help button, the grid fit at four zooms, the frozen resize handles hidden while zoomed and back on
-# their rows at 100%, the selection and swap overlays on their cells, the month view as a pure magnification
+# beside the help button, the grid fit at four zooms, the frozen resize handles on their rows while zoomed and at
+# 100% (shown at every zoom since 22 Oct 2026; leg zoomresize below drags them), the selection and swap overlays on their cells, the month view as a pure magnification
 # (columns and note lanes unchanged), and that a zoom never dirties the file, adds an undo step or travels in a copy.
 rm -f "$HERE/calzoom.json"
 HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" calzoom 300 >/dev/null 2>&1
@@ -2553,6 +2553,26 @@ for c in a.get('checks') or []:
     print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'calzoom: '+str(c.get('what'))[:170])
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
+
+# ---- zoomresize: the waterfall's resize handles at every zoom (owner, 22 Oct 2026) ------------------------------
+# Frozen edits Z1-Z6 (owner sign-off by picker) divide installGridResizers' and the drags' screen measurements by
+# the zoom, 1 at 100%. At 100%, 50%, 150% and 200% the leg checks every row, column and cell-edge handle on its
+# place, then drags a column, a row and a cell edge the same distance in the grid's px and compares what each saves
+# with the 100% drag (a column exactly, a row within 1 px, the cell edge exactly one column), undoing each. Red on
+# the build before the edits (the 50% drags saved 194 not 203 px, 20 not 36 px, and moved no cell edge).
+rm -f "$HERE/zoomresize.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" zoomresize 200 >/dev/null 2>&1
+python3 - "$HERE/zoomresize.json" <<'PYZR' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  zoomresize produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  zoomresize threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'zoomresize: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYZR
 
 # ---- hdrfit: the waterfall's header ends with the calendar (owner, 21 Oct 2026, "At every zoom") ----------------
 # The title block and the Manual-mode format strip are capped at the grid's own width (--wf-grid-w on .preview-panel),

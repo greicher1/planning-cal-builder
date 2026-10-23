@@ -3166,12 +3166,10 @@
     font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
   }
   .cal-zoom .cal-zoom-pct:hover{ background:var(--bg); }
-  /* ⛔ While zoomed, the waterfall's resize handles are hidden. Frozen installGridResizers places them,
-     and the frozen drag sizes them, by mixing screen px with the grid's own px, which agree only at
-     100%: zoomed, a row drag would SAVE the zoomed height into rowHeights, and so into the workbook
-     and the PDF. Paint only (MANTINE-SEAM §3.3): the overlay layer goes, no cell's box changes. The
-     engine re-installs them on the way back to 100%. */
-  body.cal-zoomed #table-wrap .grid-resize-layer{ display:none; }
+  /* The waterfall's resize handles show at every zoom (22 Oct 2026). Until then they were hidden here
+     while zoomed (body.cal-zoomed), because frozen installGridResizers and the drags mixed screen px
+     with the grid's own px and a zoomed row drag SAVED the zoomed height. Frozen edits Z1-Z6 (app.js,
+     owner-approved) divide by the zoom, so do not bring the hiding back. */
 
   #help-overlay{
     display:none; position:fixed; inset:0; z-index:70;
