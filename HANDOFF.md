@@ -34,8 +34,52 @@
 - ⚠️ **Harness trap:** a double-click that lands while an undo is still re-rendering opens the editor and the
   `#table-wrap` observer closes it at once (its cell was replaced). That is by design (pattern 3); retry after the
   grid settles. The legs wait on `settle()` for this reason.
-- ⏭ **Next:** the owner's call on merging. `hide-notes` lands in `main` first (still waiting on the scenarios
-  session's uncommitted HANDOFF edit there), then this branch. Never pushed.
+- ⏭ **Next:** the owner's call on merging into `main`. `hide-notes` is already in local `main` (`02e7c9b`, not
+  pushed), and `main` was merged INTO this branch (docs only: Scenarios plan and mockup, HANDOFF), so the merge
+  will be a fast-forward. Never pushed.
+
+### 📝 22 Oct 2026: SCENARIOS (SEVERAL VERSIONS OF ONE CALENDAR, COMPARED) — PLANNED AND RULED (D1–D6 all as recommended, by picker), NO CODE ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md), mockup [`mockups/scenarios.html`](mockups/scenarios.html))
+
+- **The ask.** Item 8 of the Excel-gaps list. Owner: *"comparing multiple scenarios is HUGE"*. They want to know
+  whether scenarios share one `.sptcal`, how you switch and compare, whether each is a version number, and how to keep
+  it from getting complicated. The plan's §0 answers those four questions in a few lines.
+- **What the plan recommends:**
+  - one file holding up to 50 scenarios (owner, by picker, after the six rulings; the plan had said six). Tabs scroll
+    sideways, and Compare shows six at a time, the tab on screen plus five you tick;
+  - Excel-style tabs bottom-left of the calendar strip;
+  - flip in place (same view, month and scroll; no flash, owner 22 Oct 2026: *"feely a little silly"*), plus a
+    Compare table built from each tab's own header tokens (`buildHeaderCtx()`);
+  - letters, not numbers ("Scenario A"), with Show Info's Version staying each tab's revision number;
+  - nothing shared between tabs;
+  - exports are of the tab you're on.
+  - ✅ **Ruled 22 Oct 2026 by picker:** D1–D6 all as recommended. D6 includes the export-name frozen edit, approved
+    in principle (the gate must show both files byte-identical).
+  - ⏭ Next is step 1 of the plan's §10: the file format, with no UI.
+- ⭐ **Facts found that the build must respect:**
+  - **v1.1–v1.2 builds (including the root `index.html` rollback) accept ANY JSON object as a calendar**, with no
+    version check and no `fields.byId` check.
+    - That is why a multi-scenario file keeps the CURRENT tab's snapshot at the top level, with the other tabs under
+      `scenarios`. Such a build then opens one tab, not a blank calendar it could save over everything.
+    - Only files with 2+ tabs carry file `version: 2`, which v1.3.0–v1.8.0 refuse whole (`snapshotVersionOk`).
+      One-scenario files stay byte-identical.
+  - **The Excel and waterfall-PDF download names are built INSIDE frozen `exportExcel` / `exportWaterfallPdfDirect`.**
+    Naming exports after the scenario is a one-line frozen edit (name only) and needs sign-off.
+    `buildSavedFileName()` and `monthPdfFileName()` are free.
+  - **`readState()` reads the DOM**, so Compare must probe each inactive tab synchronously (apply, compute, restore,
+    never render), as `paperProbe` does. A gate leg must prove the current calendar is untouched.
+  - `captureSnapshot()` carries `viewMode` and `sidebarTab`, so a switch must put back the current ones.
+- **Mockup:** three synthetic calendars captured from `dist/` (`halfdays` plus two variants, built only in a scratchpad,
+  no fixture added). Each has its waterfall plus its July–September 2026 month views (the Month button works), with
+  working tabs and a tab menu.
+- **The Compare window was restyled the same day.** It is a real Mantine component,
+  `mockups/scenarios-compare/CompareDialog.jsx`, bundled into the mockup. Owner, after one round:
+  - *"the styling of this new version but the content of the old version"*: every row and every value, the
+    difference bold with a "+2 wks" tag, same rows grey;
+  - *"remove all the random explainations"*: it is a table, Copy table and Done, nothing else.
+
+  Plan §2 has the rules.
+  ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.
+- **Not committed.** Written in the main checkout by a side session. No `src/` change.
 
 ### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
 
@@ -95,7 +139,7 @@
 - ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
   its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
 
-### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); NOT MERGED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
+### ✅ 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT AND GATED on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FULL GATE 2,812 / 1 (the 1 is a pre-existing `sideboxes` R16 flake); MERGED INTO LOCAL `main` 23 Oct 2026, NOT PUSHED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
   switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
@@ -137,13 +181,12 @@
   picker, 22 Oct 2026: Q1 "Bring them back", and H1–H3 signed off.** ⏭ Build it on a branch after `hide-notes`
   lands.
 - The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker).
-- ⏭ **MERGE APPROVED by the owner's picker (22 Oct 2026): "Merge into local main"; "Don't push".** `main`'s three
-  newer docs-only commits (the right-click menu plan and mockup) were merged INTO this branch as `a61d8e9` (one
-  HANDOFF conflict, both entries kept). The build is byte-identical to the gated one (`f85c9814`). The fast-forward
-  of local `main` was REFUSED by git, safely: the scenarios session has an uncommitted 34-line `HANDOFF.md` edit in
-  the main checkout. ⛔ Don't stash or overwrite it. Once it is committed, merge `hide-notes` into `main`
-  (`git merge hide-notes` from the main checkout; expect the same HANDOFF top-of-file overlap, and keep both).
-  Not pushed.
+- ✅ **MERGED into local `main` (owner's picker, 22 Oct 2026: "Merge into local main"; "Don't push").** `main` was
+  merged INTO the branch twice first: the right-click menu docs as `a61d8e9` (one HANDOFF conflict, both entries
+  kept), then the Scenarios plan `4fd32aa` as `ca49652`, after its session committed the HANDOFF edit that had
+  blocked the fast-forward. Both merges are docs and mockups only (`git diff 7b3aa6c` over `src`, `tests` and
+  `tools` is empty), so the gated build `f85c9814…` stands. Then `main` was fast-forwarded. ⛔ **NOT PUSHED.** A push
+  of local `main` would now also ship the right-click menu and Scenarios docs commits.
 
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
