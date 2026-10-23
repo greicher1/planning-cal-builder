@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ⛔ NOT PUSHED
+### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready
   column: `paper-recommend`, `text-highlight-zoom-drift`, `undo-keys-everywhere`, `waterfall-keyboard`,
@@ -58,11 +58,14 @@
   assertion failure is a clash or contention until proven otherwise.
 - ⚠️ **paper-recommend's merged-build gate (2,751 / 5) is explained in its own entry.** None of the five is the
   feature's: three were contention, one the R16 flake, one the `hiatuslabel` date bug.
-- ⛔ **NOT PUSHED.** A push of local `main` now ships all of the above, plus hide-notes, the right-click-menu docs
-  and the Scenarios docs. `version.json` is still 1.8.0: a version cut is the owner's call, and without one installed
-  copies update silently.
-- ⏭ **Next:** the owner's push picker. After an approved push, check the live `index.html` is byte-identical to this
-  build. The landing worktree and the landed branches' worktrees can go on the owner's word.
+- ✅ **PUSHED AND LIVE** on the owner's picker (23 Oct: *"Push and verify live"*). ONE `git push origin main` at
+  11:31:17 (`7856d98..b7d5307`, 43 commits: all of the above plus hide-notes, the right-click-menu docs and the
+  Scenarios docs). Deploy run 40003977079 succeeded at 11:32:50. At 11:33:04 the live `index.html`, fetched with a
+  cache-buster, was **byte-identical to the gated build** (sha256 `d2ac914ed7155929…`, 1,755,411 bytes, `cmp`).
+  `version.json` is still 1.8.0, so installed copies pick it up silently; a version cut is the owner's call. This
+  HANDOFF note is a local commit, not pushed.
+- ⏭ **Next:** nothing on these features. The landing worktree and the landed branches' worktrees can go on the
+  owner's word.
 
 ### ✅ 5 Oct 2026 (evening), landed 23 Oct: THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved; branch `wf-header-clear` (worktree `.claude/worktrees/month-baselines`), COMMITTED `a71514c` and `main` (`59dd0cd`) MERGED IN as `d950b78` on the owner's *"merge … into main"* (23 Oct 2026); IN LOCAL `main` via `land-ready-1023` (combined gate 2,962 / 0, 23 Oct), NOT PUSHED
 
