@@ -2,9 +2,20 @@
 
 **Scenarios: several versions of one calendar, side by side, in one file.** Item 8 of the "what Excel-like
 functionality are we missing" list (22 Oct 2026). Written 22 Oct 2026. **✅ All six decisions RULED the same day, by
-picker, each as recommended (§1). No code written.** §0 answers the owner's four questions in a few lines. §1 holds
-the decisions and their rulings, §2 the choices this plan makes unless the owner overrules them, and §3 onwards how it
-would be built.
+picker, each as recommended (§1).**
+
+**🔨 BUILT 23 Oct 2026** on branch `scenarios` (worktree `.claude/worktrees/scenarios`), commit `4946882`, owner: *"Ok
+start building it"*.
+- **Built:** steps 1–4, step 5 and most of step 6 (§10).
+- **Not built yet:**
+  - "Add a calendar file as a scenario…";
+  - the overflow ◀ ▶ arrows and ▾ list (tabs scroll with the wheel instead).
+- **Tests:** legs `scenarios` (18) and `scenariocompat`, both in `gate.sh`.
+- **Not merged, not pushed.**
+- **What building it taught:** §13.
+
+§0 answers the owner's four questions in a few lines. §1 holds the decisions and their rulings, §2 the choices this plan
+makes unless the owner overrules them, and §3 onwards how it would be built.
 
 **Mockup:** [`mockups/scenarios.html`](mockups/scenarios.html). Three real waterfalls captured from the build (a
 synthetic calendar), with working tabs, a tab menu and the Compare window. Every number in it is the app's own.
@@ -521,3 +532,22 @@ Each step lands on its own branch with its own gate run, in this order. Each one
 - **What it fakes:** nothing is saved or exported. "+" adds a tab that is a copy of the "10 eps" picture.
 - **Where it is served:** nowhere. The deploy publishes `dist/` only. Open it from the file, or through the harness
   server at `/mockups/scenarios.html`. It loads Inter from Google Fonts, as the month menu's mockup does.
+
+## 13. What building it taught (23 Oct 2026)
+
+- **The undo baseline must be `undoStateJSON()`, not `JSON.stringify(captureSnapshot())`.**
+  - The undo-keys work (⌘Z after every edit) made the history leave `viewMode` out.
+  - A baseline that kept it made the first push after every switch or copy a phantom step: ⌘Z then "undid" nothing.
+  - Found because the `scenarios` leg's per-tab undo case failed. Every baseline in the scenarios code uses
+    `undoStateJSON()` now.
+- **`buildHeaderCtx()` returns `{tokens}`.** Compare reads `.tokens`. A date token is a `hdrDate()` box, so the exact
+  Date is read from `__hdrDate` rather than re-parsed.
+- **`buildSavedFileName('')` is not a bare name:** an empty extension falls back to `.sptcal`. `savedFileBase()` cuts
+  the base off a name built with `.html`.
+- **Save to a legacy `.html` writes a whole copy of the app**, with the state embedded. If it carried only the tab on
+  screen, it would silently drop the others. So `buildSavedHtml({allScenarios: true})` is used for every Save path, and
+  only Export shareable copy writes the one tab (D6).
+- **The scenario variables are `var`.** `buildHeaderCtx()` reads them for `{scenario}`, and a render during the IIFE's
+  evaluation, before their line runs, would otherwise hit the temporal dead zone and take the rest of the engine with it.
+- **v1.2.0 measured, not assumed** (`scenariocompat`): it opens the current tab (Half Days Test, 8 episodes) from
+  `tests/fixtures/scenarios-3.sptcal`. v1.8.0 refuses it with the newer-version message and keeps its calendar.

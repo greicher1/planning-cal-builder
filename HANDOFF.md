@@ -4,6 +4,41 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882`; FULL GATE RUNNING; NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for scenarios.**
+  - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
+    window's look, content, chips, 12 columns and exports.
+  - Owner: *"Ok start building it"*.
+  - Steps 1–4 are built, plus step 5 and most of step 6. The plan's §13 holds what building it taught.
+- **What exists:**
+  - **Engine, the "SCENARIOS" block in `app.js`.**
+    - `captureFileObject()` / `unpackScenarioFile()` handle the file: version 2 only with 2+ tabs, the current tab at
+      the top level.
+    - `switchScenario` (keeps the view, month and scroll), duplicate, rename, move, delete and keep-only.
+    - Per-tab undo, and Ctrl+Page Up/Down.
+    - The Compare values come from `buildHeaderCtx().tokens`, with a synchronous probe for tabs not visited since Load.
+    - Excel export through ExcelJS, PDF through the month writer's `mvlPageOps` / `mvlSerialize`.
+    - Save this scenario as its own file, and the `{scenario}` token.
+  - **Chrome:** `src/chrome/ScenarioTabs.jsx` (bottom left, beside the zoom) and `src/chrome/CompareDialog.jsx`.
+  - **Frozen edits S1/S2** (D6, approved in principle): `exportExcel` and `exportWaterfallPdfDirect` only append
+    `scenarioFileSuffix()` to the DOWNLOAD NAME, which is `''` with one tab. Gates 1–3 must stay byte-identical.
+- **Not built:**
+  - "Add a calendar file as a scenario…";
+  - overflow ◀ ▶ and the ▾ list (tabs scroll with the wheel);
+  - nothing month-view-specific was needed.
+- **Tests:**
+  - `scenarios` 18/18 on the build;
+  - `scenariocompat`: v1.8.0 refuses `tests/fixtures/scenarios-3.sptcal` whole; v1.2.0 opens its current tab;
+  - both in `gate.sh`, and `npm run check` 40/40;
+  - checked in the browser pane with real clicks and typing.
+- ⚠️ **Traps for whoever touches this:**
+  - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
+  - `buildHeaderCtx()` returns `{tokens}`.
+  - `buildSavedFileName('')` returns `.sptcal`.
+  - Save to a legacy `.html` must embed every tab (`buildSavedHtml({allScenarios:true})`).
+  - `.compare-dlg` is skipped by `collectFieldValues()` (Chip ids).
+
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready
@@ -623,7 +658,7 @@
   paths (they lay out off screen in `#print-root`, unzoomed) and the writers (no DOM). Minor, not fixed: the month
   grips keep their on-screen size, so at 25–30% a bar under 46 screen px gets no reorder grip.
 - ⚠️ **What was learned: rows lay out at a different height in the grid's OWN px at each zoom** — 20.0 at 100%,
-  20.8 at 50%, 20.1 at 200% (measured, `colreuse`, 1600×1000). So any box drawn inside `#table-wrap` in grid px at
+  20.8 at 50%, 20.1 at 200% (measured in a 1600×1000 window on the `colreuse` leg). So any box drawn inside `#table-wrap` in grid px at
   one zoom drifts at another, ~0.4–0.8 px per row. A text highlight 45 rows down sat 19 px off at 50% and 76 px off
   at 200%, until the settle timer's render at 100% redrew it. **Anything drawn in grid px must be redrawn after
   every zoom change** — this is what the resize handles will need too (sent to that session, 22 Oct).

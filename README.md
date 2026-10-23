@@ -29,6 +29,51 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026)
+
+The owner: *"comparing multiple scenarios is HUGE"*, then *"start building it"*. [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md)
+holds the rulings (D1–D6, the 50-scenario cap, no highlight on a flip, the Compare window's look and content, its chips,
+up to twelve columns, its Excel and PDF exports). Built on branch `scenarios`, steps 1–4 of the plan:
+
+- **Tabs under the calendar**, bottom left, where Excel puts its sheet tabs (the zoom is already bottom right).
+  - With one scenario the strip holds only **+ Scenario**, and a calendar that never makes a second is exactly what it
+    was: the same file, byte for byte.
+  - "+" copies the scenario on screen, with its name ready to type over (Scenario A, B, …). Double-click renames.
+  - Right-click, or the ▾ on the tab on screen, opens a menu: Rename, Duplicate, Compare scenarios, Save this scenario
+    as its own file, Keep only this scenario, Delete scenario. The last two ask first.
+  - Drag a tab to reorder. Ctrl+Page Down / Page Up flips, as in Excel.
+- **Each scenario is a whole calendar**, with its own undo history. Switching keeps the view, the month on screen and
+  the scroll, and is not an edit.
+- **One file holds them all, up to 50.**
+  - The current scenario sits at the file's top level, with the others beside it, and a file holding two or more is
+    version 2.
+  - v1.3.0–v1.8.0 refuse such a file whole ("saved by a newer version"), rather than open one scenario and lose the
+    rest on their next Save. v1.2.0, which has no version check, opens the scenario that was on screen.
+  - A damaged or over-size file is refused whole before anything is applied.
+  - Save, autosave, the crash backup and Save to an old `.html` keep every scenario. **Export shareable copy** carries
+    only the one on screen.
+- **Compare** (a Mantine window): one column per scenario, the one on screen first, up to twelve, scrolling sideways
+  with the row labels pinned.
+  - Chips pick the columns once there are three or more scenarios.
+  - Every row shows every value; a difference is bold with "+2 wks" under it, and a row that is the same everywhere is
+    grey.
+  - The values are each scenario's own header tokens, so Compare cannot disagree with a header.
+  - **Export to Excel** (ExcelJS) and **Export PDF** (written directly, with the month PDF's writer) save the table as
+    shown. Copy table copies it.
+- **Exports say which scenario they are**: with two or more, the Excel, both PDFs and the shareable copy end with
+  " – <scenario>". The Excel and waterfall-PDF names are frozen edits S1–S2, name only (D6, approved in principle).
+  A `{scenario}` header token exists for a Template line.
+
+**Verified:**
+- new leg `scenarios` 18/18;
+- new leg `scenariocompat` (v1.8.0 refuses `tests/fixtures/scenarios-3.sptcal` whole; v1.2.0 opens its current tab);
+- `npm run check` 40/40;
+- in the browser pane with real clicks: duplicate, rename, switch, Compare, the menu, crash recovery of three tabs.
+
+Full gate: see HANDOFF. **Not built yet:** "Add a calendar file as a scenario…", and ◀ ▶ arrows with a ▾ list when tabs
+overflow (they scroll with the wheel today).
+
+
 ### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
 
 The owner: *"anything built and in the "ready to merge" section, merge it into main"*, then *"push everything at
