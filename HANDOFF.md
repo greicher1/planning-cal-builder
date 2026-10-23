@@ -4,6 +4,46 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); NOT RULED, NO CODE, NOT COMMITTED
+
+- **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
+  excel but purely in the use case of creating this calendars"*). The answer, in chat: formatting is mostly covered,
+  and the gaps are Excel's EDITING habits (waterfall date drags, arrow keys / Delete, copy and paste, find and replace,
+  a right-click menu, fill on many cells) and its "duplicate the tab" habits (revision marking, scenarios, private
+  comments, paste into an email). From that list the owner picked:
+  - **Item 2 (arrow keys, Tab, Delete) and item 3 (copy / cut / paste notes, drag a note to another week):** given to
+    their own session, "Waterfall arrow keys, Delete, and copy/paste notes" (worktree). It asks its rulings by picker
+    before building. Tracker cards `waterfall-keyboard` and `waterfall-copy-paste-notes`.
+  - **Item 5, a waterfall right-click menu: a MOCKUP only** (this entry). Tracker card `waterfall-right-click-menu`.
+  - **Item 8, scenarios:** a full workup, written by the session "Scenarios plan: compare calendar options" in this
+    checkout (`SCENARIOS-PLAN.md`; it adds its own entry). Tracker card `scenarios`.
+- ⚠️ **A correction to that list.** It proposed "freeze panes" as a frozen edit. The heading row is ALREADY frozen
+  on screen (`.sheet-table th` is `position:sticky`) and repeats on every printed page. Only the exported workbook
+  has no frozen panes (`exportExcel`'s `views` carries no split), and a sticky date column makes no sense with year
+  blocks side by side.
+- **The mockup** is built the way `mockups/month-context-menu.html` was, and reuses that mockup's menu engine. The
+  waterfall is captured from the build (`dist/` of 21 Oct, `halfdays.sptcal`, synthetic) with headless Chrome
+  `--dump-dom`. It has `#table-wrap`'s markup verbatim minus the resize handles, and only the CSS rules that match
+  it. Open it through the harness server at `/mockups/waterfall-context-menu.html`.
+  - **Its shape:** the same look, keys and fixed order as the month day menu. A clipboard row first (Cut · Copy ·
+    Paste · Clear, as Excel's Paste Options row), then "This week" (Add / Edit this week's note · Add 1-week phase
+    here · Add hiatus ▸), then one section for the cell clicked: a phase week (Start / End <phase> this week, Expand
+    cells, Swap column left / right, Colour…, Show in Phases card), a note (Edit, colour, back to automatic text), a
+    hiatus band, a holiday in that week. Then Size (reset row height / column width), and Show this week in the
+    month view. A column heading gets a short menu of its own.
+  - **Right-click inside a highlight acts on all of it**; outside it, the cell is highlighted first.
+  - Refused items are greyed with their reason (the standing rule). The clipboard items only CALL the item 2/3
+    session's actions.
+- ⏭ **Three questions for the owner, written in the mockup's side panel, none asked by picker yet:**
+  1. the clipboard row at the top (recommended) or plain lines inside the Note section;
+  2. can Clear remove an automatic note (recommended yes, stored as cleared; month ruling Q5 has no Delete note);
+  3. keep the Size section (recommended yes).
+- **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
+  opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
+  `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
+- ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
+  its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
+
 ### 📝 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — PLANNED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md)); NOTHING BUILT; FROZEN EDITS SIGNED OFF
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic

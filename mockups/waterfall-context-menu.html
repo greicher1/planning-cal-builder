@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waterfall Cell Menu</title>
+<!-- MOCKUP, not the app. The calendar below is the waterfall captured from the real build
+     (tests/fixtures/halfdays.sptcal, a synthetic calendar), markup and CSS verbatim, with the resize
+     handles stripped, so the menu is judged against what users actually see. The menu engine is the
+     month-view mockup's (mockups/month-context-menu.html), with a clipboard row added. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- captured from the build: every rule that styles the waterfall grid ---------- */
+html[data-app-gate] body > :not(#app-gate){display:none !important;}
+html[data-app-gate], html[data-app-gate] body{margin:0; height:100%; overflow:hidden; background:#F7F6F3;}
+html[data-app-gate] #app-gate{display:flex;}
+html[data-app-gate=checking]  #app-gate [data-for=checking],
+  html[data-app-gate=install]   #app-gate [data-for=install],
+  html[data-app-gate=box]       #app-gate [data-for=box],
+  html[data-app-gate=cancelled] #app-gate [data-for=cancelled],
+  html[data-app-gate=done]      #app-gate [data-for=done],
+  html[data-app-gate=already]   #app-gate [data-for=already],
+  html[data-app-gate=menu]      #app-gate [data-for=menu],
+  html[data-app-gate=other]     #app-gate [data-for=other],
+  html[data-app-gate=phone]     #app-gate [data-for=phone]{display:block;}
+html[data-app-gate-kind=edge] #app-gate .ag-e{display:revert;}
+html[data-app-gate-kind=edge] #app-gate .ag-c{display:none;}
+html[data-app-gate=checking] #app-gate .ag-help{display:none;}
+@layer mantine{.m_30b26e33[data-full-width]>*{flex:1}
+:root,:host{--mantine-z-index-app:100;--mantine-z-index-modal:200;--mantine-z-index-popover:300;--mantine-z-index-overlay:400;--mantine-z-index-max:9999;--mantine-scale:1;--mantine-cursor-type:default;--mantine-webkit-font-smoothing:antialiased;--mantine-moz-font-smoothing:grayscale;--mantine-color-white:#fff;--mantine-color-black:#000;--mantine-line-height:1.55;--mantine-font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;--mantine-font-family-monospace:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;--mantine-font-family-headings:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;--mantine-heading-font-weight:700;--mantine-heading-text-wrap:wrap;--mantine-radius-default:calc(.5rem * var(--mantine-scale));--mantine-primary-color-filled:var(--mantine-color-blue-filled);--mantine-primary-color-filled-hover:var(--mantine-color-blue-filled-hover);--mantine-primary-color-light:var(--mantine-color-blue-light);--mantine-primary-color-light-hover:var(--mantine-color-blue-light-hover);--mantine-primary-color-light-color:var(--mantine-color-blue-light-color);--mantine-breakpoint-xs:36em;--mantine-breakpoint-sm:48em;--mantine-breakpoint-md:62em;--mantine-breakpoint-lg:75em;--mantine-breakpoint-xl:88em;--mantine-spacing-xs:calc(.625rem * var(--mantine-scale));--mantine-spacing-sm:calc(.75rem * var(--mantine-scale));--mantine-spacing-md:calc(1rem * var(--mantine-scale));--mantine-spacing-lg:calc(1.25rem * var(--mantine-scale));--mantine-spacing-xl:calc(2rem * var(--mantine-scale));--mantine-font-size-xs:calc(.75rem * var(--mantine-scale));--mantine-font-size-sm:calc(.875rem * var(--mantine-scale));--mantine-font-size-md:calc(1rem * var(--mantine-scale));--mantine-font-size-lg:calc(1.125rem * var(--mantine-scale));--mantine-font-size-xl:calc(1.25rem * var(--mantine-scale));--mantine-line-height-xs:1.4;--mantine-line-height-sm:1.45;--mantine-line-height-md:1.55;--mantine-line-height-lg:1.6;--mantine-line-height-xl:1.65;--mantine-shadow-xs:0 calc(.0625rem * var(--mantine-scale)) calc(.1875rem * var(--mantine-scale)) #0000000d, 0 calc(.0625rem * var(--mantine-scale)) calc(.125rem * var(--mantine-scale)) #0000001a;--mantine-shadow-sm:0 calc(.0625rem * var(--mantine-scale)) calc(.1875rem * var(--mantine-scale)) #0000000d, #0000000d 0 calc(.625rem * var(--mantine-scale)) calc(.9375rem * var(--mantine-scale)) calc(-.3125rem * var(--mantine-scale)), #0000000a 0 calc(.4375rem * var(--mantine-scale)) calc(.4375rem * var(--mantine-scale)) calc(-.3125rem * var(--mantine-scale));--mantine-shadow-md:0 calc(.0625rem * var(--mantine-scale)) calc(.1875rem * var(--mantine-scale)) #0000000d, #0000000d 0 calc(1.25rem * var(--mantine-scale)) calc(1.5625rem * var(--mantine-scale)) calc(-.3125rem * var(--mantine-scale)), #0000000a 0 calc(.625rem * var(--mantine-scale)) calc(.625rem * var(--mantine-scale)) calc(-.3125rem * var(--mantine-scale));--mantine-shadow-lg:0 calc(.0625rem * var(--mantine-scale)) calc(.1875rem * var(--mantine-scale)) #0000000d, #0000000d 0 calc(1.75rem * var(--mantine-scale)) calc(1.4375rem * var(--mantine-scale)) calc(-.4375rem * var(--mantine-scale)), #0000000a 0 calc(.75rem * var(--mantine-scale)) calc(.75rem * var(--mantine-scale)) calc(-.4375rem * var(--mantine-scale));--mantine-shadow-xl:0 calc(.0625rem * var(--mantine-scale)) calc(.1875rem * var(--mantine-scale)) #0000000d, #0000000d 0 calc(2.25rem * var(--mantine-scale)) calc(1.75rem * var(--mantine-scale)) calc(-.4375rem * var(--mantine-scale)), #0000000a 0 calc(1.0625rem * var(--mantine-scale)) calc(1.0625rem * var(--mantine-scale)) calc(-.4375rem * var(--mantine-scale));--mantine-radius-xs:calc(.125rem * var(--mantine-scale));--mantine-radius-sm:calc(.25rem * var(--mantine-scale));--mantine-radius-md:calc(.5rem * var(--mantine-scale));--mantine-radius-lg:calc(1rem * var(--mantine-scale));--mantine-radius-xl:calc(2rem * var(--mantine-scale));--mantine-font-weight-regular:400;--mantine-font-weight-medium:600;--mantine-font-weight-bold:700;--mantine-primary-color-0:var(--mantine-color-blue-0);--mantine-primary-color-1:var(--mantine-color-blue-1);--mantine-primary-color-2:var(--mantine-color-blue-2);--mantine-primary-color-3:var(--mantine-color-blue-3);--mantine-primary-color-4:var(--mantine-color-blue-4);--mantine-primary-color-5:var(--mantine-color-blue-5);--mantine-primary-color-6:var(--mantine-color-blue-6);--mantine-primary-color-7:var(--mantine-color-blue-7);--mantine-primary-color-8:var(--mantine-color-blue-8);--mantine-primary-color-9:var(--mantine-color-blue-9);--mantine-color-dark-0:#c9c9c9;--mantine-color-dark-1:#b8b8b8;--mantine-color-dark-2:#828282;--mantine-color-dark-3:#696969;--mantine-color-dark-4:#424242;--mantine-color-dark-5:#3b3b3b;--mantine-color-dark-6:#2e2e2e;--mantine-color-dark-7:#242424;--mantine-color-dark-8:#1f1f1f;--mantine-color-dark-9:#141414;--mantine-color-gray-0:#f8f9fa;--mantine-color-gray-1:#f1f3f5;--mantine-color-gray-2:#e9ecef;--mantine-color-gray-3:#dee2e6;--mantine-color-gray-4:#ced4da;--mantine-color-gray-5:#adb5bd;--mantine-color-gray-6:#868e96;--mantine-color-gray-7:#495057;--mantine-color-gray-8:#343a40;--mantine-color-gray-9:#212529;--mantine-color-red-0:#fff5f5;--mantine-color-red-1:#ffe3e3;--mantine-color-red-2:#ffc9c9;--mantine-color-red-3:#ffa8a8;--mantine-color-red-4:#ff8787;--mantine-color-red-5:#ff6b6b;--mantine-color-red-6:#fa5252;--mantine-color-red-7:#f03e3e;--mantine-color-red-8:#e03131;--mantine-color-red-9:#c92a2a;--mantine-color-pink-0:#fff0f6;--mantine-color-pink-1:#ffdeeb;--mantine-color-pink-2:#fcc2d7;--mantine-color-pink-3:#faa2c1;--mantine-color-pink-4:#f783ac;--mantine-color-pink-5:#f06595;--mantine-color-pink-6:#e64980;--mantine-color-pink-7:#d6336c;--mantine-color-pink-8:#c2255c;--mantine-color-pink-9:#a61e4d;--mantine-color-grape-0:#f8f0fc;--mantine-color-grape-1:#f3d9fa;--mantine-color-grape-2:#eebefa;--mantine-color-grape-3:#e599f7;--mantine-color-grape-4:#da77f2;--mantine-color-grape-5:#cc5de8;--mantine-color-grape-6:#be4bdb;--mantine-color-grape-7:#ae3ec9;--mantine-color-grape-8:#9c36b5;--mantine-color-grape-9:#862e9c;--mantine-color-violet-0:#f3f0ff;--mantine-color-violet-1:#e5dbff;--mantine-color-violet-2:#d0bfff;--mantine-color-violet-3:#b197fc;--mantine-color-violet-4:#9775fa;--mantine-color-violet-5:#845ef7;--mantine-color-violet-6:#7950f2;--mantine-color-violet-7:#7048e8;--mantine-color-violet-8:#6741d9;--mantine-color-violet-9:#5f3dc4;--mantine-color-indigo-0:#edf2ff;--mantine-color-indigo-1:#dbe4ff;--mantine-color-indigo-2:#bac8ff;--mantine-color-indigo-3:#91a7ff;--mantine-color-indigo-4:#748ffc;--mantine-color-indigo-5:#5c7cfa;--mantine-color-indigo-6:#4c6ef5;--mantine-color-indigo-7:#4263eb;--mantine-color-indigo-8:#3b5bdb;--mantine-color-indigo-9:#364fc7;--mantine-color-blue-0:#e7f5ff;--mantine-color-blue-1:#d0ebff;--mantine-color-blue-2:#a5d8ff;--mantine-color-blue-3:#74c0fc;--mantine-color-blue-4:#4dabf7;--mantine-color-blue-5:#339af0;--mantine-color-blue-6:#228be6;--mantine-color-blue-7:#1c7ed6;--mantine-color-blue-8:#1971c2;--mantine-color-blue-9:#1864ab;--mantine-color-cyan-0:#e3fafc;--mantine-color-cyan-1:#c5f6fa;--mantine-color-cyan-2:#99e9f2;--mantine-color-cyan-3:#66d9e8;--mantine-color-cyan-4:#3bc9db;--mantine-color-cyan-5:#22b8cf;--mantine-color-cyan-6:#15aabf;--mantine-color-cyan-7:#1098ad;--mantine-color-cyan-8:#0c8599;--mantine-color-cyan-9:#0b7285;--mantine-color-teal-0:#e6fcf5;--mantine-color-teal-1:#c3fae8;--mantine-color-teal-2:#96f2d7;--mantine-color-teal-3:#63e6be;--mantine-color-teal-4:#38d9a9;--mantine-color-teal-5:#20c997;--mantine-color-teal-6:#12b886;--mantine-color-teal-7:#0ca678;--mantine-color-teal-8:#099268;--mantine-color-teal-9:#087f5b;--mantine-color-green-0:#ebfbee;--mantine-color-green-1:#d3f9d8;--mantine-color-green-2:#b2f2bb;--mantine-color-green-3:#8ce99a;--mantine-color-green-4:#69db7c;--mantine-color-green-5:#51cf66;--mantine-color-green-6:#40c057;--mantine-color-green-7:#37b24d;--mantine-color-green-8:#2f9e44;--mantine-color-green-9:#2b8a3e;--mantine-color-lime-0:#f4fce3;--mantine-color-lime-1:#e9fac8;--mantine-color-lime-2:#d8f5a2;--mantine-color-lime-3:#c0eb75;--mantine-color-lime-4:#a9e34b;--mantine-color-lime-5:#94d82d;--mantine-color-lime-6:#82c91e;--mantine-color-lime-7:#74b816;--mantine-color-lime-8:#66a80f;--mantine-color-lime-9:#5c940d;--mantine-color-yellow-0:#fff9db;--mantine-color-yellow-1:#fff3bf;--mantine-color-yellow-2:#ffec99;--mantine-color-yellow-3:#ffe066;--mantine-color-yellow-4:#ffd43b;--mantine-color-yellow-5:#fcc419;--mantine-color-yellow-6:#fab005;--mantine-color-yellow-7:#f59f00;--mantine-color-yellow-8:#f08c00;--mantine-color-yellow-9:#e67700;--mantine-color-orange-0:#fff4e6;--mantine-color-orange-1:#ffe8cc;--mantine-color-orange-2:#ffd8a8;--mantine-color-orange-3:#ffc078;--mantine-color-orange-4:#ffa94d;--mantine-color-orange-5:#ff922b;--mantine-color-orange-6:#fd7e14;--mantine-color-orange-7:#f76707;--mantine-color-orange-8:#e8590c;--mantine-color-orange-9:#d9480f;--mantine-h1-font-size:calc(2.125rem * var(--mantine-scale));--mantine-h1-line-height:1.3;--mantine-h1-font-weight:700;--mantine-h2-font-size:calc(1.625rem * var(--mantine-scale));--mantine-h2-line-height:1.35;--mantine-h2-font-weight:700;--mantine-h3-font-size:calc(1.375rem * var(--mantine-scale));--mantine-h3-line-height:1.4;--mantine-h3-font-weight:700;--mantine-h4-font-size:calc(1.125rem * var(--mantine-scale));--mantine-h4-line-height:1.45;--mantine-h4-font-weight:700;--mantine-h5-font-size:calc(1rem * var(--mantine-scale));--mantine-h5-line-height:1.5;--mantine-h5-font-weight:700;--mantine-h6-font-size:calc(.875rem * var(--mantine-scale));--mantine-h6-line-height:1.5;--mantine-h6-font-weight:700}
+:root[data-mantine-color-scheme=dark],:host([data-mantine-color-scheme=dark]){--mantine-color-scheme:dark;--mantine-primary-color-contrast:var(--mantine-color-white);--mantine-color-bright:var(--mantine-color-white);--mantine-color-text:var(--mantine-color-dark-0);--mantine-color-body:var(--mantine-color-dark-7);--mantine-color-error:var(--mantine-color-red-8);--mantine-color-success:var(--mantine-color-teal-8);--mantine-color-placeholder:var(--mantine-color-dark-3);--mantine-color-anchor:var(--mantine-color-blue-4);--mantine-color-default:var(--mantine-color-dark-6);--mantine-color-default-hover:var(--mantine-color-dark-5);--mantine-color-default-color:var(--mantine-color-white);--mantine-color-default-border:var(--mantine-color-dark-4);--mantine-color-dimmed:var(--mantine-color-dark-2);--mantine-color-disabled:var(--mantine-color-dark-6);--mantine-color-disabled-color:var(--mantine-color-dark-3);--mantine-color-disabled-border:var(--mantine-color-dark-4);--mantine-color-dark-text:var(--mantine-color-dark-4);--mantine-color-dark-filled:var(--mantine-color-dark-8);--mantine-color-dark-filled-hover:var(--mantine-color-dark-9);--mantine-color-dark-light:#0a0a0a;--mantine-color-dark-light-hover:#0e0e0e;--mantine-color-dark-light-color:var(--mantine-color-dark-0);--mantine-color-dark-outline:var(--mantine-color-dark-4);--mantine-color-dark-outline-hover:#4242420d;--mantine-color-gray-text:var(--mantine-color-gray-4);--mantine-color-gray-filled:var(--mantine-color-gray-8);--mantine-color-gray-filled-hover:var(--mantine-color-gray-9);--mantine-color-gray-light:#111315;--mantine-color-gray-light-hover:#171a1d;--mantine-color-gray-light-color:var(--mantine-color-gray-0);--mantine-color-gray-outline:var(--mantine-color-gray-4);--mantine-color-gray-outline-hover:#ced4da0d;--mantine-color-red-text:var(--mantine-color-red-4);--mantine-color-red-filled:var(--mantine-color-red-8);--mantine-color-red-filled-hover:var(--mantine-color-red-9);--mantine-color-red-light:#651515;--mantine-color-red-light-hover:#8d1d1d;--mantine-color-red-light-color:var(--mantine-color-red-0);--mantine-color-red-outline:var(--mantine-color-red-4);--mantine-color-red-outline-hover:#ff87870d;--mantine-color-pink-text:var(--mantine-color-pink-4);--mantine-color-pink-filled:var(--mantine-color-pink-8);--mantine-color-pink-filled-hover:var(--mantine-color-pink-9);--mantine-color-pink-light:#530f27;--mantine-color-pink-light-hover:#741536;--mantine-color-pink-light-color:var(--mantine-color-pink-0);--mantine-color-pink-outline:var(--mantine-color-pink-4);--mantine-color-pink-outline-hover:#f783ac0d;--mantine-color-grape-text:var(--mantine-color-grape-4);--mantine-color-grape-filled:var(--mantine-color-grape-8);--mantine-color-grape-filled-hover:var(--mantine-color-grape-9);--mantine-color-grape-light:#43174e;--mantine-color-grape-light-hover:#5e206d;--mantine-color-grape-light-color:var(--mantine-color-grape-0);--mantine-color-grape-outline:var(--mantine-color-grape-4);--mantine-color-grape-outline-hover:#da77f20d;--mantine-color-violet-text:var(--mantine-color-violet-4);--mantine-color-violet-filled:var(--mantine-color-violet-8);--mantine-color-violet-filled-hover:var(--mantine-color-violet-9);--mantine-color-violet-light:#301f62;--mantine-color-violet-light-hover:#432b89;--mantine-color-violet-light-color:var(--mantine-color-violet-0);--mantine-color-violet-outline:var(--mantine-color-violet-4);--mantine-color-violet-outline-hover:#9775fa0d;--mantine-color-indigo-text:var(--mantine-color-indigo-4);--mantine-color-indigo-filled:var(--mantine-color-indigo-8);--mantine-color-indigo-filled-hover:var(--mantine-color-indigo-9);--mantine-color-indigo-light:#1b2864;--mantine-color-indigo-light-hover:#26378b;--mantine-color-indigo-light-color:var(--mantine-color-indigo-0);--mantine-color-indigo-outline:var(--mantine-color-indigo-4);--mantine-color-indigo-outline-hover:#748ffc0d;--mantine-color-blue-text:var(--mantine-color-blue-4);--mantine-color-blue-filled:var(--mantine-color-blue-8);--mantine-color-blue-filled-hover:var(--mantine-color-blue-9);--mantine-color-blue-light:#0c3256;--mantine-color-blue-light-hover:#114678;--mantine-color-blue-light-color:var(--mantine-color-blue-0);--mantine-color-blue-outline:var(--mantine-color-blue-4);--mantine-color-blue-outline-hover:#4dabf70d;--mantine-color-cyan-text:var(--mantine-color-cyan-4);--mantine-color-cyan-filled:var(--mantine-color-cyan-8);--mantine-color-cyan-filled-hover:var(--mantine-color-cyan-9);--mantine-color-cyan-light:#063943;--mantine-color-cyan-light-hover:#08505d;--mantine-color-cyan-light-color:var(--mantine-color-cyan-0);--mantine-color-cyan-outline:var(--mantine-color-cyan-4);--mantine-color-cyan-outline-hover:#3bc9db0d;--mantine-color-teal-text:var(--mantine-color-teal-4);--mantine-color-teal-filled:var(--mantine-color-teal-8);--mantine-color-teal-filled-hover:var(--mantine-color-teal-9);--mantine-color-teal-light:#04402e;--mantine-color-teal-light-hover:#065940;--mantine-color-teal-light-color:var(--mantine-color-teal-0);--mantine-color-teal-outline:var(--mantine-color-teal-4);--mantine-color-teal-outline-hover:#38d9a90d;--mantine-color-green-text:var(--mantine-color-green-4);--mantine-color-green-filled:var(--mantine-color-green-8);--mantine-color-green-filled-hover:var(--mantine-color-green-9);--mantine-color-green-light:#16451f;--mantine-color-green-light-hover:#1e612b;--mantine-color-green-light-color:var(--mantine-color-green-0);--mantine-color-green-outline:var(--mantine-color-green-4);--mantine-color-green-outline-hover:#69db7c0d;--mantine-color-lime-text:var(--mantine-color-lime-4);--mantine-color-lime-filled:var(--mantine-color-lime-8);--mantine-color-lime-filled-hover:var(--mantine-color-lime-9);--mantine-color-lime-light:#2e4a07;--mantine-color-lime-light-hover:#406809;--mantine-color-lime-light-color:var(--mantine-color-lime-0);--mantine-color-lime-outline:var(--mantine-color-lime-4);--mantine-color-lime-outline-hover:#a9e34b0d;--mantine-color-yellow-text:var(--mantine-color-yellow-4);--mantine-color-yellow-filled:var(--mantine-color-yellow-8);--mantine-color-yellow-filled-hover:var(--mantine-color-yellow-9);--mantine-color-yellow-light:#733c00;--mantine-color-yellow-light-hover:#a15300;--mantine-color-yellow-light-color:var(--mantine-color-yellow-0);--mantine-color-yellow-outline:var(--mantine-color-yellow-4);--mantine-color-yellow-outline-hover:#ffd43b0d;--mantine-color-orange-text:var(--mantine-color-orange-4);--mantine-color-orange-filled:var(--mantine-color-orange-8);--mantine-color-orange-filled-hover:var(--mantine-color-orange-9);--mantine-color-orange-light:#6d2408;--mantine-color-orange-light-hover:#98320b;--mantine-color-orange-light-color:var(--mantine-color-orange-0);--mantine-color-orange-outline:var(--mantine-color-orange-4);--mantine-color-orange-outline-hover:#ffa94d0d}
+:root[data-mantine-color-scheme=light],:host([data-mantine-color-scheme=light]){--mantine-color-scheme:light;--mantine-primary-color-contrast:var(--mantine-color-white);--mantine-color-bright:var(--mantine-color-black);--mantine-color-text:#000;--mantine-color-body:#fff;--mantine-color-error:var(--mantine-color-red-6);--mantine-color-success:var(--mantine-color-teal-8);--mantine-color-placeholder:var(--mantine-color-gray-5);--mantine-color-anchor:var(--mantine-color-blue-6);--mantine-color-default:var(--mantine-color-white);--mantine-color-default-hover:var(--mantine-color-gray-0);--mantine-color-default-color:var(--mantine-color-black);--mantine-color-default-border:var(--mantine-color-gray-4);--mantine-color-dimmed:var(--mantine-color-gray-6);--mantine-color-disabled:var(--mantine-color-gray-2);--mantine-color-disabled-color:var(--mantine-color-gray-5);--mantine-color-disabled-border:var(--mantine-color-gray-3);--mantine-color-dark-text:var(--mantine-color-dark-filled);--mantine-color-dark-filled:var(--mantine-color-dark-6);--mantine-color-dark-filled-hover:var(--mantine-color-dark-7);--mantine-color-dark-light:var(--mantine-color-dark-1);--mantine-color-dark-light-hover:var(--mantine-color-dark-2);--mantine-color-dark-light-color:var(--mantine-color-dark-9);--mantine-color-dark-outline:var(--mantine-color-dark-6);--mantine-color-dark-outline-hover:#2e2e2e0d;--mantine-color-gray-text:var(--mantine-color-gray-filled);--mantine-color-gray-filled:var(--mantine-color-gray-6);--mantine-color-gray-filled-hover:var(--mantine-color-gray-7);--mantine-color-gray-light:var(--mantine-color-gray-1);--mantine-color-gray-light-hover:var(--mantine-color-gray-2);--mantine-color-gray-light-color:var(--mantine-color-gray-9);--mantine-color-gray-outline:var(--mantine-color-gray-6);--mantine-color-gray-outline-hover:#868e960d;--mantine-color-red-text:var(--mantine-color-red-filled);--mantine-color-red-filled:var(--mantine-color-red-6);--mantine-color-red-filled-hover:var(--mantine-color-red-7);--mantine-color-red-light:var(--mantine-color-red-1);--mantine-color-red-light-hover:var(--mantine-color-red-2);--mantine-color-red-light-color:var(--mantine-color-red-9);--mantine-color-red-outline:var(--mantine-color-red-6);--mantine-color-red-outline-hover:#fa52520d;--mantine-color-pink-text:var(--mantine-color-pink-filled);--mantine-color-pink-filled:var(--mantine-color-pink-6);--mantine-color-pink-filled-hover:var(--mantine-color-pink-7);--mantine-color-pink-light:var(--mantine-color-pink-1);--mantine-color-pink-light-hover:var(--mantine-color-pink-2);--mantine-color-pink-light-color:var(--mantine-color-pink-9);--mantine-color-pink-outline:var(--mantine-color-pink-6);--mantine-color-pink-outline-hover:#e649800d;--mantine-color-grape-text:var(--mantine-color-grape-filled);--mantine-color-grape-filled:var(--mantine-color-grape-6);--mantine-color-grape-filled-hover:var(--mantine-color-grape-7);--mantine-color-grape-light:var(--mantine-color-grape-1);--mantine-color-grape-light-hover:var(--mantine-color-grape-2);--mantine-color-grape-light-color:var(--mantine-color-grape-9);--mantine-color-grape-outline:var(--mantine-color-grape-6);--mantine-color-grape-outline-hover:#be4bdb0d;--mantine-color-violet-text:var(--mantine-color-violet-filled);--mantine-color-violet-filled:var(--mantine-color-violet-6);--mantine-color-violet-filled-hover:var(--mantine-color-violet-7);--mantine-color-violet-light:var(--mantine-color-violet-1);--mantine-color-violet-light-hover:var(--mantine-color-violet-2);--mantine-color-violet-light-color:var(--mantine-color-violet-9);--mantine-color-violet-outline:var(--mantine-color-violet-6);--mantine-color-violet-outline-hover:#7950f20d;--mantine-color-indigo-text:var(--mantine-color-indigo-filled);--mantine-color-indigo-filled:var(--mantine-color-indigo-6);--mantine-color-indigo-filled-hover:var(--mantine-color-indigo-7);--mantine-color-indigo-light:var(--mantine-color-indigo-1);--mantine-color-indigo-light-hover:var(--mantine-color-indigo-2);--mantine-color-indigo-light-color:var(--mantine-color-indigo-9);--mantine-color-indigo-outline:var(--mantine-color-indigo-6);--mantine-color-indigo-outline-hover:#4c6ef50d;--mantine-color-blue-text:var(--mantine-color-blue-filled);--mantine-color-blue-filled:var(--mantine-color-blue-6);--mantine-color-blue-filled-hover:var(--mantine-color-blue-7);--mantine-color-blue-light:var(--mantine-color-blue-1);--mantine-color-blue-light-hover:var(--mantine-color-blue-2);--mantine-color-blue-light-color:var(--mantine-color-blue-9);--mantine-color-blue-outline:var(--mantine-color-blue-6);--mantine-color-blue-outline-hover:#228be60d;--mantine-color-cyan-text:var(--mantine-color-cyan-filled);--mantine-color-cyan-filled:var(--mantine-color-cyan-6);--mantine-color-cyan-filled-hover:var(--mantine-color-cyan-7);--mantine-color-cyan-light:var(--mantine-color-cyan-1);--mantine-color-cyan-light-hover:var(--mantine-color-cyan-2);--mantine-color-cyan-light-color:var(--mantine-color-cyan-9);--mantine-color-cyan-outline:var(--mantine-color-cyan-6);--mantine-color-cyan-outline-hover:#15aabf0d;--mantine-color-teal-text:var(--mantine-color-teal-filled);--mantine-color-teal-filled:var(--mantine-color-teal-6);--mantine-color-teal-filled-hover:var(--mantine-color-teal-7);--mantine-color-teal-light:var(--mantine-color-teal-1);--mantine-color-teal-light-hover:var(--mantine-color-teal-2);--mantine-color-teal-light-color:var(--mantine-color-teal-9);--mantine-color-teal-outline:var(--mantine-color-teal-6);--mantine-color-teal-outline-hover:#12b8860d;--mantine-color-green-text:var(--mantine-color-green-filled);--mantine-color-green-filled:var(--mantine-color-green-6);--mantine-color-green-filled-hover:var(--mantine-color-green-7);--mantine-color-green-light:var(--mantine-color-green-1);--mantine-color-green-light-hover:var(--mantine-color-green-2);--mantine-color-green-light-color:var(--mantine-color-green-9);--mantine-color-green-outline:var(--mantine-color-green-6);--mantine-color-green-outline-hover:#40c0570d;--mantine-color-lime-text:var(--mantine-color-lime-filled);--mantine-color-lime-filled:var(--mantine-color-lime-6);--mantine-color-lime-filled-hover:var(--mantine-color-lime-7);--mantine-color-lime-light:var(--mantine-color-lime-1);--mantine-color-lime-light-hover:var(--mantine-color-lime-2);--mantine-color-lime-light-color:var(--mantine-color-lime-9);--mantine-color-lime-outline:var(--mantine-color-lime-6);--mantine-color-lime-outline-hover:#82c91e0d;--mantine-color-yellow-text:var(--mantine-color-yellow-filled);--mantine-color-yellow-filled:var(--mantine-color-yellow-6);--mantine-color-yellow-filled-hover:var(--mantine-color-yellow-7);--mantine-color-yellow-light:var(--mantine-color-yellow-1);--mantine-color-yellow-light-hover:var(--mantine-color-yellow-2);--mantine-color-yellow-light-color:var(--mantine-color-yellow-9);--mantine-color-yellow-outline:var(--mantine-color-yellow-6);--mantine-color-yellow-outline-hover:#fab0050d;--mantine-color-orange-text:var(--mantine-color-orange-filled);--mantine-color-orange-filled:var(--mantine-color-orange-6);--mantine-color-orange-filled-hover:var(--mantine-color-orange-7);--mantine-color-orange-light:var(--mantine-color-orange-1);--mantine-color-orange-light-hover:var(--mantine-color-orange-2);--mantine-color-orange-light-color:var(--mantine-color-orange-9);--mantine-color-orange-outline:var(--mantine-color-orange-6);--mantine-color-orange-outline-hover:#fd7e140d}
+:root,:host{color-scheme:var(--mantine-color-scheme)}
+*,:before,:after{box-sizing:border-box}
+body,:host{font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);background-color:var(--mantine-color-body);color:var(--mantine-color-text);-webkit-font-smoothing:var(--mantine-webkit-font-smoothing);-moz-osx-font-smoothing:var(--mantine-moz-font-smoothing);margin:0}
+@media screen and (max-device-width:31.25em){body,:host{-webkit-text-size-adjust:100%}}
+.m_4081bf90:where([data-grow])>*{max-width:var(--group-child-width);flex-grow:1}
+.m_93039a1d>*{margin:auto}
+.m_926b4011:checked+*>.m_93039a1d{--switch-thumb-start:calc(100% - var(--switch-thumb-size) - var(--switch-track-label-padding))}
+.m_926b4011:disabled+*>.m_93039a1d,.m_926b4011[data-disabled]+*>.m_93039a1d{--switch-thumb-bg:var(--switch-thumb-bg-disabled)}
+.m_926b4011:checked+*>.m_8277e082{margin-inline-start:0;margin-inline-end:calc(var(--switch-thumb-size) + var(--switch-track-label-padding))}}
+:root{--bg:#f7f6f3;--panel:#fff;--border:#e3e1da;--border-strong:#cdcabf;--text:#1e1d1b;--text-muted:#726f68;--text-faint:#6e6a62;--accent:#2c3e50;--accent-hover:#1c2833;--danger:#b3261e;--radius:10px;--header-h:64px;--c-writersRoom:#fff2cc;--c-writersRoom-text:#7a6215;--c-prePrep:#dae3f3;--c-prePrep-text:#203864;--c-prodPrep:#d6dce5;--c-prodPrep-text:#222a35;--c-production:#e2f0d9;--c-production-text:#375623;--c-post:#fbe5d6;--c-post-text:#8a4a1f;--c-localization:#ededed;--c-localization-text:#525252;--c-hiatus:red;--c-hiatus-text:#fff;--c-simpost:#ff0;--c-simpost-text:#5b5b00;--c-milestone:#7030a0;--c-milestone-text:#fff;--edit-accent:#7030a0;--edit-accent-bg:#f6effb}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.5}
+.app-toolbar>*{flex:none}
+@media screen and not (max-width:960px){body{flex-direction:column;height:100vh;display:flex;overflow:hidden}
+body>*{flex:none}
+body>.layout{flex:1 1 0;align-items:stretch;min-height:0}}
+body:has(#view-month-btn.active) .side-col{display:none!important}
+body:has(#view-month-btn.active) #tb-side-boxes-btn{display:none}
+.sb-width:hover:before,body.sb-resizing .sb-width:before{background:var(--edit-accent)}
+@media screen and not (max-width:960px){body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"hint hint hint""gap gap gap""bar bar bar""left main right";align-content:start;align-items:start;display:grid}}
+body.sb-moving,body.sb-moving *{-webkit-user-select:none;user-select:none;cursor:grabbing!important}
+body.sb-resizing,body.sb-resizing *{-webkit-user-select:none;user-select:none;cursor:col-resize!important}
+.hde-fmt>*{flex:none}
+.wf-print .sheet-table td,.wf-print .sheet-table th{height:auto;padding:0 1.5px;line-height:1.3}
+.wf-print .sheet-table th{background:#d9d9d9;border-color:#bfbfbf}
+.sheet-grid-wrap{width:max-content;position:relative}
+.grid-resize-layer{pointer-events:none;position:absolute;inset:0}
+.grid-resize{pointer-events:auto;position:absolute}
+.grid-resize.is-col{cursor:col-resize;z-index:5;width:7px;margin-left:-4px}
+.grid-resize.is-row{cursor:row-resize;z-index:4;height:7px;margin-top:-4px}
+.grid-resize.is-span{cursor:ew-resize;z-index:6;width:7px}
+.grid-resize.is-span:after{content:"";opacity:0;background:#7030a08c;border-radius:2px;width:3px;height:11px;margin-top:-6px;transition:opacity .1s;position:absolute;top:50%;left:2px}
+.grid-resize.is-span:hover:after,.grid-resize.is-span.dragging:after{opacity:1}
+.grid-resize:hover{background:#7030a038}
+body.grid-resizing.span{cursor:ew-resize}
+body.grid-resizing{cursor:col-resize;-webkit-user-select:none;user-select:none}
+body.grid-resizing.row{cursor:row-resize}
+.grid-sel-layer{pointer-events:none;z-index:1;position:absolute;inset:0;overflow:hidden}
+body.grid-resizing .grid-sel-layer{display:none}
+body.grid-selecting{-webkit-user-select:none;user-select:none;cursor:cell}
+body.grid-cell-hover{cursor:cell}
+.grid-swap-layer{pointer-events:none;z-index:8;position:absolute;inset:0;overflow:hidden}
+body.grid-resizing .grid-swap-layer{display:none}
+body.grid-swapping{-webkit-user-select:none;user-select:none;cursor:grabbing}
+body.grid-swapping .grid-sel-chip{display:none}
+body.grid-selecting .grid-stint-btn,body.grid-swapping .grid-stint-btn{display:none}
+.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px);border:1px solid var(--border-strong);background:#fff;border-radius:8px;overflow:auto}
+.cal-header-bar{background:#fff;border-bottom:1px solid #d9d7ce;align-items:stretch;gap:10px;min-height:52px;padding:10px 14px;display:flex;position:relative}
+.cal-header-date{color:var(--text-muted);white-space:nowrap;min-width:55px;padding-top:2px;font-family:Carlito,Calibri,sans-serif;font-size:11px}
+.cal-header-center{text-align:center;flex:1;font-family:Carlito,Calibri,sans-serif;line-height:1.4}
+.cal-header-center .cal-subtitle{color:var(--text);font-size:11px}
+.cal-header-right{text-align:right;min-width:120px}
+.cal-header-right-content{color:var(--text);text-align:right;font-family:Carlito,Calibri,sans-serif;font-size:11px;line-height:1.5}
+.hdr-line{border-radius:4px;outline:none;min-height:14px;padding:0 3px}
+.hdr-line.hdr-title{color:var(--text);font-size:13px;font-weight:700}
+.hdr-tools{align-items:center;display:flex}
+.hdr-fmt-spacer{flex:1}
+#notes-reset-btn,#hdr-mode-btn,#mv-hdr-mode-btn{border:1px solid var(--mantine-color-gray-4);background:var(--mantine-color-white);height:30px;color:var(--mantine-color-black);border-radius:var(--mantine-radius-default);cursor:pointer;flex:none;padding:0 14px;font-family:inherit;font-size:11px;font-weight:500;line-height:1;transition:background-color .1s,border-color .1s,color .1s}
+#notes-reset-btn:hover,#hdr-mode-btn:hover,#mv-hdr-mode-btn:hover{background:var(--mantine-color-gray-0);border-color:var(--mantine-color-gray-4);color:var(--mantine-color-black)}
+#notes-reset-btn:focus-visible,#hdr-mode-btn:focus-visible,#mv-hdr-mode-btn:focus-visible{outline:2px solid var(--mantine-primary-color-filled);outline-offset:1px}
+#hdr-mode-btn,#notes-reset-btn,#mv-hdr-mode-btn,body.wf-hdr-off .cal-header-bar,body.wf-hdr-off .hdr-tools{display:none}
+table.sheet-table{table-layout:fixed;border-collapse:collapse;white-space:nowrap;color:#000;--grid-line:#d4d4d4;--grid-style:solid;background:#fff;font-family:Carlito,Calibri,Segoe UI,-apple-system,sans-serif;font-size:11px}
+td.sheet-note-cell{cursor:text;vertical-align:top;min-width:70px;position:relative}
+.cell-body{text-overflow:ellipsis;overflow:hidden}
+td.sheet-note-cell:hover:not(.has-note):not(.editing){background:#faf5ff}
+td.sheet-note-cell .note-add-hint{color:#ccc;-webkit-user-select:none;user-select:none;padding:2px 4px;font-family:Inter,sans-serif;font-size:11px}
+td.sheet-note-cell:hover .note-add-hint{color:#b39ddb}
+#table-wrap th.hdrrow-cell{cursor:text}
+#table-wrap th.hdrrow-cell:hover{box-shadow:inset 0 2px 0 var(--text), 0 1px 0 #c6c6c6, inset 0 0 0 2px #7030a08c}
+td.sheet-note-cell.editing{outline:2px solid var(--edit-accent);outline-offset:-2px;cursor:text}
+td.sheet-hiatus-cell.editing{outline-offset:-2px;cursor:text;outline:2px solid #333}
+td.sheet-note-cell.has-note:hover:not(.editing){box-shadow:inset 0 0 0 2px #7030a08c}
+td.sheet-hiatus-cell:hover:not(.editing){box-shadow:inset 0 0 0 2px #0006}
+td.sheet-note-cell.has-note{cursor:text;text-align:center;vertical-align:middle}
+table.sheet-table td,table.sheet-table th{border:1px var(--grid-style) var(--grid-line);text-align:center;height:20px;padding:2px 1.5px;line-height:1.35}
+table.sheet-table th{color:#000;z-index:2;box-shadow:inset 0 2px 0 var(--text), 0 1px 0 #c6c6c6;background:#f2f2f2;border-color:#c6c6c6;font-family:Carlito,Calibri,Segoe UI,sans-serif;font-size:11px;font-weight:600;position:sticky;top:0}
+table.sheet-table td.sheet-date{white-space:nowrap;font-weight:600}
+.sheet-table .phase-cell-label{text-overflow:ellipsis;white-space:nowrap;max-width:100%;display:block;overflow:hidden}
+table.sheet-table td,table.sheet-table th{text-overflow:ellipsis;overflow:hidden}
+table.sheet-table td.sheet-blockstart,table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text)}
+table.sheet-table td.sheet-blockend,table.sheet-table th.sheet-blockend{border-right:2px solid var(--text)}
+table.sheet-table tr:first-child th{border-top:2px solid var(--text)}
+table.sheet-table tr:last-child td{border-bottom:2px solid var(--text)}
+table.sheet-table td.sheet-empty{background:#fff}
+table.week-table{border-collapse:collapse;width:100%;font-size:12.5px}
+table.week-table th{text-align:left;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);border-bottom:1px solid var(--border-strong);background:var(--bg);padding:6px 8px;font-size:11px;position:sticky;top:0}
+table.week-table td{border-bottom:1px solid var(--border);vertical-align:middle;padding:5px 8px}
+.block-divider td{color:var(--text-muted);border-bottom:1px solid var(--border-strong);background:0 0;padding:10px 8px 4px;font-size:11.5px;font-weight:600}
+body.cal-zoomed #table-wrap .grid-resize-layer{display:none}
+:is(.card:has(#show-mode option[value=blocks]:checked) .show-mode-episodes,.card:not(:has(#show-mode option[value=blocks]:checked)) .show-mode-blocks),:is(body:has(#view-month-btn.active) .pref-view-sheet,body:not(:has(#view-month-btn.active)) .pref-view-month){display:none}
+body:not(:has(#view-month-btn.active)) #prep-row{display:none}
+:is(body:has(input[name=mv-prod-label][value=week]:checked) .pref-mv-row-week,body:has(input[name=mv-prod-label][value=episode]:checked) .pref-mv-row-episodes,body:has(input[name=mv-prod-label][value=block]:checked) .pref-mv-row-blocks,body:not(:has(#show-mode option[value=blocks]:checked)) .pref-mv-row-blocks){display:none}
+:root, :host{--mantine-webkit-font-smoothing: unset;--mantine-moz-font-smoothing: unset;--mantine-color-black: #1E1D1B;--mantine-line-height: 1.5;--mantine-font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif,'Apple Color Emoji','Segoe UI Emoji';--mantine-font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;--mantine-font-family-headings: inherit;--mantine-heading-font-weight: 600;--mantine-radius-default: 7px;--mantine-primary-color-filled: var(--mantine-color-navy-filled);--mantine-primary-color-filled-hover: var(--mantine-color-navy-filled-hover);--mantine-primary-color-light: var(--mantine-color-navy-light);--mantine-primary-color-light-hover: var(--mantine-color-navy-light-hover);--mantine-primary-color-light-color: var(--mantine-color-navy-light-color);--mantine-breakpoint-xs: 576px;--mantine-breakpoint-sm: 768px;--mantine-breakpoint-md: 1024px;--mantine-breakpoint-lg: 1200px;--mantine-breakpoint-xl: 1440px;--mantine-spacing-xs: 4px;--mantine-spacing-sm: 6px;--mantine-spacing-md: 8px;--mantine-spacing-lg: 12px;--mantine-spacing-xl: 16px;--mantine-spacing-xxs: 2px;--mantine-spacing-xxl: 20px;--mantine-font-size-xs: 11px;--mantine-font-size-sm: 12px;--mantine-font-size-md: 14px;--mantine-font-size-lg: 16px;--mantine-font-size-xl: 20px;--mantine-font-size-xxs: 10px;--mantine-line-height-xs: 1.3;--mantine-line-height-sm: 1.4;--mantine-line-height-md: 1.5;--mantine-line-height-lg: 1.55;--mantine-line-height-xl: 1.6;--mantine-shadow-xs: 0 1px 2px rgba(0,0,0,.08);--mantine-shadow-sm: 0 2px 6px rgba(0,0,0,.08);--mantine-shadow-md: 0 8px 24px rgba(0,0,0,.12);--mantine-shadow-lg: 0 12px 32px rgba(0,0,0,.16);--mantine-shadow-xl: 0 18px 50px rgba(0,0,0,.30);--mantine-radius-xs: 3px;--mantine-radius-sm: 5px;--mantine-radius-md: 7px;--mantine-radius-lg: 10px;--mantine-radius-xl: 14px;--mantine-font-weight-medium: 500;--mantine-font-weight-normal: 400;--mantine-font-weight-semibold: 600;--mantine-primary-color-0: var(--mantine-color-navy-0);--mantine-primary-color-1: var(--mantine-color-navy-1);--mantine-primary-color-2: var(--mantine-color-navy-2);--mantine-primary-color-3: var(--mantine-color-navy-3);--mantine-primary-color-4: var(--mantine-color-navy-4);--mantine-primary-color-5: var(--mantine-color-navy-5);--mantine-primary-color-6: var(--mantine-color-navy-6);--mantine-primary-color-7: var(--mantine-color-navy-7);--mantine-primary-color-8: var(--mantine-color-navy-8);--mantine-primary-color-9: var(--mantine-color-navy-9);--mantine-color-gray-0: #F7F6F3;--mantine-color-gray-1: #EEECE5;--mantine-color-gray-2: #E3E1DA;--mantine-color-gray-3: #D9D7CE;--mantine-color-gray-4: #C4C1B6;--mantine-color-gray-5: #A5A197;--mantine-color-gray-6: #726F68;--mantine-color-gray-7: #5A5750;--mantine-color-gray-8: #3E3C37;--mantine-color-gray-9: #1E1D1B;--mantine-color-navy-0: #EAEEF2;--mantine-color-navy-1: #D3DAE1;--mantine-color-navy-2: #B4BFC9;--mantine-color-navy-3: #8E9EAD;--mantine-color-navy-4: #6C8093;--mantine-color-navy-5: #4A6479;--mantine-color-navy-6: #2C3E50;--mantine-color-navy-7: #1C2833;--mantine-color-navy-8: #141C24;--mantine-color-navy-9: #0C1116;--mantine-color-warn-0: #FEF6E7;--mantine-color-warn-1: #FBEBCB;--mantine-color-warn-2: #F0D9A8;--mantine-color-warn-3: #D2C2A1;--mantine-color-warn-4: #C3B189;--mantine-color-warn-5: #B5A072;--mantine-color-warn-6: #A68F5A;--mantine-color-warn-7: #977D43;--mantine-color-warn-8: #896C2B;--mantine-color-warn-9: #7A5B14;--mantine-color-info-0: #EDF4FD;--mantine-color-info-1: #DBE9FA;--mantine-color-info-2: #C3D9F2;--mantine-color-info-3: #A7BBD1;--mantine-color-info-4: #90A8C3;--mantine-color-info-5: #7896B4;--mantine-color-info-6: #6183A6;--mantine-color-info-7: #4A7097;--mantine-color-info-8: #325D89;--mantine-color-info-9: #1B4A7A;--mantine-color-danger-0: #FDF2F2;--mantine-color-danger-1: #F8DEDD;--mantine-color-danger-2: #E9C6C4;--mantine-color-danger-3: #E4AEAB;--mantine-color-danger-4: #DC9794;--mantine-color-danger-5: #D4817C;--mantine-color-danger-6: #CC6A65;--mantine-color-danger-7: #C3534D;--mantine-color-danger-8: #BB3D36;--mantine-color-danger-9: #B3261E;--mantine-h1-font-weight: 600;--mantine-h2-font-weight: 600;--mantine-h3-font-weight: 600;--mantine-h4-font-weight: 600;--mantine-h5-font-weight: 600;--mantine-h6-font-weight: 600;}
+:root[data-mantine-color-scheme="dark"], :host([data-mantine-color-scheme="dark"]){--mantine-color-anchor: var(--mantine-color-navy-4);--mantine-color-gray-light: rgba(15, 15, 14, 1);--mantine-color-gray-light-hover: rgba(21, 20, 19, 1);--mantine-color-gray-outline-hover: rgba(196, 193, 182, 0.05);--mantine-color-navy-text: var(--mantine-color-navy-4);--mantine-color-navy-filled: var(--mantine-color-navy-8);--mantine-color-navy-filled-hover: var(--mantine-color-navy-9);--mantine-color-navy-light: rgba(6, 9, 11, 1);--mantine-color-navy-light-hover: rgba(8, 12, 15, 1);--mantine-color-navy-light-color: var(--mantine-color-navy-0);--mantine-color-navy-outline: var(--mantine-color-navy-4);--mantine-color-navy-outline-hover: rgba(108, 128, 147, 0.05);--mantine-color-warn-text: var(--mantine-color-warn-4);--mantine-color-warn-filled: var(--mantine-color-warn-8);--mantine-color-warn-filled-hover: var(--mantine-color-warn-9);--mantine-color-warn-light: rgba(61, 46, 10, 1);--mantine-color-warn-light-hover: rgba(85, 64, 14, 1);--mantine-color-warn-light-color: var(--mantine-color-warn-0);--mantine-color-warn-outline: var(--mantine-color-warn-4);--mantine-color-warn-outline-hover: rgba(195, 177, 137, 0.05);--mantine-color-info-text: var(--mantine-color-info-4);--mantine-color-info-filled: var(--mantine-color-info-8);--mantine-color-info-filled-hover: var(--mantine-color-info-9);--mantine-color-info-light: rgba(14, 37, 61, 1);--mantine-color-info-light-hover: rgba(19, 52, 85, 1);--mantine-color-info-light-color: var(--mantine-color-info-0);--mantine-color-info-outline: var(--mantine-color-info-4);--mantine-color-info-outline-hover: rgba(144, 168, 195, 0.05);--mantine-color-danger-text: var(--mantine-color-danger-4);--mantine-color-danger-filled: var(--mantine-color-danger-8);--mantine-color-danger-filled-hover: var(--mantine-color-danger-9);--mantine-color-danger-light: rgba(90, 19, 15, 1);--mantine-color-danger-light-hover: rgba(125, 27, 21, 1);--mantine-color-danger-light-color: var(--mantine-color-danger-0);--mantine-color-danger-outline: var(--mantine-color-danger-4);--mantine-color-danger-outline-hover: rgba(220, 151, 148, 0.05);}
+:root[data-mantine-color-scheme="light"], :host([data-mantine-color-scheme="light"]){--mantine-color-text: #1E1D1B;--mantine-color-anchor: var(--mantine-color-navy-6);--mantine-color-gray-outline-hover: rgba(114, 111, 104, 0.05);--mantine-color-navy-text: var(--mantine-color-navy-filled);--mantine-color-navy-filled: var(--mantine-color-navy-6);--mantine-color-navy-filled-hover: var(--mantine-color-navy-7);--mantine-color-navy-light: var(--mantine-color-navy-1);--mantine-color-navy-light-hover: var(--mantine-color-navy-2);--mantine-color-navy-light-color: var(--mantine-color-navy-9);--mantine-color-navy-outline: var(--mantine-color-navy-6);--mantine-color-navy-outline-hover: rgba(44, 62, 80, 0.05);--mantine-color-warn-text: var(--mantine-color-warn-filled);--mantine-color-warn-filled: var(--mantine-color-warn-6);--mantine-color-warn-filled-hover: var(--mantine-color-warn-7);--mantine-color-warn-light: var(--mantine-color-warn-1);--mantine-color-warn-light-hover: var(--mantine-color-warn-2);--mantine-color-warn-light-color: var(--mantine-color-warn-9);--mantine-color-warn-outline: var(--mantine-color-warn-6);--mantine-color-warn-outline-hover: rgba(166, 143, 90, 0.05);--mantine-color-info-text: var(--mantine-color-info-filled);--mantine-color-info-filled: var(--mantine-color-info-6);--mantine-color-info-filled-hover: var(--mantine-color-info-7);--mantine-color-info-light: var(--mantine-color-info-1);--mantine-color-info-light-hover: var(--mantine-color-info-2);--mantine-color-info-light-color: var(--mantine-color-info-9);--mantine-color-info-outline: var(--mantine-color-info-6);--mantine-color-info-outline-hover: rgba(97, 131, 166, 0.05);--mantine-color-danger-text: var(--mantine-color-danger-filled);--mantine-color-danger-filled: var(--mantine-color-danger-6);--mantine-color-danger-filled-hover: var(--mantine-color-danger-7);--mantine-color-danger-light: var(--mantine-color-danger-1);--mantine-color-danger-light-hover: var(--mantine-color-danger-2);--mantine-color-danger-light-color: var(--mantine-color-danger-9);--mantine-color-danger-outline: var(--mantine-color-danger-6);--mantine-color-danger-outline-hover: rgba(204, 106, 101, 0.05);}
+/* ---------- mockup page ---------- */
+:root{
+  --line:#e3e1da; --hover:#f1efe9; --accent:#7030a0; --accent-bg:#f6effb;
+  --danger:#c92a2a; --danger-bg:#fff0f0; --slate:#2c3e50;
+}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"Segoe UI",sans-serif}
+.mk-top{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);background:#fff}
+.mk-top h1{font-size:15px;font-weight:700;margin:0}
+.mk-tag{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border-radius:5px;padding:2px 7px}
+.mk-top p{margin:0;color:var(--text-muted);font-size:12px}
+.mk-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
+@media (max-width:960px){.mk-layout{grid-template-columns:minmax(0,1fr);padding:16px}}
+#table-wrap{min-width:0;overflow-x:auto}
+.mk-side{background:#fff;border:1px solid var(--border-strong);border-radius:8px;padding:16px 18px;position:sticky;top:16px}
+.mk-side h2{font-size:13px;margin:0 0 6px}
+.mk-side h3{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 6px}
+.mk-side p{margin:0 0 8px;font-size:12.5px;color:var(--text)}
+.mk-try{display:flex;flex-wrap:wrap;gap:6px}
+.mk-try button{font:inherit;font-size:12px;border:1px solid var(--mantine-color-gray-4);background:#fff;border-radius:7px;padding:5px 10px;cursor:pointer}
+.mk-try button:hover{background:var(--mantine-color-gray-0)}
+.mk-explain{font-size:12.5px;background:var(--mantine-color-gray-0);border:1px solid var(--line);border-radius:7px;padding:10px 12px;min-height:64px}
+.mk-explain b{display:block;margin-bottom:3px}
+.mk-explain .mk-calls{display:block;margin-top:6px;font-size:11px;color:var(--text-muted)}
+.mk-explain code,.mk-side code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:4px;padding:0 3px}
+.mk-side ul{margin:0;padding-left:18px;font-size:12.5px}
+.mk-side li{margin:0 0 5px}
+.mk-kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff}
+
+/* the day the menu is for stays marked while the menu is open */
+#table-wrap .mv-daycell.mk-target{background:var(--accent-bg);box-shadow:inset 0 0 0 2px var(--accent)}
+#table-wrap .mv-daycell.mk-target .mv-daynum{background:var(--accent);color:#fff;border-radius:var(--mantine-radius-sm);margin:-1px -5px;padding:1px 5px}
+#table-wrap .mv-pill.mk-target-pill{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- the menu: the app's Mantine Menu, measured from the File menu ---------- */
+.cm{position:fixed;z-index:300;min-width:244px;max-width:300px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;font:12px/18px Inter,sans-serif;color:var(--text);
+    user-select:none;outline:none}
+.cm-head{padding:7px 10px 6px}
+.cm-date{font-weight:700;font-size:12.5px}
+.cm-ctx{color:var(--text-muted);font-size:11px;line-height:15px;margin-top:1px}
+.cm-label{padding:7px 10px 3px;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.cm-swatch{width:9px;height:9px;border-radius:3px;border:1px solid rgba(0,0,0,.18);flex:none}
+.cm-div{border-top:1px solid var(--line);margin:4px 0}
+.cm-item{display:flex;align-items:center;gap:9px;width:100%;box-sizing:border-box;border:0;background:none;font:inherit;color:inherit;
+         text-align:left;padding:6px 10px;border-radius:7px;cursor:default;min-height:30px}
+.cm-item:focus{outline:none}
+.cm-item[aria-disabled="true"]{color:var(--text-faint);opacity:.55}
+.cm-item:not([aria-disabled="true"]).is-active{background:var(--hover)}
+.cm-item.is-danger{color:var(--danger)}
+.cm-item.is-danger.is-active{background:var(--danger-bg)}
+.cm-ico{width:16px;height:16px;flex:none;color:var(--text-muted)}
+.cm-item.is-danger .cm-ico{color:var(--danger)}
+.cm-text{flex:1;min-width:0}
+.cm-text small{display:block;color:var(--text-muted);font-size:10.5px;line-height:14px}
+.cm-right{flex:none;color:var(--text-faint);font-size:11px;display:flex;align-items:center}
+.cm-check{width:14px;height:14px;flex:none;color:var(--accent)}
+.cm-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--mantine-color-gray-4);flex:none;box-sizing:border-box}
+.cm-radio.on{border:4px solid var(--accent)}
+.cm-foot{padding:5px 10px 4px;font-size:10.5px;color:var(--text-faint);border-top:1px solid var(--line);margin-top:4px}
+
+.mk-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);background:var(--slate);color:#fff;
+          border-radius:8px;padding:9px 14px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;
+          transition:opacity .15s,transform .15s;max-width:min(560px,calc(100vw - 32px))}
+.mk-toast.on{opacity:1;transform:translateX(-50%)}
+
+/* ---------- waterfall mockup additions ---------- */
+#table-wrap{position:relative}
+#table-wrap .sheet-scroll{max-height:calc(100vh - 120px)}
+/* the highlight, drawn as the real one is (.text-sel-cell, legacy.css): a purple box over the cell */
+#table-wrap td.mk-sel, #table-wrap th.mk-sel{box-shadow:inset 0 0 0 1px rgba(112,48,160,.75);background-image:linear-gradient(rgba(112,48,160,.10),rgba(112,48,160,.10))}
+#table-wrap td.mk-target, #table-wrap th.mk-target{box-shadow:inset 0 0 0 2px rgba(112,48,160,.9)}
+#table-wrap td, #table-wrap th{cursor:cell}
+/* the clipboard strip: Excel's "Paste Options" row, four buttons side by side */
+.cm-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px}
+.cm-strip .cm-item{flex-direction:column;gap:2px;padding:6px 4px 5px;min-height:0;text-align:center;justify-content:center}
+.cm-strip .cm-text{flex:none;font-size:11px;line-height:14px}
+.cm-strip .cm-right{display:none}
+.mk-q{font-size:12.5px;margin:0 0 8px}
+.mk-q b{display:block}
+.mk-q span{color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header class="mk-top">
+  <span class="mk-tag">Mockup</span>
+  <h1>Waterfall right-click menu</h1>
+  <p>Not the app. Right-click any cell. Click, Shift-click or ⌘-click to highlight several first.</p>
+</header>
+<div class="mk-layout">
+  <main class="preview-panel"><div id="table-wrap"></div></main>
+  <aside class="mk-side">
+    <h2>Try it</h2>
+    <p>Right-click anywhere in the calendar (two-finger click on a trackpad), or open the menu on one of these:</p>
+    <div class="mk-try" id="mk-try"></div>
+    <h3>What the item would do</h3>
+    <div class="mk-explain" id="mk-explain">Point at a menu item to see what it would do and which existing code it calls.</div>
+    <h3>How it behaves</h3>
+    <ul>
+      <li>It is the month view’s day menu, shaped for a grid of weeks: the same look, the same keys, and <b>the same fixed order</b>. The clipboard row and “This week” come first, so they never move. Below them is one section for the cell you clicked: a phase week, a note, a hiatus band, a holiday.</li>
+      <li><b>Right-click inside a highlight acts on all of it</b>, as Excel does. Right-click outside it highlights that one cell first.</li>
+      <li>A choice the app refuses is <b>greyed out with its reason</b>, never hidden.</li>
+      <li>Cut, Copy, Paste and Clear are the same actions as <span class="mk-kbd">⌘X</span> <span class="mk-kbd">⌘C</span> <span class="mk-kbd">⌘V</span> <span class="mk-kbd">Delete</span>, which are being built now in their own session. The menu only calls them.</li>
+      <li><span class="mk-kbd">Shift</span> + right-click still opens the browser’s own menu.</li>
+      <li>In the open menu: <span class="mk-kbd">↑</span> <span class="mk-kbd">↓</span> move, <span class="mk-kbd">←</span> <span class="mk-kbd">→</span> move along the clipboard row or open a submenu, <span class="mk-kbd">Enter</span> chooses, <span class="mk-kbd">Esc</span> closes.</li>
+      <li>Each item is one undo step. Nothing in it changes how a cell looks, so it needs no frozen edit.</li>
+    </ul>
+    <h3>Questions for you</h3>
+    <p class="mk-q"><b>1. Clipboard row at the top?</b><span>Recommended: yes, as Excel’s Paste Options row. The alternative is plain Cut / Copy / Paste lines inside the Note section only.</span></p>
+    <p class="mk-q"><b>2. Can Clear remove an automatic note?</b><span>Recommended: yes. It is kept as “cleared”, and Reset Notes brings it back. The month menu has no Delete note (your ruling Q5), so this would be the first one.</span></p>
+    <p class="mk-q"><b>3. Keep the Size section?</b><span>Reset row height / column width. Today a double-click on the edge does it. Recommended: keep it, since nobody finds the double-click.</span></p>
+    <h3>Left out on purpose</h3>
+    <ul>
+      <li><b>Shift From, Anchor To, Rebuild From.</b> Kept out of the month menu by your ruling M1, so kept out here too.</li>
+      <li><b>Text styling.</b> The Text bar above the calendar already styles any highlight.</li>
+      <li><b>Add 1-day phase here.</b> A waterfall row is a week, so a one-day phase looks the same as a one-week one. The month menu has it.</li>
+      <li><b>Insert or delete a row or column.</b> Rows are weeks and columns are phases; both come from the dates.</li>
+      <li><b>The title block.</b> It has its own editor: double-click a line.</li>
+    </ul>
+  </aside>
+</div>
+<div class="mk-toast" id="mk-toast" role="status"></div>
+<template id="wf">
+
+      <div class="sheet-scroll" id="sheet-scroll-container">
+        <div class="hdr-tools">
+      <span class="hdr-fmt-spacer"></span>
+      <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
+      <button id="hdr-mode-btn" class="" title="Take over the header: snapshot the current values into editable lines" type="button">Header: Auto</button>
+    </div>
+    <div class="cal-header-bar">
+      <div class="cal-header-date">
+        <div class="hdr-line " data-hid="left" spellcheck="false" style="">10.22.26</div>
+        <div class="hdr-line  hdr-empty hdr-slot" data-hid="l2" spellcheck="false" style=""></div>
+        <div class="hdr-line  hdr-empty hdr-slot" data-hid="l3" spellcheck="false" style=""></div>
+      </div>
+      <div class="cal-header-center">
+        <div class="hdr-line hdr-title" data-hid="c1" spellcheck="false" style="">Half Days Test S2</div>
+        <div class="hdr-line cal-subtitle" data-hid="c2" spellcheck="false" style="">Planning Calendar</div>
+        <div class="hdr-line cal-subtitle" data-hid="c3" spellcheck="false" style="">Writer's Room Opens: 1.5.26</div>
+        <div class="hdr-line cal-subtitle hdr-empty hdr-slot" data-hid="c4" spellcheck="false" style=""></div>
+      </div>
+      <div class="cal-header-right"><div class="cal-header-right-content">
+        <div class="hdr-line cal-subtitle" data-hid="r1" spellcheck="false" style="font-weight:600;">10-Week Production Span / 4.5-Day Shooting Schedule</div>
+        <div class="hdr-line cal-subtitle" data-hid="r2" spellcheck="false" style="">Principal Photography 6.29.26 / Wrap: 9.1.26</div>
+        <div class="hdr-line cal-subtitle" data-hid="r3" spellcheck="false" style="">10 Episodes</div>
+      </div></div>
+    </div>
+        <div class="sheet-grid-wrap">
+          <table class="sheet-table" style="width:589px">
+            <colgroup><col data-ckey="y2026:date" style="width:53px"><col data-ckey="y2026:s0" style="width:92px"><col data-ckey="y2026:notes" style="width:173px"><col data-ckey="y2027:date" style="width:53px"><col data-ckey="y2027:s0" style="width:86px"><col data-ckey="y2027:s1" style="width:86px"><col data-ckey="y2027:notes" style="width:46px"></colgroup>
+            <thead><tr><th class="sheet-blockstart">Date</th><th colspan="1">2026</th><th colspan="1" class="">Notes</th><th class="">Date</th><th colspan="2">2027</th><th colspan="1" class="sheet-blockend">Notes</th></tr></thead>
+            <tbody><tr data-row="0" style="height:20px"><td class="sheet-date sheet-blockstart">1/5/26</td><td class="sheet-phase-cell" data-week="2026-01-05" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 1</span></td><td class="sheet-note-cell has-note" title="Click to edit this note" data-week="2026-01-05" data-notefit="1.0000" data-notelines="1" style="background:#7030A0; color:#FFFFFF;  "><div class="cell-body" style="white-space:pre; max-height:15px;">Writer's Room Opens 1/5/26</div></td><td class="sheet-date ">1/4/27</td><td class="sheet-phase-cell" data-week="2027-01-04" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 8</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-01-04" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="1" style="height:20px"><td class="sheet-date sheet-blockstart">1/12/26</td><td class="sheet-phase-cell" data-week="2026-01-12" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-01-12"><span class="note-add-hint">+</span></td><td class="sheet-date ">1/11/27</td><td class="sheet-phase-cell" data-week="2027-01-11" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 9</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-01-11" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="2" style="height:20px"><td class="sheet-date sheet-blockstart">1/19/26</td><td class="sheet-phase-cell" data-week="2026-01-19" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-01-19"><span class="note-add-hint">+</span></td><td class="sheet-date ">1/18/27</td><td class="sheet-phase-cell" data-week="2027-01-18" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 10</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-01-18" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="3" style="height:20px"><td class="sheet-date sheet-blockstart">1/26/26</td><td class="sheet-phase-cell" data-week="2026-01-26" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-01-26"><span class="note-add-hint">+</span></td><td class="sheet-date ">1/25/27</td><td class="sheet-phase-cell" data-week="2027-01-25" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 11</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-01-25" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="4" style="height:20px"><td class="sheet-date sheet-blockstart">2/2/26</td><td class="sheet-phase-cell" data-week="2026-02-02" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-02-02"><span class="note-add-hint">+</span></td><td class="sheet-date ">2/1/27</td><td class="sheet-phase-cell" data-week="2027-02-01" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 12</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-02-01" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="5" style="height:20px"><td class="sheet-date sheet-blockstart">2/9/26</td><td class="sheet-phase-cell" data-week="2026-02-09" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-02-09"><span class="note-add-hint">+</span></td><td class="sheet-date ">2/8/27</td><td class="sheet-phase-cell" data-week="2027-02-08" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 13</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-02-08" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="6" style="height:20px"><td class="sheet-date sheet-blockstart">2/16/26</td><td class="sheet-phase-cell" data-week="2026-02-16" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 7</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-02-16"><span class="note-add-hint">+</span></td><td class="sheet-date ">2/15/27</td><td class="sheet-phase-cell" data-week="2027-02-15" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 14</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-02-15" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="7" style="height:20px"><td class="sheet-date sheet-blockstart">2/23/26</td><td class="sheet-phase-cell" data-week="2026-02-23" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 8</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-02-23"><span class="note-add-hint">+</span></td><td class="sheet-date ">2/22/27</td><td class="sheet-phase-cell" data-week="2027-02-22" data-pkey="post" data-own="0" data-lmin="0" data-rmax="1" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 15</span></td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-02-22" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="8" style="height:20px"><td class="sheet-date sheet-blockstart">3/2/26</td><td class="sheet-phase-cell" data-week="2026-03-02" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 9</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-03-02"><span class="note-add-hint">+</span></td><td class="sheet-date ">3/1/27</td><td class="sheet-phase-cell" data-week="2027-03-01" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="2" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 16</span></td><td class="sheet-phase-cell" data-week="2027-03-01" data-pkey="localization" data-own="1" data-lmin="1" data-rmax="1" data-a="1" data-b="1" data-nphases="2" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 1</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-03-01" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="9" style="height:20px"><td class="sheet-date sheet-blockstart">3/9/26</td><td class="sheet-phase-cell" data-week="2026-03-09" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 10</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-03-09"><span class="note-add-hint">+</span></td><td class="sheet-date ">3/8/27</td><td></td><td class="sheet-phase-cell" data-week="2027-03-08" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-03-08" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="10" style="height:20px"><td class="sheet-date sheet-blockstart">3/16/26</td><td class="sheet-phase-cell" data-week="2026-03-16" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 11</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-03-16"><span class="note-add-hint">+</span></td><td class="sheet-date ">3/15/27</td><td></td><td class="sheet-phase-cell" data-week="2027-03-15" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-03-15" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="11" style="height:20px"><td class="sheet-date sheet-blockstart">3/23/26</td><td class="sheet-phase-cell" data-week="2026-03-23" data-pkey="writersRoom" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FFF2CC; color:#000000;"><span class="phase-cell-label">Writer's Rm wk 12</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-03-23"><span class="note-add-hint">+</span></td><td class="sheet-date ">3/22/27</td><td></td><td class="sheet-phase-cell" data-week="2027-03-22" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-03-22" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="12" style="height:20px"><td class="sheet-date sheet-blockstart">3/30/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-03-30"><span class="note-add-hint">+</span></td><td class="sheet-date ">3/29/27</td><td></td><td class="sheet-phase-cell" data-week="2027-03-29" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-03-29" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="13" style="height:20px"><td class="sheet-date sheet-blockstart">4/6/26</td><td class="sheet-phase-cell" data-week="2026-04-06" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 1</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-04-06"><span class="note-add-hint">+</span></td><td class="sheet-date ">4/5/27</td><td></td><td class="sheet-phase-cell" data-week="2027-04-05" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-04-05" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="14" style="height:20px"><td class="sheet-date sheet-blockstart">4/13/26</td><td class="sheet-phase-cell" data-week="2026-04-13" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-04-13"><span class="note-add-hint">+</span></td><td class="sheet-date ">4/12/27</td><td></td><td class="sheet-phase-cell" data-week="2027-04-12" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 7</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-04-12" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="15" style="height:20px"><td class="sheet-date sheet-blockstart">4/20/26</td><td class="sheet-phase-cell" data-week="2026-04-20" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-04-20"><span class="note-add-hint">+</span></td><td class="sheet-date ">4/19/27</td><td></td><td class="sheet-phase-cell" data-week="2027-04-19" data-pkey="localization" data-own="1" data-lmin="0" data-rmax="1" data-a="1" data-b="1" data-nphases="1" style="background:#EDEDED; color:#000000;"><span class="phase-cell-label">Localization wk 8</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-04-19" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="16" style="height:20px"><td class="sheet-date sheet-blockstart">4/27/26</td><td class="sheet-phase-cell" data-week="2026-04-27" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-04-27"><span class="note-add-hint">+</span></td><td class="sheet-date ">4/26/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-04-26" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="17" style="height:20px"><td class="sheet-date sheet-blockstart">5/4/26</td><td class="sheet-phase-cell" data-week="2026-05-04" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-05-04"><span class="note-add-hint">+</span></td><td class="sheet-date ">5/3/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-05-03" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="18" style="height:20px"><td class="sheet-date sheet-blockstart">5/11/26</td><td class="sheet-phase-cell" data-week="2026-05-11" data-pkey="prePrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#DAE3F3; color:#000000;"><span class="phase-cell-label">Pre Prep Wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-05-11"><span class="note-add-hint">+</span></td><td class="sheet-date ">5/10/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-05-10" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="19" style="height:20px"><td class="sheet-date sheet-blockstart">5/18/26</td><td class="sheet-phase-cell" data-week="2026-05-18" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 1</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-05-18"><span class="note-add-hint">+</span></td><td class="sheet-date ">5/17/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-05-17" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="20" style="height:20px"><td class="sheet-date sheet-blockstart">5/25/26</td><td class="sheet-phase-cell" data-week="2026-05-25" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-05-25"><span class="note-add-hint">+</span></td><td class="sheet-date ">5/24/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-05-24" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="21" style="height:20px"><td class="sheet-date sheet-blockstart">6/1/26</td><td class="sheet-phase-cell" data-week="2026-06-01" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-06-01"><span class="note-add-hint">+</span></td><td class="sheet-date ">5/31/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-05-31" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="22" style="height:20px"><td class="sheet-date sheet-blockstart">6/8/26</td><td class="sheet-phase-cell" data-week="2026-06-08" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-06-08"><span class="note-add-hint">+</span></td><td class="sheet-date ">6/7/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-06-07" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="23" style="height:20px"><td class="sheet-date sheet-blockstart">6/15/26</td><td class="sheet-phase-cell" data-week="2026-06-15" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-06-15"><span class="note-add-hint">+</span></td><td class="sheet-date ">6/14/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-06-14" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="24" style="height:20px"><td class="sheet-date sheet-blockstart">6/22/26</td><td class="sheet-phase-cell" data-week="2026-06-22" data-pkey="prodPrep" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#D6DCE5; color:#000000;"><span class="phase-cell-label">Prod Prep wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-06-22"><span class="note-add-hint">+</span></td><td class="sheet-date ">6/21/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-06-21" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="25" style="height:20px"><td class="sheet-date sheet-blockstart">6/29/26</td><td class="sheet-phase-cell" data-week="2026-06-29" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 1</span></td><td class="sheet-note-cell has-note" title="Click to edit this note" data-week="2026-06-29" data-notefit="1.0000" data-notelines="1" style="background:#7030A0; color:#FFFFFF;  "><div class="cell-body" style="white-space:pre; max-height:15px;">Start Principal Photography 6/29/26</div></td><td class="sheet-date ">6/28/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-06-28" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="26" style="height:20px"><td class="sheet-date sheet-blockstart">7/6/26</td><td class="sheet-phase-cell" data-week="2026-07-06" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-07-06"><span class="note-add-hint">+</span></td><td class="sheet-date ">7/5/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-07-05" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="27" style="height:20px"><td class="sheet-date sheet-blockstart">7/13/26</td><td class="sheet-phase-cell" data-week="2026-07-13" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-07-13"><span class="note-add-hint">+</span></td><td class="sheet-date ">7/12/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-07-12" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="28" style="height:20px"><td class="sheet-date sheet-blockstart">7/20/26</td><td class="sheet-phase-cell" data-week="2026-07-20" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-07-20"><span class="note-add-hint">+</span></td><td class="sheet-date ">7/19/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-07-19" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="29" style="height:20px"><td class="sheet-date sheet-blockstart">7/27/26</td><td class="sheet-phase-cell" data-week="2026-07-27" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-07-27"><span class="note-add-hint">+</span></td><td class="sheet-date ">7/26/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-07-26" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="30" style="height:20px"><td class="sheet-date sheet-blockstart">8/3/26</td><td class="sheet-phase-cell" data-week="2026-08-03" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-08-03"><span class="note-add-hint">+</span></td><td class="sheet-date ">8/2/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-08-02" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="31" style="height:20px"><td class="sheet-date sheet-blockstart">8/10/26</td><td class="sheet-phase-cell" data-week="2026-08-10" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 7</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-08-10"><span class="note-add-hint">+</span></td><td class="sheet-date ">8/9/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-08-09" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="32" style="height:20px"><td class="sheet-date sheet-blockstart">8/17/26</td><td class="sheet-phase-cell" data-week="2026-08-17" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 8</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-08-17"><span class="note-add-hint">+</span></td><td class="sheet-date ">8/16/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-08-16" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="33" style="height:20px"><td class="sheet-date sheet-blockstart">8/24/26</td><td class="sheet-phase-cell" data-week="2026-08-24" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 9</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-08-24"><span class="note-add-hint">+</span></td><td class="sheet-date ">8/23/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-08-23" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="34" style="height:20px"><td class="sheet-date sheet-blockstart">8/31/26</td><td class="sheet-phase-cell" data-week="2026-08-31" data-pkey="production" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#E2F0D9; color:#000000;"><span class="phase-cell-label">Production wk 10</span></td><td class="sheet-note-cell has-note" title="Click to edit this note" data-week="2026-08-31" data-notefit="1.0000" data-notelines="1" style="background:#7030A0; color:#FFFFFF;  "><div class="cell-body" style="white-space:pre; max-height:15px;">Principal Photography Wraps 9/1/26</div></td><td class="sheet-date ">8/30/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-08-30" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="35" style="height:20px"><td class="sheet-date sheet-blockstart">9/7/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-09-07"><span class="note-add-hint">+</span></td><td class="sheet-date ">9/6/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-09-06" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="36" style="height:20px"><td class="sheet-date sheet-blockstart">9/14/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-09-14"><span class="note-add-hint">+</span></td><td class="sheet-date ">9/13/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-09-13" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="37" style="height:20px"><td class="sheet-date sheet-blockstart">9/21/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-09-21"><span class="note-add-hint">+</span></td><td class="sheet-date ">9/20/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-09-20" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="38" style="height:20px"><td class="sheet-date sheet-blockstart">9/28/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-09-28"><span class="note-add-hint">+</span></td><td class="sheet-date ">9/27/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-09-27" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="39" style="height:20px"><td class="sheet-date sheet-blockstart">10/5/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-10-05"><span class="note-add-hint">+</span></td><td class="sheet-date ">10/4/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-10-04" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="40" style="height:20px"><td class="sheet-date sheet-blockstart">10/12/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-10-12"><span class="note-add-hint">+</span></td><td class="sheet-date ">10/11/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-10-11" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="41" style="height:20px"><td class="sheet-date sheet-blockstart">10/19/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-10-19"><span class="note-add-hint">+</span></td><td class="sheet-date ">10/18/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-10-18" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="42" style="height:20px"><td class="sheet-date sheet-blockstart">10/26/26</td><td></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-10-26"><span class="note-add-hint">+</span></td><td class="sheet-date ">10/25/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-10-25" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="43" style="height:20px"><td class="sheet-date sheet-blockstart">11/2/26</td><td class="sheet-phase-cell" data-week="2026-11-02" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 1</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-11-02"><span class="note-add-hint">+</span></td><td class="sheet-date ">11/1/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-11-01" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="44" style="height:20px"><td class="sheet-date sheet-blockstart">11/9/26</td><td class="sheet-phase-cell" data-week="2026-11-09" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 2</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-11-09"><span class="note-add-hint">+</span></td><td class="sheet-date ">11/8/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-11-08" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="45" style="height:20px"><td class="sheet-date sheet-blockstart">11/16/26</td><td class="sheet-phase-cell" data-week="2026-11-16" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 3</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-11-16"><span class="note-add-hint">+</span></td><td class="sheet-date ">11/15/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-11-15" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="46" style="height:20px"><td class="sheet-date sheet-blockstart">11/23/26</td><td class="sheet-phase-cell" data-week="2026-11-23" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 4</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-11-23"><span class="note-add-hint">+</span></td><td class="sheet-date ">11/22/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-11-22" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="47" style="height:20px"><td class="sheet-date sheet-blockstart">11/30/26</td><td class="sheet-phase-cell" data-week="2026-11-30" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 5</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-11-30"><span class="note-add-hint">+</span></td><td class="sheet-date ">11/29/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-11-29" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="48" style="height:20px"><td class="sheet-date sheet-blockstart">12/7/26</td><td class="sheet-phase-cell" data-week="2026-12-07" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 6</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-12-07"><span class="note-add-hint">+</span></td><td class="sheet-date ">12/6/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-12-06" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="49" style="height:20px"><td class="sheet-date sheet-blockstart">12/14/26</td><td class="sheet-phase-cell" data-week="2026-12-14" data-pkey="post" data-own="0" data-lmin="0" data-rmax="0" data-a="0" data-b="0" data-nphases="1" style="background:#FBE5D6; color:#000000;"><span class="phase-cell-label">Post wk 7</span></td><td class="sheet-note-cell" title="Click to add a note" data-week="2026-12-14"><span class="note-add-hint">+</span></td><td class="sheet-date ">12/13/27</td><td colspan="2"></td><td class="sheet-note-cell" title="Click to add a note" data-week="2027-12-13" style="border-right:2px solid var(--text);"><span class="note-add-hint">+</span></td></tr><tr data-row="50" style="height:20px"><td class="sheet-date sheet-blockstart">12/21/26</td><td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="2026-12-21" data-default-label="Hiatus" data-notelines="1" colspan="2" style="background:#FF0000; color:#FFFFFF; cursor:text;  "><div class="cell-body" style="white-space:pre; max-height:15px;">Hiatus</div></td><td class="sheet-date ">12/20/27</td><td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="2027-12-20" data-default-label="Hiatus" data-notelines="1" colspan="3" style="background:#FF0000; color:#FFFFFF; cursor:text;  border-right:2px solid var(--text);"><div class="cell-body" style="white-space:pre; max-height:15px;">Hiatus</div></td></tr><tr data-row="51" style="height:20px"><td class="sheet-date sheet-blockstart">12/28/26</td><td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="2026-12-28" data-default-label="Hiatus" data-notelines="1" colspan="2" style="background:#FF0000; color:#FFFFFF; cursor:text;  "><div class="cell-body" style="white-space:pre; max-height:15px;">Hiatus</div></td><td class="sheet-date ">12/27/27</td><td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="2027-12-27" data-default-label="Hiatus" data-notelines="1" colspan="3" style="background:#FF0000; color:#FFFFFF; cursor:text;  border-right:2px solid var(--text);"><div class="cell-body" style="white-space:pre; max-height:15px;">Hiatus</div></td></tr></tbody>
+          </table>
+          <div class="grid-resize-layer" aria-hidden="true"></div>
+        <div class="grid-sel-layer"></div><div class="grid-swap-layer"></div></div>
+      </div>
+    </template>
+<script>
+(function(){
+  'use strict';
+  // ---------- the captured calendar (synthetic: tests/fixtures/halfdays.sptcal) ----------
+  const wrap = document.getElementById('table-wrap');
+  wrap.innerHTML = document.getElementById('wf').innerHTML;
+
+  const PHASE_NAMES = {writersRoom:"Writer's Rm", prePrep:'Pre Prep', prodPrep:'Prod Prep', production:'Production',
+                       post:'Post', localization:'Localization'};
+  // The US list for weeks on screen. The waterfall shows holidays only when "Show in waterfall" is
+  // ticked, which this calendar has not, so they are in the menu but not in the cells.
+  const HOLIDAYS = {
+    '2026-06-29':'Independence Day (Observed) · Fri 3 Jul', '2026-09-07':'Labor Day · Mon 7 Sep',
+    '2026-11-23':'Thanksgiving · Thu 26 Nov', '2026-12-21':'Christmas Day · Fri 25 Dec',
+    '2026-12-28':"New Year's Day · Fri 1 Jan", '2027-01-18':'Martin Luther King Jr. Day · Mon 18 Jan',
+  };
+
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const utc = (y,m,d)=> new Date(Date.UTC(y,m,d));
+  const iso = d => d.toISOString().slice(0,10);
+  const addDays = (d,n)=> new Date(d.getTime() + n*864e5);
+  const parseIso = s => { const [y,m,d] = s.split('-').map(Number); return utc(y, m-1, d); };
+  const fmtLong = d => DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  const fmtDM = d => DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
+  const phaseName = k => PHASE_NAMES[k] || k;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  // ---------- reading a cell the way the real menu would ----------
+  // Phase, note and hiatus cells carry data-week. A date or empty cell does not, so its week comes from
+  // the date cell that starts its year block in the same row (the blocks sit side by side).
+  function blockDateCell(td){
+    for(let c = td; c; c = c.previousElementSibling) if(c.classList.contains('sheet-date')) return c;
+    return null;
+  }
+  function dateCellIso(dc){
+    const m = /(\d+)\/(\d+)\/(\d+)/.exec(dc.textContent); if(!m) return null;
+    return iso(utc(2000 + +m[3], +m[1]-1, +m[2]));
+  }
+  function blockCells(dc){
+    const out = [];
+    for(let c = dc.nextElementSibling; c && !c.classList.contains('sheet-date'); c = c.nextElementSibling) out.push(c);
+    return out;
+  }
+  function cellInfo(td){
+    if(td.tagName === 'TH') return {td, kind:'heading', text: td.textContent.trim()};
+    const dc = blockDateCell(td); if(!dc) return null;
+    const week = td.dataset.week || dateCellIso(dc);
+    const row = blockCells(dc);
+    const phases = row.filter(c=>c.classList.contains('sheet-phase-cell')).map(c=>({
+      key:c.dataset.pkey, label:c.textContent.trim(), color:c.style.background, td:c}));
+    const noteTd = row.find(c=>c.classList.contains('sheet-note-cell')) || null;
+    const hiatusTd = row.find(c=>c.classList.contains('sheet-hiatus-cell')) || null;
+    const info = {td, week, mon: parseIso(week), phases, noteTd, hiatusTd, holiday: HOLIDAYS[week] || null,
+                  noteText: noteTd && noteTd.classList.contains('has-note') ? noteTd.textContent.trim() : ''};
+    if(td.classList.contains('sheet-date')) info.kind = 'date';
+    else if(td.classList.contains('sheet-phase-cell')) { info.kind = 'phase'; info.phase = phases.find(p=>p.td === td); }
+    else if(td.classList.contains('sheet-note-cell')) info.kind = 'note';
+    else if(td.classList.contains('sheet-hiatus-cell')) info.kind = 'hiatus';
+    else info.kind = 'blank';
+    return info;
+  }
+  // Every week a phase covers in this block's column, read back off the grid (the app asks the schedule).
+  function phaseWeeks(key){
+    return [...wrap.querySelectorAll('td.sheet-phase-cell[data-pkey="' + key + '"]')].map(c=>c.dataset.week).sort();
+  }
+  const cellText = td => (td.tagName === 'TH' || td.classList.contains('sheet-date') || td.classList.contains('sheet-phase-cell')
+                          || td.classList.contains('sheet-hiatus-cell') || td.classList.contains('has-note')) ? td.textContent.trim() : '';
+
+  // ---------- the highlight (a stand-in for the real one, textSel) ----------
+  let sel = new Set(), anchor = null;
+  const selectable = td => td && (td.tagName === 'TD' || td.tagName === 'TH') && wrap.querySelector('.sheet-table').contains(td);
+  function paintSel(){
+    wrap.querySelectorAll('.mk-sel').forEach(el=>el.classList.remove('mk-sel'));
+    sel.forEach(td=>td.classList.add('mk-sel'));
+  }
+  function cellsInRect(a, b){
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const L = Math.min(ra.left, rb.left)+1, R = Math.max(ra.right, rb.right)-1, T = Math.min(ra.top, rb.top)+1, B = Math.max(ra.bottom, rb.bottom)-1;
+    return [...wrap.querySelectorAll('.sheet-table td, .sheet-table th')].filter(c=>{
+      const r = c.getBoundingClientRect(); return r.right > L && r.left < R && r.bottom > T && r.top < B;
+    });
+  }
+  wrap.addEventListener('click', e=>{
+    const td = e.target.closest('td, th'); if(!selectable(td)) return;
+    if(e.shiftKey && anchor){ sel = new Set(cellsInRect(anchor, td)); }
+    else if(e.metaKey || e.ctrlKey){ if(sel.has(td)) sel.delete(td); else sel.add(td); anchor = td; }
+    else { sel = new Set([td]); anchor = td; }
+    paintSel();
+  });
+  wrap.addEventListener('dblclick', e=>{
+    if(e.target.closest('.sheet-note-cell, .sheet-hiatus-cell')) say('Unchanged: a double-click (or Enter) still opens the note editor');
+  });
+
+  wrap.addEventListener('contextmenu', e=>{
+    if(e.shiftKey) return;                       // Shift + right-click: the browser's own menu
+    const td = e.target.closest('td, th');
+    if(!selectable(td)) return;                  // the title block: leave the browser's menu
+    e.preventDefault();
+    if(!sel.has(td)){ sel = new Set([td]); anchor = td; paintSel(); }
+    openMenu(td, e.clientX, e.clientY);
+  });
+
+  // ---------- the menu's contents ----------
+  const ICONS = {
+    note:'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
+    plus:'M12 5v14M5 12h14',
+    pause:'M6 5h4v14H6zM14 5h4v14h-4z',
+    start:'M14 12H4M10 8l4 4-4 4M20 4v16',
+    end:'M10 12h10M14 8l-4 4 4 4M4 4v16',
+    palette:'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
+    sidebar:'M4 5h16v14H4zM9 5v14',
+    trash:'M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+    cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+    cut:'M6 7a3 3 0 1 0 0-.01M6 17a3 3 0 1 0 0 .01M8.5 8.5L20 19M8.5 15.5L20 5',
+    copy:'M9 9h11v11H9zM5 15H4V4h11v1',
+    paste:'M9 4h6v3H9zM7 5H5v15h14V5h-2M9 12h6M9 16h4',
+    clear:'M20 7H9l-5 5 5 5h11zM12 10l4 4M16 10l-4 4',
+    expand:'M4 12h16M15 7l5 5-5 5M9 7l-5 5 5 5',
+    swapL:'M10 7l-5 5 5 5M5 12h14',
+    swapR:'M14 7l5 5-5 5M19 12H5',
+    rows:'M4 6h16M4 12h16M4 18h16',
+    cols:'M6 4v16M12 4v16M18 4v16',
+    text:'M5 7V5h14v2M12 5v14M9 19h6',
+    chev:'M9 6l6 6-6 6',
+    check:'M5 12l5 5L20 7',
+  };
+  const svg = (k, cls) => `<svg class="${cls||'cm-ico'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
+
+  function buildMenu(td){
+    const targets = [...sel];
+    const infos = targets.map(cellInfo).filter(Boolean);
+    const here = cellInfo(td);
+    const many = targets.length > 1;
+    const isHead = here.kind === 'heading';
+
+    // ---- the header: the week (or column), then what is in it ----
+    let title, ctxLine;
+    if(many){
+      const weeks = [...new Set(infos.filter(i=>i.week).map(i=>i.week))].sort();
+      title = targets.length + ' cells highlighted';
+      ctxLine = weeks.length ? (weeks.length === 1 ? 'Week of ' + fmtDM(parseIso(weeks[0]))
+                : 'Weeks of ' + fmtDM(parseIso(weeks[0])) + ' – ' + fmtDM(parseIso(weeks[weeks.length-1]))) : '';
+    } else if(isHead){
+      title = 'Column heading · ' + here.text; ctxLine = 'The heading row';
+    } else {
+      title = 'Week of ' + fmtLong(here.mon);
+      const facts = here.phases.map(p=>p.label);
+      if(here.hiatusTd) facts.push(here.hiatusTd.textContent.trim());
+      if(here.noteText) facts.push('“' + (here.noteText.length > 34 ? here.noteText.slice(0,33) + '…' : here.noteText) + '”');
+      if(here.holiday) facts.push(here.holiday.split(' · ')[0]);
+      ctxLine = facts.length ? facts.join(' · ') : 'Nothing scheduled';
+    }
+
+    const sections = [];
+
+    // ---- the clipboard row (always first, so it never moves) ----
+    const texts = targets.map(cellText).filter(Boolean);
+    const owned = infos.filter(i => i.kind === 'note' || i.kind === 'hiatus');            // text the user owns
+    const ownedWithText = owned.filter(i => cellText(i.td));
+    const autoNote = owned.some(i => i.kind === 'note' && /Principal Photography|Opens|Wraps/.test(cellText(i.td)));
+    const fixedWhy = isHead ? 'Edit headings from the Column section below'
+                   : here.kind === 'phase' ? 'Phase weeks come from the dates. Move the phase instead'
+                   : here.kind === 'date' ? 'Dates come from the calendar'
+                   : 'Nothing here to take';
+    sections.push({strip:true, items:[
+      {icon:'cut', text:'Cut', disabled: !ownedWithText.length, note: ownedWithText.length ? '' : fixedWhy,
+       desc: ownedWithText.length ? 'Copies ' + (many ? 'the highlighted notes and bands' : 'this ' + (here.kind === 'hiatus' ? 'band’s text' : 'note')) + ' and clears ' + (many ? 'them' : 'it') + '. Paste puts the text, its colour and its style back wherever you paste. The same as ⌘X.'
+                                  : 'Greyed out, with its reason: ' + fixedWhy.toLowerCase() + '.',
+       calls:'the ⌘X action from the arrow-keys and copy/paste session', toast:'cuts ' + (many ? ownedWithText.length + ' cells' : '“' + cellText(td) + '”')},
+      {icon:'copy', text:'Copy', disabled: !texts.length, note: texts.length ? '' : 'Nothing to copy',
+       desc:'Copies the text of ' + (many ? 'every highlighted cell, laid out in rows and columns, so it pastes into Excel, Google Sheets or an email as a table' : 'this cell') + '. Notes and bands also carry their colour and style, for pasting back into SPTCal. The same as ⌘C.',
+       calls:'the ⌘C action from the arrow-keys and copy/paste session', toast:'copies ' + (many ? texts.length + ' cells' : '“' + (texts[0] || '') + '”')},
+      {icon:'paste', text:'Paste', disabled: !owned.length, note: owned.length ? '' : 'Paste goes into a note or a band',
+       desc: owned.length ? 'Pastes into ' + (many ? 'the highlighted notes and bands' : 'this ' + (here.kind === 'hiatus' ? 'band' : 'week’s note')) + '. Several lines of text fill this week and the weeks below it, one line a week, as Excel does. What it does to a note already there is a question that session is asking you.'
+                          : 'Greyed out, with its reason. A phase week, a date or a heading cannot hold pasted text: notes go in the Notes column and band text in a hiatus band.',
+       calls:'the ⌘V action from the arrow-keys and copy/paste session', toast:'pastes into ' + (many ? owned.length + ' cells' : 'the week of ' + fmtDM(here.mon || utc(2026,0,1)))},
+      {icon:'clear', text:'Clear', disabled: !ownedWithText.length, note: ownedWithText.length ? '' : fixedWhy,
+       desc: ownedWithText.length ? 'Empties ' + (many ? 'the highlighted notes and bands' : 'this ' + (here.kind === 'hiatus' ? 'band’s text' : 'note')) + '. ' + (autoNote ? 'An automatic note is kept as “cleared”, so it stays empty when dates move, and Reset Notes brings it back (question 2).' : '') + ' The same as Delete.'
+                                  : 'Greyed out, with its reason: ' + fixedWhy.toLowerCase() + '.',
+       calls:'the Delete action from the arrow-keys and copy/paste session (a cleared automatic note is <code>userNotes[week] = {text:\'\'}</code>, as today)', toast:'clears ' + (many ? ownedWithText.length + ' cells' : '“' + cellText(td) + '”')},
+    ]});
+
+    // ---- a column heading: its own short menu ----
+    if(isHead){
+      sections.push({label:'Column', items:[
+        {icon:'text', text:'Edit column headings…', note:'Custom headings are off: this turns them on',
+         desc:'Opens the column-heading editor with this heading picked. Custom headings are off on this calendar (the headings read Date, the year and Notes), so the item turns them on first, as the switch in Settings ▸ Preferences does.',
+         calls:'the Custom headings switch in <code>.prefs-card</code>, then the heading editor', toast:'turns on custom headings and opens the editor at “' + here.text + '”'},
+        {icon:'cols', text:'Reset column width', disabled:true, note:'This column is automatic',
+         desc:'Greyed out, with its reason: nobody has dragged this column, so it is already the width the calendar works out. Once dragged, this puts it back, as double-clicking its edge does today.',
+         calls:'deletes <code>colWidths[key]</code>, then <code>update()</code>', toast:'resets the column width'},
+      ]});
+      sections.push({items:[{icon:'cal', text:'Show the month view',
+        desc:'Switches to the month view.', calls:'<code>setViewMode(\'month\')</code>', toast:'switches to the month view'}]});
+      return {head:{title, ctx: ctxLine}, sections, foot:'Shift + right-click opens the browser’s own menu'};
+    }
+
+    const mon = here.mon, k = here.week;
+    // ---- this week ----
+    const hiatusSub = {sections:[
+      {items:[{icon:'pause', text:'All phases', note:'From the week of ' + fmtDM(mon) + ' · 2 weeks',
+               desc:'Adds a row to the All-phase hiatus card starting the week of ' + fmtLong(mon) + ', 2 weeks long, locked in place, as a new row is today. Change its length in the row.',
+               calls:'<code>addHiatusRow(iso, 2)</code>, then <code>update()</code>, as one undo step',
+               toast:'adds an all-phase hiatus for the 2 weeks from ' + fmtLong(mon)}]},
+    ]};
+    if(here.phases.length) hiatusSub.sections.push({label:'One phase only', items: here.phases.map(p=>({
+      icon:'pause', text: phaseName(p.key) + ' only', note:'From the week of ' + fmtDM(mon) + ' · 2 weeks',
+      desc:'Turns on ' + phaseName(p.key) + '’s own hiatus from the week of ' + fmtLong(mon) + '. It pauses only ' + phaseName(p.key) + ', so its later weeks move down and the other phases carry on. On a phase that already has its own hiatus, the item moves it here instead and says so, as in the month menu (your ruling Q2).',
+      calls:'the phase row’s <code>phiatus-en-&lt;key&gt;</code>, <code>-start-</code> and <code>-weeks-</code>, then <code>refreshPhaseHiatusUI()</code> and <code>update()</code>',
+      toast:'turns on ' + phaseName(p.key) + '’s own hiatus from the week of ' + fmtLong(mon)}))});
+
+    const noteCovered = !here.noteTd;                      // a hiatus band runs across the Notes column
+    sections.push({label:'This week', items:[
+      here.noteText
+        ? {icon:'note', text:'Edit this week’s note…', note:'“' + (here.noteText.length > 30 ? here.noteText.slice(0,29) + '…' : here.noteText) + '”',
+           desc:'Opens the note editor on this week’s note, as double-clicking it does. It works from any cell in the row, so you need not aim for the Notes column.',
+           calls:'<code>openNoteCellEditor(td)</code> on the row’s Notes cell', toast:'opens the note editor on the week of ' + fmtLong(mon)}
+        : {icon:'note', text:'Add note', disabled: noteCovered, note: noteCovered ? 'A hiatus band covers this week’s Notes cell' : '',
+           desc: noteCovered ? 'Greyed out, with its reason: the hiatus band runs across this week’s Notes column, so there is no Notes cell to open. Its own text is in the Hiatus section below.'
+                             : 'Opens the note editor on this week’s Notes cell, as double-clicking it does. It works from any cell in the row.',
+           calls:'<code>openNoteCellEditor(td)</code> on the row’s Notes cell', toast:'opens the note editor on the week of ' + fmtLong(mon)},
+      {icon:'plus', text:'Add 1-week phase here', note:'Custom phase · week of ' + fmtDM(mon),
+       desc:'Adds a custom phase, 1 week long, starting the week of ' + fmtLong(mon) + '. The sidebar switches to Phases with the cursor in its name box, so the next thing you do is type its name. The same item as in the month menu.',
+       calls:'the month menu’s own <code>addPhaseHere(ctx, \'week\')</code>', toast:'adds a one-week custom phase from the week of ' + fmtLong(mon) + ' and opens its row'},
+      {icon:'pause', text:'Add hiatus', sub: hiatusSub, desc:'A hiatus for everything, or for one of the phases running this week.'},
+    ]});
+
+    // ---- the phase week under the pointer ----
+    if(here.kind === 'phase' && here.phase && !many){
+      const ph = here.phase, name = phaseName(ph.key), isProd = ph.key === 'production';
+      const wks = phaseWeeks(ph.key), first = wks[0], last = wks[wks.length-1];
+      const cols = blockCells(blockDateCell(td)).filter(c=>!c.classList.contains('sheet-note-cell'));
+      const myIdx = cols.indexOf(td);
+      const oneCol = cols.filter(c=>c.tagName === 'TD').length <= 1 && !cols.some(c=>(+c.getAttribute('colspan')||1) > 1);
+      sections.push({label: ph.label, swatch: ph.color, items:[
+        {icon:'start', text:'Start ' + name + ' this week', disabled: k === first, note: k === first ? 'It already starts this week' : 'Moves it. Its length stays',
+         desc: k === first ? 'Greyed out, with its reason: ' + name + ' already starts the week of ' + fmtLong(mon) + '.'
+                           : 'Moves ' + name + ' so it starts the week of ' + fmtLong(mon) + ', keeping its length. Nothing else moves.' + (isProd ? ' Production’s day marks travel with it by shoot-day number, as on every move (your ruling R2).' : ''),
+         calls: isProd ? '<code>setPhaseStart(\'production\', iso)</code> inside <code>asShootDayMove()</code>' : '<code>setPhaseStart(key, iso)</code>',
+         toast:'moves ' + name + ' to start the week of ' + fmtLong(mon)},
+        {icon:'end', text:'End ' + name + ' this week', disabled: isProd || k === last,
+         note: isProd ? 'Its end comes from the shoot days' : k === last ? 'It already ends this week' : 'Keeps its start. Changes its length',
+         desc: isProd ? 'Greyed out, with its reason, as in the month menu (your ruling Q3). Production ends where its episodes’ shoot days run out. Drag its end in the month view, or change the episodes.'
+              : k === last ? 'Greyed out, with its reason: ' + name + ' already ends this week.'
+              : 'Ends ' + name + ' in the week of ' + fmtLong(mon) + ' and keeps its start. A phase measured in weeks just gets a new week count here, because a waterfall row is a whole week.',
+         calls:'the end handle’s own rule (<code>phaseEdgePlan</code> → <code>phaseEdgeWrite</code>), which the month menu already shares',
+         toast:'ends ' + name + ' in the week of ' + fmtLong(mon)},
+        {icon:'expand', text:'Expand cells', disabled: oneCol, note: oneCol ? 'No empty columns beside it this year' : 'Fills the empty columns beside it',
+         desc: oneCol ? 'Greyed out, with its reason: this year has only one phase column, so there is nothing to spread into.'
+                      : 'Spreads this phase across the empty columns beside it, the same as double-clicking a highlighted phase block. Once expanded, the item reads “Pull back cells”.',
+         calls:'<code>batchFill()</code>', toast:'expands ' + name + '’s cells'},
+        {icon:'swapL', text:'Swap column left', disabled: myIdx <= 0, note: myIdx <= 0 ? 'Nothing to its left' : '',
+         desc: myIdx <= 0 ? 'Greyed out, with its reason. The reason is the one the swap already gives when it refuses.'
+                          : 'Swaps this phase’s column with the one on its left, as ⌥← does. It is refused, with the reason, when the two do not fit.',
+         calls:'the swap gesture (<code>doSwapMove</code>), its refusal through <code>flashSwapMsg</code>', toast:'swaps ' + name + '’s column left'},
+        {icon:'swapR', text:'Swap column right', disabled: myIdx < 0 || myIdx >= cols.length - 1, note: (myIdx < 0 || myIdx >= cols.length - 1) ? 'Nothing to its right' : '',
+         desc:(myIdx < 0 || myIdx >= cols.length - 1) ? 'Greyed out, with its reason. The reason is the one the swap already gives when it refuses.'
+                          : 'Swaps this phase’s column with the one on its right, as ⌥→ does.',
+         calls:'the swap gesture (<code>doSwapMove</code>), its refusal through <code>flashSwapMsg</code>', toast:'swaps ' + name + '’s column right'},
+        {icon:'palette', text:'Colour…', desc:'Opens the phase colour picker beside the cell: the same picker as the swatch in the Phases card.',
+         calls:'<code>openPhaseColorPop(cell, index, onPick)</code> → <code>setPhaseColor(key, i)</code>', toast:'opens the colour picker for ' + name},
+        {icon:'sidebar', text:'Show in Phases card', desc:'Switches the sidebar to Phases and scrolls to ' + name + '’s row.',
+         calls:'<code>setSidebarTab(\'phases\')</code>, then scrolls the row into view', toast:'shows ' + name + '’s row in the Phases card'},
+      ]});
+    }
+
+    // ---- a note under the pointer ----
+    if(here.kind === 'note' && here.noteText && !many){
+      const auto = /Principal Photography|Opens|Wraps/.test(here.noteText);
+      sections.push({label:'Note', swatch: here.noteTd.style.background || '#7030A0', items:[
+        {icon:'note', text:'Edit note…', desc:'Opens the note editor, as a double-click or Enter does.',
+         calls:'<code>openNoteCellEditor(td)</code>', toast:'opens the note editor on “' + here.noteText + '”'},
+        {icon:'palette', text:'Note colour…', desc:'The note editor’s colour row on its own: the same fills, No fill, and the colour you last used.',
+         calls:'the note editor’s colour row, writing <code>noteColors[week]</code>', toast:'opens the note colour picker'},
+        {icon:'text', text:'Back to automatic text', disabled:auto, note: auto ? 'This note is automatic already' : 'Undoes your edit to an automatic note',
+         desc: auto ? 'Greyed out, with its reason: this note is written by the app (“' + here.noteText + '”) and has not been edited. On an edited automatic note, this puts back the app’s text for this week only. Reset Notes does it for every note at once.'
+                    : 'Puts back the app’s own text for this week only.',
+         calls:'deletes <code>userNotes[week]</code>, then <code>update()</code>', toast:'puts back the automatic text'},
+      ]});
+    }
+
+    // ---- the hiatus band under the pointer ----
+    if(here.kind === 'hiatus' && !many){
+      sections.push({label:'Hiatus', swatch:'#FF0000', items:[
+        {icon:'note', text:'Rename or recolour…', desc:'Opens the band editor, as a double-click does.',
+         calls:'the band’s own editor (<code>hiatusTexts</code>, <code>hiatusColors</code>)', toast:'opens the band editor'},
+        {check:true, text:'Lock in place', note:'Stays on these dates when the calendar is shifted',
+         desc:'The hiatus row’s own “Lock in place” box, as in the month menu.',
+         calls:'the covering row’s <code>.hiatus-locked</code>, then <code>update()</code>', toast:'unlocks this hiatus'},
+        {icon:'sidebar', text:'Show in Phases card', desc:'Switches the sidebar to Phases and scrolls to this hiatus’s row.',
+         calls:'<code>setSidebarTab(\'phases\')</code>, then scrolls the row into view', toast:'shows this hiatus in the All-phase hiatus card'},
+        {icon:'trash', text:'Remove hiatus', danger:true, note:'Asks first',
+         desc:'Removes the whole hiatus, every week of it, after the same question the row’s × asks.',
+         calls:'the row’s own remove (<code>uiConfirm</code>, then <code>row.remove()</code> and <code>update()</code>)', toast:'asks “Remove this hiatus?”'},
+      ]});
+    }
+
+    // ---- a holiday in this week ----
+    if(here.holiday && !many){
+      const [hname] = here.holiday.split(' · ');
+      sections.push({label:'Holiday · ' + here.holiday, swatch:'#7030A0', items:[
+        {check:false, text:'Show in waterfall', desc:'The holiday list’s Waterfall box. Ticked, the holiday is written in this week’s Notes cell. It only changes what is drawn.',
+         calls:'<code>holidayView[hid].sheet</code>, then <code>render()</code>', toast:'shows ' + hname + ' in the waterfall'},
+        {check:true, text:'Show in month view', desc:'The holiday list’s Month box.', calls:'<code>holidayView[hid].month</code>', toast:'hides ' + hname + ' in the month view'},
+        {check:true, text:'Enabled', note:'Off: Production shoots that day',
+         desc:'The holiday list’s Enable box. It asks first when turning it off could leave a note beside the wrong day, as the box does.',
+         calls:'<code>holidayOff[hid]</code> after <code>confirmHolidayRecompute()</code>', toast:'turns off ' + hname},
+      ]});
+    }
+
+    // ---- size (question 3) ----
+    sections.push({label:'Size', items:[
+      {icon:'rows', text:'Reset row height', disabled:true, note:'This row is automatic',
+       desc:'Greyed out, with its reason: nobody has dragged this row. Once dragged, this puts it back, as double-clicking its bottom edge does today.',
+       calls:'deletes <code>rowHeights[week]</code>, then <code>update()</code>', toast:'resets the row height'},
+      {icon:'cols', text:'Reset column width', disabled:true, note:'This column is automatic',
+       desc:'Greyed out, with its reason: nobody has dragged this column. Once dragged, this puts it back, as double-clicking its edge does today.',
+       calls:'deletes <code>colWidths[key]</code>, then <code>update()</code>', toast:'resets the column width'},
+    ]});
+
+    // ---- the way out ----
+    sections.push({items:[
+      {icon:'cal', text:'Show this week in the month view',
+       desc:'Switches to the month view at the month holding the week of ' + fmtLong(mon) + ', the twin of the month menu’s “Show this week in the waterfall”.',
+       calls:'<code>setViewMode(\'month\')</code>, then shows that month', toast:'switches to the month view at the week of ' + fmtLong(mon)},
+    ]});
+
+    return {head:{title, ctx: ctxLine}, sections, foot:'Shift + right-click opens the browser’s own menu'};
+  }
+
+  // ---------- the menu itself (the month mockup's, with the clipboard row added) ----------
+  let menu = null, stack = [];
+  const explain = document.getElementById('mk-explain');
+  const toast = document.getElementById('mk-toast');
+  let toastT = 0;
+
+  function closeAll(){
+    stack.forEach(m=>m.el.remove()); stack = []; menu = null;
+    wrap.querySelectorAll('.mk-target').forEach(el=>el.classList.remove('mk-target'));
+  }
+  function closeFrom(level){ while(stack.length > level){ stack.pop().el.remove(); } }
+
+  function openMenu(td, x, y){
+    closeAll();
+    td.classList.add('mk-target');
+    menu = renderPanel(buildMenu(td), 0);
+    place(menu.el, x, y, null);
+    menu.el.focus();
+    setActive(menu, firstEnabled(menu, 0, 1));
+  }
+
+  function itemHtml(it, i){
+    const lead = it.radio !== undefined ? `<span class="cm-radio${it.radio ? ' on' : ''}"></span>`
+               : it.check !== undefined ? (it.check ? svg('check','cm-check') : '<span class="cm-check"></span>')
+               : svg(it.icon || 'plus');
+    const right = it.sub ? svg('chev','cm-check') : '';
+    return `<button type="button" class="cm-item${it.danger ? ' is-danger' : ''}" role="${it.check !== undefined ? 'menuitemcheckbox' : 'menuitem'}"`
+         + `${it.check !== undefined ? ` aria-checked="${!!it.check}"` : ''}${it.disabled ? ' aria-disabled="true"' : ''}${it.sub ? ' aria-haspopup="menu"' : ''}`
+         + `${it.strip && it.note ? ` title="${esc(it.note)}"` : ''} data-i="${i}" tabindex="-1">`
+         + `${lead}<span class="cm-text">${it.text}${it.note && !it.strip ? `<small>${it.note}</small>` : ''}</span><span class="cm-right">${right}</span></button>`;
+  }
+  function renderPanel(spec, level){
+    const el = document.createElement('div');
+    el.className = 'cm'; el.setAttribute('role','menu'); el.tabIndex = -1;
+    const items = [];
+    let html = '';
+    if(spec.head) html += `<div class="cm-head"><div class="cm-date">${esc(spec.head.title)}</div>${spec.head.ctx ? `<div class="cm-ctx">${esc(spec.head.ctx)}</div>` : ''}</div>`;
+    spec.sections.forEach((sec, si)=>{
+      if(si > 0 || spec.head) html += '<div class="cm-div"></div>';
+      if(sec.label) html += `<div class="cm-label">${sec.swatch ? `<span class="cm-swatch" style="background:${sec.swatch}"></span>` : ''}${esc(sec.label)}</div>`;
+      if(sec.strip) html += '<div class="cm-strip">';
+      sec.items.forEach(it=>{ if(sec.strip) it.strip = true; html += itemHtml(it, items.length); items.push(it); });
+      if(sec.strip) html += '</div>';
+    });
+    if(spec.foot) html += `<div class="cm-foot">${spec.foot}</div>`;
+    el.innerHTML = html;
+    document.body.appendChild(el);
+    const panel = {el, items, level, active:-1, btns:[...el.querySelectorAll('.cm-item')]};
+    stack[level] = panel;
+    el.addEventListener('mousemove', e=>{
+      const b = e.target.closest('.cm-item'); if(!b) return;
+      const i = +b.dataset.i;
+      if(panel.active !== i){ setActive(panel, i); closeFrom(level+1); if(panel.items[i].sub && !panel.items[i].disabled) openSub(panel, i); }
+    });
+    el.addEventListener('click', e=>{ const b = e.target.closest('.cm-item'); if(b) choose(panel, +b.dataset.i); });
+    el.addEventListener('contextmenu', e=> e.preventDefault());
+    return panel;
+  }
+  function setActive(panel, i){
+    panel.btns.forEach((b,j)=> b.classList.toggle('is-active', j === i));
+    panel.active = i;
+    const it = panel.items[i];
+    if(it){
+      explain.innerHTML = `<b>${it.text}${it.disabled && it.note ? ' (greyed out)' : ''}</b>${it.desc || ''}${it.calls ? `<span class="mk-calls">Calls: ${it.calls}</span>` : ''}`;
+      panel.btns[i].focus({preventScroll:true});
+    }
+  }
+  // The clipboard row is reachable but never the starting item: the menu opens on the first line below it,
+  // so Enter on a fresh menu does what the month menu's Enter does.
+  function firstEnabled(panel, from, dir, skipStrip){
+    for(let k = 0; k < panel.items.length; k++){
+      const i = (from + k*dir + panel.items.length*4) % panel.items.length;
+      if(!panel.items[i].disabled && !(skipStrip && panel.items[i].strip)) return i;
+    }
+    return -1;
+  }
+  function openSub(panel, i){
+    const sub = renderPanel(panel.items[i].sub, panel.level + 1);
+    const r = panel.btns[i].getBoundingClientRect();
+    place(sub.el, r.right - 2, r.top - 5, r);
+    return sub;
+  }
+  function choose(panel, i){
+    const it = panel.items[i];
+    if(!it || it.disabled) return;
+    if(it.sub){ closeFrom(panel.level+1); const s = openSub(panel, i); setActive(s, firstEnabled(s, 0, 1)); return; }
+    closeAll();
+    say('Mockup: ' + (it.toast || it.text));
+  }
+  function say(text){
+    clearTimeout(toastT);
+    toast.textContent = text;
+    toast.classList.add('on');
+    toastT = setTimeout(()=> toast.classList.remove('on'), 3200);
+  }
+  function place(el, x, y, anchorRect){
+    const w = el.offsetWidth, h = el.offsetHeight, vw = innerWidth, vh = innerHeight, m = 8;
+    let left = x, top = y;
+    if(left + w > vw - m) left = anchorRect ? anchorRect.left - w + 2 : x - w;
+    if(top + h > vh - m) top = Math.max(m, vh - m - h);
+    el.style.left = Math.max(m, left) + 'px';
+    el.style.top = Math.max(m, top) + 'px';
+  }
+
+  document.addEventListener('keydown', e=>{
+    if(!stack.length) return;
+    const panel = stack[stack.length-1];
+    const it = panel.items[panel.active];
+    const n = panel.items.length;
+    if(e.key === 'Escape'){ e.preventDefault(); if(stack.length > 1){ closeFrom(stack.length-1); const p = stack[stack.length-1]; setActive(p, p.active); } else closeAll(); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault();
+      // From the clipboard row, Down leaves the row rather than walking along it.
+      let from = panel.active + 1;
+      if(it && it.strip){ while(from < n && panel.items[from].strip) from++; }
+      setActive(panel, firstEnabled(panel, from, 1)); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); setActive(panel, firstEnabled(panel, panel.active-1+n, -1)); }
+    else if(e.key === 'ArrowRight'){
+      if(it && it.strip){ e.preventDefault(); const j = panel.active + 1; if(j < n && panel.items[j].strip && !panel.items[j].disabled) setActive(panel, j); }
+      else if(it && it.sub){ e.preventDefault(); choose(panel, panel.active); } }
+    else if(e.key === 'ArrowLeft'){
+      if(it && it.strip){ e.preventDefault(); const j = panel.active - 1; if(j >= 0 && !panel.items[j].disabled) setActive(panel, j); }
+      else if(stack.length > 1){ e.preventDefault(); closeFrom(stack.length-1); const p = stack[stack.length-1]; setActive(p, p.active); } }
+    else if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choose(panel, panel.active); }
+  });
+  document.addEventListener('mousedown', e=>{ if(stack.length && !(e.target.closest && e.target.closest('.cm'))) closeAll(); });
+  addEventListener('resize', closeAll);
+  // A scroll closes the menu, as in the app, except the one a "Try it" button makes to bring its cell into view.
+  let quietUntil = 0;
+  addEventListener('scroll', ()=>{ if(performance.now() > quietUntil) closeAll(); }, true);
+  addEventListener('blur', closeAll);
+
+  // Open on the first line below the clipboard row (see firstEnabled).
+  const _open = openMenu;
+  openMenu = function(td, x, y){ _open(td, x, y); setActive(menu, firstEnabled(menu, 0, 1, true)); };
+
+  // ---------- "open it on one of these" ----------
+  const q = s => wrap.querySelector(s);
+  const TRY = [
+    {label:'A Production week', cells:()=>[q('td.sheet-phase-cell[data-pkey="production"][data-week="2026-07-06"]')]},
+    {label:'An automatic note', cells:()=>[q('td.sheet-note-cell.has-note[data-week="2026-06-29"]')]},
+    {label:'Three notes highlighted', cells:()=>['2026-06-29','2026-07-06','2026-07-13'].map(w=>q('td.sheet-note-cell[data-week="' + w + '"]'))},
+    {label:'A Post week (2027)', cells:()=>[q('td.sheet-phase-cell[data-pkey="post"][data-week="2027-01-11"]')]},
+    {label:'A hiatus band', cells:()=>[q('td.sheet-hiatus-cell[data-week="2026-12-21"]')]},
+    {label:'A week with a holiday', cells:()=>[q('td.sheet-phase-cell[data-week="2026-09-07"]') || q('td.sheet-note-cell[data-week="2026-09-07"]')]},
+    {label:'An empty cell', cells:()=>{ const n = q('td.sheet-note-cell[data-week="2027-07-05"]'); return [n && n.previousElementSibling]; }},
+    {label:'A column heading', cells:()=>[[...wrap.querySelectorAll('.sheet-table thead th')].find(th=>th.textContent.trim() === '2027')]},
+  ];
+  const box = document.getElementById('mk-try');
+  TRY.forEach(t=>{
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = t.label;
+    b.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      const cells = t.cells().filter(Boolean); if(!cells.length) return;
+      sel = new Set(cells); anchor = cells[0]; paintSel();
+      const td = cells[cells.length-1];
+      quietUntil = performance.now() + 900;
+      td.scrollIntoView({block:'center', inline:'nearest', behavior:'instant'});
+      setTimeout(()=>{
+        const r = td.getBoundingClientRect();
+        openMenu(td, Math.round(r.left + Math.min(r.width/2, 50)), Math.round(r.top + r.height/2));
+      }, 180);
+    });
+    box.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>
