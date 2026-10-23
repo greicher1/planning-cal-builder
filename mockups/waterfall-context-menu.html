@@ -234,10 +234,10 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
       <li>In the open menu: <span class="mk-kbd">↑</span> <span class="mk-kbd">↓</span> move, <span class="mk-kbd">←</span> <span class="mk-kbd">→</span> move along the clipboard row or open a submenu, <span class="mk-kbd">Enter</span> chooses, <span class="mk-kbd">Esc</span> closes.</li>
       <li>Each item is one undo step. Nothing in it changes how a cell looks, so it needs no frozen edit.</li>
     </ul>
-    <h3>Questions for you</h3>
-    <p class="mk-q"><b>1. Clipboard row at the top?</b><span>Recommended: yes, as Excel’s Paste Options row. The alternative is plain Cut / Copy / Paste lines inside the Note section only.</span></p>
-    <p class="mk-q"><b>2. Can Clear remove an automatic note?</b><span>Recommended: yes. It is kept as “cleared”, and Reset Notes brings it back. The month menu has no Delete note (your ruling Q5), so this would be the first one.</span></p>
-    <p class="mk-q"><b>3. Keep the Size section?</b><span>Reset row height / column width. Today a double-click on the edge does it. Recommended: keep it, since nobody finds the double-click.</span></p>
+    <h3>Ruled (owner, 22 Oct 2026)</h3>
+    <p class="mk-q"><b>1. The clipboard row stays at the top.</b><span>As Excel’s Paste Options row, rather than plain lines inside the Note section.</span></p>
+    <p class="mk-q"><b>2. Clear can remove an automatic note.</b><span>It is kept as “cleared”, so it stays empty when dates move, and Reset Notes brings it back. The first Delete note in either menu (the month menu has none, ruling Q5).</span></p>
+    <p class="mk-q"><b>3. The Size section stays.</b><span>Reset row height / column width, which today only a double-click on the edge does.</span></p>
     <h3>Left out on purpose</h3>
     <ul>
       <li><b>Shift From, Anchor To, Rebuild From.</b> Kept out of the month menu by your ruling M1, so kept out here too.</li>
@@ -463,7 +463,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
                           : 'Greyed out, with its reason. A phase week, a date or a heading cannot hold pasted text: notes go in the Notes column and band text in a hiatus band.',
        calls:'the ⌘V action from the arrow-keys and copy/paste session', toast:'pastes into ' + (many ? owned.length + ' cells' : 'the week of ' + fmtDM(here.mon || utc(2026,0,1)))},
       {icon:'clear', text:'Clear', disabled: !ownedWithText.length, note: ownedWithText.length ? '' : fixedWhy,
-       desc: ownedWithText.length ? 'Empties ' + (many ? 'the highlighted notes and bands' : 'this ' + (here.kind === 'hiatus' ? 'band’s text' : 'note')) + '. ' + (autoNote ? 'An automatic note is kept as “cleared”, so it stays empty when dates move, and Reset Notes brings it back (question 2).' : '') + ' The same as Delete.'
+       desc: ownedWithText.length ? 'Empties ' + (many ? 'the highlighted notes and bands' : 'this ' + (here.kind === 'hiatus' ? 'band’s text' : 'note')) + '. ' + (autoNote ? 'An automatic note is kept as “cleared”, so it stays empty when dates move, and Reset Notes brings it back (owner ruling, 22 Oct 2026).' : '') + ' The same as Delete.'
                                   : 'Greyed out, with its reason: ' + fixedWhy.toLowerCase() + '.',
        calls:'the Delete action from the arrow-keys and copy/paste session (a cleared automatic note is <code>userNotes[week] = {text:\'\'}</code>, as today)', toast:'clears ' + (many ? ownedWithText.length + ' cells' : '“' + cellText(td) + '”')},
     ]});
@@ -596,7 +596,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
       ]});
     }
 
-    // ---- size (question 3) ----
+    // ---- size (kept: owner ruling, 22 Oct 2026) ----
     sections.push({label:'Size', items:[
       {icon:'rows', text:'Reset row height', disabled:true, note:'This row is automatic',
        desc:'Greyed out, with its reason: nobody has dragged this row. Once dragged, this puts it back, as double-clicking its bottom edge does today.',

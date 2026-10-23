@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); NOT RULED, NO CODE, NOT COMMITTED
+### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
 
 - **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
   excel but purely in the use case of creating this calendars"*). The answer, in chat: formatting is mostly covered,
@@ -34,10 +34,15 @@
   - **Right-click inside a highlight acts on all of it**; outside it, the cell is highlighted first.
   - Refused items are greyed with their reason (the standing rule). The clipboard items only CALL the item 2/3
     session's actions.
-- ⏭ **Three questions for the owner, written in the mockup's side panel, none asked by picker yet:**
-  1. the clipboard row at the top (recommended) or plain lines inside the Note section;
-  2. can Clear remove an automatic note (recommended yes, stored as cleared; month ruling Q5 has no Delete note);
-  3. keep the Size section (recommended yes).
+- ✅ **Ruled (owner, 22 Oct 2026, in chat):** *"keep the clipboard row at the top. Clear can remove an automatic
+  note, and keep the Size section."* The mockup's side panel now records them.
+  1. **The clipboard row stays at the top**, as Excel's Paste Options row.
+  2. **Clear can remove an automatic note.** It is stored as cleared (`userNotes[week] = {text:''}`), stays empty
+     when dates move, and Reset Notes brings it back. This is the first Delete note in either menu; the month menu has
+     none (ruling Q5). The ruling was passed to the item 2/3 session, since its Delete key does the same thing.
+  3. **The Size section stays** (reset row height / column width).
+- ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
+  Paste / Clear actions.
 - **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
   opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
   `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
