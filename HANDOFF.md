@@ -43,7 +43,11 @@
 - No full gate: this is chrome CSS and React chrome, which neither print path nor any writer can see (chrome changes
   get targeted legs). The commit leaves the main checkout's two unrelated fixture changes (`stintswap-reshape.sptcal`
   modified, `Reshape Fixture 2026-09-29.sptcal` untracked) as they were.
-- ⏭ **Next:** nothing. The live check after the push is recorded in the commit after this one.
+- ✅ **LIVE.** ONE `git push origin main` at 12:45:05 (`b7d5307..06c8770`, carrying `8cc8357` too). Deploy run
+  40013869260 succeeded. At 12:46:08 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  build** (sha256 `5804869a…`, 1,755,368 bytes, `cmp`). `version.json` is still 1.8.0, so installed copies pick it up
+  silently. This note is a local commit, not pushed.
+- ⏭ **Next:** nothing.
 
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
