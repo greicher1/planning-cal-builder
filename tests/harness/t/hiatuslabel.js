@@ -52,7 +52,12 @@ window.addEventListener('load', function () { (async function () {
       if (en < 0) continue;
       // ⚠️ Drop the EOL before `endstream`. Python's zlib ignores bytes after the compressed data;
       // Chrome's DecompressionStream REJECTS them, and a swallowed rejection read as "no Hiatus".
-      while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13)) en--;
+      // ⚠️ Cut at the dictionary's /Length, never by trimming: a compressed stream can END in 0x0A or
+      // 0x0D itself (23 Oct 2026, header date 10.23.26: N1-2 read 0 on every build), and trimming that
+      // byte off truncates the data. Trimming stays only as the fallback, as in pdfdialog.js.
+      var dictAt = s.lastIndexOf('<<', m.index), lm = s.slice(dictAt, m.index).match(/\/Length (\d+)/);
+      if (lm) en = st + parseInt(lm[1], 10);
+      else while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13)) en--;
       try {
         var ds = new Blob([bytes.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
         var txt = await new Response(ds).text();
