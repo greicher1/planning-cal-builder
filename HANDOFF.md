@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 22 Oct 2026: SCENARIOS (SEVERAL VERSIONS OF ONE CALENDAR, COMPARED) — PLANNED AND RULED (D1–D6 all as recommended, by picker), NO CODE ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md), mockup [`mockups/scenarios.html`](mockups/scenarios.html))
+
+- **The ask.** Item 8 of the Excel-gaps list. Owner: *"comparing multiple scenarios is HUGE"*. They want to know
+  whether scenarios share one `.sptcal`, how you switch and compare, whether each is a version number, and how to keep
+  it from getting complicated. The plan's §0 answers those four questions in a few lines.
+- **What the plan recommends:**
+  - one file holding up to 50 scenarios (owner, by picker, after the six rulings; the plan had said six). Tabs scroll
+    sideways, and Compare shows six at a time, the tab on screen plus five you tick;
+  - Excel-style tabs bottom-left of the calendar strip;
+  - flip in place (same view, month and scroll; no flash, owner 22 Oct 2026: *"feely a little silly"*), plus a
+    Compare table built from each tab's own header tokens (`buildHeaderCtx()`);
+  - letters, not numbers ("Scenario A"), with Show Info's Version staying each tab's revision number;
+  - nothing shared between tabs;
+  - exports are of the tab you're on.
+  - ✅ **Ruled 22 Oct 2026 by picker:** D1–D6 all as recommended. D6 includes the export-name frozen edit, approved
+    in principle (the gate must show both files byte-identical).
+  - ⏭ Next is step 1 of the plan's §10: the file format, with no UI.
+- ⭐ **Facts found that the build must respect:**
+  - **v1.1–v1.2 builds (including the root `index.html` rollback) accept ANY JSON object as a calendar**, with no
+    version check and no `fields.byId` check.
+    - That is why a multi-scenario file keeps the CURRENT tab's snapshot at the top level, with the other tabs under
+      `scenarios`. Such a build then opens one tab, not a blank calendar it could save over everything.
+    - Only files with 2+ tabs carry file `version: 2`, which v1.3.0–v1.8.0 refuse whole (`snapshotVersionOk`).
+      One-scenario files stay byte-identical.
+  - **The Excel and waterfall-PDF download names are built INSIDE frozen `exportExcel` / `exportWaterfallPdfDirect`.**
+    Naming exports after the scenario is a one-line frozen edit (name only) and needs sign-off.
+    `buildSavedFileName()` and `monthPdfFileName()` are free.
+  - **`readState()` reads the DOM**, so Compare must probe each inactive tab synchronously (apply, compute, restore,
+    never render), as `paperProbe` does. A gate leg must prove the current calendar is untouched.
+  - `captureSnapshot()` carries `viewMode` and `sidebarTab`, so a switch must put back the current ones.
+- **Mockup:** three synthetic calendars captured from `dist/` (`halfdays` plus two variants, built only in a scratchpad,
+  no fixture added). Each has its waterfall plus its July–September 2026 month views (the Month button works), with
+  working tabs and a tab menu.
+- **The Compare window was restyled the same day.** It is a real Mantine component,
+  `mockups/scenarios-compare/CompareDialog.jsx`, bundled into the mockup. Owner, after one round:
+  - *"the styling of this new version but the content of the old version"*: every row and every value, the
+    difference bold with a "+2 wks" tag, same rows grey;
+  - *"remove all the random explainations"*: it is a table, Copy table and Done, nothing else.
+
+  Plan §2 has the rules.
+  ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.
+- **Not committed.** Written in the main checkout by a side session. No `src/` change.
+
 ### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
 
 - **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
