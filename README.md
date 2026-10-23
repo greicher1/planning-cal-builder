@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026)
+
+Owner: *"the window needs to scale larger so we dont have elipses/things cut off"*. A long scenario name ended in
+"…" in its heading, and a long location wrapped, while the window used only 776 px of a 1,440 px screen.
+
+- **Every column is as wide as its widest content** (its name, a value, or a pair of chips), and nothing in the
+  table wraps or truncates. Columns are never narrower than before.
+- **The window sizes itself to the table**, measured as laid out, up to 24 px from the browser window's edges (it
+  was Mantine's 5%). Only a table wider than that, such as a dozen scenarios, scrolls sideways, with the row labels
+  pinned.
+- **The sideways scrollbar has room of its own** below the last row. An overlay scrollbar (macOS) used to sit on the
+  Version row.
+- **Excel's columns fit their contents too** (16–60 characters). Excel cuts a value off at a filled neighbour.
+
+Verified: in the browser pane at 1440×900 with a 36-character name, the window grew to 903 px and no text in the
+table clips. With 12 scenarios it is 1,392 px wide and the 2,511 px table scrolls. `scenarios` 22/22,
+`npm run check` 40/40, and the workbook's columns are 29 / 21 / 41 / 41 characters.
+
 ### Unreleased — Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026; live at `93836f5`)
 
 These are the owner's notes on the Compare window, made after Scenarios went live

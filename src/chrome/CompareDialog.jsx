@@ -20,13 +20,17 @@
 //
 // ⛔ The root carries .compare-dlg: collectFieldValues() skips it, because Mantine mints an id for every Chip's
 // checkbox and a crash backup or undo push taken while this is open must not carry them.
-import { useState, useLayoutEffect } from 'react'
+import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Table, Text, Badge, Button, Group, Chip, Stack, Switch } from '@mantine/core'
 import { installChrome } from './bridge.js'
 
 const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); more than fit scroll sideways
-const LABEL_W = 180
-const COL_W = 184     // room for "Pushed 12 days" and "+1 holiday" side by side (168 px inside the padding)
+// Columns are as wide as what they hold, never narrower than these (owner, 23 Oct 2026: "the window needs to scale
+// larger so we dont have elipses/things cut off"). Nothing in the table wraps or truncates: a long name, a long
+// location or a pair of chips widens its column, and the window grows with the table up to the browser window.
+const LABEL_MIN = 164   // the row labels' column, inside its padding
+const COL_MIN = 168     // a scenario's column, inside its padding: "Pushed 12 days" and "+1 holiday" side by side
+const COL_EST = 184     // a column's whole width, for the first sizing before the table is measured
 
 const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
 const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
@@ -78,15 +82,9 @@ function holidayDelta(which, mine, theirs) {
   return n ? sign(n) + ' holiday' + (Math.abs(n) === 1 ? '' : 's') : ''
 }
 
-// The yellow chip under a value that differs. Wraps rather than clips: "Start pushed 1 wk, end same" is wider than
-// a column.
+// The yellow chip under a value that differs. Its column grows to fit it, so it never clips.
 function DeltaChip({ children }) {
-  return (
-    <Badge size="sm" variant="light" color="warn" radius="sm" tt="none" fw={500}
-           styles={{ root: { height: 'auto', paddingBlock: 2, maxWidth: '100%' }, label: { whiteSpace: 'normal', overflow: 'visible' } }}>
-      {children}
-    </Badge>
-  )
+  return <Badge size="sm" variant="light" color="warn" radius="sm" tt="none" fw={500} style={{ flex: 'none' }}>{children}</Badge>
 }
 
 function Icon({ d, ...props }) {
@@ -110,6 +108,19 @@ export function CompareDialog() {
   const [picked, setPicked] = useState({ ref: null, ids: null })
   const [copied, setCopied] = useState(false)
   const [onlyDiff, setOnlyDiff] = useState(false)          // kept while the app is open, like the chips
+  // The table's own width, measured: it is laid out at its content's width (max-content), so this never depends on
+  // the window's, and sizing the window from it cannot loop. offsetWidth, not getBoundingClientRect(): the Modal's
+  // opening transition scales the content, and a scaled read would size the window small.
+  const [natW, setNatW] = useState(0)
+  const ro = useRef(null)
+  const measure = useCallback((el) => {
+    if (ro.current) { ro.current.disconnect(); ro.current = null }
+    if (!el) return
+    const read = () => setNatW(el.offsetWidth)
+    ro.current = new ResizeObserver(read)
+    ro.current.observe(el)
+    read()
+  }, [])
 
   useLayoutEffect(() => {
     installChrome({ compareDialog: (opts) => { setCopied(false); setDlg(opts) } })
@@ -140,7 +151,7 @@ export function CompareDialog() {
     // A phase none of the columns has is no row at all; then, if asked, nor is a row that is the same everywhere.
     .filter((t) => !(t.row.phase && t.cells.every((c) => c.none)))
     .filter((t) => !onlyDiff || !t.same)
-  const tableW = LABEL_W + COL_W * cols.length
+  const tableW = natW || (LABEL_MIN + 16 + COL_EST * cols.length)
   const model = () => ({
     cols: cols.map((s, i) => ({ name: s.name, onScreen: i === 0 })),
     rows: table.map((t) => ({ label: t.row.label, same: t.same,
@@ -161,7 +172,10 @@ export function CompareDialog() {
       onClose={() => setDlg(null)}
       withinPortal={false}
       centered
-      size={'min(' + Math.max(660, tableW + 44) + 'px, calc(100vw - 48px))'}
+      size={'min(' + Math.max(660, tableW + 48) + 'px, calc(100vw - 48px))'}
+      // 24 px from the browser window's edges, not Mantine's 5%: a wide table gets the room (the size's own cap).
+      xOffset={24}
+      yOffset={24}
       radius="lg"
       shadow="xl"
       title="Compare scenarios"
@@ -191,16 +205,20 @@ export function CompareDialog() {
           </Group>
         </Group>
 
-        {/* A narrow window scrolls the table sideways inside the dialog; the dialog never outgrows the window. */}
-        <Table.ScrollContainer minWidth={tableW} type="native">
-          <Table layout="fixed" verticalSpacing="xs" horizontalSpacing="md" withRowBorders className="sc-compare-table" style={{ width: tableW }}>
+        {/* Only a table wider than the browser window scrolls sideways (a dozen columns); the dialog never outgrows
+            the window, and the row labels stay pinned. */}
+        {/* The bottom padding is the sideways scrollbar's own room: an overlay scrollbar (macOS) otherwise sits on the
+            last row. */}
+        <Table.ScrollContainer minWidth={0} type="native" style={{ paddingBottom: 12 }}>
+          <Table verticalSpacing="xs" horizontalSpacing="md" withRowBorders className="sc-compare-table" ref={measure}
+                 style={{ width: 'max-content' }}>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th w={LABEL_W} style={STICKY} />
+                <Table.Th style={STICKY}><div style={{ minWidth: LABEL_MIN }} /></Table.Th>
                 {cols.map((s, i) => (
-                  <Table.Th key={s.id} w={COL_W}>
-                    <Group gap={6} wrap="nowrap">
-                      <Text size="sm" fw={600} truncate>{s.name}</Text>
+                  <Table.Th key={s.id}>
+                    <Group gap={6} wrap="nowrap" style={{ minWidth: COL_MIN }}>
+                      <Text size="sm" fw={600} style={{ whiteSpace: 'nowrap' }}>{s.name}</Text>
                       {i === 0 && <Badge size="xs" variant="light" color="navy" tt="none" fw={500} style={{ flex: 'none' }}>On screen</Badge>}
                     </Group>
                   </Table.Th>
@@ -210,15 +228,13 @@ export function CompareDialog() {
             <Table.Tbody>
               {table.map((t) => (
                 <Table.Tr key={t.row.key}>
-                  <Table.Td style={STICKY}><Text size="sm" fw={500} c={t.same ? 'dimmed' : undefined}>{t.row.label}</Text></Table.Td>
+                  <Table.Td style={STICKY}><Text size="sm" fw={500} c={t.same ? 'dimmed' : undefined} style={{ whiteSpace: 'nowrap' }}>{t.row.label}</Text></Table.Td>
                   {t.cells.map((c, i) => (
                     <Table.Td key={cols[i].id}>
                       <Stack gap={4} align="flex-start">
-                        {/* Dates and counts stay on one line; a text value (a location) wraps inside its column. */}
-                        <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined}
-                              style={t.row.type === 'text' ? { overflowWrap: 'anywhere' } : { whiteSpace: 'nowrap' }}>{c.text}</Text>
+                        <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined} style={{ whiteSpace: 'nowrap' }}>{c.text}</Text>
                         {c.delta && (
-                          <Group gap={4} wrap="wrap">
+                          <Group gap={4} wrap="nowrap">
                             <DeltaChip>{c.delta}</DeltaChip>
                             {c.holidays && <DeltaChip>{c.holidays}</DeltaChip>}
                           </Group>

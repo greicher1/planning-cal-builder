@@ -23703,8 +23703,16 @@ export function initLegacyApp() {
       });
       for(let k = 1; k <= model.cols.length + 1; k++) row.getCell(k).border = { bottom: { style: 'thin', color: line } };
     });
-    ws.getColumn(1).width = 28;
-    model.cols.forEach((c, i) => { ws.getColumn(i + 2).width = 22; });
+    // Each column as wide as its longest line, as the window is (owner: "so we dont have elipses/things cut off"):
+    // Excel cuts a value off at a filled neighbour rather than spilling into it. In characters, with a little room
+    // for the bold headings.
+    const chars = s => String(s || '').length;
+    ws.getColumn(1).width = Math.max(16, ...model.rows.map(r => chars(r.label))) + 3;
+    model.cols.forEach((c, i) => {
+      const longest = Math.max(chars(c.name) + (c.onScreen ? 11 : 0),
+        ...model.rows.map(r => { const k = r.cells[i] || {}; return Math.max(chars(k.text), chars([k.delta, k.holidays].filter(Boolean).join('   '))); }));
+      ws.getColumn(i + 2).width = Math.min(60, Math.max(16, longest + 3));
+    });
     const buf = await wb.xlsx.writeBuffer();
     downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), compareFileBase() + '.xlsx');
   }

@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
+
+- **Asked** (owner): *"the window needs to scale larger so we dont have elipses/things cut off"*. On the tracker as
+  `compare-window-fit`.
+- **Reproduced:** at 1440×900, a 36-character scenario name ended in "…" in its heading and the location wrapped,
+  while the window was 776 px wide.
+- **Built** (`src/chrome/CompareDialog.jsx`):
+  - the table is `width: max-content`, with each column held to a minimum (`COL_MIN`, `LABEL_MIN`) and nothing
+    wrapping;
+  - a `ResizeObserver` on the table (`measure`) sizes the Modal. It reads `offsetWidth`, never
+    `getBoundingClientRect()`, because the opening transition scales the content;
+  - `xOffset` / `yOffset` 24;
+  - a 12 px bottom pad on the scroll container, so an overlay scrollbar no longer sits on the last row.
+  - `exportCompareExcel` sizes its columns from the text.
+- ⚠️ **Mantine caps a Modal at 90% of the window** (`xOffset` 5vw) whatever its `size`. Pass `xOffset` to go wider.
+- **Verified:**
+  - 3 scenarios: 903 px, nothing clipped (every `p` and badge label has scrollWidth ≤ clientWidth);
+  - 12 scenarios: 1,392 px, and the 2,511 px table scrolls;
+  - `scenarios` 22/22, `npm run check` 40/40.
+
 ### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; ✅ **LIVE at `93836f5`**; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
 
 - **Asked** (owner, after Scenarios went live), four notes on the Compare window. On the tracker as

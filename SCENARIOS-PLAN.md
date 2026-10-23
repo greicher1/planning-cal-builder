@@ -233,6 +233,11 @@ Each decision has a recommendation, listed first.
       days that scenario's shoot lost to a holiday than the one on screen's, each from its own production walk
       (`holidaysHit`). First shoot day counts only the holidays before it. Equal counts make no chip.
     - The exports and Copy table follow the table as shown, so all four reach them.
+    - *"the window needs to scale larger so we dont have elipses/things cut off"*:
+      - every column is as wide as its widest content, and nothing wraps or truncates;
+      - the window is sized from the table's measured width, up to 24 px from the browser window's edges;
+      - Excel's columns fit their contents too;
+      - only a table wider than the browser window scrolls.
   - **Dates read as the waterfall writes them:** 6/29/26, and ranges as 5/18/26 – 6/26/26.
   - **Footer:** Export to Excel, Export PDF and Copy table on the left, Done on the right. Escape and the × close it
     too.
