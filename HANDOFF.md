@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LOCAL `main` FAST-FORWARDED TO IT (`f30d753`), NOT PUSHED**
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -105,15 +105,21 @@
   yet; ask me about the push separately."*** `main` fast-forwarded `c6cec93` → `f30d753` in the main checkout (its
   two pre-existing local fixture changes, `stintswap-reshape.sptcal` and an untracked `Reshape Fixture …`, are not
   touched by the merge and were left alone). Rebuilt at `f30d753`: `bc270785…`, the gated build byte for byte.
-- ⏭ **Next:** the owner's push picker. `origin/main` is `ff128dd`; a push ships free positions, Hide from Exports
-  and `main`'s one HANDOFF commit. No version cut is planned unless the owner wants the update notice. `sidebox-noexport` is inside this branch, so landing this lands both.
+- ✅ **PUSHED AND LIVE.** Owner, 22 Oct: *"Push local main to origin now, no version cut, and verify the live site
+  serves the gated build."* ONE `git push origin main` at 18:47:58 (`ff128dd..7f68d88`, 24 commits: free positions
+  and Hide from Exports). Deploy run 39886034655: Build and check, Deploy to Pages, both success. At 18:49:07 the
+  live `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (sha256
+  `bc270785419495fe…`, 1,731,951 bytes, `cmp`); `version.json` still 1.8.0, so installed copies pick it up silently.
+- ⏭ **Next:** nothing on either feature. The worktrees `sidebox-free-pos`, `sidebox-noexport`, `sidebox-zoom` and
+  `land-five` can be removed on the owner's word. A version cut (v1.8.1 or v1.9.0) is the owner's call whenever they
+  want the update notice shown. `sidebox-noexport` is inside this branch, so landing this lands both.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
   `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a script whose name has no "gate.sh", with
   a random 45–90 s pause before starting so two queues don't start together.
 
-### 🔨 21–22 Oct 2026: "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`, then live `origin/main` (`34c873f`, v1.7.0 + header-zoom) merged in; first build GATED (2,619 / 7, all 7 explained); NOT merged into `main`, NOT pushed
+### ✅ 21–22 Oct 2026 (LIVE at `7f68d88` with side-box free positions, 22 Oct): "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`, then live `origin/main` (`34c873f`, v1.7.0 + header-zoom) merged in; first build GATED (2,619 / 7, all 7 explained); NOT merged into `main`, NOT pushed
 
 - **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
   app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
