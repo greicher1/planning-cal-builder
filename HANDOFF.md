@@ -4,6 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; FULL GATE QUEUED; NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+
+- **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
+  sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
+  phase up or down its going to move that phase to the same position on every week but notes need to be able to
+  individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one
+  day to another and for auto notes or notes with dates, have the date auto adjust"*. Tracker cards
+  `month-reorder-fixes` and `month-note-day-drag`.
+- ⭐ **The cause (reproduced, both triggers):** frozen `renderMonthView` places every note first-fit, so an untouched
+  note takes the first free line of its DAY. Anything that pushes a week's bars down a line opens a line above the
+  bars on that week's OTHER days, and their notes rise into it. (1) A note dragged on top of Wed 3/4: "Tue note" and
+  "Thu note" jumped above the bars. (2) Prod Prep's grip dragged to the top in the week of 3/15: the order is the whole
+  calendar's (D1), so the week of 3/8, where Prod Prep runs Thu–Fri only, re-stacked and its Mon–Wed notes jumped above
+  both bars.
+- **The fix, no new state:** once a calendar holds any order or note place (`mvIsArranged()`), each month render first
+  asks the frozen renderer for the UNTOUCHED layout (`mvRefMode`: date order, no places), reads off the bar directly
+  above every note on its day (`mvReferenceAnchors`), and places each untouched note no higher than the line under that
+  bar. A note with no bar above it there is placed as before. A never-rearranged calendar takes the old path exactly.
+  Render cost on a rearranged calendar: ~6 → ~15 ms per month.
+- **New, per the ask:** a dragged note lands above every bar (`top`), under a phase (`under: '<key>'`) or under every
+  bar (`bottom: true`), and the day it lands on is written note by note at the places they are drawn. A note can go to
+  ANOTHER day: dates naming its old day are rewritten (any typed form); a waterfall line moves into the new week's
+  waterfall note through `saveNoteEdit`, its trailing date rewritten or stamped; an auto-note so moved becomes an edit
+  (its phase does not move). Defaults taken, plan §9.2 D9–D12: holidays stay on their day; a drop >24 px off the grid
+  puts the note back; waterfall lines only into weeks the waterfall has; one place per waterfall-line text.
+- **Frozen edits (picker, 23 Oct: *"Approve with that gate"*):** E3, `takeLane`/`place` take an optional `minLane`, and
+  the notes loop passes it plus `data-note-anchor` (the row index of the bar above); E4, each phase's iteration ends by
+  placing the notes under it (`placeNotes('u:' + key, notesFrom)`). The month-PDF writer (not frozen) reads the anchor
+  and starts that note's re-pack search under the same item.
+- **Save format:** `under` / `bottom` on a `dayNotes` entry; `under` / `bottom` / `day` on an `mvWfNotePlace` value.
+  `day` fixes a second, smaller bug: a place was keyed by text alone, so one arrangement moved every same-text line
+  (yearly holidays, a line typed into several weeks). Sanitized and restored field by field; no `SNAPSHOT_VERSION` bump.
+- **The note drag was rewritten** (`installMonthNoteDrag`): every redraw starts from the stores as they were at the
+  press (`dayNotes`, `userNotes`, `mvWfNotePlace`, `noteColors` copied), so nothing accumulates; a drop that draws the
+  month exactly as before (out and back, Escape) restores the very state and banks no step.
+- **Proof so far (build `95bf3fd4…`, 1,763,999 bytes; commits `51ecdc1`, `6cd0d37`, `81c7ffc`):** `npm run check`
+  40/40; `mvorder` 30/30 with M1–M10 on the new synthetic `tests/fixtures/mvdrag.sptcal` (M3 reads the WRITTEN month
+  PDF: the between-phases note's y lies between its two bars'); on the live build `d2ac914e` M1–M6 and M8 are red.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13. In the pane: a between-phases drop and a Tue→Thu drop with
+  the date rewritten. N3's expectation now includes the place's `day`.
+- ⚠️ **Learned: a harness probe that measures an element BEFORE a drag and uses it AFTER gets a zero rect** (the redraw
+  replaced it), so its "drop" lands at (0, 0). It looked like a bug (a note landed on Sun 3/1) and was the probe's. It
+  did expose a real gap, fixed as D10.
+- ⚠️ **Not done here:** `gate.sh`'s comment and label for `mvorder` still describe 21 Oct's cases (edit it only when no
+  gate is running: zsh reads a running script as it goes).
+- ⏭ **Next:** the full gate (queued behind the scenarios session's, port 9807), then the owner's picker on merging and on
+  pushing.
+
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 
 - **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready
