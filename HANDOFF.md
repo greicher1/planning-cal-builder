@@ -81,7 +81,7 @@
   approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
   it lands, never from an older `main`.
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); NOT PUSHED, A FULL GATE OWED FIRST
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); live `d25eaf6` merged in beside it (local `main` = `99a145e`); **FULL GATE ON `99a145e`: 3,040 / 1** (`launchopen` L6, green alone 16/16 three times); NOT PUSHED, the owner's call
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
@@ -142,8 +142,20 @@
     - `scenarios` 18/18;
     - `scenariocompat` (both releases);
     - `mvhdroff` 9/9, `hdrrow` 37/37, `mvorder` 30/30.
-  - ⛔ **A FULL GATE IS STILL OWED before this is pushed** (save format plus frozen edits S1/S2). The owner chose to
-    run it before the next push rather than now.
+  - ✅ **The owed full gate has run** (owner: *"Run the full gate on local main once the other session's gate has
+    finished, then report and ask me about pushing"*). It ran on `99a145e`, which is local `main` and contains the
+    live `d25eaf6`:
+    - `1bd8056` (another session) merged `d25eaf6` into local `main` beside Scenarios, and `99a145e` merged in
+      `fd462a0`, which is HANDOFF only.
+    - Quick checks first: `npm run check` 40/40, `scenarios` 18/18, `wfmenu` and `mvmenu` (halfdays) 38/38 and
+      89/89.
+    - **Gate 3: 3,040 PASS, 1 FAIL**, 15:41–16:10. The 1 is `launchopen` L6 (Load after a double-click with
+      unsaved work). Run alone on the same build it passes 16/16 three times out of three. A timing flake under
+      load: another session's gate was queued behind this one.
+    - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, and every month print and the
+      written month PDF. Clipped cells = 0. All scenario checks pass, and so does `scenariocompat` on both releases.
+    - Push only on the owner's per-action yes. Before pushing, check that local `main` is still `99a145e` (or that
+      only docs moved) and that `origin/main` is still `d25eaf6`.
 - ⚠️ **Traps for whoever touches this:**
   - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
   - `buildHeaderCtx()` returns `{tokens}`.

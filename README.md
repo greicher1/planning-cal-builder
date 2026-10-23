@@ -99,7 +99,8 @@ up to twelve columns, its Excel and PDF exports). Built on branch `scenarios`, s
 - `npm run check` 40/40;
 - in the browser pane with real clicks: duplicate, rename, switch, Compare, the menu, crash recovery of three tabs.
 
-Full gate: see HANDOFF. **Not built yet:** "Add a calendar file as a scenario…", and ◀ ▶ arrows with a ▾ list when tabs
+Full gate on local main with the live `d25eaf6` merged in: 3,040 / 1 (`launchopen` L6, which passes alone 16/16, three
+runs of three). Every byte comparison is identical. **Not built yet:** "Add a calendar file as a scenario…", and ◀ ▶ arrows with a ▾ list when tabs
 overflow (they scroll with the wheel today).
 
 ### Unreleased — Header: Off for the Month view (23 Oct 2026)
