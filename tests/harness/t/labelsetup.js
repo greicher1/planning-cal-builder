@@ -476,8 +476,8 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(700);
     await toMonth('December 2026');
     await T.sleep(700);
-    // ⚠️ A view switch is its own undo step (the offweek leg's note), so every undo below runs in the view
-    // the action was taken in, and the waterfall is read only after a redo.
+    // ⚠️ Every undo below runs in the view the action was taken in, and the waterfall is read only after a
+    // redo: until 22 Oct 2026 a view switch was its own undo step (the offweek leg's note).
     // A title typed just before, and not yet banked (the 500 ms debounce): the item's LEADING undo push must
     // file it as its own step, so one undo takes back the item and keeps the title (mvmenu's idiom).
     T.set('show-title', 'C Typed 1');

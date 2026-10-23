@@ -1625,6 +1625,10 @@ done
 # (or the template header editor) is up. Before, ⌘Z under "Remove hiatus?" made Remove do nothing, under "Remove
 # phase?" it left a ghost row, and ⌘S under the Region's "Continue?" on a file changed on disk dropped the Region
 # change. It loads its own linked file through the fake picker, so it takes no state. In-field undo stays (X1, X2).
+# undokeys guards ⌘Z / ⇧⌘Z after every kind of edit (owner, 22 Oct 2026): right after a checkbox, a Settings switch
+# or a typed date (none has an undo of its own, so the keys used to do nothing), and after a grid drag that left the
+# cursor in a sidebar text box (the keys used to go to the box). And a view switch is not an undo step. A text box
+# you are typing in still keeps ⌘Z (X1, X2), and the saved file still records its view (X3).
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 # halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
@@ -1716,7 +1720,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               papersize:-:500 \
               pdfdialog:-:500 \
               phasefold:-:300 \
-              filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
+              filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 \
