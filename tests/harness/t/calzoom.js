@@ -12,7 +12,8 @@
 //    help button in the bottom strip, below the preview's scroll box (Z5, W1b; owner, 21 Oct 2026).
 // W  the waterfall: a step through the hit stack, the grid box ending at the panel's bottom at every zoom with
 //    the panel never scrolling, the frozen resize handles hidden while zoomed and back ON their rows and
-//    columns at 100%, the selection outline on its cell and the swap button in the same grid place at 150%.
+//    columns at 100%, the selection outline on its cell and the swap button in the same grid place at 150%,
+//    and a text style highlight made at 100% still on its cell at 50% and 200% (W8).
 // M  the month view: its own zoom, the day columns and every note lane exactly as at 100% (a magnification,
 //    nothing reflows), sideways scroll when zoomed in, and the zoom it remembers for the waterfall untouched.
 // F  the file: a zoom is not an edit (no dirty mark, no undo step), a shareable copy carries no zoom and no
@@ -178,6 +179,37 @@ window.addEventListener('load', function () { (async function () {
     // Within a pixel: the button's own text is laid out at the zoomed size, so its width rounds.
     check(!!out.stint1 && !!out.stint15 && out.stint1.every(function (v, i){ return near(v, out.stint15[i], 1.5); }),
           'W6 the Swap column button sits in the same grid place at 150% as at 100% (' + out.stint1 + ' / ' + out.stint15 + ')');
+    // The text style highlight, made at 100% and kept on its cell through 50% and 200% (22 Oct 2026). Chrome lays
+    // the rows out at a different height in the grid's own px at each zoom (20 at 100%, 20.8 at 50%, 20.1 at 200%),
+    // so a highlight drawn once drifted ~2 rows off a cell this far down until a render at 100% redrew it. A plain
+    // press on a date cell, the bar's own gesture. Red before setCalZoom() redrew it (19 px off at 50%).
+    await zoomTo(1);
+    var tsBox = $('sheet-scroll-container'); tsBox.scrollTop = 0; tsBox.scrollLeft = 0; await T.sleep(150);
+    var tsRows = q('table.sheet-table').tBodies[0].rows, tsR = Math.min(45, tsRows.length - 1);
+    function tsCell(){ return q('table.sheet-table').tBodies[0].rows[tsR].cells[0]; }
+    tsCell().scrollIntoView({block: 'center'}); await T.sleep(150);
+    var tp = mid(tsCell()), tt = topAt(tp);
+    var to = {bubbles: true, cancelable: true, clientX: tp.x, clientY: tp.y, button: 0, buttons: 1, pointerType: 'mouse', pointerId: 9, isPrimary: true};
+    tt.dispatchEvent(new PointerEvent('pointerdown', to));
+    tt.dispatchEvent(new PointerEvent('pointerup', Object.assign({}, to, {buttons: 0})));
+    tt.dispatchEvent(new MouseEvent('click', Object.assign({}, to, {buttons: 0})));
+    await T.sleep(250);
+    function tsOff(){
+      var s = q('.text-sel-layer .text-sel-cell'), c = tsCell().getBoundingClientRect();
+      if(!s) return null;
+      var r = s.getBoundingClientRect();
+      return [r.left - c.left, r.top - c.top, r.width - c.width, r.height - c.height].map(function (v){ return Math.round(v * 10) / 10; });
+    }
+    out.textSel = {row: tsR, z100: tsOff()};
+    for(var tz of [0.5, 2]){
+      await zoomTo(tz);
+      tsCell().scrollIntoView({block: 'center'}); await T.sleep(150);
+      out.textSel['z' + tz * 100] = tsOff();
+    }
+    check(['z100', 'z50', 'z200'].every(function (k){ var o = out.textSel[k]; return !!o && o.every(function (v){ return Math.abs(v) <= 1; }); }),
+          'W8 a text style highlight made at 100% stays on its cell at 50% and 200% (' + JSON.stringify(out.textSel) + ')');
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    await T.sleep(100);
     // Back to 100%: the handles come back, on their rows and columns.
     await zoomTo(1);
     var h = handlesOnRows();
