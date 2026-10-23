@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 22–23 Oct 2026: COLUMN HEADINGS EDITABLE ALL THE TIME, THE SWITCH GONE — branch `claude/headings-editable-5c2c47` (worktree `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` at `7b3aa6c`; FULL GATE GATE_RESULT_PENDING; NOT MERGED ([`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md))
+### 🔨 22–23 Oct 2026: COLUMN HEADINGS EDITABLE ALL THE TIME, THE SWITCH GONE — branch `claude/headings-editable-5c2c47` (worktree `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` at `7b3aa6c`; LEGS GREEN, FULL GATE ON THE COMBINED MERGE (`land-ready-1023`), NOT HERE; NOT MERGED ([`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md))
 
 - **Asked** (owner, mid-way through `hide-notes`): *"i say we remove the custom column headings toggle in settings and
   just make it editable all the time"*. Ruled by picker, 22 Oct: untouched calendars keep `Date | year | Notes`;
@@ -34,9 +34,12 @@
 - ⚠️ **Harness trap:** a double-click that lands while an undo is still re-rendering opens the editor and the
   `#table-wrap` observer closes it at once (its cell was replaced). That is by design (pattern 3); retry after the
   grid settles. The legs wait on `settle()` for this reason.
-- ⏭ **Next:** the owner's call on merging into `main`. `hide-notes` is already in local `main` (`02e7c9b`, not
-  pushed), and `main` was merged INTO this branch (docs only: Scenarios plan and mockup, HANDOFF), so the merge
-  will be a fast-forward. Never pushed.
+- ⏭ **Next: NOT merged from here.** Owner, 23 Oct 2026, relayed by the hide-notes session: *"i want this to merge
+  into main along with all the other features we are trying to merge, then push everything at once"*. The "Merge
+  ready branches" session (branch `land-ready-1023`) merges this branch with `wf-header-clear` and runs ONE full
+  gate on the combination, so this branch runs no full gate of its own. `main` (with `hide-notes`, `02e7c9b`) was
+  merged into this branch first (`9bdcc72`, docs only; build unchanged, `1cca748b…`). If the combined gate fails in
+  `hdrrow`, `settingswin` or `notescols`, that is this branch's to fix. Never pushed.
 
 ### 📝 22 Oct 2026: SCENARIOS (SEVERAL VERSIONS OF ONE CALENDAR, COMPARED) — PLANNED AND RULED (D1–D6 all as recommended, by picker), NO CODE ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md), mockup [`mockups/scenarios.html`](mockups/scenarios.html))
 

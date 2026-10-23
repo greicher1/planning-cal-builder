@@ -61,7 +61,9 @@ was off come back (Q1, "Bring them back"); frozen edits H1–H3 signed off. Plan
   `settingswin` 19/19: the Waterfall card's list loses `wf-hdr-custom`, and W13 now asserts the switch is gone, which
   is red on the pre-change build. `textstyle` 51/51, `npm run check` 40/40. In the browser pane, real double-clicks
   opened the editor on an untouched Date and Notes heading, a typed heading changed only that heading, undo put Date
-  back, and the Waterfall card showed no switch. Full gate: GATE_RESULT_PENDING.
+  back, and the Waterfall card showed no switch. **Full gate: not run on this branch alone.** The owner (23 Oct
+  2026) wants one merge into `main` and one push for every ready feature, so one full gate runs on the combination
+  (branch `land-ready-1023`).
 
 ### Unreleased — hide a year's Notes column (22 Oct 2026)
 
