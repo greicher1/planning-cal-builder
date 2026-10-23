@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
+
+The owner: *"anything built and in the "ready to merge" section, merge it into main"*, then *"push everything at
+once"*. These all came in through one landing branch, `land-ready-1023`, with no new behaviour of its own:
+- Letter or Legal recommended in Export PDF;
+- ⌘Z / ⇧⌘Z after every edit;
+- Excel's editing keys in the waterfall;
+- the text highlight kept on its cells when zooming;
+- the waterfall PDF header's 4 pt;
+- column headings editable all the time;
+- the `sideboxes` R16 leg fix.
+
+Their entries below say what each does. **Verified:** one full gate on the combined build `d2ac914e…`, 2,962 PASS,
+0 FAIL. The waterfall PDF matches the re-cut baseline, as do every Excel part and every month print document, with 0
+clipped cells and 76 ids. Not pushed.
+- **A test fix that taught something:** `hiatuslabel` read each PDF stream by trimming newline bytes off its end, but a
+  compressed stream can end in one. Today's header date did exactly that, and the leg counted no "Hiatus" on any
+  build. It now cuts at the stream's `/Length`, the same as `pdfdialog`, and passes 7/7. Seven other legs still trim.
+
 ### Unreleased — The waterfall PDF's header leaves 4 pt above the grid, not 1 (built 5 Oct, merged 23 Oct 2026)
 
 **Users see a small change** in the waterfall PDF. With three header lines, the centre's last line ("Writer's Room

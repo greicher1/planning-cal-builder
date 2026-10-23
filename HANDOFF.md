@@ -4,7 +4,67 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 5 Oct 2026 (evening), landed 23 Oct: THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved; branch `wf-header-clear` (worktree `.claude/worktrees/month-baselines`), COMMITTED `a71514c` and `main` (`59dd0cd`) MERGED IN as `d950b78` on the owner's *"merge … into main"* (23 Oct 2026)
+### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ⛔ NOT PUSHED
+
+- **Asked:** *"anything built and in the "ready to merge" section, merge it into main"*. That is the tracker's Ready
+  column: `paper-recommend`, `text-highlight-zoom-drift`, `undo-keys-everywhere`, `waterfall-keyboard`,
+  `waterfall-copy-paste-notes`. Mid-landing, the "Hide unused notes columns" session relayed the owner's words:
+  *"i want this to merge into main along with all the other features we are trying to merge, then push everything at
+  once"*. So `wf-header-clear`, `headings-editable` and the `sideboxes` R16 leg fix came in too, before the one gate.
+  ⛔ Those words are the owner's intent, not the push approval: the push is still its own picker.
+- **What is in, in merge order:**
+  1. `paper-recommend` `a14c2e9`, which already carried live `origin/main` `7856d98` (resize at any zoom). Local
+     `main` had NOT contained `origin/main` before this landing.
+  2. `undo-keys` `1e83cf0`.
+  3. `wf-keys-paste` `6652aa0`.
+  4. `textsel-zoom` `349c36d`.
+  5. `main` `59dd0cd` (the Scenarios Compare mockup, docs only).
+  6. `wf-header-clear` `ba35c67`.
+  7. `claude/headings-editable-5c2c47` `83e3f23`.
+  8. `claude/hungry-chandrasekhar-519cf8` `612dcb4` (test only).
+  9. `paper-recommend` `f3a46f8` (HANDOFF only).
+  10. Then `11a041b`, the `hiatuslabel` test fix below, and this entry.
+  The other entries in this section are each of those branches. Each heading now says it is in local `main`, so any
+  "⏭ Next: merge…" line inside them is done.
+- **Conflicts, all resolved by keeping both sides:**
+  - HANDOFF / README top entries, every merge.
+  - UI-CONVENTIONS §10: hide-notes stays 16, the editing keys became 17, the headings 18.
+  - `setCalZoom()`: textsel-zoom's `redrawTextSel` line plus resize-zoom's settle comment. In `calzoom.js`, the
+    header line and W8 sit beside the handles check.
+  - The help text in `src/index.html` (one long line): wf-keys' "Moving around, and moving notes" paragraph plus the
+    headings' "Column headings" paragraph.
+  - ⛔ `tests/baselines/2026-08-29-stage-7/base.pdf` and `base.pdf.json` are `wf-header-clear`'s RE-CUT bytes
+    (auto-merged; checked identical to the branch's). Main's old ones would fail gate 2.
+- **Proof.** `npm run check` 40/40 on both builds.
+  - Targeted legs on the final build: `hdrrow` 37/37, `settingswin` 19/19, `notescols` 49/49, `wfkeys` 84/84,
+    `wfkeysreal` 6/6, `undokeys` 11/11, `textstyle` 51/51, `calzoom` 25/25 (W8), `sideboxes` 78/78.
+  - On the four-branch build before them: `mvmenu` 89/89, `dlgkeys` 16/16, `pdfdialog` 15/15, `papersize` 12/12,
+    `zoomresize` 40/40, `phaseedge` 23/23, `hiatusdrag` 13/13.
+  - In the pane: Delete on a highlighted note, then ⌘Z, put it back.
+  - ✅ **Full gate on `d2ac914e…`** (1,755,411 bytes; port 9792, 10:38:56–11:06:27, alone): **2,962 PASS, 0 FAIL**.
+    The waterfall PDF is identical to the re-cut baseline, as are every Excel part and every month print document.
+    0 clipped, 76 ids.
+- **`hiatuslabel` test fix (`11a041b`, after the gate, test only).** `pdfHiatusRuns()` trimmed 0x0A / 0x0D off every
+  PDF stream, but a compressed stream can END in one of those bytes. On 23 Oct the header date 10.23.26 made
+  `origin/main`'s waterfall stream do that, and N1-2 counted 0 "Hiatus" on every build. The paper-recommend session
+  found it. The leg now cuts at the dictionary's `/Length`, as `pdfdialog.js` does, and passes 7/7 alone on the gated
+  build. The gate's own run passed without the fix only because the 4 pt header clearance shifts the stream bytes.
+  ⚠️ `calrange`, `hdrtemplate`, `hdrrow`, `notewrap`, `onecol`, `prodspan` and `winansi` still trim, and can fail the
+  same way on another date.
+- ⚠️ **Learned: `HARNESS_PORT` is not reserved between sessions.** This session and the paper-recommend session both
+  ran legs on 9771 at 10:30–10:38. They shared the server port and the `/tmp/tc9771-*` Chrome profiles, so
+  `notescols`, `sideboxes` and `wfkeysreal` "produced no result" / "timed out waiting for the waterfall". All three
+  passed at once on 9790. Before picking a port, check `lsof -nP -iTCP:<port> -sTCP:LISTEN`. A "no result" with no
+  assertion failure is a clash or contention until proven otherwise.
+- ⚠️ **paper-recommend's merged-build gate (2,751 / 5) is explained in its own entry.** None of the five is the
+  feature's: three were contention, one the R16 flake, one the `hiatuslabel` date bug.
+- ⛔ **NOT PUSHED.** A push of local `main` now ships all of the above, plus hide-notes, the right-click-menu docs
+  and the Scenarios docs. `version.json` is still 1.8.0: a version cut is the owner's call, and without one installed
+  copies update silently.
+- ⏭ **Next:** the owner's push picker. After an approved push, check the live `index.html` is byte-identical to this
+  build. The landing worktree and the landed branches' worktrees can go on the owner's word.
+
+### ✅ 5 Oct 2026 (evening), landed 23 Oct: THE WATERFALL PDF HEADER LEAVES 4 pt ABOVE THE GRID — a FROZEN EDIT, owner-approved; branch `wf-header-clear` (worktree `.claude/worktrees/month-baselines`), COMMITTED `a71514c` and `main` (`59dd0cd`) MERGED IN as `d950b78` on the owner's *"merge … into main"* (23 Oct 2026); IN LOCAL `main` via `land-ready-1023` (combined gate 2,962 / 0, 23 Oct), NOT PUSHED
 
 - **The ask.** Looking at a waterfall PDF, the owner asked two things:
   - why there is more white space between the header's left section and its centre;
@@ -69,7 +129,7 @@
      a smaller header margin or a larger top margin, both shared with Excel, so the Excel export would change too.
   3. **A PDF baseline with a date in a deflated stream** is re-cut by pinning the page's clock, not by editing bytes.
 
-### 🔨 22–23 Oct 2026: COLUMN HEADINGS EDITABLE ALL THE TIME, THE SWITCH GONE — branch `claude/headings-editable-5c2c47` (worktree `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` at `7b3aa6c`; LEGS GREEN, FULL GATE ON THE COMBINED MERGE (`land-ready-1023`), NOT HERE; NOT MERGED ([`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md))
+### 🔨 22–23 Oct 2026: COLUMN HEADINGS EDITABLE ALL THE TIME, THE SWITCH GONE — branch `claude/headings-editable-5c2c47` (worktree `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` at `7b3aa6c`; LEGS GREEN, FULL GATE ON THE COMBINED MERGE (`land-ready-1023`), NOT HERE; MERGED INTO LOCAL `main` via `land-ready-1023` (combined gate 2,962 / 0, 23 Oct), NOT PUSHED ([`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md))
 
 - **Asked** (owner, mid-way through `hide-notes`): *"i say we remove the custom column headings toggle in settings and
   just make it editable all the time"*. Ruled by picker, 22 Oct: untouched calendars keep `Date | year | Notes`;
@@ -155,7 +215,7 @@
   ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.
 - **Not committed.** Written in the main checkout by a side session. No `src/` change.
 
-### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); THEN `origin/main` (`7856d98`) AND LOCAL `main` (`83ee71d`) MERGED IN as `b9f980f` + `a14c2e9`; FULL GATE ON THE MERGED BUILD 2,751 / 5 (`c27f8d58`), ALL FIVE EXPLAINED, NONE THIS BRANCH'S; MERGED INTO `land-ready-1023` BY THE "Merge ready branches" SESSION (at `a14c2e9`); NOT merged into `main`, NOT pushed
+### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); THEN `origin/main` (`7856d98`) AND LOCAL `main` (`83ee71d`) MERGED IN as `b9f980f` + `a14c2e9`; FULL GATE ON THE MERGED BUILD 2,751 / 5 (`c27f8d58`), ALL FIVE EXPLAINED, NONE THIS BRANCH'S; MERGED INTO `land-ready-1023` BY THE "Merge ready branches" SESSION (at `a14c2e9`, then `f3a46f8`); IN LOCAL `main` via that landing (combined gate 2,962 / 0, 23 Oct), NOT pushed
 
 - **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
   cal? Really it should only reccomend between letter size and legal"*. Then *"Yes, build the Letter/Legal paper
@@ -232,7 +292,7 @@
   this branch no longer contains `main`.
 - ⏭ **Next:** nothing on this branch. The feature lands through `land-ready-1023`.
 
-### 🔨 22 Oct 2026: RESIZE COLUMNS AND ROWS AT ANY ZOOM — branch `resize-zoom` (worktree `.claude/worktrees/resize-zoom`), from `main` at `55a9c61`; SIX FROZEN EDITS (Z1–Z6), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,801 / 0 (build `d80112ba`); not committed, not merged, not pushed
+### 🔨 22 Oct 2026: RESIZE COLUMNS AND ROWS AT ANY ZOOM — branch `resize-zoom` (worktree `.claude/worktrees/resize-zoom`), from `main` at `55a9c61`; SIX FROZEN EDITS (Z1–Z6), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,801 / 0 (build `d80112ba`); LIVE at `7856d98` (pushed 22 Oct, no version cut); in local `main` since the 23 Oct landing (`land-ready-1023`)
 
 - **Asked:** *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
   viewport"* (also asked 21 Oct as *"what happened to my ability to adjust the horizontal size of columns in the
@@ -270,7 +330,7 @@
 - ⏭ **Next:** commit on `resize-zoom`, merge into `main` and push, each only on the
   owner's word.
 
-### 🔨 22 Oct 2026: ⌘Z / ⇧⌘Z AFTER EVERY KIND OF EDIT, AND A VIEW SWITCH IS NO UNDO STEP — branch `undo-keys` (worktree `.claude/worktrees/undo-keys`), from `main` at `55a9c61`; FULL GATE 2,770 / 2 (both `mvmenu`, expectations of the old rule, fixed and re-run 89/89 on the same build); NOT COMMITTED YET
+### 🔨 22 Oct 2026: ⌘Z / ⇧⌘Z AFTER EVERY KIND OF EDIT, AND A VIEW SWITCH IS NO UNDO STEP — branch `undo-keys` (worktree `.claude/worktrees/undo-keys`), from `main` at `55a9c61`; COMMITTED `3e904a4`, `main` (`83ee71d`) MERGED IN as `1e83cf0`; FULL GATE 2,770 / 2 on the pre-merge build `d007e3cf` (both `mvmenu`, expectations of the old rule, fixed and re-run 89/89 on the same build; the merged build's own gate was spoiled when the Mac slept); IN LOCAL `main` via `land-ready-1023` (combined gate 2,962 / 0, 23 Oct), NOT PUSHED
 
 - **Asked:** *"Does command z and command shift z works for EVERYTHING?"* Investigated with real key presses in the
   pane, two gaps reported, and the owner said *"Yes, fix both"*. Mid-fix: *"also command z should not count switching
@@ -325,7 +385,7 @@
   `hiatusdrag` 13/13, `dlgkeys` 16/16, `filekeys` 16/16, `labelsetup` 41/41. **`mvmenu` re-run on the same build after
   its fix: 89/89** (another session's gate was running by then; it passed anyway).
 
-### 🔧 22 Oct 2026 (late): `sideboxes` R16 WAS A FLAKY LEG, NOT A REGRESSION — FIXED IN THE LEG; NO APP CHANGE — branch `claude/hungry-chandrasekhar-519cf8` (worktree), from `main` at `83ee71d`
+### 🔧 22 Oct 2026 (late): `sideboxes` R16 WAS A FLAKY LEG, NOT A REGRESSION — FIXED IN THE LEG; NO APP CHANGE — branch `claude/hungry-chandrasekhar-519cf8` (worktree), from `main` at `83ee71d`; IN LOCAL `main` via `land-ready-1023` (combined gate 2,962 / 0, 23 Oct), NOT PUSHED
 
 - **Reported:** R16 (*"a box carried to the bottom of its column scrolls that column, not the grid"*) failed in
   another session's full gate, `{"left":0,"grid":120,"gridWas":120}`, and 77/78 alone four times on `main`'s build.
@@ -474,7 +534,7 @@
   `tools` is empty), so the gated build `f85c9814…` stands. Then `main` was fast-forwarded. ⛔ **NOT PUSHED.** A push
   of local `main` would now also ship the right-click menu and Scenarios docs commits.
 
-### 🔨 22 Oct 2026: EXCEL'S EDITING KEYS IN THE WATERFALL (ARROWS, TAB, DELETE, ⌘C / ⌘X / ⌘V, DRAG A NOTE) — branch `wf-keys-paste` (worktree `.claude/worktrees/wf-keys-paste`), from `main` at `4b95581`; [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md); RULED; BUILT; FULL GATE 2,854 / 1 (the 1 red on `main`'s own build too); COMMITTED on the branch by the owner's picker (22 Oct: *"Commit on the branch"*, merge *"Not yet"*, push *"No push"*); NOT merged, NOT pushed
+### 🔨 22 Oct 2026: EXCEL'S EDITING KEYS IN THE WATERFALL (ARROWS, TAB, DELETE, ⌘C / ⌘X / ⌘V, DRAG A NOTE) — branch `wf-keys-paste` (worktree `.claude/worktrees/wf-keys-paste`), from `main` at `4b95581`; [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md); RULED; BUILT; FULL GATE 2,854 / 1 (the 1 red on `main`'s own build too); COMMITTED on the branch by the owner's picker (22 Oct: *"Commit on the branch"*, merge *"Not yet"*, push *"No push"*); IN LOCAL `main` via `land-ready-1023` on the owner's word (23 Oct: *"anything built and in the "ready to merge" section, merge it into main"*; gate 2,962 / 0, 23 Oct), NOT pushed
 
 - ✅ **Full gate on build `4c74bde6…` (port 9623, 22 Oct 20:54:57–21:21:55, alone): 2,854 PASS, 1 FAIL.** 0 clipped;
   the waterfall PDF and every Excel part identical to the baselines; 76 ids; `wfkeys` 84/84 and `wfkeysreal` 6/6
@@ -547,7 +607,7 @@
 - ⏭ **Next:** merging into `main` and pushing are the owner's, each asked separately; the owner held both (22 Oct),
   perhaps to land with `undo-keys`. `sideboxes` R16 wants its own look (above; proposed as its own session).
 
-### 🔨 22 Oct 2026: THE TEXT STYLE HIGHLIGHT STAYS ON ITS CELLS WHEN YOU ZOOM — branch `textsel-zoom` (worktree `.claude/worktrees/textsel-zoom`), from `main` at `4b95581`; COMMITTED on the branch on the owner's word (picker, 22 Oct: *"Commit on the branch"*, push *"Not yet"*), NOT merged into `main`, NOT pushed
+### 🔨 22 Oct 2026: THE TEXT STYLE HIGHLIGHT STAYS ON ITS CELLS WHEN YOU ZOOM — branch `textsel-zoom` (worktree `.claude/worktrees/textsel-zoom`), from `main` at `4b95581`; COMMITTED on the branch on the owner's word (picker, 22 Oct: *"Commit on the branch"*, push *"Not yet"*); IN LOCAL `main` via `land-ready-1023` (23 Oct, combined gate 2,962 / 0), NOT pushed
 
 - **Asked:** *"are there any other features that dont work at every zoom level"* (a fork of the resize-while-zoomed
   session), then *"Fix the text highlight drift here (the one-line redraw in setCalZoom plus a calzoom check)"*.
