@@ -4,6 +4,9 @@
 the same day: *"Sign off all"*, which approves every frozen edit in §6, including the on-screen strip, with §6's gate.
 Then *"build it"*. The `notescols` leg passes 48/48 and is red on the pre-change build. §9 records what changed in
 the build from the plan. Nothing is merged or pushed without asking.
+⚠️ **Superseded in part the same day by [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md):** the Custom Column
+Headings switch is gone, so the headings-off Notes panel (`openNotesColPop`, §2/§4 below) is retired. Every heading
+opens the heading editor, which carries the same "Has notes" badge and Hide column button.
 
 Owner, 22 Oct 2026:
 

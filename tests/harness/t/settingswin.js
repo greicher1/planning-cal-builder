@@ -107,20 +107,22 @@ window.addEventListener('load', function () { (async function () {
   var MOVED = {
     region: ['union-place', 'union-resolves', 'union-locals', 'union-caveat', 'holiday-vis', 'holiday-vis-empty', 'holiday-vis-list',
              'custom-hol-name', 'custom-hol-date', 'custom-hol-add', 'custom-hol-err', 'holiday-reset-btn'],
-    // wf-date-format / wf-hdr-custom: the header row's Dates and Custom Column Headings (rulings 2, 4), folded into
-    // the Waterfall card when the branches merged (20 Oct 2026). The first eight were the Calendar tab's until the
-    // owner merged it into Preferences, the same night.
+    // wf-date-format: the header row's Dates (ruling 4), folded into the Waterfall card when the branches merged
+    // (20 Oct 2026). The first eight were the Calendar tab's until the owner merged it into Preferences, the same
+    // night. (wf-hdr-custom, Custom Column Headings, sat beside it until 22 Oct 2026, when the owner had the switch
+    // removed and every heading made editable: HEADINGS-EDITABLE-PLAN.md. It was in .prefs-card, so the sweep's id
+    // set, gate 5, does not move.)
     prefs: ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off', 'share-copy-btn',
-            'wf-date-format', 'wf-hdr-custom', 'col-reuse-btn', 'pref-mv-shootdays',
+            'wf-date-format', 'col-reuse-btn', 'pref-mv-shootdays',
             'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
   };
   // The merged cards, by view: what each one holds (W13).
-  var WF_CARD = ['one-col-btn', 'col-reuse-btn', 'wf-date-format', 'wf-hdr-custom', 'pref-gridlines'];
+  var WF_CARD = ['one-col-btn', 'col-reuse-btn', 'wf-date-format', 'pref-gridlines'];
   var MV_CARD = ['mv-prod-label-week', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes', 'prep-pause-off', 'pref-mv-shootdays'];
   var SWEPT = ['union-place', 'custom-hol-name', 'custom-hol-date'];
   var NEVER_IN_BYID = ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off',
                        'col-reuse-btn', 'pref-mv-shootdays',
-                       'wf-date-format', 'wf-hdr-custom',
+                       'wf-date-format',
                        'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
 
   try {
@@ -374,9 +376,13 @@ window.addEventListener('load', function () { (async function () {
     var mvRows = ['pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'].filter(function (id) { return shown(el(id)); });
     var l13mShown = {label: shown(el('mv-prod-label-week')), pause: shown(el('prep-pause-off')), days: shown(el('pref-mv-shootdays')), rows: mvRows};
     await T.closeSettings();
-    out.w13 = {sheet: l13s, gridShown: gridShown, oneShown: oneShown, month: l13m, monthShown: l13mShown};
-    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines), Automatic notes, App and a line naming Grid Lines; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes, App and a line naming the grey-text switches',
-      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'App']) && l13s.wf && gridShown && oneShown
+    // ...and no Custom Column Headings switch in it (removed 22 Oct 2026, HEADINGS-EDITABLE-PLAN.md): the only way it
+    // could come back is a stray row, which would carry its old id or its label.
+    var wfCards = [].filter.call(document.querySelectorAll('#settings-window section.card'), function (c) { return /Waterfall/.test((c.querySelector('h2') || c).textContent); });
+    out.w13 = {sheet: l13s, gridShown: gridShown, oneShown: oneShown, month: l13m, monthShown: l13mShown,
+               noHdrSwitch: !el('wf-hdr-custom') && wfCards.length === 1 && !/Custom Column Headings/i.test(wfCards[0].textContent)};
+    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines, and no Custom Column Headings switch), Automatic notes, App and a line naming Grid Lines; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes, App and a line naming the grey-text switches',
+      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'App']) && l13s.wf && gridShown && oneShown && out.w13.noHdrSwitch
         && l13s.scope.length === 1 && /Grid Lines in Exports, which stays on this computer/.test(l13s.scope[0])
         && eq(l13m.heads, ['Month view', 'Automatic notes', 'App']) && l13m.mv
         && l13m.scope.length === 1 && /grey-text switches, which stay on this computer/.test(l13m.scope[0])

@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — column headings are editable all the time; the switch is gone (22 Oct 2026)
+
+The owner, while the Notes-hiding work was being built: *"i say we remove the custom column headings toggle in
+settings and just make it editable all the time"*. Ruled by picker the same day: untouched calendars keep
+`Date | year | Notes`; calendars saved with the switch on keep the year over Date; headings typed while the switch
+was off come back (Q1, "Bring them back"); frozen edits H1–H3 signed off. Plan: [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md).
+- **Double-click any heading in the waterfall** (Date, a year or Notes) to edit it: the same editor as before, with
+  ← Merge / Split / Merge →, Reset, and Hide column over a Notes column. Every heading shows the edit cursor and the
+  hover ring. **Settings › Preferences › Waterfall loses its *Custom Column Headings* row**, and its ⓘ and the help
+  panel say how headings work now.
+- **An untouched calendar is exactly what it was**, on screen, in Excel and in the PDF, byte for byte. The first typed
+  heading (or split) moves the calendar onto the typed-headings path, and only that heading changes. Untyped headings
+  now read Date, the year and Notes there too, so typing one heading no longer moves the year over the Date column.
+  Reset (or typing a heading back to its default) that leaves nothing typed puts the original output back.
+- **The year over Date is one ← Merge away**: ← Merge on a year heading joins it with Date and keeps the year. (Merge →
+  on Date joins them and keeps "Date", since a merge takes the text of the heading being edited.)
+- **Older files.** A calendar saved with the switch on (`headerRowCustom: true`) still opens with the year over Date:
+  the key is kept and now means "this calendar's Date column defaults to the year". Nothing new writes it, and New
+  clears it. A calendar holding headings that were typed and then switched off shows them again. No version bump.
+- **The separate Notes panel is retired** (it was added earlier the same day, in the entry below, for Notes headings
+  with the switch off). Every heading opens the heading editor now, which already had its "Has notes" badge and
+  Hide column button.
+- **Frozen edits H1–H3, signed off by the owner:** `renderSpreadsheetView`'s header loop, `exportExcel`'s row 1 and
+  `buildWaterfallPdf`'s header row each take the typed path on `headerRowTyped()` (a label, a split or the old switch)
+  instead of on the switch. One word each, commented `⛔ FROZEN EDIT H1/H2/H3`.
+- **Verified:** `hdrrow` rewritten without the switch, 37/37. Among its cases, H9 shows that a Reset gives back row 1
+  of the workbook (values, merges, every style) and the PDF's content stream identical to an untouched export. It is
+  red on the pre-change build (I2, H1, then H2 cannot open the editor on an untouched heading). `notescols` 49/49,
+  with its A group on the heading editor and the old C group folded in as A6–A9, red on the pre-change build.
+  `settingswin` 19/19: the Waterfall card's list loses `wf-hdr-custom`, and W13 now asserts the switch is gone, which
+  is red on the pre-change build. `textstyle` 51/51, `npm run check` 40/40. In the browser pane, real double-clicks
+  opened the editor on an untouched Date and Notes heading, a typed heading changed only that heading, undo put Date
+  back, and the Waterfall card showed no switch. Full gate: GATE_RESULT_PENDING.
+
 ### Unreleased — hide a year's Notes column (22 Oct 2026)
 
 The owner: *"we need an option to be able to hide unused notes collumns"*. They chose hiding each column by hand
@@ -36,6 +70,8 @@ The owner: *"we need an option to be able to hide unused notes collumns"*. They 
 mantine style"*. Plan and rulings: [`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md).
 - **Double-click a year's Notes heading** to open its panel, then **Hide column**. With Custom Column Headings on,
   the heading editor carries the same button ("Hide Notes column" when the heading also covers a phase column).
+  *(Superseded the same day by the entry above: the switch and the separate panel are gone, and every heading opens
+  the heading editor, which carries this button.)*
   There is no confirmation: the notes stay saved, and the hide is one undo step.
 - **A violet dot flags a column that holds notes**, as a "Has notes" badge in the panel, on the hidden column's strip
   and on its pill in Settings. It never shows a count or the note text.

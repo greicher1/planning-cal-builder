@@ -1674,7 +1674,10 @@ done
 # driven through its real control and read back from the screen, the workbook and the waterfall PDF, each one undo
 # step, saved, loaded and immune to the M-5 trap. Red on the pre-change build; eight mutants, each red. Its own
 # line, mid-list, so sessions appending at the end never conflict with it. Since 20 Oct 2026 it also drives the
-# heading editor's Split / ← Merge / Merge → buttons and the `headerRowSplits` key (cases S1-S5).
+# heading editor's Split / ← Merge / Merge → buttons and the `headerRowSplits` key (cases S1-S5). Since 22 Oct 2026
+# (HEADINGS-EDITABLE-PLAN.md, frozen edits H1-H3) there is no switch: every heading opens the editor by
+# double-click, an untouched calendar keeps the original path's markup, and a Reset of the last typed heading puts
+# the original path's workbook row 1 and PDF content stream back byte for byte (H9). Red on the hide-notes build.
 # settingswin guards the Settings window (owner ruling 12, 20 Oct 2026), which took over the sidebar's old Settings
 # tab: every moved id is in it once, on its tab; fields.byId gets #union-place and the two custom-holiday fields in
 # their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;
@@ -2515,11 +2518,13 @@ PYSN
 # ---- notescols: hide a year's Notes column (HIDE-NOTES-PLAN.md, owner's option B, 22 Oct 2026) ---------------
 # The frozen edits W1-W2, R1-R5, X1, E1-E3, P1-P3 (signed off 22 Oct 2026) are inert with nothing hidden, which
 # every byte-compared gate above proves; this leg proves them with columns hidden. On colreuse (three blocks, two
-# with notes, an all-phase hiatus in 2031): the Notes panel by double-click, the strip (one cell per row, never a
+# with notes, an all-phase hiatus in 2031): the heading editor's Hide column by double-click, the strip (one cell per row, never a
 # rowspan, its resize handle hidden, the dot), the grid's right edge, 0 clipped; the workbook's columns HIDDEN with
 # width and notes kept, the right rule and the hiatus band's merge at the last phase column; the PDF's headings
-# and notes; the print fallback (localhost route sptcal.wfPdfTest) with no strip; Custom Column Headings and
-# Single Column Mode; the file key (absent when empty, Load, hostile values, New). Red on the pre-change build.
+# and notes; the print fallback (localhost route sptcal.wfPdfTest) with no strip; a typed heading (the typed path)
+# and Single Column Mode; the file key (absent when empty, Load, hostile values, New). Red on the pre-change build.
+# Since 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md) the separate Notes panel is retired: the A group drives the heading
+# editor on an untouched Notes heading, and its old C group (Custom Column Headings switched on) is A6-A9.
 rm -f "$HERE/notescols.json"
 HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse "$HERE/run.sh" notescols 1200 >/dev/null 2>&1
 python3 - "$HERE/notescols.json" <<'PYNC' || FAIL=1

@@ -1303,6 +1303,13 @@ Nothing in this document ships without all of these, every stage:
     right rule and hiatus band ending at the last phase column; the PDF draws no heading or note for
     it; and the print fallback never carries the strip. Items 2 and 3 are the other half: with nothing
     hidden, every frozen edit it took (W1–W2, R1–R5, X1, E1–E3, P1–P3) is byte for byte inert.
+17. **NEW — every heading is editable, and an untouched calendar keeps the original path** (22 Oct 2026,
+    HEADINGS-EDITABLE-PLAN.md). `gate.sh`'s `hdrrow` leg, H1–H14: no Custom Column Headings switch; the
+    untouched heading row is the original path's markup (no `hdrrow-cell`, no `data-hcol`); a double-click
+    on Date, the year or Notes opens the heading editor; one typed heading changes only that heading on
+    screen, in Excel and in the PDF; and a Reset that leaves nothing typed gives back row 1 of the workbook
+    and the PDF's content stream identical to an untouched export (H9). Items 2 and 3 are the other half:
+    no baseline types a heading, so H1–H3 are byte for byte inert there.
 
 ---
 
