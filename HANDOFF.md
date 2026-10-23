@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN (`5a3d5da`) MERGED IN as `2c2c68a`, QUICK CHECKS GREEN; NOT IN `main`, NOT PUSHED
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; NOT IN `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
@@ -55,6 +55,16 @@
     - `hdrcontrols` (carry-rich) 12/12;
     - `scenarios` 18/18;
     - `scenariocompat` green on both releases (v1.2.0 needed a re-run: one run left no result, then 3/3).
+- **Main merged in again** (`78aa285`: month notes keep their bar and drag between days; Header: Off for the Month
+  view), as `9905168`.
+  - Code merged automatically. CLAUDE.md, HANDOFF and README conflicted where both sides added; CLAUDE.md keeps main's
+    new `mvWfNotePlace` row, then `scenarioTabs`.
+  - Main's one new snapshot key, `mvHeaderOff`, is per scenario with nothing to do.
+  - On the merged build, run while another session's full gate was going:
+    - `npm run check` 40/40;
+    - `scenarios` 18/18;
+    - `scenariocompat` (both releases);
+    - `mvhdroff` 9/9, `hdrrow` 37/37, `mvorder` 30/30.
   - ⛔ **A FULL GATE IS STILL OWED before this is pushed** (save format plus frozen edits S1/S2). The owner chose to
     run it before the next push rather than now.
 - ⚠️ **Traps for whoever touches this:**
