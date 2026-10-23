@@ -4,6 +4,83 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT AND LIVE — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*); ✅ **LIVE at `d25eaf6`** (verified byte-identical, `75968ba8`; no version cut); MERGED INTO LOCAL `main` beside Scenarios ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
+
+- **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
+  four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
+- ⛔ **Then the owner, in this session, before any code:** *"I want you to be more cautious in adding extra buttons to
+  the right click menu. I want you to think very carefully about which buttons we actually need in each right click
+  menu. For example, we really dont need the swap collumn feature in the right click menu. We dont need an add notes
+  button at all. right now the right click menu especially on phases is huge"*. The mockup's phase week ran to ~17
+  lines; it is 4 now. **The test every item had to pass** (plan §1.1): it is what you reach for on THAT cell, and the
+  cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). Plan §1.2
+  lists what was cut and why. Saved as a feedback memory (`lean-right-click-menus`).
+- **Ruled by picker, 23 Oct 2026:** R5 *"Both"* (a week offers Add 1-week phase here and Add hiatus; the
+  recommendation was Neither); R6 *"Leave it out"* (an item that cannot act on the cell is left out, not greyed;
+  Start / End stay a greyed pair); R7 *"Trim the month menu too"*, as its own task after this one (tracker card
+  `month-menu-trim`, requested; NOT this branch).
+- **What it is** (plan §2): phase week = Start / End ‹phase› this week, Add 1-week phase here, Add hiatus ▸; Notes
+  cell = Cut · Copy · Paste · Clear (one row) and Back to automatic text on an edited automatic note; band = Remove
+  hiatus…; date / empty / Sim Post = the two adds; a highlight of several = the clipboard row; Size only after a hand
+  resize; last line Show this day / week in the month view (no undo step, a ring over the day for 1.7 s). No menu on
+  a heading (double-click edits it), the title block, or with Shift.
+- **How:** inside `installMonthDayMenu`, one engine with the month menu (`wfContextAt`, `wfPrepare`,
+  `wfMenuSections`, the `wf*` items). No frozen code, no snapshot key, no id. Calls `setPhaseStart` (in
+  `asShootDayMove`), `phaseEdgePlan` / `phaseEdgeWrite` / `phaseEdgeLanded`, the month menu's `addPhaseHere`,
+  `hiatusSections` (now told a span: 7 days in the waterfall, overlap like the scheduler's rows), `removeHiatusHere`,
+  `wfNotesCopy` / `wfNotesClear` / `wfNotesPaste`, `wfNoteStep`. End on a Weeks phase keeps Weeks and gets a new
+  count (no switch to Dates); Start moves by whole weeks, keeping the weekday. Cut writes `navigator.clipboard` BEFORE
+  it clears, so a refused clipboard never loses the note (not `wfNotesCut()`, which clears first). The Mac Ctrl+click
+  guard is now on the text highlight's and the phase selection's presses. `.day-menu` is capped at the window height
+  and scrolls inside (the month menu too).
+- ⚠️ **Learned, measured: Chrome can deliver a scroll event LATE, with nothing moved.** In the leg (headless, virtual
+  time) a scroll event arrived after the menu opened, either for the grid's box at the exact position it had at the
+  right-click, or for the SIDEBAR settling after an earlier undo, and closed the menu: a different case each run, and
+  a fixed sleep or "wait until quiet" did not cure it. So the WATERFALL menu now closes only when a box around its
+  cell really moved (`scrollBoxes` / `movedSinceOpen`), or on a render. ⛔ The month menu keeps "any scroll outside
+  it" (`mvmenu` C1 dispatches an unmoved scroll and expects a close); change it in its own trim, not here. In the app
+  pane, a real browser, no scroll fired after a right-click on any of four cell kinds.
+- **Proof so far:** new leg `wfmenu` (38 cases, in `gate.sh`'s audit-fix block beside `mvmenu`), 38/38 three runs in
+  a row, **red on the pre-change build** (`8cc8357`, built with `git archive`, sha256 `d2ac914e…` = the live file:
+  stops at V1, no menu). `mvmenu` 89/89 with G3 flipped (it asserted no menu in the waterfall), `wfkeys` 84/84,
+  `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40 on build `c82fd1ab…`. In the app pane (port 9843,
+  preview `wfmenu-9843` in this worktree's `.claude/launch.json`): the menu on a phase, a note, an empty note, a band,
+  a date and an empty cell; End Post 16 → 9 weeks and one undo; Start; Show this day landing on 1 Sep with its ring.
+- ✅ **Full gate on `d4e5654` (build `c82fd1ab…`, 1,767,962 bytes; port 9842, 12:21:06–12:49:43, no other gate
+  running at its start): 2,976 PASS, 2 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every
+  Excel part, the month print documents and gate 13's written month PDFs; 0 clipped; 76 ids. `wfmenu` 38/38 inside it.
+  The two FAILs are load timeouts, not assertions: `launchopen` "EX: harness" after L0–L9 passed, and `textstyle`
+  "timed out waiting for: the loaded calendar". **Both green alone on the same build right after:** `launchopen`
+  16/16, `textstyle` 51/51.
+- **The landing (owner, by picker, 23 Oct 2026).** Asked to merge and push, `main` was found to hold another
+  session's unpushed "Header: Off for the Month view" (`1af8782`), whose own gate was running. Asked again, the owner
+  chose *"Land both together"*: `main` merged in as `ade4231` (only the HANDOFF / README top entries conflicted;
+  both kept). While waiting for that session's gate, `origin/main` moved to `2c6a822` (the month-drag fix, live), so
+  it was merged in too as `31f7599`. Then local `main` gained **Scenarios** (`57a3650`, unpushed, its own gate still
+  owed), so a push of `main` would have shipped it ungated. Asked a third time, the owner chose *"Push what was
+  gated"*: `31f7599` (plus this docs commit) goes to `origin/main`, then merges into local `main` beside Scenarios.
+  ⚠️ **Scenarios' own gate must then include the right-click menu.**
+- ✅ **Combined full gate on `31f7599` (build `75968ba8…`, 1,775,069 bytes; port 9842, 14:58:17–15:27:37): 3,010 PASS,
+  2 FAIL.** Every frozen output identical to its baseline (the waterfall PDF, every Excel part, the month print
+  documents, gate 13's written month PDFs), 0 clipped, 76 ids; `wfmenu` 38, `mvmenu` 89, `mvhdroff` 9 inside it.
+  The two FAILs are load timeouts: `hdrrow` EX (*"timed out waiting for: the loaded calendar (its sidebar tab)"*,
+  its 17th Load, after H1–H10 passed) and `monthexport (reference, Pacific/Kiritimati)` X6. Kiritimati: 9/9 alone.
+  `hdrrow` on the same build: one more EX (run alongside the month-menu-trim session's gate, started 15:27:50), then
+  5 × 37/37. Header: Off + month-drag WITHOUT the menu: 5 × 37/37, and every input build alone 37/37, so whether the
+  menu raises that leg's load-timeout rate is not settled by 7 runs. Nothing in the menu runs during a Load.
+- ✅ **PUSHED AND LIVE.** ONE `git push origin HEAD:main` at 15:36:16 (`2c6a822..d25eaf6`: the plan, the build, the
+  docs, `1af8782` Header: Off, the two merges). Deploy run 40034688604 succeeded at 15:37:01. At 15:37:18 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (sha256 `75968ba8…`, 1,775,069
+  bytes, `cmp`). `version.json` is still 1.8.0, so installed copies pick it up silently; a version cut is the owner's.
+- **Then merged into local `main`** (`57a3650`, which holds Scenarios, unpushed) on a temporary branch, only the
+  HANDOFF / README top entries conflicting, and `main` fast-forwarded to it. ⛔ **Scenarios is still NOT pushed, and its
+  queued full gate runs in `.claude/worktrees/scenarios` on its own branch, which does NOT have the right-click menu.**
+  Before Scenarios is pushed, its gate has to run on a build that contains `d25eaf6` (merge `origin/main` in first).
+- ⏭ **Next:** the month menu's trim is built on its own branch (`claude/adoring-chaum-0206c1`, session "Trim the
+  month view's right-click menu"); its merge and push are the owner's. Then the month menu's trim (`month-menu-trim`): propose its short list for
+  approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
+  it lands, never from an older `main`.
+
 ### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); NOT PUSHED, A FULL GATE OWED FIRST
 
 - ⏭ **RESUME HERE for scenarios.**
@@ -74,7 +151,7 @@
   - Save to a legacy `.html` must embed every tab (`buildSavedHtml({allScenarios:true})`).
   - `.compare-dlg` is skipped by `collectFieldValues()` (Chip ids).
 
-### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED locally (`1af8782`) and MERGED with `origin/main` (`2c6a822`, the month-drag-fix work); NOT PUSHED; no version cut
+### ✅ 23 Oct 2026: HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED (`1af8782`); ✅ **LIVE at `d25eaf6`** with the waterfall right-click menu (the combined landing, top entry; verified byte-identical, `75968ba8`). Its heading here used to read: 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, COMMITTED locally (`1af8782`) and MERGED with `origin/main` (`2c6a822`, the month-drag-fix work); NOT PUSHED; no version cut
 
 - **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
   header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
@@ -117,6 +194,8 @@
     decides what that change is. That is why earlier sessions gated in worktrees. Do not commit it without looking:
     fixtures must stay synthetic (see the confidentiality memory).
   - Every month PDF baseline except that fixture matched, gate 10 included.
+- ⏭ **Next:** the full gate's verdict, then the owner's picker on commit and push.
+
 - **origin/main moved under it.** The "Month view drag-to-reorder bugs" session pushed `2c6a822` (owner-approved; per
   that session, live and verified byte-identical, `d34f917a`). Its work edits frozen `renderMonthView` (E3/E4,
   owner-approved), the writer's lane packing and the month note drag (its own entry is just below). It told this
@@ -176,6 +255,8 @@
   for a legacy `.html` to Load. Alone on the same build, twice: 6/6, no errors. A Load-timing flake (the `offweek` R8
   kind), not this change, which does not touch the Load path or that leg's views.
 - `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
+- ⏭ **Next:** the owner's picker on merging into `main` and, separately, on pushing.
+
 - **Landing (owner's pickers):** *"Merge into local main"* and *"Push after the combined gate"*. `main` had moved (three
   live Settings changes, `06c8770`..`5a3d5da`), so it was merged into the branch as `2c6a822` (HANDOFF / README top
   entries both kept). `npm run check` 40/40. ✅ **Combined full gate on `d34f917a…`** (1,761,781 bytes; port 9807,
@@ -791,7 +872,8 @@
   window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
   listener skips scrolls whose target is inside the menu. The build needs both.
 - ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
-  Paste / Clear actions.
+  Paste / Clear actions. ✅ **Planned and built 23 Oct 2026, CUT DOWN by the owner first** (the entry at the top,
+  "THE WATERFALL RIGHT-CLICK MENU, CUT DOWN…"): the mockup's long menu below is NOT what was built.
 - **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
   opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
   `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).

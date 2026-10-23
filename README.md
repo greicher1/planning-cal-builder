@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026; live at `d25eaf6`, with Header: Off for the Month view)
+
+Item 5 of the owner's Excel-gaps list. A right-click on a waterfall cell opens a short menu of what that cell can
+do ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md)). The owner cut it down before it was built:
+*"we really dont need the swap collumn feature in the right click menu. We dont need an add notes button at all.
+right now the right click menu especially on phases is huge"*. So an item is there only if it is what you reach for
+on that cell and the cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears,
+⌥← swaps).
+- **A phase week:** Start ‹phase› this week (moves it by whole weeks), End ‹phase› this week (a Weeks phase keeps
+  Weeks and gets a new count), Add 1-week phase here, Add hiatus ▸. End Production stays greyed: its end comes from
+  the shoot days.
+- **A Notes cell:** Cut · Copy · Paste · Clear in one row (the ⌘X / ⌘C / ⌘V / Delete actions; Clear can empty an
+  automatic note), and Back to automatic text on an edited automatic note.
+- **A hiatus band:** Remove hiatus… (asks first). **A date or empty cell:** the two adds.
+- Reset row height / column width appear only after a hand resize. The last line is Show this week in the month
+  view, or **Show this day** on a dated note; it switches view, rings the day for a moment, and is no undo step.
+- An item that cannot act on the cell is left out rather than greyed (owner, by picker). Every other item is one
+  undo step. Cut writes the clipboard before it empties the note, so a refused clipboard never loses it.
+- Built on the month day menu's own engine, so the look, keys and close rules are shared. No frozen code, no saved
+  key, no new id.
+- **Learned:** Chrome can deliver a scroll event late, with nothing moved, and it closed the menu under the pointer
+  in headless runs. The waterfall menu now closes only when a box around its cell really scrolls, or on a render.
+- **Verified:** new leg `wfmenu` (38 cases, in `gate.sh`), red on the pre-change build; `mvmenu` 89/89 (G3 now
+  expects the waterfall's own menu), `wfkeys` 84/84, `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40.
+  Full gate on build `c82fd1ab…`: 2,976 PASS, 2 FAIL, both load timeouts (`launchopen`, `textstyle`) that pass alone
+  on the same build; every frozen output identical to its baseline. Landed together with Header: Off for the Month
+  view: combined full gate on build `75968ba8…` 3,010 PASS, 2 FAIL, both load timeouts (`hdrrow`, one `monthexport`
+  time-zone run) that pass alone on the same build.
+
 ### Unreleased — Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026)
 
 The owner: *"comparing multiple scenarios is HUGE"*, then *"start building it"*. [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md)
@@ -117,6 +146,9 @@ MONTH-ORDER-PLAN.md §9.
 - **Verified:** `mvorder` 30/30 with ten new cases (M1–M10, on the new synthetic `mvdrag.sptcal`), including the
   written month PDF stacking a between-phases note between its bars; M1–M6 and M8 fail on the live build `d2ac914e`.
   `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13, `npm run check` 40/40. Full gate on `95bf3fd4…`: 2,970
+  PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Not
+  merged, not pushed.
+
   PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Then,
   with `main`'s three Settings changes merged in, 2,974 PASS / 0 FAIL on `d34f917a…`. **Live at `2c6a822`**, verified
   byte-identical; no version cut.
