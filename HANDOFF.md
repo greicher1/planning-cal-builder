@@ -155,7 +155,7 @@
   ⚠️ The mockup is ~890 KB, most of it the bundle and the captures. Weigh that before committing it.
 - **Not committed.** Written in the main checkout by a side session. No `src/` change.
 
-### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); NOT merged into `main`, NOT pushed
+### 🔨 22 Oct 2026: RECOMMEND LETTER OR LEGAL IN THE EXPORT PDF DIALOG — branch `paper-recommend` (worktree `.claude/worktrees/paper-recommend`), from `main` at `55a9c61`; BUILT `f958f25`; ✅ FULL GATE 2,765 / 0 (`c6634df9`); THEN `origin/main` (`7856d98`) AND LOCAL `main` (`83ee71d`) MERGED IN as `b9f980f` + `a14c2e9`; FULL GATE ON THE MERGED BUILD 2,751 / 5 (`c27f8d58`), ALL FIVE EXPLAINED, NONE THIS BRANCH'S; MERGED INTO `land-ready-1023` BY THE "Merge ready branches" SESSION (at `a14c2e9`); NOT merged into `main`, NOT pushed
 
 - **Asked** (after v1.7.0's paper setting went live): *"could the app reccomend a paper size based on the waterfall
   cal? Really it should only reccomend between letter size and legal"*. Then *"Yes, build the Letter/Legal paper
@@ -195,7 +195,42 @@
   trial `git merge-tree` of local `main` with this branch: `src/legacy/app.js` merges clean, and only `HANDOFF.md`
   and `README.md` conflict (both sides added entries at the top). So landing = merge the then-current `main` (and
   `origin/main`) into this branch, keep every doc entry, and run the full gate once more on the combined build.
-- ⏭ **Next:** the owner's merge / push pickers. Nothing else is open on this feature.
+- **22 Oct, owner: *"Merge the latest local main and origin/main into paper-recommend, keep every doc entry, and run
+  the full gate. Don't merge into main or push."*** Merged `origin/main` (`7856d98`: `resize-zoom`'s frozen edits
+  Z1–Z6 and side boxes scrolling separately) as `b9f980f`, then local `main` (`83ee71d`: the right-click menu's
+  mockup and rulings, HIDE-NOTES-PLAN; docs only) as `a14c2e9`. `src/legacy/app.js` auto-merged; only HANDOFF and
+  README conflicted, each at the top, and each was resolved keeping both sides, this branch's entry first. A
+  line-count check found no line of either side missing, except one HANDOFF line `origin/main` itself rewrote
+  ("Superseded 22 Oct 2026", in the free-positions entry), which keeps `origin/main`'s wording. Both refs are now
+  ancestors of the branch, and against `origin/main` the branch differs only in this feature's four files.
+- **Proof on the merged build `c27f8d58…` (1,732,003 bytes):** `npm run check` 40/40; `pdfdialog` 15/15,
+  `papersize` 12/12, `zoomresize` 40/40.
+- **Full gate on `c27f8d58…` (HARNESS_PORT 9763; queued from the evening of 22 Oct, it started 23 Oct 05:20:11 and
+  ran until 10:13:36, nearly five hours, beside other sessions' runs): 2,751 PASS, 5 FAIL.** Held: 0 clipped, the
+  waterfall PDF identical (date stamp only), every Excel part identical, 76 ids, `papersize` 12/12, `pdfdialog` 15/15.
+  Log `.claude/worktrees/paper-recommend-gate.log` (the first gate's kept as `paper-recommend-gate-c6634df9.log`).
+  The five, re-run alone through `gate.sh`'s own judges (a mini gate cut from `gate.sh`, 10:35–10:36, no gate running):
+  - `monthprint month-lanecap` (no result), `colreuse (live)` (no result), `pilllabel (halfdays)` (timed out): **all
+    three GREEN alone.** Contention.
+  - `hiatuslabel` N1-2: **RED alone and deterministic, and identically RED on `origin/main`'s own build** (`7856d98`,
+    built in a scratch worktree): before 6, after 0. ⛔ **Cause: the stream-trimming reader** (the v1.7.0 trap
+    above). `pdfHiatusRuns()` trims 0x0A/0x0D off each stream's end, today's header date (10.23.26) makes the
+    compressed content stream END in one, `DecompressionStream` rejects the cut stream, and the swallowed error counts
+    0 "Hiatus". Reading by `/Length` (the `pdfdialog.js` shape) made it pass twice on `origin/main`'s build (6 → 4,
+    leg all green). **Not committed here**; it was sent to the "Merge ready branches" session for `land-ready-1023`.
+    `calrange`, `hdrtemplate`, `hdrrow`, `notewrap`, `onecol`, `prodspan` and `winansi` still trim the same way.
+  - `sideboxes` R16 (a box carried to the column's bottom scrolls that column): RED alone on this build; an A/B ×3
+    then gave this branch PASS/PASS/FAIL and `origin/main` FAIL/PASS/FAIL, so it is **flaky on live code too**.
+    ⚠️ Weak evidence: those runs shared port 9771 with the "Merge ready branches" session at 10:30–10:38 (a port
+    clash it reported), so they may be spoiled. That session's `land-ready-1023` carries an R16 fix.
+- **Superseded for landing:** the "Merge ready branches" session merged this branch (at `a14c2e9`) into
+  `land-ready-1023` (`.claude/worktrees/land-ready-1023`) with `undo-keys`, `wf-keys-paste`, `textsel-zoom`,
+  `wf-header-clear`, `headings-editable`, the R16 fix and `main` `59dd0cd`, for the owner's ONE merge and ONE push.
+  Its combined full gate supersedes this branch's. It asked that nobody fast-forward `main` from here and that no
+  second full gate start while its gate runs. This commit (HANDOFF only) is after `a14c2e9`.
+- ⚠️ Local `main` moved again while this gate ran (`02e7c9b`: hide-notes merged into local `main`, not pushed), so
+  this branch no longer contains `main`.
+- ⏭ **Next:** nothing on this branch. The feature lands through `land-ready-1023`.
 
 ### 🔨 22 Oct 2026: RESIZE COLUMNS AND ROWS AT ANY ZOOM — branch `resize-zoom` (worktree `.claude/worktrees/resize-zoom`), from `main` at `55a9c61`; SIX FROZEN EDITS (Z1–Z6), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,801 / 0 (build `d80112ba`); not committed, not merged, not pushed
 
