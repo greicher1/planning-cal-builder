@@ -4,9 +4,13 @@
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=colreuse ./run.sh notescols 1200
 //
 // On the colreuse fixture: three year blocks. 2030 and 2031 hold notes (2031 also an all-phase hiatus band),
-// 2032 holds none. Red on the pre-change build (no Notes panel opens), green after.
+// 2032 holds none. Red on the pre-change build (no Notes panel opens), green after. Since HEADINGS-EDITABLE-PLAN.md
+// (22 Oct 2026) the A group is red on the hide-notes build too: there a double-click on an untouched Notes heading
+// opened the separate Notes panel, which that change retired for the heading editor.
 //
-// A  the panel: a double-click on a default Notes heading opens it; "Has notes" only where the column holds any.
+// A  the heading editor: a double-click on an untouched Notes heading opens it with Hide column; "Has notes" only
+//    where the column holds any; hiding types nothing. A6-A9 (group C until the Custom Column Headings switch went):
+//    with a heading typed, the typed path's editor carries the same Hide button, and the typed path draws the strip.
 // S  the screen with 2031 and 2032 hidden: their strips (no rowspan, every row the colgroup's width, the strip's
 //    resize handle hidden, the dot only on 2031), the grid's right edge on the last strip, 0 clipped cells.
 // U  one undo step each way; the Settings row's pills and Show all.
@@ -15,7 +19,6 @@
 // P  the waterfall PDF: one "Notes" heading, the hidden year's note not drawn, a character the PDF cannot print
 //    in a hidden note raises no warning (and does once the column shows); gridlines on still exports.
 // R  the print fallback (localhost route sptcal.wfPdfTest): no strip on paper, the edge rule present.
-// C  Custom Column Headings on: the heading editor carries Hide column.
 // O  Single Column Mode: its one Notes column hides, and the PDF draws no Notes heading.
 // F  the file: hiddenNotesCols only while something is hidden, a Load brings it back, hostile values are dropped
 //    and counted, New clears it, no field id added.
@@ -52,8 +55,8 @@ window.addEventListener('load', function () { (async function () {
     var th = thFor('y' + year + ':notes');
     if(!th) throw new Error('no Notes heading for ' + year);
     dbl(th);
-    await T.until(function () { return !!q('.wf-notes-pop .wf-notes-hide, .hdrrow-pop .wf-notes-hide'); }, 'the Notes panel for ' + year, 50, 100);
-    q('.wf-notes-pop .wf-notes-hide, .hdrrow-pop .wf-notes-hide').click();
+    await T.until(function () { return !!q('.hdrrow-pop .wf-notes-hide'); }, 'the heading editor for ' + year, 50, 100);
+    q('.hdrrow-pop .wf-notes-hide').click();
     await T.until(function () { return !thFor('y' + year + ':notes'); }, year + "'s column to hide", 50, 100);
     await settle();
   }
@@ -107,24 +110,28 @@ window.addEventListener('load', function () { (async function () {
     out.p0Notes = p0.runs.filter(function (r) { return r === 'Notes'; }).length;
     check(out.p0Notes === 3 && /Principal Photography Wraps/.test(p0.content), 'S0 before: the PDF draws three Notes headings and 2031\'s note');
 
-    // ---- A: the panel -------------------------------------------------------------------------------------------
+    // ---- A: the heading editor over a Notes heading ------------------------------------------------------------
+    // Nothing is typed, so these are the ORIGINAL path's headings (no th.hdrrow-cell): the editor opens on them all
+    // the same (HEADINGS-EDITABLE-PLAN.md), and the retired Notes panel (.wf-notes-pop) must never appear.
+    check(!q('#table-wrap th.hdrrow-cell'), 'A0 the fixture types no heading: the original path draws the heading row');
     dbl(thFor('y2032:notes'));
-    await T.until(function () { return !!q('.wf-notes-pop'); }, 'the Notes panel', 50, 100);
-    var pop = q('.wf-notes-pop');
+    await T.until(function () { return !!q('.hdrrow-pop'); }, 'the heading editor', 50, 100);
+    var pop = q('.hdrrow-pop');
     out.panel = txt(pop);
-    check(/Notes · 2032/.test(out.panel) && !q('.wf-notes-badge', pop) && txt(q('.wf-notes-hide', pop)) === 'Hide column' && !!q('.hdrrow-ring'),
-          'A1 a double-click on 2032\'s Notes heading opens its panel: title, Hide column, the ring, no badge (' + out.panel + ')');
-    check(qa('[id]', pop).length === 0, 'A2 the panel carries no id (collectFieldValues sweeps ids)');
+    check(/Heading · 2032/.test(out.panel) && q('.hdrrow-input', pop).value === 'Notes' && !q('.wf-notes-badge', pop) &&
+          txt(q('.wf-notes-hide', pop)) === 'Hide column' && !!q('.hdrrow-ring') && !q('.wf-notes-pop'),
+          'A1 a double-click on 2032\'s untouched Notes heading opens the heading editor: Notes, Hide column, the ring, no badge, no separate Notes panel (' + out.panel + ')');
+    check(qa('[id]', pop).length === 0, 'A2 the editor carries no id (collectFieldValues sweeps ids)');
     document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     await T.sleep(100);
-    check(!q('.wf-notes-pop') && !q('.hdrrow-ring'), 'A3 Esc closes it');
+    check(!q('.hdrrow-pop') && !q('.hdrrow-ring'), 'A3 Esc closes it');
     dbl(thFor('y2031:notes'));
-    await T.until(function () { return !!q('.wf-notes-pop'); }, 'the 2031 panel', 50, 100);
-    check(txt(q('.wf-notes-pop .wf-notes-badge')) === 'Has notes', 'A4 2031\'s panel flags it: a "Has notes" badge, no count, no text');
-    q('.wf-notes-pop .wf-notes-hide').click();
+    await T.until(function () { return !!q('.hdrrow-pop'); }, 'the 2031 editor', 50, 100);
+    check(txt(q('.hdrrow-pop .wf-notes-badge')) === 'Has notes', 'A4 2031\'s editor flags it: a "Has notes" badge, no count, no text');
+    q('.hdrrow-pop .wf-notes-hide').click();
     await T.until(function () { return !thFor('y2031:notes'); }, '2031 to hide', 50, 100);
     await settle();
-    check(!q('.wf-notes-pop'), 'A5 Hide column hides it and closes the panel');
+    check(!q('.hdrrow-pop') && !q('#table-wrap th.hdrrow-cell'), 'A5 Hide column hides it and closes the editor, and types nothing: the original path still draws the headings');
     await hideByHeading(2032);
 
     // ---- S: the screen ------------------------------------------------------------------------------------------
@@ -248,27 +255,40 @@ window.addEventListener('load', function () { (async function () {
     await T.typeUserNote('2031-01-13', '');   // take the star note back off
     await hideByHeading(2031);
 
-    // ---- C: Custom Column Headings ---------------------------------------------------------------------------------
-    await T.openSettings('prefs');
-    byId('wf-hdr-custom').click();
-    await T.until(function () { return !!q('#table-wrap th.hdrrow-cell[data-hcol="y2030:notes"]'); }, 'custom headings', 50, 100);
-    await T.closeSettings();
+    // ---- A, continued: a typed heading (the typed path) ------------------------------------------------------------
+    // This was group C, which switched Custom Column Headings on, until the switch went (22 Oct 2026). Now one typed
+    // heading puts the calendar on the typed path (every heading a th.hdrrow-cell), and Reset takes it off again.
+    function typeIn(text){
+      var inp = q('.hdrrow-pop .hdrrow-input');
+      inp.value = text; inp.dispatchEvent(new Event('input', {bubbles: true}));
+      inp.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    }
+    dbl(thFor('y2030:s0'));
+    await T.until(function () { return !!q('.hdrrow-pop'); }, 'the heading editor on 2030', 50, 100);
+    typeIn('WRITERS');
+    await T.until(function () { return !!q('#table-wrap th.hdrrow-cell[data-hcol="y2030:notes"]'); }, 'the typed path', 50, 100);
+    await settle();
     dbl(q('#table-wrap th.hdrrow-cell[data-hcol="y2030:notes"]'));
     await T.until(function () { return !!q('.hdrrow-pop'); }, 'the heading editor', 50, 100);
     var hb = q('.hdrrow-pop .wf-notes-hide');
-    check(!!hb && txt(hb) === 'Hide column' && !!q('.hdrrow-pop .wf-notes-badge'), 'C1 the heading editor over a Notes column carries "Hide column" and the Has notes badge');
+    check(!!hb && txt(hb) === 'Hide column' && !!q('.hdrrow-pop .wf-notes-badge'), 'A6 on the typed path the editor over a Notes column carries "Hide column" and the Has notes badge');
     hb.click();
     await T.until(function () { return !q('#table-wrap th.hdrrow-cell[data-hcol="y2030:notes"]'); }, '2030 to hide', 50, 100);
     await settle();
-    check(!!q('#table-wrap th.wf-notes-strip[data-shownotes="2030"]') && !q('.hdrrow-pop'), 'C2 it hides the column, and the custom path draws the strip');
-    var px = await pdf('the PDF with custom headings and all three hidden');
-    check(px.runs.filter(function (r) { return r === 'Notes'; }).length === 0, 'C3 with every Notes column hidden the PDF draws no Notes heading');
+    check(!!q('#table-wrap th.wf-notes-strip[data-shownotes="2030"]') && !q('.hdrrow-pop') && !!q('#table-wrap th.hdrrow-cell'), 'A7 it hides the column, and the typed path draws the strip');
+    var px = await pdf('the PDF with a typed heading and all three hidden');
+    check(px.runs.filter(function (r) { return r === 'Notes'; }).length === 0, 'A8 with every Notes column hidden the PDF draws no Notes heading');
     await T.openSettings('prefs');
     q('.wf-hidden-notes [data-shownotes="all"]').click();
     await T.until(function () { return !!thFor('y2030:notes') && !!thFor('y2032:notes'); }, 'Show all', 50, 100);
-    check(pills().length === 0 && /None/.test(txt(q('.wf-hidden-notes'))), 'C4 Show all brings every column back and the row reads None');
-    byId('wf-hdr-custom').click();
-    await T.until(function () { return !q('#table-wrap th.hdrrow-cell'); }, 'custom headings off', 50, 100);
+    check(pills().length === 0 && /None/.test(txt(q('.wf-hidden-notes'))), 'A9 Show all brings every column back and the row reads None');
+    await T.closeSettings();
+    dbl(thFor('y2030:s0'));
+    await T.until(function () { return !!q('.hdrrow-pop .hdrrow-reset'); }, 'the editor on WRITERS', 50, 100);
+    q('.hdrrow-pop .hdrrow-reset').click();
+    await T.until(function () { return !q('#table-wrap th.hdrrow-cell'); }, 'the original path again', 50, 100);
+    await settle();
+    await T.openSettings('prefs');
 
     // ---- O: Single Column Mode ---------------------------------------------------------------------------------------
     byId('one-col-btn').click();

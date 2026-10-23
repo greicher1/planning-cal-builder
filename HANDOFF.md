@@ -69,6 +69,43 @@
      a smaller header margin or a larger top margin, both shared with Excel, so the Excel export would change too.
   3. **A PDF baseline with a date in a deflated stream** is re-cut by pinning the page's clock, not by editing bytes.
 
+### 🔨 22–23 Oct 2026: COLUMN HEADINGS EDITABLE ALL THE TIME, THE SWITCH GONE — branch `claude/headings-editable-5c2c47` (worktree `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` at `7b3aa6c`; LEGS GREEN, FULL GATE ON THE COMBINED MERGE (`land-ready-1023`), NOT HERE; NOT MERGED ([`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md))
+
+- **Asked** (owner, mid-way through `hide-notes`): *"i say we remove the custom column headings toggle in settings and
+  just make it editable all the time"*. Ruled by picker, 22 Oct: untouched calendars keep `Date | year | Notes`;
+  switched-on files keep the year over Date; Q1 "Bring them back"; H1–H3 signed off. On the tracker as
+  `headings-always-editable`.
+- **Built:** `headerRowTyped()` (any label, any split, or `headerRowCustom`) replaces the switch as the path condition
+  in the three frozen heading writers: H1 `renderSpreadsheetView`, H2 `exportExcel` row 1, H3 `buildWaterfallPdf`,
+  one word each, commented `⛔ FROZEN EDIT H1/H2/H3`. `pdfUnprintablePlaces()` follows it. `headerRowDefault()` gives
+  the Date column `Date` unless `headerRowCustom`. ONE double-click handler opens `openHeaderRowPop` on any heading,
+  by `headingColKey(th)`; `headingCellFor(key)` re-finds a cell on either path after a button. The hover rule is
+  `#table-wrap thead th:not(.wf-notes-strip)`. The Settings row, `reflectHeaderRowCustom`, `setHeaderRowCustom` and
+  the Notes panel (`openNotesColPop`) are gone. New ⓘ text and a help-panel paragraph, *Column headings*.
+- ⛔ **`headerRowCustom` is a PERMANENT snapshot key with a NEW meaning**: "saved with the old switch on, so the Date
+  column defaults to the year". Still read, sanitized, restored and saved; nothing new writes it; New clears it.
+  Never drop it: every switched-on file would lose its year over Date.
+- ⚠️ **The plan's "Merge → on Date gives year over Date" was wrong** (plan §8). A merge keeps the text of the heading
+  being edited, so the year over Date is **← Merge on the year heading**. Merge → on Date keeps "Date". The editor
+  did not change; `hdrrow` H13 gates both.
+- ⚠️ **Typing one heading no longer moves the year over Date.** On the typed path untyped headings now read Date,
+  year, Notes, so the old "switch on → `[2026 over Date + phases]`" happens only for `headerRowCustom` files.
+- **Proof:** `hdrrow` 37/37 (H1–H14 new; H9: a Reset of the last typed heading gives back row 1 of the workbook,
+  every style, and the PDF content stream identical to an untouched export); `notescols` 49/49; `settingswin` 19/19
+  (W13 asserts the switch is gone); each of the three red on the pre-change build (`f85c9814…`, `git archive` of
+  `7b3aa6c`, served from an untracked `dist-pre/`). `textstyle` 51/51, `npm run check` 40/40. Browser pane, real
+  mouse: the editor opened on an untouched Date and Notes heading, a typed heading changed only itself, undo put Date
+  back, the Waterfall card has no switch.
+- ⚠️ **Harness trap:** a double-click that lands while an undo is still re-rendering opens the editor and the
+  `#table-wrap` observer closes it at once (its cell was replaced). That is by design (pattern 3); retry after the
+  grid settles. The legs wait on `settle()` for this reason.
+- ⏭ **Next: NOT merged from here.** Owner, 23 Oct 2026, relayed by the hide-notes session: *"i want this to merge
+  into main along with all the other features we are trying to merge, then push everything at once"*. The "Merge
+  ready branches" session (branch `land-ready-1023`) merges this branch with `wf-header-clear` and runs ONE full
+  gate on the combination, so this branch runs no full gate of its own. `main` (with `hide-notes`, `02e7c9b`) was
+  merged into this branch first (`9bdcc72`, docs only; build unchanged, `1cca748b…`). If the combined gate fails in
+  `hdrrow`, `settingswin` or `notescols`, that is this branch's to fix. Never pushed.
+
 ### 📝 22 Oct 2026: SCENARIOS (SEVERAL VERSIONS OF ONE CALENDAR, COMPARED) — PLANNED AND RULED (D1–D6 all as recommended, by picker), NO CODE ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md), mockup [`mockups/scenarios.html`](mockups/scenarios.html))
 
 - **The ask.** Item 8 of the Excel-gaps list. Owner: *"comparing multiple scenarios is HUGE"*. They want to know
@@ -344,8 +381,8 @@
   there (its README entry reported 78/78).
 - ⚠️ **Mid-build the owner asked for a second change:** *"remove the custom column headings toggle in settings and
   just make it editable all the time"*. Ruled by picker: untouched calendars keep Date | year | Notes, and calendars
-  saved with the switch on keep the year over Date. On the tracker as `headings-always-editable`. NOT started: it
-  edits the same frozen heading code (R1, P1, the Excel header), so it waits for this branch. It will make the
+  saved with the switch on keep the year over Date. On the tracker as `headings-always-editable`. ✅ **BUILT on its
+  own branch (the entry above), cut from this one**; it edits the same frozen heading code (R1, P1, the Excel header). It will make the
   headings-off Notes panel (`openNotesColPop`) redundant.
   **Planned** in [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md) (on this branch): `headerRowTyped()`
   replaces the switch as the path condition (H1–H3, a one-word frozen edit each). The Date column's default becomes

@@ -3,6 +3,9 @@
 Owner rulings **2, 4 and 10** of 20 Oct 2026 (HANDOFF, "RULED, NOT YET PLANNED"). Branch
 `claude/header-row-fe6f32`. Status: **✅ SIGNED OFF by the owner, 20 Oct 2026, by picker: "Yes, build
 it"**, with all three questions in §5 answered (a), the recommended option. Building in the order of §7.
+⚠️ **Ruling 2's opt-in switch is superseded (22 Oct 2026, [`HEADINGS-EDITABLE-PLAN.md`](HEADINGS-EDITABLE-PLAN.md)):**
+there is no switch, every heading is editable by double-click, and a typed heading (not the switch) picks the typed
+path. `headerRowCustom` survives only as "the Date column defaults to the year" for files saved with it on.
 
 All three are **frozen edits** (CLAUDE.md's symbol list). Each one is **inert by default**: a calendar
 that never uses it saves, renders and exports byte for byte as it does today, so the gate's existing

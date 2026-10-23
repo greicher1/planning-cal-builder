@@ -423,11 +423,10 @@ export function WaterfallCard() {
             the owner removed its visible description on 9 Sep 2026 ("remove the descriptions, theyre not
             necessary"), and it is the answer to "why did nothing change on screen?". */}
         <InfoHint label="Waterfall" width={320}>
-          How the waterfall reads, on screen and in Excel and the PDF. With Custom Column Headings on,
-          the year moves over the Date column and you click any heading to type your own; neighbouring
-          columns with the same heading merge. Double-click a year's Notes heading to hide that
-          column on screen and in Excel and the PDF; click its thin strip, or its year below, to bring
-          it back. Paper is the sheet the PDF and the Excel file are laid
+          How the waterfall reads, on screen and in Excel and the PDF. Double-click any column heading
+          to type your own, or to split or merge headings; Reset puts a heading back. A Notes heading
+          can also hide its column on screen and in Excel and the PDF; click its thin strip, or its
+          year below, to bring it back. Paper is the sheet the PDF and the Excel file are laid
           out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
           cell borders in Excel and the PDF only; the grid on screen is unchanged.
         </InfoHint>
@@ -467,13 +466,15 @@ export function WaterfallCard() {
         <Text size="xs" c="dimmed" mt={4}>
           When one phase ends and the next begins, the next one moves into the freed column.
         </Text>
-        {/* The waterfall's dates and column headings (owner rulings 2 and 4, 20 Oct 2026; HEADER-ROW-PLAN.md),
-            folded into this card when the Settings window merged: they were a "Waterfall Layout" card of
-            their own in the old Settings tab. The same .prefs-card rule as the switch above: each id is
-            skipped by the sweep and travels as its own captureSnapshot() key (`dateFormat`,
-            `headerRowCustom`), so gate 5's id set does not move.
-            ⛔ UNCONTROLLED: the engine writes .value / .checked (reflectDateFormat, reflectHeaderRowCustom)
-            and catches 'change' on document. A controlled input would fight it on every commit. */}
+        {/* The waterfall's dates (owner ruling 4, 20 Oct 2026; HEADER-ROW-PLAN.md), folded into this card
+            when the Settings window merged: it was a "Waterfall Layout" card of its own in the old Settings
+            tab. The same .prefs-card rule as the switch above: the id is skipped by the sweep and travels as
+            its own captureSnapshot() key (`dateFormat`), so gate 5's id set does not move.
+            ⛔ UNCONTROLLED: the engine writes .value (reflectDateFormat) and catches 'change' on document.
+            A controlled input would fight it on every commit.
+            ⛔ The Custom Column Headings switch (#wf-hdr-custom) that sat below it was REMOVED 22 Oct 2026
+            (owner: "remove the custom column headings toggle in settings and just make it editable all
+            the time"; HEADINGS-EDITABLE-PLAN.md). Every heading is editable by double-click now. */}
         <Divider my="sm" />
         <SettingRow htmlFor="wf-date-format" label="Dates">
           <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
@@ -481,13 +482,6 @@ export function WaterfallCard() {
             <option value="">1/6/25</option>
             <option value="m/d/yyyy">1/6/2025</option>
           </NativeSelect>
-        </SettingRow>
-        <Divider my="sm" />
-        {/* Ruling 2's opt-in (owner's picker, 20 Oct 2026). Off is Date | year | Notes, as every
-            calendar has always printed. */}
-        <SettingRow htmlFor="wf-hdr-custom" label="Custom Column Headings">
-          <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
-                  title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
         </SettingRow>
         <HiddenNotesRow />
         {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`

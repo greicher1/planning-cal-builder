@@ -2758,9 +2758,14 @@
      cursor and a hover ring, scoped to #table-wrap so the print fallback in #print-root never sees
      either. The editor is a .note-pop: one field for the whole heading, then ← Merge / Split / Merge →
      (the Split/Merge redesign, 20 Oct 2026), and .hdrrow-ring, a body-level ring over the heading being
-     edited -- the same accent as the hover ring, never a class on the cell. */
-  #table-wrap th.hdrrow-cell{ cursor:text; }
-  #table-wrap th.hdrrow-cell:hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
+     edited -- the same accent as the hover ring, never a class on the cell.
+     ⭐ EVERY heading since 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md): no switch, so an untouched calendar's
+     Date | year | Notes (the original path's cells, no class of their own) take the cursor and the ring too.
+     `thead th` is only ever the waterfall's (the month view draws no <th>), and a hidden Notes column's strip
+     keeps its own look and ring. Only :hover and the cursor: what a heading looks like at rest is the frozen
+     rule's, untouched. */
+  #table-wrap thead th:not(.wf-notes-strip){ cursor:text; }
+  #table-wrap thead th:not(.wf-notes-strip):hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
   .hdrrow-ring{
     position:absolute; z-index:59; pointer-events:none; border-radius:1px;
     box-shadow:inset 0 0 0 2px var(--edit-accent);
@@ -2790,10 +2795,10 @@
     background:none; border:0; padding:0; cursor:pointer;
   }
   .hdrrow-reset:hover{ text-decoration:underline; }
-  /* Hidden Notes columns: the panel's parts (HIDE-NOTES-PLAN.md §2). Chrome, never in the grid. The title row
-     carries the "Has notes" badge (Mantine's dot badge: white, a hairline, a violet dot); the Hide button is a
-     Mantine default button, full width, the heading editor's .hdrrow-btn look. */
-  .wf-notes-pop{ width:220px; }
+  /* Hidden Notes columns: the heading editor's Notes parts (HIDE-NOTES-PLAN.md §2). Chrome, never in the grid.
+     The title row carries the "Has notes" badge (Mantine's dot badge: white, a hairline, a violet dot); the
+     Hide button is a Mantine default button, full width, the editor's .hdrrow-btn look. (The separate Notes
+     panel, .wf-notes-pop, was retired 22 Oct 2026: every heading opens the editor now.) */
   .wf-notes-pop-head{
     display:flex; align-items:center; justify-content:space-between; gap:var(--mantine-spacing-md);
     margin-bottom:var(--mantine-spacing-md);

@@ -1333,6 +1333,13 @@ Nothing in this document ships without all of these, every stage:
     (hostile clipboard data, XML-illegal characters); no new `fields.byId` id and no new snapshot key. Its sibling
     `wfkeysreal.mjs` sends trusted ⌘C / ⌘X / ⌘V as Chrome's own editing commands, which no dispatched event can stand
     in for.
+18. **NEW — every heading is editable, and an untouched calendar keeps the original path** (22 Oct 2026,
+    HEADINGS-EDITABLE-PLAN.md). `gate.sh`'s `hdrrow` leg, H1–H14: no Custom Column Headings switch; the
+    untouched heading row is the original path's markup (no `hdrrow-cell`, no `data-hcol`); a double-click
+    on Date, the year or Notes opens the heading editor; one typed heading changes only that heading on
+    screen, in Excel and in the PDF; and a Reset that leaves nothing typed gives back row 1 of the workbook
+    and the PDF's content stream identical to an untouched export (H9). Items 2 and 3 are the other half:
+    no baseline types a heading, so H1–H3 are byte for byte inert there.
 
 ---
 

@@ -1,9 +1,10 @@
 # HEADINGS-EDITABLE-PLAN.md: column headings editable all the time, no switch
 
-**Status: PLANNED AND SIGNED OFF, 22 Oct 2026. Nothing built.** Owner's picker the same day: Q1 **"Bring them
-back"** (§4, option a), and the frozen edits H1–H3 in §5 **signed off** with §6's gate. Build
-it after `hide-notes` (HIDE-NOTES-PLAN.md) is merged, on its own branch (`headings-editable`). It edits the same
-three frozen heading paths, and it retires that branch's headings-off Notes panel (§3).
+**Status: BUILT, 22 Oct 2026, on branch `claude/headings-editable-5c2c47`** (worktree
+`.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` because that branch was not yet in `main`.
+Owner's picker the same day: Q1 **"Bring them back"** (§4, option a), and the frozen edits H1–H3 in §5 **signed
+off** with §6's gate. It edits the same three frozen heading paths, and it retires `hide-notes`' headings-off Notes
+panel (§3). §8 records what the build changed from this plan. Not merged, not pushed.
 
 Owner, 22 Oct 2026, while `hide-notes` was being built:
 
@@ -118,3 +119,27 @@ row, the hover rule and the Help text.
 3. Remove the Settings row; the Help text (the Waterfall card's ⓘ and the help panel).
 4. Legs (`hdrrow`, `settingswin`, `notescols`), README, HANDOFF, CLAUDE.md's state table (`headerRowCustom`'s new
    meaning), then the full gate.
+
+## 8. As built (22 Oct 2026)
+
+- **Built as §2–§3 say**, with two corrections found while building:
+  1. ⚠️ **§2's "Merge → on the Date heading … takes its text" was wrong about the editor.** A merge takes the text of
+     the heading being EDITED (the Split/Merge design the owner picked on 20 Oct, and `hdrrow` S3 holds it), so
+     Merge → on Date gives one "Date" heading over Date and the phases. **The year over Date is ← Merge on the year
+     heading**, which keeps the year. `hdrrow` H13 gates both. The editor's semantics did not change.
+  2. **The double-click handler is the only one for headings now.** It finds the column with `headingColKey(th)` on
+     either path and skips the hidden-Notes strip (its col key `y…:notesoff` is no heading key). `openHeaderRowPop`
+     reads the key the same way, and a new `headingCellFor(key)` finds the cell to reopen on after a button, since a
+     merge back to the defaults lands on the original path, whose cells carry no `data-hcol`.
+- **The switch's engine code is gone:** `reflectHeaderRowCustom`, `setHeaderRowCustom` and its `change` listener.
+  `headerRowCustom` is still read, sanitized, restored, saved and cleared by New.
+- **The hover rule** is `#table-wrap thead th:not(.wf-notes-strip)` (cursor and `:hover` ring only). The month view
+  draws no `<th>`, and `#print-root` is outside it.
+- **The Notes panel** (`openNotesColPop`, its listeners and `.wf-notes-pop`'s width rule) is removed. The editor's
+  Notes parts (`.wf-notes-pop-head`, the badge, the separator, `.wf-notes-hide`) stay.
+- **Help:** the Waterfall card's ⓘ and a new *Column headings* paragraph in the help panel (after *Styling text*).
+- **Legs:** `hdrrow` 37/37 (I1/I2 without the switch, H1–H14 new, S1–S5 on the new defaults, N1 clears a
+  switched-on file), red on the pre-change build. `notescols` 49/49 (A on the heading editor, A0 and A5 hold the
+  original path, old C as A6–A9), red on the pre-change build. `settingswin` 19/19 with `wf-hdr-custom` out of its
+  lists and W13 asserting the switch is gone (red on the pre-change build). The pre-change build is `hide-notes`'
+  gated `f85c9814…`, built from this branch's base with `git archive`.

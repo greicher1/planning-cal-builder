@@ -3144,6 +3144,9 @@ export function initLegacyApp() {
   // ⛔ CALENDAR DATA: `headerRowCustom` (written only as true) and `headerRowLabels` (only typed labels,
   // keyed by the width model's own column keys -- y2026:date, y2026:s0, y2026:notes -- written only
   // when non-empty). The labels are kept while the switch is off, so turning it back on brings them back.
+  // ⚠️ SUPERSEDED 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md): the switch is gone and every heading is editable;
+  // see headerRowTyped() below. The labels kept while it was off now show again (the owner's Q1, "Bring them
+  // back"), and `headerRowCustom` only makes the Date column default to the year.
   // ⚠️ Keyed by COLUMN, not by phase (the ruling: "labels are per column"): a stint swap moves the
   // phases under a heading and leaves the heading where it is. Single Column Mode's one block is the
   // first year's, so its columns read that year's labels.
@@ -3169,7 +3172,7 @@ export function initLegacyApp() {
   // Does a year block's Notes column hold anything? The width model's own test, string for string
   // (sheetColumnWidths measures exactly these, and skips an all-phase hiatus week, whose band covers the
   // column): an automatic note counts, a note cleared to '' does not, a kind switched off in Automatic
-  // notes does not. It is the violet dot on the strip, in the Notes panel and on the Settings pill.
+  // notes does not. It is the violet dot on the strip, in the heading editor and on the Settings pill.
   function blockHasNotes(schedule, b){
     const notesByIdx = (schedule && schedule.notesByIdx) || {};
     for(let i = b.startIdx; i < b.startIdx + b.count; i++){
@@ -3184,7 +3187,7 @@ export function initLegacyApp() {
   // columns by walking each row, and a rowspan would shift every block to its right by one column. Its
   // text is CSS (::after), so every frozen reader that skips an empty cell skips it; its <col> key
   // (`y2031:notesoff`) matches no heading, swap or width key, and its resize handle is hidden by CSS.
-  // A click anywhere on it shows the column again (the #table-wrap listener by openNotesColPop).
+  // A click anywhere on it shows the column again (the delegated [data-shownotes] listener).
   const NOTES_STRIP_PX = 14;
   const EYE_OFF_SVG = '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6"'
     + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.6 6.6a2 2 0 0 0 2.8 2.8"/>'
@@ -3201,7 +3204,23 @@ export function initLegacyApp() {
   }
   const HDR_ROW_KEY = /^y\d{4}:(?:date|notes|s\d{1,3})$/;
   const HDR_ROW_MAX = 200;   // characters; a heading is one line, and Excel caps a cell at 32,767
-  function headerRowDefault(block, key){ return /:notes$/.test(key) ? 'Notes' : String(block.year); }
+  // ⭐ NO SWITCH since 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md, owner: "remove the custom column headings
+  // toggle in settings and just make it editable all the time"). Every heading opens the editor on a
+  // double-click, and "typed" replaces "switched on" as what picks the frozen writers' path (H1-H3): an
+  // untouched calendar has no label, no split and no headerRowCustom, so it takes the original path and
+  // prints Date | year | Notes byte for byte. The first edit stores a label (or a split), and from then on
+  // the calendar takes the typed path; a Reset that leaves nothing typed puts it back on the original one.
+  // `headerRowCustom` survives as a PERMANENT key with a narrower meaning: this calendar was saved with the
+  // old switch on, so its Date column defaults to the year (the owner's ruling: those keep the year over
+  // Date). Nothing new writes it.
+  function headerRowTyped(){
+    return headerRowCustom || Object.keys(headerRowLabels).length > 0 || Object.keys(headerRowSplits).length > 0;
+  }
+  function headerRowDefault(block, key){
+    if(/:notes$/.test(key)) return 'Notes';
+    if(/:date$/.test(key) && !headerRowCustom) return 'Date';
+    return String(block.year);
+  }
   function headerRowLabel(block, key){
     return Object.prototype.hasOwnProperty.call(headerRowLabels, key) ? headerRowLabels[key]
       : headerRowDefault(block, key);
@@ -12821,7 +12840,10 @@ export function initLegacyApp() {
       // three lines below run exactly as they always did, so the default markup is unchanged by
       // construction. One <th> per run of identical neighbouring headings (headerRowRuns), carrying
       // the run's first column key for the editor (openHeaderRowPop), and shrunk to fit its cells.
-      if(headerRowCustom){
+      // ⛔ FROZEN EDIT H1 (owner sign-off, 22 Oct 2026, HEADINGS-EDITABLE-PLAN.md §5): the path is taken on a
+      // calendar with a TYPED heading, not on a switch. Untouched (all false) and switched-on files (true) run
+      // exactly what they ran before.
+      if(headerRowTyped()){
         const runs = headerRowRuns(b, colWidthsFor[bi].cols);
         runs.forEach((run, ri)=>{
           // ⛔ FROZEN EDIT R1 (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6): with a strip after it the last
@@ -13801,7 +13823,9 @@ export function initLegacyApp() {
       // bold, grey fill, a top rule, the block's outer rules on its first and last columns. The year
       // stays a NUMBER where it is the text, as today's year cell is. shrinkToFit is Excel's own fit:
       // a heading never widens a column. An empty heading is an empty cell.
-      if(headerRowCustom){
+      // ⛔ FROZEN EDIT H2 (owner sign-off, 22 Oct 2026, HEADINGS-EDITABLE-PLAN.md §5): typed, not switched on
+      // (H1's condition). Untouched and switched-on files write the row 1 they always wrote.
+      if(headerRowTyped()){
         headerRowRuns(yearBlocks[b], widths.cols).forEach(run=>{
           const c0 = startCol + run.start, c1 = c0 + run.span - 1;
           if(c1 > c0) ws.mergeCells(1, c0, 1, c1);
@@ -14312,7 +14336,6 @@ export function initLegacyApp() {
     reflectMonthTagPrefs();
     reflectDateFormat();
     reflectPaperSize();
-    reflectHeaderRowCustom();
     reflectMvNumberShootDays();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
@@ -14328,7 +14351,6 @@ export function initLegacyApp() {
   reflectMonthTagPrefs();
   reflectDateFormat();
   reflectPaperSize();
-  reflectHeaderRowCustom();
   reflectMvNumberShootDays();
   (function(){
     const track = document.querySelector('.side-tabs-track');
@@ -20834,27 +20856,9 @@ export function initLegacyApp() {
     if(e.target && e.target.id === 'wf-paper') setPaperSize(e.target.value);
   });
 
-  // ---------- Custom column headings: the switch and the editor (HEADER-ROW-PLAN.md §4) ----------
-  // The switch (#wf-hdr-custom, the Waterfall Layout card) has the same contract as the date select:
-  // it reflects `headerRowCustom`, a change is one undo step and dirties the file, and it is caught by
-  // delegation because React renders it.
-  function reflectHeaderRowCustom(){
-    const b = document.getElementById('wf-hdr-custom');
-    if(b && b.checked !== headerRowCustom) b.checked = headerRowCustom;
-  }
-  function setHeaderRowCustom(next){
-    next = !!next;
-    if(next === headerRowCustom){ reflectHeaderRowCustom(); return; }
-    asOneHeaderStep(()=>{
-      headerRowCustom = next;
-      render(currentSchedule);
-      markDirty();
-    });
-    reflectHeaderRowCustom();
-  }
-  document.addEventListener('change', e=>{
-    if(e.target && e.target.id === 'wf-hdr-custom') setHeaderRowCustom(e.target.checked);
-  });
+  // ---------- Column headings: the editor (HEADER-ROW-PLAN.md §4; HEADINGS-EDITABLE-PLAN.md) ----------
+  // The Settings switch that turned this on (#wf-hdr-custom, setHeaderRowCustom) was REMOVED 22 Oct 2026:
+  // every heading is editable all the time, on either path (headerRowTyped). Its snapshot key stays.
 
   // The editor: a panel ANCHORED to the clicked heading and appended to <body>, never written into the
   // cell (the .note-pop pattern, and its class, so the overlay family's look, OVER_PANEL and the
@@ -20957,8 +20961,7 @@ export function initLegacyApp() {
     }
     return next;
   }
-  // A heading's panel and ring, placed under (or, short of room, over) the heading. Shared by the custom
-  // heading editor and the Notes panel (openNotesColPop), so the two sit exactly alike.
+  // A heading's panel and ring, placed under (or, short of room, over) the heading.
   function placeHeadingPop(th, pop, ring){
     const r = th.getBoundingClientRect();
     // The ring is clipped to the grid's scroll box, so a heading scrolled sideways out of view takes
@@ -20977,18 +20980,27 @@ export function initLegacyApp() {
     if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
     if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
   }
+  // A heading cell by its first column key, on either path: the original path's headings carry no
+  // data-hcol, so this asks headingColKey(), which reads the colgroup the same way for both.
+  function headingCellFor(key){
+    return Array.from(document.querySelectorAll('#table-wrap table.sheet-table thead th'))
+      .find(th => headingColKey(th) === key) || null;
+  }
   function openHeaderRowPop(th){
     closeHeaderRowPop();
-    closeNotesColPop();
     if(!currentSchedule || !currentSchedule.weeks) return;
     // Re-derive the heading from the model rather than trusting the markup: the same blocks and column
-    // list the renderer used, found by the heading's first column key.
+    // list the renderer used, found by the heading's first column key. headingColKey(), not data-hcol: an
+    // untouched calendar's Date | year | Notes are the original path's cells, which carry none (H1). Its
+    // runs are those same three headings, as headerRowDefault() reads Date, the year and Notes.
+    const key = headingColKey(th);
+    if(!key) return;
     const yearBlocks = computeYearBlocks(currentSchedule.weeks);
     const widths = sheetColumnWidths(currentSchedule, yearBlocks, computeBlockLayout(currentSchedule, yearBlocks));
     let block = null, runs = null, ri = -1;
     yearBlocks.forEach((b, bi)=>{
       const rs = headerRowRuns(b, widths[bi].cols);
-      rs.forEach((r, i)=>{ if(r.keys[0] === th.dataset.hcol){ block = b; runs = rs; ri = i; } });
+      rs.forEach((r, i)=>{ if(r.keys[0] === key){ block = b; runs = rs; ri = i; } });
     });
     if(!runs) return;
     const run = runs[ri], n = run.keys.length;
@@ -21025,7 +21037,7 @@ export function initLegacyApp() {
       b.addEventListener('click', e=>{
         e.stopPropagation();
         const key = commitHeaderRowEdit(b.dataset.act);
-        const fresh = key && document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + key + '"]');
+        const fresh = key && headingCellFor(key);   // a merge back to the defaults lands on the original path
         if(fresh) openHeaderRowPop(fresh);
       });
     });
@@ -21043,14 +21055,19 @@ export function initLegacyApp() {
   // A DOUBLE-click since 21 Oct 2026: a click highlights the heading for the text style bar (TEXT-STYLE-BAR-
   // PLAN.md §1 D5, "a custom column heading follows the same rule" as a note). A click on the heading being
   // edited still keeps editing (the outside-click commit below ignores it).
+  // ⭐ ANY heading since 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md §2): Date, the year and Notes on an untouched
+  // calendar too, found by headingColKey(). A hidden Notes column's strip has no heading key (its col is
+  // `y2031:notesoff`), so its own click handler keeps it. This retired the Notes panel (openNotesColPop),
+  // which a double-click on an original-path Notes heading opened: the editor carries its Hide button.
   document.getElementById('table-wrap').addEventListener('dblclick', e=>{
-    const th = e.target && e.target.closest ? e.target.closest('th.hdrrow-cell[data-hcol]') : null;
-    if(!th) return;
+    if(viewMode !== 'sheet') return;
+    const th = e.target && e.target.closest ? e.target.closest('#table-wrap table.sheet-table thead th') : null;
+    const key = th ? headingColKey(th) : null;
+    if(!key) return;
     e.stopPropagation();
     if(activeHdrRowPop && activeHdrRowPop.th === th) return;   // already editing this heading
     if(activeHdrRowPop) commitHeaderRowEdit('text');           // re-renders; find the fresh cell
-    const fresh = th.isConnected ? th
-      : document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + th.dataset.hcol + '"]');
+    const fresh = th.isConnected ? th : headingCellFor(key);
     if(fresh) openHeaderRowPop(fresh);
   });
   document.addEventListener('click', e=>{
@@ -21064,17 +21081,18 @@ export function initLegacyApp() {
     // Enter on a focused button is that button's own click, not a save of the text.
     if(e.key === 'Enter' && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); commitHeaderRowEdit('text'); }
   });
-  // ⛔ A render that rebuilds the grid under an open editor (an undo, a Load, the switch turned off)
+  // ⛔ A render that rebuilds the grid under an open editor (an undo, a Load, a column hidden)
   // leaves it anchored to a detached cell. Observed, not hooked: nothing in render() is edited
   // (sanctioned pattern 3), and the edit is dropped, as the cell it was for may no longer exist.
   new MutationObserver(()=>{
     if(activeHdrRowPop && !activeHdrRowPop.th.isConnected) closeHeaderRowPop();
   }).observe(document.getElementById('table-wrap'), { childList: true });
 
-  // ---------- Hidden Notes columns: the panel, the strip, Settings (HIDE-NOTES-PLAN.md §2, §4) ----------
-  // The owner's option B (22 Oct 2026): hide a year's Notes column by hand, from its heading, and flag a
-  // column that holds notes with a dot -- never a count or the text ("keep things clean and elegant").
-  // All of this is chrome AROUND the grid: the panel and the strip's hover ring are body-level, and the
+  // ---------- Hidden Notes columns: the strip, Settings (HIDE-NOTES-PLAN.md §2, §4) ----------
+  // The owner's option B (22 Oct 2026): hide a year's Notes column by hand, from its heading (the heading
+  // editor's Hide column), and flag a column that holds notes with a dot -- never a count or the text
+  // ("keep things clean and elegant").
+  // All of this is chrome AROUND the grid: the editor and the strip's hover ring are body-level, and the
   // strip itself is drawn by renderSpreadsheetView (R1-R3), never added to the grid from here.
   //
   // Hiding and showing are calendar data: one undo step and a dirty file, setDateFormat's shape. render(),
@@ -21082,7 +21100,6 @@ export function initLegacyApp() {
   function setNotesColsHidden(keys, hide){
     const want = keys.filter(k => typeof k === 'string' && NOTES_COL_KEY.test(k) && (hiddenNotesCols[k] === true) !== !!hide);
     if(!want.length || !currentSchedule) return;
-    closeNotesColPop();
     asOneHeaderStep(()=>{
       want.forEach(k=>{ if(hide) hiddenNotesCols[k] = true; else delete hiddenNotesCols[k]; });
       render(currentSchedule);
@@ -21095,63 +21112,9 @@ export function initLegacyApp() {
     return `<button type="button" class="wf-notes-hide" title="Hide ${year}’s Notes column on screen, in Excel and in the PDF. Its notes stay saved.">${icon}<span>${escHtml(label)}</span></button>`;
   }
 
-  // The Notes panel: what a DOUBLE-click on a default Notes heading opens (D1 -- a click picks the heading
-  // for the text style bar, as every grid text does). With Custom Column Headings on, the heading editor
-  // opens instead and carries the same Hide button (openHeaderRowPop). Built like that editor: a .note-pop
-  // (buildSavedHtml strips it) with the .hdrrow-ring over its heading, placed by placeHeadingPop.
-  let activeNotesColPop = null;   // { pop, ring, th, place, key }
-  function closeNotesColPop(){
-    if(!activeNotesColPop) return;
-    const { pop, ring, place } = activeNotesColPop;
-    window.removeEventListener('scroll', place, true);
-    window.removeEventListener('resize', place);
-    pop.remove();
-    ring.remove();
-    activeNotesColPop = null;
-  }
-  function openNotesColPop(th, key){
-    closeNotesColPop();
-    closeHeaderRowPop();
-    if(!currentSchedule || !currentSchedule.weeks) return;
-    const year = +key.slice(1, 5);
-    const block = computeYearBlocks(currentSchedule.weeks).find(b => b.year === year);
-    if(!block) return;
-    const pop = document.createElement('div');
-    pop.className = 'note-pop wf-notes-pop';
-    pop.innerHTML = `<div class="wf-notes-pop-head"><div class="note-pop-title">${escHtml('Notes · ' + year)}</div>`
-      + `${blockHasNotes(currentSchedule, block) ? NOTES_BADGE_HTML : ''}</div>${notesHideBtnHtml('Hide column', year)}`;
-    const ring = document.createElement('div');
-    ring.className = 'hdrrow-ring';
-    document.body.appendChild(ring);
-    document.body.appendChild(pop);
-    const place = ()=> placeHeadingPop(th, pop, ring);
-    place();
-    window.addEventListener('scroll', place, true);
-    window.addEventListener('resize', place);
-    activeNotesColPop = { pop, ring, th, place, key };
-    const btn = pop.querySelector('.wf-notes-hide');
-    btn.addEventListener('click', e=>{ e.stopPropagation(); setNotesColsHidden([key], true); });
-    // Focused so Enter hides, but without the keyboard ring a mouse-opened panel does not need.
-    btn.focus({ focusVisible: false });
-  }
-  document.getElementById('table-wrap').addEventListener('dblclick', e=>{
-    if(viewMode !== 'sheet') return;
-    const th = e.target && e.target.closest ? e.target.closest('#table-wrap table.sheet-table thead th') : null;
-    if(!th || th.classList.contains('hdrrow-cell')) return;   // a custom heading opens its own editor
-    const key = headingColKey(th);
-    if(!key || !NOTES_COL_KEY.test(key)) return;
-    e.stopPropagation();
-    if(activeNotesColPop && activeNotesColPop.th === th) return;
-    openNotesColPop(th, key);
-  });
-  document.addEventListener('click', e=>{
-    if(!activeNotesColPop) return;
-    if(activeNotesColPop.pop.contains(e.target) || activeNotesColPop.th.contains(e.target)) return;
-    closeNotesColPop();
-  });
-  document.addEventListener('keydown', e=>{
-    if(activeNotesColPop && e.key === 'Escape'){ e.preventDefault(); closeNotesColPop(); }
-  });
+  // ⛔ The Notes panel (openNotesColPop) that a double-click on an original-path Notes heading opened is
+  // RETIRED (22 Oct 2026, HEADINGS-EDITABLE-PLAN.md §3): every heading opens the heading editor now, and the
+  // editor over a Notes column carries the same "Has notes" badge and Hide button.
 
   // Showing a column again: a click anywhere on its strip, or a Settings pill's × / Show all (the React
   // row renders them with this same attribute, so one delegated listener serves both). 'all' = every one.
@@ -21213,7 +21176,6 @@ export function initLegacyApp() {
     chrome.hiddenNotes({ cols: blocks.filter(b => notesHiddenFor(b.year)).map(b => ({ year: b.year, has: blockHasNotes(sch, b) })) });
   }
   new MutationObserver(()=>{
-    if(activeNotesColPop && !activeNotesColPop.th.isConnected) closeNotesColPop();
     hideNotesRing();
     pushHiddenNotesToChrome();
   }).observe(document.getElementById('table-wrap'), { childList: true });
@@ -22184,7 +22146,7 @@ export function initLegacyApp() {
     singleColumn = false; reflectSingleColumn();
     dateFormat = ''; reflectDateFormat();
     paperSize = ''; pageOrientation = ''; reflectPaperSize();   // Letter, the rule's orientation
-    headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {}; reflectHeaderRowCustom();
+    headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {};
     hiddenNotesCols = {};   // every Notes column shows on a new calendar
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
@@ -25323,8 +25285,9 @@ export function initLegacyApp() {
     getAllPhaseDefs().forEach(d=>{ names[d.key] = d.label; });
     const yearBlocks = computeYearBlocks(schedule.weeks);
     // Typed column headings are user text now (HEADER-ROW-PLAN §4), unlike the Date / year / Notes the
-    // comment above calls ASCII by construction. Only while they print, and only a block that exists.
-    if(headerRowCustom){
+    // comment above calls ASCII by construction. Only while they print (the writer's own H3 condition), and
+    // only a block that exists.
+    if(headerRowTyped()){
       const years = new Set(yearBlocks.map(b => 'y' + b.year + ':'));
       Object.keys(headerRowLabels).forEach(k=>{
         if(!years.has(k.slice(0, k.indexOf(':') + 1))) return;
@@ -26278,7 +26241,9 @@ export function initLegacyApp() {
       // (headerRowRuns -- the screen's and the workbook's runs), centred over the run and clipped to
       // it, at put()'s size unless it needs less: then it shrinks by this font's own advance widths,
       // floored like a phase label. The row stays one fill with no rules, as Excel's header row is.
-      if(headerRowCustom){
+      // ⛔ FROZEN EDIT H3 (owner sign-off, 22 Oct 2026, HEADINGS-EDITABLE-PLAN.md §5): typed, not switched on
+      // (H1's condition). Untouched and switched-on files draw the header row they always drew.
+      if(headerRowTyped()){
         headerRowRuns(b, colWidthsFor[bi].cols).forEach(run=>{
           const w = S(cols.slice(run.start, run.start + run.span).reduce((a,c)=>a+c.w,0));
           if(run.text){
@@ -29776,7 +29741,6 @@ export function initLegacyApp() {
     // ...and the splits: no key = none, never the previous file's (a v1.6.0 file merges as it always did).
     headerRowSplits = {};
     if(Array.isArray(snap.headerRowSplits)) snap.headerRowSplits.forEach(k=>{ if(typeof k === 'string') headerRowSplits[k] = true; });
-    reflectHeaderRowCustom();
     // ⛔ UNCONDITIONAL: no key = every Notes column shows, never the previous file's hidden ones.
     hiddenNotesCols = {};
     if(Array.isArray(snap.hiddenNotesCols)) snap.hiddenNotesCols.forEach(k=>{ if(typeof k === 'string' && NOTES_COL_KEY.test(k)) hiddenNotesCols[k] = true; });
