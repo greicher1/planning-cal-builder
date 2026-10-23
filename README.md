@@ -47,6 +47,13 @@ cursor is"*.
   R16; `sbnoexport` 28/28, `calzoom` 24/24, `textstyle` 51/51, `npm run check` 40/40. In the browser with a real
   mouse wheel: the grid scrolled 300 px with both columns at 0; the right column scrolled to its end with the grid
   unmoved and nothing else scrolling; a box dropped with the two scrolled differently landed where it was let go.
+- **Test fix, later the same day (no app change):** R16 went red on an idle machine with the build byte-identical
+  to the one that passed. The drag's auto-scroll runs on `requestAnimationFrame`, which the harness's virtual time
+  never fires (0 frames in a held 5 s), so the old 400 ms sleep passed only when a stray frame landed. For that one
+  drag the leg now supplies frames from virtual-time timers and waits for the column to move. Verified: 78/78 five
+  runs in a row on `main`'s build, where the old R16 was 77/78 every time; red at R16 alone on two broken builds (one
+  that scrolls the grid, one that never scrolls). In the browser pane, a box held at the bottom edge scrolled its
+  column to the end with the grid unmoved.
 
 ### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
 

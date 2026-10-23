@@ -269,14 +269,29 @@ window.addEventListener('load', function () { (async function () {
     check(level(sideBoxEls('left')[0], 10), 'R15 scrolled alike, the grid and the column line up again: the box is beside row 10');
     // Carried near the bottom of its column, a box scrolls THAT column (no longer the grid), so it can reach
     // a row out of view. Escape then cancels the drag, so nothing moves.
-    ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
-    var lg = q('.sb-grip', sideBoxEls('left')[0]), lgp = mid(lg), lsr = ls.getBoundingClientRect(), gBefore = gs.scrollTop;
-    ptr('pointerdown', lg, lgp, 1); ptr('pointermove', document.body, {x: lgp.x, y: lgp.y + 8}, 1);
-    ptr('pointermove', document.body, {x: lgp.x, y: Math.round(lsr.bottom - 6)}, 1);
-    await T.sleep(400);
-    out.r16 = {left: ls.scrollTop, grid: gs.scrollTop, gridWas: gBefore};
-    window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
-    await T.sleep(150);
+    // ⚠️ THE AUTO-SCROLL IS DRIVEN BY requestAnimationFrame, WHICH NEVER FIRES UNDER THIS HARNESS'S VIRTUAL
+    // TIME (lib.js's openSettings, hdrfit). Measured 22 Oct 2026: 0 frames in a bare 400 ms sleep, and 0 with
+    // this drag held for 5 s. This check used to sleep 400 ms, so it passed only when a stray frame happened
+    // to land. It went red on an idle machine (`{"left":0,...}`) with the build byte-identical to the one
+    // that had passed. So for this one drag, frames come from virtual-time timers, and the leg waits for the
+    // column to move. What is tested is unchanged: the app's own tick choosing WHICH element to scroll. A
+    // real mouse in the pane scrolls the column (HANDOFF). The real functions go back only AFTER Escape, so
+    // the drag's cancelAnimationFrame clears a pending timer frame instead of passing the native one an id it
+    // never issued; a frame left pending would run its tick on a finished drag.
+    var rafWas = window.requestAnimationFrame, cafWas = window.cancelAnimationFrame, r16frames = 0;
+    window.requestAnimationFrame = function (cb) { return setTimeout(function () { r16frames++; cb(performance.now()); }, 16); };
+    window.cancelAnimationFrame = function (id) { clearTimeout(id); };
+    try {
+      ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
+      var lg = q('.sb-grip', sideBoxEls('left')[0]), lgp = mid(lg), lsr = ls.getBoundingClientRect(), gBefore = gs.scrollTop;
+      ptr('pointerdown', lg, lgp, 1); ptr('pointermove', document.body, {x: lgp.x, y: lgp.y + 8}, 1);
+      ptr('pointermove', document.body, {x: lgp.x, y: Math.round(lsr.bottom - 6)}, 1);
+      try { await T.until(function () { return ls.scrollTop > 5; }, 'the column to scroll under the carried box', 30, 50); }
+      catch(e){ out.r16wait = String(e.message); }   // R16 reports it, with the numbers
+      out.r16 = {left: ls.scrollTop, grid: gs.scrollTop, gridWas: gBefore, frames: r16frames};
+      window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+      await T.sleep(150);
+    } finally { window.requestAnimationFrame = rafWas; window.cancelAnimationFrame = cafWas; }
     gs.scrollTop = 0; gs.dispatchEvent(new Event('scroll'));
     ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
     check(out.r16.left > 5 && Math.abs(out.r16.grid - gBefore) < 0.5 && !q('.sb-drop') && level(sideBoxEls('left')[0], 10),
