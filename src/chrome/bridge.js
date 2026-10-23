@@ -119,6 +119,13 @@ export const chrome = {
   // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.
   // A per-machine preference: never in captureSnapshot(), never an undo step.
   calZoom: noop,
+  // { tabs: [{ id, name }], current, max } — the scenario tabs under the calendar (ScenarioTabs.jsx,
+  // SCENARIOS-PLAN.md). The engine's scenarioTabs is the only store; every action goes back as a DOM event,
+  // 'sptcal-scenario' {op, id, name, to}, as the zoom's does.
+  scenarios: noop,
+  // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
+  // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
+  compareDialog: noop,
   // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
   // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
   // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes

@@ -1,0 +1,190 @@
+// The Compare window for scenarios (SCENARIOS-PLAN.md §2 and §5; owner, 22–23 Oct 2026). A Mantine Modal holding the
+// chips that pick its columns, one Table, and a row of buttons -- nothing else (owner: "remove all the random
+// explainations ... remember clean and simple").
+//
+// One column per scenario, the one on screen first, up to twelve (owner: "compare up to 12 scenarios at once,
+// scrolling left to right"). Every row shows every value. A value that differs from the one on screen is bold, with
+// the difference under it ("+2 wks"); a row that is the same everywhere is grey. The window grows with the table up
+// to the browser window, then the table scrolls sideways with the row labels pinned.
+//
+// The engine works out every value (openCompareScenarios in app.js: the header's own tokens, probing tabs not
+// visited since Load) and pushes them here. This only lays them out; Export to Excel / Export PDF hand the table
+// as shown back to the engine ('sptcal-compare-export'), which writes the file.
+//
+// ⛔ The root carries .compare-dlg: collectFieldValues() skips it, because Mantine mints an id for every Chip's
+// checkbox and a crash backup or undo push taken while this is open must not carry them.
+import { useState, useLayoutEffect } from 'react'
+import { Modal, Table, Text, Badge, Button, Group, Chip, Stack } from '@mantine/core'
+import { installChrome } from './bridge.js'
+
+const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); more than fit scroll sideways
+const LABEL_W = 180
+const COL_W = 160
+
+const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
+const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
+const days = (a, b) => Math.round((parse(b).t - parse(a).t) / 864e5)
+const sign = (n) => (n > 0 ? '+' : '−') + Math.abs(n)
+const dayDelta = (n) => (n % 7 === 0 ? sign(n / 7) + ' wk' + (Math.abs(n) === 7 ? '' : 's') : sign(n) + ' day' + (Math.abs(n) === 1 ? '' : 's'))
+const missing = (v) => v == null || v === ''
+
+// One cell against the one on screen: {text, diff, delta}. A value one of them lacks (a phase only one scenario
+// has, an unset count) is a dash, and a difference, with nothing to subtract.
+function cell(row, value, ref) {
+  if (missing(value) || missing(ref)) {
+    return { text: missing(value) ? '—' : show(row, value), diff: missing(value) !== missing(ref), delta: '' }
+  }
+  if (row.type === 'date') {
+    const n = days(ref, value)
+    return { text: fmt(value), diff: n !== 0, delta: n ? dayDelta(n) : '' }
+  }
+  if (row.type === 'range') {
+    const a = days(ref[0], value[0]), b = days(ref[1], value[1])
+    const delta = a || b ? (a === b ? dayDelta(a) : 'start ' + (a ? dayDelta(a) : 'same') + ', end ' + (b ? dayDelta(b) : 'same')) : ''
+    return { text: show(row, value), diff: !!(a || b), delta }
+  }
+  if (row.type === 'number') {
+    const n = Math.round((value - ref) * 10) / 10
+    return { text: show(row, value), diff: n !== 0, delta: n ? sign(n) + (row.unit || '') : '' }
+  }
+  return { text: String(value), diff: value !== ref, delta: '' }
+}
+function show(row, v) {
+  if (row.type === 'date') return fmt(v)
+  if (row.type === 'range') return fmt(v[0]) + ' – ' + fmt(v[1])
+  if (row.type === 'number') return v + (row.unit || '')
+  return String(v)
+}
+
+function Icon({ d, ...props }) {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}>
+      {d}
+    </svg>
+  )
+}
+const ICON_SHEET = <><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" /><path d="M2.5 6.5h11M2.5 10h11M6.5 6.5v7" /></>
+const ICON_DOC = <><path d="M4 1.5h5.5L13 5v9.5H4z" /><path d="M9.5 1.5V5H13M6.5 9h4M6.5 11.5h4" /></>
+const ICON_COPY = <><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" /></>
+
+// Held in place while the table scrolls sideways: the row labels stay beside their values.
+const STICKY = { position: 'sticky', left: 0, zIndex: 1, background: 'var(--mantine-color-body)',
+                 boxShadow: 'inset -1px 0 0 var(--table-border-color)' }
+
+export function CompareDialog() {
+  const [dlg, setDlg] = useState(null)                    // {scenarios, currentId, rows}, or null when closed
+  const [picked, setPicked] = useState({ ref: null, ids: null })
+  const [copied, setCopied] = useState(false)
+
+  useLayoutEffect(() => {
+    installChrome({ compareDialog: (opts) => { setCopied(false); setDlg(opts) } })
+  }, [])
+
+  if (!dlg) return null
+  const { scenarios, currentId, rows } = dlg
+  const ref = scenarios.find((s) => s.id === currentId) || scenarios[0]
+  const others = scenarios.filter((s) => s.id !== ref.id)
+  const showChips = others.length >= 2
+  // To start, every other scenario up to eleven: the next ones in tab order after the one on screen. The choice is
+  // kept for that scenario only; with another on screen it starts afresh, so the old one can't drop out unnoticed.
+  const defaultPick = () => {
+    const i = scenarios.indexOf(ref)
+    return Array.from({ length: Math.min(MAX_COLS - 1, others.length) }, (_, k) => scenarios[(i + 1 + k) % scenarios.length].id)
+  }
+  const pick = (picked.ref === ref.id && picked.ids ? picked.ids : defaultPick()).filter((id) => others.some((o) => o.id === id))
+  const cols = [ref].concat(others.filter((o) => pick.includes(o.id)))
+
+  const table = rows.map((r) => {
+    const cells = cols.map((s) => cell(r, s.values[r.key], ref.values[r.key]))
+    return { row: r, cells, same: cells.every((c) => !c.diff) }
+  })
+  const tableW = LABEL_W + COL_W * cols.length
+  const model = () => ({
+    cols: cols.map((s, i) => ({ name: s.name, onScreen: i === 0 })),
+    rows: table.map((t) => ({ label: t.row.label, same: t.same, cells: t.cells.map((c) => ({ text: c.text, delta: c.delta, diff: c.diff })) })),
+  })
+  const exportAs = (kind) => document.dispatchEvent(new CustomEvent('sptcal-compare-export', { detail: { kind, model: model() } }))
+  const copy = () => {
+    const head = [''].concat(cols.map((c) => c.name)).join('\t')
+    const body = table.map((t) => [t.row.label].concat(t.cells.map((c) => c.text + (c.delta ? ' (' + c.delta + ')' : ''))).join('\t'))
+    const text = [head].concat(body).join('\n')
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => setCopied(true), () => {})
+  }
+
+  return (
+    <Modal
+      opened
+      onClose={() => setDlg(null)}
+      withinPortal={false}
+      centered
+      size={'min(' + Math.max(660, tableW + 44) + 'px, calc(100vw - 48px))'}
+      radius="lg"
+      shadow="xl"
+      title="Compare scenarios"
+      className="compare-dlg"
+      styles={{ title: { fontWeight: 600 } }}
+      overlayProps={{ backgroundOpacity: 0.35 }}
+    >
+      <Stack gap="lg">
+        {showChips && (
+          <Chip.Group multiple value={pick} onChange={(v) => setPicked({ ref: ref.id, ids: v.slice(0, MAX_COLS - 1) })}>
+            <Group gap="xs">
+              {others.map((o) => (
+                <Chip key={o.id} value={o.id} size="xs" variant="outline"
+                      disabled={!pick.includes(o.id) && pick.length >= MAX_COLS - 1}>
+                  {o.name}
+                </Chip>
+              ))}
+            </Group>
+          </Chip.Group>
+        )}
+
+        {/* A narrow window scrolls the table sideways inside the dialog; the dialog never outgrows the window. */}
+        <Table.ScrollContainer minWidth={tableW} type="native">
+          <Table layout="fixed" verticalSpacing="xs" horizontalSpacing="md" withRowBorders className="sc-compare-table" style={{ width: tableW }}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th w={LABEL_W} style={STICKY} />
+                {cols.map((s, i) => (
+                  <Table.Th key={s.id} w={COL_W}>
+                    <Group gap={6} wrap="nowrap">
+                      <Text size="sm" fw={600} truncate>{s.name}</Text>
+                      {i === 0 && <Badge size="xs" variant="light" color="navy" tt="none" fw={500} style={{ flex: 'none' }}>On screen</Badge>}
+                    </Group>
+                  </Table.Th>
+                ))}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {table.map((t) => (
+                <Table.Tr key={t.row.key}>
+                  <Table.Td style={STICKY}><Text size="sm" fw={500} c={t.same ? 'dimmed' : undefined}>{t.row.label}</Text></Table.Td>
+                  {t.cells.map((c, i) => (
+                    <Table.Td key={cols[i].id}>
+                      <Stack gap={4} align="flex-start">
+                        {/* Dates and counts stay on one line; a text value (a location) wraps inside its column. */}
+                        <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined}
+                              style={t.row.type === 'text' ? { overflowWrap: 'anywhere' } : { whiteSpace: 'nowrap' }}>{c.text}</Text>
+                        {c.delta && <Badge size="sm" variant="light" color="warn" radius="sm" tt="none" fw={500}>{c.delta}</Badge>}
+                      </Stack>
+                    </Table.Td>
+                  ))}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+
+        <Group justify="space-between" gap="sm">
+          <Group gap="sm">
+            <Button variant="default" size="xs" leftSection={<Icon d={ICON_SHEET} />} onClick={() => exportAs('xlsx')}>Export to Excel</Button>
+            <Button variant="default" size="xs" leftSection={<Icon d={ICON_DOC} />} onClick={() => exportAs('pdf')}>Export PDF</Button>
+            <Button variant="default" size="xs" leftSection={<Icon d={ICON_COPY} />} onClick={copy}>{copied ? 'Copied' : 'Copy table'}</Button>
+          </Group>
+          <Button size="xs" onClick={() => setDlg(null)} data-autofocus>Done</Button>
+        </Group>
+      </Stack>
+    </Modal>
+  )
+}

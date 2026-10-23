@@ -2798,6 +2798,50 @@ for c in cases:
 sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
 PYSDX
 
+# ---- scenarios: several calendars in one file (SCENARIOS-PLAN.md; owner rulings 22-23 Oct 2026) ---------------
+# The tabs under the calendar, driven as a user does: "+", a typed name, edits in each copy, switching in both views,
+# per-tab undo, Ctrl+Page Up/Down, Save (version 2 with the current tab at the top level), Load, Compare on a fresh
+# load (the parked tabs probed, the calendar on screen unchanged), the chips, both exports, the scenario in the export
+# names, Delete / Keep only (back to a plain version-1 file), and five damaged or too-new files refused whole.
+# ⭐ The other half of "a one-scenario calendar is unchanged" is every gate above: no byte baseline moves.
+rm -f "$HERE/scenarios.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenarios 400 >/dev/null 2>&1
+python3 - "$HERE/scenarios.json" <<'PYSC' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenarios produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenarios '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+errs = (a.get('health') or {}).get('errors') or []
+if errs: print('  FAIL  scenarios: page errors '+str(errs)[:200])
+sys.exit(0 if len(cases) >= 18 and all(c.get('pass') is True for c in cases) and not errs else 1)
+PYSC
+# ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
+# v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
+# v1.2.0, which has no version check, must open the tab that was on screen (8 episodes), never a blank calendar.
+for CPAGE in /releases/v1.8.0.html /releases/v1.2.0.html; do
+  rm -f "$HERE/scenariocompat.json"
+  HARNESS_PAGE="$CPAGE" "$HERE/run.sh" scenariocompat 120 >/dev/null 2>&1
+  python3 - "$HERE/scenariocompat.json" "$CPAGE" <<'PYCC' || FAIL=1
+import json,sys
+page = sys.argv[2]
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenariocompat '+page+' produced no result: '+str(e)); sys.exit(1)
+m, af, bf = a.get('modal') or '', a.get('after') or {}, a.get('before') or {}
+if 'v1.8.0' in page:
+    ok = 'newer version' in m and af.get('title') == bf.get('title')
+    what = 'v1.8.0 refuses a scenarios file whole and keeps its calendar'
+else:
+    ok = af.get('title') == 'Half Days Test' and af.get('episodes') == '8' and not m
+    what = 'v1.2.0 opens the scenario that was on screen, not a blank calendar'
+print(('  PASS  ' if ok else '  FAIL  ')+'scenariocompat: '+what+('' if ok else '  '+json.dumps({'modal': m[:80], 'after': af})))
+sys.exit(0 if ok and not a.get('EX') else 1)
+PYCC
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

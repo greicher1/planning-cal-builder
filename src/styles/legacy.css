@@ -3179,6 +3179,39 @@
     font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
   }
   .cal-zoom .cal-zoom-pct:hover{ background:var(--bg); }
+
+  /* ---------- Scenario tabs (SCENARIOS-PLAN.md; src/chrome/ScenarioTabs.jsx) ----------
+     Excel's sheet tabs: bottom LEFT in the strip under the calendar, whose bottom right holds the zoom pill and the
+     ? button (see #help-fab and .cal-zoom above). Fixed like them, centred on the same line 22px up; `left` is set
+     by the component from .preview-panel's left edge plus its 28px padding, so the tabs start where the grid does.
+     They stop short of the zoom pill (64px + the pill + a gap) and scroll sideways past that, never wrapping: the
+     strip is one row, and the app shell's grid fit is solved without it. Chrome, not the frozen surface. */
+  .sc-strip{
+    position:fixed; bottom:8px; right:260px; z-index:60;
+    display:flex; align-items:center; gap:6px; height:28px; min-width:0;
+  }
+  .sc-tabs{ display:flex; align-items:center; gap:2px; min-width:0; overflow-x:auto; scrollbar-width:none; }
+  .sc-tabs::-webkit-scrollbar{ display:none; }
+  .sc-tab{
+    flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
+    border:1px solid transparent; border-radius:var(--mantine-radius-md);
+    font-size:12px; font-weight:500; color:var(--text-muted); white-space:nowrap; cursor:pointer;
+  }
+  .sc-tab:hover{ background:var(--mantine-color-gray-1); color:var(--text); }
+  .sc-tab.is-current{
+    background:var(--mantine-color-white); color:var(--text); font-weight:600; padding-right:4px;
+    border-color:var(--mantine-color-gray-3); box-shadow:0 1px 2px rgba(0,0,0,.06);
+  }
+  .sc-tab.is-dragging{ opacity:.45; }
+  .sc-tab-caret{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+    border-radius:var(--mantine-radius-sm); color:var(--text-muted); }
+  .sc-tab-caret:hover{ background:var(--mantine-color-gray-1); color:var(--text); }
+  .sc-tab.is-editing{ padding:0 3px; background:var(--mantine-color-white); border-color:var(--mantine-color-gray-3); }
+  .sc-tab-input{
+    width:130px; height:20px; padding:0 6px; font:inherit; font-size:12px; font-weight:600; color:var(--text);
+    border:1px solid var(--mantine-primary-color-filled); border-radius:var(--mantine-radius-sm); outline:none;
+  }
+  .sc-menu-anchor{ position:fixed; width:1px; height:1px; pointer-events:none; }
   /* The waterfall's resize handles show at every zoom (22 Oct 2026). Until then they were hidden here
      while zoomed (body.cal-zoomed), because frozen installGridResizers and the drags mixed screen px
      with the grid's own px and a zoomed row drag SAVED the zoomed height. Frozen edits Z1-Z6 (app.js,

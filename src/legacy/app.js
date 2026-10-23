@@ -14115,7 +14115,10 @@ export function initLegacyApp() {
     const a = document.createElement('a');
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safeTitle = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar.xlsx';
+    // ⛔ FROZEN EDIT S1 (owner ruling D6, approved in principle 22 Oct 2026, SCENARIOS-PLAN.md §7): the download's
+    // NAME only. scenarioFileSuffix() is '' with one scenario, so a calendar without scenarios is named as before,
+    // and no byte of the workbook moves (gate 2 compares every part).
+    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.xlsx';
     a.href = url; a.download = xlsxName;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
@@ -18283,7 +18286,7 @@ export function initLegacyApp() {
   // still collapsing for real.
   const HDR_PH_OPEN = String.fromCharCode(0xE000), HDR_PH_CLOSE = String.fromCharCode(0xE001);   // private-use, cannot occur in user text
   const HDR_PH_NAMES = {
-    title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version',
+    title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version', scenario:'Scenario',
     episodes:'##', shootDaysPerEp:'#', shootDays:'##',
     'production.summary':'Production Span / Shooting Schedule',
     'production.dates':'Principal Photography — / Wrap: —',
@@ -19369,6 +19372,7 @@ export function initLegacyApp() {
         ['{season}', 'Season, as S2'],
         ['{titleSeason}', 'Title and season'],
         ['{version}', 'Version, as v3'],
+        ['{scenario}', 'The scenario on screen (empty with one)'],
         ['{episodes}', 'Episode count'],
         ['{shootDaysPerEp}', 'Shoot days per episode'],
         ['{shootDays}', 'Total shoot days'],
@@ -19641,6 +19645,9 @@ export function initLegacyApp() {
     // to separate it from -- so a season with no title reads "S2", never " S2".
     t.titleSeason = title + (season ? (title ? ' ' : '') + 'S' + season : '');
     t.version = versionLabel();
+    // SCENARIOS-PLAN.md D6: the scenario on screen, for a Template line that wants it. Empty with one scenario, so
+    // a calendar without scenarios prints exactly what it always did.
+    t.scenario = (scenarioTabs && scenarioTabs.length > 1) ? currentScenario().name : '';
     const numEpisodes = parseInt(val('num-episodes'), 10);
     t.episodes = (!isNaN(numEpisodes) && numEpisodes > 0) ? String(numEpisodes) : '';
     const perEp = dayCountVal(val('shoot-days-per-ep'));   // halves allowed: "4.5-Day Shooting Schedule"
@@ -21476,6 +21483,7 @@ export function initLegacyApp() {
     document.body.classList.toggle('cal-zoomed', on);
     if(typeof chrome === 'object' && chrome && typeof chrome.calZoom === 'function'){
       chrome.calZoom({ view: calZoomView(), zoom: calZoom[calZoomView()], visible: shown });
+      pushScenarioChrome();   // the scenario tabs share the strip, and its visibility (SCENARIOS-PLAN.md)
     }
   }
   let _calZoomTimer = 0;
@@ -22242,6 +22250,18 @@ export function initLegacyApp() {
     document.querySelectorAll('textarea').forEach(t=>{ if(!inPrefs(t)) t.textContent = t.value; });
   }
 
+  // " – <scenario>" on an export's file name with two or more scenarios, so a sent file says which option it is
+  // (ruling D6); '' with one, so every name is exactly what it always was. `var` state: see scenarioTabs.
+  function scenarioFileSuffix(){
+    return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
+  }
+  // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one.
+  // ⚠️ buildSavedFileName('') is NOT a bare name: an empty ext falls back to .sptcal. So the base is cut off a name
+  // built with a known extension.
+  function savedFileBase(){ return buildSavedFileName('.html').slice(0, -'.html'.length); }
+  function shareCopyFileName(){
+    return savedFileBase() + scenarioFileSuffix() + '.html';
+  }
   function buildSavedFileName(ext){
     const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
     const d = new Date();
@@ -22276,6 +22296,8 @@ export function initLegacyApp() {
       // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
       // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
       if(el.closest('.export-pdf-dlg')) return;
+      // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
+      if(el.closest('.compare-dlg')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -22307,13 +22329,13 @@ export function initLegacyApp() {
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
     }
-    return JSON.stringify(captureSnapshot(), null, 1);
+    return JSON.stringify(captureFileObject(), null, 1);
   }
 
   // The SHARE format: the whole document, with current state embedded, as a self-contained and
   // double-clickable copy of the app. No longer what Save writes -- it is "Export shareable
   // copy", and the download fallback on browsers with no File System Access.
-  function buildSavedHtml(){
+  function buildSavedHtml(opts){
     // 1. Commit any open note editor so its text isn't lost
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
@@ -22415,7 +22437,9 @@ export function initLegacyApp() {
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
     const stateEl = clone.querySelector('#saved-state');
-    if(stateEl) stateEl.textContent = JSON.stringify(captureSnapshot()).replace(/</g, '\\u003c');
+    // Every scenario when this is a SAVE (a legacy .html file, or the download where there is no File System
+    // Access); the tab on screen alone for Export shareable copy (ruling D6: emailing one option never sends the rest).
+    if(stateEl) stateEl.textContent = JSON.stringify(opts && opts.allScenarios ? captureFileObject() : captureSnapshot()).replace(/</g, '\\u003c');
     return '<!DOCTYPE html>\n' + clone.outerHTML;
   }
 
@@ -22445,14 +22469,21 @@ export function initLegacyApp() {
     const trimmed = String(text || '').replace(/^\uFEFF/, '').trimStart();
     // Data format: the file IS the snapshot.
     if(trimmed.startsWith('{')){
-      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? {format:'data', snapshot:o} : null; }
+      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? scenarioParse('data', o) : null; }
       catch(e){ return null; }
     }
     // Legacy HTML format: lift the embedded state block out of a full copy of the app.
     const body = savedStateBlock(String(text || ''));
     if(body == null) return null;
-    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? {format:'html', snapshot:o} : null; }
+    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? scenarioParse('html', o) : null; }
     catch(e){ return null; }
+  }
+  // {format, snapshot, scenarios} -- or, for a scenarios file this build must not open, {format, snapshot, refused}.
+  // `snapshot` is always the calendar to apply: for a scenarios file, its current tab (SCENARIOS-PLAN.md §3.3).
+  function scenarioParse(format, o){
+    const u = unpackScenarioFile(o);
+    return u.refused ? { format, snapshot: o, scenarios: null, refused: u.refused }
+                     : { format, snapshot: u.snapshot, scenarios: u.scenarios };
   }
 
   // ⛔ AUDIT L-22. The legacy reader was ONE regex,
@@ -22539,6 +22570,513 @@ export function initLegacyApp() {
   // which is what migrateHolidayViewKeys() and normalizeRegionSelection() have had to do.
   const SNAPSHOT_VERSION = 1;
   const SAVE_TYPES = [{ description: 'Planning Calendar', accept: { [SAVE_MIME]: [SAVE_EXT] } }];
+
+  // ---------- SCENARIOS: several calendars in one file (SCENARIOS-PLAN.md; owner rulings 22-23 Oct 2026) ----------
+  // A scenario is a WHOLE calendar (ruling D5): nothing is shared or linked between tabs. The tab on screen IS the
+  // live app, exactly as before this existed; every other tab is parked as its captureSnapshot(), a deep copy. So a
+  // tab that is not on screen can change only by being switched to, and nothing here edits one in place.
+  //
+  // ⛔ THE FILE FORMAT (plan §3). One tab: the file is captureSnapshot(), byte for byte what it always was, no new
+  // key. Two or more: the CURRENT tab's snapshot at the top level, plus `scenarios: {current, counter, tabs}` for the
+  // rest, and the file's `version` is SCENARIO_FILE_VERSION. Why that shape (measured against releases/, 22 Oct):
+  //   - v1.3.0 to v1.8.0 run snapshotVersionOk() before applying anything, so version 2 makes them refuse the file
+  //     WHOLE ("saved by a newer version"), rather than open one tab and drop the others on their next Save.
+  //   - v1.1.x and v1.2.0 have no version check and take ANY JSON object as a calendar (their parseCalendarText).
+  //     With the current tab at the top level they open that tab; a stub there would open a BLANK calendar that a
+  //     Save would then write over every scenario.
+  // Every tab inside is an ordinary version-1 snapshot, applied by the same applyStateSnapshot(), so every
+  // migration ever written reaches every tab. ⛔ PERMANENT KEYS: scenarios, current, counter, tabs, id, name,
+  // snapshot. SNAPSHOT_VERSION itself stays 1: only a FILE holding scenarios is version 2.
+  const SCENARIO_FILE_VERSION = 2;
+  const SCENARIO_MAX = 50;             // owner, 22 Oct 2026: "I think it should be 50 maximum"; also the read guard
+  const SCENARIO_NAME_MAX = 40;
+  // [{id, name, snapshot, undo, facts}] in tab order. `snapshot` is null for the tab on screen (the live app is its
+  // state). `undo` is a parked tab's undo history; `facts` its Compare values, worked out when it was parked (it
+  // cannot change while parked). Only id, name and snapshot are saved.
+  // `var`, not `let`: buildHeaderCtx() reads these, and a render during evaluation, before this line runs, must
+  // see "one scenario", not a temporal-dead-zone ReferenceError that would take the rest of the IIFE with it.
+  var scenarioTabs = [{ id: 's1', name: 'Scenario A', snapshot: null, undo: null, facts: null }];
+  var currentScenarioId = 's1';
+  var scenarioCounter = 1;
+  // Scenario A to Z, then AA, AB and on, as Excel names its columns.
+  function scenarioLetters(n){
+    let s = ''; n++;
+    while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function scenarioDefaultName(i){ return 'Scenario ' + scenarioLetters(i); }
+  function nextScenarioName(){
+    for(let i = 0; i < SCENARIO_MAX * 2; i++){ const n = scenarioDefaultName(i); if(!scenarioTabs.some(t => t.name === n)) return n; }
+    return 'Scenario';
+  }
+  // Plain text, one line. A name reaches the tab strip (always as text), file names and, through the {scenario}
+  // header token, the Excel header -- hence the XML-illegal characters going, as the header's own text does.
+  function cleanScenarioName(v){
+    return stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, SCENARIO_NAME_MAX);
+  }
+  function currentScenario(){ return scenarioTabs.find(t => t.id === currentScenarioId) || scenarioTabs[0]; }
+  function resetScenarios(){
+    scenarioTabs = [{ id: 's1', name: scenarioDefaultName(0), snapshot: null, undo: null, facts: null }];
+    currentScenarioId = 's1';
+    scenarioCounter = 1;
+    pushScenarioChrome();
+  }
+  // What a FILE holds (Save, Save As, autosave, the crash backup, and Save to a legacy .html): one tab, exactly
+  // captureSnapshot(); two or more, the container above. ⛔ Not the undo stack and not a shareable copy: both are
+  // the tab on screen only (undo is per tab; the shareable copy is ruling D6's "this tab only").
+  function captureFileObject(){
+    const snap = captureSnapshot();
+    if(scenarioTabs.length < 2) return snap;
+    return Object.assign({}, snap, {
+      version: SCENARIO_FILE_VERSION,
+      scenarios: {
+        current: currentScenarioId,
+        counter: scenarioCounter,
+        tabs: scenarioTabs.map(t => t.id === currentScenarioId ? { id: t.id, name: t.name }
+                                                                : { id: t.id, name: t.name, snapshot: t.snapshot }),
+      },
+    });
+  }
+  // Splits a file's top-level object into the calendar to apply and the other tabs. Returns {snapshot, scenarios}
+  // (scenarios null for a one-calendar file), or {refused: 'newer' | 'damaged'}. EVERYTHING is checked before
+  // anything is applied (audit M-1): a crafted file can neither half-load nor load thousands of tabs (audit M-15).
+  // A parked tab's snapshot gets the light checks here; the full sanitizer runs when it is applied, and a tab that
+  // fails then is refused on its own (switchScenario) while the rest of the file stays usable.
+  function unpackScenarioFile(obj){
+    if(!isPlainObj(obj) || !('scenarios' in obj)) return { snapshot: obj, scenarios: null };
+    if(typeof obj.version === 'number' && obj.version > SCENARIO_FILE_VERSION) return { refused: 'newer' };
+    const sc = obj.scenarios;
+    if(obj.version !== SCENARIO_FILE_VERSION || !isPlainObj(sc) || !Array.isArray(sc.tabs)) return { refused: 'damaged' };
+    if(sc.tabs.length < 2 || sc.tabs.length > SCENARIO_MAX) return { refused: 'damaged' };
+    const ids = new Set(), tabs = [];
+    let current = 0, maxN = 0;
+    for(const t of sc.tabs){
+      if(!isPlainObj(t) || typeof t.id !== 'string' || !/^s\d{1,5}$/.test(t.id) || ids.has(t.id)) return { refused: 'damaged' };
+      ids.add(t.id);
+      maxN = Math.max(maxN, parseInt(t.id.slice(1), 10));
+      const name = cleanScenarioName(t.name) || scenarioDefaultName(tabs.length);
+      if(t.id === sc.current){
+        if('snapshot' in t) return { refused: 'damaged' };
+        current++;
+        tabs.push({ id: t.id, name, snapshot: null, undo: null, facts: null });
+      } else {
+        if(!looksLikeCalendar(t.snapshot)) return { refused: 'damaged' };
+        if(!snapshotVersionOk(t.snapshot)) return { refused: 'newer' };
+        tabs.push({ id: t.id, name, snapshot: t.snapshot, undo: null, facts: null });
+      }
+    }
+    if(current !== 1) return { refused: 'damaged' };
+    const snapshot = Object.assign({}, obj);
+    delete snapshot.scenarios;
+    snapshot.version = SNAPSHOT_VERSION;
+    const counter = (Number.isInteger(sc.counter) && sc.counter > maxN && sc.counter < 100000) ? sc.counter : maxN;
+    return { snapshot, scenarios: { current: sc.current, counter, tabs } };
+  }
+  // After a file's calendar was applied: its tabs become the tab set (or one tab, for a one-calendar file).
+  function adoptScenarios(sc){
+    if(!sc){ resetScenarios(); return; }
+    scenarioTabs = sc.tabs;
+    currentScenarioId = sc.current;
+    scenarioCounter = sc.counter;
+    pushScenarioChrome();
+  }
+  // The strip under the calendar (src/chrome/ScenarioTabs.jsx) renders this; it hands actions back as
+  // 'sptcal-scenario' events (below), the way ZoomControl hands back a zoom.
+  let scenarioEditSeq = 0;
+  // `edit` (with a new editSeq) asks the strip to open that tab's name for typing: a fresh copy's (plan §2).
+  function pushScenarioChrome(edit){
+    if(!scenarioTabs) return;   // a render during evaluation, before the state above exists
+    chrome.scenarios({
+      ...(edit ? { edit, editSeq: ++scenarioEditSeq } : {}),
+      visible: calendarShown(),
+      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name })),
+      current: currentScenarioId,
+      max: SCENARIO_MAX,
+    });
+  }
+  // Parks the tab on screen: its state as a DEEP copy (a live captureSnapshot() shares the module's stores, which
+  // the next apply replaces), its undo history (an edit still waiting on the debounce is banked first), and its
+  // Compare values while the live app still holds it.
+  function parkCurrentScenario(){
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    clearTimeout(undoPushTimer);
+    pushUndoSnapshot();
+    const t = currentScenario();
+    t.snapshot = JSON.parse(JSON.stringify(captureSnapshot()));
+    t.undo = { stack: undoStack, redo: redoStack };
+    try { t.facts = scenarioFacts(); } catch(e){ console.error(e); t.facts = null; }
+    return t;
+  }
+  // Puts a tab on screen. ⭐ What is about YOU and not the calendar stays as it is (plan §2): the view, the sidebar
+  // tab, the month on screen (monthCursor is never in a snapshot), the zoom, folded phase cards, the scroll. So a
+  // flip changes the calendar in place and whatever moved shifts in front of you (owner: no highlight on a flip,
+  // "feely a little silly"). It is not an edit: nothing is marked unsaved and no undo step is added.
+  function switchScenario(id){
+    const to = scenarioTabs.find(t => t.id === id);
+    if(!to || id === currentScenarioId) return false;
+    const from = parkCurrentScenario();
+    const scroll = captureScroll();
+    suppressDirty = true;
+    try {
+      applyStateSnapshotAtomically(Object.assign(JSON.parse(JSON.stringify(to.snapshot)), { viewMode, sidebarTab }));
+    } catch(e){
+      // The atomic apply put the tab we were on back; it stays current, its history untouched.
+      console.error(e);
+      from.snapshot = null; from.undo = null;
+      refreshAfterRestore();
+      suppressDirty = false;
+      uiAlert('“' + to.name + '” couldn’t be opened — it may be damaged. The scenario on screen is unchanged.');
+      return false;
+    }
+    to.snapshot = null;
+    currentScenarioId = id;
+    refreshAfterRestore();
+    suppressDirty = false;
+    restoreScroll(scroll);
+    // Its own history back, re-based on what is now on screen (the view it was saved with was replaced by the
+    // current one, and that must not read as an edit).
+    clearTimeout(undoPushTimer);
+    undoStack = to.undo ? to.undo.stack : [];
+    redoStack = to.undo ? to.undo.redo : [];
+    to.undo = null;
+    lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    refreshUndoRedoUI();
+    pushScenarioChrome();
+    return true;
+  }
+  // "+": a copy of the tab on screen, next to it, on screen at once (the live app already IS its state). The copy
+  // starts with no undo history; the original keeps its own.
+  function duplicateScenario(){
+    if(scenarioTabs.length >= SCENARIO_MAX) return null;
+    const from = parkCurrentScenario();
+    const copy = { id: 's' + (++scenarioCounter), name: nextScenarioName(), snapshot: null, undo: null, facts: null };
+    scenarioTabs.splice(scenarioTabs.indexOf(from) + 1, 0, copy);
+    currentScenarioId = copy.id;
+    update();          // the {scenario} header token reads the new name
+    // The copy's history starts empty, based on the state AFTER that render: update() settles derived stores, and
+    // a baseline taken before it read the settling as an edit -- a phantom first step that ⌘Z then "undid".
+    clearTimeout(undoPushTimer);
+    undoStack = []; redoStack = [];
+    lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    refreshUndoRedoUI();
+    isDirty = true; refreshSaveStatus(); scheduleBackup();   // markDirty() without its undo push
+    pushScenarioChrome(copy.id);   // ...and its name opens ready to type over
+    return copy.id;
+  }
+  function renameScenario(id, name){
+    const t = scenarioTabs.find(x => x.id === id);
+    const clean = cleanScenarioName(name);
+    if(!t || !clean || clean === t.name){ pushScenarioChrome(); return false; }
+    t.name = clean;
+    markDirty();
+    if(id === currentScenarioId) update();
+    pushScenarioChrome();
+    return true;
+  }
+  function moveScenario(id, toIndex){
+    const i = scenarioTabs.findIndex(t => t.id === id);
+    const j = Math.max(0, Math.min(scenarioTabs.length - 1, toIndex | 0));
+    if(i < 0 || i === j) return false;
+    const [t] = scenarioTabs.splice(i, 1);
+    scenarioTabs.splice(j, 0, t);
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  // Neither can be undone (a tab is not inside any one tab's history), so both ask first, naming what goes.
+  async function deleteScenario(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    if(!t || scenarioTabs.length < 2) return false;
+    if(!(await uiConfirm('Delete “' + t.name + '”? This can’t be undone.',
+                         { title: 'Delete scenario', confirmLabel: 'Delete', danger: true }))) return false;
+    if(id === currentScenarioId){
+      const i = scenarioTabs.indexOf(t);
+      if(!switchScenario((scenarioTabs[i - 1] || scenarioTabs[i + 1]).id)) return false;
+    }
+    scenarioTabs = scenarioTabs.filter(x => x !== t);
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  async function keepOnlyScenario(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    const others = scenarioTabs.filter(x => x !== t);
+    if(!t || !others.length) return false;
+    const what = others.length === 1 ? '“' + others[0].name + '” is' : 'The other ' + others.length + ' scenarios are';
+    if(!(await uiConfirm('Keep only “' + t.name + '”? ' + what + ' deleted, and the file holds one calendar again. This can’t be undone.',
+                         { title: 'Keep only this scenario', confirmLabel: 'Keep only this one', danger: true }))) return false;
+    if(id !== currentScenarioId && !switchScenario(id)) return false;
+    scenarioTabs = [t];
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  // Ctrl+Page Down / Ctrl+Page Up: the next and previous tab, Excel's own keys. Not while a dialog is up.
+  function flipScenario(dir){
+    if(scenarioTabs.length < 2 || document.querySelector('.mantine-Modal-content')) return false;
+    const i = scenarioTabs.findIndex(t => t.id === currentScenarioId);
+    return switchScenario(scenarioTabs[(i + dir + scenarioTabs.length) % scenarioTabs.length].id);
+  }
+  document.addEventListener('keydown', e=>{
+    if(!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if(e.key !== 'PageDown' && e.key !== 'PageUp') return;
+    if(flipScenario(e.key === 'PageDown' ? 1 : -1)) e.preventDefault();
+  });
+  document.addEventListener('sptcal-scenario', e=>{
+    const d = (e && e.detail) || {};
+    if(d.op === 'switch') switchScenario(d.id);
+    else if(d.op === 'add') duplicateScenario();
+    else if(d.op === 'rename') renameScenario(d.id, d.name);
+    else if(d.op === 'move') moveScenario(d.id, d.to);
+    else if(d.op === 'delete') deleteScenario(d.id);
+    else if(d.op === 'keep') keepOnlyScenario(d.id);
+    else if(d.op === 'compare') openCompareScenarios();
+    else if(d.op === 'saveOwn') saveScenarioAsOwnFile(d.id);
+  });
+
+  // ---------- SCENARIOS: Compare (SCENARIOS-PLAN.md §5; the window is src/chrome/CompareDialog.jsx) ----------
+  // ⭐ THE VALUES ARE THE HEADER'S OWN: buildHeaderCtx()'s tokens for the calendar on screen, so Compare cannot
+  // disagree with what a scenario's header prints. A date token is a hdrDate() box, so the exact Date is read out
+  // of it rather than re-parsed from text.
+  function scenarioFacts(){
+    const sch = wholeCalendar(computeSchedule(readState()));
+    const t = buildHeaderCtx(sch).tokens;   // {tokens}: the same object headerLine() resolves against
+    const day = b => (b && b.__hdrDate) ? isoOf(b.__hdrDate) : null;
+    const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+    const values = {
+      eps: num(t.episodes),
+      blocks: isBlocksMode() ? num((document.getElementById('num-blocks') || {}).value) : null,
+      days: num(t.shootDays),
+      loc: (PLACES[(document.getElementById('union-place') || {}).value] || {}).label || 'None',
+      ver: t.version || '',
+      first: day(t['production.open']),
+      wrap: day(t['production.wrap']),
+      span: num(t['production.weeks']),
+    };
+    const phases = [];
+    getAllPhaseDefs().forEach(p => {
+      phases.push({ key: p.key, label: p.label || p.key });
+      if(p.key !== 'production') values['ph:' + p.key] = (day(t[p.key + '.open']) && day(t[p.key + '.close']))
+        ? [day(t[p.key + '.open']), day(t[p.key + '.close'])] : null;
+    });
+    // From the first phase's start to the last one's end, in whole weeks.
+    const segs = (sch && sch.segments) || [];
+    if(segs.length){
+      const a = Math.min.apply(null, segs.map(s => +s.start)), b = Math.max.apply(null, segs.map(s => +s.end));
+      values.weeks = Math.round((b - a) / (7 * 864e5));
+    } else values.weeks = null;
+    return { values, phases, blocks: isBlocksMode() };
+  }
+  // Every tab's values. A tab parked this session carries its own (parkCurrentScenario). A tab nobody has visited
+  // since Load is PROBED: applied for a moment, read, and the calendar on screen put back -- all synchronously, so
+  // nothing paints in between, and never across an await (the paperProbe rule). What applyStateSnapshot() touches
+  // that is not in a snapshot is put back by hand; the scenariocompare leg holds captureSnapshot() and the grid
+  // byte-identical across it.
+  function compareScenarioValues(){
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    clearTimeout(undoPushTimer);
+    pushUndoSnapshot();   // an edit still on the debounce is banked BEFORE the probe, as its own step
+    const live = scenarioFacts();
+    const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && t.snapshot);
+    if(need.length){
+      const back = JSON.parse(JSON.stringify(captureSnapshot()));
+      const keep = { collapsed: new Set(collapsedPhaseKeys), cursor: monthCursor, recheck: monthCursorRecheck,
+                     sup: suppressDirty, app: applyingUndoRedo, scroll: captureScroll() };
+      suppressDirty = true; applyingUndoRedo = true;
+      try {
+        for(const t of need){
+          try { applyStateSnapshot(JSON.parse(JSON.stringify(t.snapshot))); t.facts = scenarioFacts(); }
+          catch(e){ console.error(e); t.facts = null; }
+        }
+      } finally {
+        try { applyStateSnapshot(back); } catch(e){ console.error(e); }
+        collapsedPhaseKeys.clear(); keep.collapsed.forEach(k => collapsedPhaseKeys.add(k));
+        monthCursor = keep.cursor; monthCursorRecheck = keep.recheck;
+        refreshAfterRestore();
+        suppressDirty = keep.sup; applyingUndoRedo = keep.app;
+        restoreScroll(keep.scroll);
+        // Re-based on the calendar as it now stands, so the re-render's settling never reads as an edit.
+        lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+      }
+    }
+    return scenarioTabs.map(t => ({ id: t.id, name: t.name, facts: t.id === currentScenarioId ? live : t.facts }));
+  }
+  // The rows, in the owner's order (22 Oct 2026: "the content of the old version"): the show, then every phase in
+  // phase order with Production as its first shoot day, wrap and span, then the whole calendar's length and Version.
+  // A phase only some scenarios have gets its row; the others show a dash.
+  function compareRows(all){
+    const rows = [{ key: 'eps', label: 'Episodes', type: 'number' }];
+    if(all.some(s => s.facts && s.facts.blocks)) rows.push({ key: 'blocks', label: 'Blocks', type: 'number' });
+    rows.push({ key: 'days', label: 'Shoot days', type: 'number' }, { key: 'loc', label: 'Location', type: 'text' });
+    const seen = new Set();
+    all.forEach(s => ((s.facts && s.facts.phases) || []).forEach(p => {
+      if(seen.has(p.key)) return;
+      seen.add(p.key);
+      if(p.key === 'production'){
+        rows.push({ key: 'first', label: 'First shoot day', type: 'date' }, { key: 'wrap', label: 'Wrap', type: 'date' },
+                  { key: 'span', label: 'Production span', type: 'number', unit: ' wks' });
+      } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range' });
+    }));
+    rows.push({ key: 'weeks', label: 'Weeks, first phase to last', type: 'number' }, { key: 'ver', label: 'Version', type: 'text' });
+    return rows;
+  }
+  function openCompareScenarios(){
+    if(scenarioTabs.length < 2) return;
+    const all = compareScenarioValues();
+    chrome.compareDialog({
+      scenarios: all.map(s => ({ id: s.id, name: s.name, values: (s.facts && s.facts.values) || {} })),
+      currentId: currentScenarioId,
+      rows: compareRows(all),
+    });
+  }
+  function compareFileBase(){
+    const raw = (document.getElementById('show-title').value || '').trim();
+    const safe = raw.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    return (safe ? safe + ' ' : '') + 'Scenario Comparison';
+  }
+  function downloadBlob(blob, name){
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
+  // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff}]}]}
+  async function exportCompareExcel(model){
+    if(typeof ExcelJS === 'undefined'){ uiAlert('Excel export needs the ExcelJS library, which hasn’t loaded. Check the internet connection and try again.'); return; }
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Compare', {
+      views: [{ state: 'frozen', xSplit: 1, ySplit: 3, showGridLines: false }],
+      pageSetup: { orientation: 'landscape', paperSize: 1, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    const ink = { argb: 'FF1E1D1B' }, grey = { argb: 'FFA5A197' }, line = { argb: 'FFE3E1DA' };
+    ws.getCell('A1').value = 'Compare scenarios';
+    ws.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: ink };
+    ws.getCell('A2').value = (document.getElementById('show-title').value || '').trim();
+    ws.getCell('A2').font = { name: 'Calibri', size: 10, color: { argb: 'FF726F68' } };
+    const head = ws.getRow(3);
+    model.cols.forEach((c, i) => {
+      const cell = head.getCell(i + 2);
+      cell.value = c.onScreen ? { richText: [{ text: c.name, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
+                                             { text: '  on screen', font: { name: 'Calibri', size: 9, color: { argb: 'FF2C3E50' } } }] }
+                              : c.name;
+      cell.font = { name: 'Calibri', size: 11, bold: true, color: ink };
+    });
+    for(let k = 1; k <= model.cols.length + 1; k++) head.getCell(k).border = { bottom: { style: 'thin', color: { argb: 'FFC4C1B6' } } };
+    model.rows.forEach((r, ri) => {
+      const row = ws.getRow(4 + ri);
+      const lab = row.getCell(1);
+      lab.value = r.label;
+      lab.font = { name: 'Calibri', size: 11, color: r.same ? grey : ink };
+      r.cells.forEach((c, ci) => {
+        const cell = row.getCell(ci + 2);
+        if(c.delta){
+          cell.value = { richText: [{ text: c.text, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
+                                    { text: '\n' + c.delta, font: { name: 'Calibri', size: 9, color: { argb: 'FF7A5B14' } } }] };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF6E7' } };
+          cell.alignment = { wrapText: true, vertical: 'top' };
+        } else {
+          cell.value = c.text;
+          cell.font = { name: 'Calibri', size: 11, bold: !!c.diff, color: r.same ? grey : ink };
+          cell.alignment = { vertical: 'top' };
+        }
+      });
+      for(let k = 1; k <= model.cols.length + 1; k++) row.getCell(k).border = { bottom: { style: 'thin', color: line } };
+    });
+    ws.getColumn(1).width = 28;
+    model.cols.forEach((c, i) => { ws.getColumn(i + 2).width = 22; });
+    const buf = await wb.xlsx.writeBuffer();
+    downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), compareFileBase() + '.xlsx');
+  }
+  // The PDF, written directly with the month writer's machinery: the embedded Inter, its display list
+  // (mvlPageOps) and serializer (mvlSerialize), on its Letter landscape page. One page wide; the type steps down
+  // as columns are added, and a value too wide for its column shrinks to fit. "−" is not in the PDF's character
+  // set (WinAnsi), so differences are written with a hyphen there.
+  async function buildComparePdf(model){
+    const W = ['400', '500', '600'], fonts = {};
+    for(const w of W) fonts[w] = await loadInterPdfFont(w);
+    const G = MVL_GEOMETRY, M = 30, pageW = G.pageW, list = [];
+    const C = { ink: [0x1E / 255, 0x1D / 255, 0x1B / 255], muted: [0x72 / 255, 0x6F / 255, 0x68 / 255], grey: [0xA5 / 255, 0xA1 / 255, 0x97 / 255],
+                line: [0xE3 / 255, 0xE1 / 255, 0xDA / 255], rule: [0xC4 / 255, 0xC1 / 255, 0xB6 / 255],
+                warnBg: [0xFE / 255, 0xF6 / 255, 0xE7 / 255], warnInk: [0x7A / 255, 0x5B / 255, 0x14 / 255],
+                navyBg: [0xEA / 255, 0xEE / 255, 0xF2 / 255], navy: [0x2C / 255, 0x3E / 255, 0x50 / 255] };
+    const pdfText = s => String(s).replace(/−/g, '-');
+    const width = (s, wt, size) => mvlTextWidth(fonts[wt].font, pdfText(s), size);
+    const text = (s, x, y, wt, size, c) => list.push({ k: 'text', s: pdfText(s), x, y, wt, size, c, ls: 0 });
+    const fit = (s, wt, size, max) => { let z = size; while(z > 5 && width(s, wt, z) > max) z -= 0.25; return z; };
+    const n = model.cols.length;
+    const size = n <= 5 ? 11 : n <= 8 ? 9.5 : 8;
+    const labelW = Math.min(190, Math.max(...model.rows.map(r => width(r.label, '500', size))) + 18);
+    const colW = (pageW - 2 * M - labelW) / n, pad = 6;
+    let y = M + 18;
+    text('Compare scenarios', M, y, '600', 16, C.ink);
+    y += 16;
+    text((document.getElementById('show-title').value || '').trim(), M, y, '400', 10, C.muted);
+    y += 22;
+    // Heading row: the names, the first tagged "On screen".
+    model.cols.forEach((c, i) => {
+      const x = M + labelW + i * colW + pad;
+      let room = colW - 2 * pad;
+      if(c.onScreen){
+        const tag = 'On screen', ts = Math.max(6, size - 2.5), tw = width(tag, '500', ts) + 8;
+        list.push({ k: 'fill', c: C.navyBg, x: x + colW - 2 * pad - tw, y: y - ts - 1, w: tw, h: ts + 5, r: 3 });
+        text(tag, x + colW - 2 * pad - tw + 4, y + 1, '500', ts, C.navy);
+        room -= tw + 4;
+      }
+      text(c.name, x, y, '600', fit(c.name, '600', size, room), C.ink);
+    });
+    y += 8;
+    list.push({ k: 'fill', c: C.rule, x: M, y, w: pageW - 2 * M, h: 1, r: 0 });
+    // The rows.
+    model.rows.forEach(r => {
+      const hasDelta = r.cells.some(c => c.delta);
+      const rowH = hasDelta ? size * 2.9 : size * 1.9;
+      const base = y + size * 1.35;
+      text(r.label, M + pad, base, '500', fit(r.label, '500', size, labelW - 2 * pad), r.same ? C.grey : C.ink);
+      r.cells.forEach((c, i) => {
+        const x = M + labelW + i * colW + pad, room = colW - 2 * pad, wt = c.diff ? '600' : '400';
+        text(c.text, x, base, wt, fit(c.text, wt, size, room), r.same ? C.grey : C.ink);
+        if(c.delta){
+          const ds = fit(c.delta, '500', Math.max(6, size - 2), room - 8), dw = width(c.delta, '500', ds) + 8;
+          list.push({ k: 'fill', c: C.warnBg, x, y: base + 4, w: dw, h: ds + 5, r: 3 });
+          text(c.delta, x + 4, base + ds + 5.5, '500', ds, C.warnInk);
+        }
+      });
+      y += rowH;
+      list.push({ k: 'fill', c: C.line, x: M, y, w: pageW - 2 * M, h: 0.75, r: 0 });
+    });
+    const used = W.filter(w => list.some(o => o.k === 'text' && o.s !== '' && o.wt === w));
+    return mvlSerialize([mvlPageOps(list)], used.map(w => ({ tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated })));
+  }
+  async function exportComparePdf(model){
+    let bytes;
+    try { bytes = await buildComparePdf(model); }
+    catch(e){ console.error(e); uiAlert('Could not build the comparison PDF: ' + e.message); return; }
+    downloadBlob(new Blob([bytes], { type: 'application/pdf' }), compareFileBase() + '.pdf');
+  }
+  document.addEventListener('sptcal-compare-export', e=>{
+    const d = (e && e.detail) || {};
+    if(!d.model) return;
+    if(d.kind === 'xlsx') exportCompareExcel(d.model).catch(err => { console.error(err); uiAlert('Could not build the comparison workbook: ' + err.message); });
+    else if(d.kind === 'pdf') exportComparePdf(d.model);
+  });
+  // "Save this scenario as its own file…": that tab alone, as an ordinary one-calendar .sptcal. The open file stays
+  // the one Save writes, and the new file is not linked or added to recents (it is a copy handed to someone).
+  async function saveScenarioAsOwnFile(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    if(!t) return;
+    if(t.id === currentScenarioId){ if(activeNoteEditor) commitActiveNoteEditor(); if(activeMvNote) commitMvNoteEditor(); }
+    const text = JSON.stringify(t.id === currentScenarioId ? captureSnapshot() : t.snapshot, null, 1);
+    const name = savedFileBase() + ' – ' + t.name.replace(/[\\/:*?"<>|]/g, '-') + SAVE_EXT;
+    if(!supportsFsAccess){ downloadTextFile(text, SAVE_MIME, name); return; }
+    let handle;
+    try { handle = await window.showSaveFilePicker({ suggestedName: name, types: SAVE_TYPES }); }
+    catch(e){ if(e && e.name === 'AbortError') return; console.error(e); uiAlert('Could not save that scenario: ' + e.message); return; }
+    try { const w = await handle.createWritable(); await w.write(text); await w.close(); }
+    catch(e){ console.error(e); uiAlert('Could not save that scenario: ' + e.message); }
+  }
   // The Open picker takes either format. Two entries rather than one with two MIME keys so the
   // picker shows "Planning Calendar" first and the legacy type as a distinct, clearly-labelled
   // choice.
@@ -22639,7 +23177,7 @@ export function initLegacyApp() {
       // No File System Access: the browser won't let us write a file, so a download is the only
       // route. Downloads keep the SHARE format -- without a handle there is nothing to write back
       // to, so a data file the user then can't re-link is worse than a copy that just works.
-      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
       markClean();
       return 'download';
     }
@@ -22691,7 +23229,7 @@ export function initLegacyApp() {
     // hitting Save keeps it an .html -- we never silently convert a file the user didn't ask us
     // to convert, and their existing workflow is untouched.
     const legacy = handleIsLegacyHtml(savedFileHandle);
-    const body = legacy ? buildSavedHtml() : buildSavedData();
+    const body = legacy ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
     const writable = await savedFileHandle.createWritable();
     await writable.write(body);
     await writable.close();
@@ -22907,7 +23445,7 @@ export function initLegacyApp() {
     if(persistHold){ backupHeld = true; return; }
     backupPending = false;
     try {
-      idbSet(BACKUP_SLOT, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+      idbSet(BACKUP_SLOT, { state: captureFileObject(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
   }
   // Every key in the handles store (the backup slots are found by prefix). [] when unsupported.
@@ -23890,7 +24428,7 @@ export function initLegacyApp() {
           refreshSaveStatus();
           return;
         }
-        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml() : buildSavedData();
+        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
         const writable = await savedFileHandle.createWritable();
         await writable.write(body);
         await writable.close();
@@ -23966,7 +24504,7 @@ export function initLegacyApp() {
   // distinct from "New", which clears the calendar and starts blank.
   async function saveAsFile(){
     if(!supportsFsAccess){
-      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
       return 'download';
     }
     const handle = await window.showSaveFilePicker({
@@ -23976,7 +24514,7 @@ export function initLegacyApp() {
     // Save As always produces the current format, even when forking a legacy .html calendar --
     // the user is naming a new file here, so there is no existing format to preserve.
     const writable = await handle.createWritable();
-    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml() : buildSavedData());
+    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData());
     await writable.close();
     savedFileHandle = handle;
     handleNeedsPermission = false;
@@ -24220,7 +24758,11 @@ export function initLegacyApp() {
     const snap = parsed.snapshot;
     // Refuse a newer-format file BEFORE touching the open calendar (audit M-1). Half-applying it
     // would leave a hybrid and could still throw later.
-    if(!snapshotVersionOk(snap)){
+    if(parsed.refused === 'damaged'){
+      uiAlert('That calendar\u2019s scenarios are damaged, so it can\u2019t be opened. Your current calendar is unchanged.');
+      return false;
+    }
+    if(parsed.refused === 'newer' || !snapshotVersionOk(snap)){
       uiAlert('That calendar was saved by a newer version of SPTCal, so this version can\u2019t open it. Update the app and try again.');
       return false;
     }
@@ -24242,6 +24784,7 @@ export function initLegacyApp() {
       uiAlert('That file looks like a calendar but couldn\u2019t be opened \u2014 it may be damaged. Your current calendar is unchanged.');
       return false;
     }
+    adoptScenarios(parsed.scenarios);   // the file's tabs (one tab for a one-calendar file)
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
     refreshAfterRestore();
@@ -24316,6 +24859,7 @@ export function initLegacyApp() {
     persistRecents();
     suppressDirty = true;
     resetAll(); // full reset without the button's own confirm (New already prompted)
+    resetScenarios();   // a blank calendar is one scenario
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
@@ -25012,7 +25556,7 @@ export function initLegacyApp() {
         // sits above the unsaved-changes guard below.
         if(item.dataset.action === 'share'){
           try {
-            downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+            downloadTextFile(buildSavedHtml(), 'text/html', shareCopyFileName());
           } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
           return;
         }
@@ -25035,7 +25579,7 @@ export function initLegacyApp() {
     document.addEventListener('click', reClickGuard(600, (e)=>{
       if(!e.target.closest || !e.target.closest('#share-copy-btn')) return;
       try {
-        downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+        downloadTextFile(buildSavedHtml(), 'text/html', shareCopyFileName());
       } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
     }));
 
@@ -26491,7 +27035,9 @@ export function initLegacyApp() {
     }
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    const name = (safe ? safe + ' ' : '') + 'Planning Calendar.pdf';
+    // ⛔ FROZEN EDIT S2 (D6, as S1 in exportExcel): the download's NAME only; '' with one scenario, and gate 1
+    // compares the PDF's bytes.
+    const name = (safe ? safe + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.pdf';
     const url = URL.createObjectURL(new Blob([out.bytes], {type:'application/pdf'}));
     const a = document.createElement('a');
     a.href = url; a.download = name;
@@ -28119,7 +28665,8 @@ export function initLegacyApp() {
   function monthPdfFileName(){
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    return (safe ? safe + ' ' : '') + 'Month Calendar.pdf';
+    // With two or more scenarios the PDF says which one it is (SCENARIOS-PLAN.md D6); with one, exactly as before.
+    return (safe ? safe + ' ' : '') + 'Month Calendar' + scenarioFileSuffix() + '.pdf';
   }
   // Where a place is, in words (mvlUnprintable's places).
   function monthPdfPlaceText(p){
@@ -28899,8 +29446,12 @@ export function initLegacyApp() {
     // A shareable copy restores itself from this block at boot. If it is a newer version, or a
     // hand-edited copy that throws partway, fall back to a blank working app rather than a zombie
     // half-applied page with no autosave or unsaved-work protection (audit L-19 / M-1).
+    // Crash recovery comes through here too, and a backup holds every scenario (captureFileObject).
+    const u = unpackScenarioFile(snap);
+    if(u.refused) return;
+    snap = u.snapshot;
     if(!snapshotVersionOk(snap)) return;
-    try { applyStateSnapshotAtomically(snap); }
+    try { applyStateSnapshotAtomically(snap); adoptScenarios(u.scenarios); }
     catch(e){ console.error(e); }
   }
 
@@ -29999,6 +30550,7 @@ export function initLegacyApp() {
   applyCalZoom();
   restoreSavedState();
   refreshAfterRestore();
+  pushScenarioChrome();   // the strip under the calendar (one tab, unless a shareable copy or backup brought more)
 
   // Initial load/restore is done -- from here on, changes are real user edits.
   suppressDirty = false;
