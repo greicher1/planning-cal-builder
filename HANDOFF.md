@@ -28,6 +28,9 @@
   baseline and the compare, so a switch banks nothing and keeps the redo. `applySnapshotJSON()` writes the CURRENT
   view into the step before applying it, so undo/redo never change the view. Chosen here, the owner's to overturn:
   an undo of a month-only change made in the month view, pressed in the waterfall, changes nothing you can see.
+- ⛔ **For the planned waterfall right-click menu** (`mockups/waterfall-context-menu.html`, ruled 22 Oct 2026, no code
+  yet): its mockup says "Each item is one undo step", but **"Show this day or week in the month view" is a view switch
+  and must bank NO undo step** under this rule, as the month menu's "Show this week in the waterfall" now banks none.
 - **Not changed, for the owner:** `sidebarTab` is still in the history, so an undo can flip the sidebar between Show
   and Phases (the step's snapshot holds the tab it was banked on). Same class as the view switch; not asked.
 - **No frozen code touched.** All three are in the undo section and the keydown handler of `src/legacy/app.js`.
@@ -56,6 +59,115 @@
   `hiatusdrag` 13/13, `dlgkeys` 16/16, `filekeys` 16/16, `labelsetup` 41/41. **`mvmenu` re-run on the same build after
   its fix: 89/89** (another session's gate was running by then; it passed anyway).
 
+### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
+
+- **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
+  excel but purely in the use case of creating this calendars"*). The answer, in chat: formatting is mostly covered,
+  and the gaps are Excel's EDITING habits (waterfall date drags, arrow keys / Delete, copy and paste, find and replace,
+  a right-click menu, fill on many cells) and its "duplicate the tab" habits (revision marking, scenarios, private
+  comments, paste into an email). From that list the owner picked:
+  - **Item 2 (arrow keys, Tab, Delete) and item 3 (copy / cut / paste notes, drag a note to another week):** given to
+    their own session, "Waterfall arrow keys, Delete, and copy/paste notes" (worktree). It asks its rulings by picker
+    before building. Tracker cards `waterfall-keyboard` and `waterfall-copy-paste-notes`.
+  - **Item 5, a waterfall right-click menu: a MOCKUP only** (this entry). Tracker card `waterfall-right-click-menu`.
+  - **Item 8, scenarios:** a full workup, written by the session "Scenarios plan: compare calendar options" in this
+    checkout (`SCENARIOS-PLAN.md`; it adds its own entry). Tracker card `scenarios`.
+- ⚠️ **A correction to that list.** It proposed "freeze panes" as a frozen edit. The heading row is ALREADY frozen
+  on screen (`.sheet-table th` is `position:sticky`) and repeats on every printed page. Only the exported workbook
+  has no frozen panes (`exportExcel`'s `views` carries no split), and a sticky date column makes no sense with year
+  blocks side by side.
+- **The mockup** is built the way `mockups/month-context-menu.html` was, and reuses that mockup's menu engine. The
+  waterfall is captured from the build (`dist/` of 21 Oct, `halfdays.sptcal`, synthetic) with headless Chrome
+  `--dump-dom`. It has `#table-wrap`'s markup verbatim minus the resize handles, and only the CSS rules that match
+  it. Open it through the harness server at `/mockups/waterfall-context-menu.html`.
+  - **Its shape:** the same look, keys and fixed order as the month day menu. A clipboard row first (Cut · Copy ·
+    Paste · Clear, as Excel's Paste Options row), then "This week" (Add / Edit this week's note · Add 1-week phase
+    here · Add hiatus ▸), then one section for the cell clicked: a phase week (Start / End <phase> this week, Expand
+    cells, Swap column left / right, Colour…, Show in Phases card), a note (Edit, colour, back to automatic text), a
+    hiatus band, a holiday in that week. Then Size (reset row height / column width), and Show this week in the
+    month view. A column heading gets a short menu of its own.
+  - **Right-click inside a highlight acts on all of it**; outside it, the cell is highlighted first.
+  - Refused items are greyed with their reason (the standing rule). The clipboard items only CALL the item 2/3
+    session's actions.
+- ✅ **Ruled (owner, 22 Oct 2026, in chat):** *"keep the clipboard row at the top. Clear can remove an automatic
+  note, and keep the Size section."* The mockup's side panel now records them.
+  1. **The clipboard row stays at the top**, as Excel's Paste Options row.
+  2. **Clear can remove an automatic note.** It is stored as cleared (`userNotes[week] = {text:''}`), stays empty
+     when dates move, and Reset Notes brings it back. This is the first Delete note in either menu; the month menu has
+     none (ruling Q5). The ruling was passed to the item 2/3 session, since its Delete key does the same thing.
+  3. **The Size section stays** (reset row height / column width).
+  4. **Show this DAY or week in the month view** (owner, 22 Oct 2026: *"should have show this day or week in the
+     month view button"*; by picker, "Day when it knows the day"). The mockup already ended with "Show this week",
+     which was easy to miss. Now:
+     - **on a dated note** it reads "Show this day in the month view" and lands on that day, highlighted for a
+       moment. The day comes from the note line's trailing date, by the rule `notesForWaterfallDate` already uses
+       to put a waterfall line on its day; only a date inside the note's own week counts. The mockup shows it on
+       the wrap note (Tue 1 Sep);
+     - **on a holiday shown in a Notes cell**, the same, on the holiday's day;
+     - **everywhere else** it stays "Show this week", and the week's row is highlighted.
+     The highlight must be drawn OVER the month view, never written into it: the month view is frozen.
+- ⚠️ **The menu is tall** (about 17 lines on a phase week), taller than a short window. The mockup caps it at the
+  window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
+  listener skips scrolls whose target is inside the menu. The build needs both.
+- ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
+  Paste / Clear actions.
+- **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
+  opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
+  `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
+- ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
+  its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
+
+### 📝 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — PLANNED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md)); NOTHING BUILT; FROZEN EDITS SIGNED OFF
+
+- **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
+  switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
+  clickable mockup in chat, then ruled on v2: *"you can just flag that a collumn contains notes, you dont need to
+  specificy. we want to keep things clean and elegant and in mantine style."* On the tracker as `hide-notes-columns`.
+- **The design (plan §2):** **Hide column** in the Notes heading's panel, with no confirmation. A violet dot flags a
+  column with notes, with no counts or text. On screen a hidden column is a 14 px strip, and clicking it brings the
+  column back. It is gone from Excel (hidden there, notes kept) and from the PDF. Settings › Preferences › Waterfall
+  lists the hidden years as pills. **D1: the panel opens on DOUBLE-click** (the mockup showed a single click), per the
+  text style bar's rule that a click picks text and a double-click edits.
+- **Frozen edits SIGNED OFF by the owner's picker, 22 Oct 2026 ("Sign off all", strip included; plan §6):** W1–W2
+  `sheetColumnWidths`, R1–R5 `renderSpreadsheetView`, X1 `exportWaterfallPdf` (a print flag, the cost of the on-screen
+  strip), E1–E3 `exportExcel`, P1–P3 `buildWaterfallPdf`. Each is inert with nothing hidden, and §6's gate binds. One
+  new snapshot key, `hiddenNotesCols`, with no version bump.
+- ⚠️ **Relaxes ruling 2's "A Notes column stays on every year"**, only where someone hides one. Not §2c (held).
+- ⏭ Next: build on branch `hide-notes` (from local `main`) in the plan's §8 order. The plan was committed to local
+  `main` and not pushed (the owner's picker).
+
+### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
+
+- **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
+  boxes live up and down. instead it should only scroll the viewport or only scroll the sidebar with the boxes
+  dependent on where your cursor is"*. Not ruled further.
+- ⛔ **This reverses free positions' "the side columns scroll with the grid"** (the entry below, a choice made in
+  that session). `syncSideScroll()` and its capturing `scroll` listener are GONE: do not put a scroll link back.
+  The wheel scrolls whatever is under the pointer, so a colour key stays in view while the grid scrolls.
+- **What did not change:** a box is still drawn level with its sheet row in its own column (`sideRowMap`), so the
+  two line up whenever scrolled alike; a drop reads the row off the column as drawn. Writers, layout, save format:
+  untouched. No frozen code.
+- **Two things made to fit:** (1) a column that has only just appeared opens level with the grid
+  (`sideLevelWithGrid`, called from `renderSideBoxes` when there was no old stack), so a box dropped on an empty
+  side shows where it was let go; (2) the drag's auto-scroll (`beginSideDrag`'s `tick`) scrolls the column the box
+  is over, and the grid only over an empty side.
+- **Proof (build from this branch):** `sideboxes` 78/78 (R6/R7 rewritten, R15–R18 new), **red on the pre-change
+  build** at R6, R7, R16; `sbnoexport` 28/28; `calzoom` 24/24; `textstyle` 51/51; `npm run check` 40/40. In the
+  in-app browser with a real mouse wheel (1024 px wide): grid 300 px with both columns at 0; right column to its
+  end with the grid and the page unmoved; a drop with the two scrolled differently landed where let go; a drop on
+  the emptied left side opened that column level with the grid. Full gate NOT run: screen-only chrome change,
+  nothing in `#table-wrap`, the writers or the save path (memory: chrome changes get targeted legs).
+- ⚠️ **Headless trap, new:** headless Chrome runs few animation frames in a leg, so a rAF-driven auto-scroll moves
+  ~10 px in 400 ms. R16 asserts "the column scrolled at all, the grid not at all", never a distance.
+- ✅ **PUSHED AND LIVE.** Local `main` fast-forwarded `55a9c61` → `f77c353` in the main checkout (its two
+  pre-existing fixture changes, `stintswap-reshape.sptcal` and the untracked `Reshape Fixture …`, left alone). ONE
+  `git push origin main` at 19:16:36 (`7f68d88..f77c353`, this change plus the earlier HANDOFF-only `55a9c61`).
+  Deploy run 39888684975 success. At 19:17:27 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to this branch's build** (sha256 `57056dcb340d7617…`, 1,731,389 bytes, `cmp`); `version.json`
+  still 1.8.0, so installed copies pick it up silently. This HANDOFF note is a local commit, not pushed.
+- ⏭ **Next:** nothing. The `sidebox-own-scroll` worktree can be removed on the owner's word. A version cut is the
+  owner's call whenever they want the update notice shown.
+
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
@@ -81,7 +193,8 @@
   `sideRowMap()` turns a row into the side stack's own px (wide: level with the grid with both scrolled to the top;
   narrow, under 960 px: from the column's top). Boxes are absolutely positioned in `.sb-stack`, a `.sb-sizer` gives it
   at least the grid's scroll length, and `syncSideScroll()` keeps the columns and the grid scrolled together (a side
-  taller than the grid may scroll on past the grid's end). Line heights are the grid's real rows: ⚠️ **on screen a
+  taller than the grid may scroll on past the grid's end). ⚠️ **Superseded 22 Oct 2026** (the entry above): the
+  columns scroll on their own again and `syncSideScroll()` is gone. Line heights are the grid's real rows: ⚠️ **on screen a
   grid row is ~20.84 px, not 20** (the heading 21.34), so the old `rows × 20px` drifted a row every ~25 rows.
   Re-placed on every grid render (the `#table-wrap` observer now also watches its `style`, for the zoom), on resize,
   and by a ResizeObserver on the `.sheet-scroll`'s children (a wrapping header bar moves every row).

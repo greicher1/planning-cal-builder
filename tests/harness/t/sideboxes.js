@@ -15,8 +15,11 @@
 // P  the waterfall PDF (E4-E6): the box text present and drawn beside the grid, the italic line sheared,
 //    the header band starting at the box's edge (ruling Q5).
 // M  the month view: no side column, no button, and #table-wrap exactly as wide as with no box at all.
-// R  anywhere up and down (owner, 21 Oct 2026): a box is drawn level with the grid's row it sits on and
-//    scrolls with the grid; dragged to row 10 it lands there (an outline shows where while it moves), and
+// R  anywhere up and down (owner, 21 Oct 2026): a box is drawn level with the grid's row it sits on; the
+//    grid and each side column scroll on their own (owner, 22 Oct 2026), lining up when scrolled alike, a
+//    drag near a column's edge scrolls that column, and a column that appears for a drop opens level with
+//    the grid;
+//    dragged to row 10 it lands there (an outline shows where while it moves), and
 //    the workbook and the PDF put it on that row; undo puts it back; it stays beside its row at any zoom; a
 //    box dropped onto another takes its place and pushes it down; a new box goes under the lowest; Alt+Down
 //    swaps or steps a row; zoomed out, boxes that keep their size never cover each other.
@@ -247,16 +250,37 @@ window.addEventListener('load', function () { (async function () {
     out.r5 = {date: dTxt, dateY: dRun && dRun[2], lineY: lRun && lRun[2], lineX: lRun && lRun[1], gridX: pdx};
     check(dRun && lRun && Math.abs(dRun[2] - lRun[2]) < 1.5 && lRun[1] < pdx,
           'R5 the PDF draws the box\'s first line beside the grid\'s row 11 (' + JSON.stringify(out.r5) + ')');
-    var gs = q('#table-wrap > .sheet-scroll'), ls = q('.side-left .sb-stack');
+    var gs = q('#table-wrap > .sheet-scroll'), ls = q('.side-left .sb-stack'), rs = q('.side-right .sb-stack');
+    var lTop = topOf(sideBoxEls('left')[0]);
     out.r6 = {scrollable: gs.scrollHeight > gs.clientHeight + 150};
     // ⚠️ Headless Chrome here fires no 'scroll' event for a scrollTop set by script (a probe waited 650 ms
     // and heard none), so each scroll below is announced by hand: what is tested is the app's answer to it.
+    // Until 22 Oct 2026 that answer was to scroll the others to match; now it is to leave them alone.
     gs.scrollTop = 120; gs.dispatchEvent(new Event('scroll')); await T.sleep(150);
-    out.r6.grid = gs.scrollTop; out.r6.side = ls.scrollTop;
-    check(out.r6.scrollable && out.r6.grid > 100 && Math.abs(out.r6.side - out.r6.grid) < 1 && level(sideBoxEls('left')[0], 10),
-          'R6 the side columns scroll with the grid, so the box stays beside its row (' + JSON.stringify(out.r6) + ')');
+    out.r6.grid = gs.scrollTop; out.r6.left = ls.scrollTop; out.r6.right = rs.scrollTop;
+    out.r6.boxMoved = Math.round((topOf(sideBoxEls('left')[0]) - lTop) * 100) / 100;
+    check(out.r6.scrollable && out.r6.grid > 100 && out.r6.left === 0 && out.r6.right === 0 && Math.abs(out.r6.boxMoved) < 0.5,
+          'R6 scrolling the grid scrolls only the grid: both side columns, and the box in one, stay put (' + JSON.stringify(out.r6) + ')');
+    ls.scrollTop = 60; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    out.r7 = {grid: gs.scrollTop, left: ls.scrollTop, right: rs.scrollTop};
+    check(out.r7.left > 50 && Math.abs(out.r7.grid - out.r6.grid) < 0.5 && out.r7.right === 0,
+          'R7 scrolling a side column scrolls only that column: the grid and the other side stay put (' + JSON.stringify(out.r7) + ')');
+    ls.scrollTop = gs.scrollTop; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    check(level(sideBoxEls('left')[0], 10), 'R15 scrolled alike, the grid and the column line up again: the box is beside row 10');
+    // Carried near the bottom of its column, a box scrolls THAT column (no longer the grid), so it can reach
+    // a row out of view. Escape then cancels the drag, so nothing moves.
     ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
-    check(gs.scrollTop < 1, 'R7 scrolling a side column scrolls the grid with it (' + gs.scrollTop + ')');
+    var lg = q('.sb-grip', sideBoxEls('left')[0]), lgp = mid(lg), lsr = ls.getBoundingClientRect(), gBefore = gs.scrollTop;
+    ptr('pointerdown', lg, lgp, 1); ptr('pointermove', document.body, {x: lgp.x, y: lgp.y + 8}, 1);
+    ptr('pointermove', document.body, {x: lgp.x, y: Math.round(lsr.bottom - 6)}, 1);
+    await T.sleep(400);
+    out.r16 = {left: ls.scrollTop, grid: gs.scrollTop, gridWas: gBefore};
+    window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await T.sleep(150);
+    gs.scrollTop = 0; gs.dispatchEvent(new Event('scroll'));
+    ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    check(out.r16.left > 5 && Math.abs(out.r16.grid - gBefore) < 0.5 && !q('.sb-drop') && level(sideBoxEls('left')[0], 10),
+          'R16 a box carried to the bottom of its column scrolls that column, not the grid; Escape leaves it on row 10 (' + JSON.stringify(out.r16) + ')');
     $('undo-btn').click(); await T.until(function () { return level(sideBoxEls('left')[0], 0); }, 'undo the move', 50, 100);
     $('redo-btn').click(); await T.until(function () { return level(sideBoxEls('left')[0], 10); }, 'redo the move', 50, 100);
     check(level(sideBoxEls('left')[0], 10), 'R8 one undo puts the box back at the top, one redo on row 10');
@@ -372,6 +396,27 @@ window.addEventListener('load', function () { (async function () {
     q('.sb-grip', moved).dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true}));
     await T.until(function () { return sideBoxEls('left').length === 1; }, 'Alt+Left', 30, 100);
     check(sideBoxEls('left').length === 1 && /Locations/.test(txt(sideBoxEls('left')[0])), 'G20 Alt+Left on the grip moves it back to the left');
+    // A box dropped on an EMPTY side while the grid is scrolled: the column that appears opens level with
+    // the grid, so the box shows where it was let go. (Alt+Left cannot show this: it focuses the box, which
+    // rightly scrolls the box into view.) Two undos then put everything back.
+    var lbRow = Math.round((topOf(sideBoxEls('left')[0]) - rowTop(0)) / rowsTall(1, 1));
+    q('.sb-grip', sideBoxEls('left')[0]).dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true}));
+    await T.until(function () { return sideBoxEls('left').length === 0; }, 'Alt+Right', 30, 100);
+    var gsg = q('#table-wrap > .sheet-scroll');
+    gsg.scrollTop = 120; gsg.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    var gAt = gsg.scrollTop, back = sideBoxEls('right').find(function (b) { return /Locations/.test(txt(b)); });
+    await dragBoxTo(back, rowTop(14), Math.round($('table-wrap').getBoundingClientRect().left + 40));
+    await T.until(function () { return sideBoxEls('left').length === 1; }, 'the drop on the empty left side', 30, 100);
+    out.r17 = {grid: gAt, gridNow: gsg.scrollTop, left: q('.side-left .sb-stack').scrollTop,
+               off: Math.round((topOf(sideBoxEls('left')[0]) - rowTop(14)) * 100) / 100};
+    check(gAt > 100 && Math.abs(out.r17.left - gAt) < 1.5 && Math.abs(out.r17.off) < 1.5,
+          'R17 a box dropped on an empty side shows where it was let go: the new column opens level with the grid (' + JSON.stringify(out.r17) + ')');
+    gsg.scrollTop = 0; gsg.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    $('undo-btn').click(); await T.until(function () { return sideBoxEls('left').length === 0; }, 'undo the drop', 50, 100);
+    $('undo-btn').click(); await T.until(function () { return sideBoxEls('left').length === 1; }, 'undo Alt+Right', 50, 100);
+    await T.sleep(150);
+    check(/Locations/.test(txt(sideBoxEls('left')[0])) && level(sideBoxEls('left')[0], lbRow) && q('.side-left .sb-stack').scrollTop === 0,
+          'R18 two undos put the box back on its row (' + lbRow + ') on the left');
     // Dropped onto the upper half of another box, a box takes its place and that box moves down under it.
     var rk = q('.side-right .sb-box[data-kind="key"]'), rd = sideBoxEls('right').find(function (b) { return txt(q('.sb-title', b)) === 'Dates'; });
     var keyTop = topOf(rk), rowH = rowsTall(1, 1);

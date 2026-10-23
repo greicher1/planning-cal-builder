@@ -14951,7 +14951,7 @@ export function initLegacyApp() {
     SIDE_SIDES.forEach(side=>{
       const col = sideCols[side], S = L[side];
       const old = col.querySelector('.sb-stack');
-      scrolled[side] = old ? old.scrollTop : 0;
+      scrolled[side] = old ? old.scrollTop : null;
       if(!S){ col.hidden = true; col.replaceChildren(); return; }
       col.hidden = false;
       col.style.setProperty('--sb-w', charsToScreenPx(S.chars) + 'px');
@@ -14961,9 +14961,13 @@ export function initLegacyApp() {
         + `<div class="sb-width" role="separator" aria-orientation="vertical" title="Drag to change this side's width; double-click for the default" aria-label="Side width"></div>`;
     });
     positionSideBoxes(L);
-    // A rebuild starts each column scrolled to the top; put it back where it was, then level with the grid.
-    SIDE_SIDES.forEach(side=>{ const st = L[side] && sideCols[side].querySelector('.sb-stack'); if(st) st.scrollTop = scrolled[side]; });
-    syncSideScroll(null);
+    // A rebuild starts each column scrolled to the top; put it back where it was. A column that has only
+    // just appeared opens level with the grid instead, so a box dropped on an empty side shows where it
+    // was let go. From there each column scrolls on its own (sideScrollOwn).
+    SIDE_SIDES.forEach(side=>{
+      const st = L[side] && sideCols[side].querySelector('.sb-stack');
+      if(st) st.scrollTop = scrolled[side] !== null ? scrolled[side] : sideLevelWithGrid(side);
+    });
     if(keep){
       const sel = `.sb-box[data-i="${keep.i}"] ` + (keep.hex ? `.sb-key[data-hex="${keep.hex}"] .sb-key-name` : `.sb-edit[data-li="${keep.li}"]`);
       const el = sidePanel.querySelector('.side-col ' + sel);
@@ -15036,14 +15040,15 @@ export function initLegacyApp() {
                screen: r => G ? t + G.rel(r) : r * ROW_DEFAULT_PX };
     }
     const zs = gridZoom(col), sr = stack.getBoundingClientRect(), st = stack.scrollTop;
-    // Wide: the stack's content top sits where the grid's table top sits with both scrolled to the top
-    // (syncSideScroll keeps them scrolled together). Narrow: row 0 is the stack's own top.
+    // Wide: the stack's content top sits where the grid's table top sits with both scrolled to the top,
+    // so the two line up whenever they are scrolled alike; each scrolls on its own (sideScrollOwn), and
+    // `screen` reads this column's own scroll. Narrow: row 0 is the stack's own top.
     const base = (G && wide) ? (G.top0() - sr.top) / zs : 0;
     const css = r => base + (G ? G.rel(r) : r * ROW_DEFAULT_PX * zs) / zs;
     return { stack, zs, css, screen: r => sr.top + (css(r) - st) * zs };
   }
   // Puts every drawn box on its rows, every line at the height of the rows it takes, and the column's
-  // scroll length to at least the grid's, so the two can scroll together to the end.
+  // scroll length to at least the grid's, so a box can be carried down beside any of the grid's rows.
   function positionSideBoxes(L){
     if(!sideCols.left || !sideCols.right) return;
     if(!L) L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
@@ -15082,42 +15087,30 @@ export function initLegacyApp() {
       });
       let h = Math.max(M.css(S.rows) + 2, bottom);   // + the box's frame
       // Wide: at least the grid's whole scroll length (+ its 2 px frame and a little), so the column can
-      // scroll as far as the grid does. Read off the grid, which is observed, never off the column's own
+      // reach every row the grid can. Read off the grid, which is observed, never off the column's own
       // height cap: that moves with the grid fit, which settles after this runs and signals nothing.
       if(G && sideWide()) h = Math.max(h, G.scroll.scrollHeight * zg / M.zs + 4);
       const sizer = M.stack.querySelector(':scope > .sb-sizer');
       if(sizer) sizer.style.height = Math.ceil(h) + 'px';
     });
   }
-  // The side columns scroll WITH the grid, so a box stays beside its rows (wide only). `src` is the
-  // element that scrolled, or null to bring the columns level with the grid. A side taller than the
-  // grid may go on scrolling past the grid's end; the grid simply stays at its end.
-  function syncSideScroll(src){
-    if(!sideWide()) return;
+  // sideScrollOwn: each side column and the grid scroll ON THEIR OWN. Owner, 22 Oct 2026: *"it should
+  // only scroll the viewport or only scroll the sidebar with the boxes dependent on where your cursor
+  // is"* -- the wheel scrolls whatever is under the pointer, so a colour key can stay in view while the
+  // grid scrolls under it. ⛔ This REVERSES free positions' "the side columns scroll with the grid"
+  // (21 Oct, a choice made in that session, never ruled): there is deliberately no scroll listener
+  // tying the two together any more. A box is still drawn level with its sheet row in its own column
+  // (sideRowMap), so the two line up whenever they are scrolled alike -- at the top, for instance -- and
+  // a drop lands on the row as drawn in the column it is dropped in.
+  //
+  // Where a side's column would be scrolled to sit level with the grid as scrolled now: a column that
+  // has only just appeared opens there (renderSideBoxes).
+  function sideLevelWithGrid(side){
+    if(!sideWide()) return 0;
     const tw = document.getElementById('table-wrap');
     const g = tw && tw.querySelector(':scope > .sheet-scroll');
-    if(!g) return;
-    const zg = gridZoom(tw), gMax = g.scrollHeight - g.clientHeight;
-    SIDE_SIDES.forEach(side=>{
-      const col = sideCols[side], st = !col.hidden && col.querySelector('.sb-stack');
-      if(!st) return;
-      const zs = gridZoom(col);
-      if(src === st){
-        const want = st.scrollTop * zs / zg;
-        if(Math.abs(g.scrollTop - want) > 0.5) g.scrollTop = want;
-      } else if(src === g || src === null){
-        const want = g.scrollTop * zg / zs;
-        if((g.scrollTop < gMax - 1 || st.scrollTop < want) && Math.abs(st.scrollTop - want) > 0.5) st.scrollTop = want;
-      }
-    });
+    return g ? g.scrollTop * gridZoom(tw) / gridZoom(sideCols[side]) : 0;
   }
-  // 'scroll' does not bubble, so one capturing listener hears the grid's box and both columns.
-  document.addEventListener('scroll', e=>{
-    const t = e.target;
-    if(!t || !t.classList) return;
-    if(t.classList.contains('sb-stack') && t.closest('.side-col')) syncSideScroll(t);
-    else if(t.classList.contains('sheet-scroll') && t.parentElement && t.parentElement.id === 'table-wrap') syncSideScroll(t);
-  }, true);
   window.addEventListener('resize', ()=>{ if(sideBoxes.length) positionSideBoxes(null); });
   // One committed structural edit is ONE undo step, banked deterministically on both sides of the write
   // (the day menu's pattern) rather than left to the 500 ms debounce. Typing still coalesces through it.
@@ -15644,22 +15637,24 @@ export function initLegacyApp() {
       sideDrag.target = sideDropTarget(sideDrag.x, sideDrag.y - sideDrag.dy, sideDrag.from);
       showSideDrop(sideDrag.target);
     };
-    // Near the top or bottom of the grid's box, the grid (and the columns with it) scrolls, so a box can
-    // be carried to a row that is not in view. Past the grid's end, the side's own column scrolls on.
+    // Near the top or bottom of the column the box is being carried down, THAT column scrolls, so a box
+    // can be carried to a row that is not in view. The columns scroll on their own (sideScrollOwn), so it
+    // is never the grid -- except over an empty side, which has no column yet: its drop zone is drawn over
+    // the grid's edge and read off the grid's rows (sideRowMap), so there the grid is what scrolls.
     const tick = ()=>{
       sideDrag.raf = 0;
-      const G = sideWide() && sideGridRows();
-      if(!G) return;
-      const r = G.scroll.getBoundingClientRect(), edge = 36;
+      if(!sideWide()) return;
+      const t = sideDrag.target;
+      const st = t && !t.empty ? sideCols[t.side].querySelector('.sb-stack') : null;
+      const G = st ? null : sideGridRows();
+      const el = st || (G && G.scroll);
+      if(!el) return;
+      const r = el.getBoundingClientRect(), edge = 36;
       const v = sideDrag.y < r.top + edge ? -Math.ceil((r.top + edge - sideDrag.y) / 3)
               : sideDrag.y > r.bottom - edge ? Math.ceil((sideDrag.y - (r.bottom - edge)) / 3) : 0;
       if(!v) return;
-      const before = G.scroll.scrollTop;
-      G.scroll.scrollTop = before + v / G.z;
-      if(G.scroll.scrollTop === before && v > 0){
-        const st = sideCols[sideDrag.target ? sideDrag.target.side : 'left'].querySelector('.sb-stack');
-        if(st) st.scrollTop += v;
-      }
+      if(st) st.scrollTop += v / gridZoom(sideCols[t.side]);
+      else G.scroll.scrollTop += v / G.z;
       aim();
       sideDrag.raf = requestAnimationFrame(tick);
     };
