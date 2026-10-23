@@ -84,6 +84,83 @@
 - ⏭ **Next:** commit on `resize-zoom`, merge into `main` and push, each only on the
   owner's word.
 
+### 📝 22 Oct 2026: THE EXCEL-GAPS LIST, AND A MOCKUP OF A WATERFALL RIGHT-CLICK MENU ([`mockups/waterfall-context-menu.html`](mockups/waterfall-context-menu.html)); ITS THREE QUESTIONS RULED; NO CODE
+
+- **The request.** The owner asked what Excel-like functionality SPTCal still lacks (*"this app needs to replace
+  excel but purely in the use case of creating this calendars"*). The answer, in chat: formatting is mostly covered,
+  and the gaps are Excel's EDITING habits (waterfall date drags, arrow keys / Delete, copy and paste, find and replace,
+  a right-click menu, fill on many cells) and its "duplicate the tab" habits (revision marking, scenarios, private
+  comments, paste into an email). From that list the owner picked:
+  - **Item 2 (arrow keys, Tab, Delete) and item 3 (copy / cut / paste notes, drag a note to another week):** given to
+    their own session, "Waterfall arrow keys, Delete, and copy/paste notes" (worktree). It asks its rulings by picker
+    before building. Tracker cards `waterfall-keyboard` and `waterfall-copy-paste-notes`.
+  - **Item 5, a waterfall right-click menu: a MOCKUP only** (this entry). Tracker card `waterfall-right-click-menu`.
+  - **Item 8, scenarios:** a full workup, written by the session "Scenarios plan: compare calendar options" in this
+    checkout (`SCENARIOS-PLAN.md`; it adds its own entry). Tracker card `scenarios`.
+- ⚠️ **A correction to that list.** It proposed "freeze panes" as a frozen edit. The heading row is ALREADY frozen
+  on screen (`.sheet-table th` is `position:sticky`) and repeats on every printed page. Only the exported workbook
+  has no frozen panes (`exportExcel`'s `views` carries no split), and a sticky date column makes no sense with year
+  blocks side by side.
+- **The mockup** is built the way `mockups/month-context-menu.html` was, and reuses that mockup's menu engine. The
+  waterfall is captured from the build (`dist/` of 21 Oct, `halfdays.sptcal`, synthetic) with headless Chrome
+  `--dump-dom`. It has `#table-wrap`'s markup verbatim minus the resize handles, and only the CSS rules that match
+  it. Open it through the harness server at `/mockups/waterfall-context-menu.html`.
+  - **Its shape:** the same look, keys and fixed order as the month day menu. A clipboard row first (Cut · Copy ·
+    Paste · Clear, as Excel's Paste Options row), then "This week" (Add / Edit this week's note · Add 1-week phase
+    here · Add hiatus ▸), then one section for the cell clicked: a phase week (Start / End <phase> this week, Expand
+    cells, Swap column left / right, Colour…, Show in Phases card), a note (Edit, colour, back to automatic text), a
+    hiatus band, a holiday in that week. Then Size (reset row height / column width), and Show this week in the
+    month view. A column heading gets a short menu of its own.
+  - **Right-click inside a highlight acts on all of it**; outside it, the cell is highlighted first.
+  - Refused items are greyed with their reason (the standing rule). The clipboard items only CALL the item 2/3
+    session's actions.
+- ✅ **Ruled (owner, 22 Oct 2026, in chat):** *"keep the clipboard row at the top. Clear can remove an automatic
+  note, and keep the Size section."* The mockup's side panel now records them.
+  1. **The clipboard row stays at the top**, as Excel's Paste Options row.
+  2. **Clear can remove an automatic note.** It is stored as cleared (`userNotes[week] = {text:''}`), stays empty
+     when dates move, and Reset Notes brings it back. This is the first Delete note in either menu; the month menu has
+     none (ruling Q5). The ruling was passed to the item 2/3 session, since its Delete key does the same thing.
+  3. **The Size section stays** (reset row height / column width).
+  4. **Show this DAY or week in the month view** (owner, 22 Oct 2026: *"should have show this day or week in the
+     month view button"*; by picker, "Day when it knows the day"). The mockup already ended with "Show this week",
+     which was easy to miss. Now:
+     - **on a dated note** it reads "Show this day in the month view" and lands on that day, highlighted for a
+       moment. The day comes from the note line's trailing date, by the rule `notesForWaterfallDate` already uses
+       to put a waterfall line on its day; only a date inside the note's own week counts. The mockup shows it on
+       the wrap note (Tue 1 Sep);
+     - **on a holiday shown in a Notes cell**, the same, on the holiday's day;
+     - **everywhere else** it stays "Show this week", and the week's row is highlighted.
+     The highlight must be drawn OVER the month view, never written into it: the month view is frozen.
+- ⚠️ **The menu is tall** (about 17 lines on a phase week), taller than a short window. The mockup caps it at the
+  window height and lets it scroll. A scroll inside the menu must not trip the close-on-scroll listener, so that
+  listener skips scrolls whose target is inside the menu. The build needs both.
+- ⏭ **Next:** a plan and a build. Wait for the item 2/3 work first: the clipboard row only calls its Cut / Copy /
+  Paste / Clear actions.
+- **Needs no frozen edit**, on the month menu's reasoning (MONTH-CONTEXT-MENU-PLAN §4): it reads `#table-wrap`,
+  opens a body-level menu, and calls existing writers (`setPhaseStart`, `phaseEdgePlan` → `phaseEdgeWrite`,
+  `batchFill`, `doSwapMove`, `openPhaseColorPop`, `addHiatusRow`, `addPhaseHere`, `openNoteCellEditor`).
+- ⚠️ **A trap found while testing it:** the browser pane's `zoom` screenshot fires a `resize`, so a page that closes
+  its menu on resize shows no menu in a zoomed capture. Use a plain screenshot.
+
+### 📝 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — PLANNED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md)); NOTHING BUILT; FROZEN EDITS SIGNED OFF
+
+- **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
+  switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
+  clickable mockup in chat, then ruled on v2: *"you can just flag that a collumn contains notes, you dont need to
+  specificy. we want to keep things clean and elegant and in mantine style."* On the tracker as `hide-notes-columns`.
+- **The design (plan §2):** **Hide column** in the Notes heading's panel, with no confirmation. A violet dot flags a
+  column with notes, with no counts or text. On screen a hidden column is a 14 px strip, and clicking it brings the
+  column back. It is gone from Excel (hidden there, notes kept) and from the PDF. Settings › Preferences › Waterfall
+  lists the hidden years as pills. **D1: the panel opens on DOUBLE-click** (the mockup showed a single click), per the
+  text style bar's rule that a click picks text and a double-click edits.
+- **Frozen edits SIGNED OFF by the owner's picker, 22 Oct 2026 ("Sign off all", strip included; plan §6):** W1–W2
+  `sheetColumnWidths`, R1–R5 `renderSpreadsheetView`, X1 `exportWaterfallPdf` (a print flag, the cost of the on-screen
+  strip), E1–E3 `exportExcel`, P1–P3 `buildWaterfallPdf`. Each is inert with nothing hidden, and §6's gate binds. One
+  new snapshot key, `hiddenNotesCols`, with no version bump.
+- ⚠️ **Relaxes ruling 2's "A Notes column stays on every year"**, only where someone hides one. Not §2c (held).
+- ⏭ Next: build on branch `hide-notes` (from local `main`) in the plan's §8 order. The plan was committed to local
+  `main` and not pushed (the owner's picker).
+
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
 - **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
