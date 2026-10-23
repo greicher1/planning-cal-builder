@@ -22990,20 +22990,22 @@ export function initLegacyApp() {
     const buf = await wb.xlsx.writeBuffer();
     downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), compareFileBase() + '.xlsx');
   }
-  // The PDF, written directly with the month writer's machinery: the embedded Inter, its display list
-  // (mvlPageOps) and serializer (mvlSerialize), on its Letter landscape page. One page wide; the type steps down
+  // The PDF, written directly by the month writer through its second public entry point, buildListPdf: the embedded
+  // Inter, the display list and serializer, the Letter landscape page. ⛔ Nothing here may name anything else in the
+  // writer (the month legs' F0 counts it). One page wide; the type steps down
   // as columns are added, and a value too wide for its column shrinks to fit. "−" is not in the PDF's character
   // set (WinAnsi), so differences are written with a hyphen there.
-  async function buildComparePdf(model){
-    const W = ['400', '500', '600'], fonts = {};
-    for(const w of W) fonts[w] = await loadInterPdfFont(w);
-    const G = MVL_GEOMETRY, M = 30, pageW = G.pageW, list = [];
+  function buildComparePdf(model){
+    return buildListPdf(function(pg){ return paintComparePdf(model, pg); });
+  }
+  function paintComparePdf(model, pg){
+    const M = 30, pageW = pg.pageW, list = [];
     const C = { ink: [0x1E / 255, 0x1D / 255, 0x1B / 255], muted: [0x72 / 255, 0x6F / 255, 0x68 / 255], grey: [0xA5 / 255, 0xA1 / 255, 0x97 / 255],
                 line: [0xE3 / 255, 0xE1 / 255, 0xDA / 255], rule: [0xC4 / 255, 0xC1 / 255, 0xB6 / 255],
                 warnBg: [0xFE / 255, 0xF6 / 255, 0xE7 / 255], warnInk: [0x7A / 255, 0x5B / 255, 0x14 / 255],
                 navyBg: [0xEA / 255, 0xEE / 255, 0xF2 / 255], navy: [0x2C / 255, 0x3E / 255, 0x50 / 255] };
     const pdfText = s => String(s).replace(/−/g, '-');
-    const width = (s, wt, size) => mvlTextWidth(fonts[wt].font, pdfText(s), size);
+    const width = (s, wt, size) => pg.width(pdfText(s), wt, size);
     const text = (s, x, y, wt, size, c) => list.push({ k: 'text', s: pdfText(s), x, y, wt, size, c, ls: 0 });
     const fit = (s, wt, size, max) => { let z = size; while(z > 5 && width(s, wt, z) > max) z -= 0.25; return z; };
     const n = model.cols.length;
@@ -23047,8 +23049,7 @@ export function initLegacyApp() {
       y += rowH;
       list.push({ k: 'fill', c: C.line, x: M, y, w: pageW - 2 * M, h: 0.75, r: 0 });
     });
-    const used = W.filter(w => list.some(o => o.k === 'text' && o.s !== '' && o.wt === w));
-    return mvlSerialize([mvlPageOps(list)], used.map(w => ({ tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated })));
+    return list;
   }
   async function exportComparePdf(model){
     let bytes;
@@ -28630,6 +28631,24 @@ export function initLegacyApp() {
   // `layout` is buildMonthLayout()'s, with `fit.rows` on every month. The four programs are decoded
   // here on first use (loadInterPdfFont caches them); only the weights some page sets text in are
   // embedded. Returns the file's bytes.
+  // ⭐ THE WRITER'S SECOND PUBLIC ENTRY POINT (SCENARIOS-PLAN.md, 23 Oct 2026): one page from a display list that is
+  // not a month -- the scenarios Compare table. `paint({width, pageW, pageH})` returns the list (the same ops
+  // mvlPageOps takes); `width(s, weight, sizePx)` measures text as the PDF will set it. The fonts, the Letter landscape
+  // page and the serializer are the month PDF's own. The month legs' F0 holds that nothing outside the writer reaches
+  // any other name in it: buildComparePdf calls this and only this.
+  async function buildListPdf(paint){
+    const fonts = {};
+    for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
+    const list = paint({
+      width: function(s, wt, size){ return mvlTextWidth(fonts[wt].font, s, size); },
+      pageW: MVL_GEOMETRY.pageW, pageH: MVL_GEOMETRY.pageH,
+    });
+    // ⚠️ Not buildMonthPdf's closing text, on purpose: the month legs slice the writer out of this file ending at the
+    // FIRST occurrence of that text after MVL_GEOMETRY, and an identical tail here cut buildMonthPdf off the slice.
+    const used = MVL_FONT_WEIGHTS.filter(w => list.some(o => o.k === 'text' && o.s !== '' && o.wt === w));
+    const embed = used.map(w => ({ tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated }));
+    return mvlSerialize([mvlPageOps(list)], embed);
+  }
   async function buildMonthPdf(layout){
     if(!layout || !Array.isArray(layout.months) || !layout.months.length) throw new Error('Month PDF: there is no month to write.');
     const fonts = {};

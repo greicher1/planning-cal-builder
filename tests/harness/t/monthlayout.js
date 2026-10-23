@@ -129,13 +129,14 @@ window.addEventListener('load', function () { (async function () {
     var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var defined = NAMES.filter(function (n) { return new RegExp('\\b(?:function|const|let) ' + n + '\\b').test(mvlSrc); });
     // And nothing runs at boot: buildMonthLayout appears twice in the whole file (its declaration and the export's
-    // call), and the loader three times (its declaration, buildMonthPdf's call and the export's). Mutant M9, which
-    // calls the loader from inside the section, makes a fourth.
+    // call), and the loader four times (its declaration, buildMonthPdf's call, buildListPdf's -- the scenarios Compare
+    // PDF's entry point, 23 Oct 2026 -- and the export's). Mutant M9, which calls the loader from inside the section,
+    // makes a fifth.
     var once = ['loadInterPdfFont(', 'buildMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export calls the layout model, through its public part, and no Inter block is decoded at boot: only an export decodes one',
-        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 3 && once[1] === 2,
+        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 4 && once[1] === 2,
         {usedOutside: used, usedByExport: byExport, definedInSection: defined.length, entryPointOccurrences: once},
-        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [3, 2]});
+        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [4, 2]});
 
     // ---- F1: the real loader ------------------------------------------------------------------------------
     var p1 = F.loadInterPdfFont('500'), p2 = F.loadInterPdfFont(500);

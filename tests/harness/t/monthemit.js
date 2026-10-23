@@ -108,23 +108,30 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont three times (its declaration,
-    // buildMonthPdf's call, the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
+    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
-    var eAt = rest.indexOf(exportSrc), outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
+    // ⭐ SINCE 23 OCT 2026 THE WRITER HAS A SECOND CALLER, the scenarios Compare PDF (SCENARIOS-PLAN.md): buildComparePdf
+    // and its painter, paintComparePdf, which may name ONE thing in the writer, buildListPdf, its second public entry
+    // point. That region is cut out of `outside` like the export, and held to that one name.
+    var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
+    var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
+    var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
+    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
     var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
+    var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
     var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [3, 2, 2, 2, 2]),
-        {usedOutside: usedOut, usedByExport: usedByExport, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, entryPointOccurrences: [3, 2, 2, 2, 2]});
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
