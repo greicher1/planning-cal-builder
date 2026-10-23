@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 22 Oct 2026: THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
+### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
 - **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
   boxes live up and down. instead it should only scroll the viewport or only scroll the sidebar with the boxes
@@ -27,7 +27,14 @@
   nothing in `#table-wrap`, the writers or the save path (memory: chrome changes get targeted legs).
 - ⚠️ **Headless trap, new:** headless Chrome runs few animation frames in a leg, so a rAF-driven auto-scroll moves
   ~10 px in 400 ms. R16 asserts "the column scrolled at all, the grid not at all", never a distance.
-- ⏭ **Next:** the push and the live check; a HANDOFF commit after it records the result. The approval covered that one push only.
+- ✅ **PUSHED AND LIVE.** Local `main` fast-forwarded `55a9c61` → `f77c353` in the main checkout (its two
+  pre-existing fixture changes, `stintswap-reshape.sptcal` and the untracked `Reshape Fixture …`, left alone). ONE
+  `git push origin main` at 19:16:36 (`7f68d88..f77c353`, this change plus the earlier HANDOFF-only `55a9c61`).
+  Deploy run 39888684975 success. At 19:17:27 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to this branch's build** (sha256 `57056dcb340d7617…`, 1,731,389 bytes, `cmp`); `version.json`
+  still 1.8.0, so installed copies pick it up silently. This HANDOFF note is a local commit, not pushed.
+- ⏭ **Next:** nothing. The `sidebox-own-scroll` worktree can be removed on the owner's word. A version cut is the
+  owner's call whenever they want the update notice shown.
 
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
