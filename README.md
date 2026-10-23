@@ -57,6 +57,35 @@ there is no one-gesture way to do it already. The owner approved the short list 
   `npm run check` 40/40. In the app pane: the trimmed menu on Production's bar, and a sidebar scroll of 118 px leaving it
   open while a calendar scroll of 60 px closed it.
 
+### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026, branch `claude/goofy-austin-fa2c05`)
+
+Item 5 of the owner's Excel-gaps list. A right-click on a waterfall cell opens a short menu of what that cell can
+do ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md)). The owner cut it down before it was built:
+*"we really dont need the swap collumn feature in the right click menu. We dont need an add notes button at all.
+right now the right click menu especially on phases is huge"*. So an item is there only if it is what you reach for
+on that cell and the cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears,
+⌥← swaps).
+- **A phase week:** Start ‹phase› this week (moves it by whole weeks), End ‹phase› this week (a Weeks phase keeps
+  Weeks and gets a new count), Add 1-week phase here, Add hiatus ▸. End Production stays greyed: its end comes from
+  the shoot days.
+- **A Notes cell:** Cut · Copy · Paste · Clear in one row (the ⌘X / ⌘C / ⌘V / Delete actions; Clear can empty an
+  automatic note), and Back to automatic text on an edited automatic note.
+- **A hiatus band:** Remove hiatus… (asks first). **A date or empty cell:** the two adds.
+- Reset row height / column width appear only after a hand resize. The last line is Show this week in the month
+  view, or **Show this day** on a dated note; it switches view, rings the day for a moment, and is no undo step.
+- An item that cannot act on the cell is left out rather than greyed (owner, by picker). Every other item is one
+  undo step. Cut writes the clipboard before it empties the note, so a refused clipboard never loses it.
+- Built on the month day menu's own engine, so the look, keys and close rules are shared. No frozen code, no saved
+  key, no new id.
+- **Learned:** Chrome can deliver a scroll event late, with nothing moved, and it closed the menu under the pointer
+  in headless runs. The waterfall menu now closes only when a box around its cell really scrolls, or on a render.
+- **Verified:** new leg `wfmenu` (38 cases, in `gate.sh`), red on the pre-change build; `mvmenu` 89/89 (G3 now
+  expects the waterfall's own menu), `wfkeys` 84/84, `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40.
+  Full gate on build `c82fd1ab…`: 2,976 PASS, 2 FAIL, both load timeouts (`launchopen`, `textstyle`) that pass alone
+  on the same build; every frozen output identical to its baseline. Landed together with Header: Off for the Month
+  view: combined full gate on build `75968ba8…` 3,010 PASS, 2 FAIL, both load timeouts (`hdrrow`, one `monthexport`
+  time-zone run) that pass alone on the same build.
+
 ### Unreleased — Header: Off for the Month view (23 Oct 2026)
 
 The owner: *"also add "Off" for the month view header"*.
@@ -75,6 +104,34 @@ The owner: *"also add "Off" for the month view header"*.
   text and its month bar higher. It also covers one undo step, Off over Manual, Save/Load, a file with no key, a junk
   value, and the template editor. `hdrrow` 37/37 (O1 now expects Off in both menus), `hdrcontrols` 12/12,
   `npm run check` 40/40. Full gate: see HANDOFF.
+
+### Unreleased — Month view: notes stay put when you rearrange, sit between phases, and drag to another day (23 Oct 2026)
+
+The owner: *"sometimes when you move one phase or note it moves others in adjacent days … notes need to be able to
+individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one day
+to another and for auto notes or notes with dates, have the date auto adjust"*. Branch `month-drag-fix`;
+MONTH-ORDER-PLAN.md §9.
+- **The bug, and its cause.** An untouched note took the first free line of its day. A drag that pushed a week's bars
+  down a line (a note put on top, or a phase reordered) opened a line above the bars on the week's other days, and
+  their notes rose into it. Now, once a calendar has any order or note place, each untouched note stays under the bar
+  it sat under in the untouched layout. Calendars never rearranged draw exactly as before.
+- **Notes in or around the phases.** A note dragged on its day can now sit above every bar, under any phase, or under
+  every bar. A bar it now sits above drops one line for that week, as on top already did, and the day's other notes
+  keep their places.
+- **Notes to another day.** Drag a note sideways or into another week. A date in it that names its old day changes to
+  the new one. A Waterfall line moves into the new week's Waterfall note with its new date; an auto-note dragged this
+  way becomes an edited note (its phase does not move). Holidays stay on their day. Letting go off the calendar puts
+  the note back. One undo per drag.
+- **How:** two frozen edits to `renderMonthView`, owner-approved by picker with the gate below: E3 (a note's lowest
+  allowed line, and `data-note-anchor` for the PDF writer) and E4 (notes under a phase placed right after it). Both
+  do nothing on a calendar with no order or place. The month-PDF writer keeps an anchored note under the same bar.
+  Save file: `under` and `bottom` on a month note, and `under`, `bottom` and `day` on a Waterfall line's place; older
+  builds ignore them. No `SNAPSHOT_VERSION` bump.
+- **Verified:** `mvorder` 30/30 with ten new cases (M1–M10, on the new synthetic `mvdrag.sptcal`), including the
+  written month PDF stacking a between-phases note between its bars; M1–M6 and M8 fail on the live build `d2ac914e`.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13, `npm run check` 40/40. Full gate on `95bf3fd4…`: 2,970
+  PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Not
+  merged, not pushed.
 
 ### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
 
@@ -123,33 +180,6 @@ appear right below it with the preferences/region/presets menu below"*.
 - **Verified:** `settingswin` 20/20, with W10 and W11 rewritten and a new W14 (the bar stays usable; hit-tested
   clicks on Phases, Show and Settings; an arrow key; an undo leaves the window open). On the live build, `d2ac914e…`,
   W10, W11 and W14 fail. `npm run check` 40/40. The other legs that open Settings were run too (see HANDOFF).
-
-### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026, branch `claude/goofy-austin-fa2c05`)
-
-Item 5 of the owner's Excel-gaps list. A right-click on a waterfall cell opens a short menu of what that cell can
-do ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md)). The owner cut it down before it was built:
-*"we really dont need the swap collumn feature in the right click menu. We dont need an add notes button at all.
-right now the right click menu especially on phases is huge"*. So an item is there only if it is what you reach for
-on that cell and the cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears,
-⌥← swaps).
-- **A phase week:** Start ‹phase› this week (moves it by whole weeks), End ‹phase› this week (a Weeks phase keeps
-  Weeks and gets a new count), Add 1-week phase here, Add hiatus ▸. End Production stays greyed: its end comes from
-  the shoot days.
-- **A Notes cell:** Cut · Copy · Paste · Clear in one row (the ⌘X / ⌘C / ⌘V / Delete actions; Clear can empty an
-  automatic note), and Back to automatic text on an edited automatic note.
-- **A hiatus band:** Remove hiatus… (asks first). **A date or empty cell:** the two adds.
-- Reset row height / column width appear only after a hand resize. The last line is Show this week in the month
-  view, or **Show this day** on a dated note; it switches view, rings the day for a moment, and is no undo step.
-- An item that cannot act on the cell is left out rather than greyed (owner, by picker). Every other item is one
-  undo step. Cut writes the clipboard before it empties the note, so a refused clipboard never loses it.
-- Built on the month day menu's own engine, so the look, keys and close rules are shared. No frozen code, no saved
-  key, no new id.
-- **Learned:** Chrome can deliver a scroll event late, with nothing moved, and it closed the menu under the pointer
-  in headless runs. The waterfall menu now closes only when a box around its cell really scrolls, or on a render.
-- **Verified:** new leg `wfmenu` (38 cases, in `gate.sh`), red on the pre-change build; `mvmenu` 89/89 (G3 now
-  expects the waterfall's own menu), `wfkeys` 84/84, `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40.
-  Full gate on build `c82fd1ab…`: 2,976 PASS, 2 FAIL, both load timeouts (`launchopen`, `textstyle`) that pass alone
-  on the same build; every frozen output identical to its baseline. Not merged, not pushed.
 
 ### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
 

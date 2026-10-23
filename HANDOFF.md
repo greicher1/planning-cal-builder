@@ -42,6 +42,74 @@
 - ⏭ **Next:** the full gate (it waits for two other sessions' gates that were running at 14:58). Then merging into
   `main` and the push are each the owner's picker. The tracker card is `building` until the gate is green.
 
+### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*) ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
+
+- **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
+  four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
+- ⛔ **Then the owner, in this session, before any code:** *"I want you to be more cautious in adding extra buttons to
+  the right click menu. I want you to think very carefully about which buttons we actually need in each right click
+  menu. For example, we really dont need the swap collumn feature in the right click menu. We dont need an add notes
+  button at all. right now the right click menu especially on phases is huge"*. The mockup's phase week ran to ~17
+  lines; it is 4 now. **The test every item had to pass** (plan §1.1): it is what you reach for on THAT cell, and the
+  cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). Plan §1.2
+  lists what was cut and why. Saved as a feedback memory (`lean-right-click-menus`).
+- **Ruled by picker, 23 Oct 2026:** R5 *"Both"* (a week offers Add 1-week phase here and Add hiatus; the
+  recommendation was Neither); R6 *"Leave it out"* (an item that cannot act on the cell is left out, not greyed;
+  Start / End stay a greyed pair); R7 *"Trim the month menu too"*, as its own task after this one (tracker card
+  `month-menu-trim`, requested; NOT this branch).
+- **What it is** (plan §2): phase week = Start / End ‹phase› this week, Add 1-week phase here, Add hiatus ▸; Notes
+  cell = Cut · Copy · Paste · Clear (one row) and Back to automatic text on an edited automatic note; band = Remove
+  hiatus…; date / empty / Sim Post = the two adds; a highlight of several = the clipboard row; Size only after a hand
+  resize; last line Show this day / week in the month view (no undo step, a ring over the day for 1.7 s). No menu on
+  a heading (double-click edits it), the title block, or with Shift.
+- **How:** inside `installMonthDayMenu`, one engine with the month menu (`wfContextAt`, `wfPrepare`,
+  `wfMenuSections`, the `wf*` items). No frozen code, no snapshot key, no id. Calls `setPhaseStart` (in
+  `asShootDayMove`), `phaseEdgePlan` / `phaseEdgeWrite` / `phaseEdgeLanded`, the month menu's `addPhaseHere`,
+  `hiatusSections` (now told a span: 7 days in the waterfall, overlap like the scheduler's rows), `removeHiatusHere`,
+  `wfNotesCopy` / `wfNotesClear` / `wfNotesPaste`, `wfNoteStep`. End on a Weeks phase keeps Weeks and gets a new
+  count (no switch to Dates); Start moves by whole weeks, keeping the weekday. Cut writes `navigator.clipboard` BEFORE
+  it clears, so a refused clipboard never loses the note (not `wfNotesCut()`, which clears first). The Mac Ctrl+click
+  guard is now on the text highlight's and the phase selection's presses. `.day-menu` is capped at the window height
+  and scrolls inside (the month menu too).
+- ⚠️ **Learned, measured: Chrome can deliver a scroll event LATE, with nothing moved.** In the leg (headless, virtual
+  time) a scroll event arrived after the menu opened, either for the grid's box at the exact position it had at the
+  right-click, or for the SIDEBAR settling after an earlier undo, and closed the menu: a different case each run, and
+  a fixed sleep or "wait until quiet" did not cure it. So the WATERFALL menu now closes only when a box around its
+  cell really moved (`scrollBoxes` / `movedSinceOpen`), or on a render. ⛔ The month menu keeps "any scroll outside
+  it" (`mvmenu` C1 dispatches an unmoved scroll and expects a close); change it in its own trim, not here. In the app
+  pane, a real browser, no scroll fired after a right-click on any of four cell kinds.
+- **Proof so far:** new leg `wfmenu` (38 cases, in `gate.sh`'s audit-fix block beside `mvmenu`), 38/38 three runs in
+  a row, **red on the pre-change build** (`8cc8357`, built with `git archive`, sha256 `d2ac914e…` = the live file:
+  stops at V1, no menu). `mvmenu` 89/89 with G3 flipped (it asserted no menu in the waterfall), `wfkeys` 84/84,
+  `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40 on build `c82fd1ab…`. In the app pane (port 9843,
+  preview `wfmenu-9843` in this worktree's `.claude/launch.json`): the menu on a phase, a note, an empty note, a band,
+  a date and an empty cell; End Post 16 → 9 weeks and one undo; Start; Show this day landing on 1 Sep with its ring.
+- ✅ **Full gate on `d4e5654` (build `c82fd1ab…`, 1,767,962 bytes; port 9842, 12:21:06–12:49:43, no other gate
+  running at its start): 2,976 PASS, 2 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every
+  Excel part, the month print documents and gate 13's written month PDFs; 0 clipped; 76 ids. `wfmenu` 38/38 inside it.
+  The two FAILs are load timeouts, not assertions: `launchopen` "EX: harness" after L0–L9 passed, and `textstyle`
+  "timed out waiting for: the loaded calendar". **Both green alone on the same build right after:** `launchopen`
+  16/16, `textstyle` 51/51.
+- **The landing (owner, by picker, 23 Oct 2026).** Asked to merge and push, `main` was found to hold another
+  session's unpushed "Header: Off for the Month view" (`1af8782`), whose own gate was running. Asked again, the owner
+  chose *"Land both together"*: `main` merged in as `ade4231` (only the HANDOFF / README top entries conflicted;
+  both kept). While waiting for that session's gate, `origin/main` moved to `2c6a822` (the month-drag fix, live), so
+  it was merged in too as `31f7599`. Then local `main` gained **Scenarios** (`57a3650`, unpushed, its own gate still
+  owed), so a push of `main` would have shipped it ungated. Asked a third time, the owner chose *"Push what was
+  gated"*: `31f7599` (plus this docs commit) goes to `origin/main`, then merges into local `main` beside Scenarios.
+  ⚠️ **Scenarios' own gate must then include the right-click menu.**
+- ✅ **Combined full gate on `31f7599` (build `75968ba8…`, 1,775,069 bytes; port 9842, 14:58:17–15:27:37): 3,010 PASS,
+  2 FAIL.** Every frozen output identical to its baseline (the waterfall PDF, every Excel part, the month print
+  documents, gate 13's written month PDFs), 0 clipped, 76 ids; `wfmenu` 38, `mvmenu` 89, `mvhdroff` 9 inside it.
+  The two FAILs are load timeouts: `hdrrow` EX (*"timed out waiting for: the loaded calendar (its sidebar tab)"*,
+  its 17th Load, after H1–H10 passed) and `monthexport (reference, Pacific/Kiritimati)` X6. Kiritimati: 9/9 alone.
+  `hdrrow` on the same build: one more EX (run alongside the month-menu-trim session's gate, started 15:27:50), then
+  5 × 37/37. Header: Off + month-drag WITHOUT the menu: 5 × 37/37, and every input build alone 37/37, so whether the
+  menu raises that leg's load-timeout rate is not settled by 7 runs. Nothing in the menu runs during a Load.
+- ⏭ **Next:** the push and its live check, then the merge into local `main`. Then the month menu's trim (`month-menu-trim`): propose its short list for
+  approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
+  it lands, never from an older `main`.
+
 ### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, NOT COMMITTED yet; full gate queued; no version cut
 
 - **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
@@ -86,6 +154,58 @@
     fixtures must stay synthetic (see the confidentiality memory).
   - Every month PDF baseline except that fixture matched, gate 10 included.
 - ⏭ **Next:** the full gate's verdict, then the owner's picker on commit and push.
+
+### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,970 / 1 (build `95bf3fd4`; the 1 a `loadcarry` load-timing flake, green alone twice); NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+
+- **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
+  sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
+  phase up or down its going to move that phase to the same position on every week but notes need to be able to
+  individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one
+  day to another and for auto notes or notes with dates, have the date auto adjust"*. Tracker cards
+  `month-reorder-fixes` and `month-note-day-drag`.
+- ⭐ **The cause (reproduced, both triggers):** frozen `renderMonthView` places every note first-fit, so an untouched
+  note takes the first free line of its DAY. Anything that pushes a week's bars down a line opens a line above the
+  bars on that week's OTHER days, and their notes rise into it. (1) A note dragged on top of Wed 3/4: "Tue note" and
+  "Thu note" jumped above the bars. (2) Prod Prep's grip dragged to the top in the week of 3/15: the order is the whole
+  calendar's (D1), so the week of 3/8, where Prod Prep runs Thu–Fri only, re-stacked and its Mon–Wed notes jumped above
+  both bars.
+- **The fix, no new state:** once a calendar holds any order or note place (`mvIsArranged()`), each month render first
+  asks the frozen renderer for the UNTOUCHED layout (`mvRefMode`: date order, no places), reads off the bar directly
+  above every note on its day (`mvReferenceAnchors`), and places each untouched note no higher than the line under that
+  bar. A note with no bar above it there is placed as before. A never-rearranged calendar takes the old path exactly.
+  Render cost on a rearranged calendar: ~6 → ~15 ms per month.
+- **New, per the ask:** a dragged note lands above every bar (`top`), under a phase (`under: '<key>'`) or under every
+  bar (`bottom: true`), and the day it lands on is written note by note at the places they are drawn. A note can go to
+  ANOTHER day: dates naming its old day are rewritten (any typed form); a waterfall line moves into the new week's
+  waterfall note through `saveNoteEdit`, its trailing date rewritten or stamped; an auto-note so moved becomes an edit
+  (its phase does not move). Defaults taken, plan §9.2 D9–D12: holidays stay on their day; a drop >24 px off the grid
+  puts the note back; waterfall lines only into weeks the waterfall has; one place per waterfall-line text.
+- **Frozen edits (picker, 23 Oct: *"Approve with that gate"*):** E3, `takeLane`/`place` take an optional `minLane`, and
+  the notes loop passes it plus `data-note-anchor` (the row index of the bar above); E4, each phase's iteration ends by
+  placing the notes under it (`placeNotes('u:' + key, notesFrom)`). The month-PDF writer (not frozen) reads the anchor
+  and starts that note's re-pack search under the same item.
+- **Save format:** `under` / `bottom` on a `dayNotes` entry; `under` / `bottom` / `day` on an `mvWfNotePlace` value.
+  `day` fixes a second, smaller bug: a place was keyed by text alone, so one arrangement moved every same-text line
+  (yearly holidays, a line typed into several weeks). Sanitized and restored field by field; no `SNAPSHOT_VERSION` bump.
+- **The note drag was rewritten** (`installMonthNoteDrag`): every redraw starts from the stores as they were at the
+  press (`dayNotes`, `userNotes`, `mvWfNotePlace`, `noteColors` copied), so nothing accumulates; a drop that draws the
+  month exactly as before (out and back, Escape) restores the very state and banks no step.
+- **Proof so far (build `95bf3fd4…`, 1,763,999 bytes; commits `51ecdc1`, `6cd0d37`, `81c7ffc`):** `npm run check`
+  40/40; `mvorder` 30/30 with M1–M10 on the new synthetic `tests/fixtures/mvdrag.sptcal` (M3 reads the WRITTEN month
+  PDF: the between-phases note's y lies between its two bars'); on the live build `d2ac914e` M1–M6 and M8 are red.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13. In the pane: a between-phases drop and a Tue→Thu drop with
+  the date rewritten. N3's expectation now includes the place's `day`.
+- ⚠️ **Learned: a harness probe that measures an element BEFORE a drag and uses it AFTER gets a zero rect** (the redraw
+  replaced it), so its "drop" lands at (0, 0). It looked like a bug (a note landed on Sun 3/1) and was the probe's. It
+  did expose a real gap, fixed as D10.
+- ✅ **Full gate on `95bf3fd4…`** (1,763,999 bytes; port 9807, 13:27:37–13:56:38, alone: the scenarios session's gate
+  ended 13:26, the next began 13:57): **2,970 PASS, 1 FAIL.** All 90 month-PDF lines (gate 10's print documents, gate
+  13's written PDFs) identical to the baselines, which is the R4/§9.5 proof that E3 and E4 are inert on every calendar
+  never rearranged; `mvorder` 30/30. The FAIL: `loadcarry` stopped after C4 ("EX: harness") in C5, which waits up to 20 s
+  for a legacy `.html` to Load. Alone on the same build, twice: 6/6, no errors. A Load-timing flake (the `offweek` R8
+  kind), not this change, which does not touch the Load path or that leg's views.
+- `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
+- ⏭ **Next:** the owner's picker on merging into `main` and, separately, on pushing.
 
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
@@ -201,59 +321,6 @@
   build** (sha256 `5804869a…`, 1,755,368 bytes, `cmp`). `version.json` is still 1.8.0, so installed copies pick it up
   silently. This note is a local commit, not pushed.
 - ⏭ **Next:** nothing.
-
-### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; ✅ FULL GATE 2,976 / 2 (build `c82fd1ab…`), BOTH FAILS GREEN ALONE ON THE SAME BUILD; NOT merged, NOT pushed ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
-
-- **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
-  four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
-- ⛔ **Then the owner, in this session, before any code:** *"I want you to be more cautious in adding extra buttons to
-  the right click menu. I want you to think very carefully about which buttons we actually need in each right click
-  menu. For example, we really dont need the swap collumn feature in the right click menu. We dont need an add notes
-  button at all. right now the right click menu especially on phases is huge"*. The mockup's phase week ran to ~17
-  lines; it is 4 now. **The test every item had to pass** (plan §1.1): it is what you reach for on THAT cell, and the
-  cell has no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). Plan §1.2
-  lists what was cut and why. Saved as a feedback memory (`lean-right-click-menus`).
-- **Ruled by picker, 23 Oct 2026:** R5 *"Both"* (a week offers Add 1-week phase here and Add hiatus; the
-  recommendation was Neither); R6 *"Leave it out"* (an item that cannot act on the cell is left out, not greyed;
-  Start / End stay a greyed pair); R7 *"Trim the month menu too"*, as its own task after this one (tracker card
-  `month-menu-trim`, requested; NOT this branch).
-- **What it is** (plan §2): phase week = Start / End ‹phase› this week, Add 1-week phase here, Add hiatus ▸; Notes
-  cell = Cut · Copy · Paste · Clear (one row) and Back to automatic text on an edited automatic note; band = Remove
-  hiatus…; date / empty / Sim Post = the two adds; a highlight of several = the clipboard row; Size only after a hand
-  resize; last line Show this day / week in the month view (no undo step, a ring over the day for 1.7 s). No menu on
-  a heading (double-click edits it), the title block, or with Shift.
-- **How:** inside `installMonthDayMenu`, one engine with the month menu (`wfContextAt`, `wfPrepare`,
-  `wfMenuSections`, the `wf*` items). No frozen code, no snapshot key, no id. Calls `setPhaseStart` (in
-  `asShootDayMove`), `phaseEdgePlan` / `phaseEdgeWrite` / `phaseEdgeLanded`, the month menu's `addPhaseHere`,
-  `hiatusSections` (now told a span: 7 days in the waterfall, overlap like the scheduler's rows), `removeHiatusHere`,
-  `wfNotesCopy` / `wfNotesClear` / `wfNotesPaste`, `wfNoteStep`. End on a Weeks phase keeps Weeks and gets a new
-  count (no switch to Dates); Start moves by whole weeks, keeping the weekday. Cut writes `navigator.clipboard` BEFORE
-  it clears, so a refused clipboard never loses the note (not `wfNotesCut()`, which clears first). The Mac Ctrl+click
-  guard is now on the text highlight's and the phase selection's presses. `.day-menu` is capped at the window height
-  and scrolls inside (the month menu too).
-- ⚠️ **Learned, measured: Chrome can deliver a scroll event LATE, with nothing moved.** In the leg (headless, virtual
-  time) a scroll event arrived after the menu opened, either for the grid's box at the exact position it had at the
-  right-click, or for the SIDEBAR settling after an earlier undo, and closed the menu: a different case each run, and
-  a fixed sleep or "wait until quiet" did not cure it. So the WATERFALL menu now closes only when a box around its
-  cell really moved (`scrollBoxes` / `movedSinceOpen`), or on a render. ⛔ The month menu keeps "any scroll outside
-  it" (`mvmenu` C1 dispatches an unmoved scroll and expects a close); change it in its own trim, not here. In the app
-  pane, a real browser, no scroll fired after a right-click on any of four cell kinds.
-- **Proof so far:** new leg `wfmenu` (38 cases, in `gate.sh`'s audit-fix block beside `mvmenu`), 38/38 three runs in
-  a row, **red on the pre-change build** (`8cc8357`, built with `git archive`, sha256 `d2ac914e…` = the live file:
-  stops at V1, no menu). `mvmenu` 89/89 with G3 flipped (it asserted no menu in the waterfall), `wfkeys` 84/84,
-  `textstyle` 51/51, `undokeys` 11/11, `npm run check` 40/40 on build `c82fd1ab…`. In the app pane (port 9843,
-  preview `wfmenu-9843` in this worktree's `.claude/launch.json`): the menu on a phase, a note, an empty note, a band,
-  a date and an empty cell; End Post 16 → 9 weeks and one undo; Start; Show this day landing on 1 Sep with its ring.
-- ✅ **Full gate on `d4e5654` (build `c82fd1ab…`, 1,767,962 bytes; port 9842, 12:21:06–12:49:43, no other gate
-  running at its start): 2,976 PASS, 2 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every
-  Excel part, the month print documents and gate 13's written month PDFs; 0 clipped; 76 ids. `wfmenu` 38/38 inside it.
-  The two FAILs are load timeouts, not assertions: `launchopen` "EX: harness" after L0–L9 passed, and `textstyle`
-  "timed out waiting for: the loaded calendar". **Both green alone on the same build right after:** `launchopen`
-  16/16, `textstyle` 51/51.
-- ⏭ **Next:** merging into `main` and the push are each the owner's picker (the code and these docs are committed
-  on the branch, as CLAUDE.md allows). Then the month menu's trim (`month-menu-trim`): propose its short list for
-  approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
-  it lands, never from an older `main`.
 
 ### ✅ 23 Oct 2026: EIGHT BRANCHES LANDED AS ONE — branch `land-ready-1023` (worktree `.claude/worktrees/land-ready-1023`), from `main` at `02e7c9b`; COMBINED FULL GATE 2,962 / 0 (build `d2ac914e…`); LOCAL `main` FAST-FORWARDED TO IT; ✅ **LIVE at `b7d5307`** (verified byte-identical, `d2ac914e`; no version cut)
 

@@ -1,8 +1,9 @@
 # MONTH-ORDER-PLAN.md: drag bars and notes up and down in the month view, and see what you drag
 
-**Status: PLANNED AND RULED, 21 Oct 2026. Nothing built.** Rulings R1–R4 by the owner's picker the same evening;
-R4 approves the frozen edits with the gate in §6. Build on its own branch (`month-order`), in the order of §8.
-Nothing is merged or pushed without asking.
+**Status: §1–§8 BUILT AND LIVE (22 Oct 2026, `ff128dd`).** Rulings R1–R4 by the owner's picker on 21 Oct; R4
+approved frozen edits E1 and E2 with the gate in §6. **§9 (23 Oct 2026) is round two**: the owner's bug report and
+two new asks, two more frozen edits (E3, E4) approved by picker, built on branch `month-drag-fix`. Nothing is merged
+or pushed without asking.
 
 Owner, 21 Oct 2026:
 
@@ -189,3 +190,93 @@ an element, class or attribute; they only change WHICH item is placed first.
 5. **The moving copy on the timing drags** (body drag, hiatus drag) and the gliding start/end grips.
 6. **The `mvorder` leg, `hostile` cases, Help text** (the month view's paragraph on dragging), README changelog,
    HANDOFF, CLAUDE.md's state table (three new keys), then the full gate.
+
+---
+
+## 9. Round two (23 Oct 2026): notes keep their bar, notes between phases, notes to another day
+
+Owner, 23 Oct 2026:
+
+> *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and sometimes
+> when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week phase up or
+> down its going to move that phase to the same position on every week but notes need to be able to individually
+> move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one day to another
+> and for auto notes or notes with dates, have the date auto adjust"*
+
+On the tracker as `month-reorder-fixes` and `month-note-day-drag`. Built on branch `month-drag-fix`.
+
+### 9.1 The bug, found and measured
+
+Frozen `renderMonthView` places every note FIRST-FIT: an untouched note takes the first free line of its day. So
+anything that pushed a week's bars down a line opened an empty line above the bars on the week's OTHER days, and the
+notes there rose into it, above the bars. Both triggers, reproduced on synthetic calendars (now
+`tests/fixtures/mvdrag.sptcal`):
+
+- **A note drag.** A note put on top of Wed 3/4 pushed Writer's Rm and Pre Prep down a line, and "Tue note" and
+  "Thu note", untouched on other days, jumped from under the bars to the top line.
+- **A phase reorder.** Prod Prep's grip dragged to the top in the week of 3/15. Being one order for the whole
+  calendar (D1), it also re-stacked the week of 3/8, where Prod Prep runs only Thu–Fri: Writer's Rm and Pre Prep each
+  dropped a line, and "Mon 9", "Wardrobe" and "Wed 11 a" jumped above both bars.
+
+### 9.2 What it does now
+
+- **An untouched note keeps the bar it sat under.** Once a calendar holds any order or note place
+  (`mvIsArranged()`), each month render first asks frozen `renderMonthView` for the UNTOUCHED layout (date order, no
+  places; `mvRefMode`, sanctioned pattern 2, "ask the frozen code for the verdict") and reads off, for every note, the
+  bar directly above it on its day (`mvReferenceAnchors`). The real render then places that note no higher than the
+  line under that bar. A note with nothing above it (on top of its day, or a day with no bars) is placed as it always
+  was. Nothing is stored: it follows the dates as they change. Cost: about 6 ms → 15 ms per month drawn, only on a
+  rearranged calendar.
+- **A note can sit in or around the phases on its own day.** Dragging a note now reads where its copy's middle falls
+  among the day's bars and notes: above every bar (`top`, as before), under a phase (`under: '<phase key>'`, new), or
+  under every bar (`bottom: true`, new). A bar the note now sits above drops one line for that week, as R2 already
+  ruled for `top`. When the drop lands, the day's notes are each written out at the place they are drawn in, so
+  nothing else on that day moves either.
+- **A note can go to another day** (sideways, or into another week). The day under the pointer is where it goes.
+  - A month note (`dayNotes`) moves to the new day. Every date in its text that names its OLD day is rewritten to the
+    new one, in the same form (1/6/26, 01/06/26, 1/6/2026); other dates name something else and are left alone
+    (`mvRetimeNote`).
+  - A waterfall line moves into the new week's WATERFALL note, through the note editor's own writer
+    (`saveNoteEdit`), so the Waterfall, Excel and both PDFs say the same thing (`moveWfLine`). Its trailing date, which
+    is what places it on a day, becomes the new day's; a line with no date gets one, as the note editor's day picker
+    stamps one (`mvRetimeWfLine`). An AUTO-note moved this way becomes an edit of its week's note: "Start Principal
+    Photography 6/29/26" dragged to Wed 7/1 reads 7/1/26 in the Waterfall too, and Production itself does not move.
+  - **Defaults taken** (each reversible in one place; tell me to change any):
+    - **D9** A holiday stays on its day: it is the calendar's, not a note's. It still moves up and down there.
+    - **D10** Letting go more than 24 px off the calendar puts the note back and banks nothing, rather than landing it
+      on the nearest edge day.
+    - **D11** A waterfall line is dropped only into a week the Waterfall has; over any other day it stays on its own.
+    - **D12** One place per waterfall line TEXT (without its date), as D3 had: the same line arranged on two days keeps
+      the last one's.
+- **One undo step per drag**, and out-and-back or Escape banks nothing, as every month drag. Every redraw starts from
+  the calendar as it was at the press, so a long drag over many days cannot drift.
+
+### 9.3 The frozen edits (owner-approved by picker, 23 Oct 2026: "Approve with that gate")
+
+| | Edit in `renderMonthView` | Inert when |
+|---|---|---|
+| **E3** | `takeLane` / `place` take an optional `minLane`, the first lane the search may try; the notes loop passes the block's `minLane` and writes `data-note-anchor="<row index of the bar above>"` on a note that has one. | No order and no note place: every block comes back without either, and the search starts at 0 |
+| **E4** | Each phase's iteration records where its bars begin in the row (`notesFrom`) and ends with `placeNotes('u:' + key, notesFrom)`, which places the notes that sit under that phase right after it. | No `under` place: that call places nothing |
+
+The month-PDF writer is not frozen; it gained the same rule in two lines: `mvlParseItem` reads `data-note-anchor`,
+and `mvlPackLanes` starts such a note's search at the line under that item as its own re-pack placed it.
+
+### 9.4 Save format (calendar data, no `SNAPSHOT_VERSION` bump)
+
+- `dayNotes[iso][i]`: besides `top: true`, now `under: '<phase key>'` or `bottom: true`, at most one, each written only
+  as shown. An older build ignores both, so such a note opens there under the bars, which is today's look.
+- `mvWfNotePlace[text]`: besides `top` and `at`, now `under`, `bottom`, and `day` (the ISO day the place was set on).
+  The line on `day` keeps the place; only a line that has moved OFF `day` takes it along (D3's "a place travels with
+  its note"). A place with no `day` (saved 22 Oct) applies wherever its text appears, as it did.
+- `sanitizeSnapshot()` checks each (a phase key's shape, `true` only, an ISO date), and the restore rebuilds the store
+  field by field.
+
+### 9.5 The gate
+
+1. **Gates 10 and 13 byte-identical on every baseline** (no baseline has an order or a place).
+2. **`mvorder` grows ten cases, M1–M10** (on `mvdrag.sptcal`): M1 and M2 are the owner's two bugs, M3 a note between two
+   phases on screen, in the save AND in the written month PDF (the writer's anchor), M4–M6 the three kinds of note to
+   another day, M7 a holiday stays, M8 out and back banks nothing, M9 an untouched calendar draws no anchor, M10 a drop
+   off the calendar. On the live build (`d2ac914e`) M1–M6 and M8 are red.
+3. `pilldrag`, `phaseedge`, `hiatusdrag` unchanged.
+4. The full `gate.sh`.

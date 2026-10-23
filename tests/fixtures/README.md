@@ -166,3 +166,15 @@ refused), `parse-empty.sptcal` (`{}`: refused once the shape gate lands), `parse
 | File | Use |
 |---|---|
 | `wfkeys.sptcal` | `shift-stores.sptcal` ("Test Show", US General, two year blocks 2026 and 2027) edited by script, nothing else changed: its two tall rows removed (`rowHeightsByWeek: {}`), its notes replaced by four synthetic ones (2026-08-03 "Table read" #FFC000, size 9, bold + italic through `textStyles`; 2026-08-10 two lines; 2026-09-07 "Wrap party 9/10/26" pinned to Thu 9/10; 2026-09-14 "Blocker"), and one unlocked all-phase hiatus added, 11/23/26 for 2 weeks (two band rows with no Notes cell). The automatic notes on 1/5, 6/29 and 10/19/26 are the calendar's own. Read by `t/wfkeys.js` and `wfkeysreal.mjs` |
+
+## Month notes around the phases, and to another day (23 Oct 2026)
+
+`mvdrag.sptcal` holds the `mvorder` leg's M1–M10 (MONTH-ORDER-PLAN.md §9). Synthetic, written by script from
+`mvorder-notes.sptcal`: Writer's Rm runs from Thu 1/1/26 for 11 weeks with Snap off, so it ends Wed 3/18, and Prod
+Prep starts Thu 3/12 with Snap off. So in March 2026 the week of 3/8 has Writer's Rm and Pre Prep Mon–Fri and Prod
+Prep Thu–Fri, and the week of 3/15 has Writer's Rm Mon–Wed only, leaving its line free on Thu and Fri. Month notes
+sit on every weekday of the week of 3/8 (one, "Fitting 3/10/26", with a date), on Tue 3/17 and on Thu 3/19 / Fri 3/20.
+The 3/9 week's waterfall note is "Wardrobe 3/10/26" + "Props 3/12/26". No order and no place is saved, so it opens in
+the untouched layout. Production starts Mon 6/29/26, for the auto-note case. On the live build of 23 Oct
+(`d2ac914e`), M1, M2 and M3 are red.
+
