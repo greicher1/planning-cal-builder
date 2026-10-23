@@ -103,8 +103,14 @@
   `Date` unless the file has `headerRowCustom: true`. A double-click on any heading opens the editor. **Owner's
   picker, 22 Oct 2026: Q1 "Bring them back", and H1–H3 signed off.** ⏭ Build it on a branch after `hide-notes`
   lands.
-- The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker). Nothing here is merged
-  or pushed.
+- The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker).
+- ⏭ **MERGE APPROVED by the owner's picker (22 Oct 2026): "Merge into local main"; "Don't push".** `main`'s three
+  newer docs-only commits (the right-click menu plan and mockup) were merged INTO this branch as `a61d8e9` (one
+  HANDOFF conflict, both entries kept). The build is byte-identical to the gated one (`f85c9814`). The fast-forward
+  of local `main` was REFUSED by git, safely: the scenarios session has an uncommitted 34-line `HANDOFF.md` edit in
+  the main checkout. ⛔ Don't stash or overwrite it. Once it is committed, merge `hide-notes` into `main`
+  (`git merge hide-notes` from the main checkout; expect the same HANDOFF top-of-file overlap, and keep both).
+  Not pushed.
 
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
