@@ -11359,6 +11359,13 @@ export function initLegacyApp() {
     }
     if(emptyEl) emptyEl.style.display = 'none';
     wrap.style.display = 'block';
+    // ⭐ THE HOLIDAYS THAT COST A SHOOT DAY (owner, 24 Oct 2026): a weekday holiday inside Production that
+    // the shoot would otherwise have worked. The production walk's own verdict (holidaysHit), never a second
+    // copy of the rule, so a weekend, a hiatus, a day marked Off or a worked holiday is never flagged, and
+    // un-ticking Enable clears the flag because the day is then shot. Keyed by date: the day is what is lost.
+    const costsDay = {};
+    ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
+      .forEach(x=> costsDay[isoOf(x.date)] = true);
     listEl.innerHTML = shown.map(h=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
@@ -11392,7 +11399,9 @@ export function initLegacyApp() {
       return '<div class="hv-row">'
         + '<span class="hv-label'+dim+'" title="'+label+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
-        +   '<span class="hv-date">'+fmtShort(h.date)+'</span>'
+        +   '<span class="hv-date">'+fmtShort(h.date)
+        +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
+        +   '</span>'
         + '</span>'
         + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'

@@ -906,7 +906,8 @@ export function HolidaysCard() {
         <InfoHint label="Holidays" width={280}>
           Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
           Production a shoot day and stops appearing as a note. The two note columns control where an
-          enabled holiday shows up.
+          enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
+          during Production, on a day the shoot would otherwise have worked.
         </InfoHint>
       </h2>
       <div className="side-block">
