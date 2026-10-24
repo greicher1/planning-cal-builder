@@ -1,8 +1,8 @@
 # PHASES-TAB-PLAN.md: month-view-only phases, and a redesigned Phases tab
 
-**Status: PLANNED, 23 Oct 2026. No code yet.** Part 1's rulings are in. For Part 2, the owner picked **A, Tidy card,
-with Production refined** (R5, §3.4), then asked to see **a blend of A and D** (§3.4a). A or the blend is open (O4).
-Tracker cards `mv-hide-phases` and `phases-tab-redesign`.
+**Status: PLANNED, 23 Oct 2026. Building started the same day ("Start building"), on its own branch.** Part 1's rulings are in. Part 2's design is picked: **the A + D blend,
+with Production's big Total shooting days readout kept** (R6, §3.4a). Only O2 is still open. Tracker cards
+`mv-hide-phases` and `phases-tab-redesign`.
 
 **Mockup:** [`mockups/phase-cards.html`](mockups/phase-cards.html). It is self-contained, so you can open it directly
 or through the harness server at `/mockups/phase-cards.html`. It is drawn with the app's real Mantine 9.5.2, theme
@@ -44,8 +44,11 @@ corrected reading.
 | D4 | A **"Month view only" tag** in the card's header, visible while the card is folded. | same |
 | R5 | **Direction A, Tidy card**, *"but please clean up/refine the production phase cuz its still messy with hiatus and sim post"*. The refined A is §3.4. | owner, by picker, 23 Oct 2026 |
 | O2 | **OPEN: what happens to hand-set column settings when hiding a phase shifts the columns** (§2.5). Recommended: accept and document it. | owner |
-| O3 | **OPEN again if the blend is picked:** its switches, like D's, overrule UI-CONVENTIONS §5, which keeps "Lock in place" a Checkbox ("a Switch implies an immediate effect"). | owner |
-| O4 | **OPEN: A (refined) or the A + D blend.** Asked right after R5: *"actually can i see a blend of A and D"*. | owner |
+| R6 | **The A + D blend**, *"lets go with A+D but i want to still have something like this for production (nice and big and clear)"*, pointing at today's TOTAL SHOOTING DAYS readout. §3.4a. Supersedes R5. | owner, 23 Oct 2026 |
+| R8 | **The head:** a colour square left of the title opens the picker; the head is a lighter tint of that colour; the title has no box and fades on hover. Rejected first: a palette chip and an always-on name box (*"no now you made it ugly"*). §3.4a. | owner, 23 Oct 2026 |
+| R9 | **The head's text is always black**, never the colour's own dark shade. §3.4a. | owner, 23 Oct 2026 |
+| R10 | **The colour picker is swatches only**, with no heading. Today's pop already is. | owner, 23 Oct 2026 |
+| R7 | **The blend's switches stand, Lock in place included.** That overrules UI-CONVENTIONS §5 (which keeps "Lock in place" a Checkbox because "a Switch implies an immediate effect") for these two cards. The owner was told this before picking. When it is built, update §5 to say so. | with R6 |
 
 ---
 
@@ -233,9 +236,10 @@ sidebar, every card open, B with one row open.
 Most of A's and D's height is Production's and Prep's episode lists, the same in every option. B is the only one
 that shows the whole plan without scrolling (UI-CONVENTIONS §3d: the tab already scrolls twice its own height).
 
-### 3.4 The picked design: A, refined (R5)
+### 3.4 A, refined (R5; superseded by the blend, R6)
 
-This is the left column of the mockup, marked Picked. B, C and D stay in the file, dimmed, as the record.
+The owner's first pick, kept in the mockup's second column, dimmed. The blend (§3.4a) takes its fields, Production
+and Prep from here, so this section still describes those parts.
 
 **Every card**
 - **Colour:** a 5 px left edge in the phase colour replaces today's 8 px top bar. A 14 px swatch beside the name is
@@ -286,9 +290,9 @@ line.
 ⚠️ Change no text the engine or a leg reads: the `#meta-` shapes, the autostart label written by frozen `render()`,
 and any label a leg finds by text. `grep` `tests/harness/t` for each string before changing it.
 
-### 3.4a The A + D blend (asked after R5; O4)
+### 3.4a THE PICKED DESIGN: the A + D blend (R6)
 
-The mockup's first column, marked New. It takes from D:
+This is the mockup's first column, marked Picked. A, D, B and C come after it, dimmed, as the record. It takes from D:
 - the phase colour as the card's **head**, with the editable name, tags and × on one line and the dates under it in
   the phase's text colour;
 - **label-left switch rows** for every yes/no (Snap to Monday, Number weeks, Hide in waterfall, Hiatus, Simultaneous
@@ -296,19 +300,75 @@ The mockup's first column, marked New. It takes from D:
 
 It takes from A:
 - Starts and Length side by side, with the unit on Length's label line, and "↳ Start after …" under them;
-- the refined Production: Starts, then Snap to Monday, then SHOOTING ORDER with the total on its heading and the
-  list boxed, then the Hiatus and Simultaneous Post rows;
+- the refined Production, with today's readout kept (R6): Starts, then Snap to Monday, then the **TOTAL SHOOTING
+  DAYS box**, then the Hiatus and Simultaneous Post rows;
 - Episodic Prep's boxed PER EPISODE list.
 
 An optional block (a hiatus, Sim Post) is a switch row that opens its fields underneath, indented and ruled in the
 phase colour. A hiatus's name is a field inside that block. The All-phase hiatus card gets a red head with the name
 and dates, Starts and Weeks side by side, then Lock in place and Number weeks as switch rows.
 
+**The head (R8, owner, 23 Oct 2026).** The owner first asked *"how will you change the color of the phase and will
+there be a box or indentation around the name ... so its more clear its editable"*. A palette chip and an always-on
+name box were tried, and rejected (*"no now you made it ugly"*). The ruling:
+
+> *"when you hover over the title of the phase it should fade slightly to show you its editable. then for changing
+> the color, to the left of the title should be the same little color square shown in the picture. then the
+> background color should be a slightly lighter version of the color you pick (the color in the little square)."*
+
+- **Order:** the caret, then the colour square, then the title (with any tag on the title's line), then × on a
+  custom phase. The dates sit under the title.
+- **The colour square** is A's swatch: 14–16 px, radius 3, a faint inset edge, in the TRUE phase colour. It is the
+  colour button. It opens today's 14-colour picker (`openPhaseColorPop`), anchored to it, with the current colour
+  ringed in navy. The picker is the swatches alone, with no heading or other text (R10, owner: *"it doesnt need to
+  say 'Colour' or any text when you click a color square- just show the colors on their own"*). Today's pop is
+  already that.
+- **The head's background is the picked colour lightened:** 60% colour, 40% white (`tint()` in the mockup). So the
+  square stays the true colour against its lighter band.
+- **The head's text is always black** (R9, owner: *"can we make the text in the colored header portion always black
+  instead of these off version of the colors"*). That covers the title, the dates, the caret and ×, all in the chrome's
+  black (`--mantine-color-black`, #1E1D1B), with the dates at 75%. It matches the waterfall, which draws phase text
+  black on any fill (`GRID_TEXT_COLOR`).
+- **The title has NO box.** Hovering fades it to 60% opacity. While typing it shows today's focus: a white field
+  with the navy edge (`.phase-name-input:focus`, unchanged).
+- **The all-phase hiatus** has no square, because its colour can't be changed (always `HIATUS_COLOR`). Its band is
+  that red lightened the same way, with the same black text.
+- **Engine work:**
+  - The square IS `#swatch-<key>`, which keeps its id, its click handler and its place as the row's first child (the
+    fold reads the key off it). It moves from the 8 px top bar to the head's left, 16 px, and the existing pop
+    already anchors to it.
+  - The head's tint needs the colour in CSS. So every place that writes the swatch's inline background
+    (`setPhaseColor`, restore, reset; grep the `swatch-` writes) also writes `--phase-color` on the row, through one
+    helper. The text is always black (R9), so no ink variable is needed. The head reads `color-mix(in srgb, var(--phase-color) 60%, white)`. Chrome supports it;
+    Chrome and Edge are the targets.
+  - The title fade is CSS on `.phase-name-input:hover:not(:focus)`.
+  - No new state, no id, no saved key.
+
+**Production's TOTAL SHOOTING DAYS box (R6).** It is today's `.prod-total-readout`, unchanged:
+- a white box with a `gray-3` border and radius `lg`;
+- the label "TOTAL SHOOTING DAYS" in xxs caps (700, .05em, `gray-6`);
+- the value at 26 px, weight 700, with "days" in `sm` `gray-6`;
+- the episode (or block) count as the primary-light pill on the right.
+
+The only change is that the **shooting order now sits in the same box**, under a hairline. The total is that list's
+sum, and two stacked boxes read heavier than one. Its heading is "SHOOTING ORDER", with a short "drag ⠿" on the right.
+Today's `.ep-hint` sentence moves into that hint's tooltip. The rest of the box:
+- the empty state ("Set by Show Info", dashed) is unchanged;
+- `#prod-ov-note` and `#prod-hol-note` sit under the readout, above the hairline;
+- Blocks mode puts its block rows where the episode rows are.
+
+**At the narrowest sidebar (280 px; checked in the mockup):**
+- a tag drops under the name rather than squeeze it;
+- the dates under the name may take two lines;
+- the × stays top right;
+- a date beside a weeks count gives the count 64 px and the date the rest;
+- nothing is cut off.
+
 **Heights**, same content, 360 px sidebar (Phases card / All-phase hiatus card):
 
 | | Phases card | All-phase hiatus |
 |---|---:|---:|
-| Blend | 2,138 px | 680 px |
+| Blend | 2,205 px | 680 px |
 | A refined | 2,027 px | 588 px |
 | D | 2,211 px | 760 px |
 
@@ -336,8 +396,8 @@ and dates, Starts and Weeks side by side, then Lock in place and Number weeks as
 
 1. **Part 1's engine and save format** (§2.2–2.3), with the tick and tag placed simply, plus `hidewf`. This doesn't
    wait on O1.
-2. **The restyle to whichever of A (§3.4) or the blend (§3.4a) the owner picks** (O4), built the way §3.2 says,
-   moving the tick and tag into it, plus `phasesui`.
+2. **The restyle to the blend** (§3.4a, R6), built the way §3.2 says, moving the tick and tag into it, plus
+   `phasesui`. Update UI-CONVENTIONS §5 for R7.
 3. **One full gate** at the end.
 4. **Changelog and HANDOFF**, then ask about commit, and separately about push.
 

@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; A PICKED, THEN AN A + D BLEND ASKED FOR; NO CODE ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
+### 📝 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
 
 - **Asked** (owner): a per-phase toggle that keeps a phase off the WATERFALL while the month view keeps it (*"if you
   add a very specific phase to the month view (such as color grading week) you wouldn't want that to show on the
@@ -26,15 +26,26 @@
     then SHOOTING ORDER with the total on its heading, then the two boxes. Episodic Prep takes the same shape.
   - Then: *"actually can i see a blend of A and D"*. Built as the mockup's first column, marked New: D's coloured
     head and switch rows, plus A's fields and A's refined Production and Prep. Plan §3.4a.
+  - R6: *"lets go with A+D but i want to still have something like this for production (nice and big and clear)"*,
+    pointing at today's TOTAL SHOOTING DAYS readout. Kept exactly (26 px, 700, the primary-light episode pill), with
+    the shooting order now in the same box under a hairline. Checked at a 280 px sidebar. Plan §3.4a.
+  - R8, the head: a palette chip and an always-on name box were tried and rejected (*"no now you made it ugly"*).
+    Instead, a colour square (A's swatch, the true colour) sits left of the title and opens today's picker. The head
+    is that colour lightened (60% colour, 40% white). The title has no box and fades to 60% on hover. The all-phase
+    hiatus band is the red lightened. In the build, the square IS `#swatch-<key>`, and the head reads a
+    `--phase-color` that the colour writes set on the row. Plan §3.4a.
+  - R9: the head's text is always black (title, dates, caret, ×), never the colour's own dark shade.
+  - R10: the colour picker shows the swatches only, with no heading. That is what today's `.phase-color-pop` already
+    does, so the build changes nothing there.
+  - R7, with R6: the blend's switches stand, Lock in place included (the owner was told it overrules UI-CONVENTIONS
+    §5). Update §5 when it is built.
 - **Open:**
-  - O4: A (refined) or the A + D blend. If the blend, O3 comes back: its switches overrule UI-CONVENTIONS §5's
-    Checkbox for Lock in place.
   - O2: hand-set column widths and typed headings are keyed by column position, so hiding a phase can shift them;
     recommended: accept and document.
   - Also unconfirmed: whether "also do it for all phase hiatuses" meant the redesign (my reading) or a hide toggle on
     all-phase hiatuses.
 - **Next:** build on a branch in its own worktree. Part 1's engine and save format come first (plan §2.2–2.3, leg
-  `hidewf`), then the restyle to the owner's pick (§3.2 with §3.4 or §3.4a, leg `phasesui`), then one full gate.
+  `hidewf`), then the restyle to the blend (§3.2, §3.4a, leg `phasesui`), then one full gate.
 - **Found, and worth knowing before building:**
   - **Month-only already exists:** the waterfall outputs read `schedule.weeks`, the month view `schedule.segments`,
     and `appendEpisodePrep()` runs after the week loop. So Part 1 is a `wfSegments` split inside `computeSchedule()`
@@ -47,8 +58,9 @@
 - **The mockup** is real Mantine 9.5.2 with `src/theme.js` and Inter, bundled the way `mockups/scenarios-compare/`
   was. Source in `mockups/phase-cards/`, rebuild steps in its `vite.config.mjs`, ~700 KB. It shows the same six
   phases and three all-phase hiatuses in each direction, and every control works.
-- **Committed locally on `main`, not pushed** (the owner chose "Commit locally" by picker). Only the plan, the mockup
-  and this entry went into the commit. This checkout also held another session's uncommitted work (the "+" button
+- **Committed locally on `main` as `5cc8286`, not pushed** (the owner chose "Commit locally" by picker), before the
+  blend was picked. Only the plan, the mockup and this entry went into it. The blend refinement (R6, R7) is NOT yet
+  committed. This checkout also held another session's uncommitted work (the "+" button
   flash entry below, README, legacy.css), which was left out of the commit and untouched.
 - No README entry yet: nothing a user can see has changed. It gets one when the code ships.
 

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import {
   Paper, Group, Stack, Text, TextInput, NumberInput, NativeSelect, Checkbox, Switch, Badge,
   ActionIcon, CloseButton, Collapse, Accordion, ColorSwatch, Divider, UnstyledButton, Anchor,
-  Box, SimpleGrid, Title, Tooltip, Indicator,
+  Box, SimpleGrid, Title, Tooltip, Indicator, Popover,
 } from '@mantine/core'
 
 // ---------- sample calendar ----------
@@ -592,20 +592,78 @@ function OptionD() {
 // Production (shooting order with its total on the heading) and Episodic Prep. An optional block (a hiatus, Sim
 // Post) is a switch row that opens its fields underneath, ruled in the phase colour.
 // =====================================================================================
-function HeadAD({ p, set, open, setOpen, tags, onRemove, fg }) {
-  const ink = fg || p.text
+// PHASE_COLOR_OPTIONS, in its saved order (append-only: a phase's colour is an index into it).
+const PALETTE = [
+  { name: 'Gray', color: '#EDEDED', text: '#525252' }, { name: 'Light blue', color: '#DEEBF7', text: '#1F4E79' },
+  { name: 'Light purple', color: '#E4DFEC', text: '#5F497A' }, { name: 'Light teal', color: '#D5F0EE', text: '#1F6357' },
+  { name: "Gold (like Writer's Rm)", color: '#FFF2CC', text: '#7A6215' }, { name: 'Blue (like Pre Prep)', color: '#DAE3F3', text: '#203864' },
+  { name: 'Slate (like Prod Prep)', color: '#D6DCE5', text: '#222A35' }, { name: 'Green (like Production)', color: '#E2F0D9', text: '#375623' },
+  { name: 'Orange (like Post)', color: '#FBE5D6', text: '#8A4A1F' }, { name: 'Bright green', color: '#92D050', text: '#1E4620' },
+  { name: 'Strong blue', color: '#5B9BD5', text: '#0B2545' }, { name: 'Pink', color: '#FF66CC', text: '#5C0A3E' },
+  { name: 'Yellow', color: '#FFFF00', text: '#5C5200' }, { name: 'Peach', color: '#F4B084', text: '#6B2E0C' },
+]
+// THE HEAD, AS THE OWNER DREW IT (23 Oct 2026: "when you hover over the title of the phase it should fade slightly
+// to show you its editable. then for changing the color, to the left of the title should be the same little color
+// square ... then the background color should be a slightly lighter version of the color you pick"):
+//  - the COLOUR SQUARE is A's swatch (14 px, radius 3, a faint inset edge) and is the button: it opens today's
+//    14-colour picker (openPhaseColorPop), anchored to it, the current colour ringed in navy;
+//  - the HEAD is the picked colour lightened (tint(): 60% colour, 40% white), so the square stays the true colour,
+//    and its text is always black (see HeadAD);
+//  - the TITLE has no box: hovering fades it (opacity .6), and typing shows today's focus (white, navy edge).
+const tint = (hex, white = 0.4) => {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const mix = c => Math.round(c + (255 - c) * white)
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(mix).map(c => c.toString(16).padStart(2, '0')).join('')
+}
+function ColourSquareAD({ p, set }) {
+  const [opened, setOpened] = useState(false)
   return (
-    <Group gap={6} wrap="nowrap" px={8} py={6} style={{ background: p.color }}>
-      {setOpen && <ActionIcon variant="subtle" size="sm" onClick={() => setOpen(o => !o)} aria-label={open ? 'Fold' : 'Unfold'} style={{ color: ink }}><IChevron open={open} /></ActionIcon>}
+    <Popover opened={opened} onChange={setOpened} position="bottom-start" shadow="md" radius="md" withArrow offset={6}>
+      <Popover.Target>
+        <Tooltip label="Change colour" withArrow openDelay={300} disabled={opened}>
+          <UnstyledButton onClick={() => setOpened(o => !o)} aria-label="Change colour" className="ad-square"
+            style={{ width: 16, height: 16, borderRadius: 3, flex: 'none', background: p.color,
+                     boxShadow: opened ? '0 0 0 2px #fff, 0 0 0 3px var(--mantine-color-navy-6)' : 'inset 0 0 0 1px rgba(0,0,0,.18)' }} />
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown p={8}>
+        {/* swatches only, no heading (owner, 23 Oct 2026), as today's .phase-color-pop */}
+        <SimpleGrid cols={7} spacing={6} verticalSpacing={6}>
+          {PALETTE.map(o => {
+            const on = o.color.toUpperCase() === p.color.toUpperCase()
+            return (
+              <Tooltip key={o.name} label={o.name} withArrow openDelay={300}>
+                <UnstyledButton aria-label={o.name} onClick={() => { set(p.key, { color: o.color, text: o.text }); setOpened(false) }}
+                  style={{ width: 22, height: 22, borderRadius: 5, background: o.color,
+                           boxShadow: on ? '0 0 0 2px #fff, 0 0 0 4px var(--mantine-color-navy-6)' : 'inset 0 0 0 1px rgba(0,0,0,.15)' }} />
+              </Tooltip>
+            )
+          })}
+        </SimpleGrid>
+      </Popover.Dropdown>
+    </Popover>
+  )
+}
+function HeadAD({ p, set, open, setOpen, tags, onRemove, colour = true }) {
+  // ALWAYS BLACK on the head (owner, 23 Oct 2026: "can we make the text in the colored header portion always black
+  // instead of these off version of the colors"): the chrome's black, the warm #1E1D1B every "black" in the app is.
+  const ink = 'var(--mantine-color-black)'
+  return (
+    <Group gap={6} wrap="nowrap" align="flex-start" px={8} py={6} style={{ background: tint(p.color) }}>
+      {setOpen && <ActionIcon variant="subtle" size="sm" mt={2} onClick={() => setOpen(o => !o)} aria-label={open ? 'Fold' : 'Unfold'} style={{ color: ink }}><IChevron open={open} /></ActionIcon>}
+      {colour && <Box mt={6} style={{ display: 'flex' }}><ColourSquareAD p={p} set={set} /></Box>}
       <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
-        {/* the tags and × share the NAME's line, so the dates under it get the full width */}
-        <Group gap={6} wrap="nowrap">
-          <NameIn p={p} set={set} styles={{ input: { fontWeight: 600, fontSize: 14, height: 24, minHeight: 24, padding: '0 4px', color: ink } }} />
+        {/* the tag shares the title's line, and drops under it rather than squeeze the title (280 px sidebar) */}
+        <Group gap={4} wrap="wrap" rowGap={2}>
+          <TextInput variant="unstyled" value={p.name} placeholder="Hiatus" onChange={e => set(p.key, { name: e.currentTarget.value })}
+            className="ad-title" aria-label="Name" style={{ flex: '1 1 110px', minWidth: 0 }}
+            styles={{ input: { fontWeight: 600, fontSize: 14, height: 28, minHeight: 28, padding: '0 4px', color: ink, borderRadius: 5,
+                               border: '1px solid transparent', transition: 'opacity .12s, background .12s' } }} />
           {tags}
-          {onRemove && <CloseButton size="sm" aria-label="Remove" onClick={onRemove} style={{ color: ink }} />}
         </Group>
-        <Text size="xs" px={4} style={{ color: ink, opacity: .85 }} truncate>{p.range}</Text>
+        <Text size="xs" px={5} style={{ color: ink, opacity: .75 }} lineClamp={2}>{p.range}</Text>
       </Stack>
+      {onRemove && <CloseButton size="sm" mt={2} aria-label="Remove" onClick={onRemove} style={{ color: ink, alignSelf: 'flex-start' }} />}
     </Group>
   )
 }
@@ -622,15 +680,45 @@ function HiatusRowAD({ p, setH, last }) {
     <OptRowAD label="Hiatus" on={h.on} onToggle={e => setH(p.key, { on: e.currentTarget.checked })} color={p.color} last={last}>
       <Stack gap={8} pt={4}>
         <TextInput size="xs" value={h.name} placeholder={`${p.name} Hiatus`} onChange={e => setH(p.key, { name: e.currentTarget.value })} aria-label="Hiatus name" />
-        <SimpleGrid cols={2} spacing={8}>
-          <div><L>Starts</L><DateIn value={h.start} onChange={e => setH(p.key, { start: e.currentTarget.value })} /></div>
-          <div><L>Weeks</L><NumberInput size="xs" hideControls value={h.weeks} onChange={v => setH(p.key, { weeks: v })} /></div>
-        </SimpleGrid>
+        <DateWeeksAD start={h.start} weeks={h.weeks} onStart={e => setH(p.key, { start: e.currentTarget.value })} onWeeks={v => setH(p.key, { weeks: v })} />
         <RowD label="Number weeks" last><Sw checked={h.wknum} onChange={e => setH(p.key, { wknum: e.currentTarget.checked })} /></RowD>
       </Stack>
     </OptRowAD>
   )
 }
+// Production's TOTAL SHOOTING DAYS, kept big and clear as it is today (owner, 23 Oct 2026, picking the blend: "i want
+// to still have something like this for production (nice and big and clear)"). The numbers are today's
+// .prod-total-readout: white, gray-3 border, radius lg, an xxs caps label, a 26 px 700 value, the episode count as a
+// primary-light pill. The shooting order sits in the SAME box under a hairline, since the total is that list's sum.
+function ShootBlockAD({ p, set }) {
+  return (
+    <Box style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: 10, background: 'var(--mantine-color-white)' }}>
+      <Box px={12} pt={8} pb={10}>
+        <Text fz={10} fw={700} c="gray.6" tt="uppercase" style={{ letterSpacing: '.05em' }}>Total shooting days</Text>
+        <Group gap={6} align="baseline" wrap="nowrap" mt={4}>
+          <Text fz={26} fw={700} lh={1.1} style={{ letterSpacing: '-.01em' }}>30</Text>
+          <Text size="sm" c="gray.6">days</Text>
+          <Badge size="sm" radius="xl" variant="light" color="navy" ml="auto" style={{ alignSelf: 'center', fontSize: 10, fontWeight: 700, letterSpacing: '.03em' }}>6 episodes</Badge>
+        </Group>
+      </Box>
+      <Box px={6} pt={6} pb={6} style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+        <Group gap={4} px={6} pb={4} wrap="nowrap" justify="space-between">
+          <Text fz={10} fw={600} c="gray.6" tt="uppercase" style={{ letterSpacing: '.06em', whiteSpace: 'nowrap' }}>Shooting order</Text>
+          <Tooltip label="Drag to set the shooting order. It moves which days each episode is shot on, never how long Production runs." multiline w={220} withArrow>
+            <Group gap={3} wrap="nowrap" c="gray.5" style={{ cursor: 'help' }}><Text size="xs" c="gray.5">drag</Text><IGrip /></Group>
+          </Tooltip>
+        </Group>
+        <EpisodeList p={p} set={set} />
+      </Box>
+    </Box>
+  )
+}
+const DateWeeksAD = ({ start, weeks, onStart, onWeeks }) => (
+  <Group gap={8} wrap="nowrap" align="flex-start">
+    <div style={{ flex: 1, minWidth: 0 }}><L>Starts</L><DateIn value={start} onChange={onStart} /></div>
+    <div style={{ width: 64, flex: 'none' }}><L>Weeks</L><NumberInput size="xs" hideControls allowDecimal={false} allowNegative={false} value={weeks} onChange={onWeeks} /></div>
+  </Group>
+)
 function CardAD({ p, set, setH }) {
   const [open, setOpen] = useState(true)
   const isProd = p.kind === 'production', isPrep = p.kind === 'prep'
@@ -662,12 +750,7 @@ function CardAD({ p, set, setH }) {
               <AfterLink p={p} />
             </div>
             {isProd && <Box mt={4}><RowD label="Snap to Monday" last><Sw checked={p.snap} onChange={e => set(p.key, { snap: e.currentTarget.checked })} /></RowD></Box>}
-            {isProd && (
-              <Box mt={8} mb={4}>
-                <SectionHead right={<Text size="xs" c="gray.7"><b style={{ fontWeight: 600 }}>30</b> days · 6 episodes</Text>}>Shooting order</SectionHead>
-                <Box p={6} style={{ border: '1px solid var(--mantine-color-gray-2)', borderRadius: 7 }}><EpisodeList p={p} set={set} /></Box>
-              </Box>
-            )}
+            {isProd && <Box mt={10} mb={4}><ShootBlockAD p={p} set={set} /></Box>}
             <Box mt={6}>
               {showSnap(p) && !isProd && <RowD label="Snap to Monday"><Sw checked={p.snap} onChange={e => set(p.key, { snap: e.currentTarget.checked })} /></RowD>}
               {showWk(p) && <RowD label="Number weeks"><Sw checked={p.wknum} onChange={e => set(p.key, { wknum: e.currentTarget.checked })} /></RowD>}
@@ -702,13 +785,10 @@ function HiatusAD() {
     <Stack gap={10}>
       {list.map(h => (
         <Paper key={h.id} withBorder radius="lg" style={{ overflow: 'hidden' }}>
-          <HeadAD p={{ key: h.id, name: h.name, color: HIATUS_RED, text: '#fff', range: hRange(h) }} set={(id, v) => set(id, { name: v.name })}
-            tags={null} onRemove={() => remove(h.id)} />
+          <HeadAD p={{ key: h.id, name: h.name, color: HIATUS_RED, range: hRange(h) }} set={(id, v) => set(id, { name: v.name })}
+            tags={null} onRemove={() => remove(h.id)} colour={false} />
           <Box px={12} pt={10} pb={4}>
-            <SimpleGrid cols={2} spacing={8}>
-              <div><L>Starts</L><DateIn value={h.start} onChange={e => set(h.id, { start: e.currentTarget.value })} /></div>
-              <div><L>Weeks</L><NumberInput size="xs" hideControls allowDecimal={false} allowNegative={false} value={h.weeks} onChange={v => set(h.id, { weeks: v })} /></div>
-            </SimpleGrid>
+            <DateWeeksAD start={h.start} weeks={h.weeks} onStart={e => set(h.id, { start: e.currentTarget.value })} onWeeks={v => set(h.id, { weeks: v })} />
             <Box mt={6}>
               <RowD label="Lock in place"><Sw checked={h.locked} onChange={e => set(h.id, { locked: e.currentTarget.checked })} /></RowD>
               <RowD label="Number weeks" last><Sw checked={h.num} onChange={e => set(h.id, { num: e.currentTarget.checked })} /></RowD>
@@ -826,9 +906,9 @@ function HiatusD() {
 
 // ---------- the page ----------
 const OPTIONS = [
-  { id: 'A+D', name: 'Blend', fresh: true, blurb: "D's coloured head and switch rows for every yes/no; A's two fields side by side, A's tidy Production and Episodic Prep. A hiatus or Sim Post is a switch row that opens its fields.", C: OptionAD, H: HiatusAD },
-  { id: 'A', name: 'Tidy card', picked: true, blurb: "Your first pick, with Production refined: when it starts, the shooting order with its total, then Hiatus and Simultaneous Post as matching boxes. Every hiatus uses that box.", C: OptionA, H: HiatusA },
-  { id: 'D', parent: true, name: 'Settings list', blurb: 'Label left, control right, one row each, switches for the yes/no settings. The head carries the phase colour and dates.', C: OptionD, H: HiatusD },
+  { id: 'A+D', name: 'Blend', picked: true, blurb: "PICKED. D's coloured head and switch rows; A's two fields side by side. Production keeps today's big Total shooting days readout, with the shooting order under it in the same box.", C: OptionAD, H: HiatusAD },
+  { id: 'A', name: 'Tidy card', blurb: "Your first pick, with Production refined: when it starts, the shooting order with its total, then Hiatus and Simultaneous Post as matching boxes. Every hiatus uses that box.", C: OptionA, H: HiatusA },
+  { id: 'D', name: 'Settings list', blurb: 'Label left, control right, one row each, switches for the yes/no settings. The head carries the phase colour and dates.', C: OptionD, H: HiatusD },
   { id: 'B', name: 'Summary rows', blurb: 'One line per phase: colour, name, dates, tags. Click a row to edit it. You can read the whole plan without scrolling.', C: OptionB, H: HiatusB },
   { id: 'C', name: 'Compact + options', blurb: 'Two lines per phase: the name, then start and length. Settings you set once sit behind the sliders button; a dot shows one is changed.', C: OptionC, H: HiatusC },
 ]
@@ -840,16 +920,16 @@ const AddBtn = ({ children }) => (
 export function PhaseCardMockups() {
   return (
     <Box p={24} style={{ minHeight: '100vh', background: 'var(--mantine-color-gray-0)' }}>
-      <Title order={2} fz={20} fw={600}>Phases tab: an A + D blend, beside A and D</Title>
+      <Title order={2} fz={20} fw={600}>Phases tab: the A + D blend (picked)</Title>
       <Text size="sm" c="gray.7" mt={4} maw={900}>
-        Same controls in all four: the same six phases and three all-phase hiatuses. The only addition is Hide in waterfall,
-        with its Month view only tag (Colour Grading has it on). Episodic Prep wears the same tag, since it is already month
-        view only. Everything clicks: carets, rows, ticks, units, the sliders button.
+        The picked design first; A, D, B and C after it, dimmed, as the record. Same controls in every column: the same six
+        phases and three all-phase hiatuses. The only addition is Hide in waterfall, with its Month view only tag (Colour
+        Grading has it on). Episodic Prep wears the same tag, since it is already month view only. Everything clicks.
       </Text>
       <div style={{ display: 'flex', gap: 24, marginTop: 20, overflowX: 'auto', alignItems: 'flex-start', paddingBottom: 24 }}>
         {OPTIONS.map(({ id, name, blurb, picked, fresh, parent, C: Opt, H: Hia }) => (
           <div key={id} style={{ flex: 'none', width: 360, opacity: (picked || fresh || parent) ? 1 : .55 }}>
-            <Group gap={8} align="baseline"><Badge size="lg" radius="sm" variant="filled" color="navy">{id}</Badge><Text fw={600}>{name}</Text>{picked && <Badge size="sm" radius="sm" variant="light" color="navy" style={{ textTransform: 'none' }}>First pick</Badge>}{fresh && <Badge size="sm" radius="sm" variant="light" color="info" style={{ textTransform: 'none' }}>New</Badge>}</Group>
+            <Group gap={8} align="baseline"><Badge size="lg" radius="sm" variant="filled" color="navy">{id}</Badge><Text fw={600}>{name}</Text>{picked && <Badge size="sm" radius="sm" variant="light" color="navy" style={{ textTransform: 'none' }}>Picked</Badge>}{fresh && <Badge size="sm" radius="sm" variant="light" color="info" style={{ textTransform: 'none' }}>New</Badge>}</Group>
             <Text size="xs" c="gray.7" mt={4} mb={10} style={{ minHeight: 48 }}>{blurb}</Text>
             {/* the sidebar: white, 16px gutters, the Phases heading, as in the app */}
             <Box bg="white" px={16} py={12} style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: 10 }}>
