@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; NOT PUSHED
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; ✅ **LIVE at `f29f268`**
 
 - **Asked** (owner, with a screenshot of the live band): *"its not necessarily clear that the 20wks refers to the
   length of the writers room and the 17 weeks refers to length of production"*. Four fixes mocked in chat (A brackets
@@ -23,8 +23,12 @@
   - `scenarios` 22/22, `npm run check` 40/40, build `d0a2cded`.
   - Seen in the browser pane at 1000 px, on one row and wrapped.
   - No full gate: chrome only, nothing frozen, saved or printed. The memory rule for chrome-only CSS applies.
-- ⏭ **Next:** the owner's push decision, one push of `scenario-facts` to `origin/main`. Local `main` still owes the
-  merge (entry below).
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:23:49
+  (`c6a5c2e..f29f268`). Deploy run 40062174299 succeeded at 21:24:36. At 21:24:39 the live `index.html` was
+  byte-identical to the tested build (sha256 `d0a2cded…`, 1,823,739 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts` (entry below), once the main checkout's uncommitted
+  work is committed.
 
 ### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — committed on local `main` as `e11beb4`, then replayed alone onto `origin/main` (`8c78372`, the key facts band) on branch `mv-gap-flash` (worktree `.claude/worktrees/mv-gap-flash`), because local `main` holds another session's uncommitted work and the owner chose *"Push only the fix"*; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below)
 

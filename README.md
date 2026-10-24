@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; branch `scenario-facts`, not pushed)
+### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; live at `f29f268`)
 
 Owner, on the live band: *"its not necessarily clear that the 20wks refers to the length of the writers room and the
 17 weeks refers to length of production"*. On one line, every separator was the same "·", so a phase's weeks floated
