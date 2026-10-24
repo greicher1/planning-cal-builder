@@ -17,6 +17,75 @@ import { useState, useLayoutEffect, useEffect, useRef } from 'react'
 import { ActionIcon, Button, Menu, UnstyledButton } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconPlus } from './icons.jsx'
+import { fmt } from './CompareDialog.jsx'
+
+// The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C"): one line of the tab on screen's facts
+// on a soft grey band directly above the tabs, as wide as the calendar, while there are two or more scenarios. The
+// engine sends {values, same, labels} (scenarioBand() in app.js, from Compare's own scenarioFacts()); a fact the same
+// in every scenario is `same` and drawn dimmed, as Compare dims a row that is the same everywhere, so what stays dark
+// is what differs. A fact with nothing behind it drops out, and with nothing left the band hides.
+//
+// ⛔ No id on anything here (the rule above). It is never saved, printed or exported: #react-root is hidden by both
+// print paths and emptied by buildSavedHtml().
+//
+// It makes its own room. Its height plus the 8 px above it is written as --sc-band-space on <html>, and legacy.css
+// adds that to .preview-panel's bottom margin (the strip's 44 px). The grid fit already observes the panel's box,
+// so the waterfall ends above the band, and the month view's scroller with it. A narrow window wraps the band onto
+// a second line (owner: nothing cut off), and the measured height follows.
+const plural = (n, unit) => n + ' ' + unit + (n === 1 ? '' : 's')
+function bandGroups(band) {
+  const v = band.values || {}, same = band.same || {}, labels = band.labels || {}
+  const val = (k, text) => ({ k, text, same: !!same[k] })
+  const groups = []
+  if (v.loc) groups.push({ items: [val('loc', v.loc)] })
+  if (v.count) groups.push({ items: [val('count', plural(v.count.n, v.count.unit))] })
+  const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
+  if (wr.length) groups.push({ label: labels.wr || 'Writer’s Rm', items: wr })
+  const pr = [v.first && val('first', fmt(v.first)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
+  if (pr.length) groups.push({ label: labels.prod || 'Production', items: pr })
+  if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap))] })
+  return groups
+}
+// Writes the band's room, only when it changed: a style write on <html> is a mutation the grid fit observes.
+function putBandSpace(el) {
+  const root = document.documentElement
+  const v = el ? Math.ceil(el.offsetHeight) + 8 + 'px' : ''
+  if (root.style.getPropertyValue('--sc-band-space') === v) return
+  if (v) root.style.setProperty('--sc-band-space', v)
+  else root.style.removeProperty('--sc-band-space')
+}
+function FactsBand({ band, left, right }) {
+  const ref = useRef(null)
+  const groups = bandGroups(band)
+  // Measured on EVERY render (new facts, a new left/right from a resize), not only by the observer below: a
+  // ResizeObserver reports only at a rendering opportunity, which a hidden or backgrounded page never gets (the
+  // grid fit's own lesson, app.js "THE APP SHELL'S GRID FIT"). The observer catches a wrap no render caused.
+  useLayoutEffect(() => { putBandSpace(ref.current) })
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(() => putBandSpace(el))
+    ro.observe(el)
+    return () => { ro.disconnect(); putBandSpace(null) }
+  }, [groups.length > 0])
+  if (!groups.length) return null
+  return (
+    <div className="sc-band" ref={ref} style={{ left, right }} aria-label="Key facts of this scenario">
+      {groups.map((g, gi) => (
+        <span key={gi} className="sc-band-group">
+          {gi > 0 && <span className="sc-band-sep" aria-hidden="true">·</span>}
+          {g.label && <span className={'sc-band-lab' + (g.items.every((i) => i.same) ? ' is-same' : '')}>{g.label}</span>}
+          {g.items.map((it, ii) => (
+            <span key={it.k} className="sc-band-item">
+              {ii > 0 && <span className="sc-band-sep" aria-hidden="true">·</span>}
+              <span className={'sc-band-v' + (it.same ? ' is-same' : '')}>{it.text}</span>
+            </span>
+          ))}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 function send(detail) {
   document.dispatchEvent(new CustomEvent('sptcal-scenario', { detail }))
@@ -45,6 +114,7 @@ export function ScenarioTabs() {
   const [menu, setMenu] = useState(null)            // { id, x, y }: the tab menu, opened at a point
   const [drag, setDrag] = useState(null)            // the tab being dragged
   const [left, setLeft] = useState(28)
+  const [right, setRight] = useState(28)   // the band's right edge: where the calendar ends
   const stripRef = useRef(null)
 
   useLayoutEffect(() => {
@@ -56,7 +126,12 @@ export function ScenarioTabs() {
   useEffect(() => {
     const panel = document.querySelector('.preview-panel')
     if (!panel) return undefined
-    const sync = () => setLeft(Math.round(panel.getBoundingClientRect().left) + 28)
+    const sync = () => {
+      const r = panel.getBoundingClientRect()
+      setLeft(Math.round(r.left) + 28)
+      // clientWidth, not the rect: a month view scrolling in the panel has a scrollbar the calendar stops short of.
+      setRight(Math.round(window.innerWidth - (r.left + panel.clientLeft + panel.clientWidth)) + 28)
+    }
     sync()
     const ro = new ResizeObserver(sync)
     ro.observe(panel)
@@ -100,6 +175,8 @@ export function ScenarioTabs() {
   const menuTab = menu && st.tabs.find((t) => t.id === menu.id)
 
   return (
+    <>
+    {st.band && <FactsBand band={st.band} left={left} right={right} />}
     <div className="sc-strip" style={{ left }} role="group" aria-label="Scenarios">
       <div className="sc-tabs" ref={stripRef} role="tablist" aria-label="Scenarios"
            onWheel={(e) => { if (e.deltaY && stripRef.current) stripRef.current.scrollLeft += e.deltaY }}>
@@ -175,5 +252,6 @@ export function ScenarioTabs() {
         )}
       </Menu>
     </div>
+    </>
   )
 }
