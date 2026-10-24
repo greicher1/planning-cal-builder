@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Holidays that cost a shoot day are flagged (24 Oct 2026)
+
+Owner: *"flag which holidays in the holiday section are during production and specifically during the working week
+and affecting a shoot day"*.
+
+- In Settings ▸ Region ▸ **Holidays**, a holiday that lands on a weekday during Production, on a day the shoot would
+  otherwise have worked, carries a red **Costs a shoot day** tag beside its date. The verdict is the production day
+  walk's own (`productionInfo.holidaysHit`), not a second copy of the rule, so a holiday on a weekend, inside a hiatus,
+  on a day marked Off, or being worked is not flagged, and un-ticking Enable clears the tag (the day is then shot).
+  The card's ⓘ explains the tag. Display only: no saved key, no schedule change, nothing in the grid or exports.
+- **Verified** on the build: Los Angeles, Production from 11/2/26 for 60 days flags Thanksgiving, the day after and
+  MLK Day, not Christmas or New Year's (inside the default winter hiatus); un-ticking MLK Day's Enable cleared its tag.
+  `npm run check` 40/40; legs `holidays2031` 6/6, `regionlock` 9/9, `regioncaveat` 10/10, `wrapdate` PASS. No full gate
+  (sidebar-only change).
+
 ### Unreleased — Month-view-only phases ("Hide in waterfall") and a redesigned Phases tab (23 Oct 2026)
 
 Owner: *"if you add a very specific phase to the month view (such as color grading week) you wouldn't want that to

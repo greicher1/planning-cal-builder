@@ -3669,6 +3669,12 @@
     border-radius:var(--mantine-radius-xs); padding:0 3px; color:var(--mantine-color-gray-6);
   }
   .hv-oor{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
+  /* A holiday that costs Production a shoot day (renderHolidayVisList), on the date line. */
+  .hv-shoot{
+    font-weight:600; color:var(--mantine-color-red-8); background:var(--mantine-color-red-0);
+    border:1px solid var(--mantine-color-red-3); border-radius:var(--mantine-radius-xs);
+    padding:0 4px; margin-left:4px; white-space:nowrap;
+  }
   /* ⛔ NO font-size HERE either -- same trap as .custom-phase-header .icon-btn above, but by
      SOURCE ORDER rather than specificity: this rule and `.remove-custom-phase, .remove-hiatus,
      .hv-del{font-size:0}` are both 0,1,0, and this one comes later, so it wins and un-hides the

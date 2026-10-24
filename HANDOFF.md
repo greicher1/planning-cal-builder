@@ -4,6 +4,20 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 24 Oct 2026 (latest): HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — built on `main` in the main checkout, NOT committed, NOT pushed
+
+- **Asked** (owner): *"flag which holidays in the holiday section are during production and specifically during the
+  working week and affecting a shoot day"*.
+- **Built:** `renderHolidayVisList()` tags a row **Costs a shoot day** (`.hv-shoot`, red pill on the date line) when
+  its date is in `productionInfo.holidaysHit`, the production walk's own list of holidays that cost a day. Keyed by
+  date. No new rule, no saved key, nothing frozen touched. ⓘ text in `HolidaysCard` (Sidebar.jsx) explains it.
+- ⚠️ **Judgment call, not a ruling:** an un-ticked (worked) holiday is NOT flagged, because it no longer costs a day;
+  the tag reappears when Enable is ticked. Weekend and hiatus holidays are never flagged.
+- **Verified** in the pane on `dist/` (LA, 11/2/26, 60 days: Thanksgiving ×2 and MLK flagged; Christmas/New Year's
+  in the winter hiatus not; un-tick MLK clears it). `npm run check` 40/40; `holidays2031`, `regionlock`,
+  `regioncaveat`, `wrapdate` green. No dedicated leg yet and no full gate.
+- The tracker card is `holiday-shoot-day-flag`.
+
 ### ✅ 23–24 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — ✅ **LIVE at `7cf54a4`** (verified byte-identical to the gated build, sha256 `91421ba4`); branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`): built `c178d05`, `origin/main` merged in as `55d3840`, fixture/baseline `7cf54a4`; COMBINED FULL GATE 3,081 / 3 (all explained, below); local `main` fast-forwarded to it; COMMITTED and PUSHED on the owner's pickers (*"Commit on the branch"*, *"Merge into main and push"*); no version cut ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
 
 - **Built from the plan entry below** (rulings R1-R10), in the order of plan §4, by a session started from the planning
