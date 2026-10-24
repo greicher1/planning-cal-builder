@@ -4,6 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; A PICKED, THEN AN A + D BLEND ASKED FOR; NO CODE ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
+
+- **Asked** (owner): a per-phase toggle that keeps a phase off the WATERFALL while the month view keeps it (*"if you
+  add a very specific phase to the month view (such as color grading week) you wouldn't want that to show on the
+  waterfall calendar"*). Then: *"overhaul the design of the phase UI. right now its pretty cluttered and ugly. give me
+  a few design idea mockups (using mantinue) without changing functionality"*, and *"also do it for all phase
+  hiatuses"*.
+- ⚠️ **I first read the ask backwards**, as hiding a phase from the MONTH view. The owner corrected it. If you find
+  "mv-hide-phases" anywhere, that id is the tracker's and is kept; the feature hides from the waterfall.
+- **Ruled:**
+  - R1: hide from the waterfall (screen, Excel, waterfall PDF); the month view and both month PDFs keep it.
+  - R2: a toggle on each phase card.
+  - R3: saved in the calendar.
+  - R4: the phase's auto-notes hide too.
+  - Accepted with "yes plan it": one toggle, every phase except Production, off by default, and a "Month view only"
+    tag shown while the card is folded.
+  - R5 (by picker): of four directions, **A, Tidy card**, *"but please clean up/refine the production phase cuz its
+    still messy with hiatus and sim post"*. The refined A is in the mockup (left column, marked Picked) and spelled
+    out in plan §3.4. Every hiatus and Sim Post is now the same one-line "option box". Production reads: Starts,
+    then SHOOTING ORDER with the total on its heading, then the two boxes. Episodic Prep takes the same shape.
+  - Then: *"actually can i see a blend of A and D"*. Built as the mockup's first column, marked New: D's coloured
+    head and switch rows, plus A's fields and A's refined Production and Prep. Plan §3.4a.
+- **Open:**
+  - O4: A (refined) or the A + D blend. If the blend, O3 comes back: its switches overrule UI-CONVENTIONS §5's
+    Checkbox for Lock in place.
+  - O2: hand-set column widths and typed headings are keyed by column position, so hiding a phase can shift them;
+    recommended: accept and document.
+  - Also unconfirmed: whether "also do it for all phase hiatuses" meant the redesign (my reading) or a hide toggle on
+    all-phase hiatuses.
+- **Next:** build on a branch in its own worktree. Part 1's engine and save format come first (plan §2.2–2.3, leg
+  `hidewf`), then the restyle to the owner's pick (§3.2 with §3.4 or §3.4a, leg `phasesui`), then one full gate.
+- **Found, and worth knowing before building:**
+  - **Month-only already exists:** the waterfall outputs read `schedule.weeks`, the month view `schedule.segments`,
+    and `appendEpisodePrep()` runs after the week loop. So Part 1 is a `wfSegments` split inside `computeSchedule()`
+    with no frozen edit. Plan §2.2 lists every waterfall-only step that must take it.
+  - **The Phases card is all engine HTML** (the ids are the save format). The plan restyles the generators and the
+    CSS instead of porting to React. §3.1 is the full list of ids, classes, nesting and listener rules a restyle must
+    keep.
+  - **Number weeks is a custom phase's control only;** the built-ins have none. The owner's screenshot was of a
+    custom phase. Writer's Room and custom phases have no "Start after" button.
+- **The mockup** is real Mantine 9.5.2 with `src/theme.js` and Inter, bundled the way `mockups/scenarios-compare/`
+  was. Source in `mockups/phase-cards/`, rebuild steps in its `vite.config.mjs`, ~700 KB. It shows the same six
+  phases and three all-phase hiatuses in each direction, and every control works.
+- **Committed locally on `main`, not pushed** (the owner chose "Commit locally" by picker). Only the plan, the mockup
+  and this entry went into the commit. This checkout also held another session's uncommitted work (the "+" button
+  flash entry below, README, legacy.css), which was left out of the commit and untouched.
+- No README entry yet: nothing a user can see has changed. It gets one when the code ships.
+
 ### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; ✅ **LIVE at `acdae89`**; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
 
 - **Asked** (owner): *"the window needs to scale larger so we dont have elipses/things cut off"*. On the tracker as
