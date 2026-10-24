@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — All-phase hiatus card: a blank name shows in full black (24 Oct 2026)
+
+Owner: *"show the hiatus name in full black on the lighter red"*. The default hiatuses have no name, so each card's
+head showed the field's placeholder, "Hiatus", drawn at 55%: grey-pink on the head's lighter red (2.7:1).
+
+- **A blank name now reads "Hiatus" in full black, at the weight of a typed name** (5.9:1). It is what the band says
+  when the name is blank. Pointing at it still fades it, and clicking in still shows a white field, where the word
+  dims back to a placeholder.
+- Sidebar only. The calendar's own red bands (white text, also in the exports) are unchanged.
+
+Verified: `npm run check` 40/40; `phasesui` 8/8, `hidewf` 19/19, `hiatuslabel` 7/7, `hiatusblank` 4/4, `mvmenu` 89/89,
+`loadcarry` 6/6 on build `29f581b3`; a screenshot of the cards. No full gate: the class exists only in the sidebar.
+
 ### Unreleased — Month-view-only phases ("Hide in waterfall") and a redesigned Phases tab (23 Oct 2026)
 
 Owner: *"if you add a very specific phase to the month view (such as color grading week) you wouldn't want that to

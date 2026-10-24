@@ -1430,7 +1430,12 @@
     border:1px solid transparent; border-radius:var(--mantine-radius-sm); background:transparent;
     transition:opacity .12s, background-color .12s;
   }
-  input.hiatus-name::placeholder{ color:var(--mantine-color-black); opacity:.55; font-weight:500; }
+  /* A blank name shows "Hiatus" in FULL black, as a typed name does (owner, 24 Oct 2026: "show the hiatus name in full
+     black on the lighter red"). It is what the band actually reads when the name is blank, so it may look like text.
+     At .55 it measured 2.7:1 on the head's red (#FF6666); full black is 5.9:1. Focused, the field is white and the
+     placeholder dims back to a placeholder's look, as before. */
+  input.hiatus-name::placeholder{ color:var(--mantine-color-black); opacity:1; font-weight:600; }
+  input.hiatus-name:focus::placeholder{ opacity:.55; font-weight:500; }
   input.hiatus-name:hover:not(:focus){ opacity:.6; }
   input.hiatus-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   .hiatus-range{ padding:0 5px; font-size:var(--mantine-font-size-xs); line-height:1.35;

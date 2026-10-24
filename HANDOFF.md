@@ -4,6 +4,29 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 24 Oct 2026 (latest): ALL-PHASE HIATUS HEAD — A BLANK NAME IN FULL BLACK — on branch `claude/angry-mclean-b408af` on top of `2aa860a`; LEGS GREEN (build `29f581b3`); NOT COMMITTED, NOT PUSHED
+
+- **Asked** (owner, relayed by the planning session, verbatim): *"Use black: show the hiatus name in full black on the
+  lighter red. Have the build session make the fix and gate it; ask me before pushing."* Tracker card
+  `hiatus-head-text`.
+- **Cause:** the default all-phase hiatuses have no name, so the head showed the placeholder, which
+  `input.hiatus-name::placeholder` drew at opacity .55: 2.7:1 on the head's `color-mix(#FF0000 60%, white)`
+  (#FF6666), grey-pink. A typed name was already black.
+- **Built** (`src/styles/legacy.css`, the hiatus card block): the placeholder is opacity 1, weight 600, like a typed
+  name (5.9:1). "Hiatus" is `HIATUS_DEFAULT_LABEL`, what the band reads when the name is blank, so real-looking text
+  is honest. Kept: the hover fade (.6), and the focus state (white field, navy edge), where the placeholder dims back
+  to .55 / 500 as before.
+  - Not changed, checked: a phase hiatus's name now sits in its white block, not on a coloured head, so its
+    placeholder stays an ordinary one. A NEW custom phase's empty title shows "Phase name" at .55 on its head: that
+    is a prompt to type, not the phase's name: ✅ owner, by picker, *"Leave it faded"*.
+  - Not touched: the calendar's red bands (white text, frozen, in the exports): the owner has not ruled on them.
+- **No full gate:** `.hiatus-name` exists only on the sidebar's hiatus rows (grepped: nothing in `#table-wrap`,
+  `#print-root` or the writers). On build `29f581b3`: `npm run check` 40/40; `phasesui` 8/8 (P7 reads this card),
+  `hidewf` 19/19, `hiatuslabel` 7/7, `hiatusblank` 4/4, `mvmenu` 89/89, `loadcarry` 6/6. A screenshot of the cards was
+  shown to the owner.
+- **Owner's pickers (24 Oct):** *"Commit on the branch"*, *"Merge into main and push"* (which carries `2aa860a`, the
+  HANDOFF record of the 7cf54a4 push, along).
+
 ### ✅ 23–24 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — ✅ **LIVE at `7cf54a4`** (verified byte-identical to the gated build, sha256 `91421ba4`); branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`): built `c178d05`, `origin/main` merged in as `55d3840`, fixture/baseline `7cf54a4`; COMBINED FULL GATE 3,081 / 3 (all explained, below); local `main` fast-forwarded to it; COMMITTED and PUSHED on the owner's pickers (*"Commit on the branch"*, *"Merge into main and push"*); no version cut ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
 
 - **Built from the plan entry below** (rulings R1-R10), in the order of plan §4, by a session started from the planning
