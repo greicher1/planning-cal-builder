@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — committed on local `main` (`9e15091` + the regroup), NOT PUSHED
+### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — ✅ LIVE at `2d1f890` (`9e15091` + `2353b6d`, merged with `origin/main`'s black hiatus name; pushed on the owner's picker, live page verified serving it ~50 s later)
 
 - **Asked** (owner): asked what the caption "Grey text in Production's bars, on screen and in the month PDF" meant,
   then *"remove it"*, then *"maybe the toggle should say something more clear like 'Add Production Week Label in
