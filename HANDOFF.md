@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — BUILT on branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`), from `main` at `5ce6129`; legs `hidewf` 19/19 and `phasesui` 8/8; FULL GATE 3,069 / 2 on build `85b5d428` (one real, fixed: Sim Post's wording; one `offweek` load timeout, green alone), every frozen output byte-identical; final build `400e403b`; NOT COMMITTED, NOT PUSHED ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
+### ✅ 23–24 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — ✅ **LIVE at `7cf54a4`** (verified byte-identical to the gated build, sha256 `91421ba4`); branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`): built `c178d05`, `origin/main` merged in as `55d3840`, fixture/baseline `7cf54a4`; COMBINED FULL GATE 3,081 / 3 (all explained, below); local `main` fast-forwarded to it; COMMITTED and PUSHED on the owner's pickers (*"Commit on the branch"*, *"Merge into main and push"*); no version cut ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
 
 - **Built from the plan entry below** (rulings R1-R10), in the order of plan §4, by a session started from the planning
   session. Plan §5 says what was built, card by card, and where it differs from the plan's letter.
@@ -59,7 +59,11 @@
     - `scenariocompat` on the FROZEN `releases/v1.2.0.html` (untouched here): timed out on its "Open…" item, the
       IndexedDB stall `t/lib.js` documents; failed once more alone, then passed twice (Half Days Test, 8 episodes).
   - The merged build is `91421ba4`; `npm run check` 40/40.
-- ⏭ **Next:** nothing owed on this feature once the push is verified live (status below).
+- **Pushed** `91a5d24..7cf54a4` from the main checkout after a fast-forward of local `main` (its modified
+  `stintswap-reshape.sptcal` and untracked `Reshape Fixture 2026-09-29.sptcal`, another session's, left untouched).
+  The live `index.html` matched `91421ba4` about 40 s later. This HANDOFF update is a LOCAL commit on top, not pushed.
+- ⏭ **Next:** nothing owed on this feature. Ideas the build turned up, none asked for: Sim Post's offset sentence
+  wraps at a 280 px sidebar (it reads fine; a shorter wording would have to keep "calendar weeks").
 
 ### 📝 23 Oct 2026: MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE (BUILT: the entry above) ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
 
