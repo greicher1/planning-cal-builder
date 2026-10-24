@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
+### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; ✅ **LIVE at `acdae89`**; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
 
 - **Asked** (owner): *"the window needs to scale larger so we dont have elipses/things cut off"*. On the tracker as
   `compare-window-fit`.
@@ -23,6 +23,9 @@
   - 3 scenarios: 903 px, nothing clipped (every `p` and badge label has scrollWidth ≤ clientWidth);
   - 12 scenarios: 1,392 px, and the 2,511 px table scrolls;
   - `scenarios` 22/22, `npm run check` 40/40.
+- ✅ **PUSHED AND LIVE.** ONE `git push origin main` at 16:59:20 (`93836f5..acdae89`, which carried the docs commit
+  `0862d6b` too). The deploy succeeded at 17:00:05. The live `index.html` has the same sha256 as the tested
+  `dist/index.html` (`3823d4d8…`). No version cut.
 
 ### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; ✅ **LIVE at `93836f5`**; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
 

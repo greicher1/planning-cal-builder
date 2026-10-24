@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026)
+### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 
 Owner: *"the window needs to scale larger so we dont have elipses/things cut off"*. A long scenario name ended in
 "…" in its heading, and a long location wrapped, while the window used only 776 px of a 1,440 px screen.
