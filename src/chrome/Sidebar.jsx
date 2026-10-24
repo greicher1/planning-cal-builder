@@ -602,10 +602,10 @@ export function MonthViewCard() {
             text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
             chose this knowing two people printing one calendar can get different month PDFs.
             ⚠️ SO THESE THREE ARE PREFERENCES in a card of calendar settings, kept on this computer --
-            and the Preferences tab's opening line names them in the month view. They come LAST, under
-            their own caption, because the caption reads as a heading for every row after it: placed
-            under "Label Production by" (tried first, 20 Oct 2026), it seemed to head Pause prep and
-            Number Production Days too, which are not grey text.
+            and the Preferences tab's opening line names them in the month view. They come LAST.
+            They had a caption ("Grey text in Production's bars, on screen and in the month PDF");
+            the owner removed it (24 Oct 2026, "remove it"). Each switch's own label and title say
+            what it does.
             ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a saved
             calendar; the engine owns the state (prefs.mvWeek / prefs.mvBlocks / prefs.mvEpisodes,
             ABSENT = ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like
@@ -616,34 +616,32 @@ export function MonthViewCard() {
             and Show Blocks hides on a calendar with no blocks. Pure CSS off that control's checked
             radio and #show-mode (legacy.css), so no path can leave them out of step. ⛔ HIDDEN,
             NEVER UNMOUNTED: the engine writes .checked by id.
-            The caption is never hidden, so each row can carry its OWN divider on top (the 22 Sep
-            "pretty tight" ruling) and hiding any of them never leaves one dangling. At least one row
-            always shows. The order is the grey text's own: Week, Block, Episodes. */}
-        <Divider my="sm" />
-        <Text size="xs" c="dimmed">Grey text in Production’s bars, on screen and in the month PDF</Text>
+            Each row carries its OWN divider on top (the 22 Sep "pretty tight" ruling), so hiding
+            any of them never leaves one dangling. At least one row always shows. The order is the
+            grey text's own: Week, Block, Episodes. */}
         <Box className="pref-mv-row pref-mv-row-week">
           <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-week" label="Show Production Week in Month View">
+          <SettingRow htmlFor="pref-mv-week" label="Add Production Week Label in Month View">
             <Switch id="pref-mv-week" size="md" defaultChecked
-                    aria-label="Show Production Week in Month View"
+                    aria-label="Add Production Week Label in Month View"
                     title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
           </SettingRow>
         </Box>
 
         <Box className="pref-mv-row pref-mv-row-blocks">
           <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-blocks" label="Show Blocks in Month View">
+          <SettingRow htmlFor="pref-mv-blocks" label="Add Block Label in Month View">
             <Switch id="pref-mv-blocks" size="md" defaultChecked
-                    aria-label="Show Blocks in Month View"
+                    aria-label="Add Block Label in Month View"
                     title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
           </SettingRow>
         </Box>
 
         <Box className="pref-mv-row pref-mv-row-episodes">
           <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-episodes" label="Show Episodes in Month View">
+          <SettingRow htmlFor="pref-mv-episodes" label="Add Episode Label in Month View">
             <Switch id="pref-mv-episodes" size="md" defaultChecked
-                    aria-label="Show Episodes in Month View"
+                    aria-label="Add Episode Label in Month View"
                     title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
           </SettingRow>
         </Box>

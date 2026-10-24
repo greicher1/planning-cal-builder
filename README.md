@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Clearer labels for the month view's grey-text switches (24 Oct 2026)
+
+Owner: *"remove it"* (the caption over the switches), then *"maybe the toggle should say something more clear like
+'Add Production Week Label in Month View'"*.
+
+- Settings ▸ Preferences ▸ **Month view**: the caption "Grey text in Production's bars, on screen and in the month PDF"
+  is gone, with the divider above it. The three switches are now **Add Production Week Label in Month View**, **Add
+  Block Label in Month View** and **Add Episode Label in Month View** (were "Show … in Month View"). Same ids, same
+  per-user preference, same contextual hiding; each switch's tooltip still says it applies on screen and in the PDF.
+- **Verified** on the dev build in the pane: the caption is absent and the new label shows. `npm run check` 40/40;
+  `pilllabel` on `blocks` and `halfdays` ran clean with the Show-row table unchanged. No full gate (chrome label only).
+
 ### Unreleased — Holidays that cost a shoot day are flagged (24 Oct 2026)
 
 Owner: *"flag which holidays in the holiday section are during production and specifically during the working week
