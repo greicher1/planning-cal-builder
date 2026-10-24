@@ -21,8 +21,40 @@
   seen in the pane. No full gate.
 - Tracker card: `mv-grey-text-labels`.
 
-### ✅ 24 Oct 2026: HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — ✅ LIVE at `076247a` (pushed on the owner's picker; live page verified serving it ~70 s later)
+### 🔨 24 Oct 2026: ALL-PHASE HIATUS HEAD — A BLANK NAME IN FULL BLACK — branch `claude/angry-mclean-b408af`: committed `49ad6de`, `origin/main` (`076247a`, the holidays flag) merged in as `30b9e76`; LEGS GREEN on the merged build `4341800c`; PUSH APPROVED by the owner's picker, pushed FROM THE BRANCH (local `main` is the main checkout's, busy with another session)
 
+- **Asked** (owner, relayed by the planning session, verbatim): *"Use black: show the hiatus name in full black on the
+  lighter red. Have the build session make the fix and gate it; ask me before pushing."* Tracker card
+  `hiatus-head-text`.
+- **Cause:** the default all-phase hiatuses have no name, so the head showed the placeholder, which
+  `input.hiatus-name::placeholder` drew at opacity .55: 2.7:1 on the head's `color-mix(#FF0000 60%, white)`
+  (#FF6666), grey-pink. A typed name was already black.
+- **Built** (`src/styles/legacy.css`, the hiatus card block): the placeholder is opacity 1, weight 600, like a typed
+  name (5.9:1). "Hiatus" is `HIATUS_DEFAULT_LABEL`, what the band reads when the name is blank, so real-looking text
+  is honest. Kept: the hover fade (.6), and the focus state (white field, navy edge), where the placeholder dims back
+  to .55 / 500 as before.
+  - Not changed, checked: a phase hiatus's name now sits in its white block, not on a coloured head, so its
+    placeholder stays an ordinary one. A NEW custom phase's empty title shows "Phase name" at .55 on its head: that
+    is a prompt to type, not the phase's name: ✅ owner, by picker, *"Leave it faded"*.
+  - Not touched: the calendar's red bands (white text, frozen, in the exports): the owner has not ruled on them.
+- **No full gate:** `.hiatus-name` exists only on the sidebar's hiatus rows (grepped: nothing in `#table-wrap`,
+  `#print-root` or the writers). On build `29f581b3`: `npm run check` 40/40; `phasesui` 8/8 (P7 reads this card),
+  `hidewf` 19/19, `hiatuslabel` 7/7, `hiatusblank` 4/4, `mvmenu` 89/89, `loadcarry` 6/6. A screenshot of the cards was
+  shown to the owner.
+- **Owner's pickers (24 Oct):** *"Commit on the branch"*, *"Merge into main and push"* (which carries `2aa860a`, the
+  HANDOFF record of the 7cf54a4 push, along).
+- ⚠️ **How the push went, honestly.** The first try fast-forwarded local `main` in the main checkout and pushed it.
+  The fast-forward was REFUSED (another session had uncommitted edits there to files this commit touches), and a
+  `| tail -1` hid the error, so the push sent local `main` as it was: `7cf54a4..2aa860a`, the docs-only HANDOFF commit
+  the approval covered. The CSS fix did not go. That session then pushed its own `076247a` (the holidays flag) on top.
+  So `origin/main` was merged into the branch through the sync tool (`30b9e76`; only the HANDOFF and README tops
+  conflicted, both entries kept), and the branch pushed as a fast-forward of `origin/main`. Local `main` was left
+  alone: it now trails `origin/main` by this fix, for that session to pull.
+- **On the merged build `4341800c`:** `npm run check` 40/40; `phasesui` 8/8, `hidewf` 19/19, `hiatuslabel` 7/7,
+  `hiatusblank` 4/4, `settingswin`, and the holiday session's own legs `holidays2031`, `regionlock`, `regioncaveat`,
+  `wrapdate` all green.
+
+### ✅ 24 Oct 2026: HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — ✅ LIVE at `076247a` (pushed on the owner's picker; live page verified serving it ~70 s later)
 - **Asked** (owner): *"flag which holidays in the holiday section are during production and specifically during the
   working week and affecting a shoot day"*.
 - **Built:** `renderHolidayVisList()` tags a row **Costs a shoot day** (`.hv-shoot`, red pill on the date line) when
