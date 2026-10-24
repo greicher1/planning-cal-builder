@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; LEGS GREEN; FULL GATE RUNNING; NOT MERGED, NOT PUSHED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); PUSHED FROM THE BRANCH (owner's picker); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
 
 - ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
   defaults in section 2."*
@@ -52,9 +52,17 @@
     - **`settingswin` W3:** the leg anchors on the swept ids just before `#cal-range-end`, and `#show-location` now
       sits between `#show-version` and `#cal-range-start`. The window's own ids were exactly right. The anchor is
       moved in `27307f1` (comment in the leg); alone on the same build, 21/21.
-- ⏭ **Next:** the owner's sign-off for gate 5's re-cut (`restore.json`'s `form` gains `show-location: ""`, written up
-  in the baseline README like the 8 and 14 Sep re-cuts), then re-run the restore leg. After that, ask separately
-  whether to merge into `main` and push. The notes below are the history that led here.
+- **Owner, by picker:** *"Re-cut it"*, *"Merge into main"*, *"Push and deploy"*.
+  - **Gate 5 re-cut** in `3186104`: `restore.json`'s `form` gains `show-location: ""`, written up in the baseline
+    README. Re-run alone: the restore leg and gate 5 PASS, 77 ids, grid identical.
+  - ⚠️ **Local `main` was NOT merged.** The main checkout held another session's UNCOMMITTED work (the month view's
+    hover-flash fix in `legacy.css`, `PHASES-TAB-PLAN.md`, and HANDOFF / README entries). A merge there would have had
+    to touch their files.
+  - Asked again, the owner chose *"Push from the branch"*: ONE `git push origin scenario-facts:main`. `origin/main`
+    was `acdae89`, an ancestor, so it is a fast-forward. It carries local `main`'s unpushed docs commit `a0d5245`.
+  - ⏭ **Merge `scenario-facts` into local `main` once that session has committed.** Expect conflicts only in
+    HANDOFF / README's top entries (keep both); `legacy.css` changes are in different blocks. The notes below are the
+    history that led here.
 
 - **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
   easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also
