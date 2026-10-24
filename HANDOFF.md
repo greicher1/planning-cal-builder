@@ -43,8 +43,18 @@
     band at 1000 and 1440 px, typing a Location, a flip, and Compare's row.
 - ⛔ **Gate 5 WILL MOVE by one id** (`show-location` gained in `fields.byId`). Its baseline re-cut needs the owner's
   sign-off; don't re-cut it unasked.
-- ⏭ **Next:** the full gate's result (running on `f0c088c`). Then ask the owner to sign off gate 5's re-cut, and
-  separately whether to merge into `main` and push. The notes below are the history that led here.
+- **Full gate on `f0c088c`** (build `0d0cfdd9…`, 1,823,488 bytes; 19:47–20:17): **3,054 PASS, 2 FAIL.**
+  - Every frozen output is identical to its baseline: the waterfall PDF, every Excel part, every printed month
+    document, and the written month PDFs (`monthwriter`). 0 clipped cells.
+  - `scenariofacts` 11/11 and `scenariocompat` (both releases) pass inside it.
+  - The two FAILs, both caused by the new id:
+    - **Gate 5**, as predicted: `gained: ['show-location']`, `lost: []`, `changed: []`, 76 → 77 ids.
+    - **`settingswin` W3:** the leg anchors on the swept ids just before `#cal-range-end`, and `#show-location` now
+      sits between `#show-version` and `#cal-range-start`. The window's own ids were exactly right. The anchor is
+      moved in `76c…` (comment in the leg); alone on the same build, 21/21.
+- ⏭ **Next:** the owner's sign-off for gate 5's re-cut (`restore.json`'s `form` gains `show-location: ""`, written up
+  in the baseline README like the 8 and 14 Sep re-cuts), then re-run the restore leg. After that, ask separately
+  whether to merge into `main` and push. The notes below are the history that led here.
 
 - **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
   easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also

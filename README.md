@@ -52,7 +52,9 @@ the owner chose C, a tinted band (*"lets go for C"*). Plan: [`KEY-FACTS-PLAN.md`
   frozen changed, and nothing printed or exported, apart from Compare's Location text.
 
 Verified: the new `scenariofacts` leg 11/11, red on the pre-change build (it stops at "no band"); `scenarios` 22/22
-(S9 now expects the short region); `npm run check` 40/40; by hand in the browser pane at 1000 and 1440 px.
+(S9 now expects the short region); `npm run check` 40/40; by hand in the browser pane at 1000 and 1440 px. Full gate
+3,054 / 2: every frozen output byte-identical; the two FAILs are the new id itself (gate 5's key set gains
+`show-location`, and `settingswin` W3's anchor, moved and 21/21 alone).
 
 ### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 
