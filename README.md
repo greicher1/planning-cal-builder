@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; branch `scenario-facts`, not merged)
+
+Owner: *"a bar or section somewhere that gives the major key considerations of each scenario in one clear easy
+place ... as you switch between scenarios you should be able to see at a glance what the key differences between each
+are"*, without bloat. Six placements were mocked ([`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html));
+the owner chose C, a tinted band (*"lets go for C"*). Plan: [`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md).
+
+- **With two or more scenarios, a soft grey band sits directly above the tabs**, as wide as the calendar, in both
+  views. It reads the tab on screen: Location · episodes (or blocks) · Writer's Rm open date and weeks · Production's
+  first shoot day and weeks · Wrap. With one scenario nothing changes.
+- **A fact the same in every scenario is dimmed**, as Compare dims a row that is the same everywhere, so what stays dark
+  is what differs. Flip tabs and only the dark values change.
+- **A Location box in Show info**, under Production Region (owner: *"in addition to selecting a production region, you
+  could also enter a specific location (as text) and that is what is used"*). The Region still picks the holidays;
+  the Location is the town ("Winnipeg" with Manitoba picked). The band and Compare's Location row show it.
+- **Left blank, they show the Region shortened**: "Manitoba", not "Manitoba — province-wide"; "U.S. (Area Standards)"
+  for "Elsewhere in the U.S." (owner: the long label *"is also an issue for the comparison screen"*).
+- **The calendar makes room for the band** and ends above it. A window too narrow for one line wraps it rather than
+  cutting anything off.
+- ⛔ **`show-location` is a new permanent saved field.** A calendar saved before it opens with the box blank. Nothing
+  frozen changed, and nothing printed or exported, apart from Compare's Location text.
+
+Verified: the new `scenariofacts` leg 11/11, red on the pre-change build (it stops at "no band"); `scenarios` 22/22
+(S9 now expects the short region); `npm run check` 40/40; by hand in the browser pane at 1000 and 1440 px.
+
 ### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 
 Owner: *"the window needs to scale larger so we dont have elipses/things cut off"*. A long scenario name ended in

@@ -4,12 +4,47 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — PLANNED, PLACEMENT RULED (C), NO CODE ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; LEGS GREEN; FULL GATE RUNNING; NOT MERGED, NOT PUSHED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
 
-- ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. The plan is written: no frozen edit, one new
-  permanent saved id (`show-location`, so gate 5 moves by one id), a new leg `scenariofacts`. Its §2 lists the
-  defaults taken (wrap on narrow windows, no band label, facts drop out when empty). ⏭ **Next:** the owner's go, then
-  build on a worktree branch from local `main`. The notes below are the history that led here.
+- ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
+  defaults in section 2."*
+- **Built** (README has the entry). No frozen edit.
+  - **Engine (`app.js`):**
+    - `placeShortLabel` / `cleanLocation` / `locationText` beside `PLACES` (`us-general` carries `short`);
+    - `scenarioFacts()` gains `wrOpen`, `wrWeeks`, and `loc` = typed Location or the short region (null for None);
+    - the "key facts band" block: `scenarioBand()`, `refreshScenarioFacts()` / `scheduleScenarioFacts()` (120 ms
+      after `update()`), and `scheduleScenarioProbe()` after `adoptScenarios()`;
+    - `probeScenarioTabs()`, factored out of `compareScenarioValues()`;
+    - `pushScenarioChrome` sends `band`.
+  - **Chrome:** `FactsBand` in `ScenarioTabs.jsx`, `#show-location` in `Sidebar.jsx`, and `fmt` exported from
+    `CompareDialog.jsx`.
+  - **CSS:** `.sc-band*`, and `.preview-panel`'s bottom margin / padding `+ var(--sc-band-space, 0px)`.
+- ⚠️ **Traps found while building:**
+  - **A ResizeObserver alone didn't move the grid in the leg.** The page wasn't painting (hidden pane, headless
+    virtual time), so its callback never came: the band wrapped to 48 px and its room stayed at 38. So the band
+    re-measures on every React render, and the grid fit now also observes `<html>`'s `style` attribute as a
+    mutation. Same lesson as the grid fit's own notice-strip comment.
+  - **`var`, not `let`, for `liveScenarioFacts` / `BAND_KEYS` / the timers:** `pushScenarioChrome()` can run during
+    evaluation, before those lines, and a TDZ error would take the whole IIFE (the `scenarioTabs` rule).
+  - **A flip refreshes the band synchronously** (`switchScenario`). On the debounce alone the band showed the tab
+    just left for 120 ms.
+  - **`fields.byId` stores `{value}` per id**, not the bare value.
+  - **Dimmed is `--text-muted`, Compare's `dimmed`, not the mockup's lighter `#A5A197`**, which was about 2:1 on the
+    band's `gray-1`.
+  - **The after-Load probe** runs a few tabs per tick, waits while a note editor is open or a field is focused, and
+    banks a pending edit first, as Compare does. A tab that fails is marked `factsFailed` and skipped. Until every tab
+    is known, nothing is dimmed.
+- **Proof so far:**
+  - **New leg `scenariofacts`, 11/11** (wired into `gate.sh` after `scenarios`). It is red on the pre-change build:
+    `main` at `a0d5245`, built with `git archive`, sha256 `3823d4d8` = the live file. It stops at F2, "no band".
+  - **`scenarios` 22/22.** S9 now expects "Toronto" / "U.S. (Area Standards)", an intended change.
+  - **`npm run check` 40/40.**
+  - **By hand in the browser pane** (port 9871, preview `scenario-facts-9871` in main's `.claude/launch.json`): the
+    band at 1000 and 1440 px, typing a Location, a flip, and Compare's row.
+- ⛔ **Gate 5 WILL MOVE by one id** (`show-location` gained in `fields.byId`). Its baseline re-cut needs the owner's
+  sign-off; don't re-cut it unasked.
+- ⏭ **Next:** the full gate's result (running on `f0c088c`). Then ask the owner to sign off gate 5's re-cut, and
+  separately whether to merge into `main` and push. The notes below are the history that led here.
 
 - **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
   easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also
