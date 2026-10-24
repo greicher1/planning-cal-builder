@@ -4,6 +4,47 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — committed on local `main` as `e11beb4`, then replayed alone onto `origin/main` (`8c78372`, the key facts band) on branch `mv-gap-flash` (worktree `.claude/worktrees/mv-gap-flash`), because local `main` holds another session's uncommitted work and the owner chose *"Push only the fix"*; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below)
+
+- **Asked** (owner): *"as you scroll up and down over a square in the month view, the square flashes purple for a
+  split second as your cursor hovers in between the tiny gap between the selector buttons for comments. this is
+  distracting and feel unprof"*. On the tracker as `month-gap-hover-flash`.
+- **Cause, measured at 1440×900:** the purple is `#table-wrap .mv-daycell:hover` (the day-menu cue, owner-approved
+  frozen edits of 18 and 21 Sep). `.mv-bars` is `pointer-events:none`, so below the number band the CELL is the hit
+  target in every hole the bar layer leaves: the 2 px lane gaps (`gap:2px 0`), the 1 px seams of `margin:0 1px`, the
+  3 px side padding, the strip above `.mv-row-expand`. `elementFromPoint` returned `.mv-daycell` in all of them.
+- **Built** (`src/styles/legacy.css`, after `#table-wrap .mv-out:hover .mv-daynum`): ONE frozen CSS rule,
+  `#table-wrap .mv-daygrid::after{ content:''; position:absolute; left:0; right:0; top:24px; bottom:0; }`. A
+  transparent sheet over the day grid below the band, painted after the cells and under `.mv-bars` (z-index 1). The
+  holes now hit `.mv-daygrid`, which is no `.mv-daycell`: no highlight, and a LEFT-click or double-click there does
+  nothing (it used to open the day menu / clear a mark). The band, every "+", note, pill and the row-expand bar are
+  unchanged. Right-click is unchanged too, because `dayContextAt` finds the day by point inside `.mv-body`.
+  - ⚠️ `top:24px` is `.mv-bars`' `padding-top` (the band). Change one, change both.
+  - Paints nothing, takes no space (inside the out-of-flow `.mv-daygrid`), and cannot print: `#print-root` is not
+    inside `#table-wrap`, and the month-PDF writer reads no DOM.
+- **Verified:**
+  - In the browser pane (dev server, 1440×900): `elementFromPoint` in every hole now returns `.mv-daygrid`. A real
+    mouse sweep down one day lit the band and left all seven gap positions grey. A left-click on the band opens the
+    day menu. A left-click in a gap does nothing, a right-click there opens that day's menu, and "+" still opens the
+    note editor.
+  - `npm run check` 40/40. Twelve month legs on the build, each with the gate's fixture: `mvmenu` 89/89,
+    `labelsetup` 41/41, `halfworked` 24/24, `overrides` 20/20, `mvnotes` 30/30 and 14/14, `epnames` 10/10,
+    `halfdays` 27/27, `mvhdroff` 9/9, `monthnotes` 7/7, `monthlanes` 6/6, `offweek` and `calzoom` pass.
+  - **Full gate** on build `57204bbd…` (port 8239, 20:24–20:53, no other gate running): **3,035 PASS, 2 FAIL.**
+    Both FAILs are on `stintswap-reshape` (`stintreshape` timed out, and gate 13 said "THE CONTENT MOVED").
+    ⚠️ **That fixture is MODIFIED in this checkout and was before this work began.** Its mtime is 21 Oct 18:17, and
+    25 keys differ from HEAD: an app save seems to have landed on it. Not mine, and left untouched, as was the
+    untracked `Reshape Fixture 2026-09-29.sptcal`. **On the committed fixture** (a temporary copy under another name,
+    deleted after): gate 13's written month PDF is byte-identical to its baseline (102,988 bytes), and `stintreshape`
+    passes every check. Every other frozen output matched its baseline, gates 10 and 13 included.
+- **Owner's pickers, 23 Oct 2026:** *"Push only the fix"* (not the Phases plan commit `5cc8286`, which stays on local
+  `main`), and *"Leave it for now"* for the modified `stintswap-reshape.sptcal`. ⚠️ Until that fixture is restored
+  (`git checkout -- tests/fixtures/stintswap-reshape.sptcal`, the owner's call), every full gate in the main checkout
+  fails those two checks.
+- ⚠️ **LOCAL `main` NOW DIVERGES FROM `origin/main`** (it holds `e11beb4` and `5cc8286`; origin holds the key facts
+  work and this fix's replay). Merge `origin/main` into local `main` once the other session's uncommitted HANDOFF
+  and Phases-plan edits are committed. Only the HANDOFF / README tops should conflict: keep every entry.
+
 ### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); ✅ **LIVE at `8c78372`** (pushed from the branch on the owner's picker; live `index.html` byte-identical to the gated build, sha256 `0d0cfdd9`); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
 
 - ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
