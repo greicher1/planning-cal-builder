@@ -19,8 +19,11 @@ import { installChrome } from './bridge.js'
 import { IconPlus } from './icons.jsx'
 import { fmt } from './CompareDialog.jsx'
 
-// The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C"): one line of the tab on screen's facts
-// on a soft grey band directly above the tabs, as wide as the calendar, while there are two or more scenarios. The
+// The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C"): the tab on screen's facts on a soft
+// grey band directly above the tabs, as wide as the calendar, while there are two or more scenarios. Since the same
+// evening each fact is a small STAT TILE, its label above its value (owner, option D: "a small label above each
+// value, like stat tiles"), because one line of "·"-separated facts left "20 wks" floating between the writers' room
+// and Production -- "its not necessarily clear that the 20wks refers to the length of the writers room". The
 // engine sends {values, same, labels} (scenarioBand() in app.js, from Compare's own scenarioFacts()); a fact the same
 // in every scenario is `same` and drawn dimmed, as Compare dims a row that is the same everywhere, so what stays dark
 // is what differs. A fact with nothing behind it drops out, and with nothing left the band hides.
@@ -30,15 +33,16 @@ import { fmt } from './CompareDialog.jsx'
 //
 // It makes its own room. Its height plus the 8 px above it is written as --sc-band-space on <html>, and legacy.css
 // adds that to .preview-panel's bottom margin (the strip's 44 px). The grid fit already observes the panel's box,
-// so the waterfall ends above the band, and the month view's scroller with it. A narrow window wraps the band onto
-// a second line (owner: nothing cut off), and the measured height follows.
+// so the waterfall ends above the band, and the month view's scroller with it. A narrow window wraps the tiles onto
+// a second row (owner: nothing cut off), and the measured height follows.
 const plural = (n, unit) => n + ' ' + unit + (n === 1 ? '' : 's')
 function bandGroups(band) {
   const v = band.values || {}, same = band.same || {}, labels = band.labels || {}
   const val = (k, text) => ({ k, text, same: !!same[k] })
   const groups = []
-  if (v.loc) groups.push({ items: [val('loc', v.loc)] })
-  if (v.count) groups.push({ items: [val('count', plural(v.count.n, v.count.unit))] })
+  if (v.loc) groups.push({ label: 'Location', items: [val('loc', v.loc)] })
+  // The label names the unit, so the value is the bare count: "Episodes 8", "Blocks 5".
+  if (v.count) groups.push({ label: v.count.unit === 'block' ? 'Blocks' : 'Episodes', items: [val('count', String(v.count.n))] })
   const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
   if (wr.length) groups.push({ label: labels.wr || 'Writer’s Rm', items: wr })
   const pr = [v.first && val('first', fmt(v.first)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
@@ -69,19 +73,22 @@ function FactsBand({ band, left, right }) {
     return () => { ro.disconnect(); putBandSpace(null) }
   }, [groups.length > 0])
   if (!groups.length) return null
+  // One tile per fact: the label on top, its value under it. A phase's start and its length share one tile, so the
+  // weeks can only belong to the label above them.
   return (
     <div className="sc-band" ref={ref} style={{ left, right }} aria-label="Key facts of this scenario">
-      {groups.map((g, gi) => (
-        <span key={gi} className="sc-band-group">
-          {gi > 0 && <span className="sc-band-sep" aria-hidden="true">·</span>}
-          {g.label && <span className={'sc-band-lab' + (g.items.every((i) => i.same) ? ' is-same' : '')}>{g.label}</span>}
-          {g.items.map((it, ii) => (
-            <span key={it.k} className="sc-band-item">
-              {ii > 0 && <span className="sc-band-sep" aria-hidden="true">·</span>}
-              <span className={'sc-band-v' + (it.same ? ' is-same' : '')}>{it.text}</span>
-            </span>
-          ))}
-        </span>
+      {groups.map((g) => (
+        <div key={g.label} className="sc-band-stat">
+          <span className="sc-band-lab">{g.label}</span>
+          <span className="sc-band-val">
+            {g.items.map((it, ii) => (
+              <span key={it.k} className="sc-band-item">
+                {ii > 0 && <span className="sc-band-sep" aria-hidden="true">·</span>}
+                <span className={'sc-band-v' + (it.same ? ' is-same' : '')}>{it.text}</span>
+              </span>
+            ))}
+          </span>
+        </div>
       ))}
     </div>
   )

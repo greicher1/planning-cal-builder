@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; branch `scenario-facts`, not pushed)
+
+Owner, on the live band: *"its not necessarily clear that the 20wks refers to the length of the writers room and the
+17 weeks refers to length of production"*. On one line, every separator was the same "·", so a phase's weeks floated
+between it and the next phase. Of four mocked fixes the owner chose D, *"a small label above each value, like stat
+tiles"*.
+
+- **Each fact is a tile, its small label over its value:** Location, Episodes (or Blocks), Writer's Rm, Production,
+  Wrap, divided by hairlines. A phase's start date and its weeks share its tile ("1/5/26 · 12 wks"), so the weeks can
+  only belong to the label above them. Episodes reads as the bare count, since the label names it.
+- **Dimmed still means the same in every scenario**, value by value.
+- **The band is 41 px tall** (it was 30). The calendar makes room for it exactly as before. One row fits any window
+  from about 830 px with typical facts; a longer one wraps the tiles onto a second row, and a wrapped row never
+  starts with a stray divider.
+
+Verified: `scenariofacts` 11/11 (it now reads the tiles, and F9 proves a real second row, 41 → 76 px);
+`scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1000 px, on one row and wrapped. No full gate:
+nothing frozen, saved or printed changed.
+
 ### Unreleased — Month view: no purple flash between the "+" note buttons (23 Oct 2026)
 
 Owner: *"as you scroll up and down over a square in the month view, the square flashes purple for a split second as

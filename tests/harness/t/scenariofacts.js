@@ -3,6 +3,9 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh scenariofacts 300
 //
+// Since the evening of 23 Oct 2026 each fact is a stat tile, its label over its value (owner, option D), so the leg
+// reads tiles(), not one line of text.
+//
 // Driven as a user drives it: Load through openViaFakePicker's recording handle, the tabs, typed fields, ⌘Z, the
 // Compare window, Save, Keep only. The file is tests/fixtures/scenarios-3.sptcal (synthetic): Scenario A (Elsewhere in
 // the U.S., 10 episodes), 8 eps (the same, 8 episodes) and Toronto (8 episodes, Toronto, ON), Toronto on screen.
@@ -13,8 +16,17 @@ window.addEventListener('load', function () { (async function () {
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: !!pass, observed: observed, expected: expected}); }
   async function waitFor(fn, label){ await T.until(fn, label, 80, 100); }
   function band(){ return document.querySelector('.sc-band'); }
-  // The band as the user reads it, and which of its values are dimmed.
-  function bandText(){ var b = band(); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; }
+  // The band as the user reads it: one stat tile per fact, its label over its value (owner's option D, 23 Oct 2026).
+  // {label: value}, a value's parts joined by " · " as drawn; and which of its values are dimmed.
+  function tiles(){
+    var t = {};
+    [].slice.call((band() || document.createElement('div')).querySelectorAll('.sc-band-stat')).forEach(function(s){
+      t[s.querySelector('.sc-band-lab').textContent] = [].slice.call(s.querySelectorAll('.sc-band-v')).map(function(v){ return v.textContent; }).join(' · ');
+    });
+    return t;
+  }
+  function wrTile(t){ return t[Object.keys(t).filter(function(k){ return /^Writer/.test(k); })[0]]; }
+  function bandText(){ var t = tiles(); return Object.keys(t).length ? Object.keys(t).map(function(k){ return k + ' ' + t[k]; }).join(' | ') : null; }
   function bandFirst(){ var v = band() && band().querySelector('.sc-band-v'); return v ? v.textContent : null; }
   function dimmed(){ return band() ? [].slice.call(band().querySelectorAll('.sc-band-v.is-same')).map(function(e){ return e.textContent; }) : null; }
   function rect(el){ var r = el.getBoundingClientRect(); return {top: r.top, bottom: r.bottom, left: r.left, right: r.right, h: r.height}; }
@@ -68,28 +80,27 @@ window.addEventListener('load', function () { (async function () {
 
     // F3 -- the band's facts are Compare's own for the tab on screen.
     await waitFor(function(){ return (dimmed() || []).length > 0; }, 'the parked tabs probed after Load');
-    var bt = bandText();
+    var bt = bandText(), tl = tiles();
     await openCompare();
     var cLoc = compareRow('Location'), cEps = compareRow('Episodes'), cWr = compareRow('Writer’s Rm') || compareRow('Writer\'s Rm'),
         cFirst = compareRow('First shoot day'), cSpan = compareRow('Production span'), cWrap = compareRow('Wrap');
     await closeCompare();
-    var parts = bt ? bt.split(' · ') : [];
-    add('F3', 'the band reads the tab on screen exactly as Compare\'s column for it does',
-      !!cLoc && parts[0] === cLoc[0] && parts[0] === 'Toronto' && parts[1] === cEps[0] + ' eps' &&
-      !!cWr && bt.indexOf(cWr[0].split(' ')[0]) > 0 && bt.indexOf('Production ' + cFirst[0]) > 0 &&
-      bt.indexOf(cSpan[0]) > 0 && bt.slice(-cWrap[0].length) === cWrap[0],
+    add('F3', 'each tile reads the tab on screen exactly as Compare\'s column for it does, its weeks in its own phase\'s tile',
+      !!cLoc && tl.Location === cLoc[0] && tl.Location === 'Toronto' && tl.Episodes === cEps[0] &&
+      !!cWr && wrTile(tl) === cWr[0].split(' ')[0] + ' · 12 wks' && tl.Production === cFirst[0] + ' · ' + cSpan[0] &&
+      tl.Wrap === cWrap[0] && Object.keys(tl).join('|') === 'Location|Episodes|' + Object.keys(tl)[2] + '|Production|Wrap',
       {band: bt, compare: {loc: cLoc, eps: cEps, wr: cWr, first: cFirst, span: cSpan, wrap: cWrap}},
-      'Toronto · 8 eps · Writer\'s Rm <its open> · 12 wks · Production <first> · <span> · Wrap <wrap>');
+      'Location Toronto | Episodes 8 | Writer\'s Rm <its open> · 12 wks | Production <first> · <span> | Wrap <wrap>');
 
     // F4 -- dimmed means the same in every scenario: once the parked tabs are probed, the shared writers' room and
     // first shoot day are dimmed, the rest are not. A change in one tab undims it, and ⌘Z dims it again.
     var d0 = dimmed();
     T.set('weeks-writersRoom', '13'); await T.sleep(900);
-    var d1 = dimmed(), bt1 = bandText();
+    var d1 = dimmed(), bt1 = wrTile(tiles());
     key('z'); await T.sleep(900);
     var d2 = dimmed();
     add('F4', 'a fact the same in every scenario is dimmed; changing it in one tab undims it, ⌘Z dims it again',
-      JSON.stringify(d0) === JSON.stringify(['1/5/26', '12 wks', '6/29/26']) && d1.indexOf('13 wks') < 0 && /13 wks/.test(bt1) &&
+      JSON.stringify(d0) === JSON.stringify(['1/5/26', '12 wks', '6/29/26']) && d1.indexOf('13 wks') < 0 && / · 13 wks$/.test(bt1 || '') &&
       JSON.stringify(d2) === JSON.stringify(d0),
       {before: d0, after: d1, band: bt1, undone: d2}, '[1/5/26, 12 wks, 6/29/26]; 13 wks not dimmed; back after ⌘Z');
 
@@ -97,13 +108,13 @@ window.addEventListener('load', function () { (async function () {
     var statusBefore = (document.getElementById('save-status') || {}).textContent;
     tab('Scenario A').click();
     await T.sleep(30);
-    var atOnce = bandFirst(), flipText = bandText();
+    var atOnce = bandFirst(), flipText = bandText(), flipTiles = tiles();
     await T.sleep(700);
     add('F5', 'a flip shows the other tab\'s facts at once and marks nothing unsaved',
-      current() === 'Scenario A' && atOnce === 'U.S. (Area Standards)' && /^U\.S\. \(Area Standards\) · 10 eps/.test(flipText) &&
+      current() === 'Scenario A' && atOnce === 'U.S. (Area Standards)' && flipTiles.Location === 'U.S. (Area Standards)' && flipTiles.Episodes === '10' &&
       (document.getElementById('save-status') || {}).textContent === statusBefore,
       {current: current(), first30ms: atOnce, band: flipText, status: [statusBefore, (document.getElementById('save-status') || {}).textContent]},
-      'Scenario A, "U.S. (Area Standards) · 10 eps …" within 30 ms, status unchanged');
+      'Scenario A, "Location U.S. (Area Standards) | Episodes 10 | …" within 30 ms, status unchanged');
 
     // F6 -- the Location box: typed text wins in the band and in Compare; blank is the short region; ⌘Z undoes it.
     var locEl = document.getElementById('show-location');
@@ -153,15 +164,15 @@ window.addEventListener('load', function () { (async function () {
     // window is wide, so the band is narrowed by hand the way a 1000 px window would, and then a flip re-renders it:
     // in the app a narrower band only ever comes from a window or panel resize, which re-renders the strip, and the
     // band measures itself on every render (a ResizeObserver alone is not delivered on a page that isn't painting).
-    var rightWas = b8.style.right;
+    var rightWas = b8.style.right, oneRow = b8.offsetHeight;
     b8.style.right = (window.innerWidth - b8.getBoundingClientRect().left - 380) + 'px';
     tab('8 eps').click(); await T.sleep(900);
     var wrapped = band().offsetHeight, clipped = band().scrollWidth > band().clientWidth, lay9 = layoutOk();
     b8.style.right = rightWas;
     tab('Toronto').click(); await T.sleep(900);
     add('F9', 'a narrow band wraps onto more lines, cuts nothing off, and the grid still ends above it',
-      wrapped > 40 && !clipped && lay9.gridClears && lay9.margin === lay9.expectMargin,
-      {height: wrapped, clipped: clipped, layout: lay9}, 'taller than one line, not clipped, grid clears');
+      wrapped >= oneRow + 30 && !clipped && lay9.gridClears && lay9.margin === lay9.expectMargin,
+      {oneRow: oneRow, height: wrapped, clipped: clipped, layout: lay9}, 'a second row of tiles, not clipped, grid clears');
 
     // F10 -- the month view: the band shows, and the panel (the month view's scroller) ends above it.
     document.getElementById('view-month-btn').click(); await T.sleep(1000);

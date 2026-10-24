@@ -201,3 +201,16 @@ this would be in the "show menu""*.
    - CLAUDE.md's state notes (`show-location` is a permanent id).
 
    Ask before any commit to `main` or push.
+
+## 10. Later the same evening: stat tiles (owner's option D)
+
+On the live band the owner found *"its not necessarily clear that the 20wks refers to the length of the writers room
+and the 17 weeks refers to length of production"*. Every separator was the same "·", so a phase's weeks floated between
+two labels. From four mocked fixes the owner chose D, *"a small label above each value, like stat tiles"*.
+
+- **Each fact is a tile:** Location / Episodes (or Blocks) / the writers' room / Production / Wrap, each label over its
+  value, with hairlines between.
+- **A phase's start and its weeks share a tile.**
+- **This replaces §2's default 2** (no label on the band, beginning with the Location): every fact now has a label.
+- **The band is 41 px.** It wraps between tiles, and a wrapped row never starts with a divider.
+

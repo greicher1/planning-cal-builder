@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; NOT PUSHED
+
+- **Asked** (owner, with a screenshot of the live band): *"its not necessarily clear that the 20wks refers to the
+  length of the writers room and the 17 weeks refers to length of production"*. Four fixes mocked in chat (A brackets
+  and dividers, B chips, C a sentence, D a label over each value). **Chosen: D**, *"a small label above each value,
+  like stat tiles"*. Tracker: `key-facts-band-clarity`.
+- **Built:**
+  - `FactsBand` in `ScenarioTabs.jsx` renders `.sc-band-stat` tiles (`.sc-band-lab` over `.sc-band-val`). Every group
+    now has a label: Location, Episodes / Blocks (the value is the bare count), the two phase labels, Wrap.
+  - `legacy.css` `.sc-band*` restyled. The engine is untouched.
+  - The band is 41 px, and the panel's room is measured as before.
+- ⚠️ **A wrapped row must not start with a divider.** Each tile draws its left divider pulled 1 px outside itself
+  (`margin-left:-1px`), and the band clips (`overflow:hidden`), so the first tile of every row loses its divider.
+  Tiles are far narrower than the band, so nothing else can clip.
+- **Proof:**
+  - `scenariofacts` 11/11. Its `tiles()` reads label → value, and F9 now demands a real second row (41 → 76 px).
+  - `scenarios` 22/22, `npm run check` 40/40, build `d0a2cded`.
+  - Seen in the browser pane at 1000 px, on one row and wrapped.
+  - No full gate: chrome only, nothing frozen, saved or printed. The memory rule for chrome-only CSS applies.
+- ⏭ **Next:** the owner's push decision, one push of `scenario-facts` to `origin/main`. Local `main` still owes the
+  merge (entry below).
+
 ### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — committed on local `main` as `e11beb4`, then replayed alone onto `origin/main` (`8c78372`, the key facts band) on branch `mv-gap-flash` (worktree `.claude/worktrees/mv-gap-flash`), because local `main` holds another session's uncommitted work and the owner chose *"Push only the fix"*; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below)
 
 - **Asked** (owner): *"as you scroll up and down over a square in the month view, the square flashes purple for a
