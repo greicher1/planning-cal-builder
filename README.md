@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; branch `scenario-facts`, not merged)
+### Unreleased — Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; live at `8c78372`)
 
 Owner: *"a bar or section somewhere that gives the major key considerations of each scenario in one clear easy
 place ... as you switch between scenarios you should be able to see at a glance what the key differences between each

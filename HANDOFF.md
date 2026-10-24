@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); PUSHED FROM THE BRANCH (owner's picker); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); ✅ **LIVE at `8c78372`** (pushed from the branch on the owner's picker; live `index.html` byte-identical to the gated build, sha256 `0d0cfdd9`); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
 
 - ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
   defaults in section 2."*
@@ -60,6 +60,10 @@
     to touch their files.
   - Asked again, the owner chose *"Push from the branch"*: ONE `git push origin scenario-facts:main`. `origin/main`
     was `acdae89`, an ancestor, so it is a fast-forward. It carries local `main`'s unpushed docs commit `a0d5245`.
+  - ✅ **PUSHED AND LIVE.** ONE `git push origin scenario-facts:main` at 20:39:01 (`acdae89..8c78372`). Deploy run
+    40059168727 succeeded at 20:39:48. At 20:39:57 the live `index.html`, fetched with a cache-buster, was
+    **byte-identical to the gated build** (sha256 `0d0cfdd9…`, 1,823,488 bytes, `cmp`). No version cut: `APP_VERSION`
+    and `version.json` are unchanged. This docs commit is local only.
   - ⏭ **Merge `scenario-facts` into local `main` once that session has committed.** Expect conflicts only in
     HANDOFF / README's top entries (keep both); `legacy.css` changes are in different blocks. The notes below are the
     history that led here.
