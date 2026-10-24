@@ -223,3 +223,9 @@ sidebar included"*.
 - **One guard:** it is clamped to the calendar's area, so a narrow window never puts it over the sidebar.
 - **This replaces §3.1's "as wide as the calendar".**
 
+## 12. Centred over the calendar after all (option A)
+
+Live with the window's centre, the owner asked *"how is this centered?"*. The sidebar fills the window's left, so the
+window's middle sat about 250 px left of the calendar box's middle. Now the band's middle is the calendar area's middle
+at every width. This replaces §11.
+

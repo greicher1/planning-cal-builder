@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED OVER THE CALENDAR (option A) — branch `scenario-facts` on top of live `1ab777c`; TARGETED LEGS GREEN; NOT PUSHED (owner: *"then ask me before pushing"*)
+
+- **Why:** the window-centred band (B, live at `1ab777c`) drew *"how is this centered?"* from the owner, with a
+  screenshot. Measured on it: the window's middle was 1,000 of 2,000 px and the bar's middle about 1,006, so it was
+  centred exactly as B specified. But the calendar box runs 513–1,988, middle about 1,250. **The window's centre reads
+  as off-centre whenever the sidebar is on screen**, as the A/B mock had warned. Owner: *"Switch the key facts bar to
+  centre over the calendar area (option A), then ask me before pushing."*
+- **Built:** `placeBand()` now does `left + max(0, (area − width) / 2)`, where the area is `left` to
+  `innerWidth − right`, the calendar's edges. B's sidebar clamp is gone: A can't reach the sidebar. CSS and comments
+  are updated.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 now measures against the calendar area, panel left + 28 to the panel's content
+    right − 28: offset 0.
+  - `scenarios` 22/22, `npm run check` 40/40, build `ce675778`.
+  - Browser pane at 1000 px (offset 0), and resized live to 1440 px (offset 1).
+- ⏭ **Next:** ask the owner before pushing (they asked for that). Local `main` still owes the merge.
+- 📝 **Lesson:** a literal "centre in the window" on a layout with a sidebar is rarely what's meant. Say so plainly at
+  the mock stage, as the recommendation did, and when it is chosen anyway, show it at the owner's own window size
+  before shipping.
+
 ### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; ✅ **LIVE at `1ab777c`**
 
 - **Asked** (owner): *"what if we centered the bar left to right in the window"*. Mocked in chat: A over the calendar

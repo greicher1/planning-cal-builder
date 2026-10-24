@@ -3272,9 +3272,9 @@
      too narrow for one row WRAPS between tiles rather than cutting any off (owner: no ellipses), and the panel's room
      follows the measured height. A fact the same in every scenario is dimmed, as Compare dims a row that is the same
      everywhere: what stays dark is what differs. Chrome, not the frozen surface. */
-  /* Centred in the window since the same evening (owner, option B): it hugs its tiles (width:max-content, capped at
-     the calendar's width by the component's max-width), and ScenarioTabs.jsx places its `left` -- the window's
-     centre, clamped so it never sits over the sidebar. */
+  /* Centred over the calendar since the same evening (owner, option A, after trying the window's centre): it hugs
+     its tiles (width:max-content, capped at the calendar's width by the component's max-width), and ScenarioTabs.jsx
+     places its `left` so its middle is the calendar area's. */
   .sc-band{
     position:fixed; bottom:44px; z-index:60; box-sizing:border-box; width:max-content;
     display:flex; flex-wrap:wrap; align-items:stretch; row-gap:4px; padding:5px 0;

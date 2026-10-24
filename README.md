@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Scenarios: the key facts band centred over the calendar (23 Oct 2026; branch `scenario-facts`, not pushed)
+
+The band went live centred on the WINDOW (option B), and the owner asked *"how is this centered?"*. The bar was
+exactly in the window's middle, but the sidebar fills the left of the window, so that middle falls well inside the
+calendar box's left half (about 250 px short on the owner's 1,000 px window). The owner switched to option A.
+
+- **The band's middle is now the calendar area's middle**, the white calendar box, at every window width. It still
+  hugs its tiles.
+- **The sidebar guard is gone**, because the calendar's middle can't put the band on the sidebar. A band wider than
+  the calendar still wraps inside it.
+
+Verified: `scenariofacts` 12/12 (F12 now measures against the calendar area: offset 0); `scenarios` 22/22;
+`npm run check` 40/40; in the browser pane at 1000 px (offset 0) and resized to 1440 px (offset 1, a half-pixel
+round). No full gate: chrome only.
+
 ### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; live at `1ab777c`)
 
 Owner: *"what if we centered the bar left to right in the window"*. Of two mocked readings (centred over the calendar,

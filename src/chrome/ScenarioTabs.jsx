@@ -20,7 +20,7 @@ import { IconPlus } from './icons.jsx'
 import { fmt } from './CompareDialog.jsx'
 
 // The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C"): the tab on screen's facts on a soft
-// grey band directly above the tabs, centred in the window (placeBand, below), while there are two or more scenarios. Since the same
+// grey band directly above the tabs, centred over the calendar (placeBand, below), while there are two or more scenarios. Since the same
 // evening each fact is a small STAT TILE, its label above its value (owner, option D: "a small label above each
 // value, like stat tiles"), because one line of "·"-separated facts left "20 wks" floating between the writers' room
 // and Production -- "its not necessarily clear that the 20wks refers to the length of the writers room". The
@@ -58,15 +58,16 @@ function putBandSpace(el) {
   if (v) root.style.setProperty('--sc-band-space', v)
   else root.style.removeProperty('--sc-band-space')
 }
-// CENTRED IN THE WINDOW, sidebar included (owner, 23 Oct 2026, option B: "Centre the key facts band in the whole
-// window"), the band hugging its tiles. But never over the sidebar or past the calendar: in a window too narrow for
-// that, the window's centre would put the band's left end on the sidebar, so it is clamped to the calendar's area,
-// `left` to `right` -- the same edges the band spanned before. A band wider than that area wraps inside it.
+// CENTRED OVER THE CALENDAR (owner, 23 Oct 2026, option A), the band hugging its tiles: its middle is the middle of
+// the calendar's area, `left` to `innerWidth - right`, the edges the band first spanned. The owner first chose the
+// WINDOW's centre (option B), saw it live and asked "how is this centered?": the sidebar fills the left of the window,
+// so the window's middle fell well inside the calendar box's left half (about 250 px short on a 1,000 px window). The
+// calendar's own middle is what reads as centred. A band wider than the area wraps inside it and starts at its left.
 // Written straight onto the element (its width is known only once laid out), and again on every render, a size
-// change of its own, and a window resize, which moves the centre without re-rendering the strip.
+// change of its own, and a window resize, which moves the middle without re-rendering the strip.
 function placeBand(el, left, right) {
-  const w = el.offsetWidth, vw = window.innerWidth
-  const x = Math.round(Math.max(left, Math.min(vw - right - w, (vw - w) / 2)))
+  const w = el.offsetWidth, area = window.innerWidth - left - right
+  const x = Math.round(left + Math.max(0, (area - w) / 2))
   if (el.style.left !== x + 'px') el.style.left = x + 'px'
 }
 function FactsBand({ band, left, right }) {
