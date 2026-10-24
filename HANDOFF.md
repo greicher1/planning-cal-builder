@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; NOT PUSHED
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; ✅ **LIVE at `1ab777c`**
 
 - **Asked** (owner): *"what if we centered the bar left to right in the window"*. Mocked in chat: A over the calendar
   (recommended) or B in the whole window. **Chosen: B**, *"Centre the key facts band in the whole window, sidebar
@@ -23,7 +23,12 @@
     band through `max-width`.
   - `scenarios` 22/22, `npm run check` 40/40, build `f01a1115`.
   - Browser pane at 1440 / 1280 (centred, offset 0) and 1000 / 961 (clamped).
-- ⏭ **Next:** the owner's push decision. Local `main` still owes the merge (entries below).
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:31:10
+  (`f29f268..1ab777c`). Deploy run 40062661294 succeeded at 21:32:23. At 21:32:27 the live `index.html` was
+  byte-identical to the tested build (sha256 `f01a1115…`, 1,824,141 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts`, once the main checkout's uncommitted work (another
+  session's) is committed.
 
 ### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; ✅ **LIVE at `f29f268`**
 

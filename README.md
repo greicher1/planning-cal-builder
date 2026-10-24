@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; branch `scenario-facts`, not pushed)
+### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; live at `1ab777c`)
 
 Owner: *"what if we centered the bar left to right in the window"*. Of two mocked readings (centred over the calendar,
 or in the whole window), the owner chose the whole window, sidebar included.
