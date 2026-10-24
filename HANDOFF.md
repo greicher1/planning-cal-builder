@@ -106,7 +106,79 @@
   flash entry below, README, legacy.css), which was left out of the commit and untouched.
 - No README entry yet: nothing a user can see has changed. It gets one when the code ships.
 
-### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — on `main` (this checkout), on top of `5cc8286`; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below); COMMITTED LOCALLY ONLY, NOT PUSHED
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED OVER THE CALENDAR (option A) — branch `scenario-facts` on top of live `1ab777c`; TARGETED LEGS GREEN; NOT PUSHED (owner: *"then ask me before pushing"*)
+
+- **Why:** the window-centred band (B, live at `1ab777c`) drew *"how is this centered?"* from the owner, with a
+  screenshot. Measured on it: the window's middle was 1,000 of 2,000 px and the bar's middle about 1,006, so it was
+  centred exactly as B specified. But the calendar box runs 513–1,988, middle about 1,250. **The window's centre reads
+  as off-centre whenever the sidebar is on screen**, as the A/B mock had warned. Owner: *"Switch the key facts bar to
+  centre over the calendar area (option A), then ask me before pushing."*
+- **Built:** `placeBand()` now does `left + max(0, (area − width) / 2)`, where the area is `left` to
+  `innerWidth − right`, the calendar's edges. B's sidebar clamp is gone: A can't reach the sidebar. CSS and comments
+  are updated.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 now measures against the calendar area, panel left + 28 to the panel's content
+    right − 28: offset 0.
+  - `scenarios` 22/22, `npm run check` 40/40, build `ce675778`.
+  - Browser pane at 1000 px (offset 0), and resized live to 1440 px (offset 1).
+- ⏭ **Next:** ask the owner before pushing (they asked for that). Local `main` still owes the merge.
+- 📝 **Lesson:** a literal "centre in the window" on a layout with a sidebar is rarely what's meant. Say so plainly at
+  the mock stage, as the recommendation did, and when it is chosen anyway, show it at the owner's own window size
+  before shipping.
+
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; ✅ **LIVE at `1ab777c`**
+
+- **Asked** (owner): *"what if we centered the bar left to right in the window"*. Mocked in chat: A over the calendar
+  (recommended) or B in the whole window. **Chosen: B**, *"Centre the key facts band in the whole window, sidebar
+  included"*. Tracker: `key-facts-band-centred`.
+- **Built** (`ScenarioTabs.jsx` + `legacy.css` only):
+  - `.sc-band` is `width:max-content`, with a `max-width` of the calendar's width;
+  - `placeBand()` writes its `left`: the window's centre, CLAMPED to the calendar's area (`left`..`innerWidth - right`,
+    the edges the band used to span);
+  - it runs on every render, on the band's own resize, and on `window` `resize`. The strip doesn't re-render on a
+    window resize (its measured edges don't change), so without that listener the band would stay off-centre.
+- ⚠️ **The clamp is the owner's B with one guard.** Below about 1,110–1,240 px, depending on the sidebar's width, the
+  window's centre would put the band's left end on the sidebar, so it stops at the calendar's left edge. Seen at 1000
+  and 961 px: left = calendar left, 308.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 is new (centre within 1 px of the window's, left ≥ the calendar's); F9 now narrows the
+    band through `max-width`.
+  - `scenarios` 22/22, `npm run check` 40/40, build `f01a1115`.
+  - Browser pane at 1440 / 1280 (centred, offset 0) and 1000 / 961 (clamped).
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:31:10
+  (`f29f268..1ab777c`). Deploy run 40062661294 succeeded at 21:32:23. At 21:32:27 the live `index.html` was
+  byte-identical to the tested build (sha256 `f01a1115…`, 1,824,141 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts`, once the main checkout's uncommitted work (another
+  session's) is committed.
+
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; ✅ **LIVE at `f29f268`**
+
+- **Asked** (owner, with a screenshot of the live band): *"its not necessarily clear that the 20wks refers to the
+  length of the writers room and the 17 weeks refers to length of production"*. Four fixes mocked in chat (A brackets
+  and dividers, B chips, C a sentence, D a label over each value). **Chosen: D**, *"a small label above each value,
+  like stat tiles"*. Tracker: `key-facts-band-clarity`.
+- **Built:**
+  - `FactsBand` in `ScenarioTabs.jsx` renders `.sc-band-stat` tiles (`.sc-band-lab` over `.sc-band-val`). Every group
+    now has a label: Location, Episodes / Blocks (the value is the bare count), the two phase labels, Wrap.
+  - `legacy.css` `.sc-band*` restyled. The engine is untouched.
+  - The band is 41 px, and the panel's room is measured as before.
+- ⚠️ **A wrapped row must not start with a divider.** Each tile draws its left divider pulled 1 px outside itself
+  (`margin-left:-1px`), and the band clips (`overflow:hidden`), so the first tile of every row loses its divider.
+  Tiles are far narrower than the band, so nothing else can clip.
+- **Proof:**
+  - `scenariofacts` 11/11. Its `tiles()` reads label → value, and F9 now demands a real second row (41 → 76 px).
+  - `scenarios` 22/22, `npm run check` 40/40, build `d0a2cded`.
+  - Seen in the browser pane at 1000 px, on one row and wrapped.
+  - No full gate: chrome only, nothing frozen, saved or printed. The memory rule for chrome-only CSS applies.
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:23:49
+  (`c6a5c2e..f29f268`). Deploy run 40062174299 succeeded at 21:24:36. At 21:24:39 the live `index.html` was
+  byte-identical to the tested build (sha256 `d0a2cded…`, 1,823,739 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts` (entry below), once the main checkout's uncommitted
+  work is committed.
+
+### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — committed on local `main` as `e11beb4`, then replayed alone onto `origin/main` (`8c78372`, the key facts band) on branch `mv-gap-flash` (worktree `.claude/worktrees/mv-gap-flash`), because local `main` holds another session's uncommitted work and the owner chose *"Push only the fix"*; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below)
 
 - **Asked** (owner): *"as you scroll up and down over a square in the month view, the square flashes purple for a
   split second as your cursor hovers in between the tiny gap between the selector buttons for comments. this is
@@ -139,10 +211,114 @@
     untracked `Reshape Fixture 2026-09-29.sptcal`. **On the committed fixture** (a temporary copy under another name,
     deleted after): gate 13's written month PDF is byte-identical to its baseline (102,988 bytes), and `stintreshape`
     passes every check. Every other frozen output matched its baseline, gates 10 and 13 included.
-- ⏭ **Next:** the owner's call on the push. `main` also carries `5cc8286` (the Phases plan and mockup, no `src/`
-  change), so a plain push ships both. Someone should also decide what to do with the modified
-  `stintswap-reshape.sptcal`: until it is restored (`git checkout -- tests/fixtures/stintswap-reshape.sptcal`, the
-  owner's call), every full gate in this checkout fails those two checks.
+- **Owner's pickers, 23 Oct 2026:** *"Push only the fix"* (not the Phases plan commit `5cc8286`, which stays on local
+  `main`), and *"Leave it for now"* for the modified `stintswap-reshape.sptcal`. ⚠️ Until that fixture is restored
+  (`git checkout -- tests/fixtures/stintswap-reshape.sptcal`, the owner's call), every full gate in the main checkout
+  fails those two checks.
+- ⚠️ **LOCAL `main` NOW DIVERGES FROM `origin/main`** (it holds `e11beb4` and `5cc8286`; origin holds the key facts
+  work and this fix's replay). Merge `origin/main` into local `main` once the other session's uncommitted HANDOFF
+  and Phases-plan edits are committed. Only the HANDOFF / README tops should conflict: keep every entry.
+
+### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); ✅ **LIVE at `8c78372`** (pushed from the branch on the owner's picker; live `index.html` byte-identical to the gated build, sha256 `0d0cfdd9`); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+
+- ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
+  defaults in section 2."*
+- **Built** (README has the entry). No frozen edit.
+  - **Engine (`app.js`):**
+    - `placeShortLabel` / `cleanLocation` / `locationText` beside `PLACES` (`us-general` carries `short`);
+    - `scenarioFacts()` gains `wrOpen`, `wrWeeks`, and `loc` = typed Location or the short region (null for None);
+    - the "key facts band" block: `scenarioBand()`, `refreshScenarioFacts()` / `scheduleScenarioFacts()` (120 ms
+      after `update()`), and `scheduleScenarioProbe()` after `adoptScenarios()`;
+    - `probeScenarioTabs()`, factored out of `compareScenarioValues()`;
+    - `pushScenarioChrome` sends `band`.
+  - **Chrome:** `FactsBand` in `ScenarioTabs.jsx`, `#show-location` in `Sidebar.jsx`, and `fmt` exported from
+    `CompareDialog.jsx`.
+  - **CSS:** `.sc-band*`, and `.preview-panel`'s bottom margin / padding `+ var(--sc-band-space, 0px)`.
+- ⚠️ **Traps found while building:**
+  - **A ResizeObserver alone didn't move the grid in the leg.** The page wasn't painting (hidden pane, headless
+    virtual time), so its callback never came: the band wrapped to 48 px and its room stayed at 38. So the band
+    re-measures on every React render, and the grid fit now also observes `<html>`'s `style` attribute as a
+    mutation. Same lesson as the grid fit's own notice-strip comment.
+  - **`var`, not `let`, for `liveScenarioFacts` / `BAND_KEYS` / the timers:** `pushScenarioChrome()` can run during
+    evaluation, before those lines, and a TDZ error would take the whole IIFE (the `scenarioTabs` rule).
+  - **A flip refreshes the band synchronously** (`switchScenario`). On the debounce alone the band showed the tab
+    just left for 120 ms.
+  - **`fields.byId` stores `{value}` per id**, not the bare value.
+  - **Dimmed is `--text-muted`, Compare's `dimmed`, not the mockup's lighter `#A5A197`**, which was about 2:1 on the
+    band's `gray-1`.
+  - **The after-Load probe** runs a few tabs per tick, waits while a note editor is open or a field is focused, and
+    banks a pending edit first, as Compare does. A tab that fails is marked `factsFailed` and skipped. Until every tab
+    is known, nothing is dimmed.
+- **Proof so far:**
+  - **New leg `scenariofacts`, 11/11** (wired into `gate.sh` after `scenarios`). It is red on the pre-change build:
+    `main` at `a0d5245`, built with `git archive`, sha256 `3823d4d8` = the live file. It stops at F2, "no band".
+  - **`scenarios` 22/22.** S9 now expects "Toronto" / "U.S. (Area Standards)", an intended change.
+  - **`npm run check` 40/40.**
+  - **By hand in the browser pane** (port 9871, preview `scenario-facts-9871` in main's `.claude/launch.json`): the
+    band at 1000 and 1440 px, typing a Location, a flip, and Compare's row.
+- ⛔ **Gate 5 WILL MOVE by one id** (`show-location` gained in `fields.byId`). Its baseline re-cut needs the owner's
+  sign-off; don't re-cut it unasked.
+- **Full gate on `f0c088c`** (build `0d0cfdd9…`, 1,823,488 bytes; 19:47–20:17): **3,054 PASS, 2 FAIL.**
+  - Every frozen output is identical to its baseline: the waterfall PDF, every Excel part, every printed month
+    document, and the written month PDFs (`monthwriter`). 0 clipped cells.
+  - `scenariofacts` 11/11 and `scenariocompat` (both releases) pass inside it.
+  - The two FAILs, both caused by the new id:
+    - **Gate 5**, as predicted: `gained: ['show-location']`, `lost: []`, `changed: []`, 76 → 77 ids.
+    - **`settingswin` W3:** the leg anchors on the swept ids just before `#cal-range-end`, and `#show-location` now
+      sits between `#show-version` and `#cal-range-start`. The window's own ids were exactly right. The anchor is
+      moved in `27307f1` (comment in the leg); alone on the same build, 21/21.
+- **Owner, by picker:** *"Re-cut it"*, *"Merge into main"*, *"Push and deploy"*.
+  - **Gate 5 re-cut** in `3186104`: `restore.json`'s `form` gains `show-location: ""`, written up in the baseline
+    README. Re-run alone: the restore leg and gate 5 PASS, 77 ids, grid identical.
+  - ⚠️ **Local `main` was NOT merged.** The main checkout held another session's UNCOMMITTED work (the month view's
+    hover-flash fix in `legacy.css`, `PHASES-TAB-PLAN.md`, and HANDOFF / README entries). A merge there would have had
+    to touch their files.
+  - Asked again, the owner chose *"Push from the branch"*: ONE `git push origin scenario-facts:main`. `origin/main`
+    was `acdae89`, an ancestor, so it is a fast-forward. It carries local `main`'s unpushed docs commit `a0d5245`.
+  - ✅ **PUSHED AND LIVE.** ONE `git push origin scenario-facts:main` at 20:39:01 (`acdae89..8c78372`). Deploy run
+    40059168727 succeeded at 20:39:48. At 20:39:57 the live `index.html`, fetched with a cache-buster, was
+    **byte-identical to the gated build** (sha256 `0d0cfdd9…`, 1,823,488 bytes, `cmp`). No version cut: `APP_VERSION`
+    and `version.json` are unchanged. This docs commit is local only.
+  - ⏭ **Merge `scenario-facts` into local `main` once that session has committed.** Expect conflicts only in
+    HANDOFF / README's top entries (keep both); `legacy.css` changes are in different blocks. The notes below are the
+    history that led here.
+
+- **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
+  easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also
+  add start date of production"*. They also said *"i dont want to overcomplicate and bloat the app ... I dont want more
+  clutter"*. Tracker: `scenario-key-facts`.
+- **Then the region problem** (owner): the Production Region is a holiday picker, not a city. *"if you selected a province
+  in canada, you might actually mean winnipeg"*, and *"this is also an issue for the comparison screen"*. The owner's
+  own fix: *"in addition to selecting a production region, you could also enter a specific location (as text) and that
+  is what is used ... this would be in the "show menu""*. Tracker: `show-location-field`.
+- **What the mockup proposes:**
+  - One line of facts, shown only with 2+ scenarios: Location · eps · Writers' Rm open · wks · Production start · wks ·
+    Wrap. The same in both views; no setting; nothing saved, printed or exported.
+  - **Placement: C, the tinted band above the tabs (ruled).** It got there by way of F (the text style bar) and A–E (a row above the tabs). First it was a row above
+    the tabs. The owner liked the look of beside the tabs but asked about 6+
+    scenarios, so the mockup has 3 / 6 / 10 scenario and 1280 / 1440 / 1680 px switches. Measured: beside the tabs,
+    the line keeps its width and the TABS give way (`.sc-tabs` is `min-width:0` and scrolls). At 1280 px the line
+    alone doesn't fit; at 1440 px only 1 tab of 3, 6 or 10 is in view; at 1680 px 3 of 3, 4 of 6, 4 of 10. Above the
+    tabs: all 6 at every width, and 10 shows 7 / 9 / 10, scrolling the rest as today.
+  - **Then the owner asked for more separation between the two rows**, so the mockup shows five "above" styles: A
+    hairline, B readout pill (the zoom pill's shape), C tinted band, D calendar footer, E name tag.
+  - **Then the owner's own idea, F: the empty right-hand end of the text style bar** (`.style-bar`, under the
+    preview toolbar, in BOTH views), labelled "SCENARIO" the way the bar's `::before` says "TEXT", behind a divider.
+    Measured in the real build at 1440 px: the bar is 1038 px wide, its controls end at x≈620 and the hint
+    (`.style-bar:not(.has-target)::after`) at ≈830. The facts need ~613 px plus the label. **F fits windows from about
+    1,277 px once the hint gives way, and from about 1,488 px with the hint.** It costs no calendar height. Below
+    about 1,280 px it needs a fallback (not designed). The facts end up far from the tabs (top vs bottom).
+  - **Values the same in every scenario are grey** (Compare's grey-row rule); what differs stays dark. A first draft
+    tinted differing values yellow, but realistic scenarios differ in most facts, so everything went yellow.
+  - **Location box** (optional text, under Production Region in Show info): the line and Compare's Location row show it.
+    When it's blank they show the region SHORTENED ("Manitoba", "Toronto", "U.S. (Area Standards)"), not the list's
+    full label. It never changes a date.
+- ⚠️ **If built, Location is a NEW saved field:** an id'd Show info control lands in `fields.byId`, so its id is
+  permanent from the first save (CLAUDE.md "Every saved calendar must keep opening"). An old file without it shows the
+  region. Per scenario, like every Show info field. The values should come from `scenarioFacts()` (the header's own
+  tokens), so the line, the header and Compare cannot disagree.
+- ⏭ **Next:** see the ✅ Ruled line at the top of this entry. Nothing is committed: the plan, the mockup and these notes
+  are uncommitted in the main checkout.
 
 ### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; ✅ **LIVE at `acdae89`**; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
 

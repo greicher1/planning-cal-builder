@@ -120,6 +120,16 @@ export function ShowInfoCard() {
         <Input.Wrapper label="Production Region" labelElement="div">
           <select className="region-mirror" aria-label="Production Region" defaultValue="">{REGION_OPTIONS}</select>
         </Input.Wrapper>
+        {/* The Location (KEY-FACTS-PLAN.md §3.2; owner, 23 Oct 2026: "in addition to selecting a production
+            region, you could also enter a specific location (as text) and that is what is used ... this would be
+            in the show menu"). The Region picks the holidays and is not always the town ("Manitoba" for a
+            Winnipeg shoot); this is the town, shown instead of the region in the scenario band and in Compare's
+            Location row. It never reaches a date.
+            ⛔ `show-location` IS CALENDAR DATA, so it carries an id and collectFieldValues() sweeps it into
+            fields.byId -- a PERMANENT id from the first file saved with it. Never rename it. An absent key means
+            blank (applyStateSnapshot's absent-field defaults), so an older file never shows another show's town. */}
+        <TextInput id="show-location" label="Location" placeholder="e.g. Winnipeg" maxLength={40}
+                   description="Optional. Shown instead of the region when you compare scenarios." />
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>

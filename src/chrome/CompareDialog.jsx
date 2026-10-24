@@ -33,7 +33,8 @@ const COL_MIN = 168     // a scenario's column, inside its padding: "Pushed 12 d
 const COL_EST = 184     // a column's whole width, for the first sizing before the table is measured
 
 const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
-const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
+// Exported for the scenario band (ScenarioTabs.jsx), so its dates read exactly as this table's do.
+export const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
 const days = (a, b) => Math.round((parse(b).t - parse(a).t) / 864e5)
 const sign = (n) => (n > 0 ? '+' : '−') + Math.abs(n)
 // A date that moved is PUSHED (later) or PULLED (earlier), never "+" or "−" (owner, 23 Oct 2026: "lets use pushed

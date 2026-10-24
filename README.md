@@ -68,6 +68,54 @@ waterfall PDF, the Excel parts, the printed month documents, all 21 written mont
 and passes alone. The final build `400e403b` differs from the gated one only in that sentence; `simpostlabel`,
 `offweek` (both runs), `hidewf` and `phasesui` pass on it.
 
+### Unreleased — Scenarios: the key facts band centred over the calendar (23 Oct 2026; branch `scenario-facts`, not pushed)
+
+The band went live centred on the WINDOW (option B), and the owner asked *"how is this centered?"*. The bar was
+exactly in the window's middle, but the sidebar fills the left of the window, so that middle falls well inside the
+calendar box's left half (about 250 px short on the owner's 1,000 px window). The owner switched to option A.
+
+- **The band's middle is now the calendar area's middle**, the white calendar box, at every window width. It still
+  hugs its tiles.
+- **The sidebar guard is gone**, because the calendar's middle can't put the band on the sidebar. A band wider than
+  the calendar still wraps inside it.
+
+Verified: `scenariofacts` 12/12 (F12 now measures against the calendar area: offset 0); `scenarios` 22/22;
+`npm run check` 40/40; in the browser pane at 1000 px (offset 0) and resized to 1440 px (offset 1, a half-pixel
+round). No full gate: chrome only.
+
+### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; live at `1ab777c`)
+
+Owner: *"what if we centered the bar left to right in the window"*. Of two mocked readings (centred over the calendar,
+or in the whole window), the owner chose the whole window, sidebar included.
+
+- **The band hugs its tiles and sits in the middle of the window**: exactly centred at 1280 and 1440 px.
+- **It never covers the sidebar.** In a window too narrow for the true centre (below about 1,110-1,240 px, by the
+  sidebar's width) it stops at the calendar's left edge instead, and it never runs past the calendar's right edge.
+- **It re-centres when the window is resized.** A band wider than the calendar still wraps inside it.
+
+Verified: `scenariofacts` 12/12 (new F12: centred within 1 px of the window's centre, clear of the sidebar);
+`scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1440, 1280, 1000 and 961 px (the last two clamped to
+the calendar's edge). No full gate: chrome only.
+
+### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; live at `f29f268`)
+
+Owner, on the live band: *"its not necessarily clear that the 20wks refers to the length of the writers room and the
+17 weeks refers to length of production"*. On one line, every separator was the same "·", so a phase's weeks floated
+between it and the next phase. Of four mocked fixes the owner chose D, *"a small label above each value, like stat
+tiles"*.
+
+- **Each fact is a tile, its small label over its value:** Location, Episodes (or Blocks), Writer's Rm, Production,
+  Wrap, divided by hairlines. A phase's start date and its weeks share its tile ("1/5/26 · 12 wks"), so the weeks can
+  only belong to the label above them. Episodes reads as the bare count, since the label names it.
+- **Dimmed still means the same in every scenario**, value by value.
+- **The band is 41 px tall** (it was 30). The calendar makes room for it exactly as before. One row fits any window
+  from about 830 px with typical facts; a longer one wraps the tiles onto a second row, and a wrapped row never
+  starts with a stray divider.
+
+Verified: `scenariofacts` 11/11 (it now reads the tiles, and F9 proves a real second row, 41 → 76 px);
+`scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1000 px, on one row and wrapped. No full gate:
+nothing frozen, saved or printed changed.
+
 ### Unreleased — Month view: no purple flash between the "+" note buttons (23 Oct 2026)
 
 Owner: *"as you scroll up and down over a square in the month view, the square flashes purple for a split second as
@@ -90,6 +138,33 @@ The band's left-click, a right-click in a gap and the "+" all behave as before. 
 89/89, `labelsetup` 41/41, `halfworked` 24/24, `overrides` 20/20, `mvnotes` 30/30 + 14/14 and eight more month legs
 pass. Full gate: 3,035 PASS. The 2 FAILs come from a `stintswap-reshape` fixture modified in the checkout before this
 work. On the committed fixture, the written month PDF is byte-identical to its baseline and the leg passes.
+
+### Unreleased — Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; live at `8c78372`)
+
+Owner: *"a bar or section somewhere that gives the major key considerations of each scenario in one clear easy
+place ... as you switch between scenarios you should be able to see at a glance what the key differences between each
+are"*, without bloat. Six placements were mocked ([`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html));
+the owner chose C, a tinted band (*"lets go for C"*). Plan: [`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md).
+
+- **With two or more scenarios, a soft grey band sits directly above the tabs**, as wide as the calendar, in both
+  views. It reads the tab on screen: Location · episodes (or blocks) · Writer's Rm open date and weeks · Production's
+  first shoot day and weeks · Wrap. With one scenario nothing changes.
+- **A fact the same in every scenario is dimmed**, as Compare dims a row that is the same everywhere, so what stays dark
+  is what differs. Flip tabs and only the dark values change.
+- **A Location box in Show info**, under Production Region (owner: *"in addition to selecting a production region, you
+  could also enter a specific location (as text) and that is what is used"*). The Region still picks the holidays;
+  the Location is the town ("Winnipeg" with Manitoba picked). The band and Compare's Location row show it.
+- **Left blank, they show the Region shortened**: "Manitoba", not "Manitoba — province-wide"; "U.S. (Area Standards)"
+  for "Elsewhere in the U.S." (owner: the long label *"is also an issue for the comparison screen"*).
+- **The calendar makes room for the band** and ends above it. A window too narrow for one line wraps it rather than
+  cutting anything off.
+- ⛔ **`show-location` is a new permanent saved field.** A calendar saved before it opens with the box blank. Nothing
+  frozen changed, and nothing printed or exported, apart from Compare's Location text.
+
+Verified: the new `scenariofacts` leg 11/11, red on the pre-change build (it stops at "no band"); `scenarios` 22/22
+(S9 now expects the short region); `npm run check` 40/40; by hand in the browser pane at 1000 and 1440 px. Full gate
+3,054 / 2: every frozen output byte-identical; the two FAILs are the new id itself (gate 5's key set gains
+`show-location`, and `settingswin` W3's anchor, moved and 21/21 alone).
 
 ### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 

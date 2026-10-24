@@ -158,7 +158,9 @@ window.addEventListener('load', function () { (async function () {
       {tabs: loadedTabs, place: loadedPlace}, 'Scenario A | 8 eps | *Toronto, ca-toronto');
     add('S9', 'Compare on a freshly loaded file: Toronto first, every column filled by probing the parked tabs',
       cols.join('|') === 'Toronto|Scenario A|8 eps' && chips === 2 && cmpEps && cmpEps[0] === '8' && /^10/.test(cmpEps[1]) && cmpEps[2] === '8' &&
-      cmpLoc && /Toronto/.test(cmpLoc[0]) && /Elsewhere/.test(cmpLoc[1]),
+      // Location reads the Region SHORTENED since KEY-FACTS-PLAN.md §3.3: "Toronto", and "U.S. (Area Standards)" for
+      // "Elsewhere in the U.S. — Area Standards" (the one entry with its own `short`).
+      cmpLoc && cmpLoc[0] === 'Toronto' && cmpLoc[1] === 'U.S. (Area Standards)',
       {cols: cols, chips: chips, episodes: cmpEps, wrap: cmpWrap, location: cmpLoc}, 'Toronto | Scenario A | 8 eps; 8, 10 (+2), 8');
     add('S10', 'probing the parked tabs leaves the calendar on screen exactly as it was', gridBefore === gridAfter && formBefore === formAfter,
       {gridSame: gridBefore === gridAfter, formSame: formBefore === formAfter}, 'grid and fields unchanged');

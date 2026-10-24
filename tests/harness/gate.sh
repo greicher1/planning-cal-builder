@@ -2850,6 +2850,26 @@ errs = (a.get('health') or {}).get('errors') or []
 if errs: print('  FAIL  scenarios: page errors '+str(errs)[:200])
 sys.exit(0 if len(cases) >= 18 and all(c.get('pass') is True for c in cases) and not errs else 1)
 PYSC
+# ---- scenariofacts: the key facts band above the tabs, and Show info's Location (KEY-FACTS-PLAN.md, 23 Oct 2026) ------
+# One scenario: no band, the panel's 44 px as before. Three (scenarios-3.sptcal through the real Load): the band shows,
+# the grid ends above it, its facts are Compare's own, a fact shared by every tab is dimmed (and undims when one tab
+# changes it), a flip shows the new tab at once and is no edit, the Location wins over the region in the band and
+# Compare and is saved per scenario, an older file loads it blank, the band is chrome only, wraps rather than clips,
+# clears the month view, and goes with Keep only. Red on the pre-change build (it stops at F2: no band).
+rm -f "$HERE/scenariofacts.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenariofacts 300 >/dev/null 2>&1
+python3 - "$HERE/scenariofacts.json" <<'PYSF' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenariofacts produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenariofacts '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+errs = (a.get('health') or {}).get('errors') or []
+if errs: print('  FAIL  scenariofacts: page errors '+str(errs)[:200])
+sys.exit(0 if len(cases) >= 12 and all(c.get('pass') is True for c in cases) and not errs else 1)
+PYSF
 # ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
 # v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
 # v1.2.0, which has no version check, must open the tab that was on screen (8 episodes), never a blank calendar.

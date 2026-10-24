@@ -21249,6 +21249,7 @@ export function initLegacyApp() {
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
     });
     reflectStartDateValidity(state, refreshSpanHint(state).concat(calRangeEmptyFields(currentSchedule)));
+    scheduleScenarioFacts();   // the key facts band re-reads the tab on screen (KEY-FACTS-PLAN.md), debounced
     markDirty();
     restoreScroll(scrollSnap);
   }
@@ -21531,7 +21532,7 @@ export function initLegacyApp() {
     'us-san-francisco': {region:'US-GEN', label:'San Francisco, CA',
       locals:'IATSE Local 16 — Stage Employees',
       caveat:'Area Standards proxy. The ASA excludes Local 16\'s jurisdiction by name, so Northern California sits outside both national agreements. Confirm before locking dates.'},
-    'us-general': {region:'US-GEN', label:'Elsewhere in the U.S. — Area Standards',
+    'us-general': {region:'US-GEN', label:'Elsewhere in the U.S. — Area Standards', short:'U.S. (Area Standards)',
       locals:'The Area Standards local holding that jurisdiction',
       caveat:null},
     'ca-montreal': {region:'CA-QC', label:'Montreal, QC',
@@ -21592,6 +21593,28 @@ export function initLegacyApp() {
       caveat:null},
   };
   const DEFAULT_PLACE = 'us-general';
+
+  // ---- Location (KEY-FACTS-PLAN.md, owner 23 Oct 2026) ----
+  // The Region picks the HOLIDAYS; it is not always the town. "Manitoba — province-wide" is a Winnipeg shoot as often
+  // as not (owner: "if you selected a province in canada, you might actually mean winnipeg"), so Show info has a
+  // free-text #show-location, and the scenario band and Compare's Location row show what was typed there. Blank, they
+  // show the Region SHORTENED: the list's own label without its " — …" tail or ", ON" code, so "Manitoba", not
+  // "Manitoba — province-wide". An entry the rule gets wrong carries its own `short`. None is no value at all.
+  // ⛔ The Location never reaches a date. Only #union-place decides holidays.
+  const LOCATION_MAX = 40;
+  function placeShortLabel(value){
+    const p = PLACES[value];
+    if(!p) return '';
+    return p.short || p.label.replace(/\s+—.*$/, '').replace(/,\s*[A-Z]{2,3}$/, '').trim();
+  }
+  // Plain text, one line, as a scenario name is (it reaches Compare's Excel export).
+  function cleanLocation(v){
+    return stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, LOCATION_MAX);
+  }
+  function locationText(){
+    return cleanLocation((document.getElementById('show-location') || {}).value)
+      || placeShortLabel((document.getElementById('union-place') || {}).value);
+  }
 
   // The HOLIDAYS key for the current selection, or null for "None". A place is never itself a
   // HOLIDAYS key -- it always resolves through PLACES.
@@ -22944,6 +22967,9 @@ export function initLegacyApp() {
   // above, and unguarded for the same reason: src/main.jsx commits the React chrome with flushSync
   // BEFORE initLegacyApp() runs, so the field exists by the time this line evaluates.
   document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
+  // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
+  // re-reads the band instead of rendering.
+  document.getElementById('show-location').addEventListener('input', ()=>{ scheduleScenarioFacts(); markDirty(); });
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
@@ -23069,6 +23095,7 @@ export function initLegacyApp() {
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
     document.getElementById('show-version').value = '';
+    { const loc = document.getElementById('show-location'); if(loc) loc.value = ''; }   // KEY-FACTS-PLAN §5
     ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
     episodeNamesLegacy = false;   // a blank calendar names its episodes "Shoot Ep. 101"
@@ -23563,11 +23590,13 @@ export function initLegacyApp() {
   }
   // After a file's calendar was applied: its tabs become the tab set (or one tab, for a one-calendar file).
   function adoptScenarios(sc){
-    if(!sc){ resetScenarios(); return; }
+    if(!sc){ resetScenarios(); scheduleScenarioFacts(); return; }
     scenarioTabs = sc.tabs;
     currentScenarioId = sc.current;
     scenarioCounter = sc.counter;
     pushScenarioChrome();
+    scheduleScenarioFacts();
+    scheduleScenarioProbe();   // the band greys only once every tab's facts are known
   }
   // The strip under the calendar (src/chrome/ScenarioTabs.jsx) renders this; it hands actions back as
   // 'sptcal-scenario' events (below), the way ZoomControl hands back a zoom.
@@ -23581,6 +23610,7 @@ export function initLegacyApp() {
       tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name })),
       current: currentScenarioId,
       max: SCENARIO_MAX,
+      band: scenarioBand(),   // the key facts band (KEY-FACTS-PLAN.md); null with one tab
     });
   }
   // Parks the tab on screen: its state as a DEEP copy (a live captureSnapshot() shares the module's stores, which
@@ -23631,7 +23661,8 @@ export function initLegacyApp() {
     to.undo = null;
     lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
     refreshUndoRedoUI();
-    pushScenarioChrome();
+    // At once, not on update()'s debounce: for those 120 ms the band would show the tab just left (KEY-FACTS-PLAN).
+    refreshScenarioFacts();   // ...which pushes the chrome
     return true;
   }
   // "+": a copy of the tab on screen, next to it, on screen at once (the live app already IS its state). The copy
@@ -23737,8 +23768,12 @@ export function initLegacyApp() {
       eps: num(t.episodes),
       blocks: isBlocksMode() ? num((document.getElementById('num-blocks') || {}).value) : null,
       days: num(t.shootDays),
-      loc: (PLACES[(document.getElementById('union-place') || {}).value] || {}).label || 'None',
+      // The Location typed in Show info, else the Region shortened; null for None (Compare's dash). KEY-FACTS-PLAN §3.3.
+      loc: locationText() || null,
       ver: t.version || '',
+      // The writers' room for the band (KEY-FACTS-PLAN §1): the day it opens and its length in weeks.
+      wrOpen: day(t['writersRoom.open']),
+      wrWeeks: num(t['writersRoom.weeks']),
       first: day(t['production.open']),
       wrap: day(t['production.wrap']),
       span: num(t['production.weeks']),
@@ -23771,29 +23806,101 @@ export function initLegacyApp() {
     clearTimeout(undoPushTimer);
     pushUndoSnapshot();   // an edit still on the debounce is banked BEFORE the probe, as its own step
     const live = scenarioFacts();
-    const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && t.snapshot);
-    if(need.length){
-      const back = JSON.parse(JSON.stringify(captureSnapshot()));
-      const keep = { collapsed: new Set(collapsedPhaseKeys), cursor: monthCursor, recheck: monthCursorRecheck,
-                     sup: suppressDirty, app: applyingUndoRedo, scroll: captureScroll() };
-      suppressDirty = true; applyingUndoRedo = true;
-      try {
-        for(const t of need){
-          try { applyStateSnapshot(JSON.parse(JSON.stringify(t.snapshot))); t.facts = scenarioFacts(); }
-          catch(e){ console.error(e); t.facts = null; }
-        }
-      } finally {
-        try { applyStateSnapshot(back); } catch(e){ console.error(e); }
-        collapsedPhaseKeys.clear(); keep.collapsed.forEach(k => collapsedPhaseKeys.add(k));
-        monthCursor = keep.cursor; monthCursorRecheck = keep.recheck;
-        refreshAfterRestore();
-        suppressDirty = keep.sup; applyingUndoRedo = keep.app;
-        restoreScroll(keep.scroll);
-        // Re-based on the calendar as it now stands, so the re-render's settling never reads as an edit.
-        lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
-      }
-    }
+    probeScenarioTabs(scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && t.snapshot));
     return scenarioTabs.map(t => ({ id: t.id, name: t.name, facts: t.id === currentScenarioId ? live : t.facts }));
+  }
+  // The probe itself, shared by Compare and the band's after-Load pass (scheduleScenarioProbe). Synchronous from the
+  // first apply to the last, so nothing paints in between and nothing can act on a half-probed app.
+  function probeScenarioTabs(need){
+    if(!need.length) return;
+    const back = JSON.parse(JSON.stringify(captureSnapshot()));
+    const keep = { collapsed: new Set(collapsedPhaseKeys), cursor: monthCursor, recheck: monthCursorRecheck,
+                   sup: suppressDirty, app: applyingUndoRedo, scroll: captureScroll() };
+    suppressDirty = true; applyingUndoRedo = true;
+    try {
+      for(const t of need){
+        try { applyStateSnapshot(JSON.parse(JSON.stringify(t.snapshot))); t.facts = scenarioFacts(); t.factsFailed = false; }
+        catch(e){ console.error(e); t.facts = null; t.factsFailed = true; }
+      }
+    } finally {
+      try { applyStateSnapshot(back); } catch(e){ console.error(e); }
+      collapsedPhaseKeys.clear(); keep.collapsed.forEach(k => collapsedPhaseKeys.add(k));
+      monthCursor = keep.cursor; monthCursorRecheck = keep.recheck;
+      refreshAfterRestore();
+      suppressDirty = keep.sup; applyingUndoRedo = keep.app;
+      restoreScroll(keep.scroll);
+      // Re-based on the calendar as it now stands, so the re-render's settling never reads as an edit.
+      lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    }
+  }
+  // ---------- The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C") ----------
+  // One line of the tab on screen's facts above the tabs, while there are two or more: Location, episodes (blocks),
+  // Writers' Rm open and weeks, Production's first shoot day and span, Wrap. A fact the same in EVERY tab is sent
+  // `same` and drawn grey (Compare's rule), so what is left dark is what differs. src/chrome/ScenarioTabs.jsx draws
+  // it; the values are scenarioFacts(), Compare's own, so the band, Compare and the header cannot disagree.
+  //
+  // The tab on screen is re-read after every update(), debounced: update() is bound undebounced to typing, and the
+  // band can trail a keystroke. A parked tab's facts were stored by parkCurrentScenario() and cannot go stale (it
+  // cannot be edited). A tab not visited since Load has none until scheduleScenarioProbe() reaches it, and until then
+  // nothing is greyed: a wrong grey would claim a fact is shared when it may not be.
+  // `var`, as scenarioTabs is: pushScenarioChrome() reads these through scenarioBand(), and a render during evaluation,
+  // before these lines run, must see "no band", not a temporal-dead-zone ReferenceError.
+  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap'];
+  var liveScenarioFacts = null;
+  var scenarioFactsTimer = 0;
+  function bandValues(f){
+    const v = (f && f.values) || {};
+    // Blocks mode counts blocks, as Production's total does (Blocks mode: Σ block days).
+    const count = f && f.blocks ? (v.blocks != null ? { n: v.blocks, unit: 'block' } : null)
+                                : (v.eps != null ? { n: v.eps, unit: 'ep' } : null);
+    return { loc: v.loc || null, count, wrOpen: v.wrOpen || null, wrWeeks: v.wrWeeks != null ? v.wrWeeks : null,
+             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null };
+  }
+  function scenarioBand(){
+    if(scenarioTabs.length < 2 || !liveScenarioFacts) return null;
+    const mine = bandValues(liveScenarioFacts);
+    const all = scenarioTabs.map(t => t.id === currentScenarioId ? liveScenarioFacts : t.facts);
+    const same = {};
+    if(all.every(Boolean)){
+      const each = all.map(bandValues);
+      BAND_KEYS.forEach(k => { const a = JSON.stringify(mine[k]); same[k] = each.every(b => JSON.stringify(b[k]) === a); });
+    }
+    // The two phases by the names Compare's rows give them.
+    const ph = k => ((liveScenarioFacts.phases || []).find(p => p.key === k) || {}).label || null;
+    return { values: mine, same, labels: { wr: ph('writersRoom'), prod: ph('production') } };
+  }
+  function refreshScenarioFacts(){
+    clearTimeout(scenarioFactsTimer);
+    scenarioFactsTimer = 0;
+    if(scenarioTabs.length < 2){ if(liveScenarioFacts){ liveScenarioFacts = null; pushScenarioChrome(); } return; }
+    try { liveScenarioFacts = scenarioFacts(); } catch(e){ console.error(e); liveScenarioFacts = null; }
+    pushScenarioChrome();
+  }
+  function scheduleScenarioFacts(){
+    if(scenarioTabs.length < 2 && !liveScenarioFacts) return;
+    clearTimeout(scenarioFactsTimer);
+    scenarioFactsTimer = setTimeout(refreshScenarioFacts, 120);
+  }
+  // After Load (and a crash recovery or a shareable copy's boot), the tabs nobody has visited are probed so the band
+  // can grey what is shared: a few per tick, and never while you are in the middle of something -- a note editor
+  // open or a field focused -- because the probe re-applies the calendar on screen. An edit still waiting on the undo
+  // debounce is banked first, as its own step, exactly as Compare does. A tab that fails to apply is skipped here
+  // (Compare will try again and say so).
+  var scenarioProbeTimer = 0;
+  function scheduleScenarioProbe(delay){
+    clearTimeout(scenarioProbeTimer);
+    scenarioProbeTimer = setTimeout(()=>{
+      const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && !t.factsFailed && t.snapshot);
+      if(!need.length) return;
+      const ae = document.activeElement;
+      const typing = ae && ae !== document.body && ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]');
+      if(activeNoteEditor || activeMvNote || typing){ scheduleScenarioProbe(800); return; }
+      clearTimeout(undoPushTimer);
+      pushUndoSnapshot();
+      probeScenarioTabs(need.slice(0, 4));
+      refreshScenarioFacts();
+      if(need.length > 4) scheduleScenarioProbe(30);
+    }, delay || 0);
   }
   // The rows, in the owner's order (22 Oct 2026: "the content of the old version"): the show, then every phase in
   // phase order with Production as its first shoot day, wrap and span, then the whole calendar's length and Version.
@@ -31226,7 +31333,9 @@ export function initLegacyApp() {
     // (syncPrepName): show-mode is restored by then, whatever order these run in.
     // ...and the calendar range (owner ruling 3): a file saved before it, opened after one with a range, would
     // otherwise be CUT to the previous show's dates. Absent means blank, the full years it was saved with.
-    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
+    // ...and the Location (KEY-FACTS-PLAN.md §5): a calendar saved before it, loaded after one with a Location, would
+    // otherwise show the previous show's town in the scenario band and in Compare.
+    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''], ['show-location', ''],
      ['prep-days', ''], ['prep-name', PREP_DEF.label],
      ['cal-range-start', ''], ['cal-range-end', '']].forEach(([id, dflt])=>{
       const el = document.getElementById(id);
@@ -31669,6 +31778,11 @@ export function initLegacyApp() {
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
+    // The scenario key facts band (KEY-FACTS-PLAN.md) takes its room through .preview-panel's bottom margin, from
+    // --sc-band-space on <html>. That reaches the grid as the panel's border box changing, which the ResizeObserver
+    // above reports only at a rendering opportunity -- so the write is observed as a mutation too, for the same
+    // hidden-page reason as the strips above.
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     window.addEventListener('resize', fit);
     if(shell.addEventListener) shell.addEventListener('change', fit);
   })();
