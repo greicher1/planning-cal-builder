@@ -51,7 +51,7 @@
     - **Gate 5**, as predicted: `gained: ['show-location']`, `lost: []`, `changed: []`, 76 → 77 ids.
     - **`settingswin` W3:** the leg anchors on the swept ids just before `#cal-range-end`, and `#show-location` now
       sits between `#show-version` and `#cal-range-start`. The window's own ids were exactly right. The anchor is
-      moved in `76c…` (comment in the leg); alone on the same build, 21/21.
+      moved in `27307f1` (comment in the leg); alone on the same build, 21/21.
 - ⏭ **Next:** the owner's sign-off for gate 5's re-cut (`restore.json`'s `form` gains `show-location: ""`, written up
   in the baseline README like the 8 and 14 Sep re-cuts), then re-run the restore leg. After that, ask separately
   whether to merge into `main` and push. The notes below are the history that led here.
