@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 24 Oct 2026 (latest): ALL-PHASE HIATUS HEAD — A BLANK NAME IN FULL BLACK — on branch `claude/angry-mclean-b408af` on top of `2aa860a`; LEGS GREEN (build `29f581b3`); NOT COMMITTED, NOT PUSHED
+### 🔨 24 Oct 2026 (latest): ALL-PHASE HIATUS HEAD — A BLANK NAME IN FULL BLACK — branch `claude/angry-mclean-b408af`: committed `49ad6de`, `origin/main` (`076247a`, the holidays flag) merged in as `30b9e76`; LEGS GREEN on the merged build `4341800c`; PUSH APPROVED by the owner's picker, pushed FROM THE BRANCH (local `main` is the main checkout's, busy with another session)
 
 - **Asked** (owner, relayed by the planning session, verbatim): *"Use black: show the hiatus name in full black on the
   lighter red. Have the build session make the fix and gate it; ask me before pushing."* Tracker card
@@ -26,6 +26,16 @@
   shown to the owner.
 - **Owner's pickers (24 Oct):** *"Commit on the branch"*, *"Merge into main and push"* (which carries `2aa860a`, the
   HANDOFF record of the 7cf54a4 push, along).
+- ⚠️ **How the push went, honestly.** The first try fast-forwarded local `main` in the main checkout and pushed it.
+  The fast-forward was REFUSED (another session had uncommitted edits there to files this commit touches), and a
+  `| tail -1` hid the error, so the push sent local `main` as it was: `7cf54a4..2aa860a`, the docs-only HANDOFF commit
+  the approval covered. The CSS fix did not go. That session then pushed its own `076247a` (the holidays flag) on top.
+  So `origin/main` was merged into the branch through the sync tool (`30b9e76`; only the HANDOFF and README tops
+  conflicted, both entries kept), and the branch pushed as a fast-forward of `origin/main`. Local `main` was left
+  alone: it now trails `origin/main` by this fix, for that session to pull.
+- **On the merged build `4341800c`:** `npm run check` 40/40; `phasesui` 8/8, `hidewf` 19/19, `hiatuslabel` 7/7,
+  `hiatusblank` 4/4, `settingswin`, and the holiday session's own legs `holidays2031`, `regionlock`, `regioncaveat`,
+  `wrapdate` all green.
 
 ### ✅ 24 Oct 2026 (latest): HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — built on `main` in the main checkout, NOT committed, NOT pushed
 
