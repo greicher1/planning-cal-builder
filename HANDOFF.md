@@ -4,7 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
+### 🔨 23 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — BUILT on branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`), from `main` at `5ce6129`; legs `hidewf` 19/19 and `phasesui` 8/8; FULL GATE 3,069 / 2 on build `85b5d428` (one real, fixed: Sim Post's wording; one `offweek` load timeout, green alone), every frozen output byte-identical; final build `400e403b`; NOT COMMITTED, NOT PUSHED ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
+
+- **Built from the plan entry below** (rulings R1-R10), in the order of plan §4, by a session started from the planning
+  session. Plan §5 says what was built, card by card, and where it differs from the plan's letter.
+- **Part 1, Hide in waterfall.** `phaseHidden` (`{key: {sheet: true}}`, absent when nothing is hidden), read only
+  through `phaseHiddenIn()`. ⚠️ **Not quite §2.2's mechanism, and the reason matters:** feeding `wfSegments` to the
+  padding alone would drop a hidden phase's weeks from `schedule.weeks`, which the MONTH view also reads (its notes
+  are looked up by week in that list, and its "Week N" comes from `seg.weekNo`, numbered in the week loop). So the loop
+  still spans and numbers every phase; only cells are left out, and the waterfall's rows are cut out with the calendar
+  range's own `cutToCalendarRange()` (the whole list kept as `fullRange`, which `update()` already hands the month
+  view). `hidewf` W1-W3: hidden = not scheduled, exactly, in the waterfall, the workbook and the waterfall PDF; M1: the
+  month view byte-identical hidden or not.
+- **Part 2, the blend.** The engine's own generators and `legacy.css`, no React. The colour square is still
+  `#swatch-<key>` (first child; CSS places it on the head); the head reads `--phase-color`, written by ONE helper,
+  `paintPhaseSwatch()`, that every swatch write now goes through; `#meta-` / `#unitmeta-` moved into the head. Switches
+  are CSS on the native checkboxes (`.sw-row`). Production's box is `.prod-total-block` over `.ep-panel`, joined by CSS.
+  The All-phase hiatus card gained a dates line (`reflectHiatusRanges()`). UI-CONVENTIONS §5 updated for R7.
+- ⭐ **`phasesui` P1 is the save-format proof:** `tests/baselines/2026-10-23-phasesui/before.json` holds, for 46
+  fixtures, the Phases card's id'd controls in order, the saved `fields.byId` and hiatus rows from the build BEFORE the
+  redesign (`5ce6129`, built in a scratch worktree; its README says how to re-cut it). The new build matches all 46.
+- **Also green:** twenty existing Phases-card legs (phasefold, phiatusnum, labelsetup, loadcarry, settingswin,
+  phasecolors, builtindates ×2, customunits ×2, episodeprep ×3, blocks, shootorder, restore, prefs, offweek, mvmenu,
+  wfmenu); `npm run check` 40/40.
+- **For the owner, found while building (not changed):** with Writer's Room hidden the waterfall HEADER still says
+  "Writer's Room Opens" (the title block, not a note); hiding every scheduled phase leaves the waterfall empty (frozen
+  `render()`'s plain empty state); a waterfall note typed into a hidden phase's week replaces that week's auto text in
+  the month view too (frozen `notesForWaterfallDate`).
+- **Ruled by the owner's pickers, 24 Oct 2026:** O2 (hand-set widths/headings keyed by column) = **accept and
+  document**, no code; the waterfall header's "Writer's Room Opens" line **stays** while Writer's Room is hidden (R11).
+  Commit on the branch: yes. Push: *"Merge into main and push"*.
+- **The full gate** (port 9898, 22:04-22:34, no other gate running) on build `85b5d428`: 3,069 PASS, 2 FAIL, and
+  every frozen output byte-identical to its baseline (the waterfall PDF, the Excel parts, the printed month documents,
+  all 21 gate-13 written month PDFs).
+  - `simpostlabel` S1 was REAL: plan §3.4's copy "weeks into Production" dropped "calendar weeks after Production
+    begins", an audit fix (SCHED-13, FIX-PLAN 4.15). Put back. ⚠️ My first grep of the legs for changed strings was
+    cut off by a `head`; the second, untruncated, found no other.
+  - `offweek` R13 timed out waiting for a Load; it passed on the same build in the targeted run before, and again alone.
+  - The final build `400e403b` differs from `85b5d428` only in that sentence (and the CSP hash of the script holding
+    it); on it `simpostlabel` 3/3, `offweek` both runs, `hidewf` 19/19, `phasesui` 8/8; `npm run check` 40/40.
+- **Screenshots** of every card kind at 280 and 440 px sidebars were shown to the owner (this session).
+- ⏭ **Next:** nothing owed on this feature once the push is verified live (status below).
+
+### 📝 23 Oct 2026: MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE (BUILT: the entry above) ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
 
 - **Asked** (owner): a per-phase toggle that keeps a phase off the WATERFALL while the month view keeps it (*"if you
   add a very specific phase to the month view (such as color grading week) you wouldn't want that to show on the

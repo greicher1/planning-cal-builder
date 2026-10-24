@@ -1715,6 +1715,18 @@ done
 # through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
 # both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
 # write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
+# hidewf (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2) is Hide in waterfall: on tests/fixtures/hidewf.sptcal (a custom
+# "Colour Grading" phase, Dates, ticked) the waterfall, the workbook and the waterfall PDF are EXACTLY those of the same
+# calendar with the phase not scheduled (so no cell, no empty column, no year block -- alone in 2028 included), a
+# positive control where showing it opens a column, the month view byte-identical hidden or not and the written month
+# PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
+# Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
+# hidden, a hostile key, removal pruning the key, and Shift All.
+# phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
+# fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
+# BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
+# fold through undo/redo; a rebuilt card's look; every head its colour lightened 60/40 in black, repainted by a pick;
+# nothing overflowing a card at 280 and 440 px sidebars; the all-phase hiatus card's dates line and switches.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1740,7 +1752,9 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
               phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
-              mvhdroff:-:400; do
+              mvhdroff:-:400 \
+              hidewf:hidewf:400 \
+              phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

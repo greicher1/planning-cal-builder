@@ -544,12 +544,25 @@ week-snapped fields — a distinction that is currently invisible.
 | Free text (3 fields) | `<input type=text>` + inline styles | `TextInput size="xs"` |
 | Phase-name inline edit | `.phase-name-input`, `outline:none` | `TextInput variant="unstyled"` + **a real focus ring restored** |
 | Checkboxes (4 families) | bare `<input type=checkbox>` | `Checkbox size="xs"` — one size, no exceptions |
-| Hiatus "Lock in place" | checkbox + `title` | **stays a `Checkbox`** with a `description`, not a `Switch` |
+| Hiatus "Lock in place" | checkbox + `title` | ~~**stays a `Checkbox`** with a `description`, not a `Switch`~~ ⛔ **a switch row** since 23 Oct 2026 (owner ruling R7, below) |
 | View toggle / sidebar tabs | hand-built button pairs | `SegmentedControl` **with an explicit `name`** (§8.3) |
 | Holiday list | hand-built 3-column grid | `Table stickyHeader` in `Table.ScrollContainer` — **not** `Checkbox.Group` |
 
-**Why the pin stays a Checkbox:** a Switch implies an immediate effect on a running thing. The pin
-records a property of the hiatus that only matters later, when a shift tool runs. That is a checkbox.
+~~**Why the pin stays a Checkbox:** a Switch implies an immediate effect on a running thing. The pin
+records a property of the hiatus that only matters later, when a shift tool runs. That is a checkbox.~~
+
+> ⛔ **OVERRULED 23 Oct 2026 for the Phases tab's cards (owner ruling R7, PHASES-TAB-PLAN.md §1 and §3.4a).** The
+> owner picked the A + D blend, whose every yes/no is a label-left **switch row** -- Snap to Monday, Number weeks,
+> Hide in waterfall, a phase's Hiatus, Simultaneous Post, and on the All-phase hiatus card **Lock in place** and
+> Number weeks. They were told before picking that this overrules the paragraph above, and the blend's switches
+> stand. As built:
+> - a switch is **CSS on the engine's own native checkbox** (`.sw-row > input[type=checkbox]` in `legacy.css`: Mantine's
+>   `Switch size="xs"`, a 32 x 16 track and a 12 px thumb drawn as `::before`), never a React `Switch` (§8.9: the engine
+>   writes `.checked` directly, and a controlled Switch would put its own state back);
+> - each switch keeps its own `<label>`, its class, its id where it had one and its `checked` default, so the save
+>   format and every listener are untouched (leg `phasesui` holds 46 fixtures' `fields.byId` to the build before);
+> - the reasoning above still holds **outside these cards**: anywhere else, a property that only matters later stays a
+>   Checkbox unless the owner rules otherwise.
 
 **The inline-style duplication ends.** Of the seven repeated field recipes, six need no replacement
 at all — the component supplies the styling — and only `#show-title` needs one.

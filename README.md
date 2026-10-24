@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month-view-only phases ("Hide in waterfall") and a redesigned Phases tab (23 Oct 2026)
+
+Owner: *"if you add a very specific phase to the month view (such as color grading week) you wouldn't want that to
+show on the waterfall calendar"*, and *"overhaul the design of the phase UI. right now its pretty cluttered and ugly
+... without changing functionality"* (*"also do it for all phase hiatuses"*). Plan:
+[`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md); the design is the A + D blend the owner picked from
+[`mockups/phase-cards.html`](mockups/phase-cards.html).
+
+- **Hide in waterfall**, a switch on every phase card except Production's, off by default. A hidden phase is left
+  out of the waterfall, the Excel workbook and the waterfall PDF, with its automatic notes (Writer's Room Opens), and
+  takes no column and no year block there. The month view and both month PDFs keep it, and its dates, colour, name,
+  hiatus and the shift tools all work as before. The card says **Month view only**, also while folded. Saved in the
+  calendar as `phaseHidden` (a new key, written only while a phase is hidden, so every other calendar saves byte for
+  byte as before). Episodic Prep, month-only already, wears the same tag.
+- **The Phases tab, redesigned.** Each card's head is its phase colour lightened, with a colour square that opens the
+  colour picker, the name (no box; it fades when you point at it) and the dates, all in black. Starts and Length sit
+  side by side, and every yes/no is a switch row: Snap to Monday, Number weeks, Hide in waterfall, Hiatus,
+  Simultaneous Post. A hiatus or Sim Post opens its settings underneath when switched on (Sim Post's now hide while
+  it is off). Production keeps its big TOTAL SHOOTING DAYS readout, with the shooting order in the same box.
+- **The All-phase hiatus card** takes the same shape: a red head with the name and, new, its dates; Starts and Weeks;
+  Lock in place and Number weeks as switches (the owner's ruling R7, which overrules UI-CONVENTIONS §5 here).
+- **Nothing the calendar saves or prints moved.** The cards are still the engine's own markup, restyled: every id,
+  class and default is kept, in the same order.
+- With Writer's Room hidden, the waterfall's header still reads "Writer's Room Opens": it is the title block, not a
+  note, and the owner chose to keep it. Hiding every scheduled phase leaves the waterfall empty. A hand-set column
+  width or typed heading can land on the neighbouring column when a hidden phase vacates its own (plan O2): accepted
+  and documented by the owner, not handled.
+
+Verified: two new legs, `hidewf` (19 cases: a hidden phase's waterfall, workbook and waterfall PDF are exactly those
+of the calendar without it; the month view is byte-identical hidden or not; Save, Load, undo, the M-5 trap) and
+`phasesui` (8 cases: for 46 fixtures the saved field ids, order and values equal the build before the redesign; every
+control still drives the calendar; 280 and 440 px sidebars). Twenty existing Phases-card legs pass. `npm run check`
+40/40. Full gate on build `85b5d428`: **3,069 PASS, 2 FAIL**, and every frozen output byte-identical to its baseline (the
+waterfall PDF, the Excel parts, the printed month documents, all 21 written month PDFs). The two FAILs:
+`simpostlabel` caught Sim Post's new wording, "weeks into Production", which dropped "calendar weeks", an audit fix
+(SCHED-13: the offset counts hiatus weeks too), so the old wording is back; `offweek` R13 timed out waiting for a Load
+and passes alone. The final build `400e403b` differs from the gated one only in that sentence; `simpostlabel`,
+`offweek` (both runs), `hidewf` and `phasesui` pass on it.
+
 ### Unreleased — Month view: no purple flash between the "+" note buttons (23 Oct 2026)
 
 Owner: *"as you scroll up and down over a square in the month view, the square flashes purple for a split second as

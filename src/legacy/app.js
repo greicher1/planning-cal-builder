@@ -3336,9 +3336,12 @@ export function initLegacyApp() {
   // ⭐ This is the ONE filter every reader of schedule.notesByIdx goes through -- the waterfall, Excel, both
   // PDFs, the month view, the note editor's pre-fill and the column widths -- so a kind switched off leaves
   // all of them at once, and none can disagree. A user's own note (userNotes) never passes through here.
+  // A phase hidden in the waterfall (phaseHidden, PHASES-TAB-PLAN.md R4) takes its own notes with it there: a
+  // note tagged with its `phase` is dropped for 'sheet' and kept for 'month'.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view)));
+    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view))
+                            && !(n.phase && phaseHiddenIn(n.phase, view)));
   }
   function colLetter(n){
     let s='';
@@ -3893,10 +3896,18 @@ export function initLegacyApp() {
       return {weeks:[], maxConcurrent:0, totalWeeks:0};
     }
 
+    // ⭐ HIDE IN WATERFALL (PHASES-TAB-PLAN.md §2.2): the phases the waterfall draws. A hidden phase is in
+    // `segments` (the month view, monthCoreRange and the Compare window read every phase) but not here, so it
+    // takes no column, no cell and no part of the waterfall's year padding. It stays in the week loop's SPAN and
+    // keeps its week numbers there (seg.weekNo, which the month view reads), and the waterfall's rows are then cut
+    // out of that span exactly as a calendar range cuts them, with the whole list kept for the month (fullRange).
+    // With nothing hidden this IS `segments`, and every line below runs as it did.
+    const wfSegments = segments.filter(s => !phaseHiddenIn(s.key, 'sheet'));
     // A hiatus only affects the visible range if it actually overlaps something scheduled --
     // otherwise the always-present default hiatus entries (which span years) would force the
     // calendar to stretch across all of them even when nothing is scheduled nearby.
     const relevantHiatuses = hiatuses.filter(h => segments.some(s => h.start < s.end && h.end > s.start));
+    const wfRelevantHiatuses = hiatuses.filter(h => wfSegments.some(s => h.start < s.end && h.end > s.start));
     // ⛔ SNAP THE GRID GEOMETRY TO MONDAYS (audit H-4, FIX-PLAN.md 1.7, 25 Sep 2026). A grid cell IS
     // a week, and every week-keyed store (userNotes, hiatusTexts/Colors, rowHeightsByWeek, cellSpans)
     // is keyed by the week's Monday. When a snap-off phase has a non-Monday start, its raw seg.start
@@ -3906,9 +3917,8 @@ export function initLegacyApp() {
     // directly, never these Monday-snapped bounds. Starts snap DOWN to their Monday; ends round UP to
     // the next Monday so a non-Monday end still gets its own (partial) week row and totalWeeks does
     // not lose it to Math.round. All idempotent for snapped phases and hiatuses (already Mondays).
-    const naturalStarts = segments.map(s=>mondayOf(s.start).getTime()).concat(relevantHiatuses.map(h=>h.start.getTime()));
-    const naturalEnds   = segments.map(s=>mondayOf(addDays(s.end,6)).getTime()).concat(relevantHiatuses.map(h=>h.end.getTime()));
-
+    // ⚠️ A FUNCTION since 23 Oct 2026, run for the phases the loop spans (all of them) and again for the ones the
+    // waterfall draws (wfSegments) when a phase is hidden. Its body is the padding as it always was.
     function firstMondayOfYear(year){
       const jan1 = new Date(Date.UTC(year,0,1));
       const daysToAdd = (8 - jan1.getUTCDay()) % 7;
@@ -3925,28 +3935,38 @@ export function initLegacyApp() {
     // at half today's scale. The owner's reference starts on the first working week for exactly
     // this reason. ⚠️ Default OFF, so every existing calendar keeps the full-year shape and the
     // byte-compare stays green.
-    const allStarts = [...naturalStarts];
-    const allEnds = [...naturalEnds];
-    if(!singleColumn){
-      if(naturalStarts.length){
-        const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
-        allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+    function paddedSpan(segs, relHiatuses){
+      const naturalStarts = segs.map(s=>mondayOf(s.start).getTime()).concat(relHiatuses.map(h=>h.start.getTime()));
+      const naturalEnds   = segs.map(s=>mondayOf(addDays(s.end,6)).getTime()).concat(relHiatuses.map(h=>h.end.getTime()));
+      const allStarts = [...naturalStarts];
+      const allEnds = [...naturalEnds];
+      if(!singleColumn){
+        if(naturalStarts.length){
+          const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
+          allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+        }
+        if(naturalEnds.length){
+          // ⛔ The final week's MONDAY, not its last day (audit M-14). computeYearBlocks() files a
+          // week under the year of its Monday, so the padding must ask the same question. Asking the
+          // week's Sunday instead meant a last week of Mon 12/30/30 - Sun 1/5/31 padded out to the
+          // first Monday of 2032: a whole 2031 block of empty rows, a blank year column in every
+          // export, and a page printed at about half size. naturalEnds are exclusive Mondays (see
+          // above), so minus 7 days is exactly the final week's Monday. Identical for every calendar
+          // whose last week does not straddle New Year.
+          const lastActiveMonday = addDays(new Date(Math.max.apply(null, naturalEnds)), -7);
+          allEnds.push(firstMondayOfYear(lastActiveMonday.getUTCFullYear()+1).getTime());
+        }
       }
-      if(naturalEnds.length){
-        // ⛔ The final week's MONDAY, not its last day (audit M-14). computeYearBlocks() files a
-        // week under the year of its Monday, so the padding must ask the same question. Asking the
-        // week's Sunday instead meant a last week of Mon 12/30/30 - Sun 1/5/31 padded out to the
-        // first Monday of 2032: a whole 2031 block of empty rows, a blank year column in every
-        // export, and a page printed at about half size. naturalEnds are exclusive Mondays (see
-        // above), so minus 7 days is exactly the final week's Monday. Identical for every calendar
-        // whose last week does not straddle New Year.
-        const lastActiveMonday = addDays(new Date(Math.max.apply(null, naturalEnds)), -7);
-        allEnds.push(firstMondayOfYear(lastActiveMonday.getUTCFullYear()+1).getTime());
-      }
+      // fall back to whichever bound was actually supplied if one list is empty
+      if(allStarts.length===0) allStarts.push(allEnds[0]);
+      if(allEnds.length===0) allEnds.push(allStarts[0]);
+      return {start: Math.min.apply(null, allStarts), end: Math.max.apply(null, allEnds)};
     }
-    // fall back to whichever bound was actually supplied if one list is empty
-    if(allStarts.length===0) allStarts.push(allEnds[0]);
-    if(allEnds.length===0) allEnds.push(allStarts[0]);
+    const span = paddedSpan(segments, relevantHiatuses);
+    // The waterfall's own padding: the same object with nothing hidden, null when every scheduled phase is hidden
+    // (the waterfall then has no rows, and frozen render() shows its empty state there; the month view is whole).
+    const wfSpan = wfSegments.length === segments.length ? span
+                 : (wfSegments.length ? paddedSpan(wfSegments, wfRelevantHiatuses) : null);
 
     // ⭐ THE CALENDAR RANGE (owner ruling 3, 20 Oct 2026) REPLACES THAT PADDING, IN THE WATERFALL ONLY.
     // A typed start is the first row (its Monday), a typed end the last (the week it falls in); a blank
@@ -3955,11 +3975,13 @@ export function initLegacyApp() {
     // real start, and the month view, which reads the WHOLE week list (wholeCalendar), keeps every week.
     // The waterfall's rows are cut out of that list after the notes (calRangeCut).
     // ⚠️ With no range, wfStart/wfEnd ARE the padding and the loop is exactly today's.
-    const padStart = Math.min.apply(null, allStarts), padEnd = Math.max.apply(null, allEnds);
+    // A hidden phase (PHASES-TAB-PLAN.md §2.2) is cut the same way: a blank end of the range takes the WATERFALL's
+    // padding (wfSpan), so a hidden phase alone in another year adds no year block. Nothing hidden, wfSpan is span.
+    const padStart = span.start, padEnd = span.end;
     const rangeFrom = state.calRange && parseDateUTC(state.calRange.start);
     const rangeTo   = state.calRange && parseDateUTC(state.calRange.end);
-    const wfStart = rangeFrom ? mondayOf(rangeFrom).getTime() : padStart;
-    const wfEnd   = rangeTo ? addDays(mondayOf(rangeTo), 7).getTime() : padEnd;
+    const wfStart = rangeFrom ? mondayOf(rangeFrom).getTime() : (wfSpan ? wfSpan.start : padStart);
+    const wfEnd   = rangeTo ? addDays(mondayOf(rangeTo), 7).getTime() : (wfSpan ? wfSpan.end : wfStart);
     const overallStart = new Date(Math.min(padStart, wfStart));
     const overallEnd   = new Date(Math.max(padEnd, wfEnd));
     const totalWeeks = Math.round((overallEnd-overallStart)/DAY_MS/7);
@@ -3989,9 +4011,10 @@ export function initLegacyApp() {
     // different placement runs INSTEAD of the block below. Clear -- the default, and every file saved
     // before the box existed -- the block below runs exactly as it always has. That is the whole
     // inertness argument, so never fold the two together.
-    const colMoves = colReuse ? placeSegmentsReusingColumns(segments, hiatuses, segCol) : null;
+    // Over wfSegments (PHASES-TAB-PLAN.md §2.2): a phase hidden in the waterfall takes no column.
+    const colMoves = colReuse ? placeSegmentsReusingColumns(wfSegments, hiatuses, segCol) : null;
     if(!colReuse){
-      const byStart = segments
+      const byStart = wfSegments
         .map((seg, i)=>({seg, i}))
         .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
         .map(o=>o.seg);
@@ -4069,8 +4092,12 @@ export function initLegacyApp() {
         // and PDF, while the month view showed it correctly. A phase is active in a week row when it
         // overlaps that Mon-Sun span at all. For a snapped phase (start and end are Mondays) this is
         // identical to the old test, so every existing calendar is byte-for-byte unchanged.
+        // ⚠️ EVERY phase, a hidden one included (PHASES-TAB-PLAN.md §2.2): it is numbered here as it always was, so
+        // the month view's "Colour Grading Week 2" (seg.weekNo) is the same whether or not it is hidden. Only its
+        // CELL is left out, so it takes no column, no row's worth of maxConcurrent, and nothing a writer draws.
         const active = segments.filter(s=> s.start < addDays(weekStart,7) && s.end > weekStart).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
+          const hidden = phaseHiddenIn(ph.key, 'sheet');   // wfSegments' rule: it was given no column
           const ownHi = ph.phaseHiatus;
           // An off week (productionOffWeeks) takes this same branch, so it is the same cell and does not
           // advance the counter either. Only Production's segment ever carries offWeeks.
@@ -4080,7 +4107,7 @@ export function initLegacyApp() {
             // its slot (so neighbors can't slide into it) but never spans sideways, and it does
             // not advance the phase's week counter -- the paused weeks aren't work weeks.
             const baseLabel = (ph.label || 'Phase') + ' Hiatus';
-            cells.push({type:'phaseHiatus', key:ph.key, col:segCol.get(ph),
+            if(!hidden) cells.push({type:'phaseHiatus', key:ph.key, col:segCol.get(ph),
               weekIso: isoOf(weekStart), defaultLabel: baseLabel,
               color: HIATUS_COLOR, textColor: HIATUS_TEXT, label: baseLabel});
           } else {
@@ -4089,7 +4116,7 @@ export function initLegacyApp() {
             // view reads THIS number (prodWeekLabel) instead of counting again. `ph` is the very segment object
             // schedule.segments carries.
             (ph.weekNo || (ph.weekNo = {}))[isoOf(weekStart)] = num;
-            cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
+            if(!hidden) cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
           }
         });
         // simPostNum stays 0 in the un-numbered mode; the renderers fall back to the bare label.
@@ -4148,8 +4175,10 @@ export function initLegacyApp() {
     // the schedule -- only Production's date math skips these days, and only for Production.
     phaseHolidays.filter(h=>h.enabled).forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
+    // Tagged with its phase, so autoNotesForView() leaves it out of the waterfall while that phase is hidden there
+    // (PHASES-TAB-PLAN.md R4). Principal start and wrap are Production's, which can never be hidden.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens'});
+    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
 
     // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
     // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
@@ -4164,7 +4193,9 @@ export function initLegacyApp() {
     // reverse order would let a week-level exchange be undone by the block-level one.
     // ⭐ ON THE WATERFALL'S ROWS: with a calendar range they are cut out of the whole list first (wfStart
     // above), because a swap is the waterfall's and is indexed by its rows (the gate's weekIdx).
-    const cut = (rangeFrom || rangeTo) ? cutToCalendarRange(weeks, notesByIdx, overallStart, wfStart, wfEnd) : null;
+    // A hidden phase that widened the loop's span (wfStart/wfEnd above) is cut away the same way, with no range set.
+    const cut = (rangeFrom || rangeTo || wfStart !== padStart || wfEnd !== padEnd)
+      ? cutToCalendarRange(weeks, notesByIdx, overallStart, wfStart, wfEnd) : null;
     const wf = cut || {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart};
     const stintOrder = applyStintSwaps(wf.weeks);
     const appliedColSwaps = applyColSwaps(wf.weeks);
@@ -4175,8 +4206,12 @@ export function initLegacyApp() {
       // notice (reflectCalRangeNotice). A range that leaves no row at all (a start after the calendar's
       // last week, or an end before its first) is render()'s invalid-range message, in the waterfall only.
       schedule.fullRange = {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart, error: undefined};
-      schedule.calRangeCut = cut.lost;
-      if(!cut.weeks.length) schedule.error = 'invalid-range';
+      // The strip and the invalid-range message are the calendar RANGE's. A cut made only by a hidden phase loses
+      // no visible phase's week (wfSpan holds every one), and its empty waterfall is render()'s plain empty state.
+      if(rangeFrom || rangeTo){
+        schedule.calRangeCut = cut.lost;
+        if(!cut.weeks.length) schedule.error = 'invalid-range';
+      }
     }
     // Whether each hand move applied, for the phase rows' notes. Only with column reuse on, so the
     // schedule of a calendar without it carries exactly the keys it always did.
@@ -6036,6 +6071,77 @@ export function initLegacyApp() {
     setPhaseCollapsed(key, !collapsedPhaseKeys.has(key));
   });
 
+  // ⭐ HIDE IN WATERFALL's tick and its "Month view only" tag (PHASES-TAB-PLAN.md §2.3, D2-D4). The tick is on every
+  // phase card but Production's, carries NO id and is delegated on the two row containers, so a custom row rebuilt
+  // by undo or Load needs no binding; its key is read off the card's #swatch-<key> AT EVENT TIME, which the restore's
+  // re-key renames with the row. The tag sits in .custom-phase-header, the one part of a folded card that shows.
+  // Episodic Prep's tag is in its markup and always on: prep is month-only already.
+  function reflectPhaseHidden(){
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const cb = row.querySelector('.phase-hidewf-cb');
+      if(!cb) return;
+      const on = phaseHiddenIn(phaseRowKey(row), 'sheet');
+      if(cb.checked !== on) cb.checked = on;
+      const tag = row.querySelector('.custom-phase-header .phase-mvonly-tag');
+      if(tag && tag.hidden === on) tag.hidden = !on;
+    });
+  }
+  ['input', 'change'].forEach(evt=>{
+    ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+      const host = document.getElementById(cid);
+      if(!host) return;
+      host.addEventListener(evt, e=>{
+        const t = e.target;
+        if(!t || !t.classList || !t.classList.contains('phase-hidewf-cb')) return;
+        const key = phaseRowKey(t.closest('.phase-row'));
+        if(!key || key === 'production' || phaseHiddenIn(key, 'sheet') === t.checked) return;
+        // The store, then update(): markDirty() banks ONE undo step (input and change both arrive; the second is a no-op).
+        if(t.checked) phaseHidden[key] = {sheet: true}; else delete phaseHidden[key];
+        reflectPhaseHidden();
+        update();
+      });
+    });
+  });
+
+  // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
+  // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
+  // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates
+  // under it, and × on a custom phase, all in black (R9). Under it come Starts and Length side by side, then a
+  // label-left switch row for every yes/no. It is the engine's own markup restyled, not a React port (plan §3.2):
+  //   - every id, class and `checked` default is kept, and the id'd controls stay in their old DOCUMENT order
+  //     (fields.byId is built in that order, so moving one past another would change every saved file's bytes);
+  //   - #swatch-<key> stays the row's FIRST child, the fold and the colour pop key off it. It IS the colour square,
+  //     placed over the head by CSS;
+  //   - #meta-<key> / #unitmeta-<key> moved into .custom-phase-header, so a folded card still shows its dates;
+  //   - a switch is CSS on the native checkbox (.sw-row), never a Mantine Switch (UI-CONVENTIONS §8.9). Each keeps
+  //     its own <label>, so a click anywhere on the row toggles it, as the old caption did.
+  const MVONLY_PHASE_TITLE = 'Hidden in the waterfall: it shows in the month view and its PDF only, never in the waterfall, the Excel workbook or the waterfall PDF';
+  const MVONLY_TAG = (hidden, title) => `<span class="phase-mvonly-tag"${hidden ? ' hidden' : ''} title="${title}">Month view only</span>`;
+  function phaseHeadHtml(nameHtml, tagHtml, metaHtml, endHtml){
+    return `<div class="custom-phase-header">
+          ${PHASE_COLLAPSE_BTN}
+          <div class="phase-head-text">
+            <div class="phase-head-title">${nameHtml}${tagHtml}</div>
+            ${metaHtml}
+          </div>${endHtml || ''}
+        </div>`;
+  }
+  function swRow(cls, label, inputHtml, title){
+    return `<label class="${cls} sw-row"${title ? ` title="${title}"` : ''}><span class="sw-label">${label}</span>${inputHtml}</label>`;
+  }
+  const SNAP_TITLE = 'On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick.';
+  // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
+  const HIDEWF_HTML = swRow('phase-hidewf', 'Hide in waterfall', '<input type="checkbox" class="phase-hidewf-cb">',
+    'On: this phase shows in the month view and its PDF only. The waterfall, the Excel workbook and the waterfall PDF leave it out, with its automatic notes.');
+  // ONE writer of a phase card's colour: the swatch's own background (what every caller and leg reads) and the row's
+  // --phase-color, which the head's tint and the switch blocks' rule read. Every swatch write goes through here.
+  function paintPhaseSwatch(sw, color){
+    if(!sw) return;
+    sw.style.background = color;
+    const row = sw.parentElement;
+    if(row && row.classList.contains('phase-row')) row.style.setProperty('--phase-color', color);
+  }
+
   function buildPhaseRows(){
     const wrap = document.getElementById('phase-rows');
     wrap.innerHTML = '';
@@ -6053,7 +6159,7 @@ export function initLegacyApp() {
       // and it stays checked -- so every existing file keeps its Monday-snapped dates. Absent means
       // snapped. Do not move this default into JS.
       const snapCls = (p.key === 'production') ? 'phase-snap' : 'phase-snap pu-weeks';
-      const snapHtml = `<label class="${snapCls}" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      const snapHtml = swRow(snapCls, 'Snap to Monday', `<input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked>`, SNAP_TITLE);
       // ⭐ CUSTOM-PHASE-UNITS-PLAN §7a, owner rulings 7 and 9d (15 Oct 2026): the five built-in Weeks
       // phases get a Length of Weeks or Dates -- no Days, which stays custom-only -- with the custom
       // rows' markup, classes and CSS, so one code path serves both. Production has none.
@@ -6061,34 +6167,43 @@ export function initLegacyApp() {
       // are STATIC (never rebuilt on restore), so an absent id must be defaulted explicitly in
       // applyStateSnapshot() and in New's reset -- the M-5 trap snap-<key> fell into. The markup's
       // first option (Weeks) and empty end are the defaults a fresh page starts from.
-      // The select sits IN the second field's caption, "By [Weeks ▾]" (owner, 16 Oct 2026), shared
-      // with the custom rows: see byUnitHtml().
+      // The select sits IN the second field's caption, "Length · [Weeks ▾]" since the blend (it read "By [Weeks ▾]",
+      // owner, 16 Oct 2026), shared with the custom rows: see byUnitHtml().
+      // ⚠️ DOCUMENT ORDER (PHASES-TAB-PLAN.md §3.1): Production's hidden weeks-production stays AFTER snap-production,
+      // where it always was, now inside the switch group, so fields.byId keeps its key order.
       const fieldsHtml = (p.key === 'production')
-        ? `<label>Start date <input type="date" id="start-${p.key}"></label>
-           ${snapHtml}
+        ? `<label>Starts <input type="date" id="start-${p.key}"></label>`
+        : `<label>Starts <input type="date" id="start-${p.key}"></label>
+           ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}`;
+      const switchesHtml = (p.key === 'production')
+        ? `${snapHtml}
            <input type="hidden" id="weeks-${p.key}">`
-        : `<label>Start date <input type="date" id="start-${p.key}"></label>
-           ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}
-           ${snapHtml}`;
+        : `${snapHtml}
+           ${HIDEWF_HTML}`;
       // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
       // line. Also lets move this total shooting days (for both episodic and block) to just above the
       // episode/block dragger block". So Production reads top to bottom: its dates, the TOTAL with the
       // day-override note that explains it, the episode/block list that total is the sum of, then ONE
       // divider, then the two things that pause or overlap the shoot (hiatus, Simultaneous Post).
       // Only the ORDER moved: every id is the same, so the save format (fields.byId) cannot change.
+      // The blend (R6) keeps that order: Starts, Snap to Monday, the TOTAL SHOOTING DAYS box with the shooting
+      // order under a hairline in the same box (CSS joins .prod-total-block and .ep-panel), then Hiatus and
+      // Simultaneous Post as switch rows that open their fields underneath.
       const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      row.style.setProperty('--phase-color', swColor);
       row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
-        <div class="custom-phase-header">
-          ${PHASE_COLLAPSE_BTN}
-          <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
-        </div>
+        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}" aria-label="Phase name">`,
+          p.key !== 'production' ? MVONLY_TAG(true, MVONLY_PHASE_TITLE) : '',
+          `<div class="phase-meta" id="meta-${p.key}"></div>
+            ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}`)}
         <div class="phase-fields">
           ${fieldsHtml}
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
-        <div class="phase-meta" id="meta-${p.key}"></div>
-        ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}
+        <div class="phase-switches">
+          ${switchesHtml}
+        </div>
         ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
         <div class="prod-total-block">
@@ -6102,19 +6217,15 @@ export function initLegacyApp() {
         </div>
         ${phaseHiatusBlockHtml(p.key, p.label)}
         <div class="simpost-panel">
-          <label class="simpost-toggle">
-            <input type="checkbox" id="simpost-enabled">
-            Simultaneous Post
-          </label>
-          <label class="simpost-offset-row" id="simpost-offset-row">
-            Starts
-            <input type="number" id="simpost-offset" min="0" step="1" value="0">
-            calendar weeks after Production begins
-          </label>
-          <label class="simpost-count-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1.">
-            <input type="checkbox" id="simpost-count">
-            <span>Number these weeks &amp; continue Post&rsquo;s count</span>
-          </label>
+          ${swRow('simpost-toggle', 'Simultaneous Post', '<input type="checkbox" id="simpost-enabled">')}
+          <div class="simpost-body">
+            <label class="simpost-offset-row" id="simpost-offset-row">
+              Starts
+              <input type="number" id="simpost-offset" min="0" step="1" value="0" aria-label="Calendar weeks after Production begins">
+              calendar weeks after Production begins
+            </label>
+            <label class="simpost-count-row sw-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1."><span class="sw-label">Number these weeks and continue Post&rsquo;s count</span><input type="checkbox" id="simpost-count"></label>
+          </div>
         </div>` : ''}
       `;
       // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
@@ -6152,17 +6263,19 @@ export function initLegacyApp() {
     const row = document.createElement('div');
     row.className = 'phase-row prep-row';
     row.id = 'prep-row';
+    const prepColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color;
+    row.style.setProperty('--phase-color', prepColor);
+    // The blend (PHASES-TAB-PLAN.md §3.4a): the summary line is the head's dates line, the "Month view only" tag is
+    // always on (prep is month-only already, plan D2), and the per-episode list sits boxed under its own heading
+    // (refreshPrepUI). The old caption sentence went with the tag; its fact is the tag's title.
     row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
-        <div class="custom-phase-header">
-          ${PHASE_COLLAPSE_BTN}
-          <input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">
-        </div>
-        <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
+        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${prepColor};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">`,
+          MVONLY_TAG(false, 'Working days before each episode’s first shoot day, in the month view and its PDF only'),
+          `<div class="phase-meta prep-meta" id="prep-meta"></div>`)}
         <div class="phase-fields">
-          <label title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep days <input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None"></label>
+          <label class="prep-default" title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep <span class="num-suffix"><input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None" aria-label="Default prep days"><span>days</span></span></label>
         </div>
-        <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
     row.querySelector('#prep-name').addEventListener('input', update);
     // Leaving the box puts a default name back to this mode's ("Prep", or blank, becomes "Episodic
@@ -6196,7 +6309,7 @@ export function initLegacyApp() {
   function reflectPrepSwatch(){
     const sw = document.getElementById('swatch-' + PREP_KEY);
     const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)];
-    if(sw && opt) sw.style.background = opt.color;
+    if(sw && opt) paintPhaseSwatch(sw, opt.color);
   }
 
   // The Prep row's list and summary line, from update() (after render, like refreshCustomUnitMeta).
@@ -6231,8 +6344,10 @@ export function initLegacyApp() {
     const key = (blocks ? 'B' : 'E') + '|' + units.map(u=> u.def.id + ':' + u.name).join('|');
     if(wrap._prepKey !== key){
       wrap._prepKey = key;
+      // The blend's boxed list under its own heading (PHASES-TAB-PLAN.md §3.4a); the rule rides on the heading's right.
       wrap.innerHTML = !units.length ? '' :
-        '<div class="ep-hint">Blank uses the default. 0 gives ' + (blocks ? 'that block' : 'that episode') + ' no prep.</div>'
+        '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">' + (blocks ? 'Per block' : 'Per episode') + '</span>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (blocks ? 'that block' : 'that episode') + ' no prep.">Blank = default · 0 = none</span></div>'
         + '<div class="ep-list">' + units.map(u=>`
           <div class="prep-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}">
             <span class="prep-unit-name">${escHtml(u.name)}</span>
@@ -6319,8 +6434,7 @@ export function initLegacyApp() {
     const cp = customPhaseDefs.find(c=> c.key === key);
     if(cp) cp.colorIndex = i;
     else if(PHASES.some(p=> p.key === key)) phaseColorOverride[key] = i;   // never a key no phase has
-    const sw = document.getElementById('swatch-' + key);
-    if(sw) sw.style.background = PHASE_COLOR_OPTIONS[i].color;
+    paintPhaseSwatch(document.getElementById('swatch-' + key), PHASE_COLOR_OPTIONS[i].color);
     update();
   }
   // The colour a phase's picker opens on: what setPhaseColor() last stored, or the phase's own.
@@ -6389,20 +6503,20 @@ export function initLegacyApp() {
   // (the M-5 trap). Its store is phaseHiatusNumbered, its key is read off #phiatus-fields-<key> (which
   // the restore's re-key renames with the row), and refreshPhaseHiatusUI() reflects it.
   function phaseHiatusBlockHtml(key, label){
-    // The toggle's own caption IS the name field -- not a checkbox <label> wrapping static text
-    // plus a separate Name box below it. The checkbox and the text input are independent sibling
-    // controls (not one nested in the other's <label>), so clicking the checkbox toggles and
-    // clicking the text edits, with no overlap between the two (owner, 1 Sep 2026).
+    // The blend (PHASES-TAB-PLAN.md §3.4a): "Hiatus" is a switch row, and its fields open underneath, ruled in the
+    // phase colour. The NAME moved off the toggle's line into the block (it was the toggle's caption, owner,
+    // 1 Sep 2026), so the row is now one <label> and a click anywhere on it toggles. #phiatus-en-<key> and
+    // #phiatus-name-<key> keep their ids and their document order (en, name, start, weeks).
     return `<div class="phase-hiatus">
-        <div class="phase-hiatus-toggle">
-          <input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">
-          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
-        </div>
+        ${swRow('phase-hiatus-toggle', 'Hiatus', `<input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">`)}
         <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
-          <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
-          <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
+          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
+          <div class="phiatus-pair">
+            <label>Starts <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
+            <label class="phiatus-weeks-lbl">Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
+          </div>
           <div class="snap-note"></div>
-          <label class="phiatus-wknum" title="On: this hiatus's band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed."><input type="checkbox" class="phiatus-wknum-cb"> Number weeks</label>
+          ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed.')}
         </div>
       </div>`;
   }
@@ -6599,7 +6713,8 @@ export function initLegacyApp() {
     return fixed.concat(custom);
   }
 
-  // The length column of a phase row with a Length select: the caption reads "By [Weeks ▾]", the
+  // The length column of a phase row with a Length select: the caption reads "Length · [Weeks ▾]" ("Ends · [Dates ▾]"
+  // with Dates; the two words are CSS off the checked option, the blend, PHASES-TAB-PLAN.md §3.4a; it read "By [Weeks ▾]"), the
   // select itself in the caption, and under it whichever box the unit uses (owner, 16 Oct 2026:
   // "a "By" where "Weeks" is currently written ... and then the "Weeks" is its own small drop down
   // menu"). It replaced a "Length" line of its own above Start date. Built-in rows offer Weeks and
@@ -6613,7 +6728,7 @@ export function initLegacyApp() {
       ? "How this phase's length is given: whole weeks, a number of working days, or a start and end date"
       : "How this phase's length is given: whole weeks, or a start and end date";
     return `<div class="pu-by">
-        <div class="pu-by-cap">By <select id="unit-${key}" class="phase-unit" title="${title}" aria-label="Length given by"><option value="weeks">Weeks</option>${withDays ? '<option value="days">Days</option>' : ''}<option value="dates">Dates</option></select></div>
+        <div class="pu-by-cap"><span class="pu-cap-len">Length</span><span class="pu-cap-end">Ends</span><span class="pu-cap-dot">·</span><select id="unit-${key}" class="phase-unit" title="${title}" aria-label="Length given by"><option value="weeks">Weeks</option>${withDays ? '<option value="days">Days</option>' : ''}<option value="dates">Dates</option></select></div>
         <label class="pu-weeks">${weeksInput}</label>
         ${withDays ? `<label class="pu-days"><input type="number" id="days-${key}" class="phase-days" min="1" step="1" placeholder="e.g. 10" aria-label="Working days" title="Working days: Monday to Friday, skipping union holidays and hiatus days"></label>` : ''}
         <label class="pu-dates"><input type="date" id="end-${key}" class="phase-end" aria-label="End date"></label>
@@ -6646,6 +6761,7 @@ export function initLegacyApp() {
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
     delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
+    delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
     row.remove();
     update();
     return true;
@@ -6660,21 +6776,25 @@ export function initLegacyApp() {
     const row = document.createElement('div');
     row.className = 'phase-row';
     row.dataset.key = key;
+    row.style.setProperty('--phase-color', opt.color);
+    // The blend (PHASES-TAB-PLAN.md §3.4a); buildPhaseRows() says what it keeps. The id'd controls are in their old
+    // order: name, start, unit, weeks, days, end, snap, wknum, then the hiatus.
     row.innerHTML = `
-      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Click to set this phase's color"></div>
-      <div class="custom-phase-header">
-        ${PHASE_COLLAPSE_BTN}
-        <input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name">
-        <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
-      </div>
+      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Change colour" aria-label="Change colour"></div>
+      ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name" aria-label="Phase name">`,
+        MVONLY_TAG(true, MVONLY_PHASE_TITLE),
+        `<div class="phase-meta" id="meta-${key}"></div>
+          <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>`,
+        `<button class="icon-btn remove-custom-phase" title="Remove">&times;</button>`)}
       <div class="phase-fields">
-        <label>Start date <input type="date" id="start-${key}"></label>
+        <label>Starts <input type="date" id="start-${key}"></label>
         ${byUnitHtml(key, true, `<input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12" aria-label="Weeks">`)}
-        <label class="phase-snap pu-weeks" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
-        <label class="phase-wknum" title="On: this phase's bars read &quot;Name wk 1, wk 2...&quot;. Off: just the name, in every view and export."><input type="checkbox" id="wknum-${key}" class="phase-wknum-cb" checked> Number weeks</label>
       </div>
-      <div class="phase-meta" id="meta-${key}"></div>
-      <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>
+      <div class="phase-switches">
+        ${swRow('phase-snap pu-weeks', 'Snap to Monday', `<input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked>`, SNAP_TITLE)}
+        ${swRow('phase-wknum', 'Number weeks', `<input type="checkbox" id="wknum-${key}" class="phase-wknum-cb" checked>`, 'On: this phase&#39;s bars read &quot;Name wk 1, wk 2...&quot;. Off: just the name, in every view and export.')}
+        ${HIDEWF_HTML}
+      </div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
     // ⭐ CUSTOM-PHASE-UNITS-PLAN.md: a custom phase's length is Weeks (as always), Days or Dates.
@@ -7005,14 +7125,28 @@ export function initLegacyApp() {
     // picker): OFF unless ticked, so every existing calendar prints as it did. Ticked, the row's bands read
     // "<name> wk 1" … through syncHiatusNamesFromSidebar(). A class, never an id: hiatus rows are saved as
     // fields.hiatuses (collectFieldValues), so fields.byId and gate 5's id set are untouched.
+    // The blend (PHASES-TAB-PLAN.md §3.4a): a head in HIATUS_COLOR lightened, with the name (no box, as a phase's
+    // title), × and the dates under it (reflectHiatusRanges); Starts and Weeks side by side; then Lock in place and
+    // Number weeks as switch rows (R7: the owner's switches stand, Lock in place included, overruling
+    // UI-CONVENTIONS §5's Checkbox). Every control keeps its class and its order: the row has no ids, and
+    // collectFieldValues() reads it by class.
     row.innerHTML = `
-      <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
-      <label>Start date <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
-      <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
-      <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
-      <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
-      <label class="hiatus-lock hiatus-numbered" title="Label each week of this hiatus: Hiatus wk 1, Hiatus wk 2…"><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}>Number weeks</label>
-      <div class="snap-note"></div>
+      <div class="hiatus-head">
+        <div class="hiatus-head-text">
+          <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}" aria-label="Hiatus name">
+          <div class="hiatus-range"></div>
+        </div>
+        <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
+      </div>
+      <div class="hiatus-body">
+        <div class="hiatus-pair">
+          <label>Starts <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
+          <label class="hiatus-weeks-lbl">Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
+        </div>
+        <div class="snap-note"></div>
+        <label class="hiatus-lock sw-row" title="Keep this hiatus on these dates when the calendar is shifted"><span class="sw-label">Lock in place</span><input type="checkbox" class="hiatus-locked"${locked?' checked':''}></label>
+        <label class="hiatus-lock hiatus-numbered sw-row" title="Label each week of this hiatus: Hiatus wk 1, Hiatus wk 2…"><span class="sw-label">Number weeks</span><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}></label>
+      </div>
     `;
     // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
     // removeHiatusRow, just above this function), so the two ask the same question.
@@ -12726,8 +12860,11 @@ export function initLegacyApp() {
     // React on purpose (Sidebar.jsx's header), so it is built the way ui.mantine.dev builds a
     // draggable list -- one white card of hairline-separated rows, a grip icon, names edited in
     // place, a compact day field with its unit inside. Classes only; still no id on any control.
-    wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to set the '
-      + 'shooting order. It moves which days each episode is shot on, never how long Production runs.</div>'
+    // The blend (PHASES-TAB-PLAN.md §3.4a, R6): a SHOOTING ORDER heading inside the TOTAL SHOOTING DAYS box, with a
+    // short "drag ⠿" on its right whose tooltip is the sentence this hint used to print.
+    wrap.innerHTML = '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">Shooting order</span>'
+      + '<span class="ep-sec-note" title="Drag to set the shooting order. It moves which days each episode is shot on, never how long Production runs.">'
+      + 'drag <span class="ep-grip-ic" aria-hidden="true"></span></span></div>'
       + '<div class="ep-list">' + effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=>`
       <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
@@ -12754,12 +12891,14 @@ export function initLegacyApp() {
     // No episode count (optional in Blocks mode since 20 Oct 2026): the blocks still schedule, and the
     // hint says where episodes come from instead of how to drag ones that are not there.
     const hasEps = hasEpisodeCount();
+    // The blend's heading (renderEpisodeRows); with no episode count the sentence stays, since it says what to do.
     wrap.innerHTML = (hasEps
-      ? '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to move an '
-        + 'episode to another block, or to change the order it is shot in. It changes the calendar’s labels, '
-        + 'never its dates.</div>'
-      : '<div class="ep-hint">Add a Number of Episodes in Show Info to name the episodes in each block. '
-        + 'Blocks schedule without one.</div>')
+      ? '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">Blocks</span>'
+        + '<span class="ep-sec-note" title="Drag to move an episode to another block, or to change the order it is shot in. It changes the calendar’s labels, never its dates.">'
+        + 'drag <span class="ep-grip-ic" aria-hidden="true"></span></span></div>'
+      : '<div class="ep-hint ep-sec-head ep-sec-wrap"><span class="ep-sec-title">Blocks</span>'
+        + '<span class="ep-sec-line">Add a Number of Episodes in Show Info to name the episodes in each block. '
+        + 'Blocks schedule without one.</span></div>')
       + blockDefs.map(b=>{
         const eps = blockEpisodeDefs(b);
         return `
@@ -15228,6 +15367,25 @@ export function initLegacyApp() {
   // applies it. ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesOff`, written only while a kind is off, so a
   // calendar that never unticks one saves byte for byte as before. The boxes carry NO id.
   let autoNotesOff = {};
+  // ⭐ HIDE IN WATERFALL (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2, rulings R1-R4, D1-D3): phase key ->
+  // {sheet: true}. A hidden phase is left out of the waterfall, the workbook and the waterfall PDF, and its
+  // automatic notes with it, while the month view and both month PDFs keep it ("if you add a very specific phase
+  // to the month view (such as color grading week) you wouldn't want that to show on the waterfall calendar").
+  //   - Shaped like holidayView ({sheet, month}), so a later month-view toggle is `month: true` in this same key.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `phaseHidden`, written only while a phase is hidden, so a calendar
+  //     that never hides one saves byte for byte as before. PERMANENT from the first file saved with it.
+  //   - Never Production (D2): it drives the shoot days, Sim Post and the principal-photography notes.
+  //   - The tick carries NO id (it would enter fields.byId); its key is read off the card (phaseRowKey).
+  //   - Read only through phaseHiddenIn(). computeSchedule() splits wfSegments off with it.
+  let phaseHidden = {};
+  function phaseHiddenIn(key, view){
+    return key !== 'production' && !!(phaseHidden[key] && phaseHidden[key][view] === true);
+  }
+  function phaseHiddenSnapshot(){
+    const o = {};
+    Object.keys(phaseHidden).sort().forEach(k=>{ o[k] = Object.assign({}, phaseHidden[k]); });
+    return o;
+  }
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -21071,6 +21229,7 @@ export function initLegacyApp() {
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     reflectColMoveNotes();
+    reflectHiatusRanges();
     refreshCustomUnitMeta(currentSchedule);
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
@@ -21958,6 +22117,23 @@ export function initLegacyApp() {
   // something was moved by hand"). Runs from update() after render(), which owns meta-<key> and is
   // frozen -- the refreshOverrideNote() arrangement. The note is a <div> with an id, which
   // collectFieldValues() never sweeps (it takes input/select/textarea only).
+  // The all-phase hiatus card's dates line, under its name (the blend, PHASES-TAB-PLAN.md §3.4a): "12/21/26 → 1/3/27
+  // (2 wk)", the span computeSchedule() gives the hiatus (its Monday, then weeks × 7 days). Display only, from the
+  // row's own two fields, written from update() like reflectColMoveNotes(); empty while either field is.
+  function reflectHiatusRanges(){
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const out = row.querySelector('.hiatus-range');
+      if(!out) return;
+      const d = parseDateUTC((row.querySelector('.hiatus-start') || {}).value || '');
+      const w = parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10);
+      let text = '';
+      if(d && w > 0){
+        const start = mondayOf(d);
+        text = `${fmtShort(start)} → ${fmtShort(addDays(start, w*7 - 1))} (${w} wk)`;
+      }
+      if(out.textContent !== text) out.textContent = text;
+    });
+  }
   function reflectColMoveNotes(){
     const moves = (colReuse && currentSchedule && currentSchedule.colMoves) || {};
     document.querySelectorAll('.col-move-note').forEach(el=>{ if(!moves[el.dataset.key]) el.remove(); });
@@ -22546,7 +22722,8 @@ export function initLegacyApp() {
       }
     });
   });
-  // The offset and the numbering mode only mean something when the feature is on.
+  // The offset and the numbering mode only mean something when the feature is on. Since the blend (PHASES-TAB-PLAN.md
+  // §3.4a) CSS HIDES them while it is off, off the box itself; the class this keeps in step no longer styles anything.
   function refreshSimPostUI(){
     const on = document.getElementById('simpost-enabled');
     if(!on) return;
@@ -22833,7 +23010,7 @@ export function initLegacyApp() {
       document.getElementById('weeks-'+p.key).value='';
       document.getElementById('name-'+p.key).value=p.label;
       const sw = document.getElementById('swatch-'+p.key);
-      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      if(sw) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color);
     });
     // The Prep row (EPISODE-PREP-PLAN.md): static markup, so New puts it back by hand -- no default, the
     // name "Prep", the default colour. "Prep" is a DEFAULT name (PREP_AUTO_NAMES), so the update() after
@@ -22844,6 +23021,7 @@ export function initLegacyApp() {
     colReuse = false; colFollow = {}; reflectColReuse();
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
+    phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -24101,6 +24279,10 @@ export function initLegacyApp() {
       // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
       // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
       ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
+      // 23 Oct 2026 (PHASES-TAB-PLAN.md §2.3): the phases hidden in the waterfall, {key: {sheet: true}}. ⛔ PERMANENT
+      // key. Nothing hidden is an ABSENT key, so a calendar that never hides a phase saves byte for byte as before.
+      // Keys in sorted order: the undo stack compares snapshots as text.
+      ...(Object.keys(phaseHidden).length ? {phaseHidden: phaseHiddenSnapshot()} : {}),
       // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
       // written only while it holds something.
       ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
@@ -30439,6 +30621,7 @@ export function initLegacyApp() {
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load
+    reflectPhaseHidden();     // the Hide in waterfall ticks and tags onto every row (PHASES-TAB-PLAN.md §2.3)
     refreshEpisodesUI();
     refreshSimPostUI();
     // The legacy headerOverrides migration's second half (applyStateSnapshot step 4b, audit N-8):
@@ -30919,6 +31102,22 @@ export function initLegacyApp() {
         });
       }
     }
+    // The phases hidden in the waterfall (PHASES-TAB-PLAN.md §2.3): a built-in phase other than Production, or a
+    // custom phase this file defines, each `{sheet: true}`. The app writes nothing else, so anything else is
+    // dropped and counted, and an emptied map is dropped (absent already means "nothing hidden").
+    if('phaseHidden' in s){
+      if(!isPlainObj(s.phaseHidden)){ bad.n++; delete s.phaseHidden; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key).filter(k=> k !== 'production'));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.phaseHidden).forEach(k=>{
+          const v = s.phaseHidden[k];
+          if(known.has(k) && isPlainObj(v) && v.sheet === true) o[k] = {sheet: true}; else bad.n++;
+        });
+        if(Object.keys(o).length) s.phaseHidden = o; else delete s.phaseHidden;
+      }
+    }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -30985,7 +31184,7 @@ export function initLegacyApp() {
         });
         const sw = document.getElementById('swatch-' + saved.key);
         const opt = PHASE_COLOR_OPTIONS[saved.colorIndex];
-        if(sw && opt) sw.style.background = opt.color;
+        if(sw && opt) paintPhaseSwatch(sw, opt.color);
         const nameField = document.getElementById('phiatus-name-' + saved.key);
         const nameEl = document.getElementById('name-' + saved.key);
         if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
@@ -31091,7 +31290,7 @@ export function initLegacyApp() {
           if(id.indexOf('color-') === 0){
             const sw = document.getElementById('swatch-' + id.slice(6));
             const idx = parseInt(v.value, 10);
-            if(sw && PHASE_COLOR_OPTIONS[idx]) sw.style.background = PHASE_COLOR_OPTIONS[idx].color;
+            if(sw && PHASE_COLOR_OPTIONS[idx]) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[idx].color);
           }
         }
       });
@@ -31293,6 +31492,14 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
     // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
     mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];
+    // ⛔ UNCONDITIONAL (PHASES-TAB-PLAN.md §2.3): a file with no key hides nothing -- never the previously open
+    // calendar's ticks. Rebuilt entry by entry (sanitizeSnapshot has held it to {key: {sheet: true}}), so nothing
+    // in the store can be a snapshot the undo stack holds. refreshAfterRestore() puts the ticks and tags in step.
+    phaseHidden = {};
+    if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
+      const v = snap.phaseHidden[k];
+      if(k !== 'production' && isPlainObj(v) && v.sheet === true) phaseHidden[k] = {sheet: true};
+    });
     // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
     // object should carry can never reach the store's prototype.
     mvWfNotePlace = {};
@@ -31321,7 +31528,7 @@ export function initLegacyApp() {
     }
     PHASES.forEach(p=>{
       const sw = document.getElementById('swatch-'+p.key);
-      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      if(sw) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color);
       const nameField = document.getElementById('phiatus-name-'+p.key);
       const nameEl = document.getElementById('name-'+p.key);
       if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || p.label)) + ' Hiatus';

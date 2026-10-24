@@ -1,8 +1,10 @@
 # PHASES-TAB-PLAN.md: month-view-only phases, and a redesigned Phases tab
 
-**Status: PLANNED, 23 Oct 2026. Building started the same day ("Start building"), on its own branch.** Part 1's rulings are in. Part 2's design is picked: **the A + D blend,
-with Production's big Total shooting days readout kept** (R6, §3.4a). Only O2 is still open. Tracker cards
-`mv-hide-phases` and `phases-tab-redesign`.
+**Status: BUILT, 23 Oct 2026, on branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`),
+from `main` at `5ce6129`. Both parts are built; legs `hidewf` and `phasesui` are green; full gate 3,069 / 2 (both explained, HANDOFF), every frozen output byte-identical; §5 says what was built and where
+it differs from this plan.** Part 1's rulings are in. Part 2's design is the picked **A + D blend, with Production's big
+Total shooting days readout kept** (R6, §3.4a). O2 is ruled: accept and document (24 Oct 2026, by picker).
+Tracker cards `mv-hide-phases` and `phases-tab-redesign`.
 
 **Mockup:** [`mockups/phase-cards.html`](mockups/phase-cards.html). It is self-contained, so you can open it directly
 or through the harness server at `/mockups/phase-cards.html`. It is drawn with the app's real Mantine 9.5.2, theme
@@ -43,7 +45,8 @@ corrected reading.
 | D3 | **Off by default**, including for a phase added from either right-click menu's Add 1-week phase here. | same |
 | D4 | A **"Month view only" tag** in the card's header, visible while the card is folded. | same |
 | R5 | **Direction A, Tidy card**, *"but please clean up/refine the production phase cuz its still messy with hiatus and sim post"*. The refined A is §3.4. | owner, by picker, 23 Oct 2026 |
-| O2 | **OPEN: what happens to hand-set column settings when hiding a phase shifts the columns** (§2.5). Recommended: accept and document it. | owner |
+| O2 | ~~OPEN~~ **RULED, 24 Oct 2026: (a) accept and document.** Hand-set column settings that shift when hiding a phase moves the columns (§2.5) are the user's to fix; no code. | owner, by picker |
+| R11 | **The waterfall header's "Writer's Room Opens" line stays** while Writer's Room is hidden: it is the title block, not an automatic note (§5.1). | owner, by picker, 24 Oct 2026 |
 | R6 | **The A + D blend**, *"lets go with A+D but i want to still have something like this for production (nice and big and clear)"*, pointing at today's TOTAL SHOOTING DAYS readout. §3.4a. Supersedes R5. | owner, 23 Oct 2026 |
 | R8 | **The head:** a colour square left of the title opens the picker; the head is a lighter tint of that colour; the title has no box and fades on hover. Rejected first: a palette chip and an always-on name box (*"no now you made it ugly"*). §3.4a. | owner, 23 Oct 2026 |
 | R9 | **The head's text is always black**, never the colour's own dark shade. §3.4a. | owner, 23 Oct 2026 |
@@ -402,3 +405,95 @@ Today's `.ep-hint` sentence moves into that hint's tooltip. The rest of the box:
 4. **Changelog and HANDOFF**, then ask about commit, and separately about push.
 
 All of it goes on one branch in its own worktree.
+
+---
+
+## 5. As built (23 Oct 2026)
+
+### 5.1 Part 1: Hide in waterfall
+
+**Engine (`computeSchedule()`, not frozen).**
+- `wfSegments` = the segments not hidden (`phaseHiddenIn(key, 'sheet')`). Column placement (both passes) runs over it,
+  so a hidden phase takes no column.
+- ⚠️ **Different from §2.2's letter, same intent.** §2.2 said to feed `wfSegments` to the padding and to
+  `relevantHiatuses`. Doing only that would drop a hidden phase's weeks from `schedule.weeks` whenever it sits outside
+  the visible phases' years, and the MONTH view reads that list too: its notes (`notesForWaterfallDate` looks a note up
+  by its week in `weeks`) and its "Week N" labels (`seg.weekNo`, numbered in the week loop). So instead:
+  - the week loop's span is still padded over EVERY segment (`span`), and the waterfall's own padding is
+    computed separately over `wfSegments` (`wfSpan`, with `wfRelevantHiatuses`);
+  - when the two differ, the waterfall's rows are cut out of the whole list by the calendar range's own
+    machinery (`cutToCalendarRange`), and the whole list is kept as `schedule.fullRange` for the month view, which
+    `update()` already lays back over the schedule there (`wholeCalendar`). The range strip and the invalid-range
+    message stay the range's only (`calRangeCut` is set only for a real range);
+  - the week loop still walks every active segment, a hidden one included, and numbers it (`seg.weekNo`), but pushes
+    no cell for it. So `maxConcurrent` and every writer see nothing, and the month view's "Colour Grading Week 2" is
+    the same hidden or not.
+  - Nothing hidden: `wfSpan` IS `span`, no cut, every line runs as before. `hidewf` W1-W3 prove the waterfall, the
+    workbook and the waterfall PDF of a hidden phase are EXACTLY those of the same calendar with that phase not
+    scheduled; M1 that the month view is byte-identical hidden or not.
+- **Auto-notes (R4).** Writer's Room Opens is tagged `phase: 'writersRoom'`; `autoNotesForView()` drops a note whose
+  phase is hidden for that view. Checked first, as §2.2 asked: every waterfall reader of `notesByIdx`
+  (`renderSpreadsheetView`, `exportExcel`, `buildWaterfallPdf`, `sheetColumnWidths`, `sheetRowCount`, `blockHasNotes`,
+  `sheetAutoNotesFor`, `weekAutoTexts`) passes `'sheet'`. `mvIsHolidayLine` reads it raw, for holidays only.
+- **Holidays** stay computed over all segments (§2.2).
+
+**State.** `phaseHidden` = `{key: {sheet: true}}`, written only while something is hidden (sorted keys), restored
+unconditionally, sanitized (a built-in other than Production or a custom phase the file defines, `sheet: true` only;
+anything else dropped and counted), cleared by New, pruned by `removeCustomPhaseRow()` (so the day menu's Remove
+too). No id; delegated listener on `#phase-rows` / `#custom-phase-rows`; `reflectPhaseHidden()` from
+`refreshAfterRestore()` and New.
+
+**Found while building, for the owner (not changed):**
+- **The waterfall's HEADER still says "Writer's Room Opens: 1.5.26"** when Writer's Room is hidden: it is the title
+  block, not a note. R4 named the automatic notes. ✅ **Owner, 24 Oct 2026 (R11): keep the line.**
+- **Every scheduled phase hidden** leaves the waterfall with no rows: frozen `render()` shows its plain empty state
+  ("Enter at least one phase's start date…") and disables Excel and the waterfall PDF. The month view is whole.
+- **A note typed into a hidden phase's week in the waterfall** replaces that week's automatic text in the month view
+  too, as any waterfall edit does (frozen `notesForWaterfallDate`; its holiday exception does not cover this).
+  Writer's Room is the only hideable phase with an auto-note.
+- **O2** is not coded: ✅ **owner, 24 Oct 2026: accept and document.** A hand-set width or a typed heading on a column
+  that a hidden phase vacates now sits on its neighbour, until the user fixes it or shows the phase again.
+
+### 5.2 Part 2: the A + D blend
+
+Built in the engine's generators and `src/styles/legacy.css`, as §3.2 said. What changed, card by card:
+
+- **Every phase card.** The row is a stack, not a grid. `.custom-phase-header` is the head: the caret, then
+  `.phase-head-text` (the name and its tag on one wrapping line, then `#meta-<key>` / `#unitmeta-<key>`, moved in
+  from below so a folded card still shows its dates), then × on a custom phase. `#swatch-<key>` is still the row's
+  first child and is the 16 px colour square, absolutely placed over the head. The head reads
+  `color-mix(in srgb, var(--phase-color) 60%, white)`; `--phase-color` is written on the row by ONE helper,
+  `paintPhaseSwatch()`, which every swatch write now goes through (setPhaseColor, reflectPrepSwatch, New, the
+  restore's re-key, the built-ins' restore, the `color-` field replay). The name has no box and fades to 60% on hover.
+- **Fields.** "Starts" and "Length · Weeks ▾" ("Ends · Dates ▾" with Dates: two caption words shown by CSS off the
+  checked option) side by side, wrapping under each other below about 250 px of card. ↳ Start after … under them.
+- **Switch rows** (`.sw-row`): Snap to Monday, Number weeks (custom), Hide in waterfall in `.phase-switches`; the
+  phase hiatus's "Hiatus" (the old toggle line, now one `<label>`); Simultaneous Post. Each is the native checkbox
+  drawn as Mantine's Switch xs. A phase hiatus's name moved into its block (still `#phiatus-name-<key>`, still after
+  `#phiatus-en-<key>`); the block is ruled in the phase colour.
+- **Production.** Starts; Snap to Monday (with the hidden `#weeks-production` right after it, where it always was in
+  document order); the TOTAL SHOOTING DAYS box: `.prod-total-block` over `.ep-panel`, joined by CSS into one box with a
+  hairline, so the blocked state dims the readout and not the Show Info warning, as before; the empty state is the
+  readout's dashed box alone. "SHOOTING ORDER" with "drag ⠿" (its tooltip is the old hint sentence); Blocks mode
+  "BLOCKS" (with no episode count, the sentence saying to add one stays). Sim Post's settings HIDE while it is off
+  (CSS off `#simpost-enabled`; they only dimmed), and read "Starts [n] calendar weeks after Production begins" and
+  "Number these weeks and continue Post's count". ⚠️ §3.4's "weeks into Production" was NOT taken: "calendar weeks"
+  is an audit fix (SCHED-13, FIX-PLAN 4.15: the offset counts hiatus weeks too), held by leg `simpostlabel`, so the
+  shorter words would not have preserved the meaning. The full gate caught it.
+- **Episodic Prep.** The summary line is the head's dates line; the tag is always on (its title carries what the
+  retired caption said); "Default prep [n days]"; "PER EPISODE · Blank = default · 0 = none" over the boxed list.
+- **All-phase hiatus card.** `.hiatus-head` in HIATUS_COLOR lightened, with the name (no box) and a NEW dates line
+  (`reflectHiatusRanges()`, from `update()`: the span `computeSchedule()` gives it), × on the right; Starts and Weeks;
+  Lock in place and Number weeks as switch rows (R7).
+- **CSS traps kept:** no `font-size` on `.remove-custom-phase`; the fold rule unchanged; `.ep-panel-warn` still
+  block; the `.phase-blocked` dimming unchanged, with `.phase-switches` added so Snap to Monday still dims as it did
+  inside `.phase-fields`. The `.ep-panel + .phase-hiatus + .simpost-panel` rule retired with the rules it drew (the
+  siblings keep their order). `.phiatus-name` is an ordinary field now, so the global input rule excludes
+  `.hiatus-name` (the hiatus card's title) instead.
+- **Copy** (none read by a leg; `tests/harness/t` grepped, and the gate confirmed it once Sim Post's was put back): Start date → Starts; By → Length ·; Snap to Mon → Snap to
+  Monday; "&" → "and"; "Default prep days" → "Default prep"; the two list hints became headings. (Sim Post keeps
+  "calendar weeks after Production begins", above.)
+- **Proof.** `phasesui` P1: for 46 fixtures the Phases card's id'd controls in order, the saved `fields.byId` and the
+  hiatus rows equal those of the build before (`tests/baselines/2026-10-23-phasesui/before.json`, cut from `5ce6129`).
+  P2: all of the card's id'd controls still bank an undo step and redraw. P6: nothing overflows a card at 280 or
+  440 px.
