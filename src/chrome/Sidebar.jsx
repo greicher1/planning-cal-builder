@@ -550,62 +550,17 @@ export function MonthViewCard() {
             and never hidden, so the row below can open on its own divider. */}
         <ProdLabelControl />
 
-        {/* "Pause prep on days marked Off" (owner, 20 Oct 2026). It was a box in the Prep row of the
-            Phases card ("Prep card, saved"); the owner moved it here the same day, under This
-            calendar. CALENDAR DATA: the engine's prepPauseOff is the one store, saved as the
-            top-level `prepPauseOff` key (written only as `true`). ⛔ The id is new and it is SAFE
-            ONLY INSIDE .prefs-card: the box carried no id at all before, so fields.byId never held
-            it, and it must not start to. ⛔ Uncontrolled: refreshPrepUI() writes .checked from the
-            variable, so an undo, a Load or New puts the switch back with the rest; the engine takes
-            the change by delegation on the id. Month view only, like the Prep row it acts on: prep
-            is drawn in the month view and its PDF and nowhere else. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="prep-pause-off" label="Pause prep on days marked Off">
-          <Switch id="prep-pause-off" size="md"
-                  aria-label="Pause prep on days marked Off"
-                  title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them." />
-        </SettingRow>
-
-        {/* Number Production Days (owner, 19 Oct 2026): "Day 12" in the top right of every shoot day's
-            square, on screen and in the month PDF. OFF BY DEFAULT. It was a row of the old Preferences
-            card's month box; it lands here, under This calendar, because it is CALENDAR DATA (owner's
-            picker, "Saved in the calendar"): the engine's `mvNumberShootDays` is the one store and travels
-            as captureSnapshot()'s own key. ⛔ Inside .prefs-card, so collectFieldValues() skips this id and
-            fields.byId does not move. ⛔ UNCONTROLLED (no `checked`, no defaultChecked): the engine writes
-            .checked in reflectMvNumberShootDays(), and a toggle reaches setMvNumberShootDays() through
-            'change'. ✅ NEVER CONTEXTUAL (owner, the same day: "it should add the numbers no matter if we are
-            in episode mode/block mode or week mode"). */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="pref-mv-shootdays" label="Number Production Days">
-          <Switch id="pref-mv-shootdays" size="md"
-                  aria-label="Number Production Days"
-                  title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
-        </SettingRow>
-
-        {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
-            here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
-            rest of the stuff pushes with the new settings tab"). Month view only, which this card already
-            is (.pref-view-month), so it shows exactly where openPasteNotes() works. It is the last of the
-            card's calendar rows, ABOVE the grey-text caption: that caption reads as a heading for every row
-            after it (the 20 Oct merge of the Calendar tab into Preferences). ⛔ The id is the engine's
-            contract: one document-level click listener in app.js opens the box by `#paste-notes-btn`, so the
-            button needs no wiring here. A <button>, never an input, so collectFieldValues() cannot sweep it. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
-          <Button id="paste-notes-btn" type="button" size="xs" variant="default"
-                  title="Add many month-view notes at once: one per line, as date, text, colour">
-            Paste notes…
-          </Button>
-        </SettingRow>
-
         {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
             text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
             chose this knowing two people printing one calendar can get different month PDFs.
             ⚠️ SO THESE THREE ARE PREFERENCES in a card of calendar settings, kept on this computer --
-            and the Preferences tab's opening line names them in the month view. They come LAST.
-            They had a caption ("Grey text in Production's bars, on screen and in the month PDF");
-            the owner removed it (24 Oct 2026, "remove it"). Each switch's own label and title say
-            what it does.
+            and the Preferences tab's opening line names them in the month view. They sit RIGHT UNDER
+            "Label Production by", in its block, and the card's other settings have a block of their
+            own (owner, 24 Oct 2026: "the toggle should also be right below the week/episode/block
+            selector and then the other settings ... should be separated"). They once came last, under
+            a caption ("Grey text in Production's bars, on screen and in the month PDF") that read as a
+            heading for every row after it; the owner removed the caption the same day ("remove it"),
+            and each switch's own label and title say what it does.
             ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a saved
             calendar; the engine owns the state (prefs.mvWeek / prefs.mvBlocks / prefs.mvEpisodes,
             ABSENT = ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like
@@ -645,6 +600,58 @@ export function MonthViewCard() {
                     title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
           </SettingRow>
         </Box>
+      </div>
+
+      {/* The card's other settings, in a block of their own (owner, 24 Oct 2026, "the other settings
+          currently grouped (paste notes, pause prep, and number prod days) should be separated"), as
+          HolidaysCard gives .hv-custom its own .side-block. Its first row opens without a divider. */}
+      <div className="side-block">
+
+        {/* "Pause prep on days marked Off" (owner, 20 Oct 2026). It was a box in the Prep row of the
+            Phases card ("Prep card, saved"); the owner moved it here the same day, under This
+            calendar. CALENDAR DATA: the engine's prepPauseOff is the one store, saved as the
+            top-level `prepPauseOff` key (written only as `true`). ⛔ The id is new and it is SAFE
+            ONLY INSIDE .prefs-card: the box carried no id at all before, so fields.byId never held
+            it, and it must not start to. ⛔ Uncontrolled: refreshPrepUI() writes .checked from the
+            variable, so an undo, a Load or New puts the switch back with the rest; the engine takes
+            the change by delegation on the id. Month view only, like the Prep row it acts on: prep
+            is drawn in the month view and its PDF and nowhere else. */}
+        <SettingRow htmlFor="prep-pause-off" label="Pause prep on days marked Off">
+          <Switch id="prep-pause-off" size="md"
+                  aria-label="Pause prep on days marked Off"
+                  title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them." />
+        </SettingRow>
+
+        {/* Number Production Days (owner, 19 Oct 2026): "Day 12" in the top right of every shoot day's
+            square, on screen and in the month PDF. OFF BY DEFAULT. It was a row of the old Preferences
+            card's month box; it lands here, under This calendar, because it is CALENDAR DATA (owner's
+            picker, "Saved in the calendar"): the engine's `mvNumberShootDays` is the one store and travels
+            as captureSnapshot()'s own key. ⛔ Inside .prefs-card, so collectFieldValues() skips this id and
+            fields.byId does not move. ⛔ UNCONTROLLED (no `checked`, no defaultChecked): the engine writes
+            .checked in reflectMvNumberShootDays(), and a toggle reaches setMvNumberShootDays() through
+            'change'. ✅ NEVER CONTEXTUAL (owner, the same day: "it should add the numbers no matter if we are
+            in episode mode/block mode or week mode"). */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="pref-mv-shootdays" label="Number Production Days">
+          <Switch id="pref-mv-shootdays" size="md"
+                  aria-label="Number Production Days"
+                  title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
+        </SettingRow>
+
+        {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
+            here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
+            rest of the stuff pushes with the new settings tab"). Month view only, which this card already
+            is (.pref-view-month), so it shows exactly where openPasteNotes() works. It is the last of the
+            card's calendar rows, in the card's second block (24 Oct 2026). ⛔ The id is the engine's
+            contract: one document-level click listener in app.js opens the box by `#paste-notes-btn`, so the
+            button needs no wiring here. A <button>, never an input, so collectFieldValues() cannot sweep it. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
+          <Button id="paste-notes-btn" type="button" size="xs" variant="default"
+                  title="Add many month-view notes at once: one per line, as date, text, colour">
+            Paste notes…
+          </Button>
+        </SettingRow>
       </div>
     </section>
   )

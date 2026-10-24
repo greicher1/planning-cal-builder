@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED — committed on local `main`, NOT PUSHED
+### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — committed on local `main` (`9e15091` + the regroup), NOT PUSHED
 
 - **Asked** (owner): asked what the caption "Grey text in Production's bars, on screen and in the month PDF" meant,
   then *"remove it"*, then *"maybe the toggle should say something more clear like 'Add Production Week Label in
@@ -13,7 +13,12 @@
   carries its own divider). Labels/aria-labels now *Add Production Week Label / Add Block Label / Add Episode Label in
   Month View*. Ids `pref-mv-week|blocks|episodes`, prefs keys and the CSS hiding are untouched. Comments in
   `app.js` / `legacy.css` / `gate.sh` still say "Show Blocks" etc. as history; no test matches the label text.
-- **Verified:** `npm run check` 40/40; `pilllabel` (blocks, halfdays) clean; seen in the pane. No full gate.
+- **Then regrouped** (owner: *"the toggle should also be right below the week/episode/block selector and then the
+  other settings currently grouped (paste notes, pause prep, and number prod days) should be separated"*): `MonthViewCard`
+  is two `.side-block`s, as HolidaysCard does for `.hv-custom`. Block 1: `ProdLabelControl` + the three `.pref-mv-row`s.
+  Block 2: Pause prep, Number Production Days, Paste notes (its first row has no divider).
+- **Verified:** `npm run check` 40/40; `pilllabel` (blocks, halfdays) clean after each step, Show-row table unchanged;
+  seen in the pane. No full gate.
 - Tracker card: `mv-grey-text-labels`.
 
 ### ✅ 24 Oct 2026: HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — ✅ LIVE at `076247a` (pushed on the owner's picker; live page verified serving it ~70 s later)
