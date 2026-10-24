@@ -1925,6 +1925,28 @@
   #table-wrap .mv-daycell:hover{ background:var(--edit-accent-bg); }
   /* An out-of-month day keeps its greyed number, but the chip must still be legible on it. */
   #table-wrap .mv-out:hover .mv-daynum{ opacity:1; }
+  /* ⛔ FROZEN CSS EDIT, owner-instructed 23 Oct 2026: "as you scroll up and down over a square in the
+     month view, the square flashes purple for a split second as your cursor hovers in between the tiny
+     gap between the selector buttons for comments. this is distracting and feel unprof".
+
+     The two rules above are honest about their hit area, and that was the trouble: below the number
+     band the CELL is still the hit target wherever .mv-bars leaves a hole -- the 2 px row gaps between
+     lanes (`gap:2px 0`), the 1 px seams of each bar's `margin:0 1px`, the bar layer's 3 px side padding
+     and the strip above the row-expand bar. Measured 23 Oct 2026 at 1440x900: elementFromPoint in every
+     one of them returned .mv-daycell, so sweeping down a column of "+" lit the whole square at each gap.
+
+     So this transparent sheet covers the day grid BELOW the band. It is .mv-daygrid's own box, painted
+     after the cells and under .mv-bars (z-index 1), so every "+", note, pill and the row-expand bar keep
+     their clicks, and the holes between them now hit the sheet, which is no .mv-daycell: nothing lights,
+     and a click there opens nothing. The cell is the target only in its number band, which is where
+     installMonthDayMenu already says "the day itself" is. The cue still cannot lie about its hit area;
+     the hit area shrank to match it.
+     - Right-click is unchanged: dayContextAt finds the day by POINT anywhere inside .mv-body.
+     - HEIGHT-NEUTRAL and PAINT-FREE: absolutely positioned inside .mv-daygrid, itself out of flow, and
+       no background.
+     - Cannot print: #table-wrap scoping (#print-root is a different subtree), as the rules above.
+     ⚠️ 24px is .mv-bars' padding-top, the band; change one, change both. */
+  #table-wrap .mv-daygrid::after{ content:''; position:absolute; left:0; right:0; top:24px; bottom:0; }
   .mv-hiatus-bar{ border-radius:9px; text-align:center; }
   /* Notes are deliberately square so they read as a different class of thing than phases,
      and they sit on their exact day -- so instead of stealing width from neighbouring days,

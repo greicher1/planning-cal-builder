@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: no purple flash between the "+" note buttons (23 Oct 2026)
+
+Owner: *"as you scroll up and down over a square in the month view, the square flashes purple for a split second as
+your cursor hovers in between the tiny gap between the selector buttons for comments. this is distracting and feel
+unprof"*.
+
+- **Why it flashed.** A day lights purple when the pointer is on the day itself, which is meant to be its number
+  band. But below the band the day was also under the pointer wherever the bars and "+" buttons leave a hole: the
+  2 px gaps between lines, the 1 px seams between days, the bar layer's side padding and the strip above the
+  row-expand bar. Sweeping down a column of "+" lit the whole square at every gap.
+- **Now only the number band lights**, and only the number band opens the day menu on a left-click. A
+  transparent sheet covers each day below its band, under the bars, so a "+", a note, a bar and the row-expand bar
+  keep their clicks and the holes between them do nothing. A right-click anywhere on a day still opens its menu.
+- A frozen CSS edit made on the owner's instruction: one rule, `#table-wrap .mv-daygrid::after`. It paints nothing,
+  takes no space, and cannot reach either month PDF (the print path renders outside `#table-wrap`; the writer reads
+  no DOM).
+
+Verified: in the browser pane, a real mouse sweep down a day lights only its number band, and every gap stays grey.
+The band's left-click, a right-click in a gap and the "+" all behave as before. `npm run check` 40/40; `mvmenu`
+89/89, `labelsetup` 41/41, `halfworked` 24/24, `overrides` 20/20, `mvnotes` 30/30 + 14/14 and eight more month legs
+pass. Full gate: 3,035 PASS. The 2 FAILs come from a `stintswap-reshape` fixture modified in the checkout before this
+work. On the committed fixture, the written month PDF is byte-identical to its baseline and the leg passes.
+
 ### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 
 Owner: *"the window needs to scale larger so we dont have elipses/things cut off"*. A long scenario name ended in
