@@ -148,6 +148,9 @@
    "show-version": {
     "value": ""
    },
+   "show-location": {
+    "value": ""
+   },
    "cal-range-start": {
     "value": ""
    },

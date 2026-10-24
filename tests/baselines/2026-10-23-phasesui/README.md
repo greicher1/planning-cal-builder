@@ -12,7 +12,11 @@ showed and saved after loading it through the real Load path:
 - `byId` -- the saved `fields.byId`, keys in order, with values;
 - `hiatuses` -- the saved all-phase hiatus rows.
 
-**How it was made.** `HEAD` at `5ce6129` (the plan's last commit, no redesign code) built in a scratch worktree,
+**How it was made.** First from `5ce6129` (the plan's last commit, no redesign code). ⚠️ **Re-cut 24 Oct 2026** after
+`origin/main` was merged into the branch (`55d3840`): that brought the scenario key-facts work, whose new saved field
+`show-location` joins every fixture's `fields.byId` (gate 5's re-cut, owner-approved). So the "before" became
+`origin/main`'s tip, `91a5d24`: the same code without the redesign. Checked when re-cutting: the new records differ from
+the `5ce6129` ones ONLY by that `show-location` key, in all 46 fixtures. Each cut was a build in a scratch worktree,
 then:
 
     HARNESS_PAGE=/tests/harness/phasesui-before-build.html HARNESS_STATE=hidewf HARNESS_QUERY=record=1 ./run.sh phasesui 1500

@@ -66,7 +66,10 @@ waterfall PDF, the Excel parts, the printed month documents, all 21 written mont
 `simpostlabel` caught Sim Post's new wording, "weeks into Production", which dropped "calendar weeks", an audit fix
 (SCHED-13: the offset counts hiatus weeks too), so the old wording is back; `offweek` R13 timed out waiting for a Load
 and passes alone. The final build `400e403b` differs from the gated one only in that sentence; `simpostlabel`,
-`offweek` (both runs), `hidewf` and `phasesui` pass on it.
+`offweek` (both runs), `hidewf` and `phasesui` pass on it. Merged with `origin/main` (the scenario key-facts band) for
+the push: combined full gate on build `91421ba4`, 3,081 PASS, every frozen output byte-identical; its 3 FAILs were
+`hidewf.sptcal` predating the new `show-location` field (re-minted from the app's Save; the leg then 19/19) and a
+`scenariocompat` timeout on the frozen v1.2.0 page (green twice alone).
 
 ### Unreleased — Scenarios: the key facts band centred over the calendar (23 Oct 2026; branch `scenario-facts`, not pushed)
 

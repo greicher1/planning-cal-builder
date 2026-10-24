@@ -44,6 +44,21 @@
   - The final build `400e403b` differs from `85b5d428` only in that sentence (and the CSP hash of the script holding
     it); on it `simpostlabel` 3/3, `offweek` both runs, `hidewf` 19/19, `phasesui` 8/8; `npm run check` 40/40.
 - **Screenshots** of every card kind at 280 and 440 px sidebars were shown to the owner (this session).
+- **Committed `c178d05`** on the branch (owner's picker). For the push (*"Merge into main and push"*), `origin/main` had
+  moved on (the scenario key-facts band, live at `91a5d24`, with a new saved field `show-location`), so it was merged
+  into the branch through the app's sync tool as **`55d3840`**: the code merged cleanly, only the HANDOFF and README tops
+  conflicted (every entry kept). The "+" flash fix, on both sides under two hashes, is in once.
+  - `phasesui`'s baseline was **re-cut from `91a5d24`** (origin's code without the redesign): it differs from the
+    `5ce6129` cut ONLY by `show-location` in every fixture's `fields.byId` (checked; README in the baseline folder).
+  - **Combined full gate** on the merged build `91421ba4`: **3,081 PASS, 3 FAIL** (port 9898, no other gate running), every
+    frozen output byte-identical (the waterfall PDF, the Excel parts, gate 5's 77 ids, all 21 written month PDFs), and
+    `phasesui` 8/8 against the re-cut baseline. The 3, all explained:
+    - `hidewf` F1 and F3: `tests/fixtures/hidewf.sptcal` was saved before `show-location` existed, so a fresh Save had
+      one more field id. **Re-minted** from the merged build's own Save, byte for byte (the only change is
+      `"show-location": {"value": ""}` after `show-version`); then `hidewf` 19/19 and `phasesui` 8/8 alone.
+    - `scenariocompat` on the FROZEN `releases/v1.2.0.html` (untouched here): timed out on its "Open…" item, the
+      IndexedDB stall `t/lib.js` documents; failed once more alone, then passed twice (Half Days Test, 8 episodes).
+  - The merged build is `91421ba4`; `npm run check` 40/40.
 - ⏭ **Next:** nothing owed on this feature once the push is verified live (status below).
 
 ### 📝 23 Oct 2026: MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE (BUILT: the entry above) ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
