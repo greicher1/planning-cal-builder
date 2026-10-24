@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; branch `scenario-facts`, not pushed)
+
+Owner: *"what if we centered the bar left to right in the window"*. Of two mocked readings (centred over the calendar,
+or in the whole window), the owner chose the whole window, sidebar included.
+
+- **The band hugs its tiles and sits in the middle of the window**: exactly centred at 1280 and 1440 px.
+- **It never covers the sidebar.** In a window too narrow for the true centre (below about 1,110-1,240 px, by the
+  sidebar's width) it stops at the calendar's left edge instead, and it never runs past the calendar's right edge.
+- **It re-centres when the window is resized.** A band wider than the calendar still wraps inside it.
+
+Verified: `scenariofacts` 12/12 (new F12: centred within 1 px of the window's centre, clear of the sidebar);
+`scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1440, 1280, 1000 and 961 px (the last two clamped to
+the calendar's edge). No full gate: chrome only.
+
 ### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; live at `f29f268`)
 
 Owner, on the live band: *"its not necessarily clear that the 20wks refers to the length of the writers room and the

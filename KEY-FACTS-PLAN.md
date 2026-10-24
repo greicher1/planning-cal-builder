@@ -214,3 +214,12 @@ two labels. From four mocked fixes the owner chose D, *"a small label above each
 - **This replaces §2's default 2** (no label on the band, beginning with the Location): every fact now has a label.
 - **The band is 41 px.** It wraps between tiles, and a wrapped row never starts with a divider.
 
+## 11. Centred in the window (owner's option B, the same evening)
+
+*"what if we centered the bar left to right in the window"*, then *"Centre the key facts band in the whole window,
+sidebar included"*.
+
+- **The band hugs its tiles** and its centre is the window's.
+- **One guard:** it is clamped to the calendar's area, so a narrow window never puts it over the sidebar.
+- **This replaces §3.1's "as wide as the calendar".**
+

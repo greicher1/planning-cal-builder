@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; NOT PUSHED
+
+- **Asked** (owner): *"what if we centered the bar left to right in the window"*. Mocked in chat: A over the calendar
+  (recommended) or B in the whole window. **Chosen: B**, *"Centre the key facts band in the whole window, sidebar
+  included"*. Tracker: `key-facts-band-centred`.
+- **Built** (`ScenarioTabs.jsx` + `legacy.css` only):
+  - `.sc-band` is `width:max-content`, with a `max-width` of the calendar's width;
+  - `placeBand()` writes its `left`: the window's centre, CLAMPED to the calendar's area (`left`..`innerWidth - right`,
+    the edges the band used to span);
+  - it runs on every render, on the band's own resize, and on `window` `resize`. The strip doesn't re-render on a
+    window resize (its measured edges don't change), so without that listener the band would stay off-centre.
+- ⚠️ **The clamp is the owner's B with one guard.** Below about 1,110–1,240 px, depending on the sidebar's width, the
+  window's centre would put the band's left end on the sidebar, so it stops at the calendar's left edge. Seen at 1000
+  and 961 px: left = calendar left, 308.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 is new (centre within 1 px of the window's, left ≥ the calendar's); F9 now narrows the
+    band through `max-width`.
+  - `scenarios` 22/22, `npm run check` 40/40, build `f01a1115`.
+  - Browser pane at 1440 / 1280 (centred, offset 0) and 1000 / 961 (clamped).
+- ⏭ **Next:** the owner's push decision. Local `main` still owes the merge (entries below).
+
 ### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; ✅ **LIVE at `f29f268`**
 
 - **Asked** (owner, with a screenshot of the live band): *"its not necessarily clear that the 20wks refers to the

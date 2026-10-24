@@ -20,7 +20,7 @@ import { IconPlus } from './icons.jsx'
 import { fmt } from './CompareDialog.jsx'
 
 // The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C"): the tab on screen's facts on a soft
-// grey band directly above the tabs, as wide as the calendar, while there are two or more scenarios. Since the same
+// grey band directly above the tabs, centred in the window (placeBand, below), while there are two or more scenarios. Since the same
 // evening each fact is a small STAT TILE, its label above its value (owner, option D: "a small label above each
 // value, like stat tiles"), because one line of "·"-separated facts left "20 wks" floating between the writers' room
 // and Production -- "its not necessarily clear that the 20wks refers to the length of the writers room". The
@@ -58,25 +58,44 @@ function putBandSpace(el) {
   if (v) root.style.setProperty('--sc-band-space', v)
   else root.style.removeProperty('--sc-band-space')
 }
+// CENTRED IN THE WINDOW, sidebar included (owner, 23 Oct 2026, option B: "Centre the key facts band in the whole
+// window"), the band hugging its tiles. But never over the sidebar or past the calendar: in a window too narrow for
+// that, the window's centre would put the band's left end on the sidebar, so it is clamped to the calendar's area,
+// `left` to `right` -- the same edges the band spanned before. A band wider than that area wraps inside it.
+// Written straight onto the element (its width is known only once laid out), and again on every render, a size
+// change of its own, and a window resize, which moves the centre without re-rendering the strip.
+function placeBand(el, left, right) {
+  const w = el.offsetWidth, vw = window.innerWidth
+  const x = Math.round(Math.max(left, Math.min(vw - right - w, (vw - w) / 2)))
+  if (el.style.left !== x + 'px') el.style.left = x + 'px'
+}
 function FactsBand({ band, left, right }) {
   const ref = useRef(null)
   const groups = bandGroups(band)
+  const edges = useRef({ left, right })
+  edges.current = { left, right }
   // Measured on EVERY render (new facts, a new left/right from a resize), not only by the observer below: a
   // ResizeObserver reports only at a rendering opportunity, which a hidden or backgrounded page never gets (the
   // grid fit's own lesson, app.js "THE APP SHELL'S GRID FIT"). The observer catches a wrap no render caused.
-  useLayoutEffect(() => { putBandSpace(ref.current) })
+  useLayoutEffect(() => {
+    if (ref.current) placeBand(ref.current, left, right)
+    putBandSpace(ref.current)
+  })
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return undefined
-    const ro = new ResizeObserver(() => putBandSpace(el))
+    const again = () => { placeBand(el, edges.current.left, edges.current.right); putBandSpace(el) }
+    const ro = new ResizeObserver(again)
     ro.observe(el)
-    return () => { ro.disconnect(); putBandSpace(null) }
+    window.addEventListener('resize', again)
+    return () => { ro.disconnect(); window.removeEventListener('resize', again); putBandSpace(null) }
   }, [groups.length > 0])
   if (!groups.length) return null
   // One tile per fact: the label on top, its value under it. A phase's start and its length share one tile, so the
   // weeks can only belong to the label above them.
   return (
-    <div className="sc-band" ref={ref} style={{ left, right }} aria-label="Key facts of this scenario">
+    <div className="sc-band" ref={ref} style={{ maxWidth: 'calc(100vw - ' + (left + right) + 'px)' }}
+         aria-label="Key facts of this scenario">
       {groups.map((g) => (
         <div key={g.label} className="sc-band-stat">
           <span className="sc-band-lab">{g.label}</span>

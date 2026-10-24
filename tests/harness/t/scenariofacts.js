@@ -164,12 +164,23 @@ window.addEventListener('load', function () { (async function () {
     // window is wide, so the band is narrowed by hand the way a 1000 px window would, and then a flip re-renders it:
     // in the app a narrower band only ever comes from a window or panel resize, which re-renders the strip, and the
     // band measures itself on every render (a ResizeObserver alone is not delivered on a page that isn't painting).
-    var rightWas = b8.style.right, oneRow = b8.offsetHeight;
-    b8.style.right = (window.innerWidth - b8.getBoundingClientRect().left - 380) + 'px';
+    // (Since the band is centred and hugs its tiles, narrowing it means capping its max-width, which is what the
+    // calendar's own width does in a narrow window.)
+    var maxWas = b8.style.maxWidth, oneRow = b8.offsetHeight;
+    b8.style.maxWidth = '330px';
     tab('8 eps').click(); await T.sleep(900);
     var wrapped = band().offsetHeight, clipped = band().scrollWidth > band().clientWidth, lay9 = layoutOk();
-    b8.style.right = rightWas;
+    b8.style.maxWidth = maxWas;
     tab('Toronto').click(); await T.sleep(900);
+
+    // F12 -- centred in the WINDOW, sidebar included (owner, option B), and never over the sidebar: in this wide
+    // window the window's centre leaves it clear of the calendar's left edge, so the band's middle is the window's.
+    var b12 = band().getBoundingClientRect(), calLeft = panel().getBoundingClientRect().left + 28;
+    var off = (b12.left + b12.right) / 2 - window.innerWidth / 2;
+    add('F12', 'the band hugs its tiles and is centred in the window, clear of the sidebar',
+      Math.abs(off) <= 1 && b12.left >= calLeft - 0.5 && b12.width < window.innerWidth - calLeft - 28,
+      {centreOffset: Math.round(off), bandLeft: Math.round(b12.left), calendarLeft: Math.round(calLeft), width: Math.round(b12.width), window: window.innerWidth},
+      'centre within 1 px of the window\'s, left edge at or right of the calendar\'s');
     add('F9', 'a narrow band wraps onto more lines, cuts nothing off, and the grid still ends above it',
       wrapped >= oneRow + 30 && !clipped && lay9.gridClears && lay9.margin === lay9.expectMargin,
       {oneRow: oneRow, height: wrapped, clipped: clipped, layout: lay9}, 'a second row of tiles, not clipped, grid clears');

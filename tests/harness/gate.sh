@@ -2854,7 +2854,7 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenariofacts '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
 errs = (a.get('health') or {}).get('errors') or []
 if errs: print('  FAIL  scenariofacts: page errors '+str(errs)[:200])
-sys.exit(0 if len(cases) >= 11 and all(c.get('pass') is True for c in cases) and not errs else 1)
+sys.exit(0 if len(cases) >= 12 and all(c.get('pass') is True for c in cases) and not errs else 1)
 PYSF
 # ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
 # v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
