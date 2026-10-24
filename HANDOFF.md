@@ -4,6 +4,50 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — PLANNED, PLACEMENT RULED (C), NO CODE ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+
+- ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. The plan is written: no frozen edit, one new
+  permanent saved id (`show-location`, so gate 5 moves by one id), a new leg `scenariofacts`. Its §2 lists the
+  defaults taken (wrap on narrow windows, no band label, facts drop out when empty). ⏭ **Next:** the owner's go, then
+  build on a worktree branch from local `main`. The notes below are the history that led here.
+
+- **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
+  easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also
+  add start date of production"*. They also said *"i dont want to overcomplicate and bloat the app ... I dont want more
+  clutter"*. Tracker: `scenario-key-facts`.
+- **Then the region problem** (owner): the Production Region is a holiday picker, not a city. *"if you selected a province
+  in canada, you might actually mean winnipeg"*, and *"this is also an issue for the comparison screen"*. The owner's
+  own fix: *"in addition to selecting a production region, you could also enter a specific location (as text) and that
+  is what is used ... this would be in the "show menu""*. Tracker: `show-location-field`.
+- **What the mockup proposes:**
+  - One line of facts, shown only with 2+ scenarios: Location · eps · Writers' Rm open · wks · Production start · wks ·
+    Wrap. The same in both views; no setting; nothing saved, printed or exported.
+  - **Placement: C, the tinted band above the tabs (ruled).** It got there by way of F (the text style bar) and A–E (a row above the tabs). First it was a row above
+    the tabs. The owner liked the look of beside the tabs but asked about 6+
+    scenarios, so the mockup has 3 / 6 / 10 scenario and 1280 / 1440 / 1680 px switches. Measured: beside the tabs,
+    the line keeps its width and the TABS give way (`.sc-tabs` is `min-width:0` and scrolls). At 1280 px the line
+    alone doesn't fit; at 1440 px only 1 tab of 3, 6 or 10 is in view; at 1680 px 3 of 3, 4 of 6, 4 of 10. Above the
+    tabs: all 6 at every width, and 10 shows 7 / 9 / 10, scrolling the rest as today.
+  - **Then the owner asked for more separation between the two rows**, so the mockup shows five "above" styles: A
+    hairline, B readout pill (the zoom pill's shape), C tinted band, D calendar footer, E name tag.
+  - **Then the owner's own idea, F: the empty right-hand end of the text style bar** (`.style-bar`, under the
+    preview toolbar, in BOTH views), labelled "SCENARIO" the way the bar's `::before` says "TEXT", behind a divider.
+    Measured in the real build at 1440 px: the bar is 1038 px wide, its controls end at x≈620 and the hint
+    (`.style-bar:not(.has-target)::after`) at ≈830. The facts need ~613 px plus the label. **F fits windows from about
+    1,277 px once the hint gives way, and from about 1,488 px with the hint.** It costs no calendar height. Below
+    about 1,280 px it needs a fallback (not designed). The facts end up far from the tabs (top vs bottom).
+  - **Values the same in every scenario are grey** (Compare's grey-row rule); what differs stays dark. A first draft
+    tinted differing values yellow, but realistic scenarios differ in most facts, so everything went yellow.
+  - **Location box** (optional text, under Production Region in Show info): the line and Compare's Location row show it.
+    When it's blank they show the region SHORTENED ("Manitoba", "Toronto", "U.S. (Area Standards)"), not the list's
+    full label. It never changes a date.
+- ⚠️ **If built, Location is a NEW saved field:** an id'd Show info control lands in `fields.byId`, so its id is
+  permanent from the first save (CLAUDE.md "Every saved calendar must keep opening"). An old file without it shows the
+  region. Per scenario, like every Show info field. The values should come from `scenarioFacts()` (the header's own
+  tokens), so the line, the header and Compare cannot disagree.
+- ⏭ **Next:** see the ✅ Ruled line at the top of this entry. Nothing is committed: the plan, the mockup and these notes
+  are uncommitted in the main checkout.
+
 ### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; ✅ **LIVE at `acdae89`**; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
 
 - **Asked** (owner): *"the window needs to scale larger so we dont have elipses/things cut off"*. On the tracker as
