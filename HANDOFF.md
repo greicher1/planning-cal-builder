@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 24 Oct 2026 (latest): HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — built on `main` in the main checkout, NOT committed, NOT pushed
+### ✅ 24 Oct 2026 (latest): HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — ✅ LIVE at `076247a` (pushed on the owner's picker; live page verified serving it ~70 s later)
 
 - **Asked** (owner): *"flag which holidays in the holiday section are during production and specifically during the
   working week and affecting a shoot day"*.
