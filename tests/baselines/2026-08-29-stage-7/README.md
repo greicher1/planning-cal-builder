@@ -350,6 +350,30 @@ Unchanged by this: `base.xlsx`, `base.json`, `restore.json`.
 The `base` leg on the merged build (`2626faea…`) passes this file bar the stamp and fails main's old one, first diff
 `/F1 6.564 Tf` → `/F1 5.936 Tf`.
 
+## ✅ `restore.json`'s `form` RE-CUT — 76 keys to 77 (23 Oct 2026)
+
+Owner-approved by picker (*"Re-cut it"*). Show info gained a free-text **Location**, `#show-location`
+(KEY-FACTS-PLAN.md, branch `scenario-facts`): the town shown in the scenario band and Compare's Location row instead
+of the Production Region. It is calendar data, so it has an id and `collectFieldValues()` sweeps it into
+`fields.byId` -- a new permanent key.
+
+| | ids | why |
+|---|---|---|
+| **added (1)** | `show-location` = `""` | the Location box; `v1.0.0-saved.html` has no such key, so the absent-field default restores it blank |
+
+### What was actually observed (full gate on `f0c088c`, 23 Oct 2026)
+
+| | |
+|---|---|
+| gained | `show-location` |
+| lost | none |
+| **changed among shared keys** | **none** (`changed: []`) |
+| count | **76 → 77** |
+
+`rows`, `cells`, `gridWidthPt`, `bytes` 756473, `hClip` 0 and the restored grid signature all came back identical,
+and every other frozen output in that gate (waterfall PDF, Excel parts, month documents, written month PDFs) was
+byte-identical. The value is `""` -- blank, not the previous calendar's -- which is the point of the default.
+
 ## Reproducing it
 
 ```bash
