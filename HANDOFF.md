@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 26 Oct 2026 (latest): THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. Uncommitted on local `main` in the main checkout; not pushed
+### ✅ 26 Oct 2026 (latest): THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. ✅ LIVE at `71a6c87` (committed and pushed on the owner's picker; the live page served it ~70 s later, byte-identical to the gated build `977b3ea6`)
 
 - **Asked** (owner): *"The viewport of the month view needs to work the same way as the viewport of the waterfall
   view. When you zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only.
@@ -33,8 +33,11 @@
   (stintswap-reshape controls/fields.byId) fail identically on a build of unchanged HEAD. Gate 13's
   stintswap-reshape month PDF was not re-run on HEAD, but it reads the same edited fixture. Every other baseline
   comparison passed. `npm run check` 40/40.
-- ⏭ **Next:** owner to say whether to commit (only this session's files, NOT the fixture or the untracked
-  `Reshape Fixture 2026-09-29.sptcal`), then whether to push.
+- **Shipped:** owner's picker, *"Commit"* and *"Commit and push"*. Only this session's files were committed. The
+  edited `stintswap-reshape.sptcal` and the untracked `Reshape Fixture 2026-09-29.sptcal` are still uncommitted in the
+  main checkout, belonging to whoever made them. The push also carried `a81aad1` (HANDOFF only).
+- ⚠️ **For whoever owns that fixture edit:** with it, `stintreshape`, `phasesui` P1 and gate 13 (sr) fail. Either
+  the edit is unfinished, or the baselines need re-cutting with the owner's sign-off.
 
 ### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — ✅ LIVE at `2d1f890` (`9e15091` + `2353b6d`, merged with `origin/main`'s black hiatus name; pushed on the owner's picker, live page verified serving it ~50 s later)
 

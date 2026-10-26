@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026)
+### Live — Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026, `71a6c87`)
 
 Owner: *"The viewport of the month view needs to work the same way as the viewport of the waterfall view. When you
 zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only. not the
