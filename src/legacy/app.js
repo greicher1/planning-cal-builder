@@ -22334,9 +22334,11 @@ export function initLegacyApp() {
   // larger or smaller. Nothing reflows:
   //   * the waterfall's table has explicit widths, so it is the 100% table scaled; its scroll box
   //     fills the panel at every zoom (the grid fit divides by the zoom, see "THE APP SHELL'S GRID FIT");
-  //   * the month view is PINNED to the width it has at 100% (`width: calc(100% * z)`), so its day
-  //     columns keep their CSS width and every note keeps its line count. Zoomed in it scrolls
-  //     sideways, as a zoomed-in page does.
+  //   * the month view is PINNED to the width it has at 100% (legacy.css, "THE MONTH VIEW SCROLLS IN
+  //     #table-wrap"), so its day columns keep their CSS width and every note keeps its line count.
+  //     Zoomed in it scrolls sideways, as a zoomed-in page does. Since 26 Oct 2026 (owner: "The
+  //     surrounding menus need to stay fixed in place") #table-wrap is the month's scroll box, under the
+  //     toolbar, as the waterfall's grid box is; before that the whole panel scrolled, toolbar and all.
   // Neither writer reads the DOM, so the Excel file and both PDFs cannot see the zoom. The month's
   // print path (the rollback) measures the live day column through mvNoteBoxWidth(), which reads it in
   // its own px (below), so the print path cannot see the zoom either.
@@ -22392,7 +22394,9 @@ export function initLegacyApp() {
     const tw = document.getElementById('table-wrap');
     if(tw){
       put(tw, 'zoom', on ? String(z) : '');
-      put(tw, 'width', on && calZoomView() === 'month' ? 'calc(100% * ' + z + ')' : '');
+      // The month's width pin is CSS now (legacy.css, "THE MONTH VIEW SCROLLS IN #table-wrap"): a grid track
+      // in the app shell, a width when stacked. This hands it the zoom. An inline width it used to be.
+      put(tw, '--cal-zoom', on && calZoomView() === 'month' ? String(z) : '');
       if(tw.getAttribute('style') === '') tw.removeAttribute('style');
     }
     // The side boxes are NOT zoomed (owner, 21 Oct 2026: "the side boxes should not change size with
@@ -22412,23 +22416,12 @@ export function initLegacyApp() {
     if(!Number.isFinite(z)) return;
     const prev = calZoom[v];
     if(z === prev){ applyCalZoom(); return; }
-    // The month view scrolls in the panel, outside the zoom, so hold the corner the user is looking
-    // at still. The waterfall's scroll box is inside the zoom: its offsets already stay put.
-    const panel = document.querySelector('main.preview-panel');
-    const tw = document.getElementById('table-wrap');
-    let keep = null;
-    if(v === 'month' && panel && tw){
-      const pr = panel.getBoundingClientRect(), tr = tw.getBoundingClientRect();
-      keep = { x0: tr.left - pr.left + panel.scrollLeft, y0: tr.top - pr.top + panel.scrollTop,
-               left: panel.scrollLeft, top: panel.scrollTop };
-    }
+    // Both views scroll inside the zoom (the waterfall in its grid box, the month in #table-wrap itself
+    // since 26 Oct 2026), and a scroll offset is in the zoomed box's own px, so the corner the user is
+    // looking at stays put with nothing done here. (The month used to scroll in the panel, outside the
+    // zoom, and needed its corner held by hand.)
     calZoom[v] = z;
     applyCalZoom();
-    if(keep){
-      const r = z / prev;
-      if(keep.top > keep.y0) panel.scrollTop = keep.y0 + (keep.top - keep.y0) * r;
-      if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
-    }
     // Both overlays are drawn in the grid's own px, and Chrome lays the rows out at a different height in
     // those px at each zoom (20 at 100%, 20.8 at 50%, 20.1 at 200%), so a box drawn at one zoom drifts at
     // another: a text style highlight 45 rows down sat 76 px off its cell at 200% (22 Oct 2026, calzoom W8).

@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 26 Oct 2026 (latest): THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. Uncommitted on local `main` in the main checkout; not pushed
+
+- **Asked** (owner): *"The viewport of the month view needs to work the same way as the viewport of the waterfall
+  view. When you zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only.
+  not the surrounding menus. The surrounding menus need to stay fixed in place."* Tracker card `month-zoom-viewport`.
+- **Cause:** the month view had no scroll box. It scrolled in `.preview-panel`, so the toolbar and the text style
+  bar scrolled with it. Zoomed in (`#table-wrap` was `width: calc(100% * z)`), they slid sideways off screen too.
+- **Built** (no frozen code; `#table-wrap`'s own box only, nothing inside it, no `.mv-*` rule):
+  - `legacy.css`, in the app shell's `(width > 960px)` block: in the month view (`body:has(#view-month-btn.active)`,
+    the side boxes' selector) the panel is a flex column. `#table-wrap` gets `flex:1 1 0; min-height:0;
+    overflow:auto` and becomes the scroll box. Zoomed, it is a one-track grid,
+    `calc(100% * var(--cal-zoom))`, `align-content:start`, which pins `.month-view` to its 100% width as the
+    inline width did. Stacked (≤960) keeps the old width rule, as CSS now.
+  - `app.js` `applyCalZoom()` writes `--cal-zoom` on `#table-wrap`, never the width. In `setCalZoom()` the
+    month's "hold the corner" block is gone: a scroll offset inside the zoomed box is in its own px, so the corner
+    stays put (measured: a cell 75.75 px down at 150% is 101 px down at 200%, the same content point).
+  - Frozen `captureScroll()`/`restoreScroll()` already keep `#table-wrap`'s scroll across renders (by id).
+    `revealMonthCell()` finds the first scrolling ancestor, so it now scrolls `#table-wrap`, zoom-aware already.
+- ⚠️ **Tests that scrolled the panel in the month view now scroll `#table-wrap`:** `mvmenu` (bringIntoView, L8, C1's
+  synthetic scroll), `labelsetup`, `phasenum`. `calzoom` Z5/M1/M2 now measure `#table-wrap` / `.month-view`. New
+  M2b: at 150%, scrolled to the far corner, the toolbar row and the box are where they were at 100%, and the panel has
+  no scroll.
+- **Verified:** toolbar and box positions identical between views at 100% (83 / 175 px at 1440×900); 900 px
+  stacked layout unchanged (pinned width, page scrolls sideways). Full gate on build `977b3ea6`: **3,074 PASS,
+  3 FAIL**, all on `tests/fixtures/stintswap-reshape.sptcal`. That file had UNCOMMITTED edits (+378/−30) in the main
+  checkout before this session began; they are not this session's. `stintreshape` (grid never renders) and `phasesui` P1
+  (stintswap-reshape controls/fields.byId) fail identically on a build of unchanged HEAD. Gate 13's
+  stintswap-reshape month PDF was not re-run on HEAD, but it reads the same edited fixture. Every other baseline
+  comparison passed. `npm run check` 40/40.
+- ⏭ **Next:** owner to say whether to commit (only this session's files, NOT the fixture or the untracked
+  `Reshape Fixture 2026-09-29.sptcal`), then whether to push.
+
 ### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — ✅ LIVE at `2d1f890` (`9e15091` + `2353b6d`, merged with `origin/main`'s black hiatus name; pushed on the owner's picker, live page verified serving it ~50 s later)
 
 - **Asked** (owner): asked what the caption "Grey text in Production's bars, on screen and in the month PDF" meant,

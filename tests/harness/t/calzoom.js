@@ -93,23 +93,42 @@ window.addEventListener('load', function () { (async function () {
     check(pct() === '100%' && hits(q('.cal-zoom-slider')) && hits(q('.cal-zoom [aria-label="Zoom out"]')) && hits(q('.cal-zoom [aria-label="Zoom in"]')),
           'Z2 it reads 100% and its slider and both buttons are on top where they are pressed');
     check(!qa('[id]', ctl).length, 'Z3 no id anywhere in it (collectFieldValues sweeps every input[id] into the file)');
-    // The month view scrolls in .preview-panel itself, so the panel is the box that must end above them.
-    check(clearOfStrip(q('main.preview-panel')), 'Z5 the bottom strip: the month view\'s scroll box ends 8px above the control and the help button (' + out.strip + ')');
+    // The month view scrolls in #table-wrap since 26 Oct 2026 (it was .preview-panel), so that is the box that
+    // must end above them.
+    check(clearOfStrip($('table-wrap')), 'Z5 the bottom strip: the month view\'s scroll box ends 8px above the control and the help button (' + out.strip + ')');
     check(!$('table-wrap').hasAttribute('style') && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
           'Z4 at 100% nothing is written: no style on #table-wrap, no body class, no preference');
 
     // ---- M: the month view (the fixture opens in it) ----
-    var cell0 = q('#table-wrap .mv-daycell').offsetWidth, tw0 = $('table-wrap').getBoundingClientRect().width, lanes0 = lanes();
+    // The month is measured by .month-view, the frozen render's root: #table-wrap is the scroll box since 26 Oct 2026
+    // and keeps the panel's width at every zoom.
+    function mvW(){ return q('#table-wrap .month-view').getBoundingClientRect().width; }
+    // The chrome around the month: the toolbar row, the text style bar, and where the scroll box starts and ends.
+    function chromeAt(){
+      var b = q('.view-toggle-row').getBoundingClientRect(), t = $('table-wrap').getBoundingClientRect();
+      return [b.top, b.left, b.width, b.height, t.top, t.left, t.width, t.bottom].map(Math.round).join(',');
+    }
+    var cell0 = q('#table-wrap .mv-daycell').offsetWidth, tw0 = mvW(), lanes0 = lanes(), chrome0 = chromeAt();
     out.lanes0 = lanes0.length;
     await zoomTo(1.5);
-    var pp = q('main.preview-panel');
-    out.m150 = {pct: pct(), cell: q('#table-wrap .mv-daycell').offsetWidth, w: $('table-wrap').getBoundingClientRect().width,
-                sideways: pp.scrollWidth > pp.clientWidth + 1, style: $('table-wrap').getAttribute('style')};
+    var pp = q('main.preview-panel'), tw = $('table-wrap');
+    out.m150 = {pct: pct(), cell: q('#table-wrap .mv-daycell').offsetWidth, w: mvW(),
+                sideways: tw.scrollWidth > tw.clientWidth + 1, style: tw.getAttribute('style')};
     check(out.m150.pct === '150%' && out.m150.cell === cell0 && near(out.m150.w, tw0 * 1.5, 2) && lanes() === lanes0,
           'M1 150%: the day columns keep their width and every note its lanes, the month drawn 1.5x (' + JSON.stringify(out.m150) + ')');
-    check(out.m150.sideways, 'M2 zoomed in, the preview scrolls sideways');
+    check(out.m150.sideways, 'M2 zoomed in, the month\'s own box scrolls sideways');
+    // M2b, owner 26 Oct 2026: "it needs to zoom in just the viewport of the calendar and the header only ... The
+    // surrounding menus need to stay fixed in place." Scrolled to its far corner at 150%, the month moves inside
+    // #table-wrap and nothing else does: the toolbar, the text style bar and the box itself stay where they were
+    // at 100%, and the panel never scrolls.
+    tw.scrollTop = tw.scrollHeight; tw.scrollLeft = tw.scrollWidth; await T.sleep(200);
+    out.m150chrome = {at100: chrome0, at150: chromeAt(), scrolled: [tw.scrollTop, tw.scrollLeft],
+                      panel: [pp.scrollTop, pp.scrollLeft, pp.scrollHeight - pp.clientHeight, pp.scrollWidth - pp.clientWidth]};
+    check(out.m150chrome.at150 === chrome0 && tw.scrollTop > 0 && tw.scrollLeft > 0 && out.m150chrome.panel.every(function (v){ return v <= 1; }),
+          'M2b zoomed in and scrolled, the toolbar and the month\'s box stay put and the panel never scrolls (' + JSON.stringify(out.m150chrome) + ')');
+    tw.scrollTop = 0; tw.scrollLeft = 0; await T.sleep(100);
     await zoomTo(0.5);
-    out.m50 = {cell: q('#table-wrap .mv-daycell').offsetWidth, cell0: cell0, w: $('table-wrap').getBoundingClientRect().width, tw0: tw0,
+    out.m50 = {cell: q('#table-wrap .mv-daycell').offsetWidth, cell0: cell0, w: mvW(), tw0: tw0,
                lanesSame: lanes() === lanes0, lanes: lanes().slice(0, 300), lanes0: lanes0.slice(0, 300),
                cut: qa('#table-wrap .mv-note-block').filter(function (n){ return n.scrollHeight > n.clientHeight + 1; }).map(function (n){ return n.textContent.slice(0, 30) + ' ' + n.scrollHeight + '/' + n.clientHeight; })};
     // ±1: at 50% the pinned width is laid out at half-pixel steps, so a column can round a pixel narrower.

@@ -384,20 +384,46 @@
 
      The waterfall's grid height is fitted by JS (the preview-scoped --header-h, app.js, "THE APP
      SHELL'S GRID FIT"), so in that view .preview-panel's scroll never engages and the grid box is
-     the one vertical scroller. The month view has no scroll box of its own and scrolls here. */
+     the one vertical scroller. The month view scrolls in #table-wrap (below, since 26 Oct 2026; it scrolled
+     here before). */
   @media screen and (width > 960px){
     body{ height:100vh; overflow:hidden; display:flex; flex-direction:column; }
     body > *{ flex:none; }
     body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
     .form-panel{ align-self:stretch; min-height:0; max-height:none; }
     /* ⭐ The bottom strip (#help-fab) is a MARGIN here, not padding: padding sits inside the panel's
-       scroll box, so the month view, which scrolls in .preview-panel, would still pass under the help
+       scroll box, so the month view, which scrolled in .preview-panel until 26 Oct 2026, would pass under the help
        button and the zoom pill. A margin ends the scroller 44px up, so nothing scrolls into the strip.
        The waterfall needs nothing more: the grid fit (app.js, "THE APP SHELL'S GRID FIT") measures the
        panel's clientHeight, so the grid simply ends 44px up as well. */
     /* ...plus the scenario key facts band's measured room while it shows (--sc-band-space, KEY-FACTS-PLAN.md): the
        margin grows, the panel's border box shrinks, and the grid fit ends the waterfall above the band. */
     .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:calc(44px + var(--sc-band-space, 0px)); }
+    /* ⭐ THE MONTH VIEW SCROLLS IN #table-wrap, like the waterfall in its grid box (owner, 26 Oct 2026: "The
+       viewport of the month view needs to work the same way as the viewport of the waterfall view ... The
+       surrounding menus need to stay fixed in place"). Until then the month scrolled in .preview-panel, so the
+       toolbar and the text style bar scrolled away with it, and zoomed in they went sideways too. Now the panel
+       is a column: the toolbar rows at their natural height, #table-wrap taking the rest as the one scroll box.
+       The panel keeps overflow:auto only so a tool popover running past its bottom stays reachable.
+       ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched. Its width is the width
+       #table-wrap always had at 100%, so the month renders exactly as before; zoomed, the grid below pins its
+       content to that same width (what `width: calc(100% * z)` did when the panel scrolled). */
+    body:has(#view-month-btn.active) .preview-panel{ display:flex; flex-direction:column; }
+    body:has(#view-month-btn.active) .preview-panel > *{ flex:none; }
+    body:has(#view-month-btn.active) .preview-panel > #table-wrap{ flex:1 1 0; min-height:0; overflow:auto; }
+    /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
+       content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the
+       width it has at 100%, so the day columns keep their CSS width and every note its lines. --cal-zoom is
+       written on #table-wrap by applyCalZoom() (app.js, "CALENDAR ZOOM"), only while the month is zoomed. Rows
+       at the top: a stretched row would hand a short (zoomed-out) month the box's spare height. */
+    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{
+      display:grid; grid-template-columns:calc(100% * var(--cal-zoom, 1)); align-content:start; justify-content:start;
+    }
+  }
+  /* Stacked (960px and below) the page scrolls as it always has, so a zoomed month is pinned by its own width and
+     the page scrolls sideways, as before 26 Oct 2026 (when this was an inline width written by applyCalZoom). */
+  @media screen and (max-width:960px){
+    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{ width:calc(100% * var(--cal-zoom, 1)); }
   }
 
   /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------

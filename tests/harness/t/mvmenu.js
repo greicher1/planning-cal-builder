@@ -95,10 +95,11 @@ window.addEventListener('load', function () { (async function () {
     });
     return days.sort();
   }
-  // Bring a node into the preview panel's view, then let the scroll event land BEFORE anything opens: the
+  // Bring a node into the month's scroll box's view, then let the scroll event land BEFORE anything opens: the
   // menu closes on a capture-phase scroll, and a scroll still in flight would close it under the leg.
   async function bringIntoView(el){
-    var pp = document.querySelector('.preview-panel');
+    // The month's scroll box is #table-wrap since 26 Oct 2026 (it was .preview-panel, toolbar and all).
+    var pp = document.getElementById('table-wrap');
     var r = el.getBoundingClientRect(), q = pp ? pp.getBoundingClientRect() : {top: 0, bottom: innerHeight, height: innerHeight};
     if(pp && (r.top < q.top + 20 || r.bottom > q.bottom - 20)){
       pp.scrollTop += (r.top + r.height / 2) - (q.top + q.height / 2);
@@ -254,7 +255,7 @@ window.addEventListener('load', function () { (async function () {
     document.querySelector('.form-panel').dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
     c.outside = !menuEl();
     await openOn('2026-07-09');
-    document.querySelector('.preview-panel').dispatchEvent(new Event('scroll'));
+    document.getElementById('table-wrap').dispatchEvent(new Event('scroll'));
     c.scroll = !menuEl();
     await openOn('2026-07-09');
     window.dispatchEvent(new Event('resize'));
@@ -491,7 +492,7 @@ window.addEventListener('load', function () { (async function () {
     // L8: the flip. A day in the calendar's last row opens the menu ABOVE its number, where under it would run
     // off the bottom of the window.
     var lastRow = monthCells()['2026-07-30'];
-    var pp8 = document.querySelector('.preview-panel');
+    var pp8 = document.getElementById('table-wrap');   // the month's scroll box (26 Oct 2026)
     if(pp8){ pp8.scrollTop += lastRow.cell.getBoundingClientRect().bottom - (pp8.getBoundingClientRect().bottom - 12); await T.sleep(250); }
     var r8 = monthCells()['2026-07-30'].cell.getBoundingClientRect();
     lclickAt(Math.round(r8.left + r8.width / 2), Math.round(r8.top + 8));

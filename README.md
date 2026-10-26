@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026)
+
+Owner: *"The viewport of the month view needs to work the same way as the viewport of the waterfall view. When you
+zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only. not the
+surrounding menus. The surrounding menus need to stay fixed in place."*
+
+- **Before:** the month view scrolled the whole preview panel, so the toolbar (Shift All, Anchor To…) and the text
+  style bar scrolled away with the calendar, and when zoomed in they slid sideways off screen too.
+- **Now:** like the waterfall's grid box, the month view scrolls inside `#table-wrap`, under the toolbar. This holds
+  at every zoom, 100% included. The zoom still scales only the calendar and its header. Day columns and note lanes are
+  exactly as before, pinned to their 100% width by a one-track grid on `#table-wrap` while zoomed (it used to be an
+  inline width). Below 960 px the stacked page scrolls as it always did.
+- Nothing inside `#table-wrap` changed, and no `.mv-*` rule; this is CSS on `#table-wrap`'s own box plus
+  `applyCalZoom()` writing `--cal-zoom` instead of a width. `setCalZoom()` no longer holds the month's scroll corner by
+  hand: a scroll offset inside the zoomed box already stays put, as the waterfall's always did.
+- **Verified:** `calzoom` 26/26 with a new check, M2b: zoomed to 150% and scrolled to the far corner, the toolbar
+  and the month's box sit exactly where they were at 100% and the panel never scrolls. Full gate on build
+  `977b3ea6`: 3,074 PASS, 3 FAIL, all on `tests/fixtures/stintswap-reshape.sptcal`, which already had uncommitted
+  edits in the working tree before this change. `stintreshape` and `phasesui` P1 fail the same way on the unchanged
+  HEAD build. Every other frozen output matched its baseline. `npm run check` 40/40.
+
 ### Unreleased — Month view settings: clearer label switches, regrouped (24 Oct 2026)
 
 Owner: *"remove it"* (the caption over the switches), then *"maybe the toggle should say something more clear like
