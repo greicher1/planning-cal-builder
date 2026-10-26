@@ -4,7 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 26 Oct 2026 (latest): THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. ✅ LIVE at `71a6c87` (committed and pushed on the owner's picker; the live page served it ~70 s later, byte-identical to the gated build `977b3ea6`)
+### ✅ 26 Oct 2026 (latest): THE MONTH -> WATERFALL SWITCH LAG FROM `71a6c87`, FIXED. Committed and pushed on the owner's picker (*"Commit"*, *"Commit and push"*)
+
+- **Asked** (owner, after `71a6c87` went live): *"theres now a slight lag when you switch from the month view to the
+  waterfall view"*.
+- **Cause, measured** (visible browser pane, `mvnotes`, 1440×900, the click's synchronous time, 5 runs each): the
+  build before `71a6c87` ~110 ms, `71a6c87` ~260 ms. Deleting the new rules live one at a time pinned it on ONE:
+  `body:has(#view-month-btn.active) .preview-panel > *{flex:none}`. A `:has()` rule with a universal subject makes
+  Chrome restyle far more when the view button's class flips. The other new `:has()` rules cost nothing measurable.
+- **Fix** (`legacy.css` only): that rule deleted, with a ⛔ comment saying why. It was not needed, because a flex item
+  never shrinks below its content (`min-height:auto`). After: month -> waterfall ~110 ms at 100% and from a 150% month,
+  the same as before `71a6c87`.
+- ⚠️ **Lesson:** never put `*` (or another broad subject) after a `body:has(...)` selector. Name the elements.
+  ⚠️ **Measuring trap:** the browser pane, hidden, gives wild timings (0.1–3.5 s on the same build) and
+  throttles rAF to ~1 fps. Show the pane, and time the click synchronously.
+- **Verified** on build `9df703dd`: `calzoom` 26/26, `mvmenu` 89/89, `labelsetup` 41/41, `scenariofacts` 12/12,
+  `zoomresize` 40/40, `sideboxes` 78/78, `phasenum` 24/24 and 31/31; `npm run check` 40/40. No full gate: one
+  chrome rule removed, outside `#table-wrap`.
+
+### ✅ 26 Oct 2026: THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. ✅ LIVE at `71a6c87` (committed and pushed on the owner's picker; the live page served it ~70 s later, byte-identical to the gated build `977b3ea6`)
 
 - **Asked** (owner): *"The viewport of the month view needs to work the same way as the viewport of the waterfall
   view. When you zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only.

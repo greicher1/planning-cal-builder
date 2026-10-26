@@ -408,8 +408,12 @@
        ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched. Its width is the width
        #table-wrap always had at 100%, so the month renders exactly as before; zoomed, the grid below pins its
        content to that same width (what `width: calc(100% * z)` did when the panel scrolled). */
+    /* ⛔ NO `.preview-panel > *` RULE HERE. One shipped for a day (`{flex:none}`), and a :has() rule with a
+       universal subject made Chrome restyle far more on every view switch: month -> waterfall went from ~110 ms
+       to ~260 ms (owner, 26 Oct 2026: "theres now a slight lag"; measured by deleting rules one at a time). It
+       was not needed: the toolbar rows keep flex-shrink 1, but a flex item never shrinks below its content
+       (min-height:auto), and #table-wrap's min-height:0 gives up the room first. Name elements, never `*`. */
     body:has(#view-month-btn.active) .preview-panel{ display:flex; flex-direction:column; }
-    body:has(#view-month-btn.active) .preview-panel > *{ flex:none; }
     body:has(#view-month-btn.active) .preview-panel > #table-wrap{ flex:1 1 0; min-height:0; overflow:auto; }
     /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
        content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the

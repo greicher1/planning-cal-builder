@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
+
+Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.
+
+- **Cause:** one of the CSS rules that gave the month view its own scroll box, `body:has(#view-month-btn.active)
+  .preview-panel > *`. A `:has()` rule with a universal subject made Chrome restyle far more on every view switch.
+  Measured: switching month to waterfall took ~260 ms, against ~110 ms before `71a6c87`.
+- **Fix:** the rule is deleted. It was not needed, since a flex item never shrinks below its content. The switch is
+  back to ~110 ms, at 100% and from a zoomed month.
+- **Verified:** `calzoom`, `mvmenu`, `labelsetup`, `scenariofacts`, `zoomresize`, `sideboxes` and both `phasenum`
+  runs all pass; `npm run check` 40/40.
+
 ### Live — Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026, `71a6c87`)
 
 Owner: *"The viewport of the month view needs to work the same way as the viewport of the waterfall view. When you
