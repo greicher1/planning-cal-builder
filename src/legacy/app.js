@@ -28700,14 +28700,39 @@ export function initLegacyApp() {
   // from === to). The writer decides for itself whether one wraps, at the PDF's own box and with the PDF's own
   // font, as it re-wraps every note (ruling 2), so its file never depends on the window the screen measured in.
   function mvlWrapsPill(it){ return it.kind === 'pill' && /^custom\d+$/.test(it.ph || '') && it.from === it.to; }
+  // Phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4; owner rulings 27 Oct 2026): the type of the bars and bands at Large and
+  // Extra large, their grey tag's, and a corner of half the bar's height so the ends stay round. The HEIGHT is not here:
+  // mvlBarHeight makes it from the type (its line, x1.5, plus the bar's padding and border), which is legacy.css's
+  // fixed height by construction (22 / 25 px; 40 / 46 for a pill that wraps). Declared here, with the model, because
+  // the model wraps a one-day pill at its size and the monthlayout leg slices the model alone; MVL_PAINT.barSizes is
+  // this same object, for the emitter.
+  // ⚠️ HAND COPIES of legacy.css's E1 (screen) and E3 (print) rules and app.js's MV_BAR_SIZES. The monthemit leg holds
+  // them to Chrome's print layout of a sized calendar, so a change to one alone fails there.
+  const MVL_BAR_SIZES = Object.freeze({ large: Object.freeze({ size: 12, tag: 11, radius: 11 }),
+                                        xl: Object.freeze({ size: 14, tag: 12, radius: 13 }) });
+  // A phase bar size's entry, or null at Standard (and for anything that is not a size: the names are tested one by
+  // one, never by lookup, which 'toString' would pass).
+  function mvlBarSize(size){ return (size === 'large' || size === 'xl') ? MVL_BAR_SIZES[size] : null; }
   // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
   // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
   // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
   function mvlPillLines(text, widthOf){
     return mvlWrapText(mvlFlat(text), MVL_GEOMETRY.noteBoxW - 2 * (8 + 1), widthOf);
   }
-  function mvlMonthLayout(html, widthOf, pillWidthOf){
-    const m = mvlParseMonth(html);
+  // `barSize` (MONTH-BAR-SIZE-PLAN.md §4.4) is the calendar's phase bar size, 'large' or 'xl'; anything else is
+  // Standard. A sized month carries it as `barSize`, which the fit and the emitter read (mvlWeekPaint), and its
+  // one-day custom pills wrap at the bars' own size: `pillWidthOf` measures at .mv-bar's 10 px, and a width is linear
+  // in the size (ttfTextWidth), so it is scaled. ⛔ A Standard month has no `barSize` key at all, so its model is the
+  // JSON it always was.
+  function mvlMonthLayout(html, widthOf, pillWidthOf, barSize){
+    const m = mvlParseMonth(html), Z = mvlBarSize(barSize);
+    if(Z){
+      m.barSize = barSize;
+      if(pillWidthOf){
+        const pw10 = pillWidthOf, r = Z.size / MVL_GEOMETRY.noteFontPx;
+        pillWidthOf = function(s){ return pw10(s) * r; };
+      }
+    }
     m.weeks.forEach(function(w){
       w.items.forEach(function(it){
         it.lines = it.kind === 'note' ? mvlNoteLines(it.text, widthOf) : null;
@@ -28743,7 +28768,8 @@ export function initLegacyApp() {
   // wrong month on screen. The `finally` clears it even when a month throws, and puts monthCursor
   // back as exportMonthPdf does (renderMonthView leaves it alone while printingCursor is set).
   // Returns plain data: JSON in, JSON out, no DOM and no functions.
-  function buildMonthLayout(schedule, inter500, inter600){
+  // `barSize` is the calendar's phase bar size (mvBarSize: '', 'large' or 'xl'), handed to every month (mvlMonthLayout).
+  function buildMonthLayout(schedule, inter500, inter600, barSize){
     // The months the print path prints (MONTH-NOTES-PLAN.md §3): an edge month only when it holds something.
     const range = monthPrintRange(schedule);
     const htmls = [];
@@ -28764,7 +28790,7 @@ export function initLegacyApp() {
     const widthOf = function(s){ return mvlTextWidth(inter500.font, s, MVL_GEOMETRY.noteFontPx); };
     // A one-day custom pill wraps at the bar's own type, .mv-bar's 600 at the same 10 px (MONTH-NOTES-PLAN.md §6).
     const pillWidthOf = inter600 ? function(s){ return mvlTextWidth(inter600.font, s, MVL_GEOMETRY.noteFontPx); } : null;
-    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };
+    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf, barSize); }) };
   }
 
   // ---------- Month PDF writer: the emitter and the serializer (MONTH-PDF-WRITER-PLAN.md §3.2, step 3) ----------
@@ -28852,6 +28878,9 @@ export function initLegacyApp() {
            // .mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor }: a pill's ring in its
            // own ink, 1 + 0.5 px (21 Oct 2026, SPAN-NOTES-PLAN.md §1 D1). A line weight, so kept at every k.
            pillRim: 1.5 },
+    // Phase bar size: the bars' and bands' type at Large and Extra large (MVL_BAR_SIZES, with the model, which needs it
+    // to wrap a one-day pill at its size).
+    barSizes: MVL_BAR_SIZES,
     // .mv-note-block{ font-weight:500; padding:2px 4px; border-radius:0 }; its 10 px and 13 px lines
     // are MVL_GEOMETRY's, the numbers the model wrapped it with
     note: { weight: '500', padY: 2, padX: 4 },
@@ -28878,9 +28907,14 @@ export function initLegacyApp() {
   //    other page.
   // ⛔ At k = 1 every number here IS MVL_PAINT's (x * 1 === x exactly), so a month that fits draws byte
   // for byte as step 3's emitter drew it. The monthemit leg holds that.
-  function mvlWeekPaint(k){
-    const P = MVL_PAINT, G = MVL_GEOMETRY, B = P.bar;
-    return {
+  // `size` is the month's phase bar size (month.barSize, MONTH-BAR-SIZE-PLAN.md §4.4). Its bars and bands -- pills,
+  // Simultaneous Post and hiatus bands -- are drawn from `big` and `bigTag`; notes keep `bar`. ⛔ At Standard `big` IS
+  // `bar` and `bigTag` IS `tag` (the same objects), so every number a Standard month is drawn with is the one it always
+  // was, and its file is byte for byte as before. At a size, the type and the corner are MVL_PAINT.barSizes', at the
+  // month's factor like every other size here; padding, margins, border and ring are the bar's.
+  function mvlWeekPaint(k, size){
+    const P = MVL_PAINT, G = MVL_GEOMETRY, B = P.bar, Z = mvlBarSize(size);
+    const S = {
       k: k, lineHeight: P.lineHeight,
       barsPadTop: P.barsPadTop * k, barsPadBottom: P.barsPadBottom * k, barsPadX: P.barsPadX,
       laneMin: P.laneMin * k, laneGap: P.laneGap * k,
@@ -28896,6 +28930,10 @@ export function initLegacyApp() {
       shootDay: { size: P.shootDay.size * k, weight: P.shootDay.weight, lineH: P.shootDay.lineH * k,
                   ink: P.shootDay.ink, outAlpha: P.shootDay.outAlpha, padRight: P.shootDay.padRight },
     };
+    S.big = Z ? { size: Z.size * k, weight: B.weight, padY: B.padY * k, padX: B.padX, marginX: B.marginX,
+                  border: B.border, borderAlpha: B.borderAlpha, radius: Z.radius * k, pillRim: B.pillRim } : S.bar;
+    S.bigTag = Z ? { size: Z.tag * k, weight: P.tag.weight, ink: P.tag.ink, gap: P.tag.gap } : S.tag;
+    return S;
   }
 
   // ---- Colour: what the renderer writes, as 0-1 RGB, and opacity mixed in ----
@@ -29076,7 +29114,8 @@ export function initLegacyApp() {
   // print an empty bar has no line box (bars are align-self:start there). That was a quirk of the print
   // path, raised at step 3 and ruled on, and the A/B leg lists it as an intended difference.
   function mvlBarHeight(it, S){
-    const B = S.bar;
+    // A note is drawn from S.bar, everything else from S.big: the phase bar size (S.big IS S.bar at Standard).
+    const B = it.kind === 'note' ? S.bar : S.big;
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
     // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
     if(it.lines) return Math.min(2, it.lines.length) * B.size * S.lineHeight + 2 * (B.padY + B.border);
@@ -29131,7 +29170,9 @@ export function initLegacyApp() {
   // ---- One bar: its fill, its half-day shade, its border, then its text ----
   // `S` is the week's paint (mvlWeekPaint): every size here is read from it, at the month's factor.
   function mvlPaintBar(it, x, y, w, h, fonts, out, at, S){
-    const P = S, B = P.bar;
+    // The phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4): pills, Simultaneous Post and hiatus bands from S.big, notes from
+    // S.bar. At Standard they are the same object, so nothing a Standard month draws moves.
+    const P = S, B = it.kind === 'note' ? P.bar : P.big;
     const r = it.kind === 'note' ? 0 : B.radius, black = [0, 0, 0];
     // A No fill note (MONTH-NOTES-PLAN.md §2) is its text alone: no fill, and no ring either (ruling Q2, the
     // frozen CSS line beside .mv-note-block). Both are still LISTED, marked `clear`, so the bar keeps its box in
@@ -29195,7 +29236,7 @@ export function initLegacyApp() {
         if(s !== '') out.push(tag({ k: 'text', s: s, x: xx, y: yy, w: mvlMeasure(fonts, wt, s, size), wt: wt, size: size,
                                     c: c, ls: 0, skew: 0, role: role }));
       };
-      const T = P.tag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
+      const T = P.bigTag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
       const lw = wOf(label);
       // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line.
       const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, T.size * P.lineHeight).base;
@@ -29275,7 +29316,7 @@ export function initLegacyApp() {
     }
     const k = month.fit.scale === undefined ? 1 : month.fit.scale;
     if(!(typeof k === 'number' && k > 0 && k <= 1)) throw new Error('Month PDF: ' + month.label + ' has a shrink factor of ' + k + '.');
-    const S = mvlWeekPaint(k);
+    const S = mvlWeekPaint(k, month.barSize);
     const black = mvlRgb(P.lineInk), white = [1, 1, 1], ln = P.line;
     const fr = mvlFrame(month, fonts), x0 = fr.x0, W = fr.W;
     const lineRect = function(x, y, w, h, role, more){
@@ -29621,7 +29662,7 @@ export function initLegacyApp() {
   // first-fit rule at the new spans, exactly as mvlMonthLayout packs it at full size (notes are placed
   // last, so only notes can move). With each week, its height at k and the lanes it reaches.
   function mvlShrinkWeeks(month, fonts, k, F){
-    const G = MVL_GEOMETRY, S = mvlWeekPaint(k), ln = MVL_PAINT.line;
+    const G = MVL_GEOMETRY, S = mvlWeekPaint(k, month.barSize), ln = MVL_PAINT.line;
     const widthOf = function(s){ return mvlTextWidth(fonts[S.note.weight].font, s, S.note.size); };
     return month.weeks.map(function(wk, wi){
       const items = wk.items.map(function(it){
@@ -29650,7 +29691,7 @@ export function initLegacyApp() {
   function mvlFitMonth(month, fonts){
     const room = mvlFrame(month, fonts).weeksH;
     if(!(room > 0)) throw new Error('Month PDF: ' + month.label + "'s header leaves no room for its weeks.");
-    const F = mvlFitNumbers(), S1 = mvlWeekPaint(1), add = function(a, b){ return a + b; };
+    const F = mvlFitNumbers(), S1 = mvlWeekPaint(1, month.barSize), add = function(a, b){ return a + b; };
     const need = month.weeks.map(function(wk){ return mvlWeekNeed(wk.items, S1); });
     const basis = need.map(function(n){ return Math.max(n.h, F.floor); });
     const out = {};
@@ -29866,7 +29907,10 @@ export function initLegacyApp() {
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
-        const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600']);
+        // The phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4) is an ARGUMENT, not a stamp like the header's Off below: a
+        // one-day custom pill decides whether it wraps while the model is built, at the bars' own size. At Standard
+        // ('') no month carries a size, so its model and its file are byte for byte as before.
+        const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600'], mvBarSize);
         // The month header's Off (23 Oct 2026): stamped here, between the model and the fit, and only while it is
         // on, so a calendar whose header shows writes byte for byte as before. Not inside buildMonthLayout: the
         // monthlayout leg slices that function to its last statement, and mvlFrame reads the flag off the month,

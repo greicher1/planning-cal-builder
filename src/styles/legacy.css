@@ -2258,6 +2258,27 @@
   .wf-print .sheet-table th{ background:#D9D9D9; border-color:#BFBFBF; }
   .wf-print .cal-header-bar{ padding:5px 12px; min-height:0; }
   .wf-print .phase-cell-label{ max-width:none; }
+  /* ---- FROZEN EDIT E3 (owner-approved 27 Oct 2026 by picker, MONTH-BAR-SIZE-PLAN.md R7: "Yes, it follows"): the
+     PRINT ROLLBACK at a phase bar size. E1's sizes, applied to the print document in #print-root, so the print path
+     (MV_PDF_MODE 'print', the rollback) prints the bars the screen shows and the direct writer draws.
+     ⛔ INERT at Standard: every rule needs <body>'s mv-bar-large / mv-bar-xl class, and gates 10 and 13 hold every
+     Standard calendar byte for byte.
+     ⛔ OUTSIDE @media print, for the .wf-print block's reason above: frozen exportMonthPdf MEASURES #print-root
+     off-screen, in screen media, and shares the page between the weeks by what it measured. A print-only rule would
+     have it measure Standard bars and print bigger ones, overrunning every row.
+     - Only the bars' own type, corner and FIXED height (E1's, for the same reasons). Print already sizes its lanes by
+       content (`minmax(17px, auto)`, bars align-self:start), so a lane holding a bigger bar grows by itself and a lane
+       of notes keeps its 19 px, as exportMonthPdf's measure and the writer's mvlLaneTracks both expect. No
+       contain:size here: print's notes always sized their own lanes.
+     ⚠️ The numbers are E1's, MV_BAR_SIZES' and the writer's MVL_BAR_SIZES: change one, change all four. */
+  body.mv-bar-large #print-root .mv-pill,
+  body.mv-bar-large #print-root .mv-hiatus-bar{ font-size:12px; border-radius:11px; height:22px; }
+  body.mv-bar-large #print-root .mv-pill.mv-pill-2l{ height:40px; }
+  body.mv-bar-large #print-root .mv-pill-block{ font-size:11px; }
+  body.mv-bar-xl #print-root .mv-pill,
+  body.mv-bar-xl #print-root .mv-hiatus-bar{ font-size:14px; border-radius:13px; height:25px; }
+  body.mv-bar-xl #print-root .mv-pill.mv-pill-2l{ height:46px; }
+  body.mv-bar-xl #print-root .mv-pill-block{ font-size:12px; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned

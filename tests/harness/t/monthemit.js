@@ -154,9 +154,12 @@ window.addEventListener('load', function () { (async function () {
       makeVariants(docs[0].html).forEach(function (v) { docs.push(v); });
     } else {
       var cap = await captureFresh();
+      // The phase bar size the calendar prints at (MONTH-BAR-SIZE-PLAN.md step 3): a sized fixture's, or ?barsize='s.
+      // The model is built at it, as exportMonthPdfDirect builds it; the print document carries E3's sizes.
       docs.push({name: ((location.search.match(/[?&]state=([^&]+)/) || [])[1] || 'fresh').replace(/[^\w-]/g, '_'),
-                 html: cap.html, stampHits: cap.hits});
+                 html: cap.html, stampHits: cap.hits, barSize: T.barSizeShown()});
     }
+    info.barSize = docs.map(function (d) { return d.barSize || ''; });
     info.stampHits = docs.map(function (d) { return d.name + ':' + d.stampHits; });
     // What the determinism controls change, recorded so a control that changed nothing is visible.
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
@@ -180,7 +183,7 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], lay = chromeLayout(doc.html);
       var months = lay.pages.map(function (pg, pi) {
-        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf);
+        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, doc.barSize || '');
         m.fit = {rows: pg.rows.slice()};
         return m;
       });
@@ -930,6 +933,7 @@ window.addEventListener('load', function () { (async function () {
     }, 'the calendar to settle', 200, 100);
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
+    await T.applyBarSizeQuery();
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };

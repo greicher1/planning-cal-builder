@@ -566,6 +566,25 @@ window.__T = (function(){
     if(t) await openSettings(t);
     return el.getClientRects().length > 0;
   }
+  // ⭐ THE PHASE BAR SIZE (MONTH-BAR-SIZE-PLAN.md step 3). `?barsize=large|xl` (HARNESS_QUERY) puts the calendar on
+  // screen at that size, through the control's own radio, exactly as a click picks it (one undo step, the file
+  // dirtied), so the month legs can run any calendar at a size without a fixture per size. Returns the size set, or ''
+  // when the query names none. A leg that builds the writer's model passes barSizeShown(), the size on screen, which
+  // is also a sized FIXTURE's size: the size is read off <body>'s class, as legacy.css's rules read it.
+  async function applyBarSizeQuery(){
+    var q = (/[?&]barsize=(large|xl)\b/.exec(location.search) || [])[1] || '';
+    if(!q) return '';
+    var r = document.querySelector('input[name="mv-bar-size"][value="' + q + '"]');
+    if(!r) throw new Error('no Phase bar size radio for ' + q);
+    r.click();
+    await until(function(){ return document.body.classList.contains('mv-bar-' + q); }, 'the ' + q + ' bar size', 50, 100);
+    await sleep(300);
+    return q;
+  }
+  function barSizeShown(){
+    var c = document.body.classList;
+    return c.contains('mv-bar-xl') ? 'xl' : c.contains('mv-bar-large') ? 'large' : '';
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
@@ -575,5 +594,5 @@ window.__T = (function(){
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
-          pdfDialog:pdfDialog};
+          pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown};
 })();

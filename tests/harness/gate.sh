@@ -1882,6 +1882,51 @@ for n in fa:
 sys.exit(1 if bad else 0)
 PYMF
 
+# ---- the phase bar size (MONTH-BAR-SIZE-PLAN.md step 3): the month-PDF writer at Large and Extra large --------------------
+# ⭐ ADDED 27 Oct 2026. Every Standard run above is unchanged (gates 10 and 13 hold those bytes). These hold the SIZED
+# writer: monthemit, every box and text it draws to Chrome's print layout of the same calendar (E3 is what prints it);
+# monthwriter, its fit, a month that shrinks included; monthexport, the built app's file to the slice's. The calendar is
+# the sized fixture mvbarsize-large (minted from the mvbarsize leg's real Save, Large), or an existing one at a size by
+# ?barsize= (t/lib.js applyBarSizeQuery: the control's own radio). Mutants, each red (27 Oct 2026): the writer ignoring
+# the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
+# (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
+# passing the size (monthexport X2, the text check).
+# ⚠️ mvnotes at Extra large is NOT run, deliberately: in one week (drawn in April and May 2026) a two-line one-day bar
+# over two lanes leaves Chrome's print 3.4 px short of its row, and the writer, which follows the spec's "maximize
+# tracks", draws that week's two-line bar 1.31 px lower than Chrome does. Recorded in MONTH-BAR-SIZE-PLAN.md step 3.
+for BSSPEC in "monthemit:mvbarsize-large:" "monthemit:hiatus-blanklabel:barsize=xl" "monthemit:month-dense60:barsize=xl" \
+              "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" "monthexport:mvbarsize-large:"; do
+  BSLEG="${BSSPEC%%:*}"; BSREST="${BSSPEC#*:}"; BSSTATE="${BSREST%%:*}"; BSQ="${BSREST#*:}"
+  rm -f "$HERE/$BSLEG.json" "$HERE/monthexport.built.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BSSTATE" HARNESS_QUERY="$BSQ" "$HERE/run.sh" "$BSLEG" 400 >/dev/null 2>&1
+  python3 - "$HERE/$BSLEG.json" "$BSLEG ($BSSTATE${BSQ:+, $BSQ})" <<'PYBS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:100])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYBS
+done
+# The writer wraps a one-day bar at the BARS' size: the fixture's "Camera Prep Day For T" fits one line of the PDF's box at
+# 10 px and not at 12, so the written Large PDF must set it on two lines, "Camera Prep Day" over "For T".
+python3 - "$HERE/monthexport.built.pdf" <<'PYBW' || FAIL=1
+import subprocess, sys
+try: L = subprocess.run(['pdftotext', '-layout', sys.argv[1], '-'], capture_output=True, text=True, check=True).stdout.split('\n')
+except Exception as e:
+    print('  FAIL  mvbarsize-large month PDF: unreadable: ' + str(e)); sys.exit(1)
+one = any('Camera Prep Day For T' in l for l in L)
+two = any(i + 1 < len(L) and 'For T' in L[i + 1][max(0, L[i].index('Camera Prep Day') - 2):] for i in range(len(L)) if 'Camera Prep Day' in L[i])
+ok = two and not one
+print(('  PASS  ' if ok else '  FAIL  ') + 'mvbarsize-large month PDF: the one-day bar "Camera Prep Day For T" wraps to two lines at Large (one line: %s)' % one)
+sys.exit(0 if ok else 1)
+PYBW
+
 # ---- monthwriter (MONTH-PDF-WRITER-PLAN.md §8 step 4): the month-PDF writer's FIT, and the A/B against the print path
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer -- model, emitter and fit -- out of src/legacy/app.js, fits every month of
 # each print document from the model alone (no DOM: owner ruling 3; the owner's step-4 rulings for a dense month: weeks

@@ -93,7 +93,7 @@ window.addEventListener('load', function () { (async function () {
     var hiSrc = slice('const PDF_WINANSI_HI = {', '};', 'PDF_WINANSI_HI');
     var mvlSrc = slice('  const MVL_GEOMETRY = (function(){',
       // ⚠️ Re-anchored 20 Oct 2026: buildMonthLayout passes the bar font's width too (MONTH-NOTES-PLAN.md §6).
-      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };\n  }',
+      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf, barSize); }) };\n  }',
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.
@@ -123,7 +123,7 @@ window.addEventListener('load', function () { (async function () {
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
                  'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout',
-                 'mvlHalfInset', 'mvlInsetCols'];
+                 'mvlHalfInset', 'mvlInsetCols', 'MVL_BAR_SIZES', 'mvlBarSize'];
     var has = function (n, t) { return new RegExp('\\b' + n + '\\b').test(t); };
     var used = NAMES.filter(function (n) { return has(n, outside); });
     var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();

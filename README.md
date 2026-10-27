@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased, branch `month-bar-size` — Month view: Phase bar size, the screen half (27 Oct 2026)
+### Unreleased, branch `month-bar-size` — Month view: Phase bar size, on screen and in the month PDF (27 Oct 2026)
 
 Owner: *"what would it take to allow increasing the size of phase bars in the month view?"*, then rulings R0–R7 by
 picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
@@ -37,25 +37,31 @@ picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
 - **New:** Settings ▸ Preferences ▸ Month view ▸ *Phase bar size*: Standard · Large · Extra large. Phase bars and hiatus
   bands grow (12 / 14 px text in 22 / 25 px bars); notes do not. Saved in the calendar as `mvBarSize`, an ABSENT key at
   Standard. A pick is one undo step.
-- **Screen only so far.** The month PDF still draws Standard bars; the writer's half is plan step 3, so this branch is
-  not shippable yet.
-- **How:** two frozen edits, both owner-approved and both inert at Standard. E1 is CSS under a `<body>` class, scoped to
-  `#table-wrap`:
-  - lanes sized by content;
-  - `contain:size` on notes and "+" slots, so their lanes stay 17 px;
-  - a FIXED bar height.
-
-  E2 has `mvPillLineCount` measure a wrapping one-day bar at its own size.
-- **Learned:** the bar height must be fixed, not a minimum. Chrome snaps a bar's 1 px borders to whole device px under
-  zoom, so a text-sized bar was 21.33 px at 150% and over 22 at 75%. A minimum height fixed 150% but not 75%.
+- **On screen** (plan step 2): two frozen edits, both owner-approved and both inert at Standard.
+  - E1 is CSS under a `<body>` class, scoped to `#table-wrap`: lanes sized by content, `contain:size` on notes and "+"
+    slots so their lanes stay 17 px, and a FIXED bar height.
+  - E2 has `mvPillLineCount` measure a wrapping one-day bar at its own size.
+- **In the month PDF** (step 3):
+  - The direct writer draws the picked size. `buildMonthLayout` takes the size as an argument, so a one-day bar wraps
+    at its size.
+  - The print rollback follows through E3, which sits OUTSIDE `@media print` because the print path measures in
+    screen media.
+- **Learned:**
+  - The bar height must be fixed, not a minimum. Chrome snaps a bar's 1 px borders to whole device px under zoom,
+    which made a text-sized bar 21.33 px at 150% and over 22 at 75%.
+  - The print path wraps a one-day bar at the screen's day width and the writer at the PDF's, about 20 px narrower,
+    so they can disagree. `monthwriter` now treats that as a changed week (`wrap`).
+- **Recorded:** at Extra large on `mvnotes`, one two-line bar is drawn 1.31 px lower than Chrome's print.
+  - Chrome leaves 3.4 px of that row unused, against the spec, which the writer follows.
+  - The rule that reproduced Chrome broke `month-lanecap` at Standard and was reverted.
+- **Not shippable yet:** the full gate and the new baselines are plan step 4.
 - **Verified:**
-  - new leg `mvbarsize` 13/13 on `mvnotes` and 12/12 on `hiatus-blanklabel`, with six mutants each red on its own cases;
-  - month PDFs byte-identical to gate 13's baselines on 8 calendars;
-  - `mvmenu`, `mvnotes` (both runs), `labelsetup`, `settingswin`, `calzoom`, `prefs`, `shootdays`, `phasenum`,
-    `monthlanes`, `mvhdroff`, `monthdragundo` and `pilllabel` all pass;
+  - new leg `mvbarsize` 13/13 on `mvnotes` and 12/12 on `hiatus-blanklabel`, with six mutants each red;
+  - the gate's new sized block, 82 checks green, with five writer mutants each red;
+  - at Standard, month PDFs byte-identical to gate 13 on 10 calendars, and gate 10 6/6 on 5 calendars;
+  - `monthemit`, `monthwriter` and `monthlayout` on their Standard sets, and 13 month-view and settings legs, all
+    green;
   - `npm run check` 40/40.
-
-  No full gate yet (plan step 4).
 
 ### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 

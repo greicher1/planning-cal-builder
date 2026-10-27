@@ -3,8 +3,10 @@
 **Status: PLANNED, no code. ALL EIGHT RULINGS ANSWERED (owner, by picker, 27 Oct 2026): every recommendation taken
 except R1, where the owner chose (b), phase bars AND hiatus bands.** **Step 1 DONE (27 Oct 2026): the screen mechanism
 holds.** **Step 2 DONE (27 Oct 2026) on branch `month-bar-size`:** the setting, the control, E1 and E2, and the
-`mvbarsize` leg. E1's `min-height` became a FIXED `height` (§4.2). Next is step 3, the writer. On the tracker as
-`month-bar-size`.
+`mvbarsize` leg. E1's `min-height` became a FIXED `height` (§4.2). **Step 3 DONE (27 Oct 2026) on the same branch:**
+the month PDF writer draws the picked size and the print rollback follows it (E3). The size reaches the writer as an
+ARGUMENT, not a stamp (§4.4). One 1.31 px difference from Chrome's print is recorded (§5, step 3). Next is step 4, the
+full gate and the baselines. On the tracker as `month-bar-size`.
 
 Owner, 27 Oct 2026:
 
@@ -196,9 +198,16 @@ not at 12 px would be cut with "…" instead of wrapping.
 - `mvlWeekPaint(k)` adds `S.big` and `S.bigTag`: the bar's numbers at the month's size, times the shrink factor `k`.
   `mvlBarHeight`, `mvlPaintBar` and `mvlPillLines` read them for pills, Simultaneous Post and hiatus bands. Notes keep
   reading `S.bar`.
-- The writer never reads engine state: it is sliced and run standalone by its legs. So `exportMonthPdfDirect()`
-  stamps `barSize` on each month, exactly as it stamps `headerOff` for the month header's Off. A month with no stamp
-  draws every number from today's `MVL_PAINT`, so a Standard calendar's file is byte-identical.
+- The writer never reads engine state: it is sliced and run standalone by its legs.
+  - ⭐ **As built (step 3), the size is an ARGUMENT, not a stamp.** `buildMonthLayout(schedule, inter500, inter600,
+    barSize)` hands it to `mvlMonthLayout(html, widthOf, pillWidthOf, barSize)`, because the model decides whether a
+    one-day custom pill wraps while it is being built, at the bars' own size.
+  - The 10 px measure it is given is scaled by size ÷ 10. A width is linear in the size (`ttfTextWidth`), so the app
+    and every leg get the same answer from the same function.
+  - A sized month carries `barSize`, which the fit and the emitter read (`mvlWeekPaint(k, size)`).
+  - A Standard month carries no such key, so its model is the JSON it always was, and its file is byte-identical.
+- The sizes are `MVL_BAR_SIZES` (frozen objects). They are declared WITH THE MODEL, before `buildMonthLayout`, because
+  the `monthlayout` leg slices the model alone; `MVL_PAINT.barSizes` is the same object.
 - The `F0` leg's list of the writer's public entry points is unchanged. The `.ics` export plan reads only the model, so
   it is unaffected.
 
@@ -304,7 +313,66 @@ The plan for step 2, as written before the build:
 - The legs that drive the month view by hand (`mvmenu`, `mvnotes`, `labelsetup`, `phasenum`, `calzoom`,
   `monthdragundo`) run unchanged at Standard. B2 covers their gestures at the bigger sizes.
 
-**Step 3: the writer and the print rollback.**
+**Step 3: the writer and the print rollback. ✅ DONE, 27 Oct 2026, on branch `month-bar-size`.**
+- **Built:**
+  - the writer (§4.4): `MVL_BAR_SIZES` and `mvlBarSize()` with the model; the size argument through
+    `buildMonthLayout` / `mvlMonthLayout`; `S.big` / `S.bigTag` in `mvlWeekPaint`; `mvlBarHeight` and `mvlPaintBar`
+    drawing pills, Simultaneous Post and hiatus bands from them; `exportMonthPdfDirect` passing `mvBarSize`;
+  - E3 in `legacy.css`, OUTSIDE `@media print`, because frozen `exportMonthPdf` measures in screen media.
+- **The legs:**
+  - `t/lib.js` gained `applyBarSizeQuery()` (`?barsize=large|xl`, through the control's own radio) and
+    `barSizeShown()`.
+  - `monthemit`, `monthwriter` and `monthexport` pass the size on screen to the model.
+  - `monthwriter` restyles a shrunk sized month at the sized type and fixed height.
+  - `monthlayout` is re-anchored on `buildMonthLayout`'s new last line, and lists the two new model names.
+- **Two gaps in `monthwriter`'s oracle, found by the fixture's PDF-tuned label (neither reachable before):**
+  - The print path wraps a one-day pill at the SCREEN's day width (about 140 px of text room); the writer wraps it at
+    the PDF's (about 120). A label between the two wraps in one and not the other.
+  - The leg now counts that as a changed week (`wrap`). It also rebuilds the page with the writer's own wrap
+    (`mv-pill-2l`).
+- **The fixture** `tests/fixtures/mvbarsize-large.sptcal`, minted from the `mvbarsize` leg's real Save at Large on
+  `mvnotes`:
+  - two-line custom bars and an all-phase hiatus week;
+  - custom3 renamed to the screen-tuned B5 label;
+  - custom1 renamed to "Camera Prep Day For T", a label that fits one line of the PDF's box at 10 px and not at 12.
+
+  Emptied bands are covered by `hiatus-blanklabel?barsize=`, and a phase's own hiatus by `offweek?barsize=`, rather
+  than by this fixture.
+- **Verified:**
+  - `gate.sh`'s new block, 82 checks green: `monthemit` on mvbarsize-large, hiatus-blanklabel (xl) and month-dense60
+    (xl); `monthwriter` on mvbarsize-large and month-dense60 (xl, a month shrunk to 0.734); `monthexport` on
+    mvbarsize-large; the written PDF setting "Camera Prep Day" over "For T";
+  - also green at a size: `monthemit` on hiatus-blanklabel (large), offweek (xl), month-lanecap (xl), halfdays (large);
+    `monthwriter` on month-lanecap (xl), hiatus-blanklabel (xl), month-dense60 (large); `monthexport` on month-dense60
+    and hiatus-blanklabel (xl).
+- **Standard is untouched:**
+  - written month PDFs byte-identical to gate 13 on 10 calendars;
+  - gate 10's print comparison 6/6 on reference, mvnotes, hiatus-blanklabel, halfdays and blocks;
+  - `monthemit` (tier 1, mvnotes, colswap-simpost-refuse), `monthwriter` (tier 1, mvnotes, notewrap) and `monthlayout`
+    (tier 1, halfdays, halfmarks) all green.
+- **Mutants, each red:**
+
+  | Mutant | Caught by |
+  |---|---|
+  | The writer ignores the size | `monthemit` B0/T0/K0, `monthexport` X2 |
+  | E3 removed | `monthemit` B0/T0/K0 |
+  | `MVL_BAR_SIZES`' tag 1 px off | `monthemit` K0 |
+  | The model wraps at 10 px | `monthemit` X3, `monthexport` X2, the text check |
+  | The export passes no size | `monthexport` X2, the text check |
+- ⚠️ **RECORDED, NOT MODELLED: one 1.31 px difference from Chrome's print, `mvnotes` at Extra large.** In one week
+  (drawn in April and May 2026), a 46 px two-line pill sits alone over lanes 2-3, under a 25 px bar in lane 1, with
+  20.09 px to spare.
+  - Chrome's lanes (its computed `grid-template-rows`) are 23.69 / 22 / 22, which leaves 3.4 px of the row unused.
+  - The spec's "maximize tracks", which the writer follows, gives 25 / 22 / 22. So the writer draws that two-line bar
+    1.31 px lower than the print path.
+  - In every other measured week Chrome follows the spec, including one with the same pill sharing lane 2 with a
+    one-lane bar (25 / 25 / 19).
+  - A rule that reproduces both was tried and broke `month-lanecap` at Standard, where four-line notes over three
+    lanes are capped at 18 px exactly as the spec says. It was reverted.
+  - The written PDF is what users get, and the print path is the rollback, so the writer stays on the spec. `gate.sh`
+    leaves mvnotes at Extra large out of the sized block, with a comment saying why.
+
+The plan for step 3, as written before the build:
 - §4.4 and E3.
 - A synthetic fixture, `mvbarsize-large.sptcal`, minted from the leg's own Save (no real show or schedule), with
   an all-phase hiatus, one phase's own hiatus and an emptied band among its bars.

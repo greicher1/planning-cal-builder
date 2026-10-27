@@ -240,6 +240,21 @@ window.addEventListener('load', function () { (async function () {
       }
       out.info.b5 = { cellW: r2(cellW), room: r2(room), label: b5, w10: b5 && r2(wOf(b5, 10)), w12: b5 && r2(wOf(b5, 12)) };
       if (b5) fb['name-custom3'] = { value: b5 };
+      // THE PDF'S HALF (plan step 3): the minted fixture's other one-day bar (custom1, 4/15/26) gets a label that fits
+      // one line at 10 px in the PDF's own box and not at 12, so its WRITTEN PDF shows the writer wrapping at the bar's
+      // size (gate.sh reads it with pdftotext). The PDF's box is narrower than the screen's: the writer's
+      // MVL_GEOMETRY.noteBoxW less 2 x (8 + 1), about 120.2 px on Letter landscape (stated here, never read from the
+      // writer). At 12 px it still fits the screen's wider box, so on screen it stays one line at Standard and Large.
+      if (fb['name-custom1'] && fb['name-custom1'].value === 'Network Table Read and Studio Notes Session') {
+        var pdfRoom = ((1056 - 2 * 8 * 96 / 25.4 - 4 - 4) - 6) / 7 - 2 - 18, srcP = 'Camera Prep Day For The Second Unit Crew';
+        var bP = null;
+        for (var np = 8; np <= srcP.length; np++) {
+          var sp = srcP.slice(0, np).trim();
+          if (wOf(sp, 10) >= pdfRoom - 13.7) { if (wOf(sp, 10) <= pdfRoom - 6 && wOf(sp, 12) >= pdfRoom + 6 && wOf(sp, 12) <= room - 4) bP = sp; break; }
+        }
+        out.info.b5pdf = { pdfRoom: r2(pdfRoom), label: bP, w10: bP && r2(wOf(bP, 10)), w12: bP && r2(wOf(bP, 12)) };
+        if (bP) fb['name-custom1'] = { value: bP };
+      }
     }
     var text = JSON.stringify(base);
     out.info.window = [innerWidth, innerHeight];
@@ -447,6 +462,12 @@ window.addEventListener('load', function () { (async function () {
          snap.mvBarSize === 'xl' && !('mvBarSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
          !ids1.some(function (k) { return /bar-size/.test(k); }),
          { mvBarSize: snap.mvBarSize, stdHasKey: 'mvBarSize' in snapStd, added: ids1.filter(function (k) { return ids0.indexOf(k) < 0; }), lost: ids0.filter(function (k) { return ids1.indexOf(k) < 0; }) });
+    // The minted fixture (plan step 3): this calendar's real Save at Large, out.sptcal -> mvbarsize.sptcal, copied by
+    // hand to tests/fixtures/mvbarsize-large.sptcal when it is meant to be one (it is cut from the mvnotes run).
+    await pick('large');
+    var savedLarge = await saveNow(w0);
+    out.sptcal = btoa(unescape(encodeURIComponent(savedLarge)));
+    out.info.mintedSize = JSON.parse(savedLarge).mvBarSize;
 
     // ---- B3c: Load ----
     var warn0 = (T.appHealth().errors || []).filter(function (e) { return e === WARN; }).length;
