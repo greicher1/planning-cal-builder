@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). Gate green but for the known fixture edit; COMMITTED (owner's picker: "Commit")
+### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). ✅ LIVE at `31eddd0` (owner's picker: "Commit", "Only this fix"; the live page served the gated build `46a97f5c` byte for byte ~46 s later)
 
 - **Asked** (owner, after `ae39e3e` went live): *"I think the lag when you switch from month view to waterfall is
   still there"*. Tracker card `view-switch-lag`.
@@ -42,6 +42,11 @@
   - The fourth was `launchopen EX: harness`. Another session's leg ran on port 8231 mid-gate and took over the
     gate's server for about a minute (it said so). Re-run alone: **16/16**, no console errors.
   - `customunits` and `builtindates` (on the CSS fix), live and restore, 83/83; `npm run check` 40/40.
+- **Shipped:** committed as `b7c8ec7` on local main. Main also held five unpushed plan-doc commits from other
+  sessions (`337067f`, `fe9c2f6`, `d7bed0a`, `51ad3fd`, `32f47d5`); the owner had said "Don't push" to
+  `fe9c2f6`. So the same change was rebuilt alone on `origin/main` as `31eddd0` (owner's picker: *"Only this fix"*)
+  and pushed. Local main joins it with merge `ffe6184` (tree = `b7c8ec7`'s), so `origin/main` is an ancestor and the
+  next push fast-forwards. **Those five plan commits are still unpushed.**
 - ⚠️ **Harness trap seen again:** a `run.sh` on the DEFAULT port 8231 `pkill`s the gate's own server. Run single
   legs on another `HARNESS_PORT` whenever a gate may be running.
 
