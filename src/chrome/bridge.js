@@ -104,6 +104,11 @@ export const chrome = {
   // engine's document listener by their name, `mv-prod-label`. ⛔ Click, not change: a controlled
   // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
   mvProdLabel: noop,
+  // { value: 'standard'|'large'|'xl' } — Settings ▸ Preferences ▸ Month view ▸ "Phase bar size"
+  // (MONTH-BAR-SIZE-PLAN.md §4.6). The engine's mvBarSize is the only store (CALENDAR DATA, '' = Standard).
+  // Bridged for mvProdLabel's reason: a SegmentedControl's indicator follows React state. The input half
+  // needs no bridge: the radios' native `click` reaches the engine by their name, `mv-bar-size`.
+  mvBarSize: noop,
   // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
   // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo

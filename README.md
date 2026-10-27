@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased, branch `month-bar-size` — Month view: Phase bar size, the screen half (27 Oct 2026)
+
+Owner: *"what would it take to allow increasing the size of phase bars in the month view?"*, then rulings R0–R7 by
+picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
+
+- **New:** Settings ▸ Preferences ▸ Month view ▸ *Phase bar size*: Standard · Large · Extra large. Phase bars and hiatus
+  bands grow (12 / 14 px text in 22 / 25 px bars); notes do not. Saved in the calendar as `mvBarSize`, an ABSENT key at
+  Standard. A pick is one undo step.
+- **Screen only so far.** The month PDF still draws Standard bars; the writer's half is plan step 3, so this branch is
+  not shippable yet.
+- **How:** two frozen edits, both owner-approved and both inert at Standard. E1 is CSS under a `<body>` class, scoped to
+  `#table-wrap`:
+  - lanes sized by content;
+  - `contain:size` on notes and "+" slots, so their lanes stay 17 px;
+  - a FIXED bar height.
+
+  E2 has `mvPillLineCount` measure a wrapping one-day bar at its own size.
+- **Learned:** the bar height must be fixed, not a minimum. Chrome snaps a bar's 1 px borders to whole device px under
+  zoom, so a text-sized bar was 21.33 px at 150% and over 22 at 75%. A minimum height fixed 150% but not 75%.
+- **Verified:**
+  - new leg `mvbarsize` 13/13 on `mvnotes` and 12/12 on `hiatus-blanklabel`, with six mutants each red on its own cases;
+  - month PDFs byte-identical to gate 13's baselines on 8 calendars;
+  - `mvmenu`, `mvnotes` (both runs), `labelsetup`, `settingswin`, `calzoom`, `prefs`, `shootdays`, `phasenum`,
+    `monthlanes`, `mvhdroff`, `monthdragundo` and `pilllabel` all pass;
+  - `npm run check` 40/40.
+
+  No full gate yet (plan step 4).
+
 ### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 
 Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.

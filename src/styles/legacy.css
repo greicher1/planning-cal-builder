@@ -1961,6 +1961,39 @@
      and this tag's whole point is to add none. Only a Blocks calendar has an element with this
      class. */
   .mv-pill-block{ font-size:9px; font-weight:500; color:#5C6470; margin-left:7px; vertical-align:top; }
+  /* ---- FROZEN EDIT E1 (owner-approved 27 Oct 2026 by picker, MONTH-BAR-SIZE-PLAN.md R0: "Yes, this setting only"):
+     PHASE BAR SIZE, Large and Extra large. Phase bars AND hiatus bands (R1(b)) grow; notes and the "+" slots do not.
+     ⛔ INERT BY CONSTRUCTION at Standard: every rule needs <body>'s mv-bar-large or mv-bar-xl class, which only a
+     calendar with a size picked has (reflectMvBarSize), so every other calendar renders exactly as before. And every
+     rule is scoped to #table-wrap, so none can match inside #print-root (a different subtree): the print rollback
+     follows through its own rules (plan E3, step 3), never these.
+     - Lanes are sized by what is in them, as print already sizes them (`minmax(17px, auto)`), instead of a fixed 17 px.
+     - `contain:size` takes every other bar (notes, "+" slots) out of that sizing: it adds no height of its own, so a
+       lane with no phase bar or band stays EXACTLY 17 px, and a note spanning two or three lanes keeps exactly the
+       lanes it has today. Without it a one-line note's lane grows to its natural 19 px. It still stretches to fill
+       its lanes (align-self), so a note in a lane it shares with a bigger bar is as tall as that lane (plan §2, 3).
+     - A FIXED `height`, the size's bar height (two lines' worth on a wrapping one-day bar, .mv-pill-2l), never one
+       sized by its text. Found by measurement, twice: Chrome snaps the 1 px borders to whole device px at a zoom, so
+       a text-sized bar came out 21.33 px (in its own px) at 150% and over 22 at 75%; and a band whose label was
+       emptied has no line box, so it left its lane at 17 px (the 1 Oct 2026 "full height" ruling). Plan step 1
+       tried min-height, which fixed 150% and the band but not 75%, where the snapped borders make the text taller
+       than the minimum. A fixed height is exact at every zoom. Its content box is the text's line exactly, so
+       nothing is cut at 100%; at a zoom the snapping can take a fraction of a device px off the bottom padding.
+     - Text 12 / 14 px, grey tag 11 / 12 px, corners at half the bar's height so the ends stay round as 9 px keeps
+       them on today's 17 px bars. Padding, borders, weight and the 1.5 px ring are .mv-bar's and .mv-pill's, unchanged.
+     ⚠️ The numbers are MV_BAR_SIZES' in app.js, and from plan step 3 the month PDF writer's: change one, change all. */
+  body.mv-bar-large #table-wrap .mv-bars,
+  body.mv-bar-xl #table-wrap .mv-bars{ grid-auto-rows:minmax(17px, auto); }
+  body.mv-bar-large #table-wrap .mv-bar:not(.mv-pill):not(.mv-hiatus-bar),
+  body.mv-bar-xl #table-wrap .mv-bar:not(.mv-pill):not(.mv-hiatus-bar){ contain:size; }
+  body.mv-bar-large #table-wrap .mv-pill,
+  body.mv-bar-large #table-wrap .mv-hiatus-bar{ font-size:12px; border-radius:11px; height:22px; }
+  body.mv-bar-large #table-wrap .mv-pill.mv-pill-2l{ height:40px; }
+  body.mv-bar-large #table-wrap .mv-pill-block{ font-size:11px; }
+  body.mv-bar-xl #table-wrap .mv-pill,
+  body.mv-bar-xl #table-wrap .mv-hiatus-bar{ font-size:14px; border-radius:13px; height:25px; }
+  body.mv-bar-xl #table-wrap .mv-pill.mv-pill-2l{ height:46px; }
+  body.mv-bar-xl #table-wrap .mv-pill-block{ font-size:12px; }
   /* ---- FROZEN EDIT (owner-approved 18 Sep 2026): make a phase pill DRAGGABLE. ----------------
      ⛔ WITHOUT THIS THE BODY-DRAG GESTURE CANNOT FIRE AT ALL. `.mv-bars` above sets
      pointer-events:none so the bar layer does not swallow clicks, and a pill inherits it -- so a

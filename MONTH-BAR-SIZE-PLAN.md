@@ -2,7 +2,9 @@
 
 **Status: PLANNED, no code. ALL EIGHT RULINGS ANSWERED (owner, by picker, 27 Oct 2026): every recommendation taken
 except R1, where the owner chose (b), phase bars AND hiatus bands.** **Step 1 DONE (27 Oct 2026): the screen mechanism
-holds, with one rule added (`min-height`, §4.2).** Next is step 2. On the tracker as `month-bar-size`.
+holds.** **Step 2 DONE (27 Oct 2026) on branch `month-bar-size`:** the setting, the control, E1 and E2, and the
+`mvbarsize` leg. E1's `min-height` became a FIXED `height` (§4.2). Next is step 3, the writer. On the tracker as
+`month-bar-size`.
 
 Owner, 27 Oct 2026:
 
@@ -161,16 +163,22 @@ inside `#print-root`, which is not inside `#table-wrap`.
 - `.mv-bar:not(.mv-pill):not(.mv-hiatus-bar){ contain: size }`: notes and "+" slots add no height of their own. A
   lane without a phase bar or band therefore stays exactly 17 px. Without this, a one-line note's lane would grow to
   its natural 19 px.
-- `.mv-pill, .mv-hiatus-bar{ font-size; border-radius; min-height }` and `.mv-pill-block{ font-size }` at the §2
-  sizes. `min-height` is the bar height (22 or 25 px).
-- ⭐ **`min-height` was ADDED BY STEP 1's MEASUREMENT.** Without it, two things go wrong:
-  - At 150% zoom, Chrome rounds the bar's 1 px borders to whole device pixels. A Large lane then comes out 21.33 px
-    in the box's own px, not 22.
-  - A band whose label was emptied has no line of text, so it adds nothing to its lane's height. It stayed 17 px at
-    both sizes, breaking the 1 Oct 2026 "full height" ruling.
-
-  With it, both are exact. It does not stop a two-line bar from growing, because its content is taller than the
-  minimum.
+- `.mv-pill, .mv-hiatus-bar{ font-size; border-radius; height }` and `.mv-pill-block{ font-size }` at the §2 sizes.
+  `height` is the bar height (22 or 25 px), and two lines' worth (40 or 46 px) on a wrapping one-day bar
+  (`.mv-pill-2l`).
+- ⭐ **The FIXED height came from measurement, in two rounds.**
+  - Without any height (step 1, run 1), two things go wrong:
+    - At 150% zoom, Chrome rounds the bar's 1 px borders to whole device pixels. A Large lane then comes out 21.33 px
+      in the box's own px, not 22.
+    - A band whose label was emptied has no line of text, so it adds nothing to its lane's height. It stayed 17 px,
+      breaking the 1 Oct 2026 "full height" ruling.
+  - Step 1 fixed both with `min-height`. **Step 2's leg then found 75% zoom still wrong:** the rounded borders make the
+    text-sized bar TALLER than the minimum, so lanes came out over 22 px. A fixed `height` is exact at every zoom
+    (B4: 75%, 150% and 200%).
+  - Its content box is exactly the text's line, so nothing is cut at 100%. Under a zoom the rounding can take a
+    fraction of a device pixel off the bottom padding.
+- A fixed-height bar does not stretch. In a lane made taller by a two-line bar that shares it, a one-line bar keeps
+  its own height at the top of the lane. Notes and "+" slots still stretch to fill their lanes.
 - ✅ **`contain: size` on a grid item, the one new mechanism here, is PROVEN (step 1, §5).** Every lane with no bar or
   band stayed exactly 17 px, and every note spanning two or three lanes kept exactly the lanes it has today.
 - Renderer-free: `renderMonthView` emits the same HTML at every size. The edge grips, the band grips, the reorder
@@ -195,8 +203,8 @@ not at 12 px would be cut with "…" instead of wrapping.
   it is unaffected.
 
 ### 4.5 The print rollback: frozen edit E3 (under R7(a))
-The same font-size and radius rules (`.mv-pill`, `.mv-hiatus-bar`, `.mv-pill-block`) under the body class and
-`#print-root`. Print already sizes lanes by content, and
+The same font-size, radius and FIXED height rules (`.mv-pill`, `.mv-hiatus-bar`, `.mv-pill-2l`, `.mv-pill-block`) under the body
+class and `#print-root`. The writer's heights are the same numbers by construction: line ×1.5 + 4, or two lines + 4. Print already sizes lanes by content, and
 frozen `exportMonthPdf()` measures each week's real height (`scrollHeight`), so no script changes. Its 19 px-per-lane
 constant only shares out spare room between weeks.
 
@@ -252,7 +260,28 @@ constant only shares out spare room between weeks.
 - **Not covered here, left for step 2's leg:** Extra large at 150% (only Large was zoomed), other zoom levels,
   hit-testing on the bigger bars, and every gesture.
 
-**Step 2: the setting, the screen and the leg.**
+**Step 2: the setting, the screen and the leg. ✅ DONE, 27 Oct 2026, on branch `month-bar-size`.**
+- **Built:**
+  - `app.js`: `MV_BAR_SIZES`, `mvBarSize` and `mvBarTextPx()` (declared with the month view's state, before any render);
+    `setMvBarSize`, `reflectMvBarSize` (called by `update()` BEFORE `render()`) and the radios' click listener; the
+    snapshot key, the sanitizer, the unconditional restore and New's reset; E2 in `mvPillLineCount`.
+  - `legacy.css`: E1, after `.mv-pill-block`.
+  - `bridge.js`: `chrome.mvBarSize`.
+  - `Sidebar.jsx`: `BarSizeControl` (SegmentedControl `name="mv-bar-size"`), after Number Production Days.
+  - The leg `t/mvbarsize.js`, in `gate.sh`'s generic list on `mvnotes` and `hiatus-blanklabel`.
+- **Results:** 13/13 on `mvnotes` and 12/12 on `hiatus-blanklabel`. All six mutants below turn their own cases red.
+- **At Standard:**
+  - month PDFs byte-identical to gate 13's baselines on 8 calendars (reference, blocks, mvnotes, hiatus-blanklabel,
+    month-dense60, halfdays, notewrap, monthscale);
+  - `mvmenu`, `mvnotes` (×2), `labelsetup`, `settingswin`, `calzoom`, `prefs`, `shootdays`, `phasenum`,
+    `monthlanes`, `mvhdroff`, `monthdragundo` and `pilllabel` all pass;
+  - `npm run check` 40/40.
+- **Not run:** a full gate (step 4).
+- ⚠️ **Until step 3, a picked size reaches the PDF only half way.** E2 decides a wrapping bar's lanes at the picked
+  size, and `buildMonthLayout` reads those lanes from the renderer, but the writer still paints at Standard. The branch
+  is not shippable before step 3.
+
+The plan for step 2, as written before the build:
 - §4.1, §4.6, E1 and E2.
 - A new leg, `mvbarsize`, with every click HIT-TESTED:
   - **B0:** at Standard nothing moved: no class, no key in a Save, and every lane and bar at today's height.
@@ -267,7 +296,7 @@ constant only shares out spare room between weeks.
   - **B6:** the shareable copy.
 - Mutants:
   - no containment, so a note's lane grows (red on B1);
-  - no `min-height`, so an emptied band and a zoomed lane come up short (red on B1, B4);
+  - no fixed height, so an emptied band and a zoomed lane come out wrong (red on B1, B2, B4);
   - bands left out of the size rules (red on B1);
   - E2 removed, so a cut instead of a wrap (red on B5);
   - a sanitizer that keeps junk;

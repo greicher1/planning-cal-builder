@@ -11647,6 +11647,22 @@ export function initLegacyApp() {
   // Extra lines the user has asked for, per week (keyed by that week's Monday). Weeks share a
   // row, so this necessarily applies to all seven days.
   let mvExtraLanes = {};
+  // Phase bar size (MONTH-BAR-SIZE-PLAN.md; owner rulings R0-R7 by picker, 27 Oct 2026): how big the month view's
+  // phase bars AND hiatus bands are (R1(b)), on screen and in the month PDF (R4).
+  //  - ⛔ CALENDAR DATA (R5, "Saved in the calendar"): captureSnapshot()'s `mvBarSize`, the mvNumberShootDays
+  //    arrangement. A pick dirties the file and is one undo step, and everyone who opens it sees the same bars.
+  //  - STANDARD IS AN ABSENT KEY, held here as ''. Only 'large' and 'xl' are ever written, so every calendar saved
+  //    before the setting, and every Standard one after it, opens and saves byte for byte as before.
+  //  - `text` and `tag` are the label's and the grey tag's px, `bar` the bar's height: the text's line (x1.5) plus
+  //    1 px of padding and 1 px of border, top and bottom. ⚠️ legacy.css's "Phase bar size" block (E1) carries the
+  //    same numbers, and from plan step 3 so will the writer's MVL_PAINT: change one, change them all.
+  //  - Declared up here, with the month view's other state, so no early render meets it in its TDZ
+  //    (mvPillLineCount reads it).
+  // ⛔ The key and both values are permanent from the first file saved with them.
+  const MV_BAR_SIZES = { large: { text: 12, tag: 11, bar: 22 }, xl: { text: 14, tag: 12, bar: 25 } };
+  let mvBarSize = '';
+  // The bar's label size in px: 10 at Standard, what .mv-bar sets.
+  function mvBarTextPx(){ return (mvBarSize === 'large' || mvBarSize === 'xl') ? MV_BAR_SIZES[mvBarSize].text : 10; }
   // While building the PDF we walk every month in turn. That deliberately ignores the
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
@@ -11894,12 +11910,18 @@ export function initLegacyApp() {
   // line-height 1.5, padding 1px 8px, a 1 px border) but allowed to wrap as .mv-pill-2l lets it. More than two
   // is two: the second line is cut with "…" (-webkit-line-clamp), the rule every bar already follows.
   // A pill of any other phase, or of more than one day, never comes here, so it keeps its one cut line.
+  // ⛔ FROZEN EDIT E2 (owner-approved 27 Oct 2026 by picker, MONTH-BAR-SIZE-PLAN.md R0, "Yes, this setting only"):
+  // measured at the bar's OWN size (mvBarTextPx(): 10 px at Standard, 12 or 14 px at Large and Extra large), so a label
+  // that fits one line at 10 px but not at 12 wraps as the plan's §2 default 6 says, instead of being cut with "…".
+  // The size is in the cache key. At Standard every number is the one this function always used (10 px, 15 px lines),
+  // so every Standard calendar renders exactly as before.
   let _mvPillMeasureEl = null;
   const _mvPillLineCache = new Map();
   function mvPillLineCount(text, boxW){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
-    const key = Math.round(boxW) + '|' + t;
+    const px = mvBarTextPx(), lineH = px * 1.5;
+    const key = px + '|' + Math.round(boxW) + '|' + t;
     if(_mvPillLineCache.has(key)) return _mvPillLineCache.get(key);
     if(!_mvPillMeasureEl){
       _mvPillMeasureEl = document.createElement('div');
@@ -11909,10 +11931,11 @@ export function initLegacyApp() {
         + 'padding:1px 8px; border:1px solid transparent; white-space:normal; word-break:break-word;';
       document.body.appendChild(_mvPillMeasureEl);
     }
+    _mvPillMeasureEl.style.fontSize = px + 'px';
     _mvPillMeasureEl.style.width = Math.max(24, boxW) + 'px';
     _mvPillMeasureEl.textContent = t;
-    const h = _mvPillMeasureEl.offsetHeight;   // = lines*15 (line-height) + 2 (padding) + 2 (border)
-    const lines = Math.min(2, Math.max(1, Math.round((h - 4) / 15)));
+    const h = _mvPillMeasureEl.offsetHeight;   // = lines*lineH (line-height 1.5) + 2 (padding) + 2 (border)
+    const lines = Math.min(2, Math.max(1, Math.round((h - 4) / lineH)));
     if(_mvPillLineCache.size > 800) _mvPillLineCache.clear();
     _mvPillLineCache.set(key, lines);
     return lines;
@@ -21234,6 +21257,9 @@ export function initLegacyApp() {
     }
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
     syncRowHeights(currentSchedule);
+    // ⛔ BEFORE render() too: the phase bar size's <body> class, so the bars are drawn at their size and anything that
+    // measures them after the render sees it (MONTH-BAR-SIZE-PLAN.md; see reflectMvBarSize).
+    reflectMvBarSize();
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
@@ -22305,6 +22331,38 @@ export function initLegacyApp() {
     const b = document.getElementById('pref-mv-shootdays');
     if(b) b.checked = mvNumberShootDays;
   }
+  // ---------- Phase bar size (MONTH-BAR-SIZE-PLAN.md §4.1, §4.6) ----------
+  // Shaped like setMvProdLabel(): CALENDAR DATA, so a pick goes through update() + markDirty() -- it dirties the file
+  // and is one undo step. 'standard' is stored as '' (an absent key). Anything that is not a known size is ignored
+  // rather than stored; the names are tested one by one, never by MV_BAR_SIZES[next], which 'toString' would pass.
+  function setMvBarSize(next){
+    const v = (next === 'standard') ? '' : next;
+    if(v !== '' && v !== 'large' && v !== 'xl') return;
+    if(v === mvBarSize) return;
+    mvBarSize = v;
+    update();
+    markDirty();
+  }
+  // The <body> class legacy.css's E1 rules key on, and the control's value. Called by update() BEFORE render(), so
+  // every path that can change the size (a pick, undo/redo, Load, backup recovery, New) has the class on before the
+  // bars are drawn, and whatever measures a bar right after the render (the edge grips, the reorder grip) reads its
+  // new height. A <body> class rather than one on #table-wrap because #table-wrap is the frozen render's own
+  // container; E1 scopes every rule to #table-wrap, so the class can never reach #print-root.
+  // ⛔ The value is PUSHED to React (bridge.js), never written to a radio's .checked: the mvProdLabel reason.
+  function reflectMvBarSize(){
+    document.body.classList.toggle('mv-bar-large', mvBarSize === 'large');
+    document.body.classList.toggle('mv-bar-xl', mvBarSize === 'xl');
+    chrome.mvBarSize({ value: mvBarSize || 'standard' });
+  }
+  // The control's radios, caught on document by their `name` (set in Sidebar.jsx, so stable), as "Label Production
+  // by"'s are and for its reasons: 'click', never 'change' (a controlled radio fires none); the value, never
+  // .checked (React has restored it by now); and a click on the segment already shown is not a pick.
+  document.addEventListener('click', e=>{
+    const t = e.target;
+    if(!t || t.name !== 'mv-bar-size' || t.disabled) return;
+    if(t.value === (mvBarSize || 'standard')) return;
+    setMvBarSize(t.value);
+  });
   // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
   // and a keyboard toggle (Space) fires change too.
   document.addEventListener('change', e=>{
@@ -23076,6 +23134,7 @@ export function initLegacyApp() {
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     mvNumberShootDays = false; reflectMvNumberShootDays();
+    mvBarSize = '';   // Standard; the update() after New puts the class and the control in step
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -24385,6 +24444,9 @@ export function initLegacyApp() {
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
       ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
+      // 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md §4.1): the month view's phase bar size. ⛔ PERMANENT key, whose two values
+      // are 'large' and 'xl'. STANDARD IS AN ABSENT KEY, so a Standard calendar's snapshot is the one it was before.
+      ...(mvBarSize ? {mvBarSize: mvBarSize} : {}),
       // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
       // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
       ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
@@ -31185,6 +31247,9 @@ export function initLegacyApp() {
       if(ts) s.textStyles = ts; else delete s.textStyles;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    // Phase bar size (MONTH-BAR-SIZE-PLAN.md): only the two words a Save writes. Anything else is dropped, so it opens
+    // at Standard, as a file with no key does.
+    if('mvBarSize' in s && s.mvBarSize !== 'large' && s.mvBarSize !== 'xl'){ bad.n++; delete s.mvBarSize; }
     // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
     // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`,
     // and since §9 `under` (a phase key) or `bottom: true` in place of `top`, and `day`, the ISO date it was set on.
@@ -31600,6 +31665,9 @@ export function initLegacyApp() {
     // open file had.
     mvNumberShootDays = snap.mvNumberShootDays === true;
     reflectMvNumberShootDays();
+    // ⛔ UNCONDITIONAL (MONTH-BAR-SIZE-PLAN.md §4.1): a file with no key is Standard -- never the previously open
+    // file's size. The update() after the restore puts the class and the control in step (reflectMvBarSize).
+    mvBarSize = (snap.mvBarSize === 'large' || snap.mvBarSize === 'xl') ? snap.mvBarSize : '';
     // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
     // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
     mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];

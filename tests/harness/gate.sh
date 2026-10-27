@@ -1753,6 +1753,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
               phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
+              mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
