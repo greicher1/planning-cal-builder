@@ -4,6 +4,47 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). Gate green but for the known fixture edit; COMMITTED (owner's picker: "Commit")
+
+- **Asked** (owner, after `ae39e3e` went live): *"I think the lag when you switch from month view to waterfall is
+  still there"*. Tracker card `view-switch-lag`.
+- **What the 26 Oct fix left:** it only removed what `71a6c87` added. Every WATERFALL redraw (switch, or any
+  `update()` in the waterfall) cost ~105 ms in the pane, ~60–70 ms headless; month redraws ~12 ms.
+- **Cause, profiled over CDP** (scratch scripts, not in the repo): ~51 of ~67 ms in frozen `installGridResizers`.
+  It appended a handle, then read a row's rect, once per row in two loops, so ~100 forced style recalcs.
+  Each recalc restyled ~105 elements because of ONE rule: `.phase-row:has(select.phase-unit …) [id^="meta-"]`.
+  Found by deleting `:has()` rules over CSSOM against a 100-insert benchmark: all off 12 ms, that rule alone +23.
+- **Fix 1** (`legacy.css`): `[id^="meta-"]` → `.phase-meta[id^="meta-"]`, same elements, with a ⛔ comment.
+  Halved the switch on its own (60–71 → 29–37 ms).
+- **Fix 2, ⛔ FROZEN EDIT L1** (owner's picker, 27 Oct 2026: *"Yes, apply it (Recommended)"*): `installGridResizers`
+  reads `rowBoxes` once, after the column handles (where the first row read always was). Both row loops use it.
+  - **Acceptance gate:** every `.grid-resize` handle's class, inline style and dataset identical to the pre-change
+    build `9df703dd`. Checked on mvnotes, customunits, builtindates, colreuse, hidewf, carry-rich,
+    custom-nondense, notewrap, stintswap-chained, xlsx-overlimit and month-dense60, at zoom 1, 1.5 and 0.75:
+    all identical. Phase hint visibility identical too. Plus the full gate.
+- **Measured** (synchronous click, medians, headless): 52 weeks 59–67 → 13–15 ms at 1440 and 742 px; a longer show
+  81 → 22 ms. Waterfall → month is ~14 ms, so both directions now match.
+- ⚠️ **Lessons:**
+  - Behind a `:has()`, never use an attribute-only subject (`[id^=…]`). Key it on a class.
+  - Chrome re-checks `:has()` rules on EVERY insertion here, presumably because a `:has()` argument holds a
+    `:not()` (`#prep-rows:not(:empty)`) or a structural pseudo (Mantine's `:only-child`). So any frozen loop that
+    interleaves appends and rect reads pays every `:has()` rule per row.
+  - Unwrapping lightningcss's `:is(...)` merges saved only ~3 ms.
+  - Measure in headless Chrome over CDP (`Profiler`, `Tracing`). The desktop pane's timings swing with its
+    width and visibility.
+- **Not done, now nearly moot:** the nine `body:has(#view-month-btn.active)` rules cost ~0.08 ms per insertion
+  (they rescan the body). With L1 there is one recalc per redraw, so they no longer add up here. A body class set
+  beside `.active` in `setViewMode()` and `applyStateSnapshot()` would remove them if another loop ever needs it.
+- **Verified** on build `46a97f5c`:
+  - Full gate: **3,059 PASS, 4 FAIL**. Three are the known `stintswap-reshape.sptcal` failures (`stintreshape`,
+    `phasesui` P1, gate 13's month PDF for that fixture). That fixture's uncommitted edit is not this session's,
+    and the same three failed on `977b3ea6`.
+  - The fourth was `launchopen EX: harness`. Another session's leg ran on port 8231 mid-gate and took over the
+    gate's server for about a minute (it said so). Re-run alone: **16/16**, no console errors.
+  - `customunits` and `builtindates` (on the CSS fix), live and restore, 83/83; `npm run check` 40/40.
+- ⚠️ **Harness trap seen again:** a `run.sh` on the DEFAULT port 8231 `pkill`s the gate's own server. Run single
+  legs on another `HARNESS_PORT` whenever a gate may be running.
+
 ### ✅ 26 Oct 2026 (latest): THE MONTH -> WATERFALL SWITCH LAG FROM `71a6c87`, FIXED. Committed and pushed on the owner's picker (*"Commit"*, *"Commit and push"*)
 
 - **Asked** (owner, after `71a6c87` went live): *"theres now a slight lag when you switch from the month view to the
