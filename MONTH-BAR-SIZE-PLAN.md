@@ -1,7 +1,8 @@
 # MONTH-BAR-SIZE-PLAN.md: bigger phase bars in the month view
 
 **Status: PLANNED, no code. ALL EIGHT RULINGS ANSWERED (owner, by picker, 27 Oct 2026): every recommendation taken
-except R1, where the owner chose (b), phase bars AND hiatus bands.** Next is step 1. On the tracker as `month-bar-size`.
+except R1, where the owner chose (b), phase bars AND hiatus bands.** **Step 1 DONE (27 Oct 2026): the screen mechanism
+holds, with one rule added (`min-height`, §4.2).** Next is step 2. On the tracker as `month-bar-size`.
 
 Owner, 27 Oct 2026:
 
@@ -133,10 +134,9 @@ are the same 2 and 9. Every band in those calendars fits its label at both sizes
 The extra cuts at Extra large are all in Production's bars on short pieces: the grey tag loses the end of its episode
 list ("Ep. 209, …"), or the "Production Week" tag is cut after "We…".
 
-**Not measured yet:** anything on screen (nothing is built), hit-testing on bigger bars, and how much taller the month
-view gets. By arithmetic: a week with three lanes of bars or bands is 112 px today, 127 px at Large, 136 px at
-Extra large.
-Since 26 Oct the month view scrolls in its own box, so that is more scrolling, not a moved toolbar.
+**On screen** (measured in step 1, §5): a month is a median of 4.4% taller at Large and 7.1% at Extra large. Since
+26 Oct the month view scrolls in its own box, so that is more scrolling, not a moved toolbar. Hit-testing on bigger
+bars is step 2's.
 
 ## 4. How it works
 
@@ -161,9 +161,18 @@ inside `#print-root`, which is not inside `#table-wrap`.
 - `.mv-bar:not(.mv-pill):not(.mv-hiatus-bar){ contain: size }`: notes and "+" slots add no height of their own. A
   lane without a phase bar or band therefore stays exactly 17 px. Without this, a one-line note's lane would grow to
   its natural 19 px.
-- `.mv-pill, .mv-hiatus-bar{ font-size; border-radius }` and `.mv-pill-block{ font-size }` at the §2 sizes.
-- ⚠️ **`contain: size` on a grid item is the one new mechanism here**, and step 1 measures it before anything else is
-  built. A note spanning two or three lanes must keep exactly the lanes it has today.
+- `.mv-pill, .mv-hiatus-bar{ font-size; border-radius; min-height }` and `.mv-pill-block{ font-size }` at the §2
+  sizes. `min-height` is the bar height (22 or 25 px).
+- ⭐ **`min-height` was ADDED BY STEP 1's MEASUREMENT.** Without it, two things go wrong:
+  - At 150% zoom, Chrome rounds the bar's 1 px borders to whole device pixels. A Large lane then comes out 21.33 px
+    in the box's own px, not 22.
+  - A band whose label was emptied has no line of text, so it adds nothing to its lane's height. It stayed 17 px at
+    both sizes, breaking the 1 Oct 2026 "full height" ruling.
+
+  With it, both are exact. It does not stop a two-line bar from growing, because its content is taller than the
+  minimum.
+- ✅ **`contain: size` on a grid item, the one new mechanism here, is PROVEN (step 1, §5).** Every lane with no bar or
+  band stayed exactly 17 px, and every note spanning two or three lanes kept exactly the lanes it has today.
 - Renderer-free: `renderMonthView` emits the same HTML at every size. The edge grips, the band grips, the reorder
   grip, the drag ghost and the day menu all read bars by their rects, and no month interaction code assumes a 17 px
   lane (checked).
@@ -203,12 +212,45 @@ constant only shares out spare room between weeks.
 
 **Step 0: the rulings.** ✅ Done, 27 Oct 2026 (§1).
 
-**Step 1: prove E1's mechanism before building on it.**
-- In a throwaway build: on `mvnotes`, `month-dense60` and `hiatus-blanklabel`, measure that lanes without a phase bar
-  or band are 17 px, lanes with one are 22 or 25 px, an emptied band is full height, and multi-lane notes keep their
-  lanes. Measure again at 150% zoom.
-- If `contain: size` does not hold, the fallback is for `renderMonthView` to write each week's lane sizes itself. That
-  is a bigger frozen edit, and it comes back to you before it is built.
+**Step 1: prove E1's mechanism before building on it. ✅ DONE, 27 Oct 2026.**
+- **How:** a throwaway harness leg (deleted after the run; nothing in `src/` changed).
+  - It loaded each calendar into the built app (`dist/` of 11:45, whose only uncommitted engine edits were another
+    session's, to the waterfall's row handles).
+  - It added E1's exact rules at run time, then walked every month at Standard (before and after the rules were
+    added), Large and Extra large.
+  - It read Chrome's own layout: each week's lane tracks (`grid-template-rows`), and each bar's height, font size and
+    overflow.
+  - It ran on `mvnotes`, `month-dense60` and `hiatus-blanklabel`: 54 months, 1600 × 1057 window, 160 px days.
+- **Run 1, E1 as first written:** 22 of 25 checks passed on `mvnotes` and `month-dense60`. The two problems:
+  - 150% zoom failed on all three calendars (lanes 21.33 px);
+  - the three emptied bands in `hiatus-blanklabel` stayed 17 px.
+
+  That is why `min-height` was added (§4.2).
+- **Run 2, with `min-height`: all 25 checks pass on all three calendars:**
+  - **Inert:** with the rules present and no size picked, every lane, row, bar height and font on all 54 months is
+    identical to the page without them.
+  - **The renderer places every bar in the same lane** at all three sizes. Nothing re-flows.
+  - **Lanes with no bar or band: exactly 17 px at every size.** 889 lanes per size. Among them are 84 notes spanning
+    two or more lanes, each filling exactly its lanes.
+  - **Lanes holding a one-lane bar or band: exactly 17 / 22 / 25 px.** 242 lanes per size. Text is 10 / 12 / 14 px and
+    grey tags 9 / 11 / 12 px.
+  - **Emptied bands:** 22 px at Large and 25 px at Extra large, as tall as labelled ones.
+  - **150% zoom, Large:** every lane and bar the same in the box's own px as at 100%.
+  - **No one-line bar or band overflows its box** at Large or Extra large. ⭐ Today, at Standard, 262 of the 268 bars
+    and bands overflow by 2 px: the 17 px lane hides their bottom padding. The text itself fits.
+  - 0 console errors.
+- **What the bigger sizes look like on screen, measured:**
+  - A month is a median of **4.4% taller at Large** and **7.1% at Extra large**, at most 6.5% and 10.9%.
+  - An ordinary week, 112–113 px today, is at most 123 px at Large and 131 px at Extra large. The densest week in
+    `month-dense60` goes 512 → 517 → 520 px.
+  - About 5 notes per calendar sit in a lane they share with a bigger bar on another day. They stretch to that lane's
+    height (§2 default 3).
+- **The two-line custom bar** (`mvnotes`' long one-day phase) takes its two lanes as the grid's spanning rule shares out
+  its extra height: 19 + 19 px at Large, 22 + 22 at Extra large, and 26 + 18 in one week where it shares a lane with a
+  one-lane bar. That is the rule the writer's `mvlLaneTracks` already models. Step 3's `monthemit` must confirm the
+  writer agrees.
+- **Not covered here, left for step 2's leg:** Extra large at 150% (only Large was zoomed), other zoom levels,
+  hit-testing on the bigger bars, and every gesture.
 
 **Step 2: the setting, the screen and the leg.**
 - §4.1, §4.6, E1 and E2.
@@ -220,11 +262,12 @@ constant only shares out spare room between weeks.
     slot and the day-number band each land on a bigger bar's week.
   - **B3:** one undo step. Save writes the key, and Load brings it back. A file without the key, loaded after one
     with it, opens at Standard (the M-5 trap). New resets it. `fields.byId` is unchanged.
-  - **B4:** at 150% zoom.
+  - **B4:** both sizes at 75%, 150% and 200% zoom, lanes exact in the box's own px (step 1 zoomed Large at 150% only).
   - **B5:** a one-day custom pill wraps at its own size.
   - **B6:** the shareable copy.
 - Mutants:
   - no containment, so a note's lane grows (red on B1);
+  - no `min-height`, so an emptied band and a zoomed lane come up short (red on B1, B4);
   - bands left out of the size rules (red on B1);
   - E2 removed, so a cut instead of a wrap (red on B5);
   - a sanitizer that keeps junk;
@@ -258,9 +301,14 @@ alters row heights on purpose. That is why step 1 exists.
 - any calendar that never picks a size: every saved file opens, draws and prints byte-for-byte as before.
 
 ## 7. Risks and interactions
-- **`contain: size`** is unproven here (step 1).
+- **`contain: size`** is proven (step 1), with `min-height` added.
 - **Extra large cuts more Production tags** on short pieces (§3). Large measured no extra cuts.
-- **The month view gets taller on screen** (§3's arithmetic): more scrolling at 100%.
+- **The month view gets taller on screen**, measured at a median of 4.4% (Large) and 7.1% (Extra large): more
+  scrolling at 100%.
+- ⚠️ **Running harness legs beside another session's full gate.** `run.sh` frees its port before it starts
+  (`pkill -f "srv.js $PORT "`). On the default 8231, that kills a running gate's test server. Step 1's first run did
+  exactly this, for about a minute, to another session's gate. Pass `HARNESS_PORT=<another>` whenever a gate may be
+  running.
 - **The month-view redesign** (`month-view-modern-look`, five options, open) also adds `#table-wrap`-scoped month
   CSS. Its options 1–4 only change colours and lines, so the two are independent. Option 5 narrows each day by about
   6 px, which would cut more labels at Extra large. Whichever lands second re-runs step 1's measurements.
