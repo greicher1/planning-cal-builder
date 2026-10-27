@@ -47,9 +47,17 @@
     `mvlFrameFmt` and `mvlStyledWidthOf`.
   - `monthexport (hiatus-blanklabel)` wrote no file, so gate 13 had none for it: a stall. Standalone 9/9, and its file
     is byte-identical to gate 13's baseline. The other 21 gate 13 files were byte-identical in the run.
-- **Full gate, run 2** (`c9514cf`): queued behind another worktree's gate; the result goes here.
-- **Next:** gate run 2, then the owner's picker to merge, then a separate one to push. Tracker card
-  `month-text-style` is at "building"; move it to "ready" when the full gate is green.
+- ✅ **Full gate, run 2** (`c9514cf`, 14:57–15:41, no other gate running at its start): **3,096 PASS, 3 FAIL, all three
+  stalls.** `papersize` and `undokeys` produced no result and `pdfdialog` stopped after D2. These are waterfall and undo
+  legs this branch does not touch, and all three passed in run 1. Standalone on port 9905 against this build:
+  papersize 12/12, pdfdialog 15/15, undokeys 11/11. Every run-1 failure is green: mvmenu L4, monthlayout 56/56, mvorder
+  30/30, monthexport (hiatus-blanklabel). Gate 13: 22/22 byte-identical. Gate 10 (`monthprint`): 67/67 against the
+  re-cut.
+  ⚠️ Running a leg beside another session's gate: `run.sh` and the `.mjs` drivers `pkill` the `srv.js` on THEIR port
+  before starting their own. So a standalone run on the default 8231 kills a running gate's server. Use a
+  non-default `HARNESS_PORT`.
+- **Next:** the owner's picker to merge into `main`, then a separate one to push. Tracker card `month-text-style` is
+  at "ready".
 
 ### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md); superseded by the entry above)
 

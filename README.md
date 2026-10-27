@@ -62,6 +62,9 @@ ruling by picker (R1–R4, N1–N3) and the sign-off on two frozen edits, M1 and
   with its programs, slant and colours, the waterfall's grid/workbook/PDF unchanged, a shift, Reset notes, an episode
   removed, New; RESTORE 6/6 incl. a hostile copy whose six bad values are dropped and counted, and a style-free file
   loaded over a styled one; v1.8.0 opens the file). `monthemit` 16/16 on the styled fixture. `hiatusdrag` 14/14.
+  Full gate on `c9514cf`: 3,096 PASS, 3 stalls (papersize, pdfdialog, undokeys; each passes alone). Gate 13 is
+  byte-identical on all 22 files, and gate 10 passes all 67 checks against the re-cut. R1 changed three older
+  cases (`mvmenu` L4, `mvorder` N5/N6), which now hold "a press picks, a double-click opens".
 
 ### Unreleased — Month view: dragging a hiatus band keeps its waterfall text style (27 Oct 2026)
 
