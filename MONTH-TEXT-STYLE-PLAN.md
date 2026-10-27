@@ -137,10 +137,36 @@ What the owner was offered:
   band's colour stay where they are set today. **Text colour is greyed while only bars are picked (N1).**
 - **Bold** is the header's rule, `mvlLineStyle`'s: on = 700, off = 400, unset = the text's own weight (bars 600, notes
   500, month name and weekday row 700). So an unstyled bar shows B lit. All four Inter weights are embedded already.
-- **Sizes offered** (R3; each list is confirmed by step 1's measurement before it is fixed): bars and bands 6–12 (or
-  6–11 if 12 cuts a glyph on screen), notes 6–10, the month name up to 17, the weekday row up to 11. A pick that mixes
-  kinds is offered the sizes every picked text allows.
+- **Sizes offered** (R3; FIXED by step 2's measurement, §3.3a): **bars and bands 6–11** (12 cuts on screen, the
+  plan's own fallback), **notes 6–10**, **the month name 6–17**, **the weekday row 6–11**. A pick that mixes kinds is
+  offered the sizes every picked text allows.
 - **No control has an id**, as for the bar today (`collectFieldValues`).
+
+### 3.3a Measured (step 2, 27 Oct 2026, the build on `f7c8f83`)
+
+A read-only probe (a throwaway harness leg, not kept) set every text of one kind in the month on screen to each size
+in turn, **bold and italic, with the line box held** (§3.4), and counted texts whose content area (the text's Range
+rects: the font's rounded ascent plus descent, a superset of its ink) left the bar's padding box, and rows, month bars
+and weekday rows that changed height. Fixtures `mvnotes` (January to June 2026: 30 pills, 18 notes, 3 wrapping pills)
+and `hiatusdrag` (March to August 2027: 20 pills, 10 hiatus bands). Nothing was saved.
+
+| Text (held line box) | fits through | first size that cuts | rows / month bar / weekday row grew |
+|---|---|---|---|
+| Pills, one line (15 px) | **11** | 12: every one, by 1 px (its descenders) | none, at any size |
+| Hiatus bands (15 px) | **11** | 12: every one, by 1 px | none |
+| Wrapping one-day pills, two lines (15 px) | 14 | (none to 14) | none |
+| Notes (13 px a line) | 11 | 12: 15 of 18, by 1 px | none |
+| Month name (25.5 px) | 20 | 22, by 1 px | none |
+| Weekday row (16.5 px) | 14 | (none to 14) | none |
+
+- **Why a bar cuts at 12 on screen and not in print.** On screen a bar is STRETCHED to its 17 px lane
+  (`.mv-bars{grid-auto-rows:17px}`), so its padding box is 15 px and its 15 px line box, starting 1 px down, already
+  runs 1 px past it. At 10 and 11 px the half-leading keeps the glyphs inside; at 12 px Chrome's rounded ascent and
+  descent (12 + 3) fill the whole line box and the descenders leave the padding box. In print (`align-self:start`) and
+  in the written PDF a bar is its natural 19 px, a 17 px padding box, which holds through 14 px by the writer's own
+  rule (`mvlLineMetrics`: 15 px cuts). The screen is the binding constraint.
+- **Held line boxes moved nothing.** No row, month bar or weekday row changed height at any size measured, so §3.4's
+  rule holds. A note's LINE COUNT is the one thing a size can change, and the probe did not re-lay notes (M1 does).
 
 ### 3.4 How a style keeps the calendar's shape (R3)
 
