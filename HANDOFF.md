@@ -28,8 +28,11 @@
   - A `t/` leg's own source is injected into the page, so a shareable copy contains it: never search a copy for a
     literal the leg also contains.
 - **Verified:** `mvtextstyle` LIVE 22/22, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
-  `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. Mutants and the full gate: see the next
-  bullet when they land.
+  `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. **Mutants (plan §8): all twelve red, each
+  on its own case** (listed in `gate.sh` above the mvtextstyle block). ⚠️ `monthemit` slices `/src/legacy/app.js`
+  unless given `HARNESS_QUERY=src=<path>`, so a mutant BUILD alone leaves it testing the real writer (it went green
+  until run with `src=`). And an undo re-sanitizes its snapshot, so a bad value written by the bar can vanish before a
+  later Save sees it: check by Save straight after the press. Full gate: see below when it lands.
 - **Next:** the full gate, then the owner's picker to merge, then a separate one to push. Tracker card
   `month-text-style` is at "building"; move it to "ready" when the full gate is green.
 

@@ -95,6 +95,16 @@
      "align": "center"
     }
    }
+  ],
+  "2026-07-15": [
+   {
+    "text": "Wardrobe fittings for the guest cast",
+    "lane": 2,
+    "color": null,
+    "fmt": {
+     "size": 6
+    }
+   }
   ]
  },
  "mvExtraLanes": {},

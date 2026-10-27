@@ -205,6 +205,11 @@ window.addEventListener('load', function () { (async function () {
       var ta = q('.mv-note-pop textarea');
       if(ta){ ta.value = 'Crew lunch'; ta.dispatchEvent(new Event('input', {bubbles: true}));
         ta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true})); await settle(); }
+      var plus2 = qa('#table-wrap .mv-note-add[data-note-day="2026-07-15"]')[0];
+      if(plus2){ plus2.click(); await T.sleep(300); }
+      var ta2 = q('.mv-note-pop textarea');
+      if(ta2){ ta2.value = 'Wardrobe fittings for the guest cast'; ta2.dispatchEvent(new Event('input', {bubbles: true}));
+        ta2.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true})); await settle(); }
       add('A0', 'the calendar: a day note on 7/8, a waterfall note, an episode bar and Sim Post exist to style',
         !!note('day', /Crew lunch/) && !!note('wf', /Principal Photography/) && !!pill(/201/), {day: !!note('day', /Crew lunch/), wf: !!note('wf', /Principal/), ep: !!pill(/201/)}, 'all there');
 
@@ -213,12 +218,17 @@ window.addEventListener('load', function () { (async function () {
       var txt0 = await saveText();
       el('view-sheet-btn').click(); await settle();
       var wfHtml0 = el('table-wrap').innerHTML;
+      await T.sleep(1000);
       var xlsx0 = await zipParts(await T.captureExport('export-btn', 'the unstyled workbook'));
+      await T.sleep(1000);
       var wfPdf0 = new Uint8Array(await (await T.captureExport('export-wf-pdf-btn', 'the unstyled waterfall PDF')).arrayBuffer());
       el('view-month-btn').click(); await settle();
       var mvPdf0 = await pdfStreams(await writerPdf());
       var shape0 = {};
-      async function shapeOf(m){ await goTo(m); return {rows: rows(), frame: frame()}; }
+      // A note's lanes (its grid-row span) per week: a styled note may change its line count (§3.4), and only its week may move.
+      function noteSpans(){ return qa('#table-wrap .mv-body > .mv-week').map(function (w) {
+        return qa('.mv-bars > .mv-note-block', w).map(function (n) { var m2 = /span (\d+)/.exec(n.getAttribute('style') || ''); return n.dataset.noteDay + '|' + (m2 ? +m2[1] : 1); }).sort().join(','); }); }
+      async function shapeOf(m){ await goTo(m); return {rows: rows(), frame: frame(), notes: noteSpans()}; }
       var SHAPE_MONTHS = ['April 2026', 'July 2026', 'November 2026', 'December 2026'];
       for(var mi = 0; mi < SHAPE_MONTHS.length; mi++) shape0[SHAPE_MONTHS[mi]] = await shapeOf(SHAPE_MONTHS[mi]);
       add('F0', 'an unstyled calendar saves NO mvTextStyles key and no `fmt`', txt0.indexOf('mvTextStyles') < 0 && txt0.indexOf('"fmt"') < 0, {mv: txt0.indexOf('mvTextStyles'), fmt: txt0.indexOf('"fmt"')}, 'absent');
@@ -286,8 +296,15 @@ window.addEventListener('load', function () { (async function () {
       var mixed = {ep: look(pill(/201/)).c, wf: look(note('wf', /Principal Photography/)).c};
       await colour('#ffff00');
       key('Escape'); await T.sleep(150);
+      var mixSaved = (JSON.parse(await saveText()).mvTextStyles || {}).episode || {};
+      mixed.stored = !!(mixSaved.ep1 && 'color' in mixSaved.ep1);
       // A style pressed on and off again leaves NOTHING stored (not an empty object): Ep. 202's italic.
-      if(pill(/202/)){ await click(pill(/202/)); await press('.hf-i'); await press('.hf-i'); key('Escape'); await T.sleep(150); }
+      // Read straight after, by Save: an undo re-sanitizes its snapshot, which would drop an empty entry unseen.
+      var emptied = null;
+      if(pill(/202/)){ await click(pill(/202/)); await press('.hf-i'); var on202 = look(pill(/202/)).i; await press('.hf-i'); key('Escape'); await T.sleep(150);
+        var es = JSON.parse(await saveText()).mvTextStyles || {};
+        emptied = {on: on202, off: look(pill(/202/)).i, ep2: (es.episode || {}).ep2, anyEmpty: /:\{\}/.test(JSON.stringify(es))}; }
+      await styleIt('longnote', note('day', /Wardrobe fittings/), [function(){ return size(6); }]);
       await styleIt('month', q('#table-wrap .mv-monthyear'), [function(){ return size(17); }, function(){ return press('.hf-i'); }, function(){ return colour('#c00000'); }]);
       await styleIt('dow', qa('#table-wrap .mv-dowrow > .mv-dow')[0], [function(){ return size(11); }, function(){ return press('.hf-b'); }, function(){ return press('.hf-i'); }, function(){ return colour('#0070c0'); }, function(){ return align('left'); }]);
       var spMonth = null;
@@ -299,7 +316,7 @@ window.addEventListener('load', function () { (async function () {
       await styleIt('band', band(/Hiatus|Holiday/), [function(){ return size(11); }, function(){ return press('.hf-i'); }, function(){ return colour('#ffff00'); }, function(){ return align('right'); }]);
       // What the screen draws, month by month.
       var seen = {}, cuts = {}, shape1 = {};
-      async function see(m, picks){ await goTo(m); shape1[m] = {rows: rows(), frame: frame()};
+      async function see(m, picks){ await goTo(m); shape1[m] = {rows: rows(), frame: frame(), notes: noteSpans()};
         Object.keys(picks).forEach(function (k) { var e = picks[k](); seen[k] = e ? look(e) : null; cuts[k] = e ? cutPx(e) : null; }); }
       await see('April 2026', {phase: function(){ return pill(/Pre Prep Week 2/); }});
       await see('July 2026', {episode: function(){ return pill(/201/); }, wfnote: function(){ return note('wf', /Principal Photography/); },
@@ -321,10 +338,29 @@ window.addEventListener('load', function () { (async function () {
         && !!S.band && S.band.c === 'rgb(255, 255, 0)' && S.band.i === 'italic' && S.band.a === 'right', S, 'as styled');
       add('S2', "N1: every pill's text and ring keep the phase's own ink (the episode bar's colour is its unstyled ink, the ring in it too), and a colour pressed on a pick mixing the bar with a note colours the note alone",
         !!S.episode && S.episode.c === S.episode.ring && S.episode.c === ink0.episode && !!S.phase && S.phase.c === S.phase.ring && !!S.simpost && S.simpost.c === S.simpost.ring
-          && mixed.ep === ink0.episode && mixed.wf === 'rgb(255, 0, 255)', {ep: S.episode, ph: S.phase, sp: S.simpost, ink0: ink0, mixed: mixed}, 'ring = ink = unstyled ink');
-      var grew = Object.keys(shape0).filter(function (m) { return !eq(shape0[m], shape1[m]); });
-      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December)',
-        grew.length === 0, {grew: grew, before: shape0, after: shape1}, 'none');
+          && mixed.ep === ink0.episode && mixed.wf === 'rgb(255, 0, 255)' && mixed.stored === false, {ep: S.episode, ph: S.phase, sp: S.simpost, ink0: ink0, mixed: mixed}, 'ring = ink = unstyled ink');
+      // Rows compared week by week; a week where a note's lane count changed is named, not failed (§6 item 2).
+      var grew = [], noteMoved = [];
+      Object.keys(shape0).forEach(function (m) {
+        var a = shape0[m], b2 = shape1[m];
+        if(!eq(a.frame, b2.frame)) grew.push(m + ' frame');
+        a.rows.forEach(function (h, i) {
+          if(a.notes[i] !== b2.notes[i]){ noteMoved.push(m + ' week ' + (i + 1) + ': ' + a.notes[i] + ' -> ' + b2.notes[i]); return; }
+          if(Math.abs(h - b2.rows[i]) > 0.01) grew.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]);
+        });
+      });
+      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December), except a week whose note changed its line count (named: the 6 px note in July)',
+        grew.length === 0 && noteMoved.length === 1 && /2026-07-15/.test(noteMoved[0]), {grew: grew, noteLines: noteMoved}, 'none grown; one note re-laid');
+      // M1's line counters: each note's lanes are exactly the lines it lays out in its own style (to 3), so none is cut
+      // short and none holds an empty line. Read in July, where both day notes and the waterfall line are.
+      await goTo('July 2026');
+      var spanBad = qa('#table-wrap .mv-bars > .mv-note-block').map(function (n) {
+        var m2 = /span (\d+)/.exec(n.getAttribute('style') || ''), span = m2 ? +m2[1] : 1, rg = document.createRange(), tops = new Set();
+        Array.prototype.forEach.call(n.childNodes, function (c) { if(c.nodeType === 3){ rg.selectNodeContents(c); Array.from(rg.getClientRects()).forEach(function (r) { if(r.width > 0) tops.add(Math.round(r.top)); }); } });
+        return {text: n.textContent.slice(0, 30), span: span, lines: Math.min(3, tops.size)};
+      }).filter(function (x) { return x.span !== x.lines; });
+      add('S5', "every note's lanes are the lines it lays out in its own style (the 6 px note re-measured, the bold line not cut short)",
+        spanBad.length === 0 && !!note('day', /Wardrobe fittings/), spanBad, 'none');
       var cutList = Object.keys(cuts).filter(function (k) { return cuts[k] === null || cuts[k] > 0.01; });
       add('S4', '0 clipped: every styled text\'s content box (the font\'s ascent + descent) inside its bar\'s padding box, at the largest sizes offered',
         cutList.length === 0, cuts, 'all 0');
@@ -378,7 +414,9 @@ window.addEventListener('load', function () { (async function () {
       // ---------------- W: R2, the waterfall untouched ----------------
       el('view-sheet-btn').click(); await settle();
       var wfHtml1 = el('table-wrap').innerHTML;
+      await T.sleep(1000);                 // the export button's re-click guard, after the month PDF exports
       var xlsx1 = await zipParts(await T.captureExport('export-btn', 'the styled workbook'));
+      await T.sleep(1000);
       var wfPdf1 = new Uint8Array(await (await T.captureExport('export-wf-pdf-btn', 'the styled waterfall PDF')).arrayBuffer());
       var xDiff = Object.keys(xlsx0).filter(function (k) { return xlsx0[k] !== xlsx1[k] && !/docProps\/(core|app)\.xml/.test(k); });
       var pdfSame = wfPdf0.length === wfPdf1.length && wfPdf0.every(function (v, i) { return v === wfPdf1[i]; });
@@ -392,7 +430,9 @@ window.addEventListener('load', function () { (async function () {
       var dayEntry = ((saved.dayNotes || {})['2026-07-08'] || [])[0] || {};
       var f1 = {kinds: Object.keys(mts).sort().join(','), fmt: dayEntry.fmt || null, ids: Object.keys((saved.fields || {}).byId || {}).length,
                 pillColour: ['phase', 'episode', 'simpost'].some(function (k) { return Object.keys(mts[k] || {}).some(function (x) { return 'color' in mts[k][x]; }); }),
-                phaseKeys: Object.keys(mts.phase || {}), frame: mts.frame || null, empty: /:\{\}/.test(JSON.stringify(mts)) || ((mts.episode || {}).ep2 !== undefined)};
+                phaseKeys: Object.keys(mts.phase || {}), frame: mts.frame || null,
+                empty: /:\{\}/.test(JSON.stringify(mts)) || ((mts.episode || {}).ep2 !== undefined) || !emptied || emptied.on !== 'italic' || emptied.off !== 'normal' || emptied.ep2 !== undefined || emptied.anyEmpty,
+                emptied: emptied};
       add('F1', 'Save writes mvTextStyles, one map per kind (band, episode, frame, phase, simpost, wfnote), "prePrep@2" for Pre Prep Week 2 (N2), `fmt` on the day note, no colour on a pill, no empty object (Ep. 202 pressed italic on and off: absent), and no new fields.byId key',
         f1.kinds === 'band,episode,frame,phase,simpost,wfnote' && f1.phaseKeys.indexOf('prePrep@2') >= 0 && !!f1.fmt && f1.fmt.size === 9 && f1.fmt.bold === true
           && !f1.pillColour && !f1.empty && !!f1.frame && !!f1.frame.month && !!f1.frame.dow && f1.ids === ids0, Object.assign({ids0: ids0}, f1), 'all kinds, ids unchanged');

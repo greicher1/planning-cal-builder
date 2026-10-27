@@ -1882,6 +1882,13 @@ for n in fa:
 sys.exit(1 if bad else 0)
 PYMF
 
+# ⭐ mvtextstyle (in the list above, LIVE and RESTORE; 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §8) was run red on twelve
+# mutants before it was wired in, each on its own case: the writer ignoring a style (P1; and monthemit M0/T0/K0 here,
+# run with HARNESS_QUERY=src= so the leg slices the mutant), a size without its held line box (S1, S4), a note measured
+# at the old style (S3, S5), a colour accepted by the sanitizer on a bar (R3, R4) or stored by the bar (S2), an empty
+# style object (F1), restore only when the key is present (R5), a click opening a note (D1, G1, G2), typing replacing a
+# note (D1), a month style read by the waterfall (W1), an id on a bar control (B1), and the hiatus drag dropping a
+# month band style (hiatusdrag H13).
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
