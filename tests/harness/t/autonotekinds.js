@@ -166,13 +166,19 @@ window.addEventListener('load', function () { (async function () {
 
     await step('A1', async function () {
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
-      var labels = card ? Array.from(card.querySelectorAll('label')).map(txt) : [];
+      // Since 27 Oct 2026 the card has one row per phase (its name, then a start box and an end box, autonotephases),
+      // so each of these kinds' label is its row's name plus its box's word.
+      var labels = KINDS.map(function (k) {
+        var l = box(k) && box(k).closest('label'), n = l && l.previousElementSibling;
+        while (n && !n.classList.contains('autonote-name')) n = n.previousElementSibling;
+        return txt(n) + ' ' + txt(l);
+      });
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no
       // form control, as on every card.)
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
       kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
            !!sec && T.settingsTabOf(sec) === 'prefs' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
-           same(labels, ['Writer’s Room Opens', 'Start Principal Photography', 'Principal Photography Wraps']) &&
+           same(labels, ['Writer’s Room Opens', 'Production Starts', 'Production Wraps']) &&
            same(boxes(), [true, true, true]) && ids.length === 0 && !sec.closest('.prefs-card'),
            { labels: labels, boxes: boxes(), ids: ids });
     });
