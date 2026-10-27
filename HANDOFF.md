@@ -4,7 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 26 Oct 2026 (latest): THE MONTH -> WATERFALL SWITCH LAG FROM `71a6c87`, FIXED. Committed and pushed on the owner's picker (*"Commit"*, *"Commit and push"*)
+### 📝 27 Oct 2026 (latest): EXPORT THE MONTH VIEW AS AN .ics FILE — PLANNED, R1/R2/R4 RULED, R3/R5/R6 OPEN, no code ([`ICS-EXPORT-PLAN.md`](ICS-EXPORT-PLAN.md))
+
+- **Asked** (owner): *"what would it take to be able to export a month view calendar into other calendar formats"*,
+  then a plan for the one-off `.ics` with the rulings up front. Tracker card `month-calendar-export-ics`, now planned.
+- **The plan's core decision:** export from the month PDF writer's model (`buildMonthLayout()`), not from
+  `currentSchedule`. Then the `.ics` has the month view's labels, weekend gaps, per-episode Production bars, hidden
+  holidays and note places by construction. No frozen edit, no save-format change, no CSP change, no library.
+- **Ruled** (owner, by picker, 27 Oct 2026): R1 every bar as drawn, R2 notes as drawn (holidays included), R4 a button
+  beside Export PDF in the month view. **Still open:** R3 (one file or per phase), R5 (re-import IDs), R6 (view and
+  scenario). Each has a recommended default.
+- ⚠️ **The one real unknown:** a week that crosses a month boundary is drawn in both months, so its bars are in the
+  model twice. The dedupe rule must be measured before it is chosen (plan step 1).
+- Committed locally with this entry; not pushed.
+
+### ✅ 26 Oct 2026: THE MONTH -> WATERFALL SWITCH LAG FROM `71a6c87`, FIXED. Committed and pushed on the owner's picker (*"Commit"*, *"Commit and push"*)
 
 - **Asked** (owner, after `71a6c87` went live): *"theres now a slight lag when you switch from the month view to the
   waterfall view"*.
