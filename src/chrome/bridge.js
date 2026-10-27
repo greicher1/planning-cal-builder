@@ -114,6 +114,12 @@ export const chrome = {
   // The engine's `hiddenNotesCols` is the only store. The input half needs no bridge: a pill's × and Show
   // all carry `data-shownotes`, which the engine catches on document, as it does on the grid's strip.
   hiddenNotes: noop,
+  // monthMapModel()'s output, or null — the phase map above the month view (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026):
+  // { months: [{key, y, m, label, year, edge, on, today}], bands: [{key, name, fill, ink, start, end, from, to,
+  // startMonth, row, thin}], hiatus: [{name, start, end, from, to}], rows: {needed, named, thin} }. null in the
+  // waterfall and for a calendar with no phases. The engine pushes it after every render. The input half needs no
+  // bridge: the map's buttons carry `data-mvgo` / `data-mvstep`, which the engine catches on document.
+  monthMap: noop,
   // { view: 'sheet'|'month', zoom, visible } — the calendar zoom control (ZoomControl.jsx), bottom
   // right in both views. The engine holds one zoom per view and applies it; this is only what the
   // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.

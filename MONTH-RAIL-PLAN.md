@@ -258,3 +258,37 @@ the model's packing matched it on every calendar.
 - A bar is never narrower than **8 px**, so a one-day phase can be seen and clicked. Its name goes to the tooltip.
 - R1's cap holds with room to spare: 88 of 89 calendars need 3 rows or fewer, and the one that needs 4 does so for a
   single day.
+
+## 13. Step 2 results (27 Oct 2026)
+
+**Built** (uncommitted on `claude/month-rail` at the time of writing):
+- `monthMapInput(schedule)` feeds the model from `wholeCalendar(schedule)`:
+  - the screen range from `monthCoreRange()` ±1. ⛔ Never `monthRangeForSchedule()`, which consumes the print path's
+    one-shot `mvPrintRangeOnce`.
+  - the phases in `mvLaneOrder()` order with the bars' own colours. Episode prep uses `firstDay..lastDay`, as
+    `monthCoreRange` reads it.
+  - Sim Post from `weeks[].simPost` runs, Monday to Friday, placed after the phases.
+  - the all-phase hiatuses from `schedule.hiatuses`, named with `HIATUS_DEFAULT_LABEL`.
+- `pushMonthMap()` sends `chrome.monthMap(model | null)` from its own childList observer on `#table-wrap`. It is
+  registered in the map's section, not inside `pushViewControls()`, which runs at evaluation time before the
+  section's `const`s exist. It pushes null in the waterfall, during the print walk, and with no phases.
+- `goToMonth('YYYY-MM')`: the frozen arrow handler's range rule at the screen's range. Paging is still session UI.
+- A delegated `document` click listener: `data-mvgo="YYYY-MM"` / `data-mvstep="-1|1"`.
+- `bridge.js`: the `monthMap` key, a no-op until step 3's `MonthMap.jsx` installs it.
+
+**Leg `monthmap`, part A** (7 cases), all green on 9 fixtures: mvnotes, episodeprep, colreuse (29 months), hidewf,
+scenarios-3, blocks, customunits, phasenumbering, offweek. It makes its own buttons carrying the two attributes:
+- a month by `data-mvgo`, and every month the frozen arrows page through, the dimmed ends included;
+- the months past both ends refused; stepping stops where the frozen arrows are disabled;
+- garbage refused; undo and the save status unchanged;
+- nothing at all in the waterfall;
+- no console errors over every render, in both views.
+
+⚠️ It caught a real bug first: `data-mvgo="2026-13"` landed on January 2027, because `Date.UTC` rolls month 12 over.
+`goToMonth` now checks the month is 01–12.
+
+**Not yet proved, by design:** what `monthMapInput` pushes. Nothing consumes the push until step 3. Part B will hold
+the pushed model to the month view itself (the bars that the step 1 leg reads off every page).
+
+**Unchanged and re-run green:** mvmenu 89/89, monthnotes 7/7, hdrcontrols 12/12, monthlanes 6/6, halfmarks 5/5,
+calzoom 26/26, monthmapmeasure 6/6, `npm run check` 40/40. No frozen function or rule was touched.
