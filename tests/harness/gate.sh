@@ -1754,6 +1754,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
               hidewf:hidewf:400 \
+              mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
@@ -1880,6 +1881,34 @@ for n in fa:
         % (n.replace('monthemit.', '').replace('.pdf', ''), '' if same else ' -- NOT', pages, '' if pages == 1 else 's', size.split(' pts')[0], len(rows)))
 sys.exit(1 if bad else 0)
 PYMF
+
+# ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
+# ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
+# the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
+# leg's own Save), so each styled weight, size, slant and alignment is drawn where Chrome prints it. Its own block, not a
+# MESPEC run: that loop's two time-zone groups must hold the same 15 files. Then v1.8.0 opens the minted file (no
+# SNAPSHOT_VERSION bump: an older build ignores mvTextStyles and keeps a day note's `fmt`).
+rm -f "$HERE/monthemit.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvtextstyle "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+rm -f "$HERE"/monthemit.*.pdf
+rm -f "$HERE/mvtextstyle.json"
+HARNESS_PAGE=/releases/v1.8.0.html HARNESS_STATE=mvtextstyle "$HERE/run.sh" mvtextstyle 200 >/dev/null 2>&1
+cp -f "$HERE/mvtextstyle.json" "$HERE/mvtextstyle-old.json" 2>/dev/null
+for MTSPEC in "monthemit:monthemit (mvtextstyle)" "mvtextstyle-old:mvtextstyle (releases/v1.8.0.html)"; do
+python3 - "$HERE/${MTSPEC%%:*}.json" "${MTSPEC#*:}" <<'PYMT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMT
+done
 
 # ---- monthwriter (MONTH-PDF-WRITER-PLAN.md §8 step 4): the month-PDF writer's FIT, and the A/B against the print path
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer -- model, emitter and fit -- out of src/legacy/app.js, fits every month of

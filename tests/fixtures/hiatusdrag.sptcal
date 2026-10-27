@@ -79,6 +79,16 @@
    }
   }
  },
+ "mvTextStyles": {
+  "band": {
+   "2027-03-22": {
+    "bold": false
+   },
+   "2027-05-17|post": {
+    "bold": false
+   }
+  }
+ },
  "fields": {
   "byId": {
    "show-title": {
