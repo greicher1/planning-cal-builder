@@ -4,6 +4,48 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 27 Oct 2026: AUTOMATIC NOTES FOR EACH PHASE'S START AND END, OFF BY DEFAULT. Built on branch `autonote-phases` (worktree `.claude/worktrees/autonote-phases`), full gate green, NOT committed or merged
+
+- **Asked** (owner): *"what are all the other automatic notes we could have?"*, then *"do the phase starts and ends.
+  they should be disabled by default."* Tracker card `more-auto-note-kinds`. The other ideas offered (Production
+  resumes after a break, block starts, halfway, Sim Post begins, opt-in notes for custom phases) were NOT asked for.
+- **What it is:** nine kinds beside ruling 9's three, `AUTO_NOTE_PHASE_EDGES` in `app.js`: `writersRoomEnd`
+  ("Writer's Room Closes"), and `prePrep` / `prodPrep` / `post` / `localization` + `Start` / `End` ("<phase name>
+  Begins|Ends"). ⛔ The kind words are SAVE FORMAT (the key's and `data-autonote`'s).
+- ⭐ **Why a second store.** `autoNotesOff` means "absent = shown", so a new kind put there would have appeared on
+  every calendar ever saved, widening its Notes column and its exports. The new kinds live in **`autoNotesOn`**
+  ("absent = hidden"): a new snapshot key written only while one is ticked, sanitized like `autoNotesOff` (only
+  `true`, unknown words kept), restored unconditionally, cleared by `resetAll()`. `autoNoteKindShown(kind)` is the one
+  question both stores answer, asked by `autoNotesForView()` and by the card's boxes. No `SNAPSHOT_VERSION` bump: an
+  older build ignores the key and simply shows none of them.
+- **Dates:** computeSchedule dates each note on the first or last day the month view DRAWS the phase's bar
+  (`segCoversDate`, outside every hiatus and the phase's own), so the note and the bar cannot disagree: a week-based
+  phase ends on its last Friday, and a phase paused at its start begins after the pause. Writer's Room Opens still
+  uses the raw `wrSeg.start`, unchanged on purpose (it would move existing notes). The new notes are added in date
+  order AFTER the old ones, so no older note moves within its week. Tagged with `phase`, so Hide in waterfall
+  (PHASES-TAB-PLAN R4) takes them out of the waterfall only. Built-ins only: custom phases are still never auto-noted.
+- **Names:** the four phases' notes follow a name typed in the Phases tab ("Edit Begins"), as their bars do;
+  `reflectAutoNoteKinds()` writes that name into the card row's `data-autonote-name` span. Writer's Room and
+  Production keep their own words whatever the phase is called (as "Writer's Room Opens" always has).
+- **Card** (`AutoNotesCard`, Sidebar.jsx): one row per phase, its name, then a start box and an end box (`.autonote-list`
+  is a 3-column grid now). Still plain checkboxes with NO id. ⚠️ **Measured:** the card is ~245 px wide in a narrow
+  window, and a 12 px column gap cut "Writer's Room" to "Writer's Ro…"; it is 8 px, and a longer typed name wraps.
+  A Help sentence (src/index.html, the notes paragraph) points at the card.
+- **No frozen code changed.** computeSchedule and `autoNotesForView` are not on the list; the notes reach the
+  writers as data, exactly as the three old kinds do. With nothing ticked, every output is what it was.
+- **Proof:** new leg `tests/harness/t/autonotephases.js` (AFSPEC, 400 s): 17/17 on the build, **15 of 17 red** on the
+  pre-change build (`dist-pre/`, main at `51ad3fd`, `9df703dd…`; the two green are the month-PDF control and E0). It
+  checks the default, the card, all nine in every output, the month view's day, undo, rename, a phase hiatus, Hide in
+  waterfall, Save/Load + the M-5 trap, a REAL `v1.8.0-saved.sptcal` opening with none of them, and New.
+  `autonotekinds` 16/16 (A1 now reads each box's row name + word: "Production Starts"). `npm run check` 40/40.
+  **Full gate** on build `0ba127aa…` (12:19 onward, after the main checkout's own gate finished): **3,101 PASS, 1
+  FAIL**, the known contention flake `pilllabel (shootorder)` W1 ("months 1 vs 18"), **29/29** re-run alone through
+  gate.sh's own judge. Every baseline byte-identical (waterfall PDF, Excel parts, every gate-13 month PDF), 0 clipped.
+- **Not done:** commit / merge / push (owner's call). ⚠️ The branch is cut from `51ad3fd`; `main` has since moved
+  (the view-switch fix L1, `31eddd0`, live), so merging will conflict at the top of README.md and HANDOFF.md: keep
+  both entries. L1 is in `installGridResizers`, this is in computeSchedule and the card, so no code overlap is
+  expected, but re-run `autonotephases`, `autonotekinds` and `npm run check` on the merged build before any push.
+
 ### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). Gate green but for the known fixture edit; COMMITTED (owner's picker: "Commit")
 
 - **Asked** (owner, after `ae39e3e` went live): *"I think the lag when you switch from month view to waterfall is

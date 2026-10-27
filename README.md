@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026)
+
+Owner: *"do the phase starts and ends. they should be disabled by default."*
+
+- **Nine new automatic notes:** Writer's Room Closes, and Begins / Ends for Pre Prep, Prod Prep, Post and
+  Localization ("Post Begins 7/5/27", "Post Ends 9/24/27"). Each is dated on the first or last day the month view
+  draws the phase's bar, so a week-based phase ends on its last Friday, and one paused at its start begins on the
+  day it really starts. They reach the Notes column, the month view, Excel and both PDFs, as the other automatic
+  notes do. A phase renamed in the Phases tab names its notes ("Edit Begins"). A phase hidden in the waterfall takes
+  them out of the waterfall only.
+- **Off by default, on every calendar.** Saved calendars open exactly as before. The ticks are saved in the calendar
+  under a new key, `autoNotesOn`, written only while one is ticked. The existing `autoNotesOff` could not hold
+  them: there, a kind that is absent is shown, so a new kind would have appeared on every saved calendar.
+- **The Automatic notes card** (Settings ▸ Preferences) has one row per phase now: its name, then a start box and
+  an end box. Writer's Room Opens and Production's Starts / Wraps are the three original boxes, still ticked by
+  default.
+- **Verified:** new leg `autonotephases`, 17/17 on the build and 15 of 17 red on the build before it. It covers every
+  output, the card, undo, a renamed phase, a phase hiatus, Hide in waterfall, Save/Load and the M-5 trap, a real
+  v1.8.0 file, and New. `autonotekinds` 16/16 (its card check updated for the new rows). `npm run check` 40/40.
+  Full gate on build `0ba127aa…`: 3,101 PASS, 1 FAIL, the known month-walk flake `pilllabel (shootorder)` W1
+  ("months 1 vs 18"), 29/29 when re-run alone with the gate's own judging. Every baseline is byte-identical: the
+  waterfall PDF, every Excel part, all of gate 13's written month PDFs, 0 clipped cells.
+
 ### Unreleased — Month to waterfall switch about 4× faster (27 Oct 2026)
 
 Owner: *"I think the lag when you switch from month view to waterfall is still there"*.
