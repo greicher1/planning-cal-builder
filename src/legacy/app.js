@@ -12268,9 +12268,13 @@ export function initLegacyApp() {
               // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
               // that many lanes so it prints as one solid block instead of spilling over its neighbour.
               const span = mvNoteLineCount(n, noteBoxW);
+              // ⛔ FROZEN EDIT M2 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): both note tooltips say
+              // "double-click to edit", because a click now PICKS a note for the text style bar (ruling R1). Nothing else
+              // changed. A title is in the markup the print rollback prints, so gate 10's baselines were re-cut for it,
+              // with a diff showing only these titles moved; gate 13 is untouched (the writer draws no tooltip).
               place(i, i, 'mv-bar mv-note-block mv-note-click',
                 `background:${wfColor}; color:${textColorFor(wfColor)};`,
-                escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
+                escHtml(n) + ' \u2014 double-click to edit (also updates the Waterfall)', escHtml(n),
                 `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"` + anc,
                 span, null, b.minLane);
               return;
@@ -12286,7 +12290,7 @@ export function initLegacyApp() {
             const span = mvNoteLineCount(text, noteBoxW);
             place(i, i, 'mv-bar mv-note-block mv-note-click',
               `background:${oc}; color:${textColorFor(oc)};`,
-              escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
+              escHtml(text) + ' \u2014 double-click to edit (month view only)', escHtml(text),
               `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"` + anc,
               span, null, b.minLane);
           });

@@ -326,6 +326,39 @@ Held, untouched and identical: `reference`, `blocks` and `month-lanecap`. Cut wi
 per-case captures (`monthprint-<case>.json` / `.pdf`) on build `be984cdc…` (branch `ep-shoot-names` at `f84b378`), Google
 Chrome 155.0.8059.85; `monthcmp.py gate` passed against each new cut.
 
+## ✅ RE-CUT 27 Oct 2026 — ALL ELEVEN CASES: the month notes' tooltips say "double-click to edit" (frozen edit M2)
+
+MONTH-TEXT-STYLE-PLAN.md §6, M2, signed off by the owner's picker on 27 Oct 2026 (*"Yes, M1 and M2 as planned
+(Recommended)"*). Ruling R1 makes a single click on a month note PICK it for the text style bar, so the two note
+tooltips, "… — click to edit (also updates the Waterfall)" and "… — click to edit (month view only)", now say
+"double-click to edit". A tooltip is a `title` attribute in the markup the print rollback prints, so every case with a
+note moved. Done first and alone, so the plan's later steps (M1, the writer) are measured against this cut.
+
+- **What moved.** In each re-cut document, reading " — double-click to edit (" as " — click to edit (" gives back the
+  old baseline **byte for byte**. Each case grew by 7 bytes per note tooltip ("double-"). The JSON sidecars differ only
+  in `bytes`, `docSha1`, `structSha1` (a title is an attribute, so it is part of the structure) and `run` (only its
+  date stamp): every element count, fit table, sheet count and page box is unchanged.
+- **Gate 13 does not move:** the writer never reads a tooltip (`mvlParseItem` reads no `title`).
+
+| case | bytes before → after | tooltips | months → sheets |
+|---|---|---|---|
+| `reference` | 508,786 → 508,933 | 21 | 16 → 16 |
+| `dayoverrides` | 480,951 → 480,979 | 4 | 15 → 15 |
+| `mvheader` | 481,971 → 481,999 | 4 | 15 → 15 |
+| `mvheaderlegacy` | 528,036 → 528,064 | 4 | 15 → 15 |
+| `blocks` | 507,217 → 507,364 | 21 | 16 → 16 |
+| `blocksoff` | 508,662 → 508,809 | 21 | 16 → 16 |
+| `dayoverrides-onhalf` | 481,651 → 481,679 | 4 | 15 → 15 |
+| `month-lanecap` | 611,735 → 612,057 | 46 | 16 → 16 |
+| `hiatus-blanklabel` | 506,649 → 506,796 | 21 | 16 → 16 |
+| `halfdays` | 515,861 → 516,008 | 21 | 16 → 16 |
+| `mvnotes` | 543,290 → 543,556 | 38 | 17 → 17 |
+
+Cut with `monthcmp.py cut` from fresh `monthprint` runs (the gate's own invocation, `HARNESS_PORT=8251`) on build
+`c5f9a45b…` (branch `claude/sharp-stonebraker-8d2cd2`, M2 on top of `7bf468b`), Google Chrome 156.0.8078.48;
+`monthcmp.py gate` passed against the new `mvnotes` cut. The gate's `blocksoff`-vs-`reference` check still holds: both
+documents carry the same 21 tooltips.
+
 ## Re-cutting
 
 Only deliberately, and record it here with a table of what moved and why — an undocumented re-cut

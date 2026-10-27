@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: note tooltips say "double-click to edit" (27 Oct 2026, MONTH-TEXT-STYLE-PLAN step 1)
+
+The first piece of styling month-view text from the text style bar. Ruling R1 makes a click on a month note pick it
+for the bar, and a double-click open it, so the notes' tooltips now say "double-click to edit". ⚠️ Until step 4 lands
+on the same branch a click still opens a note; this step does not ship on its own.
+
+- A frozen edit to `renderMonthView` (M2), signed off by the owner with the plan's gate: the two tooltip strings, and
+  nothing else.
+- **Gate 10 re-cut, all eleven cases** (tests/baselines/2026-09-22-monthprint/README.md): reading the new tooltip as
+  the old one gives back every old document byte for byte; element counts, fit tables and sheet counts are unchanged.
+  Gate 13 (the written month PDF) cannot move: the writer reads no tooltip.
+
 ### Unreleased — Month view: dragging a hiatus band keeps its waterfall text style (27 Oct 2026)
 
 Found while planning MONTH-TEXT-STYLE-PLAN.md (§7), from the code, then reproduced before the fix.
