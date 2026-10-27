@@ -4,6 +4,76 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF, no code ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md))
+
+- ✅ **Ruled by picker, 27 Oct 2026** (plan §2, §6):
+  - **N1, in the owner's own words: *"maybe disable recoloring phase bar text"*.** Read as: no text colour on any bar
+    drawn as a pill (phase, episode, Simultaneous Post), since all three ring themselves in their text colour. Bands,
+    notes, the month name and the weekday row keep colour. The bar's colour control greys while only bars are picked,
+    and the sanitizer drops a bar's colour. So M1 writes no ring and the writer reads no `border-color`. "maybe" = the
+    owner may revisit it; the format would not change.
+  - **N2: "Follows Prep wk 2 (Recommended)".** **N3: "Keeps its own look (Recommended)".**
+  - **Sign-off: "Yes, M1 and M2 as planned (Recommended)"**, with plan §6's gate (gate 10 re-cut for M2's tooltips only,
+    then 10 and 13 byte-identical unstyled; 0 clipped glyphs, rows and PDF scale unchanged on a styled fixture; the
+    waterfall's exports untouched).
+- **Next:** build from plan §9, step 0 (the hiatus drag carrying `textStyle.hiatus`) first. Not started.
+
+- **The plan is written** (owner: *"Write MONTH-TEXT-STYLE-PLAN.md from the four rulings, with the frozen edit and its
+  gate spelled out for sign-off"*, adding *"actually no dont let the day number be editable"*, which confirms R4).
+  Uncommitted. It supersedes the scoping bullets below where they differ:
+  - **Store:** a separate key, `mvTextStyles`, NOT new kinds in `textStyles` (R2: the waterfall's code iterates
+    `TEXT_STYLE_KINDS`). Phase bars are keyed `<phase>@<its week number>`, so a style follows "Prep wk 2" through
+    every mover with no re-key code (N2). Episodes by id; bands by the `hiatusTexts` keys; a month note's style is `fmt`
+    on its own `dayNotes` entry.
+  - **Every style keeps its text's line box**, so only a note's line count can move (a bold note may take one more line).
+  - ⚠️ **TWO frozen edits, not one.** M1 (styles appended, inert unstyled) and **M2: the notes' tooltips** "click to
+    edit" -> "double-click to edit", which R1 makes necessary. Gate 10's baselines hold those `title` attributes
+    (checked: 4–17 per case), so M2 needs gate 10 re-cut, with a diff showing only titles changed.
+  - N1–N3 were open here; ruled the same day (above).
+- ⚠️ **Found while planning, a bug in shipped code (read from the code, not reproduced):** the month view's hiatus drag
+  (`installHiatusDrag` `rekey()`/`setMaps()`) carries a band's text, name sync, colour and font size, but NOT
+  `textStyle.hiatus`. So a band styled from the bar in the waterfall and then dragged in the month leaves its style
+  behind. `shiftCalendar` does carry it. It is a one-map fix, not frozen code. Plan step 0.
+
+- **Asked** (owner): *"What would it take to allow styling any text in the month view calendar with the styling
+  menu"*. Tracker card `month-text-style`, requested. It covers the bold/colour half of `note-styles`, and its size
+  question overlaps `month-bar-size` (the entry below).
+- **Today:** in the month view the bar styles the month header lines only (TEXT-STYLE-BAR-PLAN D4). `renderMonthView`
+  never calls `textStyleOf()`. The month PDF writer reads only `background` and `color` from a bar's inline style
+  (`mvlParseItem`) and draws every bar at `MVL_PAINT.bar` (10 px 600) and every note at 500. A single click on a
+  month note opens its editor, and press-and-move drags it.
+- **What it would take** (the waterfall bar's shape, one writer fewer: the month has no Excel):
+  - A highlight in the month view (bars and notes are elements, so it can outline their rects), plus D5's rule there:
+    click picks, double-click edits a note. That changes a month habit, so it needs a ruling.
+  - Store: new kinds in `textStyles`. Keys: date (day numbers), `week|phase` (pills, bands), episode id, week (Sim Post,
+    all-phase band). A month note's style goes on its own `dayNotes` entry, so it travels with drag, shift and paste.
+    ⚠️ Older builds: `cleanTextStyles` drops unknown kinds (bad.n, console warning only, `lastSanitizeDropped` is not
+    shown), and the `dayNotes` sanitizer copies unknown entry fields through (`Object.assign`). So no `SNAPSHOT_VERSION` bump.
+  - Frozen edit to `renderMonthView`: append each text's style to its inline style (F1's shape). With no style it is
+    inert, so gates 10 and 13 stay byte-identical, and the print rollback (`exportMonthPdf`) follows because it prints
+    that DOM. "Day N" is a `::after` and cannot take an inline style: it would need a frozen CSS edit (custom properties).
+  - The writer (not frozen; gate 13 byte for byte): weight, italic, colour and alignment per item. Inter 400/500/600/700
+    are all embedded already; the italic slant exists (`MVL_PAINT.italicSkew`, used by `mvlLineStyle` for header lines).
+  - Note measurement: `mvNoteLineCount` (screen, 10 px 500) and `mvlNoteLines` (writer) must measure in the note's own
+    style, or a bold note loses its last line (the waterfall's F4 problem).
+- **Size is the hard part again.** Screen lanes are a fixed 17 px. A 10 px note line (13 px) exactly fills a lane's
+  padding box, so bigger note text needs more lanes (rows grow, and dense months shrink in the PDF). Bar text has room up
+  to about 12 px with a capped line-height, by arithmetic: not measured.
+- ✅ **RULED, owner's picker, 27 Oct 2026** (every recommendation taken, except that day numbers are out):
+  - Click: **"Click picks, double-click edits (Recommended)"**. D5's rule in the month view: a click picks a note,
+    and a double-click, Enter or typing opens its editor. Dragging a note still moves it.
+  - Shared?: **"Separate per view (Recommended)"**. Month styles never touch the waterfall's and the reverse, including a
+    waterfall note shown in the month. So the month gets its own kinds, never `textStyle.note` / `.phase`.
+  - Size: **"Only sizes that fit (Recommended)"**. Bars up to about 12 px, notes 10 px or smaller. The calendar never
+    changes shape and month PDFs print at the same scale. Bigger text stays with `month-bar-size`.
+  - Which text: **"Bars and bands", "Notes", "Month name and weekday row"**. **Day numbers were NOT picked**, so they
+    are out. That also takes "Day N" out, and with it the frozen CSS edit it needed.
+- **What follows from the rulings (this session's reading, not a ruling):** the month name and the weekday row take ONE
+  style each for the whole calendar (they repeat on every page). Under "only sizes that fit" they offer their current
+  size or smaller (17 px, 11 px): they set the height of the band above the weeks, and the PDF divides what is left
+  between the weeks (`mvlFrame`). Both 12 px caps are arithmetic and must be measured before the size lists are fixed.
+- Rough size: L, 2–3 sessions (plan §9).
+
 ### 📝 27 Oct 2026 (latest): EXPORT THE MONTH VIEW AS AN .ics FILE — PLANNED, R1/R2/R4 RULED, R3/R5/R6 OPEN, no code ([`ICS-EXPORT-PLAN.md`](ICS-EXPORT-PLAN.md))
 
 - **Asked** (owner): *"what would it take to be able to export a month view calendar into other calendar formats"*,
