@@ -34,7 +34,8 @@
 //   N3  the waterfall line dragged to the top: Save writes mvWfNotePlace {"Casting begins": {top: true}}
 //   N4  ⭐ a place follows its note (D3): June's "Start Principal Photography" dragged on top, then Production's bar
 //       dragged a day later: the note reads 6/30/26, sits on Tue 6/30, and is still the top lane there
-//   N5  a press on a note that does not move opens its editor, as it always did
+//   N5  a press on a note that does not move PICKS it (MONTH-TEXT-STYLE-PLAN.md R1, 27 Oct 2026: it opened the editor
+//       until then), and is no drag; a double-click opens the editor
 //   N6  editing a note that is on top keeps it on top
 //   N7  Escape mid note-drag: the day as it was
 // The moving copy on the timing drags (owner's second message; R3):
@@ -332,14 +333,29 @@ try {
   kase('N4', 'a place follows its note: "Start Principal Photography" on top, then Production dragged a day: it reads 6/30/26 on Tue 6/30 and is still the top lane',
     d4a[0] === 'note:Start Principal Photography 6/29/26@0' && start4 === '2026-06-30' && d4b[0] === 'note:Start Principal Photography 6/30/26@0',
     { before: d4a, start: start4, after: d4b });
-  // N5: a press that does not move.
+  // N5: a press that does not move. Since R1 (MONTH-TEXT-STYLE-PLAN.md, 27 Oct 2026) it picks the note for the text
+  // style bar, and a double-click (Chrome's own: two presses, the second with clickCount 2) opens it.
+  const editorOpen = `Array.from(document.querySelectorAll('.mv-note-pop')).some(p => p.offsetParent !== null && !!p.querySelector('textarea'))`;
+  const dblPress = async (x, y) => {
+    await mouse('mouseMoved', x, y, 0);
+    await mouse('mousePressed', x, y, 1); await sleep(40);
+    await mouse('mouseReleased', x, y, 0); await sleep(40);
+    await mouse('mousePressed', x, y, 1, { clickCount: 2 }); await sleep(40);
+    await mouse('mouseReleased', x, y, 0, { clickCount: 2 }); await sleep(500);
+  };
   await load('mvorder', 'March 2026');
+  const before5 = (await dayOrder(2, 3)).map(b => b.k);
   n = await box(NOTE('2026-03-18', 'day', 0));
   await mouse('mouseMoved', n.x, n.y, 0);
   await mouse('mousePressed', n.x, n.y, 1); await sleep(60);
   await mouse('mouseReleased', n.x, n.y, 0); await sleep(500);
-  const open5 = await ev(`Array.from(document.querySelectorAll('.mv-note-pop')).some(p => p.offsetParent !== null && !!p.querySelector('textarea'))`);
-  kase('N5', 'a press on a note that does not move opens its editor', open5 === true);
+  const pick5 = { editor: await ev(editorOpen), boxes: await ev(`document.querySelectorAll('.month-sel-box').length`),
+                  same: JSON.stringify((await dayOrder(2, 3)).map(b => b.k)) === JSON.stringify(before5), ghosts: (await chrome0()).ghosts };
+  await key('Escape', 'Escape', 27); await sleep(300);
+  await dblPress(n.x, n.y);
+  const open5 = await ev(editorOpen);
+  kase('N5', 'a press on a note that does not move picks it (R1) and is no drag; a double-click opens its editor',
+    pick5.editor === false && pick5.boxes > 0 && pick5.same && pick5.ghosts === 0 && open5 === true, { pick: pick5, dblclickOpens: open5 });
   await key('Escape', 'Escape', 27); await sleep(300);
   // N6: edit a note that is on top.
   await load('mvorder-notes', 'March 2026');
@@ -347,9 +363,7 @@ try {
   // ⚠️ Without E2 the note on top is not drawn at all (the 21 Oct mutant): a missing note is a red case, not a crash.
   if (!n) kase('N6', 'editing a note that is on top keeps it on top', false, { missing: 'the note on top is not drawn' });
   else {
-    await mouse('mouseMoved', n.x, n.y, 0);
-    await mouse('mousePressed', n.x, n.y, 1); await sleep(60);
-    await mouse('mouseReleased', n.x, n.y, 0); await sleep(500);
+    await dblPress(n.x, n.y);                       // R1: a double-click opens a month note
     await ev(`(() => { const t = Array.from(document.querySelectorAll('.mv-note-pop textarea')).find(x => x.offsetParent !== null); t.focus(); t.select(); return true; })()`);
     await send('Input.insertText', { text: 'Table read moved' });
     await key('Tab', 'Tab', 9); await sleep(600);

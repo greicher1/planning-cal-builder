@@ -29212,20 +29212,22 @@ export function initLegacyApp() {
   // W3 (MONTH-TEXT-STYLE-PLAN.md §5): a styled note or wrapping pill is measured in its OWN weight and size, so a bold
   // note that needs one more line gets it, as on screen (mvNoteLineCount), instead of losing its last one. `fonts` is
   // the four programs; without them (a caller passing none) every text measures at its kind's own type, as before.
-  function mvlStyledWidthOf(fonts, it, weight){
+  // `paint` names the kind's entry in MVL_PAINT ('note' or 'bar'), read only once a style needs it: MVL_PAINT is the
+  // emitter's, declared after the model, so the model alone (monthlayout's slice) never reaches it.
+  function mvlStyledWidthOf(fonts, it, paint){
     if(!fonts || !it.fmt || !(it.fmt.size || it.fmt.weight)) return null;
-    const wt = it.fmt.weight || weight, sz = it.fmt.size || MVL_GEOMETRY.noteFontPx;
+    const wt = it.fmt.weight || MVL_PAINT[paint].weight, sz = it.fmt.size || MVL_GEOMETRY.noteFontPx;
     return function(s){ return mvlTextWidth(fonts[wt].font, s, sz); };
   }
   function mvlMonthLayout(html, widthOf, pillWidthOf, fonts){
     const m = mvlParseMonth(html);
     m.weeks.forEach(function(w){
       w.items.forEach(function(it){
-        it.lines = it.kind === 'note' ? mvlNoteLines(it.text, mvlStyledWidthOf(fonts, it, MVL_PAINT.note.weight) || widthOf) : null;
+        it.lines = it.kind === 'note' ? mvlNoteLines(it.text, mvlStyledWidthOf(fonts, it, 'note') || widthOf) : null;
         // A wrapping pill carries its lines as a note does (`lines`), and only when it needs two or more.
         // Without the bar's font (a caller passing none) it keeps the renderer's own lanes and one cut line.
         if(pillWidthOf && mvlWrapsPill(it)){
-          const pl = mvlPillLines(it.text, mvlStyledWidthOf(fonts, it, MVL_PAINT.bar.weight) || pillWidthOf);
+          const pl = mvlPillLines(it.text, mvlStyledWidthOf(fonts, it, 'bar') || pillWidthOf);
           if(pl.length > 1) it.lines = pl;
         }
       });
