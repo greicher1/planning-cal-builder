@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Month View Redesign</title>
+<!-- MOCKUP, not the app. Five looks for the month view and five places for fixed month buttons, asked for by
+     the owner on 27 Oct 2026. The calendar is synthetic. "Today's look" copies the month view's real rules from
+     src/styles/legacy.css; each option is that same markup with a theme laid over it, so every option can be
+     judged as a CSS change to what renderMonthView already emits. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F3; --panel:#fff; --border:#E3E1DA; --border-strong:#CDCABF;
+  --text:#1E1D1B; --text-muted:#726F68; --text-faint:#6E6A62; --accent:#2C3E50;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--text); background:#ECEBE6; line-height:1.5; }
+button{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1260px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--text-muted); font-size:13.5px; max-width:900px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 14px; }
+.tab{ border:1px solid var(--border-strong); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--text); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--bg);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.info{ display:grid; grid-template-columns:1.15fr 1fr 1fr 1fr; gap:16px; background:#fff; border:1px solid var(--border);
+       border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+.info h2{ font-size:17px; margin:0 0 2px; }
+.info .tag{ color:var(--text-muted); font-size:13px; margin:0; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin:0 0 4px; }
+.info p{ font-size:13px; margin:0; }
+.badge{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; margin-top:8px; }
+.badge.ok{ background:#E2F0D9; color:#375623; }
+.badge.warn{ background:#FBE5D6; color:#8A4A1F; }
+.badge.ref{ background:var(--bg); color:var(--text-muted); }
+@media (max-width:860px){ .info{ grid-template-columns:1fr; } }
+
+/* ---------- A stand-in for the app's preview panel ---------- */
+.frame{ background:var(--bg); border:1px solid var(--border-strong); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.chrome{ padding:10px 14px 0; display:flex; flex-direction:column; gap:8px; }
+.tb{ display:flex; align-items:center; gap:8px; min-width:1080px; }
+.tb .spacer{ flex:1; }
+.btn{ height:28px; display:inline-flex; align-items:center; gap:5px; padding:0 10px; border:1px solid var(--border-strong);
+      background:#fff; border-radius:7px; font-size:12px; font-weight:500; color:var(--text); white-space:nowrap; cursor:pointer; }
+.btn.quiet{ color:var(--text-faint); }
+.seg{ display:inline-flex; border:1px solid var(--border-strong); border-radius:7px; background:#fff; overflow:hidden; height:28px; }
+.seg > *{ border:0; border-left:1px solid var(--border-strong); background:transparent; font-size:12px; font-weight:500;
+          padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.seg > *:first-child{ border-left:0; }
+.seg > button:hover, .btn:hover{ background:var(--bg); }
+.viewtog{ display:inline-flex; background:#E9E7E1; border-radius:8px; padding:2px; height:32px; }
+.viewtog span{ display:inline-flex; align-items:center; gap:6px; padding:0 12px; font-size:12.5px; font-weight:500;
+               border-radius:6px; color:var(--text-muted); }
+.viewtog span.on{ background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+.tsb{ display:flex; align-items:center; gap:8px; height:30px; padding:0 10px; background:#fff; border:1px solid var(--border);
+      border-radius:8px; font-size:11px; color:var(--text-faint); min-width:1080px; }
+.tsb b{ font-size:10px; letter-spacing:.06em; }
+.tsbrow{ display:flex; align-items:center; gap:10px; min-width:1080px; }
+.tsbrow .tsb{ flex:1; min-width:0; }
+.tsb .ctl{ border:1px solid var(--border); border-radius:5px; padding:0 6px; color:#B8B4AA; }
+.tw{ padding:10px 14px 14px; height:620px; overflow:auto; }
+.foot{ display:flex; justify-content:space-between; align-items:center; padding:6px 14px 8px; font-size:12px; color:var(--text-muted); }
+.zoomctl{ display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:999px; padding:3px 10px; }
+.zoomctl i{ display:block; width:80px; height:3px; border-radius:2px; background:linear-gradient(90deg,var(--accent) 50%,#D9D6CD 50%); }
+.here{ outline:2px dashed #E07A1F; outline-offset:3px; border-radius:9px; }
+.here-note{ font-size:11px; font-weight:700; color:#B4580E; white-space:nowrap; }
+
+/* ---------- Today's month view: the real rules (legacy.css, "Month view") ---------- */
+.month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; min-width:960px; }
+.mv-header{ margin-bottom:14px; }
+.mv-titlebar{ display:flex; align-items:baseline; gap:12px; }
+.hdr-line{ padding:0 3px; min-height:14px; border-radius:4px; }
+.mv-tleft{ flex:0 0 auto; min-width:84px; white-space:nowrap; font-size:20px; font-weight:700; }
+.mv-title{ flex:1; text-align:center; font-size:22px; font-weight:700; }
+.mv-today{ font-size:20px; font-weight:700; color:#000; white-space:nowrap; }
+.mv-arrow{ font-family:inherit; font-size:13px; line-height:1; cursor:pointer; border:1px solid var(--border-strong);
+           background:#fff; color:var(--text-muted); border-radius:6px; padding:6px 10px; }
+.mv-monthbar{ display:flex; align-items:center; justify-content:center; gap:16px; background:#EDEDED;
+              border:1px solid #000; border-bottom:none; padding:7px 10px; }
+.mv-monthyear{ font-size:17px; font-weight:700; letter-spacing:.01em; }
+.mv-dowrow{ display:grid; grid-template-columns:repeat(7,1fr); background:#F7F7F7; border:1px solid #000; border-bottom:none; }
+.mv-dow{ text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:6px 0; text-transform:uppercase; letter-spacing:.04em; }
+.mv-body{ border:1px solid #000; border-top:none; }
+.mv-week{ position:relative; border-top:1px solid #000; }
+.mv-week:first-child{ border-top:none; }
+.mv-daygrid{ position:absolute; inset:0; display:grid; grid-template-columns:repeat(7,1fr); }
+.mv-daycell{ border-left:1px solid #000; padding:3px 5px; }
+.mv-daycell:first-child{ border-left:none; }
+.mv-daynum{ font-size:11px; font-weight:600; color:#333; }
+.mv-out{ background:#FAFAF9; }
+.mv-out .mv-daynum{ opacity:.35; }
+.mv-weekend{ background:#F4F3F0; }
+.mv-bars{ position:relative; z-index:1; display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(4,17px);
+          gap:2px 0; padding:24px 3px 14px; }
+.mv-bar{ font-size:10px; font-weight:600; line-height:1.5; padding:1px 8px; margin:0 1px; white-space:nowrap; overflow:hidden;
+         text-overflow:ellipsis; border:1px solid rgba(0,0,0,.18); }
+.mv-pill{ border-radius:9px; border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor; }
+.mv-pill-block{ font-size:9px; font-weight:500; color:#5C6470; margin-left:7px; vertical-align:top; }
+.mv-note-block{ border-radius:0; font-weight:500; white-space:pre-wrap; overflow:hidden; text-overflow:clip; line-height:1.3;
+                padding:2px 4px; word-break:break-word; }
+
+/* ---------- Option 1: Soft Lines ---------- */
+[data-theme="o1"] .month-view{ border-color:var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 2px rgba(30,29,27,.05); }
+[data-theme="o1"] .mv-arrow{ display:none; }
+[data-theme="o1"] .mv-monthbar{ background:var(--bg); border-color:#DCD9D0; border-radius:10px 10px 0 0; padding:8px 10px; }
+[data-theme="o1"] .mv-monthyear{ font-size:16px; font-weight:600; }
+[data-theme="o1"] .mv-dowrow{ background:#fff; border-color:#DCD9D0; }
+[data-theme="o1"] .mv-dow{ color:#8A867D; font-weight:600; font-size:10.5px; letter-spacing:.08em; }
+[data-theme="o1"] .mv-body{ border-color:#DCD9D0; border-radius:0 0 10px 10px; overflow:hidden; }
+[data-theme="o1"] .mv-week{ border-top-color:#DCD9D0; }
+[data-theme="o1"] .mv-daycell{ border-left-color:#E6E4DE; }
+[data-theme="o1"] .mv-daynum{ color:#5E5B54; }
+[data-theme="o1"] .mv-weekend{ background:#FAF9F6; }
+[data-theme="o1"] .mv-out{ background:#fff; }
+
+/* ---------- Option 2: Clean Sheet ---------- */
+[data-theme="o2"] .month-view{ border:none; border-radius:14px; padding:18px 0 0; overflow:hidden;
+                               box-shadow:0 1px 3px rgba(30,29,27,.08),0 0 0 1px rgba(30,29,27,.05); }
+[data-theme="o2"] .mv-header{ padding:0 18px; }
+[data-theme="o2"] .mv-monthbar{ display:none; }
+[data-theme="o2"] .mv-dowrow{ background:#fff; border:none; border-bottom:1px solid #E6E4DE; }
+[data-theme="o2"] .mv-dow{ font-size:10.5px; font-weight:600; color:#8A867D; letter-spacing:.08em; padding:8px 0; }
+[data-theme="o2"] .mv-body{ border:none; }
+[data-theme="o2"] .mv-week{ border-top-color:#E6E4DE; }
+[data-theme="o2"] .mv-daycell{ border-left-color:#E6E4DE; text-align:center; padding:2px 0; }
+[data-theme="o2"] .mv-daynum{ display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 4px; border-radius:10px;
+                              font-size:11.5px; font-weight:500; color:#3D3B36; }
+[data-theme="o2"] .is-today .mv-daynum{ background:var(--accent); color:#fff; font-weight:700; }
+[data-theme="o2"] .mv-weekend{ background:#FBFAF8; }
+[data-theme="o2"] .mv-out{ background:#fff; }
+[data-theme="o2"] .mv-out .mv-daynum{ opacity:1; color:#B5B1A8; }
+.navrow{ display:flex; align-items:center; gap:10px; padding:2px 6px 0; }
+.navrow .big{ font-size:22px; font-weight:700; letter-spacing:-.01em; }
+.navrow .big span{ font-weight:400; color:var(--text-muted); }
+
+/* ---------- Option 3: Month Rail ---------- */
+[data-theme="o3"] .month-view{ border-color:var(--border); border-radius:12px; padding:20px; }
+[data-theme="o3"] .mv-arrow{ display:none; }
+[data-theme="o3"] .mv-monthbar{ background:none; border:none; justify-content:flex-start; padding:0 2px 10px; }
+[data-theme="o3"] .mv-monthyear{ font-size:20px; letter-spacing:-.01em; }
+[data-theme="o3"] .mv-dowrow{ background:var(--accent); border:none; border-radius:8px 8px 0 0; }
+[data-theme="o3"] .mv-dow{ color:#fff; font-weight:600; font-size:10.5px; letter-spacing:.1em; padding:7px 0; }
+[data-theme="o3"] .mv-body{ border-color:#D9D6CD; border-radius:0 0 8px 8px; overflow:hidden; }
+[data-theme="o3"] .mv-week{ border-top-color:#E3E1DA; }
+[data-theme="o3"] .mv-daycell{ border-left-color:#E3E1DA; }
+[data-theme="o3"] .mv-daynum{ color:#44413B; font-weight:700; }
+[data-theme="o3"] .mv-weekend{ background:#F7F6F3; }
+[data-theme="o3"] .mv-out{ background:#FCFBF9; }
+.rail{ display:flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:5px 6px; min-width:1080px; }
+.rail .chips{ display:flex; gap:2px; flex:1; align-items:center; }
+.chip{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:56px; padding:4px 8px 5px; border-radius:7px; border:0;
+       background:transparent; font-size:12px; font-weight:600; color:var(--text); cursor:pointer; }
+.chip:hover{ background:var(--bg); }
+.chip.on{ background:var(--accent); color:#fff; }
+.dots{ display:flex; gap:3px; height:7px; }
+.dots i{ width:7px; height:7px; border-radius:50%; }
+.yr{ font-size:10px; font-weight:700; color:var(--text-faint); letter-spacing:.06em; padding:0 6px; }
+.arrow{ width:28px; height:28px; flex:none; border:1px solid var(--border-strong); border-radius:7px; background:#fff; cursor:pointer;
+        font-size:12px; color:var(--text-muted); }
+
+/* ---------- Month Rail variations (3a-3d), shown on Option 1's look ---------- */
+.frame button:disabled{ opacity:.35; cursor:default; }
+.today-dot{ position:absolute; top:5px; right:6px; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.on > .today-dot{ background:#fff; }
+.y{ font-weight:500; opacity:.65; margin-left:2px; }
+/* 3a Timeline */
+.tl{ display:flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:5px 6px; min-width:1080px; }
+.tl-track{ position:relative; flex:1; display:flex; }
+.tlm{ flex:1; min-width:0; border:0; background:transparent; border-radius:7px; padding:3px 0 25px; font-size:11.5px; font-weight:600;
+      color:var(--text); cursor:pointer; position:relative; }
+.tlm:hover{ background:var(--bg); }
+.tlm.on{ background:#E8ECF1; color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+.tlm.on > .today-dot{ background:var(--accent); }
+.tlm.yr-start::before{ content:''; position:absolute; left:0; top:4px; bottom:4px; border-left:1px dashed var(--border-strong); }
+.tl-bars{ position:absolute; left:0; right:0; bottom:5px; height:19px; pointer-events:none; }
+.tl-bars i{ position:absolute; height:5px; border-radius:3px; }
+/* 3b Compact, on the style bar row */
+.mini{ display:inline-flex; align-items:center; gap:1px; background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:2px; height:30px; }
+.mini .m{ border:0; background:transparent; font-size:11.5px; font-weight:600; color:var(--text); padding:0 8px; height:24px; border-radius:6px;
+          cursor:pointer; position:relative; white-space:nowrap; }
+.mini .m:hover{ background:var(--bg); }
+.mini .m.on{ background:var(--accent); color:#fff; }
+.mini .m.is-now:not(.on)::after{ content:''; position:absolute; left:50%; bottom:1px; width:4px; height:4px; margin-left:-2px; border-radius:50%; background:var(--accent); }
+.mini .ar{ border:0; background:transparent; width:24px; height:24px; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:15px; }
+.mini .ar:hover:not(:disabled){ background:var(--bg); }
+/* 3c By year */
+.sg{ display:flex; align-items:flex-end; gap:6px; min-width:1080px; }
+.sg > .arrow{ height:42px; }
+.sg-years{ display:flex; flex:1; gap:8px; min-width:0; }
+.sg-year{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.sg-year > span{ font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--text-faint); padding-left:4px; }
+.sg-row{ display:flex; background:#fff; border:1px solid var(--border-strong); border-radius:8px; overflow:hidden; }
+.sg-row button{ flex:1; min-width:0; border:0; border-left:1px solid var(--border); background:transparent; padding:5px 0 6px; display:flex;
+                flex-direction:column; align-items:center; gap:4px; font-size:12px; font-weight:600; color:var(--text); cursor:pointer; position:relative; }
+.sg-row button:first-child{ border-left:0; }
+.sg-row button:hover{ background:var(--bg); }
+.sg-row button.on{ background:var(--accent); color:#fff; }
+/* 3d Phase map */
+.pm{ display:flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:6px; min-width:1080px; }
+.pm-body{ position:relative; flex:1; min-width:0; }
+.pm-bands{ position:relative; margin-bottom:4px; }
+.pm-line{ position:absolute; top:0; bottom:-26px; width:1px; background:#EFEDE8; }
+.pm-line.pm-yr{ background:var(--border-strong); }
+.pm-band{ position:absolute; height:16px; border-radius:8px; border:1px solid; font:inherit; font-size:10px; font-weight:600; line-height:14px;
+          padding:0 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; text-align:left; }
+.pm-band:hover{ filter:brightness(.95); }
+.pm-months{ display:flex; position:relative; }
+.pm-months button{ flex:1; min-width:0; border:0; background:transparent; font-size:11.5px; font-weight:600; padding:3px 0; border-radius:6px;
+                   cursor:pointer; color:var(--text); position:relative; }
+.pm-months button:hover{ background:var(--bg); }
+.pm-months button.on{ background:var(--accent); color:#fff; }
+.pm-sel{ position:absolute; top:-3px; bottom:-3px; background:rgba(44,62,80,.07); border-radius:6px; pointer-events:none; }
+
+/* ---------- Option 4: Navy Band ---------- */
+[data-theme="o4"] .month-view{ border:none; border-radius:14px; padding:22px; box-shadow:0 1px 2px rgba(30,29,27,.06),0 6px 20px rgba(30,29,27,.07); }
+[data-theme="o4"] .mv-arrow{ display:none; }
+[data-theme="o4"] .mv-monthbar{ background:var(--accent); border:none; border-radius:10px 10px 0 0; padding:9px 10px; }
+[data-theme="o4"] .mv-monthyear{ color:#fff; letter-spacing:.03em; }
+[data-theme="o4"] .mv-dowrow{ background:#fff; border-color:#D4D1C7; }
+[data-theme="o4"] .mv-dow{ font-size:10.5px; letter-spacing:.09em; color:#5E5B54; }
+[data-theme="o4"] .mv-body{ border-color:#D4D1C7; border-radius:0 0 10px 10px; overflow:hidden; }
+[data-theme="o4"] .mv-week{ border-top-color:#D4D1C7; }
+[data-theme="o4"] .mv-daycell{ border-left-color:#D4D1C7; }
+[data-theme="o4"] .mv-daynum{ color:#1E1D1B; font-weight:700; }
+[data-theme="o4"] .mv-weekend{ background:#F5F4F0; }
+[data-theme="o4"] .is-today{ box-shadow:inset 0 0 0 2px var(--accent); }
+[data-theme="o4"] .is-today .mv-daynum{ color:var(--accent); }
+.ddwrap{ position:relative; }
+.ddmenu{ position:absolute; right:0; top:34px; width:250px; max-height:400px; overflow:auto; background:#fff; border:1px solid var(--border-strong); border-radius:10px;
+         box-shadow:0 10px 30px rgba(0,0,0,.14); padding:6px; z-index:20; }
+.ddmenu[hidden]{ display:none; }
+.ddmenu .yr{ display:block; padding:6px 8px 2px; }
+.ddrow{ display:flex; align-items:center; justify-content:space-between; padding:5px 8px; border-radius:6px; font-size:12.5px; cursor:pointer; }
+.ddrow:hover{ background:var(--bg); }
+.ddrow.on{ background:#E8ECF1; font-weight:600; }
+
+/* ---------- Option 5: Tiles ---------- */
+[data-theme="o5"] .tw{ background:#EFEEEA; }
+[data-theme="o5"] .month-view{ background:transparent; border:none; padding:4px 2px; }
+[data-theme="o5"] .mv-monthbar{ display:none; }
+[data-theme="o5"] .mv-dowrow{ background:transparent; border:none; column-gap:6px; }
+[data-theme="o5"] .mv-dow{ font-size:10.5px; font-weight:600; color:#8A867D; letter-spacing:.08em; padding:4px 0 2px; }
+[data-theme="o5"] .mv-body{ border:none; }
+[data-theme="o5"] .mv-week{ border-top:none; margin-top:6px; }
+[data-theme="o5"] .mv-daygrid{ column-gap:6px; }
+[data-theme="o5"] .mv-bars{ column-gap:6px; padding:24px 0 14px; }
+[data-theme="o5"] .mv-bar{ margin:0 4px; }
+[data-theme="o5"] .mv-daycell{ background:#fff; border:none; border-radius:10px; padding:4px 8px; box-shadow:0 1px 2px rgba(30,29,27,.06); }
+[data-theme="o5"] .mv-weekend{ background:#F8F7F3; }
+[data-theme="o5"] .mv-out{ background:rgba(255,255,255,.45); box-shadow:none; }
+[data-theme="o5"] .is-today{ box-shadow:inset 0 0 0 2px var(--accent); }
+[data-theme="o5"] .is-today .mv-daynum{ color:var(--accent); font-weight:700; }
+.pillnav{ display:flex; justify-content:center; }
+.pillnav .inner{ display:inline-flex; align-items:center; gap:4px; background:#fff; border-radius:999px; padding:4px;
+                 box-shadow:0 2px 10px rgba(30,29,27,.10),0 0 0 1px rgba(30,29,27,.06); }
+.pillnav .lbl{ font-size:14px; font-weight:700; padding:0 12px; min-width:140px; text-align:center; }
+.round{ width:30px; height:30px; border-radius:50%; border:0; background:var(--bg); cursor:pointer; color:var(--text-muted); }
+.round:hover{ background:#E9E7E1; }
+.pillnav .today{ border:0; border-left:1px solid var(--border); background:none; font-size:12px; font-weight:600; color:var(--accent);
+                 padding:0 12px 0 10px; height:20px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="page-head">
+    <h1>Month view: five redesign options</h1>
+    <p>Same calendar in each option (made-up data). In all five the month buttons leave the calendar page and sit in a fixed spot above it, so they stay put when you scroll or zoom. The orange dashed outline shows where they went.</p>
+    <p>The month buttons respond to clicks in the mockup, but the calendar itself always shows October. Today is 27 Oct 2026.</p>
+    <p>Things all five keep: the phase bars' darker outline (your 21 Oct pick), every bar and note's size and wrapping (except Option 5, see its notes), the header lines, and the grey-out at the first and last month.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <section class="info" id="info"></section>
+  <div class="frame" id="frame">
+    <div class="chrome" id="chrome"></div>
+    <div class="tw" id="tw"></div>
+    <div class="foot"><span>+ Scenario</span><span class="zoomctl">− <i></i> + &nbsp;100%</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const PH = {
+    wr:{fill:'#FFF2CC', ink:'#7A6215', name:"Writer's Room"}, pp:{fill:'#DAE3F3', ink:'#203864', name:'Pre Prep'},
+    prp:{fill:'#D6DCE5', ink:'#222A35', name:'Prod Prep'}, prod:{fill:'#E2F0D9', ink:'#375623', name:'Production'},
+    sim:{fill:'#FFFF00', ink:'#5B5B00', name:'Sim Post'}, hia:{fill:'#FF0000', ink:'#8A0000', name:'Hiatus'},
+    post:{fill:'#FBE5D6', ink:'#8A4A1F', name:'Post'}, loc:{fill:'#EDEDED', ink:'#525252', name:'Localization'}
+  };
+  const pill = (p, from, to, lane, text, sub) => ({kind:'pill', from, to, lane, fill:PH[p].fill, ink:PH[p].ink, text, sub});
+  const note = (from, lane, lanes, fill, ink, text) => ({kind:'note', from, to:from, lane, lanes, fill, ink, text});
+  // October 2026, Sunday first. Columns 0-6 are Sun-Sat.
+  const WEEKS = [
+    {days:[27,28,29,30,1,2,3], out:[0,1,2,3], items:[
+      pill('prp',1,5,1,'Prod Prep Wk 7'),
+      note(4,2,1,'#EDEDED','#1E1D1B','Production Meeting')]},
+    {days:[4,5,6,7,8,9,10], items:[
+      pill('prod',1,5,1,'Shoot Ep. 101','Production Wk 1'),
+      note(1,2,2,'#7030A0','#FFFFFF','Start Principal Photography 10/5/26')]},
+    {days:[11,12,13,14,15,16,17], items:[
+      pill('prod',1,2,1,'Shoot Ep. 101','Production Wk 2'),
+      pill('prod',3,5,1,'Shoot Ep. 102','Production Wk 2'),
+      note(3,2,2,'#EDEDED','#1E1D1B','Network Table Read · Ep. 103')]},
+    {days:[18,19,20,21,22,23,24], items:[
+      pill('prod',1,5,1,'Shoot Ep. 102','Production Wk 3'),
+      pill('sim',1,5,2,'Sim Post Wk 1')]},
+    {days:[25,26,27,28,29,30,31], today:2, items:[
+      pill('prod',1,1,1,'Shoot Ep. 102','Production Wk 4'),
+      pill('prod',2,5,1,'Shoot Ep. 103','Production Wk 4'),
+      pill('sim',1,5,2,'Sim Post Wk 2'),
+      note(5,3,1,'#FBE5D6','#1E1D1B','Studio Notes')]}
+  ];
+  // The calendar's span, phase by phase (synthetic), from which every rail is drawn.
+  const SPANS = [
+    ['wr','2026-04-06','2026-07-03'], ['pp','2026-07-06','2026-08-14'], ['prp','2026-08-17','2026-10-02'],
+    ['prod','2026-10-05','2027-02-26'], ['sim','2026-10-19','2027-03-26'], ['hia','2026-12-21','2027-01-01'],
+    ['post','2027-03-01','2027-06-25'], ['loc','2027-05-03','2027-07-30']
+  ];
+  const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONFULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const ms = iso => Date.UTC(+iso.slice(0,4), +iso.slice(5,7) - 1, +iso.slice(8,10));
+  const MONTHS = [];
+  for(let y = 2026, m = 3; y < 2027 || m <= 6; m++){
+    if(m > 11){ m = 0; y++; }
+    const a = Date.UTC(y, m, 1), b = Date.UTC(y, m + 1, 1) - 1;
+    MONTHS.push({ y, mi:m, m:MON3[m], full:MONFULL[m], ph:SPANS.filter(([, s, e]) => ms(s) <= b && ms(e) >= a).map(x => x[0]) });
+  }
+  const N = MONTHS.length;
+  const TODAY_IDX = MONTHS.findIndex(x => x.y === 2026 && x.mi === 9);
+  let SEL = TODAY_IDX;
+  // A date's place along the rail, in months: its month's index plus how far through that month it falls.
+  const pos = (iso, end) => {
+    const y = +iso.slice(0,4), m = +iso.slice(5,7) - 1, d = +iso.slice(8,10);
+    const i = MONTHS.findIndex(x => x.y === y && x.mi === m);
+    const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    return i + (end ? d : d - 1) / dim;
+  };
+  // Phases that do not overlap share a track, as the waterfall shares columns.
+  const tracks = [];
+  const BANDS = SPANS.map(([k, s, e]) => {
+    const a = pos(s, false), b = pos(e, true);
+    let t = tracks.findIndex(endAt => endAt <= a);
+    if(t < 0){ t = tracks.length; tracks.push(0); }
+    tracks[t] = b;
+    return { k, a, b, t, startIdx: Math.floor(a) };
+  });
+  const NTRACKS = tracks.length;
+  const lbl = () => `${MONTHS[SEL].full} ${MONTHS[SEL].y}`;
+  const shortLbl = (x, i) => (x.mi === 0 || i === 0) ? `${x.m}<span class="y">’${String(x.y).slice(2)}</span>` : x.m;
+  const prevBtn = cls => `<button class="${cls}" data-step="-1" aria-label="Previous month"${SEL === 0 ? ' disabled' : ''}>&#8249;</button>`;
+  const nextBtn = cls => `<button class="${cls}" data-step="1" aria-label="Next month"${SEL === N - 1 ? ' disabled' : ''}>&#8250;</button>`;
+  const segNav = () => `<span class="seg">${prevBtn('')}<span style="font-weight:600;min-width:120px;justify-content:center">${lbl()}</span>${nextBtn('')}</span>`;
+  const nowDot = i => i === TODAY_IDX ? '<span class="today-dot" title="This month"></span>' : '';
+  const dots = keys => `<span class="dots">${keys.map(k => `<i style="background:${PH[k].fill};box-shadow:inset 0 0 0 1.5px ${PH[k].ink}" title="${esc(PH[k].name)}"></i>`).join('')}</span>`;
+  const bandStyle = b => `left:${b.a / N * 100}%;width:${(b.b - b.a) / N * 100}%;background:${PH[b.k].fill};`;
+
+  function weekHtml(w){
+    const cells = w.days.map((d, i) => {
+      const cls = ['mv-daycell'];
+      if(i === 0 || i === 6) cls.push('mv-weekend');
+      if(w.out && w.out.includes(i)) cls.push('mv-out');
+      if(w.today === i) cls.push('is-today');
+      return `<div class="${cls.join(' ')}"><span class="mv-daynum">${d}</span></div>`;
+    }).join('');
+    const bars = w.items.map(it => {
+      const st = `grid-column:${it.from + 1}/${it.to + 2};grid-row:${it.lane}/span ${it.lanes || 1};background:${it.fill};color:${it.ink}`;
+      if(it.kind === 'pill') return `<div class="mv-bar mv-pill" style="${st}">${esc(it.text)}${it.sub ? `<span class="mv-pill-block">${esc(it.sub)}</span>` : ''}</div>`;
+      return `<div class="mv-bar mv-note-block" style="${st}">${esc(it.text)}</div>`;
+    }).join('');
+    return `<div class="mv-week"><div class="mv-daygrid">${cells}</div><div class="mv-bars">${bars}</div></div>`;
+  }
+  function monthView(){
+    return `<div class="month-view">
+      <div class="mv-header"><div class="mv-titlebar">
+        <div class="hdr-line mv-tleft"></div>
+        <div class="hdr-line mv-title">Sample Show S2 Full Prelim Production Calendar</div>
+        <div class="hdr-line mv-today">10.27.26</div></div></div>
+      <div class="mv-monthbar"><button class="mv-arrow" type="button" aria-label="Previous month">&#9664;</button>
+        <div class="mv-monthyear">October 2026</div>
+        <button class="mv-arrow" type="button" aria-label="Next month">&#9654;</button></div>
+      <div class="mv-dowrow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="mv-dow">${d}</div>`).join('')}</div>
+      <div class="mv-body">${WEEKS.map(weekHtml).join('')}</div>
+    </div>`;
+  }
+
+  const VIEWTOG = `<span class="viewtog"><span>&#9636; Waterfall</span><span class="on">&#9638; Month</span></span>`;
+  const SHIFT = `<span class="seg"><button>&larr; 1 wk</button><button>Shift All &#9662;</button><button>1 wk &rarr;</button></span>
+    <button class="btn">Shift From &#9662;</button><button class="btn">Anchor To &#9662;</button><button class="btn">Rebuild From &#9662;</button>`;
+  const RIGHT = `<button class="btn">Header: Auto &#9662;</button><span class="seg"><button class="quiet">&#8630;</button><button class="quiet">&#8631;</button></span>`;
+  const TSB = `<div class="tsb"><b>TEXT</b><span class="ctl">Size &#9662;</span><span class="ctl">B</span><span class="ctl">I</span><span class="ctl">A</span><span class="ctl">&#8801;</span>Highlight any text in the calendar to style it</div>`;
+  const here = (html, label) => `<span class="here" title="${esc(label)}">${html}</span>`;
+
+  function phaseMap(){
+    const lines = MONTHS.map((x, i) => i === 0 ? '' : `<span class="pm-line${x.mi === 0 ? ' pm-yr' : ''}" style="left:${i / N * 100}%"></span>`).join('');
+    const bands = BANDS.map(b => {
+      const wide = (b.b - b.a) >= .8;
+      return `<button class="pm-band" data-mi="${b.startIdx}" style="${bandStyle(b)}top:${b.t * 19}px;border-color:${PH[b.k].ink};color:${PH[b.k].ink}" title="${esc(PH[b.k].name)}: jump to its first month">${wide ? esc(PH[b.k].name) : ''}</button>`;
+    }).join('');
+    const months = MONTHS.map((x, i) => `<button class="${i === SEL ? 'on' : ''}" data-mi="${i}">${shortLbl(x, i)}${nowDot(i)}</button>`).join('');
+    return here(`<div class="pm">${prevBtn('arrow')}<div class="pm-body"><span class="pm-sel" style="left:${SEL / N * 100}%;width:${100 / N}%"></span><div class="pm-bands" style="height:${NTRACKS * 19}px">${lines}${bands}</div><div class="pm-months">${months}</div></div>${nextBtn('arrow')}</div>`, 'Month buttons');
+  }
+  const RAIL_LOOK = "Shown on Option 1's Soft Lines look, your pick so far. Any rail works with any of the looks.";
+  const OPTIONS = [
+    { id:'cur', n:'0', name:"Today's look", tag:'For comparison: what the month view looks like now.',
+      look:'Black grid lines, grey month band, grey day-name row.',
+      nav:'Arrows sit on the calendar page, either side of the month name, so they scroll and zoom with it.',
+      cost:'', badge:['ref','Reference'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}` },
+    { id:'o1', n:'1', name:'Soft Lines', tag:"Today's calendar, with the heavy black lines softened.",
+      look:'Black lines become light warm grey. The month band stays, as a soft grey bar with rounded corners. Day names lose their grey fill.',
+      nav:'‹ October 2026 › sits in the toolbar, right after the Waterfall | Month switch. It only shows in the month view.',
+      cost:'The smallest change. Only colours and lines move: no cell, bar or note changes size.', badge:['ok','Colours and lines only'],
+      chrome: () => `<div class="tb">${VIEWTOG}${here(segNav(), 'Month buttons')}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}` },
+    { id:'o1b', n:'1b', theme:'o1', name:'Soft Lines, buttons on the style bar', tag:'Option 1, with the month buttons moved to the right end of the text style bar\'s row.',
+      look:'As Option 1: light warm grey lines, a soft rounded month band, day names without the grey fill.',
+      nav:'‹ October 2026 › on the right, on the same row as the text style bar, which gives up the width. The toolbar above is left exactly as it is today. Only shows in the month view.',
+      cost:'As Option 1: colours and lines only. No cell, bar or note changes size.', badge:['ok','Colours and lines only'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>
+        <div class="tsbrow">${TSB}${here(segNav(), 'Month buttons')}</div>` },
+    { id:'o2', n:'2', name:'Clean Sheet', tag:'Closest to Google Calendar: light, open, edge to edge.',
+      look:"White card with no outer frame. Very light grid lines. Day numbers centred, with today's date circled in navy. The month name moves out of the page into its own fixed row.",
+      nav:'A fixed row above the calendar: big month name on the left, Today and ‹ › on the right. (Today jumps to this month; optional.)',
+      cost:'Colours and lines only. The month name leaves the page on screen; the month PDF still prints it.', badge:['ok','Colours and lines only'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}
+        ${here(`<div class="navrow"><span class="big">${MONTHS[SEL].full} <span>${MONTHS[SEL].y}</span></span><span style="flex:1"></span><button class="btn" data-mi="${TODAY_IDX}">Today</button><span class="seg">${prevBtn('')}${nextBtn('')}</span></div>`, 'Month buttons')}` },
+    { id:'o3', n:'3', name:'Month Rail', tag:'Jump straight to any month in the calendar.',
+      look:'Navy day-name strip, light grey lines, and the month name as a plain heading above the grid.',
+      nav:'A fixed strip of every month in the calendar. Dots under each month show which phases fall in it. Click a month to jump there; ‹ › step one at a time.',
+      cost:'Colours and lines only. The strip is new: it reads the calendar\'s month range, which the app already works out.', badge:['ok','Colours and lines only'],
+      chrome: () => {
+        let last = null;
+        const chips = MONTHS.map((x, i) => {
+          const yr = (x.y !== last && last !== null) ? `<span class="yr">${x.y}</span>` : '';
+          last = x.y;
+          return `${yr}<button class="chip${i === SEL ? ' on' : ''}" data-mi="${i}">${x.m}${dots(x.ph)}</button>`;
+        }).join('');
+        return `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}
+          ${here(`<div class="rail">${prevBtn('arrow')}<span class="yr">${MONTHS[0].y}</span><span class="chips">${chips}</span>${nextBtn('arrow')}</div>`, 'Month buttons')}`;
+      } },
+    { id:'o3a', n:'3a', theme:'o1', name:'Rail: Timeline', tag:'The rail as a slim timeline of the whole show.',
+      look:RAIL_LOOK,
+      nav:'Every month across the full width, with thin phase lines underneath showing what runs when. Click a month to jump; ‹ › step one month. The small navy dot marks this month.',
+      cost:'Colours and lines only for the calendar. Adds one row, about 58 px tall. A very long calendar scrolls the strip sideways, keeping the chosen month in view.', badge:['ok','Colours and lines only'],
+      chrome: () => {
+        const cols = MONTHS.map((x, i) => `<button class="tlm${i === SEL ? ' on' : ''}${x.mi === 0 ? ' yr-start' : ''}" data-mi="${i}">${shortLbl(x, i)}${nowDot(i)}</button>`).join('');
+        const bars = BANDS.map(b => `<i style="${bandStyle(b)}top:${b.t * 7}px;box-shadow:inset 0 0 0 1px ${PH[b.k].ink}" title="${esc(PH[b.k].name)}"></i>`).join('');
+        return `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}
+          ${here(`<div class="tl">${prevBtn('arrow')}<div class="tl-track">${cols}<div class="tl-bars">${bars}</div></div>${nextBtn('arrow')}</div>`, 'Month buttons')}`;
+      } },
+    { id:'o3b', n:'3b', theme:'o1', name:'Rail: Compact', tag:"Option 1b's spot, holding a short rail instead of one month.",
+      look:RAIL_LOOK,
+      nav:'Seven months at a time, at the right end of the text style bar\'s row. ‹ › slide along a month at a time; click a month to jump. A navy dot marks this month.',
+      cost:'No extra row, so the calendar keeps all its height. No phase hints: there is no room for them.', badge:['ok','Colours and lines only'],
+      chrome: () => {
+        const from = Math.max(0, Math.min(SEL - 3, N - 7));
+        const ms7 = MONTHS.slice(from, from + 7).map((x, k) => {
+          const i = from + k;
+          return `<button class="m${i === SEL ? ' on' : ''}${i === TODAY_IDX ? ' is-now' : ''}" data-mi="${i}">${shortLbl(x, k)}</button>`;
+        }).join('');
+        return `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>
+          <div class="tsbrow">${TSB}${here(`<span class="mini">${prevBtn('ar')}${ms7}${nextBtn('ar')}</span>`, 'Month buttons')}</div>`;
+      } },
+    { id:'o3c', n:'3c', theme:'o1', name:'Rail: By year', tag:'Every month as one joined bar, grouped under its year.',
+      look:RAIL_LOOK,
+      nav:'One bar per year, side by side across the full width, with the year above it and phase dots under each month. Click a month to jump; ‹ › step one month. A navy dot marks this month.',
+      cost:'Colours and lines only. Adds one row, about 60 px tall. Past about two years of months the bars scroll sideways.', badge:['ok','Colours and lines only'],
+      chrome: () => {
+        const years = [...new Set(MONTHS.map(x => x.y))].map(y => {
+          const btns = MONTHS.map((x, i) => x.y !== y ? '' :
+            `<button class="${i === SEL ? 'on' : ''}" data-mi="${i}">${x.m}${dots(x.ph)}${nowDot(i)}</button>`).join('');
+          const count = MONTHS.filter(x => x.y === y).length;
+          return `<div class="sg-year" style="flex:${count}"><span>${y}</span><div class="sg-row">${btns}</div></div>`;
+        }).join('');
+        return `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}
+          ${here(`<div class="sg">${prevBtn('arrow')}<div class="sg-years">${years}</div>${nextBtn('arrow')}</div>`, 'Month buttons')}`;
+      } },
+    { id:'o3d', n:'3d', theme:'o1', name:'Rail: Phase map', tag:'Jump by phase as well as by month.',
+      look:RAIL_LOOK,
+      nav:'Named phase bars sit above the months, like a tiny waterfall of the whole show. Click a month to jump there, or click a phase (say, Post) to jump to the month it starts in.',
+      cost:'Colours and lines only. The tallest rail, about 100 px, so the calendar shows a little less before it scrolls.', badge:['ok','Colours and lines only'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}${phaseMap()}` },
+    { id:'o3d2', n:'3d+', theme:'o1', name:'Rail: Phase map, above the style bar', tag:'3d with the two rows swapped: the phase map under the toolbar, the text style bar right above the calendar.',
+      look:RAIL_LOOK,
+      nav:'As 3d: named phase bars over the months. Click a month, or a phase to jump to the month it starts in. The map sits with the toolbar; the style bar sits on the calendar it styles.',
+      cost:'As 3d (about 100 px). The text style bar sits about 100 px lower in the month view than in the waterfall, so it moves when you switch views.', badge:['ok','Colours and lines only'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${phaseMap()}${TSB}` },
+    { id:'o4', n:'4', name:'Navy Band', tag:'Bolder and more structured, in the app\'s own navy.',
+      look:'White card with a soft shadow. Navy month band with white text. Mid-grey lines, rounded corners, and today ringed in navy.',
+      nav:'‹ October 2026 ▾ › at the right end of the toolbar. Click the month name for a list of every month (try it).',
+      cost:'Colours and lines only.', badge:['ok','Colours and lines only'],
+      chrome: () => {
+        let last = null;
+        const rows = MONTHS.map((x, i) => {
+          const yr = x.y !== last ? `<span class="yr">${x.y}</span>` : '';
+          last = x.y;
+          return `${yr}<div class="ddrow${i === SEL ? ' on' : ''}" data-mi="${i}"><span>${x.full}</span>${dots(x.ph)}</div>`;
+        }).join('');
+        return `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}
+          ${here(`<span class="ddwrap"><span class="seg">${prevBtn('')}<button id="ddbtn" style="font-weight:600">${lbl()} &#9662;</button>${nextBtn('')}</span><div class="ddmenu" id="ddmenu" hidden>${rows}</div></span>`, 'Month buttons')}</div>${TSB}`;
+      } },
+    { id:'o5', n:'5', name:'Tiles', tag:'The most modern look, and the biggest change.',
+      look:"Each day is its own rounded white tile on a light grey background. No grid lines; bars run across the tiles. Today's tile is ringed in navy.",
+      nav:'A rounded control centred above the calendar: ‹ October 2026 › and Today. It sits in a fixed row, so it never covers the calendar.',
+      cost:'The gaps between tiles make each day about 6 px narrower on screen, so a long note can wrap a line sooner on screen than in the PDF. The only option that changes sizes.', badge:['warn','Changes sizes on screen'],
+      chrome: () => `<div class="tb">${VIEWTOG}<span class="spacer"></span>${SHIFT}<span class="spacer"></span>${RIGHT}</div>${TSB}
+        <div class="pillnav">${here(`<span class="inner">${prevBtn('round')}<span class="lbl">${lbl()}</span>${nextBtn('round')}<button class="today" data-mi="${TODAY_IDX}">Today</button></span>`, 'Month buttons')}</div>` }
+  ];
+
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = OPTIONS.map(o => `<button class="tab" role="tab" data-id="${o.id}"><span class="n">${o.n}</span>${esc(o.name)}</button>`).join('');
+  document.getElementById('tw').innerHTML = monthView();
+  const chrome = document.getElementById('chrome');
+  let current = null;
+
+  function show(id){
+    const o = OPTIONS.find(x => x.id === id) || OPTIONS[1];
+    current = o;
+    document.getElementById('frame').dataset.theme = o.theme || o.id;
+    chrome.innerHTML = o.chrome();
+    document.getElementById('info').innerHTML = `
+      <div><h2>${o.n === '0' ? '' : 'Option ' + o.n + ': '}${esc(o.name)}</h2><p class="tag">${esc(o.tag)}</p><span class="badge ${o.badge[0]}">${esc(o.badge[1])}</span></div>
+      <div><h3>The look</h3><p>${esc(o.look)}</p></div>
+      <div><h3>Month buttons</h3><p>${esc(o.nav)}</p></div>
+      <div><h3>What it costs</h3><p>${esc(o.cost || 'Nothing: this is the current build.')}</p></div>`;
+    tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.id === o.id)));
+    history.replaceState(null, '', '#' + o.id);
+  }
+  // Every month control in every option: a month (data-mi) or a step (data-step). Only the rail redraws;
+  // the calendar below stays on October.
+  chrome.addEventListener('click', e => {
+    if(e.target.closest('#ddbtn')){ e.stopPropagation(); const m = document.getElementById('ddmenu'); m.hidden = !m.hidden; return; }
+    const pick = e.target.closest('[data-mi]'), step = e.target.closest('[data-step]');
+    if(!pick && !step) return;
+    SEL = pick ? +pick.dataset.mi : Math.max(0, Math.min(N - 1, SEL + +step.dataset.step));
+    chrome.innerHTML = current.chrome();
+  });
+  tabs.addEventListener('click', e => { const t = e.target.closest('.tab'); if(t) show(t.dataset.id); });
+  document.addEventListener('click', () => { const m = document.getElementById('ddmenu'); if(m) m.hidden = true; });
+  window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show((location.hash || '#o1').slice(1));
+})();
+</script>
+</body>
+</html>

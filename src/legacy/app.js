@@ -20976,6 +20976,85 @@ export function initLegacyApp() {
   }
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
+
+  // ---------- THE PHASE MAP above the month view (MONTH-RAIL-PLAN.md; owner, 27 Oct 2026) ----------
+  // A fixed row under the preview toolbar, in the month view only: every month of the calendar with the phases
+  // drawn over them as named bars, to jump to a month or to the month a phase starts in. Chrome, never grid
+  // content: nothing here touches #table-wrap.
+  //
+  // THE MODEL: plain data in, plain data out, and NOTHING FROM THE ENGINE, so the monthmapmeasure leg can slice it
+  // out of this file verbatim and run it (the owner's "slice it, no hook" ruling, 1 Oct 2026). Plan step 2 feeds it
+  // from the schedule; this half alone decides what the map shows.
+  //   input.first, input.last     'YYYY-MM': the months the map spans. monthRangeForSchedule()'s screen range,
+  //                               so exactly the months the frozen arrows page through.
+  //   input.coreFirst, coreLast   'YYYY-MM': the months the phases cover. The one each side is dimmed (ruling R3).
+  //   input.cursor                'YYYY-MM': the month on screen.
+  //   input.today                 'YYYY-MM-DD'.
+  //   input.spans                 [{key, name, fill, ink, start, end}], in the month view's own phase order (R7),
+  //                               dates 'YYYY-MM-DD' with `end` EXCLUSIVE, as a segment's is.
+  //   input.hiatus                [{name, start, end}]: the all-phase hiatuses. A mark on the month row, never a
+  //                               row of their own (R2).
+  // A bar's `from` and `to` are places along the map in MONTHS: the month's index plus the share of it gone by.
+  // ⭐ ROWS are packed first-fit in the order given, the rule renderMonthView packs its lanes by, and two spans share
+  // a row only when their DAYS do not overlap. The first MONTH_MAP_NAMED_ROWS rows carry names, the next
+  // MONTH_MAP_THIN_ROWS are thin lines with the name on hover, and anything past those shares the last thin row
+  // (ruling R1, the owner's guardrail "at most 3 named rows"). `rows.needed` is what the packing asked for before
+  // that cap: the number the plan's step 1 measures on every fixture.
+  const MONTH_MAP_NAMED_ROWS = 3, MONTH_MAP_THIN_ROWS = 2;
+  function monthMapModel(input){
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ym = s => { const r = /^(\d{4})-(\d{2})/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1 } : null; };
+    const ymd = s => { const r = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1, d: +r[3] } : null; };
+    const a = ym(input && input.first), b = ym(input && input.last);
+    if(!a || !b) return null;
+    const index = (y, m) => (y - a.y) * 12 + (m - a.m);
+    // 240 months is buildMonthLayout's walk guard; a calendar that long is a typo'd year (MAX_WEEKS).
+    const count = Math.min(240, index(b.y, b.m) + 1);
+    if(!(count > 0)) return null;
+    const cf = ym(input.coreFirst) || a, cl = ym(input.coreLast) || b, cur = ym(input.cursor), td = ym(input.today);
+    const months = [];
+    for(let i = 0; i < count; i++){
+      const y = a.y + Math.floor((a.m + i) / 12), m = (a.m + i) % 12;
+      months.push({ key: y + '-' + String(m + 1).padStart(2, '0'), y, m, label: MON[m],
+                    // The year rides on the first month and on each January: "Apr ’26" ... "Jan ’27".
+                    year: (i === 0 || m === 0) ? '’' + String(y).slice(2) : '',
+                    edge: i < index(cf.y, cf.m) || i > index(cl.y, cl.m),
+                    on: !!cur && cur.y === y && cur.m === m,
+                    today: !!td && td.y === y && td.m === m });
+    }
+    const n = months.length;
+    const place = s => {
+      const d = ymd(s);
+      if(!d) return NaN;
+      const dim = new Date(Date.UTC(d.y, d.m + 1, 0)).getUTCDate();
+      return Math.max(0, Math.min(n, index(d.y, d.m) + (d.d - 1) / dim));
+    };
+    const dayNo = s => { const d = ymd(s); return d ? Date.UTC(d.y, d.m, d.d) / 86400000 : NaN; };
+    const used = [];               // per row: the [first day, end day) pairs already in it
+    let needed = 0;
+    const bands = [];
+    (input.spans || []).forEach(sp => {
+      const s = dayNo(sp.start), e = dayNo(sp.end);
+      if(!(e > s)) return;
+      let row = 0;
+      for(;; row++){
+        const r = used[row] || (used[row] = []);
+        if(r.every(u => e <= u[0] || s >= u[1])){ r.push([s, e]); break; }
+      }
+      needed = Math.max(needed, row + 1);
+      const from = place(sp.start), to = place(sp.end);
+      if(!(to > from)) return;   // wholly outside the map's months
+      const thin = row >= MONTH_MAP_NAMED_ROWS;
+      bands.push({ key: sp.key, name: sp.name, fill: sp.fill, ink: sp.ink, start: sp.start, end: sp.end, from, to,
+                   startMonth: months[Math.min(n - 1, Math.floor(from))].key,
+                   row: Math.min(row, MONTH_MAP_NAMED_ROWS + MONTH_MAP_THIN_ROWS - 1), thin });
+    });
+    const hiatus = (input.hiatus || []).map(h => ({ name: h.name, start: h.start, end: h.end, from: place(h.start), to: place(h.end) }))
+      .filter(h => h.to > h.from);
+    return { months, bands, hiatus,
+             rows: { needed, named: Math.min(needed, MONTH_MAP_NAMED_ROWS),
+                     thin: Math.max(0, Math.min(needed - MONTH_MAP_NAMED_ROWS, MONTH_MAP_THIN_ROWS)) } };
+  }
   // Header: Off on screen and in the print fallback (HEADER-ROW-PLAN §2). The frozen renderer still
   // emits .cal-header-bar, with every line empty; a <body> class hides it (legacy.css), because the
   // print fallback renders into #print-root, which is <body>'s child and not inside #table-wrap.
