@@ -29,17 +29,39 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Month view: note tooltips say "double-click to edit" (27 Oct 2026, MONTH-TEXT-STYLE-PLAN step 1)
+### Unreleased — Month view: style any month text from the text style bar (27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md)
 
-The first piece of styling month-view text from the text style bar. Ruling R1 makes a click on a month note pick it
-for the bar, and a double-click open it, so the notes' tooltips now say "double-click to edit". ⚠️ Until step 4 lands
-on the same branch a click still opens a note; this step does not ship on its own.
+Owner: *"What would it take to allow styling any text in the month view calendar with the styling menu"*, then every
+ruling by picker (R1–R4, N1–N3) and the sign-off on two frozen edits, M1 and M2, with the plan's gate.
 
-- A frozen edit to `renderMonthView` (M2), signed off by the owner with the plan's gate: the two tooltip strings, and
-  nothing else.
-- **Gate 10 re-cut, all eleven cases** (tests/baselines/2026-09-22-monthprint/README.md): reading the new tooltip as
-  the old one gives back every old document byte for byte; element counts, fit tables and sheet counts are unchanged.
-  Gate 13 (the written month PDF) cannot move: the writer reads no tooltip.
+- **What can be styled:** phase, episode (or block) and Simultaneous Post bars, both kinds of hiatus band, month
+  notes, waterfall notes shown in the month, the month name and the weekday row. Day numbers and "Day N" are not.
+- **Picking (R1):** a click picks a text, ⌘-click or Shift-click adds or removes one, ⌘A picks every text in the month
+  on screen, Escape clears. A click on a note now PICKS it; a double-click, Enter or typing opens its editor (typing
+  adds at the end). Dragging a note, a bar, an edge or a band works as before. The picked texts get a white-and-purple
+  ring (body-level chrome, never printed, stripped from shareable copies). The note tooltips say "double-click to edit".
+- **The bar:** size, bold, italic, colour, alignment, clear. Bold is on 700 / off 400, as for header lines, so an
+  unstyled bar (600) shows B lit. **No text colour on a pill** (N1): the colour control greys while only pills are
+  picked, and a mixed pick colours only the texts that take colour. The month name's alignment control greys (it is
+  centred between the arrows, so an alignment would move nothing).
+- **Sizes that fit (R3), measured:** bars and bands 6–11 (12 cuts descenders by 1 px on screen), notes 6–10, the month
+  name 6–17, the weekday row 6–11. Every size is written with its text's existing line box, so no bar, band, row,
+  month bar or weekday row changes height. A note's line count can change (a bold note may wrap once more).
+- **Separate per view (R2):** month styles are their own save key, `mvTextStyles` (absent while nothing is styled); a
+  month note's style is `fmt` on its own entry. Phase bars are keyed by phase and week number, so "Prep wk 2"'s style
+  follows Prep wk 2 through every mover (N2); episode and block bars by their id; bands as `hiatusTexts`; waterfall
+  lines by their text. The waterfall, the workbook and the waterfall PDF never read them.
+- **Both month PDFs:** the print rollback prints the styled markup; the written PDF reads each style back and draws
+  its weight, size, slant, colour and alignment in the same line boxes (the grey tag keeps its look, N3).
+- **Frozen edits:** M1 (each styled text's style appended in `renderMonthView`, a style attribute on the month name
+  and weekdays only when styled, the line counters measuring a styled note in its style) and M2 (the tooltips). M1 is
+  inert unstyled. **Gate 10 re-cut for M2, all eleven cases:** reading the new tooltip as the old gives back every old
+  document byte for byte (tests/baselines/2026-09-22-monthprint/README.md).
+- **Verified:** new leg `mvtextstyle` (LIVE 22/22: gestures, R1, every kind styled at once and shown, no row grown,
+  0 clipped, one undo step per press, the file, the shareable copy, the written PDF's boxes exactly the unstyled file's
+  with its programs, slant and colours, the waterfall's grid/workbook/PDF unchanged, a shift, Reset notes, an episode
+  removed, New; RESTORE 6/6 incl. a hostile copy whose six bad values are dropped and counted, and a style-free file
+  loaded over a styled one; v1.8.0 opens the file). `monthemit` 16/16 on the styled fixture. `hiatusdrag` 14/14.
 
 ### Unreleased — Month view: dragging a hiatus band keeps its waterfall text style (27 Oct 2026)
 

@@ -6,7 +6,10 @@ view (TEXT-STYLE-BAR-PLAN.md D4). This plan lets it style the month's bars, band
 on screen and in both month PDFs.
 
 **Four rulings made, by picker, 27 Oct 2026 (§1). The three decisions this plan raised are ruled too (§2), and the two
-frozen edits, M1 and M2, are SIGNED OFF with the gate in §6 (owner's picker, 27 Oct 2026).** No code yet.
+frozen edits, M1 and M2, are SIGNED OFF with the gate in §6 (owner's picker, 27 Oct 2026).**
+
+✅ **BUILT, 27 Oct 2026, on branch `claude/sharp-stonebraker-8d2cd2` (steps 0–7; §12 records what the build decided).**
+Committed locally, not merged, not pushed.
 
 **The short version.** Most of the work is outside the frozen code: the store, the month highlight, the click rule,
 and teaching the month PDF writer to draw a style. The frozen renderer needs two edits. **M1** appends each styled
@@ -341,3 +344,35 @@ press on a note, a bar, a bar's edge or a band already starts a drag, and every 
 - **`month-bar-size`:** bigger bars. If it lands, it lifts R3's caps for bars; this plan's save format does not change.
 - **`month-view-modern-look`, `month-nav-in-toolbar`:** see §3.1's warning about the month name.
 - **`month-calendar-export-ics`:** an `.ics` has no styles to carry.
+
+## 12. Built (27 Oct 2026): what the build decided, and what it found
+
+- **Step 0 was a real bug, reproduced before the fix:** `hiatusdrag` H13 (new) styled two bands italic in the
+  waterfall and dragged each up a row in the month; both arrived upright. Fixed in `rekey()`/`setMaps()`; H13 now holds
+  the month band style through the drag too.
+- **Step 1 (M2):** gate 10 re-cut, all eleven cases; each new document, read with the new tooltip as the old, is the old
+  baseline byte for byte (the baseline README has the table).
+- **Step 2 fixed the size lists (§3.3a):** bars and bands 6–11, not 6–12. On screen a bar is stretched to its 17 px lane,
+  so at 12 px its descenders leave the padding box by 1 px. Print and the written PDF hold through 14.
+- **Keys the plan did not spell out, settled so the label is what the style follows (N2's principle):**
+  - a per-episode **prep** bar is keyed `<prep key>@<unit id>` ("Prep 202" names its unit, not a week);
+  - a **block** bar (Blocks mode) is keyed by its block id in the `episode` map (ids never collide: `ep…` / `blk…`);
+  - an **un-numbered** Simultaneous Post bar is keyed by the N it would show (its place among Sim Post weeks).
+- **Bold, as the header's rule:** on = 700, off = 400. So a bar (600, B lit) toggles 600 → 400 → 700, and Clear gives
+  back 600; a note (500, B unlit) toggles to 700 and 400. Only a press that lands on the text's own weight stores
+  nothing (B on the month name).
+- **The month name's alignment control greys:** `.mv-monthyear` is a flex item as wide as its text, centred between the
+  arrows, so `text-align` moves nothing on screen or in print. The writer keeps it centred too.
+- **The outline is a white inner ring inside the purple one:** a month note's default fill IS the highlight purple
+  (`MILESTONE_COLOR`), and a purple ring vanished on it (seen in the app pane).
+- **The shareable copy strips `.month-sel-box`:** body-level and never hidden while a pick is live, so a copy exported
+  then would have carried the boxes for good.
+- **A waterfall line edited in the month keeps its style** when the edit keeps the number of lines (line by line); the
+  day-note editor keeps a note's `fmt` across a text edit (it rebuilds the entry, so it had to be told).
+- **The grey tag inherits M1's line box:** a sized bar carries `line-height:15px`, which the `.mv-pill-block` inherits as
+  a length, so its baseline sits up to 1 px lower than at 13.5 px. The writer copies it (W2); `monthemit` measured it.
+- **`monthemit` anchors aligned text at its own anchor** (start, centre or end, as H0 already did for header lines),
+  because Chrome kerns ("SAT", "We") and the writer does not; a right-aligned or centred NOTE line is held at its
+  visible characters, since under `pre-wrap` the space a line wraps at hangs past the edge in Chrome's line box.
+- **Mutants** (§8): run against the built app, each red on the leg named in the HANDOFF entry.
+

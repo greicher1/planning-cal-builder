@@ -4,7 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF, no code ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md))
+### 🔨 27 Oct 2026 (latest): STYLE ANY TEXT IN THE MONTH VIEW: BUILT on `claude/sharp-stonebraker-8d2cd2`, committed locally, NOT merged, NOT pushed ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md) §12)
+
+- **Built, plan §9 steps 0–7, one commit per step:**
+  - **Step 0, a real bug fixed:** the month hiatus drag left a band's WATERFALL text style on its old weeks
+    (`installHiatusDrag` `rekey()`/`setMaps()` lacked `textStyle.hiatus`). Reproduced first: `hiatusdrag` H13 (new) was
+    red, then green. It now carries the month band style (`mvTextStyle.band`) too.
+  - **M2 + gate 10 re-cut, all eleven cases** (only the note tooltips moved; baseline README has the table).
+  - **Sizes measured (plan §3.3a): bars and bands 6–11**, not 12 (12 cuts descenders by 1 px on screen), notes 6–10,
+    month name 6–17, weekday row 6–11. Held line boxes moved no row.
+  - Store `mvTextStyle` / save key `mvTextStyles` / `fmt` on a day note (CLAUDE.md state table); the month highlight
+    and R1; M1; the writer W1–W5.
+- **Decided while building (plan §12):** prep bars keyed by unit, block bars by block id, un-numbered Sim Post by its
+  would-be N; bold toggles 600 → 400 → 700 on a bar (header rule); the month name's alignment control greys; the
+  outline is white-in-purple (a default note is the highlight's purple); `.month-sel-box` stripped from shareable copies.
+- ⚠️ **Learned:**
+  - M1's `line-height:15px` on a sized bar is INHERITED by the grey `.mv-pill-block` as a length, moving its baseline up
+    to 1 px; the writer copies that. `monthemit` found it.
+  - `monthemit` compared starts, which is wrong for aligned text (Chrome kerns, the writer does not). It now anchors
+    each text at its alignment's anchor, and a centred/right note line at its VISIBLE characters (`pre-wrap`'s hanging
+    space).
+  - The highlight resolver must not call writer names (`mvlDecls`): the month legs' F0 forbids it.
+  - A `t/` leg's own source is injected into the page, so a shareable copy contains it: never search a copy for a
+    literal the leg also contains.
+- **Verified:** `mvtextstyle` LIVE 22/22, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
+  `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. Mutants and the full gate: see the next
+  bullet when they land.
+- **Next:** the full gate, then the owner's picker to merge, then a separate one to push. Tracker card
+  `month-text-style` is at "building"; move it to "ready" when the full gate is green.
+
+### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md); superseded by the entry above)
 
 - ✅ **Ruled by picker, 27 Oct 2026** (plan §2, §6):
   - **N1, in the owner's own words: *"maybe disable recoloring phase bar text"*.** Read as: no text colour on any bar
@@ -16,7 +45,7 @@
   - **Sign-off: "Yes, M1 and M2 as planned (Recommended)"**, with plan §6's gate (gate 10 re-cut for M2's tooltips only,
     then 10 and 13 byte-identical unstyled; 0 clipped glyphs, rows and PDF scale unchanged on a styled fixture; the
     waterfall's exports untouched).
-- **Next:** build from plan §9, step 0 (the hiatus drag carrying `textStyle.hiatus`) first. Not started.
+- **Next:** (done; see the entry above.)
 
 - **The plan is written** (owner: *"Write MONTH-TEXT-STYLE-PLAN.md from the four rulings, with the frozen edit and its
   gate spelled out for sign-off"*, adding *"actually no dont let the day number be editable"*, which confirms R4).
