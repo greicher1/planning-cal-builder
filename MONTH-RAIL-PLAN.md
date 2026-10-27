@@ -335,3 +335,47 @@ zoomresize 40/40, phasenum 31/31 and 24/24. `npm run check` 40/40.
 
 **Not done in step 3, by plan:** hiding the frozen arrows and the Soft Lines look (step 4); docs (step 5); the full
 gate (step 6).
+
+## 15. Step 4 results (27 Oct 2026)
+
+**Built** (uncommitted at the time of writing): `legacy.css`, "Soft Lines: the month view's ON-SCREEN look", an
+`@media screen{...}` block just before the text style bar's. Every selector starts `#table-wrap .month-view`. No frozen
+rule was edited.
+
+Two values changed from the mockup, so nothing moves:
+- The arrows go by `visibility:hidden` + `pointer-events:none`, not `display:none`. Their boxes still size the month
+  band, so the grid does not rise 1.5 px.
+- No font-size, padding or weight change on a box that sizes itself. The mockup's 16 px month name, 10.5 px day names
+  and 20 px padding are dropped.
+
+The tints exclude `.mv-day-on`, `.mv-day-off`, `.mv-day-half` and `:hover`. The two bottom corner cells take the
+radius, with no `overflow:hidden`.
+
+**Leg `softlines`** (6 cases). In ONE run it measures every month page with the block, deletes the block from the
+page's own stylesheet, measures again, and puts it back. No baseline file, no hook. Green on 10 fixtures:
+dayoverrides, dayoverrides-onhalf, halfmarks, shootdays, offweek, mvnotes, mvorder-notes, carry-rich, halfdays, blocks
+(148 pages, ~19,000 bar and note elements).
+- **L1:** every element's box identical to 0.01 px.
+- **L2:** marked days, bars, notes, hiatus bands and header lines paint identically.
+- **L3:** the soft tints and lines are right.
+- **L4:** the frozen arrows are hidden and take no pointer clicks, yet a scripted click still pages the month.
+
+⚠️ **Leg trap:** read a computed style BEFORE a click that re-renders. A detached element's computed style is empty.
+
+**Gates:**
+- **Gate 10** (the printed month documents, 11 calendars) and **gate 13** (21 written month PDFs, byte for byte):
+  293 PASS, 0 FAIL. Both month PDFs are unchanged, as the owner's "Screen only" requires.
+- **Gate 7** (`fence.js`, by hand, the step-3 build vs this one): 511 entries, 0 differ.
+
+**Re-run on this build:**
+- monthmap 15/15 ×3 (mvnotes, colreuse, dayoverrides) and softlines 6/6 ×2;
+- mvmenu 89/89, calzoom 26/26, monthnotes 7/7, hdrcontrols 12/12, monthlanes 6/6, halfmarks 5/5;
+- labelsetup 41/41, mvhdroff 9/9, hidewf 19/19, sideboxes 78/78, scenarios 22/22, scenariofacts 12/12;
+- calrange 18/18, phasecolors 10/10, regionlock 14/14, settingswin 21/21, loadcarry 6/6, holidays2031 6/6;
+- zoomresize 40/40, phasenum 31/31 and 24/24, offweek 42/42.
+- In that 29-leg batch, **textstyle** (timed out waiting for a Load after 33/33) and **shootdays** (A9a, a Load right
+  after a Load) failed once each. Alone they passed: textstyle 51/51, shootdays 14/14 twice. Recorded as Load-timing
+  flakes under the long batch, the kind HANDOFF already records for offweek R13.
+
+**Next:** step 5 (Help copy R5, UI-CONVENTIONS §7/§10, MANTINE-SEAM, README changelog) and step 6 (the full gate,
+alone).
