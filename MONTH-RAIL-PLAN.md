@@ -292,3 +292,46 @@ the pushed model to the month view itself (the bars that the step 1 leg reads of
 
 **Unchanged and re-run green:** mvmenu 89/89, monthnotes 7/7, hdrcontrols 12/12, monthlanes 6/6, halfmarks 5/5,
 calzoom 26/26, monthmapmeasure 6/6, `npm run check` 40/40. No frozen function or rule was touched.
+
+## 14. Step 3 results (27 Oct 2026)
+
+**Built** (uncommitted at the time of writing):
+- **`src/chrome/MonthMap.jsx`**, rendered by `PreviewToolbar.jsx` just before `.style-bar-host`. It draws `chrome.monthMap`:
+  - ‹ and ›, named bars (13 px) and thin ones (4 px), month dividers (darker at each January), the red hiatus marks on
+    the month row, and the month buttons with the year above the first month and each January;
+  - the month on screen is navy with a tint up through the bars, edge months are faint, and this month has a dot.
+  - Bars have an 8 px minimum. A bar under 30 px keeps its name in the tooltip only.
+  - Months are at least 36 px; past that the map scrolls sideways and keeps the month on screen in view.
+  - Plain buttons carrying `data-mvgo` / `data-mvstep`. No ids, no form fields.
+- **CSS** in `legacy.css`, "The phase map above the month view", just before the text style bar's block. No `.mv-*`
+  rule, nothing under `#table-wrap`.
+- **Engine:** Production's span is now its first to last SHOOT day (`shootDays`). Its segment's `end` is week-based,
+  so the bar ran on past a Tuesday wrap to the Sunday. Leg B2 caught it.
+
+**Measured** in the pane, 1440 × 900:
+- **Heights:** 54 px for one row, 69 for two, 84 for three, 90 for three plus a thin row.
+- **Stacked layout (900 px):** the map is the row's full width, with no sideways page scroll.
+- **Switch timing:** month → waterfall 97–122 ms over 5 clicks, timed synchronously in a visible pane, the same as
+  `ae39e3e`'s ~110 ms. Waterfall → month is ~20 ms; the map draws in React's next task.
+
+**Leg `monthmap`, now 15 cases (parts A and B):** all green on 15 fixtures: offweek, mvnotes, episodeprep, colreuse,
+hidewf, scenarios-3, blocks, customunits, phasenumbering, carry-rich, halfdays, shootorder, dayoverrides, hiatusdrag,
+sideboxes. Part B checks:
+- the map's place in the toolbar row;
+- its months and highlight against the frozen arrows on every page;
+- every phase the month view draws has a bar over its drawn days, and past them only over weekends and the
+  hiatus or off-week days drawn in its place;
+- real `.click()`s on a month, a bar, ‹ and ›, and both arrows disabled at the ends;
+- the 36 px minimum and the month in view;
+- the height cap, this month's dot, no ids, and the map gone in the waterfall.
+
+⚠️ **Leg trap:** `requestAnimationFrame` may never fire under `--virtual-time-budget`. The leg then waits out the
+budget and reports STILL PENDING. It waits on a 30 ms timer instead.
+
+**Existing legs re-run green on this build:** mvmenu 89/89, calzoom 26/26, monthnotes 7/7, hdrcontrols 12/12,
+labelsetup 41/41, mvhdroff 9/9, hidewf 19/19, sideboxes 78/78, textstyle 51/51, scenarios 22/22, scenariofacts 12/12,
+calrange 18/18, phasecolors 10/10, regionlock 14/14, settingswin 21/21, loadcarry 6/6, holidays2031 6/6,
+zoomresize 40/40, phasenum 31/31 and 24/24. `npm run check` 40/40.
+
+**Not done in step 3, by plan:** hiding the frozen arrows and the Soft Lines look (step 4); docs (step 5); the full
+gate (step 6).

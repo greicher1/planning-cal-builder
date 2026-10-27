@@ -1,4 +1,5 @@
 // monthmap -- the phase map above the month view (MONTH-RAIL-PLAN.md). Part A, plan step 2: the engine's half.
+// Part B, plan step 3: the map MonthMap.jsx draws.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=mvnotes ./run.sh monthmap 120
 //
@@ -16,6 +17,16 @@
 //   A3  a garbage value goes nowhere
 //   A4  paging is session UI: the undo button's state and the save status are what they were
 //   A5  in the waterfall the attributes do nothing: the grid is untouched and the view stays the waterfall
+//   PART B, plan step 3: the map itself (MonthMap.jsx), held to the month view
+//   B0  in the month view the map is a line of the toolbar row, directly above the text style bar
+//   B1  its months are the frozen arrows' months, the dimmed ones its ends, and its highlight follows the arrows
+//   B2  every phase the month view draws has a bar spanning its drawn days (and past them only over weekends and the
+//       hiatus or off-week days the month view draws in its place), and a bar goes to its phase's first month
+//   B3  its own clicks: a month, a bar, ‹ and ›, and ‹ / › disabled at the two ends
+//   B4  every month at least 36 px, and the month on screen inside the visible part of the map
+//   B5  no taller than the slimmer rows allow
+//   B6  this month's dot, and no id or form field anywhere in it
+//   B7  in the waterfall it is gone, and the style bar sits right under the tools as before
 //   E0  no console errors over every render above, in both views
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -129,9 +140,158 @@ window.addEventListener('load', function () { (async function () {
         undoAfter === undoBefore && statusAfter === statusBefore,
         {undoDisabled: undoAfter, status: statusAfter}, {undoDisabled: undoBefore, status: statusBefore});
 
+    // ================= PART B, plan step 3: the map itself (MonthMap.jsx), held to the month view =================
+    // ⚠️ NOT requestAnimationFrame: under --virtual-time-budget it may never fire, and the leg then waits out the whole
+    // budget and reports STILL PENDING. React commits a pushed model from its scheduler task, so a short timer is enough.
+    var frame = function () { return new Promise(function (r) { setTimeout(r, 30); }); };
+    await frame();
+    var map = function () { return document.querySelector('.view-toggle-row > .month-map'); };
+
+    // ---- B0: where it sits ----
+    var kids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
+    var mi = kids.indexOf('month-map'), si = kids.indexOf('style-bar-host');
+    add('B0', 'in the month view the map is a line of the toolbar row, directly above the text style bar',
+        mi >= 0 && si === mi + 1 && document.querySelector('.view-toggle-row').nextElementSibling === document.getElementById('table-wrap'),
+        kids, 'view-toggle | preview-tools | month-map | style-bar-host, then #table-wrap');
+
+    // ---- B1: its months are the arrows' months, and it follows them ----
+    var mapKeys = Array.from(map().querySelectorAll('.mm-month')).map(function (b) { return b.getAttribute('data-mvgo'); });
+    var mapEdges = Array.from(map().querySelectorAll('.mm-month.edge')).map(function (b) { return b.getAttribute('data-mvgo'); });
+    var lagged = [];
+    for(g = 0; g < 300 && !prev().disabled; g++) prev().click();
+    await frame();
+    for(g = 0; g < 300; g++){
+      var onKey = (map().querySelector('.mm-month.on') || {getAttribute: function () { return ''; }}).getAttribute('data-mvgo');
+      if(onKey !== keyOf(shown())) lagged.push({page: keyOf(shown()), map: onKey});
+      if(next().disabled) break;
+      next().click();
+      await frame();
+    }
+    add('B1', "the map's months are the frozen arrows' months, the dimmed ones its two ends, and its highlight follows the arrows on every page",
+        JSON.stringify(mapKeys) === JSON.stringify(keys) && JSON.stringify(mapEdges) === JSON.stringify([keys[0], keys[keys.length - 1]]) && !lagged.length,
+        {months: mapKeys.length, edges: mapEdges, lagged: lagged.slice(0, 3)}, {months: keys.length, edges: [keys[0], keys[keys.length - 1]], lagged: []});
+
+    // ---- B2: every phase the month view draws is on the map, where it is drawn ----
+    // The drawn days, read off every page as monthmapmeasure reads them (bars with data-ph; Sim Post is the pill
+    // without one). A bar's tooltip carries its first and last day (m/d/yy).
+    var drawn = {}, hiatusDays = {};
+    for(g = 0; g < 300 && !prev().disabled; g++) prev().click();
+    for(g = 0; g < 300; g++){
+      var lab = shown(), y0 = +keyOf(lab).slice(0, 4), m0 = +keyOf(lab).slice(5, 7) - 1;
+      var lead = new Date(Date.UTC(y0, m0, 1)).getUTCDay();
+      Array.from(document.querySelectorAll('#table-wrap .mv-body > .mv-week')).forEach(function (wk, wi) {
+        Array.from(wk.querySelectorAll(':scope > .mv-bars > .mv-hiatus-bar')).forEach(function (p) {
+          var gc = /(\d+)\s*\/\s*(\d+)/.exec(p.style.gridColumn || '');
+          if(!gc) return;
+          for(var c = +gc[1] - 1; c <= +gc[2] - 2; c++) hiatusDays[new Date(Date.UTC(y0, m0, 1 + wi * 7 - lead + c)).toISOString().slice(0, 10)] = 1;
+        });
+        Array.from(wk.querySelectorAll(':scope > .mv-bars > .mv-pill')).forEach(function (p) {
+          var key = p.hasAttribute('data-ph') ? p.getAttribute('data-ph') : 'simPost';
+          var gc = /(\d+)\s*\/\s*(\d+)/.exec(p.style.gridColumn || '');
+          if(!gc) return;
+          var d0 = new Date(Date.UTC(y0, m0, 1 + wi * 7 - lead + (+gc[1] - 1))).toISOString().slice(0, 10);
+          var d1 = new Date(Date.UTC(y0, m0, 1 + wi * 7 - lead + (+gc[2] - 2))).toISOString().slice(0, 10);
+          var s = drawn[key] || (drawn[key] = {first: d0, last: d1});
+          if(d0 < s.first) s.first = d0;
+          if(d1 > s.last) s.last = d1;
+        });
+      });
+      if(next().disabled) break;
+      next().click();
+    }
+    await frame();
+    var iso = function (mdy) { var r = /^(\d+)\/(\d+)\/(\d\d)$/.exec(mdy); return r ? '20' + r[3] + '-' + String(r[1]).padStart(2, '0') + '-' + String(r[2]).padStart(2, '0') : ''; };
+    var days = function (a, b) { return (Date.parse(b) - Date.parse(a)) / 86400000; };
+    var bands = Array.from(map().querySelectorAll('.mm-band')).map(function (b) {
+      var r = /^(.*), (\d+\/\d+\/\d\d) to (\d+\/\d+\/\d\d)\. Click to go to (\w+ \d{4})$/.exec(b.getAttribute('title') || '');
+      return r ? {name: r[1], first: iso(r[2]), last: iso(r[3]), goes: b.getAttribute('data-mvgo'), monthName: r[4]} : {bad: b.getAttribute('title')};
+    });
+    // A bar may run past its phase's drawn days only over days the month view leaves to something else: a weekend
+    // (a week-long phase draws Monday to Friday), or a hiatus or off week, which it draws as a band in the phase's
+    // place (offweek: Production's first week is off). Any WEEKDAY outside both is a bar in the wrong place.
+    var plusDay = function (iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+    var unexplained = function (from, to) {      // weekdays in [from, to] that are neither drawn as hiatus nor weekend
+      var out = [];
+      for(var d = from; d <= to; d = plusDay(d, 1)){
+        var wd = new Date(d + 'T00:00:00Z').getUTCDay();
+        if(wd !== 0 && wd !== 6 && !hiatusDays[d]) out.push(d);
+      }
+      return out;
+    };
+    var miss = [];
+    Object.keys(drawn).forEach(function (k) {
+      var d = drawn[k];
+      var hit = bands.some(function (b) {
+        return b.first && b.first <= d.first && b.last >= d.last &&
+               (b.first === d.first || !unexplained(b.first, plusDay(d.first, -1)).length) &&
+               (b.last === d.last || !unexplained(plusDay(d.last, 1), b.last).length);
+      });
+      if(!hit) miss.push({phase: k, drawn: d});
+    });
+    var wrongGo = bands.filter(function (b) { return b.bad || b.goes !== b.first.slice(0, 7); });
+    info.bands = bands.length;
+    if(Object.keys(drawn).length) info.drawn = drawn;
+    add('B2', "every phase the month view draws has a bar on the map spanning its drawn days, and a bar goes to the month its phase starts in",
+        miss.length === 0 && wrongGo.length === 0 && bands.length >= Object.keys(drawn).length,
+        {missing: miss.slice(0, 3), wrongGo: wrongGo.slice(0, 3), bars: bands.length, phases: Object.keys(drawn).length},
+        {missing: [], wrongGo: [], bars: '>= phases'});
+
+    // ---- B3: clicks ----
+    var clickMap = function (sel) { var b = map().querySelector(sel); if(b) b.click(); return shown(); };
+    var c1 = clickMap('.mm-month[data-mvgo="' + mid + '"]');
+    var firstBand = bands.find(function (b) { return !b.bad; });
+    var c2 = firstBand ? clickMap('.mm-band[data-mvgo="' + firstBand.goes + '"]') : '';
+    clickMap('.mm-month[data-mvgo="' + mid + '"]');
+    await frame();
+    var c3 = clickMap('.mm-step[data-mvstep="1"]');
+    await frame();
+    var c4 = clickMap('.mm-step[data-mvstep="-1"]');
+    clickMap('.mm-month[data-mvgo="' + keys[0] + '"]');
+    await frame();
+    var prevOff = map().querySelector('.mm-step[data-mvstep="-1"]').disabled;
+    clickMap('.mm-month[data-mvgo="' + keys[keys.length - 1] + '"]');
+    await frame();
+    var nextOff = map().querySelector('.mm-step[data-mvstep="1"]').disabled;
+    add('B3', "the map's own clicks: a month, a phase bar (to its first month), ‹ and ›, and ‹ / › disabled at the two ends",
+        c1 === labelOf(mid) && (!firstBand || c2 === firstBand.monthName) && c3 === labelOf(step(mid, 1)) && c4 === labelOf(mid) && prevOff && nextOff,
+        {month: c1, bar: c2, next: c3, prev: c4, prevOffAtStart: prevOff, nextOffAtEnd: nextOff},
+        {month: labelOf(mid), bar: firstBand && firstBand.monthName, next: labelOf(step(mid, 1)), prev: labelOf(mid), prevOffAtStart: true, nextOffAtEnd: true});
+
+    // ---- B4: a long show scrolls, keeping the month on screen in view ----
+    var sc = map().querySelector('.mm-scroll'), on = map().querySelector('.mm-month.on');
+    var scR = sc.getBoundingClientRect(), onR = on.getBoundingClientRect();
+    var minW = Math.min.apply(null, Array.from(map().querySelectorAll('.mm-month')).map(function (b) { return b.getBoundingClientRect().width; }));
+    info.scrolls = sc.scrollWidth > sc.clientWidth + 1;
+    add('B4', 'every month is at least 36 px wide, and the month on screen is inside the visible part of the map',
+        minW >= 35.5 && onR.left >= scR.left - 0.5 && onR.right <= scR.right + 0.5,
+        {narrowest: Math.round(minW * 10) / 10, onLeft: Math.round(onR.left), onRight: Math.round(onR.right), box: [Math.round(scR.left), Math.round(scR.right)]},
+        'narrowest >= 36; the month inside the box');
+
+    // ---- B5: height within the plan's targets ----
+    var h = map().getBoundingClientRect().height;
+    var namedRows = Math.max(1, new Set(Array.from(map().querySelectorAll('.mm-band:not(.thin)')).map(function (b) { return b.style.top; })).size);
+    info.mapHeight = h;
+    add('B5', 'the map is no taller than the slimmer rows allow: about 54 px for one row, plus 15 px for each more named row and 6 for each thin one',
+        h <= 56 + 15 * Math.max(0, namedRows - 1) + 6 * map().querySelectorAll('.mm-band.thin').length + 0.5,
+        {height: h, namedRows: namedRows}, '<= 56 + 15 per extra named row');
+
+    // ---- B6: this month's dot, and no ids ----
+    var now = new Date(), thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    var dots = Array.from(map().querySelectorAll('.mm-month.today')).map(function (b) { return b.getAttribute('data-mvgo'); });
+    var ids = map().querySelectorAll('[id], input, select, textarea').length;
+    add('B6', "this month carries the dot when it is in the calendar, and nothing in the map has an id or is a form field",
+        JSON.stringify(dots) === JSON.stringify(keys.indexOf(thisMonth) >= 0 ? [thisMonth] : []) && ids === 0,
+        {dots: dots, idsOrFields: ids}, {dots: keys.indexOf(thisMonth) >= 0 ? [thisMonth] : [], idsOrFields: 0});
+
     // ---- E0: and back to the waterfall once more, so both views' pushes ran ----
     document.getElementById('view-sheet-btn').click();
     await T.until(function () { return !document.querySelector('#table-wrap .month-view'); }, 'the waterfall', 100, 50);
+    await frame();
+    // ---- B7: gone in the waterfall ----
+    var wfKids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
+    add('B7', 'in the waterfall the map is gone and the text style bar sits right under the tools, as before',
+        !document.querySelector('.month-map') && wfKids.indexOf('style-bar-host') === wfKids.indexOf('preview-tools') + 1,
+        wfKids, 'view-toggle | preview-tools | style-bar-host');
     await new Promise(function (r) { setTimeout(r, 50); });
     out.errors = (window.__ERR || []).filter(function (m) { return !/SPTCal: \d+ value\(s\) in this calendar were not in a form/.test(m); }).slice(0, 10);
     add('E0', 'no console errors over every render above, in both views', out.errors.length === 0, out.errors, []);

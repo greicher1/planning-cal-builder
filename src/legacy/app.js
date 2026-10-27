@@ -21071,9 +21071,14 @@ export function initLegacyApp() {
     if(!range) return null;
     // THE PHASES, in the month view's own order (mvLaneOrder, ruling R7), coloured as its bars are. Episode prep's
     // `start` is only a lane anchor: its real days are firstDay..lastDay, as monthCoreRange reads them.
+    // ⭐ PRODUCTION runs from its first SHOOT day to its last (shootDays, the simulation's own list, the one the month
+    // view draws from). Its segment's `end` is week-based, so it would carry the bar on past the wrap to the end of
+    // that week (the monthmap leg's B2 caught it: a Tuesday wrap drawn to the Sunday).
     const spans = mvLaneOrder(sch.segments || []).map(s => {
       const fill = s.color || '#eee';
-      const start = s.firstDay || s.start, end = s.lastDay ? addDays(s.lastDay, 1) : s.end;
+      const shot = Array.isArray(s.shootDays) && s.shootDays.length ? s.shootDays : null;
+      const start = shot ? parseDateUTC(shot[0]) : (s.firstDay || s.start);
+      const end = shot ? addDays(parseDateUTC(shot[shot.length - 1]), 1) : (s.lastDay ? addDays(s.lastDay, 1) : s.end);
       return { key: s.key, name: s.prep ? (s.name || s.label || 'Prep') : phaseDisplayName(s.key),
                fill, ink: s.textColor || textColorFor(fill), start: isoOf(start), end: isoOf(end) };
     });
