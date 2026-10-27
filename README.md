@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: dragging a hiatus band keeps its waterfall text style (27 Oct 2026)
+
+Found while planning MONTH-TEXT-STYLE-PLAN.md (§7), from the code, then reproduced before the fix.
+
+- **The bug:** a hiatus band styled from the text style bar in the waterfall (bold, italic, a colour) and then dragged
+  in the month view arrived on its new weeks unstyled, and its old weeks kept the style. The drag carried the band's
+  label, name sync, colour and size, but not its text style, which arrived two days after the drag did. The shift
+  tools always carried it.
+- **Fix:** the drag carries `textStyle.hiatus` with the rest of the band's look. No frozen code.
+- **Verified:** `hiatusdrag` H13 (new): Spring Break (an all-phase band) and Post Pause (a phase's own), each styled
+  italic in the fixture and dragged up a row, are italic on their new week in the waterfall and gone from the old one.
+  Red before the fix (both arrived upright), green after; H0–H12 unchanged, 14/14.
+
 ### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 
 Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.

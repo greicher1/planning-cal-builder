@@ -9235,9 +9235,13 @@ export function initLegacyApp() {
       });
       return out;
     }
+    // ⚠️ textStyle.hiatus is a band's look too (the text style bar's, 21 Oct 2026), and it was missing from this
+    // list until 27 Oct 2026, so a band styled in the waterfall and dragged here arrived unstyled while its old
+    // weeks kept the style (MONTH-TEXT-STYLE-PLAN.md §7). A new per-band store belongs in d.maps AND here.
     function setMaps(m){
       hiatusTexts = m.hiatusTexts; hiatusNameSyncedKeys = m.hiatusNameSyncedKeys;
       hiatusColors = m.hiatusColors; hiatusFontSize = m.hiatusFontSize;
+      textStyle.hiatus = m.textStyleHiatus;
     }
     function writeTo(d, c){
       if(samePos(c, original(d))){
@@ -9350,7 +9354,8 @@ export function initLegacyApp() {
                  start0: h.start, weeks0: h.weeks, last0: addDays(h.end, -7),
                  wasStart: h.sEl.value, wasWeeks: h.wEl.value,
                  maps: {hiatusTexts: Object.assign({}, hiatusTexts), hiatusNameSyncedKeys: Object.assign({}, hiatusNameSyncedKeys),
-                        hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize)},
+                        hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize),
+                        textStyleHiatus: Object.assign({}, textStyle.hiatus)},
                  others: h.kind === 'all' ? allPhaseHiatuses().filter(o=> o.sEl !== h.sEl) : [],
                  wrap0: lastShootDay(), ends0: phaseEnds(), broken: false};
       d.cur = original(d);

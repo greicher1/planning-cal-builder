@@ -443,6 +443,43 @@ try {
     kase('H12', 'print media + body.printing-calendar: the shown layer and grip are display:none; none in #print-root or #table-wrap',
          !a.layer.hidden && p.shown === true && p.display === 'none' && p.grip === 'none' && p.inPrintRoot === 0 && p.inTableWrap === 0, out.H12);
   }
+
+  // ---- H13: a band's WATERFALL text style comes with it (MONTH-TEXT-STYLE-PLAN.md §7, step 0) ---------------------------
+  // The fixture styles Spring Break's band (2027-03-22) and Post Pause's (2027-05-17|post) italic from the text style bar,
+  // which only the waterfall draws. Each is dragged up a row in the month view, then the waterfall is read: the style must
+  // be on the band's new week and gone from its old one. Until 27 Oct 2026 rekey() carried hiatusTexts, the name sync,
+  // hiatusColors and hiatusFontSize but not textStyle.hiatus, so the band arrived unstyled.
+  {
+    // Every waterfall band: its week (plus phase), its text, and whether it is italic.
+    const wfBands = async () => {
+      await ev(`document.getElementById('view-sheet-btn').click(), true`);
+      await until(`!!document.querySelector('#table-wrap td.sheet-hiatus-cell')`, 'the waterfall');
+      await sleep(300);
+      return ev(`Array.from(document.querySelectorAll('#table-wrap td.sheet-hiatus-cell')).map(td => ({
+        week: td.dataset.week + (td.dataset.pkey ? '|' + td.dataset.pkey : ''), text: td.textContent.trim(),
+        italic: getComputedStyle(td.querySelector('.cell-body') || td).fontStyle === 'italic' }))`);
+    };
+    const at = (list, wk) => list.filter(b => b.week === wk);
+    await load('March 2027');
+    const pre = await wfBands();                     // the style shows before any drag (the fixture is read)
+    await load('March 2027');
+    const b3 = await band(3), b2 = await band(2), a = await restOn(b3);
+    await dragPath(a.layer, [[a.layer.x, b2.rowY]]);
+    const q = await asked(), kept = await answer('Keep');
+    const allWf = await wfBands();
+    await load('May 2027');
+    const p3 = await band(3), p2 = await band(2), pa = await restOn(p3);
+    await dragPath(pa.layer, [[pa.layer.x, p2.rowY]]);
+    const after = await state();
+    const phWf = await wfBands();
+    out.H13 = { pre: pre.filter(b => /Spring Break|Post Pause/.test(b.text)), q, kept, allWf: allWf.filter(b => /Spring Break/.test(b.text)), post: after.post, phWf: phWf.filter(b => /Post Pause/.test(b.text)) };
+    const sbNew = at(allWf, '2027-03-15'), sbOld = at(allWf, '2027-03-22');
+    const ppNew = at(phWf, '2027-05-10|post'), ppOld = at(phWf, '2027-05-17|post');
+    kase('H13', "the hiatus drag carries a band's waterfall text style (both italic before): Spring Break (all-phase) up a row -> its 3/15 band italic in the waterfall, no band on 3/22; Post Pause (a phase's own) up a row -> its 5/10 band italic, none on 5/17",
+         at(pre, '2027-03-22')[0]?.italic === true && at(pre, '2027-05-17|post')[0]?.italic === true
+         && q && kept && sbNew.length === 1 && sbNew[0].italic === true && /Spring Break \(typed\)/.test(sbNew[0].text) && sbOld.length === 0
+         && after.post === '2027-05-10/1' && ppNew.length === 1 && ppNew[0].italic === true && ppOld.length === 0, out.H13);
+  }
   ws.close();
 } catch (e) {
   out.EX = String(e && e.message || e);

@@ -2232,7 +2232,8 @@ PYMO
 # H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
 # band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
 # stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
-# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# before it was wired in. H13 (27 Oct 2026): the band's WATERFALL text style travels too, for an
+# all-phase band and a phase's own; red before MONTH-TEXT-STYLE-PLAN step 0's fix. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
 # settles in headless Chrome); it was proved in the app pane.
 node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1
