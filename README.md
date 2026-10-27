@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month to waterfall switch about 4× faster (27 Oct 2026)
+
+Owner: *"I think the lag when you switch from month view to waterfall is still there"*.
+
+- **Cause:** the cost was in every waterfall redraw, not just the switch. Frozen `installGridResizers` added a
+  drag handle and then read a row's position, once per row, so Chrome recalculated styles about 100 times per
+  redraw. One sidebar rule made each recalculation heavy:
+  `.phase-row:has(select.phase-unit …) [id^="meta-"]`, which hides a Days or Dates phase's weeks hint.
+  Behind a `:has()`, Chrome re-checks that rule on every element inserted anywhere, and an id-only subject made
+  it restyle every id'd element in every phase row, about 105 each time.
+- **Fix 1 (CSS):** that selector is now `.phase-meta[id^="meta-"]`. It matches the same elements, since every
+  `meta-<key>` carries `.phase-meta`, but Chrome restyles only those few. This alone halved the switch.
+- **Fix 2 (frozen edit L1, owner sign-off by picker):** `installGridResizers` reads every row's position once,
+  before the loops, so the browser recalculates once, not about 100 times. The values are the same, because a
+  handle sits in an absolutely positioned layer and cannot move a row.
+- **Measured** (headless Chrome, the click's synchronous time, medians): 52-week calendars 59–67 ms → 13–15 ms;
+  a longer show 81 → 22 ms. Waterfall → month is ~14 ms, so the two directions now match.
+- **Verified:**
+  - Every drag handle's inline style and dataset is identical to the old build's on 11 fixtures (resized rows,
+    cell spans, column widths, Dates units) at 75%, 100% and 150% zoom.
+  - Every phase hint box's visibility is identical too.
+  - `customunits` and `builtindates`, live and restore, 83/83; `npm run check` 40/40.
+  - Full gate: 3,059 pass. The 3 failures all come from an unrelated, uncommitted fixture edit
+    (`stintswap-reshape`). `launchopen` failed only while another session's harness was running; alone it passes 16/16.
+
 ### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 
 Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.

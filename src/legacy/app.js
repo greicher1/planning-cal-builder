@@ -380,8 +380,16 @@ export function initLegacyApp() {
     const COL_HANDLE_CLEARANCE = 9;
     const firstDateW = Math.max(12, (parseFloat(cols[0].style.width) || 40) - COL_HANDLE_CLEARANCE);
     const rows = [...table.tBodies[0].rows];
+    // ⛔ FROZEN EDIT L1 (owner sign-off by picker, 27 Oct 2026: "Yes, apply it"; the lag switching back to the
+    // waterfall). Every row's rect is read HERE, in one pass, and both loops below use it. They used to read
+    // each row inside the loop, right after appending a handle, and an append dirties style and layout, so every
+    // read forced a recalc: about 100 per redraw on a 52-week grid, ~22 ms of a ~32 ms switch (headless, 1440x900).
+    // Same values: a handle is absolutely positioned in an absolutely positioned layer, so appending one cannot
+    // move a row. Read after the column handles, where the first row read always was. Proven before it shipped:
+    // every handle's inline style and dataset identical to the old build's, on 5 fixtures and at zoom.
+    const rowBoxes = rows.map(tr => tr.getBoundingClientRect());
     rows.forEach((tr, r)=>{
-      const rb = tr.getBoundingClientRect();
+      const rb = rowBoxes[r];
       const h = document.createElement('div');
       h.className = 'grid-resize is-row';
       h.style.left = ((tableBox.left - wrapBox.left) / z) + 'px';
@@ -409,8 +417,8 @@ export function initLegacyApp() {
       const m = /^(y\d+):s(\d+)$/.exec(c.dataset.ckey || '');
       if(m && m[2] === '0') slotBase.set(m[1], i);
     });
-    rows.forEach(tr=>{
-      const rb = tr.getBoundingClientRect();
+    rows.forEach((tr, r)=>{
+      const rb = rowBoxes[r];   // FROZEN EDIT L1: read once, above
       const top = (rb.top - wrapBox.top) / z, rowH = rb.height / z;
       let ci = 0;
       [...tr.cells].forEach(td=>{
