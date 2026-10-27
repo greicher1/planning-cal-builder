@@ -6761,6 +6761,7 @@ export function initLegacyApp() {
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
     delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
+    pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
     row.remove();
     update();
@@ -9237,11 +9238,12 @@ export function initLegacyApp() {
     }
     // ⚠️ textStyle.hiatus is a band's look too (the text style bar's, 21 Oct 2026), and it was missing from this
     // list until 27 Oct 2026, so a band styled in the waterfall and dragged here arrived unstyled while its old
-    // weeks kept the style (MONTH-TEXT-STYLE-PLAN.md §7). A new per-band store belongs in d.maps AND here.
+    // weeks kept the style (MONTH-TEXT-STYLE-PLAN.md §7). A new per-band store belongs in d.maps AND here: the
+    // month view's own band styles (mvTextStyle.band) are the second.
     function setMaps(m){
       hiatusTexts = m.hiatusTexts; hiatusNameSyncedKeys = m.hiatusNameSyncedKeys;
       hiatusColors = m.hiatusColors; hiatusFontSize = m.hiatusFontSize;
-      textStyle.hiatus = m.textStyleHiatus;
+      textStyle.hiatus = m.textStyleHiatus; mvTextStyle.band = m.mvTextStyleBand;
     }
     function writeTo(d, c){
       if(samePos(c, original(d))){
@@ -9355,7 +9357,7 @@ export function initLegacyApp() {
                  wasStart: h.sEl.value, wasWeeks: h.wEl.value,
                  maps: {hiatusTexts: Object.assign({}, hiatusTexts), hiatusNameSyncedKeys: Object.assign({}, hiatusNameSyncedKeys),
                         hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize),
-                        textStyleHiatus: Object.assign({}, textStyle.hiatus)},
+                        textStyleHiatus: Object.assign({}, textStyle.hiatus), mvTextStyleBand: Object.assign({}, mvTextStyle.band)},
                  others: h.kind === 'all' ? allPhaseHiatuses().filter(o=> o.sEl !== h.sEl) : [],
                  wrap0: lastShootDay(), ends0: phaseEnds(), broken: false};
       d.cur = original(d);
@@ -12760,6 +12762,7 @@ export function initLegacyApp() {
       // that got dropped rather than deleting someone's work silently.
       while(episodeDefs.length > wanted){
         const last = episodeDefs.pop();
+        delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
         // A typed prep length is an edit too (EPISODE-PREP-PLAN.md §6): it goes with the episode, so it
         // is named in the same "Removed ..." warning rather than lost in silence.
         if(last.nameEdited || last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'an episode');
@@ -12794,6 +12797,7 @@ export function initLegacyApp() {
       // what the warning names.
       while(blockDefs.length > wanted){
         const last = blockDefs.pop();
+        delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
         if(last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'a block');
       }
     }
@@ -15363,6 +15367,91 @@ export function initLegacyApp() {
       Object.keys(v[k]).forEach(key=>{ if(isPlainObj(v[k][key])) out[k][key] = Object.assign({}, v[k][key]); });
     });
     return out;
+  }
+  // ---------- Month text styles: what the text style bar has set on MONTH-VIEW text (MONTH-TEXT-STYLE-PLAN.md §4) ----------
+  // ⛔ SEPARATE FROM textStyle (owner ruling R2, 27 Oct 2026, "Separate per view"): a month style never changes the
+  // waterfall and a waterfall style never shows in the month, a waterfall note shown in the month included. The
+  // waterfall's highlight, resets, shift re-key and writers all iterate TEXT_STYLE_KINDS, so none of them can meet one.
+  // One map per kind of month text:
+  //   phase    '<phase key>@<its week number>' (ruling N2, "Follows Prep wk 2": no mover needs re-key code), or a
+  //            per-episode prep bar's '<prep key>@<unit id>', since a prep bar is named by its unit, not a week
+  //   episode  an episode's or a block's id: every bar of it (its days move with holidays and day marks)
+  //   simpost  the N a Simultaneous Post bar's label shows ("wk 3"), counted the same way when its label has none
+  //   band     the hiatusTexts key: week ISO for an all-phase band, 'week|phaseKey' for a phase's own
+  //   wfnote   a waterfall line's text without its date (mvWfNoteKey), mvWfNotePlace's key. ⛔ Its OWN map, never a
+  //            field in mvWfNotePlace: an entry there counts as a note place, and a calendar holding any place lays
+  //            its untouched notes out by mvReferenceAnchors(), so a style stored there could move notes nobody touched
+  //   frame    'month' (the month name) and 'dow' (the weekday row): one style each, every page
+  // ⛔ A MONTH NOTE'S STYLE IS NOT IN HERE: it is `fmt` on its own dayNotes entry, so it travels with every move of the
+  // note (an index key would land on the wrong note when one before it is deleted).
+  // A value is the header's format shape {size, bold, italic, color, align}, without highlight. ⛔ A bar drawn as a pill
+  // (a phase's, an episode's, Simultaneous Post's) takes NO colour (ruling N1, "maybe disable recoloring phase bar
+  // text"): each rings itself in its text colour. The sanitizer drops one, so a hand-edited file cannot get round it.
+  // ⛔ CALENDAR DATA, saved as `mvTextStyles` and ABSENT while nothing is styled, so every calendar without a month
+  // style saves byte for byte as before. PERMANENT: the key, its six kind names, and `fmt` on a day note.
+  const MV_TEXT_STYLE_KINDS = ['phase', 'episode', 'simpost', 'band', 'wfnote', 'frame'];
+  const MV_TEXT_NO_COLOR = ['phase', 'episode', 'simpost'];
+  // Owner ruling R3 ("Only sizes that fit"), the lists fixed by step 2's measurement (plan §3.3a): every size here keeps
+  // its text inside the line box it already has, which MV_TEXT_LINE_PX holds, so no bar, band, month bar or weekday row
+  // changes height. On screen a bar at 12 px cuts its descenders by 1 px, so bars and bands stop at 11.
+  const mvSizeRun = (a, b)=>{ const o = []; for(let n = a; n <= b; n++) o.push(n); return o; };
+  const MV_TEXT_SIZES = { bar: mvSizeRun(6, 11), note: mvSizeRun(6, 10), month: mvSizeRun(6, 17), dow: mvSizeRun(6, 11) };
+  // The line box each text already has: a bar's 10 px × 1.5, a note's 13 px line (MVL_GEOMETRY.noteLinePx), the month
+  // name's 17 px × 1.5, the weekday row's 11 px × 1.5. A styled size is written WITH it (§3.4).
+  const MV_TEXT_LINE_PX = { bar: 15, note: 13, month: 25.5, dow: 16.5 };
+  // The box one text sizes in. `daynote` is a month note (its style is on its entry).
+  function mvTextBox(kind, key){
+    if(kind === 'frame') return key === 'month' ? 'month' : 'dow';
+    return (kind === 'wfnote' || kind === 'daynote') ? 'note' : 'bar';
+  }
+  function emptyMvTextStyle(){ const o = {}; MV_TEXT_STYLE_KINDS.forEach(k=>{ o[k] = {}; }); return o; }
+  let mvTextStyle = emptyMvTextStyle();
+  // The style one month text carries, or null. For 'daynote' the key IS the note's entry.
+  function mvTextStyleOf(kind, key){
+    if(kind === 'daynote') return (key && isPlainObj(key.fmt)) ? key.fmt : null;
+    const m = mvTextStyle[kind];
+    return (m && key != null && Object.prototype.hasOwnProperty.call(m, key)) ? m[key] : null;
+  }
+  function mvTextStyleHasAny(){ return MV_TEXT_STYLE_KINDS.some(k=> Object.keys(mvTextStyle[k]).length > 0); }
+  // ⛔ FROZEN EDIT M1's helper (MONTH-TEXT-STYLE-PLAN.md §6): the CSS one month text's style adds, APPENDED after the
+  // text's own inline style so it wins (after a bar's background, colour and half-day layers, so it can reset none of
+  // them). '' for no style, so an unstyled calendar's markup is byte for byte what it was. A size is written with the
+  // line box the text already has (§3.4). Bold is the header's rule (mvlLineStyle): on 700, off 400, unset the text's
+  // own weight. No colour on a pill (N1), so its text and ring stay in the phase's ink.
+  function mvTextCss(kind, key){
+    const f = mvTextStyleOf(kind, key);
+    if(!f) return '';
+    let css = '';
+    if(f.size) css += ` font-size:${f.size}px; line-height:${MV_TEXT_LINE_PX[mvTextBox(kind, key)]}px;`;
+    if(f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
+    if(f.italic) css += ' font-style:italic;';
+    if(f.color && !MV_TEXT_NO_COLOR.includes(kind)) css += ` color:${f.color};`;
+    if(f.align) css += ` text-align:${f.align};`;
+    return css;
+  }
+  function mvTextStyleSnapshot(){
+    const out = {};
+    MV_TEXT_STYLE_KINDS.forEach(k=>{
+      const keys = Object.keys(mvTextStyle[k]);
+      if(!keys.length) return;
+      out[k] = {};
+      keys.forEach(key=>{ out[k][key] = Object.assign({}, mvTextStyle[k][key]); });
+    });
+    return out;
+  }
+  function mvTextStyleFromSnapshot(v){
+    const out = emptyMvTextStyle();
+    if(!isPlainObj(v)) return out;
+    MV_TEXT_STYLE_KINDS.forEach(k=>{
+      if(!isPlainObj(v[k])) return;
+      Object.keys(v[k]).forEach(key=>{ if(isPlainObj(v[k][key])) out[k][key] = Object.assign({}, v[k][key]); });
+    });
+    return out;
+  }
+  // Removing a custom phase takes its bars' and its own bands' month styles with it (plan §3.5).
+  function pruneMvTextStylePhase(k){
+    Object.keys(mvTextStyle.phase).forEach(x=>{ if(x.slice(0, x.lastIndexOf('@')) === k) delete mvTextStyle.phase[x]; });
+    Object.keys(mvTextStyle.band).forEach(x=>{ if(x.slice(x.indexOf('|') + 1) === k && x.indexOf('|') > 0) delete mvTextStyle.band[x]; });
   }
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
@@ -21024,6 +21113,7 @@ export function initLegacyApp() {
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     dayNoteColors = {}; mvExtraLanes = {};
     mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
+    mvTextStyle.wfnote = {};   // ...and their month styles; a day note's own style went with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
     render(currentSchedule);
     markDirty();
   }
@@ -21035,6 +21125,7 @@ export function initLegacyApp() {
   function resetHiatusBands(){
     hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
     textStyle.hiatus = {};
+    mvTextStyle.band = {};   // the month view's band styles too (MONTH-TEXT-STYLE-PLAN.md §3.5)
     update();
   }
   document.addEventListener('click', e=>{
@@ -23132,6 +23223,7 @@ export function initLegacyApp() {
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     textStyle = emptyTextStyle();
+    mvTextStyle = emptyMvTextStyle();
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths, row heights, cell spans and column ORDER are layout, not notes,
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
@@ -24390,6 +24482,9 @@ export function initLegacyApp() {
       // kinds that hold one. ⛔ PERMANENT key and kind words. ABSENT while nothing is styled, so a calendar
       // without a style saves byte for byte as before.
       ...(textStyleHasAny() ? {textStyles: textStyleSnapshot()} : {}),
+      // 27 Oct 2026 (MONTH-TEXT-STYLE-PLAN.md §4): the month view's text styles, kept apart from the waterfall's (R2). ⛔
+      // PERMANENT key and kind words. ABSENT while nothing is styled. A month note's own style rides on its dayNotes entry.
+      ...(mvTextStyleHasAny() ? {mvTextStyles: mvTextStyleSnapshot()} : {}),
       // 19 Oct 2026: number Production's shoot days in the month view ("Day 12"). ⛔ PERMANENT key,
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
@@ -25056,6 +25151,9 @@ export function initLegacyApp() {
     // shoot). Dates and headings carry no movable week, so they stay.
     textStyle.note = shiftKeyedMap(textStyle.note, days, isPinnedWeek);
     textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, days, hiatusKeyStays);
+    // The month view's band styles move as hiatusTexts does (MONTH-TEXT-STYLE-PLAN.md §4). Its phase, episode and Sim
+    // Post styles are keyed by what their labels say, so they need no re-key, and a note's rides on the note.
+    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, days, hiatusKeyStays);
     textStyle.phase = shiftKeyedMap(textStyle.phase, days, hiatusKeyStays);
     textStyle.simpost = shiftKeyedMap(textStyle.simpost, days, () => stayingPhases.has('production'));
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
@@ -29861,6 +29959,21 @@ export function initLegacyApp() {
   // out so that opening another note (or clicking a "+") can save the current one first instead
   // of throwing it away -- re-rendering here would invalidate the anchor the caller is about to
   // use. Returns true if anything was written.
+  // A waterfall line's month style is keyed by its text (without its date), so an edit that rewrites the line would
+  // leave the style behind on text that no longer exists (MONTH-TEXT-STYLE-PLAN.md §3.1). When the edit keeps the
+  // number of lines, each rewritten line takes its old line's style, unless its new text already has one.
+  function carryWfLineStyles(before, after){
+    const a = String(before || '').split('\n').map(mvWfNoteKey), b = String(after || '').split('\n').map(mvWfNoteKey);
+    if(a.length !== b.length) return;
+    const m = mvTextStyle.wfnote, moves = [];
+    a.forEach((k, i)=>{
+      const n = b[i];
+      if(k === n || !n || !Object.prototype.hasOwnProperty.call(m, k) || Object.prototype.hasOwnProperty.call(m, n) || !MV_WFNOTE_KEY.test(n)) return;
+      if(b.includes(k)) return;                    // the old line is still there (moved, not rewritten)
+      moves.push([k, n]);
+    });
+    moves.forEach(([k, n])=>{ m[n] = m[k]; delete m[k]; });
+  }
   function writeActiveMvNote(){
     if(!activeMvNote) return false;
     const {kind, weekKey, dayIso, lane, editIndex, textarea, pendingColor} = activeMvNote;
@@ -29887,6 +30000,7 @@ export function initLegacyApp() {
       if(text !== String(activeMvNote.initialText || '').trim()){
         const kept = text.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
         saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), dayIso);
+        carryWfLineStyles(String(activeMvNote.initialText || '').trim(), text);
       }
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
@@ -29911,6 +30025,8 @@ export function initLegacyApp() {
           if(list[idx].top === true) entry.top = true;
           else if(typeof list[idx].under === 'string') entry.under = list[idx].under;
           else if(list[idx].bottom === true) entry.bottom = true;
+          // ...and keeps its text style, which lives on the entry (MONTH-TEXT-STYLE-PLAN.md §3.1).
+          if(isPlainObj(list[idx].fmt)) entry.fmt = Object.assign({}, list[idx].fmt);
         }
         if(idx >= 0) list[idx] = entry; else list.push(entry);
       } else if(idx >= 0){
@@ -30883,6 +30999,37 @@ export function initLegacyApp() {
     }
     return Object.keys(out).length ? out : null;
   }
+  // One month text's style (MONTH-TEXT-STYLE-PLAN.md §4): the header's entry, less a highlight (a bar and a note already
+  // have a fill), a size outside its text's measured list (R3, §3.3a), and a colour on a pill (N1). `kind` is a month
+  // kind or 'daynote'; `key` matters only for 'frame'.
+  function cleanMvTextStyleEntry(kind, key, f, bad){
+    const out = cleanHeaderFormatEntry(f, bad);
+    if(!out) return null;
+    if('highlight' in out){ bad.n++; delete out.highlight; }
+    if('color' in out && MV_TEXT_NO_COLOR.includes(kind)){ bad.n++; delete out.color; }
+    if('size' in out && !MV_TEXT_SIZES[mvTextBox(kind, key)].includes(out.size)){ bad.n++; delete out.size; }
+    return Object.keys(out).length ? out : null;
+  }
+  // The whole `mvTextStyles` value: { kind: { key: entry } }. A wfnote key is a line's text (mvWfNotePlace's key rule),
+  // a frame key 'month' or 'dow', every other key SNAP_KEY's shape. Returns null when nothing survives.
+  const MV_WFNOTE_KEY = /^(?!(?:__proto__|constructor|prototype)$)[^\u0000-\u001f]{1,200}$/;
+  function cleanMvTextStyles(v, bad){
+    if(!isPlainObj(v)){ bad.n++; return null; }
+    const out = {};
+    Object.keys(v).forEach(kind=>{
+      if(!MV_TEXT_STYLE_KINDS.includes(kind) || !isPlainObj(v[kind])){ bad.n++; return; }
+      const m = {};
+      Object.keys(v[kind]).forEach(k=>{
+        const ok = kind === 'wfnote' ? MV_WFNOTE_KEY.test(k) : kind === 'frame' ? (k === 'month' || k === 'dow') : SNAP_KEY.test(k);
+        if(!ok){ bad.n++; return; }
+        const f = cleanMvTextStyleEntry(kind, k, v[kind][k], bad);
+        if(f) m[k] = f;
+      });
+      if(Object.keys(m).length) out[kind] = m;
+    });
+    if(isPlainObj(out.wfnote) && Object.keys(out.wfnote).length > 2000){ bad.n++; delete out.wfnote; }
+    return Object.keys(out).length ? out : null;
+  }
   // The whole `textStyles` value: { kind: { key: entry } }. Returns null when nothing survives.
   function cleanTextStyles(v, bad){
     if(!isPlainObj(v)){ bad.n++; return null; }
@@ -31108,6 +31255,8 @@ export function initLegacyApp() {
         if('top' in o && o.top !== true){ bad.n++; delete o.top; }
         if('under' in o && (typeof o.under !== 'string' || !SNAP_ID.test(o.under) || o.top === true)){ bad.n++; delete o.under; }
         if('bottom' in o && (o.bottom !== true || o.top === true || 'under' in o)){ bad.n++; delete o.bottom; }
+        // Its text style (MONTH-TEXT-STYLE-PLAN.md §4): a note's sizes, no highlight; written only when set.
+        if('fmt' in o){ const f = cleanMvTextStyleEntry('daynote', null, o.fmt, bad); if(f) o.fmt = f; else delete o.fmt; }
         return o;
       };
       if(Array.isArray(v)) return v.map(one).filter(Boolean);
@@ -31192,6 +31341,11 @@ export function initLegacyApp() {
     if('textStyles' in s){
       const ts = cleanTextStyles(s.textStyles, bad);
       if(ts) s.textStyles = ts; else delete s.textStyles;
+    }
+    // The month view's (MONTH-TEXT-STYLE-PLAN.md §4), the same way.
+    if('mvTextStyles' in s){
+      const ts = cleanMvTextStyles(s.mvTextStyles, bad);
+      if(ts) s.mvTextStyles = ts; else delete s.mvTextStyles;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
     // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
@@ -31506,6 +31660,8 @@ export function initLegacyApp() {
     // Unconditionally (CLAUDE.md "Restore unconditionally"): a file with no `textStyles` key has nothing
     // styled, never the previous calendar's styles.
     textStyle = textStyleFromSnapshot(snap.textStyles);
+    // ...and the month view's, the same way (MONTH-TEXT-STYLE-PLAN.md §4): no `mvTextStyles` key, no month style.
+    mvTextStyle = mvTextStyleFromSnapshot(snap.mvTextStyles);
     // ⚠️ `=== true`, AND OUTSIDE THE BRANCHES BELOW, both deliberately. `if(snap.headerTemplates)`
     // would leave the PREVIOUS file's mode in place when the new snapshot has no such key -- the
     // exact failure CLAUDE.md's "restore unconditionally" rule exists for, and the one that made
