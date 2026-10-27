@@ -6,7 +6,10 @@ view (TEXT-STYLE-BAR-PLAN.md D4). This plan lets it style the month's bars, band
 on screen and in both month PDFs.
 
 **Four rulings made, by picker, 27 Oct 2026 (§1). The three decisions this plan raised are ruled too (§2), and the two
-frozen edits, M1 and M2, are SIGNED OFF with the gate in §6 (owner's picker, 27 Oct 2026).** No code yet.
+frozen edits, M1 and M2, are SIGNED OFF with the gate in §6 (owner's picker, 27 Oct 2026).**
+
+✅ **BUILT, 27 Oct 2026, on branch `claude/sharp-stonebraker-8d2cd2` (steps 0–7; §12 records what the build decided).**
+Committed locally, not merged, not pushed.
 
 **The short version.** Most of the work is outside the frozen code: the store, the month highlight, the click rule,
 and teaching the month PDF writer to draw a style. The frozen renderer needs two edits. **M1** appends each styled
@@ -137,10 +140,36 @@ What the owner was offered:
   band's colour stay where they are set today. **Text colour is greyed while only bars are picked (N1).**
 - **Bold** is the header's rule, `mvlLineStyle`'s: on = 700, off = 400, unset = the text's own weight (bars 600, notes
   500, month name and weekday row 700). So an unstyled bar shows B lit. All four Inter weights are embedded already.
-- **Sizes offered** (R3; each list is confirmed by step 1's measurement before it is fixed): bars and bands 6–12 (or
-  6–11 if 12 cuts a glyph on screen), notes 6–10, the month name up to 17, the weekday row up to 11. A pick that mixes
-  kinds is offered the sizes every picked text allows.
+- **Sizes offered** (R3; FIXED by step 2's measurement, §3.3a): **bars and bands 6–11** (12 cuts on screen, the
+  plan's own fallback), **notes 6–10**, **the month name 6–17**, **the weekday row 6–11**. A pick that mixes kinds is
+  offered the sizes every picked text allows.
 - **No control has an id**, as for the bar today (`collectFieldValues`).
+
+### 3.3a Measured (step 2, 27 Oct 2026, the build on `f7c8f83`)
+
+A read-only probe (a throwaway harness leg, not kept) set every text of one kind in the month on screen to each size
+in turn, **bold and italic, with the line box held** (§3.4), and counted texts whose content area (the text's Range
+rects: the font's rounded ascent plus descent, a superset of its ink) left the bar's padding box, and rows, month bars
+and weekday rows that changed height. Fixtures `mvnotes` (January to June 2026: 30 pills, 18 notes, 3 wrapping pills)
+and `hiatusdrag` (March to August 2027: 20 pills, 10 hiatus bands). Nothing was saved.
+
+| Text (held line box) | fits through | first size that cuts | rows / month bar / weekday row grew |
+|---|---|---|---|
+| Pills, one line (15 px) | **11** | 12: every one, by 1 px (its descenders) | none, at any size |
+| Hiatus bands (15 px) | **11** | 12: every one, by 1 px | none |
+| Wrapping one-day pills, two lines (15 px) | 14 | (none to 14) | none |
+| Notes (13 px a line) | 11 | 12: 15 of 18, by 1 px | none |
+| Month name (25.5 px) | 20 | 22, by 1 px | none |
+| Weekday row (16.5 px) | 14 | (none to 14) | none |
+
+- **Why a bar cuts at 12 on screen and not in print.** On screen a bar is STRETCHED to its 17 px lane
+  (`.mv-bars{grid-auto-rows:17px}`), so its padding box is 15 px and its 15 px line box, starting 1 px down, already
+  runs 1 px past it. At 10 and 11 px the half-leading keeps the glyphs inside; at 12 px Chrome's rounded ascent and
+  descent (12 + 3) fill the whole line box and the descenders leave the padding box. In print (`align-self:start`) and
+  in the written PDF a bar is its natural 19 px, a 17 px padding box, which holds through 14 px by the writer's own
+  rule (`mvlLineMetrics`: 15 px cuts). The screen is the binding constraint.
+- **Held line boxes moved nothing.** No row, month bar or weekday row changed height at any size measured, so §3.4's
+  rule holds. A note's LINE COUNT is the one thing a size can change, and the probe did not re-lay notes (M1 does).
 
 ### 3.4 How a style keeps the calendar's shape (R3)
 
@@ -315,3 +344,35 @@ press on a note, a bar, a bar's edge or a band already starts a drag, and every 
 - **`month-bar-size`:** bigger bars. If it lands, it lifts R3's caps for bars; this plan's save format does not change.
 - **`month-view-modern-look`, `month-nav-in-toolbar`:** see §3.1's warning about the month name.
 - **`month-calendar-export-ics`:** an `.ics` has no styles to carry.
+
+## 12. Built (27 Oct 2026): what the build decided, and what it found
+
+- **Step 0 was a real bug, reproduced before the fix:** `hiatusdrag` H13 (new) styled two bands italic in the
+  waterfall and dragged each up a row in the month; both arrived upright. Fixed in `rekey()`/`setMaps()`; H13 now holds
+  the month band style through the drag too.
+- **Step 1 (M2):** gate 10 re-cut, all eleven cases; each new document, read with the new tooltip as the old, is the old
+  baseline byte for byte (the baseline README has the table).
+- **Step 2 fixed the size lists (§3.3a):** bars and bands 6–11, not 6–12. On screen a bar is stretched to its 17 px lane,
+  so at 12 px its descenders leave the padding box by 1 px. Print and the written PDF hold through 14.
+- **Keys the plan did not spell out, settled so the label is what the style follows (N2's principle):**
+  - a per-episode **prep** bar is keyed `<prep key>@<unit id>` ("Prep 202" names its unit, not a week);
+  - a **block** bar (Blocks mode) is keyed by its block id in the `episode` map (ids never collide: `ep…` / `blk…`);
+  - an **un-numbered** Simultaneous Post bar is keyed by the N it would show (its place among Sim Post weeks).
+- **Bold, as the header's rule:** on = 700, off = 400. So a bar (600, B lit) toggles 600 → 400 → 700, and Clear gives
+  back 600; a note (500, B unlit) toggles to 700 and 400. Only a press that lands on the text's own weight stores
+  nothing (B on the month name).
+- **The month name's alignment control greys:** `.mv-monthyear` is a flex item as wide as its text, centred between the
+  arrows, so `text-align` moves nothing on screen or in print. The writer keeps it centred too.
+- **The outline is a white inner ring inside the purple one:** a month note's default fill IS the highlight purple
+  (`MILESTONE_COLOR`), and a purple ring vanished on it (seen in the app pane).
+- **The shareable copy strips `.month-sel-box`:** body-level and never hidden while a pick is live, so a copy exported
+  then would have carried the boxes for good.
+- **A waterfall line edited in the month keeps its style** when the edit keeps the number of lines (line by line); the
+  day-note editor keeps a note's `fmt` across a text edit (it rebuilds the entry, so it had to be told).
+- **The grey tag inherits M1's line box:** a sized bar carries `line-height:15px`, which the `.mv-pill-block` inherits as
+  a length, so its baseline sits up to 1 px lower than at 13.5 px. The writer copies it (W2); `monthemit` measured it.
+- **`monthemit` anchors aligned text at its own anchor** (start, centre or end, as H0 already did for header lines),
+  because Chrome kerns ("SAT", "We") and the writer does not; a right-aligned or centred NOTE line is held at its
+  visible characters, since under `pre-wrap` the space a line wraps at hangs past the edge in Chrome's line box.
+- **Mutants** (§8): run against the built app, each red on the leg named in the HANDOFF entry.
+

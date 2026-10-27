@@ -1759,6 +1759,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
               hidewf:hidewf:400 \
+              mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
@@ -1885,6 +1886,41 @@ for n in fa:
         % (n.replace('monthemit.', '').replace('.pdf', ''), '' if same else ' -- NOT', pages, '' if pages == 1 else 's', size.split(' pts')[0], len(rows)))
 sys.exit(1 if bad else 0)
 PYMF
+
+# ⭐ mvtextstyle (in the list above, LIVE and RESTORE; 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §8) was run red on twelve
+# mutants before it was wired in, each on its own case: the writer ignoring a style (P1; and monthemit M0/T0/K0 here,
+# run with HARNESS_QUERY=src= so the leg slices the mutant), a size without its held line box (S1, S4), a note measured
+# at the old style (S3, S5), a colour accepted by the sanitizer on a bar (R3, R4) or stored by the bar (S2), an empty
+# style object (F1), restore only when the key is present (R5), a click opening a note (D1, G1, G2), typing replacing a
+# note (D1), a month style read by the waterfall (W1), an id on a bar control (B1), and the hiatus drag dropping a
+# month band style (hiatusdrag H13).
+# ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
+# ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
+# the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
+# leg's own Save), so each styled weight, size, slant and alignment is drawn where Chrome prints it. Its own block, not a
+# MESPEC run: that loop's two time-zone groups must hold the same 15 files. Then v1.8.0 opens the minted file (no
+# SNAPSHOT_VERSION bump: an older build ignores mvTextStyles and keeps a day note's `fmt`).
+rm -f "$HERE/monthemit.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvtextstyle "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+rm -f "$HERE"/monthemit.*.pdf
+rm -f "$HERE/mvtextstyle.json"
+HARNESS_PAGE=/releases/v1.8.0.html HARNESS_STATE=mvtextstyle "$HERE/run.sh" mvtextstyle 200 >/dev/null 2>&1
+cp -f "$HERE/mvtextstyle.json" "$HERE/mvtextstyle-old.json" 2>/dev/null
+for MTSPEC in "monthemit:monthemit (mvtextstyle)" "mvtextstyle-old:mvtextstyle (releases/v1.8.0.html)"; do
+python3 - "$HERE/${MTSPEC%%:*}.json" "${MTSPEC#*:}" <<'PYMT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMT
+done
 
 # ---- monthwriter (MONTH-PDF-WRITER-PLAN.md §8 step 4): the month-PDF writer's FIT, and the A/B against the print path
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer -- model, emitter and fit -- out of src/legacy/app.js, fits every month of
@@ -2237,7 +2273,8 @@ PYMO
 # H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
 # band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
 # stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
-# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# before it was wired in. H13 (27 Oct 2026): the band's WATERFALL text style travels too, for an
+# all-phase band and a phase's own; red before MONTH-TEXT-STYLE-PLAN step 0's fix. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
 # settles in headless Chrome); it was proved in the app pane.
 node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1

@@ -425,17 +425,26 @@ window.addEventListener('load', function () { (async function () {
     await bringIntoView(spp);
     spp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography/.test(txt(b)); });
     var qn = spp.getBoundingClientRect();
-    var hitNote = lclickAt(Math.round(qn.left + qn.width / 2), Math.round(qn.top + qn.height / 2));
+    // Since 27 Oct 2026 (MONTH-TEXT-STYLE-PLAN.md R1) a click on a note PICKS it for the text style bar, and a
+    // double-click opens it. Both are the note's own clicks, so the day menu still never opens.
+    var nx = Math.round(qn.left + qn.width / 2), ny = Math.round(qn.top + qn.height / 2);
+    var hitNote = lclickAt(nx, ny);
+    await settle();
+    var pickedN = {editor: !!document.getElementById('mv-note-pop'), boxes: document.querySelectorAll('.month-sel-box').length, menu: !!menuEl()};
+    var hitNote2 = lclickAt(nx, ny, {detail: 2});
+    (hitNote2 || hitNote).dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, clientX: nx, clientY: ny, button: 0, detail: 2}));
+    await settle();
     var taN = document.querySelector('#mv-note-pop textarea');
-    l4.note = {onTop: hitNote === spp || spp.contains(hitNote), editor: !!taN, text: taN ? taN.value.split('\n')[0] : null, menu: !!menuEl()};
+    l4.note = {onTop: hitNote === spp || spp.contains(hitNote), picked: pickedN, editor: !!taN, text: taN ? taN.value.split('\n')[0] : null, menu: !!menuEl()};
     if(taN) taN.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
     await settle();
     var pb4 = await pointOn('2026-07-08', 'bar:production');
     var hitBar = lclickAt(pb4.x, pb4.y);
     await settle();
     l4.bar = {onTop: !!(hitBar && hitBar.closest && hitBar.closest('.mv-pill[data-ph="production"]')), menu: !!menuEl(), swapping: document.body.classList.contains('grid-swapping')};
-    add('L4', 'A left-click on 9 Jul\'s "+" still opens the note editor, one on the "Start Principal Photography" note still edits it, and one on Ep. 202\'s bar opens nothing: no menu in any of the three (each hit-tested on top)',
-      l4.plus.onTop && l4.plus.editor && !l4.plus.menu && l4.note.onTop && l4.note.editor && /^Start Principal Photography/.test(l4.note.text) && !l4.note.menu
+    add('L4', 'A left-click on 9 Jul\'s "+" still opens the note editor, one on the "Start Principal Photography" note picks it (R1) and a double-click edits it, and one on Ep. 202\'s bar opens nothing: no menu in any of the three (each hit-tested on top)',
+      l4.plus.onTop && l4.plus.editor && !l4.plus.menu && l4.note.onTop && !l4.note.picked.editor && l4.note.picked.boxes > 0 && !l4.note.picked.menu
+        && l4.note.editor && /^Start Principal Photography/.test(l4.note.text) && !l4.note.menu
         && l4.bar.onTop && !l4.bar.menu && !l4.bar.swapping && !document.getElementById('mv-note-pop'),
       l4, 'editor, editor, nothing; never the menu');
 
