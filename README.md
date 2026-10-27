@@ -57,7 +57,7 @@ ruling by picker (R1–R4, N1–N3) and the sign-off on two frozen edits, M1 and
   and weekdays only when styled, the line counters measuring a styled note in its style) and M2 (the tooltips). M1 is
   inert unstyled. **Gate 10 re-cut for M2, all eleven cases:** reading the new tooltip as the old gives back every old
   document byte for byte (tests/baselines/2026-09-22-monthprint/README.md).
-- **Verified:** new leg `mvtextstyle` (LIVE 22/22: gestures, R1, every kind styled at once and shown, no row grown,
+- **Verified:** new leg `mvtextstyle` (LIVE 23/23: gestures, R1, every kind styled at once and shown, no row grown,
   0 clipped, one undo step per press, the file, the shareable copy, the written PDF's boxes exactly the unstyled file's
   with its programs, slant and colours, the waterfall's grid/workbook/PDF unchanged, a shift, Reset notes, an episode
   removed, New; RESTORE 6/6 incl. a hostile copy whose six bad values are dropped and counted, and a style-free file

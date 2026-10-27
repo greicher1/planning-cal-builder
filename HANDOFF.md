@@ -27,13 +27,28 @@
   - The highlight resolver must not call writer names (`mvlDecls`): the month legs' F0 forbids it.
   - A `t/` leg's own source is injected into the page, so a shareable copy contains it: never search a copy for a
     literal the leg also contains.
-- **Verified:** `mvtextstyle` LIVE 22/22, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
+- **Verified:** `mvtextstyle` LIVE 23/23, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
   `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. **Mutants (plan §8): all twelve red, each
   on its own case** (listed in `gate.sh` above the mvtextstyle block). ⚠️ `monthemit` slices `/src/legacy/app.js`
   unless given `HARNESS_QUERY=src=<path>`, so a mutant BUILD alone leaves it testing the real writer (it went green
   until run with `src=`). And an undo re-sanitizes its snapshot, so a bad value written by the bar can vanish before a
-  later Save sees it: check by Save straight after the press. Full gate: see below when it lands.
-- **Next:** the full gate, then the owner's picker to merge, then a separate one to push. Tracker card
+  later Save sees it: check by Save straight after the press.
+- **Full gate, run 1** (`8f5ec75`, 13:21–14:23, 62 min): **7 FAIL**, fixed in `c9514cf`:
+  - ⛔ **R1 broke three older cases, which expected a click on a month note to open its editor:** `mvmenu` L4 (a
+    synthetic press-release-click), `mvorder` N5 and N6 (trusted CDP input; N6 THREW, `.focus()` on an editor that
+    never opened, so the leg looked like a crash, not a rule change). Each now holds R1: a press picks (outline drawn,
+    no editor, no menu, no drag), then a double-click opens. ⚠️ `el.click()` from a script (no press) still opens a
+    note, which is why `mvnotes` and `mvmenu` P7 never noticed. Any new leg that opens a month note by a real click
+    must double-click.
+  - `monthlayout` EX on all four fixtures: it slices the writer out of app.js, anchored on `buildMonthLayout`'s last
+    line, which W3 changed. Re-anchored, and it hit two things the slice lacked. (1) The model read `MVL_PAINT`, the
+    emitter's constant declared AFTER it. `mvlStyledWidthOf` now reads it only once a style needs it, which only the
+    export does (bytes unchanged). (2) M1's `MV_TEXT_LINE_PX`, now sliced in too. F0's names gain `mvlTextFmt`,
+    `mvlFrameFmt` and `mvlStyledWidthOf`.
+  - `monthexport (hiatus-blanklabel)` wrote no file, so gate 13 had none for it: a stall. Standalone 9/9, and its file
+    is byte-identical to gate 13's baseline. The other 21 gate 13 files were byte-identical in the run.
+- **Full gate, run 2** (`c9514cf`): queued behind another worktree's gate; the result goes here.
+- **Next:** gate run 2, then the owner's picker to merge, then a separate one to push. Tracker card
   `month-text-style` is at "building"; move it to "ready" when the full gate is green.
 
 ### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md); superseded by the entry above)
