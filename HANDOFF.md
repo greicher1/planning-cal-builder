@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89` and MERGED into local `main` (owner's picker, *"Commit and merge to main"*); NOT PUSHED, NOT GATED IN FULL
+### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89`, merged with `main` (`c6cdfd3`) and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); NOT PUSHED, NOT GATED IN FULL
 
 - **Asked** (owner): *"Lets give collapsing arrows to the all phase hiatuses just like phases"*. Tracker card
   `hiatus-card-fold`.
@@ -32,9 +32,14 @@
 - ⚠️ **The pane's screenshots lagged the page** (it was running hidden): a `scrollTop` set by script showed up one or
   two screenshots later. Measure with `getBoundingClientRect()`, not by eye, when the pane is not on screen.
 - **Merged with `main`** after the Pre-Prep default name went live (`19eb0c0`, `84af9b2`): only README and HANDOFF
-  conflicted (both tops kept). Re-checked on the merged build (below).
-- **Not done:** no push, no full gate (chrome only: no frozen code, no saved key, no id). The owner asked whether a full
-  gate is needed before the push.
+  conflicted (both tops kept). Re-checked on the merged build `003fb0e6…`: check 40/40, `hiatusfold` 11, `phasefold` 11,
+  `prepreptitle` 7, `scenarios` 22, `scenariofacts` 12 (both run Compare's probe, which carries the folds), `undokeys`
+  11, `hdrcontrols (carry-rich)` 12, `winansi` 7, `caps` 5, `wrapdate` (its own judge: 5 scenarios, wrap and start
+  right), `wholenum` 12, `simpostlabel` 3, `loadcarry` 6, `hiatusdrag` 14 — all green.
+- **Full gate?** The owner asked whether one is needed. Answered no: no frozen code, no saved byte (H3), no id; the
+  one real risk, a throw in the two lines `applyStateSnapshot()` gained, would break every undo and Load, which the
+  legs above all exercise.
+- **Not done:** no push. Pushing `main` would also ship `84af9b2` (another session's HANDOFF-only commit).
 
 ### ✅ 28 Oct 2026: PRE PREP'S DEFAULT NAME IS "PRE-PREP" — ✅ LIVE at `19eb0c0`
 
