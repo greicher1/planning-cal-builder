@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
+### ✅ 28 Oct 2026 (latest): DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
 - **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
   left side bar"*. Tracker card `mv-dblclick-phase-card`.
@@ -35,9 +35,14 @@
   existing harness server on 8390. A `mvbarcard-8619` entry was added to `.claude/launch.json`, unused.
 - **No full gate:** another session's gate (`ep-shoot-bars`) was running, and the change has the hiatus-fold
   profile: no frozen code, no saved byte, no id.
-- ⏭ **Next:** the next full gate includes `mvbarcard`.
+- ✅ **Pushed and live:** ONE `git push origin main` at 12:02:02 (`9d5fe4a..7965ebc`). It also carried the month
+  stepper (`2ee0a21`, `f151902`, `c2a2949`) and the HANDOFF-only `646ff9d`: the owner chose *"Push both now"*,
+  asked with the stepper named. First a rebuild from the commit was `cmp`-identical to the tested build
+  `d3042c39…`. At 12:03:11 the live `index.html`, fetched with a cache-buster, was byte-identical to it (1,875,118
+  bytes). No version cut (still v1.9.0).
+- ⏭ **Next:** the next full gate includes `mvbarcard`, and the month stepper's merged build, which had no full gate.
 
-### 🔨 28 Oct 2026: PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
+### ✅ 28 Oct 2026: PROPER ‹ › MONTH BUTTONS — ✅ LIVE at `7965ebc` (pushed with the month double-click change, entry above) —, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
 
 - **Asked:** *"I think we still need proper left and right buttons to move the month view cal one month
   forward/backwards. propose a few ideas for places it could go"*. Four places mocked up (A big ends on the map, B on
