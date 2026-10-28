@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch, not merged
+### ✅ 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch; merged with `main` twice (`bc80460`, `a8eccf4`), re-checked on the merged build; local `main` FAST-FORWARDED to it (owner's picker, *"Merge into main"*); PUSH APPROVED after the re-check (owner's picker, *"Push after the re-check"*)
 
 - **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
   in the month view"*. Tracker card `waterfall-note-colours`.
@@ -31,11 +31,18 @@
   Chrome over CDP (the pane's five server slots were all other chats', and it would not open a local file).
 - **Full gate** (`HARNESS_PORT=8257 ./gate.sh` in the worktree, after the `month-step` worktree's finished):
   **3,352 PASS / 0 FAIL / 1 INFO** (the INFO is monthwriter's usual "reported, not judged" January 2026 line), in 31 min.
-- **Next:** ask the owner to merge into `main` and, separately, to push. `main` has moved since this branch was cut
-  (Pre-Prep's default name, the hiatus-card caret, the month stepper, the month double-click, all committed now). A
-  trial `git merge-tree` conflicts in HANDOFF.md and README.md only (both top entries: keep every one); `app.js`,
-  `legacy.css` and `gate.sh` merge clean, and gate.sh must keep both `prepreptitle` and `wfnotecolors`. Re-check the
-  MERGED build (`npm run build` + `check`, `wfnotecolors`, `mvnotes`, base/restore/gate 5) before any push.
+- **Merged** (owner's picker): `main` merged into the branch as `bc80460` (Pre-Prep, the hiatus-card caret, the month
+  stepper, the month double-click); conflicts in HANDOFF.md and README.md only (every entry kept). While that merge was
+  being re-checked, ANOTHER session pushed `ep-shoot-bars` (`b9f0ff7`: episodes named "Episode 101" again, month bars
+  "Shoot 101", gates 10 and 13 re-cut), so the check was stopped and `main` merged again as `a8eccf4` (same two docs,
+  every entry kept; its heading still said "NOT merged, NOT pushed" and now says it is live). `app.js`, `legacy.css`,
+  `gate.sh` and `mvnotes.js` merged clean; gate.sh keeps `prepreptitle` and `wfnotecolors`.
+- **Re-checked on the MERGED build** (`a8eccf4`): `npm run build` + `check` 40/40; `wfnotecolors` 14/14, `mvnotes`
+  30/30 + 14/14, `mvbarcard` 7/7, `monthmap` (mvnotes) 20/20, `hidewf` 19/19, `prepreptitle` 7/7, `hiatusfold` 11/11,
+  `wfkeys` 84/84; gate.sh's first section: `base` (grid, waterfall PDF, every Excel part identical to the 29 Aug
+  baseline), `restore` and gate 5 all PASS. No second full gate: two other sessions' gates were running, and none of
+  `ep-shoot-bars`' re-cut month baselines can contain a No fill waterfall note (older builds' sanitizer dropped it).
+- ⏭ **Next:** nothing owed. The next full gate runs `wfnotecolors` with everything else.
 
 ### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch and merged with today's `main`, month baselines re-cut (owner sign-off), full gate run twice; NOT merged into `main`, NOT pushed — ⚠️ superseded: `git` shows it merged and ✅ LIVE at `b9f0ff7` (found by the `wf-note-colors` merge, 28 Oct 2026, 14:07; this heading predates that)
 
