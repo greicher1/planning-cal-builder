@@ -243,15 +243,16 @@ window.addEventListener('load', function () { (async function () {
       if(own) own.click();
       await T.sleep(150);
       var p5sel = selectedSwatch(); escEditor(); await T.sleep(100);
-      // A waterfall-owned note keeps the ten standard colours: its colour prints in the waterfall and Excel.
+      // A waterfall-owned note takes the same two rows since 28 Oct 2026 (owner: waterfall notes take the month note
+      // palette; its writers learned No fill as frozen edits NF1 and NF2). Until then it kept the ten standard colours.
       await goTo('July 2026');
       var wf = q('#table-wrap .mv-note-block[data-note-kind="wf"]');
       if(wf) wf.click();
       await T.sleep(150);
       var p5rows = swatchRows(); escEditor(); await T.sleep(100);
-      add('P5', 'an existing note opens on its own colour (Pink, not the last used Dark grey); a WATERFALL note\'s editor keeps the ten standard colours only',
-        p5sel === 'Pink' && !!p5rows && p5rows.length === 1 && p5rows[0].length === 10 && p5rows[0].indexOf('No fill') < 0,
-        {own: p5sel, wfRows: p5rows}, 'Pink; one row of ten');
+      add('P5', 'an existing note opens on its own colour (Pink, not the last used Dark grey); a WATERFALL note\'s editor offers the same two rows as a day note\'s (since 28 Oct 2026)',
+        p5sel === 'Pink' && eq(p5rows, rows),
+        {own: p5sel, wfRows: p5rows}, 'Pink; the same two rows');
 
       // ================= H: item 10, every hiatus day =================
       await goTo('December 2026');

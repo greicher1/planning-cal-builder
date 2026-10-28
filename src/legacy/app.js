@@ -6581,24 +6581,28 @@ export function initLegacyApp() {
   let blockCounter = 0;
   // ⛔ CALENDAR DATA, both stores: an episode's or block's own month-bar prefix, `barPrefix` on its entry
   // (owner, 20 Oct 2026; v1.6.0 only). A PERMANENT key, though nothing writes it any more: the same evening
-  // the owner moved "Shoot" into the episode's NAME (episodeNamesLegacy, below) and retired the day menu's
-  // Prefix… that set it. A v1.6.0 file that carries one keeps it, round-trips it, and its bar still reads
-  // the way v1.6.0 drew it (unitBarLabel) until that episode is renamed, which clears it.
+  // the owner moved "Shoot" into the episode's NAME and retired the day menu's Prefix… that set it (and on
+  // 28 Oct moved it to the bar, episodeBarName below). A v1.6.0 file that carries one keeps it, round-trips
+  // it, and its bar still reads the way v1.6.0 drew it (unitBarLabel) until that episode is renamed, which
+  // clears it.
   const BAR_PREFIX_MAX = 24;
-  // ⭐ AN EPISODE'S DEFAULT NAME IS ITS MONTH-BAR TEXT (owner, 20 Oct 2026, by picker): "Shoot Ep. 101",
-  // "Shoot Ep. 102"..., so renaming one in the episode list changes exactly what its bar says, with no
-  // second control. It replaced v1.6.0's separate "Shoot" prefix ("so that you can easily change them and it
-  // doesn't mess things up"). Rulings: Prefix… is removed; a typed name is the bar's text as typed;
-  // prep pills and episode LISTS still read the number ("Prep 101", "Ep. 201, 202"; shortEpisodeName).
-  // ⛔ OLD FILES KEEP "Episode 101" (the owner's pick, "Leave them as saved"): a calendar whose stored
-  // names follow the old default keeps naming episodes that way, so an episode added to it is "Episode 111"
-  // beside "Episode 110", and its bars read those names. Not a saved key: applyStateSnapshot() reads it off
-  // the names themselves (an un-renamed "Episode N" can only have been written by an older build), so no
-  // file format moved, and every load, undo and crash recovery re-derives it from the state it restores.
-  const EPISODE_NAME_PREFIX = 'Shoot Ep. ', EPISODE_NAME_PREFIX_LEGACY = 'Episode ';
-  let episodeNamesLegacy = false;
-  function storesLegacyEpisodeNames(defs){
-    return Array.isArray(defs) && defs.some(e=> e && !e.nameEdited && /^Episode \d+$/.test(String(e.name || '')));
+  // ⭐ EPISODES ARE NAMED "Episode 101"; THEIR MONTH BARS READ "Shoot 101" (owner, 28 Oct 2026: "I want them
+  // titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as Shoot 101
+  // ... if you change the title to anything other than default, it switches to the exact words").
+  // An episode whose name is still "Episode <number>" draws "Shoot <number>"; any other name draws exactly
+  // as typed ("Pilot"). The rule reads the NAME, not `nameEdited`, so an episode renumbered by hand
+  // ("Episode 109", a season split across two calendars) still reads "Shoot 109" beside its neighbours.
+  // Prep pills and episode LISTS still read the number ("Prep 101", "Ep. 201, 202"; shortEpisodeName).
+  // ⚠️ HISTORY, and why no migration is written: 20 Oct 2026 the default name was "Shoot Ep. 101" and the bar
+  // read the name as typed, with older files keeping "Episode 101" through a flag read off their names
+  // (episodeNamesLegacy, gone). An un-renamed name is never the file's: syncEpisodesFromShowInfo() rewrites
+  // every `!nameEdited` name from defaultEpisodeName() on each restore (refreshAfterRestore ->
+  // refreshEpisodesUI), so a file saved with "Shoot Ep. 101" opens as "Episode 101", and a pre-20-Oct
+  // file's "Episode 101" is simply the default again. A name someone TYPED is never touched.
+  const EPISODE_NAME_PREFIX = 'Episode ', EPISODE_BAR_PREFIX = 'Shoot ';
+  function episodeBarName(name){
+    const m = /^Episode\s+(\d+)$/.exec(String(name || ''));
+    return m ? EPISODE_BAR_PREFIX + m[1] : null;
   }
   // false = the episode split is the automatic front-loaded one (ruling 1) and is recomputed
   // whenever the episode or block count changes. true = someone moved an episode by hand, and the
@@ -12858,8 +12862,7 @@ export function initLegacyApp() {
     return String(s * 100 + index + 1);
   }
   function defaultEpisodeName(index){
-    return (episodeNamesLegacy ? EPISODE_NAME_PREFIX_LEGACY : EPISODE_NAME_PREFIX)
-      + episodeNumberFor(document.getElementById('season-num').value, index);
+    return EPISODE_NAME_PREFIX + episodeNumberFor(document.getElementById('season-num').value, index);
   }
   function defaultEpisodeDays(){
     const v = dayCountVal(document.getElementById('shoot-days-per-ep').value);
@@ -12989,9 +12992,9 @@ export function initLegacyApp() {
     blockDefs.forEach(b=> b.episodes.sort((a, c)=> pos.get(a) - pos.get(c)));
   }
 
-  // "Shoot Ep. 201" (or an older file's "Episode 201") -> "201": the number is what a UPM reads on a
-  // board, so prep pills and episode lists keep reading it (owner, 20 Oct 2026). A name someone typed
-  // that does not follow either pattern ("Pilot") is shown whole.
+  // "Episode 201" (or a "Shoot Ep. 201" typed in the 20-28 Oct builds) -> "201": the number is what a UPM
+  // reads on a board, so prep pills and episode lists keep reading it (owner, 20 Oct 2026). A name someone
+  // typed that does not follow either pattern ("Pilot") is shown whole.
   function shortEpisodeName(e){
     const nm = (e && e.name) || '';
     return nm.replace(/^(?:Episode|Shoot\s+Ep\.)\s+/i, '') || nm;
@@ -13435,12 +13438,11 @@ export function initLegacyApp() {
     return {parts, bar};
   }
   // `run` is the run being named (segPillLabel's, from takeProdRun), for the half-day rule below.
-  // ⭐ AN EPISODE'S BAR READS ITS NAME, AS TYPED (owner, 20 Oct 2026, by picker; episodeNamesLegacy). A new
-  // calendar names its episodes "Shoot Ep. 101", so its bars read exactly what v1.6.0's "Shoot" prefix
-  // drew; rename one to "Pilot" and its bar reads "Pilot". An older file's "Episode 101" reads "Episode 101"
-  // (the owner's "Leave them as saved"). This replaced the bar prefix (v1.6.0, the same day): first asked
-  // 16 Oct, "Can it say 'Shoot' before Ep. 101", then "I also want the default names to literally be
-  // 'Shoot Ep. 101' ... so that you can easily change them and it doesn't mess things up".
+  // ⭐ AN EPISODE'S BAR READS "Shoot 101" WHILE IT IS NAMED "Episode 101", AND ANY OTHER NAME AS TYPED
+  // (owner, 28 Oct 2026; episodeBarName). Rename one to "Pilot" and its bar reads "Pilot". This replaced
+  // 20 Oct's "Shoot Ep. 101" default NAMES (the bar read the name as typed, and older files' bars read
+  // "Episode 101"), which had in turn replaced v1.6.0's per-bar prefix; first asked 16 Oct, "Can it say
+  // 'Shoot' before Ep. 101".
   // Only a bar that names ONE episode reads a name. A block's bar, a week's, and a Blocks calendar's
   // bar labelled by its episodes ("Ep. 201, 202", ruled "unchanged") read unitLabelParts()'s text.
   // ⛔ A switch day's ONE-DAY HALF BAR reads the short form, "Ep. 101" (16 Oct ruling, kept): measured then,
@@ -13456,7 +13458,7 @@ export function initLegacyApp() {
     if(halfDay) return text;
     const def = unitDefOf(kind, unit);
     if(def && typeof def.barPrefix === 'string') return def.barPrefix ? def.barPrefix + ' ' + text : text;
-    if(kind === 'episode' && L.bar === 'episode' && def && def.name) return def.name;
+    if(kind === 'episode' && L.bar === 'episode' && def && def.name) return episodeBarName(def.name) || def.name;
     return text;
   }
   // The unit's own entry, or null.
@@ -14172,9 +14174,12 @@ export function initLegacyApp() {
     td.classList.add('editing');
     td.style.background = curColor;
     td.style.color = textColorFor(curColor);
-    const swatches = EXCEL_STANDARD_COLORS.map(c =>
-      `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
-    ).join('');
+    // A note picks from the note palette, the month view's (owner, 28 Oct 2026); a hiatus band keeps the standard ten.
+    const swatchRows = isHiatus
+      ? `<div class="note-color-row" title="Highlight color">${EXCEL_STANDARD_COLORS.map(c =>
+          `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
+        ).join('')}</div>`
+      : notePaletteRowsHtml(curColor);
     // Day picker: the waterfall's unit is a week, so a note typed here needs a day before the
     // month view can place it. Default is "Mon (default)" -- the same fallback the month view
     // uses -- so this is opt-in rather than another required field.
@@ -14212,7 +14217,7 @@ export function initLegacyApp() {
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
-      <div class="note-color-row" title="Highlight color">${swatches}</div>
+      ${swatchRows}
       </div>
       <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
@@ -14860,7 +14865,10 @@ export function initLegacyApp() {
               size: Math.round(11 * fit.scale * 100) / 100
             }});
             nCell.value = noteText;
-            setFill(nCell, nCol);
+            // ⛔ FROZEN EDIT NF1 (owner sign-off by picker, 28 Oct 2026: waterfall notes take the month note palette):
+            // a No fill note (#FFFFFF00) gets no fill at all, where setFill would write the 10-digit ARGB
+            // "FFFFFFFF00". Its ink is textColorFor's black, as above. Every other colour fills exactly as before.
+            if(!isMvNoFill(nCol)) setFill(nCell, nCol);
             // wrapText must also be on when the text carries an explicit newline. Without it
             // Excel keeps the break in the cell's value but lays the whole string out on ONE
             // line, so a week with two notes -- autoNotesText joins them with '\n' -- ran
@@ -17056,10 +17064,17 @@ export function initLegacyApp() {
     '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'
   ];
   // ⭐ THE MONTH NOTE PALETTE (MONTH-NOTES-PLAN.md §2; owner, 20 Oct 2026, by picker: "Remember last colour",
-  // "'No fill' plain text", "Light tints", "Greys", all four). A DAY note's colours: No fill, the ten standard
+  // "'No fill' plain text", "Light tints", "Greys", all four). A note's colours: No fill, the ten standard
   // colours above, four light tints and three greys. Its own list, because the literal above is frozen
-  // (MANTINE-SEAM §4.8) and is still the WATERFALL note's palette: a waterfall-owned note's colour is
-  // noteColors[week], which the waterfall, Excel and the waterfall PDF print, and none of them knows No fill.
+  // (MANTINE-SEAM §4.8) and is still the hiatus band's palette.
+  // ⭐ WATERFALL NOTES TAKE IT TOO (owner, 28 Oct 2026: "add all the same note bg color options for notes in the
+  // waterfall as we currently have for notes in the month view"). A waterfall note's colour is noteColors[week],
+  // which the waterfall, Excel and the waterfall PDF print: the tints and greys needed nothing, and No fill
+  // needed frozen edits X1 (exportExcel) and P1 (buildWaterfallPdf), signed off by picker the same day, plus
+  // noteColorFor and sanitizeSnapshot letting it through. Its month block is a day note's, so the month view and
+  // both month PDFs draw it with no edit. ⚠️ A file with a No fill waterfall note in an older build: v1.3.0 to
+  // v1.9.0 drop it in sanitizeSnapshot (the note shows the default purple); a pre-v1.3.0 build's own writers
+  // would misread it, which is the new-file-in-old-app case nothing supports.
   // Each entry carries a name, which "Paste notes…" reads (pasteNoteColor). Every tint and grey is plain
   // #RRGGBB, so the frozen renderer, sanitizeSnapshot and both month PDFs take it as they take any colour.
   // ⛔ NO FILL IS '#FFFFFF00', white at zero alpha. It needs no format change, and every build draws it
@@ -17077,6 +17092,14 @@ export function initLegacyApp() {
      {name: 'Pale blue', color: '#BBDCF7'},
      {name: 'Light grey', color: '#D9D9D9'}, {name: 'Grey', color: '#A6A6A6'}, {name: 'Dark grey', color: '#595959'}]);
   function isMvNoFill(c){ return typeof c === 'string' && c.toUpperCase() === MV_NOTE_NOFILL; }
+  // The palette as every note editor draws it, in two rows: the standard ten, then No fill, the tints and the
+  // greys. One builder, so the waterfall's editor and both kinds of month note editor cannot drift apart.
+  function notePaletteRowsHtml(curColor){
+    const cur = String(curColor).toUpperCase();
+    const swatch = p => `<span class="color-swatch${isMvNoFill(p.color) ? ' is-nofill' : ''}${p.color.toUpperCase() === cur ? ' selected' : ''}" data-color="${p.color}" title="${p.name}"${isMvNoFill(p.color) ? '' : ` style="background:${p.color};"`}></span>`;
+    return `<div class="note-color-row note-palette-row" title="Highlight color">${MV_NOTE_PALETTE.slice(1, 11).map(swatch).join('')}</div>`
+      + `<div class="note-color-row note-palette-row" title="Highlight color">${[MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(swatch).join('')}</div>`;
+  }
   // The colour a NEW day note opens on: the one last committed from the editor (prefs.mvNoteColor, per user,
   // never in a saved calendar), or the default purple. Only a palette colour is honoured, so a hand-edited
   // store cannot reach a style attribute.
@@ -17672,7 +17695,9 @@ export function initLegacyApp() {
   }
   // ⛔ The two colour getters are what the frozen renderers read for style="background:${…}", so a
   // colour that is not #rrggbb falls back to the default here, whatever put it in the store (H-1).
-  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return isHexColor(c) ? c : MILESTONE_COLOR; }
+  // A note may also be No fill (#FFFFFF00, owner 28 Oct 2026), the one other value: the screen paints it
+  // transparent with black ink as it stands, and the two writers skip its fill (frozen edits X1, P1).
+  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return (isHexColor(c) || isMvNoFill(c)) ? c : MILESTONE_COLOR; }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
   function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
   function hiatusFontSizeFor(weekKey){ return hiatusFontSize[weekKey]; }
@@ -18958,7 +18983,7 @@ export function initLegacyApp() {
     const out = { text: stripXmlIllegal(it.text, '\n') };
     if(Number.isInteger(it.dow) && it.dow >= 0 && it.dow <= 6) out.dow = it.dow;
     if(typeof it.stamp === 'string' && /^\d{1,2}\/\d{1,2}\/\d{2}$/.test(it.stamp)) out.stamp = it.stamp;
-    if(isHexColor(it.color)) out.color = it.color;
+    if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
     const size = finiteNum(it.size);
     if(size !== null && size >= 1 && size <= 400) out.size = size;
     if(it.style !== undefined){ const f = cleanTextStyleEntry('note', it.style, { n: 0 }); if(f) out.style = f; }
@@ -23993,7 +24018,6 @@ export function initLegacyApp() {
     { const loc = document.getElementById('show-location'); if(loc) loc.value = ''; }   // KEY-FACTS-PLAN §5
     ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
-    episodeNamesLegacy = false;   // a blank calendar names its episodes "Shoot Ep. 101"
     // Back to Episodes, the mode every calendar starts in -- and the block list with it.
     const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
     ['num-blocks', 'days-per-block'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
@@ -28893,7 +28917,9 @@ export function initLegacyApp() {
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
                                   Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX },
                                                 nts && nts.bold ? { bold: true } : {}));
-          page.rect(nx, ry, nw, rh, nCol);
+          // ⛔ FROZEN EDIT NF2 (owner sign-off by picker, 28 Oct 2026, with NF1): a No fill note draws no rectangle;
+          // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
+          if(!isMvNoFill(nCol)) page.rect(nx, ry, nw, rh, nCol);
           page.clipPush(nx, ry, nw, rh);
           if(nts) drawStyled(fit.wrap ? wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold) : String(nTxt).split('\n'),
                              nx, nw, ry, rh, S(11*fit.scale), textColorFor(nCol), nts, false, fit.wrap);
@@ -31064,15 +31090,8 @@ export function initLegacyApp() {
       curColor = entry ? (entry.color || MILESTONE_COLOR) : mvNoteStartColor();
       editIdx = entry ? ni : null;
     }
-    // A day note picks from the month note palette (No fill, the standard ten, the tints, the greys), in two
-    // rows; a waterfall-owned note keeps the standard ten, which are all its writers know.
-    const swatch = (c, name) =>
-      `<span class="color-swatch${isMvNoFill(c) ? ' is-nofill' : ''}${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${name || c}"${isMvNoFill(c) ? '' : ` style="background:${c};"`}></span>`;
-    const swatches = isWf
-      ? EXCEL_STANDARD_COLORS.map(c => swatch(c)).join('')
-      : MV_NOTE_PALETTE.slice(1, 11).map(p => swatch(p.color, p.name)).join('')
-        + '</div><div class="note-color-row mv-note-tints" title="Highlight color">'
-        + [MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(p => swatch(p.color, p.name)).join('');
+    // Both kinds pick from the note palette (No fill, the standard ten, the tints, the greys), in two rows. A
+    // waterfall-owned note kept the standard ten until 28 Oct 2026, when its writers learned No fill (X1, P1).
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
     pop.className = 'mv-note-pop';
@@ -31082,7 +31101,7 @@ export function initLegacyApp() {
     const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     pop.innerHTML = `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
       <textarea rows="3" placeholder="Note text${isWf?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
-      <div class="note-color-row" title="Highlight color">${swatches}</div>
+      ${notePaletteRowsHtml(curColor)}
       <div class="mv-note-pop-hint">${scopeNote} \u00b7 ${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
@@ -32043,8 +32062,9 @@ export function initLegacyApp() {
     const colour = v => isHexColor(v) ? v : undefined;
     const str = v => (typeof v === 'string') ? stripXmlIllegal(v, '\n') : undefined;
     const bool = v => (typeof v === 'boolean') ? v : undefined;
-    // Colours -- every one of these reaches a style attribute.
-    setMap('noteColors', colour);
+    // Colours -- every one of these reaches a style attribute. A waterfall note may also be No fill (owner,
+    // 28 Oct 2026), exactly #FFFFFF00, which its writers skip (X1, P1); a band never is.
+    setMap('noteColors', v => (isHexColor(v) || isMvNoFill(v)) ? v : undefined);
     setMap('hiatusColors', colour);
     setMap('dayNoteColors', colour);
     // Numbers that reach style/attribute values (font-size, height, width, lanes).
@@ -32370,9 +32390,6 @@ export function initLegacyApp() {
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
     }
-    // Which default name this calendar's episodes take (episodeNamesLegacy), read off the names it
-    // stores. ⛔ UNCONDITIONAL, so an undo or Load never inherits the previous calendar's style.
-    episodeNamesLegacy = storesLegacyEpisodeNames(snap.episodeDefs);
     // ⛔ UNCONDITIONAL (audit M-2, FIX-PLAN.md 1.1, 25 Sep 2026). This block was gated on
     // `snap.customPhaseDefs.length`, so a file with NO custom phases skipped it and the previously
     // open calendar's custom rows stayed -- with their names, dates and colours -- and were scheduled

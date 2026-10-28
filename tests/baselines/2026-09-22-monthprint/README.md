@@ -359,6 +359,37 @@ Cut with `monthcmp.py cut` from fresh `monthprint` runs (the gate's own invocati
 `monthcmp.py gate` passed against the new `mvnotes` cut. The gate's `blocksoff`-vs-`reference` check still holds: both
 documents carry the same 21 tooltips.
 
+## ✅ RE-CUT 28 Oct 2026 — NINE CASES: episode bars read "Shoot N" (episodes are named "Episode N" again)
+
+- **The ruling** (owner, 28 Oct 2026): episodes are named "Episode 101" again, and a month bar for one episode reads
+  "Shoot 101" while the name is "Episode <number>"; any other name reads as typed (`episodeBarName`, `unitBarLabel`).
+  So `reference` (typed in fresh, "Shoot Ep. N") and every Episodes fixture (saved by an older build, "Episode N") now
+  print "Shoot N". Signed off by the owner after the classification below and the halfdays contact sheet (July 2026,
+  red only on the bar names and the grey text after them): *"Re-cut + gate"* (picker).
+- **What moved.** In each re-cut document, reading "Shoot Ep. N" / "Episode N" (old) and "Shoot N" (new) all as the
+  episode gives back the old baseline **byte for byte** (the dotted date stamp read as a stamp), with the count equal.
+  The JSON sidecars differ only in `bytes`, `docSha1`, `structSha1` and `run`: every element count, fit table, sheet
+  count and page box is unchanged.
+- ⭐ **`blocksoff.html` is byte-identical to `reference.html` again.** Both draw "Shoot N", so BLOCKS-PLAN §5 condition 3
+  ("no change at all with Blocks off") holds literally once more. The two files stay separate, and the gate's
+  blocksoff-vs-reference block (now reading "Shoot N" as the episode too) still runs.
+
+| case | bytes before → after | bars now "Shoot N" | months → sheets |
+|---|---|---|---|
+| `reference` | 508,933 → 508,685 | 62 (were "Shoot Ep. N") | 16 → 16 |
+| `dayoverrides` | 480,979 → 480,859 | 60 | 15 → 15 |
+| `mvheader` | 481,999 → 481,879 | 60 | 15 → 15 |
+| `mvheaderlegacy` | 528,064 → 527,944 | 60 | 15 → 15 |
+| `blocksoff` | 508,809 → 508,685 | 62 | 16 → 16 |
+| `dayoverrides-onhalf` | 481,679 → 481,551 | 64 | 15 → 15 |
+| `hiatus-blanklabel` | 506,796 → 506,684 | 56 | 16 → 16 |
+| `halfdays` | 516,008 → 515,928 | 40 | 16 → 16 |
+| `mvnotes` | 543,556 → 543,432 | 62 | 17 → 17 |
+
+Held, untouched and identical: `blocks` and `month-lanecap` (no episode bars). Cut with `monthcmp.py cut` from fresh
+`monthprint` runs (the gate's own invocation, `HARNESS_PORT=9533`) on build `465e3e03…` (branch `ep-shoot-bars` at
+`bb940e6`), Google Chrome 156.0.8078.49.
+
 ## Re-cutting
 
 Only deliberately, and record it here with a table of what moved and why — an undocumented re-cut

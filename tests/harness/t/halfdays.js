@@ -45,8 +45,8 @@ window.addEventListener('load', function () { (async function () {
     d.set.call(el, v);
     ['input', 'change'].forEach(function (t) { el.dispatchEvent(new Event(t, {bubbles: true})); });
   }
-  // An episode's row by its number, whichever default name the calendar gives it: "Shoot Ep. 201" in one this build
-  // named (this leg types its own), "Episode 201" in an older file (owner, 20 Oct 2026).
+  // An episode's row by its number: "Episode 201" (the default again since 28 Oct 2026), or "Shoot Ep. 201" as the
+  // 20-28 Oct builds named it.
   function epBox(n){
     return [].find.call(document.querySelectorAll('#episode-rows .episode-row'), function (r) {
       var v = (r.querySelector('.ep-name') || {}).value;
@@ -95,10 +95,10 @@ window.addEventListener('load', function () { (async function () {
         for(var c = +gc[1] - 1; c < +gc[2] - 1; c++){
           var iso = new Date(sunday + c * 86400000).toISOString().slice(0, 10);
           var inset = (/margin-left:\s*calc\(/.test(st) ? 'L' : '') + (/margin-right:\s*calc\(/.test(st) ? 'R' : '');
-          // [0] is the episode as the checks below name it, "Ep. N", whether the bar reads its name ("Shoot Ep. N" from
-          // this build, "Episode N" from an older file like this one) or the short form; [4] is the bar's own text and
-          // [5] its width in days, for D2s, which holds that rule (owner, 20 Oct 2026). epnames holds the rest.
-          (out[iso] = out[iso] || []).push([label.replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '), sp ? sp.textContent : '', +(gr ? gr[1] : 0), inset,
+          // [0] is the episode as the checks below name it, "Ep. N", whether the bar reads "Shoot N" (owner, 28 Oct
+          // 2026) or the short form; [4] is the bar's own text and [5] its width in days, for D2s, which holds that
+          // rule. epnames holds the rest.
+          (out[iso] = out[iso] || []).push([label.replace(/^(?:Shoot Ep\.|Shoot|Episode) /, 'Ep. '), sp ? sp.textContent : '', +(gr ? gr[1] : 0), inset,
             label, +gc[2] - +gc[1]]);
         }
       });
@@ -185,20 +185,18 @@ window.addEventListener('load', function () { (async function () {
     var insets = [].filter.call(document.querySelectorAll('#table-wrap .mv-bar'), function (b) { return /margin-(left|right):/.test(b.getAttribute('style') || ''); }).length;
     add('D2i', 'only those six bars carry an inset: no whole boundary, week edge, other phase or note has one',
       insets === 6, insets, 6);
-    // An episode's bar reads its NAME (owner, 20 Oct 2026, by picker): here "Shoot Ep. N", the default this build gives
-    // the episodes this leg types in (an older file keeps its "Episode N"; epnames holds that). A switch day's ONE-DAY
-    // half bar keeps "Ep. N" (the 16 Oct ruling: "Shoot Ep. 202" needs about 68 px, and both month PDFs give that bar
-    // 50 px). At 4.5 days each (D2's state) July's two are 201 on Mon 7/6 (it ends there at lunch) and 204 on Fri 7/17
+    // An episode named "Episode N" draws "Shoot N" (owner, 28 Oct 2026; epnames holds typed names). A switch day's
+    // ONE-DAY half bar keeps "Ep. N" (the 16 Oct ruling: both month PDFs give that bar 50 px). At 4.5 days each (D2's state) July's two are 201 on Mon 7/6 (it ends there at lunch) and 204 on Fri 7/17
     // (it starts there at lunch); 7/30's switch gives 205 Mon-Thu and 206 Thu-Fri, both wider than a day.
     var shootBad = [], halfOnes = [];
     Object.keys(jul).sort().forEach(function (k) { jul[k].forEach(function (x) {
       if(!/^Ep\. /.test(x[0])) return;
       var halfOne = x[5] === 1 && x[3] !== '';
       if(halfOne) halfOnes.push(k.slice(5) + ' ' + x[4]);
-      var want = halfOne ? x[0] : x[0].replace(/^Ep\. /, 'Shoot Ep. ');
+      var want = halfOne ? x[0] : x[0].replace(/^Ep\. /, 'Shoot ');
       if(x[4] !== want) shootBad.push(k + ': ' + x[4] + ' (want ' + want + ')');
     }); });
-    add('D2s', 'Names: every July bar reads its episode\'s name, "Shoot Ep. N", except a switch day\'s one-day half bar, which reads "Ep. N" (201 on 7/6, 204 on 7/17)',
+    add('D2s', 'Names: every July bar reads "Shoot N" for its episode "Episode N", except a switch day\'s one-day half bar, which reads "Ep. N" (201 on 7/6, 204 on 7/17)',
       !shootBad.length && eq(halfOnes, ['07-06 Ep. 201', '07-17 Ep. 204']),
       {bad: shootBad.slice(0, 6), halfOneDay: halfOnes}, {bad: [], halfOneDay: ['07-06 Ep. 201', '07-17 Ep. 204']});
     var singles = {'2026-06-29': 'Ep. 201', '2026-07-02': 'Ep. 201', '2026-07-07': 'Ep. 202', '2026-07-10': 'Ep. 202',

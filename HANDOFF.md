@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); ✅ FULL GATE 3,331 / 0 on the branch with `main` at `26516be` (`dda7f99f…`); then `main` at `633f92d` (bar double-click, month stepper, hiatus caret, Pre-Prep name) merged in; NOT yet merged into `main`, NOT pushed
+### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); ✅ FULL GATE 3,331 / 0 with `main` at `26516be`, then ✅ 3,371 / 0 with `main` at `633f92d` merged in (`faef231e…`); then `main` at `013b4a8` (Shoot N bars, waterfall note colours; docs-only conflicts) merged in; NOT yet merged into `main`, NOT pushed
 
 - **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want
   to remove options from the menu when they aren't accessible, rather than greying them out"*. Tracker card
@@ -53,8 +53,129 @@
     `setHiatusCollapsed(row, false)`). The trim removes that item (ruling T1), so `showHiatusRow()` goes too, and
     `hiatusfold` H8 now checks the menu on a folded hiatus offers no *Show in Phases card* and folds nothing open (H9
     no longer clicks the caret first: H8 leaves the folds as H7 did). A band has no double-click to reveal its card.
-- ⏭ **Next:** the merged build's targeted legs, then the full gate again (the owner's *"Merge, then full gate"*), then
-  merge into `main` (a fast-forward), then a separate push picker.
+- ✅ **On that merged build** (`faef231e…`): `npm run check` 40/40; `mvmenu` 81/81, `wfmenu` 39/39, `halfworked` 24/24,
+  `hiatusfold` 11/11, `mvbarcard` 7/7, `monthmap` 20/20, `prepreptitle` 7/7, `phasefold` 11/11, `halfdays` 27/27,
+  `labelsetup` 41/41 (it threw once, *"cannot reach June 2026 (stuck on )"*, while another session's full gate ran;
+  41/41 alone). `mvmenu` timed out once at 150 s under the same load, 81/81 at 400 s. **Full gate: 3,371 PASS, 0 FAIL.**
+- **Then `main` moved again** (`013b4a8`: episode bars read "Shoot N" with gates 10 and 13 re-cut, and waterfall notes
+  take every month note colour, both live). Merged in; only `HANDOFF.md` and `README.md` conflicted, and neither change
+  adds a menu item.
+- ⏭ **Next:** that build's targeted legs and the full gate, then fast-forward `main`, then a separate push picker.
+  ⚠️ `main` keeps moving under this branch (three merges today), so fast-forward it as soon as the gate is green.
+### ✅ 28 Oct 2026: WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — ✅ LIVE at `1a4fb48` — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch; merged with `main` twice (`bc80460`, `a8eccf4`), re-checked on the merged build; local `main` FAST-FORWARDED to it (owner's picker, *"Merge into main"*); PUSH APPROVED after the re-check (owner's picker, *"Push after the re-check"*)
+
+- **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
+  in the month view"*. Tracker card `waterfall-note-colours`.
+- **Ruled** (owner, by picker, same day): **"Approve both edits"** for No fill. ⚠️ I proposed them as "X1" and "P1";
+  both names were already taken (hide-notes' X1, paper size's P1), so they shipped as **NF1** and **NF2**.
+- **Done:** `notePaletteRowsHtml(curColor)` (beside `MV_NOTE_PALETTE`) is the one builder of the two swatch rows; the
+  waterfall's `openNoteEditor` uses it for a NOTE (a hiatus band keeps one row of `EXCEL_STANDARD_COLORS`), and
+  `openMvNoteEditor` uses it for both kinds (a waterfall note there kept the ten before). The rows carry
+  `.note-palette-row`; a new `.note-pop .note-palette-row` rule gives the waterfall popover the month popover's 5 px gap
+  (the existing `.mv-note-pop` rules were left alone). `.mv-note-tints` is gone (nothing styled or tested it).
+- **No fill plumbing:** `noteColorFor` returns `#FFFFFF00` as well as `#RRGGBB` (the H-1 guard still refuses anything
+  else); `sanitizeSnapshot`'s `noteColors` map and `wfCleanClipItem` accept it. **NF1** (`exportExcel`): no `setFill`
+  for it. **NF2** (`buildWaterfallPdf`): no `page.rect` for it. The screen needed nothing (`background:#FFFFFF00` is
+  transparent, `textColorFor` inks it black), nor the month view (`renderMonthView` reads `noteColors` directly, and the
+  block is a day note's No fill: the frozen CSS line takes its border away, the writer's `mvlNoFill` skips fill and ring).
+- ⚠️ **Older builds:** v1.3.0–v1.9.0 drop the value in `sanitizeSnapshot` (purple, plus their repair warning). A
+  pre-v1.3.0 build's writers would misread it (yellow PDF, 10-digit ARGB): the new-file-in-old-app case nothing
+  supports. No `SNAPSHOT_VERSION` bump, on the `'onhalf'` precedent (older builds safely fall back).
+- **Verified:** new leg `wfnotecolors` 14/14 (AFSPEC `wfnotecolors:wfkeys:400`); a mutant build with NF1+NF2 removed
+  turns X1 and P1 red, and nothing else. `base` + `restore` + gate 5 byte-identical / green (gate.sh's first 173 lines,
+  run alone). `mvnotes` 30/30 + 14/14: **P5 was rewritten**, since it asserted the old rule ("a WATERFALL note's editor
+  keeps the ten standard colours only") and now asserts the same two rows as a day note's. `wfkeys` 84/84, `textstyle`
+  51/51, `notewrap` 16/16, `monthnotes` 7/7, `npm run check` 40/40. Screenshots of both editors taken with headless
+  Chrome over CDP (the pane's five server slots were all other chats', and it would not open a local file).
+- **Full gate** (`HARNESS_PORT=8257 ./gate.sh` in the worktree, after the `month-step` worktree's finished):
+  **3,352 PASS / 0 FAIL / 1 INFO** (the INFO is monthwriter's usual "reported, not judged" January 2026 line), in 31 min.
+- **Merged** (owner's picker): `main` merged into the branch as `bc80460` (Pre-Prep, the hiatus-card caret, the month
+  stepper, the month double-click); conflicts in HANDOFF.md and README.md only (every entry kept). While that merge was
+  being re-checked, ANOTHER session pushed `ep-shoot-bars` (`b9f0ff7`: episodes named "Episode 101" again, month bars
+  "Shoot 101", gates 10 and 13 re-cut), so the check was stopped and `main` merged again as `a8eccf4` (same two docs,
+  every entry kept), then once more for that session's own "live at `b9f0ff7`" HANDOFF commit `81cb932`. `app.js`, `legacy.css`,
+  `gate.sh` and `mvnotes.js` merged clean; gate.sh keeps `prepreptitle` and `wfnotecolors`.
+- **Re-checked on the MERGED build** (`a8eccf4`): `npm run build` + `check` 40/40; `wfnotecolors` 14/14, `mvnotes`
+  30/30 + 14/14, `mvbarcard` 7/7, `monthmap` (mvnotes) 20/20, `hidewf` 19/19, `prepreptitle` 7/7, `hiatusfold` 11/11,
+  `wfkeys` 84/84; gate.sh's first section: `base` (grid, waterfall PDF, every Excel part identical to the 29 Aug
+  baseline), `restore` and gate 5 all PASS. No second full gate: two other sessions' gates were running, and none of
+  `ep-shoot-bars`' re-cut month baselines can contain a No fill waterfall note (older builds' sanitizer dropped it).
+- **Pushed** on the owner's picker (*"Push after the re-check"*): `b9f0ff7..1a4fb48` at 14:10:05. At 14:11:48 the live
+  `index.html`, fetched with a cache-buster, was byte-identical to the re-checked build `9659c632…`. No version cut
+  (still v1.9.0).
+- ⏭ **Next:** nothing owed. The next full gate runs `wfnotecolors` with everything else.
+
+### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — ✅ LIVE at `b9f0ff7` (owner's picker: "Merge into main", "Push now, no version cut"; the live page served the gated build `212b2faf` byte for byte ~66 s after the push)
+
+- **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
+  Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
+  we have both but still be able to change the names of episodes? Maybe if you change the title to anything other than
+  default, it switches to the exact words"*. Reverses the 20 Oct "Shoot Ep. 101" default names (entry further down,
+  "AN EPISODE'S NAME IS ITS MONTH BAR"). Tracker card `episode-names-shoot-bars`.
+- **Built** (`src/legacy/app.js`, no frozen code, no saved key):
+  - `EPISODE_NAME_PREFIX = 'Episode '`; new `episodeBarName(name)`: "Episode <digits>" → "Shoot <digits>", else null.
+    `unitBarLabel()` returns `episodeBarName(def.name) || def.name` for a bar naming one episode.
+  - ⭐ **Decided, not asked:** the rule reads the NAME, not `nameEdited` (the owner said "anything other than default").
+    So a hand-renumbered "Episode 219" draws "Shoot 219" beside its neighbours, which "exactly the default for this
+    position" would not have. Tell the owner if it comes up; switching to the strict reading is one line.
+  - `episodeNamesLegacy`, `storesLegacyEpisodeNames()` and `EPISODE_NAME_PREFIX_LEGACY` are GONE (the flag was never
+    saved). No migration was needed: `syncEpisodesFromShowInfo()` rewrites every `!nameEdited` name from
+    `defaultEpisodeName()` on each restore (refreshAfterRestore → refreshEpisodesUI), so a v1.7.0–v1.9.0 file's
+    un-renamed "Shoot Ep. 201" opens as "Episode 201" (checked on `v1.9.0-saved.sptcal` in the pane). A typed name is
+    never touched, and a typed "Shoot Ep. 205" draws exactly that.
+  - Kept: the one-day HALF bar's "Ep. 101" (measured in the pane: the half bar is 44 px with 8 + 8 px padding, "Shoot
+    202" is 49.9 px at 600 10px Inter, "Ep. 202" 37.1); prep pills, episode lists, block and week bars, v1.6.0
+    `barPrefix`. `shortEpisodeName()` still strips "Shoot Ep." for typed names.
+  - Help (src/index.html, the episode-list paragraph) gains one sentence on names vs bars. CLAUDE.md's state-table row
+    for `episodeNamesLegacy` is replaced by one for the name → bar rule.
+- **Legs:** `epnames` rewritten (N0–N9 halfdays incl. N5 a 20–28 Oct file and N9 a hand-renumbered name + Season 3,
+  B0–B3 blocks; gate.sh's PDF text check now wants "Shoot 201" + "Pilot" and none of "Shoot 202" / "Shoot Ep" /
+  "Episode"): 16/16 on the build. Name-agnostic readers learn "Shoot N" (`halfmarks`, `episodeprep`, `halfdays`,
+  `labelsetup`, `shootorder`, `pilllabel`, `pilldrag.mjs`); `episodeprep` LIVE and `seasons` expect "Episode 30N";
+  `halfdays` D2s wants "Shoot N". The two blocksoff-vs-reference blocks in gate.sh also read "Shoot N" as the episode.
+- ✅ **Nine affected legs on the build** (port 9531): halfdays, halfmarks, monthlayout, mvmenu, labelsetup, seasons,
+  shootorder, pilllabel ×8, pilldrag, episodeprep ×3: **548 PASS, 0 FAIL**. Committed on the branch as `bb940e6`.
+- ✅ **Gates 10 and 13 RE-CUT on the owner's sign-off** (*"Re-cut + gate"*, picker, after the classification and the
+  halfdays July contact sheet), commit `b061428`; tables in both baseline READMEs. The classification: Every case exported from
+  the build (port 9533) and compared with a scratch script:
+  - Gate 10, all 11 print documents: identical to their baselines once "Shoot Ep. N" / "Episode N" (old) and "Shoot N"
+    (new) are read as the episode, counts equal (40–64 each); `blocks` and `month-lanecap` raw-identical.
+  - Gate 13, all 20 written PDFs: text identical on the same reading, counts equal (7–31); `blocks`, `monthscale`,
+    `month-lanecap`, `month-dense60` byte-identical. No "Shoot Ep" or "Episode" left in any new export.
+  - `monthbase.py sheets` on halfdays: only June–September move, and only the bar names and the grey text after them
+    (it starts closer, since "Shoot 201" is narrower than "Episode 201").
+  - ⭐ After the re-cut, `blocksoff` is BYTE-IDENTICAL to `reference` again in both gates (print document and written
+    PDF). Left as two baselines; the gate's blocksoff-vs-reference blocks still run.
+- ✅ **Full gate** on build `465e3e03…` (port 9541, 11:44–12:16, ~31 min, no other gate at its start): **3,259 PASS,
+  3 FAIL.** Gate 10 and gate 13 byte-identical to the new cut (incl. `rz`/`rw`), waterfall PDF and Excel identical to
+  the 29 Aug baseline, 0 clipped.
+  - `hidewf` F3 was REAL: it holds a re-save byte for byte to `tests/fixtures/hidewf.sptcal`, which was saved with the
+    20–28 Oct names ("Shoot Ep. 20N", un-renamed), and those now save as "Episode 20N". The check now maps the fixture's
+    un-renamed names first (`5e475e5` on the branch); re-run alone 19/19. ⚠️ Any leg that compares a re-save to a
+    v1.7.0–v1.9.0-era fixture byte for byte has the same trap.
+  - `weeknum (dayoverrides)` D1 (empty menu header: the menu never opened) and `sideboxes` (no result): stalls, neither
+    reads episode names; both green re-run alone on port 9545 (sideboxes 78/78).
+- **Merged `main` into the branch** (`d3ebe6a`): today's live work (month stepper, double-click a bar, hiatus fold,
+  Pre-Prep name) does not touch episode names, baselines or fixtures; conflicts were README/HANDOFF tops only. Merged
+  build `212b2faf…`, `npm run check` 40/40.
+- ✅ **Full gate on the merged build** `212b2faf…` (port 9541, 12:46–13:17, no other gate at its start): **3,376 PASS,
+  3 FAIL**, every month baseline (gates 10 and 13, `rz`/`rw` too), the waterfall PDF and Excel identical, 0 clipped.
+  The three, re-run alone on port 9545 while another session's gate ran:
+  - `pilllabel (blocks)` W2 "months 1 vs 18": the known contention flake (HANDOFF, 27 Oct); green alone.
+  - `labelsetup (halfdays)` L4: its first worked-day click did not land (Sunday unchanged, Saturday then counted
+    alone); green alone. It passed 41/41 on this branch before the merge too.
+  - `weeknum (dayoverrides)` D1 (also red in the first gate): the day menu had not opened within the leg's 300 ms wait
+    (empty header). Alone: merged build 4 of 5 green, `main`'s own build (`2f8208ec`, no episode change) 5 of 5, all
+    while another gate loaded the Mac. Bar text cannot reach a right-click on the day-number band. ⚠️ A timing flake
+    in that leg; a longer wait or an until() for `.day-menu` would remove it (not done here).
+- ✅ **SHIPPED.** Owner's picker: *"Merge into main"*, *"Push now, no version cut"*. Local `main` fast-forwarded to
+  the branch (`b9f0ff7`); a clean build of its tree is `212b2faf…` (the second gate's build), `npm run check` 40/40,
+  `APP_VERSION` and `version.json` both still 1.9.0, root `index.html` still equals `releases/v1.2.0.html`. ONE
+  `git push origin main` at 14:06:24 (`7965ebc..b9f0ff7`, which also carried the month-step session's unpushed
+  HANDOFF commit `633f92d`). At 14:07:30 the live `index.html`, fetched with a cache-buster, was byte-identical to
+  `212b2faf` (1,875,270 bytes, `cmp`).
+- **Not done:** no version cut (owner's choice), so installed copies get no update notice; they pick it up on load.
+
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
 - **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
@@ -3554,7 +3675,9 @@
 
 ### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **LIVE at `70d7485`** via `land-zoom-epnames`
 
-- ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
+- ⛔ **SUPERSEDED 28 Oct 2026** (top entry, "EPISODES NAMED "Episode 101" AGAIN"): names are "Episode 101" again and
+  the bar reads "Shoot 101"; `episodeNamesLegacy` is gone. What follows is history.
+- Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
   before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
   you can easily change them and it doesn't mess things up"*. (They first read a recreated calendar's renamed
   Production phase, "Shoot wk N", as an app change. It was not: the app's "Production wk N" / "Production Week N" are
