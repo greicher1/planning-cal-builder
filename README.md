@@ -53,6 +53,8 @@ labelled as Shoot 101 ... if you change the title to anything other than default
   to `reference` again in both. Full gate on build `465e3e03`: 3,259 PASS, 3 FAIL. `hidewf` F3 was real (its fixture's
   un-renamed "Shoot Ep. N" now saves as "Episode N"; the check now expects that, 19/19). `weeknum` D1 and `sideboxes`
   were stalls, and both are green alone. The waterfall PDF, the workbook and every month baseline are byte-identical.
+  Merged with today's `main` and gated again (build `212b2faf`): 3,376 PASS, 3 FAIL, all three timing flakes that are
+  green alone (`pilllabel (blocks)` W2, `labelsetup` L4, `weeknum` D1, which also flakes on `main`'s own build under load).
 
 ### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
 

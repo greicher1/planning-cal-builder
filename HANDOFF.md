@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch, month baselines re-cut (owner sign-off), NOT merged, NOT pushed
+### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch and merged with today's `main`, month baselines re-cut (owner sign-off), full gate run twice; NOT merged into `main`, NOT pushed
 
 - **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
   Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
@@ -56,7 +56,17 @@
     reads episode names; both green re-run alone on port 9545 (sideboxes 78/78).
 - **Merged `main` into the branch** (`d3ebe6a`): today's live work (month stepper, double-click a bar, hiatus fold,
   Pre-Prep name) does not touch episode names, baselines or fixtures; conflicts were README/HANDOFF tops only. Merged
-  build `212b2faf…`, `npm run check` 40/40. ⏳ Full gate on the merged build queued (port 9541, `gate2.log`).
+  build `212b2faf…`, `npm run check` 40/40.
+- ✅ **Full gate on the merged build** `212b2faf…` (port 9541, 12:46–13:17, no other gate at its start): **3,376 PASS,
+  3 FAIL**, every month baseline (gates 10 and 13, `rz`/`rw` too), the waterfall PDF and Excel identical, 0 clipped.
+  The three, re-run alone on port 9545 while another session's gate ran:
+  - `pilllabel (blocks)` W2 "months 1 vs 18": the known contention flake (HANDOFF, 27 Oct); green alone.
+  - `labelsetup (halfdays)` L4: its first worked-day click did not land (Sunday unchanged, Saturday then counted
+    alone); green alone. It passed 41/41 on this branch before the merge too.
+  - `weeknum (dayoverrides)` D1 (also red in the first gate): the day menu had not opened within the leg's 300 ms wait
+    (empty header). Alone: merged build 4 of 5 green, `main`'s own build (`2f8208ec`, no episode change) 5 of 5, all
+    while another gate loaded the Mac. Bar text cannot reach a right-click on the day-number band. ⚠️ A timing flake
+    in that leg; a longer wait or an until() for `.day-menu` would remove it (not done here).
 - **Not done:** no merge to `main`, no push, no version cut.
 
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
