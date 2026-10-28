@@ -26,7 +26,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.8.0';
+  const APP_VERSION = '1.9.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -380,8 +380,16 @@ export function initLegacyApp() {
     const COL_HANDLE_CLEARANCE = 9;
     const firstDateW = Math.max(12, (parseFloat(cols[0].style.width) || 40) - COL_HANDLE_CLEARANCE);
     const rows = [...table.tBodies[0].rows];
+    // ⛔ FROZEN EDIT L1 (owner sign-off by picker, 27 Oct 2026: "Yes, apply it"; the lag switching back to the
+    // waterfall). Every row's rect is read HERE, in one pass, and both loops below use it. They used to read
+    // each row inside the loop, right after appending a handle, and an append dirties style and layout, so every
+    // read forced a recalc: about 100 per redraw on a 52-week grid, ~22 ms of a ~32 ms switch (headless, 1440x900).
+    // Same values: a handle is absolutely positioned in an absolutely positioned layer, so appending one cannot
+    // move a row. Read after the column handles, where the first row read always was. Proven before it shipped:
+    // every handle's inline style and dataset identical to the old build's, on 5 fixtures and at zoom.
+    const rowBoxes = rows.map(tr => tr.getBoundingClientRect());
     rows.forEach((tr, r)=>{
-      const rb = tr.getBoundingClientRect();
+      const rb = rowBoxes[r];
       const h = document.createElement('div');
       h.className = 'grid-resize is-row';
       h.style.left = ((tableBox.left - wrapBox.left) / z) + 'px';
@@ -409,8 +417,8 @@ export function initLegacyApp() {
       const m = /^(y\d+):s(\d+)$/.exec(c.dataset.ckey || '');
       if(m && m[2] === '0') slotBase.set(m[1], i);
     });
-    rows.forEach(tr=>{
-      const rb = tr.getBoundingClientRect();
+    rows.forEach((tr, r)=>{
+      const rb = rowBoxes[r];   // FROZEN EDIT L1: read once, above
       const top = (rb.top - wrapBox.top) / z, rowH = rb.height / z;
       let ci = 0;
       [...tr.cells].forEach(td=>{
@@ -3336,9 +3344,12 @@ export function initLegacyApp() {
   // ⭐ This is the ONE filter every reader of schedule.notesByIdx goes through -- the waterfall, Excel, both
   // PDFs, the month view, the note editor's pre-fill and the column widths -- so a kind switched off leaves
   // all of them at once, and none can disagree. A user's own note (userNotes) never passes through here.
+  // A phase hidden in the waterfall (phaseHidden, PHASES-TAB-PLAN.md R4) takes its own notes with it there: a
+  // note tagged with its `phase` is dropped for 'sheet' and kept for 'month'.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view)));
+    return list.filter(n => !(n.kind && !autoNoteKindShown(n.kind)) && (!n.holiday || holidayVisibleIn(n.hid, view))
+                            && !(n.phase && phaseHiddenIn(n.phase, view)));
   }
   function colLetter(n){
     let s='';
@@ -3893,10 +3904,18 @@ export function initLegacyApp() {
       return {weeks:[], maxConcurrent:0, totalWeeks:0};
     }
 
+    // ⭐ HIDE IN WATERFALL (PHASES-TAB-PLAN.md §2.2): the phases the waterfall draws. A hidden phase is in
+    // `segments` (the month view, monthCoreRange and the Compare window read every phase) but not here, so it
+    // takes no column, no cell and no part of the waterfall's year padding. It stays in the week loop's SPAN and
+    // keeps its week numbers there (seg.weekNo, which the month view reads), and the waterfall's rows are then cut
+    // out of that span exactly as a calendar range cuts them, with the whole list kept for the month (fullRange).
+    // With nothing hidden this IS `segments`, and every line below runs as it did.
+    const wfSegments = segments.filter(s => !phaseHiddenIn(s.key, 'sheet'));
     // A hiatus only affects the visible range if it actually overlaps something scheduled --
     // otherwise the always-present default hiatus entries (which span years) would force the
     // calendar to stretch across all of them even when nothing is scheduled nearby.
     const relevantHiatuses = hiatuses.filter(h => segments.some(s => h.start < s.end && h.end > s.start));
+    const wfRelevantHiatuses = hiatuses.filter(h => wfSegments.some(s => h.start < s.end && h.end > s.start));
     // ⛔ SNAP THE GRID GEOMETRY TO MONDAYS (audit H-4, FIX-PLAN.md 1.7, 25 Sep 2026). A grid cell IS
     // a week, and every week-keyed store (userNotes, hiatusTexts/Colors, rowHeightsByWeek, cellSpans)
     // is keyed by the week's Monday. When a snap-off phase has a non-Monday start, its raw seg.start
@@ -3906,9 +3925,8 @@ export function initLegacyApp() {
     // directly, never these Monday-snapped bounds. Starts snap DOWN to their Monday; ends round UP to
     // the next Monday so a non-Monday end still gets its own (partial) week row and totalWeeks does
     // not lose it to Math.round. All idempotent for snapped phases and hiatuses (already Mondays).
-    const naturalStarts = segments.map(s=>mondayOf(s.start).getTime()).concat(relevantHiatuses.map(h=>h.start.getTime()));
-    const naturalEnds   = segments.map(s=>mondayOf(addDays(s.end,6)).getTime()).concat(relevantHiatuses.map(h=>h.end.getTime()));
-
+    // ⚠️ A FUNCTION since 23 Oct 2026, run for the phases the loop spans (all of them) and again for the ones the
+    // waterfall draws (wfSegments) when a phase is hidden. Its body is the padding as it always was.
     function firstMondayOfYear(year){
       const jan1 = new Date(Date.UTC(year,0,1));
       const daysToAdd = (8 - jan1.getUTCDay()) % 7;
@@ -3925,28 +3943,38 @@ export function initLegacyApp() {
     // at half today's scale. The owner's reference starts on the first working week for exactly
     // this reason. ⚠️ Default OFF, so every existing calendar keeps the full-year shape and the
     // byte-compare stays green.
-    const allStarts = [...naturalStarts];
-    const allEnds = [...naturalEnds];
-    if(!singleColumn){
-      if(naturalStarts.length){
-        const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
-        allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+    function paddedSpan(segs, relHiatuses){
+      const naturalStarts = segs.map(s=>mondayOf(s.start).getTime()).concat(relHiatuses.map(h=>h.start.getTime()));
+      const naturalEnds   = segs.map(s=>mondayOf(addDays(s.end,6)).getTime()).concat(relHiatuses.map(h=>h.end.getTime()));
+      const allStarts = [...naturalStarts];
+      const allEnds = [...naturalEnds];
+      if(!singleColumn){
+        if(naturalStarts.length){
+          const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
+          allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+        }
+        if(naturalEnds.length){
+          // ⛔ The final week's MONDAY, not its last day (audit M-14). computeYearBlocks() files a
+          // week under the year of its Monday, so the padding must ask the same question. Asking the
+          // week's Sunday instead meant a last week of Mon 12/30/30 - Sun 1/5/31 padded out to the
+          // first Monday of 2032: a whole 2031 block of empty rows, a blank year column in every
+          // export, and a page printed at about half size. naturalEnds are exclusive Mondays (see
+          // above), so minus 7 days is exactly the final week's Monday. Identical for every calendar
+          // whose last week does not straddle New Year.
+          const lastActiveMonday = addDays(new Date(Math.max.apply(null, naturalEnds)), -7);
+          allEnds.push(firstMondayOfYear(lastActiveMonday.getUTCFullYear()+1).getTime());
+        }
       }
-      if(naturalEnds.length){
-        // ⛔ The final week's MONDAY, not its last day (audit M-14). computeYearBlocks() files a
-        // week under the year of its Monday, so the padding must ask the same question. Asking the
-        // week's Sunday instead meant a last week of Mon 12/30/30 - Sun 1/5/31 padded out to the
-        // first Monday of 2032: a whole 2031 block of empty rows, a blank year column in every
-        // export, and a page printed at about half size. naturalEnds are exclusive Mondays (see
-        // above), so minus 7 days is exactly the final week's Monday. Identical for every calendar
-        // whose last week does not straddle New Year.
-        const lastActiveMonday = addDays(new Date(Math.max.apply(null, naturalEnds)), -7);
-        allEnds.push(firstMondayOfYear(lastActiveMonday.getUTCFullYear()+1).getTime());
-      }
+      // fall back to whichever bound was actually supplied if one list is empty
+      if(allStarts.length===0) allStarts.push(allEnds[0]);
+      if(allEnds.length===0) allEnds.push(allStarts[0]);
+      return {start: Math.min.apply(null, allStarts), end: Math.max.apply(null, allEnds)};
     }
-    // fall back to whichever bound was actually supplied if one list is empty
-    if(allStarts.length===0) allStarts.push(allEnds[0]);
-    if(allEnds.length===0) allEnds.push(allStarts[0]);
+    const span = paddedSpan(segments, relevantHiatuses);
+    // The waterfall's own padding: the same object with nothing hidden, null when every scheduled phase is hidden
+    // (the waterfall then has no rows, and frozen render() shows its empty state there; the month view is whole).
+    const wfSpan = wfSegments.length === segments.length ? span
+                 : (wfSegments.length ? paddedSpan(wfSegments, wfRelevantHiatuses) : null);
 
     // ⭐ THE CALENDAR RANGE (owner ruling 3, 20 Oct 2026) REPLACES THAT PADDING, IN THE WATERFALL ONLY.
     // A typed start is the first row (its Monday), a typed end the last (the week it falls in); a blank
@@ -3955,11 +3983,13 @@ export function initLegacyApp() {
     // real start, and the month view, which reads the WHOLE week list (wholeCalendar), keeps every week.
     // The waterfall's rows are cut out of that list after the notes (calRangeCut).
     // ⚠️ With no range, wfStart/wfEnd ARE the padding and the loop is exactly today's.
-    const padStart = Math.min.apply(null, allStarts), padEnd = Math.max.apply(null, allEnds);
+    // A hidden phase (PHASES-TAB-PLAN.md §2.2) is cut the same way: a blank end of the range takes the WATERFALL's
+    // padding (wfSpan), so a hidden phase alone in another year adds no year block. Nothing hidden, wfSpan is span.
+    const padStart = span.start, padEnd = span.end;
     const rangeFrom = state.calRange && parseDateUTC(state.calRange.start);
     const rangeTo   = state.calRange && parseDateUTC(state.calRange.end);
-    const wfStart = rangeFrom ? mondayOf(rangeFrom).getTime() : padStart;
-    const wfEnd   = rangeTo ? addDays(mondayOf(rangeTo), 7).getTime() : padEnd;
+    const wfStart = rangeFrom ? mondayOf(rangeFrom).getTime() : (wfSpan ? wfSpan.start : padStart);
+    const wfEnd   = rangeTo ? addDays(mondayOf(rangeTo), 7).getTime() : (wfSpan ? wfSpan.end : wfStart);
     const overallStart = new Date(Math.min(padStart, wfStart));
     const overallEnd   = new Date(Math.max(padEnd, wfEnd));
     const totalWeeks = Math.round((overallEnd-overallStart)/DAY_MS/7);
@@ -3989,9 +4019,10 @@ export function initLegacyApp() {
     // different placement runs INSTEAD of the block below. Clear -- the default, and every file saved
     // before the box existed -- the block below runs exactly as it always has. That is the whole
     // inertness argument, so never fold the two together.
-    const colMoves = colReuse ? placeSegmentsReusingColumns(segments, hiatuses, segCol) : null;
+    // Over wfSegments (PHASES-TAB-PLAN.md §2.2): a phase hidden in the waterfall takes no column.
+    const colMoves = colReuse ? placeSegmentsReusingColumns(wfSegments, hiatuses, segCol) : null;
     if(!colReuse){
-      const byStart = segments
+      const byStart = wfSegments
         .map((seg, i)=>({seg, i}))
         .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
         .map(o=>o.seg);
@@ -4069,8 +4100,12 @@ export function initLegacyApp() {
         // and PDF, while the month view showed it correctly. A phase is active in a week row when it
         // overlaps that Mon-Sun span at all. For a snapped phase (start and end are Mondays) this is
         // identical to the old test, so every existing calendar is byte-for-byte unchanged.
+        // ⚠️ EVERY phase, a hidden one included (PHASES-TAB-PLAN.md §2.2): it is numbered here as it always was, so
+        // the month view's "Colour Grading Week 2" (seg.weekNo) is the same whether or not it is hidden. Only its
+        // CELL is left out, so it takes no column, no row's worth of maxConcurrent, and nothing a writer draws.
         const active = segments.filter(s=> s.start < addDays(weekStart,7) && s.end > weekStart).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
+          const hidden = phaseHiddenIn(ph.key, 'sheet');   // wfSegments' rule: it was given no column
           const ownHi = ph.phaseHiatus;
           // An off week (productionOffWeeks) takes this same branch, so it is the same cell and does not
           // advance the counter either. Only Production's segment ever carries offWeeks.
@@ -4080,7 +4115,7 @@ export function initLegacyApp() {
             // its slot (so neighbors can't slide into it) but never spans sideways, and it does
             // not advance the phase's week counter -- the paused weeks aren't work weeks.
             const baseLabel = (ph.label || 'Phase') + ' Hiatus';
-            cells.push({type:'phaseHiatus', key:ph.key, col:segCol.get(ph),
+            if(!hidden) cells.push({type:'phaseHiatus', key:ph.key, col:segCol.get(ph),
               weekIso: isoOf(weekStart), defaultLabel: baseLabel,
               color: HIATUS_COLOR, textColor: HIATUS_TEXT, label: baseLabel});
           } else {
@@ -4089,7 +4124,7 @@ export function initLegacyApp() {
             // view reads THIS number (prodWeekLabel) instead of counting again. `ph` is the very segment object
             // schedule.segments carries.
             (ph.weekNo || (ph.weekNo = {}))[isoOf(weekStart)] = num;
-            cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
+            if(!hidden) cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
           }
         });
         // simPostNum stays 0 in the un-numbered mode; the renderers fall back to the bare label.
@@ -4148,8 +4183,33 @@ export function initLegacyApp() {
     // the schedule -- only Production's date math skips these days, and only for Production.
     phaseHolidays.filter(h=>h.enabled).forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
+    // Tagged with its phase, so autoNotesForView() leaves it out of the waterfall while that phase is hidden there
+    // (PHASES-TAB-PLAN.md R4). Principal start and wrap are Production's, which can never be hidden.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens'});
+    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
+    // Each phase's start and end (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
+    // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES. ⛔ OFF until ticked (autoNoteKindShown), so every
+    // calendar, new or saved before them, shows exactly what it did. Each is dated on the first or last day the
+    // month view DRAWS the phase's bar -- segCoversDate's rule (weekdays for a week-based phase), outside every
+    // hiatus, as pillRunsForWeek draws it -- so the note and the bar cannot disagree, and a phase that starts
+    // inside the winter hiatus says so on the day it really begins (the 3 Sep 2026 lesson of firstShootDay).
+    // The waterfall shows it in that day's week. Tagged with its phase, so a phase hidden in the waterfall takes
+    // them with it (PHASES-TAB-PLAN.md R4). Added in date order, after the notes above, so a week holding two of
+    // them lists them as they happen and no older note moves within its week.
+    {
+      const drawn = (s, from, step) => {
+        for(let d = from; d >= s.start && d < s.end; d = addDays(d, step))
+          if(segCoversDate(s, d) && !hiatuses.some(h=> d>=h.start && d<h.end) && !isPhaseHiatusDate(s, d)) return d;
+        return null;
+      };
+      const edges = [];
+      AUTO_NOTE_PHASE_EDGES.forEach(e=>{
+        const s = segments.find(x=> x.key === e.phase);
+        const d = s && (e.end ? drawn(s, addDays(s.end, -1), -1) : drawn(s, s.start, 1));
+        if(d) edges.push({d, label: e.text || (s.label + (e.end ? ' Ends' : ' Begins')), kind: e.kind, phase: e.phase});
+      });
+      edges.sort((a,b)=> a.d - b.d).forEach(e=> addNote(e.d, e.label, {kind: e.kind, phase: e.phase}));
+    }
 
     // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
     // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
@@ -4164,7 +4224,9 @@ export function initLegacyApp() {
     // reverse order would let a week-level exchange be undone by the block-level one.
     // ⭐ ON THE WATERFALL'S ROWS: with a calendar range they are cut out of the whole list first (wfStart
     // above), because a swap is the waterfall's and is indexed by its rows (the gate's weekIdx).
-    const cut = (rangeFrom || rangeTo) ? cutToCalendarRange(weeks, notesByIdx, overallStart, wfStart, wfEnd) : null;
+    // A hidden phase that widened the loop's span (wfStart/wfEnd above) is cut away the same way, with no range set.
+    const cut = (rangeFrom || rangeTo || wfStart !== padStart || wfEnd !== padEnd)
+      ? cutToCalendarRange(weeks, notesByIdx, overallStart, wfStart, wfEnd) : null;
     const wf = cut || {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart};
     const stintOrder = applyStintSwaps(wf.weeks);
     const appliedColSwaps = applyColSwaps(wf.weeks);
@@ -4175,8 +4237,12 @@ export function initLegacyApp() {
       // notice (reflectCalRangeNotice). A range that leaves no row at all (a start after the calendar's
       // last week, or an end before its first) is render()'s invalid-range message, in the waterfall only.
       schedule.fullRange = {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart, error: undefined};
-      schedule.calRangeCut = cut.lost;
-      if(!cut.weeks.length) schedule.error = 'invalid-range';
+      // The strip and the invalid-range message are the calendar RANGE's. A cut made only by a hidden phase loses
+      // no visible phase's week (wfSpan holds every one), and its empty waterfall is render()'s plain empty state.
+      if(rangeFrom || rangeTo){
+        schedule.calRangeCut = cut.lost;
+        if(!cut.weeks.length) schedule.error = 'invalid-range';
+      }
     }
     // Whether each hand move applied, for the phase rows' notes. Only with column reuse on, so the
     // schedule of a calendar without it carries exactly the keys it always did.
@@ -6036,6 +6102,77 @@ export function initLegacyApp() {
     setPhaseCollapsed(key, !collapsedPhaseKeys.has(key));
   });
 
+  // ⭐ HIDE IN WATERFALL's tick and its "Month view only" tag (PHASES-TAB-PLAN.md §2.3, D2-D4). The tick is on every
+  // phase card but Production's, carries NO id and is delegated on the two row containers, so a custom row rebuilt
+  // by undo or Load needs no binding; its key is read off the card's #swatch-<key> AT EVENT TIME, which the restore's
+  // re-key renames with the row. The tag sits in .custom-phase-header, the one part of a folded card that shows.
+  // Episodic Prep's tag is in its markup and always on: prep is month-only already.
+  function reflectPhaseHidden(){
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const cb = row.querySelector('.phase-hidewf-cb');
+      if(!cb) return;
+      const on = phaseHiddenIn(phaseRowKey(row), 'sheet');
+      if(cb.checked !== on) cb.checked = on;
+      const tag = row.querySelector('.custom-phase-header .phase-mvonly-tag');
+      if(tag && tag.hidden === on) tag.hidden = !on;
+    });
+  }
+  ['input', 'change'].forEach(evt=>{
+    ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+      const host = document.getElementById(cid);
+      if(!host) return;
+      host.addEventListener(evt, e=>{
+        const t = e.target;
+        if(!t || !t.classList || !t.classList.contains('phase-hidewf-cb')) return;
+        const key = phaseRowKey(t.closest('.phase-row'));
+        if(!key || key === 'production' || phaseHiddenIn(key, 'sheet') === t.checked) return;
+        // The store, then update(): markDirty() banks ONE undo step (input and change both arrive; the second is a no-op).
+        if(t.checked) phaseHidden[key] = {sheet: true}; else delete phaseHidden[key];
+        reflectPhaseHidden();
+        update();
+      });
+    });
+  });
+
+  // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
+  // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
+  // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates
+  // under it, and × on a custom phase, all in black (R9). Under it come Starts and Length side by side, then a
+  // label-left switch row for every yes/no. It is the engine's own markup restyled, not a React port (plan §3.2):
+  //   - every id, class and `checked` default is kept, and the id'd controls stay in their old DOCUMENT order
+  //     (fields.byId is built in that order, so moving one past another would change every saved file's bytes);
+  //   - #swatch-<key> stays the row's FIRST child, the fold and the colour pop key off it. It IS the colour square,
+  //     placed over the head by CSS;
+  //   - #meta-<key> / #unitmeta-<key> moved into .custom-phase-header, so a folded card still shows its dates;
+  //   - a switch is CSS on the native checkbox (.sw-row), never a Mantine Switch (UI-CONVENTIONS §8.9). Each keeps
+  //     its own <label>, so a click anywhere on the row toggles it, as the old caption did.
+  const MVONLY_PHASE_TITLE = 'Hidden in the waterfall: it shows in the month view and its PDF only, never in the waterfall, the Excel workbook or the waterfall PDF';
+  const MVONLY_TAG = (hidden, title) => `<span class="phase-mvonly-tag"${hidden ? ' hidden' : ''} title="${title}">Month view only</span>`;
+  function phaseHeadHtml(nameHtml, tagHtml, metaHtml, endHtml){
+    return `<div class="custom-phase-header">
+          ${PHASE_COLLAPSE_BTN}
+          <div class="phase-head-text">
+            <div class="phase-head-title">${nameHtml}${tagHtml}</div>
+            ${metaHtml}
+          </div>${endHtml || ''}
+        </div>`;
+  }
+  function swRow(cls, label, inputHtml, title){
+    return `<label class="${cls} sw-row"${title ? ` title="${title}"` : ''}><span class="sw-label">${label}</span>${inputHtml}</label>`;
+  }
+  const SNAP_TITLE = 'On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick.';
+  // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
+  const HIDEWF_HTML = swRow('phase-hidewf', 'Hide in waterfall', '<input type="checkbox" class="phase-hidewf-cb">',
+    'On: this phase shows in the month view and its PDF only. The waterfall, the Excel workbook and the waterfall PDF leave it out, with its automatic notes.');
+  // ONE writer of a phase card's colour: the swatch's own background (what every caller and leg reads) and the row's
+  // --phase-color, which the head's tint and the switch blocks' rule read. Every swatch write goes through here.
+  function paintPhaseSwatch(sw, color){
+    if(!sw) return;
+    sw.style.background = color;
+    const row = sw.parentElement;
+    if(row && row.classList.contains('phase-row')) row.style.setProperty('--phase-color', color);
+  }
+
   function buildPhaseRows(){
     const wrap = document.getElementById('phase-rows');
     wrap.innerHTML = '';
@@ -6053,7 +6190,7 @@ export function initLegacyApp() {
       // and it stays checked -- so every existing file keeps its Monday-snapped dates. Absent means
       // snapped. Do not move this default into JS.
       const snapCls = (p.key === 'production') ? 'phase-snap' : 'phase-snap pu-weeks';
-      const snapHtml = `<label class="${snapCls}" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      const snapHtml = swRow(snapCls, 'Snap to Monday', `<input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked>`, SNAP_TITLE);
       // ⭐ CUSTOM-PHASE-UNITS-PLAN §7a, owner rulings 7 and 9d (15 Oct 2026): the five built-in Weeks
       // phases get a Length of Weeks or Dates -- no Days, which stays custom-only -- with the custom
       // rows' markup, classes and CSS, so one code path serves both. Production has none.
@@ -6061,34 +6198,43 @@ export function initLegacyApp() {
       // are STATIC (never rebuilt on restore), so an absent id must be defaulted explicitly in
       // applyStateSnapshot() and in New's reset -- the M-5 trap snap-<key> fell into. The markup's
       // first option (Weeks) and empty end are the defaults a fresh page starts from.
-      // The select sits IN the second field's caption, "By [Weeks ▾]" (owner, 16 Oct 2026), shared
-      // with the custom rows: see byUnitHtml().
+      // The select sits IN the second field's caption, "Length · [Weeks ▾]" since the blend (it read "By [Weeks ▾]",
+      // owner, 16 Oct 2026), shared with the custom rows: see byUnitHtml().
+      // ⚠️ DOCUMENT ORDER (PHASES-TAB-PLAN.md §3.1): Production's hidden weeks-production stays AFTER snap-production,
+      // where it always was, now inside the switch group, so fields.byId keeps its key order.
       const fieldsHtml = (p.key === 'production')
-        ? `<label>Start date <input type="date" id="start-${p.key}"></label>
-           ${snapHtml}
+        ? `<label>Starts <input type="date" id="start-${p.key}"></label>`
+        : `<label>Starts <input type="date" id="start-${p.key}"></label>
+           ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}`;
+      const switchesHtml = (p.key === 'production')
+        ? `${snapHtml}
            <input type="hidden" id="weeks-${p.key}">`
-        : `<label>Start date <input type="date" id="start-${p.key}"></label>
-           ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}
-           ${snapHtml}`;
+        : `${snapHtml}
+           ${HIDEWF_HTML}`;
       // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
       // line. Also lets move this total shooting days (for both episodic and block) to just above the
       // episode/block dragger block". So Production reads top to bottom: its dates, the TOTAL with the
       // day-override note that explains it, the episode/block list that total is the sum of, then ONE
       // divider, then the two things that pause or overlap the shoot (hiatus, Simultaneous Post).
       // Only the ORDER moved: every id is the same, so the save format (fields.byId) cannot change.
+      // The blend (R6) keeps that order: Starts, Snap to Monday, the TOTAL SHOOTING DAYS box with the shooting
+      // order under a hairline in the same box (CSS joins .prod-total-block and .ep-panel), then Hiatus and
+      // Simultaneous Post as switch rows that open their fields underneath.
       const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      row.style.setProperty('--phase-color', swColor);
       row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
-        <div class="custom-phase-header">
-          ${PHASE_COLLAPSE_BTN}
-          <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
-        </div>
+        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}" aria-label="Phase name">`,
+          p.key !== 'production' ? MVONLY_TAG(true, MVONLY_PHASE_TITLE) : '',
+          `<div class="phase-meta" id="meta-${p.key}"></div>
+            ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}`)}
         <div class="phase-fields">
           ${fieldsHtml}
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
-        <div class="phase-meta" id="meta-${p.key}"></div>
-        ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}
+        <div class="phase-switches">
+          ${switchesHtml}
+        </div>
         ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
         <div class="prod-total-block">
@@ -6102,19 +6248,15 @@ export function initLegacyApp() {
         </div>
         ${phaseHiatusBlockHtml(p.key, p.label)}
         <div class="simpost-panel">
-          <label class="simpost-toggle">
-            <input type="checkbox" id="simpost-enabled">
-            Simultaneous Post
-          </label>
-          <label class="simpost-offset-row" id="simpost-offset-row">
-            Starts
-            <input type="number" id="simpost-offset" min="0" step="1" value="0">
-            calendar weeks after Production begins
-          </label>
-          <label class="simpost-count-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1.">
-            <input type="checkbox" id="simpost-count">
-            <span>Number these weeks &amp; continue Post&rsquo;s count</span>
-          </label>
+          ${swRow('simpost-toggle', 'Simultaneous Post', '<input type="checkbox" id="simpost-enabled">')}
+          <div class="simpost-body">
+            <label class="simpost-offset-row" id="simpost-offset-row">
+              Starts
+              <input type="number" id="simpost-offset" min="0" step="1" value="0" aria-label="Calendar weeks after Production begins">
+              calendar weeks after Production begins
+            </label>
+            <label class="simpost-count-row sw-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1."><span class="sw-label">Number these weeks and continue Post&rsquo;s count</span><input type="checkbox" id="simpost-count"></label>
+          </div>
         </div>` : ''}
       `;
       // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
@@ -6152,17 +6294,19 @@ export function initLegacyApp() {
     const row = document.createElement('div');
     row.className = 'phase-row prep-row';
     row.id = 'prep-row';
+    const prepColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color;
+    row.style.setProperty('--phase-color', prepColor);
+    // The blend (PHASES-TAB-PLAN.md §3.4a): the summary line is the head's dates line, the "Month view only" tag is
+    // always on (prep is month-only already, plan D2), and the per-episode list sits boxed under its own heading
+    // (refreshPrepUI). The old caption sentence went with the tag; its fact is the tag's title.
     row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
-        <div class="custom-phase-header">
-          ${PHASE_COLLAPSE_BTN}
-          <input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">
-        </div>
-        <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
+        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${prepColor};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">`,
+          MVONLY_TAG(false, 'Working days before each episode’s first shoot day, in the month view and its PDF only'),
+          `<div class="phase-meta prep-meta" id="prep-meta"></div>`)}
         <div class="phase-fields">
-          <label title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep days <input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None"></label>
+          <label class="prep-default" title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep <span class="num-suffix"><input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None" aria-label="Default prep days"><span>days</span></span></label>
         </div>
-        <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
     row.querySelector('#prep-name').addEventListener('input', update);
     // Leaving the box puts a default name back to this mode's ("Prep", or blank, becomes "Episodic
@@ -6196,7 +6340,7 @@ export function initLegacyApp() {
   function reflectPrepSwatch(){
     const sw = document.getElementById('swatch-' + PREP_KEY);
     const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)];
-    if(sw && opt) sw.style.background = opt.color;
+    if(sw && opt) paintPhaseSwatch(sw, opt.color);
   }
 
   // The Prep row's list and summary line, from update() (after render, like refreshCustomUnitMeta).
@@ -6231,8 +6375,10 @@ export function initLegacyApp() {
     const key = (blocks ? 'B' : 'E') + '|' + units.map(u=> u.def.id + ':' + u.name).join('|');
     if(wrap._prepKey !== key){
       wrap._prepKey = key;
+      // The blend's boxed list under its own heading (PHASES-TAB-PLAN.md §3.4a); the rule rides on the heading's right.
       wrap.innerHTML = !units.length ? '' :
-        '<div class="ep-hint">Blank uses the default. 0 gives ' + (blocks ? 'that block' : 'that episode') + ' no prep.</div>'
+        '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">' + (blocks ? 'Per block' : 'Per episode') + '</span>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (blocks ? 'that block' : 'that episode') + ' no prep.">Blank = default · 0 = none</span></div>'
         + '<div class="ep-list">' + units.map(u=>`
           <div class="prep-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}">
             <span class="prep-unit-name">${escHtml(u.name)}</span>
@@ -6319,8 +6465,7 @@ export function initLegacyApp() {
     const cp = customPhaseDefs.find(c=> c.key === key);
     if(cp) cp.colorIndex = i;
     else if(PHASES.some(p=> p.key === key)) phaseColorOverride[key] = i;   // never a key no phase has
-    const sw = document.getElementById('swatch-' + key);
-    if(sw) sw.style.background = PHASE_COLOR_OPTIONS[i].color;
+    paintPhaseSwatch(document.getElementById('swatch-' + key), PHASE_COLOR_OPTIONS[i].color);
     update();
   }
   // The colour a phase's picker opens on: what setPhaseColor() last stored, or the phase's own.
@@ -6389,20 +6534,20 @@ export function initLegacyApp() {
   // (the M-5 trap). Its store is phaseHiatusNumbered, its key is read off #phiatus-fields-<key> (which
   // the restore's re-key renames with the row), and refreshPhaseHiatusUI() reflects it.
   function phaseHiatusBlockHtml(key, label){
-    // The toggle's own caption IS the name field -- not a checkbox <label> wrapping static text
-    // plus a separate Name box below it. The checkbox and the text input are independent sibling
-    // controls (not one nested in the other's <label>), so clicking the checkbox toggles and
-    // clicking the text edits, with no overlap between the two (owner, 1 Sep 2026).
+    // The blend (PHASES-TAB-PLAN.md §3.4a): "Hiatus" is a switch row, and its fields open underneath, ruled in the
+    // phase colour. The NAME moved off the toggle's line into the block (it was the toggle's caption, owner,
+    // 1 Sep 2026), so the row is now one <label> and a click anywhere on it toggles. #phiatus-en-<key> and
+    // #phiatus-name-<key> keep their ids and their document order (en, name, start, weeks).
     return `<div class="phase-hiatus">
-        <div class="phase-hiatus-toggle">
-          <input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">
-          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
-        </div>
+        ${swRow('phase-hiatus-toggle', 'Hiatus', `<input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">`)}
         <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
-          <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
-          <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
+          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
+          <div class="phiatus-pair">
+            <label>Starts <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
+            <label class="phiatus-weeks-lbl">Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
+          </div>
           <div class="snap-note"></div>
-          <label class="phiatus-wknum" title="On: this hiatus's band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed."><input type="checkbox" class="phiatus-wknum-cb"> Number weeks</label>
+          ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed.')}
         </div>
       </div>`;
   }
@@ -6599,7 +6744,8 @@ export function initLegacyApp() {
     return fixed.concat(custom);
   }
 
-  // The length column of a phase row with a Length select: the caption reads "By [Weeks ▾]", the
+  // The length column of a phase row with a Length select: the caption reads "Length · [Weeks ▾]" ("Ends · [Dates ▾]"
+  // with Dates; the two words are CSS off the checked option, the blend, PHASES-TAB-PLAN.md §3.4a; it read "By [Weeks ▾]"), the
   // select itself in the caption, and under it whichever box the unit uses (owner, 16 Oct 2026:
   // "a "By" where "Weeks" is currently written ... and then the "Weeks" is its own small drop down
   // menu"). It replaced a "Length" line of its own above Start date. Built-in rows offer Weeks and
@@ -6613,7 +6759,7 @@ export function initLegacyApp() {
       ? "How this phase's length is given: whole weeks, a number of working days, or a start and end date"
       : "How this phase's length is given: whole weeks, or a start and end date";
     return `<div class="pu-by">
-        <div class="pu-by-cap">By <select id="unit-${key}" class="phase-unit" title="${title}" aria-label="Length given by"><option value="weeks">Weeks</option>${withDays ? '<option value="days">Days</option>' : ''}<option value="dates">Dates</option></select></div>
+        <div class="pu-by-cap"><span class="pu-cap-len">Length</span><span class="pu-cap-end">Ends</span><span class="pu-cap-dot">·</span><select id="unit-${key}" class="phase-unit" title="${title}" aria-label="Length given by"><option value="weeks">Weeks</option>${withDays ? '<option value="days">Days</option>' : ''}<option value="dates">Dates</option></select></div>
         <label class="pu-weeks">${weeksInput}</label>
         ${withDays ? `<label class="pu-days"><input type="number" id="days-${key}" class="phase-days" min="1" step="1" placeholder="e.g. 10" aria-label="Working days" title="Working days: Monday to Friday, skipping union holidays and hiatus days"></label>` : ''}
         <label class="pu-dates"><input type="date" id="end-${key}" class="phase-end" aria-label="End date"></label>
@@ -6646,6 +6792,8 @@ export function initLegacyApp() {
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
     delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
+    pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
+    delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
     row.remove();
     update();
     return true;
@@ -6660,21 +6808,25 @@ export function initLegacyApp() {
     const row = document.createElement('div');
     row.className = 'phase-row';
     row.dataset.key = key;
+    row.style.setProperty('--phase-color', opt.color);
+    // The blend (PHASES-TAB-PLAN.md §3.4a); buildPhaseRows() says what it keeps. The id'd controls are in their old
+    // order: name, start, unit, weeks, days, end, snap, wknum, then the hiatus.
     row.innerHTML = `
-      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Click to set this phase's color"></div>
-      <div class="custom-phase-header">
-        ${PHASE_COLLAPSE_BTN}
-        <input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name">
-        <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
-      </div>
+      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Change colour" aria-label="Change colour"></div>
+      ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name" aria-label="Phase name">`,
+        MVONLY_TAG(true, MVONLY_PHASE_TITLE),
+        `<div class="phase-meta" id="meta-${key}"></div>
+          <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>`,
+        `<button class="icon-btn remove-custom-phase" title="Remove">&times;</button>`)}
       <div class="phase-fields">
-        <label>Start date <input type="date" id="start-${key}"></label>
+        <label>Starts <input type="date" id="start-${key}"></label>
         ${byUnitHtml(key, true, `<input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12" aria-label="Weeks">`)}
-        <label class="phase-snap pu-weeks" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
-        <label class="phase-wknum" title="On: this phase's bars read &quot;Name wk 1, wk 2...&quot;. Off: just the name, in every view and export."><input type="checkbox" id="wknum-${key}" class="phase-wknum-cb" checked> Number weeks</label>
       </div>
-      <div class="phase-meta" id="meta-${key}"></div>
-      <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>
+      <div class="phase-switches">
+        ${swRow('phase-snap pu-weeks', 'Snap to Monday', `<input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked>`, SNAP_TITLE)}
+        ${swRow('phase-wknum', 'Number weeks', `<input type="checkbox" id="wknum-${key}" class="phase-wknum-cb" checked>`, 'On: this phase&#39;s bars read &quot;Name wk 1, wk 2...&quot;. Off: just the name, in every view and export.')}
+        ${HIDEWF_HTML}
+      </div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
     // ⭐ CUSTOM-PHASE-UNITS-PLAN.md: a custom phase's length is Weeks (as always), Days or Dates.
@@ -7005,14 +7157,28 @@ export function initLegacyApp() {
     // picker): OFF unless ticked, so every existing calendar prints as it did. Ticked, the row's bands read
     // "<name> wk 1" … through syncHiatusNamesFromSidebar(). A class, never an id: hiatus rows are saved as
     // fields.hiatuses (collectFieldValues), so fields.byId and gate 5's id set are untouched.
+    // The blend (PHASES-TAB-PLAN.md §3.4a): a head in HIATUS_COLOR lightened, with the name (no box, as a phase's
+    // title), × and the dates under it (reflectHiatusRanges); Starts and Weeks side by side; then Lock in place and
+    // Number weeks as switch rows (R7: the owner's switches stand, Lock in place included, overruling
+    // UI-CONVENTIONS §5's Checkbox). Every control keeps its class and its order: the row has no ids, and
+    // collectFieldValues() reads it by class.
     row.innerHTML = `
-      <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
-      <label>Start date <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
-      <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
-      <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
-      <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
-      <label class="hiatus-lock hiatus-numbered" title="Label each week of this hiatus: Hiatus wk 1, Hiatus wk 2…"><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}>Number weeks</label>
-      <div class="snap-note"></div>
+      <div class="hiatus-head">
+        <div class="hiatus-head-text">
+          <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}" aria-label="Hiatus name">
+          <div class="hiatus-range"></div>
+        </div>
+        <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
+      </div>
+      <div class="hiatus-body">
+        <div class="hiatus-pair">
+          <label>Starts <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
+          <label class="hiatus-weeks-lbl">Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
+        </div>
+        <div class="snap-note"></div>
+        <label class="hiatus-lock sw-row" title="Keep this hiatus on these dates when the calendar is shifted"><span class="sw-label">Lock in place</span><input type="checkbox" class="hiatus-locked"${locked?' checked':''}></label>
+        <label class="hiatus-lock hiatus-numbered sw-row" title="Label each week of this hiatus: Hiatus wk 1, Hiatus wk 2…"><span class="sw-label">Number weeks</span><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}></label>
+      </div>
     `;
     // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
     // removeHiatusRow, just above this function), so the two ask the same question.
@@ -9101,9 +9267,14 @@ export function initLegacyApp() {
       });
       return out;
     }
+    // ⚠️ textStyle.hiatus is a band's look too (the text style bar's, 21 Oct 2026), and it was missing from this
+    // list until 27 Oct 2026, so a band styled in the waterfall and dragged here arrived unstyled while its old
+    // weeks kept the style (MONTH-TEXT-STYLE-PLAN.md §7). A new per-band store belongs in d.maps AND here: the
+    // month view's own band styles (mvTextStyle.band) are the second.
     function setMaps(m){
       hiatusTexts = m.hiatusTexts; hiatusNameSyncedKeys = m.hiatusNameSyncedKeys;
       hiatusColors = m.hiatusColors; hiatusFontSize = m.hiatusFontSize;
+      textStyle.hiatus = m.textStyleHiatus; mvTextStyle.band = m.mvTextStyleBand;
     }
     function writeTo(d, c){
       if(samePos(c, original(d))){
@@ -9216,7 +9387,8 @@ export function initLegacyApp() {
                  start0: h.start, weeks0: h.weeks, last0: addDays(h.end, -7),
                  wasStart: h.sEl.value, wasWeeks: h.wEl.value,
                  maps: {hiatusTexts: Object.assign({}, hiatusTexts), hiatusNameSyncedKeys: Object.assign({}, hiatusNameSyncedKeys),
-                        hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize)},
+                        hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize),
+                        textStyleHiatus: Object.assign({}, textStyle.hiatus), mvTextStyleBand: Object.assign({}, mvTextStyle.band)},
                  others: h.kind === 'all' ? allPhaseHiatuses().filter(o=> o.sEl !== h.sEl) : [],
                  wrap0: lastShootDay(), ends0: phaseEnds(), broken: false};
       d.cur = original(d);
@@ -11142,6 +11314,13 @@ export function initLegacyApp() {
     }
     if(emptyEl) emptyEl.style.display = 'none';
     wrap.style.display = 'block';
+    // ⭐ THE HOLIDAYS THAT COST A SHOOT DAY (owner, 24 Oct 2026): a weekday holiday inside Production that
+    // the shoot would otherwise have worked. The production walk's own verdict (holidaysHit), never a second
+    // copy of the rule, so a weekend, a hiatus, a day marked Off or a worked holiday is never flagged, and
+    // un-ticking Enable clears the flag because the day is then shot. Keyed by date: the day is what is lost.
+    const costsDay = {};
+    ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
+      .forEach(x=> costsDay[isoOf(x.date)] = true);
     listEl.innerHTML = shown.map(h=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
@@ -11175,7 +11354,9 @@ export function initLegacyApp() {
       return '<div class="hv-row">'
         + '<span class="hv-label'+dim+'" title="'+label+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
-        +   '<span class="hv-date">'+fmtShort(h.date)+'</span>'
+        +   '<span class="hv-date">'+fmtShort(h.date)
+        +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
+        +   '</span>'
         + '</span>'
         + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
@@ -11421,6 +11602,25 @@ export function initLegacyApp() {
   // Extra lines the user has asked for, per week (keyed by that week's Monday). Weeks share a
   // row, so this necessarily applies to all seven days.
   let mvExtraLanes = {};
+  // Phase bar size (MONTH-BAR-SIZE-PLAN.md; owner rulings R0-R7 by picker, 27 Oct 2026): how big the month view's
+  // phase bars AND hiatus bands are (R1(b)), on screen and in the month PDF (R4).
+  //  - ⛔ CALENDAR DATA (R5, "Saved in the calendar"): captureSnapshot()'s `mvBarSize`, the mvNumberShootDays
+  //    arrangement. A pick dirties the file and is one undo step, and everyone who opens it sees the same bars.
+  //  - STANDARD IS AN ABSENT KEY, held here as ''. Only 'large' and 'xl' are ever written, so every calendar saved
+  //    before the setting, and every Standard one after it, opens and saves byte for byte as before.
+  //  - `text` and `tag` are the label's and the grey tag's px, `bar` the bar's height: the text's line (x1.5) plus
+  //    1 px of padding and 1 px of border, top and bottom. ⚠️ legacy.css's "Phase bar size" block (E1) carries the
+  //    same numbers, and from plan step 3 so will the writer's MVL_PAINT: change one, change them all.
+  //  - Declared up here, with the month view's other state, so no early render meets it in its TDZ
+  //    (mvPillLineCount reads it).
+  // ⛔ The key and both values are permanent from the first file saved with them.
+  const MV_BAR_SIZES = { large: { text: 12, tag: 11, bar: 22 }, xl: { text: 14, tag: 12, bar: 25 } };
+  let mvBarSize = '';
+  // The bar's label size in px: 10 at Standard, what .mv-bar sets.
+  function mvBarTextPx(){ return (mvBarSize === 'large' || mvBarSize === 'xl') ? MV_BAR_SIZES[mvBarSize].text : 10; }
+  // A bar's line box: its type x 1.5, as .mv-bar's line-height:1.5 makes it (15 px at Standard, 18 and 21 px at a size).
+  // A month text style's size on a bar or band is written in it (mvTextCss), so a styled bar keeps the box its size has.
+  function mvBarLinePx(){ return mvBarTextPx() * 1.5; }
   // While building the PDF we walk every month in turn. That deliberately ignores the
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
@@ -11641,10 +11841,26 @@ export function initLegacyApp() {
   // styled exactly like a note bar, and cached (keyed by width+text) so re-renders don't reflow.
   let _mvNoteMeasureEl = null;
   const _mvNoteLineCache = new Map();
-  function mvNoteLineCount(text, boxW){
+  // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): a styled text is measured in its own
+  // size, weight and slant (`fmt`, its month text style), with the line box held (§3.4), so a bold note that needs one
+  // more line gets it rather than losing its last line (the waterfall's F4 problem). With no `fmt` the measurer is set
+  // to exactly the font its cssText always had, and the cache key is the old one, so every count is what it was.
+  function mvMeasureSig(fmt){
+    if(!fmt || !(fmt.size || fmt.bold !== undefined || fmt.italic)) return '';
+    return (fmt.size || '') + '/' + (fmt.bold === undefined ? '' : fmt.bold ? 'b' : 'r') + '/' + (fmt.italic ? 'i' : '');
+  }
+  function mvMeasureFont(el, fmt, weight, lineRel, linePx){
+    const f = fmt || {};
+    el.style.fontSize = (f.size || 10) + 'px';
+    el.style.fontWeight = f.bold === undefined ? String(weight) : (f.bold ? '700' : '400');
+    el.style.fontStyle = f.italic ? 'italic' : 'normal';
+    el.style.lineHeight = f.size ? linePx + 'px' : String(lineRel);
+  }
+  function mvNoteLineCount(text, boxW, fmt){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
-    const key = Math.round(boxW) + '|' + t;
+    const sig = mvMeasureSig(fmt);
+    const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     if(!_mvNoteMeasureEl){
       _mvNoteMeasureEl = document.createElement('div');
@@ -11655,6 +11871,7 @@ export function initLegacyApp() {
       document.body.appendChild(_mvNoteMeasureEl);
     }
     _mvNoteMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    mvMeasureFont(_mvNoteMeasureEl, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
     _mvNoteMeasureEl.textContent = t;
     const h = _mvNoteMeasureEl.offsetHeight; // = lines*13 (line-height) + 4 (padding) + 2 (border)
     const lines = Math.min(3, Math.max(1, Math.round((h - 6) / 13)));
@@ -11668,12 +11885,18 @@ export function initLegacyApp() {
   // line-height 1.5, padding 1px 8px, a 1 px border) but allowed to wrap as .mv-pill-2l lets it. More than two
   // is two: the second line is cut with "…" (-webkit-line-clamp), the rule every bar already follows.
   // A pill of any other phase, or of more than one day, never comes here, so it keeps its one cut line.
+  // ⛔ FROZEN EDIT E2 (owner-approved 27 Oct 2026 by picker, MONTH-BAR-SIZE-PLAN.md R0, "Yes, this setting only"):
+  // measured at the bar's OWN size (mvBarTextPx(): 10 px at Standard, 12 or 14 px at Large and Extra large), so a label
+  // that fits one line at 10 px but not at 12 wraps as the plan's §2 default 6 says, instead of being cut with "…".
+  // The size is in the cache key. At Standard every number is the one this function always used (10 px, 15 px lines),
+  // so every Standard calendar renders exactly as before.
   let _mvPillMeasureEl = null;
   const _mvPillLineCache = new Map();
-  function mvPillLineCount(text, boxW){
+  function mvPillLineCount(text, boxW, fmt){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
-    const key = Math.round(boxW) + '|' + t;
+    const px = mvBarTextPx(), lineH = px * 1.5, sig = mvMeasureSig(fmt);
+    const key = px + '|' + Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
     if(_mvPillLineCache.has(key)) return _mvPillLineCache.get(key);
     if(!_mvPillMeasureEl){
       _mvPillMeasureEl = document.createElement('div');
@@ -11684,18 +11907,22 @@ export function initLegacyApp() {
       document.body.appendChild(_mvPillMeasureEl);
     }
     _mvPillMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    // M1 sets the style's font; E2 then gives an unstyled size the bar's own (12 or 14 px at a phase bar size), and a
+    // styled size the bar's own line box, as mvTextCss writes it (mvBarLinePx: 15 px at Standard, as M1 always had).
+    mvMeasureFont(_mvPillMeasureEl, fmt, 600, 1.5, lineH);
+    if(!(fmt && fmt.size)) _mvPillMeasureEl.style.fontSize = px + 'px';
     _mvPillMeasureEl.textContent = t;
-    const h = _mvPillMeasureEl.offsetHeight;   // = lines*15 (line-height) + 2 (padding) + 2 (border)
-    const lines = Math.min(2, Math.max(1, Math.round((h - 4) / 15)));
+    const h = _mvPillMeasureEl.offsetHeight;   // = lines*lineH (line-height 1.5) + 2 (padding) + 2 (border)
+    const lines = Math.min(2, Math.max(1, Math.round((h - 4) / lineH)));
     if(_mvPillLineCache.size > 800) _mvPillLineCache.clear();
     _mvPillLineCache.set(key, lines);
     return lines;
   }
   // The lanes a phase pill takes in a week row: 2 for a one-day run of a CUSTOM phase whose label needs two
   // lines, else 1, which is every pill on every calendar before 20 Oct 2026 that has no such run.
-  function mvPillLanes(seg, run, label, boxW){
+  function mvPillLanes(seg, run, label, boxW, fmt){
     if(!seg || !/^custom\d+$/.test(seg.key) || !run || run.startCol !== run.endCol) return 1;
-    return mvPillLineCount(label, boxW);
+    return mvPillLineCount(label, boxW, fmt);
   }
   // Border-box width of a note bar = one day column minus the bar's 1px horizontal margins.
   function mvNoteBoxWidth(){
@@ -11912,7 +12139,11 @@ export function initLegacyApp() {
     const _sdNum = mvShootDayNumberer(schedule);
 
     const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
+    // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): the weekday row and the month name each
+    // take ONE style for the whole calendar, as a `style` attribute written ONLY when styled, so an unstyled month's
+    // markup is byte for byte what it was.
+    const frameStyle = k=>{ const css = mvTextCss('frame', k).trim(); return css ? ` style="${css}"` : ''; };
+    const head = dowNames.map(n=>`<div class="mv-dow"${frameStyle('dow')}>${n}</div>`).join('');
 
     let rows = '';
     for(let wk=0; wk<weekCount; wk++){
@@ -12036,10 +12267,17 @@ export function initLegacyApp() {
               const n = b.text;
               // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
               // that many lanes so it prints as one solid block instead of spilling over its neighbour.
-              const span = mvNoteLineCount(n, noteBoxW);
+              // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): the line's month style, measured
+              // in (mvNoteLineCount) and appended to its style (mvTextCss). Unstyled, both are what they were.
+              const wfKey = mvWfNoteKey(n);
+              const span = mvNoteLineCount(n, noteBoxW, mvTextStyleOf('wfnote', wfKey));
+              // ⛔ FROZEN EDIT M2 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): both note tooltips say
+              // "double-click to edit", because a click now PICKS a note for the text style bar (ruling R1). Nothing else
+              // changed. A title is in the markup the print rollback prints, so gate 10's baselines were re-cut for it,
+              // with a diff showing only these titles moved; gate 13 is untouched (the writer draws no tooltip).
               place(i, i, 'mv-bar mv-note-block mv-note-click',
-                `background:${wfColor}; color:${textColorFor(wfColor)};`,
-                escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
+                `background:${wfColor}; color:${textColorFor(wfColor)};` + mvTextCss('wfnote', wfKey),
+                escHtml(n) + ' \u2014 double-click to edit (also updates the Waterfall)', escHtml(n),
                 `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"` + anc,
                 span, null, b.minLane);
               return;
@@ -12052,10 +12290,11 @@ export function initLegacyApp() {
             const oc = entry.color || MILESTONE_COLOR;
             const text = String(entry.text || '');
             if(!text.trim()) return;
-            const span = mvNoteLineCount(text, noteBoxW);
+            // ⛔ FROZEN EDIT M1: the note's own style (`fmt` on its entry), measured in and appended, as the line's above.
+            const span = mvNoteLineCount(text, noteBoxW, mvTextStyleOf('daynote', entry));
             place(i, i, 'mv-bar mv-note-block mv-note-click',
-              `background:${oc}; color:${textColorFor(oc)};`,
-              escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
+              `background:${oc}; color:${textColorFor(oc)};` + mvTextCss('daynote', entry),
+              escHtml(text) + ' \u2014 double-click to edit (month view only)', escHtml(text),
               `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"` + anc,
               span, null, b.minLane);
           });
@@ -12106,8 +12345,9 @@ export function initLegacyApp() {
         // turned a label the user had deliberately emptied (the editor stores '' on purpose) back
         // into "Hiatus" here and in the month PDF alone. The per-phase band below already used `in`.
         const ht = hiatusTextFor(wkIso);
+        // ⛔ FROZEN EDIT M1 (MONTH-TEXT-STYLE-PLAN.md §6): the band's month style, after its own colour so it wins.
         place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
-          `background:${hc}; color:${textColorFor(hc)};`, '', escHtml(ht), '');
+          `background:${hc}; color:${textColorFor(hc)};` + mvTextCss('band', wkIso), '', escHtml(ht), '');
       });
 
       // One rounded pill per phase per contiguous run of covered days. Phases keep their lane
@@ -12153,9 +12393,13 @@ export function initLegacyApp() {
             // supersedes, for that case only, MONTH-PILL-LABEL Q5 ("A width remedy? None") and HALF-SQUARE-BARS §5
             // ("Cut it with …"). Custom phases carry no blkTag and no half inset, so neither is in play. Every
             // other pill, and a one-day custom pill whose label fits, gets 1 and '' and is byte-identical.
-            const pillLanes = mvPillLanes(s, r, lbl, noteBoxW);
+            // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): the bar's month style (its
+            // phase week's, its episode's or block's, its prep's: mvPillTextKey), measured in for a wrapping pill and
+            // appended LAST, after the half-day layers, so nothing it writes can reset them. It never carries a colour
+            // (N1), so the text and the ring stay in the phase's ink. Unstyled, both are what they were.
+            const pillLanes = mvPillLanes(s, r, lbl, noteBoxW, mvPillFmt(s, r));
             place(r.startCol, r.endCol, 'mv-bar mv-pill' + (pillLanes > 1 ? ' mv-pill-2l' : ''),
-              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r),
+              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r) + mvPillCss(s, r),
               escHtml(lbl) + (blkTag ? ' · ' + escHtml(blkTag) : ''),
               escHtml(lbl) + (blkTag ? '<span class="mv-pill-block">' + escHtml(blkTag) + '</span>' : ''),
               `data-ph="${s.key}"`, pillLanes, r);
@@ -12208,8 +12452,9 @@ export function initLegacyApp() {
             const defLbl = (s.name || s.label || 'Phase').replace(/\s*wk\s*\d+\s*$/i,'') + ' Hiatus';
             const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : defLbl;
             const hc = hiatusColors[hKey] || HIATUS_COLOR;
+            // ⛔ FROZEN EDIT M1: a phase's own band takes its month style as an all-phase band does.
             place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
-              `background:${hc}; color:${textColorFor(hc)};`, escHtml(hTxt), escHtml(hTxt), '');
+              `background:${hc}; color:${textColorFor(hc)};` + mvTextCss('band', hKey), escHtml(hTxt), escHtml(hTxt), '');
           });
         }
         // ⛔ FROZEN EDIT E4, the other half: the notes that sit under this phase (see notesFrom above).
@@ -12236,9 +12481,11 @@ export function initLegacyApp() {
         }
         if(sp) spRuns.push(sp);
         const spLabel = simPostLabel(wkRec);
+        // ⛔ FROZEN EDIT M1: Sim Post's month style, keyed by the N its label shows (no colour, N1).
+        const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
           place(r.startCol, r.endCol, 'mv-bar mv-pill',
-            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};`, spLabel, spLabel, '');
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, '');
         });
       }
 
@@ -12358,7 +12605,7 @@ export function initLegacyApp() {
       </div>
       <div class="mv-monthbar">
         <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month"${(range && cursor <= range.first) ? ' disabled' : ''}>&#9664;</button>
-        <div class="mv-monthyear">${MONTHS[month]} ${year}</div>
+        <div class="mv-monthyear"${frameStyle('month')}>${MONTHS[month]} ${year}</div>
         <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month"${(range && cursor >= range.last) ? ' disabled' : ''}>&#9654;</button>
       </div>
       <div class="mv-dowrow">${head}</div>
@@ -12474,6 +12721,35 @@ export function initLegacyApp() {
   // Episodes, Number of Blocks, Days per Block and a block's own day count.
   function showInfoEdited(){ blocksEpisodesLegacy = false; }
 
+  // ⭐ TWO OR MORE SEASONS ON ONE CALENDAR (owner, 27 Oct 2026: "being able to select two or more seasons in the
+  // Show info input and having those seasons translate to the header"; picker: "Tick any seasons", "S3 & S4").
+  // Show info's Season is a dropdown with a checkbox per season (SeasonPop.jsx; owner, the same day: "keep the selector
+  // as a drop down menu with the checkboxes inside the drop down"). What a tick means, all deliberate:
+  //  - #season-num, the select itself, still holds the FIRST ticked season. It is the save format's season (fields.byId),
+  //    episode numbering reads it (Seasons 3 and 4 number 301, 302...), and an older build shows that one season.
+  //  - seasonList is every ticked season, ascending, as numbers. ⛔ CALENDAR DATA: captureSnapshot()'s `seasons`
+  //    (not to be confused with a file's `scenarios`), a PERMANENT key written ONLY with two or more ticked, so a
+  //    calendar with one season saves byte for byte what it did.
+  //  - Header text only (seasonLabel). Nothing that schedules reads it.
+  const SEASON_MAX = 10;   // the old dropdown's Seasons 1-10
+  let seasonList = [];
+  // The seasons the header names: the list while it starts with #season-num's season, else that one season. The
+  // guard is for a path that sets the select alone: its change listener resets the list (the harness's T.set takes
+  // that path), and applyStateSnapshot() replays the select before it restores the list.
+  function seasonsShown(){
+    const first = parseInt((document.getElementById('season-num').value || '').trim(), 10);
+    if(!(first >= 1)) return [];
+    return (seasonList.length >= 2 && seasonList[0] === first) ? seasonList.slice() : [first];
+  }
+  // "S3", "S3 & S4", "S3, S4 & S5"; '' with no season. One season reads 'S' + the select's value, as it always did.
+  function seasonLabel(){
+    const s = seasonsShown().map(n => 'S' + n);
+    return s.length < 2 ? (s[0] || '') : s.slice(0, -1).join(', ') + ' & ' + s[s.length - 1];
+  }
+  // The dropdown's boxes and the select's "Seasons 3 & 4" are drawn from this push and never hold the list, so an undo,
+  // a Load or New puts them in step (from update()).
+  function reflectSeasons(){ chrome.seasons(seasonsShown()); }
+
   // Episode numbering follows the industry convention: season 1 -> 101, 102...; season 5 ->
   // 501, 502... Falls back to plain 1, 2, 3 when no season is chosen.
   function episodeNumberFor(seasonVal, index){
@@ -12525,6 +12801,7 @@ export function initLegacyApp() {
       // that got dropped rather than deleting someone's work silently.
       while(episodeDefs.length > wanted){
         const last = episodeDefs.pop();
+        delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
         // A typed prep length is an edit too (EPISODE-PREP-PLAN.md §6): it goes with the episode, so it
         // is named in the same "Removed ..." warning rather than lost in silence.
         if(last.nameEdited || last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'an episode');
@@ -12559,6 +12836,7 @@ export function initLegacyApp() {
       // what the warning names.
       while(blockDefs.length > wanted){
         const last = blockDefs.pop();
+        delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
         if(last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'a block');
       }
     }
@@ -12643,8 +12921,11 @@ export function initLegacyApp() {
     // React on purpose (Sidebar.jsx's header), so it is built the way ui.mantine.dev builds a
     // draggable list -- one white card of hairline-separated rows, a grip icon, names edited in
     // place, a compact day field with its unit inside. Classes only; still no id on any control.
-    wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to set the '
-      + 'shooting order. It moves which days each episode is shot on, never how long Production runs.</div>'
+    // The blend (PHASES-TAB-PLAN.md §3.4a, R6): a SHOOTING ORDER heading inside the TOTAL SHOOTING DAYS box, with a
+    // short "drag ⠿" on its right whose tooltip is the sentence this hint used to print.
+    wrap.innerHTML = '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">Shooting order</span>'
+      + '<span class="ep-sec-note" title="Drag to set the shooting order. It moves which days each episode is shot on, never how long Production runs.">'
+      + 'drag <span class="ep-grip-ic" aria-hidden="true"></span></span></div>'
       + '<div class="ep-list">' + effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=>`
       <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
@@ -12671,12 +12952,14 @@ export function initLegacyApp() {
     // No episode count (optional in Blocks mode since 20 Oct 2026): the blocks still schedule, and the
     // hint says where episodes come from instead of how to drag ones that are not there.
     const hasEps = hasEpisodeCount();
+    // The blend's heading (renderEpisodeRows); with no episode count the sentence stays, since it says what to do.
     wrap.innerHTML = (hasEps
-      ? '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to move an '
-        + 'episode to another block, or to change the order it is shot in. It changes the calendar’s labels, '
-        + 'never its dates.</div>'
-      : '<div class="ep-hint">Add a Number of Episodes in Show Info to name the episodes in each block. '
-        + 'Blocks schedule without one.</div>')
+      ? '<div class="ep-hint ep-sec-head"><span class="ep-sec-title">Blocks</span>'
+        + '<span class="ep-sec-note" title="Drag to move an episode to another block, or to change the order it is shot in. It changes the calendar’s labels, never its dates.">'
+        + 'drag <span class="ep-grip-ic" aria-hidden="true"></span></span></div>'
+      : '<div class="ep-hint ep-sec-head ep-sec-wrap"><span class="ep-sec-title">Blocks</span>'
+        + '<span class="ep-sec-line">Add a Number of Episodes in Show Info to name the episodes in each block. '
+        + 'Blocks schedule without one.</span></div>')
       + blockDefs.map(b=>{
         const eps = blockEpisodeDefs(b);
         return `
@@ -14106,8 +14389,11 @@ export function initLegacyApp() {
     // Use Excel's built-in page header (Page Layout view + printed pages)
     // Excel header format: &L=left &C=center &R=right
     // Line break inside a section: use char code 10 (LF)
-    // Strip any & characters from user text (they are escape codes in Excel headers)
-    const hdrSafe = s => String(s).replace(/&/g, '').trim();
+    // An & in user text is an escape code in Excel headers. ⛔ FROZEN EDIT A1 (owner's picker, 27 Oct 2026: "Yes,
+    // apply it"): each one is written as && -- Excel's code for a printed & -- where it used to be DELETED, so two
+    // seasons print "S3 & S4" (not "S3  S4") and a title typed with an & keeps it. A header with no & is byte for
+    // byte what it was. estimateExcelHeaderLength() counts the doubled & in step.
+    const hdrSafe = s => String(s).replace(/&/g, '&&').trim();
     const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
 
     // Header lines come from the same auto defaults as the live view, with any per-line
@@ -14194,7 +14480,9 @@ export function initLegacyApp() {
       if(!arr) break;                                  // nothing left to cut
       const keep = len - (headerStr.length - HF_MAX) - 1;   // -1 for the ellipsis
       if(keep <= 0) arr.splice(idx, 1);
-      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/\s+$/, '') + '…' };
+      // Frozen edit A1's second half: a cut never splits an && pair, which would leave a lone & (an escape code)
+      // before the ellipsis. Text with no & is cut exactly as before.
+      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/(^|[^&])((?:&&)*)&$/, '$1$2').replace(/\s+$/, '') + '…' };
       headerStr = assembleHeader();
     }
     // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 10, HEADER-ROW-PLAN.md §2): Header: Off writes
@@ -14563,7 +14851,10 @@ export function initLegacyApp() {
     const a = document.createElement('a');
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safeTitle = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar.xlsx';
+    // ⛔ FROZEN EDIT S1 (owner ruling D6, approved in principle 22 Oct 2026, SCENARIOS-PLAN.md §7): the download's
+    // NAME only. scenarioFileSuffix() is '' with one scenario, so a calendar without scenarios is named as before,
+    // and no byte of the workbook moves (gate 2 compares every part).
+    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.xlsx';
     a.href = url; a.download = xlsxName;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
@@ -15121,6 +15412,120 @@ export function initLegacyApp() {
     });
     return out;
   }
+  // ---------- Month text styles: what the text style bar has set on MONTH-VIEW text (MONTH-TEXT-STYLE-PLAN.md §4) ----------
+  // ⛔ SEPARATE FROM textStyle (owner ruling R2, 27 Oct 2026, "Separate per view"): a month style never changes the
+  // waterfall and a waterfall style never shows in the month, a waterfall note shown in the month included. The
+  // waterfall's highlight, resets, shift re-key and writers all iterate TEXT_STYLE_KINDS, so none of them can meet one.
+  // One map per kind of month text:
+  //   phase    '<phase key>@<its week number>' (ruling N2, "Follows Prep wk 2": no mover needs re-key code), or a
+  //            per-episode prep bar's '<prep key>@<unit id>', since a prep bar is named by its unit, not a week
+  //   episode  an episode's or a block's id: every bar of it (its days move with holidays and day marks)
+  //   simpost  the N a Simultaneous Post bar's label shows ("wk 3"), counted the same way when its label has none
+  //   band     the hiatusTexts key: week ISO for an all-phase band, 'week|phaseKey' for a phase's own
+  //   wfnote   a waterfall line's text without its date (mvWfNoteKey), mvWfNotePlace's key. ⛔ Its OWN map, never a
+  //            field in mvWfNotePlace: an entry there counts as a note place, and a calendar holding any place lays
+  //            its untouched notes out by mvReferenceAnchors(), so a style stored there could move notes nobody touched
+  //   frame    'month' (the month name) and 'dow' (the weekday row): one style each, every page
+  // ⛔ A MONTH NOTE'S STYLE IS NOT IN HERE: it is `fmt` on its own dayNotes entry, so it travels with every move of the
+  // note (an index key would land on the wrong note when one before it is deleted).
+  // A value is the header's format shape {size, bold, italic, color, align}, without highlight. ⛔ A bar drawn as a pill
+  // (a phase's, an episode's, Simultaneous Post's) takes NO colour (ruling N1, "maybe disable recoloring phase bar
+  // text"): each rings itself in its text colour. The sanitizer drops one, so a hand-edited file cannot get round it.
+  // ⛔ CALENDAR DATA, saved as `mvTextStyles` and ABSENT while nothing is styled, so every calendar without a month
+  // style saves byte for byte as before. PERMANENT: the key, its six kind names, and `fmt` on a day note.
+  const MV_TEXT_STYLE_KINDS = ['phase', 'episode', 'simpost', 'band', 'wfnote', 'frame'];
+  const MV_TEXT_NO_COLOR = ['phase', 'episode', 'simpost'];
+  // Owner ruling R3 ("Only sizes that fit"), the lists fixed by step 2's measurement (plan §3.3a): every size here keeps
+  // its text inside the line box it already has, which MV_TEXT_LINE_PX holds, so no bar, band, month bar or weekday row
+  // changes height. On screen a bar at 12 px cuts its descenders by 1 px, so bars and bands stop at 11.
+  const mvSizeRun = (a, b)=>{ const o = []; for(let n = a; n <= b; n++) o.push(n); return o; };
+  const MV_TEXT_SIZES = { bar: mvSizeRun(6, 11), note: mvSizeRun(6, 10), month: mvSizeRun(6, 17), dow: mvSizeRun(6, 11) };
+  // The line box each text already has: a bar's 10 px × 1.5, a note's 13 px line (MVL_GEOMETRY.noteLinePx), the month
+  // name's 17 px × 1.5, the weekday row's 11 px × 1.5. A styled size is written WITH it (§3.4).
+  const MV_TEXT_LINE_PX = { bar: 15, note: 13, month: 25.5, dow: 16.5 };
+  // The box one text sizes in. `daynote` is a month note (its style is on its entry).
+  function mvTextBox(kind, key){
+    if(kind === 'frame') return key === 'month' ? 'month' : 'dow';
+    return (kind === 'wfnote' || kind === 'daynote') ? 'note' : 'bar';
+  }
+  function emptyMvTextStyle(){ const o = {}; MV_TEXT_STYLE_KINDS.forEach(k=>{ o[k] = {}; }); return o; }
+  let mvTextStyle = emptyMvTextStyle();
+  // The style one month text carries, or null. For 'daynote' the key IS the note's entry.
+  function mvTextStyleOf(kind, key){
+    if(kind === 'daynote') return (key && isPlainObj(key.fmt)) ? key.fmt : null;
+    const m = mvTextStyle[kind];
+    return (m && key != null && Object.prototype.hasOwnProperty.call(m, key)) ? m[key] : null;
+  }
+  function mvTextStyleHasAny(){ return MV_TEXT_STYLE_KINDS.some(k=> Object.keys(mvTextStyle[k]).length > 0); }
+  // ⛔ FROZEN EDIT M1's helper (MONTH-TEXT-STYLE-PLAN.md §6): the CSS one month text's style adds, APPENDED after the
+  // text's own inline style so it wins (after a bar's background, colour and half-day layers, so it can reset none of
+  // them). '' for no style, so an unstyled calendar's markup is byte for byte what it was. A size is written with the
+  // line box the text already has (§3.4). Bold is the header's rule (mvlLineStyle): on 700, off 400, unset the text's
+  // own weight. No colour on a pill (N1), so its text and ring stay in the phase's ink.
+  function mvTextCss(kind, key){
+    const f = mvTextStyleOf(kind, key);
+    if(!f) return '';
+    let css = '';
+    // A bar's or band's line box is the phase bar size's (mvBarLinePx: MV_TEXT_LINE_PX.bar, 15 px, at Standard).
+    if(f.size){ const box = mvTextBox(kind, key); css += ` font-size:${f.size}px; line-height:${box === 'bar' ? mvBarLinePx() : MV_TEXT_LINE_PX[box]}px;`; }
+    if(f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
+    if(f.italic) css += ' font-style:italic;';
+    if(f.color && !MV_TEXT_NO_COLOR.includes(kind)) css += ` color:${f.color};`;
+    if(f.align) css += ` text-align:${f.align};`;
+    return css;
+  }
+  function mvTextStyleSnapshot(){
+    const out = {};
+    MV_TEXT_STYLE_KINDS.forEach(k=>{
+      const keys = Object.keys(mvTextStyle[k]);
+      if(!keys.length) return;
+      out[k] = {};
+      keys.forEach(key=>{ out[k][key] = Object.assign({}, mvTextStyle[k][key]); });
+    });
+    return out;
+  }
+  function mvTextStyleFromSnapshot(v){
+    const out = emptyMvTextStyle();
+    if(!isPlainObj(v)) return out;
+    MV_TEXT_STYLE_KINDS.forEach(k=>{
+      if(!isPlainObj(v[k])) return;
+      Object.keys(v[k]).forEach(key=>{ if(isPlainObj(v[k][key])) out[k][key] = Object.assign({}, v[k][key]); });
+    });
+    return out;
+  }
+  // ---- How each month text is NAMED (§3.1). ONE set of rules, read by frozen edit M1 at render time (from the renderer's
+  // own locals) and by the highlight at pick time (from the bar's row, columns and data-*), so the two cannot disagree.
+  // A phase's week number on a date: the waterfall's, as prodWeekLabel() reads it (seg.weekNo, the calendar count as
+  // its fallback), so the key is the number the bar's label says.
+  function mvPhaseWeekNo(s, date){
+    const wk = isoOf(mondayOf(date));
+    return (s.weekNo && wk in s.weekNo) ? s.weekNo[wk] : Math.floor((mondayOf(date) - mondayOf(s.start)) / DAY_MS / 7) + 1;
+  }
+  // One pill run's [kind, key]: an episode's or block's bar by its unit, a prep bar by its unit, any other by its phase
+  // and week number (N2). null when the run names nothing it could keep (a prep run with no unit).
+  function mvPillTextKey(s, run){
+    if(!s || !run || !run.date) return null;
+    if(s.key === 'production' && run.unit && run.unit.id) return ['episode', String(run.unit.id)];
+    if(s.key === PREP_KEY) return (run.prep && run.prep.unit && run.prep.unit.id) ? ['phase', PREP_KEY + '@' + run.prep.unit.id] : null;
+    return ['phase', s.key + '@' + mvPhaseWeekNo(s, run.date)];
+  }
+  // Simultaneous Post's key: the N its label shows, or, when the label is un-numbered, the N it would show (its place
+  // among the Sim Post weeks), so each week keeps its own style either way.
+  function mvSimPostKey(schedule, wkRec){
+    if(!wkRec) return null;
+    if(wkRec.simPostNum) return String(wkRec.simPostNum);
+    const n = (schedule.weeks || []).filter(w=> w.simPost && w.date <= wkRec.date).length;
+    return n > 0 ? String(n) : null;
+  }
+  // M1's three call shapes: a pill run, Sim Post's week, and the rest by (kind, key).
+  function mvPillCss(s, run){ const k = mvPillTextKey(s, run); return k ? mvTextCss(k[0], k[1]) : ''; }
+  function mvPillFmt(s, run){ const k = mvPillTextKey(s, run); return k ? mvTextStyleOf(k[0], k[1]) : null; }
+  function mvSimPostCss(schedule, wkRec){ const k = mvSimPostKey(schedule, wkRec); return k ? mvTextCss('simpost', k) : ''; }
+  // Removing a custom phase takes its bars' and its own bands' month styles with it (plan §3.5).
+  function pruneMvTextStylePhase(k){
+    Object.keys(mvTextStyle.phase).forEach(x=>{ if(x.slice(0, x.lastIndexOf('@')) === k) delete mvTextStyle.phase[x]; });
+    Object.keys(mvTextStyle.band).forEach(x=>{ if(x.slice(x.indexOf('|') + 1) === k && x.indexOf('|') > 0) delete mvTextStyle.band[x]; });
+  }
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
   // Tracks, per week ISO key, the hiatusTexts value syncHiatusNamesFromSidebar() last wrote there --
@@ -15142,6 +15547,48 @@ export function initLegacyApp() {
   // applies it. ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesOff`, written only while a kind is off, so a
   // calendar that never unticks one saves byte for byte as before. The boxes carry NO id.
   let autoNotesOff = {};
+  // ⭐ THE KINDS THAT START OFF (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
+  // default"). autoNotesOff cannot hold them: there, an absent kind is SHOWN, so a new kind would appear on every
+  // calendar ever saved the next time it loaded, and widen its Notes column and its exports. These are the
+  // opposite store: autoNotesOn, kind -> true while ticked, and an absent kind is hidden. ⛔ CALENDAR DATA:
+  // captureSnapshot()'s `autoNotesOn`, written only while one is ticked, so a calendar that never ticks one saves
+  // byte for byte as before. ⛔ PERMANENT kind words (the key's and data-autonote's), `<phase key>Start|End`.
+  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", and
+  // the other four follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
+  // and wrap are principalStart / principalWrap. Custom phases are never auto-noted. Read by computeSchedule.
+  const AUTO_NOTE_PHASE_EDGES = [
+    {kind:'writersRoomEnd',    phase:'writersRoom', end:true, text:"Writer's Room Closes"},
+    {kind:'prePrepStart',      phase:'prePrep'},      {kind:'prePrepEnd',      phase:'prePrep',      end:true},
+    {kind:'prodPrepStart',     phase:'prodPrep'},     {kind:'prodPrepEnd',     phase:'prodPrep',     end:true},
+    {kind:'postStart',         phase:'post'},         {kind:'postEnd',         phase:'post',         end:true},
+    {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
+  ];
+  const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
+  let autoNotesOn = {};
+  // Does this calendar show automatic notes of this kind? The one question both stores answer, asked by
+  // autoNotesForView() and by the card's boxes (reflectAutoNoteKinds), so the two cannot disagree.
+  function autoNoteKindShown(kind){
+    return AUTO_NOTE_OPT_IN.has(kind) ? autoNotesOn[kind] === true : !autoNotesOff[kind];
+  }
+  // ⭐ HIDE IN WATERFALL (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2, rulings R1-R4, D1-D3): phase key ->
+  // {sheet: true}. A hidden phase is left out of the waterfall, the workbook and the waterfall PDF, and its
+  // automatic notes with it, while the month view and both month PDFs keep it ("if you add a very specific phase
+  // to the month view (such as color grading week) you wouldn't want that to show on the waterfall calendar").
+  //   - Shaped like holidayView ({sheet, month}), so a later month-view toggle is `month: true` in this same key.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `phaseHidden`, written only while a phase is hidden, so a calendar
+  //     that never hides one saves byte for byte as before. PERMANENT from the first file saved with it.
+  //   - Never Production (D2): it drives the shoot days, Sim Post and the principal-photography notes.
+  //   - The tick carries NO id (it would enter fields.byId); its key is read off the card (phaseRowKey).
+  //   - Read only through phaseHiddenIn(). computeSchedule() splits wfSegments off with it.
+  let phaseHidden = {};
+  function phaseHiddenIn(key, view){
+    return key !== 'production' && !!(phaseHidden[key] && phaseHidden[key][view] === true);
+  }
+  function phaseHiddenSnapshot(){
+    const o = {};
+    Object.keys(phaseHidden).sort().forEach(k=>{ o[k] = Object.assign({}, phaseHidden[k]); });
+    return o;
+  }
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -17364,8 +17811,8 @@ export function initLegacyApp() {
   // exactly what it paid before this feature existed.
   function computeMvHeaderDefaults(schedule){
     const rawTitle = (document.getElementById('show-title').value || '').trim();
-    const seasonVal = (document.getElementById('season-num').value || '').trim();
-    const t = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
+    const seasonTxt = seasonLabel();   // "S2", or "S3 & S4" with two seasons ticked
+    const t = rawTitle + (seasonTxt ? (rawTitle ? ' ' : '') + seasonTxt : '');
     // LOCAL date, not UTC: this is "today" for the person reading it, unlike the schedule dates.
     const now = new Date();
     const out = {
@@ -17774,7 +18221,7 @@ export function initLegacyApp() {
   // ⭐ It names nothing. The owner had the header strip's readout of the selected line removed (31 Aug
   // 2026): the highlight on the grid, or the caret, already says what is picked. Only the empty state
   // speaks ("Highlight any text to style it", legacy.css), as the header strip's does.
-  let styleTarget = null;      // 'grid' | 'hdr' | 'side' | null
+  let styleTarget = null;      // 'grid' | 'hdr' | 'side' | 'month' | null
   let styleBar = null;
   let styleBarLive = false;    // a colour well being dragged on grid text: banked as ONE undo step on change
   // Sizes each target offers. Header and boxes keep their own lists (headerFmtToolbarHtml, buildSideFmt);
@@ -18681,6 +19128,7 @@ export function initLegacyApp() {
   // ---- The target, and the bar ----
   function setStyleTarget(kind){
     if(kind !== 'grid' && textSel.size) clearTextSel();
+    if(kind !== 'month' && mvSel.size) clearMvSel();
     if(kind !== 'side' && sideFmtTarget) sideFmtTarget = null;
     styleTarget = kind;
     markHdrTarget();
@@ -18716,6 +19164,7 @@ export function initLegacyApp() {
       return { sizes: STYLE_BAR_SIZES.side, highlight: true, size: t.f.size, bold: !!eff.bold, italic: !!eff.italic,
                color: t.f.color || '', hl: t.f.highlight || '', align: eff.align || 'left', alignSet: !!t.f.align, mixed: {} };
     }
+    if(styleTarget === 'month') return mvStyleBarLook();
     if(styleTarget === 'grid'){
       const keys = textSelTargets();
       if(!keys.length) return null;
@@ -18778,7 +19227,7 @@ export function initLegacyApp() {
       if(e.target.classList.contains('hf-color') || e.target.classList.contains('hf-hl')){
         // The drag is over: bank it. The side boxes do this inside applySideFmt's own live mode.
         if(styleTarget === 'side'){ sideFmtLive = false; cancelPendingUndoPush(); pushUndoSnapshot(); }
-        if(styleTarget === 'grid' && styleBarLive){ styleBarLive = false; cancelPendingUndoPush(); pushUndoSnapshot(); }
+        if((styleTarget === 'grid' || styleTarget === 'month') && styleBarLive){ styleBarLive = false; cancelPendingUndoPush(); pushUndoSnapshot(); }
       }
     });
     return bar;
@@ -18802,12 +19251,19 @@ export function initLegacyApp() {
     q('.hf-i').classList.toggle('is-on', !!(look && look.italic));
     q('.hf-i').classList.toggle('is-mixed', !!m.italic);
     q('.hf-color').value = (look && look.color) || '#000000';
+    // N1 (MONTH-TEXT-STYLE-PLAN.md §2): no text colour on a pill, so the well greys while only pills are picked.
+    const noColor = !!(look && look.noColor);
+    q('.hf-color').disabled = noColor;
+    q('.hf-swatch:not(.hf-swatch-hl)').classList.toggle('is-disabled', noColor);
+    q('.hf-swatch:not(.hf-swatch-hl)').title = noColor ? 'A phase, episode or Simultaneous Post bar keeps its own text colour' : 'Text color';
     q('.hf-swatch-hl').hidden = !(look && look.highlight);
     q('.hf-hl').value = (look && look.hl) || '#ffff00';
     const al = (look && look.align) || 'center';
     const toggle = q('.hf-al-toggle');
     toggle.innerHTML = alignIcon(al) + '<span class="hf-caret">▾</span>';
     toggle.classList.toggle('is-on', !!(look && look.alignSet));
+    toggle.disabled = !!(look && look.noAlign);
+    toggle.classList.toggle('is-disabled', !!(look && look.noAlign));
     toggle.classList.toggle('is-mixed', !!m.align);
     styleBar.querySelectorAll('.hf-al-opt').forEach(o=>{
       const on = !!look && !m.align && o.dataset.align === al;
@@ -18818,11 +19274,13 @@ export function initLegacyApp() {
   function styleBarApply(patch, live){
     if(styleTarget === 'hdr' && hdrTargetLive()){ applyHdrFmt(patch); markHdrTarget(); return; }
     if(styleTarget === 'side' && sideFmtTarget){ applySideFmt(patch, live); return; }
+    if(styleTarget === 'month'){ applyMonthTextStyle(patch, live); return; }
     if(styleTarget === 'grid') applyGridTextStyle(patch, live);
   }
   function styleBarClear(){
     if(styleTarget === 'hdr' && hdrTargetLive()){ clearHdrFmt(); markHdrTarget(); return; }
     if(styleTarget === 'side' && sideFmtTarget){ applySideFmt(null); return; }
+    if(styleTarget === 'month'){ applyMonthTextStyle(null); return; }
     if(styleTarget === 'grid') applyGridTextStyle(null);
   }
   // Grid text: write each highlighted text's style (patch === null clears it, size included), then ONE render
@@ -18875,6 +19333,344 @@ export function initLegacyApp() {
     if(menu && !menu.hidden){ menu.hidden = true; styleBar.querySelector('.hf-al-toggle').setAttribute('aria-expanded', 'false'); }
   });
 
+  // ---------- THE MONTH VIEW'S HIGHLIGHT (MONTH-TEXT-STYLE-PLAN.md §3.2, §3.3; owner rulings R1-R4, 27 Oct 2026) ----------
+  // The text style bar's fourth target, 'month': the month texts picked for it. Click picks one; ⌘-click or
+  // Shift-click adds or removes one; ⌘A (while something is picked) picks every stylable text in the month on screen;
+  // Escape clears. ⛔ NO SWEEP: every press-and-move in the month view already means something (move a note or a phase,
+  // drag an edge or a hiatus). R1: a click on a NOTE picks it and no longer opens its editor; a double-click, Enter
+  // (the active pick a note) or typing opens it, a typed character ADDED at the end. The "+" stays one click.
+  //  - ⛔ FOUND BY POINT. Bars and bands are click-through (.mv-bars{pointer-events:none}) and body-level layers lie
+  //    over bands (installHiatusDrag) and pill ends (the edge handles), so a click is resolved against the texts'
+  //    rects, as installHiatusDrag finds a band. A click is a press that moved under SLOP px: every press that moves
+  //    is the drag it always was, and the note drag swallows its own ending click (at window capture, before this).
+  //  - ⛔ KEYS ARE RESOLVED FROM OUTSIDE (mvTextKeyOf): the renderer is never asked to tag a bar, because a new
+  //    attribute on every bar would change every printed month document (gate 10). An ambiguous bar gets nothing.
+  //  - ⛔ DRAWN AS BODY-LEVEL CHROME (.month-sel-box, the .hiatus-drag-layer precedent): fixed outlines over each
+  //    picked text's visible box, nothing inside #table-wrap, no .mv-* rule, and the print path hides every direct
+  //    child of <body> but #print-root. Re-placed after every render, on scroll (the month's own box), zoom, resize.
+  //  - ⛔ SESSION UI, like textSel: never saved, never an undo step. Switching views clears it.
+  //  - No right-click menu item (owner rule, 23 Oct 2026). No control has an id.
+  let mvSel = new Set();          // '<kind>:<key>'; kind a mvTextStyle kind, or 'daynote' with key '<iso>#<index>'
+  let mvSelActive = null;         // the pick Enter or typing opens (R1): the last one clicked
+  let mvSelBoxes = [];
+  const MV_SEL_SLOP = 4;
+  // The month texts that take a style, in #table-wrap only (#print-root renders its own copies).
+  const MV_SEL_TEXTS = '#table-wrap .month-view .mv-monthyear, #table-wrap .month-view .mv-dowrow > .mv-dow, '
+                     + '#table-wrap .month-view .mv-bars > .mv-bar:not(.mv-note-add)';
+  // The body-level layers a click on a month text may land on: see through them to the text below.
+  const MV_SEL_THROUGH = '.mv-order-grip, .mv-drag-shield, .phase-edge-handle, .phase-edge-shield, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .month-sel-box';
+  const mvSelKind = k=> k.slice(0, k.indexOf(':'));
+  const mvSelKey = k=> k.slice(k.indexOf(':') + 1);
+  // A week row's Sunday, from its place in the month on screen.
+  function mvRowStart(el){
+    const wk = el.closest && el.closest('.mv-body > .mv-week');
+    const start = parseDateUTC(mvGridStartIso());
+    if(!wk || !start) return null;
+    const i = Array.prototype.indexOf.call(wk.parentElement.children, wk);
+    return i >= 0 ? addDays(start, i * 7) : null;
+  }
+  // The renderer's run state, put back after a resolver re-derives one row's runs (pillRunsForWeek records it).
+  function mvRowRuns(schedule, rowStart, seg){
+    const pr = _prodRuns, pp = _prepRuns;
+    try { return pillRunsForWeek(schedule, rowStart, seg); } finally { _prodRuns = pr; _prepRuns = pp; }
+  }
+  // The '<kind>:<key>' of one month text element, or null for one that has no stable name.
+  function mvTextKeyOf(el){
+    const sch = currentSchedule;
+    if(!el || !sch || viewMode !== 'month') return null;
+    const cl = el.classList;
+    if(cl.contains('mv-monthyear')) return 'frame:month';
+    if(cl.contains('mv-dow')) return 'frame:dow';
+    if(!cl.contains('mv-bar') || cl.contains('mv-note-add')) return null;
+    if(cl.contains('mv-note-block')){
+      const kind = el.getAttribute('data-note-kind'), iso = el.getAttribute('data-note-day');
+      if(kind === 'day'){
+        const i = parseInt(el.getAttribute('data-note-index'), 10);
+        return (iso && Number.isInteger(i) && dayNoteList(iso)[i]) ? 'daynote:' + iso + '#' + i : null;
+      }
+      if(kind === 'wf'){
+        const k = mvWfNoteKey(el.textContent);
+        return (k && !MV_UNSAFE_KEY.test(k) && MV_WFNOTE_KEY.test(k)) ? 'wfnote:' + k : null;
+      }
+      return null;
+    }
+    const start = mvRowStart(el), cols = mvBarColumns(el);
+    if(!start || !cols.length) return null;
+    const from = cols[0], to = cols[cols.length - 1], d = addDays(start, from);
+    if(cl.contains('mv-hiatus-bar')){
+      const wk = isoOf(mondayOf(d));
+      if(isHiatusDate(sch, d)) return 'band:' + wk;
+      // A phase's own band: the one phase pausing here whose band reads this text (installHiatusDrag's rule).
+      let hits = (sch.segments || []).filter(s=> (s.phaseHiatus || s.offWeeks) && d >= s.start && d < s.end && inPhaseBand(s, d));
+      if(hits.length > 1){
+        const txt = el.textContent;
+        hits = hits.filter(s=>{ const k = wk + '|' + s.key;
+          return ((k in hiatusTexts) ? hiatusTexts[k] : (s.name || s.label || 'Phase').replace(/\s*wk\s*\d+\s*$/i, '') + ' Hiatus') === txt; });
+      }
+      return hits.length === 1 ? 'band:' + wk + '|' + hits[0].key : null;
+    }
+    if(!cl.contains('mv-pill')) return null;
+    const ph = el.getAttribute('data-ph');
+    if(!ph){
+      const wkRec = (sch.weeks || []).find(x=> isoOf(x.date) === isoOf(mondayOf(addDays(start, 1))));
+      const k = wkRec && wkRec.simPost ? mvSimPostKey(sch, wkRec) : null;
+      return k ? 'simpost:' + k : null;
+    }
+    const seg = (sch.segments || []).find(s=> s.key === ph);
+    if(!seg) return null;
+    // Re-derive the row's runs the renderer's way and find this bar's: its columns, its half-day ends, and for two
+    // runs on the same columns (overlapping preps) the label it reads.
+    // ⛔ Not mvlDecls: that is the month PDF writer's, and nothing outside the writer may reach a name in it (the month
+    // legs' F0). halfInset() writes exactly these two declarations, and only on a switch day's end.
+    const st = el.getAttribute('style') || '';
+    const hasL = /(^|;)\s*margin-left:/.test(st), hasR = /(^|;)\s*margin-right:/.test(st);
+    let runs = mvRowRuns(sch, start, seg).filter(r=> r.startCol === from && r.endCol === to
+      && !!r.halfStart === hasL && !!r.halfEnd === hasR);
+    if(runs.length > 1 && ph === PREP_KEY){
+      const tag = el.querySelector('.mv-pill-block');
+      let txt = ''; el.childNodes.forEach(n=>{ if(n !== tag) txt += n.textContent; });
+      runs = runs.filter(r=> prepPillLabel(seg, r.prep) === txt);
+    }
+    if(runs.length !== 1) return null;
+    const k = mvPillTextKey(seg, runs[0]);
+    return k ? k[0] + ':' + k[1] : null;
+  }
+  // Every stylable month text on screen, by key (a key may name several bars: an episode's, a split week's).
+  function mvSelIndex(){
+    const out = new Map();
+    if(viewMode !== 'month') return out;
+    document.querySelectorAll(MV_SEL_TEXTS).forEach(el=>{
+      if(!(el.textContent || '').trim()) return;          // only text is styled
+      const k = mvTextKeyOf(el);
+      if(!k) return;
+      if(!out.has(k)) out.set(k, []);
+      out.get(k).push(el);
+    });
+    return out;
+  }
+  // The picks still on screen: what the bar styles.
+  function mvSelTargets(){ const idx = mvSelIndex(); return [...mvSel].filter(k=> idx.has(k)); }
+  // The text under a point, or null. The hit stack, seen through the body-level layers above, must reach the month
+  // view; then the text is the one whose visible box holds the point.
+  function mvTextAt(x, y){
+    let inMonth = false;
+    for(const el of document.elementsFromPoint(x, y)){
+      if(el.closest && el.closest(MV_SEL_THROUGH)) continue;
+      if(el.closest && el.closest(OVER_PANEL)) return null;
+      inMonth = !!(el.closest && el.closest('#table-wrap .month-view'));
+      break;
+    }
+    if(!inMonth) return null;
+    for(const el of document.querySelectorAll(MV_SEL_TEXTS)){
+      const v = visibleRect(el);
+      if(v && x >= v.left && x < v.right && y >= v.top && y < v.bottom) return el;
+    }
+    return null;
+  }
+  function clearMvSel(){
+    if(!mvSel.size && !mvSelActive) return;
+    mvSel.clear(); mvSelActive = null;
+    drawMvSel();
+  }
+  function drawMvSel(){
+    mvSelBoxes.forEach(b=> b.remove());
+    mvSelBoxes = [];
+    if(!mvSel.size || viewMode !== 'month') return;
+    const idx = mvSelIndex();
+    mvSel.forEach(k=>{
+      (idx.get(k) || []).forEach(el=>{
+        const v = visibleRect(el);
+        if(!v) return;
+        const b = document.createElement('div');
+        b.className = 'month-sel-box' + (k === mvSelActive ? ' is-active' : '');
+        b.style.left = v.left + 'px'; b.style.top = v.top + 'px';
+        b.style.width = (v.right - v.left) + 'px'; b.style.height = (v.bottom - v.top) + 'px';
+        document.body.appendChild(b);
+        mvSelBoxes.push(b);
+      });
+    });
+  }
+  // A pick: alone, or added/removed with ⌘ or Shift.
+  function pickMvText(el, add){
+    const k = mvTextKeyOf(el);
+    if(!k){ if(!add) clearMvSel(); return; }
+    if(styleTarget !== 'month') setStyleTarget('month');
+    if(add){
+      if(mvSel.has(k)){ mvSel.delete(k); if(mvSelActive === k) mvSelActive = [...mvSel].pop() || null; }
+      else { mvSel.add(k); mvSelActive = k; }
+    } else { mvSel = new Set([k]); mvSelActive = k; }
+    if(!mvSel.size) setStyleTarget(null);
+    drawMvSel();
+    syncStyleBar();
+  }
+  // Where the last press began, so a click is a press that did not move.
+  let mvPress = null;
+  window.addEventListener('mousedown', e=>{ mvPress = (e.button === 0) ? {x: e.clientX, y: e.clientY} : null; }, true);
+  // Capture: it runs before #table-wrap's own click handler, which opens a note's editor, and before the day menu.
+  document.addEventListener('click', e=>{
+    if(viewMode !== 'month' || e.button !== 0 || isMacCtrlClick(e)) return;
+    if(mvPress && Math.hypot(e.clientX - mvPress.x, e.clientY - mvPress.y) > MV_SEL_SLOP) return;
+    if(e.target.closest && e.target.closest('.style-bar, .mv-note-add, .mv-arrow, .mv-row-expand, #mv-hdr-mode-btn, .hdr-line')) return;
+    const el = mvTextAt(e.clientX, e.clientY);
+    if(!el){
+      // A click elsewhere on the month (a day, the frame) ends the pick; it is still that click (the day menu).
+      if(mvSel.size && e.target.closest && e.target.closest('#table-wrap .month-view')){ clearMvSel(); setStyleTarget(null); }
+      return;
+    }
+    const add = e.metaKey || e.ctrlKey || e.shiftKey;
+    // R1: a note is picked, not opened. Stop the click before #table-wrap's handler opens the editor. With another
+    // note's editor open, that note is saved first (the click-away it always was) and the clicked one is picked.
+    if(el.classList.contains('mv-note-block')){
+      e.stopPropagation(); e.preventDefault();
+      if(activeMvNote){ commitMvNoteEditor(); const again = mvTextAt(e.clientX, e.clientY); if(again) pickMvText(again, add); return; }
+    }
+    pickMvText(el, add);
+  }, true);
+  // R1: a double-click opens the note.
+  document.getElementById('table-wrap').addEventListener('dblclick', e=>{
+    if(viewMode !== 'month' || activeMvNote) return;
+    const el = e.target.closest && e.target.closest('.mv-note-block.mv-note-click');
+    if(!el) return;
+    e.stopPropagation();
+    openMvNoteEditor(el, el.dataset.noteWeek, el.dataset.noteDay, el.dataset.noteKind || 'day');
+  });
+  // The note element an active pick names, in the grid on screen.
+  function mvActiveNoteEl(){
+    if(!mvSelActive) return null;
+    const kind = mvSelKind(mvSelActive);
+    if(kind !== 'daynote' && kind !== 'wfnote') return null;
+    const els = mvSelIndex().get(mvSelActive);
+    return els && els.length ? els[0] : null;
+  }
+  // Enter, typing and Escape on a live pick; ⌘A over one. Capture, with focus on <body> only (a focused control owns
+  // its keys), never with ⌘/Ctrl/Alt for Enter and typing (the shortcuts), and never while a drag owns the pointer.
+  document.addEventListener('keydown', e=>{
+    if(viewMode !== 'month' || !mvSel.size || activeMvNote) return;
+    const a = document.activeElement;
+    if(a && a !== document.body) return;
+    if(document.querySelector('.phase-edge-shield, .hiatus-drag-shield, .mv-drag-shield')) return;
+    if((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'a'){
+      e.preventDefault();
+      mvSel = new Set(mvSelIndex().keys());
+      if(!mvSel.has(mvSelActive)) mvSelActive = [...mvSel][0] || null;
+      drawMvSel(); syncStyleBar();
+      return;
+    }
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key === 'Escape'){ clearMvSel(); setStyleTarget(null); return; }
+    const typed = e.key.length === 1 ? e.key : null;
+    if(e.key !== 'Enter' && !typed) return;
+    if(e.key === 'Enter' && e.shiftKey) return;
+    const el = mvActiveNoteEl();
+    if(!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openMvNoteEditor(el, el.dataset.noteWeek, el.dataset.noteDay, el.dataset.noteKind || 'day');
+    // Typing ADDS the key at the end (R1, the waterfall's D5): a stray key must never wipe a note.
+    const ta = activeMvNote && activeMvNote.textarea;
+    if(typed && ta){
+      ta.value += typed;
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }, true);
+  // Every render replaces every bar: re-place the outlines (sanctioned pattern 3, observing mutates nothing), and
+  // drop a pick whose text is gone. Scroll, zoom and resize move them too.
+  new MutationObserver(()=>{
+    if(!mvSel.size) return;
+    if(viewMode !== 'month'){ clearMvSel(); if(styleTarget === 'month') setStyleTarget(null); return; }
+    drawMvSel();
+  }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
+  window.addEventListener('scroll', ()=>{ if(mvSel.size) drawMvSel(); }, true);
+  window.addEventListener('resize', ()=>{ if(mvSel.size) drawMvSel(); });
+
+  // ---- The 'month' target's look and its writes (§3.3) ----
+  // Each text's own look when unstyled: its weight as bold (bars 600 and the frame's 700 light B, notes' 500 do not:
+  // the header's rule), its alignment, and its size.
+  function mvTextDefault(kind, key){
+    const box = mvTextBox(kind, kind === 'frame' ? key : null);
+    return {
+      // The text's own weight (.mv-bar 600, .mv-note-block 500, the frame's 700), and whether that lights B (600 up).
+      weight: box === 'note' ? 500 : box === 'bar' ? 600 : 700,
+      bold: box !== 'note',
+      align: (kind === 'band' || kind === 'frame') ? 'center' : 'left',
+      size: box === 'month' ? 17 : box === 'dow' ? 11 : box === 'bar' ? mvBarTextPx() : 10,   // a bar's: the phase bar size's
+    };
+  }
+  // The style a pick carries: a day note's is on its entry.
+  function mvPickEntry(key){
+    const i = key.lastIndexOf('#');
+    const list = dayNoteList(key.slice(0, i));
+    return list[parseInt(key.slice(i + 1), 10)] || null;
+  }
+  function mvPickFmt(k){
+    const kind = mvSelKind(k), key = mvSelKey(k);
+    return kind === 'daynote' ? mvTextStyleOf('daynote', mvPickEntry(key)) : mvTextStyleOf(kind, key);
+  }
+  function mvTextEffective(k){
+    const kind = mvSelKind(k), key = mvSelKey(k), f = mvPickFmt(k) || {}, d = mvTextDefault(kind, key);
+    return { size: f.size || d.size, bold: f.bold !== undefined ? f.bold : d.bold, italic: !!f.italic,
+             color: MV_TEXT_NO_COLOR.includes(kind) ? '' : (f.color || ''), align: f.align || d.align,
+             alignSet: !!f.align, noColor: MV_TEXT_NO_COLOR.includes(kind) };
+  }
+  function mvStyleBarLook(){
+    const keys = mvSelTargets();
+    if(!keys.length) return null;
+    const looks = keys.map(mvTextEffective);
+    // A pick that mixes kinds is offered the sizes every picked text allows.
+    const lists = keys.map(k=> MV_TEXT_SIZES[mvTextBox(mvSelKind(k), mvSelKind(k) === 'frame' ? mvSelKey(k) : null)]);
+    const sizes = lists[0].filter(n=> lists.every(l=> l.includes(n)));
+    const same = p=> looks.every(l=> l[p] === looks[0][p]);
+    const mixed = { size: !same('size'), bold: !same('bold'), italic: !same('italic'), color: !same('color'), align: !same('align') };
+    return { sizes, highlight: false,
+             size: mixed.size ? undefined : looks[0].size, bold: looks.every(l=> l.bold), italic: looks.every(l=> l.italic),
+             color: mixed.color ? '' : looks[0].color, hl: '', align: mixed.align ? '' : looks[0].align,
+             alignSet: looks.some(l=> l.alignSet), mixed,
+             // N1: the text colour control greys while every picked text is a pill.
+             noColor: looks.every(l=> l.noColor),
+             // The month name is centred between the arrows as a box as wide as its text, so an alignment would move
+             // nothing on screen or in print: the control greys while it is all that is picked.
+             noAlign: keys.every(k=> k === 'frame:month') };
+  }
+  // Write each picked text's style (patch === null clears it), then ONE render and ONE undo step, as for grid text. A
+  // colour well being dragged writes on each move and is banked once, on its change (styleBarLive).
+  function applyMonthTextStyle(patch, live){
+    const keys = mvSelTargets();
+    if(!keys.length) return;
+    if(live){ if(!styleBarLive){ styleBarLive = true; cancelPendingUndoPush(); pushUndoSnapshot(); } }
+    else pushUndoSnapshot();
+    keys.forEach(k=>{
+      const kind = mvSelKind(k), key = mvSelKey(k), d = mvTextDefault(kind, key);
+      const entry = kind === 'daynote' ? mvPickEntry(key) : null;
+      if(kind === 'daynote' && !entry) return;
+      const write = cur=>{
+        if(kind === 'daynote'){ if(cur) entry.fmt = cur; else delete entry.fmt; }
+        else if(cur) mvTextStyle[kind][key] = cur; else delete mvTextStyle[kind][key];
+      };
+      if(patch === null){ write(null); return; }
+      const rest = Object.assign({}, patch);
+      // A text's own look is no override: its default size, weight and alignment, and no italic, are stored as nothing.
+      if('size' in rest && (rest.size === d.size || !MV_TEXT_SIZES[mvTextBox(kind, kind === 'frame' ? key : null)].includes(rest.size))) rest.size = '';
+      // Bold is on = 700, off = 400 (the header's rule, §3.3), so only a press that lands on the text's own weight is no
+      // override: B on the month name (700). A bar's B lights from its 600, so on is 700 there and off 400; Clear
+      // gives back the 600.
+      if('bold' in rest && (rest.bold ? 700 : 400) === d.weight) rest.bold = '';
+      if('italic' in rest && rest.italic === false) rest.italic = '';
+      if('align' in rest && rest.align === d.align) rest.align = '';
+      if('color' in rest && MV_TEXT_NO_COLOR.includes(kind)) delete rest.color;     // N1
+      if('align' in rest && k === 'frame:month') delete rest.align;                // centred whatever its alignment
+      if(!Object.keys(rest).length) return;
+      const cur = Object.assign({}, mvPickFmt(k) || {}, rest);
+      Object.keys(cur).forEach(p=>{ if(cur[p] === '' || cur[p] == null) delete cur[p]; });
+      write(Object.keys(cur).length ? cur : null);
+    });
+    render(currentSchedule);
+    if(!live){ pushUndoSnapshot(); }
+    markDirty();
+    if(!live) cancelPendingUndoPush();
+    syncStyleBar();
+  }
+
   // ---------- The header template EDITOR (owner request, 9 Sep 2026) ----------
   //
   // A dedicated pop-up for BUILDING a header, as opposed to tweaking one. The in-place editing on
@@ -18907,7 +19703,7 @@ export function initLegacyApp() {
   // still collapsing for real.
   const HDR_PH_OPEN = String.fromCharCode(0xE000), HDR_PH_CLOSE = String.fromCharCode(0xE001);   // private-use, cannot occur in user text
   const HDR_PH_NAMES = {
-    title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version',
+    title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version', scenario:'Scenario',
     episodes:'##', shootDaysPerEp:'#', shootDays:'##',
     'production.summary':'Production Span / Shooting Schedule',
     'production.dates':'Principal Photography — / Wrap: —',
@@ -19679,7 +20475,7 @@ export function initLegacyApp() {
     const HF_MAX = 255;
     const HSIZE_COST = '&B&12&"Calibri,Bold"'.length;      // 20, and there are three of them
     const hd = computeHeaderDefaults(currentSchedule);
-    const safe = s => String(s).replace(/&/g, '').trim();  // hdrSafe
+    const safe = s => String(s).replace(/&/g, '&&').trim();  // hdrSafe (frozen edit A1: & is written as &&)
     const lineCode = id => {
       const f = headerFmt(id, false);
       const size = f.size ? Math.round(f.size) : 12;
@@ -19992,9 +20788,10 @@ export function initLegacyApp() {
     const groups = [
       { name: 'Show', items: [
         ['{title}', 'Show title'],
-        ['{season}', 'Season, as S2'],
+        ['{season}', 'Season, as S2 or S2 & S3'],
         ['{titleSeason}', 'Title and season'],
         ['{version}', 'Version, as v3'],
+        ['{scenario}', 'The scenario on screen (empty with one)'],
         ['{episodes}', 'Episode count'],
         ['{shootDaysPerEp}', 'Shoot days per episode'],
         ['{shootDays}', 'Total shoot days'],
@@ -20260,13 +21057,15 @@ export function initLegacyApp() {
 
     // ---- Show and version --------------------------------------------------------------------
     const title = val('show-title');
-    const season = val('season-num');
     t.title = title;
-    t.season = season ? 'S' + season : '';
+    t.season = seasonLabel();   // "S2", or "S3 & S4" with two seasons ticked (27 Oct 2026)
     // Verbatim c1: the season is a SUFFIX, and its leading space appears only when there is a title
     // to separate it from -- so a season with no title reads "S2", never " S2".
-    t.titleSeason = title + (season ? (title ? ' ' : '') + 'S' + season : '');
+    t.titleSeason = title + (t.season ? (title ? ' ' : '') + t.season : '');
     t.version = versionLabel();
+    // SCENARIOS-PLAN.md D6: the scenario on screen, for a Template line that wants it. Empty with one scenario, so
+    // a calendar without scenarios prints exactly what it always did.
+    t.scenario = (scenarioTabs && scenarioTabs.length > 1) ? currentScenario().name : '';
     const numEpisodes = parseInt(val('num-episodes'), 10);
     t.episodes = (!isNaN(numEpisodes) && numEpisodes > 0) ? String(numEpisodes) : '';
     const perEp = dayCountVal(val('shoot-days-per-ep'));   // halves allowed: "4.5-Day Shooting Schedule"
@@ -20719,6 +21518,176 @@ export function initLegacyApp() {
   }
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
+
+  // ---------- THE PHASE MAP above the month view (MONTH-RAIL-PLAN.md; owner, 27 Oct 2026) ----------
+  // A fixed row under the preview toolbar, in the month view only: every month of the calendar with the phases
+  // drawn over them as named bars, to jump to a month or to the month a phase starts in. Chrome, never grid
+  // content: nothing here touches #table-wrap.
+  //
+  // THE MODEL: plain data in, plain data out, and NOTHING FROM THE ENGINE, so the monthmapmeasure leg can slice it
+  // out of this file verbatim and run it (the owner's "slice it, no hook" ruling, 1 Oct 2026). Plan step 2 feeds it
+  // from the schedule; this half alone decides what the map shows.
+  //   input.first, input.last     'YYYY-MM': the months the map spans. monthRangeForSchedule()'s screen range,
+  //                               so exactly the months the frozen arrows page through.
+  //   input.coreFirst, coreLast   'YYYY-MM': the months the phases cover. The one each side is dimmed (ruling R3).
+  //   input.cursor                'YYYY-MM': the month on screen.
+  //   input.today                 'YYYY-MM-DD'.
+  //   input.spans                 [{key, name, fill, ink, start, end}], in the month view's own phase order (R7),
+  //                               dates 'YYYY-MM-DD' with `end` EXCLUSIVE, as a segment's is.
+  //   input.hiatus                [{name, start, end}]: the all-phase hiatuses. A mark on the month row, never a
+  //                               row of their own (R2).
+  // A bar's `from` and `to` are places along the map in MONTHS: the month's index plus the share of it gone by.
+  // ⭐ ROWS are packed first-fit in the order given, the rule renderMonthView packs its lanes by, and two spans share
+  // a row only when their DAYS do not overlap. The first MONTH_MAP_NAMED_ROWS rows carry names, the next
+  // MONTH_MAP_THIN_ROWS are thin lines with the name on hover, and anything past those shares the last thin row
+  // (ruling R1, the owner's guardrail "at most 3 named rows"). `rows.needed` is what the packing asked for before
+  // that cap: the number the plan's step 1 measures on every fixture.
+  const MONTH_MAP_NAMED_ROWS = 3, MONTH_MAP_THIN_ROWS = 2;
+  function monthMapModel(input){
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ym = s => { const r = /^(\d{4})-(\d{2})/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1 } : null; };
+    const ymd = s => { const r = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1, d: +r[3] } : null; };
+    const a = ym(input && input.first), b = ym(input && input.last);
+    if(!a || !b) return null;
+    const index = (y, m) => (y - a.y) * 12 + (m - a.m);
+    // 240 months is buildMonthLayout's walk guard; a calendar that long is a typo'd year (MAX_WEEKS).
+    const count = Math.min(240, index(b.y, b.m) + 1);
+    if(!(count > 0)) return null;
+    const cf = ym(input.coreFirst) || a, cl = ym(input.coreLast) || b, cur = ym(input.cursor), td = ym(input.today);
+    const months = [];
+    for(let i = 0; i < count; i++){
+      const y = a.y + Math.floor((a.m + i) / 12), m = (a.m + i) % 12;
+      months.push({ key: y + '-' + String(m + 1).padStart(2, '0'), y, m, label: MON[m],
+                    // The year rides on the first month and on each January: "Apr ’26" ... "Jan ’27".
+                    year: (i === 0 || m === 0) ? '’' + String(y).slice(2) : '',
+                    edge: i < index(cf.y, cf.m) || i > index(cl.y, cl.m),
+                    on: !!cur && cur.y === y && cur.m === m,
+                    today: !!td && td.y === y && td.m === m });
+    }
+    const n = months.length;
+    const place = s => {
+      const d = ymd(s);
+      if(!d) return NaN;
+      const dim = new Date(Date.UTC(d.y, d.m + 1, 0)).getUTCDate();
+      return Math.max(0, Math.min(n, index(d.y, d.m) + (d.d - 1) / dim));
+    };
+    const dayNo = s => { const d = ymd(s); return d ? Date.UTC(d.y, d.m, d.d) / 86400000 : NaN; };
+    const used = [];               // per row: the [first day, end day) pairs already in it
+    let needed = 0;
+    const bands = [];
+    (input.spans || []).forEach(sp => {
+      const s = dayNo(sp.start), e = dayNo(sp.end);
+      if(!(e > s)) return;
+      let row = 0;
+      for(;; row++){
+        const r = used[row] || (used[row] = []);
+        if(r.every(u => e <= u[0] || s >= u[1])){ r.push([s, e]); break; }
+      }
+      needed = Math.max(needed, row + 1);
+      const from = place(sp.start), to = place(sp.end);
+      if(!(to > from)) return;   // wholly outside the map's months
+      const thin = row >= MONTH_MAP_NAMED_ROWS;
+      bands.push({ key: sp.key, name: sp.name, fill: sp.fill, ink: sp.ink, start: sp.start, end: sp.end, from, to,
+                   startMonth: months[Math.min(n - 1, Math.floor(from))].key,
+                   row: Math.min(row, MONTH_MAP_NAMED_ROWS + MONTH_MAP_THIN_ROWS - 1), thin });
+    });
+    const hiatus = (input.hiatus || []).map(h => ({ name: h.name, start: h.start, end: h.end, from: place(h.start), to: place(h.end) }))
+      .filter(h => h.to > h.from);
+    return { months, bands, hiatus,
+             rows: { needed, named: Math.min(needed, MONTH_MAP_NAMED_ROWS),
+                     thin: Math.max(0, Math.min(needed - MONTH_MAP_NAMED_ROWS, MONTH_MAP_THIN_ROWS)) } };
+  }
+
+  // ---- The engine's half (plan step 2): what the model is fed, the push, and going to a month ----
+  // THE MONTHS are the screen's range: the months the phases cover (monthCoreRange) and one each side, exactly what
+  // monthRangeForSchedule() returns on screen and what the frozen arrows page through.
+  // ⛔ NOT monthRangeForSchedule() itself. It consumes the print path's one-shot mvPrintRangeOnce, and a push landing
+  // between exportMonthPdf setting that flag and renderMonthView reading it would hand the print the screen's range.
+  function monthMapRange(sch){
+    const core = sch ? monthCoreRange(sch) : null;
+    return core ? { first: monthStep(core.first, -1), last: monthStep(core.last, 1), core } : null;
+  }
+  function monthMapInput(schedule){
+    const sch = wholeCalendar(schedule);
+    const range = monthMapRange(sch);
+    if(!range) return null;
+    // THE PHASES, in the month view's own order (mvLaneOrder, ruling R7), coloured as its bars are. Episode prep's
+    // `start` is only a lane anchor: its real days are firstDay..lastDay, as monthCoreRange reads them.
+    // ⭐ PRODUCTION runs from its first SHOOT day to its last (shootDays, the simulation's own list, the one the month
+    // view draws from). Its segment's `end` is week-based, so it would carry the bar on past the wrap to the end of
+    // that week (the monthmap leg's B2 caught it: a Tuesday wrap drawn to the Sunday).
+    const spans = mvLaneOrder(sch.segments || []).map(s => {
+      const fill = s.color || '#eee';
+      const shot = Array.isArray(s.shootDays) && s.shootDays.length ? s.shootDays : null;
+      const start = shot ? parseDateUTC(shot[0]) : (s.firstDay || s.start);
+      const end = shot ? addDays(parseDateUTC(shot[shot.length - 1]), 1) : (s.lastDay ? addDays(s.lastDay, 1) : s.end);
+      return { key: s.key, name: s.prep ? (s.name || s.label || 'Prep') : phaseDisplayName(s.key),
+               fill, ink: s.textColor || textColorFor(fill), start: isoOf(start), end: isoOf(end) };
+    });
+    // Simultaneous Post is no segment: its weeks carry `simPost`. One bar per unbroken run of them, Monday to the
+    // Friday the month view's last Sim Post pill ends on, placed after the phases as renderMonthView places it.
+    let run = null;
+    (sch.weeks || []).forEach(w => {
+      if(!w.simPost){ run = null; return; }
+      if(run && isoOf(addDays(run.last, 7)) === isoOf(w.date)){ run.last = w.date; return; }
+      run = { first: w.date, last: w.date };
+      spans.push({ key: 'simPost', name: 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
+    });
+    spans.forEach(s => { if(s.run){ s.end = isoOf(addDays(s.run.last, 5)); delete s.run; } });
+    const now = new Date();
+    return {
+      first: ymOfDate(range.first), last: ymOfDate(range.last),
+      coreFirst: ymOfDate(range.core.first), coreLast: ymOfDate(range.core.last),
+      cursor: monthCursor ? ymOfDate(monthCursor) : '',
+      today: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'),
+      spans,
+      // The all-phase hiatuses, unnamed in the schedule: the band's own default word stands in.
+      hiatus: (sch.hiatuses || []).map(h => ({ name: HIATUS_DEFAULT_LABEL, start: isoOf(h.start), end: isoOf(h.end) })),
+    };
+  }
+  function ymOfDate(d){ return isoOf(d).slice(0, 7); }
+  // THE PUSH, off its own childList observer on #table-wrap (sanctioned pattern 3), registered HERE rather than
+  // inside pushViewControls(), which runs at evaluation time above this section, before these consts exist. Every way
+  // the month on screen or the calendar changes ends in render() rebuilding #table-wrap: a frozen arrow, the map, an
+  // edit, a view switch, a Load, an undo, a scenario tab. The waterfall, a calendar with no phases, and the print
+  // walk (printingCursor) all push null.
+  function pushMonthMap(){
+    // update() calls this before render(), and update() can run while this file is still evaluating (a restored
+    // calendar), before the map section's consts exist. `var`, so it reads undefined there rather than throwing.
+    if(!monthMapReady) return;
+    let model = null;
+    if(viewMode === 'month' && !printingCursor && currentSchedule){
+      const input = monthMapInput(currentSchedule);
+      model = input ? monthMapModel(input) : null;
+    }
+    chrome.monthMap(model);
+  }
+  var monthMapReady = true;
+  new MutationObserver(pushMonthMap).observe(document.getElementById('table-wrap'), { childList: true });
+  // GOING TO A MONTH: the frozen arrow handler's rule exactly (its `range` check, at the screen's range), for any
+  // month rather than the one beside it. Paging is session UI: no undo step, nothing dirty, nothing saved.
+  function goToMonth(ym){
+    const r = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+    // ⚠️ The month is checked, not trusted: Date.UTC(2026, 12, 1) is January 2027, so "2026-13" would otherwise land
+    // somewhere real (the monthmap leg's A3 caught exactly that).
+    if(!r || +r[2] < 1 || +r[2] > 12 || viewMode !== 'month' || !currentSchedule) return false;
+    const target = new Date(Date.UTC(+r[1], +r[2] - 1, 1));
+    const range = monthMapRange(wholeCalendar(currentSchedule));
+    if(!range || target < range.first || target > range.last) return false;
+    monthCursor = target;
+    render(currentSchedule);
+    return true;
+  }
+  // The map's buttons (MonthMap.jsx, plan step 3) carry what they do as data, caught here on document, the
+  // [data-shownotes] pattern: data-mvgo="2026-10" goes to that month, data-mvstep="-1" / "1" steps one month.
+  // ⛔ No id on any of them (collectFieldValues).
+  document.addEventListener('click', e=>{
+    const go = e.target.closest && e.target.closest('[data-mvgo], [data-mvstep]');
+    if(!go || go.disabled) return;
+    if(go.hasAttribute('data-mvgo')){ goToMonth(go.getAttribute('data-mvgo')); return; }
+    const n = parseInt(go.getAttribute('data-mvstep'), 10);
+    if(monthCursor && (n === 1 || n === -1)) goToMonth(ymOfDate(monthStep(monthCursor, n)));
+  });
   // Header: Off on screen and in the print fallback (HEADER-ROW-PLAN §2). The frozen renderer still
   // emits .cal-header-bar, with every line empty; a <body> class hides it (legacy.css), because the
   // print fallback renders into #print-root, which is <body>'s child and not inside #table-wrap.
@@ -20758,6 +21727,7 @@ export function initLegacyApp() {
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     dayNoteColors = {}; mvExtraLanes = {};
     mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
+    mvTextStyle.wfnote = {};   // ...and their month styles; a day note's own style went with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
     render(currentSchedule);
     markDirty();
   }
@@ -20769,6 +21739,7 @@ export function initLegacyApp() {
   function resetHiatusBands(){
     hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
     textStyle.hiatus = {};
+    mvTextStyle.band = {};   // the month view's band styles too (MONTH-TEXT-STYLE-PLAN.md §3.5)
     update();
   }
   document.addEventListener('click', e=>{
@@ -20790,10 +21761,9 @@ export function initLegacyApp() {
     const todayStr = `${today.getMonth()+1}.${today.getDate()}.${String(today.getFullYear()).slice(2)}`;
     const showTitle = (document.getElementById('show-title').value || '').trim();
     // Carry the season as a short suffix, e.g. "Show Name S2" -- same convention as the month
-    // view header, so the two documents identify the season identically.
-    const seasonSel = document.getElementById('season-num');
-    const seasonNum = seasonSel ? (seasonSel.value || '').trim() : '';
-    const titleLine = showTitle + (seasonNum ? (showTitle ? ' ' : '') + 'S' + seasonNum : '');
+    // view header, so the two documents identify the season identically. "Show Name S3 & S4" with two ticked.
+    const seasonTxt = seasonLabel();
+    const titleLine = showTitle + (seasonTxt ? (showTitle ? ' ' : '') + seasonTxt : '');
     const wrStartRaw = document.getElementById('start-writersRoom') ? document.getElementById('start-writersRoom').value : '';
     let wrLine = '';
     if(wrStartRaw){
@@ -20977,10 +21947,23 @@ export function initLegacyApp() {
     }
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
     syncRowHeights(currentSchedule);
+    // ⛔ BEFORE render() too: the phase bar size's <body> class, so the bars are drawn at their size and anything that
+    // measures them after the render sees it (MONTH-BAR-SIZE-PLAN.md; see reflectMvBarSize).
+    reflectMvBarSize();
+    // ⛔ THE PHASE MAP BEFORE render() (MONTH-RAIL-PLAN.md, the full gate of step 6). The map sits above #table-wrap,
+    // so its height decides where the calendar starts. Pushed only by the after-render observer, it appeared a task
+    // AFTER a switch to the month view and dropped the calendar ~70 px under everything already placed against it:
+    // the "Show in the month view" ring (wfmenu V1/V2) and a right-click on a day (weeknum) landed in the wrong place.
+    // The cursor is final here (placed just above), and MonthMap commits synchronously any push that changes its
+    // height, so the map has that height before the grid is drawn. A view switch, an edit that changes its rows, a
+    // Load: every height change comes through update(). The observer still pushes after every render, for a month
+    // paged without one (same height, so committed the ordinary way).
+    pushMonthMap();
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     reflectColMoveNotes();
+    reflectHiatusRanges();
     refreshCustomUnitMeta(currentSchedule);
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
@@ -20990,6 +21973,8 @@ export function initLegacyApp() {
     // The Automatic notes card (ruling 9): here for the same reason -- an undo, a Load or New changes
     // autoNotesOff without touching the boxes.
     reflectAutoNoteKinds();
+    // ...and Show info's Season dropdown, for the same reason (seasonList).
+    reflectSeasons();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -21000,6 +21985,7 @@ export function initLegacyApp() {
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
     });
     reflectStartDateValidity(state, refreshSpanHint(state).concat(calRangeEmptyFields(currentSchedule)));
+    scheduleScenarioFacts();   // the key facts band re-reads the tab on screen (KEY-FACTS-PLAN.md), debounced
     markDirty();
     restoreScroll(scrollSnap);
   }
@@ -21282,7 +22268,7 @@ export function initLegacyApp() {
     'us-san-francisco': {region:'US-GEN', label:'San Francisco, CA',
       locals:'IATSE Local 16 — Stage Employees',
       caveat:'Area Standards proxy. The ASA excludes Local 16\'s jurisdiction by name, so Northern California sits outside both national agreements. Confirm before locking dates.'},
-    'us-general': {region:'US-GEN', label:'Elsewhere in the U.S. — Area Standards',
+    'us-general': {region:'US-GEN', label:'Elsewhere in the U.S. — Area Standards', short:'U.S. (Area Standards)',
       locals:'The Area Standards local holding that jurisdiction',
       caveat:null},
     'ca-montreal': {region:'CA-QC', label:'Montreal, QC',
@@ -21343,6 +22329,28 @@ export function initLegacyApp() {
       caveat:null},
   };
   const DEFAULT_PLACE = 'us-general';
+
+  // ---- Location (KEY-FACTS-PLAN.md, owner 23 Oct 2026) ----
+  // The Region picks the HOLIDAYS; it is not always the town. "Manitoba — province-wide" is a Winnipeg shoot as often
+  // as not (owner: "if you selected a province in canada, you might actually mean winnipeg"), so Show info has a
+  // free-text #show-location, and the scenario band and Compare's Location row show what was typed there. Blank, they
+  // show the Region SHORTENED: the list's own label without its " — …" tail or ", ON" code, so "Manitoba", not
+  // "Manitoba — province-wide". An entry the rule gets wrong carries its own `short`. None is no value at all.
+  // ⛔ The Location never reaches a date. Only #union-place decides holidays.
+  const LOCATION_MAX = 40;
+  function placeShortLabel(value){
+    const p = PLACES[value];
+    if(!p) return '';
+    return p.short || p.label.replace(/\s+—.*$/, '').replace(/,\s*[A-Z]{2,3}$/, '').trim();
+  }
+  // Plain text, one line, as a scenario name is (it reaches Compare's Excel export).
+  function cleanLocation(v){
+    return stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, LOCATION_MAX);
+  }
+  function locationText(){
+    return cleanLocation((document.getElementById('show-location') || {}).value)
+      || placeShortLabel((document.getElementById('union-place') || {}).value);
+  }
 
   // The HOLIDAYS key for the current selection, or null for "None". A place is never itself a
   // HOLIDAYS key -- it always resolves through PLACES.
@@ -21868,6 +22876,23 @@ export function initLegacyApp() {
   // something was moved by hand"). Runs from update() after render(), which owns meta-<key> and is
   // frozen -- the refreshOverrideNote() arrangement. The note is a <div> with an id, which
   // collectFieldValues() never sweeps (it takes input/select/textarea only).
+  // The all-phase hiatus card's dates line, under its name (the blend, PHASES-TAB-PLAN.md §3.4a): "12/21/26 → 1/3/27
+  // (2 wk)", the span computeSchedule() gives the hiatus (its Monday, then weeks × 7 days). Display only, from the
+  // row's own two fields, written from update() like reflectColMoveNotes(); empty while either field is.
+  function reflectHiatusRanges(){
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const out = row.querySelector('.hiatus-range');
+      if(!out) return;
+      const d = parseDateUTC((row.querySelector('.hiatus-start') || {}).value || '');
+      const w = parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10);
+      let text = '';
+      if(d && w > 0){
+        const start = mondayOf(d);
+        text = `${fmtShort(start)} → ${fmtShort(addDays(start, w*7 - 1))} (${w} wk)`;
+      }
+      if(out.textContent !== text) out.textContent = text;
+    });
+  }
   function reflectColMoveNotes(){
     const moves = (colReuse && currentSchedule && currentSchedule.colMoves) || {};
     document.querySelectorAll('.col-move-note').forEach(el=>{ if(!moves[el.dataset.key]) el.remove(); });
@@ -21957,19 +22982,31 @@ export function initLegacyApp() {
 
   // The Automatic notes card (owner ruling 9; Sidebar.jsx's AutoNotesCard). Its boxes are plain, UNCONTROLLED
   // checkboxes with NO id, named by data-autonote: React renders them once and the engine owns their state.
-  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry), then update() re-renders every
+  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry) -- or, for a kind that starts off
+  // (AUTO_NOTE_OPT_IN), autoNotesOn (absent = hidden, so unticking deletes it) -- then update() re-renders every
   // view and banks ONE undo step through markDirty().
+  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, because those phases' notes
+  // do ("Edit Begins"); the card renders the default, which stands while nothing is typed. Writer's Room and
+  // Production have no such span: their notes keep their own words whatever the phase is called.
   function reflectAutoNoteKinds(){
     document.querySelectorAll('input[data-autonote]').forEach(cb=>{
-      const on = !autoNotesOff[cb.getAttribute('data-autonote')];
+      const on = autoNoteKindShown(cb.getAttribute('data-autonote'));
       if(cb.checked !== on) cb.checked = on;
+    });
+    document.querySelectorAll('[data-autonote-name]').forEach(el=>{
+      const key = el.getAttribute('data-autonote-name');
+      const def = PHASES.find(p=> p.key === key);
+      const nameEl = document.getElementById('name-'+key);
+      const want = (nameEl && nameEl.value.trim()) || (def && def.label) || '';
+      if(want && el.textContent !== want) el.textContent = want;
     });
   }
   document.addEventListener('change', e=>{
     const t = e.target;
     const kind = t && t.getAttribute && t.getAttribute('data-autonote');
     if(!kind || !SNAP_ID.test(kind)) return;
-    if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    if(AUTO_NOTE_OPT_IN.has(kind)){ if(t.checked) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
+    else if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
     update();
   });
 
@@ -22007,6 +23044,38 @@ export function initLegacyApp() {
     const b = document.getElementById('pref-mv-shootdays');
     if(b) b.checked = mvNumberShootDays;
   }
+  // ---------- Phase bar size (MONTH-BAR-SIZE-PLAN.md §4.1, §4.6) ----------
+  // Shaped like setMvProdLabel(): CALENDAR DATA, so a pick goes through update() + markDirty() -- it dirties the file
+  // and is one undo step. 'standard' is stored as '' (an absent key). Anything that is not a known size is ignored
+  // rather than stored; the names are tested one by one, never by MV_BAR_SIZES[next], which 'toString' would pass.
+  function setMvBarSize(next){
+    const v = (next === 'standard') ? '' : next;
+    if(v !== '' && v !== 'large' && v !== 'xl') return;
+    if(v === mvBarSize) return;
+    mvBarSize = v;
+    update();
+    markDirty();
+  }
+  // The <body> class legacy.css's E1 rules key on, and the control's value. Called by update() BEFORE render(), so
+  // every path that can change the size (a pick, undo/redo, Load, backup recovery, New) has the class on before the
+  // bars are drawn, and whatever measures a bar right after the render (the edge grips, the reorder grip) reads its
+  // new height. A <body> class rather than one on #table-wrap because #table-wrap is the frozen render's own
+  // container; E1 scopes every rule to #table-wrap, so the class can never reach #print-root.
+  // ⛔ The value is PUSHED to React (bridge.js), never written to a radio's .checked: the mvProdLabel reason.
+  function reflectMvBarSize(){
+    document.body.classList.toggle('mv-bar-large', mvBarSize === 'large');
+    document.body.classList.toggle('mv-bar-xl', mvBarSize === 'xl');
+    chrome.mvBarSize({ value: mvBarSize || 'standard' });
+  }
+  // The control's radios, caught on document by their `name` (set in Sidebar.jsx, so stable), as "Label Production
+  // by"'s are and for its reasons: 'click', never 'change' (a controlled radio fires none); the value, never
+  // .checked (React has restored it by now); and a click on the segment already shown is not a pick.
+  document.addEventListener('click', e=>{
+    const t = e.target;
+    if(!t || t.name !== 'mv-bar-size' || t.disabled) return;
+    if(t.value === (mvBarSize || 'standard')) return;
+    setMvBarSize(t.value);
+  });
   // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
   // and a keyboard toggle (Space) fires change too.
   document.addEventListener('change', e=>{
@@ -22015,6 +23084,7 @@ export function initLegacyApp() {
   });
 
   function setViewMode(mode){
+    if(mode !== 'month' && mvSel.size){ clearMvSel(); if(styleTarget === 'month') setStyleTarget(null); }
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
       const b = document.getElementById('view-'+m+'-btn');
@@ -22036,9 +23106,11 @@ export function initLegacyApp() {
   // larger or smaller. Nothing reflows:
   //   * the waterfall's table has explicit widths, so it is the 100% table scaled; its scroll box
   //     fills the panel at every zoom (the grid fit divides by the zoom, see "THE APP SHELL'S GRID FIT");
-  //   * the month view is PINNED to the width it has at 100% (`width: calc(100% * z)`), so its day
-  //     columns keep their CSS width and every note keeps its line count. Zoomed in it scrolls
-  //     sideways, as a zoomed-in page does.
+  //   * the month view is PINNED to the width it has at 100% (legacy.css, "THE MONTH VIEW SCROLLS IN
+  //     #table-wrap"), so its day columns keep their CSS width and every note keeps its line count.
+  //     Zoomed in it scrolls sideways, as a zoomed-in page does. Since 26 Oct 2026 (owner: "The
+  //     surrounding menus need to stay fixed in place") #table-wrap is the month's scroll box, under the
+  //     toolbar, as the waterfall's grid box is; before that the whole panel scrolled, toolbar and all.
   // Neither writer reads the DOM, so the Excel file and both PDFs cannot see the zoom. The month's
   // print path (the rollback) measures the live day column through mvNoteBoxWidth(), which reads it in
   // its own px (below), so the print path cannot see the zoom either.
@@ -22094,7 +23166,9 @@ export function initLegacyApp() {
     const tw = document.getElementById('table-wrap');
     if(tw){
       put(tw, 'zoom', on ? String(z) : '');
-      put(tw, 'width', on && calZoomView() === 'month' ? 'calc(100% * ' + z + ')' : '');
+      // The month's width pin is CSS now (legacy.css, "THE MONTH VIEW SCROLLS IN #table-wrap"): a grid track
+      // in the app shell, a width when stacked. This hands it the zoom. An inline width it used to be.
+      put(tw, '--cal-zoom', on && calZoomView() === 'month' ? String(z) : '');
       if(tw.getAttribute('style') === '') tw.removeAttribute('style');
     }
     // The side boxes are NOT zoomed (owner, 21 Oct 2026: "the side boxes should not change size with
@@ -22104,6 +23178,7 @@ export function initLegacyApp() {
     document.body.classList.toggle('cal-zoomed', on);
     if(typeof chrome === 'object' && chrome && typeof chrome.calZoom === 'function'){
       chrome.calZoom({ view: calZoomView(), zoom: calZoom[calZoomView()], visible: shown });
+      pushScenarioChrome();   // the scenario tabs share the strip, and its visibility (SCENARIOS-PLAN.md)
     }
   }
   let _calZoomTimer = 0;
@@ -22113,23 +23188,12 @@ export function initLegacyApp() {
     if(!Number.isFinite(z)) return;
     const prev = calZoom[v];
     if(z === prev){ applyCalZoom(); return; }
-    // The month view scrolls in the panel, outside the zoom, so hold the corner the user is looking
-    // at still. The waterfall's scroll box is inside the zoom: its offsets already stay put.
-    const panel = document.querySelector('main.preview-panel');
-    const tw = document.getElementById('table-wrap');
-    let keep = null;
-    if(v === 'month' && panel && tw){
-      const pr = panel.getBoundingClientRect(), tr = tw.getBoundingClientRect();
-      keep = { x0: tr.left - pr.left + panel.scrollLeft, y0: tr.top - pr.top + panel.scrollTop,
-               left: panel.scrollLeft, top: panel.scrollTop };
-    }
+    // Both views scroll inside the zoom (the waterfall in its grid box, the month in #table-wrap itself
+    // since 26 Oct 2026), and a scroll offset is in the zoomed box's own px, so the corner the user is
+    // looking at stays put with nothing done here. (The month used to scroll in the panel, outside the
+    // zoom, and needed its corner held by hand.)
     calZoom[v] = z;
     applyCalZoom();
-    if(keep){
-      const r = z / prev;
-      if(keep.top > keep.y0) panel.scrollTop = keep.y0 + (keep.top - keep.y0) * r;
-      if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
-    }
     // Both overlays are drawn in the grid's own px, and Chrome lays the rows out at a different height in
     // those px at each zoom (20 at 100%, 20.8 at 50%, 20.1 at 200%), so a box drawn at one zoom drifts at
     // another: a text style highlight 45 rows down sat 76 px off its cell at 200% (22 Oct 2026, calzoom W8).
@@ -22455,7 +23519,8 @@ export function initLegacyApp() {
       }
     });
   });
-  // The offset and the numbering mode only mean something when the feature is on.
+  // The offset and the numbering mode only mean something when the feature is on. Since the blend (PHASES-TAB-PLAN.md
+  // §3.4a) CSS HIDES them while it is off, off the box itself; the class this keeps in step no longer styles anything.
   function refreshSimPostUI(){
     const on = document.getElementById('simpost-enabled');
     if(!on) return;
@@ -22676,7 +23741,28 @@ export function initLegacyApp() {
   // above, and unguarded for the same reason: src/main.jsx commits the React chrome with flushSync
   // BEFORE initLegacyApp() runs, so the field exists by the time this line evaluates.
   document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
-  document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
+  // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
+  // re-reads the band instead of rendering.
+  document.getElementById('show-location').addEventListener('input', ()=>{ scheduleScenarioFacts(); markDirty(); });
+  // SeasonPop keeps the select's own list shut, so a change event on it (T.set in the harness) means ONE season, as the
+  // old dropdown did.
+  document.getElementById('season-num').addEventListener('change', e=>{
+    const v = parseInt(e.target.value, 10);
+    seasonList = v >= 1 ? [v] : [];
+    refreshEpisodesUI(); update();
+  });
+  // A row of the Season dropdown (SeasonPop.jsx, a button carrying data-season): the click flips that season, the
+  // select takes the first season left (so episodes number from it), and update() redraws every header and banks ONE
+  // undo step through markDirty(). Click, not change: the rows are buttons, so React owns no checkbox state here.
+  document.addEventListener('click', e=>{
+    const row = e.target && e.target.closest && e.target.closest('[data-season]');
+    const n = row ? parseInt(row.getAttribute('data-season'), 10) : NaN;
+    if(!(n >= 1 && n <= SEASON_MAX)) return;
+    const shown = seasonsShown();
+    seasonList = (shown.includes(n) ? shown.filter(s=> s !== n) : shown.concat(n)).sort((a, b)=> a - b);
+    document.getElementById('season-num').value = seasonList.length ? String(seasonList[0]) : '';
+    refreshEpisodesUI(); update();
+  });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   // The calendar range (owner ruling 3): it moves where the waterfall starts and ends, so it recomputes.
@@ -22742,7 +23828,7 @@ export function initLegacyApp() {
       document.getElementById('weeks-'+p.key).value='';
       document.getElementById('name-'+p.key).value=p.label;
       const sw = document.getElementById('swatch-'+p.key);
-      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      if(sw) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color);
     });
     // The Prep row (EPISODE-PREP-PLAN.md): static markup, so New puts it back by hand -- no default, the
     // name "Prep", the default colour. "Prep" is a DEFAULT name (PREP_AUTO_NAMES), so the update() after
@@ -22753,6 +23839,7 @@ export function initLegacyApp() {
     colReuse = false; colFollow = {}; reflectColReuse();
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
+    phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -22763,6 +23850,7 @@ export function initLegacyApp() {
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
+    autoNotesOn = {};           // ...except the phase starts and ends, which start off (27 Oct 2026)
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -22779,6 +23867,7 @@ export function initLegacyApp() {
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     mvNumberShootDays = false; reflectMvNumberShootDays();
+    mvBarSize = '';   // Standard; the update() after New puts the class and the control in step
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -22797,9 +23886,11 @@ export function initLegacyApp() {
     lastPlace = '';
     document.getElementById('show-title').value = '';
     document.getElementById('season-num').value = '';
+    seasonList = [];   // no season ticked; update() pushes the empty list
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
     document.getElementById('show-version').value = '';
+    { const loc = document.getElementById('show-location'); if(loc) loc.value = ''; }   // KEY-FACTS-PLAN §5
     ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
     episodeNamesLegacy = false;   // a blank calendar names its episodes "Shoot Ep. 101"
@@ -22825,6 +23916,7 @@ export function initLegacyApp() {
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     textStyle = emptyTextStyle();
+    mvTextStyle = emptyMvTextStyle();
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths, row heights, cell spans and column ORDER are layout, not notes,
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
@@ -22870,6 +23962,18 @@ export function initLegacyApp() {
     document.querySelectorAll('textarea').forEach(t=>{ if(!inPrefs(t)) t.textContent = t.value; });
   }
 
+  // " – <scenario>" on an export's file name with two or more scenarios, so a sent file says which option it is
+  // (ruling D6); '' with one, so every name is exactly what it always was. `var` state: see scenarioTabs.
+  function scenarioFileSuffix(){
+    return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
+  }
+  // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one.
+  // ⚠️ buildSavedFileName('') is NOT a bare name: an empty ext falls back to .sptcal. So the base is cut off a name
+  // built with a known extension.
+  function savedFileBase(){ return buildSavedFileName('.html').slice(0, -'.html'.length); }
+  function shareCopyFileName(){
+    return savedFileBase() + scenarioFileSuffix() + '.html';
+  }
   function buildSavedFileName(ext){
     const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
     const d = new Date();
@@ -22904,6 +24008,8 @@ export function initLegacyApp() {
       // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
       // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
       if(el.closest('.export-pdf-dlg')) return;
+      // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
+      if(el.closest('.compare-dlg')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -22935,13 +24041,13 @@ export function initLegacyApp() {
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
     }
-    return JSON.stringify(captureSnapshot(), null, 1);
+    return JSON.stringify(captureFileObject(), null, 1);
   }
 
   // The SHARE format: the whole document, with current state embedded, as a self-contained and
   // double-clickable copy of the app. No longer what Save writes -- it is "Export shareable
   // copy", and the download fallback on browsers with no File System Access.
-  function buildSavedHtml(){
+  function buildSavedHtml(opts){
     // 1. Commit any open note editor so its text isn't lost
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
@@ -22985,7 +24091,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box').forEach(el=>el.remove());
+    // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
+    // over the picked month texts, never hidden while a pick is live, so a copy exported then carried them for good.
     // .wf-notes-ring added 22 Oct 2026 with hidden Notes columns (HIDE-NOTES-PLAN.md): the strip's hover ring,
     // body-level beside the grid; its panel is a .note-pop with an .hdrrow-ring, both already stripped.
     // .mv-order-grip / .mv-drag-ghost / .mv-drag-shield added 21 Oct 2026 with the month view's reorder grip and
@@ -23043,7 +24151,9 @@ export function initLegacyApp() {
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
     const stateEl = clone.querySelector('#saved-state');
-    if(stateEl) stateEl.textContent = JSON.stringify(captureSnapshot()).replace(/</g, '\\u003c');
+    // Every scenario when this is a SAVE (a legacy .html file, or the download where there is no File System
+    // Access); the tab on screen alone for Export shareable copy (ruling D6: emailing one option never sends the rest).
+    if(stateEl) stateEl.textContent = JSON.stringify(opts && opts.allScenarios ? captureFileObject() : captureSnapshot()).replace(/</g, '\\u003c');
     return '<!DOCTYPE html>\n' + clone.outerHTML;
   }
 
@@ -23073,14 +24183,21 @@ export function initLegacyApp() {
     const trimmed = String(text || '').replace(/^\uFEFF/, '').trimStart();
     // Data format: the file IS the snapshot.
     if(trimmed.startsWith('{')){
-      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? {format:'data', snapshot:o} : null; }
+      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? scenarioParse('data', o) : null; }
       catch(e){ return null; }
     }
     // Legacy HTML format: lift the embedded state block out of a full copy of the app.
     const body = savedStateBlock(String(text || ''));
     if(body == null) return null;
-    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? {format:'html', snapshot:o} : null; }
+    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? scenarioParse('html', o) : null; }
     catch(e){ return null; }
+  }
+  // {format, snapshot, scenarios} -- or, for a scenarios file this build must not open, {format, snapshot, refused}.
+  // `snapshot` is always the calendar to apply: for a scenarios file, its current tab (SCENARIOS-PLAN.md §3.3).
+  function scenarioParse(format, o){
+    const u = unpackScenarioFile(o);
+    return u.refused ? { format, snapshot: o, scenarios: null, refused: u.refused }
+                     : { format, snapshot: u.snapshot, scenarios: u.scenarios };
   }
 
   // ⛔ AUDIT L-22. The legacy reader was ONE regex,
@@ -23167,6 +24284,624 @@ export function initLegacyApp() {
   // which is what migrateHolidayViewKeys() and normalizeRegionSelection() have had to do.
   const SNAPSHOT_VERSION = 1;
   const SAVE_TYPES = [{ description: 'Planning Calendar', accept: { [SAVE_MIME]: [SAVE_EXT] } }];
+
+  // ---------- SCENARIOS: several calendars in one file (SCENARIOS-PLAN.md; owner rulings 22-23 Oct 2026) ----------
+  // A scenario is a WHOLE calendar (ruling D5): nothing is shared or linked between tabs. The tab on screen IS the
+  // live app, exactly as before this existed; every other tab is parked as its captureSnapshot(), a deep copy. So a
+  // tab that is not on screen can change only by being switched to, and nothing here edits one in place.
+  //
+  // ⛔ THE FILE FORMAT (plan §3). One tab: the file is captureSnapshot(), byte for byte what it always was, no new
+  // key. Two or more: the CURRENT tab's snapshot at the top level, plus `scenarios: {current, counter, tabs}` for the
+  // rest, and the file's `version` is SCENARIO_FILE_VERSION. Why that shape (measured against releases/, 22 Oct):
+  //   - v1.3.0 to v1.8.0 run snapshotVersionOk() before applying anything, so version 2 makes them refuse the file
+  //     WHOLE ("saved by a newer version"), rather than open one tab and drop the others on their next Save.
+  //   - v1.1.x and v1.2.0 have no version check and take ANY JSON object as a calendar (their parseCalendarText).
+  //     With the current tab at the top level they open that tab; a stub there would open a BLANK calendar that a
+  //     Save would then write over every scenario.
+  // Every tab inside is an ordinary version-1 snapshot, applied by the same applyStateSnapshot(), so every
+  // migration ever written reaches every tab. ⛔ PERMANENT KEYS: scenarios, current, counter, tabs, id, name,
+  // snapshot. SNAPSHOT_VERSION itself stays 1: only a FILE holding scenarios is version 2.
+  const SCENARIO_FILE_VERSION = 2;
+  const SCENARIO_MAX = 50;             // owner, 22 Oct 2026: "I think it should be 50 maximum"; also the read guard
+  const SCENARIO_NAME_MAX = 40;
+  // [{id, name, snapshot, undo, facts}] in tab order. `snapshot` is null for the tab on screen (the live app is its
+  // state). `undo` is a parked tab's undo history; `facts` its Compare values, worked out when it was parked (it
+  // cannot change while parked). Only id, name and snapshot are saved.
+  // `var`, not `let`: buildHeaderCtx() reads these, and a render during evaluation, before this line runs, must
+  // see "one scenario", not a temporal-dead-zone ReferenceError that would take the rest of the IIFE with it.
+  var scenarioTabs = [{ id: 's1', name: 'Scenario A', snapshot: null, undo: null, facts: null }];
+  var currentScenarioId = 's1';
+  var scenarioCounter = 1;
+  // Scenario A to Z, then AA, AB and on, as Excel names its columns.
+  function scenarioLetters(n){
+    let s = ''; n++;
+    while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function scenarioDefaultName(i){ return 'Scenario ' + scenarioLetters(i); }
+  function nextScenarioName(){
+    for(let i = 0; i < SCENARIO_MAX * 2; i++){ const n = scenarioDefaultName(i); if(!scenarioTabs.some(t => t.name === n)) return n; }
+    return 'Scenario';
+  }
+  // Plain text, one line. A name reaches the tab strip (always as text), file names and, through the {scenario}
+  // header token, the Excel header -- hence the XML-illegal characters going, as the header's own text does.
+  function cleanScenarioName(v){
+    return stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, SCENARIO_NAME_MAX);
+  }
+  function currentScenario(){ return scenarioTabs.find(t => t.id === currentScenarioId) || scenarioTabs[0]; }
+  function resetScenarios(){
+    scenarioTabs = [{ id: 's1', name: scenarioDefaultName(0), snapshot: null, undo: null, facts: null }];
+    currentScenarioId = 's1';
+    scenarioCounter = 1;
+    pushScenarioChrome();
+  }
+  // What a FILE holds (Save, Save As, autosave, the crash backup, and Save to a legacy .html): one tab, exactly
+  // captureSnapshot(); two or more, the container above. ⛔ Not the undo stack and not a shareable copy: both are
+  // the tab on screen only (undo is per tab; the shareable copy is ruling D6's "this tab only").
+  function captureFileObject(){
+    const snap = captureSnapshot();
+    if(scenarioTabs.length < 2) return snap;
+    return Object.assign({}, snap, {
+      version: SCENARIO_FILE_VERSION,
+      scenarios: {
+        current: currentScenarioId,
+        counter: scenarioCounter,
+        tabs: scenarioTabs.map(t => t.id === currentScenarioId ? { id: t.id, name: t.name }
+                                                                : { id: t.id, name: t.name, snapshot: t.snapshot }),
+      },
+    });
+  }
+  // Splits a file's top-level object into the calendar to apply and the other tabs. Returns {snapshot, scenarios}
+  // (scenarios null for a one-calendar file), or {refused: 'newer' | 'damaged'}. EVERYTHING is checked before
+  // anything is applied (audit M-1): a crafted file can neither half-load nor load thousands of tabs (audit M-15).
+  // A parked tab's snapshot gets the light checks here; the full sanitizer runs when it is applied, and a tab that
+  // fails then is refused on its own (switchScenario) while the rest of the file stays usable.
+  function unpackScenarioFile(obj){
+    if(!isPlainObj(obj) || !('scenarios' in obj)) return { snapshot: obj, scenarios: null };
+    if(typeof obj.version === 'number' && obj.version > SCENARIO_FILE_VERSION) return { refused: 'newer' };
+    const sc = obj.scenarios;
+    if(obj.version !== SCENARIO_FILE_VERSION || !isPlainObj(sc) || !Array.isArray(sc.tabs)) return { refused: 'damaged' };
+    if(sc.tabs.length < 2 || sc.tabs.length > SCENARIO_MAX) return { refused: 'damaged' };
+    const ids = new Set(), tabs = [];
+    let current = 0, maxN = 0;
+    for(const t of sc.tabs){
+      if(!isPlainObj(t) || typeof t.id !== 'string' || !/^s\d{1,5}$/.test(t.id) || ids.has(t.id)) return { refused: 'damaged' };
+      ids.add(t.id);
+      maxN = Math.max(maxN, parseInt(t.id.slice(1), 10));
+      const name = cleanScenarioName(t.name) || scenarioDefaultName(tabs.length);
+      if(t.id === sc.current){
+        if('snapshot' in t) return { refused: 'damaged' };
+        current++;
+        tabs.push({ id: t.id, name, snapshot: null, undo: null, facts: null });
+      } else {
+        if(!looksLikeCalendar(t.snapshot)) return { refused: 'damaged' };
+        if(!snapshotVersionOk(t.snapshot)) return { refused: 'newer' };
+        tabs.push({ id: t.id, name, snapshot: t.snapshot, undo: null, facts: null });
+      }
+    }
+    if(current !== 1) return { refused: 'damaged' };
+    const snapshot = Object.assign({}, obj);
+    delete snapshot.scenarios;
+    snapshot.version = SNAPSHOT_VERSION;
+    const counter = (Number.isInteger(sc.counter) && sc.counter > maxN && sc.counter < 100000) ? sc.counter : maxN;
+    return { snapshot, scenarios: { current: sc.current, counter, tabs } };
+  }
+  // After a file's calendar was applied: its tabs become the tab set (or one tab, for a one-calendar file).
+  function adoptScenarios(sc){
+    if(!sc){ resetScenarios(); scheduleScenarioFacts(); return; }
+    scenarioTabs = sc.tabs;
+    currentScenarioId = sc.current;
+    scenarioCounter = sc.counter;
+    pushScenarioChrome();
+    scheduleScenarioFacts();
+    scheduleScenarioProbe();   // the band greys only once every tab's facts are known
+  }
+  // The strip under the calendar (src/chrome/ScenarioTabs.jsx) renders this; it hands actions back as
+  // 'sptcal-scenario' events (below), the way ZoomControl hands back a zoom.
+  let scenarioEditSeq = 0;
+  // `edit` (with a new editSeq) asks the strip to open that tab's name for typing: a fresh copy's (plan §2).
+  function pushScenarioChrome(edit){
+    if(!scenarioTabs) return;   // a render during evaluation, before the state above exists
+    chrome.scenarios({
+      ...(edit ? { edit, editSeq: ++scenarioEditSeq } : {}),
+      visible: calendarShown(),
+      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name })),
+      current: currentScenarioId,
+      max: SCENARIO_MAX,
+      band: scenarioBand(),   // the key facts band (KEY-FACTS-PLAN.md); null with one tab
+    });
+  }
+  // Parks the tab on screen: its state as a DEEP copy (a live captureSnapshot() shares the module's stores, which
+  // the next apply replaces), its undo history (an edit still waiting on the debounce is banked first), and its
+  // Compare values while the live app still holds it.
+  function parkCurrentScenario(){
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    clearTimeout(undoPushTimer);
+    pushUndoSnapshot();
+    const t = currentScenario();
+    t.snapshot = JSON.parse(JSON.stringify(captureSnapshot()));
+    t.undo = { stack: undoStack, redo: redoStack };
+    try { t.facts = scenarioFacts(); } catch(e){ console.error(e); t.facts = null; }
+    return t;
+  }
+  // Puts a tab on screen. ⭐ What is about YOU and not the calendar stays as it is (plan §2): the view, the sidebar
+  // tab, the month on screen (monthCursor is never in a snapshot), the zoom, folded phase cards, the scroll. So a
+  // flip changes the calendar in place and whatever moved shifts in front of you (owner: no highlight on a flip,
+  // "feely a little silly"). It is not an edit: nothing is marked unsaved and no undo step is added.
+  function switchScenario(id){
+    const to = scenarioTabs.find(t => t.id === id);
+    if(!to || id === currentScenarioId) return false;
+    const from = parkCurrentScenario();
+    const scroll = captureScroll();
+    suppressDirty = true;
+    try {
+      applyStateSnapshotAtomically(Object.assign(JSON.parse(JSON.stringify(to.snapshot)), { viewMode, sidebarTab }));
+    } catch(e){
+      // The atomic apply put the tab we were on back; it stays current, its history untouched.
+      console.error(e);
+      from.snapshot = null; from.undo = null;
+      refreshAfterRestore();
+      suppressDirty = false;
+      uiAlert('“' + to.name + '” couldn’t be opened — it may be damaged. The scenario on screen is unchanged.');
+      return false;
+    }
+    to.snapshot = null;
+    currentScenarioId = id;
+    refreshAfterRestore();
+    suppressDirty = false;
+    restoreScroll(scroll);
+    // Its own history back, re-based on what is now on screen (the view it was saved with was replaced by the
+    // current one, and that must not read as an edit).
+    clearTimeout(undoPushTimer);
+    undoStack = to.undo ? to.undo.stack : [];
+    redoStack = to.undo ? to.undo.redo : [];
+    to.undo = null;
+    lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    refreshUndoRedoUI();
+    // At once, not on update()'s debounce: for those 120 ms the band would show the tab just left (KEY-FACTS-PLAN).
+    refreshScenarioFacts();   // ...which pushes the chrome
+    return true;
+  }
+  // "+": a copy of the tab on screen, next to it, on screen at once (the live app already IS its state). The copy
+  // starts with no undo history; the original keeps its own.
+  function duplicateScenario(){
+    if(scenarioTabs.length >= SCENARIO_MAX) return null;
+    const from = parkCurrentScenario();
+    const copy = { id: 's' + (++scenarioCounter), name: nextScenarioName(), snapshot: null, undo: null, facts: null };
+    scenarioTabs.splice(scenarioTabs.indexOf(from) + 1, 0, copy);
+    currentScenarioId = copy.id;
+    update();          // the {scenario} header token reads the new name
+    // The copy's history starts empty, based on the state AFTER that render: update() settles derived stores, and
+    // a baseline taken before it read the settling as an edit -- a phantom first step that ⌘Z then "undid".
+    clearTimeout(undoPushTimer);
+    undoStack = []; redoStack = [];
+    lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    refreshUndoRedoUI();
+    isDirty = true; refreshSaveStatus(); scheduleBackup();   // markDirty() without its undo push
+    pushScenarioChrome(copy.id);   // ...and its name opens ready to type over
+    return copy.id;
+  }
+  function renameScenario(id, name){
+    const t = scenarioTabs.find(x => x.id === id);
+    const clean = cleanScenarioName(name);
+    if(!t || !clean || clean === t.name){ pushScenarioChrome(); return false; }
+    t.name = clean;
+    markDirty();
+    if(id === currentScenarioId) update();
+    pushScenarioChrome();
+    return true;
+  }
+  function moveScenario(id, toIndex){
+    const i = scenarioTabs.findIndex(t => t.id === id);
+    const j = Math.max(0, Math.min(scenarioTabs.length - 1, toIndex | 0));
+    if(i < 0 || i === j) return false;
+    const [t] = scenarioTabs.splice(i, 1);
+    scenarioTabs.splice(j, 0, t);
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  // Neither can be undone (a tab is not inside any one tab's history), so both ask first, naming what goes.
+  async function deleteScenario(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    if(!t || scenarioTabs.length < 2) return false;
+    if(!(await uiConfirm('Delete “' + t.name + '”? This can’t be undone.',
+                         { title: 'Delete scenario', confirmLabel: 'Delete', danger: true }))) return false;
+    if(id === currentScenarioId){
+      const i = scenarioTabs.indexOf(t);
+      if(!switchScenario((scenarioTabs[i - 1] || scenarioTabs[i + 1]).id)) return false;
+    }
+    scenarioTabs = scenarioTabs.filter(x => x !== t);
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  async function keepOnlyScenario(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    const others = scenarioTabs.filter(x => x !== t);
+    if(!t || !others.length) return false;
+    const what = others.length === 1 ? '“' + others[0].name + '” is' : 'The other ' + others.length + ' scenarios are';
+    if(!(await uiConfirm('Keep only “' + t.name + '”? ' + what + ' deleted, and the file holds one calendar again. This can’t be undone.',
+                         { title: 'Keep only this scenario', confirmLabel: 'Keep only this one', danger: true }))) return false;
+    if(id !== currentScenarioId && !switchScenario(id)) return false;
+    scenarioTabs = [t];
+    markDirty();
+    pushScenarioChrome();
+    return true;
+  }
+  // Ctrl+Page Down / Ctrl+Page Up: the next and previous tab, Excel's own keys. Not while a dialog is up.
+  function flipScenario(dir){
+    if(scenarioTabs.length < 2 || document.querySelector('.mantine-Modal-content')) return false;
+    const i = scenarioTabs.findIndex(t => t.id === currentScenarioId);
+    return switchScenario(scenarioTabs[(i + dir + scenarioTabs.length) % scenarioTabs.length].id);
+  }
+  document.addEventListener('keydown', e=>{
+    if(!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if(e.key !== 'PageDown' && e.key !== 'PageUp') return;
+    if(flipScenario(e.key === 'PageDown' ? 1 : -1)) e.preventDefault();
+  });
+  document.addEventListener('sptcal-scenario', e=>{
+    const d = (e && e.detail) || {};
+    if(d.op === 'switch') switchScenario(d.id);
+    else if(d.op === 'add') duplicateScenario();
+    else if(d.op === 'rename') renameScenario(d.id, d.name);
+    else if(d.op === 'move') moveScenario(d.id, d.to);
+    else if(d.op === 'delete') deleteScenario(d.id);
+    else if(d.op === 'keep') keepOnlyScenario(d.id);
+    else if(d.op === 'compare') openCompareScenarios();
+    else if(d.op === 'saveOwn') saveScenarioAsOwnFile(d.id);
+  });
+
+  // ---------- SCENARIOS: Compare (SCENARIOS-PLAN.md §5; the window is src/chrome/CompareDialog.jsx) ----------
+  // ⭐ THE VALUES ARE THE HEADER'S OWN: buildHeaderCtx()'s tokens for the calendar on screen, so Compare cannot
+  // disagree with what a scenario's header prints. A date token is a hdrDate() box, so the exact Date is read out
+  // of it rather than re-parsed from text.
+  function scenarioFacts(){
+    const sch = wholeCalendar(computeSchedule(readState()));
+    const t = buildHeaderCtx(sch).tokens;   // {tokens}: the same object headerLine() resolves against
+    const day = b => (b && b.__hdrDate) ? isoOf(b.__hdrDate) : null;
+    const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+    const values = {
+      eps: num(t.episodes),
+      blocks: isBlocksMode() ? num((document.getElementById('num-blocks') || {}).value) : null,
+      days: num(t.shootDays),
+      // The Location typed in Show info, else the Region shortened; null for None (Compare's dash). KEY-FACTS-PLAN §3.3.
+      loc: locationText() || null,
+      ver: t.version || '',
+      // The writers' room for the band (KEY-FACTS-PLAN §1): the day it opens and its length in weeks.
+      wrOpen: day(t['writersRoom.open']),
+      wrWeeks: num(t['writersRoom.weeks']),
+      first: day(t['production.open']),
+      wrap: day(t['production.wrap']),
+      span: num(t['production.weeks']),
+      // The holidays that cost this shoot a day: the production walk's own list (holidaysHit), so the holidays
+      // Compare counts for a moved wrap are the days the schedule actually skipped, not a second copy of the rule.
+      hols: ((sch && sch.productionInfo && sch.productionInfo.holidaysHit) || []).map(h => ({ d: isoOf(h.date), n: h.name })),
+    };
+    const phases = [];
+    getAllPhaseDefs().forEach(p => {
+      phases.push({ key: p.key, label: p.label || p.key });
+      if(p.key !== 'production') values['ph:' + p.key] = (day(t[p.key + '.open']) && day(t[p.key + '.close']))
+        ? [day(t[p.key + '.open']), day(t[p.key + '.close'])] : null;
+    });
+    // From the first phase's start to the last one's end, in whole weeks.
+    const segs = (sch && sch.segments) || [];
+    if(segs.length){
+      const a = Math.min.apply(null, segs.map(s => +s.start)), b = Math.max.apply(null, segs.map(s => +s.end));
+      values.weeks = Math.round((b - a) / (7 * 864e5));
+    } else values.weeks = null;
+    return { values, phases, blocks: isBlocksMode() };
+  }
+  // Every tab's values. A tab parked this session carries its own (parkCurrentScenario). A tab nobody has visited
+  // since Load is PROBED: applied for a moment, read, and the calendar on screen put back -- all synchronously, so
+  // nothing paints in between, and never across an await (the paperProbe rule). What applyStateSnapshot() touches
+  // that is not in a snapshot is put back by hand; the scenariocompare leg holds captureSnapshot() and the grid
+  // byte-identical across it.
+  function compareScenarioValues(){
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    clearTimeout(undoPushTimer);
+    pushUndoSnapshot();   // an edit still on the debounce is banked BEFORE the probe, as its own step
+    const live = scenarioFacts();
+    probeScenarioTabs(scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && t.snapshot));
+    return scenarioTabs.map(t => ({ id: t.id, name: t.name, facts: t.id === currentScenarioId ? live : t.facts }));
+  }
+  // The probe itself, shared by Compare and the band's after-Load pass (scheduleScenarioProbe). Synchronous from the
+  // first apply to the last, so nothing paints in between and nothing can act on a half-probed app.
+  function probeScenarioTabs(need){
+    if(!need.length) return;
+    const back = JSON.parse(JSON.stringify(captureSnapshot()));
+    const keep = { collapsed: new Set(collapsedPhaseKeys), cursor: monthCursor, recheck: monthCursorRecheck,
+                   sup: suppressDirty, app: applyingUndoRedo, scroll: captureScroll() };
+    suppressDirty = true; applyingUndoRedo = true;
+    try {
+      for(const t of need){
+        try { applyStateSnapshot(JSON.parse(JSON.stringify(t.snapshot))); t.facts = scenarioFacts(); t.factsFailed = false; }
+        catch(e){ console.error(e); t.facts = null; t.factsFailed = true; }
+      }
+    } finally {
+      try { applyStateSnapshot(back); } catch(e){ console.error(e); }
+      collapsedPhaseKeys.clear(); keep.collapsed.forEach(k => collapsedPhaseKeys.add(k));
+      monthCursor = keep.cursor; monthCursorRecheck = keep.recheck;
+      refreshAfterRestore();
+      suppressDirty = keep.sup; applyingUndoRedo = keep.app;
+      restoreScroll(keep.scroll);
+      // Re-based on the calendar as it now stands, so the re-render's settling never reads as an edit.
+      lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    }
+  }
+  // ---------- The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C") ----------
+  // One line of the tab on screen's facts above the tabs, while there are two or more: Location, episodes (blocks),
+  // Writers' Rm open and weeks, Production's first shoot day and span, Wrap. A fact the same in EVERY tab is sent
+  // `same` and drawn grey (Compare's rule), so what is left dark is what differs. src/chrome/ScenarioTabs.jsx draws
+  // it; the values are scenarioFacts(), Compare's own, so the band, Compare and the header cannot disagree.
+  //
+  // The tab on screen is re-read after every update(), debounced: update() is bound undebounced to typing, and the
+  // band can trail a keystroke. A parked tab's facts were stored by parkCurrentScenario() and cannot go stale (it
+  // cannot be edited). A tab not visited since Load has none until scheduleScenarioProbe() reaches it, and until then
+  // nothing is greyed: a wrong grey would claim a fact is shared when it may not be.
+  // `var`, as scenarioTabs is: pushScenarioChrome() reads these through scenarioBand(), and a render during evaluation,
+  // before these lines run, must see "no band", not a temporal-dead-zone ReferenceError.
+  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap'];
+  var liveScenarioFacts = null;
+  var scenarioFactsTimer = 0;
+  function bandValues(f){
+    const v = (f && f.values) || {};
+    // Blocks mode counts blocks, as Production's total does (Blocks mode: Σ block days).
+    const count = f && f.blocks ? (v.blocks != null ? { n: v.blocks, unit: 'block' } : null)
+                                : (v.eps != null ? { n: v.eps, unit: 'ep' } : null);
+    return { loc: v.loc || null, count, wrOpen: v.wrOpen || null, wrWeeks: v.wrWeeks != null ? v.wrWeeks : null,
+             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null };
+  }
+  function scenarioBand(){
+    if(scenarioTabs.length < 2 || !liveScenarioFacts) return null;
+    const mine = bandValues(liveScenarioFacts);
+    const all = scenarioTabs.map(t => t.id === currentScenarioId ? liveScenarioFacts : t.facts);
+    const same = {};
+    if(all.every(Boolean)){
+      const each = all.map(bandValues);
+      BAND_KEYS.forEach(k => { const a = JSON.stringify(mine[k]); same[k] = each.every(b => JSON.stringify(b[k]) === a); });
+    }
+    // The two phases by the names Compare's rows give them.
+    const ph = k => ((liveScenarioFacts.phases || []).find(p => p.key === k) || {}).label || null;
+    return { values: mine, same, labels: { wr: ph('writersRoom'), prod: ph('production') } };
+  }
+  function refreshScenarioFacts(){
+    clearTimeout(scenarioFactsTimer);
+    scenarioFactsTimer = 0;
+    if(scenarioTabs.length < 2){ if(liveScenarioFacts){ liveScenarioFacts = null; pushScenarioChrome(); } return; }
+    try { liveScenarioFacts = scenarioFacts(); } catch(e){ console.error(e); liveScenarioFacts = null; }
+    pushScenarioChrome();
+  }
+  function scheduleScenarioFacts(){
+    if(scenarioTabs.length < 2 && !liveScenarioFacts) return;
+    clearTimeout(scenarioFactsTimer);
+    scenarioFactsTimer = setTimeout(refreshScenarioFacts, 120);
+  }
+  // After Load (and a crash recovery or a shareable copy's boot), the tabs nobody has visited are probed so the band
+  // can grey what is shared: a few per tick, and never while you are in the middle of something -- a note editor
+  // open or a field focused -- because the probe re-applies the calendar on screen. An edit still waiting on the undo
+  // debounce is banked first, as its own step, exactly as Compare does. A tab that fails to apply is skipped here
+  // (Compare will try again and say so).
+  var scenarioProbeTimer = 0;
+  function scheduleScenarioProbe(delay){
+    clearTimeout(scenarioProbeTimer);
+    scenarioProbeTimer = setTimeout(()=>{
+      const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && !t.factsFailed && t.snapshot);
+      if(!need.length) return;
+      const ae = document.activeElement;
+      const typing = ae && ae !== document.body && ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]');
+      if(activeNoteEditor || activeMvNote || typing){ scheduleScenarioProbe(800); return; }
+      clearTimeout(undoPushTimer);
+      pushUndoSnapshot();
+      probeScenarioTabs(need.slice(0, 4));
+      refreshScenarioFacts();
+      if(need.length > 4) scheduleScenarioProbe(30);
+    }, delay || 0);
+  }
+  // The rows, in the owner's order (22 Oct 2026: "the content of the old version"): the show, then every phase in
+  // phase order with Production as its first shoot day, wrap and span, then the whole calendar's length and Version.
+  // A phase only some scenarios have gets its row; the others show a dash. `phase` marks a phase's rows: the window
+  // hides them when no column it shows has that phase (owner, 23 Oct 2026: "hide phases that aren't used/empty").
+  // `hols` marks the two shoot dates a holiday can move: their "± days" names the holidays behind it.
+  function compareRows(all){
+    const rows = [{ key: 'eps', label: 'Episodes', type: 'number' }];
+    if(all.some(s => s.facts && s.facts.blocks)) rows.push({ key: 'blocks', label: 'Blocks', type: 'number' });
+    rows.push({ key: 'days', label: 'Shoot days', type: 'number' }, { key: 'loc', label: 'Location', type: 'text' });
+    const seen = new Set();
+    all.forEach(s => ((s.facts && s.facts.phases) || []).forEach(p => {
+      if(seen.has(p.key)) return;
+      seen.add(p.key);
+      if(p.key === 'production'){
+        rows.push({ key: 'first', label: 'First shoot day', type: 'date', phase: true, hols: 'first' },
+                  { key: 'wrap', label: 'Wrap', type: 'date', phase: true, hols: 'wrap' },
+                  { key: 'span', label: 'Production span', type: 'number', unit: ' wks', phase: true });
+      } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range', phase: true });
+    }));
+    rows.push({ key: 'weeks', label: 'Weeks, first phase to last', type: 'number' }, { key: 'ver', label: 'Version', type: 'text' });
+    return rows;
+  }
+  function openCompareScenarios(){
+    if(scenarioTabs.length < 2) return;
+    const all = compareScenarioValues();
+    chrome.compareDialog({
+      scenarios: all.map(s => ({ id: s.id, name: s.name, values: (s.facts && s.facts.values) || {} })),
+      currentId: currentScenarioId,
+      rows: compareRows(all),
+    });
+  }
+  function compareFileBase(){
+    const raw = (document.getElementById('show-title').value || '').trim();
+    const safe = raw.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    return (safe ? safe + ' ' : '') + 'Scenario Comparison';
+  }
+  function downloadBlob(blob, name){
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
+  // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
+  // is a moved shoot date's second chip ("+1 holiday", or ''), written beside its delta in both files.
+  async function exportCompareExcel(model){
+    if(typeof ExcelJS === 'undefined'){ uiAlert('Excel export needs the ExcelJS library, which hasn’t loaded. Check the internet connection and try again.'); return; }
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Compare', {
+      views: [{ state: 'frozen', xSplit: 1, ySplit: 3, showGridLines: false }],
+      pageSetup: { orientation: 'landscape', paperSize: 1, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+    const ink = { argb: 'FF1E1D1B' }, grey = { argb: 'FFA5A197' }, line = { argb: 'FFE3E1DA' };
+    ws.getCell('A1').value = 'Compare scenarios';
+    ws.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: ink };
+    ws.getCell('A2').value = (document.getElementById('show-title').value || '').trim();
+    ws.getCell('A2').font = { name: 'Calibri', size: 10, color: { argb: 'FF726F68' } };
+    const head = ws.getRow(3);
+    model.cols.forEach((c, i) => {
+      const cell = head.getCell(i + 2);
+      cell.value = c.onScreen ? { richText: [{ text: c.name, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
+                                             { text: '  on screen', font: { name: 'Calibri', size: 9, color: { argb: 'FF2C3E50' } } }] }
+                              : c.name;
+      cell.font = { name: 'Calibri', size: 11, bold: true, color: ink };
+    });
+    for(let k = 1; k <= model.cols.length + 1; k++) head.getCell(k).border = { bottom: { style: 'thin', color: { argb: 'FFC4C1B6' } } };
+    model.rows.forEach((r, ri) => {
+      const row = ws.getRow(4 + ri);
+      const lab = row.getCell(1);
+      lab.value = r.label;
+      lab.font = { name: 'Calibri', size: 11, color: r.same ? grey : ink };
+      r.cells.forEach((c, ci) => {
+        const cell = row.getCell(ci + 2);
+        if(c.delta){
+          cell.value = { richText: [{ text: c.text, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
+                                    { text: '\n' + [c.delta, c.holidays].filter(Boolean).join('   '), font: { name: 'Calibri', size: 9, color: { argb: 'FF7A5B14' } } }] };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF6E7' } };
+          cell.alignment = { wrapText: true, vertical: 'top' };
+        } else {
+          cell.value = c.text;
+          cell.font = { name: 'Calibri', size: 11, bold: !!c.diff, color: r.same ? grey : ink };
+          cell.alignment = { vertical: 'top' };
+        }
+      });
+      for(let k = 1; k <= model.cols.length + 1; k++) row.getCell(k).border = { bottom: { style: 'thin', color: line } };
+    });
+    // Each column as wide as its longest line, as the window is (owner: "so we dont have elipses/things cut off"):
+    // Excel cuts a value off at a filled neighbour rather than spilling into it. In characters, with a little room
+    // for the bold headings.
+    const chars = s => String(s || '').length;
+    ws.getColumn(1).width = Math.max(16, ...model.rows.map(r => chars(r.label))) + 3;
+    model.cols.forEach((c, i) => {
+      const longest = Math.max(chars(c.name) + (c.onScreen ? 11 : 0),
+        ...model.rows.map(r => { const k = r.cells[i] || {}; return Math.max(chars(k.text), chars([k.delta, k.holidays].filter(Boolean).join('   '))); }));
+      ws.getColumn(i + 2).width = Math.min(60, Math.max(16, longest + 3));
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), compareFileBase() + '.xlsx');
+  }
+  // The PDF, written directly by the month writer through its second public entry point, buildListPdf: the embedded
+  // Inter, the display list and serializer, the Letter landscape page. ⛔ Nothing here may name anything else in the
+  // writer (the month legs' F0 counts it). One page wide; the type steps down
+  // as columns are added, and a value too wide for its column shrinks to fit. "−" is not in the PDF's character
+  // set (WinAnsi), so differences are written with a hyphen there.
+  function buildComparePdf(model){
+    return buildListPdf(function(pg){ return paintComparePdf(model, pg); });
+  }
+  function paintComparePdf(model, pg){
+    const M = 30, pageW = pg.pageW, list = [];
+    const C = { ink: [0x1E / 255, 0x1D / 255, 0x1B / 255], muted: [0x72 / 255, 0x6F / 255, 0x68 / 255], grey: [0xA5 / 255, 0xA1 / 255, 0x97 / 255],
+                line: [0xE3 / 255, 0xE1 / 255, 0xDA / 255], rule: [0xC4 / 255, 0xC1 / 255, 0xB6 / 255],
+                warnBg: [0xFE / 255, 0xF6 / 255, 0xE7 / 255], warnInk: [0x7A / 255, 0x5B / 255, 0x14 / 255],
+                navyBg: [0xEA / 255, 0xEE / 255, 0xF2 / 255], navy: [0x2C / 255, 0x3E / 255, 0x50 / 255] };
+    const pdfText = s => String(s).replace(/−/g, '-');
+    const width = (s, wt, size) => pg.width(pdfText(s), wt, size);
+    const text = (s, x, y, wt, size, c) => list.push({ k: 'text', s: pdfText(s), x, y, wt, size, c, ls: 0 });
+    const fit = (s, wt, size, max) => { let z = size; while(z > 5 && width(s, wt, z) > max) z -= 0.25; return z; };
+    const n = model.cols.length;
+    const size = n <= 5 ? 11 : n <= 8 ? 9.5 : 8;
+    const labelW = Math.min(190, Math.max(...model.rows.map(r => width(r.label, '500', size))) + 18);
+    const colW = (pageW - 2 * M - labelW) / n, pad = 6;
+    let y = M + 18;
+    text('Compare scenarios', M, y, '600', 16, C.ink);
+    y += 16;
+    text((document.getElementById('show-title').value || '').trim(), M, y, '400', 10, C.muted);
+    y += 22;
+    // Heading row: the names, the first tagged "On screen".
+    model.cols.forEach((c, i) => {
+      const x = M + labelW + i * colW + pad;
+      let room = colW - 2 * pad;
+      if(c.onScreen){
+        const tag = 'On screen', ts = Math.max(6, size - 2.5), tw = width(tag, '500', ts) + 8;
+        list.push({ k: 'fill', c: C.navyBg, x: x + colW - 2 * pad - tw, y: y - ts - 1, w: tw, h: ts + 5, r: 3 });
+        text(tag, x + colW - 2 * pad - tw + 4, y + 1, '500', ts, C.navy);
+        room -= tw + 4;
+      }
+      text(c.name, x, y, '600', fit(c.name, '600', size, room), C.ink);
+    });
+    y += 8;
+    list.push({ k: 'fill', c: C.rule, x: M, y, w: pageW - 2 * M, h: 1, r: 0 });
+    // The rows.
+    // A cell's chips: its delta, then the holiday count beside it, or under it when the two do not fit side by side.
+    const chipSize = Math.max(6, size - 2);
+    const chipsOf = (c, room) => {
+      const out = [];
+      let cx = 0, line = 0;
+      [c.delta, c.holidays].filter(Boolean).forEach(s => {
+        const ds = fit(s, '500', chipSize, room - 8), w = width(s, '500', ds) + 8;
+        if(cx && cx + w > room){ cx = 0; line++; }
+        out.push({ s, ds, w, dx: cx, line });
+        cx += w + 4;
+      });
+      return out;
+    };
+    model.rows.forEach(r => {
+      const hasDelta = r.cells.some(c => c.delta);
+      const chipLines = Math.max(1, ...r.cells.map(c => chipsOf(c, colW - 2 * pad).reduce((m, k) => Math.max(m, k.line + 1), 0)));
+      // Room for the value and its chips (each line of them ends chipSize + 9 below the one before).
+      const rowH = hasDelta ? size * 1.35 + chipLines * (chipSize + 9) + 6 : size * 1.9;
+      const base = y + size * 1.35;
+      text(r.label, M + pad, base, '500', fit(r.label, '500', size, labelW - 2 * pad), r.same ? C.grey : C.ink);
+      r.cells.forEach((c, i) => {
+        const x = M + labelW + i * colW + pad, room = colW - 2 * pad, wt = c.diff ? '600' : '400';
+        text(c.text, x, base, wt, fit(c.text, wt, size, room), r.same ? C.grey : C.ink);
+        chipsOf(c, room).forEach(k => {
+          const top = base + 4 + k.line * (chipSize + 9);
+          list.push({ k: 'fill', c: C.warnBg, x: x + k.dx, y: top, w: k.w, h: k.ds + 5, r: 3 });
+          text(k.s, x + k.dx + 4, top + k.ds + 1.5, '500', k.ds, C.warnInk);
+        });
+      });
+      y += rowH;
+      list.push({ k: 'fill', c: C.line, x: M, y, w: pageW - 2 * M, h: 0.75, r: 0 });
+    });
+    return list;
+  }
+  async function exportComparePdf(model){
+    let bytes;
+    try { bytes = await buildComparePdf(model); }
+    catch(e){ console.error(e); uiAlert('Could not build the comparison PDF: ' + e.message); return; }
+    downloadBlob(new Blob([bytes], { type: 'application/pdf' }), compareFileBase() + '.pdf');
+  }
+  document.addEventListener('sptcal-compare-export', e=>{
+    const d = (e && e.detail) || {};
+    if(!d.model) return;
+    if(d.kind === 'xlsx') exportCompareExcel(d.model).catch(err => { console.error(err); uiAlert('Could not build the comparison workbook: ' + err.message); });
+    else if(d.kind === 'pdf') exportComparePdf(d.model);
+  });
+  // "Save this scenario as its own file…": that tab alone, as an ordinary one-calendar .sptcal. The open file stays
+  // the one Save writes, and the new file is not linked or added to recents (it is a copy handed to someone).
+  async function saveScenarioAsOwnFile(id){
+    const t = scenarioTabs.find(x => x.id === id);
+    if(!t) return;
+    if(t.id === currentScenarioId){ if(activeNoteEditor) commitActiveNoteEditor(); if(activeMvNote) commitMvNoteEditor(); }
+    const text = JSON.stringify(t.id === currentScenarioId ? captureSnapshot() : t.snapshot, null, 1);
+    const name = savedFileBase() + ' – ' + t.name.replace(/[\\/:*?"<>|]/g, '-') + SAVE_EXT;
+    if(!supportsFsAccess){ downloadTextFile(text, SAVE_MIME, name); return; }
+    let handle;
+    try { handle = await window.showSaveFilePicker({ suggestedName: name, types: SAVE_TYPES }); }
+    catch(e){ if(e && e.name === 'AbortError') return; console.error(e); uiAlert('Could not save that scenario: ' + e.message); return; }
+    try { const w = await handle.createWritable(); await w.write(text); await w.close(); }
+    catch(e){ console.error(e); uiAlert('Could not save that scenario: ' + e.message); }
+  }
   // The Open picker takes either format. Two entries rather than one with two MIME keys so the
   // picker shows "Planning Calendar" first and the legacy type as a distinct, clearly-labelled
   // choice.
@@ -23267,7 +25002,7 @@ export function initLegacyApp() {
       // No File System Access: the browser won't let us write a file, so a download is the only
       // route. Downloads keep the SHARE format -- without a handle there is nothing to write back
       // to, so a data file the user then can't re-link is worse than a copy that just works.
-      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
       markClean();
       return 'download';
     }
@@ -23319,7 +25054,7 @@ export function initLegacyApp() {
     // hitting Save keeps it an .html -- we never silently convert a file the user didn't ask us
     // to convert, and their existing workflow is untouched.
     const legacy = handleIsLegacyHtml(savedFileHandle);
-    const body = legacy ? buildSavedHtml() : buildSavedData();
+    const body = legacy ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
     const writable = await savedFileHandle.createWritable();
     await writable.write(body);
     await writable.close();
@@ -23407,6 +25142,12 @@ export function initLegacyApp() {
       // 20 Oct 2026: the automatic-note kinds switched off (owner ruling 9). ⛔ PERMANENT key and kind words.
       // Every kind on, the default, is an ABSENT key.
       ...(Object.keys(autoNotesOff).length ? {autoNotesOff: Object.assign({}, autoNotesOff)} : {}),
+      // 27 Oct 2026: the automatic-note kinds that start off and are switched ON (the phase starts and ends).
+      // ⛔ PERMANENT key and kind words. None ticked, the default, is an ABSENT key.
+      ...(Object.keys(autoNotesOn).length ? {autoNotesOn: Object.assign({}, autoNotesOn)} : {}),
+      // 27 Oct 2026: every season ticked in Show info, ascending, when two or more are. ⛔ PERMANENT key. One season
+      // lives in fields.byId['season-num'] alone, as it always did, so such a calendar saves byte for byte as before.
+      ...(seasonsShown().length >= 2 ? {seasons: seasonsShown()} : {}),
       // 20 Oct 2026, owner ruling 10 (HEADER-ROW-PLAN.md §2): Header: Off. ⛔ PERMANENT key, written
       // only as `true`, so a calendar whose header is on saves byte for byte as before.
       ...(headerOff ? {headerOff: true} : {}),
@@ -23442,13 +25183,23 @@ export function initLegacyApp() {
       // kinds that hold one. ⛔ PERMANENT key and kind words. ABSENT while nothing is styled, so a calendar
       // without a style saves byte for byte as before.
       ...(textStyleHasAny() ? {textStyles: textStyleSnapshot()} : {}),
+      // 27 Oct 2026 (MONTH-TEXT-STYLE-PLAN.md §4): the month view's text styles, kept apart from the waterfall's (R2). ⛔
+      // PERMANENT key and kind words. ABSENT while nothing is styled. A month note's own style rides on its dayNotes entry.
+      ...(mvTextStyleHasAny() ? {mvTextStyles: mvTextStyleSnapshot()} : {}),
       // 19 Oct 2026: number Production's shoot days in the month view ("Day 12"). ⛔ PERMANENT key,
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
       ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
+      // 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md §4.1): the month view's phase bar size. ⛔ PERMANENT key, whose two values
+      // are 'large' and 'xl'. STANDARD IS AN ABSENT KEY, so a Standard calendar's snapshot is the one it was before.
+      ...(mvBarSize ? {mvBarSize: mvBarSize} : {}),
       // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
       // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
       ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
+      // 23 Oct 2026 (PHASES-TAB-PLAN.md §2.3): the phases hidden in the waterfall, {key: {sheet: true}}. ⛔ PERMANENT
+      // key. Nothing hidden is an ABSENT key, so a calendar that never hides a phase saves byte for byte as before.
+      // Keys in sorted order: the undo stack compares snapshots as text.
+      ...(Object.keys(phaseHidden).length ? {phaseHidden: phaseHiddenSnapshot()} : {}),
       // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
       // written only while it holds something.
       ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
@@ -23538,7 +25289,7 @@ export function initLegacyApp() {
     if(persistHold){ backupHeld = true; return; }
     backupPending = false;
     try {
-      idbSet(BACKUP_SLOT, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+      idbSet(BACKUP_SLOT, { state: captureFileObject(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
   }
   // Every key in the handles store (the backup slots are found by prefix). [] when unsupported.
@@ -24104,6 +25855,9 @@ export function initLegacyApp() {
     // shoot). Dates and headings carry no movable week, so they stay.
     textStyle.note = shiftKeyedMap(textStyle.note, days, isPinnedWeek);
     textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, days, hiatusKeyStays);
+    // The month view's band styles move as hiatusTexts does (MONTH-TEXT-STYLE-PLAN.md §4). Its phase, episode and Sim
+    // Post styles are keyed by what their labels say, so they need no re-key, and a note's rides on the note.
+    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, days, hiatusKeyStays);
     textStyle.phase = shiftKeyedMap(textStyle.phase, days, hiatusKeyStays);
     textStyle.simpost = shiftKeyedMap(textStyle.simpost, days, () => stayingPhases.has('production'));
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
@@ -24521,7 +26275,7 @@ export function initLegacyApp() {
           refreshSaveStatus();
           return;
         }
-        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml() : buildSavedData();
+        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
         const writable = await savedFileHandle.createWritable();
         await writable.write(body);
         await writable.close();
@@ -24597,7 +26351,7 @@ export function initLegacyApp() {
   // distinct from "New", which clears the calendar and starts blank.
   async function saveAsFile(){
     if(!supportsFsAccess){
-      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
       return 'download';
     }
     const handle = await window.showSaveFilePicker({
@@ -24607,7 +26361,7 @@ export function initLegacyApp() {
     // Save As always produces the current format, even when forking a legacy .html calendar --
     // the user is naming a new file here, so there is no existing format to preserve.
     const writable = await handle.createWritable();
-    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml() : buildSavedData());
+    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData());
     await writable.close();
     savedFileHandle = handle;
     handleNeedsPermission = false;
@@ -24851,7 +26605,11 @@ export function initLegacyApp() {
     const snap = parsed.snapshot;
     // Refuse a newer-format file BEFORE touching the open calendar (audit M-1). Half-applying it
     // would leave a hybrid and could still throw later.
-    if(!snapshotVersionOk(snap)){
+    if(parsed.refused === 'damaged'){
+      uiAlert('That calendar\u2019s scenarios are damaged, so it can\u2019t be opened. Your current calendar is unchanged.');
+      return false;
+    }
+    if(parsed.refused === 'newer' || !snapshotVersionOk(snap)){
       uiAlert('That calendar was saved by a newer version of SPTCal, so this version can\u2019t open it. Update the app and try again.');
       return false;
     }
@@ -24873,6 +26631,7 @@ export function initLegacyApp() {
       uiAlert('That file looks like a calendar but couldn\u2019t be opened \u2014 it may be damaged. Your current calendar is unchanged.');
       return false;
     }
+    adoptScenarios(parsed.scenarios);   // the file's tabs (one tab for a one-calendar file)
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
     refreshAfterRestore();
@@ -24947,6 +26706,7 @@ export function initLegacyApp() {
     persistRecents();
     suppressDirty = true;
     resetAll(); // full reset without the button's own confirm (New already prompted)
+    resetScenarios();   // a blank calendar is one scenario
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
@@ -25643,7 +27403,7 @@ export function initLegacyApp() {
         // sits above the unsaved-changes guard below.
         if(item.dataset.action === 'share'){
           try {
-            downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+            downloadTextFile(buildSavedHtml(), 'text/html', shareCopyFileName());
           } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
           return;
         }
@@ -25666,7 +27426,7 @@ export function initLegacyApp() {
     document.addEventListener('click', reClickGuard(600, (e)=>{
       if(!e.target.closest || !e.target.closest('#share-copy-btn')) return;
       try {
-        downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+        downloadTextFile(buildSavedHtml(), 'text/html', shareCopyFileName());
       } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
     }));
 
@@ -27122,7 +28882,9 @@ export function initLegacyApp() {
     }
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    const name = (safe ? safe + ' ' : '') + 'Planning Calendar.pdf';
+    // ⛔ FROZEN EDIT S2 (D6, as S1 in exportExcel): the download's NAME only; '' with one scenario, and gate 1
+    // compares the PDF's bytes.
+    const name = (safe ? safe + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.pdf';
     const url = URL.createObjectURL(new Blob([out.bytes], {type:'application/pdf'}));
     const a = document.createElement('a');
     a.href = url; a.download = name;
@@ -27526,6 +29288,40 @@ export function initLegacyApp() {
       return from + c;
     }).sort(function(a, b){ return a - b; });
   }
+  // ⭐ A MONTH TEXT STYLE (MONTH-TEXT-STYLE-PLAN.md §5 W1, 27 Oct 2026). Frozen edit M1 appends a styled text's size
+  // (with its held line box), weight, slant and alignment to its inline style; this reads them back. A styled colour
+  // needs nothing here: it is the LAST `color` in a bar's style, which mvlDecls keeps and the item's `ink` already is.
+  // null for a text with none, so an unstyled calendar models exactly as it did. ⛔ A value M1 cannot write throws,
+  // as mvlHeaderFmt does: the writer would otherwise draw something the screen does not show, and nobody would know.
+  function mvlTextFmt(d){
+    const f = {};
+    if('font-size' in d){
+      const m = /^(\d+(?:\.\d+)?)px$/.exec(d['font-size']);
+      if(!m) throw new Error('Month layout: a text size of "' + d['font-size'] + '".');
+      f.size = parseFloat(m[1]);
+    }
+    if('font-weight' in d){
+      if(!/^(400|500|600|700)$/.test(d['font-weight'])) throw new Error('Month layout: a text weight of "' + d['font-weight'] + '".');
+      f.weight = d['font-weight'];
+    }
+    if('font-style' in d){
+      if(d['font-style'] !== 'italic') throw new Error('Month layout: a text style of "' + d['font-style'] + '".');
+      f.italic = true;
+    }
+    if('text-align' in d){
+      if(!/^(left|center|right)$/.test(d['text-align'])) throw new Error('Month layout: a text alignment of "' + d['text-align'] + '".');
+      f.align = d['text-align'];
+    }
+    return Object.keys(f).length ? f : null;
+  }
+  // The month name's and the weekday row's style: an attribute M1 writes only when styled, so absent is null. Their
+  // colour is the attribute's own `color`, there being no colour of the element's own in it to override.
+  function mvlFrameFmt(el){
+    if(!el || !el.hasAttribute('style')) return null;
+    const d = mvlDecls(el.getAttribute('style')), f = mvlTextFmt(d) || {};
+    if(d['color']) f.color = d['color'];
+    return Object.keys(f).length ? f : null;
+  }
   // One bar: what it is, where the renderer put it, and what it says.
   function mvlParseItem(el){
     const cl = el.classList, d = mvlDecls(el.getAttribute('style'));
@@ -27569,6 +29365,9 @@ export function initLegacyApp() {
     // Only when true, so a calendar with no switch day models exactly as it did.
     if(ends.halfStart) item.halfStart = true;
     if(ends.halfEnd) item.halfEnd = true;
+    // Only when styled (W1), for the same reason.
+    const fmt = mvlTextFmt(d);
+    if(fmt) item.fmt = fmt;
     return item;
   }
   // One month: its header, its weekday row, and per week its day cells and its bars in PLACEMENT
@@ -27594,7 +29393,10 @@ export function initLegacyApp() {
                editable: el.getAttribute('contenteditable') === 'true',
                fmt: mvlHeaderFmt(el.getAttribute('style')) };
     });
-    const dow = Array.from(view.querySelectorAll('.mv-dowrow > .mv-dow')).map(function(el){ return el.textContent; });
+    const dowEls = Array.from(view.querySelectorAll('.mv-dowrow > .mv-dow'));
+    const dow = dowEls.map(function(el){ return el.textContent; });
+    // W1: the month name's and the weekday row's style, one each for the calendar (M1 writes the same on all seven).
+    const monthFmt = mvlFrameFmt(view.querySelector('.mv-monthyear')), dowFmt = mvlFrameFmt(dowEls[0]);
     const first = Date.UTC(year, month, 1);
     const lead = new Date(first).getUTCDay();
     const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -27623,7 +29425,10 @@ export function initLegacyApp() {
       const items = Array.from(wkEl.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add)')).map(mvlParseItem);
       return { start: days[0].iso, days, items };
     });
-    return { year, month, label, header, dow, weeks };
+    const m = { year, month, label, header, dow, weeks };
+    if(monthFmt) m.monthFmt = monthFmt;
+    if(dowFmt) m.dowFmt = dowFmt;
+    return m;
   }
 
   // ---- Re-packing a week's lanes: renderMonthView's takeLane(), the same first-fit rule ----
@@ -27687,21 +29492,58 @@ export function initLegacyApp() {
   // from === to). The writer decides for itself whether one wraps, at the PDF's own box and with the PDF's own
   // font, as it re-wraps every note (ruling 2), so its file never depends on the window the screen measured in.
   function mvlWrapsPill(it){ return it.kind === 'pill' && /^custom\d+$/.test(it.ph || '') && it.from === it.to; }
+  // Phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4; owner rulings 27 Oct 2026): the type of the bars and bands at Large and
+  // Extra large, their grey tag's, and a corner of half the bar's height so the ends stay round. The HEIGHT is not here:
+  // mvlBarHeight makes it from the type (its line, x1.5, plus the bar's padding and border), which is legacy.css's
+  // fixed height by construction (22 / 25 px; 40 / 46 for a pill that wraps). Declared here, with the model, because
+  // the model wraps a one-day pill at its size and the monthlayout leg slices the model alone; MVL_PAINT.barSizes is
+  // this same object, for the emitter.
+  // ⚠️ HAND COPIES of legacy.css's E1 (screen) and E3 (print) rules and app.js's MV_BAR_SIZES. The monthemit leg holds
+  // them to Chrome's print layout of a sized calendar, so a change to one alone fails there.
+  const MVL_BAR_SIZES = Object.freeze({ large: Object.freeze({ size: 12, tag: 11, radius: 11 }),
+                                        xl: Object.freeze({ size: 14, tag: 12, radius: 13 }) });
+  // A phase bar size's entry, or null at Standard (and for anything that is not a size: the names are tested one by
+  // one, never by lookup, which 'toString' would pass).
+  function mvlBarSize(size){ return (size === 'large' || size === 'xl') ? MVL_BAR_SIZES[size] : null; }
   // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
   // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
   // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
   function mvlPillLines(text, widthOf){
     return mvlWrapText(mvlFlat(text), MVL_GEOMETRY.noteBoxW - 2 * (8 + 1), widthOf);
   }
-  function mvlMonthLayout(html, widthOf, pillWidthOf){
-    const m = mvlParseMonth(html);
+  // W3 (MONTH-TEXT-STYLE-PLAN.md §5): a styled note or wrapping pill is measured in its OWN weight and size, so a bold
+  // note that needs one more line gets it, as on screen (mvNoteLineCount), instead of losing its last one. `fonts` is
+  // the four programs; without them (a caller passing none) every text measures at its kind's own type, as before.
+  // `paint` names the kind's entry in MVL_PAINT ('note' or 'bar'), read only once a style needs it: MVL_PAINT is the
+  // emitter's, declared after the model, so the model alone (monthlayout's slice) never reaches it.
+  // At a phase bar size (MONTH-BAR-SIZE-PLAN.md) a bar styled in weight or slant alone keeps the bars' own size
+  // (`barPx`), as on screen, where the size class sets it and the style does not.
+  function mvlStyledWidthOf(fonts, it, paint, barPx){
+    if(!fonts || !it.fmt || !(it.fmt.size || it.fmt.weight)) return null;
+    const wt = it.fmt.weight || MVL_PAINT[paint].weight, sz = it.fmt.size || barPx || MVL_GEOMETRY.noteFontPx;
+    return function(s){ return mvlTextWidth(fonts[wt].font, s, sz); };
+  }
+  // `fonts` is W3's (above). `barSize` (MONTH-BAR-SIZE-PLAN.md §4.4) is the calendar's phase bar size, 'large' or 'xl'; anything else is
+  // Standard. A sized month carries it as `barSize`, which the fit and the emitter read (mvlWeekPaint), and its
+  // one-day custom pills wrap at the bars' own size: `pillWidthOf` measures at .mv-bar's 10 px, and a width is linear
+  // in the size (ttfTextWidth), so it is scaled. ⛔ A Standard month has no `barSize` key at all, so its model is the
+  // JSON it always was.
+  function mvlMonthLayout(html, widthOf, pillWidthOf, fonts, barSize){
+    const m = mvlParseMonth(html), Z = mvlBarSize(barSize);
+    if(Z){
+      m.barSize = barSize;
+      if(pillWidthOf){
+        const pw10 = pillWidthOf, r = Z.size / MVL_GEOMETRY.noteFontPx;
+        pillWidthOf = function(s){ return pw10(s) * r; };
+      }
+    }
     m.weeks.forEach(function(w){
       w.items.forEach(function(it){
-        it.lines = it.kind === 'note' ? mvlNoteLines(it.text, widthOf) : null;
+        it.lines = it.kind === 'note' ? mvlNoteLines(it.text, mvlStyledWidthOf(fonts, it, 'note') || widthOf) : null;
         // A wrapping pill carries its lines as a note does (`lines`), and only when it needs two or more.
         // Without the bar's font (a caller passing none) it keeps the renderer's own lanes and one cut line.
         if(pillWidthOf && mvlWrapsPill(it)){
-          const pl = mvlPillLines(it.text, pillWidthOf);
+          const pl = mvlPillLines(it.text, mvlStyledWidthOf(fonts, it, 'bar', Z ? Z.size : 0) || pillWidthOf);
           if(pl.length > 1) it.lines = pl;
         }
       });
@@ -27716,6 +29558,7 @@ export function initLegacyApp() {
                     ph: it.ph, note: it.note, lines: it.lines };
         if(it.halfStart) o.halfStart = true;
         if(it.halfEnd) o.halfEnd = true;
+        if(it.fmt) o.fmt = it.fmt;
         return o;
       });
     });
@@ -27730,7 +29573,9 @@ export function initLegacyApp() {
   // wrong month on screen. The `finally` clears it even when a month throws, and puts monthCursor
   // back as exportMonthPdf does (renderMonthView leaves it alone while printingCursor is set).
   // Returns plain data: JSON in, JSON out, no DOM and no functions.
-  function buildMonthLayout(schedule, inter500, inter600){
+  // `fonts` is the four programs (W3), and `barSize` the calendar's phase bar size (mvBarSize: '', 'large' or 'xl'),
+  // both handed to every month (mvlMonthLayout).
+  function buildMonthLayout(schedule, inter500, inter600, fonts, barSize){
     // The months the print path prints (MONTH-NOTES-PLAN.md §3): an edge month only when it holds something.
     const range = monthPrintRange(schedule);
     const htmls = [];
@@ -27751,7 +29596,7 @@ export function initLegacyApp() {
     const widthOf = function(s){ return mvlTextWidth(inter500.font, s, MVL_GEOMETRY.noteFontPx); };
     // A one-day custom pill wraps at the bar's own type, .mv-bar's 600 at the same 10 px (MONTH-NOTES-PLAN.md §6).
     const pillWidthOf = inter600 ? function(s){ return mvlTextWidth(inter600.font, s, MVL_GEOMETRY.noteFontPx); } : null;
-    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };
+    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf, fonts, barSize); }) };
   }
 
   // ---------- Month PDF writer: the emitter and the serializer (MONTH-PDF-WRITER-PLAN.md §3.2, step 3) ----------
@@ -27839,6 +29684,9 @@ export function initLegacyApp() {
            // .mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor }: a pill's ring in its
            // own ink, 1 + 0.5 px (21 Oct 2026, SPAN-NOTES-PLAN.md §1 D1). A line weight, so kept at every k.
            pillRim: 1.5 },
+    // Phase bar size: the bars' and bands' type at Large and Extra large (MVL_BAR_SIZES, with the model, which needs it
+    // to wrap a one-day pill at its size).
+    barSizes: MVL_BAR_SIZES,
     // .mv-note-block{ font-weight:500; padding:2px 4px; border-radius:0 }; its 10 px and 13 px lines
     // are MVL_GEOMETRY's, the numbers the model wrapped it with
     note: { weight: '500', padY: 2, padX: 4 },
@@ -27865,9 +29713,14 @@ export function initLegacyApp() {
   //    other page.
   // ⛔ At k = 1 every number here IS MVL_PAINT's (x * 1 === x exactly), so a month that fits draws byte
   // for byte as step 3's emitter drew it. The monthemit leg holds that.
-  function mvlWeekPaint(k){
-    const P = MVL_PAINT, G = MVL_GEOMETRY, B = P.bar;
-    return {
+  // `size` is the month's phase bar size (month.barSize, MONTH-BAR-SIZE-PLAN.md §4.4). Its bars and bands -- pills,
+  // Simultaneous Post and hiatus bands -- are drawn from `big` and `bigTag`; notes keep `bar`. ⛔ At Standard `big` IS
+  // `bar` and `bigTag` IS `tag` (the same objects), so every number a Standard month is drawn with is the one it always
+  // was, and its file is byte for byte as before. At a size, the type and the corner are MVL_PAINT.barSizes', at the
+  // month's factor like every other size here; padding, margins, border and ring are the bar's.
+  function mvlWeekPaint(k, size){
+    const P = MVL_PAINT, G = MVL_GEOMETRY, B = P.bar, Z = mvlBarSize(size);
+    const S = {
       k: k, lineHeight: P.lineHeight,
       barsPadTop: P.barsPadTop * k, barsPadBottom: P.barsPadBottom * k, barsPadX: P.barsPadX,
       laneMin: P.laneMin * k, laneGap: P.laneGap * k,
@@ -27883,6 +29736,10 @@ export function initLegacyApp() {
       shootDay: { size: P.shootDay.size * k, weight: P.shootDay.weight, lineH: P.shootDay.lineH * k,
                   ink: P.shootDay.ink, outAlpha: P.shootDay.outAlpha, padRight: P.shootDay.padRight },
     };
+    S.big = Z ? { size: Z.size * k, weight: B.weight, padY: B.padY * k, padX: B.padX, marginX: B.marginX,
+                  border: B.border, borderAlpha: B.borderAlpha, radius: Z.radius * k, pillRim: B.pillRim } : S.bar;
+    S.bigTag = Z ? { size: Z.tag * k, weight: P.tag.weight, ink: P.tag.ink, gap: P.tag.gap } : S.tag;
+    return S;
   }
 
   // ---- Colour: what the renderer writes, as 0-1 RGB, and opacity mixed in ----
@@ -28063,7 +29920,8 @@ export function initLegacyApp() {
   // print an empty bar has no line box (bars are align-self:start there). That was a quirk of the print
   // path, raised at step 3 and ruled on, and the A/B leg lists it as an intended difference.
   function mvlBarHeight(it, S){
-    const B = S.bar;
+    // A note is drawn from S.bar, everything else from S.big: the phase bar size (S.big IS S.bar at Standard).
+    const B = it.kind === 'note' ? S.bar : S.big;
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
     // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
     if(it.lines) return Math.min(2, it.lines.length) * B.size * S.lineHeight + 2 * (B.padY + B.border);
@@ -28118,7 +29976,9 @@ export function initLegacyApp() {
   // ---- One bar: its fill, its half-day shade, its border, then its text ----
   // `S` is the week's paint (mvlWeekPaint): every size here is read from it, at the month's factor.
   function mvlPaintBar(it, x, y, w, h, fonts, out, at, S){
-    const P = S, B = P.bar;
+    // The phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4): pills, Simultaneous Post and hiatus bands from S.big, notes from
+    // S.bar. At Standard they are the same object, so nothing a Standard month draws moves.
+    const P = S, B = it.kind === 'note' ? P.bar : P.big;
     const r = it.kind === 'note' ? 0 : B.radius, black = [0, 0, 0];
     // A No fill note (MONTH-NOTES-PLAN.md §2) is its text alone: no fill, and no ring either (ruling Q2, the
     // frozen CSS line beside .mv-note-block). Both are still LISTED, marked `clear`, so the bar keeps its box in
@@ -28164,63 +30024,77 @@ export function initLegacyApp() {
     });
     // overflow:hidden: nothing is drawn outside the padding box.
     out.push({ k: 'clip', x: px, y: py, w: pw, h: ph, r: 0 });
+    // W2 (MONTH-TEXT-STYLE-PLAN.md §5): a styled text's own weight, size, slant and alignment (its ink is `ink`), drawn
+    // in the line box its kind always has (§3.4), so no bar's height and no lane moves. Every value falls back to the
+    // kind's own, so an unstyled bar draws with exactly the numbers it did. The grey tag keeps its own look (N3) but
+    // slants with an italic bar, as CSS passes italic down to it. A pill's ring is untouched (N1).
+    const F = it.fmt || {}, skew = F.italic ? MVL_PAINT.italicSkew : 0;
+    const shift = function(al, room, w){ return al === 'center' ? (room - w) / 2 : al === 'right' ? room - w : 0; };
     if(it.kind === 'note'){
-      const N = P.note, lm = mvlLineMetrics(fonts[N.weight].font, N.size, N.lineH);
+      const N = P.note, wt = F.weight || N.weight, sz = F.size ? F.size * P.k : N.size;
+      const lm = mvlLineMetrics(fonts[wt].font, sz, N.lineH), nal = F.align || 'left', ncw = pw - 2 * N.padX;
       it.lines.forEach(function(s, li){
         if(s === '') return;
-        out.push(tag({ k: 'text', s: s, x: px + N.padX, y: py + N.padY + li * N.lineH + lm.base,
-                       w: mvlMeasure(fonts, N.weight, s, N.size), wt: N.weight, size: N.size,
-                       c: ink, ls: 0, skew: 0, role: 'bar-text', li: li }));
+        const sw = mvlMeasure(fonts, wt, s, sz);
+        out.push(tag({ k: 'text', s: s, x: px + N.padX + Math.max(0, shift(nal, ncw, sw)), y: py + N.padY + li * N.lineH + lm.base,
+                       w: sw, wt: wt, size: sz,
+                       c: ink, ls: 0, skew: skew, role: 'bar-text', li: li }));
       });
     } else {
-      const lm = mvlLineMetrics(fonts[B.weight].font, B.size, B.size * P.lineHeight);
+      const bwt = F.weight || B.weight, bsz = F.size ? F.size * P.k : B.size;
+      const lm = mvlLineMetrics(fonts[bwt].font, bsz, B.size * P.lineHeight);
       const cx = px + B.padX, cw = pw - 2 * B.padX, base = py + B.padY + lm.base;
-      const wOf = function(s){ return mvlMeasure(fonts, B.weight, s, B.size); };
+      const wOf = function(s){ return mvlMeasure(fonts, bwt, s, bsz); };
       const ellW = wOf('…');
       const label = mvlFlat(it.text), tagText = mvlFlat(it.tag || '');
+      const al = F.align || (it.kind === 'hiatus' ? 'center' : 'left');
       const put = function(s, xx, yy, wt, size, c, role){
         if(s !== '') out.push(tag({ k: 'text', s: s, x: xx, y: yy, w: mvlMeasure(fonts, wt, s, size), wt: wt, size: size,
-                                    c: c, ls: 0, skew: 0, role: role }));
+                                    c: c, ls: 0, skew: skew, role: role }));
       };
-      const T = P.tag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
+      const T = P.bigTag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
       const lw = wOf(label);
-      // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line.
-      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, T.size * P.lineHeight).base;
+      // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line. ⚠️ A bar whose size is
+      // styled carries M1's `line-height:15px`, which the tag INHERITS as a length (not as 1.5 x its own 9 px), so then its
+      // line box is the bar's 15 px and its baseline sits that much lower (W2; the monthemit leg measured 1 px).
+      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, F.size ? B.size * P.lineHeight : T.size * P.lineHeight).base;
       if(it.lines){
         // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6): its first two lines as the model broke them,
         // and when there are more, the second cut as -webkit-line-clamp cuts it -- the line as laid out, then the
         // "…" after it, shortened between characters only if the "…" would not fit (the bar-ell role, as ever).
         const lineH = B.size * P.lineHeight;
-        put(it.lines[0], cx, base, B.weight, B.size, ink, 'bar-text');
-        if(it.lines.length === 2) put(it.lines[1], cx, base + lineH, B.weight, B.size, ink, 'bar-text');
+        const lx = function(s){ return cx + Math.max(0, shift(al, cw, wOf(s))); };
+        put(it.lines[0], lx(it.lines[0]), base, bwt, bsz, ink, 'bar-text');
+        if(it.lines.length === 2) put(it.lines[1], lx(it.lines[1]), base + lineH, bwt, bsz, ink, 'bar-text');
         else if(it.lines.length > 2){
           const s2 = it.lines[1], head = (wOf(s2) + ellW <= cw) ? s2 : mvlLongestStart(s2, cw - ellW, wOf);
-          put(head, cx, base + lineH, B.weight, B.size, ink, 'bar-text');
-          put('…', cx + wOf(head), base + lineH, B.weight, B.size, ink, 'bar-ell');
+          put(head, cx, base + lineH, bwt, bsz, ink, 'bar-text');
+          put('…', cx + wOf(head), base + lineH, bwt, bsz, ink, 'bar-ell');
         }
       } else if(!tagText){
-        // One run: a hiatus band centres it, pills and Simultaneous Post start it at the left, and a
-        // cut line starts at the left whatever its alignment (CSS Text §6.1).
+        // One run: a hiatus band centres it, pills and Simultaneous Post start it at the left (a styled alignment
+        // overrides either), and a cut line starts at the left whatever its alignment (CSS Text §6.1).
         const f = mvlFitLine(label, cw, wOf, ellW), hw = wOf(f.head);
-        const lx = (it.kind === 'hiatus' && !f.cut) ? cx + (cw - hw) / 2 : cx;
-        put(f.head, lx, base, B.weight, B.size, ink, 'bar-text');
-        if(f.cut) put('…', lx + hw, base, B.weight, B.size, ink, 'bar-ell');
+        const lx = (al === 'center' && !f.cut) ? cx + (cw - hw) / 2 : (al === 'right' && !f.cut) ? cx + cw - hw : cx;
+        put(f.head, lx, base, bwt, bsz, ink, 'bar-text');
+        if(f.cut) put('…', lx + hw, base, bwt, bsz, ink, 'bar-ell');
       } else if(lw + T.gap + tOf(tagText) <= cw){
-        put(label, cx, base, B.weight, B.size, ink, 'bar-text');
-        put(tagText, cx + lw + T.gap, tagBase, T.weight, T.size, mvlRgb(T.ink), 'bar-tag');
+        const lx = cx + shift(al, cw, lw + T.gap + tOf(tagText));
+        put(label, lx, base, bwt, bsz, ink, 'bar-text');
+        put(tagText, lx + lw + T.gap, tagBase, T.weight, T.size, mvlRgb(T.ink), 'bar-tag');
       } else if(lw + ellW <= cw){
         // The line is too long because of the tag: the tag is cut (wholly, if not even its gap fits),
         // and the "…" follows whatever is left of it.
-        put(label, cx, base, B.weight, B.size, ink, 'bar-text');
+        put(label, cx, base, bwt, bsz, ink, 'bar-text');
         const room = cw - ellW - lw - T.gap;
         const head = room > 0 ? mvlLongestStart(tagText, room, tOf) : '';
         put(head, cx + lw + T.gap, tagBase, T.weight, T.size, mvlRgb(T.ink), 'bar-tag');
-        put('…', head ? cx + lw + T.gap + tOf(head) : cx + lw, base, B.weight, B.size, ink, 'bar-ell');
+        put('…', head ? cx + lw + T.gap + tOf(head) : cx + lw, base, bwt, bsz, ink, 'bar-ell');
       } else {
         // Not even the label leaves room for the "…": it is cut, and the tag is gone.
         const head = mvlLongestStart(label, cw - ellW, wOf);
-        put(head, cx, base, B.weight, B.size, ink, 'bar-text');
-        put('…', cx + wOf(head), base, B.weight, B.size, ink, 'bar-ell');
+        put(head, cx, base, bwt, bsz, ink, 'bar-text');
+        put('…', cx + wOf(head), base, bwt, bsz, ink, 'bar-ell');
       }
     }
     out.push({ k: 'unclip' });
@@ -28262,7 +30136,7 @@ export function initLegacyApp() {
     }
     const k = month.fit.scale === undefined ? 1 : month.fit.scale;
     if(!(typeof k === 'number' && k > 0 && k <= 1)) throw new Error('Month PDF: ' + month.label + ' has a shrink factor of ' + k + '.');
-    const S = mvlWeekPaint(k);
+    const S = mvlWeekPaint(k, month.barSize);
     const black = mvlRgb(P.lineInk), white = [1, 1, 1], ln = P.line;
     const fr = mvlFrame(month, fonts), x0 = fr.x0, W = fr.W;
     const lineRect = function(x, y, w, h, role, more){
@@ -28277,20 +30151,29 @@ export function initLegacyApp() {
     const MB = P.monthBar, mbY = fr.mbY, mbH = fr.mbH;
     out.push({ k: 'fill', x: x0, y: mbY, w: W, h: mbH, r: 0, c: mvlRgb(MB.fill), role: 'monthbar' });
     lineRect(x0, mbY, W, ln, 'frame'); lineRect(x0, mbY, ln, mbH, 'frame'); lineRect(x0 + W - ln, mbY, ln, mbH, 'frame');
-    const mbW = mvlMeasure(fonts, MB.weight, month.label, MB.size, MB.spacing);
+    // W4 (MONTH-TEXT-STYLE-PLAN.md §5): the month name in its style, in the line box the bar always gives it (§3.4).
+    // letter-spacing is .01em, so it follows a styled size. It stays centred whatever its alignment, as on screen: it
+    // is a flex item as wide as its text, centred between the arrows, so text-align moves nothing there.
+    const MF = month.monthFmt || {};
+    const mbWt = MF.weight || MB.weight, mbSz = MF.size || MB.size, mbLs = MF.size ? 0.01 * MF.size : MB.spacing;
+    const mbW = mvlMeasure(fonts, mbWt, month.label, mbSz, mbLs);
     const mbCx = x0 + ln + MB.padX, mbCw = W - 2 * ln - 2 * MB.padX;
     text.push({ k: 'text', s: month.label, x: mbCx + (mbCw - mbW) / 2, w: mbW,
-                y: mbY + ln + MB.padY + mvlLineMetrics(fonts[MB.weight].font, MB.size, MB.size * P.lineHeight).base,
-                wt: MB.weight, size: MB.size, c: mvlRgb(MB.ink), ls: MB.spacing, skew: 0, role: 'monthbar-text' });
+                y: mbY + ln + MB.padY + mvlLineMetrics(fonts[mbWt].font, mbSz, MB.size * P.lineHeight).base,
+                wt: mbWt, size: mbSz, c: mvlRgb(MF.color || MB.ink), ls: mbLs, skew: MF.italic ? P.italicSkew : 0, role: 'monthbar-text' });
     // The weekday row: no line under it, so the first week runs straight on.
     const DR = P.dowRow, drY = fr.drY, drH = fr.drH;
     out.push({ k: 'fill', x: x0, y: drY, w: W, h: drH, r: 0, c: mvlRgb(DR.fill), role: 'dowrow' });
     lineRect(x0, drY, W, ln, 'frame'); lineRect(x0, drY, ln, drH, 'frame'); lineRect(x0 + W - ln, drY, ln, drH, 'frame');
-    const drBase = drY + ln + DR.padY + mvlLineMetrics(fonts[DR.weight].font, DR.size, DR.size * P.lineHeight).base;
+    // W4: the weekday row in its style, likewise (.04em letter-spacing), aligned within each day's column.
+    const DF = month.dowFmt || {};
+    const drWt = DF.weight || DR.weight, drSz = DF.size || DR.size, drLs = DF.size ? 0.04 * DF.size : DR.spacing, drAl = DF.align || 'center';
+    const drBase = drY + ln + DR.padY + mvlLineMetrics(fonts[drWt].font, drSz, DR.size * P.lineHeight).base;
     month.dow.forEach(function(name, i){
-      const s = String(name).toUpperCase(), w = mvlMeasure(fonts, DR.weight, s, DR.size, DR.spacing);
-      text.push({ k: 'text', s: s, x: x0 + ln + i * G.dayW + (G.dayW - w) / 2, y: drBase, w: w, wt: DR.weight,
-                  size: DR.size, c: mvlRgb(DR.ink), ls: DR.spacing, skew: 0, role: 'dow', i: i });
+      const s = String(name).toUpperCase(), w = mvlMeasure(fonts, drWt, s, drSz, drLs);
+      const off = drAl === 'left' ? 0 : drAl === 'right' ? G.dayW - w : (G.dayW - w) / 2;
+      text.push({ k: 'text', s: s, x: x0 + ln + i * G.dayW + off, y: drBase, w: w, wt: drWt,
+                  size: drSz, c: mvlRgb(DF.color || DR.ink), ls: drLs, skew: DF.italic ? P.italicSkew : 0, role: 'dow', i: i });
     });
     // The frame: the body's side borders and its bottom one, under the last week.
     const bodyTop = fr.bodyTop, sum = rows.reduce(function(a, b){ return a + b; }, 0);
@@ -28608,7 +30491,7 @@ export function initLegacyApp() {
   // first-fit rule at the new spans, exactly as mvlMonthLayout packs it at full size (notes are placed
   // last, so only notes can move). With each week, its height at k and the lanes it reaches.
   function mvlShrinkWeeks(month, fonts, k, F){
-    const G = MVL_GEOMETRY, S = mvlWeekPaint(k), ln = MVL_PAINT.line;
+    const G = MVL_GEOMETRY, S = mvlWeekPaint(k, month.barSize), ln = MVL_PAINT.line;
     const widthOf = function(s){ return mvlTextWidth(fonts[S.note.weight].font, s, S.note.size); };
     return month.weeks.map(function(wk, wi){
       const items = wk.items.map(function(it){
@@ -28637,7 +30520,7 @@ export function initLegacyApp() {
   function mvlFitMonth(month, fonts){
     const room = mvlFrame(month, fonts).weeksH;
     if(!(room > 0)) throw new Error('Month PDF: ' + month.label + "'s header leaves no room for its weeks.");
-    const F = mvlFitNumbers(), S1 = mvlWeekPaint(1), add = function(a, b){ return a + b; };
+    const F = mvlFitNumbers(), S1 = mvlWeekPaint(1, month.barSize), add = function(a, b){ return a + b; };
     const need = month.weeks.map(function(wk){ return mvlWeekNeed(wk.items, S1); });
     const basis = need.map(function(n){ return Math.max(n.h, F.floor); });
     const out = {};
@@ -28732,6 +30615,24 @@ export function initLegacyApp() {
   // `layout` is buildMonthLayout()'s, with `fit.rows` on every month. The four programs are decoded
   // here on first use (loadInterPdfFont caches them); only the weights some page sets text in are
   // embedded. Returns the file's bytes.
+  // ⭐ THE WRITER'S SECOND PUBLIC ENTRY POINT (SCENARIOS-PLAN.md, 23 Oct 2026): one page from a display list that is
+  // not a month -- the scenarios Compare table. `paint({width, pageW, pageH})` returns the list (the same ops
+  // mvlPageOps takes); `width(s, weight, sizePx)` measures text as the PDF will set it. The fonts, the Letter landscape
+  // page and the serializer are the month PDF's own. The month legs' F0 holds that nothing outside the writer reaches
+  // any other name in it: buildComparePdf calls this and only this.
+  async function buildListPdf(paint){
+    const fonts = {};
+    for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
+    const list = paint({
+      width: function(s, wt, size){ return mvlTextWidth(fonts[wt].font, s, size); },
+      pageW: MVL_GEOMETRY.pageW, pageH: MVL_GEOMETRY.pageH,
+    });
+    // ⚠️ Not buildMonthPdf's closing text, on purpose: the month legs slice the writer out of this file ending at the
+    // FIRST occurrence of that text after MVL_GEOMETRY, and an identical tail here cut buildMonthPdf off the slice.
+    const used = MVL_FONT_WEIGHTS.filter(w => list.some(o => o.k === 'text' && o.s !== '' && o.wt === w));
+    const embed = used.map(w => ({ tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated }));
+    return mvlSerialize([mvlPageOps(list)], embed);
+  }
   async function buildMonthPdf(layout){
     if(!layout || !Array.isArray(layout.months) || !layout.months.length) throw new Error('Month PDF: there is no month to write.');
     const fonts = {};
@@ -28767,7 +30668,8 @@ export function initLegacyApp() {
   function monthPdfFileName(){
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    return (safe ? safe + ' ' : '') + 'Month Calendar.pdf';
+    // With two or more scenarios the PDF says which one it is (SCENARIOS-PLAN.md D6); with one, exactly as before.
+    return (safe ? safe + ' ' : '') + 'Month Calendar' + scenarioFileSuffix() + '.pdf';
   }
   // Where a place is, in words (mvlUnprintable's places).
   function monthPdfPlaceText(p){
@@ -28834,7 +30736,10 @@ export function initLegacyApp() {
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
-        const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600']);
+        // The phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4) is an ARGUMENT, not a stamp like the header's Off below: a
+        // one-day custom pill decides whether it wraps while the model is built, at the bars' own size. At Standard
+        // ('') no month carries a size, so its model and its file are byte for byte as before.
+        const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600'], fonts, mvBarSize);
         // The month header's Off (23 Oct 2026): stamped here, between the model and the fit, and only while it is
         // on, so a calendar whose header shows writes byte for byte as before. Not inside buildMonthLayout: the
         // monthlayout leg slices that function to its last statement, and mvlFrame reads the flag off the month,
@@ -28882,6 +30787,21 @@ export function initLegacyApp() {
   // out so that opening another note (or clicking a "+") can save the current one first instead
   // of throwing it away -- re-rendering here would invalidate the anchor the caller is about to
   // use. Returns true if anything was written.
+  // A waterfall line's month style is keyed by its text (without its date), so an edit that rewrites the line would
+  // leave the style behind on text that no longer exists (MONTH-TEXT-STYLE-PLAN.md §3.1). When the edit keeps the
+  // number of lines, each rewritten line takes its old line's style, unless its new text already has one.
+  function carryWfLineStyles(before, after){
+    const a = String(before || '').split('\n').map(mvWfNoteKey), b = String(after || '').split('\n').map(mvWfNoteKey);
+    if(a.length !== b.length) return;
+    const m = mvTextStyle.wfnote, moves = [];
+    a.forEach((k, i)=>{
+      const n = b[i];
+      if(k === n || !n || !Object.prototype.hasOwnProperty.call(m, k) || Object.prototype.hasOwnProperty.call(m, n) || !MV_WFNOTE_KEY.test(n)) return;
+      if(b.includes(k)) return;                    // the old line is still there (moved, not rewritten)
+      moves.push([k, n]);
+    });
+    moves.forEach(([k, n])=>{ m[n] = m[k]; delete m[k]; });
+  }
   function writeActiveMvNote(){
     if(!activeMvNote) return false;
     const {kind, weekKey, dayIso, lane, editIndex, textarea, pendingColor} = activeMvNote;
@@ -28908,6 +30828,7 @@ export function initLegacyApp() {
       if(text !== String(activeMvNote.initialText || '').trim()){
         const kept = text.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
         saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), dayIso);
+        carryWfLineStyles(String(activeMvNote.initialText || '').trim(), text);
       }
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
@@ -28932,6 +30853,8 @@ export function initLegacyApp() {
           if(list[idx].top === true) entry.top = true;
           else if(typeof list[idx].under === 'string') entry.under = list[idx].under;
           else if(list[idx].bottom === true) entry.bottom = true;
+          // ...and keeps its text style, which lives on the entry (MONTH-TEXT-STYLE-PLAN.md §3.1).
+          if(isPlainObj(list[idx].fmt)) entry.fmt = Object.assign({}, list[idx].fmt);
         }
         if(idx >= 0) list[idx] = entry; else list.push(entry);
       } else if(idx >= 0){
@@ -29728,8 +31651,12 @@ export function initLegacyApp() {
     // A shareable copy restores itself from this block at boot. If it is a newer version, or a
     // hand-edited copy that throws partway, fall back to a blank working app rather than a zombie
     // half-applied page with no autosave or unsaved-work protection (audit L-19 / M-1).
+    // Crash recovery comes through here too, and a backup holds every scenario (captureFileObject).
+    const u = unpackScenarioFile(snap);
+    if(u.refused) return;
+    snap = u.snapshot;
     if(!snapshotVersionOk(snap)) return;
-    try { applyStateSnapshotAtomically(snap); }
+    try { applyStateSnapshotAtomically(snap); adoptScenarios(u.scenarios); }
     catch(e){ console.error(e); }
   }
 
@@ -29756,6 +31683,7 @@ export function initLegacyApp() {
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load
+    reflectPhaseHidden();     // the Hide in waterfall ticks and tags onto every row (PHASES-TAB-PLAN.md §2.3)
     refreshEpisodesUI();
     refreshSimPostUI();
     // The legacy headerOverrides migration's second half (applyStateSnapshot step 4b, audit N-8):
@@ -29897,6 +31825,37 @@ export function initLegacyApp() {
     if('size' in out && (kind === 'note' || kind === 'hiatus' || !TEXT_STYLE_SIZES.includes(out.size))){
       bad.n++; delete out.size;
     }
+    return Object.keys(out).length ? out : null;
+  }
+  // One month text's style (MONTH-TEXT-STYLE-PLAN.md §4): the header's entry, less a highlight (a bar and a note already
+  // have a fill), a size outside its text's measured list (R3, §3.3a), and a colour on a pill (N1). `kind` is a month
+  // kind or 'daynote'; `key` matters only for 'frame'.
+  function cleanMvTextStyleEntry(kind, key, f, bad){
+    const out = cleanHeaderFormatEntry(f, bad);
+    if(!out) return null;
+    if('highlight' in out){ bad.n++; delete out.highlight; }
+    if('color' in out && MV_TEXT_NO_COLOR.includes(kind)){ bad.n++; delete out.color; }
+    if('size' in out && !MV_TEXT_SIZES[mvTextBox(kind, key)].includes(out.size)){ bad.n++; delete out.size; }
+    return Object.keys(out).length ? out : null;
+  }
+  // The whole `mvTextStyles` value: { kind: { key: entry } }. A wfnote key is a line's text (mvWfNotePlace's key rule),
+  // a frame key 'month' or 'dow', every other key SNAP_KEY's shape. Returns null when nothing survives.
+  const MV_WFNOTE_KEY = /^(?!(?:__proto__|constructor|prototype)$)[^\u0000-\u001f]{1,200}$/;
+  function cleanMvTextStyles(v, bad){
+    if(!isPlainObj(v)){ bad.n++; return null; }
+    const out = {};
+    Object.keys(v).forEach(kind=>{
+      if(!MV_TEXT_STYLE_KINDS.includes(kind) || !isPlainObj(v[kind])){ bad.n++; return; }
+      const m = {};
+      Object.keys(v[kind]).forEach(k=>{
+        const ok = kind === 'wfnote' ? MV_WFNOTE_KEY.test(k) : kind === 'frame' ? (k === 'month' || k === 'dow') : SNAP_KEY.test(k);
+        if(!ok){ bad.n++; return; }
+        const f = cleanMvTextStyleEntry(kind, k, v[kind][k], bad);
+        if(f) m[k] = f;
+      });
+      if(Object.keys(m).length) out[kind] = m;
+    });
+    if(isPlainObj(out.wfnote) && Object.keys(out.wfnote).length > 2000){ bad.n++; delete out.wfnote; }
     return Object.keys(out).length ? out : null;
   }
   // The whole `textStyles` value: { kind: { key: entry } }. Returns null when nothing survives.
@@ -30124,6 +32083,8 @@ export function initLegacyApp() {
         if('top' in o && o.top !== true){ bad.n++; delete o.top; }
         if('under' in o && (typeof o.under !== 'string' || !SNAP_ID.test(o.under) || o.top === true)){ bad.n++; delete o.under; }
         if('bottom' in o && (o.bottom !== true || o.top === true || 'under' in o)){ bad.n++; delete o.bottom; }
+        // Its text style (MONTH-TEXT-STYLE-PLAN.md §4): a note's sizes, no highlight; written only when set.
+        if('fmt' in o){ const f = cleanMvTextStyleEntry('daynote', null, o.fmt, bad); if(f) o.fmt = f; else delete o.fmt; }
         return o;
       };
       if(Array.isArray(v)) return v.map(one).filter(Boolean);
@@ -30173,6 +32134,22 @@ export function initLegacyApp() {
     // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
     // KEPT (a round trip must never lose data); autoNotesForView() simply never meets a note of that kind.
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
+    // ...and the kinds that start off, switched on (27 Oct 2026): the same rule, unknown kind words kept.
+    setMap('autoNotesOn', v => v === true ? true : undefined, SNAP_ID);
+    // The seasons ticked in Show info (27 Oct 2026): whole numbers 1-10, once each, ascending, at least two. The app
+    // never writes anything else, so anything else is dropped and counted, and a list left with one is dropped
+    // whole (fields.byId's season-num already says that one).
+    if('seasons' in s){
+      if(!Array.isArray(s.seasons)){ bad.n++; delete s.seasons; }
+      else {
+        const seen = {};
+        s.seasons = s.seasons.filter(n=>{
+          if(Number.isInteger(n) && n >= 1 && n <= SEASON_MAX && !seen[n]){ seen[n] = true; return true; }
+          bad.n++; return false;
+        }).sort((a, b)=> a - b);
+        if(s.seasons.length < 2){ bad.n++; delete s.seasons; }
+      }
+    }
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('mvHeaderOff' in s && typeof s.mvHeaderOff !== 'boolean'){ bad.n++; delete s.mvHeaderOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
@@ -30209,7 +32186,15 @@ export function initLegacyApp() {
       const ts = cleanTextStyles(s.textStyles, bad);
       if(ts) s.textStyles = ts; else delete s.textStyles;
     }
+    // The month view's (MONTH-TEXT-STYLE-PLAN.md §4), the same way.
+    if('mvTextStyles' in s){
+      const ts = cleanMvTextStyles(s.mvTextStyles, bad);
+      if(ts) s.mvTextStyles = ts; else delete s.mvTextStyles;
+    }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    // Phase bar size (MONTH-BAR-SIZE-PLAN.md): only the two words a Save writes. Anything else is dropped, so it opens
+    // at Standard, as a file with no key does.
+    if('mvBarSize' in s && s.mvBarSize !== 'large' && s.mvBarSize !== 'xl'){ bad.n++; delete s.mvBarSize; }
     // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
     // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`,
     // and since §9 `under` (a phase key) or `bottom: true` in place of `top`, and `day`, the ISO date it was set on.
@@ -30234,6 +32219,22 @@ export function initLegacyApp() {
           if(typeof k === 'string' && SNAP_ID.test(k) && !seen.has(k) && seen.size < 500){ seen.add(k); return true; }
           bad.n++; return false;
         });
+      }
+    }
+    // The phases hidden in the waterfall (PHASES-TAB-PLAN.md §2.3): a built-in phase other than Production, or a
+    // custom phase this file defines, each `{sheet: true}`. The app writes nothing else, so anything else is
+    // dropped and counted, and an emptied map is dropped (absent already means "nothing hidden").
+    if('phaseHidden' in s){
+      if(!isPlainObj(s.phaseHidden)){ bad.n++; delete s.phaseHidden; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key).filter(k=> k !== 'production'));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.phaseHidden).forEach(k=>{
+          const v = s.phaseHidden[k];
+          if(known.has(k) && isPlainObj(v) && v.sheet === true) o[k] = {sheet: true}; else bad.n++;
+        });
+        if(Object.keys(o).length) s.phaseHidden = o; else delete s.phaseHidden;
       }
     }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
@@ -30302,7 +32303,7 @@ export function initLegacyApp() {
         });
         const sw = document.getElementById('swatch-' + saved.key);
         const opt = PHASE_COLOR_OPTIONS[saved.colorIndex];
-        if(sw && opt) sw.style.background = opt.color;
+        if(sw && opt) paintPhaseSwatch(sw, opt.color);
         const nameField = document.getElementById('phiatus-name-' + saved.key);
         const nameEl = document.getElementById('name-' + saved.key);
         if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
@@ -30344,7 +32345,9 @@ export function initLegacyApp() {
     // (syncPrepName): show-mode is restored by then, whatever order these run in.
     // ...and the calendar range (owner ruling 3): a file saved before it, opened after one with a range, would
     // otherwise be CUT to the previous show's dates. Absent means blank, the full years it was saved with.
-    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
+    // ...and the Location (KEY-FACTS-PLAN.md §5): a calendar saved before it, loaded after one with a Location, would
+    // otherwise show the previous show's town in the scenario band and in Compare.
+    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''], ['show-location', ''],
      ['prep-days', ''], ['prep-name', PREP_DEF.label],
      ['cal-range-start', ''], ['cal-range-end', '']].forEach(([id, dflt])=>{
       const el = document.getElementById(id);
@@ -30408,7 +32411,7 @@ export function initLegacyApp() {
           if(id.indexOf('color-') === 0){
             const sw = document.getElementById('swatch-' + id.slice(6));
             const idx = parseInt(v.value, 10);
-            if(sw && PHASE_COLOR_OPTIONS[idx]) sw.style.background = PHASE_COLOR_OPTIONS[idx].color;
+            if(sw && PHASE_COLOR_OPTIONS[idx]) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[idx].color);
           }
         }
       });
@@ -30504,6 +32507,8 @@ export function initLegacyApp() {
     // Unconditionally (CLAUDE.md "Restore unconditionally"): a file with no `textStyles` key has nothing
     // styled, never the previous calendar's styles.
     textStyle = textStyleFromSnapshot(snap.textStyles);
+    // ...and the month view's, the same way (MONTH-TEXT-STYLE-PLAN.md §4): no `mvTextStyles` key, no month style.
+    mvTextStyle = mvTextStyleFromSnapshot(snap.mvTextStyles);
     // ⚠️ `=== true`, AND OUTSIDE THE BRANCHES BELOW, both deliberately. `if(snap.headerTemplates)`
     // would leave the PREVIOUS file's mode in place when the new snapshot has no such key -- the
     // exact failure CLAUDE.md's "restore unconditionally" rule exists for, and the one that made
@@ -30599,6 +32604,17 @@ export function initLegacyApp() {
     autoNotesOff = {};
     if(isPlainObj(snap.autoNotesOff))
       Object.keys(snap.autoNotesOff).forEach(k=>{ if(snap.autoNotesOff[k] === true) autoNotesOff[k] = true; });
+    // ⛔ UNCONDITIONAL too: a file with no key shows no phase start or end -- never the previous file's ticks.
+    autoNotesOn = {};
+    if(isPlainObj(snap.autoNotesOn))
+      Object.keys(snap.autoNotesOn).forEach(k=>{ if(snap.autoNotesOn[k] === true) autoNotesOn[k] = true; });
+    // ⛔ UNCONDITIONAL: a file with no `seasons` key has the one season in its Season field (or none) -- never the
+    // previous file's ticks. Runs after step 3 replayed fields.byId. A list that does not start with that field's
+    // season (a file edited by hand) wins, and the field takes its first, so the two cannot disagree.
+    seasonList = Array.isArray(snap.seasons)
+      ? snap.seasons.filter(n=> Number.isInteger(n) && n >= 1 && n <= SEASON_MAX) : [];
+    if(seasonList.length >= 2) document.getElementById('season-num').value = String(seasonList[0]);
+    else { const v = parseInt(document.getElementById('season-num').value, 10); seasonList = v >= 1 ? [v] : []; }
     // ⛔ UNCONDITIONAL as well: a file with no key has no boxes -- never the previous file's. A deep copy,
     // so editing a box can never reach back into a snapshot the undo stack is holding.
     sideBoxes = (snap.sideBoxes && Array.isArray(snap.sideBoxes.boxes)) ? JSON.parse(JSON.stringify(snap.sideBoxes.boxes)) : [];
@@ -30607,9 +32623,20 @@ export function initLegacyApp() {
     // open file had.
     mvNumberShootDays = snap.mvNumberShootDays === true;
     reflectMvNumberShootDays();
+    // ⛔ UNCONDITIONAL (MONTH-BAR-SIZE-PLAN.md §4.1): a file with no key is Standard -- never the previously open
+    // file's size. The update() after the restore puts the class and the control in step (reflectMvBarSize).
+    mvBarSize = (snap.mvBarSize === 'large' || snap.mvBarSize === 'xl') ? snap.mvBarSize : '';
     // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
     // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
     mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];
+    // ⛔ UNCONDITIONAL (PHASES-TAB-PLAN.md §2.3): a file with no key hides nothing -- never the previously open
+    // calendar's ticks. Rebuilt entry by entry (sanitizeSnapshot has held it to {key: {sheet: true}}), so nothing
+    // in the store can be a snapshot the undo stack holds. refreshAfterRestore() puts the ticks and tags in step.
+    phaseHidden = {};
+    if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
+      const v = snap.phaseHidden[k];
+      if(k !== 'production' && isPlainObj(v) && v.sheet === true) phaseHidden[k] = {sheet: true};
+    });
     // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
     // object should carry can never reach the store's prototype.
     mvWfNotePlace = {};
@@ -30638,7 +32665,7 @@ export function initLegacyApp() {
     }
     PHASES.forEach(p=>{
       const sw = document.getElementById('swatch-'+p.key);
-      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      if(sw) paintPhaseSwatch(sw, PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color);
       const nameField = document.getElementById('phiatus-name-'+p.key);
       const nameEl = document.getElementById('name-'+p.key);
       if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || p.label)) + ' Hiatus';
@@ -30779,6 +32806,11 @@ export function initLegacyApp() {
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
+    // The scenario key facts band (KEY-FACTS-PLAN.md) takes its room through .preview-panel's bottom margin, from
+    // --sc-band-space on <html>. That reaches the grid as the panel's border box changing, which the ResizeObserver
+    // above reports only at a rendering opportunity -- so the write is observed as a mutation too, for the same
+    // hidden-page reason as the strips above.
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     window.addEventListener('resize', fit);
     if(shell.addEventListener) shell.addEventListener('change', fit);
   })();
@@ -30840,6 +32872,7 @@ export function initLegacyApp() {
   applyCalZoom();
   restoreSavedState();
   refreshAfterRestore();
+  pushScenarioChrome();   // the strip under the calendar (one tab, unless a shareable copy or backup brought more)
 
   // Initial load/restore is done -- from here on, changes are real user edits.
   suppressDirty = false;

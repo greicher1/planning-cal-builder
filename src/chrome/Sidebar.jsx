@@ -22,11 +22,28 @@ import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
+import { useSeasons, seasonsText } from './SeasonPop.jsx'
 
 const SEASONS = [
   { value: '', label: '—' },
   ...Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: `Season ${i + 1}` })),
 ]
+
+// Show info's Season (owner, 27 Oct 2026: "being able to select two or more seasons in the Show info input and
+// having those seasons translate to the header", then "keep the selector as a drop down menu with the checkboxes
+// inside the drop down"). It is still the native #season-num, and it still holds ONE value, the FIRST ticked
+// season: the save format's season (fields.byId), what episode numbering reads, and what an older build shows.
+// Its list is SeasonPop's checkbox dropdown, and the engine's seasonList keeps the others. With two or more
+// ticked, the first season's option reads "Seasons 3 & 4", so the closed field says what is ticked. Only that
+// option's TEXT changes, never a value.
+function SeasonField() {
+  const list = useSeasons()
+  const many = seasonsText(list)
+  const data = many ? SEASONS.map((s) => (s.value === String(list[0]) ? { value: s.value, label: many } : s)) : SEASONS
+  return (
+    <NativeSelect id="season-num" label="Season" data={data} />
+  )
+}
 
 export function ShowInfoCard() {
   return (
@@ -40,9 +57,10 @@ export function ShowInfoCard() {
           about input HEIGHT, which this does not touch. */}
       <Stack gap="xl">
         <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
-        {/* ⛔ NativeSelect, never Select. Select puts the option LABEL in the id-bearing input, so
-            this would save "Season 2" where the format expects "2". */}
-        <NativeSelect id="season-num" label="Season" data={SEASONS} />
+        {/* ⛔ The Season select, never Mantine's Select: Select puts the option LABEL in the id-bearing
+            input, so this would save "Season 2" where the format expects "2". Since 27 Oct 2026 its list is a
+            checkbox dropdown (SeasonPop.jsx), so two or more seasons can share one calendar. */}
+        <SeasonField />
         {/* Block shooting (BLOCKS-PLAN.md §3). The mode decides which input drives Production's
             total: Σ episode days, or Σ block days. ⛔ Three NEW ids, and they are PERMANENT: every
             id'd control here is swept into fields.byId, so `show-mode`, `num-blocks` and
@@ -120,6 +138,16 @@ export function ShowInfoCard() {
         <Input.Wrapper label="Production Region" labelElement="div">
           <select className="region-mirror" aria-label="Production Region" defaultValue="">{REGION_OPTIONS}</select>
         </Input.Wrapper>
+        {/* The Location (KEY-FACTS-PLAN.md §3.2; owner, 23 Oct 2026: "in addition to selecting a production
+            region, you could also enter a specific location (as text) and that is what is used ... this would be
+            in the show menu"). The Region picks the holidays and is not always the town ("Manitoba" for a
+            Winnipeg shoot); this is the town, shown instead of the region in the scenario band and in Compare's
+            Location row. It never reaches a date.
+            ⛔ `show-location` IS CALENDAR DATA, so it carries an id and collectFieldValues() sweeps it into
+            fields.byId -- a PERMANENT id from the first file saved with it. Never rename it. An absent key means
+            blank (applyStateSnapshot's absent-field defaults), so an older file never shows another show's town. */}
+        <TextInput id="show-location" label="Location" placeholder="e.g. Winnipeg" maxLength={40}
+                   description="Optional. Shown instead of the region when you compare scenarios." />
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>
@@ -300,10 +328,24 @@ export function RegionCard() {
 // tags each note with (permanent, it is save format), its change listener writes the store, and
 // reflectAutoNoteKinds() writes .checked on every update() -- so undo, Load and New all show through.
 // Holiday notes are deliberately not a row (owner's picker): they keep their per-holiday list above.
-const AUTO_NOTE_ROWS = [
-  { kind: 'writersRoomOpens', label: 'Writer’s Room Opens' },
-  { kind: 'principalStart', label: 'Start Principal Photography' },
-  { kind: 'principalWrap', label: 'Principal Photography Wraps' },
+//
+// ONE ROW PER BUILT-IN PHASE, in calendar order (owner, 27 Oct 2026: "do the phase starts and ends. they should
+// be disabled by default"): the phase, then a box for its start and one for its end, each named by the word its
+// note uses ("Post Begins"). The three original kinds keep their boxes, as Writer's Room's Opens and Production's
+// Starts / Wraps. ⛔ `on` is only the FIRST paint: the engine's autoNoteKindShown() is the truth, and the new kinds
+// start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
+// `key` marks a phase whose notes follow a name typed in the Phases tab: reflectAutoNoteKinds() writes that name
+// into the row's data-autonote-name span. Writer's Room and Production keep their own words, so they have none.
+const AUTO_NOTE_PHASES = [
+  { phase: 'Writer’s Room', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
+                            end: { kind: 'writersRoomEnd', word: 'Closes' } },
+  { phase: 'Pre Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
+  { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
+  { phase: 'Production', start: { kind: 'principalStart', word: 'Starts', on: true },
+                         end: { kind: 'principalWrap', word: 'Wraps', on: true } },
+  { phase: 'Post', key: 'post', start: { kind: 'postStart', word: 'Begins' }, end: { kind: 'postEnd', word: 'Ends' } },
+  { phase: 'Localization', key: 'localization', start: { kind: 'localizationStart', word: 'Begins' },
+                                                end: { kind: 'localizationEnd', word: 'Ends' } },
 ]
 export function AutoNotesCard() {
   return (
@@ -311,18 +353,22 @@ export function AutoNotesCard() {
       <h2>
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
-          Notes the calendar writes for you, dated from the schedule. Untick one to leave it out of the Notes
-          column, the month view and every export. Notes you typed yourself never change. Holiday notes are
-          chosen holiday by holiday under Holidays, in the Region tab.
+          Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
+          one to add it to the Notes column, the month view and every export. Notes you typed yourself never
+          change. Holiday notes are chosen holiday by holiday under Holidays, in the Region tab.
         </InfoHint>
       </h2>
       <div className="side-block autonote-list">
-        {AUTO_NOTE_ROWS.map((r) => (
-          <label key={r.kind} className="autonote-row">
-            <input type="checkbox" data-autonote={r.kind} defaultChecked />
-            <span>{r.label}</span>
-          </label>
-        ))}
+        {AUTO_NOTE_PHASES.map((r) => [
+          <span key={r.start.kind + '-name'} className="autonote-name"
+                {...(r.key ? { 'data-autonote-name': r.key } : {})}>{r.phase}</span>,
+          ...[r.start, r.end].map((b) => (
+            <label key={b.kind} className="autonote-row">
+              <input type="checkbox" data-autonote={b.kind} defaultChecked={!!b.on} aria-label={r.phase + ' ' + b.word} />
+              <span>{b.word}</span>
+            </label>
+          )),
+        ])}
       </div>
     </section>
   )
@@ -540,6 +586,63 @@ export function MonthViewCard() {
             and never hidden, so the row below can open on its own divider. */}
         <ProdLabelControl />
 
+        {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
+            text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
+            chose this knowing two people printing one calendar can get different month PDFs.
+            ⚠️ SO THESE THREE ARE PREFERENCES in a card of calendar settings, kept on this computer --
+            and the Preferences tab's opening line names them in the month view. They sit RIGHT UNDER
+            "Label Production by", in its block, and the card's other settings have a block of their
+            own (owner, 24 Oct 2026: "the toggle should also be right below the week/episode/block
+            selector and then the other settings ... should be separated"). They once came last, under
+            a caption ("Grey text in Production's bars, on screen and in the month PDF") that read as a
+            heading for every row after it; the owner removed the caption the same day ("remove it"),
+            and each switch's own label and title say what it does.
+            ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a saved
+            calendar; the engine owns the state (prefs.mvWeek / prefs.mvBlocks / prefs.mvEpisodes,
+            ABSENT = ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like
+            #one-col-btn.
+            ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
+            on what mode we are on"): only the items the grey text can carry right now are offered.
+            A switch hides while its item is the bar's text -- "Label Production by", at the top --
+            and Show Blocks hides on a calendar with no blocks. Pure CSS off that control's checked
+            radio and #show-mode (legacy.css), so no path can leave them out of step. ⛔ HIDDEN,
+            NEVER UNMOUNTED: the engine writes .checked by id.
+            Each row carries its OWN divider on top (the 22 Sep "pretty tight" ruling), so hiding
+            any of them never leaves one dangling. At least one row always shows. The order is the
+            grey text's own: Week, Block, Episodes. */}
+        <Box className="pref-mv-row pref-mv-row-week">
+          <Divider my="sm" />
+          <SettingRow htmlFor="pref-mv-week" label="Add Production Week Label in Month View">
+            <Switch id="pref-mv-week" size="md" defaultChecked
+                    aria-label="Add Production Week Label in Month View"
+                    title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
+        </Box>
+
+        <Box className="pref-mv-row pref-mv-row-blocks">
+          <Divider my="sm" />
+          <SettingRow htmlFor="pref-mv-blocks" label="Add Block Label in Month View">
+            <Switch id="pref-mv-blocks" size="md" defaultChecked
+                    aria-label="Add Block Label in Month View"
+                    title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
+        </Box>
+
+        <Box className="pref-mv-row pref-mv-row-episodes">
+          <Divider my="sm" />
+          <SettingRow htmlFor="pref-mv-episodes" label="Add Episode Label in Month View">
+            <Switch id="pref-mv-episodes" size="md" defaultChecked
+                    aria-label="Add Episode Label in Month View"
+                    title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
+        </Box>
+      </div>
+
+      {/* The card's other settings, in a block of their own (owner, 24 Oct 2026, "the other settings
+          currently grouped (paste notes, pause prep, and number prod days) should be separated"), as
+          HolidaysCard gives .hv-custom its own .side-block. Its first row opens without a divider. */}
+      <div className="side-block">
+
         {/* "Pause prep on days marked Off" (owner, 20 Oct 2026). It was a box in the Prep row of the
             Phases card ("Prep card, saved"); the owner moved it here the same day, under This
             calendar. CALENDAR DATA: the engine's prepPauseOff is the one store, saved as the
@@ -549,7 +652,6 @@ export function MonthViewCard() {
             variable, so an undo, a Load or New puts the switch back with the rest; the engine takes
             the change by delegation on the id. Month view only, like the Prep row it acts on: prep
             is drawn in the month view and its PDF and nowhere else. */}
-        <Divider my="sm" />
         <SettingRow htmlFor="prep-pause-off" label="Pause prep on days marked Off">
           <Switch id="prep-pause-off" size="md"
                   aria-label="Pause prep on days marked Off"
@@ -572,12 +674,16 @@ export function MonthViewCard() {
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
 
+        {/* Phase bar size (MONTH-BAR-SIZE-PLAN.md, owner rulings 27 Oct 2026: R3 three sizes, R6 here, beside
+            Number Production Days). CALENDAR DATA (R5) -- see BarSizeControl. */}
+        <Divider my="sm" />
+        <BarSizeControl />
+
         {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
             here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
             rest of the stuff pushes with the new settings tab"). Month view only, which this card already
             is (.pref-view-month), so it shows exactly where openPasteNotes() works. It is the last of the
-            card's calendar rows, ABOVE the grey-text caption: that caption reads as a heading for every row
-            after it (the 20 Oct merge of the Calendar tab into Preferences). ⛔ The id is the engine's
+            card's calendar rows, in the card's second block (24 Oct 2026). ⛔ The id is the engine's
             contract: one document-level click listener in app.js opens the box by `#paste-notes-btn`, so the
             button needs no wiring here. A <button>, never an input, so collectFieldValues() cannot sweep it. */}
         <Divider my="sm" />
@@ -587,56 +693,6 @@ export function MonthViewCard() {
             Paste notes…
           </Button>
         </SettingRow>
-
-        {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
-            text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
-            chose this knowing two people printing one calendar can get different month PDFs.
-            ⚠️ SO THESE THREE ARE PREFERENCES in a card of calendar settings, kept on this computer --
-            and the Preferences tab's opening line names them in the month view. They come LAST, under
-            their own caption, because the caption reads as a heading for every row after it: placed
-            under "Label Production by" (tried first, 20 Oct 2026), it seemed to head Pause prep and
-            Number Production Days too, which are not grey text.
-            ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a saved
-            calendar; the engine owns the state (prefs.mvWeek / prefs.mvBlocks / prefs.mvEpisodes,
-            ABSENT = ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like
-            #one-col-btn.
-            ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
-            on what mode we are on"): only the items the grey text can carry right now are offered.
-            A switch hides while its item is the bar's text -- "Label Production by", at the top --
-            and Show Blocks hides on a calendar with no blocks. Pure CSS off that control's checked
-            radio and #show-mode (legacy.css), so no path can leave them out of step. ⛔ HIDDEN,
-            NEVER UNMOUNTED: the engine writes .checked by id.
-            The caption is never hidden, so each row can carry its OWN divider on top (the 22 Sep
-            "pretty tight" ruling) and hiding any of them never leaves one dangling. At least one row
-            always shows. The order is the grey text's own: Week, Block, Episodes. */}
-        <Divider my="sm" />
-        <Text size="xs" c="dimmed">Grey text in Production’s bars, on screen and in the month PDF</Text>
-        <Box className="pref-mv-row pref-mv-row-week">
-          <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-week" label="Show Production Week in Month View">
-            <Switch id="pref-mv-week" size="md" defaultChecked
-                    aria-label="Show Production Week in Month View"
-                    title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
-          </SettingRow>
-        </Box>
-
-        <Box className="pref-mv-row pref-mv-row-blocks">
-          <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-blocks" label="Show Blocks in Month View">
-            <Switch id="pref-mv-blocks" size="md" defaultChecked
-                    aria-label="Show Blocks in Month View"
-                    title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
-          </SettingRow>
-        </Box>
-
-        <Box className="pref-mv-row pref-mv-row-episodes">
-          <Divider my="sm" />
-          <SettingRow htmlFor="pref-mv-episodes" label="Show Episodes in Month View">
-            <Switch id="pref-mv-episodes" size="md" defaultChecked
-                    aria-label="Show Episodes in Month View"
-                    title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
-          </SettingRow>
-        </Box>
       </div>
     </section>
   )
@@ -691,6 +747,37 @@ function ProdLabelControl() {
                           { value: 'week', label: 'Week' },
                           { value: 'episode', label: 'Episode' },
                           { value: 'block', label: blockLabel, disabled: !blockAvailable },
+                        ]} />
+    </Box>
+  )
+}
+
+// "Phase bar size: Standard · Large · Extra large" (MONTH-BAR-SIZE-PLAN.md §4.6). How big the month view's phase
+// bars and hiatus bands are, on screen and in the month PDF.
+//
+// ⛔ CALENDAR DATA (ruling R5, "Saved in the calendar"), built exactly as ProdLabelControl is, for its reasons:
+// the engine's `mvBarSize` is the ONE store and travels as captureSnapshot()'s own key; `value` comes in through
+// bridge.js (chrome.mvBarSize); a pick goes out as the radios' native `click`, caught on document by the name
+// `mv-bar-size` (setMvBarSize: one undo step, the file dirtied). The explicit name keeps Mantine's radio ids
+// stable (UI-CONVENTIONS §8.3), and they are swept by nothing: collectFieldValues() skips .prefs-card.
+function BarSizeControl() {
+  const [value, setValue] = useState('standard')
+
+  useLayoutEffect(() => {
+    installChrome({ mvBarSize: (next) => setValue(next && next.value ? next.value : 'standard') })
+  }, [])
+
+  return (
+    <Box className="pref-mv-barsize"
+         title="How big the phase bars and hiatus bands are in the month view, on screen and in the month PDF. Saved with the calendar">
+      <Text size="sm" mb={6}>Phase bar size</Text>
+      <SegmentedControl name="mv-bar-size" size="xs" fullWidth
+                        aria-label="Phase bar size"
+                        value={value}
+                        data={[
+                          { value: 'standard', label: 'Standard' },
+                          { value: 'large', label: 'Large' },
+                          { value: 'xl', label: 'Extra large' },
                         ]} />
     </Box>
   )
@@ -896,7 +983,8 @@ export function HolidaysCard() {
         <InfoHint label="Holidays" width={280}>
           Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
           Production a shoot day and stops appearing as a note. The two note columns control where an
-          enabled holiday shows up.
+          enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
+          during Production, on a day the shoot would otherwise have worked.
         </InfoHint>
       </h2>
       <div className="side-block">

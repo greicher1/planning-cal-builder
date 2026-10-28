@@ -1680,6 +1680,17 @@ done
 # writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
 # key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
 # the M-5 trap, and New.
+# autonotephases (owner, 27 Oct 2026) is each phase's start and end note, OFF until ticked: the default (no new
+# note, no key), the card's six rows with every name on one line, all nine in the waterfall, Excel, the waterfall
+# PDF, the month view on the bar's own first/last day and the written month PDF (control P0b), the autoNotesOn key
+# with the id set unchanged, one undo step, a renamed phase, a phase hiatus moving Begins/Ends, Hide in waterfall,
+# Load and the M-5 trap, a REAL v1.8.0 file opening with none of them, and New. 15 of 17 red on the build before it.
+# seasons (owner, 27 Oct 2026) is two or more seasons ticked in Show info's Season dropdown: the native #season-num
+# (the first ticked) opening SeasonPop's id-less checkbox rows by mouse and keyboard, the field reading "Seasons 3 & 4",
+# "S3 & S4" / "S3, S4 & S5" in the waterfall and month titles, Excel's page header
+# (frozen edit A1: & written as &&, and the 255 shave never splits a pair), both PDFs and the {season} tokens, one
+# undo step, the `seasons` key with the id set unchanged, Load and the M-5 trap, a hand-edited file, the old
+# single-select path, a REAL v1.8.0 file, and New.
 # phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
 # order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
 # fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
@@ -1721,6 +1732,27 @@ done
 # through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
 # both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
 # write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
+# hidewf (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2) is Hide in waterfall: on tests/fixtures/hidewf.sptcal (a custom
+# "Colour Grading" phase, Dates, ticked) the waterfall, the workbook and the waterfall PDF are EXACTLY those of the same
+# calendar with the phase not scheduled (so no cell, no empty column, no year block -- alone in 2028 included), a
+# positive control where showing it opens a column, the month view byte-identical hidden or not and the written month
+# PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
+# Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
+# hidden, a hostile key, removal pruning the key, and Shift All.
+# phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
+# fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
+# BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
+# fold through undo/redo; a rebuilt card's look; every head its colour lightened 60/40 in black, repainted by a pick;
+# nothing overflowing a card at 280 and 440 px sidebars; the all-phase hiatus card's dates line and switches.
+# monthmap (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+) is the phase map above the month view: part A the
+# engine (data-mvgo / data-mvstep reach exactly the frozen arrows' months, refuse the rest and garbage, are session UI,
+# and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
+# and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
+# the 36 px month minimum, its height, no ids, gone in the waterfall). On mvnotes, colreuse (29 months, so it scrolls)
+# and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
+# look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
+# box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
+# the frozen arrows hidden yet still paging on a scripted click. Own lines, mid-list.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1745,8 +1777,14 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
-              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
-              mvhdroff:-:400; do
+              phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 seasons:-:400 phasecolors:-:300 calrange:-:300 \
+              mvhdroff:-:400 \
+              mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
+              hidewf:hidewf:400 \
+              mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
+              monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
+              softlines:dayoverrides:300 softlines:halfmarks:300 \
+              phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1873,6 +1911,86 @@ for n in fa:
 sys.exit(1 if bad else 0)
 PYMF
 
+# ---- the phase bar size (MONTH-BAR-SIZE-PLAN.md step 3): the month-PDF writer at Large and Extra large --------------------
+# ⭐ ADDED 27 Oct 2026. Every Standard run above is unchanged (gates 10 and 13 hold those bytes). These hold the SIZED
+# writer: monthemit, every box and text it draws to Chrome's print layout of the same calendar (E3 is what prints it);
+# monthwriter, its fit, a month that shrinks included; monthexport, the built app's file to the slice's. The calendar is
+# the sized fixture mvbarsize-large (minted from the mvbarsize leg's real Save, Large), or an existing one at a size by
+# ?barsize= (t/lib.js applyBarSizeQuery: the control's own radio). Mutants, each red (27 Oct 2026): the writer ignoring
+# the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
+# (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
+# passing the size (monthexport X2, the text check).
+# ⚠️ mvnotes at Extra large is NOT run, deliberately: in one week (drawn in April and May 2026) a two-line one-day bar
+# over two lanes leaves Chrome's print 3.4 px short of its row, and the writer, which follows the spec's "maximize
+# tracks", draws that week's two-line bar 1.31 px lower than Chrome does. Recorded in MONTH-BAR-SIZE-PLAN.md step 3.
+for BSSPEC in "monthemit:mvbarsize-large:" "monthemit:hiatus-blanklabel:barsize=xl" "monthemit:month-dense60:barsize=xl" \
+              "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" "monthexport:mvbarsize-large:"; do
+  BSLEG="${BSSPEC%%:*}"; BSREST="${BSSPEC#*:}"; BSSTATE="${BSREST%%:*}"; BSQ="${BSREST#*:}"
+  rm -f "$HERE/$BSLEG.json" "$HERE/monthexport.built.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BSSTATE" HARNESS_QUERY="$BSQ" "$HERE/run.sh" "$BSLEG" 400 >/dev/null 2>&1
+  python3 - "$HERE/$BSLEG.json" "$BSLEG ($BSSTATE${BSQ:+, $BSQ})" <<'PYBS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:100])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYBS
+done
+# The writer wraps a one-day bar at the BARS' size: the fixture's "Camera Prep Day For T" fits one line of the PDF's box at
+# 10 px and not at 12, so the written Large PDF must set it on two lines, "Camera Prep Day" over "For T".
+python3 - "$HERE/monthexport.built.pdf" <<'PYBW' || FAIL=1
+import subprocess, sys
+try: L = subprocess.run(['pdftotext', '-layout', sys.argv[1], '-'], capture_output=True, text=True, check=True).stdout.split('\n')
+except Exception as e:
+    print('  FAIL  mvbarsize-large month PDF: unreadable: ' + str(e)); sys.exit(1)
+one = any('Camera Prep Day For T' in l for l in L)
+two = any(i + 1 < len(L) and 'For T' in L[i + 1][max(0, L[i].index('Camera Prep Day') - 2):] for i in range(len(L)) if 'Camera Prep Day' in L[i])
+ok = two and not one
+print(('  PASS  ' if ok else '  FAIL  ') + 'mvbarsize-large month PDF: the one-day bar "Camera Prep Day For T" wraps to two lines at Large (one line: %s)' % one)
+sys.exit(0 if ok else 1)
+PYBW
+
+# ⭐ mvtextstyle (in the list above, LIVE and RESTORE; 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §8) was run red on twelve
+# mutants before it was wired in, each on its own case: the writer ignoring a style (P1; and monthemit M0/T0/K0 here,
+# run with HARNESS_QUERY=src= so the leg slices the mutant), a size without its held line box (S1, S4), a note measured
+# at the old style (S3, S5), a colour accepted by the sanitizer on a bar (R3, R4) or stored by the bar (S2), an empty
+# style object (F1), restore only when the key is present (R5), a click opening a note (D1, G1, G2), typing replacing a
+# note (D1), a month style read by the waterfall (W1), an id on a bar control (B1), and the hiatus drag dropping a
+# month band style (hiatusdrag H13).
+# ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
+# ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
+# the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
+# leg's own Save), so each styled weight, size, slant and alignment is drawn where Chrome prints it. Its own block, not a
+# MESPEC run: that loop's two time-zone groups must hold the same 15 files. Then v1.8.0 opens the minted file (no
+# SNAPSHOT_VERSION bump: an older build ignores mvTextStyles and keeps a day note's `fmt`).
+rm -f "$HERE/monthemit.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvtextstyle "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+rm -f "$HERE"/monthemit.*.pdf
+rm -f "$HERE/mvtextstyle.json"
+HARNESS_PAGE=/releases/v1.8.0.html HARNESS_STATE=mvtextstyle "$HERE/run.sh" mvtextstyle 200 >/dev/null 2>&1
+cp -f "$HERE/mvtextstyle.json" "$HERE/mvtextstyle-old.json" 2>/dev/null
+for MTSPEC in "monthemit:monthemit (mvtextstyle)" "mvtextstyle-old:mvtextstyle (releases/v1.8.0.html)"; do
+python3 - "$HERE/${MTSPEC%%:*}.json" "${MTSPEC#*:}" <<'PYMT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMT
+done
+
 # ---- monthwriter (MONTH-PDF-WRITER-PLAN.md §8 step 4): the month-PDF writer's FIT, and the A/B against the print path
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer -- model, emitter and fit -- out of src/legacy/app.js, fits every month of
 # each print document from the model alone (no DOM: owner ruling 3; the owner's step-4 rulings for a dense month: weeks
@@ -1976,7 +2094,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -2056,7 +2174,7 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
               "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
-              "nn:mvnotes:mvnotes"; do
+              "nn:mvnotes:mvnotes" "bl:mvbarsize-large:mvbarsize-large (Large phase bars)"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
@@ -2224,7 +2342,8 @@ PYMO
 # H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
 # band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
 # stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
-# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# before it was wired in. H13 (27 Oct 2026): the band's WATERFALL text style travels too, for an
+# all-phase band and a phase's own; red before MONTH-TEXT-STYLE-PLAN step 0's fix. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
 # settles in headless Chrome); it was proved in the app pane.
 node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1
@@ -2821,6 +2940,70 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
 PYSDX
+
+# ---- scenarios: several calendars in one file (SCENARIOS-PLAN.md; owner rulings 22-23 Oct 2026) ---------------
+# The tabs under the calendar, driven as a user does: "+", a typed name, edits in each copy, switching in both views,
+# per-tab undo, Ctrl+Page Up/Down, Save (version 2 with the current tab at the top level), Load, Compare on a fresh
+# load (the parked tabs probed, the calendar on screen unchanged), the chips, both exports, the scenario in the export
+# names, Delete / Keep only (back to a plain version-1 file), and five damaged or too-new files refused whole.
+# ⭐ The other half of "a one-scenario calendar is unchanged" is every gate above: no byte baseline moves.
+rm -f "$HERE/scenarios.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenarios 400 >/dev/null 2>&1
+python3 - "$HERE/scenarios.json" <<'PYSC' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenarios produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenarios '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+errs = (a.get('health') or {}).get('errors') or []
+if errs: print('  FAIL  scenarios: page errors '+str(errs)[:200])
+sys.exit(0 if len(cases) >= 18 and all(c.get('pass') is True for c in cases) and not errs else 1)
+PYSC
+# ---- scenariofacts: the key facts band above the tabs, and Show info's Location (KEY-FACTS-PLAN.md, 23 Oct 2026) ------
+# One scenario: no band, the panel's 44 px as before. Three (scenarios-3.sptcal through the real Load): the band shows,
+# the grid ends above it, its facts are Compare's own, a fact shared by every tab is dimmed (and undims when one tab
+# changes it), a flip shows the new tab at once and is no edit, the Location wins over the region in the band and
+# Compare and is saved per scenario, an older file loads it blank, the band is chrome only, wraps rather than clips,
+# clears the month view, and goes with Keep only. Red on the pre-change build (it stops at F2: no band).
+rm -f "$HERE/scenariofacts.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenariofacts 300 >/dev/null 2>&1
+python3 - "$HERE/scenariofacts.json" <<'PYSF' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenariofacts produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenariofacts '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+errs = (a.get('health') or {}).get('errors') or []
+if errs: print('  FAIL  scenariofacts: page errors '+str(errs)[:200])
+sys.exit(0 if len(cases) >= 12 and all(c.get('pass') is True for c in cases) and not errs else 1)
+PYSF
+# ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
+# v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
+# v1.2.0, which has no version check, must open the tab that was on screen (8 episodes), never a blank calendar.
+for CPAGE in /releases/v1.8.0.html /releases/v1.2.0.html; do
+  rm -f "$HERE/scenariocompat.json"
+  HARNESS_PAGE="$CPAGE" "$HERE/run.sh" scenariocompat 120 >/dev/null 2>&1
+  python3 - "$HERE/scenariocompat.json" "$CPAGE" <<'PYCC' || FAIL=1
+import json,sys
+page = sys.argv[2]
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenariocompat '+page+' produced no result: '+str(e)); sys.exit(1)
+m, af, bf = a.get('modal') or '', a.get('after') or {}, a.get('before') or {}
+if 'v1.8.0' in page:
+    ok = 'newer version' in m and af.get('title') == bf.get('title')
+    what = 'v1.8.0 refuses a scenarios file whole and keeps its calendar'
+else:
+    ok = af.get('title') == 'Half Days Test' and af.get('episodes') == '8' and not m
+    what = 'v1.2.0 opens the scenario that was on screen, not a blank calendar'
+print(('  PASS  ' if ok else '  FAIL  ')+'scenariocompat: '+what+('' if ok else '  '+json.dumps({'modal': m[:80], 'after': af})))
+sys.exit(0 if ok and not a.get('EX') else 1)
+PYCC
+done
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

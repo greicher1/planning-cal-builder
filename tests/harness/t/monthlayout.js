@@ -93,12 +93,17 @@ window.addEventListener('load', function () { (async function () {
     var hiSrc = slice('const PDF_WINANSI_HI = {', '};', 'PDF_WINANSI_HI');
     var mvlSrc = slice('  const MVL_GEOMETRY = (function(){',
       // ⚠️ Re-anchored 20 Oct 2026: buildMonthLayout passes the bar font's width too (MONTH-NOTES-PLAN.md §6).
-      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };\n  }',
+      // ⚠️ And 27 Oct 2026: it passes the fonts, for a styled text's own weight (MONTH-TEXT-STYLE-PLAN.md W3), and the
+      // calendar's phase bar size (MONTH-BAR-SIZE-PLAN.md §4.4).
+      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf, fonts, barSize); }) };\n  }',
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.
     var mnlSrc = slice('let _mvNoteMeasureEl = null;', 'return lines;\n  }', 'mvNoteLineCount');
-    var F = new Function("'use strict';\n" + dayMsSrc + '\n' + isoSrc + '\n' + ttfSrc + '\n' + hiSrc + '\n' + mvlSrc + '\n' + mnlSrc +
+    // Since frozen edit M1 (27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6) the measurer holds a styled note's line box at
+    // the store's own constant, so the slice carries it.
+    var lineSrc = slice('const MV_TEXT_LINE_PX = {', '};', 'MV_TEXT_LINE_PX');
+    var F = new Function("'use strict';\n" + dayMsSrc + '\n' + isoSrc + '\n' + ttfSrc + '\n' + hiSrc + '\n' + mvlSrc + '\n' + lineSrc + '\n' + mnlSrc +
       '\nreturn {G: MVL_GEOMETRY, loadInterPdfFont: loadInterPdfFont, mvlTextWidth: mvlTextWidth, mvlWrapText: mvlWrapText,' +
       ' mvlNoteLines: mvlNoteLines, mvlParseMonth: mvlParseMonth, mvlPackLanes: mvlPackLanes, mvlMonthLayout: mvlMonthLayout,' +
       ' buildMonthLayout: buildMonthLayout, ttfTextWidth: ttfTextWidth, mvNoteLineCount: mvNoteLineCount};')();
@@ -123,19 +128,22 @@ window.addEventListener('load', function () { (async function () {
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
                  'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout',
-                 'mvlHalfInset', 'mvlInsetCols'];
+                 'mvlHalfInset', 'mvlInsetCols', 'MVL_BAR_SIZES', 'mvlBarSize',
+                 // MONTH-TEXT-STYLE-PLAN.md W1 and W3 (27 Oct 2026): a styled text's format and its own measure.
+                 'mvlTextFmt', 'mvlFrameFmt', 'mvlStyledWidthOf'];
     var has = function (n, t) { return new RegExp('\\b' + n + '\\b').test(t); };
     var used = NAMES.filter(function (n) { return has(n, outside); });
     var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var defined = NAMES.filter(function (n) { return new RegExp('\\b(?:function|const|let) ' + n + '\\b').test(mvlSrc); });
     // And nothing runs at boot: buildMonthLayout appears twice in the whole file (its declaration and the export's
-    // call), and the loader three times (its declaration, buildMonthPdf's call and the export's). Mutant M9, which
-    // calls the loader from inside the section, makes a fourth.
+    // call), and the loader four times (its declaration, buildMonthPdf's call, buildListPdf's -- the scenarios Compare
+    // PDF's entry point, 23 Oct 2026 -- and the export's). Mutant M9, which calls the loader from inside the section,
+    // makes a fifth.
     var once = ['loadInterPdfFont(', 'buildMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export calls the layout model, through its public part, and no Inter block is decoded at boot: only an export decodes one',
-        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 3 && once[1] === 2,
+        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 4 && once[1] === 2,
         {usedOutside: used, usedByExport: byExport, definedInSection: defined.length, entryPointOccurrences: once},
-        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [3, 2]});
+        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [4, 2]});
 
     // ---- F1: the real loader ------------------------------------------------------------------------------
     var p1 = F.loadInterPdfFont('500'), p2 = F.loadInterPdfFont(500);

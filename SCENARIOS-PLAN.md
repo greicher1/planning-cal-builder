@@ -2,9 +2,20 @@
 
 **Scenarios: several versions of one calendar, side by side, in one file.** Item 8 of the "what Excel-like
 functionality are we missing" list (22 Oct 2026). Written 22 Oct 2026. **✅ All six decisions RULED the same day, by
-picker, each as recommended (§1). No code written.** §0 answers the owner's four questions in a few lines. §1 holds
-the decisions and their rulings, §2 the choices this plan makes unless the owner overrules them, and §3 onwards how it
-would be built.
+picker, each as recommended (§1).**
+
+**🔨 BUILT 23 Oct 2026** on branch `scenarios` (worktree `.claude/worktrees/scenarios`), commit `4946882`, owner: *"Ok
+start building it"*.
+- **Built:** steps 1–4, step 5 and most of step 6 (§10).
+- **Not built yet:**
+  - "Add a calendar file as a scenario…";
+  - the overflow ◀ ▶ arrows and ▾ list (tabs scroll with the wheel instead).
+- **Tests:** legs `scenarios` (18) and `scenariocompat`, both in `gate.sh`.
+- **Not merged, not pushed.**
+- **What building it taught:** §13.
+
+§0 answers the owner's four questions in a few lines. §1 holds the decisions and their rulings, §2 the choices this plan
+makes unless the owner overrules them, and §3 onwards how it would be built.
 
 **Mockup:** [`mockups/scenarios.html`](mockups/scenarios.html). Three real waterfalls captured from the build (a
 synthetic calendar), with working tabs, a tab menu and the Compare window. Every number in it is the app's own.
@@ -37,7 +48,7 @@ nothing linking them. To compare them you open one, then the other, and remember
   scroll position, so flipping back and forth shows what moved. "+" duplicates the tab you're on.
 - **Compare?** Two ways. Flip between tabs to see the shape change. Open **Compare** for a table: one column per
   scenario and one row per key date. A value that differs from the scenario on screen is bold, with how much it
-  differs ("+2 wks"). A row that is the same everywhere is grey.
+  differs ("Pushed 2 wks" for a date, "+2" for a count). A row that is the same everywhere is grey.
 - **Version numbers?** No, and keeping the two apart is the main thing that stops this getting complicated.
   - A **scenario** is an *alternative*: A and B exist at the same time, and one of them will win.
   - A **version** is the *same plan over time*: the v3 you sent last week, and the v4 you'll send next week.
@@ -104,7 +115,7 @@ Each decision has a recommendation, listed first.
    - **Flip:** a switch keeps the view, the zoom and the scroll position, so the grid changes in place and your eye
      catches what moved. Ctrl+Page Down and Ctrl+Page Up flip without the mouse, as in Excel.
    - **Compare table:** a window with one column per scenario and one row per key date. A value that differs from the
-     tab you're on is bold, with the difference under it ("+2 wks", "−1 day", "−2"). A row that is the same everywhere
+     tab you're on is bold, with the difference under it ("Pushed 2 wks", "Pulled 1 day", "−2"). A row that is the same everywhere
      is grey. It exports to Excel or PDF, or copies as a table, ready to paste into an email or a sheet. §2
      has the details.
 2. **Also draw another scenario's phases as dashed outlines on the calendar.** A later step if flipping isn't enough.
@@ -196,7 +207,8 @@ Each decision has a recommendation, listed first.
   remove all the random explainations at the bottom and top. remember clean and simple"*.
   - **Built as a real Mantine component,** `mockups/scenarios-compare/CompareDialog.jsx`, meant to move into
     `src/chrome/` as it stands.
-  - **It holds a table and two buttons, and nothing else.** No explanation lines above or below it, and no toggles.
+  - **It holds a table and its buttons, and nothing else.** No explanation lines above or below it. Its one toggle,
+    Only differences, came later (below).
   - **One column per scenario.** The tab on screen comes first, marked with an "On screen" `Badge`.
   - **Every row shows every value.** The rows, in order:
     - Episodes (or Blocks), Shoot days, Location;
@@ -204,8 +216,28 @@ Each decision has a recommendation, listed first.
     - First shoot day and Wrap after Prod Prep;
     - Production span, weeks from first phase to last, Version.
   - **A value that differs from the tab on screen is bold.** The difference sits under it in a small light `Badge` in
-    the `warn` colour: "+2 wks", "−1 day", "−2", or "start +2 wks, end same" for a range that moved at one end.
+    the `warn` colour. A date says "Pushed 2 wks" or "Pulled 1 day", or "Start pushed 2 wks, end same" for a range
+    that moved at one end. A count keeps its sign: "+2" episodes, "+9" shoot days, "+2 wks" of production span.
   - **A row that is the same everywhere is grey.**
+  - **The owner's notes after it went live** (23 Oct 2026, the same evening):
+    - *"It should hide phases that aren't used/empty"*: a phase none of the columns shown has gets no row. A phase only
+      some of them have keeps its row, with a dash in the others, because that is a difference.
+    - *"There should be a button to hide comparisons that are the same"*: an **Only differences** switch, top right,
+      beside the chips. It hides every row that is the same in every column shown. It is remembered while the app is
+      open, as the chips are.
+    - *"lets use pushed and pulled instead of + and -"* for dates, then *"days and eps can stay + and - as they are
+      counts and not dates"*.
+    - The holidays behind a moved shoot date. The owner first asked for their names next to the "± days". Then:
+      *"lets not name the specific holidays, lets just say + or - a number of holidays with the same yellow chip"*.
+      So First shoot day and Wrap carry a second chip beside their Pushed/Pulled, "+1 holiday". It is how many more
+      days that scenario's shoot lost to a holiday than the one on screen's, each from its own production walk
+      (`holidaysHit`). First shoot day counts only the holidays before it. Equal counts make no chip.
+    - The exports and Copy table follow the table as shown, so all four reach them.
+    - *"the window needs to scale larger so we dont have elipses/things cut off"*:
+      - every column is as wide as its widest content, and nothing wraps or truncates;
+      - the window is sized from the table's measured width, up to 24 px from the browser window's edges;
+      - Excel's columns fit their contents too;
+      - only a table wider than the browser window scrolls.
   - **Dates read as the waterfall writes them:** 6/29/26, and ranges as 5/18/26 – 6/26/26.
   - **Footer:** Export to Excel, Export PDF and Copy table on the left, Done on the right. Escape and the × close it
     too.
@@ -215,7 +247,7 @@ Each decision has a recommendation, listed first.
     - **Excel:** ExcelJS, which the app already loads (no new resource for the CSP). One sheet, "Compare", with:
       - the title and the file's name;
       - the label column and the header row frozen;
-      - each difference bold, with its "+2 wks" on a second line on the `warn` tint;
+      - each difference bold, with its "Pushed 2 wks" (and any "+1 holiday") on a second line on the `warn` tint;
       - same rows grey;
       - landscape, one page wide.
     - **PDF:** written directly, as the month PDF is, from that writer's machinery (the embedded Inter, the shared
@@ -521,3 +553,22 @@ Each step lands on its own branch with its own gate run, in this order. Each one
 - **What it fakes:** nothing is saved or exported. "+" adds a tab that is a copy of the "10 eps" picture.
 - **Where it is served:** nowhere. The deploy publishes `dist/` only. Open it from the file, or through the harness
   server at `/mockups/scenarios.html`. It loads Inter from Google Fonts, as the month menu's mockup does.
+
+## 13. What building it taught (23 Oct 2026)
+
+- **The undo baseline must be `undoStateJSON()`, not `JSON.stringify(captureSnapshot())`.**
+  - The undo-keys work (⌘Z after every edit) made the history leave `viewMode` out.
+  - A baseline that kept it made the first push after every switch or copy a phantom step: ⌘Z then "undid" nothing.
+  - Found because the `scenarios` leg's per-tab undo case failed. Every baseline in the scenarios code uses
+    `undoStateJSON()` now.
+- **`buildHeaderCtx()` returns `{tokens}`.** Compare reads `.tokens`. A date token is a `hdrDate()` box, so the exact
+  Date is read from `__hdrDate` rather than re-parsed.
+- **`buildSavedFileName('')` is not a bare name:** an empty extension falls back to `.sptcal`. `savedFileBase()` cuts
+  the base off a name built with `.html`.
+- **Save to a legacy `.html` writes a whole copy of the app**, with the state embedded. If it carried only the tab on
+  screen, it would silently drop the others. So `buildSavedHtml({allScenarios: true})` is used for every Save path, and
+  only Export shareable copy writes the one tab (D6).
+- **The scenario variables are `var`.** `buildHeaderCtx()` reads them for `{scenario}`, and a render during the IIFE's
+  evaluation, before their line runs, would otherwise hit the temporal dead zone and take the rest of the engine with it.
+- **v1.2.0 measured, not assumed** (`scenariocompat`): it opens the current tab (Half Days Test, 8 episodes) from
+  `tests/fixtures/scenarios-3.sptcal`. v1.8.0 refuses it with the newer-version message and keeps its calendar.

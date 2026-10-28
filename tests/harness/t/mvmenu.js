@@ -103,11 +103,12 @@ window.addEventListener('load', function () { (async function () {
     });
     return days.sort();
   }
-  // Bring a node into the preview panel's view, then let the scroll event land BEFORE anything opens. (The menu
+  // Bring a node into the month's scroll box's view, then let the scroll event land BEFORE anything opens. (The menu
   // closed on ANY capture-phase scroll until ruling T4; since then only one that moved its day closes it, so a
   // late event no longer can. The wait stays: it costs nothing and keeps the point measured after the scroll.)
   async function bringIntoView(el){
-    var pp = document.querySelector('.preview-panel');
+    // The month's scroll box is #table-wrap since 26 Oct 2026 (it was .preview-panel, toolbar and all).
+    var pp = document.getElementById('table-wrap');
     var r = el.getBoundingClientRect(), q = pp ? pp.getBoundingClientRect() : {top: 0, bottom: innerHeight, height: innerHeight};
     if(pp && (r.top < q.top + 20 || r.bottom > q.bottom - 20)){
       pp.scrollTop += (r.top + r.height / 2) - (q.top + q.height / 2);
@@ -280,18 +281,20 @@ window.addEventListener('load', function () { (async function () {
     c.insideKept = !!menuEl();
     document.querySelector('.form-panel').dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
     c.outside = !menuEl();
-    // ⭐ Ruling T4 (23 Oct 2026): a scroll that MOVES the day closes it. The panel holding the month is scrolled for
+    // ⭐ Ruling T4 (23 Oct 2026): a scroll that MOVES the day closes it. The month's scroll box is scrolled for
     // real, then its event sent (headless Chrome may deliver its own late), and put back once the menu is gone.
-    // ⚠️ At the harness's 1600 x 1200 window July fits, so the panel cannot scroll (measured: scrollHeight =
-    // clientHeight), and the sidebar on the Show tab fits too. A tall spacer appended to the panel (chrome, outside
-    // #table-wrap, so the menu's render rule never sees it) makes room, and comes out again after.
+    // ⚠️ At the harness's 1600 x 1200 window July fits, so the box cannot scroll (measured: scrollHeight =
+    // clientHeight), and the sidebar on the Show tab fits too. A tall spacer appended to it makes room, and comes out
+    // again after. Since 26 Oct 2026 that box is #table-wrap itself (it was .preview-panel), so the spacer is inside
+    // the month view's subtree: it goes in BEFORE the menu opens and comes out AFTER it closed, so the menu's render
+    // rule never sees it while it is open.
     function spacerIn(el){
       var d = document.createElement('div');
       d.style.cssText = 'height:2000px;flex:none;';
       el.appendChild(d);
       return d;
     }
-    var ppC = document.querySelector('.preview-panel'), yC = ppC.scrollTop, spC = spacerIn(ppC);
+    var ppC = document.getElementById('table-wrap'), yC = ppC.scrollTop, spC = spacerIn(ppC);
     await openOn('2026-07-09');
     yC = ppC.scrollTop;
     ppC.scrollTop = yC + 40;
@@ -499,17 +502,26 @@ window.addEventListener('load', function () { (async function () {
     await bringIntoView(spp);
     spp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography/.test(txt(b)); });
     var qn = spp.getBoundingClientRect();
-    var hitNote = lclickAt(Math.round(qn.left + qn.width / 2), Math.round(qn.top + qn.height / 2));
+    // Since 27 Oct 2026 (MONTH-TEXT-STYLE-PLAN.md R1) a click on a note PICKS it for the text style bar, and a
+    // double-click opens it. Both are the note's own clicks, so the day menu still never opens.
+    var nx = Math.round(qn.left + qn.width / 2), ny = Math.round(qn.top + qn.height / 2);
+    var hitNote = lclickAt(nx, ny);
+    await settle();
+    var pickedN = {editor: !!document.getElementById('mv-note-pop'), boxes: document.querySelectorAll('.month-sel-box').length, menu: !!menuEl()};
+    var hitNote2 = lclickAt(nx, ny, {detail: 2});
+    (hitNote2 || hitNote).dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, clientX: nx, clientY: ny, button: 0, detail: 2}));
+    await settle();
     var taN = document.querySelector('#mv-note-pop textarea');
-    l4.note = {onTop: hitNote === spp || spp.contains(hitNote), editor: !!taN, text: taN ? taN.value.split('\n')[0] : null, menu: !!menuEl()};
+    l4.note = {onTop: hitNote === spp || spp.contains(hitNote), picked: pickedN, editor: !!taN, text: taN ? taN.value.split('\n')[0] : null, menu: !!menuEl()};
     if(taN) taN.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
     await settle();
     var pb4 = await pointOn('2026-07-08', 'bar:production');
     var hitBar = lclickAt(pb4.x, pb4.y);
     await settle();
     l4.bar = {onTop: !!(hitBar && hitBar.closest && hitBar.closest('.mv-pill[data-ph="production"]')), menu: !!menuEl(), swapping: document.body.classList.contains('grid-swapping')};
-    add('L4', 'A left-click on 9 Jul\'s "+" still opens the note editor, one on the "Start Principal Photography" note still edits it, and one on Ep. 202\'s bar opens nothing: no menu in any of the three (each hit-tested on top)',
-      l4.plus.onTop && l4.plus.editor && !l4.plus.menu && l4.note.onTop && l4.note.editor && /^Start Principal Photography/.test(l4.note.text) && !l4.note.menu
+    add('L4', 'A left-click on 9 Jul\'s "+" still opens the note editor, one on the "Start Principal Photography" note picks it (R1) and a double-click edits it, and one on Ep. 202\'s bar opens nothing: no menu in any of the three (each hit-tested on top)',
+      l4.plus.onTop && l4.plus.editor && !l4.plus.menu && l4.note.onTop && !l4.note.picked.editor && l4.note.picked.boxes > 0 && !l4.note.picked.menu
+        && l4.note.editor && /^Start Principal Photography/.test(l4.note.text) && !l4.note.menu
         && l4.bar.onTop && !l4.bar.menu && !l4.bar.swapping && !document.getElementById('mv-note-pop'),
       l4, 'editor, editor, nothing; never the menu');
 
@@ -566,7 +578,7 @@ window.addEventListener('load', function () { (async function () {
     // L8: the flip. A day in the calendar's last row opens the menu ABOVE its number, where under it would run
     // off the bottom of the window.
     var lastRow = monthCells()['2026-07-30'];
-    var pp8 = document.querySelector('.preview-panel');
+    var pp8 = document.getElementById('table-wrap');   // the month's scroll box (26 Oct 2026)
     if(pp8){ pp8.scrollTop += lastRow.cell.getBoundingClientRect().bottom - (pp8.getBoundingClientRect().bottom - 12); await T.sleep(250); }
     var r8 = monthCells()['2026-07-30'].cell.getBoundingClientRect();
     lclickAt(Math.round(r8.left + r8.width / 2), Math.round(r8.top + 8));

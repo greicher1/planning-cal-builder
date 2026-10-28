@@ -57,6 +57,9 @@ import '@mantine/core/styles/Text.layer.css'
 import '@mantine/core/styles/Combobox.layer.css'
 import '@mantine/core/styles/Badge.layer.css'
 import '@mantine/core/styles/Button.layer.css'
+// The scenario Compare window's chips (CompareDialog.jsx, 23 Oct 2026). Here by the derived reading: Chip's first
+// class sits after Button's and before Divider's in styles.layer.css.
+import '@mantine/core/styles/Chip.layer.css'
 import '@mantine/core/styles/Divider.layer.css'
 import '@mantine/core/styles/Menu.layer.css'
 import '@mantine/core/styles/Modal.layer.css'
@@ -77,6 +80,8 @@ import '@mantine/core/styles/Stack.layer.css'
 // order here is Mantine's own, read off the byte offsets of each component's first class in
 // node_modules/@mantine/core/styles.layer.css; Switch sits last of the ones this app uses.
 import '@mantine/core/styles/Switch.layer.css'
+// The Compare window's table (CompareDialog.jsx). Between Switch and Tabs, by the same derived reading.
+import '@mantine/core/styles/Table.layer.css'
 // The Settings window's tabs (owner ruling 12, 20 Oct 2026). LAST, by the same derived reading: Tabs'
 // first class sits after Switch's in styles.layer.css. Tab is an UnstyledButton, so its own rules must
 // come after UnstyledButton's reset or every tab loses its padding -- the round-7 Button trap again.
@@ -92,9 +97,12 @@ import { ShowInfoCard, CalendarRangeCard, HiatusResetButton } from './chrome/Sid
 import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
+import { SeasonPop } from './chrome/SeasonPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
 import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
+import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
+import { CompareDialog } from './chrome/CompareDialog.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -153,11 +161,17 @@ function Chrome() {
           print paths with no extra work, and #print-root stays last. */}
       <DatePop />
       <SelectPop />
+      {/* Show info's Season dropdown with its checkboxes (27 Oct 2026). In #react-root for DatePop's reason. */}
+      <SeasonPop />
       <Dialogs />
       {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
       <ExportPdfDialog />
       {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
       <ZoomControl />
+      {/* The scenario tabs, bottom left in the strip the zoom shares, and the Compare window (SCENARIOS-PLAN.md).
+          In #react-root for DatePop's reason. */}
+      <ScenarioTabs />
+      <CompareDialog />
     </>
   )
 }

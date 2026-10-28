@@ -104,6 +104,11 @@ export const chrome = {
   // engine's document listener by their name, `mv-prod-label`. ⛔ Click, not change: a controlled
   // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
   mvProdLabel: noop,
+  // { value: 'standard'|'large'|'xl' } — Settings ▸ Preferences ▸ Month view ▸ "Phase bar size"
+  // (MONTH-BAR-SIZE-PLAN.md §4.6). The engine's mvBarSize is the only store (CALENDAR DATA, '' = Standard).
+  // Bridged for mvProdLabel's reason: a SegmentedControl's indicator follows React state. The input half
+  // needs no bridge: the radios' native `click` reaches the engine by their name, `mv-bar-size`.
+  mvBarSize: noop,
   // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
   // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
@@ -114,11 +119,29 @@ export const chrome = {
   // The engine's `hiddenNotesCols` is the only store. The input half needs no bridge: a pill's × and Show
   // all carry `data-shownotes`, which the engine catches on document, as it does on the grid's strip.
   hiddenNotes: noop,
+  // monthMapModel()'s output, or null — the phase map above the month view (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026):
+  // { months: [{key, y, m, label, year, edge, on, today}], bands: [{key, name, fill, ink, start, end, from, to,
+  // startMonth, row, thin}], hiatus: [{name, start, end, from, to}], rows: {needed, named, thin} }. null in the
+  // waterfall and for a calendar with no phases. The engine pushes it after every render. The input half needs no
+  // bridge: the map's buttons carry `data-mvgo` / `data-mvstep`, which the engine catches on document.
+  monthMap: noop,
   // { view: 'sheet'|'month', zoom, visible } — the calendar zoom control (ZoomControl.jsx), bottom
   // right in both views. The engine holds one zoom per view and applies it; this is only what the
   // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.
   // A per-machine preference: never in captureSnapshot(), never an undo step.
   calZoom: noop,
+  // { tabs: [{ id, name }], current, max } — the scenario tabs under the calendar (ScenarioTabs.jsx,
+  // SCENARIOS-PLAN.md). The engine's scenarioTabs is the only store; every action goes back as a DOM event,
+  // 'sptcal-scenario' {op, id, name, to}, as the zoom's does.
+  scenarios: noop,
+  // [3, 4] — the seasons ticked in Show info, ascending (owner, 27 Oct 2026). The engine's seasonList is the only
+  // store, pushed by update(). Two readers: the Season select's own option text (Sidebar.jsx, "Seasons 3 & 4") and
+  // its checkbox dropdown (SeasonPop.jsx). The input half needs no bridge: a row's click reaches the engine's
+  // document listener by its `data-season`. (Not `scenarios` above: that is the scenario tabs.)
+  seasons: noop,
+  // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
+  // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
+  compareDialog: noop,
   // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
   // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
   // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes

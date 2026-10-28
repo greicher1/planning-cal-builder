@@ -254,6 +254,22 @@ the preview toolbar and `#tb-notes-reset-btn` in the app header. A childList obs
 handlers, so a scripted click still works, and the mode menu anchors under the visible twin. The one
 frozen CSS change was the `.mv-tools` rule, approved for it, and gate 10 stayed byte-identical.
 
+✅ **`#mv-prev` / `#mv-next` were promoted the same way (27 Oct 2026, owner, MONTH-RAIL-PLAN.md).**
+- They are still emitted, unchanged, and are hidden on screen by `visibility:hidden; pointer-events:none`. Their boxes
+  still size the month band, so the grid does not move.
+- Their twin is the phase map above the month view (`MonthMap.jsx`, a line of `.view-toggle-row`). Its buttons carry
+  `data-mvgo` / `data-mvstep`, and the engine's `goToMonth()` applies the frozen handler's own range rule. A scripted
+  `.click()` on the originals still pages the month, and the map follows it.
+- The same change gave the month view a screen-only paint, "Soft Lines". It is a `@media screen` block in
+  `legacy.css` whose every selector starts `#table-wrap .month-view`, so it can never match `#print-root`.
+  - It is paint only: no font-size, padding, weight or border-width change on anything that sizes a box.
+  - Its tints exclude the day marks (`.mv-day-on/off/half`) and `:hover`.
+  - No frozen rule was edited. Gates 10 and 13 stayed byte-identical (293 checks).
+  - The `softlines` leg measures every page with the block and with it deleted, and holds every box to 0.01 px and
+    every mark's paint identical.
+- ⚠️ So the month view on screen is no longer pixel-for-pixel the print document: same geometry, lighter lines and
+  tints. The PDFs keep the frozen look until the owner rules otherwise.
+
 ### 4.3 The print CSS
 
 The whole `@media print` block, the `/* ---------- Calendar PDF export ---------- */` block, the

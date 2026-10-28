@@ -108,23 +108,30 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont three times (its declaration,
-    // buildMonthPdf's call, the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
+    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
-    var eAt = rest.indexOf(exportSrc), outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
+    // ⭐ SINCE 23 OCT 2026 THE WRITER HAS A SECOND CALLER, the scenarios Compare PDF (SCENARIOS-PLAN.md): buildComparePdf
+    // and its painter, paintComparePdf, which may name ONE thing in the writer, buildListPdf, its second public entry
+    // point. That region is cut out of `outside` like the export, and held to that one name.
+    var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
+    var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
+    var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
+    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
     var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
+    var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
     var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [3, 2, 2, 2, 2]),
-        {usedOutside: usedOut, usedByExport: usedByExport, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, entryPointOccurrences: [3, 2, 2, 2, 2]});
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -147,9 +154,12 @@ window.addEventListener('load', function () { (async function () {
       makeVariants(docs[0].html).forEach(function (v) { docs.push(v); });
     } else {
       var cap = await captureFresh();
+      // The phase bar size the calendar prints at (MONTH-BAR-SIZE-PLAN.md step 3): a sized fixture's, or ?barsize='s.
+      // The model is built at it, as exportMonthPdfDirect builds it; the print document carries E3's sizes.
       docs.push({name: ((location.search.match(/[?&]state=([^&]+)/) || [])[1] || 'fresh').replace(/[^\w-]/g, '_'),
-                 html: cap.html, stampHits: cap.hits});
+                 html: cap.html, stampHits: cap.hits, barSize: T.barSizeShown()});
     }
+    info.barSize = docs.map(function (d) { return d.barSize || ''; });
     info.stampHits = docs.map(function (d) { return d.name + ':' + d.stampHits; });
     // What the determinism controls change, recorded so a control that changed nothing is visible.
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
@@ -173,7 +183,7 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], lay = chromeLayout(doc.html);
       var months = lay.pages.map(function (pg, pi) {
-        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf);
+        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, null, doc.barSize || '');
         m.fit = {rows: pg.rows.slice()};
         return m;
       });
@@ -309,6 +319,23 @@ window.addEventListener('load', function () { (async function () {
           });
           return outR;
         };
+        // Per line, the extent of its VISIBLE characters (MONTH-TEXT-STYLE-PLAN.md W2). A note is pre-wrap, so the space a
+        // line wraps at stays on that line and HANGS past its edge (CSS Text §4.1.3): it counts in the line's rect but
+        // not in its alignment. A right-aligned or centred line is held at what it shows; the writer draws no such space.
+        var visRects = function (el) {
+          var lines = [];
+          Array.prototype.forEach.call(el.childNodes, function (n) {
+            if(n.nodeType !== 3) return;
+            for(var i = 0; i < n.data.length; i++){
+              if(/\s/.test(n.data[i])) continue;
+              var rg = document.createRange(); rg.setStart(n, i); rg.setEnd(n, i + 1);
+              var rc = rg.getBoundingClientRect(); if(!(rc.width > 0)) continue;
+              var r = rel(rc), L = lines.filter(function (l) { return Math.abs(l.y - r.y) < 2; })[0];
+              if(!L) lines.push({x: r.x, y: r.y, r: r.x + r.w}); else { L.x = Math.min(L.x, r.x); L.r = Math.max(L.r, r.x + r.w); }
+            }
+          });
+          return lines.map(function (l) { return {x: l.x, y: l.y, w: l.r - l.x}; });
+        };
         var p = {mode: mode, inner: inner, rows: [], minRows: [], weekTops: []};
         // "Day N", the cell's ::after while "Number Production Days" is on (19 Oct 2026). A pseudo-element has no
         // text node to measure, so it is stood in for, ONE CELL AT A TIME, by a real span carrying the pseudo's own
@@ -377,7 +404,8 @@ window.addEventListener('load', function () { (async function () {
             bars: Array.prototype.map.call(wk.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add):not(.mv-row-expand)'), function (b) {
               var tagEl = b.querySelector('.mv-pill-block');
               return {box: rel(b.getBoundingClientRect()), note: b.classList.contains('mv-note-block'),
-                      text: textRects(b), tag: tagEl ? textRects(tagEl)[0] : null, cs: cs(b), tagCs: tagEl ? cs(tagEl) : null};
+                      text: textRects(b), vis: (b.getAttribute('style') || '').indexOf('text-align:') >= 0 ? visRects(b) : null,
+                      tag: tagEl ? textRects(tagEl)[0] : null, cs: cs(b), tagCs: tagEl ? cs(tagEl) : null};
             }),
           };
         });
@@ -452,10 +480,15 @@ window.addEventListener('load', function () { (async function () {
     var mt = by('monthbar-text')[0];
     judgeNear('M0', where0 + ' month label baseline', mt.y, pg.monthyear.y + A(mt.size), BASE_TOL, 'baseline');
     judgeNear('M0', where0 + ' month label centre', mt.x + mt.w / 2, pg.monthyear.x + pg.monthyear.w / 2, LEFT, 'centre');
+    // A styled weekday row (MONTH-TEXT-STYLE-PLAN.md W4) may be aligned left or right in its column: each label is held
+    // at the anchor its alignment fixes, as H0 holds a header line, because Chrome kerns ("SAT") and the writer does not.
+    var dal = (m.dowFmt && m.dowFmt.align) || 'center';
     by('dow').forEach(function (o, i) {
       var c = pg.dow[i];
       judgeNear('M0', where0 + ' ' + o.s + ' baseline', o.y, c.y + A(o.size), BASE_TOL, 'baseline');
-      judgeNear('M0', where0 + ' ' + o.s + ' centre', o.x + o.w / 2, c.x + c.w / 2, LEFT, 'centre');
+      if(dal === 'left') judgeNear('M0', where0 + ' ' + o.s + ' start', o.x, c.x, LEFT, 'centre');
+      else if(dal === 'right') judgeNear('M0', where0 + ' ' + o.s + ' end', o.x + o.w, c.x + c.w, LEFT, 'centre');
+      else judgeNear('M0', where0 + ' ' + o.s + ' centre', o.x + o.w / 2, c.x + c.w / 2, LEFT, 'centre');
     });
     // D0: the frame, the weeks, the cells, the numbers.
     var frame = by('frame'), ln = P.line;
@@ -530,18 +563,41 @@ window.addEventListener('load', function () { (async function () {
         if(!c0){ bad.T0.push(bWhere + ': drawn text Chrome has none of'); return; }
         totals.texts += texts.length;
         judgeNear('T0', bWhere + ' baseline', first.y, c0.y + A(first.size), BASE_TOL, 'baseline');
-        var centred = it.kind === 'hiatus' && !list.some(function (o) { return o.role === 'bar-ell' && o.wk === wi && o.i === k; });
-        if(centred) judgeNear('T0', bWhere + ' centre', first.x + first.w / 2, c0.x + c0.w / 2, LEFT, 'centre');
-        else judgeNear('T0', bWhere + ' start', first.x, c0.x, LEFT, 'left');
+        // The anchor the text's alignment fixes: a band's centre and every other bar's start, unless a month text style
+        // (MONTH-TEXT-STYLE-PLAN.md W2) aligns it; a cut line starts at the left whatever its alignment. A centred or
+        // right-aligned text is held at its centre or end, as H0 holds a header line, since Chrome kerns and this does not.
+        var cutBar = list.some(function (o) { return o.role === 'bar-ell' && o.wk === wi && o.i === k; });
+        var bal = cutBar ? 'left' : ((it.fmt && it.fmt.align) || (it.kind === 'hiatus' ? 'center' : 'left'));
+        var withTag = !!tag && bal !== 'left';
+        var anchor = function (o, c, what) {
+          // A centred or right-aligned line is held at what it SHOWS (visRects: a hanging space left out).
+          if(bal !== 'left' && cb.vis){ var v = cb.vis.filter(function (l) { return Math.abs(l.y - c.y) < 2; })[0]; if(v) c = v; }
+          // With a grey tag beside it the label's box is not the line's: hold the label's start, less the kerning gap.
+          if(bal === 'center' && !withTag) judgeNear('T0', what + ' centre', o.x + o.w / 2, c.x + c.w / 2, LEFT, 'centre');
+          else if(bal === 'right' && !withTag) judgeNear('T0', what + ' end', o.x + o.w, c.x + c.w, LEFT, 'centre');
+          else if(bal === 'left') judgeNear('T0', what + ' start', o.x, c.x, LEFT, 'left');
+        };
+        anchor(first, c0, bWhere);
         if(it.kind === 'note'){
-          // Every further line: the same start, 13 px lower each (Chrome's line rects, one per line box).
+          // Every further line: the same anchor, 13 px lower each (Chrome's line rects, one per line box).
           texts.forEach(function (o) {
             var c = cb.text.filter(function (rc) { return Math.round((rc.y - c0.y) / G.noteLinePx) === o.li; })[0];
             if(c){ judgeNear('T0', bWhere + ' line ' + (o.li + 1) + ' baseline', o.y, c.y + A(o.size), BASE_TOL, 'baseline');
-                   judgeNear('T0', bWhere + ' line ' + (o.li + 1) + ' start', o.x, c.x, LEFT, 'left'); }
+                   anchor(o, c, bWhere + ' line ' + (o.li + 1)); }
           });
         }
-        if(tag){
+        if(tag && withTag){
+          // A centred or right-aligned label with its tag: the line (label, gap, tag) is centred or ended as one, so hold
+          // the line's centre or end, and the tag's gap after the label, each with its own widths.
+          if(!cb.tag) bad.T0.push(bWhere + ': a grey tag Chrome has none of');
+          else {
+            judgeNear('T0', bWhere + ' tag baseline', tag.y, cb.tag.y + A(tag.size), BASE_TOL, 'baseline');
+            judgeNear('T0', bWhere + ' tag gap', tag.x - (first.x + first.w), cb.tag.x - (c0.x + c0.w), LEFT, 'tag');
+            if(bal === 'center') judgeNear('T0', bWhere + ' line centre', (first.x + tag.x + tag.w) / 2, (c0.x + cb.tag.x + cb.tag.w) / 2, LEFT, 'centre');
+            else judgeNear('T0', bWhere + ' line end', tag.x + tag.w, cb.tag.x + cb.tag.w, LEFT, 'centre');
+          }
+        }
+        else if(tag){
           // The tag starts 7 px after the label, so Chrome's starts as much earlier as Chrome kerns the label.
           if(!cb.tag) bad.T0.push(bWhere + ': a grey tag Chrome has none of');
           else { judgeNear('T0', bWhere + ' tag baseline', tag.y, cb.tag.y + A(tag.size), BASE_TOL, 'baseline');
@@ -923,6 +979,7 @@ window.addEventListener('load', function () { (async function () {
     }, 'the calendar to settle', 200, 100);
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
+    await T.applyBarSizeQuery();
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };

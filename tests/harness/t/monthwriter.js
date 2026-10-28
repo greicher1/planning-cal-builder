@@ -118,23 +118,30 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont three times (its declaration,
-    // buildMonthPdf's call, the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
+    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
-    var eAt = rest.indexOf(exportSrc), outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
+    // ⭐ SINCE 23 OCT 2026 THE WRITER HAS A SECOND CALLER, the scenarios Compare PDF (SCENARIOS-PLAN.md): buildComparePdf
+    // and its painter, paintComparePdf, which may name ONE thing in the writer, buildListPdf, its second public entry
+    // point. That region is cut out of `outside` like the export, and held to that one name.
+    var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
+    var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
+    var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
+    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
     var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
+    var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
     var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(usedByExport, PUBLIC) && same(counts, [3, 2, 2, 2, 2]),
-        {usedOutside: usedOut, usedByExport: usedByExport, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, entryPointOccurrences: [3, 2, 2, 2, 2]});
+        usedOut.length === 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -154,8 +161,16 @@ window.addEventListener('load', function () { (async function () {
       }
     } else {
       var cap = await captureFresh();
-      docs.push({name: ((location.search.match(/[?&]state=([^&]+)/) || [])[1] || 'fresh').replace(/[^\w-]/g, '_'), html: cap.html, stampHits: cap.hits});
+      docs.push({name: ((location.search.match(/[?&]state=([^&]+)/) || [])[1] || 'fresh').replace(/[^\w-]/g, '_'), html: cap.html, stampHits: cap.hits,
+                 barSize: T.barSizeShown()});
     }
+    // ⭐ THE PHASE BAR SIZE (MONTH-BAR-SIZE-PLAN.md step 3): a sized calendar (a sized fixture, or ?barsize=) prints its
+    // bars and bands at E3's sizes, so those are the base sizes the shrunk-page restyle multiplies, while notes keep
+    // .mv-bar's 10 px. Stated here, never read from the writer (the STEPS rule below), and C0 holds them to Chrome's
+    // computed styles as ever. A bar's height is FIXED at a size (E3): its line and padding scale, its border does not.
+    info.barSize = docs.map(function (d) { return d.barSize || ''; });
+    var SIZED = ({large: {size: 12, tag: 11, radius: 11}, xl: {size: 14, tag: 12, radius: 13}})[docs[0].barSize || ''] || null;
+    if(SIZED){ BASE_STYLE.barFont = SIZED.size; BASE_STYLE.radius = SIZED.radius; BASE_STYLE.tagFont = SIZED.tag; }
     info.stampHits = docs.map(function (d) { return d.name + ':' + d.stampHits; });
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
     info.window = [window.innerWidth, window.innerHeight];
@@ -183,13 +198,13 @@ window.addEventListener('load', function () { (async function () {
     await probeFace.load(); document.fonts.add(probeFace);
 
     var totals = {documents: 0, months: 0, weeks: 0, fillMonths: 0, keptMonths: 0, shrunkMonths: 0, keptWeeks: 0, changedWeeks: 0,
-                  explainedBy: {span: 0, lines: 0, blankBand: 0}, bars: 0, texts: 0, blankBands: 0, rewrapped: 0};
+                  explainedBy: {span: 0, lines: 0, blankBand: 0, wrap: 0}, bars: 0, texts: 0, blankBands: 0, rewrapped: 0};
     var perDoc = [], ab = {docs: [], printPages: 0}, baseCheck = null;
 
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], pages = parseDoc(doc.html);
       if(pages.length !== doc.measured.length) throw new Error(doc.name + ': ' + pages.length + ' pages but ' + doc.measured.length + ' measured');
-      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf); });
+      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, null, doc.barSize || ''); });
       var layout = {geometry: G, months: months};
       var fitted = F.fitMonthLayout(layout, fonts);
       var again = F.fitMonthLayout(layout, fonts), viaJson = F.fitMonthLayout(JSON.parse(JSON.stringify(layout)), fonts);
@@ -205,7 +220,7 @@ window.addEventListener('load', function () { (async function () {
       fitted.months.forEach(function (m, pi) {
         var where0 = doc.name + ' / ' + m.label, pg = pages[pi], meas = doc.measured[pi], model = months[pi];
         totals.months++; totals.weeks += m.weeks.length;
-        var full = model.weeks.map(function (wk) { var n = F.mvlWeekNeed(wk.items, F.mvlWeekPaint(1)); return {basis: Math.max(n.h, ROW_FLOOR), lanes: n.lanes}; });
+        var full = model.weeks.map(function (wk) { var n = F.mvlWeekNeed(wk.items, F.mvlWeekPaint(1, model.barSize)); return {basis: Math.max(n.h, ROW_FLOOR), lanes: n.lanes}; });
         // C0: the measurement re-run IS the print path's.
         pg.table.forEach(function (t, wi) {
           var want = pg.mode === 'scale' ? t.height : t.basis;
@@ -224,7 +239,14 @@ window.addEventListener('load', function () { (async function () {
               if(mk.span !== it.lanes) why.push('span');
               if(mk.lines !== it.lines.length) why.push('lines');
             } else if(it.kind === 'hiatus' && F.mvlFlat(it.text) === '' && F.mvlFlat(it.tag || '') === '') why.push('blankBand');
+            // ⭐ A one-day custom pill the writer wraps and the print document does not, or the other way round
+            // (MONTH-BAR-SIZE-PLAN.md step 3). Each decides at its own box: the print path at the SCREEN's day width, the
+            // writer at the PDF's, which is ~20 px narrower. A label between the two wraps in one and not the other, and
+            // the week's lanes change, so it cannot keep the table: a difference inside the 1 px tolerance still moves
+            // every row of the month by a fraction (measured: 0.3 px, mvbarsize-large's April 2026).
+            else if(it.kind === 'pill' && mk.span !== it.lanes) why.push('wrap');
           });
+          if(why.indexOf('wrap') >= 0) kept = false;
           return {kept: kept, why: why.filter(function (w, i, a) { return a.indexOf(w) === i; }), tableBasis: tBasis, basis: basisNow};
         });
         var allKept = weekInfo.every(function (w) { return w.kept; });
@@ -266,14 +288,15 @@ window.addEventListener('load', function () { (async function () {
         // a month (it found Chrome's 1/64 px truncation) shows only when the failures are seen month by month.
         if(bad.A3.length > a3Before){ info.a3ByMonth = info.a3ByMonth || {}; info.a3ByMonth[where0] = {n: bad.A3.length - a3Before, mode: m.fit.mode, first: bad.A3.slice(a3Before, a3Before + 3)}; }
         // A5: blank bands.
-        var S = F.mvlWeekPaint(m.fit.scale);
+        var S = F.mvlWeekPaint(m.fit.scale, m.barSize);
         m.weeks.forEach(function (wk, wi) {
           wk.items.forEach(function (it, k) {
             totals.bars++;
             if(it.kind !== 'hiatus' || F.mvlFlat(it.text) !== '' || F.mvlFlat(it.tag || '') !== '') return;
             totals.blankBands++;
             var bar = list.filter(function (o) { return o.role === 'bar' && o.wk === wi && o.i === k; })[0];
-            var want = S.bar.size * S.lineHeight + 2 * (S.bar.padY + S.bar.border);
+            // A band is drawn at the phase bar size (S.big, which IS S.bar at Standard).
+            var want = S.big.size * S.lineHeight + 2 * (S.big.padY + S.big.border);
             if(!bar || !near(bar.h, want, 1e-9)) bad.A5.push(where0 + ' week ' + (wi + 1) + ' bar ' + (k + 1) + ': a blank band ' + (bar ? r3(bar.h) : 'not drawn') + ' px tall, not ' + r3(want));
             if(list.some(function (o) { return o.k === 'text' && o.wk === wi && o.i === k; })) bad.A5.push(where0 + ' week ' + (wi + 1) + ' bar ' + (k + 1) + ': a blank band with text');
           });
@@ -442,6 +465,8 @@ window.addEventListener('load', function () { (async function () {
       wk.items.forEach(function (it, k) {
         var b = bars[k], st = (b.getAttribute('style') || '').replace(/grid-row:\s*[^;]*/, 'grid-row:' + (it.lane + 1) + ' / span ' + it.lanes);
         if(it.kind === 'note'){ b.textContent = it.lines.join('\n'); st += ';white-space:pre'; }
+        // The writer's own wrap of a one-day custom pill (see 'wrap' above): Chrome lays it out as the writer decided.
+        if(it.kind === 'pill') b.classList.toggle('mv-pill-2l', !!(it.lines && it.lines.length > 1));
         b.setAttribute('style', st);
       });
     });
@@ -461,7 +486,13 @@ window.addEventListener('load', function () { (async function () {
       sel + ' .mv-pill, ' + sel + ' .mv-hiatus-bar{ border-radius:' + px(B.radius) + ' }',
       sel + ' .mv-note-block{ padding-top:' + px(B.notePadY) + '; padding-bottom:' + px(B.notePadY) + ' }',
       sel + ' .mv-pill-block{ font-size:' + px(B.tagFont) + ' }',
-    ].join('\n');
+    ].concat(SIZED ? [
+      // At a phase bar size (E3) notes keep .mv-bar's 10 px, the bars and bands take BASE_STYLE's sized type, and their
+      // FIXED height scales but its two 1 px borders do not (every line weight is kept).
+      sel + ' .mv-bar{ font-size:' + px(10) + ' }',
+      sel + ' .mv-pill, ' + sel + ' .mv-hiatus-bar{ font-size:' + px(B.barFont) + '; height:' + ((B.barFont * 1.5 + 2 * B.barPadY) * k + 2) + 'px }',
+      sel + ' .mv-pill.mv-pill-2l{ height:' + ((2 * B.barFont * 1.5 + 2 * B.barPadY) * k + 2) + 'px }',
+    ] : []).join('\n');
   }
   // C0's second half: the base numbers the restyle multiplies are the app's computed print styles, read off the
   // unscaled print layout (the first element of each kind any page has).
@@ -643,7 +674,11 @@ window.addEventListener('load', function () { (async function () {
     var base = {daynum: 11, half: 11, 'bar-text': 10, 'bar-ell': 10, 'bar-tag': 9};
     F.mvlPaintMonth(m, fonts).forEach(function (o) {
       if(o.k !== 'text' || !(o.role in base)) return;
-      if(Math.abs(o.size - base[o.role] * k) > 1e-9) bad.A4.push(where0 + ': a ' + o.role + ' at ' + o.size + ' px, not ' + base[o.role] * k);
+      // At a phase bar size (MONTH-BAR-SIZE-PLAN.md step 3) a bar's or band's text and grey tag are SIZED's type, at
+      // the factor; a note's text keeps .mv-bar's 10 px.
+      var it = /^bar-/.test(o.role) && m.weeks[o.wk] ? m.weeks[o.wk].items[o.i] : null;
+      var want = (SIZED && it && it.kind !== 'note') ? (o.role === 'bar-tag' ? SIZED.tag : SIZED.size) : base[o.role];
+      if(Math.abs(o.size - want * k) > 1e-9) bad.A4.push(where0 + ': a ' + o.role + ' at ' + o.size + ' px, not ' + want * k);
     });
     // Every week re-packed by the renderer's first-fit rule at the new spans -- a note at min(3, its lines), anything
     // else at its own -- written here independently of the writer's copy (mvlPackLanes), in placement order.
@@ -738,6 +773,7 @@ window.addEventListener('load', function () { (async function () {
     }, 'the calendar to settle', 200, 100);
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
+    await T.applyBarSizeQuery();
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };

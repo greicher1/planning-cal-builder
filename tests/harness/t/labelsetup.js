@@ -120,7 +120,8 @@ window.addEventListener('load', function () { (async function () {
   // The month view's all-phase hiatus bands on screen: [text, background].
   function monthBands(){ return [].map.call(document.querySelectorAll('#table-wrap .mv-hiatus-bar'), function (b) { return [txt(b), rgbHex(b.style.background || b.style.backgroundColor)]; }); }
   async function bringIntoView(el){
-    var pp = document.querySelector('.preview-panel');
+    // The month's scroll box is #table-wrap since 26 Oct 2026 (it was .preview-panel, toolbar and all).
+    var pp = document.getElementById('table-wrap');
     var r = el.getBoundingClientRect(), q = pp ? pp.getBoundingClientRect() : {top: 0, bottom: innerHeight, height: innerHeight};
     if(pp && (r.top < q.top + 20 || r.bottom > q.bottom - 20)){
       pp.scrollTop += (r.top + r.height / 2) - (q.top + q.height / 2);

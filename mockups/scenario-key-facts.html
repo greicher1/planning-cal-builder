@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario Key Facts</title>
+<!-- A mockup, not the app. Synthetic data only (no real show, no real schedule). Opens from file:// with nothing to
+     load: the app's own colours and type stack, drawn by hand. -->
+<style>
+:root{
+  --bg:#f7f6f3; --panel:#fff; --text:#1e1d1b; --muted:#726f68; --faint:#a5a197;
+  --line:#e3e1da; --line2:#d9d7ce; --line3:#c4c1b6;
+  --warn-bg:#fef6e7; --warn-ink:#7a5b14;
+  --navy:#2c3e50; --focus:#2c3e50;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:14px/1.45 Inter,-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:16px;margin:40px 0 6px}
+p{margin:0 0 10px;max-width:760px}
+.sub{color:var(--muted);margin-bottom:18px}
+ul{margin:6px 0 0;padding-left:20px;max-width:780px}
+li{margin:4px 0}
+
+/* ---- controls ---- */
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:16px 0 10px}
+.seg{display:inline-flex;background:#ecebe6;border-radius:8px;padding:2px}
+.seg button{border:0;background:none;font:inherit;font-size:12px;font-weight:500;color:var(--muted);
+  padding:4px 10px;border-radius:6px;cursor:pointer}
+.seg button.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ctl-label{font-size:12px;color:var(--muted);margin-right:6px}
+.fit{font-size:12px;padding:3px 8px;border-radius:6px;background:#e6f2e1;color:#375623}
+
+/* ---- the five styles, each a crop of the bottom of the preview panel at a 1440 px window (1094 px wide) ---- */
+.styles{display:grid;gap:22px;margin-top:14px}
+.style-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.style-head b{font-size:14px}
+.style-head span{font-size:12.5px;color:var(--muted)}
+.cropstage{overflow:hidden;border-radius:10px;border:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.crop{position:relative;width:1094px;height:150px;background:var(--bg);transform-origin:0 0}
+
+/* ---- the whole window, at a real width, scaled to fit ---- */
+.stage{position:relative;overflow:hidden;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 8px 28px rgba(0,0,0,.06)}
+.win{position:relative;height:430px;background:var(--bg);transform-origin:0 0}
+.win .hdr{height:52px;border-bottom:1px solid var(--line);background:#fff;display:flex;align-items:center;gap:10px;padding:0 14px}
+.win .hdr i{display:block;height:24px;border-radius:6px;background:#efeee9}
+.win .side{position:absolute;left:0;top:52px;bottom:0;width:346px;border-right:1px solid var(--line);background:#fbfaf8;padding:16px}
+.win .side i{display:block;height:10px;border-radius:4px;background:#ecebe6;margin:0 0 14px}
+.win .side i.f{height:28px;background:#fff;border:1px solid var(--line)}
+.win .panel{position:absolute;left:346px;right:0;top:52px;bottom:0}
+.win .grid{top:112px}
+
+/* inside the preview panel (shared by the crops and the window): the calendar, the facts, the strip */
+.grid{position:absolute;left:28px;right:28px;top:-1px;background:#fff;border:1px solid var(--line2);overflow:hidden}
+.grid.joined{border-bottom:0}
+.grid table{border-collapse:collapse;width:100%;font-size:10.5px}
+.grid td{border-bottom:1px solid #eeede8;border-right:1px solid #eeede8;height:19px;padding:0 6px;white-space:nowrap;color:#444}
+.grid td.d{width:62px;color:#555;text-align:right}
+.grid td.wr{background:#FFF2CC;color:#7A6215}
+.grid td.pp{background:#D6DCE5;color:#222A35}
+.grid td.pr{background:#E2F0D9;color:#375623}
+.grid td.po{background:#FBE5D6;color:#8A4A1F}
+
+/* the strip under the calendar: as legacy.css draws .sc-strip / .sc-tab */
+.strip{position:absolute;bottom:8px;left:28px;right:260px;height:28px;display:flex;align-items:center;gap:6px;min-width:0}
+.tabs{display:flex;gap:2px;flex:none}
+.strip .tabs{flex:0 1 auto;min-width:0;overflow:hidden}   /* .sc-tabs: min-width 0, scrolls sideways */
+.tab{flex:none;display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid transparent;border-radius:8px;
+  font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;cursor:pointer;background:none;font-family:inherit}
+.tab:hover{background:#f1f0ec;color:var(--text)}
+.tab.on{background:#fff;color:var(--text);font-weight:600;border-color:var(--line2);box-shadow:0 1px 2px rgba(0,0,0,.06);padding-right:6px}
+.tab.on::after{content:"";width:12px;height:12px;margin-left:4px;
+  background:no-repeat center/12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23726f68' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E")}
+.plus{flex:none;width:22px;height:22px;display:grid;place-items:center;color:var(--muted);font-size:15px}
+.cmp{flex:none;height:22px;display:inline-flex;align-items:center;gap:5px;padding:0 8px;border:1px solid var(--line3);border-radius:6px;
+  background:#fff;font-size:11px;font-weight:500}
+.zoom{position:absolute;bottom:9px;right:64px;width:183px;height:26px;border:1px solid #cdcabf;border-radius:13px;background:#fff;
+  display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:11px;font-weight:600;color:var(--muted)}
+.zoom b{flex:1;height:2px;background:#cdcabf;margin:0 10px;position:relative}
+.zoom b::after{content:"";position:absolute;left:50%;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--text)}
+.help{position:absolute;bottom:9px;right:28px;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:700}
+
+/* the preview toolbar's two rows, drawn as at a 1440 px window: the view toggle and tools, then the text style bar */
+.tb1{position:absolute;left:28px;right:28px;top:20px;height:34px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.tb1 .vt{display:inline-flex;height:34px;padding:3px;background:#ecebe6;border-radius:8px;gap:2px;flex:none;margin-right:26px}
+.tb1 .vt span{display:inline-flex;align-items:center;padding:0 22px;border-radius:6px;font-size:12px;font-weight:500;color:var(--muted)}
+.tb1 .vt span.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tb1 .b{flex:none;height:28px;border:1px solid var(--line3);border-radius:6px;background:#fff;font-size:11.5px;font-weight:500;
+  padding:0 9px;display:inline-flex;align-items:center}
+.tb1 .b.nv{border-color:var(--navy)}
+.tb1 .gap{width:10px;flex:none}
+.sbar{position:absolute;left:28px;right:28px;top:64px;height:34px;display:flex;align-items:center;gap:3px;padding:5px 8px;
+  background:#f7f6f3;border:1px solid var(--line2);border-radius:5px;white-space:nowrap}
+.sbar .t{flex:none;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.sbar .c{flex:none;height:22px;min-width:22px;border-radius:4px;border:1px solid var(--line2);background:#fff;opacity:.45;
+  display:inline-grid;place-items:center;font-size:11px;font-weight:700;color:#444;padding:0 4px}
+.sbar .hint{flex:none;font-size:10px;color:#6e6a62;margin-left:8px}
+.sbar .sfacts{flex:none;margin-left:auto;display:flex;align-items:center;padding-left:12px;border-left:1px solid var(--line2);height:22px}
+.sbar .sfacts .kf{font-size:11.5px}
+.sbar.over .sfacts{outline:2px dashed #d9534f;outline-offset:2px}
+.crop.top{height:200px}
+
+/* ---- the key facts line ---- */
+.kf{display:flex;align-items:center;white-space:nowrap;font-size:12px;color:var(--text)}
+.kf .sep{color:var(--faint);margin:0 7px}
+.kf .lab{color:var(--muted);margin-right:4px}
+/* Compare's own rule: what is the same in every scenario is grey, so what differs is what you read. */
+.kf .v{font-weight:600}
+.kf .v.same{color:var(--faint);font-weight:500}
+.kf .lab.same{color:#c3c0b6}
+
+/* the row the facts sit in, and the five ways of setting it apart from the tabs */
+.frow{position:absolute;left:28px;right:28px;display:flex;align-items:center}
+.hair{position:absolute;left:28px;right:28px;height:1px;background:#d6d3c9}                                  /* A */
+.pill{display:inline-flex;align-items:center;height:26px;padding:0 13px;background:#fff;border:1px solid #cdcabf;  /* B */
+  border-radius:13px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.band{background:#efeee8;border-radius:8px;padding:0 12px}                                                      /* C */
+.foot{background:#fbfaf8;border:1px solid var(--line2);border-top-color:#ebe9e2;border-radius:0 0 8px 8px;padding:0 12px} /* D */
+.ntag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;background:#e8edf2;      /* E */
+  color:var(--navy);font-size:11px;font-weight:700;margin-right:10px;white-space:nowrap}
+.ntag-wrap{border-top:1px solid transparent}
+
+.note{font-size:12.5px;color:var(--muted);margin-top:10px;max-width:820px}
+.note b{color:var(--text)}
+
+/* ---- the Show info card, as the sidebar draws it ---- */
+.loc-wrap{display:grid;grid-template-columns:330px 1fr;gap:24px;align-items:start;margin-top:14px}
+@media (max-width:820px){.loc-wrap{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:14px 16px}
+.card h3{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card .which{font-size:11.5px;color:var(--muted);margin:-6px 0 12px}
+.card .which b{color:var(--text)}
+.fld{margin-bottom:16px}
+.fld:last-child{margin-bottom:0}
+.fld label{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+.fld .desc{font-size:11.5px;color:var(--muted);margin:-2px 0 5px}
+.fld select,.fld input{width:100%;height:34px;border:1px solid var(--line2);border-radius:8px;background:#fff;
+  font:inherit;font-size:13.5px;color:var(--text);padding:0 10px}
+.fld input::placeholder{color:var(--faint)}
+.fld select:focus,.fld input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 2px rgba(44,62,80,.12)}
+.fld.ghost label{color:var(--faint)}
+.fld.ghost .stub{height:34px;border:1px dashed var(--line2);border-radius:8px}
+.new-pill{display:inline-block;font-size:10px;font-weight:700;color:#375623;background:#e6f2e1;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+.cmpbox{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:12px 14px;overflow-x:auto}
+.cmpbox .cap{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.cmpbox table{border-collapse:collapse;font-size:12.5px}
+.cmpbox td{padding:6px 14px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+.cmpbox td:first-child{color:var(--muted);padding-right:22px}
+.cmpbox tr.hd td{font-weight:600;color:var(--text);border-bottom:1px solid var(--line3)}
+.cmpbox .b{font-weight:600}
+.cmpbox .onscr{font-size:10px;font-weight:600;color:var(--navy);background:#e8edf2;border-radius:4px;padding:1px 5px;margin-left:6px}
+.cmpbox .chip{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:600;color:var(--warn-ink);background:var(--warn-bg);border-radius:4px;padding:1px 6px}
+.cmpbox .same td{color:var(--faint)}
+
+table.names{border-collapse:collapse;margin-top:10px;font-size:13px;background:#fff;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.names th,.names td{text-align:left;padding:6px 14px;border-bottom:1px solid var(--line)}
+.names th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:#fbfaf8}
+.names td.arrow{color:var(--faint);padding:0 4px}
+.names tr:last-child td{border-bottom:0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Scenario key facts</h1>
+  <p class="sub">Mockup · one line of each scenario's key facts, shown only with 2 or more scenarios. Option F puts it in the text style bar at the top; A–E put it just above the tabs. Click any tab to flip every example. <b style="color:var(--text)">Chosen: C, the tinted band (owner, 23 Oct 2026); plan in KEY-FACTS-PLAN.md.</b></p>
+
+  <div class="controls">
+    <span><span class="ctl-label">Scenarios</span><span class="seg" id="seg-n">
+      <button data-v="3">3</button><button data-v="6" class="on">6</button><button data-v="10">10</button></span></span>
+  </div>
+
+  <h2 style="margin-top:20px">F · In the text style bar, to the right of its controls</h2>
+  <p class="note" style="margin-top:0">The top of the calendar area, drawn at actual size for the window width picked here. The hint (“Highlight any text…”) gives way first when the facts need its room.</p>
+  <div class="controls" style="margin-top:6px">
+    <span><span class="ctl-label">Window width</span><span class="seg" id="seg-wf">
+      <button data-v="1280">1280 px</button><button data-v="1440" class="on">1440 px</button><button data-v="1680">1680 px</button></span></span>
+    <span class="fit" id="fitf"></span>
+  </div>
+  <div class="cropstage" id="topstage"><div class="crop top" id="topcrop"></div></div>
+
+  <h2>A–E · Above the tabs, five ways to separate them</h2>
+  <p class="note" style="margin-top:0">Each is the bottom of the calendar area at a 1440 px window, drawn at actual size (scaled down only if this page is narrower).</p>
+  <div class="styles" id="styles"></div>
+
+  <h2>In the whole window</h2>
+  <div class="controls">
+    <span><span class="ctl-label">Style</span><span class="seg" id="seg-style"></span></span>
+    <span><span class="ctl-label">Window width</span><span class="seg" id="seg-w">
+      <button data-v="1280">1280 px</button><button data-v="1440" class="on">1440 px</button><button data-v="1680">1680 px</button></span></span>
+    <span class="fit" id="fit"></span>
+  </div>
+  <div class="stage" id="stage">
+    <div class="win" id="win">
+      <div class="hdr"><i style="width:28px"></i><i style="width:120px"></i><i style="width:60px"></i><i style="width:60px"></i><span style="flex:1"></span><i style="width:110px"></i><i style="width:90px"></i></div>
+      <div class="side"><i style="width:40%"></i><i class="f"></i><i style="width:30%"></i><i class="f"></i><i style="width:45%"></i><i class="f"></i><i style="width:38%"></i><i class="f"></i><i style="width:50%"></i><i class="f"></i></div>
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+  <p class="note">Styles A–E: the tabs keep the whole strip, exactly as today, and the calendar gives up about 30 px at the bottom, only while there are 2 or more scenarios. Style F costs no height at all. Beside the tabs was measured and dropped: the line keeps its width, so the tabs are squeezed into whatever is left (1 tab in view at 1440 px).</p>
+
+  <h2>What the line shows</h2>
+  <ul>
+    <li><b>Location</b>: what you typed in Show info's new Location box. If it's blank, the Production Region, shortened (table at the bottom).</li>
+    <li><b>Episodes</b>: "5 blocks" instead when a calendar is scheduled by blocks.</li>
+    <li><b>Writers' Rm</b>: the date it opens, then its length in weeks. This drops out when a calendar has no writers' room.</li>
+    <li><b>Production</b>: the first shoot day, then the production span in weeks.</li>
+    <li><b>Wrap</b>: the last shoot day.</li>
+    <li><b>Grey</b> marks a value that's the same in every scenario, as the Compare window greys a row that's the same everywhere. What's left dark is what differs, and as you flip, only the dark values change.</li>
+    <li>It's the same in the month view. It has no setting, and the line itself is never saved, printed or exported.</li>
+  </ul>
+
+  <h2>Location, in Show info</h2>
+  <p>The Production Region stays what it is today: it picks the union holidays. Under it, a new optional <b>Location</b> box takes any text. When it's filled in, that text is what the line and the Compare window show. Try it: pick a scenario with any tabs above, then type in the box.</p>
+
+  <div class="loc-wrap">
+    <div class="card">
+      <h3>Show info</h3>
+      <div class="which">Editing scenario <b id="which-name"></b></div>
+      <div class="fld ghost"><label>Title · Season · Schedule by · Episodes · Version</label><div class="stub"></div></div>
+      <div class="fld">
+        <label for="m-region">Production Region</label>
+        <select id="m-region"></select>
+      </div>
+      <div class="fld">
+        <label for="m-loc">Location <span class="new-pill">NEW</span></label>
+        <div class="desc">Optional. Shown instead of the region when you compare scenarios.</div>
+        <input id="m-loc" type="text" maxlength="40" placeholder="e.g. Winnipeg" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="cmpbox">
+      <div class="cap">Compare window (top rows)</div>
+      <table id="m-cmp"></table>
+    </div>
+  </div>
+
+  <ul style="margin-top:16px">
+    <li><b>Each scenario keeps its own Location</b>, like every other Show info field, so "Toronto" and "Winnipeg" can sit side by side.</li>
+    <li><b>Saved with the calendar.</b> A calendar saved before this has no Location, so it shows its region, exactly as it does now.</li>
+    <li><b>It never changes a date.</b> Only the Production Region decides holidays. Typing "Winnipeg" with the region left on Toronto keeps Toronto's holidays.</li>
+  </ul>
+
+  <h2>When Location is blank</h2>
+  <p>The region is shown short, so the line and the Compare row stay tidy:</p>
+  <table class="names">
+    <tr><th>The Region list says</th><th></th><th>The line and Compare say</th></tr>
+    <tr><td>Toronto, ON</td><td class="arrow">→</td><td>Toronto</td></tr>
+    <tr><td>Los Angeles, CA</td><td class="arrow">→</td><td>Los Angeles</td></tr>
+    <tr><td>Manitoba — province-wide</td><td class="arrow">→</td><td>Manitoba</td></tr>
+    <tr><td>Florida — statewide</td><td class="arrow">→</td><td>Florida</td></tr>
+    <tr><td>Elsewhere in the U.S. — Area Standards</td><td class="arrow">→</td><td>U.S. (Area Standards)</td></tr>
+    <tr><td>Brandenburg — incl. Studio Babelsberg</td><td class="arrow">→</td><td>Brandenburg</td></tr>
+    <tr><td>None</td><td class="arrow">→</td><td>—</td></tr>
+  </table>
+</main>
+
+<script>
+// A few of the real Region entries (PLACES' labels), enough to try the rule.
+const PLACES = [
+  ['ca-toronto', 'Toronto, ON'], ['ca-vancouver', 'Vancouver, BC'], ['ca-montreal', 'Montreal, QC'],
+  ['ca-manitoba', 'Manitoba — province-wide'], ['ca-alberta', 'Alberta — province-wide'],
+  ['us-los-angeles', 'Los Angeles, CA'], ['us-general', 'Elsewhere in the U.S. — Area Standards'], ['', 'None'],
+];
+const placeLabel = v => (PLACES.find(p => p[0] === v) || ['', 'None'])[1];
+// The short form: drop a " — …" tail and a ", XX" state/province code. The catch-all keeps what it is.
+function shortRegion(v) {
+  if (!v) return '—';
+  if (v === 'us-general') return 'U.S. (Area Standards)';
+  return placeLabel(v).replace(/\s+—.*$/, '').replace(/,\s*[A-Z]{2}$/, '');
+}
+// Synthetic scenarios. Dates m/d/yy, as the waterfall writes them.
+const SC = [
+  { name: '10 eps',      place: 'ca-toronto',   loc: '',         eps: '10 eps',   wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '17 wks', wrap: '9/23/26',  rows: [6, 3, 9, 3] },
+  { name: '8 eps',       place: 'ca-toronto',   loc: '',         eps: '8 eps',    wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '14 wks', wrap: '9/1/26',   rows: [6, 3, 7, 3] },
+  { name: 'Winnipeg',    place: 'ca-manitoba',  loc: 'Winnipeg', eps: '10 eps',   wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/8/26',  prodWks: '17 wks', wrap: '9/29/26',  rows: [6, 4, 9, 2] },
+  { name: '9 eps',       place: 'ca-toronto',   loc: '',         eps: '9 eps',    wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '15 wks', wrap: '9/11/26',  rows: [6, 3, 8, 3] },
+  { name: 'Vancouver',   place: 'ca-vancouver', loc: '',         eps: '10 eps',   wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '17 wks', wrap: '9/24/26',  rows: [6, 3, 9, 3] },
+  { name: 'Late start',  place: 'ca-toronto',   loc: '',         eps: '10 eps',   wrOpen: '2/2/26',  wrWks: '12 wks', prodStart: '6/29/26', prodWks: '17 wks', wrap: '10/21/26', rows: [6, 3, 9, 2] },
+  { name: '12 eps',      place: 'ca-toronto',   loc: '',         eps: '12 eps',   wrOpen: '1/5/26',  wrWks: '14 wks', prodStart: '6/1/26',  prodWks: '20 wks', wrap: '10/16/26', rows: [7, 3, 10, 2] },
+  { name: 'Calgary',     place: 'ca-alberta',   loc: 'Calgary',  eps: '10 eps',   wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '17 wks', wrap: '9/24/26',  rows: [6, 3, 9, 3] },
+  { name: 'Short room',  place: 'ca-toronto',   loc: '',         eps: '10 eps',   wrOpen: '2/16/26', wrWks: '8 wks',  prodStart: '6/1/26',  prodWks: '17 wks', wrap: '9/23/26',  rows: [4, 3, 9, 3] },
+  { name: 'Block shoot', place: 'ca-toronto',   loc: '',         eps: '5 blocks', wrOpen: '1/5/26',  wrWks: '12 wks', prodStart: '6/1/26',  prodWks: '16 wks', wrap: '9/18/26',  rows: [6, 3, 8, 3] },
+];
+// The five ways of setting the facts apart from the tabs. `grid` is where the calendar's box ends, measured up from
+// the bottom of the preview panel; the strip is 28 px tall, 8 px up, as in the app.
+const STYLES = [
+  { k: 'line',   name: 'A · Hairline',        grid: 78, desc: 'A thin rule between the two rows. The lightest touch.' },
+  { k: 'pill',   name: 'B · Readout pill',    grid: 82, desc: 'The facts in a white pill, the same shape as the zoom control on the right.' },
+  { k: 'band',   name: 'C · Tinted band',     grid: 84, desc: 'A soft grey band as wide as the calendar.' },
+  { k: 'footer', name: 'D · Calendar footer', grid: 76, desc: 'Attached to the calendar’s bottom edge. Reads as “about this calendar”, but it could look like something that prints.' },
+  { k: 'tag',    name: 'E · Name tag',        grid: 80, desc: 'Starts with the scenario’s name, so it’s clear which tab the facts belong to.' },
+  // The owner's idea: the empty right-hand end of the text style bar, at the top. Nothing at the bottom but the tabs.
+  { k: 'bar',    name: 'F · In the text style bar', grid: 46, desc: '' },
+];
+let count = 6, cur = 0, width = 1440, widthF = 1440, styleK = 'line';
+const shown = () => SC.slice(0, count);
+const where = s => s.loc.trim() || shortRegion(s.place);
+const val = (s, k) => k === 'where' ? where(s) : s[k];
+const differs = k => new Set(shown().map(s => val(s, k))).size > 1;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const v = (s, k) => `<span class="v${differs(k) ? '' : ' same'}">${esc(val(s, k))}</span>`;
+// A label greys with its values when none of them differ.
+const lab = (text, ...keys) => `<span class="lab${keys.some(differs) ? '' : ' same'}">${text}</span>`;
+function factsHtml(s) {
+  const sep = '<span class="sep">·</span>';
+  return '<div class="kf">' + (where(s) === '—' ? '' : v(s, 'where') + sep) + v(s, 'eps') + sep +
+    lab('Writers’ Rm', 'wrOpen', 'wrWks') + v(s, 'wrOpen') + sep + v(s, 'wrWks') + sep +
+    lab('Production', 'prodStart', 'prodWks') + v(s, 'prodStart') + sep + v(s, 'prodWks') + sep +
+    lab('Wrap', 'wrap') + v(s, 'wrap') + '</div>';
+}
+function factsBlock(k, s) {
+  const f = factsHtml(s);
+  switch (k) {
+    case 'line':   return `<div class="frow" style="bottom:50px;height:22px">${f}</div><div class="hair" style="bottom:43px"></div>`;
+    case 'pill':   return `<div class="frow" style="bottom:46px;height:28px"><div class="pill">${f}</div></div>`;
+    case 'band':   return `<div class="frow band" style="bottom:46px;height:30px">${f}</div>`;
+    case 'footer': return `<div class="frow foot" style="bottom:48px;height:28px">${f}</div>`;
+    case 'tag':    return `<div class="frow" style="bottom:48px;height:24px"><span class="ntag">${esc(s.name)}</span>${f}</div>`;
+  }
+}
+// The preview toolbar's two rows. In style F the facts sit at the bar's right-hand end, labelled the way the bar
+// labels its own controls ("TEXT"), behind a divider.
+function toolbarHtml(st, s) {
+  const tb1 = '<div class="tb1"><span class="vt"><span class="on">Waterfall</span><span>Month</span></span>' +
+    '<span class="b nv">← 1 wk</span><span class="b nv">Shift All ▾</span><span class="b nv">1 wk →</span><span class="gap"></span>' +
+    '<span class="b nv">Shift From ▾</span><span class="b nv">Anchor To ▾</span><span class="b nv">Rebuild From ▾</span><span class="gap"></span>' +
+    '<span class="b">Side Boxes ▾</span><span class="b">Header: Auto ▾</span></div>';
+  return tb1 + '<div class="sbar"><span class="t">Text</span><span class="c" style="width:64px">Size ▾</span><span class="c">B</span>' +
+    '<span class="c"><i>I</i></span><span class="c">A</span><span class="c" style="width:32px">≡ ▾</span><span class="c">∅</span>' +
+    '<span class="hint">Highlight any text in the calendar to style it</span>' +
+    (st.k === 'bar' ? `<span class="sfacts"><span class="t">Scenario</span>${factsHtml(s)}</span>` : '') + '</div>';
+}
+// Room in the bar, as the app would have to decide it: the facts never cut off, the hint gives way first.
+function fitBar(sb) {
+  const facts = sb && sb.querySelector('.sfacts');
+  if (!facts) return '';
+  const hint = sb.querySelector('.hint');
+  const fits = () => facts.offsetLeft + facts.offsetWidth <= sb.clientWidth - 8 + 0.5;
+  sb.classList.remove('over'); hint.style.display = '';
+  if (fits()) return 'hint';
+  hint.style.display = 'none';
+  if (fits()) return 'nohint';
+  sb.classList.add('over');
+  return 'over';
+}
+const FIT_TEXT = { hint: 'Fits, with the hint', nohint: 'Fits once the hint gives way', over: 'Doesn’t fit' };
+function headerBlock() {
+  return '<div style="text-align:center;font-size:10.5px;line-height:1.35;padding:7px 0 6px;border-bottom:1px solid #eeede8;color:#333">' +
+    '<b style="font-size:12px">Show Title S2</b><br>Planning Calendar<br><span style="color:#777">Writers’ Room Opens: 1/5/26</span></div>';
+}
+function gridHtml(s) {
+  // A token waterfall, so a flip visibly changes the calendar as well as the line.
+  const kinds = [['wr', 'Writer’s Rm wk'], ['pp', 'Prod Prep wk'], ['pr', 'Production wk'], ['po', 'Post wk']];
+  let h = '<table>', d = 0;
+  kinds.forEach(([c, lab], i) => {
+    for (let n = 1; n <= s.rows[i]; n++, d++) h += `<tr><td class="d">wk ${d + 1}</td><td class="${c}">${lab} ${n}</td><td></td><td></td><td></td></tr>`;
+  });
+  return h + '</table>';
+}
+function tabsHtml() {
+  return '<div class="tabs">' + shown().map((t, i) =>
+    `<button class="tab${i === cur ? ' on' : ''}" data-i="${i}">${esc(t.name)}</button>`).join('') + '</div>';
+}
+function panelHtml(st, s, fromBottom) {
+  // fromBottom: a crop shows the END of the calendar, so its rows are drawn bottom-up.
+  return (fromBottom ? '' : toolbarHtml(st, s)) +
+    `<div class="grid${st.k === 'footer' ? ' joined' : ''}" style="bottom:${st.grid}px${fromBottom ? ';display:flex;flex-direction:column;justify-content:flex-end' : ''}">${fromBottom ? '' : headerBlock()}${gridHtml(s)}</div>` +
+    (st.k === 'bar' ? '' : factsBlock(st.k, s)) +
+    `<div class="strip">${tabsHtml()}<span class="plus">+</span>` +
+    '<span class="cmp"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="5" height="10" rx="1"/><rect x="9" y="3" width="5" height="10" rx="1"/></svg>Compare</span></div>' +
+    '<div class="zoom">−<b></b>+&nbsp;&nbsp;100%</div><div class="help">?</div>';
+}
+// The tab on screen scrolled into view, as the app does; returns how many tabs can be seen without scrolling.
+function tabsInView(stripEl) {
+  const tabsEl = stripEl.querySelector('.tabs'), tabEls = [...tabsEl.querySelectorAll('.tab')];
+  const x0 = tabsEl.offsetLeft, on = tabEls[cur];
+  tabsEl.scrollLeft = 0;
+  if (on.offsetLeft - x0 + on.offsetWidth > tabsEl.clientWidth) tabsEl.scrollLeft = on.offsetLeft - x0 + on.offsetWidth - tabsEl.clientWidth;
+  return tabEls.filter(t => t.offsetLeft - x0 >= tabsEl.scrollLeft - 0.5 &&
+    t.offsetLeft - x0 + t.offsetWidth <= tabsEl.scrollLeft + tabsEl.clientWidth + 0.5).length;
+}
+function renderStyles() {
+  const s = SC[cur];
+  document.getElementById('styles').innerHTML = STYLES.filter(st => st.k !== 'bar').map(st =>
+    `<div><div class="style-head"><b>${st.name}</b><span>${st.desc}</span></div>` +
+    `<div class="cropstage"><div class="crop">${panelHtml(st, s, true)}</div></div></div>`).join('');
+  document.querySelectorAll('.crop .strip').forEach(tabsInView);
+}
+function renderWindow() {
+  const s = SC[cur], st = STYLES.find(x => x.k === styleK);
+  document.getElementById('win').style.width = width + 'px';
+  document.getElementById('panel').innerHTML = panelHtml(st, s, false);
+  const seen = tabsInView(document.querySelector('#panel .strip'));
+  const bar = fitBar(document.querySelector('#panel .sbar'));
+  const fit = document.getElementById('fit');
+  fit.textContent = (bar ? FIT_TEXT[bar] + ' · ' : '') + (seen < count
+    ? seen + ' of ' + count + ' tabs in view, the rest scroll (as today)' : 'All ' + count + ' tabs in view');
+  fit.style.cssText = bar === 'over' ? 'background:var(--warn-bg);color:var(--warn-ink)' : '';
+}
+function renderTop() {
+  const s = SC[cur], crop = document.getElementById('topcrop');
+  crop.style.width = (widthF - 346) + 'px';   // the preview panel: the window less the 346 px sidebar
+  crop.innerHTML = toolbarHtml({ k: 'bar' }, s) + `<div class="grid" style="top:112px;bottom:-1px">${headerBlock()}${gridHtml(s)}</div>`;
+  const r = fitBar(crop.querySelector('.sbar'));
+  const fit = document.getElementById('fitf');
+  fit.textContent = FIT_TEXT[r] + ' at ' + widthF + ' px';
+  fit.style.cssText = r === 'over' ? 'background:var(--warn-bg);color:var(--warn-ink)' : '';
+}
+function renderCompare() {
+  const ref = SC[cur];
+  const cols = [ref].concat(shown().filter(s => s !== ref));
+  const row = (label, k, delta) => {
+    const same = !differs(k);
+    return `<tr class="${same ? 'same' : ''}"><td>${label}</td>` + cols.map(s => {
+      const d = s !== ref && val(s, k) !== val(ref, k);
+      return `<td class="${d ? 'b' : ''}">${esc(val(s, k))}${d && delta ? `<br><span class="chip">${delta(s, ref)}</span>` : ''}</td>`;
+    }).join('') + '</tr>';
+  };
+  const epsDelta = (s, r) => { const n = parseInt(s.eps) - parseInt(r.eps); return isNaN(n) ? '' : (n > 0 ? '+' : '') + n; };
+  document.getElementById('m-cmp').innerHTML =
+    '<tr class="hd"><td></td>' + cols.map(s => `<td>${esc(s.name)}${s === ref ? '<span class="onscr">On screen</span>' : ''}</td>`).join('') + '</tr>' +
+    row('Episodes', 'eps', epsDelta) + row('Location', 'where');
+}
+function renderCard() {
+  const s = SC[cur];
+  document.getElementById('which-name').textContent = s.name;
+  const sel = document.getElementById('m-region');
+  sel.innerHTML = PLACES.map(p => `<option value="${p[0]}">${esc(p[1])}</option>`).join('');
+  sel.value = s.place;
+  const inp = document.getElementById('m-loc');
+  if (document.activeElement !== inp) inp.value = s.loc;
+}
+function fitAll() {
+  document.querySelectorAll('.cropstage').forEach(stage => {
+    const crop = stage.querySelector('.crop'), k = Math.min(1, stage.clientWidth / crop.offsetWidth);
+    crop.style.transform = `scale(${k})`;
+    stage.style.height = (crop.offsetHeight * k) + 'px';
+  });
+  const stage = document.getElementById('stage'), win = document.getElementById('win');
+  const k = Math.min(1, stage.clientWidth / width);
+  win.style.transform = `scale(${k})`;
+  stage.style.height = (430 * k) + 'px';
+}
+function render() {
+  renderTop(); renderStyles(); renderWindow(); renderCompare(); renderCard(); fitAll();
+  document.querySelectorAll('.tab').forEach(b => b.onclick = () => { cur = +b.dataset.i; render(); });
+}
+function seg(id, set) {
+  document.querySelectorAll('#' + id + ' button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b));
+    set(b.dataset.v); render();
+  });
+}
+document.getElementById('seg-style').innerHTML = STYLES.map(st =>
+  `<button data-v="${st.k}"${st.k === styleK ? ' class="on"' : ''}>${st.name.split(' · ')[0]}</button>`).join('');
+seg('seg-style', x => styleK = x);
+seg('seg-w', x => width = +x);
+seg('seg-wf', x => widthF = +x);
+seg('seg-n', x => { count = +x; if (cur >= count) cur = 0; });
+document.getElementById('m-region').onchange = e => { SC[cur].place = e.target.value; render(); };
+document.getElementById('m-loc').oninput = e => { SC[cur].loc = e.target.value; render(); };
+window.addEventListener('resize', fitAll);
+render();
+</script>
+</body>
+</html>

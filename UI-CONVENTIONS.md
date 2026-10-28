@@ -544,12 +544,25 @@ week-snapped fields — a distinction that is currently invisible.
 | Free text (3 fields) | `<input type=text>` + inline styles | `TextInput size="xs"` |
 | Phase-name inline edit | `.phase-name-input`, `outline:none` | `TextInput variant="unstyled"` + **a real focus ring restored** |
 | Checkboxes (4 families) | bare `<input type=checkbox>` | `Checkbox size="xs"` — one size, no exceptions |
-| Hiatus "Lock in place" | checkbox + `title` | **stays a `Checkbox`** with a `description`, not a `Switch` |
+| Hiatus "Lock in place" | checkbox + `title` | ~~**stays a `Checkbox`** with a `description`, not a `Switch`~~ ⛔ **a switch row** since 23 Oct 2026 (owner ruling R7, below) |
 | View toggle / sidebar tabs | hand-built button pairs | `SegmentedControl` **with an explicit `name`** (§8.3) |
 | Holiday list | hand-built 3-column grid | `Table stickyHeader` in `Table.ScrollContainer` — **not** `Checkbox.Group` |
 
-**Why the pin stays a Checkbox:** a Switch implies an immediate effect on a running thing. The pin
-records a property of the hiatus that only matters later, when a shift tool runs. That is a checkbox.
+~~**Why the pin stays a Checkbox:** a Switch implies an immediate effect on a running thing. The pin
+records a property of the hiatus that only matters later, when a shift tool runs. That is a checkbox.~~
+
+> ⛔ **OVERRULED 23 Oct 2026 for the Phases tab's cards (owner ruling R7, PHASES-TAB-PLAN.md §1 and §3.4a).** The
+> owner picked the A + D blend, whose every yes/no is a label-left **switch row** -- Snap to Monday, Number weeks,
+> Hide in waterfall, a phase's Hiatus, Simultaneous Post, and on the All-phase hiatus card **Lock in place** and
+> Number weeks. They were told before picking that this overrules the paragraph above, and the blend's switches
+> stand. As built:
+> - a switch is **CSS on the engine's own native checkbox** (`.sw-row > input[type=checkbox]` in `legacy.css`: Mantine's
+>   `Switch size="xs"`, a 32 x 16 track and a 12 px thumb drawn as `::before`), never a React `Switch` (§8.9: the engine
+>   writes `.checked` directly, and a controlled Switch would put its own state back);
+> - each switch keeps its own `<label>`, its class, its id where it had one and its `checked` default, so the save
+>   format and every listener are untouched (leg `phasesui` holds 46 fixtures' `fields.byId` to the build before);
+> - the reasoning above still holds **outside these cards**: anywhere else, a property that only matters later stays a
+>   Checkbox unless the owner rules otherwise.
 
 **The inline-style duplication ends.** Of the seven repeated field recipes, six need no replacement
 at all — the component supplies the styling — and only `#show-title` needs one.
@@ -810,10 +823,11 @@ page scrolls, exactly as before.
 |---|---|
 | the frame | `@media screen and (width > 960px)` in `legacy.css` ("The app shell"): `<body>` is a `100vh` flex column with `overflow:hidden`; every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
 | the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
-| the month view | `.preview-panel{overflow:auto}` — the view has no scroll box of its own, and it is not scaled or restyled |
+| the month view | *(26 Oct 2026, owner: "The surrounding menus need to stay fixed in place.")* **`#table-wrap` is its scroll box**, as the waterfall's grid box is: in the month view the panel is a flex column, the toolbar rows at their natural height and `#table-wrap` `flex:1 1 0; overflow:auto` under them, so the toolbar and the text style bar never scroll away, at any zoom. Zoomed, `#table-wrap` is a one-track grid (`calc(100% * var(--cal-zoom))`) that pins `.month-view` to its 100% width. Only `#table-wrap`'s own box; nothing inside it, no `.mv-*` rule. Until then the month scrolled in `.preview-panel` (still `overflow:auto`, so a tool popover past its bottom stays reachable). `calzoom` Z5, M2 and M2b hold it |
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
 | the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
 | the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md.)* A full-width second line of `.view-toggle-row` (`.view-toggle-row > .style-bar-host{flex:1 1 100%}`; the row already wraps), 34 px tall at 1600×1200, so it costs one toolbar line of grid height at every width. ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit already observes `.view-toggle-row` (its ResizeObserver), so the grid still ends at the panel's bottom with no change; `calzoom` W1b and `textstyle` B3 hold it |
+| the phase map | *(27 Oct 2026, MONTH-RAIL-PLAN.md, owner's option 3d+.)* `MonthMap.jsx`, a full-width line of `.view-toggle-row` ABOVE the text style bar, in the month view only (null in the waterfall, so the style bar keeps its place there). It draws the engine's `monthMap` push: every month (at least 36 px each, scrolling sideways inside the map past that), the phases as named 13 px bars in at most 3 rows plus 4 px thin rows, the all-phase hiatuses as red marks. 54 / 69 / 84 px tall for 1 / 2 / 3 rows. Plain buttons with `data-mvgo` / `data-mvstep`, no ids. In the month view `#table-wrap` is the flex scroll box, so the calendar gives up the map's height with no grid-fit change. `monthmap` holds it |
 
 ⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
 `body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct
@@ -1348,7 +1362,17 @@ Nothing in this document ships without all of these, every stage:
     refuses; the highlight rule; no menu on a heading or with Shift; a render closing the menu, a repaint or an
     unmoved scroll not; no id, and `fields.byId` unchanged. ⚠️ Before adding a menu item anywhere, read that plan's
     §1.1: an item must be what you reach for on that cell AND have no one-gesture way there already.
-20. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
+20. **NEW — the month view's screen-only look moves nothing, and the phase map is the arrows' twin** (27 Oct 2026,
+    MONTH-RAIL-PLAN.md).
+    - `softlines` (dayoverrides, halfmarks): every month page is measured with the Soft Lines `@media screen` block
+      and with it deleted from the page's own stylesheet. Every `.mv-*` box must be identical to 0.01 px, and every
+      day mark, bar, note, hiatus band and header line painted identically.
+    - `monthmap` (mvnotes, colreuse, offweek): the map's months and highlight equal the frozen arrows' on every page,
+      and a bar spans every phase the month view draws.
+    - Gates 10 and 13 byte-identical are the proof the look stays off both month PDFs.
+    - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
+      itself turns `softlines` L1 red.
+21. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
     rulings T1–T4). `gate.sh`'s `mvmenu` leg: the EXACT item list of every menu it checks (a bar on a shoot day, a
     weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the
     left-click menu), and T1, which watches every month menu and submenu the leg opens (75 of them) for a cut item

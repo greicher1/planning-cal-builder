@@ -52,7 +52,1097 @@
 - ⏭ **Next:** merging into `main` and the push are each the owner's picker. ⚠️ Local `main` is ahead of `origin/main`
   (`99a145e`, Scenarios, unpushed); this branch is on `origin/main`, so merge it into local `main` as it stands. The tracker card is `building` until the gate is green.
 
-### 🔨 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*) ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
+### ✅ 28 Oct 2026 (latest): SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+
+- **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
+  a gate just remove and push"*.
+- **Done:** the `description` prop dropped from `#season-num`'s `NativeSelect` in `src/chrome/Sidebar.jsx`'s
+  `SeasonField`. Chrome only: no id, no saved key, nothing the grid or the exports read. README has an Unreleased line.
+- **Verified:** `npm run build` + `npm run check` 40/40; no gate, on the owner's word. Pushed with the unpushed
+  HANDOFF-only `76099c4`; the deploy run succeeded and the live page served the local `dist/index.html` byte for byte
+  on the first fetch. No version cut (still v1.9.0).
+
+### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
+
+- **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then
+  run one single gate"*. **Picked:** month text styling, the phase map rail + Soft Lines, two or more seasons — NOT the
+  month menu trim (`claude/adoring-chaum-0206c1`, still waiting on its own merge picker). **Stop all three** per-feature
+  gates (month-rail's had already finished 3,142/0; Seasons' was stopped 17 min in; month text styling's 20 min in).
+- **Done** by the month-bar-size session:
+  - The Seasons session's uncommitted work committed on `main` in the main checkout as `15ac6ce` (Seasons files only;
+    the stray `stintswap-reshape.sptcal` edit, the Reshape fixture, `WATERFALL-PDF-LOOK-PLAN.md` left alone).
+  - Integrated on `month-bar-size`: `main` (`4dc1aa1`), `land-month-text-style` (`9d67f4c`), `claude/month-rail`
+    (`1bc01d5`). Conflicts were README/HANDOFF tops, gate.sh lists, two pre-render calls in `update()`, and — the one
+    with substance — bar size and text styling both editing `mvPillLineCount` and the writer's layout signature.
+  - ⭐ **Where they meet:** a month text style's size on a bar or band is written in the bar size's own line box
+    (`mvBarLinePx()`: 15 px at Standard, unchanged; 18 / 21 px at Large / Extra large), the box the writer draws.
+    `monthemit` on the styled fixture at Standard, Large and Extra large: 16/16 each.
+  - v1.9.0 re-cut over all four (`releases/v1.9.0.html` = build `c352d88b…`; the README `## v1.9.0` intro names them).
+- ✅ **The single release gate** on `c352d88b…`: **3,338 PASS, 0 FAIL** (17:50–18:20, no other gate running); every baseline byte-identical, gate 13's 23 written month PDFs (the new Large one included) and gate 10's 68 print checks.
+- **Local `main`** fast-forwarded to the branch in the main checkout (its untracked `MONTH-RAIL-PLAN.md` and
+  `mockups/month-view-redesign.html`, byte-identical to the committed copies, removed first; the stray
+  `stintswap-reshape.sptcal` edit, the Reshape fixture and `WATERFALL-PDF-LOOK-PLAN.md` left as they were). Tag
+  `v1.9.0` on the final commit (moved from the bar-size-only `5e94671`; never pushed).
+- ✅ **PUSHED AND LIVE** (owner's picker, *"Push v1.9.0 now"*, asked in the session "Merge the month-view phase map
+  into main"). Just before the push, `main` was re-checked: a clean build of its tree is `c352d88b`, byte-identical to
+  the gated build and to `releases/v1.9.0.html`; `npm run check` 40/40; `APP_VERSION` and `version.json` both 1.9.0; root
+  `index.html` still equals `releases/v1.2.0.html`. ONE `git push origin main v1.9.0` at 19:01:55 (`273692c..9282356`,
+  36 commits, plus the tag). At 19:02:51 the live `index.html`, fetched with a cache-buster, was **byte-identical to
+  `c352d88b`** (1,871,049 bytes, `cmp`), and the live `version.json` reads 1.9.0, so installed copies get the update
+  notice. The month menu trim (`claude/adoring-chaum-0206c1`) did NOT go: it was never in this release.
+- **The view switch, re-timed after the merge** (the open item in MONTH-RAIL-PLAN §17). Headless Chrome over CDP,
+  1440×900, `mvnotes`, the click's synchronous time, with the builds taking turns. The visible pane was not possible:
+  that session was not on screen, and a hidden pane's timings are unreliable. The shipping build `c352d88b` took
+  19.3 ms month → waterfall and 19.2 ms back; `main` before the four features (`15ac6ce`) took 19.6 / 17.8 ms, the
+  same within noise. The phase map's `flushSync` (MonthMap.jsx, run only on a height change) differed from a copy
+  built without it by 0–3 ms, with the sign flipping between runs. It is not a visible share. The full table is in
+  the side-session notes (`month-rail-merge.md`).
+- ⏭ **Next:** nothing owed on v1.9.0. The month menu trim still waits on its own merge picker.
+
+### 🔨 27 Oct 2026: TWO OR MORE SEASONS TICKED IN SHOW INFO'S SEASON DROPDOWN, NAMED IN THE HEADER. Built in the main checkout, COMMITTED on `main` as `15ac6ce` (owner's picker, by the month-bar-size session), merged for the single v1.9.0 gate (entry above); ✅ LIVE in v1.9.0 at `9282356`
+
+- **Asked** (owner): *"what do we do if multiple seasons (usually max of 2) are shot simultaenously and would be on
+  the same calendar"*. After an answer about one crew or two, they narrowed it: *"no its really just about being able
+  to select two or more seasons in the Show info input and having those seasons translate to the header"*. Tracker
+  card `two-seasons-one-calendar`. **Picked:** "Tick any seasons" (not a "Season … to …" range), "S3 & S4" (three:
+  "S3, S4 & S5"). First built as ten ticks in the card; then the owner: *"I'd like to keep the selector as a drop down
+  menu with the checkboxes inside the drop down"*, so it is a dropdown again.
+- **Built** (no new id, no `SNAPSHOT_VERSION` bump):
+  - `SeasonPop.jsx` (new, mounted in `#react-root` beside `SelectPop`): `#season-num` stays the visible native
+    NativeSelect; a mousedown on it is preventDefault'd (Chrome's list never opens) and a fixed panel opens below it,
+    `.select-pop.season-pop`, ten `<button data-season>` rows with a drawn box (no id, no form field). Keys that
+    would change a native select's value (arrows, Home/End, typeahead, Enter/Space) open the panel instead, so a
+    keystroke can never quietly drop a second season. While open: arrows move, Space/Enter tick via the row's
+    click, Escape closes (consumed), Tab closes, an outside press closes, it follows scroll.
+  - Bridge `chrome.seasons(list)` (pushed by `reflectSeasons()` in `update()`) feeds a tiny store (`useSeasons`) read
+    by the panel AND by `SeasonField` in `Sidebar.jsx`, which relabels the first season's option "Seasons 3 & 4"
+    (text only, never a value). The engine takes a row's `click` on document by `data-season`. ⛔ Click, not a
+    checkbox `change`: a controlled checkbox would be restored by React inside the click, before the engine reads it.
+  - `app.js`: `seasonList`, `seasonsShown()`, `seasonLabel()`, `reflectSeasons()` (called from `update()`), sitting
+    beside `episodeNumberFor`. `#season-num` holds the FIRST ticked season, so episode numbering and older builds keep
+    working. ⛔ New PERMANENT key `seasons` (ascending ints 1–10), written only with two or more. Sanitized: bad entries
+    dropped and counted, and a list left with one is dropped whole. Restored unconditionally after the field replay;
+    a list that disagrees with `season-num` wins and sets it. A change event on `#season-num` itself means ONE season,
+    which keeps every `T.set('season-num', …)` leg working.
+  - The three header readers (`computeHeaderDefaults`, `computeMvHeaderDefaults`, `buildHeaderCtx`) use
+    `seasonLabel()`. None is frozen. One season reads `'S' + n`, exactly as before.
+- ⛔ **FROZEN EDIT A1, `exportExcel`** (owner's picker, 27 Oct 2026: *"Yes, apply it (Recommended)"*):
+  - `hdrSafe` writes `&` as `&&` instead of deleting it. Before, "S3 & S4" printed in Excel as "S3  S4".
+  - Second half, disclosed when it was added: the 255-character shave never leaves a lone `&` before the `…`.
+  - `estimateExcelHeaderLength()` counts the doubled `&` too.
+  - Gate: the Excel baselines are byte-identical (base.xlsx's header has no `&`, checked), plus leg S4/S4b.
+- **Proof:** new leg `t/seasons.js` (in `gate.sh` AFSPEC, 400 s), **15/15** on the build, the dropdown driven by mouse
+  (hit-tested) and keyboard. `npm run check` 40/40. Checked by eye in the pane: the closed field reads "Seasons 3 & 4",
+  the open list shows ten rows with boxes, 3 and 4 ticked. Its own full gate was stopped by the owner's call;
+  ✅ **v1.9.0's single release gate** (with the three other features): 3,338 PASS, 0 FAIL, `seasons` 15/15 in it.
+- ⚠️ **Harness trap found:** after a Load through `T.openViaFakePicker`, `#file-menu` is closed
+  (`aria-expanded="false"`) but its dropdown stays drawn (display block, 153,50 280×293), because its closing transition
+  never finishes in headless Chrome. It covers the top of the sidebar, so a hit-tested click there fails. `seasons.js`
+  `onTop()` tolerates exactly that case.
+- **Not done:** no commit, no push. Episode numbering for a second season (401…) was not asked for. The ticks stop at
+  Season 10, like the old dropdown.
+
+### 🔨 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW: BUILT on `claude/sharp-stonebraker-8d2cd2`; ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry); ✅ LIVE in v1.9.0 at `9282356` ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md) §12)
+
+- **Built, plan §9 steps 0–7, one commit per step:**
+  - **Step 0, a real bug fixed:** the month hiatus drag left a band's WATERFALL text style on its old weeks
+    (`installHiatusDrag` `rekey()`/`setMaps()` lacked `textStyle.hiatus`). Reproduced first: `hiatusdrag` H13 (new) was
+    red, then green. It now carries the month band style (`mvTextStyle.band`) too.
+  - **M2 + gate 10 re-cut, all eleven cases** (only the note tooltips moved; baseline README has the table).
+  - **Sizes measured (plan §3.3a): bars and bands 6–11**, not 12 (12 cuts descenders by 1 px on screen), notes 6–10,
+    month name 6–17, weekday row 6–11. Held line boxes moved no row.
+  - Store `mvTextStyle` / save key `mvTextStyles` / `fmt` on a day note (CLAUDE.md state table); the month highlight
+    and R1; M1; the writer W1–W5.
+- **Decided while building (plan §12):** prep bars keyed by unit, block bars by block id, un-numbered Sim Post by its
+  would-be N; bold toggles 600 → 400 → 700 on a bar (header rule); the month name's alignment control greys; the
+  outline is white-in-purple (a default note is the highlight's purple); `.month-sel-box` stripped from shareable copies.
+- ⚠️ **Learned:**
+  - M1's `line-height:15px` on a sized bar is INHERITED by the grey `.mv-pill-block` as a length, moving its baseline up
+    to 1 px; the writer copies that. `monthemit` found it.
+  - `monthemit` compared starts, which is wrong for aligned text (Chrome kerns, the writer does not). It now anchors
+    each text at its alignment's anchor, and a centred/right note line at its VISIBLE characters (`pre-wrap`'s hanging
+    space).
+  - The highlight resolver must not call writer names (`mvlDecls`): the month legs' F0 forbids it.
+  - A `t/` leg's own source is injected into the page, so a shareable copy contains it: never search a copy for a
+    literal the leg also contains.
+- **Verified:** `mvtextstyle` LIVE 23/23, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
+  `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. **Mutants (plan §8): all twelve red, each
+  on its own case** (listed in `gate.sh` above the mvtextstyle block). ⚠️ `monthemit` slices `/src/legacy/app.js`
+  unless given `HARNESS_QUERY=src=<path>`, so a mutant BUILD alone leaves it testing the real writer (it went green
+  until run with `src=`). And an undo re-sanitizes its snapshot, so a bad value written by the bar can vanish before a
+  later Save sees it: check by Save straight after the press.
+- **Full gate, run 1** (`8f5ec75`, 13:21–14:23, 62 min): **7 FAIL**, fixed in `c9514cf`:
+  - ⛔ **R1 broke three older cases, which expected a click on a month note to open its editor:** `mvmenu` L4 (a
+    synthetic press-release-click), `mvorder` N5 and N6 (trusted CDP input; N6 THREW, `.focus()` on an editor that
+    never opened, so the leg looked like a crash, not a rule change). Each now holds R1: a press picks (outline drawn,
+    no editor, no menu, no drag), then a double-click opens. ⚠️ `el.click()` from a script (no press) still opens a
+    note, which is why `mvnotes` and `mvmenu` P7 never noticed. Any new leg that opens a month note by a real click
+    must double-click.
+  - `monthlayout` EX on all four fixtures: it slices the writer out of app.js, anchored on `buildMonthLayout`'s last
+    line, which W3 changed. Re-anchored, and it hit two things the slice lacked. (1) The model read `MVL_PAINT`, the
+    emitter's constant declared AFTER it. `mvlStyledWidthOf` now reads it only once a style needs it, which only the
+    export does (bytes unchanged). (2) M1's `MV_TEXT_LINE_PX`, now sliced in too. F0's names gain `mvlTextFmt`,
+    `mvlFrameFmt` and `mvlStyledWidthOf`.
+  - `monthexport (hiatus-blanklabel)` wrote no file, so gate 13 had none for it: a stall. Standalone 9/9, and its file
+    is byte-identical to gate 13's baseline. The other 21 gate 13 files were byte-identical in the run.
+- ✅ **Full gate, run 2** (`c9514cf`, 14:57–15:41, no other gate running at its start): **3,096 PASS, 3 FAIL, all three
+  stalls.** `papersize` and `undokeys` produced no result and `pdfdialog` stopped after D2. These are waterfall and undo
+  legs this branch does not touch, and all three passed in run 1. Standalone on port 9905 against this build:
+  papersize 12/12, pdfdialog 15/15, undokeys 11/11. Every run-1 failure is green: mvmenu L4, monthlayout 56/56, mvorder
+  30/30, monthexport (hiatus-blanklabel). Gate 13: 22/22 byte-identical. Gate 10 (`monthprint`): 67/67 against the
+  re-cut.
+  ⚠️ Running a leg beside another session's gate: `run.sh` and the `.mjs` drivers `pkill` the `srv.js` on THEIR port
+  before starting their own. So a standalone run on the default 8231 kills a running gate's server. Use a
+  non-default `HARNESS_PORT`.
+- **Next:** the owner's picker to merge into `main`, then a separate one to push. Tracker card `month-text-style` is
+  at "ready".
+
+### ✅ 27 Oct 2026: AUTOMATIC NOTES FOR EACH PHASE'S START AND END, OFF BY DEFAULT. ✅ LIVE at `273692c` (pushed alone on top of `31eddd0`; owner's picker: "Commit and merge", "Push it alone, once verified")
+
+- **Asked** (owner): *"what are all the other automatic notes we could have?"*, then *"do the phase starts and ends.
+  they should be disabled by default."* Tracker card `more-auto-note-kinds`. The other ideas offered (Production
+  resumes after a break, block starts, halfway, Sim Post begins, opt-in notes for custom phases) were NOT asked for.
+- **What it is:** nine kinds beside ruling 9's three, `AUTO_NOTE_PHASE_EDGES` in `app.js`: `writersRoomEnd`
+  ("Writer's Room Closes"), and `prePrep` / `prodPrep` / `post` / `localization` + `Start` / `End` ("<phase name>
+  Begins|Ends"). ⛔ The kind words are SAVE FORMAT (the key's and `data-autonote`'s).
+- ⭐ **Why a second store.** `autoNotesOff` means "absent = shown", so a new kind put there would have appeared on
+  every calendar ever saved, widening its Notes column and its exports. The new kinds live in **`autoNotesOn`**
+  ("absent = hidden"): a new snapshot key written only while one is ticked, sanitized like `autoNotesOff` (only
+  `true`, unknown words kept), restored unconditionally, cleared by `resetAll()`. `autoNoteKindShown(kind)` is the one
+  question both stores answer, asked by `autoNotesForView()` and by the card's boxes. No `SNAPSHOT_VERSION` bump: an
+  older build ignores the key and simply shows none of them.
+- **Dates:** computeSchedule dates each note on the first or last day the month view DRAWS the phase's bar
+  (`segCoversDate`, outside every hiatus and the phase's own), so the note and the bar cannot disagree: a week-based
+  phase ends on its last Friday, and a phase paused at its start begins after the pause. Writer's Room Opens still
+  uses the raw `wrSeg.start`, unchanged on purpose (it would move existing notes). The new notes are added in date
+  order AFTER the old ones, so no older note moves within its week. Tagged with `phase`, so Hide in waterfall
+  (PHASES-TAB-PLAN R4) takes them out of the waterfall only. Built-ins only: custom phases are still never auto-noted.
+- **Names:** the four phases' notes follow a name typed in the Phases tab ("Edit Begins"), as their bars do;
+  `reflectAutoNoteKinds()` writes that name into the card row's `data-autonote-name` span. Writer's Room and
+  Production keep their own words whatever the phase is called (as "Writer's Room Opens" always has).
+- **Card** (`AutoNotesCard`, Sidebar.jsx): one row per phase, its name, then a start box and an end box (`.autonote-list`
+  is a 3-column grid now). Still plain checkboxes with NO id. ⚠️ **Measured:** the card is ~245 px wide in a narrow
+  window, and a 12 px column gap cut "Writer's Room" to "Writer's Ro…"; it is 8 px, and a longer typed name wraps.
+  A Help sentence (src/index.html, the notes paragraph) points at the card.
+- **No frozen code changed.** computeSchedule and `autoNotesForView` are not on the list; the notes reach the
+  writers as data, exactly as the three old kinds do. With nothing ticked, every output is what it was.
+- **Proof:** new leg `tests/harness/t/autonotephases.js` (AFSPEC, 400 s): 17/17 on the build, **15 of 17 red** on the
+  pre-change build (`dist-pre/`, main at `51ad3fd`, `9df703dd…`; the two green are the month-PDF control and E0). It
+  checks the default, the card, all nine in every output, the month view's day, undo, rename, a phase hiatus, Hide in
+  waterfall, Save/Load + the M-5 trap, a REAL `v1.8.0-saved.sptcal` opening with none of them, and New.
+  `autonotekinds` 16/16 (A1 now reads each box's row name + word: "Production Starts"). `npm run check` 40/40.
+  **Full gate** on build `0ba127aa…` (12:19 onward, after the main checkout's own gate finished): **3,101 PASS, 1
+  FAIL**, the known contention flake `pilllabel (shootorder)` W1 ("months 1 vs 18"), **29/29** re-run alone through
+  gate.sh's own judge. Every baseline byte-identical (waterfall PDF, Excel parts, every gate-13 month PDF), 0 clipped.
+- **Shipped:** committed on `autonote-phases` as `db0dc69`, then cherry-picked alone onto live `31eddd0` (branch
+  `autonote-phases-live`, worktree `.claude/worktrees/autonote-live`) as `273692c`, so main's other unpushed commits
+  (plans, month bar size step 1) did not ship with it. On that build (`7ffc4f63…`): `autonotephases` 17/17,
+  `autonotekinds` 16/16, `settingswin` 21/21, `npm run check` 40/40. Pushed `31eddd0..273692c`; the live page served
+  the new build (it carries `writersRoomEnd`). Merged into `main` afterwards; the month-bar-size session's
+  uncommitted HANDOFF entry in the main checkout was set aside for the merge (backup + patch, no stash) and put back.
+
+### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). ✅ LIVE at `31eddd0` (owner's picker: "Commit", "Only this fix"; the live page served the gated build `46a97f5c` byte for byte ~46 s later)
+
+- **Asked** (owner, after `ae39e3e` went live): *"I think the lag when you switch from month view to waterfall is
+  still there"*. Tracker card `view-switch-lag`.
+- **What the 26 Oct fix left:** it only removed what `71a6c87` added. Every WATERFALL redraw (switch, or any
+  `update()` in the waterfall) cost ~105 ms in the pane, ~60–70 ms headless; month redraws ~12 ms.
+- **Cause, profiled over CDP** (scratch scripts, not in the repo): ~51 of ~67 ms in frozen `installGridResizers`.
+  It appended a handle, then read a row's rect, once per row in two loops, so ~100 forced style recalcs.
+  Each recalc restyled ~105 elements because of ONE rule: `.phase-row:has(select.phase-unit …) [id^="meta-"]`.
+  Found by deleting `:has()` rules over CSSOM against a 100-insert benchmark: all off 12 ms, that rule alone +23.
+- **Fix 1** (`legacy.css`): `[id^="meta-"]` → `.phase-meta[id^="meta-"]`, same elements, with a ⛔ comment.
+  Halved the switch on its own (60–71 → 29–37 ms).
+- **Fix 2, ⛔ FROZEN EDIT L1** (owner's picker, 27 Oct 2026: *"Yes, apply it (Recommended)"*): `installGridResizers`
+  reads `rowBoxes` once, after the column handles (where the first row read always was). Both row loops use it.
+  - **Acceptance gate:** every `.grid-resize` handle's class, inline style and dataset identical to the pre-change
+    build `9df703dd`. Checked on mvnotes, customunits, builtindates, colreuse, hidewf, carry-rich,
+    custom-nondense, notewrap, stintswap-chained, xlsx-overlimit and month-dense60, at zoom 1, 1.5 and 0.75:
+    all identical. Phase hint visibility identical too. Plus the full gate.
+- **Measured** (synchronous click, medians, headless): 52 weeks 59–67 → 13–15 ms at 1440 and 742 px; a longer show
+  81 → 22 ms. Waterfall → month is ~14 ms, so both directions now match.
+- ⚠️ **Lessons:**
+  - Behind a `:has()`, never use an attribute-only subject (`[id^=…]`). Key it on a class.
+  - Chrome re-checks `:has()` rules on EVERY insertion here, presumably because a `:has()` argument holds a
+    `:not()` (`#prep-rows:not(:empty)`) or a structural pseudo (Mantine's `:only-child`). So any frozen loop that
+    interleaves appends and rect reads pays every `:has()` rule per row.
+  - Unwrapping lightningcss's `:is(...)` merges saved only ~3 ms.
+  - Measure in headless Chrome over CDP (`Profiler`, `Tracing`). The desktop pane's timings swing with its
+    width and visibility.
+- **Not done, now nearly moot:** the nine `body:has(#view-month-btn.active)` rules cost ~0.08 ms per insertion
+  (they rescan the body). With L1 there is one recalc per redraw, so they no longer add up here. A body class set
+  beside `.active` in `setViewMode()` and `applyStateSnapshot()` would remove them if another loop ever needs it.
+- **Verified** on build `46a97f5c`:
+  - Full gate: **3,059 PASS, 4 FAIL**. Three are the known `stintswap-reshape.sptcal` failures (`stintreshape`,
+    `phasesui` P1, gate 13's month PDF for that fixture). That fixture's uncommitted edit is not this session's,
+    and the same three failed on `977b3ea6`.
+  - The fourth was `launchopen EX: harness`. Another session's leg ran on port 8231 mid-gate and took over the
+    gate's server for about a minute (it said so). Re-run alone: **16/16**, no console errors.
+  - `customunits` and `builtindates` (on the CSS fix), live and restore, 83/83; `npm run check` 40/40.
+- **Shipped:** committed as `b7c8ec7` on local main. Main also held five unpushed plan-doc commits from other
+  sessions (`337067f`, `fe9c2f6`, `d7bed0a`, `51ad3fd`, `32f47d5`); the owner had said "Don't push" to
+  `fe9c2f6`. So the same change was rebuilt alone on `origin/main` as `31eddd0` (owner's picker: *"Only this fix"*)
+  and pushed. Local main joins it with merge `ffe6184` (tree = `b7c8ec7`'s), so `origin/main` is an ancestor and the
+  next push fast-forwards. **Those five plan commits are still unpushed.**
+- ⚠️ **Harness trap seen again:** a `run.sh` on the DEFAULT port 8231 `pkill`s the gate's own server. Run single
+  legs on another `HARNESS_PORT` whenever a gate may be running.
+
+### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md); superseded by the BUILT entry at the top)
+
+- ✅ **Ruled by picker, 27 Oct 2026** (plan §2, §6):
+  - **N1, in the owner's own words: *"maybe disable recoloring phase bar text"*.** Read as: no text colour on any bar
+    drawn as a pill (phase, episode, Simultaneous Post), since all three ring themselves in their text colour. Bands,
+    notes, the month name and the weekday row keep colour. The bar's colour control greys while only bars are picked,
+    and the sanitizer drops a bar's colour. So M1 writes no ring and the writer reads no `border-color`. "maybe" = the
+    owner may revisit it; the format would not change.
+  - **N2: "Follows Prep wk 2 (Recommended)".** **N3: "Keeps its own look (Recommended)".**
+  - **Sign-off: "Yes, M1 and M2 as planned (Recommended)"**, with plan §6's gate (gate 10 re-cut for M2's tooltips only,
+    then 10 and 13 byte-identical unstyled; 0 clipped glyphs, rows and PDF scale unchanged on a styled fixture; the
+    waterfall's exports untouched).
+- **Next:** (done; see the entry above.)
+
+- **The plan is written** (owner: *"Write MONTH-TEXT-STYLE-PLAN.md from the four rulings, with the frozen edit and its
+  gate spelled out for sign-off"*, adding *"actually no dont let the day number be editable"*, which confirms R4).
+  Uncommitted. It supersedes the scoping bullets below where they differ:
+  - **Store:** a separate key, `mvTextStyles`, NOT new kinds in `textStyles` (R2: the waterfall's code iterates
+    `TEXT_STYLE_KINDS`). Phase bars are keyed `<phase>@<its week number>`, so a style follows "Prep wk 2" through
+    every mover with no re-key code (N2). Episodes by id; bands by the `hiatusTexts` keys; a month note's style is `fmt`
+    on its own `dayNotes` entry.
+  - **Every style keeps its text's line box**, so only a note's line count can move (a bold note may take one more line).
+  - ⚠️ **TWO frozen edits, not one.** M1 (styles appended, inert unstyled) and **M2: the notes' tooltips** "click to
+    edit" -> "double-click to edit", which R1 makes necessary. Gate 10's baselines hold those `title` attributes
+    (checked: 4–17 per case), so M2 needs gate 10 re-cut, with a diff showing only titles changed.
+  - N1–N3 were open here; ruled the same day (above).
+- ⚠️ **Found while planning, a bug in shipped code (read from the code, not reproduced):** the month view's hiatus drag
+  (`installHiatusDrag` `rekey()`/`setMaps()`) carries a band's text, name sync, colour and font size, but NOT
+  `textStyle.hiatus`. So a band styled from the bar in the waterfall and then dragged in the month leaves its style
+  behind. `shiftCalendar` does carry it. It is a one-map fix, not frozen code. Plan step 0.
+
+- **Asked** (owner): *"What would it take to allow styling any text in the month view calendar with the styling
+  menu"*. Tracker card `month-text-style`, requested. It covers the bold/colour half of `note-styles`, and its size
+  question overlaps `month-bar-size` (the entry below).
+- **Today:** in the month view the bar styles the month header lines only (TEXT-STYLE-BAR-PLAN D4). `renderMonthView`
+  never calls `textStyleOf()`. The month PDF writer reads only `background` and `color` from a bar's inline style
+  (`mvlParseItem`) and draws every bar at `MVL_PAINT.bar` (10 px 600) and every note at 500. A single click on a
+  month note opens its editor, and press-and-move drags it.
+- **What it would take** (the waterfall bar's shape, one writer fewer: the month has no Excel):
+  - A highlight in the month view (bars and notes are elements, so it can outline their rects), plus D5's rule there:
+    click picks, double-click edits a note. That changes a month habit, so it needs a ruling.
+  - Store: new kinds in `textStyles`. Keys: date (day numbers), `week|phase` (pills, bands), episode id, week (Sim Post,
+    all-phase band). A month note's style goes on its own `dayNotes` entry, so it travels with drag, shift and paste.
+    ⚠️ Older builds: `cleanTextStyles` drops unknown kinds (bad.n, console warning only, `lastSanitizeDropped` is not
+    shown), and the `dayNotes` sanitizer copies unknown entry fields through (`Object.assign`). So no `SNAPSHOT_VERSION` bump.
+  - Frozen edit to `renderMonthView`: append each text's style to its inline style (F1's shape). With no style it is
+    inert, so gates 10 and 13 stay byte-identical, and the print rollback (`exportMonthPdf`) follows because it prints
+    that DOM. "Day N" is a `::after` and cannot take an inline style: it would need a frozen CSS edit (custom properties).
+  - The writer (not frozen; gate 13 byte for byte): weight, italic, colour and alignment per item. Inter 400/500/600/700
+    are all embedded already; the italic slant exists (`MVL_PAINT.italicSkew`, used by `mvlLineStyle` for header lines).
+  - Note measurement: `mvNoteLineCount` (screen, 10 px 500) and `mvlNoteLines` (writer) must measure in the note's own
+    style, or a bold note loses its last line (the waterfall's F4 problem).
+- **Size is the hard part again.** Screen lanes are a fixed 17 px. A 10 px note line (13 px) exactly fills a lane's
+  padding box, so bigger note text needs more lanes (rows grow, and dense months shrink in the PDF). Bar text has room up
+  to about 12 px with a capped line-height, by arithmetic: not measured.
+- ✅ **RULED, owner's picker, 27 Oct 2026** (every recommendation taken, except that day numbers are out):
+  - Click: **"Click picks, double-click edits (Recommended)"**. D5's rule in the month view: a click picks a note,
+    and a double-click, Enter or typing opens its editor. Dragging a note still moves it.
+  - Shared?: **"Separate per view (Recommended)"**. Month styles never touch the waterfall's and the reverse, including a
+    waterfall note shown in the month. So the month gets its own kinds, never `textStyle.note` / `.phase`.
+  - Size: **"Only sizes that fit (Recommended)"**. Bars up to about 12 px, notes 10 px or smaller. The calendar never
+    changes shape and month PDFs print at the same scale. Bigger text stays with `month-bar-size`.
+  - Which text: **"Bars and bands", "Notes", "Month name and weekday row"**. **Day numbers were NOT picked**, so they
+    are out. That also takes "Day N" out, and with it the frozen CSS edit it needed.
+- **What follows from the rulings (this session's reading, not a ruling):** the month name and the weekday row take ONE
+  style each for the whole calendar (they repeat on every page). Under "only sizes that fit" they offer their current
+  size or smaller (17 px, 11 px): they set the height of the band above the weeks, and the PDF divides what is left
+  between the weeks (`mvlFrame`). Both 12 px caps are arithmetic and must be measured before the size lists are fixed.
+- Rough size: L, 2–3 sessions (plan §9).
+
+### 🔨 27 Oct 2026: BIGGER PHASE BARS IN THE MONTH VIEW: ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry); ✅ LIVE in v1.9.0 at `9282356`; first cut alone on branch `month-bar-size` (`5e94671`, worktree `.claude/worktrees/month-bar-size`), local `main` merged in; NOT PUSHED, local `main` NOT YET FAST-FORWARDED ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md))
+
+- 🔨 **Step 5 (owner: "Do step 5 … here: merge into main and cut the version. Ask before pushing.")**
+  - **Merged** local `main` (`9cdd5cb`) into the branch as `46509c3` (only README's changelog top conflicted). The
+    code beyond `origin/main` is exactly Phase bar size.
+  - **On the merged build** `a21455d6…`: `npm run check` 40/40; `mvbarsize` 13/13 + 12/12, `autonotephases` 17/17,
+    `autonotekinds` 16/16, `settingswin` 21/21, `customunits` / `builtindates` live + restore, `mvnotes` 14/14,
+    `monthlayout` 14/14, `monthexport` 9/9 on four calendars, each written PDF byte-identical to gate 13. No full gate
+    on the merged build yet (three other sessions' gates queued).
+  - **v1.9.0 cut** as `5e94671`, tag `v1.9.0`: `APP_VERSION` + `version.json` + `package.json`; README `## v1.9.0`
+    over the 37 entries since v1.8.0 (all live except the bar size); `releases/v1.9.0.html` = the cut build
+    `d9d9297c…`, which differs from the merged build only in the version literal and the CSP hash;
+    `tests/fixtures/v1.9.0-saved.sptcal`, a real Save (43 keys, 77 ids = v1.8.0's + `show-location`).
+  - ⚠️ **Local `main` is NOT fast-forwarded.** The main checkout holds the Seasons session's uncommitted work in six
+    files this merge changes (README, `Sidebar.jsx`, `bridge.js`, `app.js`, `legacy.css`, `gate.sh`), so
+    `--ff-only` would be refused. That session was told (and told v1.9.0 is taken). Once its work is committed,
+    `git merge month-bar-size` in the main checkout brings `main` up. A push, if approved, goes from the branch as a
+    fast-forward of `origin/main`.
+
+- ✅ **Step 4 DONE (owner: "Do step 4 … here"), committed on the branch as `41799d5` (owner's picker: "Commit on the
+  branch", "Don't push"). Not merged, not pushed.**
+  - **New gate-13 baseline:** `tests/baselines/2026-10-05-monthwriter/mvbarsize-large.pdf` (16 pages, 84,839 bytes,
+    `2208e3ae4806e9d0…`). It was cut on the owner's "Yes, cut it", after contact sheets of all 16 months, Standard |
+    Large | difference. It is case `bl` in gate 13's two lists.
+  - **Full gate on `76315d2`: 3,178 PASS, 3 FAIL.** None of the three is in a month-view or bar-size leg:
+    - `notewrap`: no result;
+    - `hdrcut`: ExcelJS CDN timeout;
+    - `offweek (offweek)` R14: the switch was covered by a file-menu item still open after a Load.
+  - ✅ Each passed alone on the same build, once, while another session's gate ran: `notewrap` 16/16, `hdrcut` 7/7,
+    `offweek (offweek)` 42/42 with R14 green. `offweek` R14 has failed the same way in ten other sessions' gates.
+  - Gates 10 and 13 are byte-identical on every existing calendar. The new case matched. `npm run check` 40/40.
+  - **No version cut on the branch.** It moves to step 5, on `main`, at ship.
+  - **Next is step 5:** merge into `main` and ship, on the owner's picker, with the push asked separately.
+
+- ✅ **Step 2 DONE (owner: "Do step 2 … here"), committed on the branch as `3e00633` (owner's picker: "Commit on the
+  branch", "Don't push"). Not merged, not pushed.**
+  - **Built:**
+    - `mvBarSize` state, save, load, undo and New;
+    - *Phase bar size* (Standard · Large · Extra large) in Settings ▸ Preferences ▸ Month view;
+    - E1 (screen CSS under `body.mv-bar-large` / `body.mv-bar-xl`, scoped to `#table-wrap`);
+    - E2 (`mvPillLineCount` at the bar's size);
+    - the leg `mvbarsize`, added to `gate.sh`.
+  - ⭐ **Design change found by the leg:** a bar's height is now FIXED (22 / 25 px; 40 / 46 px for a wrapping one-day
+    bar), not a `min-height`. At 75% zoom Chrome's rounded borders made a text-sized bar taller than the minimum.
+    Fixed heights are exact at 75%, 150% and 200%.
+  - **Verified:**
+    - `mvbarsize` 13/13 (`mvnotes`) and 12/12 (`hiatus-blanklabel`), six mutants each red on its own cases;
+    - month PDFs byte-identical to gate 13 on 8 calendars;
+    - 13 existing month and settings legs green;
+    - `npm run check` 40/40.
+
+    No full gate yet. Another session's gate was running, so every run used `HARNESS_PORT=8463`.
+  - The branch was cut from `32f47d5`. Main's uncommitted waterfall edits (another session's) are not on it.
+- ✅ **Step 3 DONE (owner: "Start step 3 … here")**, on the same branch, committed as `76315d2` (owner's picker: "Commit on
+  the branch", "Don't push"): the month PDF writer draws the picked size, and the print rollback follows (E3).
+  - **Size as an ARGUMENT:** `buildMonthLayout(…, barSize)` → `mvlMonthLayout(…, barSize)`, not a stamp like
+    `headerOff`, because the model decides a one-day pill's wrap.
+  - **Sizes:** `MVL_BAR_SIZES` sits with the model, because the `monthlayout` leg slices only the model.
+  - **E3** sits OUTSIDE `@media print`, because frozen `exportMonthPdf` measures in screen media.
+  - **Harness:**
+    - `t/lib.js` `applyBarSizeQuery()` (`HARNESS_QUERY=barsize=large|xl`) / `barSizeShown()`;
+    - the three month legs made size-aware;
+    - `monthwriter`'s oracle gained the `wrap` change (screen and PDF wrap a one-day pill at different widths);
+    - new fixture `mvbarsize-large.sptcal` (minted);
+    - `gate.sh` sized block, 82 checks green, with 5 writer mutants each red.
+  - **Standard untouched:** gate 13 bytes on 10 calendars, gate 10 6/6 on 5.
+  - ⚠️ **RECORDED, NOT MODELLED:** `mvnotes` at Extra large draws one two-line bar 1.31 px below Chrome's print.
+    - Chrome's lanes are 23.69 / 22 / 22 with 3.4 px of the row unused; the spec gives 25 / 22 / 22.
+    - The rule that reproduced Chrome broke `month-lanecap` at Standard and was reverted.
+    - Left out of the gate deliberately (plan §5 step 3).
+  - **Next is step 4:** the full gate, and the gate-13 baselines for the sized fixture, cut only with the owner's
+    sign-off. Then merge and ship on the owner's picker.
+
+- **Asked** (owner): *"what would it take to allow increasing the size of phase bars in the month view?"*, then *"Write
+  a plan … with the rulings up front and a recommended default for each."* Tracker card `month-bar-size`, planned.
+- ✅ **RULED, owner's picker, 27 Oct 2026:** every recommendation taken EXCEPT R1. R0 *"Yes, this setting only"* (the
+  three frozen edits, gated on 10 and 13 byte-identical). **R1 *"Phase bars and hiatus bands"*** (against the
+  recommendation of phase bars only). R2 text and bar together. R3 Standard · Large · Extra large. R4 screen and PDF.
+  R5 saved in the calendar. R6 Settings ▸ Preferences ▸ Month view, label *Phase bar size*. R7 the print rollback
+  follows.
+- **The design, as ruled:** *Phase bar size* (12 / 14 px text, 22 / 25 px bars and bands) on screen and in the PDF.
+  Standard is an ABSENT `mvBarSize` key. Three frozen edits, all inert at Standard: E1 screen CSS under a body class
+  (`.mv-pill` and `.mv-hiatus-bar` grow, everything else gets `contain:size`), E2 `mvPillLineCount` measures at the
+  bar's size, E3 the print rollback. The writer reads a `barSize` stamped per month by `exportMonthPdfDirect` (the
+  `headerOff` shape) and draws pills, Sim Post and bands from `S.big`.
+- **Measured** (`monthwriter` leg, throwaway `?src=` copies of app.js, 173 months), first for pills, then again with
+  bands growing too, with IDENTICAL results: Large shrinks no extra month and cuts no extra label; Extra large shrinks
+  the same 3 dense months slightly more (0.469 → 0.453 at worst) and cuts 7 more labels (Production's grey tags on
+  short pieces). A printed bar is already 19 px, so the page absorbs it.
+- ✅ **Plan step 1 DONE (owner: "Start step 1"): the screen mechanism holds, with ONE RULE ADDED.**
+  - **How:** a throwaway leg, deleted after the run. It added E1's rules at run time to the built app, then walked
+    every month of `mvnotes`, `month-dense60` and `hiatus-blanklabel` (54 months) at all three sizes, reading
+    `grid-template-rows` and each bar's box.
+  - **Run 1** failed two ways:
+    - at 150% zoom, Chrome rounds the 1 px borders, so a Large lane was 21.33 px own-px, not 22;
+    - an emptied band has no line box, so it stayed 17 px.
+  - **Fix:** `min-height` at the bar height on `.mv-pill` / `.mv-hiatus-bar` (plan §4.2). Run 2: all 25 checks green
+    on all three calendars:
+    - inert with no size picked;
+    - the same lane placement at every size;
+    - every lane with no bar or band exactly 17 px (889 per size, including 84 multi-lane notes), every bar lane
+      exactly 17 / 22 / 25 (242);
+    - fonts 10 / 12 / 14 (tags 9 / 11 / 12);
+    - emptied bands full height;
+    - 150% exact;
+    - no one-line bar overflows its box.
+  - **Measured on screen:** a month is a median of 4.4% taller at Large and 7.1% at Extra large (at most 6.5% and
+    10.9%).
+  - ⭐ **Found in passing:** today 262 of the 268 bars overflow their 17 px box by 2 px. The bottom padding is hidden,
+    and the text fits.
+  - The two-line custom bar shares its extra height across its two lanes by the grid's spanning rule (19 + 19 at
+    Large). Step 3's `monthemit` must confirm the writer's `mvlLaneTracks` agrees.
+  - Step 2 followed (above).
+- ⚠️ **LESSON, learned the hard way: `run.sh` on the default port KILLS another session's running gate's server.** It
+  runs `pkill -f "srv.js $PORT "` before starting its own. Step 1's first run did that, on 8231, for about a minute
+  (11:57) while another session's full gate ran. That gate then showed a `launchopen EX: harness` failure, possibly
+  ours, and that session was told. **Whenever a gate may be running (`pgrep -fl gate.sh`), pass `HARNESS_PORT=<free
+  port>`**, which also namespaces the Chrome profile.
+- **Overlaps `month-text-style`** (the entry above): plan §7 gives the rule that keeps them apart. This setting sets a
+  bar's height and default text size, and a text style sets one bar's text inside that height. Whichever builds second
+  adopts it.
+- Committed: the plan file alone, `fe9c2f6` (the plan) and `d7bed0a` (the rulings), local, not pushed (owner's picker
+  both times: "Plan file only", "Don't push"). This entry is NOT committed: HANDOFF.md also holds another session's
+  uncommitted entry.
+
+#### The scoping answer that came first (kept for its numbers)
+- **Where the size lives today:** screen `.mv-bars{grid-auto-rows:17px}` (fixed lanes; a bar stretches to 17 px) and
+  `.mv-bar{10px 600; line-height:1.5; padding:1px 8px}`. In print, lanes are `minmax(17px, auto)` and bars are
+  `align-self:start`, so 19 px. The writer copies both (`MVL_PAINT.bar`, `laneMin`), and `mvlLaneTracks` already
+  grows a lane to its tallest one-lane bar. `mvPillLineCount` / `mvlPillLines` (one-day custom pills that wrap)
+  measure at 10 px.
+- **Recommended route (not ruled):** an opt-in setting. When it is on, a body class and rules scoped to `#table-wrap`
+  enlarge `.mv-pill` and make the screen's lanes content-sized like print's, so only lanes holding a bar grow. The
+  writer takes a pill scale in `mvlWeekPaint`. Off = byte-identical (gates 10 and 13). It is still a change to the frozen surface's
+  look, so it needs the owner's specific instruction plus the gates. Open questions: what grows, global or per
+  phase, which sizes, file or preference, and whether the print rollback follows (it's the monthemit oracle for the writer).
+- ⚠️ Dense months already shrink in the PDF (`fitMonthLayout`'s k), which would undo bigger bars where they matter
+  most; measure on the fixtures before choosing sizes. The calendar zoom already enlarges the screen month view.
+
+### 📝 27 Oct 2026: MAKE THE LIVE WATERFALL LOOK LIKE ITS PDF — PLANNED, rulings R0–R7 OPEN, no app code ([`WATERFALL-PDF-LOOK-PLAN.md`](WATERFALL-PDF-LOOK-PLAN.md))
+
+- **Asked** (owner): *"Build a plan for what it would take to make the live view of the waterfall resemble the pdf
+  export as closely as possible … the canvas can be flexibile as it currently is … while maintaining all
+  functionality and ease of use"*. Tracker card `waterfall-pdf-look`, planned.
+- **Measured** (`blocks.sptcal`, build of `ae39e3e`, PDF rasterised at its 100% grid scale beside a screenshot):
+  columns, body type, fills and text widths already match exactly (a note: 129.11 px on screen, 116.20 pt at the
+  PDF's 0.90 fit). What differs: rows 20 px vs 15; lines (always-on `#D4D4D4` grid and a 2 px frame vs the
+  preference's lines, a 1.2 frame and year separators); the heading row (`#F2F2F2`, 11 px, dividers vs `#D9D9D9`,
+  8.25 bold, none); the title block (a 70.5 px bar, 13/11 px vs no bar, 11/8); the "+" in every empty Notes cell.
+  ⚠️ A three-line PDF header is always squeezed to fit the top margin: measured ×0.742 (title 8.2 pt, lines 5.9 pt).
+- **The plan:** keep the `<table>` (every feature hangs off it); a scoped stylesheet under
+  `body.wf-look-pdf #table-wrap` (never reaches `#print-root`); four small frozen edits for the row geometry
+  (L1–L4, plus L5 only if measurement calls for it), all skipped under `wfPrintRender`; rules painted on cell edges
+  so they take no room; row drags seeded from the STORED height (closes MANTINE-SEAM §5.7). Exports byte-identical
+  throughout, no save-format change. Step 0 is a `wflook` leg that compares the screen to the PDF's drawing operators.
+- **Waiting on the owner:** R0 (does this lift the 29 Aug hold on the editor's look), R1 (one look, no setting), R2
+  (gridlines on screen: reverses the 3 Sep ruling), and R3–R7. Each has a recommended default.
+- Committed: nothing. The plan file is new and uncommitted.
+
+### 🔨 27 Oct 2026: A MORE MODERN MONTH VIEW + A PHASE MAP ABOVE IT — ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry); ✅ LIVE in v1.9.0 at `9282356` — 3d+ BUILT on branch `claude/month-rail` (all 6 steps COMMITTED, tip `819e11a`; third full gate 3,142 / 0), rulings R1–R7 at their defaults (owner) ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md), [`mockups/month-view-redesign.html`](mockups/month-view-redesign.html))
+
+- **Where it stands:** the owner picked 3d+ with guardrails (*"slimmer phase rows, at most 3 named rows, measured on
+  real calendars first. Screen only for now."*). The plan's step 1 measures phase rows on all 95 fixtures before
+  any UI. Read the plan, not the history below, to build it.
+- **Step 1 DONE, uncommitted** on branch `claude/month-rail` (worktree `.claude/worktrees/month-rail`; the plan and
+  mockup are copied there, and the branch's copy of the plan is the live one): `monthMapModel()` (pure, after
+  `pushViewControls()`), leg `monthmapmeasure` + `monthmapmeasure.sh`. Results in the plan's §12: of 89 fixtures that
+  draw, 6 need 1 row, 71 need 2, 11 need 3, 1 needs 4 (a one-day custom phase); the model's packing matched an
+  independent overlap count on every one. Longest is 29 months (~38 px a month), so R4's minimum is proposed down to
+  36 px, plus an 8 px minimum bar. `npm run check` 40/40. ⚠️ Another session planned MONTH-BAR-SIZE-PLAN.md (bigger
+  month bars, frozen edits) the same day: compatible with the map, but step 4's "every .mv-* box identical" must be
+  measured against whichever build is current.
+- **Step 1 committed** on the branch as `5d5a2e9` (owner's picker). **Step 2 DONE, uncommitted:** `monthMapInput`,
+  `pushMonthMap` (own observer), `goToMonth`, the `data-mvgo` / `data-mvstep` listener, bridge key `monthMap`. Leg
+  `monthmap` part A green on 9 fixtures; nearby legs green. Details and the one bug it caught are in the plan's §13.
+- **Step 2 committed** as `5f89cc7` (owner's picker). **Step 3 DONE, uncommitted:** `src/chrome/MonthMap.jsx` (in
+  `PreviewToolbar.jsx` before `.style-bar-host`), its CSS block in `legacy.css`, and Production's span now from its
+  shoot days. Leg `monthmap` is 15 cases (parts A + B), green on 15 fixtures; 20 existing legs green; switch timing
+  unchanged (~110 ms). Plan §14 has it all, including the leg trap (no rAF under virtual time).
+- **Step 3 committed** as `4c9863f`. **Step 4 DONE, uncommitted:** the Soft Lines `@media screen` block in
+  `legacy.css` (every selector `#table-wrap .month-view`; arrows by `visibility`, so nothing moves; tints exclude the day
+  marks and :hover). New leg `softlines` measures each page with and without the block in one run (L1 nothing moves,
+  L2 marks win), green on 10 fixtures. Gates 10 + 13: 293 PASS, 0 FAIL. Gate 7: 511 identical. Plan §15.
+- **Step 4 committed** as `33d0a98`. **Step 5 DONE, uncommitted:** Help (new "Getting around the Month view"; the
+  export line no longer claims screen = PDF), `gate.sh` (monthmap ×3, softlines ×2), UI-CONVENTIONS §7 + §10 gate 20,
+  MANTINE-SEAM §4.2, CLAUDE.md's freeze section, README Unreleased entry (plan §16).
+- **Step 6, the full gate (plan §17), found two real bugs and one test made honest.** Every frozen output was
+  byte-identical in both gates so far (waterfall PDF, Excel, gates 10 and 13).
+  - Gate 1 (3,132 / 4): the map appeared a task AFTER a switch to the month view, and the calendar dropped ~70 px under
+    what was placed against it (`wfmenu` V1/V2, `weeknum`). Fixed: `update()` pushes the map before `render()`, and
+    MonthMap commits that push synchronously. The calendar now moves 0 px on a switch.
+  - Gate 2 (3,132 / 3): ⚠️ **`flushSync` on every push deferred OTHER panels' updates** (`notescols` A9: Settings'
+    Hidden Notes row stale at the check, right a second later). Now it runs only on a push that changes the map's
+    HEIGHT (shows / rows / month count), so the waterfall never calls it. `notescols` 49/49 ×2.
+  - Gate 2's `halfworked` EX was NOT a flake (base 10/10, branch 5/10): the map makes `#table-wrap`, the month's scroll
+    box, ~69 px shorter, so the leg's scroll is real, and its event lands late under virtual time and closes the
+    month menu (any scroll closes it). Fixed in the leg only (mvmenu's scroll-when-needed, plus one re-click on
+    evidence of a late scroll); no assertion changed; 9/9 + 3/3, base 5/5. Waiting for the event and poking a frame
+    were tried first and do not work; the plan records both.
+  - `pilllabel (shootorder)` X2 "months 1 vs 18" is the contention flake already on record; passed 2/2 alone.
+  - ✅ **Gate 3: 3,142 PASS, 0 FAIL, GATE PASSED** (`tests/harness/gate-step6c.log` in the worktree). Ten more
+    checks than gate 2, matched leg by leg: its 3 failures pass, and `halfworked` runs 24 checks, not 17.
+  - Switch timed in the visible pane (1440 × 900, `mvnotes`): month → waterfall 108–127 ms, waterfall → month
+    15–26 ms. Same as step 2 and `ae39e3e`'s ~110 ms.
+  - ⚠️ **Before the merge:** the branch forked at `fe9c2f6c` and lacks main's `31eddd0` (switch ~4× faster, frozen edit
+    L1) and `273692c` (phase start/end notes). A dry-run merge of the committed steps is clean. After merging,
+    re-time month → waterfall (the map's synchronous unmount is a bigger share of a ~25 ms switch), then a full gate.
+  - **Steps 5–6 committed as `819e11a`** (owner's picker; the three `gate-step6*.log` files stay untracked in the
+    worktree). Owner chose a **fresh session for the merge**: merge main in, re-time the switch, full gate, then ask
+    (picker) about merging into local `main`, and separately about push. Nothing has reached `main` yet.
+  - What a user sees: a dense month scrolls ~69 px sooner (the map's planned height); the month menu's "any scroll
+    closes it" rule is met a bit more often (unchanged; `month-menu-trim`, ready on its own branch, narrows it to
+    calendar scrolls, which this still is).
+
+- **Asked** (owner): *"Offer me 5 options for redesigns of the look of the month view calendar page. I want it to look
+  a little more modern. I also dont want the buttons to change the months to be on the page itself, they should be
+  fixed buttons above"*. Tracker cards `month-view-modern-look` and `month-nav-in-toolbar`, both requested.
+- **The mockup:** one synthetic October 2026, six tabs (today's look, copied from `legacy.css`, plus five themes laid
+  over the SAME markup `renderMonthView` emits): 1 Soft Lines (‹ month › in the toolbar after the view switch),
+  2 Clean Sheet (fixed row: month name left, Today + ‹ › right), 3 Month Rail (a strip of every month with phase
+  dots), 4 Navy Band (‹ month ▾ › at the toolbar's right end, the month opens a list), 5 Tiles (centred pill). Looks
+  and button placements are independent, so the owner may mix them. Not committed.
+- **Then** (owner): *"Lets see a mockup of version 1 with the calendar left right selector on the right side of the
+  screen in-line with the styling menu bar"*. Added as tab **1b**: Option 1's look, toolbar untouched, and
+  `‹ October 2026 ›` at the right end of the text style bar's row (the bar gives up the width; the selector sits
+  outside the bar's box, its right edge on the undo/redo buttons' above). Owner reviewing.
+- **Then** (owner): *"Mockup a few variations of the month rail"*. Tabs **3a-3d**, all on Option 1's look: 3a Timeline
+  (every month, thin phase lines under them, ~58 px row), 3b Compact (seven months at the right of the style bar's
+  row, no extra row), 3c By year (one joined bar per year, phase dots, ~60 px), 3d Phase map (named phase bars over
+  the months; a phase click jumps to its first month, ~100 px). The mockup's month controls now respond (the calendar
+  stays on October); its rails are drawn from per-phase date spans, packed into shared tracks as the waterfall packs
+  columns. A real rail would read `monthRangeForSchedule()` and the schedule's phase segments.
+- **Then** (owner): *"plan 3d"*, and mid-plan *"maybe the position of the phase map rail should be swapped with the
+  position of the styling bar"*: tab **3d+** (toolbar → phase map → style bar → calendar). Not planned yet; my honest
+  concerns went to the owner first: the map's height (~100 px, about one week row) grows with every overlapping
+  phase (the mockup's made-up show needs only 3 rows), a long show squeezes or scrolls it, and soft grey lines on
+  screen with black lines in the PDF break what-you-see-is-what-prints. Proposed guardrails: rows ~14 px, at most 3
+  named rows (more as thin lines), measured on real fixtures first.
+- **Build facts gathered for the plan:** the rail must be a third line INSIDE `.view-toggle-row` (PreviewToolbar.jsx
+  renders the style bar's host there; a sibling between that row and `#table-wrap` breaks the contract). React from a
+  new bridge key, clicks back by delegated data attributes (the `hiddenNotes` pattern). The month range is
+  `monthRangeForSchedule()` (core ±1 month); the cursor is `monthCursor`, clamped in `update()` before `render()`.
+  Phases are `schedule.segments` (`color`, `textColor`, `start`, `end`), plus Sim Post from `weeks[].simPost` and the
+  all-phase hiatuses. In the month view `#table-wrap` is the flex:1 scroll box, so a taller toolbar row shrinks it
+  without touching the grid fit. ~100 harness files click `#mv-prev`/`#mv-next` by script; hidden-not-deleted keeps
+  them working.
+- ⛔ **What a build must respect.** `.mv-*` CSS and `renderMonthView` are frozen (the print-path month PDF prints
+  them; the direct writer parses the HTML and hand-copies the print rules in `MVL_PAINT`). So:
+  - Every new rule scoped to `#table-wrap` (never matches inside `#print-root`); gates 10 and 13 byte-identical is the
+    acceptance gate. Options 1-4 are paint only (no cell, lane or note changes size); 5 narrows each day ~6 px on
+    screen, so notes could wrap differently from the PDF.
+  - The arrows `#mv-prev` / `#mv-next` are hidden on screen, never deleted, and the new buttons drive them: the
+    shape `#mv-hdr-mode-btn` took to the toolbar (30 Sep 2026). A jump to any month (options 3, 4) needs a small
+    new engine setter for `monthCursor`, clamped like the arrow handler's range check.
+  - Options 2, 4, 5's "today" marker: the renderer marks no date on a cell, so it would be added from outside after
+    each render (sanctioned pattern 3), not by a frozen edit.
+- **Open with the owner:** which look, which buttons, and whether the month PDF should follow the new look later
+  (that would change `MVL_PAINT` and the print rollback's frozen print rules, and re-cut gate 13 with sign-off).
+
+### 📝 27 Oct 2026 (latest): EXPORT THE MONTH VIEW AS AN .ics FILE — PLANNED, R1/R2/R4 RULED, R3/R5/R6 OPEN, no code ([`ICS-EXPORT-PLAN.md`](ICS-EXPORT-PLAN.md))
+
+- **Asked** (owner): *"what would it take to be able to export a month view calendar into other calendar formats"*,
+  then a plan for the one-off `.ics` with the rulings up front. Tracker card `month-calendar-export-ics`, now planned.
+- **The plan's core decision:** export from the month PDF writer's model (`buildMonthLayout()`), not from
+  `currentSchedule`. Then the `.ics` has the month view's labels, weekend gaps, per-episode Production bars, hidden
+  holidays and note places by construction. No frozen edit, no save-format change, no CSP change, no library.
+- **Ruled** (owner, by picker, 27 Oct 2026): R1 every bar as drawn, R2 notes as drawn (holidays included), R4 a button
+  beside Export PDF in the month view. **Still open:** R3 (one file or per phase), R5 (re-import IDs), R6 (view and
+  scenario). Each has a recommended default.
+- ⚠️ **The one real unknown:** a week that crosses a month boundary is drawn in both months, so its bars are in the
+  model twice. The dedupe rule must be measured before it is chosen (plan step 1).
+- Committed locally with this entry; not pushed.
+
+### ✅ 26 Oct 2026: THE MONTH -> WATERFALL SWITCH LAG FROM `71a6c87`, FIXED. Committed and pushed on the owner's picker (*"Commit"*, *"Commit and push"*)
+
+- **Asked** (owner, after `71a6c87` went live): *"theres now a slight lag when you switch from the month view to the
+  waterfall view"*.
+- **Cause, measured** (visible browser pane, `mvnotes`, 1440×900, the click's synchronous time, 5 runs each): the
+  build before `71a6c87` ~110 ms, `71a6c87` ~260 ms. Deleting the new rules live one at a time pinned it on ONE:
+  `body:has(#view-month-btn.active) .preview-panel > *{flex:none}`. A `:has()` rule with a universal subject makes
+  Chrome restyle far more when the view button's class flips. The other new `:has()` rules cost nothing measurable.
+- **Fix** (`legacy.css` only): that rule deleted, with a ⛔ comment saying why. It was not needed, because a flex item
+  never shrinks below its content (`min-height:auto`). After: month -> waterfall ~110 ms at 100% and from a 150% month,
+  the same as before `71a6c87`.
+- ⚠️ **Lesson:** never put `*` (or another broad subject) after a `body:has(...)` selector. Name the elements.
+  ⚠️ **Measuring trap:** the browser pane, hidden, gives wild timings (0.1–3.5 s on the same build) and
+  throttles rAF to ~1 fps. Show the pane, and time the click synchronously.
+- **Verified** on build `9df703dd`: `calzoom` 26/26, `mvmenu` 89/89, `labelsetup` 41/41, `scenariofacts` 12/12,
+  `zoomresize` 40/40, `sideboxes` 78/78, `phasenum` 24/24 and 31/31; `npm run check` 40/40. No full gate: one
+  chrome rule removed, outside `#table-wrap`.
+
+### ✅ 26 Oct 2026: THE MONTH VIEW SCROLLS IN ITS OWN BOX, SO THE TOOLBAR STAYS PUT AT ANY ZOOM. ✅ LIVE at `71a6c87` (committed and pushed on the owner's picker; the live page served it ~70 s later, byte-identical to the gated build `977b3ea6`)
+
+- **Asked** (owner): *"The viewport of the month view needs to work the same way as the viewport of the waterfall
+  view. When you zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only.
+  not the surrounding menus. The surrounding menus need to stay fixed in place."* Tracker card `month-zoom-viewport`.
+- **Cause:** the month view had no scroll box. It scrolled in `.preview-panel`, so the toolbar and the text style
+  bar scrolled with it. Zoomed in (`#table-wrap` was `width: calc(100% * z)`), they slid sideways off screen too.
+- **Built** (no frozen code; `#table-wrap`'s own box only, nothing inside it, no `.mv-*` rule):
+  - `legacy.css`, in the app shell's `(width > 960px)` block: in the month view (`body:has(#view-month-btn.active)`,
+    the side boxes' selector) the panel is a flex column. `#table-wrap` gets `flex:1 1 0; min-height:0;
+    overflow:auto` and becomes the scroll box. Zoomed, it is a one-track grid,
+    `calc(100% * var(--cal-zoom))`, `align-content:start`, which pins `.month-view` to its 100% width as the
+    inline width did. Stacked (≤960) keeps the old width rule, as CSS now.
+  - `app.js` `applyCalZoom()` writes `--cal-zoom` on `#table-wrap`, never the width. In `setCalZoom()` the
+    month's "hold the corner" block is gone: a scroll offset inside the zoomed box is in its own px, so the corner
+    stays put (measured: a cell 75.75 px down at 150% is 101 px down at 200%, the same content point).
+  - Frozen `captureScroll()`/`restoreScroll()` already keep `#table-wrap`'s scroll across renders (by id).
+    `revealMonthCell()` finds the first scrolling ancestor, so it now scrolls `#table-wrap`, zoom-aware already.
+- ⚠️ **Tests that scrolled the panel in the month view now scroll `#table-wrap`:** `mvmenu` (bringIntoView, L8, C1's
+  synthetic scroll), `labelsetup`, `phasenum`. `calzoom` Z5/M1/M2 now measure `#table-wrap` / `.month-view`. New
+  M2b: at 150%, scrolled to the far corner, the toolbar row and the box are where they were at 100%, and the panel has
+  no scroll.
+- **Verified:** toolbar and box positions identical between views at 100% (83 / 175 px at 1440×900); 900 px
+  stacked layout unchanged (pinned width, page scrolls sideways). Full gate on build `977b3ea6`: **3,074 PASS,
+  3 FAIL**, all on `tests/fixtures/stintswap-reshape.sptcal`. That file had UNCOMMITTED edits (+378/−30) in the main
+  checkout before this session began; they are not this session's. `stintreshape` (grid never renders) and `phasesui` P1
+  (stintswap-reshape controls/fields.byId) fail identically on a build of unchanged HEAD. Gate 13's
+  stintswap-reshape month PDF was not re-run on HEAD, but it reads the same edited fixture. Every other baseline
+  comparison passed. `npm run check` 40/40.
+- **Shipped:** owner's picker, *"Commit"* and *"Commit and push"*. Only this session's files were committed. The
+  edited `stintswap-reshape.sptcal` and the untracked `Reshape Fixture 2026-09-29.sptcal` are still uncommitted in the
+  main checkout, belonging to whoever made them. The push also carried `a81aad1` (HANDOFF only).
+- ⚠️ **For whoever owns that fixture edit:** with it, `stintreshape`, `phasesui` P1 and gate 13 (sr) fail. Either
+  the edit is unfinished, or the baselines need re-cutting with the owner's sign-off.
+
+### ✅ 24 Oct 2026 (latest): MONTH VIEW'S GREY-TEXT SWITCHES — CAPTION REMOVED, LABELS RENAMED, CARD REGROUPED — ✅ LIVE at `2d1f890` (`9e15091` + `2353b6d`, merged with `origin/main`'s black hiatus name; pushed on the owner's picker, live page verified serving it ~50 s later)
+
+- **Asked** (owner): asked what the caption "Grey text in Production's bars, on screen and in the month PDF" meant,
+  then *"remove it"*, then *"maybe the toggle should say something more clear like 'Add Production Week Label in
+  Month View'"*.
+- **Built** (`src/chrome/Sidebar.jsx` only): caption and its leading `<Divider>` deleted (each `.pref-mv-row` already
+  carries its own divider). Labels/aria-labels now *Add Production Week Label / Add Block Label / Add Episode Label in
+  Month View*. Ids `pref-mv-week|blocks|episodes`, prefs keys and the CSS hiding are untouched. Comments in
+  `app.js` / `legacy.css` / `gate.sh` still say "Show Blocks" etc. as history; no test matches the label text.
+- **Then regrouped** (owner: *"the toggle should also be right below the week/episode/block selector and then the
+  other settings currently grouped (paste notes, pause prep, and number prod days) should be separated"*): `MonthViewCard`
+  is two `.side-block`s, as HolidaysCard does for `.hv-custom`. Block 1: `ProdLabelControl` + the three `.pref-mv-row`s.
+  Block 2: Pause prep, Number Production Days, Paste notes (its first row has no divider).
+- **Verified:** `npm run check` 40/40; `pilllabel` (blocks, halfdays) clean after each step, Show-row table unchanged;
+  seen in the pane. No full gate.
+- Tracker card: `mv-grey-text-labels`.
+
+### 🔨 24 Oct 2026: ALL-PHASE HIATUS HEAD — A BLANK NAME IN FULL BLACK — branch `claude/angry-mclean-b408af`: committed `49ad6de`, `origin/main` (`076247a`, the holidays flag) merged in as `30b9e76`; LEGS GREEN on the merged build `4341800c`; PUSH APPROVED by the owner's picker, pushed FROM THE BRANCH (local `main` is the main checkout's, busy with another session)
+
+- **Asked** (owner, relayed by the planning session, verbatim): *"Use black: show the hiatus name in full black on the
+  lighter red. Have the build session make the fix and gate it; ask me before pushing."* Tracker card
+  `hiatus-head-text`.
+- **Cause:** the default all-phase hiatuses have no name, so the head showed the placeholder, which
+  `input.hiatus-name::placeholder` drew at opacity .55: 2.7:1 on the head's `color-mix(#FF0000 60%, white)`
+  (#FF6666), grey-pink. A typed name was already black.
+- **Built** (`src/styles/legacy.css`, the hiatus card block): the placeholder is opacity 1, weight 600, like a typed
+  name (5.9:1). "Hiatus" is `HIATUS_DEFAULT_LABEL`, what the band reads when the name is blank, so real-looking text
+  is honest. Kept: the hover fade (.6), and the focus state (white field, navy edge), where the placeholder dims back
+  to .55 / 500 as before.
+  - Not changed, checked: a phase hiatus's name now sits in its white block, not on a coloured head, so its
+    placeholder stays an ordinary one. A NEW custom phase's empty title shows "Phase name" at .55 on its head: that
+    is a prompt to type, not the phase's name: ✅ owner, by picker, *"Leave it faded"*.
+  - Not touched: the calendar's red bands (white text, frozen, in the exports): the owner has not ruled on them.
+- **No full gate:** `.hiatus-name` exists only on the sidebar's hiatus rows (grepped: nothing in `#table-wrap`,
+  `#print-root` or the writers). On build `29f581b3`: `npm run check` 40/40; `phasesui` 8/8 (P7 reads this card),
+  `hidewf` 19/19, `hiatuslabel` 7/7, `hiatusblank` 4/4, `mvmenu` 89/89, `loadcarry` 6/6. A screenshot of the cards was
+  shown to the owner.
+- **Owner's pickers (24 Oct):** *"Commit on the branch"*, *"Merge into main and push"* (which carries `2aa860a`, the
+  HANDOFF record of the 7cf54a4 push, along).
+- ⚠️ **How the push went, honestly.** The first try fast-forwarded local `main` in the main checkout and pushed it.
+  The fast-forward was REFUSED (another session had uncommitted edits there to files this commit touches), and a
+  `| tail -1` hid the error, so the push sent local `main` as it was: `7cf54a4..2aa860a`, the docs-only HANDOFF commit
+  the approval covered. The CSS fix did not go. That session then pushed its own `076247a` (the holidays flag) on top.
+  So `origin/main` was merged into the branch through the sync tool (`30b9e76`; only the HANDOFF and README tops
+  conflicted, both entries kept), and the branch pushed as a fast-forward of `origin/main`. Local `main` was left
+  alone: it now trails `origin/main` by this fix, for that session to pull.
+- **On the merged build `4341800c`:** `npm run check` 40/40; `phasesui` 8/8, `hidewf` 19/19, `hiatuslabel` 7/7,
+  `hiatusblank` 4/4, `settingswin`, and the holiday session's own legs `holidays2031`, `regionlock`, `regioncaveat`,
+  `wrapdate` all green.
+
+### ✅ 24 Oct 2026: HOLIDAYS THAT COST A SHOOT DAY ARE FLAGGED — ✅ LIVE at `076247a` (pushed on the owner's picker; live page verified serving it ~70 s later)
+- **Asked** (owner): *"flag which holidays in the holiday section are during production and specifically during the
+  working week and affecting a shoot day"*.
+- **Built:** `renderHolidayVisList()` tags a row **Costs a shoot day** (`.hv-shoot`, red pill on the date line) when
+  its date is in `productionInfo.holidaysHit`, the production walk's own list of holidays that cost a day. Keyed by
+  date. No new rule, no saved key, nothing frozen touched. ⓘ text in `HolidaysCard` (Sidebar.jsx) explains it.
+- ⚠️ **Judgment call, not a ruling:** an un-ticked (worked) holiday is NOT flagged, because it no longer costs a day;
+  the tag reappears when Enable is ticked. Weekend and hiatus holidays are never flagged.
+- **Verified** in the pane on `dist/` (LA, 11/2/26, 60 days: Thanksgiving ×2 and MLK flagged; Christmas/New Year's
+  in the winter hiatus not; un-tick MLK clears it). `npm run check` 40/40; `holidays2031`, `regionlock`,
+  `regioncaveat`, `wrapdate` green. No dedicated leg yet and no full gate.
+- The tracker card is `holiday-shoot-day-flag`.
+
+### ✅ 23–24 Oct 2026 (latest): MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + THE PHASES TAB REDESIGNED TO THE A + D BLEND — ✅ **LIVE at `7cf54a4`** (verified byte-identical to the gated build, sha256 `91421ba4`); branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`): built `c178d05`, `origin/main` merged in as `55d3840`, fixture/baseline `7cf54a4`; COMBINED FULL GATE 3,081 / 3 (all explained, below); local `main` fast-forwarded to it; COMMITTED and PUSHED on the owner's pickers (*"Commit on the branch"*, *"Merge into main and push"*); no version cut ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md) §5 is the as-built record)
+
+- **Built from the plan entry below** (rulings R1-R10), in the order of plan §4, by a session started from the planning
+  session. Plan §5 says what was built, card by card, and where it differs from the plan's letter.
+- **Part 1, Hide in waterfall.** `phaseHidden` (`{key: {sheet: true}}`, absent when nothing is hidden), read only
+  through `phaseHiddenIn()`. ⚠️ **Not quite §2.2's mechanism, and the reason matters:** feeding `wfSegments` to the
+  padding alone would drop a hidden phase's weeks from `schedule.weeks`, which the MONTH view also reads (its notes
+  are looked up by week in that list, and its "Week N" comes from `seg.weekNo`, numbered in the week loop). So the loop
+  still spans and numbers every phase; only cells are left out, and the waterfall's rows are cut out with the calendar
+  range's own `cutToCalendarRange()` (the whole list kept as `fullRange`, which `update()` already hands the month
+  view). `hidewf` W1-W3: hidden = not scheduled, exactly, in the waterfall, the workbook and the waterfall PDF; M1: the
+  month view byte-identical hidden or not.
+- **Part 2, the blend.** The engine's own generators and `legacy.css`, no React. The colour square is still
+  `#swatch-<key>` (first child; CSS places it on the head); the head reads `--phase-color`, written by ONE helper,
+  `paintPhaseSwatch()`, that every swatch write now goes through; `#meta-` / `#unitmeta-` moved into the head. Switches
+  are CSS on the native checkboxes (`.sw-row`). Production's box is `.prod-total-block` over `.ep-panel`, joined by CSS.
+  The All-phase hiatus card gained a dates line (`reflectHiatusRanges()`). UI-CONVENTIONS §5 updated for R7.
+- ⭐ **`phasesui` P1 is the save-format proof:** `tests/baselines/2026-10-23-phasesui/before.json` holds, for 46
+  fixtures, the Phases card's id'd controls in order, the saved `fields.byId` and hiatus rows from the build BEFORE the
+  redesign (`5ce6129`, built in a scratch worktree; its README says how to re-cut it). The new build matches all 46.
+- **Also green:** twenty existing Phases-card legs (phasefold, phiatusnum, labelsetup, loadcarry, settingswin,
+  phasecolors, builtindates ×2, customunits ×2, episodeprep ×3, blocks, shootorder, restore, prefs, offweek, mvmenu,
+  wfmenu); `npm run check` 40/40.
+- **For the owner, found while building (not changed):** with Writer's Room hidden the waterfall HEADER still says
+  "Writer's Room Opens" (the title block, not a note); hiding every scheduled phase leaves the waterfall empty (frozen
+  `render()`'s plain empty state); a waterfall note typed into a hidden phase's week replaces that week's auto text in
+  the month view too (frozen `notesForWaterfallDate`).
+- **Ruled by the owner's pickers, 24 Oct 2026:** O2 (hand-set widths/headings keyed by column) = **accept and
+  document**, no code; the waterfall header's "Writer's Room Opens" line **stays** while Writer's Room is hidden (R11).
+  Commit on the branch: yes. Push: *"Merge into main and push"*.
+- **The full gate** (port 9898, 22:04-22:34, no other gate running) on build `85b5d428`: 3,069 PASS, 2 FAIL, and
+  every frozen output byte-identical to its baseline (the waterfall PDF, the Excel parts, the printed month documents,
+  all 21 gate-13 written month PDFs).
+  - `simpostlabel` S1 was REAL: plan §3.4's copy "weeks into Production" dropped "calendar weeks after Production
+    begins", an audit fix (SCHED-13, FIX-PLAN 4.15). Put back. ⚠️ My first grep of the legs for changed strings was
+    cut off by a `head`; the second, untruncated, found no other.
+  - `offweek` R13 timed out waiting for a Load; it passed on the same build in the targeted run before, and again alone.
+  - The final build `400e403b` differs from `85b5d428` only in that sentence (and the CSP hash of the script holding
+    it); on it `simpostlabel` 3/3, `offweek` both runs, `hidewf` 19/19, `phasesui` 8/8; `npm run check` 40/40.
+- **Screenshots** of every card kind at 280 and 440 px sidebars were shown to the owner (this session).
+- **Committed `c178d05`** on the branch (owner's picker). For the push (*"Merge into main and push"*), `origin/main` had
+  moved on (the scenario key-facts band, live at `91a5d24`, with a new saved field `show-location`), so it was merged
+  into the branch through the app's sync tool as **`55d3840`**: the code merged cleanly, only the HANDOFF and README tops
+  conflicted (every entry kept). The "+" flash fix, on both sides under two hashes, is in once.
+  - `phasesui`'s baseline was **re-cut from `91a5d24`** (origin's code without the redesign): it differs from the
+    `5ce6129` cut ONLY by `show-location` in every fixture's `fields.byId` (checked; README in the baseline folder).
+  - **Combined full gate** on the merged build `91421ba4`: **3,081 PASS, 3 FAIL** (port 9898, no other gate running), every
+    frozen output byte-identical (the waterfall PDF, the Excel parts, gate 5's 77 ids, all 21 written month PDFs), and
+    `phasesui` 8/8 against the re-cut baseline. The 3, all explained:
+    - `hidewf` F1 and F3: `tests/fixtures/hidewf.sptcal` was saved before `show-location` existed, so a fresh Save had
+      one more field id. **Re-minted** from the merged build's own Save, byte for byte (the only change is
+      `"show-location": {"value": ""}` after `show-version`); then `hidewf` 19/19 and `phasesui` 8/8 alone.
+    - `scenariocompat` on the FROZEN `releases/v1.2.0.html` (untouched here): timed out on its "Open…" item, the
+      IndexedDB stall `t/lib.js` documents; failed once more alone, then passed twice (Half Days Test, 8 episodes).
+  - The merged build is `91421ba4`; `npm run check` 40/40.
+- **Pushed** `91a5d24..7cf54a4` from the main checkout after a fast-forward of local `main` (its modified
+  `stintswap-reshape.sptcal` and untracked `Reshape Fixture 2026-09-29.sptcal`, another session's, left untouched).
+  The live `index.html` matched `91421ba4` about 40 s later. This HANDOFF update is a LOCAL commit on top, not pushed.
+- ⏭ **Next:** nothing owed on this feature. Ideas the build turned up, none asked for: Sim Post's offset sentence
+  wraps at a 280 px sidebar (it reads fine; a shorter wording would have to keep "calendar weeks").
+
+### 📝 23 Oct 2026: MONTH-VIEW-ONLY PHASES ("Hide in waterfall") + A REDESIGNED PHASES TAB — PLANNED; THE A + D BLEND PICKED; NO CODE (BUILT: the entry above) ([`PHASES-TAB-PLAN.md`](PHASES-TAB-PLAN.md), mockup [`mockups/phase-cards.html`](mockups/phase-cards.html))
+
+- **Asked** (owner): a per-phase toggle that keeps a phase off the WATERFALL while the month view keeps it (*"if you
+  add a very specific phase to the month view (such as color grading week) you wouldn't want that to show on the
+  waterfall calendar"*). Then: *"overhaul the design of the phase UI. right now its pretty cluttered and ugly. give me
+  a few design idea mockups (using mantinue) without changing functionality"*, and *"also do it for all phase
+  hiatuses"*.
+- ⚠️ **I first read the ask backwards**, as hiding a phase from the MONTH view. The owner corrected it. If you find
+  "mv-hide-phases" anywhere, that id is the tracker's and is kept; the feature hides from the waterfall.
+- **Ruled:**
+  - R1: hide from the waterfall (screen, Excel, waterfall PDF); the month view and both month PDFs keep it.
+  - R2: a toggle on each phase card.
+  - R3: saved in the calendar.
+  - R4: the phase's auto-notes hide too.
+  - Accepted with "yes plan it": one toggle, every phase except Production, off by default, and a "Month view only"
+    tag shown while the card is folded.
+  - R5 (by picker): of four directions, **A, Tidy card**, *"but please clean up/refine the production phase cuz its
+    still messy with hiatus and sim post"*. The refined A is in the mockup (left column, marked Picked) and spelled
+    out in plan §3.4. Every hiatus and Sim Post is now the same one-line "option box". Production reads: Starts,
+    then SHOOTING ORDER with the total on its heading, then the two boxes. Episodic Prep takes the same shape.
+  - Then: *"actually can i see a blend of A and D"*. Built as the mockup's first column, marked New: D's coloured
+    head and switch rows, plus A's fields and A's refined Production and Prep. Plan §3.4a.
+  - R6: *"lets go with A+D but i want to still have something like this for production (nice and big and clear)"*,
+    pointing at today's TOTAL SHOOTING DAYS readout. Kept exactly (26 px, 700, the primary-light episode pill), with
+    the shooting order now in the same box under a hairline. Checked at a 280 px sidebar. Plan §3.4a.
+  - R8, the head: a palette chip and an always-on name box were tried and rejected (*"no now you made it ugly"*).
+    Instead, a colour square (A's swatch, the true colour) sits left of the title and opens today's picker. The head
+    is that colour lightened (60% colour, 40% white). The title has no box and fades to 60% on hover. The all-phase
+    hiatus band is the red lightened. In the build, the square IS `#swatch-<key>`, and the head reads a
+    `--phase-color` that the colour writes set on the row. Plan §3.4a.
+  - R9: the head's text is always black (title, dates, caret, ×), never the colour's own dark shade.
+  - R10: the colour picker shows the swatches only, with no heading. That is what today's `.phase-color-pop` already
+    does, so the build changes nothing there.
+  - R7, with R6: the blend's switches stand, Lock in place included (the owner was told it overrules UI-CONVENTIONS
+    §5). Update §5 when it is built.
+- **Open:**
+  - O2: hand-set column widths and typed headings are keyed by column position, so hiding a phase can shift them;
+    recommended: accept and document.
+  - Also unconfirmed: whether "also do it for all phase hiatuses" meant the redesign (my reading) or a hide toggle on
+    all-phase hiatuses.
+- **Next:** build on a branch in its own worktree. Part 1's engine and save format come first (plan §2.2–2.3, leg
+  `hidewf`), then the restyle to the blend (§3.2, §3.4a, leg `phasesui`), then one full gate.
+- **Found, and worth knowing before building:**
+  - **Month-only already exists:** the waterfall outputs read `schedule.weeks`, the month view `schedule.segments`,
+    and `appendEpisodePrep()` runs after the week loop. So Part 1 is a `wfSegments` split inside `computeSchedule()`
+    with no frozen edit. Plan §2.2 lists every waterfall-only step that must take it.
+  - **The Phases card is all engine HTML** (the ids are the save format). The plan restyles the generators and the
+    CSS instead of porting to React. §3.1 is the full list of ids, classes, nesting and listener rules a restyle must
+    keep.
+  - **Number weeks is a custom phase's control only;** the built-ins have none. The owner's screenshot was of a
+    custom phase. Writer's Room and custom phases have no "Start after" button.
+- **The mockup** is real Mantine 9.5.2 with `src/theme.js` and Inter, bundled the way `mockups/scenarios-compare/`
+  was. Source in `mockups/phase-cards/`, rebuild steps in its `vite.config.mjs`, ~700 KB. It shows the same six
+  phases and three all-phase hiatuses in each direction, and every control works.
+- **Committed locally on `main` as `5cc8286`, not pushed** (the owner chose "Commit locally" by picker), before the
+  blend was picked. Only the plan, the mockup and this entry went into it. The blend refinement (R6, R7) is NOT yet
+  committed. This checkout also held another session's uncommitted work (the "+" button
+  flash entry below, README, legacy.css), which was left out of the commit and untouched.
+- No README entry yet: nothing a user can see has changed. It gets one when the code ships.
+
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED OVER THE CALENDAR (option A) — branch `scenario-facts` on top of live `1ab777c`; TARGETED LEGS GREEN; NOT PUSHED (owner: *"then ask me before pushing"*)
+
+- **Why:** the window-centred band (B, live at `1ab777c`) drew *"how is this centered?"* from the owner, with a
+  screenshot. Measured on it: the window's middle was 1,000 of 2,000 px and the bar's middle about 1,006, so it was
+  centred exactly as B specified. But the calendar box runs 513–1,988, middle about 1,250. **The window's centre reads
+  as off-centre whenever the sidebar is on screen**, as the A/B mock had warned. Owner: *"Switch the key facts bar to
+  centre over the calendar area (option A), then ask me before pushing."*
+- **Built:** `placeBand()` now does `left + max(0, (area − width) / 2)`, where the area is `left` to
+  `innerWidth − right`, the calendar's edges. B's sidebar clamp is gone: A can't reach the sidebar. CSS and comments
+  are updated.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 now measures against the calendar area, panel left + 28 to the panel's content
+    right − 28: offset 0.
+  - `scenarios` 22/22, `npm run check` 40/40, build `ce675778`.
+  - Browser pane at 1000 px (offset 0), and resized live to 1440 px (offset 1).
+- ⏭ **Next:** ask the owner before pushing (they asked for that). Local `main` still owes the merge.
+- 📝 **Lesson:** a literal "centre in the window" on a layout with a sidebar is rarely what's meant. Say so plainly at
+  the mock stage, as the recommendation did, and when it is chosen anyway, show it at the owner's own window size
+  before shipping.
+
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND CENTRED IN THE WINDOW — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`) on top of live `f29f268`; TARGETED LEGS GREEN; ✅ **LIVE at `1ab777c`**
+
+- **Asked** (owner): *"what if we centered the bar left to right in the window"*. Mocked in chat: A over the calendar
+  (recommended) or B in the whole window. **Chosen: B**, *"Centre the key facts band in the whole window, sidebar
+  included"*. Tracker: `key-facts-band-centred`.
+- **Built** (`ScenarioTabs.jsx` + `legacy.css` only):
+  - `.sc-band` is `width:max-content`, with a `max-width` of the calendar's width;
+  - `placeBand()` writes its `left`: the window's centre, CLAMPED to the calendar's area (`left`..`innerWidth - right`,
+    the edges the band used to span);
+  - it runs on every render, on the band's own resize, and on `window` `resize`. The strip doesn't re-render on a
+    window resize (its measured edges don't change), so without that listener the band would stay off-centre.
+- ⚠️ **The clamp is the owner's B with one guard.** Below about 1,110–1,240 px, depending on the sidebar's width, the
+  window's centre would put the band's left end on the sidebar, so it stops at the calendar's left edge. Seen at 1000
+  and 961 px: left = calendar left, 308.
+- **Proof:**
+  - `scenariofacts` 12/12. F12 is new (centre within 1 px of the window's, left ≥ the calendar's); F9 now narrows the
+    band through `max-width`.
+  - `scenarios` 22/22, `npm run check` 40/40, build `f01a1115`.
+  - Browser pane at 1440 / 1280 (centred, offset 0) and 1000 / 961 (clamped).
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:31:10
+  (`f29f268..1ab777c`). Deploy run 40062661294 succeeded at 21:32:23. At 21:32:27 the live `index.html` was
+  byte-identical to the tested build (sha256 `f01a1115…`, 1,824,141 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts`, once the main checkout's uncommitted work (another
+  session's) is committed.
+
+### 🔨 23 Oct 2026 (latest): THE KEY FACTS BAND AS STAT TILES — branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`), live `origin/main` (`c6a5c2e`, the month view's hover fix) merged in as `17aa0b9`; TARGETED LEGS GREEN; ✅ **LIVE at `f29f268`**
+
+- **Asked** (owner, with a screenshot of the live band): *"its not necessarily clear that the 20wks refers to the
+  length of the writers room and the 17 weeks refers to length of production"*. Four fixes mocked in chat (A brackets
+  and dividers, B chips, C a sentence, D a label over each value). **Chosen: D**, *"a small label above each value,
+  like stat tiles"*. Tracker: `key-facts-band-clarity`.
+- **Built:**
+  - `FactsBand` in `ScenarioTabs.jsx` renders `.sc-band-stat` tiles (`.sc-band-lab` over `.sc-band-val`). Every group
+    now has a label: Location, Episodes / Blocks (the value is the bare count), the two phase labels, Wrap.
+  - `legacy.css` `.sc-band*` restyled. The engine is untouched.
+  - The band is 41 px, and the panel's room is measured as before.
+- ⚠️ **A wrapped row must not start with a divider.** Each tile draws its left divider pulled 1 px outside itself
+  (`margin-left:-1px`), and the band clips (`overflow:hidden`), so the first tile of every row loses its divider.
+  Tiles are far narrower than the band, so nothing else can clip.
+- **Proof:**
+  - `scenariofacts` 11/11. Its `tiles()` reads label → value, and F9 now demands a real second row (41 → 76 px).
+  - `scenarios` 22/22, `npm run check` 40/40, build `d0a2cded`.
+  - Seen in the browser pane at 1000 px, on one row and wrapped.
+  - No full gate: chrome only, nothing frozen, saved or printed. The memory rule for chrome-only CSS applies.
+- ✅ **PUSHED AND LIVE** (owner, by picker: *"Push and deploy"*). ONE `git push origin scenario-facts:main` at 21:23:49
+  (`c6a5c2e..f29f268`). Deploy run 40062174299 succeeded at 21:24:36. At 21:24:39 the live `index.html` was
+  byte-identical to the tested build (sha256 `d0a2cded…`, 1,823,739 bytes). No version cut. This docs commit is local
+  only.
+- ⏭ **Next:** local `main` still owes the merge of `scenario-facts` (entry below), once the main checkout's uncommitted
+  work is committed.
+
+### 🔨 23 Oct 2026 (latest): NO PURPLE FLASH BETWEEN THE MONTH VIEW'S "+" BUTTONS — committed on local `main` as `e11beb4`, then replayed alone onto `origin/main` (`8c78372`, the key facts band) on branch `mv-gap-flash` (worktree `.claude/worktrees/mv-gap-flash`), because local `main` holds another session's uncommitted work and the owner chose *"Push only the fix"*; FULL GATE GREEN for this change (the 2 FAILs are a modified fixture, below)
+
+- **Asked** (owner): *"as you scroll up and down over a square in the month view, the square flashes purple for a
+  split second as your cursor hovers in between the tiny gap between the selector buttons for comments. this is
+  distracting and feel unprof"*. On the tracker as `month-gap-hover-flash`.
+- **Cause, measured at 1440×900:** the purple is `#table-wrap .mv-daycell:hover` (the day-menu cue, owner-approved
+  frozen edits of 18 and 21 Sep). `.mv-bars` is `pointer-events:none`, so below the number band the CELL is the hit
+  target in every hole the bar layer leaves: the 2 px lane gaps (`gap:2px 0`), the 1 px seams of `margin:0 1px`, the
+  3 px side padding, the strip above `.mv-row-expand`. `elementFromPoint` returned `.mv-daycell` in all of them.
+- **Built** (`src/styles/legacy.css`, after `#table-wrap .mv-out:hover .mv-daynum`): ONE frozen CSS rule,
+  `#table-wrap .mv-daygrid::after{ content:''; position:absolute; left:0; right:0; top:24px; bottom:0; }`. A
+  transparent sheet over the day grid below the band, painted after the cells and under `.mv-bars` (z-index 1). The
+  holes now hit `.mv-daygrid`, which is no `.mv-daycell`: no highlight, and a LEFT-click or double-click there does
+  nothing (it used to open the day menu / clear a mark). The band, every "+", note, pill and the row-expand bar are
+  unchanged. Right-click is unchanged too, because `dayContextAt` finds the day by point inside `.mv-body`.
+  - ⚠️ `top:24px` is `.mv-bars`' `padding-top` (the band). Change one, change both.
+  - Paints nothing, takes no space (inside the out-of-flow `.mv-daygrid`), and cannot print: `#print-root` is not
+    inside `#table-wrap`, and the month-PDF writer reads no DOM.
+- **Verified:**
+  - In the browser pane (dev server, 1440×900): `elementFromPoint` in every hole now returns `.mv-daygrid`. A real
+    mouse sweep down one day lit the band and left all seven gap positions grey. A left-click on the band opens the
+    day menu. A left-click in a gap does nothing, a right-click there opens that day's menu, and "+" still opens the
+    note editor.
+  - `npm run check` 40/40. Twelve month legs on the build, each with the gate's fixture: `mvmenu` 89/89,
+    `labelsetup` 41/41, `halfworked` 24/24, `overrides` 20/20, `mvnotes` 30/30 and 14/14, `epnames` 10/10,
+    `halfdays` 27/27, `mvhdroff` 9/9, `monthnotes` 7/7, `monthlanes` 6/6, `offweek` and `calzoom` pass.
+  - **Full gate** on build `57204bbd…` (port 8239, 20:24–20:53, no other gate running): **3,035 PASS, 2 FAIL.**
+    Both FAILs are on `stintswap-reshape` (`stintreshape` timed out, and gate 13 said "THE CONTENT MOVED").
+    ⚠️ **That fixture is MODIFIED in this checkout and was before this work began.** Its mtime is 21 Oct 18:17, and
+    25 keys differ from HEAD: an app save seems to have landed on it. Not mine, and left untouched, as was the
+    untracked `Reshape Fixture 2026-09-29.sptcal`. **On the committed fixture** (a temporary copy under another name,
+    deleted after): gate 13's written month PDF is byte-identical to its baseline (102,988 bytes), and `stintreshape`
+    passes every check. Every other frozen output matched its baseline, gates 10 and 13 included.
+- **Owner's pickers, 23 Oct 2026:** *"Push only the fix"* (not the Phases plan commit `5cc8286`, which stays on local
+  `main`), and *"Leave it for now"* for the modified `stintswap-reshape.sptcal`. ⚠️ Until that fixture is restored
+  (`git checkout -- tests/fixtures/stintswap-reshape.sptcal`, the owner's call), every full gate in the main checkout
+  fails those two checks.
+- ⚠️ **LOCAL `main` NOW DIVERGES FROM `origin/main`** (it holds `e11beb4` and `5cc8286`; origin holds the key facts
+  work and this fix's replay). Merge `origin/main` into local `main` once the other session's uncommitted HANDOFF
+  and Phases-plan edits are committed. Only the HANDOFF / README tops should conflict: keep every entry.
+
+### 🔨 23 Oct 2026 (latest): SCENARIO KEY FACTS BAND + A LOCATION BOX IN SHOW INFO — BUILT on branch `scenario-facts` (worktree `.claude/worktrees/scenario-facts`, from local `main` at `a0d5245`); plan `551d5d1`, build `f0c088c`; FULL GATE 3,054 / 2 (both the new id; gate 5 RE-CUT on sign-off, `3186104`); ✅ **LIVE at `8c78372`** (pushed from the branch on the owner's picker; live `index.html` byte-identical to the gated build, sha256 `0d0cfdd9`); LOCAL `main` NOT YET MERGED ([`KEY-FACTS-PLAN.md`](KEY-FACTS-PLAN.md), mockup [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html))
+
+- ✅ **Ruled** (owner): *"lets go for C"*, the tinted band above the tabs. Then *"Start building it as planned, with the
+  defaults in section 2."*
+- **Built** (README has the entry). No frozen edit.
+  - **Engine (`app.js`):**
+    - `placeShortLabel` / `cleanLocation` / `locationText` beside `PLACES` (`us-general` carries `short`);
+    - `scenarioFacts()` gains `wrOpen`, `wrWeeks`, and `loc` = typed Location or the short region (null for None);
+    - the "key facts band" block: `scenarioBand()`, `refreshScenarioFacts()` / `scheduleScenarioFacts()` (120 ms
+      after `update()`), and `scheduleScenarioProbe()` after `adoptScenarios()`;
+    - `probeScenarioTabs()`, factored out of `compareScenarioValues()`;
+    - `pushScenarioChrome` sends `band`.
+  - **Chrome:** `FactsBand` in `ScenarioTabs.jsx`, `#show-location` in `Sidebar.jsx`, and `fmt` exported from
+    `CompareDialog.jsx`.
+  - **CSS:** `.sc-band*`, and `.preview-panel`'s bottom margin / padding `+ var(--sc-band-space, 0px)`.
+- ⚠️ **Traps found while building:**
+  - **A ResizeObserver alone didn't move the grid in the leg.** The page wasn't painting (hidden pane, headless
+    virtual time), so its callback never came: the band wrapped to 48 px and its room stayed at 38. So the band
+    re-measures on every React render, and the grid fit now also observes `<html>`'s `style` attribute as a
+    mutation. Same lesson as the grid fit's own notice-strip comment.
+  - **`var`, not `let`, for `liveScenarioFacts` / `BAND_KEYS` / the timers:** `pushScenarioChrome()` can run during
+    evaluation, before those lines, and a TDZ error would take the whole IIFE (the `scenarioTabs` rule).
+  - **A flip refreshes the band synchronously** (`switchScenario`). On the debounce alone the band showed the tab
+    just left for 120 ms.
+  - **`fields.byId` stores `{value}` per id**, not the bare value.
+  - **Dimmed is `--text-muted`, Compare's `dimmed`, not the mockup's lighter `#A5A197`**, which was about 2:1 on the
+    band's `gray-1`.
+  - **The after-Load probe** runs a few tabs per tick, waits while a note editor is open or a field is focused, and
+    banks a pending edit first, as Compare does. A tab that fails is marked `factsFailed` and skipped. Until every tab
+    is known, nothing is dimmed.
+- **Proof so far:**
+  - **New leg `scenariofacts`, 11/11** (wired into `gate.sh` after `scenarios`). It is red on the pre-change build:
+    `main` at `a0d5245`, built with `git archive`, sha256 `3823d4d8` = the live file. It stops at F2, "no band".
+  - **`scenarios` 22/22.** S9 now expects "Toronto" / "U.S. (Area Standards)", an intended change.
+  - **`npm run check` 40/40.**
+  - **By hand in the browser pane** (port 9871, preview `scenario-facts-9871` in main's `.claude/launch.json`): the
+    band at 1000 and 1440 px, typing a Location, a flip, and Compare's row.
+- ⛔ **Gate 5 WILL MOVE by one id** (`show-location` gained in `fields.byId`). Its baseline re-cut needs the owner's
+  sign-off; don't re-cut it unasked.
+- **Full gate on `f0c088c`** (build `0d0cfdd9…`, 1,823,488 bytes; 19:47–20:17): **3,054 PASS, 2 FAIL.**
+  - Every frozen output is identical to its baseline: the waterfall PDF, every Excel part, every printed month
+    document, and the written month PDFs (`monthwriter`). 0 clipped cells.
+  - `scenariofacts` 11/11 and `scenariocompat` (both releases) pass inside it.
+  - The two FAILs, both caused by the new id:
+    - **Gate 5**, as predicted: `gained: ['show-location']`, `lost: []`, `changed: []`, 76 → 77 ids.
+    - **`settingswin` W3:** the leg anchors on the swept ids just before `#cal-range-end`, and `#show-location` now
+      sits between `#show-version` and `#cal-range-start`. The window's own ids were exactly right. The anchor is
+      moved in `27307f1` (comment in the leg); alone on the same build, 21/21.
+- **Owner, by picker:** *"Re-cut it"*, *"Merge into main"*, *"Push and deploy"*.
+  - **Gate 5 re-cut** in `3186104`: `restore.json`'s `form` gains `show-location: ""`, written up in the baseline
+    README. Re-run alone: the restore leg and gate 5 PASS, 77 ids, grid identical.
+  - ⚠️ **Local `main` was NOT merged.** The main checkout held another session's UNCOMMITTED work (the month view's
+    hover-flash fix in `legacy.css`, `PHASES-TAB-PLAN.md`, and HANDOFF / README entries). A merge there would have had
+    to touch their files.
+  - Asked again, the owner chose *"Push from the branch"*: ONE `git push origin scenario-facts:main`. `origin/main`
+    was `acdae89`, an ancestor, so it is a fast-forward. It carries local `main`'s unpushed docs commit `a0d5245`.
+  - ✅ **PUSHED AND LIVE.** ONE `git push origin scenario-facts:main` at 20:39:01 (`acdae89..8c78372`). Deploy run
+    40059168727 succeeded at 20:39:48. At 20:39:57 the live `index.html`, fetched with a cache-buster, was
+    **byte-identical to the gated build** (sha256 `0d0cfdd9…`, 1,823,488 bytes, `cmp`). No version cut: `APP_VERSION`
+    and `version.json` are unchanged. This docs commit is local only.
+  - ⏭ **Merge `scenario-facts` into local `main` once that session has committed.** Expect conflicts only in
+    HANDOFF / README's top entries (keep both); `legacy.css` changes are in different blocks. The notes below are the
+    history that led here.
+
+- **Asked** (owner): *"a bar or section somewhere that gives the major key considerations of each scenario in one clear
+  easy place ... Location, num eps, writers room open, num production weeks, num writers room weeks, wrap"*, then *"also
+  add start date of production"*. They also said *"i dont want to overcomplicate and bloat the app ... I dont want more
+  clutter"*. Tracker: `scenario-key-facts`.
+- **Then the region problem** (owner): the Production Region is a holiday picker, not a city. *"if you selected a province
+  in canada, you might actually mean winnipeg"*, and *"this is also an issue for the comparison screen"*. The owner's
+  own fix: *"in addition to selecting a production region, you could also enter a specific location (as text) and that
+  is what is used ... this would be in the "show menu""*. Tracker: `show-location-field`.
+- **What the mockup proposes:**
+  - One line of facts, shown only with 2+ scenarios: Location · eps · Writers' Rm open · wks · Production start · wks ·
+    Wrap. The same in both views; no setting; nothing saved, printed or exported.
+  - **Placement: C, the tinted band above the tabs (ruled).** It got there by way of F (the text style bar) and A–E (a row above the tabs). First it was a row above
+    the tabs. The owner liked the look of beside the tabs but asked about 6+
+    scenarios, so the mockup has 3 / 6 / 10 scenario and 1280 / 1440 / 1680 px switches. Measured: beside the tabs,
+    the line keeps its width and the TABS give way (`.sc-tabs` is `min-width:0` and scrolls). At 1280 px the line
+    alone doesn't fit; at 1440 px only 1 tab of 3, 6 or 10 is in view; at 1680 px 3 of 3, 4 of 6, 4 of 10. Above the
+    tabs: all 6 at every width, and 10 shows 7 / 9 / 10, scrolling the rest as today.
+  - **Then the owner asked for more separation between the two rows**, so the mockup shows five "above" styles: A
+    hairline, B readout pill (the zoom pill's shape), C tinted band, D calendar footer, E name tag.
+  - **Then the owner's own idea, F: the empty right-hand end of the text style bar** (`.style-bar`, under the
+    preview toolbar, in BOTH views), labelled "SCENARIO" the way the bar's `::before` says "TEXT", behind a divider.
+    Measured in the real build at 1440 px: the bar is 1038 px wide, its controls end at x≈620 and the hint
+    (`.style-bar:not(.has-target)::after`) at ≈830. The facts need ~613 px plus the label. **F fits windows from about
+    1,277 px once the hint gives way, and from about 1,488 px with the hint.** It costs no calendar height. Below
+    about 1,280 px it needs a fallback (not designed). The facts end up far from the tabs (top vs bottom).
+  - **Values the same in every scenario are grey** (Compare's grey-row rule); what differs stays dark. A first draft
+    tinted differing values yellow, but realistic scenarios differ in most facts, so everything went yellow.
+  - **Location box** (optional text, under Production Region in Show info): the line and Compare's Location row show it.
+    When it's blank they show the region SHORTENED ("Manitoba", "Toronto", "U.S. (Area Standards)"), not the list's
+    full label. It never changes a date.
+- ⚠️ **If built, Location is a NEW saved field:** an id'd Show info control lands in `fields.byId`, so its id is
+  permanent from the first save (CLAUDE.md "Every saved calendar must keep opening"). An old file without it shows the
+  region. Per scenario, like every Show info field. The values should come from `scenarioFacts()` (the header's own
+  tokens), so the line, the header and Compare cannot disagree.
+- ⏭ **Next:** see the ✅ Ruled line at the top of this entry. Nothing is committed: the plan, the mockup and these notes
+  are uncommitted in the main checkout.
+
+### 🔨 23 Oct 2026 (latest): COMPARE WINDOW FITS ITS TABLE — on branch `scenarios` on top of live `93836f5`; ✅ **LIVE at `acdae89`**; targeted checks green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*)
+
+- **Asked** (owner): *"the window needs to scale larger so we dont have elipses/things cut off"*. On the tracker as
+  `compare-window-fit`.
+- **Reproduced:** at 1440×900, a 36-character scenario name ended in "…" in its heading and the location wrapped,
+  while the window was 776 px wide.
+- **Built** (`src/chrome/CompareDialog.jsx`):
+  - the table is `width: max-content`, with each column held to a minimum (`COL_MIN`, `LABEL_MIN`) and nothing
+    wrapping;
+  - a `ResizeObserver` on the table (`measure`) sizes the Modal. It reads `offsetWidth`, never
+    `getBoundingClientRect()`, because the opening transition scales the content;
+  - `xOffset` / `yOffset` 24;
+  - a 12 px bottom pad on the scroll container, so an overlay scrollbar no longer sits on the last row.
+  - `exportCompareExcel` sizes its columns from the text.
+- ⚠️ **Mantine caps a Modal at 90% of the window** (`xOffset` 5vw) whatever its `size`. Pass `xOffset` to go wider.
+- **Verified:**
+  - 3 scenarios: 903 px, nothing clipped (every `p` and badge label has scrollWidth ≤ clientWidth);
+  - 12 scenarios: 1,392 px, and the 2,511 px table scrolls;
+  - `scenarios` 22/22, `npm run check` 40/40.
+- ✅ **PUSHED AND LIVE.** ONE `git push origin main` at 16:59:20 (`93836f5..acdae89`, which carried the docs commit
+  `0862d6b` too). The deploy succeeded at 17:00:05. The live `index.html` has the same sha256 as the tested
+  `dist/index.html` (`3823d4d8…`). No version cut.
+
+### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; ✅ **LIVE at `93836f5`**; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
+
+- **Asked** (owner, after Scenarios went live), four notes on the Compare window. On the tracker as
+  `compare-refinements`.
+  1. *"It should hide phases that aren't used/empty."*
+  2. *"There should be a button to hide comparisons that are the same (only show items with differences)."*
+  3. *"lets use pushed and pulled instead of + and -"* for dates. Then: *"days and eps can stay + and - as they are
+     counts and not dates."* A memory, `pushed-pulled-for-dates`, now carries this for all new copy.
+  4. The holidays behind a moved shoot date. First, the owner asked for their names. Then: *"lets not name the
+     specific holidays, lets just say + or - a number of holidays with the same yellow chip."*
+- **Built** (SCENARIOS-PLAN.md §2 has the rules; README has the entry). No frozen edit and no save-format change:
+  - `src/chrome/CompareDialog.jsx`:
+    - phase rows (`row.phase`) drop when every column shown is a dash;
+    - an Only differences switch, a plain label beside a label-less `Switch`;
+    - `moved()` gives Pushed / Pulled;
+    - `holidayDelta()` gives the "+1 holiday" chip (`DeltaChip`);
+    - wider columns (`COL_W`, now 184 px, was 160 px), so the two chips fit side by side.
+  - `app.js`:
+    - `scenarioFacts()` adds `values.hols`, the production walk's own `holidaysHit`;
+    - `compareRows()` marks `phase` and `hols`;
+    - the Excel and PDF writers draw the second chip.
+- ⚠️ **Traps found:**
+  - **The app imports no `InlineInput.layer.css`,** so a Mantine `Switch` (or Checkbox) given its own `label` stacks
+    the label UNDER the track. Every switch in Settings avoids it with a separate label. Do the same; don't import
+    the file just for this, because it would re-lay-out every switch in Settings.
+  - **In the leg, the tab a duplicate makes is the one on screen,** so it is the Compare's reference column (S18–S21).
+- **Verified:**
+  - `scenarios` 22/22 (S18–S21 new);
+  - `npm run check` 40/40;
+  - `monthemit` 16/16, `monthwriter` 12/12, `monthlayout` 14/14, F0 green in all three;
+  - the browser pane on `scenarios-3`;
+  - the written PDF (rendered) and the workbook's strings.
+  - No full gate. Nothing frozen, saved or printed by the calendar changed: the Compare exports are new code with no
+    baseline.
+- ✅ **LIVE at `93836f5`.** ONE `git push origin main` at 16:48:17 (`ada0018..93836f5`). The deploy succeeded at
+  16:49:22. The live `index.html` has the same sha256 as the tested `dist/index.html` (`cc1e3ee7…`). No version cut.
+- ⏭ **Next:** nothing owed.
+
+### ✅ 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT AND LIVE — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*); ✅ **LIVE at `d25eaf6`** (verified byte-identical, `75968ba8`; no version cut); MERGED INTO LOCAL `main` beside Scenarios ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
 
 - **Asked** (relayed by the session that started this one): plan and build item 5 of the Excel-gaps list, on the
   four rulings of 22 Oct (the entry "THE EXCEL-GAPS LIST…" below). Tracker card `waterfall-right-click-menu`.
@@ -116,11 +1206,107 @@
   `hdrrow` on the same build: one more EX (run alongside the month-menu-trim session's gate, started 15:27:50), then
   5 × 37/37. Header: Off + month-drag WITHOUT the menu: 5 × 37/37, and every input build alone 37/37, so whether the
   menu raises that leg's load-timeout rate is not settled by 7 runs. Nothing in the menu runs during a Load.
-- ⏭ **Next:** the push and its live check, then the merge into local `main`. Then the month menu's trim (`month-menu-trim`): propose its short list for
+- ✅ **PUSHED AND LIVE.** ONE `git push origin HEAD:main` at 15:36:16 (`2c6a822..d25eaf6`: the plan, the build, the
+  docs, `1af8782` Header: Off, the two merges). Deploy run 40034688604 succeeded at 15:37:01. At 15:37:18 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (sha256 `75968ba8…`, 1,775,069
+  bytes, `cmp`). `version.json` is still 1.8.0, so installed copies pick it up silently; a version cut is the owner's.
+- **Then merged into local `main`** (`57a3650`, which holds Scenarios, unpushed) on a temporary branch, only the
+  HANDOFF / README top entries conflicting, and `main` fast-forwarded to it. ⛔ **Scenarios is still NOT pushed, and its
+  queued full gate runs in `.claude/worktrees/scenarios` on its own branch, which does NOT have the right-click menu.**
+  Before Scenarios is pushed, its gate has to run on a build that contains `d25eaf6` (merge `origin/main` in first).
+- ⏭ **Next:** the month menu's trim is built on its own branch (`claude/adoring-chaum-0206c1`, session "Trim the
+  month view's right-click menu"); its merge and push are the owner's. Then the month menu's trim (`month-menu-trim`): propose its short list for
   approval first. ⚠️ It edits `installMonthDayMenu`, which this branch reshaped: start it from this branch or after
   it lands, never from an older `main`.
 
-### 🟡 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout, NOT COMMITTED yet; full gate queued; no version cut
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); live `d25eaf6` merged in beside it (local `main` = `99a145e`); **FULL GATE ON `99a145e`: 3,040 / 1** (`launchopen` L6, green alone 16/16 three times); ✅ **LIVE at `d08832e`** (owner-approved push, 23 Oct 2026, 16:17); no version cut
+
+- ⏭ **RESUME HERE for scenarios.**
+  - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
+    window's look, content, chips, 12 columns and exports.
+  - Owner: *"Ok start building it"*.
+  - Steps 1–4 are built, plus step 5 and most of step 6. The plan's §13 holds what building it taught.
+- **What exists:**
+  - **Engine, the "SCENARIOS" block in `app.js`.**
+    - `captureFileObject()` / `unpackScenarioFile()` handle the file: version 2 only with 2+ tabs, the current tab at
+      the top level.
+    - `switchScenario` (keeps the view, month and scroll), duplicate, rename, move, delete and keep-only.
+    - Per-tab undo, and Ctrl+Page Up/Down.
+    - The Compare values come from `buildHeaderCtx().tokens`, with a synchronous probe for tabs not visited since Load.
+    - Excel export through ExcelJS, PDF through the month writer's `mvlPageOps` / `mvlSerialize`.
+    - Save this scenario as its own file, and the `{scenario}` token.
+  - **Chrome:** `src/chrome/ScenarioTabs.jsx` (bottom left, beside the zoom) and `src/chrome/CompareDialog.jsx`.
+  - **Frozen edits S1/S2** (D6, approved in principle): `exportExcel` and `exportWaterfallPdfDirect` only append
+    `scenarioFileSuffix()` to the DOWNLOAD NAME, which is `''` with one tab. Gates 1–3 must stay byte-identical.
+- **Not built:**
+  - "Add a calendar file as a scenario…";
+  - overflow ◀ ▶ and the ▾ list (tabs scroll with the wheel);
+  - nothing month-view-specific was needed.
+- **Tests:**
+  - `scenarios` 18/18 on the build;
+  - `scenariocompat`: v1.8.0 refuses `tests/fixtures/scenarios-3.sptcal` whole; v1.2.0 opens its current tab;
+  - both in `gate.sh`, and `npm run check` 40/40;
+  - checked in the browser pane with real clicks and typing.
+- **Gates:**
+  - **Gate 1** on `4946882`: 2,883 / 27.
+    - The 27 were F0 in `monthlayout` / `monthemit` / `monthwriter`: "only the month export reaches the writer". The
+      Compare PDF named the writer's internals.
+    - Five of them came from my own mid-gate edit. Those legs slice `src/legacy/app.js` LIVE, so an edit while a gate
+      runs reaches it. ⛔ Never edit `app.js` while a gate is running.
+    - Fixed in `9faf3da`: the writer's second public entry is `buildListPdf(paint)`, and the three legs know the
+      second caller.
+    - ⚠️ `buildListPdf` must not end with `buildMonthPdf`'s closing text (the slice marker).
+  - **Gate 2** on `9faf3da`: **2,981 PASS, 1 FAIL**, `loadfail` AR, run on a fast-forwarded clock under load.
+    - Alone on the same build it passes 3/3, as the 19 Oct entry found for R and AS.
+    - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, every month print document.
+    - All 23 scenario checks pass.
+- **Main merged in** (`5a3d5da`: Settings opens below the rail with no slide, and the scope lines and header-menu
+  descriptions are gone), as `2c2c68a`. Owner's choice, by button: *"merge main into the scenarios branch … run the
+  scenario legs, settingswin, hdrcontrols and npm run check. Full gate before the next push."*
+  - The code merged automatically. Only the top entries of HANDOFF and README conflicted; both are kept.
+  - On the merged build:
+    - `npm run check` 40/40;
+    - `settingswin` 21/21;
+    - `hdrcontrols` (carry-rich) 12/12;
+    - `scenarios` 18/18;
+    - `scenariocompat` green on both releases (v1.2.0 needed a re-run: one run left no result, then 3/3).
+- **Main merged in again** (`78aa285`: month notes keep their bar and drag between days; Header: Off for the Month
+  view), as `9905168`.
+  - Code merged automatically. CLAUDE.md, HANDOFF and README conflicted where both sides added; CLAUDE.md keeps main's
+    new `mvWfNotePlace` row, then `scenarioTabs`.
+  - Main's one new snapshot key, `mvHeaderOff`, is per scenario with nothing to do.
+  - On the merged build, run while another session's full gate was going:
+    - `npm run check` 40/40;
+    - `scenarios` 18/18;
+    - `scenariocompat` (both releases);
+    - `mvhdroff` 9/9, `hdrrow` 37/37, `mvorder` 30/30.
+  - ✅ **The owed full gate has run** (owner: *"Run the full gate on local main once the other session's gate has
+    finished, then report and ask me about pushing"*). It ran on `99a145e`, which is local `main` and contains the
+    live `d25eaf6`:
+    - `1bd8056` (another session) merged `d25eaf6` into local `main` beside Scenarios, and `99a145e` merged in
+      `fd462a0`, which is HANDOFF only.
+    - Quick checks first: `npm run check` 40/40, `scenarios` 18/18, `wfmenu` and `mvmenu` (halfdays) 38/38 and
+      89/89.
+    - **Gate 3: 3,040 PASS, 1 FAIL**, 15:41–16:10. The 1 is `launchopen` L6 (Load after a double-click with
+      unsaved work). Run alone on the same build it passes 16/16 three times out of three. A timing flake under
+      load: another session's gate was queued behind this one.
+    - Every byte comparison is identical: the waterfall PDF, the Excel parts, 76 ids, and every month print and the
+      written month PDF. Clipped cells = 0. All scenario checks pass, and so does `scenariocompat` on both releases.
+  - ✅ **PUSHED AND LIVE.** The owner said yes in the push picker. Before the push, both refs were checked: local `main`
+    was `d08832e` (the gated tree plus this note), and `origin/main` was still `d25eaf6`. Then ONE
+    `git push origin main` at 16:17:46 (`d25eaf6..d08832e`). The "Build and deploy" run succeeded at 16:18:59. The live
+    `index.html` (1,816,316 bytes) has the same sha256 as the gated `dist/index.html` (`8d487ff6…`), and it carries
+    the scenario events and menu text. No version was cut: `APP_VERSION` and `version.json` are unchanged.
+  - ⏭ **Next, if the owner wants them:** "Add a calendar file as a scenario…" and the overflow ◀ ▶ / ▾ list. Also
+    cutting a version (APP_VERSION + version.json + tag + `releases/`, CLAUDE.md "Cut a version").
+- ⚠️ **Traps for whoever touches this:**
+  - Every undo baseline must be `undoStateJSON()`, never `JSON.stringify(captureSnapshot())`: phantom steps.
+  - `buildHeaderCtx()` returns `{tokens}`.
+  - `buildSavedFileName('')` returns `.sptcal`.
+  - Save to a legacy `.html` must embed every tab (`buildSavedHtml({allScenarios:true})`).
+  - `.compare-dlg` is skipped by `collectFieldValues()` (Chip ids).
+
+### ✅ 23 Oct 2026 (latest): HEADER: OFF FOR THE MONTH VIEW — built in the main checkout as `1af8782`; ✅ **LIVE at `d25eaf6`**, carried by ANOTHER session's combined landing (the waterfall right-click menu, owner-approved push); this session pushed nothing; no version cut
 
 - **Asked** (owner, answering the scope-lines picker below): *"delete it too, but also add "Off" for the month view
   header"*. On the tracker as `mv-header-off`. Ruling 10 (20 Oct) had given Off to the waterfall only.
@@ -165,7 +1351,25 @@
   - Every month PDF baseline except that fixture matched, gate 10 included.
 - ⏭ **Next:** the full gate's verdict, then the owner's picker on commit and push.
 
-### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,970 / 1 (build `95bf3fd4`; the 1 a `loadcarry` load-timing flake, green alone twice); NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+- **origin/main moved under it.** The "Month view drag-to-reorder bugs" session pushed `2c6a822` (owner-approved; per
+  that session, live and verified byte-identical, `d34f917a`). Its work edits frozen `renderMonthView` (E3/E4,
+  owner-approved), the writer's lane packing and the month note drag (its own entry is just below). It told this
+  session, so the clean-worktree gate already queued for `1af8782` alone was stopped, and local `main` merged
+  `origin/main`. Only HANDOFF.md and README.md conflicted: both sides added top entries, and both were kept. The merged
+  build is `637b9428…`, and `npm run check` gives 40/40 on it.
+- **Full gate on the merged tree** (`cc9a8ad`, build `637b9428…`, clean worktree with the committed fixtures): 2,980
+  PASS, 1 FAIL. The one was `loadcarry` EX, a Load timeout ("title Non-dense Custom Key", 20 s). Alone on the same build
+  it passed 6/6 twice, which is the same flake the month-drag-fix gate saw. Every month PDF baseline matched, and
+  `mvhdroff` and `mvorder` were green.
+- **How it went live:** while that gate ran, the waterfall right-click-menu session merged `main` (at `1af8782`) into
+  its branch (`ade4231`), then `origin/main` (`31f7599`). It gated the combined tree (its commit says 3,010 / 2) and
+  pushed `d25eaf6` on the owner's approval. The deploy succeeded at 15:36. The live `index.html` (fetched with a
+  cache-buster, sha256 `75968ba8…`) carries `mvHeaderOff` and the month tooltip's "or turn it Off". This session did
+  NOT check that file byte for byte against a build of `d25eaf6`: that check belongs to the session that pushed.
+  `cc9a8ad` / `78aa285` (this session's merge) are not on origin. Their content is, through `31f7599`.
+- ⏭ **Next:** nothing for this feature.
+
+### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); in local `main` since `cc9a8ad`, where the Header: Off session merged `origin/main` on top of its unpushed `1af8782` ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
 
 - **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
   sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
@@ -216,6 +1420,29 @@
   kind), not this change, which does not touch the Load path or that leg's views.
 - `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
 - ⏭ **Next:** the owner's picker on merging into `main` and, separately, on pushing.
+
+- **Landing (owner's pickers):** *"Merge into local main"* and *"Push after the combined gate"*. `main` had moved (three
+  live Settings changes, `06c8770`..`5a3d5da`), so it was merged into the branch as `2c6a822` (HANDOFF / README top
+  entries both kept). `npm run check` 40/40. ✅ **Combined full gate on `d34f917a…`** (1,761,781 bytes; port 9807,
+  14:24:57–14:53:30, after the main checkout's own gate): **2,974 PASS, 0 FAIL, GATE PASSED**; all 90 month-PDF lines
+  identical to the baselines, `mvorder` 30/30.
+- ⚠️ **Then local `main` moved AGAIN** during that gate: another session committed `1af8782` "Header: Off for the Month
+  view" (app.js, the month header, gate.sh, a new `mvhdroff` leg), UNPUSHED, and started its own gate. A fast-forward
+  of local `main` was impossible, and merging would have put an ungated combination into the `main` that session was
+  about to push. Asked by picker; the owner chose *"Push mine now"*: push exactly the gated build, leave local `main` to
+  the Header: Off session, and tell it.
+- ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main` from the worktree at 14:55:12 (`01793cf..2c6a822`, 7 commits:
+  the Settings session's HANDOFF note `5a3d5da` plus this work). Deploy run 40030164760 succeeded; at 14:56:24 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (`cmp`; sha256 `d34f917ab0549815…`).
+  The "Calendar header selector subtext" session was messaged: local `main` must `git merge origin/main` and gate the
+  combination before Header: Off is pushed. It did: `cc9a8ad` (HANDOFF / README conflicts only), build `637b9428`,
+  `npm run check` 40/40, its full gate on the merged tree queued; push waits on the owner.
+- No version cut: `version.json` still 1.8.0, so installed copies pick this up without an update notice.
+- ⭐ **Learned: on a busy day, local `main` can move twice during one landing.** Check `git log main -1` right before the
+  fast-forward, not only before the gate. And a branch head that contains `origin/main` can be pushed straight to
+  `origin/main` (`git push origin HEAD:main`) without touching local `main` or the main checkout, which another
+  session may be gating.
+- ⏭ **Next:** nothing on this feature.
 
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
@@ -952,7 +2179,7 @@
   paths (they lay out off screen in `#print-root`, unzoomed) and the writers (no DOM). Minor, not fixed: the month
   grips keep their on-screen size, so at 25–30% a bar under 46 screen px gets no reorder grip.
 - ⚠️ **What was learned: rows lay out at a different height in the grid's OWN px at each zoom** — 20.0 at 100%,
-  20.8 at 50%, 20.1 at 200% (measured, `colreuse`, 1600×1000). So any box drawn inside `#table-wrap` in grid px at
+  20.8 at 50%, 20.1 at 200% (measured in a 1600×1000 window on the `colreuse` leg). So any box drawn inside `#table-wrap` in grid px at
   one zoom drifts at another, ~0.4–0.8 px per row. A text highlight 45 rows down sat 19 px off at 50% and 76 px off
   at 200%, until the settle timer's render at 100% redrew it. **Anything drawn in grid px must be redrawn after
   every zoom change** — this is what the resize handles will need too (sent to that session, 22 Oct).

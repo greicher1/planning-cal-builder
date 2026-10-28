@@ -176,11 +176,12 @@ window.addEventListener('load', function () { (async function () {
 
     var keys = Object.keys(T.formSignature());
     // The anchor is the last swept id ahead of the window: #cal-range-end since the calendar range (ruling 3, the
-    // Show tab's card after Show Info) merged beside the window, 20 Oct 2026; #show-version before that.
+    // Show tab's card after Show Info) merged beside the window, 20 Oct 2026; #show-version before that. Since
+    // 23 Oct 2026 Show info's last id is #show-location (KEY-FACTS-PLAN.md), after #show-version.
     var inWin = keys.filter(function (k) { return win.contains(el(k)); }), iv = keys.indexOf('cal-range-end');
     out.w3 = {inWin: inWin, after: keys.slice(iv, iv + 5)};
     add('W3', 'The window gives fields.byId exactly #union-place, #custom-hol-name, #custom-hol-date, in that order, straight after #cal-range-end (where the Region and Holidays cards put them)',
-      eq(inWin, SWEPT) && iv >= 0 && eq(keys.slice(iv - 2, iv), ['show-version', 'cal-range-start']) && eq(keys.slice(iv + 1, iv + 4), SWEPT), out.w3, SWEPT);
+      eq(inWin, SWEPT) && iv >= 0 && eq(keys.slice(iv - 3, iv), ['show-version', 'show-location', 'cal-range-start']) && eq(keys.slice(iv + 1, iv + 4), SWEPT), out.w3, SWEPT);
     var stray = [].filter.call(win.querySelectorAll('input[id], select[id], textarea[id]'), function (e) {
       return !e.closest('.prefs-card') && SWEPT.indexOf(e.id) === -1;
     }).map(function (e) { return e.id; });

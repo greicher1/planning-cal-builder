@@ -110,6 +110,24 @@ Every test before step 6 stood in for the Save dialog. So:
 - **Cut from** build `eadef87e89bcd27b…`, worktree `offweek-step-b`, by the full gate's `monthexport` runs
   (`/tmp/gate8963-mxa/`). `rz`, `rw` and `bo` were byte-identical to `r`. Google Chrome **155.0.8059.85**.
 
+## ✅ NEW CASE 27 Oct 2026 — `mvbarsize-large` (MONTH-BAR-SIZE-PLAN.md): the Large phase bar size; every other case untouched
+
+- **Signed off** on `monthbase.py sheets` contact sheets of all 16 months: the same calendar exported at Standard |
+  Large | difference, so only what the size changes shows red. The answer was **"Yes, cut it"** (picker, 27 Oct 2026).
+- **What it holds:** `mvnotes`' calendar at `mvBarSize: "large"` (the fixture minted by the `mvbarsize` leg):
+  - every phase bar, episode bar, Simultaneous Post and hiatus band at 12 px in a 22 px bar, with notes unchanged;
+  - two one-day custom bars that wrap at the bars' size: "Camera Prep Day / For T" wraps only at Large (it fits one
+    line at 10 px), and "Wardrobe Fittings / For The" wraps at both sizes;
+  - the 26-week fill months.
+
+  16 pages, 84,839 bytes, sha256 `2208e3ae4806e9d0…`.
+- **No other case moved:** at Standard the step-3 build's gate 13 was byte-identical on reference, blocks, mvnotes,
+  hiatus-blanklabel, month-dense60, halfdays, notewrap, monthscale, month-lanecap and dayoverrides, and the full gate
+  (MONTH-BAR-SIZE-PLAN step 4) holds the rest.
+- **Deterministic:** two exports from separate runs, step 3's and this one, were byte-identical.
+- **Cut from** the build of `76315d2` on branch `month-bar-size` (`dist/index.html` sha256 `dac2a0cc16149561…`, 1,836,927
+  bytes): `monthexport`'s X2 file, clock pinned to 22 Sep 2026, Google Chrome 156.0.8078.48 on macOS 15.7.9.
+
 ## ✅ NEW CASE 20 Oct 2026 — `mvnotes` (MONTH-NOTES-PLAN.md); every other case untouched
 
 - **Signed off** on a contact sheet of its December 2025, April, May and December 2026 pages, print path beside the
@@ -178,6 +196,7 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | `month-lanecap` | 16 | 82,027 | `9826805849c0d083…` |
 | `monthnotes` | 16 | 81,914 | `a08f307d213e9ae6…` |
 | `monthscale` | 16 | 82,604 | `1ac8beccb6def66a…` |
+| `mvbarsize-large` | 16 | 84,839 | `2208e3ae4806e9d0…` |
 | `mvheader` | 15 | 93,711 | `3b27269ca9927293…` |
 | `mvheaderlegacy` | 15 | 78,664 | `040e7fa35a7c88b1…` |
 | `mvnotes` | 17 | 85,263 | `548db8b44109b249…` |
