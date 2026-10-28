@@ -1727,6 +1727,15 @@ done
 # BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
 # fold through undo/redo; a rebuilt card's look; every head its colour lightened 60/40 in black, repainted by a pick;
 # nothing overflowing a card at 280 and 440 px sidebars; the all-phase hiatus card's dates line and switches.
+# monthmap (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+) is the phase map above the month view: part A the
+# engine (data-mvgo / data-mvstep reach exactly the frozen arrows' months, refuse the rest and garbage, are session UI,
+# and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
+# and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
+# the 36 px month minimum, its height, no ids, gone in the waterfall). On mvnotes, colreuse (29 months, so it scrolls)
+# and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
+# look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
+# box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
+# the frozen arrows hidden yet still paging on a scripted click. Own lines, mid-list.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1754,6 +1763,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
               hidewf:hidewf:400 \
+              monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
+              softlines:dayoverrides:300 softlines:halfmarks:300 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

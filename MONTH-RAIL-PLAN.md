@@ -1,6 +1,7 @@
 # MONTH-RAIL-PLAN.md: the phase map rail and the Soft Lines month view (option 3d+)
 
-*Planned 27 Oct 2026. No code yet. Mockup: [`mockups/month-view-redesign.html#o3d2`](mockups/month-view-redesign.html), tab 3d+.
+*Planned and built 27 Oct 2026 on branch `claude/month-rail`: all six steps done, the third full gate green (§12–§17).
+Not in main, not pushed. Mockup: [`mockups/month-view-redesign.html#o3d2`](mockups/month-view-redesign.html), tab 3d+.
 Tracker cards: `month-nav-in-toolbar`, `month-view-modern-look`.*
 
 ## 0. What was asked
@@ -379,3 +380,94 @@ dayoverrides, dayoverrides-onhalf, halfmarks, shootdays, offweek, mvnotes, mvord
 
 **Next:** step 5 (Help copy R5, UI-CONVENTIONS §7/§10, MANTINE-SEAM, README changelog) and step 6 (the full gate,
 alone).
+
+## 16. Step 5 results (27 Oct 2026): the docs
+
+- **Help** (`src/index.html`, "Waterfall view vs. Month view"):
+  - a new paragraph, "Getting around the Month view": the map, its clicks, the dot, the red marks, the faint end
+    months, sideways scrolling, and that it stays put;
+  - Exporting no longer says the month PDF is "exactly as it looks on screen (minus the paging arrows)". It now says
+    the screen draws the grid lighter and the PDF keeps its black lines (R5).
+- **`gate.sh`:** `monthmap` (mvnotes, colreuse, offweek) and `softlines` (dayoverrides, halfmarks) join the generic leg
+  list, on their own lines mid-list, with a comment.
+- **UI-CONVENTIONS:** §7 gains a "phase map" row beside "the text style bar". §10 gains gate 20: Soft Lines moves
+  nothing, and the map is the arrows' twin.
+- **MANTINE-SEAM §4.2:** `#mv-prev` / `#mv-next` promoted as `#mv-hdr-mode-btn` was, plus the Soft Lines block and what
+  it does to "the month view is the print document" (same geometry, lighter paint).
+- **CLAUDE.md** (the freeze section): the one owner-instructed exception to the month view's frozen look, how it is
+  fenced, and that the PDFs following it is unruled.
+- **README:** an Unreleased changelog entry.
+- `npm run check` 40/40.
+- `tools/check-refs.py` flags one "prose line number" at `HANDOFF.md:25`: "`mvnotes`, 1440" in the 26 Oct entry
+  ("1440×900"). That is a false positive in another session's text, not this branch's, and was left alone.
+
+## 17. Step 6 results (27 Oct 2026): three full gates, two real bugs, one leg made honest
+
+### Gate 1 (step 5's build): 3,132 PASS, 4 FAIL. Bug 1, the calendar jumped ~70 px on a switch to the month view
+
+`wfmenu` V1/V2, `weeknum` D1 and `halfworked` EX (the last was read as this bug at the time; gate 2 showed it is
+another, below). The map was pushed only by the after-render observer, so it appeared
+a task AFTER a switch to the month view, and the calendar dropped ~70 px under anything already placed against it:
+the "Show this week in the month view" ring, a right-click on a day.
+
+- **Fix:** `update()` calls `pushMonthMap()` before `render()` (the cursor is final there), behind a
+  `var monthMapReady` guard for updates that run before the map's code has, and MonthMap commits a push synchronously.
+- In the pane the calendar now moves 0 px after a switch, five switches out of five; `wfmenu` 38/38.
+- `weeknum` failed once more just after the fix, then passed 7 runs in a row (main's build: 4 of 4). Read as a rare
+  flake; gate 3 decides.
+
+### Gate 2 (the fixed build): 3,132 PASS, 3 FAIL
+
+1. **`pilllabel (shootorder)` X2, "months 1 vs 18".** The contention flake already on record in HANDOFF (same
+   signature). Passed 2 of 2 alone.
+2. **`notescols` A9. Bug 2: `flushSync` on every push held back OTHER panels' updates.** After Show all brought the
+   columns back, Settings' Hidden Notes row still listed three years. An instrumented copy of the leg read the row
+   stale at the check and right one second later; built without `flushSync`, the leg passed 49/49 twice. Every
+   waterfall render pushes a null map, so the cost was paid on every edit for nothing.
+   - **Fix:** MonthMap commits synchronously only a push that changes its HEIGHT: whether it shows, its named and thin
+     rows, and its month count (enough months add a sideways scrollbar). Anything else is an ordinary setState. The
+     waterfall never calls `flushSync` now; the switch still does, and still moves the calendar 0 px.
+   - `notescols` 49/49 twice on the new build.
+3. **`halfworked` EX, "no day menu with a shoot-day section opened for day N".** Not a flake. Alternating builds under
+   the same load: **base 10 of 10 green, this branch 5 of 10, the no-`flushSync` variant 4 of 10.** An instrumented
+   copy caught it: the menu opened, then a scroll event on `#table-wrap` closed it in the same instant.
+   - The month view scrolls inside `#table-wrap` (since 26 Oct), and the map makes that box ~69 px shorter. At the
+     harness's 1600×1200, July (with this calendar's lanes) no longer fits, so the leg's `scrollIntoView` really
+     scrolls, and the month menu closes on ANY scroll (the waterfall's moved-only rule was never ported to it).
+   - The scroll's event came late because, under virtual time, an event waits for a frame, and a frame comes only
+     when the page changes. The scroll alone asked for none, so its event waited (past 2 s of polling, 7 runs in 10)
+     for the menu the click added. A user's browser draws frames continuously, so this is the harness's race, made
+     reachable by the shorter box.
+   - **Fix, in the leg:** `hitDay` follows `mvmenu`'s `bringIntoView` (scroll the box only when the day is out of
+     view), and `openDay` clicks once more if a scroll on `#table-wrap` landed after the click and took the menu with
+     it. Only on that evidence, so a menu that truly fails to open still fails. No assertion changed.
+   - Two cleaner fixes failed first, and are recorded so nobody retries them: waiting for the scroll event before
+     clicking (it never came in 2 s of polling, 7 runs in 10), and asking for a frame by changing a 1 px off-screen
+     box first (5 runs in 10). Inside the page, the harness's frame timing cannot be steered.
+
+### Gate 3 (both fixes): 3,142 PASS, 0 FAIL. GATE PASSED
+
+`tests/harness/gate-step6c.log`, port 8641, on the build both fixes went into (no `src` file newer than `dist`). Ten
+more checks than gate 2, matched leg by leg: gate 2's three failures now pass, and `halfworked` runs 24 checks where
+gate 2's EX stopped it at 17. Every other leg ran the same count.
+Beforehand, the legs the fixes touch ran alone on the same build, all green: `wfmenu` 38/38, `mvmenu` 89/89,
+`weeknum` on 7 calendars, `monthmap` on 3, `softlines` on 2, and `pilllabel (shootorder)` under the gate's own judge.
+
+**Switch timing,** the click's synchronous time in the visible pane, 1440 × 900, `mvnotes`, 6 round trips, taken
+before another session's gate started: month → waterfall **108–127 ms** (one 188), waterfall → month **15–26 ms**.
+That is step 2's 97–122 ms and `ae39e3e`'s ~110 ms, so the synchronous commit on a height change costs nothing a user
+can see. Once that gate was running, base and branch were both 1–6 s, alike, so no comparison was possible under it.
+
+**Before the merge.** This branch forked at `fe9c2f6c`, so it lacks main's `31eddd0` (the switch about 4× faster,
+frozen edit L1 in `installGridResizers` plus one sidebar selector) and `273692c` (phase start/end automatic notes). A
+dry-run merge of the committed steps is clean, and neither commit touches `update()`'s push or the map. But the 108–127
+ms above is pre-L1: after the merge, re-time month → waterfall, because the map's synchronous unmount is then a larger
+share of a ~25 ms switch. Then a gate on the merged tree.
+
+### What a user sees from this
+
+- **The month view's scroll box is ~69 px shorter** than on main, so a dense month starts scrolling sooner. That is
+  the map's height (§2), paid as planned.
+- The month menu's "any scroll closes it" rule is met a little more often. Unchanged here. The month menu's own trim
+  (tracker card month-menu-trim, ready on its own branch) narrows it to "only when the calendar scrolls", and a scroll
+  of `#table-wrap` is still one, so it would not change this.

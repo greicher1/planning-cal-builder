@@ -21110,6 +21110,9 @@ export function initLegacyApp() {
   // edit, a view switch, a Load, an undo, a scenario tab. The waterfall, a calendar with no phases, and the print
   // walk (printingCursor) all push null.
   function pushMonthMap(){
+    // update() calls this before render(), and update() can run while this file is still evaluating (a restored
+    // calendar), before the map section's consts exist. `var`, so it reads undefined there rather than throwing.
+    if(!monthMapReady) return;
     let model = null;
     if(viewMode === 'month' && !printingCursor && currentSchedule){
       const input = monthMapInput(currentSchedule);
@@ -21117,6 +21120,7 @@ export function initLegacyApp() {
     }
     chrome.monthMap(model);
   }
+  var monthMapReady = true;
   new MutationObserver(pushMonthMap).observe(document.getElementById('table-wrap'), { childList: true });
   // GOING TO A MONTH: the frozen arrow handler's rule exactly (its `range` check, at the screen's range), for any
   // month rather than the one beside it. Paging is session UI: no undo step, nothing dirty, nothing saved.
@@ -21400,6 +21404,15 @@ export function initLegacyApp() {
     }
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
     syncRowHeights(currentSchedule);
+    // ⛔ THE PHASE MAP BEFORE render() (MONTH-RAIL-PLAN.md, the full gate of step 6). The map sits above #table-wrap,
+    // so its height decides where the calendar starts. Pushed only by the after-render observer, it appeared a task
+    // AFTER a switch to the month view and dropped the calendar ~70 px under everything already placed against it:
+    // the "Show in the month view" ring (wfmenu V1/V2) and a right-click on a day (weeknum) landed in the wrong place.
+    // The cursor is final here (placed just above), and MonthMap commits synchronously any push that changes its
+    // height, so the map has that height before the grid is drawn. A view switch, an edit that changes its rows, a
+    // Load: every height change comes through update(). The observer still pushes after every render, for a month
+    // paged without one (same height, so committed the ordinary way).
+    pushMonthMap();
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();

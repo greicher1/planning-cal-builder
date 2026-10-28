@@ -14,6 +14,7 @@
 // ⛔ No id on anything here (collectFieldValues), and plain buttons rather than Mantine's, which would add nothing
 // the CSS does not and could generate ids.
 import { useState, useLayoutEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { installChrome } from './bridge.js'
 
 // Sizes in px (plan §5, the owner's "slimmer rows"; §12 for the two minimums).
@@ -39,8 +40,24 @@ export function MonthMap() {
   const [width, setWidth] = useState(0)
   const scroller = useRef(null)
 
+  // ⛔ COMMITTED SYNCHRONOUSLY WHEN, AND ONLY WHEN, ITS HEIGHT CHANGES. The engine pushes before it draws the month
+  // (update(), MONTH-RAIL-PLAN.md §17), so the map must have its height by the time render() runs: a plain setState
+  // commits a task later, and the calendar then dropped ~70 px under anything already placed against it (the first
+  // full gate's wfmenu V1/V2, weeknum). Its height is whether it shows, its rows, and its month count (enough months
+  // add a sideways scrollbar), so `shape` is exactly those.
+  // ⚠️ Never flushSync on every push. It also defers OTHER panels' updates made in the same moment to a later task:
+  // the second full gate caught Settings' Hidden Notes row still listing three years after Show all had brought the
+  // columns back (notescols A9; right a second later, and 49/49 without it). Every waterfall render pushes a null
+  // map, so that cost was paid on every edit for nothing.
+  const shape = useRef('')
   useLayoutEffect(() => {
-    installChrome({ monthMap: (m) => setModel(m || null) })
+    installChrome({ monthMap: (m) => {
+      const next = m || null
+      const s = next && next.months.length ? next.months.length + ':' + next.rows.named + ':' + next.rows.thin : ''
+      if (s === shape.current) { setModel(next); return }
+      shape.current = s
+      flushSync(() => setModel(next))
+    } })
   }, [])
 
   // The scroller's width decides a month's width (and so which bars have room for their name).
