@@ -4,6 +4,96 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 27 Oct 2026: AUTOMATIC NOTES FOR EACH PHASE'S START AND END, OFF BY DEFAULT. ✅ LIVE at `273692c` (pushed alone on top of `31eddd0`; owner's picker: "Commit and merge", "Push it alone, once verified")
+
+- **Asked** (owner): *"what are all the other automatic notes we could have?"*, then *"do the phase starts and ends.
+  they should be disabled by default."* Tracker card `more-auto-note-kinds`. The other ideas offered (Production
+  resumes after a break, block starts, halfway, Sim Post begins, opt-in notes for custom phases) were NOT asked for.
+- **What it is:** nine kinds beside ruling 9's three, `AUTO_NOTE_PHASE_EDGES` in `app.js`: `writersRoomEnd`
+  ("Writer's Room Closes"), and `prePrep` / `prodPrep` / `post` / `localization` + `Start` / `End` ("<phase name>
+  Begins|Ends"). ⛔ The kind words are SAVE FORMAT (the key's and `data-autonote`'s).
+- ⭐ **Why a second store.** `autoNotesOff` means "absent = shown", so a new kind put there would have appeared on
+  every calendar ever saved, widening its Notes column and its exports. The new kinds live in **`autoNotesOn`**
+  ("absent = hidden"): a new snapshot key written only while one is ticked, sanitized like `autoNotesOff` (only
+  `true`, unknown words kept), restored unconditionally, cleared by `resetAll()`. `autoNoteKindShown(kind)` is the one
+  question both stores answer, asked by `autoNotesForView()` and by the card's boxes. No `SNAPSHOT_VERSION` bump: an
+  older build ignores the key and simply shows none of them.
+- **Dates:** computeSchedule dates each note on the first or last day the month view DRAWS the phase's bar
+  (`segCoversDate`, outside every hiatus and the phase's own), so the note and the bar cannot disagree: a week-based
+  phase ends on its last Friday, and a phase paused at its start begins after the pause. Writer's Room Opens still
+  uses the raw `wrSeg.start`, unchanged on purpose (it would move existing notes). The new notes are added in date
+  order AFTER the old ones, so no older note moves within its week. Tagged with `phase`, so Hide in waterfall
+  (PHASES-TAB-PLAN R4) takes them out of the waterfall only. Built-ins only: custom phases are still never auto-noted.
+- **Names:** the four phases' notes follow a name typed in the Phases tab ("Edit Begins"), as their bars do;
+  `reflectAutoNoteKinds()` writes that name into the card row's `data-autonote-name` span. Writer's Room and
+  Production keep their own words whatever the phase is called (as "Writer's Room Opens" always has).
+- **Card** (`AutoNotesCard`, Sidebar.jsx): one row per phase, its name, then a start box and an end box (`.autonote-list`
+  is a 3-column grid now). Still plain checkboxes with NO id. ⚠️ **Measured:** the card is ~245 px wide in a narrow
+  window, and a 12 px column gap cut "Writer's Room" to "Writer's Ro…"; it is 8 px, and a longer typed name wraps.
+  A Help sentence (src/index.html, the notes paragraph) points at the card.
+- **No frozen code changed.** computeSchedule and `autoNotesForView` are not on the list; the notes reach the
+  writers as data, exactly as the three old kinds do. With nothing ticked, every output is what it was.
+- **Proof:** new leg `tests/harness/t/autonotephases.js` (AFSPEC, 400 s): 17/17 on the build, **15 of 17 red** on the
+  pre-change build (`dist-pre/`, main at `51ad3fd`, `9df703dd…`; the two green are the month-PDF control and E0). It
+  checks the default, the card, all nine in every output, the month view's day, undo, rename, a phase hiatus, Hide in
+  waterfall, Save/Load + the M-5 trap, a REAL `v1.8.0-saved.sptcal` opening with none of them, and New.
+  `autonotekinds` 16/16 (A1 now reads each box's row name + word: "Production Starts"). `npm run check` 40/40.
+  **Full gate** on build `0ba127aa…` (12:19 onward, after the main checkout's own gate finished): **3,101 PASS, 1
+  FAIL**, the known contention flake `pilllabel (shootorder)` W1 ("months 1 vs 18"), **29/29** re-run alone through
+  gate.sh's own judge. Every baseline byte-identical (waterfall PDF, Excel parts, every gate-13 month PDF), 0 clipped.
+- **Shipped:** committed on `autonote-phases` as `db0dc69`, then cherry-picked alone onto live `31eddd0` (branch
+  `autonote-phases-live`, worktree `.claude/worktrees/autonote-live`) as `273692c`, so main's other unpushed commits
+  (plans, month bar size step 1) did not ship with it. On that build (`7ffc4f63…`): `autonotephases` 17/17,
+  `autonotekinds` 16/16, `settingswin` 21/21, `npm run check` 40/40. Pushed `31eddd0..273692c`; the live page served
+  the new build (it carries `writersRoomEnd`). Merged into `main` afterwards; the month-bar-size session's
+  uncommitted HANDOFF entry in the main checkout was set aside for the merge (backup + patch, no stash) and put back.
+
+### ✅ 27 Oct 2026: MONTH -> WATERFALL SWITCH ABOUT 4x FASTER (one sidebar selector + frozen edit L1, owner sign-off by picker). ✅ LIVE at `31eddd0` (owner's picker: "Commit", "Only this fix"; the live page served the gated build `46a97f5c` byte for byte ~46 s later)
+
+- **Asked** (owner, after `ae39e3e` went live): *"I think the lag when you switch from month view to waterfall is
+  still there"*. Tracker card `view-switch-lag`.
+- **What the 26 Oct fix left:** it only removed what `71a6c87` added. Every WATERFALL redraw (switch, or any
+  `update()` in the waterfall) cost ~105 ms in the pane, ~60–70 ms headless; month redraws ~12 ms.
+- **Cause, profiled over CDP** (scratch scripts, not in the repo): ~51 of ~67 ms in frozen `installGridResizers`.
+  It appended a handle, then read a row's rect, once per row in two loops, so ~100 forced style recalcs.
+  Each recalc restyled ~105 elements because of ONE rule: `.phase-row:has(select.phase-unit …) [id^="meta-"]`.
+  Found by deleting `:has()` rules over CSSOM against a 100-insert benchmark: all off 12 ms, that rule alone +23.
+- **Fix 1** (`legacy.css`): `[id^="meta-"]` → `.phase-meta[id^="meta-"]`, same elements, with a ⛔ comment.
+  Halved the switch on its own (60–71 → 29–37 ms).
+- **Fix 2, ⛔ FROZEN EDIT L1** (owner's picker, 27 Oct 2026: *"Yes, apply it (Recommended)"*): `installGridResizers`
+  reads `rowBoxes` once, after the column handles (where the first row read always was). Both row loops use it.
+  - **Acceptance gate:** every `.grid-resize` handle's class, inline style and dataset identical to the pre-change
+    build `9df703dd`. Checked on mvnotes, customunits, builtindates, colreuse, hidewf, carry-rich,
+    custom-nondense, notewrap, stintswap-chained, xlsx-overlimit and month-dense60, at zoom 1, 1.5 and 0.75:
+    all identical. Phase hint visibility identical too. Plus the full gate.
+- **Measured** (synchronous click, medians, headless): 52 weeks 59–67 → 13–15 ms at 1440 and 742 px; a longer show
+  81 → 22 ms. Waterfall → month is ~14 ms, so both directions now match.
+- ⚠️ **Lessons:**
+  - Behind a `:has()`, never use an attribute-only subject (`[id^=…]`). Key it on a class.
+  - Chrome re-checks `:has()` rules on EVERY insertion here, presumably because a `:has()` argument holds a
+    `:not()` (`#prep-rows:not(:empty)`) or a structural pseudo (Mantine's `:only-child`). So any frozen loop that
+    interleaves appends and rect reads pays every `:has()` rule per row.
+  - Unwrapping lightningcss's `:is(...)` merges saved only ~3 ms.
+  - Measure in headless Chrome over CDP (`Profiler`, `Tracing`). The desktop pane's timings swing with its
+    width and visibility.
+- **Not done, now nearly moot:** the nine `body:has(#view-month-btn.active)` rules cost ~0.08 ms per insertion
+  (they rescan the body). With L1 there is one recalc per redraw, so they no longer add up here. A body class set
+  beside `.active` in `setViewMode()` and `applyStateSnapshot()` would remove them if another loop ever needs it.
+- **Verified** on build `46a97f5c`:
+  - Full gate: **3,059 PASS, 4 FAIL**. Three are the known `stintswap-reshape.sptcal` failures (`stintreshape`,
+    `phasesui` P1, gate 13's month PDF for that fixture). That fixture's uncommitted edit is not this session's,
+    and the same three failed on `977b3ea6`.
+  - The fourth was `launchopen EX: harness`. Another session's leg ran on port 8231 mid-gate and took over the
+    gate's server for about a minute (it said so). Re-run alone: **16/16**, no console errors.
+  - `customunits` and `builtindates` (on the CSS fix), live and restore, 83/83; `npm run check` 40/40.
+- **Shipped:** committed as `b7c8ec7` on local main. Main also held five unpushed plan-doc commits from other
+  sessions (`337067f`, `fe9c2f6`, `d7bed0a`, `51ad3fd`, `32f47d5`); the owner had said "Don't push" to
+  `fe9c2f6`. So the same change was rebuilt alone on `origin/main` as `31eddd0` (owner's picker: *"Only this fix"*)
+  and pushed. Local main joins it with merge `ffe6184` (tree = `b7c8ec7`'s), so `origin/main` is an ancestor and the
+  next push fast-forwards. **Those five plan commits are still unpushed.**
+- ⚠️ **Harness trap seen again:** a `run.sh` on the DEFAULT port 8231 `pkill`s the gate's own server. Run single
+  legs on another `HARNESS_PORT` whenever a gate may be running.
+
 ### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF, no code ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md))
 
 - ✅ **Ruled by picker, 27 Oct 2026** (plan §2, §6):

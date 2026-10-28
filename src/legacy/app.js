@@ -380,8 +380,16 @@ export function initLegacyApp() {
     const COL_HANDLE_CLEARANCE = 9;
     const firstDateW = Math.max(12, (parseFloat(cols[0].style.width) || 40) - COL_HANDLE_CLEARANCE);
     const rows = [...table.tBodies[0].rows];
+    // ⛔ FROZEN EDIT L1 (owner sign-off by picker, 27 Oct 2026: "Yes, apply it"; the lag switching back to the
+    // waterfall). Every row's rect is read HERE, in one pass, and both loops below use it. They used to read
+    // each row inside the loop, right after appending a handle, and an append dirties style and layout, so every
+    // read forced a recalc: about 100 per redraw on a 52-week grid, ~22 ms of a ~32 ms switch (headless, 1440x900).
+    // Same values: a handle is absolutely positioned in an absolutely positioned layer, so appending one cannot
+    // move a row. Read after the column handles, where the first row read always was. Proven before it shipped:
+    // every handle's inline style and dataset identical to the old build's, on 5 fixtures and at zoom.
+    const rowBoxes = rows.map(tr => tr.getBoundingClientRect());
     rows.forEach((tr, r)=>{
-      const rb = tr.getBoundingClientRect();
+      const rb = rowBoxes[r];
       const h = document.createElement('div');
       h.className = 'grid-resize is-row';
       h.style.left = ((tableBox.left - wrapBox.left) / z) + 'px';
@@ -409,8 +417,8 @@ export function initLegacyApp() {
       const m = /^(y\d+):s(\d+)$/.exec(c.dataset.ckey || '');
       if(m && m[2] === '0') slotBase.set(m[1], i);
     });
-    rows.forEach(tr=>{
-      const rb = tr.getBoundingClientRect();
+    rows.forEach((tr, r)=>{
+      const rb = rowBoxes[r];   // FROZEN EDIT L1: read once, above
       const top = (rb.top - wrapBox.top) / z, rowH = rb.height / z;
       let ci = 0;
       [...tr.cells].forEach(td=>{
@@ -3340,7 +3348,7 @@ export function initLegacyApp() {
   // note tagged with its `phase` is dropped for 'sheet' and kept for 'month'.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view))
+    return list.filter(n => !(n.kind && !autoNoteKindShown(n.kind)) && (!n.holiday || holidayVisibleIn(n.hid, view))
                             && !(n.phase && phaseHiddenIn(n.phase, view)));
   }
   function colLetter(n){
@@ -4179,6 +4187,29 @@ export function initLegacyApp() {
     // (PHASES-TAB-PLAN.md R4). Principal start and wrap are Production's, which can never be hidden.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
+    // Each phase's start and end (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
+    // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES. ⛔ OFF until ticked (autoNoteKindShown), so every
+    // calendar, new or saved before them, shows exactly what it did. Each is dated on the first or last day the
+    // month view DRAWS the phase's bar -- segCoversDate's rule (weekdays for a week-based phase), outside every
+    // hiatus, as pillRunsForWeek draws it -- so the note and the bar cannot disagree, and a phase that starts
+    // inside the winter hiatus says so on the day it really begins (the 3 Sep 2026 lesson of firstShootDay).
+    // The waterfall shows it in that day's week. Tagged with its phase, so a phase hidden in the waterfall takes
+    // them with it (PHASES-TAB-PLAN.md R4). Added in date order, after the notes above, so a week holding two of
+    // them lists them as they happen and no older note moves within its week.
+    {
+      const drawn = (s, from, step) => {
+        for(let d = from; d >= s.start && d < s.end; d = addDays(d, step))
+          if(segCoversDate(s, d) && !hiatuses.some(h=> d>=h.start && d<h.end) && !isPhaseHiatusDate(s, d)) return d;
+        return null;
+      };
+      const edges = [];
+      AUTO_NOTE_PHASE_EDGES.forEach(e=>{
+        const s = segments.find(x=> x.key === e.phase);
+        const d = s && (e.end ? drawn(s, addDays(s.end, -1), -1) : drawn(s, s.start, 1));
+        if(d) edges.push({d, label: e.text || (s.label + (e.end ? ' Ends' : ' Begins')), kind: e.kind, phase: e.phase});
+      });
+      edges.sort((a,b)=> a.d - b.d).forEach(e=> addNote(e.d, e.label, {kind: e.kind, phase: e.phase}));
+    }
 
     // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
     // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
@@ -15399,6 +15430,29 @@ export function initLegacyApp() {
   // applies it. ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesOff`, written only while a kind is off, so a
   // calendar that never unticks one saves byte for byte as before. The boxes carry NO id.
   let autoNotesOff = {};
+  // ⭐ THE KINDS THAT START OFF (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
+  // default"). autoNotesOff cannot hold them: there, an absent kind is SHOWN, so a new kind would appear on every
+  // calendar ever saved the next time it loaded, and widen its Notes column and its exports. These are the
+  // opposite store: autoNotesOn, kind -> true while ticked, and an absent kind is hidden. ⛔ CALENDAR DATA:
+  // captureSnapshot()'s `autoNotesOn`, written only while one is ticked, so a calendar that never ticks one saves
+  // byte for byte as before. ⛔ PERMANENT kind words (the key's and data-autonote's), `<phase key>Start|End`.
+  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", and
+  // the other four follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
+  // and wrap are principalStart / principalWrap. Custom phases are never auto-noted. Read by computeSchedule.
+  const AUTO_NOTE_PHASE_EDGES = [
+    {kind:'writersRoomEnd',    phase:'writersRoom', end:true, text:"Writer's Room Closes"},
+    {kind:'prePrepStart',      phase:'prePrep'},      {kind:'prePrepEnd',      phase:'prePrep',      end:true},
+    {kind:'prodPrepStart',     phase:'prodPrep'},     {kind:'prodPrepEnd',     phase:'prodPrep',     end:true},
+    {kind:'postStart',         phase:'post'},         {kind:'postEnd',         phase:'post',         end:true},
+    {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
+  ];
+  const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
+  let autoNotesOn = {};
+  // Does this calendar show automatic notes of this kind? The one question both stores answer, asked by
+  // autoNotesForView() and by the card's boxes (reflectAutoNoteKinds), so the two cannot disagree.
+  function autoNoteKindShown(kind){
+    return AUTO_NOTE_OPT_IN.has(kind) ? autoNotesOn[kind] === true : !autoNotesOff[kind];
+  }
   // ⭐ HIDE IN WATERFALL (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2, rulings R1-R4, D1-D3): phase key ->
   // {sheet: true}. A hidden phase is left out of the waterfall, the workbook and the waterfall PDF, and its
   // automatic notes with it, while the month view and both month PDFs keep it ("if you add a very specific phase
@@ -22281,19 +22335,31 @@ export function initLegacyApp() {
 
   // The Automatic notes card (owner ruling 9; Sidebar.jsx's AutoNotesCard). Its boxes are plain, UNCONTROLLED
   // checkboxes with NO id, named by data-autonote: React renders them once and the engine owns their state.
-  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry), then update() re-renders every
+  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry) -- or, for a kind that starts off
+  // (AUTO_NOTE_OPT_IN), autoNotesOn (absent = hidden, so unticking deletes it) -- then update() re-renders every
   // view and banks ONE undo step through markDirty().
+  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, because those phases' notes
+  // do ("Edit Begins"); the card renders the default, which stands while nothing is typed. Writer's Room and
+  // Production have no such span: their notes keep their own words whatever the phase is called.
   function reflectAutoNoteKinds(){
     document.querySelectorAll('input[data-autonote]').forEach(cb=>{
-      const on = !autoNotesOff[cb.getAttribute('data-autonote')];
+      const on = autoNoteKindShown(cb.getAttribute('data-autonote'));
       if(cb.checked !== on) cb.checked = on;
+    });
+    document.querySelectorAll('[data-autonote-name]').forEach(el=>{
+      const key = el.getAttribute('data-autonote-name');
+      const def = PHASES.find(p=> p.key === key);
+      const nameEl = document.getElementById('name-'+key);
+      const want = (nameEl && nameEl.value.trim()) || (def && def.label) || '';
+      if(want && el.textContent !== want) el.textContent = want;
     });
   }
   document.addEventListener('change', e=>{
     const t = e.target;
     const kind = t && t.getAttribute && t.getAttribute('data-autonote');
     if(!kind || !SNAP_ID.test(kind)) return;
-    if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    if(AUTO_NOTE_OPT_IN.has(kind)){ if(t.checked) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
+    else if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
     update();
   });
 
@@ -23118,6 +23184,7 @@ export function initLegacyApp() {
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
+    autoNotesOn = {};           // ...except the phase starts and ends, which start off (27 Oct 2026)
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -24405,6 +24472,9 @@ export function initLegacyApp() {
       // 20 Oct 2026: the automatic-note kinds switched off (owner ruling 9). ⛔ PERMANENT key and kind words.
       // Every kind on, the default, is an ABSENT key.
       ...(Object.keys(autoNotesOff).length ? {autoNotesOff: Object.assign({}, autoNotesOff)} : {}),
+      // 27 Oct 2026: the automatic-note kinds that start off and are switched ON (the phase starts and ends).
+      // ⛔ PERMANENT key and kind words. None ticked, the default, is an ABSENT key.
+      ...(Object.keys(autoNotesOn).length ? {autoNotesOn: Object.assign({}, autoNotesOn)} : {}),
       // 20 Oct 2026, owner ruling 10 (HEADER-ROW-PLAN.md §2): Header: Off. ⛔ PERMANENT key, written
       // only as `true`, so a calendar whose header is on saves byte for byte as before.
       ...(headerOff ? {headerOff: true} : {}),
@@ -31254,6 +31324,8 @@ export function initLegacyApp() {
     // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
     // KEPT (a round trip must never lose data); autoNotesForView() simply never meets a note of that kind.
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
+    // ...and the kinds that start off, switched on (27 Oct 2026): the same rule, unknown kind words kept.
+    setMap('autoNotesOn', v => v === true ? true : undefined, SNAP_ID);
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('mvHeaderOff' in s && typeof s.mvHeaderOff !== 'boolean'){ bad.n++; delete s.mvHeaderOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
@@ -31701,6 +31773,10 @@ export function initLegacyApp() {
     autoNotesOff = {};
     if(isPlainObj(snap.autoNotesOff))
       Object.keys(snap.autoNotesOff).forEach(k=>{ if(snap.autoNotesOff[k] === true) autoNotesOff[k] = true; });
+    // ⛔ UNCONDITIONAL too: a file with no key shows no phase start or end -- never the previous file's ticks.
+    autoNotesOn = {};
+    if(isPlainObj(snap.autoNotesOn))
+      Object.keys(snap.autoNotesOn).forEach(k=>{ if(snap.autoNotesOn[k] === true) autoNotesOn[k] = true; });
     // ⛔ UNCONDITIONAL as well: a file with no key has no boxes -- never the previous file's. A deep copy,
     // so editing a box can never reach back into a snapshot the undo stack is holding.
     sideBoxes = (snap.sideBoxes && Array.isArray(snap.sideBoxes.boxes)) ? JSON.parse(JSON.stringify(snap.sideBoxes.boxes)) : [];

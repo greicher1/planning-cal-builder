@@ -310,10 +310,24 @@ export function RegionCard() {
 // tags each note with (permanent, it is save format), its change listener writes the store, and
 // reflectAutoNoteKinds() writes .checked on every update() -- so undo, Load and New all show through.
 // Holiday notes are deliberately not a row (owner's picker): they keep their per-holiday list above.
-const AUTO_NOTE_ROWS = [
-  { kind: 'writersRoomOpens', label: 'Writer’s Room Opens' },
-  { kind: 'principalStart', label: 'Start Principal Photography' },
-  { kind: 'principalWrap', label: 'Principal Photography Wraps' },
+//
+// ONE ROW PER BUILT-IN PHASE, in calendar order (owner, 27 Oct 2026: "do the phase starts and ends. they should
+// be disabled by default"): the phase, then a box for its start and one for its end, each named by the word its
+// note uses ("Post Begins"). The three original kinds keep their boxes, as Writer's Room's Opens and Production's
+// Starts / Wraps. ⛔ `on` is only the FIRST paint: the engine's autoNoteKindShown() is the truth, and the new kinds
+// start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
+// `key` marks a phase whose notes follow a name typed in the Phases tab: reflectAutoNoteKinds() writes that name
+// into the row's data-autonote-name span. Writer's Room and Production keep their own words, so they have none.
+const AUTO_NOTE_PHASES = [
+  { phase: 'Writer’s Room', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
+                            end: { kind: 'writersRoomEnd', word: 'Closes' } },
+  { phase: 'Pre Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
+  { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
+  { phase: 'Production', start: { kind: 'principalStart', word: 'Starts', on: true },
+                         end: { kind: 'principalWrap', word: 'Wraps', on: true } },
+  { phase: 'Post', key: 'post', start: { kind: 'postStart', word: 'Begins' }, end: { kind: 'postEnd', word: 'Ends' } },
+  { phase: 'Localization', key: 'localization', start: { kind: 'localizationStart', word: 'Begins' },
+                                                end: { kind: 'localizationEnd', word: 'Ends' } },
 ]
 export function AutoNotesCard() {
   return (
@@ -321,18 +335,22 @@ export function AutoNotesCard() {
       <h2>
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
-          Notes the calendar writes for you, dated from the schedule. Untick one to leave it out of the Notes
-          column, the month view and every export. Notes you typed yourself never change. Holiday notes are
-          chosen holiday by holiday under Holidays, in the Region tab.
+          Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
+          one to add it to the Notes column, the month view and every export. Notes you typed yourself never
+          change. Holiday notes are chosen holiday by holiday under Holidays, in the Region tab.
         </InfoHint>
       </h2>
       <div className="side-block autonote-list">
-        {AUTO_NOTE_ROWS.map((r) => (
-          <label key={r.kind} className="autonote-row">
-            <input type="checkbox" data-autonote={r.kind} defaultChecked />
-            <span>{r.label}</span>
-          </label>
-        ))}
+        {AUTO_NOTE_PHASES.map((r) => [
+          <span key={r.start.kind + '-name'} className="autonote-name"
+                {...(r.key ? { 'data-autonote-name': r.key } : {})}>{r.phase}</span>,
+          ...[r.start, r.end].map((b) => (
+            <label key={b.kind} className="autonote-row">
+              <input type="checkbox" data-autonote={b.kind} defaultChecked={!!b.on} aria-label={r.phase + ' ' + b.word} />
+              <span>{b.word}</span>
+            </label>
+          )),
+        ])}
       </div>
     </section>
   )

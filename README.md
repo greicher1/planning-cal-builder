@@ -68,6 +68,54 @@ picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
     green;
   - `npm run check` 40/40.
 
+### Live — Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026, `273692c`)
+
+Owner: *"do the phase starts and ends. they should be disabled by default."*
+
+- **Nine new automatic notes:** Writer's Room Closes, and Begins / Ends for Pre Prep, Prod Prep, Post and
+  Localization ("Post Begins 7/5/27", "Post Ends 9/24/27"). Each is dated on the first or last day the month view
+  draws the phase's bar, so a week-based phase ends on its last Friday, and one paused at its start begins on the
+  day it really starts. They reach the Notes column, the month view, Excel and both PDFs, as the other automatic
+  notes do. A phase renamed in the Phases tab names its notes ("Edit Begins"). A phase hidden in the waterfall takes
+  them out of the waterfall only.
+- **Off by default, on every calendar.** Saved calendars open exactly as before. The ticks are saved in the calendar
+  under a new key, `autoNotesOn`, written only while one is ticked. The existing `autoNotesOff` could not hold
+  them: there, a kind that is absent is shown, so a new kind would have appeared on every saved calendar.
+- **The Automatic notes card** (Settings ▸ Preferences) has one row per phase now: its name, then a start box and
+  an end box. Writer's Room Opens and Production's Starts / Wraps are the three original boxes, still ticked by
+  default.
+- **Verified:** new leg `autonotephases`, 17/17 on the build and 15 of 17 red on the build before it. It covers every
+  output, the card, undo, a renamed phase, a phase hiatus, Hide in waterfall, Save/Load and the M-5 trap, a real
+  v1.8.0 file, and New. `autonotekinds` 16/16 (its card check updated for the new rows). `npm run check` 40/40.
+  Full gate on build `0ba127aa…`: 3,101 PASS, 1 FAIL, the known month-walk flake `pilllabel (shootorder)` W1
+  ("months 1 vs 18"), 29/29 when re-run alone with the gate's own judging. Every baseline is byte-identical: the
+  waterfall PDF, every Excel part, all of gate 13's written month PDFs, 0 clipped cells.
+
+### Unreleased — Month to waterfall switch about 4× faster (27 Oct 2026)
+
+Owner: *"I think the lag when you switch from month view to waterfall is still there"*.
+
+- **Cause:** the cost was in every waterfall redraw, not just the switch. Frozen `installGridResizers` added a
+  drag handle and then read a row's position, once per row, so Chrome recalculated styles about 100 times per
+  redraw. One sidebar rule made each recalculation heavy:
+  `.phase-row:has(select.phase-unit …) [id^="meta-"]`, which hides a Days or Dates phase's weeks hint.
+  Behind a `:has()`, Chrome re-checks that rule on every element inserted anywhere, and an id-only subject made
+  it restyle every id'd element in every phase row, about 105 each time.
+- **Fix 1 (CSS):** that selector is now `.phase-meta[id^="meta-"]`. It matches the same elements, since every
+  `meta-<key>` carries `.phase-meta`, but Chrome restyles only those few. This alone halved the switch.
+- **Fix 2 (frozen edit L1, owner sign-off by picker):** `installGridResizers` reads every row's position once,
+  before the loops, so the browser recalculates once, not about 100 times. The values are the same, because a
+  handle sits in an absolutely positioned layer and cannot move a row.
+- **Measured** (headless Chrome, the click's synchronous time, medians): 52-week calendars 59–67 ms → 13–15 ms;
+  a longer show 81 → 22 ms. Waterfall → month is ~14 ms, so the two directions now match.
+- **Verified:**
+  - Every drag handle's inline style and dataset is identical to the old build's on 11 fixtures (resized rows,
+    cell spans, column widths, Dates units) at 75%, 100% and 150% zoom.
+  - Every phase hint box's visibility is identical too.
+  - `customunits` and `builtindates`, live and restore, 83/83; `npm run check` 40/40.
+  - Full gate: 3,059 pass. The 3 failures all come from an unrelated, uncommitted fixture edit
+    (`stintswap-reshape`). `launchopen` failed only while another session's harness was running; alone it passes 16/16.
+
 ### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 
 Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.

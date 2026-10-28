@@ -3773,9 +3773,15 @@
      same headers as a built-in row's; before, the × was the custom row's only extra child and
      pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
      row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
-  /* The Automatic notes card (owner ruling 9): one checkbox row per kind, the holiday list's type scale. The
-     boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
-  .autonote-list{ display:flex; flex-direction:column; gap:var(--mantine-spacing-sm); }
+  /* The Automatic notes card (owner ruling 9): one row per phase since 27 Oct 2026 -- its name, then its start box
+     and its end box in two columns that line up down the card -- in the holiday list's type scale. The boxes are
+     plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
+  /* The card is ~245 px wide: an 8 px column gap is what leaves "Writer's Room" its 79 px on one line (measured,
+     27 Oct 2026; the 12 px gap cut it to "Writer's Ro…"). A longer name typed in the Phases tab wraps, never clips. */
+  .autonote-list{ display:grid; grid-template-columns:minmax(0, 1fr) auto auto; align-items:center;
+    column-gap:8px; row-gap:var(--mantine-spacing-sm); }
+  .autonote-name{ font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9); min-width:0;
+    line-height:1.25; overflow-wrap:anywhere; }
   .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
     color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
   .autonote-row input{ margin:0; flex:none; }
@@ -3827,8 +3833,16 @@
   /* The hint line: frozen render() writes meta-<key> in weeks terms, and the engine writes a Days or
      Dates phase's own line into its sibling .unit-meta (see refreshCustomUnitMeta). Show the one that
      matches the unit. Descendants, not children, since the blend moved both into the head. */
-  .phase-row:has(select.phase-unit option[value="days"]:checked) [id^="meta-"],
-  .phase-row:has(select.phase-unit option[value="dates"]:checked) [id^="meta-"],
+  /* ⛔ `.phase-meta[id^="meta-"]`, NEVER a bare `[id^="meta-"]` (owner, 27 Oct 2026: the lag switching back to
+     the waterfall). Behind a :has(), the subject is what Chrome restyles whenever that :has() might have
+     changed, and Chrome re-checks this one on EVERY element inserted anywhere in the page. Keyed on the id
+     attribute alone, that meant every element with an id in every phase row, about 105 of them, restyled per
+     insertion. Frozen installGridResizers inserts a handle and then reads a row's rect, once per row, so a
+     52-week waterfall paid that restyle about 100 times: ~37 ms of a ~66 ms switch (headless, 1440x900,
+     mvnotes). The class lets Chrome restyle only the .phase-meta elements, and the selector matches the same
+     elements (every meta-<key> carries .phase-meta). Measured: 100 inserts+reads 46 ms -> 20 ms. */
+  .phase-row:has(select.phase-unit option[value="days"]:checked) .phase-meta[id^="meta-"],
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) .phase-meta[id^="meta-"],
   .phase-row:has(select.phase-unit option[value="weeks"]:checked) .unit-meta{ display:none; }
 
   /* Why the wrap moved. Only appears when a day override is in range, so it is silent on every

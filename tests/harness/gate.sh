@@ -1675,6 +1675,11 @@ done
 # writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
 # key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
 # the M-5 trap, and New.
+# autonotephases (owner, 27 Oct 2026) is each phase's start and end note, OFF until ticked: the default (no new
+# note, no key), the card's six rows with every name on one line, all nine in the waterfall, Excel, the waterfall
+# PDF, the month view on the bar's own first/last day and the written month PDF (control P0b), the autoNotesOn key
+# with the id set unchanged, one undo step, a renamed phase, a phase hiatus moving Begins/Ends, Hide in waterfall,
+# Load and the M-5 trap, a REAL v1.8.0 file opening with none of them, and New. 15 of 17 red on the build before it.
 # phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
 # order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
 # fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
@@ -1751,7 +1756,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
-              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300 \
+              phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
