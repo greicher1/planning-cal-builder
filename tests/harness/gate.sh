@@ -1747,6 +1747,10 @@ done
 # look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
 # box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
 # the frozen arrows hidden yet still paging on a scripted click. Own lines, mid-list.
+# prepreptitle (owner, 28 Oct 2026) is Pre Prep's default name, "Pre-Prep": a new calendar's name box, cells ("Pre-Prep
+# Wk N"), Automatic notes row and Save; New puts it back; and the OLD name, typed or loaded from a real v1.8.0 file,
+# still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
+# it byte-identical, so this leg is the one place the new default is held.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1772,6 +1776,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
               phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 seasons:-:400 phasecolors:-:300 calrange:-:300 \
+              prepreptitle:-:200 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \

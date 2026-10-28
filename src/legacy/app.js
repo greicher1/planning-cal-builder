@@ -1444,7 +1444,12 @@ export function initLegacyApp() {
 
   const PHASES = [
     { key:'writersRoom', label:"Writer's Rm",  color:'#FFF2CC', textColor:'#7A6215', template:n=>`Writer's Rm wk ${n}` },
-    { key:'prePrep',     label:'Pre Prep',      color:'#DAE3F3', textColor:'#203864', template:n=>`Pre Prep Wk ${n}` },
+    // "Pre-Prep" since 28 Oct 2026 (owner: "Default name for Pre Prep should be "Pre-Prep""). Every calendar saved
+    // before then stores the old default in fields.byId['name-prePrep'], and keeps it, as episode names did
+    // ("Leave them as saved", 20 Oct 2026). getAllPhaseDefs() reads that old name as this def's `was`, so its
+    // cells keep "Pre Prep Wk N", capital W and all; a name typed by hand gets "<name> wk N".
+    { key:'prePrep',     label:'Pre-Prep',      color:'#DAE3F3', textColor:'#203864', template:n=>`Pre-Prep Wk ${n}`,
+      was:{ label:'Pre Prep', template:n=>`Pre Prep Wk ${n}` } },
     { key:'prodPrep',    label:'Prod Prep',     color:'#D6DCE5', textColor:'#222A35', template:n=>`Prod Prep wk ${n}` },
     { key:'production',  label:'Production', color:'#E2F0D9', textColor:'#375623', template:n=>`Production wk ${n}`, inputMode:'days' },
     { key:'post',        label:'Post',       color:'#FBE5D6', textColor:'#8A4A1F', template:n=>`Post wk ${n}` },
@@ -6427,7 +6432,7 @@ export function initLegacyApp() {
     {name:"Light purple",        color:'#E4DFEC', text:'#5F497A'},
     {name:"Light teal",          color:'#D5F0EE', text:'#1F6357'},
     {name:"Gold (like Writer's Rm)",  color:'#FFF2CC', text:'#7A6215'},
-    {name:"Blue (like Pre Prep)",     color:'#DAE3F3', text:'#203864'},
+    {name:"Blue (like Pre-Prep)",     color:'#DAE3F3', text:'#203864'},
     {name:"Slate (like Prod Prep)",   color:'#D6DCE5', text:'#222A35'},
     {name:"Green (like Production)",  color:'#E2F0D9', text:'#375623'},
     {name:"Orange (like Post)",       color:'#FBE5D6', text:'#8A4A1F'},
@@ -6720,7 +6725,8 @@ export function initLegacyApp() {
       const typed = nameEl ? nameEl.value.trim() : '';
       let def = p;
       if(typed && typed!==p.label){
-        def = Object.assign({}, p, { label:typed, template:n=>`${typed} wk ${n}` });
+        def = (p.was && typed === p.was.label) ? Object.assign({}, p, p.was)
+            : Object.assign({}, p, { label:typed, template:n=>`${typed} wk ${n}` });
       }
       if(p.key in phaseColorOverride){
         const opt = PHASE_COLOR_OPTIONS[phaseColorOverride[p.key]];

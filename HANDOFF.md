@@ -4,7 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 28 Oct 2026 (latest): SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+### 🔨 28 Oct 2026 (latest): PRE PREP'S DEFAULT NAME IS "PRE-PREP" — built in the main checkout, UNCOMMITTED
+
+- **Asked** (owner): *"Default name for Pre Prep should be "Pre-Prep""*. Tracker card `pre-prep-default-name`.
+- **Done:** `PHASES`' prePrep label and template are "Pre-Prep" / "Pre-Prep Wk N" (the capital W kept: only the name
+  was asked for). Followed by the name box's value and placeholder, its hiatus placeholder, the Automatic notes row's
+  first paint (`Sidebar.jsx`), the colour option's name "Blue (like Pre-Prep)" (a name, not an index: the array order
+  is untouched) and the Help's Phases paragraph.
+- ⛔ **Saved calendars keep "Pre Prep"** (the episode-names precedent, *"Leave them as saved"*, 20 Oct 2026). Every
+  file stores the name in `fields.byId['name-prePrep']`, all 100 real fixtures as "Pre Prep". Read as a typed name it
+  would have drawn "Pre Prep **w**k N" (a typed name's template), so prePrep carries `was: {label, template}` and
+  `getAllPhaseDefs()` gives that old name the old def exactly. A file with the box emptied (none known) would now show
+  the new default.
+- ⚠️ **The harness pins the old name.** `T.buildFixture()` types "Pre Prep" first, so every baseline cut from the
+  reference calendar (base, gate 10, gate 13, …) stays byte-identical, and doing so proves `was`. The new default is
+  held by the new leg `prepreptitle` (in `gate.sh` AFSPEC, 200 s). A leg that builds its OWN fresh calendar sees
+  "Pre-Prep": `autonotephases`, `builtindates` (live), `phiatusnum` and `phasenum` (live only; its restore run loads
+  a file saved as "Pre Prep", so the leg picks the name by run) were moved to it.
+- ⚠️ **Learned:** a first search for legs naming "Pre Prep" was cut off by `head`, and missed `phasenum` and
+  `phiatusnum`; the run found them. Search with no cap. Also, an apostrophe added to a single-quoted case title
+  broke `autonotephases`' syntax, and the leg then writes NO result at all (it reads like a timeout): `node --check`
+  a leg after editing it.
+- **Verified** (build `8da39b6c…`, targeted legs on a private port while three other sessions' gates ran):
+  `npm run check` 40/40; `prepreptitle` 7/7; `base` identical to the 29 Aug baseline (grid keys, waterfall PDF but the
+  date stamp, workbook parts); `autonotephases` 17/17, `phiatusnum` 18/18, `phasenum` live + restore (the gate's own
+  judge), `builtindates` live + restore, `blocks` (16 gate checks), `onecol` (gate judge), `calrange` 18/18,
+  `customunits` ×2, `loadfail` 6/6, `phasefold` 11/11, `seasons` 15/15, `snaptools` 14/14, `undokeys` 11/11,
+  `noresetall` 5/5, `badyear` 6/6. `phasesui` 7/8: P1 fails ONLY on `stintswap-reshape`, the fixture with the stray
+  uncommitted edit that predates this work (re-saved with 112 fields instead of 61; its Pre Prep name unchanged).
+  **Mutant** (the `was` branch compiled out): `prepreptitle` N4 + N6 red, and `base`'s PDF and grid both differ.
+  Seen in the app: the Phases tab's second card reads "Pre-Prep". **No full gate** (three others were running).
+
+### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 
 - **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
   a gate just remove and push"*.

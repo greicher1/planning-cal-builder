@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Pre Prep's default name is "Pre-Prep" (28 Oct 2026)
+
+A new calendar names the phase **Pre-Prep** (owner, 28 Oct 2026), so its weeks read "Pre-Prep Wk 1", its automatic
+notes "Pre-Prep Begins", and its hiatus "Pre-Prep Hiatus". The Automatic notes row, the Blue colour's name and the Help
+follow. **Calendars saved before keep "Pre Prep"**, as episode names did ("Leave them as saved", 20 Oct 2026): the name
+was always saved in `fields.byId['name-prePrep']`, and that old name still draws "Pre Prep Wk N" with its capital W
+(`PHASES`' new `was`), where any other typed name draws "<name> wk N". No save-format change; nothing frozen touched.
+
+Verified: new leg `prepreptitle` 7/7 (new calendar, Save, New, the old name typed, a real v1.8.0 file). The harness's
+reference calendar now types the old name, and with it `base`'s waterfall PDF, workbook and grid are identical to the
+29 Aug baseline, which proves an old calendar draws exactly as before; with the old-name mapping removed, both the leg
+and `base` go red. `autonotephases`, `builtindates`, `phiatusnum` and `phasenum` now expect "Pre-Prep" on the calendars
+they build fresh, and pass, with 14 other legs that touch phase names. `npm run check` 40/40. No full gate yet.
+
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The

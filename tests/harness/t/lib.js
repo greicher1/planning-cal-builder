@@ -61,6 +61,11 @@ window.__T = (function(){
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
   function buildFixture(){
+    // ⛔ The OLD default name, typed. Pre Prep's default became "Pre-Prep" on 28 Oct 2026, and every baseline cut
+    // from this calendar before then says "Pre Prep Wk N". A calendar saved with the old name must still draw
+    // exactly that (PHASES' `was`), so typing it here keeps those baselines byte-identical AND proves it on every
+    // run. The new default is held by the prepreptitle leg.
+    set('name-prePrep','Pre Prep');
     set('show-title','Test Show');
     set('season-num','2');
     set('num-episodes','10');
