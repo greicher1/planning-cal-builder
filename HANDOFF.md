@@ -4,7 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 27 Oct 2026 (latest): FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
+### ✅ 28 Oct 2026 (latest): SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+
+- **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
+  a gate just remove and push"*.
+- **Done:** the `description` prop dropped from `#season-num`'s `NativeSelect` in `src/chrome/Sidebar.jsx`'s
+  `SeasonField`. Chrome only: no id, no saved key, nothing the grid or the exports read. README has an Unreleased line.
+- **Verified:** `npm run build` + `npm run check` 40/40; no gate, on the owner's word. Pushed with the unpushed
+  HANDOFF-only `76099c4`; the deploy run succeeded and the live page served the local `dist/index.html` byte for byte
+  on the first fetch. No version cut (still v1.9.0).
+
+### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
 - **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then
   run one single gate"*. **Picked:** month text styling, the phase map rail + Soft Lines, two or more seasons — NOT the
