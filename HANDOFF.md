@@ -35,7 +35,7 @@
   stepper, the month double-click); conflicts in HANDOFF.md and README.md only (every entry kept). While that merge was
   being re-checked, ANOTHER session pushed `ep-shoot-bars` (`b9f0ff7`: episodes named "Episode 101" again, month bars
   "Shoot 101", gates 10 and 13 re-cut), so the check was stopped and `main` merged again as `a8eccf4` (same two docs,
-  every entry kept; its heading still said "NOT merged, NOT pushed" and now says it is live). `app.js`, `legacy.css`,
+  every entry kept), then once more for that session's own "live at `b9f0ff7`" HANDOFF commit `81cb932`. `app.js`, `legacy.css`,
   `gate.sh` and `mvnotes.js` merged clean; gate.sh keeps `prepreptitle` and `wfnotecolors`.
 - **Re-checked on the MERGED build** (`a8eccf4`): `npm run build` + `check` 40/40; `wfnotecolors` 14/14, `mvnotes`
   30/30 + 14/14, `mvbarcard` 7/7, `monthmap` (mvnotes) 20/20, `hidewf` 19/19, `prepreptitle` 7/7, `hiatusfold` 11/11,
@@ -44,7 +44,7 @@
   `ep-shoot-bars`' re-cut month baselines can contain a No fill waterfall note (older builds' sanitizer dropped it).
 - ⏭ **Next:** nothing owed. The next full gate runs `wfnotecolors` with everything else.
 
-### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch and merged with today's `main`, month baselines re-cut (owner sign-off), full gate run twice; NOT merged into `main`, NOT pushed — ⚠️ superseded: `git` shows it merged and ✅ LIVE at `b9f0ff7` (found by the `wf-note-colors` merge, 28 Oct 2026, 14:07; this heading predates that)
+### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — ✅ LIVE at `b9f0ff7` (owner's picker: "Merge into main", "Push now, no version cut"; the live page served the gated build `212b2faf` byte for byte ~66 s after the push)
 
 - **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
   Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
@@ -107,7 +107,13 @@
     (empty header). Alone: merged build 4 of 5 green, `main`'s own build (`2f8208ec`, no episode change) 5 of 5, all
     while another gate loaded the Mac. Bar text cannot reach a right-click on the day-number band. ⚠️ A timing flake
     in that leg; a longer wait or an until() for `.day-menu` would remove it (not done here).
-- **Not done:** no merge to `main`, no push, no version cut.
+- ✅ **SHIPPED.** Owner's picker: *"Merge into main"*, *"Push now, no version cut"*. Local `main` fast-forwarded to
+  the branch (`b9f0ff7`); a clean build of its tree is `212b2faf…` (the second gate's build), `npm run check` 40/40,
+  `APP_VERSION` and `version.json` both still 1.9.0, root `index.html` still equals `releases/v1.2.0.html`. ONE
+  `git push origin main` at 14:06:24 (`7965ebc..b9f0ff7`, which also carried the month-step session's unpushed
+  HANDOFF commit `633f92d`). At 14:07:30 the live `index.html`, fetched with a cache-buster, was byte-identical to
+  `212b2faf` (1,875,270 bytes, `cmp`).
+- **Not done:** no version cut (owner's choice), so installed copies get no update notice; they pick it up on load.
 
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
