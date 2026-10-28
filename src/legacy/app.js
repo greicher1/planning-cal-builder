@@ -10027,7 +10027,7 @@ export function initLegacyApp() {
     //   Start <phase> here  a MOVER, the same as dragging the bar to this day (installMonthPillDrag).
     //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
     //   Colour…             the swatch's own picker, beside the bar (setPhaseColor).
-    //   Show in Phases card the phase's row, scrolled into view.
+    //   Show in Phases card the phase's row, scrolled into view. A double-click on the bar does the same.
     //   Remove <phase>…     a CUSTOM phase only, the row's own × with its question (step 4, removePhaseHere).
     // Prep is worked out from each episode's first shoot day, so it has no start or end of its own to
     // move: both are greyed out with that reason (owner ruling 1, 18 Sep 2026), and its colour and row work.
@@ -10163,6 +10163,27 @@ export function initLegacyApp() {
       setPhaseCollapsed(key, false);   // a folded card would show only its name
       if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
+
+    // ⭐ DOUBLE-CLICK A BAR = Show in Phases card (owner, 28 Oct 2026: "When you double click on a phase in the month
+    // view, could it reveal that phase menu in the left side bar"). The month's rule is click picks, double-click
+    // edits (MONTH-TEXT-STYLE-PLAN.md R1), and a bar's settings are its card: the two clicks pick the bar for the
+    // text style bar as before, and the double-click then runs the menu item's own showPhaseRow(), one undo step.
+    // ⛔ Found BY POINT through mvTextAt(), the pick's own hit test, never e.target: the edge handles and the six-dot
+    // grip lie over the bar's ends, and a press on one appends a full-window shield, so the dblclick's target is
+    // <body> there. Hence the document, not #table-wrap. mvTextAt() sees through those layers (MV_SEL_THROUGH) and
+    // stops at a panel over the grid (OVER_PANEL). The sim-post bar has no data-ph and names no phase, as in the
+    // menu, so it is left alone. A press that travelled past the click slop is a drag's end, and a live drag's
+    // shield means the gesture is not over: neither is a double-click.
+    document.addEventListener('dblclick', e=>{
+      if(viewMode !== 'month' || e.button !== 0 || isMacCtrlClick(e)) return;
+      if(mvPress && Math.hypot(e.clientX - mvPress.x, e.clientY - mvPress.y) > MV_SEL_SLOP) return;
+      if(document.querySelector('.phase-edge-shield, .hiatus-drag-shield, .mv-drag-shield')) return;
+      const pill = mvTextAt(e.clientX, e.clientY);
+      if(!pill || !pill.matches('.mv-pill[data-ph]')) return;
+      const key = pill.getAttribute('data-ph');
+      if(key !== PREP_KEY && !getAllPhaseDefs().some(p=> p.key === key)) return;
+      showPhaseRow(key);
+    });
 
     // Add hiatus ▸ (plan §3.3): one for everything, then one for each phase running on the day.
     // ⭐ A hiatus is a start and a number of weeks, and computeSchedule snaps the start to its Monday,

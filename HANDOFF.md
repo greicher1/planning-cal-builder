@@ -4,7 +4,40 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
+### 🔨 28 Oct 2026 (latest): DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
+
+- **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
+  left side bar"*. Tracker card `mv-dblclick-phase-card`.
+- **Built** (app.js, beside `showPhaseRow()` in `installMonthDayMenu`): a document-level `dblclick` listener, month
+  view only, that runs the day menu's own **Show in Phases card** (`showPhaseRow(key)`: the Phases tab, the card
+  unfolded, scrolled to centre, one undo step because `sidebarTab` is saved state). Prep's bars open the Prep card.
+  The Sim Post bar (no `data-ph`) does nothing, as the menu offers it nothing. Help: one clause in "What sits on top
+  in the Month view". No frozen code, no saved key, no id.
+- ⭐ **Why it is on the DOCUMENT and finds the bar BY POINT** (`mvTextAt()`, the Text bar's pick): the edge handles
+  and the six-dot grip lie over the bar's ends, and a press on a handle appends `.phase-edge-shield`. The release
+  lands on the shield, so Chrome sends the click and the dblclick to the common ancestor, `<body>`.
+  `e.target.closest('.mv-pill')` on `#table-wrap` would never hear a double-click near a bar's end. The mutant
+  that does exactly that fails leg case B3 only.
+  - Guards: a second press that travelled past `MV_SEL_SLOP` (the end of a drag), a live drag shield, a Mac Ctrl+click.
+- ⚠️ **Learned (harness): a synthetic double-click on an edge handle needs a pointer MOVE before each press.** The
+  first press hides the pooled handles (`hideHandles`). With no mousemove between the clicks, the second press lands
+  on the bar itself, and a test of the shield path silently tests the plain path instead (the `e.target` mutant
+  passed until the move was added). A real mouse always moves.
+  - Also: a shield that comes and goes inside one dispatch is invisible to a `MutationObserver` that queries the DOM
+    in its callback. Read the records' `addedNodes`.
+- **Proof:** new leg `t/mvbarcard.js` (gate.sh AFSPEC, own line after `hiatusfold`) 7/7 on the build. Red on the build
+  without the listener (B1–B4) and with the bar found by `e.target` (B3). Neighbours green on the same build:
+  `mvtextstyle` 23 + `(mvtextstyle)` 6, `mvmenu (halfdays)` 89, `halfworked (dayoverrides-onhalf)` 24,
+  `phasefold` 11, `mvnotes` 30, `mvbarsize (mvnotes)` 13, `monthmap (mvnotes)` 20; `npm run check` 40/40. In the
+  pane with a real mouse at 1280 × 800: Set Build's bar and Shoot Ep. 101 each opened their card on screen, with
+  dates unchanged. (This pane's tab pill lagged a screenshot behind the page again. Measure, don't eyeball.)
+- ⚠️ **The pane's five-server limit for this folder was full** (other chats), so the check used the main checkout's
+  existing harness server on 8390. A `mvbarcard-8619` entry was added to `.claude/launch.json`, unused.
+- **No full gate:** another session's gate (`ep-shoot-bars`) was running, and the change has the hiatus-fold
+  profile: no frozen code, no saved byte, no id.
+- ⏭ **Next:** the next full gate includes `mvbarcard`.
+
+### 🔨 28 Oct 2026: PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
 
 - **Asked:** *"I think we still need proper left and right buttons to move the month view cal one month
   forward/backwards. propose a few ideas for places it could go"*. Four places mocked up (A big ends on the map, B on

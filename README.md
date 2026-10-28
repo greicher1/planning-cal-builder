@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
+
+Owner: *"When you double click on a phase in the month view, could it reveal that phase menu in the left side
+bar"*.
+
+- **Double-click any phase's bar in the month view** and the sidebar switches to the Phases tab, unfolds that
+  phase's card if it was folded, and scrolls it into view. It is the right-click menu's **Show in Phases card**,
+  so the two always agree. Prep's bars open the Prep card. The Sim Post bar names no phase, so it does nothing, as
+  in the menu.
+  - The two clicks still pick the bar for the Text bar, as one click always has. Dragging is unchanged.
+  - Opening the tab is one undo step, as the menu item is. No date moves.
+  - The Waterfall is untouched: a double-click on a phase cell there still fills the free columns beside it.
+- **How:** one document-level `dblclick` listener beside `showPhaseRow()` in `app.js`. It finds the bar by point
+  with `mvTextAt()`, the Text bar's own hit test, so it also works over a bar's end handle and its six-dot grip.
+  A press on a handle puts a full-window shield on top, which makes the double-click's target `<body>`, so a
+  listener on the calendar would never hear it. Nothing frozen changed, and nothing is saved.
+  The Help's "What sits on top in the Month view" paragraph says it.
+- **Verified:**
+  - new leg `mvbarcard` (in `gate.sh`), 7/7. Every event is hit-tested. It covers Production, a custom phase
+    through its end handle, and Prep. Also: one undo step, no date moved, and nothing happens on a press that
+    travelled, on a day with no bar, or in the Waterfall. Red on the build before the change (B1–B4). Red with
+    the bar found by `e.target` instead of by point (B3 only);
+  - neighbours green: `mvtextstyle` ×2, `mvmenu (halfdays)` 89, `halfworked` 24, `phasefold` 11, `mvnotes` 30,
+    `mvbarsize` 13, `monthmap` 20. `npm run check` 40/40;
+  - in the pane, with a real mouse: double-clicks on Set Build's bar and on Shoot Ep. 101 each opened their card,
+    on screen, with the dates unchanged. No full gate.
+
 ### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`, merged into local `main`)
 
 Owner: *"I think we still need proper left and right buttons to move the month view cal one month
