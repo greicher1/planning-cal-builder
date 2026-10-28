@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 28 Oct 2026 (latest): PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); NOT COMMITTED, NOT in main, NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
+
+- **Asked:** *"I think we still need proper left and right buttons to move the month view cal one month
+  forward/backwards. propose a few ideas for places it could go"*. Four places mocked up (A big ends on the map, B on
+  the style bar's line, C beside Waterfall | Month, D a heading row). C does not fit: measured at 1,440 px, the
+  toolbar has 130 px spare and the stepper needs ~210. **Owner picked B.** Defaults B1–B3 in §18: Today in, the map's
+  small arrows removed, no keyboard shortcut.
+- **What exists:** `MonthStepper` in `src/chrome/MonthMap.jsx`, fed by the map's own push handler in the same commit
+  (inside its `flushSync` when the map's height changes). Rendered by `PreviewToolbar` in a new `.style-row` wrapper
+  after `.style-bar-host`. CSS block "The month stepper" in `legacy.css`, after the map's. Engine untouched: the
+  buttons use the existing `data-mvstep` / `data-mvgo` listener and `goToMonth()`.
+  - ⚠️ `.style-bar-host` is now a child of `.style-row`, not of `.view-toggle-row`. The engine finds it by class, and
+    every leg that looks for it uses a descendant selector, so nothing else had to change. A NEW leg or rule must not
+    write `.view-toggle-row > .style-bar-host`.
+- **Proven so far:** `monthmap` part C (C0–C4) 20/20 on 8 calendars (Today both in and out of the calendar); 11 nearby
+  legs green; `npm run check` 40/40. In the pane at 1440 × 900 against main's build: the waterfall's layout is
+  identical, and the month view's calendar keeps the same top and height. The switch moves it 0 px and takes 19–30 ms
+  (main: 20–27). At 1,000 px wide it still fits on one line. The app's minimum width (~714 px) never forces the wrap.
+- **Full gate** (`tests/harness/gate-monthstep.log` in the worktree): 3,324 PASS, 1 FAIL. The one was `customunits
+  (customunits)` producing no JSON at all; alone on the same build it passed 28/28 three times running.
+- **Next:** the owner's commit picker, then merge into `main` and push (each asked separately).
+
 ### ✅ 27 Oct 2026 (latest): FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
 - **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then

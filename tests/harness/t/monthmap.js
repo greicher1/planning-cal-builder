@@ -1,5 +1,6 @@
 // monthmap -- the phase map above the month view (MONTH-RAIL-PLAN.md). Part A, plan step 2: the engine's half.
-// Part B, plan step 3: the map MonthMap.jsx draws.
+// Part B, plan step 3: the map MonthMap.jsx draws. Part C, §18 (owner, 28 Oct 2026, option B): the month stepper,
+// Today and ‹ October 2026 › on the style bar's line, which replaced the map's own two small arrows.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=mvnotes ./run.sh monthmap 120
 //
@@ -18,15 +19,21 @@
 //   A4  paging is session UI: the undo button's state and the save status are what they were
 //   A5  in the waterfall the attributes do nothing: the grid is untouched and the view stays the waterfall
 //   PART B, plan step 3: the map itself (MonthMap.jsx), held to the month view
-//   B0  in the month view the map is a line of the toolbar row, directly above the text style bar
+//   B0  in the month view the map is a line of the toolbar row, directly above the style bar's line (.style-row)
 //   B1  its months are the frozen arrows' months, the dimmed ones its ends, and its highlight follows the arrows
 //   B2  every phase the month view draws has a bar spanning its drawn days (and past them only over weekends and the
 //       hiatus or off-week days the month view draws in its place), and a bar goes to its phase's first month
-//   B3  its own clicks: a month, a bar, ‹ and ›, and ‹ / › disabled at the two ends
+//   B3  its own clicks: a month and a bar; and it has no arrows of its own any more (§18)
 //   B4  every month at least 36 px, and the month on screen inside the visible part of the map
 //   B5  no taller than the slimmer rows allow
 //   B6  this month's dot, and no id or form field anywhere in it
-//   B7  in the waterfall it is gone, and the style bar sits right under the tools as before
+//   PART C, §18: the month stepper (MonthStepper in MonthMap.jsx)
+//   C0  it sits on the style bar's line, at its right end, after the style bar and level with it
+//   C1  its label is always the month band's month: stepping › through every month, and after every map click
+//   C2  its ‹ and › are real clicks one month each way, disabled at the two ends
+//   C3  Today goes to this month and is then disabled; outside the calendar it is disabled and says so
+//   C4  no id or form field anywhere in it
+//   B7  in the waterfall the map and the stepper are gone, and the style bar fills its line right under the tools
 //   E0  no console errors over every render above, in both views
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -149,10 +156,10 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- B0: where it sits ----
     var kids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
-    var mi = kids.indexOf('month-map'), si = kids.indexOf('style-bar-host');
-    add('B0', 'in the month view the map is a line of the toolbar row, directly above the text style bar',
+    var mi = kids.indexOf('month-map'), si = kids.indexOf('style-row');
+    add('B0', "in the month view the map is a line of the toolbar row, directly above the style bar's line",
         mi >= 0 && si === mi + 1 && document.querySelector('.view-toggle-row').nextElementSibling === document.getElementById('table-wrap'),
-        kids, 'view-toggle | preview-tools | month-map | style-bar-host, then #table-wrap');
+        kids, 'view-toggle | preview-tools | month-map | style-row, then #table-wrap');
 
     // ---- B1: its months are the arrows' months, and it follows them ----
     var mapKeys = Array.from(map().querySelectorAll('.mm-month')).map(function (b) { return b.getAttribute('data-mvgo'); });
@@ -243,19 +250,11 @@ window.addEventListener('load', function () { (async function () {
     var c2 = firstBand ? clickMap('.mm-band[data-mvgo="' + firstBand.goes + '"]') : '';
     clickMap('.mm-month[data-mvgo="' + mid + '"]');
     await frame();
-    var c3 = clickMap('.mm-step[data-mvstep="1"]');
-    await frame();
-    var c4 = clickMap('.mm-step[data-mvstep="-1"]');
-    clickMap('.mm-month[data-mvgo="' + keys[0] + '"]');
-    await frame();
-    var prevOff = map().querySelector('.mm-step[data-mvstep="-1"]').disabled;
-    clickMap('.mm-month[data-mvgo="' + keys[keys.length - 1] + '"]');
-    await frame();
-    var nextOff = map().querySelector('.mm-step[data-mvstep="1"]').disabled;
-    add('B3', "the map's own clicks: a month, a phase bar (to its first month), ‹ and ›, and ‹ / › disabled at the two ends",
-        c1 === labelOf(mid) && (!firstBand || c2 === firstBand.monthName) && c3 === labelOf(step(mid, 1)) && c4 === labelOf(mid) && prevOff && nextOff,
-        {month: c1, bar: c2, next: c3, prev: c4, prevOffAtStart: prevOff, nextOffAtEnd: nextOff},
-        {month: labelOf(mid), bar: firstBand && firstBand.monthName, next: labelOf(step(mid, 1)), prev: labelOf(mid), prevOffAtStart: true, nextOffAtEnd: true});
+    var ownSteps = map().querySelectorAll('[data-mvstep]').length;
+    add('B3', "the map's own clicks: a month and a phase bar (to its first month); its arrows went to the stepper (§18)",
+        c1 === labelOf(mid) && (!firstBand || c2 === firstBand.monthName) && ownSteps === 0,
+        {month: c1, bar: c2, stepButtonsInMap: ownSteps},
+        {month: labelOf(mid), bar: firstBand && firstBand.monthName, stepButtonsInMap: 0});
 
     // ---- B4: a long show scrolls, keeping the month on screen in view ----
     var sc = map().querySelector('.mm-scroll'), on = map().querySelector('.mm-month.on');
@@ -283,15 +282,78 @@ window.addEventListener('load', function () { (async function () {
         JSON.stringify(dots) === JSON.stringify(keys.indexOf(thisMonth) >= 0 ? [thisMonth] : []) && ids === 0,
         {dots: dots, idsOrFields: ids}, {dots: keys.indexOf(thisMonth) >= 0 ? [thisMonth] : [], idsOrFields: 0});
 
+    // ================= PART C, §18: the month stepper =================
+    var stp = function () { return document.querySelector('.view-toggle-row > .style-row > .month-step'); };
+    var lbl = function () { var e = stp() && stp().querySelector('.ms-label'); return e ? e.textContent.trim() : ''; };
+    var arrow = function (n) { return stp().querySelector('.ms-arrow[data-mvstep="' + n + '"]'); };
+    // ---- C0: where it sits ----
+    var rowKids = Array.from(document.querySelector('.view-toggle-row > .style-row').children).map(function (e) { return e.className; });
+    var rowR = document.querySelector('.style-row').getBoundingClientRect(), hostR = document.querySelector('.style-bar-host').getBoundingClientRect();
+    var stR = stp() ? stp().getBoundingClientRect() : null;
+    add('C0', "the stepper sits on the style bar's line, at its right end, after the style bar and level with it",
+        !!stR && JSON.stringify(rowKids) === JSON.stringify(['style-bar-host', 'month-step']) && Math.abs(stR.right - rowR.right) < 1 &&
+          Math.abs(stR.top - hostR.top) < 1 && Math.abs(stR.height - hostR.height) < 1 && hostR.right <= stR.left,
+        {kids: rowKids, step: stR && [Math.round(stR.left), Math.round(stR.top), Math.round(stR.right), Math.round(stR.height)],
+         host: [Math.round(hostR.left), Math.round(hostR.top), Math.round(hostR.right), Math.round(hostR.height)], rowRight: Math.round(rowR.right)},
+        'style-bar-host | month-step; the stepper ends at the row\'s right edge, on the style bar\'s top, at its height');
+    // ---- C1: the label is the month band's month, always ----
+    var off = [];
+    clickMap('.mm-month[data-mvgo="' + keys[0] + '"]');
+    await frame();
+    if(lbl() !== shown()) off.push({after: 'map ' + keys[0], label: lbl(), band: shown()});
+    for(var ci = 1; ci < keys.length; ci++){
+      arrow('1').click();
+      await frame();
+      if(lbl() !== shown() || shown() !== labelOf(keys[ci])) off.push({after: '› to ' + keys[ci], label: lbl(), band: shown()});
+    }
+    if(firstBand){ clickMap('.mm-band[data-mvgo="' + firstBand.goes + '"]'); await frame(); if(lbl() !== shown()) off.push({after: 'bar', label: lbl(), band: shown()}); }
+    add('C1', "the stepper's label is always the month band's month: › through every month, and after map clicks",
+        off.length === 0, {wrong: off.slice(0, 3), steps: keys.length - 1}, {wrong: []});
+    // ---- C2: ‹ and ›, and their ends ----
+    clickMap('.mm-month[data-mvgo="' + mid + '"]');
+    await frame();
+    arrow('1').click(); await frame(); var s1 = shown();
+    arrow('-1').click(); await frame(); var s2 = shown();
+    clickMap('.mm-month[data-mvgo="' + keys[0] + '"]'); await frame();
+    var firstOff = arrow('-1').disabled, firstNextOn = !arrow('1').disabled;
+    clickMap('.mm-month[data-mvgo="' + keys[keys.length - 1] + '"]'); await frame();
+    var lastOff = arrow('1').disabled, lastPrevOn = !arrow('-1').disabled;
+    add('C2', "the stepper's ‹ and › step one month each way, and are disabled at the two ends",
+        s1 === labelOf(step(mid, 1)) && s2 === labelOf(mid) && firstOff && firstNextOn && lastOff && lastPrevOn,
+        {next: s1, prev: s2, prevOffAtStart: firstOff, nextOffAtEnd: lastOff},
+        {next: labelOf(step(mid, 1)), prev: labelOf(mid), prevOffAtStart: true, nextOffAtEnd: true});
+    // ---- C3: Today ----
+    var tb = function () { return stp().querySelector('.ms-today'); };
+    var inCal = keys.indexOf(thisMonth) >= 0, c3;
+    if(inCal){
+      var away = thisMonth === keys[0] ? keys[keys.length - 1] : keys[0];
+      clickMap('.mm-month[data-mvgo="' + away + '"]'); await frame();
+      var onAway = !tb().disabled;
+      tb().click(); await frame();
+      c3 = {inCalendar: true, enabledAway: onAway, went: shown(), disabledThere: tb().disabled, title: tb().title};
+      add('C3', 'Today goes to this month and is then disabled', onAway && shown() === labelOf(thisMonth) && tb().disabled && lbl() === shown(),
+          c3, {inCalendar: true, enabledAway: true, went: labelOf(thisMonth), disabledThere: true, title: 'This month is on screen'});
+    } else {
+      c3 = {inCalendar: false, disabled: tb().disabled, title: tb().title};
+      add('C3', 'with this month outside the calendar, Today is disabled and says so',
+          tb().disabled && tb().title === 'This month is outside the calendar', c3,
+          {inCalendar: false, disabled: true, title: 'This month is outside the calendar'});
+    }
+    // ---- C4: no ids ----
+    var stIds = stp().querySelectorAll('[id], input, select, textarea').length;
+    add('C4', 'nothing in the stepper has an id or is a form field', stIds === 0, stIds, 0);
+
     // ---- E0: and back to the waterfall once more, so both views' pushes ran ----
     document.getElementById('view-sheet-btn').click();
     await T.until(function () { return !document.querySelector('#table-wrap .month-view'); }, 'the waterfall', 100, 50);
     await frame();
     // ---- B7: gone in the waterfall ----
     var wfKids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
-    add('B7', 'in the waterfall the map is gone and the text style bar sits right under the tools, as before',
-        !document.querySelector('.month-map') && wfKids.indexOf('style-bar-host') === wfKids.indexOf('preview-tools') + 1,
-        wfKids, 'view-toggle | preview-tools | style-bar-host');
+    var wfRow = document.querySelector('.style-row').getBoundingClientRect(), wfHost = document.querySelector('.style-bar-host').getBoundingClientRect();
+    add('B7', 'in the waterfall the map and the stepper are gone, and the text style bar fills its line right under the tools, as before',
+        !document.querySelector('.month-map') && !document.querySelector('.month-step') && wfKids.indexOf('style-row') === wfKids.indexOf('preview-tools') + 1 &&
+          Math.abs(wfHost.width - wfRow.width) < 0.5 && Math.abs(wfHost.height - wfRow.height) < 0.5,
+        {kids: wfKids, hostW: Math.round(wfHost.width), rowW: Math.round(wfRow.width)}, 'view-toggle | preview-tools | style-row; the style bar as wide as its line');
     await new Promise(function (r) { setTimeout(r, 50); });
     out.errors = (window.__ERR || []).filter(function (m) { return !/SPTCal: \d+ value\(s\) in this calendar were not in a form/.test(m); }).slice(0, 10);
     add('E0', 'no console errors over every render above, in both views', out.errors.length === 0, out.errors, []);

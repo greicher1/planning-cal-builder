@@ -1742,8 +1742,9 @@ done
 # engine (data-mvgo / data-mvstep reach exactly the frozen arrows' months, refuse the rest and garbage, are session UI,
 # and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
 # and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
-# the 36 px month minimum, its height, no ids, gone in the waterfall). On mvnotes, colreuse (29 months, so it scrolls)
-# and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
+# the 36 px month minimum, its height, no ids, gone in the waterfall), and since 28 Oct 2026 part C the month stepper
+# on the style bar's line (§18: its label is always the month band's month, its ends, Today, no ids). On mvnotes,
+# colreuse (29 months, so it scrolls) and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
 # look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
 # box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
 # the frozen arrows hidden yet still paging on a scripted click. Own lines, mid-list.

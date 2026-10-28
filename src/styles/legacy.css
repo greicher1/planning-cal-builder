@@ -2833,12 +2833,6 @@
     display:flex; align-items:center; gap:4px; box-sizing:border-box; padding:4px;
     background:#fff; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
   }
-  .month-map .mm-step{
-    flex:none; width:24px; height:24px; padding:0; border:1px solid var(--mantine-color-gray-3); border-radius:6px;
-    background:#fff; color:var(--text-muted); font-size:15px; line-height:1; cursor:pointer;
-  }
-  .month-map .mm-step:hover:not(:disabled){ background:var(--mantine-color-gray-0); color:var(--text); }
-  .month-map .mm-step:disabled{ opacity:.35; cursor:default; }
   /* A long show scrolls sideways inside the map, never the toolbar row (R4). */
   .month-map .mm-scroll{ flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
   .month-map .mm-body{ position:relative; padding:2px 0 0; }
@@ -2872,6 +2866,29 @@
   }
   .month-map .mm-month.on.today::after{ background:#fff; }
   .month-map button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): Today and ‹ October 2026 › at the right
+     end of the style bar's line, in the month view only. The map's own small arrows went with it. As tall as the
+     style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move. */
+  .month-step{ flex:none; display:flex; align-items:stretch; gap:6px; height:34px; margin-left:auto; }
+  .month-step .ms-today, .month-step .ms-group{
+    box-sizing:border-box; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+    background:#fff;
+  }
+  .month-step .ms-today{ padding:0 12px; font-size:12px; font-weight:600; color:var(--accent); cursor:pointer; }
+  .month-step .ms-group{ display:inline-flex; align-items:stretch; overflow:hidden; }
+  .month-step .ms-arrow{
+    width:34px; padding:0; border:0; background:transparent; color:var(--text); font-size:19px; line-height:1;
+    cursor:pointer;
+  }
+  .month-step .ms-label{
+    min-width:132px; padding:0 10px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+    font-size:13px; font-weight:600; color:var(--text);
+    border-left:1px solid var(--mantine-color-gray-2); border-right:1px solid var(--mantine-color-gray-2);
+  }
+  .month-step .ms-today:hover:not(:disabled), .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .month-step button:disabled{ opacity:.35; cursor:default; }
+  .month-step button:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 
   /* ---------- Soft Lines: the month view's ON-SCREEN look (MONTH-RAIL-PLAN.md step 4; owner, 27 Oct 2026) ----------
      The owner's "a little more modern" pick (Option 1, Soft Lines), and "Screen only for now". The month view's own
@@ -2909,8 +2926,14 @@
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
-  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools. */
-  .view-toggle-row > .style-bar-host{ flex:1 1 100%; min-width:0; }
+  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools.
+     Since 28 Oct 2026 that line is .style-row, which it shares with the month stepper in the month view
+     (MONTH-RAIL-PLAN.md §18). In the waterfall the stepper renders nothing and the host fills the line, as before.
+     The host keeps 260 px, its controls' width, so on a narrow window the stepper wraps under it instead. */
+  .view-toggle-row > .style-row{
+    flex:1 1 100%; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--mantine-spacing-xs);
+  }
+  .style-row > .style-bar-host{ flex:1 1 260px; min-width:0; }
   .style-bar{
     display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
     min-width:0;

@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`)
+
+Owner: *"I think we still need proper left and right buttons to move the month view cal one month
+forward/backwards"*. Four places were mocked up (`mockups/month-arrows.html`), and the owner picked **B: on the
+style bar**. Plan: `MONTH-RAIL-PLAN.md` §18.
+
+- **Today and ‹ October 2026 ›** now sit at the right end of the text style bar's line, directly above the calendar,
+  in the month view only. They are 34 px tall like the style bar, and the month name stays in view after you scroll
+  down a long month.
+  - ‹ and › step one month and are disabled at the first and last month. Each says which month it goes to.
+  - **Today** goes to this month. It is disabled when this month is already on screen, or is outside the calendar.
+  - The phase map's two small arrows are gone, so there is one set. Clicking a month or a phase in the map still
+    jumps there.
+- **How:** a new `MonthStepper` in `MonthMap.jsx`, fed by the same push as the map and committed with it. The
+  buttons use the engine's existing `data-mvstep` / `data-mvgo` handler, the frozen arrows' range rule. Nothing frozen
+  changed. The style bar's line is a new `.style-row` wrapper; the style bar's host is untouched inside it.
+- **Verified:**
+  - leg `monthmap` grew a part C (label equals the month band's month after every ‹ › and map click, ends, Today,
+    no ids): 20/20 on 8 calendars, Today both inside and outside the calendar;
+  - 11 nearby legs green (`textstyle`, `mvtextstyle` ×2, `hdrcontrols`, `wfmenu`, `mvmenu`, `weeknum` ×2, `softlines`,
+    `halfworked`, `notescols`); `npm run check` 40/40;
+  - in the pane at 1440 × 900, against main's build: the waterfall's layout is identical, and the month view's
+    calendar keeps the same top and height. The switch moves the calendar 0 px, and takes 19–30 ms (main: 20–27);
+  - at 1,000 px wide it still fits on one line with every style bar control showing;
+  - full gate 3,324 PASS, 1 FAIL: `customunits` produced no result at all in the gate, and passed 28/28 alone three
+    times on the same build.
+
 ## v1.9.0 — the month view's bigger bars, styled text and phase map; two or more seasons (27 Oct 2026)
 
 41 changes since v1.8.0, from 21–27 Oct 2026. New with this push, four features merged into `main` together and
