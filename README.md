@@ -84,7 +84,7 @@ there is no one-gesture way to do it already. The owner approved the short list 
   `halfworked` 24/24, `hiatusfold` 11/11, `mvbarcard` 7/7, `monthmap` 20/20, `prepreptitle` 7/7, `phasefold` 11/11,
   `halfdays` 27/27, `labelsetup` 41/41. Full gate **3,371 PASS, 0 FAIL**. Then `main` at `013b4a8` (Shoot N bars,
   waterfall note colours) merged in, docs-only conflicts: full gate on that build (`e9b86652…`) **3,386 PASS, 0 FAIL**.
-  Merged into local `main`; not pushed.
+  Merged into `main` and pushed (`cc3ea13`); the live page served that build byte for byte.
 ### Unreleased — Waterfall notes take every colour a month note can (28 Oct 2026)
 
 Owner: *"add all the same note bg color options for notes in the waterfall as we currently have for notes in the month
