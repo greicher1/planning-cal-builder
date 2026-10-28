@@ -12731,6 +12731,35 @@ export function initLegacyApp() {
   // Episodes, Number of Blocks, Days per Block and a block's own day count.
   function showInfoEdited(){ blocksEpisodesLegacy = false; }
 
+  // ⭐ TWO OR MORE SEASONS ON ONE CALENDAR (owner, 27 Oct 2026: "being able to select two or more seasons in the
+  // Show info input and having those seasons translate to the header"; picker: "Tick any seasons", "S3 & S4").
+  // Show info's Season is a dropdown with a checkbox per season (SeasonPop.jsx; owner, the same day: "keep the selector
+  // as a drop down menu with the checkboxes inside the drop down"). What a tick means, all deliberate:
+  //  - #season-num, the select itself, still holds the FIRST ticked season. It is the save format's season (fields.byId),
+  //    episode numbering reads it (Seasons 3 and 4 number 301, 302...), and an older build shows that one season.
+  //  - seasonList is every ticked season, ascending, as numbers. ⛔ CALENDAR DATA: captureSnapshot()'s `seasons`
+  //    (not to be confused with a file's `scenarios`), a PERMANENT key written ONLY with two or more ticked, so a
+  //    calendar with one season saves byte for byte what it did.
+  //  - Header text only (seasonLabel). Nothing that schedules reads it.
+  const SEASON_MAX = 10;   // the old dropdown's Seasons 1-10
+  let seasonList = [];
+  // The seasons the header names: the list while it starts with #season-num's season, else that one season. The
+  // guard is for a path that sets the select alone: its change listener resets the list (the harness's T.set takes
+  // that path), and applyStateSnapshot() replays the select before it restores the list.
+  function seasonsShown(){
+    const first = parseInt((document.getElementById('season-num').value || '').trim(), 10);
+    if(!(first >= 1)) return [];
+    return (seasonList.length >= 2 && seasonList[0] === first) ? seasonList.slice() : [first];
+  }
+  // "S3", "S3 & S4", "S3, S4 & S5"; '' with no season. One season reads 'S' + the select's value, as it always did.
+  function seasonLabel(){
+    const s = seasonsShown().map(n => 'S' + n);
+    return s.length < 2 ? (s[0] || '') : s.slice(0, -1).join(', ') + ' & ' + s[s.length - 1];
+  }
+  // The dropdown's boxes and the select's "Seasons 3 & 4" are drawn from this push and never hold the list, so an undo,
+  // a Load or New puts them in step (from update()).
+  function reflectSeasons(){ chrome.seasons(seasonsShown()); }
+
   // Episode numbering follows the industry convention: season 1 -> 101, 102...; season 5 ->
   // 501, 502... Falls back to plain 1, 2, 3 when no season is chosen.
   function episodeNumberFor(seasonVal, index){
@@ -14368,8 +14397,11 @@ export function initLegacyApp() {
     // Use Excel's built-in page header (Page Layout view + printed pages)
     // Excel header format: &L=left &C=center &R=right
     // Line break inside a section: use char code 10 (LF)
-    // Strip any & characters from user text (they are escape codes in Excel headers)
-    const hdrSafe = s => String(s).replace(/&/g, '').trim();
+    // An & in user text is an escape code in Excel headers. ⛔ FROZEN EDIT A1 (owner's picker, 27 Oct 2026: "Yes,
+    // apply it"): each one is written as && -- Excel's code for a printed & -- where it used to be DELETED, so two
+    // seasons print "S3 & S4" (not "S3  S4") and a title typed with an & keeps it. A header with no & is byte for
+    // byte what it was. estimateExcelHeaderLength() counts the doubled & in step.
+    const hdrSafe = s => String(s).replace(/&/g, '&&').trim();
     const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
 
     // Header lines come from the same auto defaults as the live view, with any per-line
@@ -14456,7 +14488,9 @@ export function initLegacyApp() {
       if(!arr) break;                                  // nothing left to cut
       const keep = len - (headerStr.length - HF_MAX) - 1;   // -1 for the ellipsis
       if(keep <= 0) arr.splice(idx, 1);
-      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/\s+$/, '') + '…' };
+      // Frozen edit A1's second half: a cut never splits an && pair, which would leave a lone & (an escape code)
+      // before the ellipsis. Text with no & is cut exactly as before.
+      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/(^|[^&])((?:&&)*)&$/, '$1$2').replace(/\s+$/, '') + '…' };
       headerStr = assembleHeader();
     }
     // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 10, HEADER-ROW-PLAN.md §2): Header: Off writes
@@ -17671,8 +17705,8 @@ export function initLegacyApp() {
   // exactly what it paid before this feature existed.
   function computeMvHeaderDefaults(schedule){
     const rawTitle = (document.getElementById('show-title').value || '').trim();
-    const seasonVal = (document.getElementById('season-num').value || '').trim();
-    const t = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
+    const seasonTxt = seasonLabel();   // "S2", or "S3 & S4" with two seasons ticked
+    const t = rawTitle + (seasonTxt ? (rawTitle ? ' ' : '') + seasonTxt : '');
     // LOCAL date, not UTC: this is "today" for the person reading it, unlike the schedule dates.
     const now = new Date();
     const out = {
@@ -19986,7 +20020,7 @@ export function initLegacyApp() {
     const HF_MAX = 255;
     const HSIZE_COST = '&B&12&"Calibri,Bold"'.length;      // 20, and there are three of them
     const hd = computeHeaderDefaults(currentSchedule);
-    const safe = s => String(s).replace(/&/g, '').trim();  // hdrSafe
+    const safe = s => String(s).replace(/&/g, '&&').trim();  // hdrSafe (frozen edit A1: & is written as &&)
     const lineCode = id => {
       const f = headerFmt(id, false);
       const size = f.size ? Math.round(f.size) : 12;
@@ -20299,7 +20333,7 @@ export function initLegacyApp() {
     const groups = [
       { name: 'Show', items: [
         ['{title}', 'Show title'],
-        ['{season}', 'Season, as S2'],
+        ['{season}', 'Season, as S2 or S2 & S3'],
         ['{titleSeason}', 'Title and season'],
         ['{version}', 'Version, as v3'],
         ['{scenario}', 'The scenario on screen (empty with one)'],
@@ -20568,12 +20602,11 @@ export function initLegacyApp() {
 
     // ---- Show and version --------------------------------------------------------------------
     const title = val('show-title');
-    const season = val('season-num');
     t.title = title;
-    t.season = season ? 'S' + season : '';
+    t.season = seasonLabel();   // "S2", or "S3 & S4" with two seasons ticked (27 Oct 2026)
     // Verbatim c1: the season is a SUFFIX, and its leading space appears only when there is a title
     // to separate it from -- so a season with no title reads "S2", never " S2".
-    t.titleSeason = title + (season ? (title ? ' ' : '') + 'S' + season : '');
+    t.titleSeason = title + (t.season ? (title ? ' ' : '') + t.season : '');
     t.version = versionLabel();
     // SCENARIOS-PLAN.md D6: the scenario on screen, for a Template line that wants it. Empty with one scenario, so
     // a calendar without scenarios prints exactly what it always did.
@@ -21101,10 +21134,9 @@ export function initLegacyApp() {
     const todayStr = `${today.getMonth()+1}.${today.getDate()}.${String(today.getFullYear()).slice(2)}`;
     const showTitle = (document.getElementById('show-title').value || '').trim();
     // Carry the season as a short suffix, e.g. "Show Name S2" -- same convention as the month
-    // view header, so the two documents identify the season identically.
-    const seasonSel = document.getElementById('season-num');
-    const seasonNum = seasonSel ? (seasonSel.value || '').trim() : '';
-    const titleLine = showTitle + (seasonNum ? (showTitle ? ' ' : '') + 'S' + seasonNum : '');
+    // view header, so the two documents identify the season identically. "Show Name S3 & S4" with two ticked.
+    const seasonTxt = seasonLabel();
+    const titleLine = showTitle + (seasonTxt ? (showTitle ? ' ' : '') + seasonTxt : '');
     const wrStartRaw = document.getElementById('start-writersRoom') ? document.getElementById('start-writersRoom').value : '';
     let wrLine = '';
     if(wrStartRaw){
@@ -21302,6 +21334,8 @@ export function initLegacyApp() {
     // The Automatic notes card (ruling 9): here for the same reason -- an undo, a Load or New changes
     // autoNotesOff without touching the boxes.
     reflectAutoNoteKinds();
+    // ...and Show info's Season dropdown, for the same reason (seasonList).
+    reflectSeasons();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -23038,7 +23072,25 @@ export function initLegacyApp() {
   // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
   // re-reads the band instead of rendering.
   document.getElementById('show-location').addEventListener('input', ()=>{ scheduleScenarioFacts(); markDirty(); });
-  document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
+  // SeasonPop keeps the select's own list shut, so a change event on it (T.set in the harness) means ONE season, as the
+  // old dropdown did.
+  document.getElementById('season-num').addEventListener('change', e=>{
+    const v = parseInt(e.target.value, 10);
+    seasonList = v >= 1 ? [v] : [];
+    refreshEpisodesUI(); update();
+  });
+  // A row of the Season dropdown (SeasonPop.jsx, a button carrying data-season): the click flips that season, the
+  // select takes the first season left (so episodes number from it), and update() redraws every header and banks ONE
+  // undo step through markDirty(). Click, not change: the rows are buttons, so React owns no checkbox state here.
+  document.addEventListener('click', e=>{
+    const row = e.target && e.target.closest && e.target.closest('[data-season]');
+    const n = row ? parseInt(row.getAttribute('data-season'), 10) : NaN;
+    if(!(n >= 1 && n <= SEASON_MAX)) return;
+    const shown = seasonsShown();
+    seasonList = (shown.includes(n) ? shown.filter(s=> s !== n) : shown.concat(n)).sort((a, b)=> a - b);
+    document.getElementById('season-num').value = seasonList.length ? String(seasonList[0]) : '';
+    refreshEpisodesUI(); update();
+  });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   // The calendar range (owner ruling 3): it moves where the waterfall starts and ends, so it recomputes.
@@ -23161,6 +23213,7 @@ export function initLegacyApp() {
     lastPlace = '';
     document.getElementById('show-title').value = '';
     document.getElementById('season-num').value = '';
+    seasonList = [];   // no season ticked; update() pushes the empty list
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
     document.getElementById('show-version').value = '';
@@ -24416,6 +24469,9 @@ export function initLegacyApp() {
       // 27 Oct 2026: the automatic-note kinds that start off and are switched ON (the phase starts and ends).
       // ⛔ PERMANENT key and kind words. None ticked, the default, is an ABSENT key.
       ...(Object.keys(autoNotesOn).length ? {autoNotesOn: Object.assign({}, autoNotesOn)} : {}),
+      // 27 Oct 2026: every season ticked in Show info, ascending, when two or more are. ⛔ PERMANENT key. One season
+      // lives in fields.byId['season-num'] alone, as it always did, so such a calendar saves byte for byte as before.
+      ...(seasonsShown().length >= 2 ? {seasons: seasonsShown()} : {}),
       // 20 Oct 2026, owner ruling 10 (HEADER-ROW-PLAN.md §2): Header: Off. ⛔ PERMANENT key, written
       // only as `true`, so a calendar whose header is on saves byte for byte as before.
       ...(headerOff ? {headerOff: true} : {}),
@@ -31220,6 +31276,20 @@ export function initLegacyApp() {
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     // ...and the kinds that start off, switched on (27 Oct 2026): the same rule, unknown kind words kept.
     setMap('autoNotesOn', v => v === true ? true : undefined, SNAP_ID);
+    // The seasons ticked in Show info (27 Oct 2026): whole numbers 1-10, once each, ascending, at least two. The app
+    // never writes anything else, so anything else is dropped and counted, and a list left with one is dropped
+    // whole (fields.byId's season-num already says that one).
+    if('seasons' in s){
+      if(!Array.isArray(s.seasons)){ bad.n++; delete s.seasons; }
+      else {
+        const seen = {};
+        s.seasons = s.seasons.filter(n=>{
+          if(Number.isInteger(n) && n >= 1 && n <= SEASON_MAX && !seen[n]){ seen[n] = true; return true; }
+          bad.n++; return false;
+        }).sort((a, b)=> a - b);
+        if(s.seasons.length < 2){ bad.n++; delete s.seasons; }
+      }
+    }
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('mvHeaderOff' in s && typeof s.mvHeaderOff !== 'boolean'){ bad.n++; delete s.mvHeaderOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
@@ -31668,6 +31738,13 @@ export function initLegacyApp() {
     autoNotesOn = {};
     if(isPlainObj(snap.autoNotesOn))
       Object.keys(snap.autoNotesOn).forEach(k=>{ if(snap.autoNotesOn[k] === true) autoNotesOn[k] = true; });
+    // ⛔ UNCONDITIONAL: a file with no `seasons` key has the one season in its Season field (or none) -- never the
+    // previous file's ticks. Runs after step 3 replayed fields.byId. A list that does not start with that field's
+    // season (a file edited by hand) wins, and the field takes its first, so the two cannot disagree.
+    seasonList = Array.isArray(snap.seasons)
+      ? snap.seasons.filter(n=> Number.isInteger(n) && n >= 1 && n <= SEASON_MAX) : [];
+    if(seasonList.length >= 2) document.getElementById('season-num').value = String(seasonList[0]);
+    else { const v = parseInt(document.getElementById('season-num').value, 10); seasonList = v >= 1 ? [v] : []; }
     // ⛔ UNCONDITIONAL as well: a file with no key has no boxes -- never the previous file's. A deep copy,
     // so editing a box can never reach back into a snapshot the undo stack is holding.
     sideBoxes = (snap.sideBoxes && Array.isArray(snap.sideBoxes.boxes)) ? JSON.parse(JSON.stringify(snap.sideBoxes.boxes)) : [];

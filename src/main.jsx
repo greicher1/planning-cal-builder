@@ -97,6 +97,7 @@ import { ShowInfoCard, CalendarRangeCard, HiatusResetButton } from './chrome/Sid
 import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
+import { SeasonPop } from './chrome/SeasonPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
 import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
@@ -160,6 +161,8 @@ function Chrome() {
           print paths with no extra work, and #print-root stays last. */}
       <DatePop />
       <SelectPop />
+      {/* Show info's Season dropdown with its checkboxes (27 Oct 2026). In #react-root for DatePop's reason. */}
+      <SeasonPop />
       <Dialogs />
       {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
       <ExportPdfDialog />

@@ -1680,6 +1680,12 @@ done
 # PDF, the month view on the bar's own first/last day and the written month PDF (control P0b), the autoNotesOn key
 # with the id set unchanged, one undo step, a renamed phase, a phase hiatus moving Begins/Ends, Hide in waterfall,
 # Load and the M-5 trap, a REAL v1.8.0 file opening with none of them, and New. 15 of 17 red on the build before it.
+# seasons (owner, 27 Oct 2026) is two or more seasons ticked in Show info's Season dropdown: the native #season-num
+# (the first ticked) opening SeasonPop's id-less checkbox rows by mouse and keyboard, the field reading "Seasons 3 & 4",
+# "S3 & S4" / "S3, S4 & S5" in the waterfall and month titles, Excel's page header
+# (frozen edit A1: & written as &&, and the 255 shave never splits a pair), both PDFs and the {season} tokens, one
+# undo step, the `seasons` key with the id set unchanged, Load and the M-5 trap, a hand-edited file, the old
+# single-select path, a REAL v1.8.0 file, and New.
 # phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
 # order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
 # fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
@@ -1756,7 +1762,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
-              phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 phasecolors:-:300 calrange:-:300 \
+              phiatusnum:-:300 autonotekinds:-:300 autonotephases:-:400 seasons:-:400 phasecolors:-:300 calrange:-:300 \
               mvhdroff:-:400 \
               hidewf:hidewf:400 \
               phasesui:hidewf:1500; do
