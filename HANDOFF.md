@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): PRE PREP'S DEFAULT NAME IS "PRE-PREP" — built in the main checkout, UNCOMMITTED
+### ✅ 28 Oct 2026 (latest): PRE PREP'S DEFAULT NAME IS "PRE-PREP" — ✅ LIVE at `19eb0c0`
 
 - **Asked** (owner): *"Default name for Pre Prep should be "Pre-Prep""*. Tracker card `pre-prep-default-name`.
 - **Done:** `PHASES`' prePrep label and template are "Pre-Prep" / "Pre-Prep Wk N" (the capital W kept: only the name
@@ -34,6 +34,10 @@
   uncommitted edit that predates this work (re-saved with 112 fields instead of 61; its Pre Prep name unchanged).
   **Mutant** (the `was` branch compiled out): `prepreptitle` N4 + N6 red, and `base`'s PDF and grid both differ.
   Seen in the app: the Phases tab's second card reads "Pre-Prep". **No full gate** (three others were running).
+- **Pushed** on the owner's picker (*"Commit locally"*, *"Push now"*, on the targeted legs; no full gate), with the
+  unpushed HANDOFF-only `26516be`: `73de2b6..19eb0c0` at 11:31:25. At 11:32:12 the live `index.html`, fetched with a
+  cache-buster, was byte-identical to the tested build `8da39b6c…`. No version cut (still v1.9.0).
+- ⏭ **Next:** the next full gate should include `prepreptitle`; nothing else owed.
 
 ### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 
