@@ -68,7 +68,7 @@ there is no one-gesture way to do it already. The owner approved the short list 
   `npm run check` 40/40. In the app pane: the trimmed menu on Production's bar, and a sidebar scroll of 118 px leaving it
   open while a calendar scroll of 60 px closed it. Full gate on the build merged up to `origin/main` (`6ac77d19…`):
   3,012 PASS, 1 FAIL, the recorded `pilllabel` month-walk flake (green alone 7 times on the same build); every frozen
-  output identical to its baseline. Not merged, not pushed.
+  output identical to its baseline.
 - **Verified, 28 Oct 2026** (current `main`, v1.9.0, merged in; then nothing greyed): `npm run check` 40/40; `mvmenu`
   81/81, its T1 now failing on ANY greyed item in the 85 menus and submenus it opens, and H1s, P2m, P3, P4u, N1 and V8
   flipped from greyed to left out; `halfworked` 24/24 (H6 flipped the same way); `wfmenu` 38/38, `halfdays` 27/27,
@@ -83,7 +83,8 @@ there is no one-gesture way to do it already. The owner approved the short list 
 - **Verified on the build with that merge** (`faef231e…`): `npm run check` 40/40; `mvmenu` 81/81, `wfmenu` 39/39,
   `halfworked` 24/24, `hiatusfold` 11/11, `mvbarcard` 7/7, `monthmap` 20/20, `prepreptitle` 7/7, `phasefold` 11/11,
   `halfdays` 27/27, `labelsetup` 41/41. Full gate **3,371 PASS, 0 FAIL**. Then `main` at `013b4a8` (Shoot N bars,
-  waterfall note colours) merged in, docs-only conflicts.
+  waterfall note colours) merged in, docs-only conflicts: full gate on that build (`e9b86652…`) **3,386 PASS, 0 FAIL**.
+  Merged into local `main`; not pushed.
 ### Unreleased — Waterfall notes take every colour a month note can (28 Oct 2026)
 
 Owner: *"add all the same note bg color options for notes in the waterfall as we currently have for notes in the month

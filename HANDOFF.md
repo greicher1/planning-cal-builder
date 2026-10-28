@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); ✅ FULL GATE 3,331 / 0 with `main` at `26516be`, then ✅ 3,371 / 0 with `main` at `633f92d` merged in (`faef231e…`); then `main` at `013b4a8` (Shoot N bars, waterfall note colours; docs-only conflicts) merged in; NOT yet merged into `main`, NOT pushed
+### ✅ 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — built on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); `main` merged in three times (`26516be`, `633f92d`, `013b4a8`); ✅ FULL GATE 3,386 / 0 on the final merged build (`e9b86652…`); local `main` FAST-FORWARDED to it (owner's picker, *"Merge, then full gate"*); NOT pushed
 
 - **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want
   to remove options from the menu when they aren't accessible, rather than greying them out"*. Tracker card
@@ -60,8 +60,9 @@
 - **Then `main` moved again** (`013b4a8`: episode bars read "Shoot N" with gates 10 and 13 re-cut, and waterfall notes
   take every month note colour, both live). Merged in; only `HANDOFF.md` and `README.md` conflicted, and neither change
   adds a menu item.
-- ⏭ **Next:** that build's targeted legs and the full gate, then fast-forward `main`, then a separate push picker.
-  ⚠️ `main` keeps moving under this branch (three merges today), so fast-forward it as soon as the gate is green.
+- ✅ **Full gate on that build** (`e9b86652…`, `main` at `013b4a8` + this work): **3,386 PASS, 0 FAIL**, every frozen
+  output identical to its baseline (gates 10 and 13 as re-cut for the Shoot N bars). Local `main` fast-forwarded to it.
+- ⏭ **Next:** the push is the owner's own picker. Nothing else is open on this work.
 ### ✅ 28 Oct 2026: WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — ✅ LIVE at `1a4fb48` — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch; merged with `main` twice (`bc80460`, `a8eccf4`), re-checked on the merged build; local `main` FAST-FORWARDED to it (owner's picker, *"Merge into main"*); PUSH APPROVED after the re-check (owner's picker, *"Push after the re-check"*)
 
 - **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
