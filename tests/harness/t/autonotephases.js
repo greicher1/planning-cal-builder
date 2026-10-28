@@ -11,7 +11,7 @@
 //
 // THE CALENDAR (synthetic: made-up 2027 dates, no region, so no holidays):
 //   Writer's Room Mon 1/4/27 x 8         -> Opens 1/4/27 (on by default), Closes Fri 2/26/27
-//   Pre Prep      Mon 3/1/27 x 4         -> Begins 3/1/27, Ends Fri 3/26/27
+//   Pre-Prep      Mon 3/1/27 x 4         -> Begins 3/1/27, Ends Fri 3/26/27
 //   Prod Prep     Mon 3/29/27 x 5        -> Begins 3/29/27, Ends Fri 4/30/27
 //   Production    Mon 5/3/27, 4 x 5 days -> Start 5/3/27, Wraps 5/28/27 (both on by default)
 //   Post          Mon 7/5/27 x 12        -> Begins 7/5/27, Ends Fri 9/24/27
@@ -42,14 +42,14 @@ window.addEventListener('load', function () { (async function () {
                '2027-05-24': 'Principal Photography Wraps 5/28/27' };
   // ...and with all nine ticked.
   var ALL = { '2027-01-04': "Writer's Room Opens 1/4/27", '2027-02-22': "Writer's Room Closes 2/26/27",
-              '2027-03-01': 'Pre Prep Begins 3/1/27', '2027-03-22': 'Pre Prep Ends 3/26/27',
+              '2027-03-01': 'Pre-Prep Begins 3/1/27', '2027-03-22': 'Pre-Prep Ends 3/26/27',
               '2027-03-29': 'Prod Prep Begins 3/29/27', '2027-04-26': 'Prod Prep Ends 4/30/27',
               '2027-05-03': 'Start Principal Photography 5/3/27', '2027-05-24': 'Principal Photography Wraps 5/28/27',
               '2027-07-05': 'Post Begins 7/5/27', '2027-09-20': 'Post Ends 9/24/27',
               '2027-09-27': 'Localization Begins 9/27/27', '2027-10-18': 'Localization Ends 10/22/27' };
   // Each new note's DAY in the month view, by month.
   var DAYS = { 'February 2027': { '2027-02-26': "Writer's Room Closes 2/26/27" },
-               'March 2027': { '2027-03-01': 'Pre Prep Begins 3/1/27', '2027-03-26': 'Pre Prep Ends 3/26/27',
+               'March 2027': { '2027-03-01': 'Pre-Prep Begins 3/1/27', '2027-03-26': 'Pre-Prep Ends 3/26/27',
                                '2027-03-29': 'Prod Prep Begins 3/29/27' },
                'April 2027': { '2027-04-30': 'Prod Prep Ends 4/30/27' },
                'July 2027': { '2027-07-05': 'Post Begins 7/5/27' },
@@ -186,7 +186,7 @@ window.addEventListener('load', function () { (async function () {
     await step('P0b', async function () {
       pdfBefore = await monthPdfText();
       kase('P0b', 'control: the written month PDF has no Begins, Ends or Closes before any is ticked (and does carry the March pills)',
-           !/Begins|Ends|Closes/.test(pdfBefore) && /Pre Prep/.test(pdfBefore), { sample: pdfBefore.slice(0, 300) });
+           !/Begins|Ends|Closes/.test(pdfBefore) && /Pre-Prep/.test(pdfBefore), { sample: pdfBefore.slice(0, 300) });
     });
 
     await step('P1', async function () {
@@ -200,7 +200,7 @@ window.addEventListener('load', function () { (async function () {
         var lh = parseFloat(getComputedStyle(n).lineHeight) || 20; return n.scrollWidth <= n.clientWidth + 1 && n.getBoundingClientRect().height < lh * 1.5;
       }) : false;
       kase('P1', 'the card: one row per phase in calendar order, a start box and an end box each, every name on one line, NO id on any control, not a .prefs-card',
-           same(names, ['Writer’s Room', 'Pre Prep', 'Prod Prep', 'Production', 'Post', 'Localization']) &&
+           same(names, ['Writer’s Room', 'Pre-Prep', 'Prod Prep', 'Production', 'Post', 'Localization']) &&
            same(words, ['Opens', 'Closes', 'Begins', 'Ends', 'Begins', 'Ends', 'Starts', 'Wraps', 'Begins', 'Ends', 'Begins', 'Ends']) &&
            oneLine && ids.length === 0 && !!sec && !sec.closest('.prefs-card') && T.settingsTabOf(sec) === 'prefs',
            { names: names, words: words, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
@@ -298,10 +298,10 @@ window.addEventListener('load', function () { (async function () {
       await view('sheet');
       en = $('phiatus-en-prePrep'); if (en.checked) en.click();
       await settle();
-      kase('P10', 'Pre Prep paused for its first week: "Pre Prep Begins" moves to Mon 3/8 (its first drawn day) and "Pre Prep Ends" to Fri 4/2, after Prod Prep Begins in that week; the month view agrees; the pause removed, both come back',
-           n['2027-03-01'] === undefined && n['2027-03-08'] === 'Pre Prep Begins 3/8/27' && n['2027-03-22'] === undefined &&
-           n['2027-03-29'] === 'Prod Prep Begins 3/29/27 Pre Prep Ends 4/2/27' &&
-           !mv.d1.some(function (t) { return /Pre Prep Begins/.test(t); }) && mv.d8.some(function (t) { return /Pre Prep Begins 3\/8\/27/.test(t); }) &&
+      kase('P10', 'Pre-Prep paused for its first week: "Pre-Prep Begins" moves to Mon 3/8 (its first drawn day) and "Pre-Prep Ends" to Fri 4/2, after Prod Prep Begins in that week; the month view agrees; the pause removed, both come back',
+           n['2027-03-01'] === undefined && n['2027-03-08'] === 'Pre-Prep Begins 3/8/27' && n['2027-03-22'] === undefined &&
+           n['2027-03-29'] === 'Prod Prep Begins 3/29/27 Pre-Prep Ends 4/2/27' &&
+           !mv.d1.some(function (t) { return /Pre-Prep Begins/.test(t); }) && mv.d8.some(function (t) { return /Pre-Prep Begins 3\/8\/27/.test(t); }) &&
            same(notes(), sorted(ALL)), { notes: n, month: mv, after: notes() });
     });
 
@@ -336,7 +336,7 @@ window.addEventListener('load', function () { (async function () {
       var before = { boxes: boxes(NEW), newLines: lines.filter(function (t) { return NEW_LINE.test(t); }) };
       await clickBox('prePrepStart');
       var n2 = notes(), added = Object.keys(n2).filter(function (k) { return n2[k] !== n[k]; }).map(function (k) { return k + ' ' + n2[k]; });
-      kase('P13', 'a REAL v1.8.0 calendar opens with the nine off and no new note in it; ticking Pre Prep Begins adds exactly one note',
+      kase('P13', 'a REAL v1.8.0 calendar opens with the nine off and no new note in it; ticking Pre Prep Begins (its saved name, kept since Pre-Prep became the default) adds exactly one note',
            same(before.boxes, NONE_ON) && before.newLines.length === 0 && added.length === 1 && /Pre Prep Begins \d/.test(added[0]),
            { before: before, added: added });
     });

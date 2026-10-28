@@ -339,7 +339,7 @@ export function RegionCard() {
 const AUTO_NOTE_PHASES = [
   { phase: 'Writer’s Room', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
                             end: { kind: 'writersRoomEnd', word: 'Closes' } },
-  { phase: 'Pre Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
+  { phase: 'Pre-Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
   { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
   { phase: 'Production', start: { kind: 'principalStart', word: 'Starts', on: true },
                          end: { kind: 'principalWrap', word: 'Wraps', on: true } },

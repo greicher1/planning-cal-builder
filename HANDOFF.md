@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` (`26516be`, v1.9.0 + the Season hint line) merged in as `a8ae3cb`; COMMITTED on the branch; targeted legs green; NO full gate yet; NOT merged into `main`, NOT pushed
+### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); ✅ FULL GATE 3,331 / 0 on the branch with `main` at `26516be` (`dda7f99f…`); then `main` at `633f92d` (bar double-click, month stepper, hiatus caret, Pre-Prep name) merged in; NOT yet merged into `main`, NOT pushed
 
 - **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want
   to remove options from the menu when they aren't accessible, rather than greying them out"*. Tracker card
@@ -42,60 +42,157 @@
   greyed), red on the month-only build `3c42554` at 33/39 (exactly those six); `mvmenu` 81/81 again.
 - **Owner, by picker (28 Oct 2026):** *"Merge, then full gate"* and *"Yes, waterfall too"*. The waterfall change was
   made on this branch first so ONE full gate covers both.
-- ⚠️ **The merge waits on the main checkout:** it holds another session's UNCOMMITTED Pre-Prep work in `HANDOFF.md`,
-  `README.md`, `src/legacy/app.js`, `gate.sh` and five legs, so a merge there would collide. This branch is `main`
-  (`26516be`) plus this work, so once that checkout is committed it merges as a fast-forward or a small docs merge.
-  The full gate runs on the BRANCH meanwhile (the same tree `main` gets, while `main` has not moved).
-- ⏭ **Next:** the full gate on the branch (after the `month-step` session's gate, which was running); then merge into
-  `main`; then a separate push picker.
+- ✅ **Full gate on the branch** (build `dda7f99f…`, `main` at `26516be` + this work): **3,331 PASS, 0 FAIL**, every frozen
+  output identical to its baseline.
+- **Then `main` moved** (`633f92d`: the bar double-click, the month stepper, the hiatus caret, the Pre-Prep name, all
+  live), and the main checkout's uncommitted Pre-Prep work was committed there, so the blocker is gone. `main` was
+  merged into the branch. Conflicts: docs, and three hunks of `installMonthDayMenu`. ⚠️ **Two features met the trim:**
+  - The **bar double-click** (`mv-dblclick-phase-card`) runs `showPhaseRow()`, which was the bar's *Show in Phases card*
+    and which the trim had deleted with the item. Kept, for the double-click: it is now that item's only door.
+  - The **hiatus caret** taught the BAND's *Show in Phases card* to unfold a folded card (`showHiatusRow()` got
+    `setHiatusCollapsed(row, false)`). The trim removes that item (ruling T1), so `showHiatusRow()` goes too, and
+    `hiatusfold` H8 now checks the menu on a folded hiatus offers no *Show in Phases card* and folds nothing open (H9
+    no longer clicks the caret first: H8 leaves the folds as H7 did). A band has no double-click to reveal its card.
+- ⏭ **Next:** the merged build's targeted legs, then the full gate again (the owner's *"Merge, then full gate"*), then
+  merge into `main` (a fast-forward), then a separate push picker.
+### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
-### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER (⬆️ continued 28 Oct, entry above: nothing greyed, main merged in) — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), on `origin/main` at `d25eaf6` (merged in at `62233d0`); plan `a7eda85`, build `07096a5`; ✅ FULL GATE 3,012 / 1 on the merged build (`6ac77d19…`), the 1 the recorded `pilllabel` month-walk flake, green alone 7 times; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
+- **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
+  left side bar"*. Tracker card `mv-dblclick-phase-card`.
+- **Built** (app.js, beside `showPhaseRow()` in `installMonthDayMenu`): a document-level `dblclick` listener, month
+  view only, that runs the day menu's own **Show in Phases card** (`showPhaseRow(key)`: the Phases tab, the card
+  unfolded, scrolled to centre, one undo step because `sidebarTab` is saved state). Prep's bars open the Prep card.
+  The Sim Post bar (no `data-ph`) does nothing, as the menu offers it nothing. Help: one clause in "What sits on top
+  in the Month view". No frozen code, no saved key, no id.
+- ⭐ **Why it is on the DOCUMENT and finds the bar BY POINT** (`mvTextAt()`, the Text bar's pick): the edge handles
+  and the six-dot grip lie over the bar's ends, and a press on a handle appends `.phase-edge-shield`. The release
+  lands on the shield, so Chrome sends the click and the dblclick to the common ancestor, `<body>`.
+  `e.target.closest('.mv-pill')` on `#table-wrap` would never hear a double-click near a bar's end. The mutant
+  that does exactly that fails leg case B3 only.
+  - Guards: a second press that travelled past `MV_SEL_SLOP` (the end of a drag), a live drag shield, a Mac Ctrl+click.
+- ⚠️ **Learned (harness): a synthetic double-click on an edge handle needs a pointer MOVE before each press.** The
+  first press hides the pooled handles (`hideHandles`). With no mousemove between the clicks, the second press lands
+  on the bar itself, and a test of the shield path silently tests the plain path instead (the `e.target` mutant
+  passed until the move was added). A real mouse always moves.
+  - Also: a shield that comes and goes inside one dispatch is invisible to a `MutationObserver` that queries the DOM
+    in its callback. Read the records' `addedNodes`.
+- **Proof:** new leg `t/mvbarcard.js` (gate.sh AFSPEC, own line after `hiatusfold`) 7/7 on the build. Red on the build
+  without the listener (B1–B4) and with the bar found by `e.target` (B3). Neighbours green on the same build:
+  `mvtextstyle` 23 + `(mvtextstyle)` 6, `mvmenu (halfdays)` 89, `halfworked (dayoverrides-onhalf)` 24,
+  `phasefold` 11, `mvnotes` 30, `mvbarsize (mvnotes)` 13, `monthmap (mvnotes)` 20; `npm run check` 40/40. In the
+  pane with a real mouse at 1280 × 800: Set Build's bar and Shoot Ep. 101 each opened their card on screen, with
+  dates unchanged. (This pane's tab pill lagged a screenshot behind the page again. Measure, don't eyeball.)
+- ⚠️ **The pane's five-server limit for this folder was full** (other chats), so the check used the main checkout's
+  existing harness server on 8390. A `mvbarcard-8619` entry was added to `.claude/launch.json`, unused.
+- **No full gate:** another session's gate (`ep-shoot-bars`) was running, and the change has the hiatus-fold
+  profile: no frozen code, no saved byte, no id.
+- ✅ **Pushed and live:** ONE `git push origin main` at 12:02:02 (`9d5fe4a..7965ebc`). It also carried the month
+  stepper (`2ee0a21`, `f151902`, `c2a2949`) and the HANDOFF-only `646ff9d`: the owner chose *"Push both now"*,
+  asked with the stepper named. First a rebuild from the commit was `cmp`-identical to the tested build
+  `d3042c39…`. At 12:03:11 the live `index.html`, fetched with a cache-buster, was byte-identical to it (1,875,118
+  bytes). No version cut (still v1.9.0).
+- ⏭ **Next:** the next full gate includes `mvbarcard`, and the month stepper's merged build, which had no full gate.
 
-- **Asked** (relayed by the session that started this one): the waterfall menu's ruling R7, *"Trim the month menu
-  too"*, as its own task. Tracker card `month-menu-trim`.
-- **Base:** cut from `main` at `1af8782` with the waterfall menu's branch (`claude/goofy-austin-fa2c05`) merged in
-  (`f88d8ac`), because that branch reshaped `installMonthDayMenu` into one engine for both menus. That menu then went
-  LIVE in `origin/main` at `d25eaf6` (15:36), and `origin/main` was merged in here at `62233d0` before the gate: the
-  menu block merged clean (`main`'s month-drag changes are all outside it), and the only conflicts were the changelog
-  tops. So this branch carries nothing unlanded but the trim. It does NOT have local `main`'s unpushed Scenarios work.
-- **Ruled by ONE picker, 23 Oct 2026, every answer the recommendation** (plan §13.4): T1 *"Trim to this list"* (Add
-  note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the Shift footer line go;
-  Prep's Start / End go; previewed on Production's bar and a plain day; declined: also cutting Start / End); T2 all
-  four of the owner's own items stay (Add 1-day phase here, Remove ‹phase›…, a hiatus's Colour…, the holiday
-  section); T3 *"Leave it out"* (the waterfall's R6; Start / End a greyed pair, ruling 1's Work this day inside a
-  hiatus still greyed); T4 *"Only when the calendar scrolls"*.
-- **What it is now** (plan §13.5): This day = Add 1-day phase here (not on a weekend or in a hiatus) · Add 1-week
-  phase here · Add hiatus ▸; a bar = Start / End here (not on Prep) · Back to date order (while it can act) · Remove
-  ‹phase›… (custom); the shoot rows unchanged; a hiatus = Colour… · Remove hiatus…; a phase's own hiatus = Remove; a
-  holiday = Enabled (+ the two Show items while it is on); Show this week in the waterfall. The double-click hint
-  only on a marked day. Production's bar on a shoot day 11 lines → 8; Christmas in the hiatus 13 → 8.
-- **How:** inside `installMonthDayMenu`, no frozen code, no snapshot key, no id. The cut items' helpers went with them
-  (`addNote`, `noteAnchor`, `phaseColourHere`, `showPhaseRow`, `lockHiatusHere`, `numberHiatusHere`,
-  `showHiatusRow`, icons `note` and `sidebar`). The scroll listener is now `movedSinceOpen` for both menus (the
-  month's `scrollBoxes` were already taken). ⚠️ `hiatusSections` is SHARED: *Move ‹phase›'s hiatus here* is now left
-  out in the week it already starts in the WATERFALL's Add hiatus ▸ too, which its own R6 already asked for.
-- ⚠️ **Learned, measured:** at the harness's 1600 x 1200 window the month's panel and the Show-tab sidebar do not
-  scroll at all (`scrollHeight` = `clientHeight`), so a "real scroll" case there scrolls nothing. `mvmenu` C1 / C4
-  append a spacer to the panel they scroll (chrome, outside `#table-wrap`) and remove it after. And the sidebar's own
-  boxes bank undo through `markDirty`'s 500 ms debounce, so a leg moving from a menu item (an explicit step) to the
-  row's box must let a title typed before it bank first (`labelsetup` C1 now waits 700 ms).
-- **Proof so far** (build of `07096a5`; on the merged build `6ac77d19…`, `mvmenu` 81/81, `wfmenu` 38/38, `phasefold`
-  11/11, `labelsetup` 41/41, `mvorder` 30/30 and `npm run check` 40/40 again): `mvmenu` 81/81: every menu it checks held to its EXACT item list, new T1
-  watching all 75 month menus (+10 submenus) the leg opens for a cut item / Shift line / stray greyed item, new C4 and a
-  real-scroll C1 for T4. **Red on the pre-trim build** (`f88d8ac`, `5171a79a…`): 60/81. `wfmenu` 38/38 (the shared
-  engine), `phasefold` 11/11 (F8 moved off Show in Phases card), `labelsetup` 41/41 (C1 ticks the row's box),
-  `halfdays` 27/27, `halfworked` 24/24, `epnames` 10/10 + 5/5, `npm run check` 40/40. In the app pane (preview
-  `mvtrim-9871`): the trimmed menu on Production's bar (8 items, no footer), and at 1100 x 700 a sidebar scroll of
-  118 px left it open while a calendar scroll of 60 px closed it.
-- ✅ **Full gate on `62233d0` (build `6ac77d19…`; port 9874, 16:10:38–16:39:41, no other gate running): 3,012 PASS,
-  1 FAIL.** Every frozen output identical to its baseline: the waterfall PDF, every Excel part, the printed month
-  documents, all 22 of gate 13's written month PDFs byte for byte; 0 clipped; 76 ids. `mvmenu` 81/81 and `wfmenu` 38/38
-  inside it. The 1 FAIL: `pilllabel (blocksoff)` W2, "months 1 vs 18", the cut-short month walk already on record here
-  (and the scenarios session's gate hit the same W2 on `shootorder` today, on a build without this trim). The leg never
-  opens a menu, and the trim's code runs only while one is open. Alone on the same build: a first re-run failed W1 the
-  same way, then 7 runs 29/29; on `origin/main`'s own build (`75968ba8…`, the live file) 7 runs 29/29.
-- ⏭ **Next:** merging into `main` and the push are each the owner's picker. ⚠️ Local `main` is ahead of `origin/main`
-  (`99a145e`, Scenarios, unpushed); this branch is on `origin/main`, so merge it into local `main` as it stands. The tracker card is `building` until the gate is green.
+### ✅ 28 Oct 2026: PROPER ‹ › MONTH BUTTONS — ✅ LIVE at `7965ebc` (pushed with the month double-click change, entry above) —, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
+
+- **Asked:** *"I think we still need proper left and right buttons to move the month view cal one month
+  forward/backwards. propose a few ideas for places it could go"*. Four places mocked up (A big ends on the map, B on
+  the style bar's line, C beside Waterfall | Month, D a heading row). C does not fit: measured at 1,440 px, the
+  toolbar has 130 px spare and the stepper needs ~210. **Owner picked B.** Defaults B1–B3 in §18: Today in, the map's
+  small arrows removed, no keyboard shortcut.
+- **What exists:** `MonthStepper` in `src/chrome/MonthMap.jsx`, fed by the map's own push handler in the same commit
+  (inside its `flushSync` when the map's height changes). Rendered by `PreviewToolbar` in a new `.style-row` wrapper
+  after `.style-bar-host`. CSS block "The month stepper" in `legacy.css`, after the map's. Engine untouched: the
+  buttons use the existing `data-mvstep` / `data-mvgo` listener and `goToMonth()`.
+  - ⚠️ `.style-bar-host` is now a child of `.style-row`, not of `.view-toggle-row`. The engine finds it by class, and
+    every leg that looks for it uses a descendant selector, so nothing else had to change. A NEW leg or rule must not
+    write `.view-toggle-row > .style-bar-host`.
+- **Proven so far:** `monthmap` part C (C0–C4) 20/20 on 8 calendars (Today both in and out of the calendar); 11 nearby
+  legs green; `npm run check` 40/40. In the pane at 1440 × 900 against main's build: the waterfall's layout is
+  identical, and the month view's calendar keeps the same top and height. The switch moves it 0 px and takes 19–30 ms
+  (main: 20–27). At 1,000 px wide it still fits on one line. The app's minimum width (~714 px) never forces the wrap.
+- **Full gate** (`tests/harness/gate-monthstep.log` in the worktree): 3,324 PASS, 1 FAIL. The one was `customunits
+  (customunits)` producing no JSON at all; alone on the same build it passed 28/28 three times running.
+- **Merged:** `main` had moved to `646ff9d` (hiatus cards fold, Pre-Prep's name, the Season hint line, all live), so
+  it was merged into the branch first (`f151902`; HANDOFF and README conflicts only, both sides kept). On the
+  merged build: `npm run check` 40/40 and 18 legs green, `monthmap` ×3 plus the new features' own legs (`hiatusfold`,
+  `prepreptitle`, `autonotephases`, `phiatusnum`, `builtindates` ×2, `phasenum` ×2) and `textstyle`, `mvtextstyle`,
+  `softlines`, `wfmenu`, `weeknum`, `customunits` ×2. No full gate on the merged build yet.
+- **Next:** the push, asked on its own (a full gate on the merged build first is recommended).
+
+### ✅ 28 Oct 2026: ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — ✅ LIVE at `9d5fe4a` — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89`, merged with `main` (`c6cdfd3`) and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); no full gate (owner's question, answered below); ✅ PUSHED (owner's picker, *"Push now"*)
+
+- **Asked** (owner): *"Lets give collapsing arrows to the all phase hiatuses just like phases"*. Tracker card
+  `hiatus-card-fold`.
+- **Built** (app.js "THE CARET ON EVERY ALL-PHASE HIATUS CARD", beside `removeHiatusRow`; legacy.css "Phase card
+  caret"): `addHiatusRow()` puts a `.hiatus-collapse-btn` (a `<button>` with NO id) first in `.hiatus-head`; it shares
+  the phase caret's CSS. Folded, `.hiatus-body` hides and the card keeps the folded phase card's 4 px white edge.
+  Session UI, exactly the phase fold's rules: not in `captureSnapshot()`, never an undo step. Show in Phases card
+  (`showHiatusRow`) unfolds its card.
+- ⭐ **The one thing that differs from the phase fold: a hiatus row has NO KEY** (`fields.hiatuses` saves rows by
+  position), so there is no `collapsedPhaseKeys` twin. The fold lives on the row as `.is-collapsed`, and every
+  rebuild carries it: `applyStateSnapshot()` step 2 reads `hiatusFolds()` before emptying `#hiatus-list` and calls
+  `carryHiatusFolds()` after. Same row count → position for position. Different count (an undone ×, a redone Add) →
+  each folded row is found again by its own values (`hiatusRowSig`: start, weeks, name, lock, numbered).
+  `probeScenarioTabs` and `applyStateSnapshotAtomically`'s rollback save and put back the folds the same way. The two
+  Load / recovery sites call `unfoldAllHiatuses()` beside `collapsedPhaseKeys.clear()`, AFTER the apply (which has
+  already carried the old calendar's folds in). New needs nothing: `addDefaultHiatuses()` rebuilds open rows.
+- **Proof:** new leg `t/hiatusfold.js` (gate.sh AFSPEC, beside `phasefold`) 11/11 on the build. Red on `main` before
+  it (`dist-pre`: 9 of 11; H3 and E0 green, as they should be) and on a mutant with the carry removed (H5–H9).
+  `npm run check` 40/40. Neighbours, all green on the build: `phasefold` 11, `sharecopy2`, `hiatusblank` 4,
+  `hiatuslabel` 7, `spanhint` 9, `badyear` 6, `loadcarry` 6, `dlgkeys` 16, `mvmenu (halfdays)` 89,
+  `wfmenu (halfdays)` 38, `labelsetup (halfdays)` 41, `phiatusnum` 18, `phasesui (hidewf)` 8. Those ran on the build
+  before the folded card's 4 px edge was added (one rule, folded state only); on the final build `b275b591…`, check
+  40/40 and `hiatusfold` 11/11 again (folded card 61 px).
+  Seen in the pane: folded cards show the red head, caret pointing right; open ones are unchanged.
+- ⚠️ **The pane's screenshots lagged the page** (it was running hidden): a `scrollTop` set by script showed up one or
+  two screenshots later. Measure with `getBoundingClientRect()`, not by eye, when the pane is not on screen.
+- **Merged with `main`** after the Pre-Prep default name went live (`19eb0c0`, `84af9b2`): only README and HANDOFF
+  conflicted (both tops kept). Re-checked on the merged build `003fb0e6…`: check 40/40, `hiatusfold` 11, `phasefold` 11,
+  `prepreptitle` 7, `scenarios` 22, `scenariofacts` 12 (both run Compare's probe, which carries the folds), `undokeys`
+  11, `hdrcontrols (carry-rich)` 12, `winansi` 7, `caps` 5, `wrapdate` (its own judge: 5 scenarios, wrap and start
+  right), `wholenum` 12, `simpostlabel` 3, `loadcarry` 6, `hiatusdrag` 14 — all green.
+- **Full gate?** The owner asked whether one is needed. Answered no: no frozen code, no saved byte (H3), no id; the
+  one real risk, a throw in the two lines `applyStateSnapshot()` gained, would break every undo and Load, which the
+  legs above all exercise.
+- ✅ **Pushed and live:** ONE `git push origin main` at 11:41:47 (`19eb0c0..9d5fe4a`, which also carried another
+  session's HANDOFF-only `84af9b2`). At 11:42:36 the live `index.html`, fetched with a cache-buster, was
+  byte-identical to the tested build `003fb0e6…` (1,872,759 bytes, `cmp`). No version cut (still v1.9.0).
+
+### ✅ 28 Oct 2026: PRE PREP'S DEFAULT NAME IS "PRE-PREP" — ✅ LIVE at `19eb0c0`
+
+- **Asked** (owner): *"Default name for Pre Prep should be "Pre-Prep""*. Tracker card `pre-prep-default-name`.
+- **Done:** `PHASES`' prePrep label and template are "Pre-Prep" / "Pre-Prep Wk N" (the capital W kept: only the name
+  was asked for). Followed by the name box's value and placeholder, its hiatus placeholder, the Automatic notes row's
+  first paint (`Sidebar.jsx`), the colour option's name "Blue (like Pre-Prep)" (a name, not an index: the array order
+  is untouched) and the Help's Phases paragraph.
+- ⛔ **Saved calendars keep "Pre Prep"** (the episode-names precedent, *"Leave them as saved"*, 20 Oct 2026). Every
+  file stores the name in `fields.byId['name-prePrep']`, all 100 real fixtures as "Pre Prep". Read as a typed name it
+  would have drawn "Pre Prep **w**k N" (a typed name's template), so prePrep carries `was: {label, template}` and
+  `getAllPhaseDefs()` gives that old name the old def exactly. A file with the box emptied (none known) would now show
+  the new default.
+- ⚠️ **The harness pins the old name.** `T.buildFixture()` types "Pre Prep" first, so every baseline cut from the
+  reference calendar (base, gate 10, gate 13, …) stays byte-identical, and doing so proves `was`. The new default is
+  held by the new leg `prepreptitle` (in `gate.sh` AFSPEC, 200 s). A leg that builds its OWN fresh calendar sees
+  "Pre-Prep": `autonotephases`, `builtindates` (live), `phiatusnum` and `phasenum` (live only; its restore run loads
+  a file saved as "Pre Prep", so the leg picks the name by run) were moved to it.
+- ⚠️ **Learned:** a first search for legs naming "Pre Prep" was cut off by `head`, and missed `phasenum` and
+  `phiatusnum`; the run found them. Search with no cap. Also, an apostrophe added to a single-quoted case title
+  broke `autonotephases`' syntax, and the leg then writes NO result at all (it reads like a timeout): `node --check`
+  a leg after editing it.
+- **Verified** (build `8da39b6c…`, targeted legs on a private port while three other sessions' gates ran):
+  `npm run check` 40/40; `prepreptitle` 7/7; `base` identical to the 29 Aug baseline (grid keys, waterfall PDF but the
+  date stamp, workbook parts); `autonotephases` 17/17, `phiatusnum` 18/18, `phasenum` live + restore (the gate's own
+  judge), `builtindates` live + restore, `blocks` (16 gate checks), `onecol` (gate judge), `calrange` 18/18,
+  `customunits` ×2, `loadfail` 6/6, `phasefold` 11/11, `seasons` 15/15, `snaptools` 14/14, `undokeys` 11/11,
+  `noresetall` 5/5, `badyear` 6/6. `phasesui` 7/8: P1 fails ONLY on `stintswap-reshape`, the fixture with the stray
+  uncommitted edit that predates this work (re-saved with 112 fields instead of 61; its Pre Prep name unchanged).
+  **Mutant** (the `was` branch compiled out): `prepreptitle` N4 + N6 red, and `base`'s PDF and grid both differ.
+  Seen in the app: the Phases tab's second card reads "Pre-Prep". **No full gate** (three others were running).
+- **Pushed** on the owner's picker (*"Commit locally"*, *"Push now"*, on the targeted legs; no full gate), with the
+  unpushed HANDOFF-only `26516be`: `73de2b6..19eb0c0` at 11:31:25. At 11:32:12 the live `index.html`, fetched with a
+  cache-buster, was byte-identical to the tested build `8da39b6c…`. No version cut (still v1.9.0).
+- ⏭ **Next:** the next full gate should include `prepreptitle`; nothing else owed.
 
 ### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 

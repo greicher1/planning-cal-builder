@@ -32,7 +32,10 @@ window.addEventListener('load', function () { (async function () {
   function uniq(a){ return a.filter(function (x, i) { return x && a.indexOf(x) === i; }); }
   function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
   var KEYS = ['custom1', 'custom2', 'custom3', 'custom4', 'custom5', 'custom6'];
-  var NAMES = ['Pre Prep', 'Table Read', 'Scout', 'Stage Lock', 'Rigging', 'Fitting', 'Camera Test'];
+  // The live run builds a new calendar, which names the phase "Pre-Prep" (owner, 28 Oct 2026); the restore run loads
+  // phasenumbering.sptcal, saved as "Pre Prep", which a saved calendar keeps.
+  var PRE = (new URL(location.href)).searchParams.get('state') ? 'Pre Prep' : 'Pre-Prep';
+  var NAMES = [PRE, 'Table Read', 'Scout', 'Stage Lock', 'Rigging', 'Fitting', 'Camera Test'];
   function boxes(){ return KEYS.map(function (k) { var b = el('wknum-' + k); return b ? (b.checked ? 'on' : 'off') : '-'; }).join(','); }
   function units(){ return KEYS.map(function (k) { return (el('unit-' + k) || {}).value || '-'; }).join(','); }
   function shown(e){ var l = e && e.closest('label'); return !!l && getComputedStyle(l).display !== 'none'; }
@@ -137,14 +140,14 @@ window.addEventListener('load', function () { (async function () {
 
   // What the restored calendar must say, worked by hand from the calendar above.
   var WANT_SHEET = {
-    '3/1/27':  ['Pre Prep Wk 1', 'Stage Lock'],
-    '3/8/27':  ['Pre Prep Wk 2', 'Rigging wk 1', 'Stage Lock', 'Table Read'],
-    '3/15/27': ['Pre Prep Wk 3', 'Rigging wk 2', 'Scout'],
+    '3/1/27':  [PRE + ' Wk 1', 'Stage Lock'],
+    '3/8/27':  [PRE + ' Wk 2', 'Rigging wk 1', 'Stage Lock', 'Table Read'],
+    '3/15/27': [PRE + ' Wk 3', 'Rigging wk 2', 'Scout'],
     '3/22/27': ['Fitting', 'Scout'],
     '3/29/27': ['Camera Test wk 1']
   };
   var WANT_MONTH = {
-    prePrep: ['Pre Prep Week 1', 'Pre Prep Week 2', 'Pre Prep Week 3'],
+    prePrep: [PRE + ' Week 1', PRE + ' Week 2', PRE + ' Week 3'],
     custom1: ['Table Read'], custom2: ['Scout'], custom3: ['Stage Lock'],
     custom4: ['Rigging Week 1', 'Rigging Week 2'], custom5: ['Fitting'], custom6: ['Camera Test Week 1']
   };
@@ -244,7 +247,7 @@ window.addEventListener('load', function () { (async function () {
       var count = function (s) { return cellTexts.filter(function (x) { return x === s; }).length; };
       check(count('Table Read') === 1 && count('Stage Lock') === 2 && count('Scout') === 2 && count('Fitting') === 1,
             'Excel: the unnumbered phases are their bare names (Scout and Stage Lock on two rows each)');
-      check(count('Rigging wk 1') === 1 && count('Rigging wk 2') === 1 && count('Camera Test wk 1') === 1 && count('Pre Prep Wk 3') === 1,
+      check(count('Rigging wk 1') === 1 && count('Rigging wk 2') === 1 && count('Camera Test wk 1') === 1 && count(PRE + ' Wk 3') === 1,
             'Excel: the numbered phases keep "wk N"');
       check(!cellTexts.some(function (x) { return /^(Table Read|Scout|Stage Lock|Fitting) wk/.test(x); }), 'Excel: no "wk N" on an unnumbered phase');
       try {
@@ -273,7 +276,7 @@ window.addEventListener('load', function () { (async function () {
       ['input', 'change'].forEach(function (t) { b4.dispatchEvent(new Event(t, {bubbles: true})); });
       await settle();
       out.untick = sheetRows()['3/8/27'];
-      check(same(out.untick, ['Pre Prep Wk 2', 'Rigging', 'Stage Lock', 'Table Read']), 'unticking Rigging drops its "wk N" in the waterfall');
+      check(same(out.untick, [PRE + ' Wk 2', 'Rigging', 'Stage Lock', 'Table Read']), 'unticking Rigging drops its "wk N" in the waterfall');
       await undo();
       check(same({boxes: boxes(), units: units()}, base) && same(sheetRows()['3/8/27'], WANT_SHEET['3/8/27']), 'one undo puts the box and the text back');
       // By -> Dates on a ticked Weeks phase: unticked, and ONE undo restores the unit AND the box.

@@ -471,3 +471,52 @@ share of a ~25 ms switch. Then a gate on the merged tree.
 - The month menu's "any scroll closes it" rule is met a little more often. Unchanged here. The month menu's own trim
   (tracker card month-menu-trim, ready on its own branch) narrows it to "only when the calendar scrolls", and a scroll
   of `#table-wrap` is still one, so it would not change this.
+
+## 18. Proper month buttons: option B (28 Oct 2026, after v1.9.0)
+
+Owner, 28 Oct 2026: *"I think we still need proper left and right buttons to move the month view cal one month
+forward/backwards. propose a few ideas for places it could go"*. Four placements were mocked up in
+[`mockups/month-arrows.html`](mockups/month-arrows.html). The owner picked **B: on the style bar**.
+
+**What it is.** In the month view only, **Today** and **‹ October 2026 ›** sit at the right end of the text style bar's
+row, directly above the calendar. The map's two small 24 px arrows go, so there is one set of month buttons. The map
+still jumps to any month or phase in one click.
+
+**Defaults taken (from the mockup's text, which the owner picked):**
+- **B1. Today is in.** It goes to this month and is disabled when that month is already on screen or is outside the
+  calendar.
+- **B2. The map's small arrows are removed**, not kept beside the new ones.
+- **B3. No keyboard shortcut.** Plain ← → already act in several places (the column swap, menus, tab lists), and
+  Ctrl+Page Up/Down flips scenario tabs. Can be added later if asked.
+
+**How.**
+- **Engine: nothing new.** The buttons carry `data-mvstep="-1|1"` and `data-mvgo="YYYY-MM"`, which the existing
+  document listener hands to `goToMonth()`, the frozen arrows' own range rule. Nothing frozen is touched.
+- **React:** `MonthStepper` in `MonthMap.jsx`, fed by the same push as the map. MonthMap's handler sets both in one go,
+  inside the same `flushSync` when the map's height changes, so the switch still moves the calendar 0 px.
+- **Layout:** `PreviewToolbar` wraps `.style-bar-host` and the stepper in a new `.style-row`, the row's full-width
+  line, as the host was. The host stays EMPTY to React (the engine fills it), and the engine finds it by class, so
+  the wrapper changes nothing for the engine. In the waterfall the stepper renders nothing and the row is exactly
+  today's. When the row is too narrow, the stepper wraps under the style bar instead of squeezing its controls.
+- No id on anything (collectFieldValues). `buildSavedHtml()` empties `.view-toggle-row`, so nothing travels in a
+  shareable copy.
+
+**Proof.** Leg `monthmap`: the row-order check and the ‹ › click checks move to the stepper, plus new checks that
+the label is always the frozen month band's month, Today goes to this month and is disabled when that month is on
+screen or outside the calendar, the stepper is absent in the waterfall, and the waterfall's style bar row is
+unchanged. Then the switch timing in the pane, the text style legs, and a full gate.
+
+**Results (28 Oct 2026).**
+- `monthmap` 20/20 (parts A, B and the new C0–C4) on mvnotes, colreuse, offweek, blocks, scenarios-3, hidewf,
+  phasenumbering and sideboxes. Today ran both ways: this month in the calendar (5) and outside it (3).
+- Nearby legs green: `textstyle` 51/51, `mvtextstyle` 6/6 + 23/23, `hdrcontrols` 12/12, `wfmenu` 38/38, `mvmenu` 89/89,
+  `weeknum` 6/6 + 4/4, `softlines` 6/6, `halfworked` 24/24, `notescols` 49/49. `npm run check` 40/40.
+- In the pane at 1440 × 900 against main's build: the waterfall is identical (style bar 1038 px wide at 127,
+  `#table-wrap` at 175, 681 tall). In the month view the calendar keeps its top (254) and height (602); only the style
+  bar narrows, 1038 → 765. The switch moves the calendar 0 px, six of six, and takes 19–30 ms to the month view and
+  21–29 ms back (main: 20–25 and 21–27).
+- At 1,000 px the stepper still fits on the line with every style bar control showing (only its hint shortens). The
+  app does not get narrower than about 714 px, which still leaves room, so the wrap rule is a safety net only.
+- **Full gate (`tests/harness/gate-monthstep.log`): 3,324 PASS, 1 FAIL.** The one: `customunits (customunits)`
+  "produced no result", no JSON at all rather than a failed check. Alone on the same build it passed 28/28 three
+  times running, while another session's gate was starting. Read as a load stall.
