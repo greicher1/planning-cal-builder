@@ -56,6 +56,38 @@ style bar**. Plan: `MONTH-RAIL-PLAN.md` §18.
   - full gate 3,324 PASS, 1 FAIL: `customunits` produced no result at all in the gate, and passed 28/28 alone three
     times on the same build.
 
+### Unreleased — All-phase hiatus cards fold to their head, like phase cards (28 Oct 2026)
+
+Each all-phase hiatus card in the Phases tab has the phase card's caret now (owner, 28 Oct 2026: *"give collapsing
+arrows to the all phase hiatuses just like phases"*). Folded, the card shows only its red head: the name, still
+editable, its dates and ×. Starts, Weeks, Lock in place and Number weeks hide. **What it is not:** calendar data. A fold
+is never saved, never an undo step, and changes nothing in the waterfall, the month view or any export. Folds hold
+through undo and redo; a Load, a recovery or New opens every card. Show in Phases card (month view) unfolds its card.
+⚠️ A hiatus row has no key (they save by position), so `applyStateSnapshot()` carries each fold across the rebuild:
+position for position, or by the row's own values when an undo or redo put back or took away a row.
+Verified: new leg `hiatusfold` 11/11 (in `gate.sh`), red on `main` before it (9 of 11) and with the carry removed
+(H5–H9); `npm run check`; the neighbouring legs (listed in HANDOFF).
+
+### Unreleased — Pre Prep's default name is "Pre-Prep" (28 Oct 2026)
+
+A new calendar names the phase **Pre-Prep** (owner, 28 Oct 2026), so its weeks read "Pre-Prep Wk 1", its automatic
+notes "Pre-Prep Begins", and its hiatus "Pre-Prep Hiatus". The Automatic notes row, the Blue colour's name and the Help
+follow. **Calendars saved before keep "Pre Prep"**, as episode names did ("Leave them as saved", 20 Oct 2026): the name
+was always saved in `fields.byId['name-prePrep']`, and that old name still draws "Pre Prep Wk N" with its capital W
+(`PHASES`' new `was`), where any other typed name draws "<name> wk N". No save-format change; nothing frozen touched.
+
+Verified: new leg `prepreptitle` 7/7 (new calendar, Save, New, the old name typed, a real v1.8.0 file). The harness's
+reference calendar now types the old name, and with it `base`'s waterfall PDF, workbook and grid are identical to the
+29 Aug baseline, which proves an old calendar draws exactly as before; with the old-name mapping removed, both the leg
+and `base` go red. `autonotephases`, `builtindates`, `phiatusnum` and `phasenum` now expect "Pre-Prep" on the calendars
+they build fresh, and pass, with 14 other legs that touch phase names. `npm run check` 40/40. No full gate yet.
+
+### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
+
+The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The
+dropdown and its checkboxes are unchanged. Chrome only: no id, no saved key, nothing the grid or the exports read.
+Verified with `npm run build` and `npm run check` (40/40); no gate, on the owner's word.
+
 ## v1.9.0 — the month view's bigger bars, styled text and phase map; two or more seasons (27 Oct 2026)
 
 41 changes since v1.8.0, from 21–27 Oct 2026. New with this push, four features merged into `main` together and
