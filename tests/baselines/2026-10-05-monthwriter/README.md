@@ -244,6 +244,42 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
   - **"THE CONTENT MOVED":** each part that differs is named by its role: the page and month, a font's `/Widths`,
     the page tree. It gives the first differing line, and the text runs added and removed.
 
+## ✅ RE-CUT 28 Oct 2026 — SIXTEEN CASES: episode bars read "Shoot N" (episodes are named "Episode N" again)
+
+The ruling and the owner's sign-off are gate 10's (its README, the same day, *"Re-cut + gate"*): episodes are named
+"Episode 101" again and a bar for one episode reads "Shoot 101". The contact sheet (`monthbase.py sheets`, halfdays)
+was put in front of the owner: only June–September move, red only on the bar names and the grey text after them, which
+starts closer because "Shoot 201" is narrower than "Episode 201". Classified: each file's `pdftotext -raw` text equals
+the old baseline's once "Shoot Ep. N" / "Episode N" and "Shoot N" are all read as the episode, the counts below equal,
+and no "Shoot Ep" or "Episode" left.
+
+⭐ **`blocksoff.pdf` is byte-identical to `reference.pdf` again** (both draw "Shoot N"). It keeps its own file, and the
+gate's text check against `reference.pdf` still runs.
+
+| case | bytes before → after | bars now "Shoot N" (pdftotext) |
+|---|---|---|
+| `reference` | 81,805 → 81,785 | 31 (were "Shoot Ep. N") |
+| `colswap-simpost-refuse` | 52,093 → 52,089 | 7 |
+| `stintswap-reshape` | 102,988 → 102,978 | 26 |
+| `dayoverrides` | 78,483 → 78,468 | 30 |
+| `mvheader` | 93,711 → 93,708 | 30 |
+| `mvheaderlegacy` | 78,664 → 78,652 | 30 |
+| `blocksoff` | 81,797 → 81,785 | 31 |
+| `dayoverrides-onhalf` | 79,062 → 79,048 | 32 |
+| `hiatus-blanklabel` | 81,771 → 81,756 | 28 |
+| `monthnotes` | 81,914 → 81,898 | 31 |
+| `shootorder` | 81,796 → 81,785 | 31 |
+| `notewrap` | 82,381 → 82,370 | 28 |
+| `carry-rich` | 81,364 → 81,343 | 27 |
+| `halfdays` | 80,175 → 80,164 | 20 |
+| `mvnotes` | 85,263 → 85,251 | 31 |
+| `mvbarsize-large` | 84,839 → 84,814 | 31 |
+
+Held, untouched and byte-identical: `blocks`, `monthscale`, `month-lanecap`, `month-dense60` (no episode bars). Each
+file is the `monthexport` leg's X2 file from a run of the gate's own invocation (`HARNESS_PORT=9533`) on build
+`465e3e03…` (branch `ep-shoot-bars` at `bb940e6`), Google Chrome 156.0.8078.49; `monthbase.py check` byte-identical
+against each new file. The full gate that follows holds `rz` and `rw` to the new `reference.pdf`.
+
 ## ✅ RE-CUT 20 Oct 2026 (late): thirteen cases read "Episode N"; `blocksoff` gets its own baseline
 
 The ruling and the owner's sign-off are gate 10's (its README, the same night): an episode's bar reads its NAME; a new
