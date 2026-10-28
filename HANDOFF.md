@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89`, merged with `main` (`c6cdfd3`) and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); NOT PUSHED, NOT GATED IN FULL
+### ✅ 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — ✅ LIVE at `9d5fe4a` — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89`, merged with `main` (`c6cdfd3`) and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); no full gate (owner's question, answered below); ✅ PUSHED (owner's picker, *"Push now"*)
 
 - **Asked** (owner): *"Lets give collapsing arrows to the all phase hiatuses just like phases"*. Tracker card
   `hiatus-card-fold`.
@@ -39,7 +39,9 @@
 - **Full gate?** The owner asked whether one is needed. Answered no: no frozen code, no saved byte (H3), no id; the
   one real risk, a throw in the two lines `applyStateSnapshot()` gained, would break every undo and Load, which the
   legs above all exercise.
-- **Not done:** no push. Pushing `main` would also ship `84af9b2` (another session's HANDOFF-only commit).
+- ✅ **Pushed and live:** ONE `git push origin main` at 11:41:47 (`19eb0c0..9d5fe4a`, which also carried another
+  session's HANDOFF-only `84af9b2`). At 11:42:36 the live `index.html`, fetched with a cache-buster, was
+  byte-identical to the tested build `003fb0e6…` (1,872,759 bytes, `cmp`). No version cut (still v1.9.0).
 
 ### ✅ 28 Oct 2026: PRE PREP'S DEFAULT NAME IS "PRE-PREP" — ✅ LIVE at `19eb0c0`
 
