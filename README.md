@@ -87,7 +87,8 @@ bar"*.
 
 - **Double-click any phase's bar in the month view** and the sidebar switches to the Phases tab, unfolds that
   phase's card if it was folded, and scrolls it into view. It is the right-click menu's **Show in Phases card**,
-  so the two always agree. Prep's bars open the Prep card. The Sim Post bar names no phase, so it does nothing, as
+  so the two always agree. *(The menu trim, merged later the same day, takes that item out of the menu; the
+  double-click keeps it.)* Prep's bars open the Prep card. The Sim Post bar names no phase, so it does nothing, as
   in the menu.
   - The two clicks still pick the bar for the Text bar, as one click always has. Dragging is unchanged.
   - Opening the tab is one undo step, as the menu item is. No date moves.
@@ -140,7 +141,7 @@ Each all-phase hiatus card in the Phases tab has the phase card's caret now (own
 arrows to the all phase hiatuses just like phases"*). Folded, the card shows only its red head: the name, still
 editable, its dates and ×. Starts, Weeks, Lock in place and Number weeks hide. **What it is not:** calendar data. A fold
 is never saved, never an undo step, and changes nothing in the waterfall, the month view or any export. Folds hold
-through undo and redo; a Load, a recovery or New opens every card. Show in Phases card (month view) unfolds its card.
+through undo and redo; a Load, a recovery or New opens every card. Show in Phases card (month view) unfolds its card *(that item left the menu when the trim merged, later the same day)*.
 ⚠️ A hiatus row has no key (they save by position), so `applyStateSnapshot()` carries each fold across the rebuild:
 position for position, or by the row's own values when an undo or redo put back or took away a row.
 Verified: new leg `hiatusfold` 11/11 (in `gate.sh`), red on `main` before it (9 of 11) and with the carry removed

@@ -60,7 +60,8 @@
 - **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
   left side bar"*. Tracker card `mv-dblclick-phase-card`.
 - **Built** (app.js, beside `showPhaseRow()` in `installMonthDayMenu`): a document-level `dblclick` listener, month
-  view only, that runs the day menu's own **Show in Phases card** (`showPhaseRow(key)`: the Phases tab, the card
+  view only, that runs the day menu's own **Show in Phases card** (⬆️ since the menu trim merged in, 28 Oct, no longer
+  in the menu: the double-click is its only door) (`showPhaseRow(key)`: the Phases tab, the card
   unfolded, scrolled to centre, one undo step because `sidebarTab` is saved state). Prep's bars open the Prep card.
   The Sim Post bar (no `data-ph`) does nothing, as the menu offers it nothing. Help: one clause in "What sits on top
   in the Month view". No frozen code, no saved key, no id.
@@ -128,7 +129,8 @@
   caret"): `addHiatusRow()` puts a `.hiatus-collapse-btn` (a `<button>` with NO id) first in `.hiatus-head`; it shares
   the phase caret's CSS. Folded, `.hiatus-body` hides and the card keeps the folded phase card's 4 px white edge.
   Session UI, exactly the phase fold's rules: not in `captureSnapshot()`, never an undo step. Show in Phases card
-  (`showHiatusRow`) unfolds its card.
+  (`showHiatusRow`) unfolds its card. ⬆️ *(Since the menu trim merged in, 28 Oct, that item and `showHiatusRow` are
+  gone: ruling T1. `hiatusfold` H8 checks the menu offers none.)*
 - ⭐ **The one thing that differs from the phase fold: a hiatus row has NO KEY** (`fields.hiatuses` saves rows by
   position), so there is no `collapsedPhaseKeys` twin. The fold lives on the row as `.is-collapsed`, and every
   rebuild carries it: `applyStateSnapshot()` step 2 reads `hiatusFolds()` before emptying `#hiatus-list` and calls
