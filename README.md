@@ -47,8 +47,12 @@ labelled as Shoot 101 ... if you change the title to anything other than default
   waterfall PDF never showed episode names. No saved key, no frozen code.
 - Removed: `episodeNamesLegacy` and `storesLegacyEpisodeNames()`, the 20 Oct flag that kept older files' style.
 - Verified: `epnames` rewritten (N0–N9 + B0–B3, 16/16 on the build, including the written month PDF's text), and the
-  legs that read bar or episode names updated to read "Shoot N" too. ⚠️ Gates 10 and 13 hold month baselines whose bars
-  say "Shoot Ep. N" / "Episode N"; they need a re-cut on the owner's sign-off before the full gate can be green.
+  legs that read bar or episode names read "Shoot N" too (nine legs, 548 checks, 0 failures). The month baselines were
+  re-cut on the owner's sign-off ("Re-cut + gate"): gate 10's nine print documents and gate 13's sixteen written PDFs
+  each equal the old cut once the bar names are read as the episode, with equal counts; `blocksoff` is byte-identical
+  to `reference` again in both. Full gate on build `465e3e03`: 3,259 PASS, 3 FAIL. `hidewf` F3 was real (its fixture's
+  un-renamed "Shoot Ep. N" now saves as "Episode N"; the check now expects that, 19/19). `weeknum` D1 and `sideboxes`
+  were stalls, and both are green alone. The waterfall PDF, the workbook and every month baseline are byte-identical.
 
 ### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
 

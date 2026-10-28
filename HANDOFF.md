@@ -45,7 +45,18 @@
     (it starts closer, since "Shoot 201" is narrower than "Episode 201").
   - ⭐ After the re-cut, `blocksoff` is BYTE-IDENTICAL to `reference` again in both gates (print document and written
     PDF). Left as two baselines; the gate's blocksoff-vs-reference blocks still run.
-- ⏳ **Full gate** on build `465e3e03…` (port 9541), queued behind the month-step session's gate.
+- ✅ **Full gate** on build `465e3e03…` (port 9541, 11:44–12:16, ~31 min, no other gate at its start): **3,259 PASS,
+  3 FAIL.** Gate 10 and gate 13 byte-identical to the new cut (incl. `rz`/`rw`), waterfall PDF and Excel identical to
+  the 29 Aug baseline, 0 clipped.
+  - `hidewf` F3 was REAL: it holds a re-save byte for byte to `tests/fixtures/hidewf.sptcal`, which was saved with the
+    20–28 Oct names ("Shoot Ep. 20N", un-renamed), and those now save as "Episode 20N". The check now maps the fixture's
+    un-renamed names first (`5e475e5` on the branch); re-run alone 19/19. ⚠️ Any leg that compares a re-save to a
+    v1.7.0–v1.9.0-era fixture byte for byte has the same trap.
+  - `weeknum (dayoverrides)` D1 (empty menu header: the menu never opened) and `sideboxes` (no result): stalls, neither
+    reads episode names; both green re-run alone on port 9545 (sideboxes 78/78).
+- **Merged `main` into the branch** (`d3ebe6a`): today's live work (month stepper, double-click a bar, hiatus fold,
+  Pre-Prep name) does not touch episode names, baselines or fixtures; conflicts were README/HANDOFF tops only. Merged
+  build `212b2faf…`, `npm run check` 40/40. ⏳ Full gate on the merged build queued (port 9541, `gate2.log`).
 - **Not done:** no merge to `main`, no push, no version cut.
 
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
