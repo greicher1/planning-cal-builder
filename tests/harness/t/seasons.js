@@ -207,7 +207,7 @@ window.addEventListener('load', function () { (async function () {
       var s = await state();
       saveOne = await save();
       kase('S2', 'ticking Season 3: the hidden select takes "3", the title reads "Seasons Test S3", episodes number 301, and the file has no `seasons` key (one season saves as it always did)',
-           same(s, { ticks: [3], select: '3', shown: 'Season 3', c1: TITLE + ' S3', ep: 'Shoot Ep. 301' }) && same(seasonOf(saveOne), { byId: '3' }),
+           same(s, { ticks: [3], select: '3', shown: 'Season 3', c1: TITLE + ' S3', ep: 'Episode 301' }) && same(seasonOf(saveOne), { byId: '3' }),
            { state: s, file: seasonOf(saveOne) });
     });
 
@@ -220,7 +220,7 @@ window.addEventListener('load', function () { (async function () {
       await view('sheet');
       saveTwo = await save();
       kase('S3', 'ticking Season 4 too: "Seasons Test S3 & S4" in the waterfall title and the month view\'s; the select keeps "3", so episodes still number 301; Save writes seasons [3,4] beside season-num "3", with the SAME field ids',
-           same(s, { ticks: [3, 4], select: '3', shown: 'Seasons 3 & 4', c1: TITLE + ' S3 & S4', ep: 'Shoot Ep. 301' }) &&
+           same(s, { ticks: [3, 4], select: '3', shown: 'Seasons 3 & 4', c1: TITLE + ' S3 & S4', ep: 'Episode 301' }) &&
            mv === TITLE + ' S3 & S4 Full Prelim Production Calendar' &&
            same(seasonOf(saveTwo), { byId: '3', seasons: [3, 4] }) && same(idSet(saveTwo), idSet(saveOne)),
            { state: s, month: mv, file: seasonOf(saveTwo) });
@@ -270,8 +270,8 @@ window.addEventListener('load', function () { (async function () {
       await clickTick(3);
       var noFirst = await state();
       kase('S5', 'three seasons read "S3, S4 & S5"; unticking Season 3 leaves "S4 & S5", and the select (and with it the episode numbers) moves to the first left, 401',
-           same(three, { ticks: [3, 4, 5], select: '3', shown: 'Seasons 3, 4 & 5', c1: TITLE + ' S3, S4 & S5', ep: 'Shoot Ep. 301' }) &&
-           same(noFirst, { ticks: [4, 5], select: '4', shown: 'Seasons 4 & 5', c1: TITLE + ' S4 & S5', ep: 'Shoot Ep. 401' }),
+           same(three, { ticks: [3, 4, 5], select: '3', shown: 'Seasons 3, 4 & 5', c1: TITLE + ' S3, S4 & S5', ep: 'Episode 301' }) &&
+           same(noFirst, { ticks: [4, 5], select: '4', shown: 'Seasons 4 & 5', c1: TITLE + ' S4 & S5', ep: 'Episode 401' }),
            { three: three, noFirst: noFirst });
     });
 
@@ -281,8 +281,8 @@ window.addEventListener('load', function () { (async function () {
       $('redo-btn').click(); await settle();
       var redone = await state();
       kase('S6', 'ONE undo brings Season 3 back (ticks, select, title, episodes); redo takes it out again',
-           same(undone, { ticks: [3, 4, 5], select: '3', shown: 'Seasons 3, 4 & 5', c1: TITLE + ' S3, S4 & S5', ep: 'Shoot Ep. 301' }) &&
-           same(redone, { ticks: [4, 5], select: '4', shown: 'Seasons 4 & 5', c1: TITLE + ' S4 & S5', ep: 'Shoot Ep. 401' }),
+           same(undone, { ticks: [3, 4, 5], select: '3', shown: 'Seasons 3, 4 & 5', c1: TITLE + ' S3, S4 & S5', ep: 'Episode 301' }) &&
+           same(redone, { ticks: [4, 5], select: '4', shown: 'Seasons 4 & 5', c1: TITLE + ' S4 & S5', ep: 'Episode 401' }),
            { undone: undone, redone: redone });
     });
 
@@ -292,8 +292,8 @@ window.addEventListener('load', function () { (async function () {
       await load(saveOne);
       var m5 = await state();
       kase('S7', 'Load: the two-season file opens with Seasons 3 and 4 ticked; the one-season file, loaded after it, opens with Season 3 alone (the M-5 trap: never the previous file\'s ticks)',
-           same(two, { ticks: [3, 4], select: '3', shown: 'Seasons 3 & 4', c1: TITLE + ' S3 & S4', ep: 'Shoot Ep. 301' }) &&
-           same(m5, { ticks: [3], select: '3', shown: 'Season 3', c1: TITLE + ' S3', ep: 'Shoot Ep. 301' }), { two: two, m5: m5 });
+           same(two, { ticks: [3, 4], select: '3', shown: 'Seasons 3 & 4', c1: TITLE + ' S3 & S4', ep: 'Episode 301' }) &&
+           same(m5, { ticks: [3], select: '3', shown: 'Season 3', c1: TITLE + ' S3', ep: 'Episode 301' }), { two: two, m5: m5 });
     });
 
     await step('S8', async function () {

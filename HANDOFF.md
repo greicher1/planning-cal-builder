@@ -37,6 +37,71 @@
   `legacy.css` and `gate.sh` merge clean, and gate.sh must keep both `prepreptitle` and `wfnotecolors`. Re-check the
   MERGED build (`npm run build` + `check`, `wfnotecolors`, `mvnotes`, base/restore/gate 5) before any push.
 
+### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch and merged with today's `main`, month baselines re-cut (owner sign-off), full gate run twice; NOT merged into `main`, NOT pushed — ⚠️ superseded: `git` shows it merged and ✅ LIVE at `b9f0ff7` (found by the `wf-note-colors` merge, 28 Oct 2026, 14:07; this heading predates that)
+
+- **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
+  Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
+  we have both but still be able to change the names of episodes? Maybe if you change the title to anything other than
+  default, it switches to the exact words"*. Reverses the 20 Oct "Shoot Ep. 101" default names (entry further down,
+  "AN EPISODE'S NAME IS ITS MONTH BAR"). Tracker card `episode-names-shoot-bars`.
+- **Built** (`src/legacy/app.js`, no frozen code, no saved key):
+  - `EPISODE_NAME_PREFIX = 'Episode '`; new `episodeBarName(name)`: "Episode <digits>" → "Shoot <digits>", else null.
+    `unitBarLabel()` returns `episodeBarName(def.name) || def.name` for a bar naming one episode.
+  - ⭐ **Decided, not asked:** the rule reads the NAME, not `nameEdited` (the owner said "anything other than default").
+    So a hand-renumbered "Episode 219" draws "Shoot 219" beside its neighbours, which "exactly the default for this
+    position" would not have. Tell the owner if it comes up; switching to the strict reading is one line.
+  - `episodeNamesLegacy`, `storesLegacyEpisodeNames()` and `EPISODE_NAME_PREFIX_LEGACY` are GONE (the flag was never
+    saved). No migration was needed: `syncEpisodesFromShowInfo()` rewrites every `!nameEdited` name from
+    `defaultEpisodeName()` on each restore (refreshAfterRestore → refreshEpisodesUI), so a v1.7.0–v1.9.0 file's
+    un-renamed "Shoot Ep. 201" opens as "Episode 201" (checked on `v1.9.0-saved.sptcal` in the pane). A typed name is
+    never touched, and a typed "Shoot Ep. 205" draws exactly that.
+  - Kept: the one-day HALF bar's "Ep. 101" (measured in the pane: the half bar is 44 px with 8 + 8 px padding, "Shoot
+    202" is 49.9 px at 600 10px Inter, "Ep. 202" 37.1); prep pills, episode lists, block and week bars, v1.6.0
+    `barPrefix`. `shortEpisodeName()` still strips "Shoot Ep." for typed names.
+  - Help (src/index.html, the episode-list paragraph) gains one sentence on names vs bars. CLAUDE.md's state-table row
+    for `episodeNamesLegacy` is replaced by one for the name → bar rule.
+- **Legs:** `epnames` rewritten (N0–N9 halfdays incl. N5 a 20–28 Oct file and N9 a hand-renumbered name + Season 3,
+  B0–B3 blocks; gate.sh's PDF text check now wants "Shoot 201" + "Pilot" and none of "Shoot 202" / "Shoot Ep" /
+  "Episode"): 16/16 on the build. Name-agnostic readers learn "Shoot N" (`halfmarks`, `episodeprep`, `halfdays`,
+  `labelsetup`, `shootorder`, `pilllabel`, `pilldrag.mjs`); `episodeprep` LIVE and `seasons` expect "Episode 30N";
+  `halfdays` D2s wants "Shoot N". The two blocksoff-vs-reference blocks in gate.sh also read "Shoot N" as the episode.
+- ✅ **Nine affected legs on the build** (port 9531): halfdays, halfmarks, monthlayout, mvmenu, labelsetup, seasons,
+  shootorder, pilllabel ×8, pilldrag, episodeprep ×3: **548 PASS, 0 FAIL**. Committed on the branch as `bb940e6`.
+- ✅ **Gates 10 and 13 RE-CUT on the owner's sign-off** (*"Re-cut + gate"*, picker, after the classification and the
+  halfdays July contact sheet), commit `b061428`; tables in both baseline READMEs. The classification: Every case exported from
+  the build (port 9533) and compared with a scratch script:
+  - Gate 10, all 11 print documents: identical to their baselines once "Shoot Ep. N" / "Episode N" (old) and "Shoot N"
+    (new) are read as the episode, counts equal (40–64 each); `blocks` and `month-lanecap` raw-identical.
+  - Gate 13, all 20 written PDFs: text identical on the same reading, counts equal (7–31); `blocks`, `monthscale`,
+    `month-lanecap`, `month-dense60` byte-identical. No "Shoot Ep" or "Episode" left in any new export.
+  - `monthbase.py sheets` on halfdays: only June–September move, and only the bar names and the grey text after them
+    (it starts closer, since "Shoot 201" is narrower than "Episode 201").
+  - ⭐ After the re-cut, `blocksoff` is BYTE-IDENTICAL to `reference` again in both gates (print document and written
+    PDF). Left as two baselines; the gate's blocksoff-vs-reference blocks still run.
+- ✅ **Full gate** on build `465e3e03…` (port 9541, 11:44–12:16, ~31 min, no other gate at its start): **3,259 PASS,
+  3 FAIL.** Gate 10 and gate 13 byte-identical to the new cut (incl. `rz`/`rw`), waterfall PDF and Excel identical to
+  the 29 Aug baseline, 0 clipped.
+  - `hidewf` F3 was REAL: it holds a re-save byte for byte to `tests/fixtures/hidewf.sptcal`, which was saved with the
+    20–28 Oct names ("Shoot Ep. 20N", un-renamed), and those now save as "Episode 20N". The check now maps the fixture's
+    un-renamed names first (`5e475e5` on the branch); re-run alone 19/19. ⚠️ Any leg that compares a re-save to a
+    v1.7.0–v1.9.0-era fixture byte for byte has the same trap.
+  - `weeknum (dayoverrides)` D1 (empty menu header: the menu never opened) and `sideboxes` (no result): stalls, neither
+    reads episode names; both green re-run alone on port 9545 (sideboxes 78/78).
+- **Merged `main` into the branch** (`d3ebe6a`): today's live work (month stepper, double-click a bar, hiatus fold,
+  Pre-Prep name) does not touch episode names, baselines or fixtures; conflicts were README/HANDOFF tops only. Merged
+  build `212b2faf…`, `npm run check` 40/40.
+- ✅ **Full gate on the merged build** `212b2faf…` (port 9541, 12:46–13:17, no other gate at its start): **3,376 PASS,
+  3 FAIL**, every month baseline (gates 10 and 13, `rz`/`rw` too), the waterfall PDF and Excel identical, 0 clipped.
+  The three, re-run alone on port 9545 while another session's gate ran:
+  - `pilllabel (blocks)` W2 "months 1 vs 18": the known contention flake (HANDOFF, 27 Oct); green alone.
+  - `labelsetup (halfdays)` L4: its first worked-day click did not land (Sunday unchanged, Saturday then counted
+    alone); green alone. It passed 41/41 on this branch before the merge too.
+  - `weeknum (dayoverrides)` D1 (also red in the first gate): the day menu had not opened within the leg's 300 ms wait
+    (empty header). Alone: merged build 4 of 5 green, `main`'s own build (`2f8208ec`, no episode change) 5 of 5, all
+    while another gate loaded the Mac. Bar text cannot reach a right-click on the day-number band. ⚠️ A timing flake
+    in that leg; a longer wait or an until() for `.day-menu` would remove it (not done here).
+- **Not done:** no merge to `main`, no push, no version cut.
+
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
 - **Asked** (owner): *"When you double click on a phase in the month view, could it reveal that phase menu in the
@@ -3534,7 +3599,9 @@
 
 ### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **LIVE at `70d7485`** via `land-zoom-epnames`
 
-- ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
+- ⛔ **SUPERSEDED 28 Oct 2026** (top entry, "EPISODES NAMED "Episode 101" AGAIN"): names are "Episode 101" again and
+  the bar reads "Shoot 101"; `episodeNamesLegacy` is gone. What follows is history.
+- Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
   before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
   you can easily change them and it doesn't mess things up"*. (They first read a recreated calendar's renamed
   Production phase, "Shoot wk N", as an app change. It was not: the app's "Production wk N" / "Production Week N" are

@@ -97,10 +97,11 @@ window.addEventListener('load', function () { (async function () {
       [].forEach.call(m.week.querySelectorAll('.mv-pill[data-ph="production"]'), function (p) {
         var tagEl = p.querySelector('.mv-pill-block'), t = '';
         p.childNodes.forEach(function (n) { if(n !== tagEl) t += n.textContent; });
-        // `text` is the bar's episode as "Ep. N", whether it reads "Shoot Ep. N" or an older file's "Episode N" (owner,
-        // 20 Oct 2026): this leg is about where "Ep." goes, and epnames holds the names. `raw` is the bar as drawn.
+        // `text` is the bar's episode as "Ep. N", whether it reads "Shoot N" (owner, 28 Oct 2026) or what the 20-28 Oct
+        // builds drew ("Shoot Ep. N", "Episode N"): this leg is about where "Ep." goes, and epnames holds the names.
+        // `raw` is the bar as drawn.
         res.push({from: new Date(m.sunday + (+p.style.gridColumnStart - 1) * 86400000).toISOString().slice(0, 10),
-                  text: t.trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '), raw: t.trim(), tag: tagEl ? txt(tagEl) : ''});
+                  text: t.trim().replace(/^(?:Shoot Ep\.|Shoot|Episode) /, 'Ep. '), raw: t.trim(), tag: tagEl ? txt(tagEl) : ''});
       });
     });
     return res.sort(function (a, b) { return a.from < b.from ? -1 : 1; });

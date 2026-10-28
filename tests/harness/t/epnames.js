@@ -1,10 +1,12 @@
-// epnames -- an episode's DEFAULT NAME is its month-bar text (owner, 20 Oct 2026, by picker; episodeNamesLegacy,
-// unitBarLabel). A new calendar names its episodes "Shoot Ep. 201", "Shoot Ep. 202"..., and an episode's bar reads
-// its name AS TYPED, so a rename in the episode list is the one control. Replaced v1.6.0's separate prefix (the day
-// menu's Prefix…, retired the same evening, and its leg barprefix). Rulings: Prefix… removed; a typed name is the
-// bar's text; old files keep "Episode 201" ("Leave them as saved"), read off the names they store; prep pills and
-// episode LISTS keep the number ("Prep 201", "Ep. 201, 202"). A switch day's one-day HALF bar keeps the short form
-// (16 Oct ruling). A v1.6.0 file's own barPrefix still draws as v1.6.0 drew it until that episode is renamed.
+// epnames -- episodes are NAMED "Episode 201"; their month bars READ "Shoot 201" (owner, 28 Oct 2026: "I want them
+// titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as Shoot 101 ... if you
+// change the title to anything other than default, it switches to the exact words"; episodeBarName, unitBarLabel).
+// An episode whose name is "Episode <number>" draws "Shoot <number>"; any other name draws exactly as typed. The rule
+// reads the NAME, not nameEdited, so a renumbered "Episode 219" still draws "Shoot 219". It replaced 20 Oct 2026's
+// "Shoot Ep. 201" default names (whose bar read the name, and whose older files' bars read "Episode 201"), which had
+// replaced v1.6.0's separate prefix (the day menu's Prefix…, and its leg barprefix). Prep pills and episode LISTS keep
+// the number ("Prep 201", "Ep. 201, 202"). A switch day's one-day HALF bar keeps the short form (16 Oct ruling). A
+// v1.6.0 file's own barPrefix still draws as v1.6.0 drew it until that episode is renamed.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh epnames 300     (an Episodes calendar)
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=blocks   ./run.sh epnames 300     (a Blocks calendar)
@@ -13,22 +15,24 @@
 // the rest at 4.5, so switch days carry half bars. Wed 8 Jul 2026 is shoot day 7, on Episode 202's bar.
 //
 // CASES, halfdays
-//   N0  the old file as saved: every full bar reads its stored name ("Episode 20N"), a one-day half bar "Ep. 20N";
-//       no grey text carries "Shoot" or "Episode"; the episode list holds "Episode 201".."Episode 210"
+//   N0  an older file ("Episode 20N" names): the list holds "Episode 201".."Episode 210", every full bar reads
+//       "Shoot 20N", a one-day half bar "Ep. 20N"; no grey text carries "Shoot" or "Episode"
 //   N1  the day menu on Episode 202's bar offers no Prefix…, carries no id, and its header names "Ep. 202"
 //   N2  renaming Episode 202 to "Pilot" in the list: every bar of it, half bars included, reads "Pilot", every other
 //       bar is unchanged; Save writes name "Pilot", nameEdited, and no barPrefix anywhere
-//   N3  an old file keeps its style: an 11th episode is "Episode 211", and its bars read that
-//   N4  a calendar whose episodes this build named (the file with no stored episodes): the list holds "Shoot Ep. 201"..
-//       "Shoot Ep. 210", every full bar its name, a half bar "Ep. 20N"; Save writes those names, not renamed; an 11th
-//       episode is "Shoot Ep. 211"
-//   N5  restore unconditionally: N4's file, then the old file, then N4's file again -- each shows its own names, and
-//       an episode added after the old file is "Episode 211" (never the previous calendar's style)
+//   N3  an 11th episode is "Episode 211", and its bars read "Shoot 211"
+//   N4  a calendar this build names (the file with no stored episodes): the list holds "Episode 201".."Episode 210",
+//       every full bar "Shoot 20N", a half bar "Ep. 20N"; Save writes those names, not renamed; an 11th is "Episode 211"
+//   N5  a file saved by the 20-28 Oct builds: its un-renamed "Shoot Ep. 20N" names open as "Episode 20N" with bars
+//       "Shoot 20N", and Save writes "Episode 20N"; a "Shoot Ep. 205" someone TYPED keeps its name, and its bar reads it
+//       exactly
 //   N6  a v1.6.0 file's own prefixes: "Pickup" on Episode 202 reads "Pickup Ep. 202", "" on Episode 203 reads
-//       "Ep. 203", the rest their names; Save keeps both; renaming Episode 202 drops its prefix (and only its)
-//   N7  prefixes no build writes (a number, 40 characters) are dropped by the validator: the bars read the names
-//   N8  the month PDF the app writes from N4 with Episode 202 renamed "Pilot"; gate.sh reads "Shoot Ep. 201" and
-//       "Pilot" in it, and neither "Shoot Ep. 202" nor "Episode"
+//       "Ep. 203", the rest "Shoot 20N"; Save keeps both; renaming Episode 202 drops its prefix (and only its)
+//   N7  prefixes no build writes (a number, 40 characters) are dropped by the validator: the bars read "Shoot 20N"
+//   N9  the rule reads the NAME: Episode 201 typed as "Episode 219" draws "Shoot 219"; Season 3 renumbers the others
+//       ("Episode 302".., bars "Shoot 302"..) and leaves the typed name and its bar alone
+//   N8  the month PDF the app writes from N4 with Episode 202 renamed "Pilot"; gate.sh reads "Shoot 201" and "Pilot"
+//       in it, and none of "Shoot 202", "Shoot Ep" or "Episode"
 // CASES, blocks
 //   B0  block bars read "Block N"; no "Shoot" and no "Episode" on any bar
 //   B1  the day menu on Block 1's bar offers no Prefix…
@@ -153,7 +157,7 @@ window.addEventListener('load', function () { (async function () {
   function full(bars){ return bars.filter(function (b) { return !b.halfOne; }); }
   function halves(bars){ return bars.filter(function (b) { return b.halfOne; }); }
   function bad(list, re){ return list.filter(function (b) { return !re.test(b.bar); }).map(function (b) { return b.bar; }).slice(0, 4); }
-  var EPISODE = /^Episode 2(0[1-9]|10)$/, SHOOT = /^Shoot Ep\. 2(0[1-9]|10)$/, SHORT = /^Ep\. 2(0[1-9]|10)$/;
+  var EPISODE = /^Episode 2(0[1-9]|10)$/, SHOOT = /^Shoot 2(0[1-9]|10)$/, SHORT = /^Ep\. 2(0[1-9]|10)$/;
 
   try {
     await T.appReady();
@@ -167,10 +171,10 @@ window.addEventListener('load', function () { (async function () {
       await openText(asMonth(fixture));
       var b0 = await allBars();
       var list0 = listNames();
-      add('N0', 'An old file as saved: every full bar its stored "Episode N", a one-day half bar "Ep. N"; no grey text says Shoot or Episode; the list holds "Episode 201".."Episode 210"',
-        full(b0).length > 0 && bad(full(b0), EPISODE).length === 0 && halves(b0).length > 0 && bad(halves(b0), SHORT).length === 0 &&
+      add('N0', 'An older file: the list holds "Episode 201".."Episode 210", every full bar reads "Shoot 20N", a one-day half bar "Ep. 20N"; no grey text says Shoot or Episode',
+        full(b0).length > 0 && bad(full(b0), SHOOT).length === 0 && halves(b0).length > 0 && bad(halves(b0), SHORT).length === 0 &&
         b0.every(function (b) { return !/Shoot|Episode/.test(b.grey); }) && list0.length === 10 && list0.every(function (n) { return EPISODE.test(n); }),
-        {full: full(b0).length, halves: halves(b0).length, badFull: bad(full(b0), EPISODE), badHalf: bad(halves(b0), SHORT), list: list0});
+        {full: full(b0).length, halves: halves(b0).length, badFull: bad(full(b0), SHOOT), badHalf: bad(halves(b0), SHORT), list: list0});
 
       // ---- N1 ----
       await toMonth('July 2026');
@@ -182,23 +186,24 @@ window.addEventListener('load', function () { (async function () {
       key('Escape'); await T.sleep(150);
 
       // ---- N2 ----
-      var n202 = b0.filter(function (b) { return /^(Episode|Ep\.) 202$/.test(b.bar); }).length;
+      var n202 = b0.filter(function (b) { return /^(Shoot|Ep\.) 202$/.test(b.bar); }).length;
       await rename('Episode 202', 'Pilot');
       var b2 = await allBars();
       var pilot = b2.filter(function (b) { return b.bar === 'Pilot'; });
       var rest = b2.filter(function (b) { return b.bar !== 'Pilot'; });
       var s2 = await save(), d2 = JSON.parse(s2).episodeDefs, i202 = d2.findIndex(function (d) { return d.name === 'Pilot'; });
       add('N2', 'Renamed "Pilot": every bar of it (half bars too) reads "Pilot", the others are unchanged; Save writes the name, nameEdited, and no barPrefix',
-        n202 > 0 && pilot.length === n202 && bad(full(rest), EPISODE).length === 0 && bad(halves(rest), SHORT).length === 0 &&
+        n202 > 0 && pilot.length === n202 && bad(full(rest), SHOOT).length === 0 && bad(halves(rest), SHORT).length === 0 &&
         i202 === 1 && d2[i202].nameEdited === true && d2.every(function (d) { return !('barPrefix' in d); }),
-        {before: n202, pilot: pilot.length, badRest: bad(full(rest), EPISODE), saved: d2[i202]});
+        {before: n202, pilot: pilot.length, badRest: bad(full(rest), SHOOT), saved: d2[i202]});
 
       // ---- N3 ----
       await openText(asMonth(fixture));
       await setCount(11);
       var list3 = listNames(), b3 = await allBars();
-      add('N3', 'An old file keeps its style: an 11th episode is "Episode 211", and its bars read that',
-        list3.length === 11 && list3.indexOf('Episode 211') >= 0 && b3.some(function (b) { return b.bar === 'Episode 211'; }),
+      add('N3', 'An 11th episode is "Episode 211", and its bars read "Shoot 211"',
+        list3.length === 11 && list3.indexOf('Episode 211') >= 0 && b3.some(function (b) { return b.bar === 'Shoot 211'; }) &&
+        !b3.some(function (b) { return /Episode/.test(b.bar); }),
         {list: list3.slice(-3), bars211: b3.filter(function (b) { return /211/.test(b.bar); }).map(function (b) { return b.bar; }).slice(0, 3)});
 
       // ---- N4 ----
@@ -208,26 +213,28 @@ window.addEventListener('load', function () { (async function () {
       var s4 = await save(), d4 = JSON.parse(s4).episodeDefs;
       await setCount(11);
       var list4b = listNames();
-      add('N4', 'Episodes this build named: the list holds "Shoot Ep. 201".."Shoot Ep. 210", every full bar its name, a half bar "Ep. N"; Save writes those names unrenamed; an 11th is "Shoot Ep. 211"',
-        list4.length === 10 && list4.every(function (n) { return SHOOT.test(n); }) && full(b4).length > 0 && bad(full(b4), SHOOT).length === 0 &&
-        bad(halves(b4), SHORT).length === 0 && d4.length === 10 && d4.every(function (d) { return SHOOT.test(d.name) && !d.nameEdited && !('barPrefix' in d); }) &&
-        list4b.indexOf('Shoot Ep. 211') >= 0,
+      add('N4', 'Episodes this build names: the list holds "Episode 201".."Episode 210", every full bar "Shoot 20N", a half bar "Ep. N"; Save writes those names unrenamed; an 11th is "Episode 211"',
+        list4.length === 10 && list4.every(function (n) { return EPISODE.test(n); }) && full(b4).length > 0 && bad(full(b4), SHOOT).length === 0 &&
+        bad(halves(b4), SHORT).length === 0 && d4.length === 10 && d4.every(function (d) { return EPISODE.test(d.name) && !d.nameEdited && !('barPrefix' in d); }) &&
+        list4b.indexOf('Episode 211') >= 0,
         {list: list4, badFull: bad(full(b4), SHOOT), halves: halves(b4).length, badHalf: bad(halves(b4), SHORT), added: list4b.slice(-2)});
 
       // ---- N5 ----
-      await openText(asMonth(s4));
-      var l5a = listNames(), b5a = full(await allBars());
-      await openText(asMonth(fixture));
-      var l5b = listNames(), b5b = full(await allBars());
-      await setCount(11);
-      var l5c = listNames();
-      await openText(asMonth(s4));
-      var l5d = listNames(), b5d = full(await allBars());
-      add('N5', 'Each Load shows its own file\'s names (new, old, new), and an episode added to the old file is "Episode 211"',
-        l5a.every(function (n) { return SHOOT.test(n); }) && bad(b5a, SHOOT).length === 0 &&
-        l5b.every(function (n) { return EPISODE.test(n); }) && bad(b5b, EPISODE).length === 0 && l5c.indexOf('Episode 211') >= 0 &&
-        l5d.length === 10 && l5d.every(function (n) { return SHOOT.test(n); }) && bad(b5d, SHOOT).length === 0,
-        {first: l5a.slice(0, 2), old: l5b.slice(0, 2), added: l5c.slice(-1), again: l5d.slice(0, 2)});
+      // A file the 20-28 Oct builds saved: every un-renamed name "Shoot Ep. 20N", and one someone typed.
+      var oct = asMonth(fixture, function (o) {
+        o.episodeDefs.forEach(function (d) { if(!d.nameEdited) d.name = d.name.replace(/^Episode /, 'Shoot Ep. '); });
+        o.episodeDefs[4].name = 'Shoot Ep. 205'; o.episodeDefs[4].nameEdited = true;
+      });
+      await openText(oct);
+      var list5 = listNames(), b5 = full(await allBars());
+      var s5 = await save(), d5 = JSON.parse(s5).episodeDefs;
+      var typed5 = b5.filter(function (b) { return /205$/.test(b.bar); }), other5 = b5.filter(function (b) { return !/205$/.test(b.bar); });
+      add('N5', 'A 20-28 Oct file: un-renamed "Shoot Ep. 20N" opens as "Episode 20N" (bars "Shoot 20N") and saves so; a typed "Shoot Ep. 205" keeps its name and its bar reads it exactly',
+        list5.length === 10 && list5[4] === 'Shoot Ep. 205' && list5.filter(function (n, i) { return i !== 4; }).every(function (n) { return EPISODE.test(n); }) &&
+        typed5.length > 0 && typed5.every(function (b) { return b.bar === 'Shoot Ep. 205'; }) && other5.length > 0 && bad(other5, SHOOT).length === 0 &&
+        d5[4].name === 'Shoot Ep. 205' && d5[4].nameEdited === true &&
+        d5.filter(function (d, i) { return i !== 4; }).every(function (d) { return EPISODE.test(d.name) && !d.nameEdited; }),
+        {list: list5, typed: typed5.map(function (b) { return b.bar; }).slice(0, 2), badOther: bad(other5, SHOOT), saved: d5.map(function (d) { return d.name; })});
 
       // ---- N6 ----
       var v160 = asMonth(fixture, function (o) { o.episodeDefs[1].barPrefix = 'Pickup'; o.episodeDefs[2].barPrefix = ''; });
@@ -238,9 +245,9 @@ window.addEventListener('load', function () { (async function () {
       var s6 = await save(), d6 = JSON.parse(s6).episodeDefs;
       await rename('Episode 202', 'Pickup Day');
       var b6b = full(await allBars()), s6b = await save(), d6b = JSON.parse(s6b).episodeDefs;
-      add('N6', 'A v1.6.0 prefix draws as v1.6.0 drew it ("Pickup Ep. 202", "" -> "Ep. 203"), Save keeps both, and renaming Episode 202 drops only its prefix',
+      add('N6', 'A v1.6.0 prefix draws as v1.6.0 drew it ("Pickup Ep. 202", "" -> "Ep. 203"), the rest "Shoot 20N"; Save keeps both, and renaming Episode 202 drops only its prefix',
         pick.length > 0 && pick.every(function (b) { return b.bar === 'Pickup Ep. 202'; }) && none.length > 0 && none.every(function (b) { return b.bar === 'Ep. 203'; }) &&
-        bad(others6, EPISODE).length === 0 && d6[1].barPrefix === 'Pickup' && d6[2].barPrefix === '' &&
+        bad(others6, SHOOT).length === 0 && d6[1].barPrefix === 'Pickup' && d6[2].barPrefix === '' &&
         b6b.some(function (b) { return b.bar === 'Pickup Day'; }) && !b6b.some(function (b) { return /Pickup Ep/.test(b.bar); }) &&
         !('barPrefix' in d6b[1]) && d6b[2].barPrefix === '' && d6b[1].name === 'Pickup Day',
         {pick: pick.map(function (b) { return b.bar; }).slice(0, 2), none: none.map(function (b) { return b.bar; }).slice(0, 2), saved: [d6[1].barPrefix, d6[2].barPrefix],
@@ -250,13 +257,27 @@ window.addEventListener('load', function () { (async function () {
       warns.length = 0;
       await openText(asMonth(fixture, function (o) { o.episodeDefs[0].barPrefix = 5; o.episodeDefs[1].barPrefix = new Array(41).join('x'); }));
       var b7 = full(await allBars());
-      add('N7', 'Prefixes no build writes (a number, 40 characters) are dropped by the validator, and the bars read the names',
-        b7.length > 0 && bad(b7, EPISODE).length === 0 && warns.some(function (w) { return /2 value\(s\)/.test(w); }),
-        {bad: bad(b7, EPISODE), warns: warns.slice(0, 2)});
+      add('N7', 'Prefixes no build writes (a number, 40 characters) are dropped by the validator, and the bars read "Shoot 20N"',
+        b7.length > 0 && bad(b7, SHOOT).length === 0 && warns.some(function (w) { return /2 value\(s\)/.test(w); }),
+        {bad: bad(b7, SHOOT), warns: warns.slice(0, 2)});
+
+      // ---- N9 ----
+      await openText(asMonth(fixture));
+      await rename('Episode 201', 'Episode 219');
+      var b9 = full(await allBars());
+      T.set('season-num', '3'); await settle(); await T.sleep(700);
+      var list9 = listNames(), b9b = full(await allBars());
+      var SHOOT3 = /^Shoot 3(0[2-9]|10)$/;
+      add('N9', 'The rule reads the NAME: a typed "Episode 219" draws "Shoot 219"; Season 3 renumbers the others (bars "Shoot 30N") and leaves the typed name and its bar alone',
+        b9.some(function (b) { return b.bar === 'Shoot 219'; }) && !b9.some(function (b) { return /Episode/.test(b.bar); }) &&
+        list9[0] === 'Episode 219' && list9.slice(1).every(function (n) { return /^Episode 3(0[2-9]|10)$/.test(n); }) &&
+        b9b.some(function (b) { return b.bar === 'Shoot 219'; }) && bad(b9b.filter(function (b) { return b.bar !== 'Shoot 219'; }), SHOOT3).length === 0,
+        {typed: b9.filter(function (b) { return /219$/.test(b.bar); }).map(function (b) { return b.bar; }).slice(0, 2), list: list9.slice(0, 3),
+         badAfter: bad(b9b.filter(function (b) { return b.bar !== 'Shoot 219'; }), SHOOT3)});
 
       // ---- N8 ----
       await openText(asMonth(s4));
-      await rename('Shoot Ep. 202', 'Pilot');
+      await rename('Episode 202', 'Pilot');
       var spk = T.fakeSavePicker();
       await T.sleep(500);
       $('export-btn').click();

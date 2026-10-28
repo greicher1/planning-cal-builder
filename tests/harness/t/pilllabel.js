@@ -205,9 +205,10 @@ window.addEventListener('load', function () { (async function () {
             });
             var tag;
             if (p.from === p.to) tag = '';
-            // ⚠️ An episode bar reads its NAME (owner, 20 Oct 2026; unitBarLabel): "Shoot Ep. 201" from this build,
-            // "Episode 201" from an older file, "Ep. 201" on a one-day half bar. The grey text names the number.
-            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^(?:Shoot Ep\.|Episode|Ep\.) /, ''); })) : '';
+            // ⚠️ An episode bar reads "Shoot 201" while it is named "Episode 201" (owner, 28 Oct 2026; unitBarLabel),
+            // "Ep. 201" on a one-day half bar ("Shoot Ep. 201" / "Episode 201" in the 20-28 Oct builds). The grey
+            // text names the number.
+            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^(?:Shoot Ep\.|Shoot|Episode|Ep\.) /, ''); })) : '';
             else tag = names.map(function (B) { return [B, blockEps[B]].filter(Boolean).join(' · '); }).join(' / ');
             if (p.from === p.to && p.tag) r.oneDayTagged.push(where + p.text + ' | ' + p.tag);
             var textOk = K ? p.text === K : /^Production Week \d+$/.test(p.text);

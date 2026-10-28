@@ -54,6 +54,33 @@ NF1 and NF2 removed fails X1 and P1 exactly. `base` byte-identical to the 29 Aug
 Excel part) and `restore`/gate 5 green; `mvnotes` 30/30 + 14/14 (P5 updated: it held the old ten-colour rule),
 `wfkeys` 84/84, `textstyle` 51/51, `notewrap` 16/16, `monthnotes` 7/7; `npm run check` 40/40.
 
+### Unreleased — episodes are named "Episode 101" again, and their month bars read "Shoot 101" (28 Oct 2026)
+
+Asked by the owner: *"I want them titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be
+labelled as Shoot 101 ... if you change the title to anything other than default, it switches to the exact words."*
+
+- **Names:** the episode list names episodes "Episode 101", "Episode 102"… (since 20 Oct they were "Shoot Ep. 101").
+- **Bars:** a month bar for one episode reads "Shoot 101" while that episode is named "Episode" plus a number. Rename it
+  to anything else ("Pilot") and the bar reads the new name exactly. The rule reads the name, so an episode renumbered
+  by hand ("Episode 219") still reads "Shoot 219". A switch day's one-day half bar keeps "Ep. 101": measured, it is
+  44 px on screen and "Shoot 202" needs 50 px of text.
+- **Older files:** a calendar saved since 20 Oct opens with its un-renamed "Shoot Ep. 101" names as "Episode 101",
+  because un-renamed names were always re-derived on load. A name someone typed is never changed. A calendar saved
+  before 20 Oct already says "Episode 101", and its bars now read "Shoot 101" instead of "Episode 101".
+- Prep pills and episode lists are unchanged ("Prep 101", "Ep. 201, 202"), and so are block bars, week bars and
+  v1.6.0's own bar prefixes. The month view and both month PDFs show the new bar text; the waterfall, Excel and the
+  waterfall PDF never showed episode names. No saved key, no frozen code.
+- Removed: `episodeNamesLegacy` and `storesLegacyEpisodeNames()`, the 20 Oct flag that kept older files' style.
+- Verified: `epnames` rewritten (N0–N9 + B0–B3, 16/16 on the build, including the written month PDF's text), and the
+  legs that read bar or episode names read "Shoot N" too (nine legs, 548 checks, 0 failures). The month baselines were
+  re-cut on the owner's sign-off ("Re-cut + gate"): gate 10's nine print documents and gate 13's sixteen written PDFs
+  each equal the old cut once the bar names are read as the episode, with equal counts; `blocksoff` is byte-identical
+  to `reference` again in both. Full gate on build `465e3e03`: 3,259 PASS, 3 FAIL. `hidewf` F3 was real (its fixture's
+  un-renamed "Shoot Ep. N" now saves as "Episode N"; the check now expects that, 19/19). `weeknum` D1 and `sideboxes`
+  were stalls, and both are green alone. The waterfall PDF, the workbook and every month baseline are byte-identical.
+  Merged with today's `main` and gated again (build `212b2faf`): 3,376 PASS, 3 FAIL, all three timing flakes that are
+  green alone (`pilllabel (blocks)` W2, `labelsetup` L4, `weeknum` D1, which also flakes on `main`'s own build under load).
+
 ### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
 
 Owner: *"When you double click on a phase in the month view, could it reveal that phase menu in the left side

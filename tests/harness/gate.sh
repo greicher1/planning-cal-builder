@@ -189,9 +189,10 @@ PY
 #   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all -- BLOCKS-PLAN §5
 #                   condition 3 ("no change at all with Blocks off"). It was held to the REFERENCE baseline
 #                   until 20 Oct 2026 (late), when an episode's bar began reading its NAME: this fixture,
-#                   saved by an older build, reads "Episode N" and reference (typed in fresh) "Shoot Ep. N".
+#                   saved by an older build, read "Episode N" and reference (typed in fresh) "Shoot Ep. N".
 #                   So it has its own baseline now, and the block after this loop still holds it to
-#                   reference's, byte for byte, once both names are read as the episode
+#                   reference's, byte for byte, once both names are read as the episode. (Since 28 Oct 2026
+#                   both draw "Shoot N", so the two read the same again.)
 #   dayoverrides-onhalf  ⭐ ADDED 29 Sep 2026 (batch-3 step 0): 'onhalf' marks -- a weekend or holiday
 #                   worked as a half day -- which bdfec60's frozen renderMonthView edit draws. A NEW
 #                   case, not a re-cut; cut before 3.6 edits the same function
@@ -221,15 +222,16 @@ for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvhea
   python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPBCASE" "$MPLABEL" || FAIL=1
 done
 # ⭐ BLOCKS-PLAN §5 condition 3, kept when blocksoff took its own baseline (20 Oct 2026): Blocks switched off prints
-# exactly the reference calendar, once each document's episode names ("Episode N" in this older file, "Shoot Ep. N" in
-# reference, typed in fresh) are read as the episode, and the dotted date stamp as a stamp.
+# exactly the reference calendar, once each document's episode bars are read as the episode, and the dotted date stamp
+# as a stamp. (Until 28 Oct 2026 this older file drew "Episode N" and reference "Shoot Ep. N"; both draw "Shoot N" now,
+# and a baseline cut before that day still reads the old words.)
 python3 - "$HERE/monthprint-blocksoff.json" "$MPBASE/reference.html" <<'PYBO' || FAIL=1
 import json,re,sys
 try: new=json.load(open(sys.argv[1]))['printHtml']; ref=open(sys.argv[2]).read()
 except Exception as e:
     print('  FAIL  monthprint blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
-norm=lambda s: re.sub(r'\b\d{1,2}\.\d{1,2}\.\d{2}\b','STAMP',re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s))
-ok=norm(new)==norm(ref) and len(re.findall(r'Episode \d+',new))>0
+norm=lambda s: re.sub(r'\b\d{1,2}\.\d{1,2}\.\d{2}\b','STAMP',re.sub(r'(?:Shoot Ep\.|Shoot|Episode) (\d+)',r'EP\1',s))
+ok=norm(new)==norm(ref) and len(re.findall(r'Shoot \d+',new))>0
 print(('  PASS  ' if ok else '  FAIL  ')+'monthprint blocksoff: ⭐ identical to reference\'s baseline once episode names are read as the episode (Blocks off changes nothing)')
 sys.exit(0 if ok else 1)
 PYBO
@@ -2177,8 +2179,9 @@ PYMXC
 #   "THE CONTENT MOVED"                 each part that differs, named (page and month, font, page tree). Never re-cut
 #                                       without the owner's sign-off on `monthbase.py sheets`' contact sheets.
 # rz and rw (UTC+14, a 1280 px window) have no baseline of their own: they are held to reference's. blocksoff (Blocks
-# switched to Episodes) has its own since 20 Oct 2026 (its older file reads "Episode N", reference "Shoot Ep. N"); the
-# block after this loop still holds its text to reference's once both names are read as the episode.
+# switched to Episodes) has its own since 20 Oct 2026 (its older file read "Episode N", reference "Shoot Ep. N"; both
+# draw "Shoot N" since 28 Oct 2026); the block after this loop still holds its text to reference's once both names are
+# read as the episode.
 MWBASE="$HERE/../baselines/2026-10-05-monthwriter"
 for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:reference:reference, a 1280 px window" \
               "b:blocks:blocks" "bo:blocksoff:blocksoff" "ms:monthscale:monthscale" \
@@ -2192,14 +2195,15 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
 # ⭐ The written PDF's half of the same condition: blocksoff's text is reference's, page by page, once both names are read
-# as the episode. (Bytes cannot match: "Episode 201" and "Shoot Ep. 201" set different glyphs and widths.)
+# as the episode. (Bytes could not match while they read "Episode 201" and "Shoot Ep. 201", which set different glyphs
+# and widths; since 28 Oct 2026 both read "Shoot 201".)
 python3 - "$MXA/bo.pdf" "$MWBASE/reference.pdf" <<'PYBO13' || FAIL=1
 import re,subprocess,sys
 try: a,b=[subprocess.run(['pdftotext','-raw',f,'-'],capture_output=True,text=True,check=True).stdout for f in sys.argv[1:3]]
 except Exception as e:
     print('  FAIL  gate 13 blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
-norm=lambda s: re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s)
-ok=norm(a)==norm(b) and 'Episode ' in a
+norm=lambda s: re.sub(r'(?:Shoot Ep\.|Shoot|Episode) (\d+)',r'EP\1',s)
+ok=norm(a)==norm(b) and re.search(r'Shoot \d+',a) is not None
 print(('  PASS  ' if ok else '  FAIL  ')+'gate 13 month PDF (blocksoff): ⭐ its text is reference\'s once episode names are read as the episode')
 sys.exit(0 if ok else 1)
 PYBO13
@@ -2819,12 +2823,12 @@ for c in cases:
 sys.exit(0 if len(cases) >= 6 and all(c.get('pass') is True for c in cases) else 1)
 PYWR
 
-# ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
-# Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
-# names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off
-# the names it stores, re-derived on every Load); prep pills and episode lists keep the number; a switch day's one-day
-# half bar keeps "Ep. N"; a v1.6.0 file's own prefix still draws as it did until its episode is renamed. halfdays
-# carries the N-cases and writes the month PDF, whose text is read here; blocks carries the B-cases.
+# ---- epnames: episodes named "Episode 101", their month bars reading "Shoot 101" (owner, 28 Oct 2026) -------------
+# An episode named "Episode <number>" draws "Shoot <number>"; any other name draws exactly as typed. Replaced 20 Oct's
+# "Shoot Ep. N" default names (which had replaced barprefix, v1.6.0's separate prefix). A 20-28 Oct file's un-renamed
+# "Shoot Ep. N" opens as "Episode N"; prep pills and episode lists keep the number; a switch day's one-day half bar
+# keeps "Ep. N"; a v1.6.0 file's own prefix still draws as it did until its episode is renamed. halfdays carries the
+# N-cases and writes the month PDF, whose text is read here; blocks carries the B-cases.
 for ENSTATE in halfdays blocks; do
   rm -f "$HERE/epnames.json" "$HERE/epnames.pdf"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$ENSTATE" "$HERE/run.sh" epnames 300 >/dev/null 2>&1
@@ -2841,8 +2845,8 @@ bad = not cases or any(c.get('pass') is not True for c in cases)
 if st == 'halfdays':
     try:
         txt = subprocess.run(['pdftotext', '-raw', pdf, '-'], capture_output=True, text=True, check=True).stdout
-        ok = 'Shoot Ep. 201' in txt and 'Pilot' in txt and 'Shoot Ep. 202' not in txt and 'Episode' not in txt
-        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Shoot Ep. 201" and "Pilot", and neither "Shoot Ep. 202" nor "Episode"')
+        ok = 'Shoot 201' in txt and 'Pilot' in txt and 'Shoot 202' not in txt and 'Shoot Ep' not in txt and 'Episode' not in txt
+        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Shoot 201" and "Pilot", and none of "Shoot 202", "Shoot Ep" or "Episode"')
         bad = bad or not ok
     except Exception as e:
         print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = True
