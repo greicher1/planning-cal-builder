@@ -12,8 +12,9 @@
 //
 // ⛔ THE TRIM (plan §13, owner rulings T1–T4, 23 Oct 2026). Add note, Colour… on a bar, both Show in Phases card
 // items, Lock in place, Number weeks and the "Shift + right-click" footer line are gone; an item that cannot act is
-// LEFT OUT (T3), Start / End a greyed pair and ruling 1's greyed Work this day inside a hiatus excepted; the menu
-// closes only when a scroll moves its day (T4). So every menu the leg checks is checked against its EXACT item list
+// LEFT OUT (T3); the menu closes only when a scroll moves its day (T4). ⛔ Since 28 Oct 2026 NOTHING is greyed (owner:
+// "remove options from the menu when they aren't accessible, rather than greying them out"): the Start / End pair and
+// ruling 1's Work this day inside a hiatus, T3's two exceptions, are left out where they cannot act too. So every menu the leg checks is checked against its EXACT item list
 // (H1s, H2, H3, H4, H5, L1s, P1, R1, V1), T1 watches every month menu the leg opens for a cut item or a stray
 // greyed one, and C4 holds the scroll rule. The cases of the cut items (I2a's and I2b's greyed clicks, I2c, I6,
 // I6u, P5, P5u, P6, P6u, V2, V3) are gone or repurposed; P6w moved to Add 1-week phase here.
@@ -187,8 +188,8 @@ window.addEventListener('load', function () { (async function () {
   var ITEMS = ['phase-day', 'phase-week', 'hiatus', 'waterfall'];
   // T1's cut, as item ids: none may appear in any month menu (case T1).
   var CUT = /^(note|phase-colour|phase-show|band-lock-\d+|band-num-\d+|band-show-\d+)$/;
-  // T3: the only items a month menu may grey out -- the Start / End pair, and Work this day inside a hiatus (ruling 1).
-  var MAY_GREY = /^(phase-start|phase-end|ov-on)$/;
+  // No month menu greys anything out (owner, 28 Oct 2026): T3's two exceptions, the Start / End pair and ruling 1's
+  // Work this day inside a hiatus, are left out where they cannot act, as everything else already was.
   // Every month menu (and submenu) the leg opens, as it was built: the waterfall's menu (data-view="sheet") is wfmenu's.
   var seenMenus = [];
   var menuObs = new MutationObserver(function (recs) {
@@ -232,10 +233,12 @@ window.addEventListener('load', function () { (async function () {
     // No Prefix…: it was retired the evening it shipped, when "Shoot" moved into the episode's name (owner, 20 Oct
     // 2026; epnames tests the names).
     // ⛔ The trim (T1): 11 lines here before it, 8 after -- no Add note, no Colour…, no Show in Phases card, no footer.
-    var ITEMS_BAR = ITEMS.slice(0, 3).concat(['phase-start', 'phase-end'], ['ov-auto', 'ov-off'], ITEMS.slice(3));
-    add('H1s', '⭐ The trimmed menu (T1): sections This day, Production\'s own, the shoot day\'s and the way out; EXACTLY Add 1-day / 1-week phase here, Add hiatus, Start / End Production here, Full day / Off and Show this week in the waterfall, only End Production here greyed out; no footer on an unmarked day; focus on the first',
+    // ⛔ And 7 since 28 Oct 2026: End Production here, which was always greyed ("Its end comes from the shoot days"),
+    // is left out (owner: "remove options from the menu when they aren't accessible, rather than greying them out").
+    var ITEMS_BAR = ITEMS.slice(0, 3).concat(['phase-start'], ['ov-auto', 'ov-off'], ITEMS.slice(3));
+    add('H1s', '⭐ The trimmed menu (T1): sections This day, Production\'s own, the shoot day\'s and the way out; EXACTLY Add 1-day / 1-week phase here, Add hiatus, Start Production here (no End: it can never act on Production, so it is left out, not greyed), Full day / Off and Show this week in the waterfall, none greyed; no footer on an unmarked day; focus on the first',
       i1 && eq(i1.sections, ['day', 'phase', 'shoot', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
-        && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'phase-day' && eq(footLines(), []),
+        && i1.items.every(function (x) { return !x.disabled; }) && i1.focus === 'phase-day' && eq(footLines(), []),
       i1 && {sections: i1.sections, items: i1.items, focus: i1.focus, foot: footLines()}, 'day, phase, shoot, out; ' + ITEMS_BAR.join(', '));
     key('Escape');
     add('S1', 'Opening and closing the menu leaves fields.byId exactly as it was, and Escape leaves no panel or ring behind',
@@ -1051,7 +1054,8 @@ window.addEventListener('load', function () { (async function () {
     var ok2r = eq(sig(), after2);
     await undo();
     add('P2u', 'Exactly one undo step: undo lands on the state just before (the title typed before kept), redo on the state after', ok2 && ok2r, sigDiff(a.before, sig()), 'one step');
-    // On a Monday Snap to Mon is left ticked; on the day it already starts, the item is greyed out.
+    // On a Monday Snap to Mon is left ticked; on the day it already starts, the item is LEFT OUT (greyed out until the
+    // owner, 28 Oct 2026: "remove options from the menu when they aren't accessible, rather than greying them out").
     await rclick('2026-11-16', 'bar:post');
     choose('phase-start');
     await settle();
@@ -1059,10 +1063,11 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(700);
     await undo();
     await rclick('2026-11-02', 'bar:post');
-    var p2g = item(menuInfo(), 'phase-start');
+    var p2i = menuInfo(), p2g = {ids: p2i ? p2i.items.map(function (x) { return x.id; }) : null, greyed: p2i ? p2i.items.filter(function (x) { return x.disabled; }).length : null};
     key('Escape');
-    add('P2m', 'Start Post here on Mon 16 Nov keeps Snap to Mon ticked; on Mon 2 Nov, where it already starts, the item is greyed out ("It already starts on this day")',
-      p2m.start === '2026-11-16' && p2m.snap === true && p2g.disabled && p2g.second === 'It already starts on this day', {monday: p2m, onItsStart: p2g}, 'snap kept; greyed on 2 Nov');
+    add('P2m', 'Start Post here on Mon 16 Nov keeps Snap to Mon ticked; on Mon 2 Nov, where it already starts, Start Post here is LEFT OUT (End Post here still offered), nothing greyed',
+      p2m.start === '2026-11-16' && p2m.snap === true && !!p2g.ids && p2g.ids.indexOf('phase-start') < 0 && p2g.ids.indexOf('phase-end') >= 0 && p2g.greyed === 0,
+      {monday: p2m, onItsStart: p2g}, 'snap kept; no Start on 2 Nov');
 
     // P4: End Post here on Wed 11 Nov, the end handle's rule: Weeks first becomes Dates where it is drawn.
     a = await primeThenOpen('2026-11-11', 'bar:post');
@@ -1078,11 +1083,12 @@ window.addEventListener('load', function () { (async function () {
       {fields: p4, diff: d4}, 'dates 11/2-11/11');
     await T.sleep(700);
     await rclick('2026-11-11', 'bar:post');
-    var p4g = item(menuInfo(), 'phase-end');
+    var p4i = menuInfo(), p4g = {ids: p4i ? p4i.items.map(function (x) { return x.id; }) : null, greyed: p4i ? p4i.items.filter(function (x) { return x.disabled; }).length : null};
     key('Escape');
     await undo();
-    add('P4u', 'On the day it now ends, End Post here is greyed out ("It already ends on this day"); one undo puts Post back in Weeks with the title typed before kept',
-      p4g.disabled && p4g.second === 'It already ends on this day' && eq(sig(), a.before) && fv('unit-post') === 'weeks', {greyed: p4g, diff: sigDiff(a.before, sig())}, 'greyed, then one step back');
+    add('P4u', 'On the day it now ends, End Post here is LEFT OUT (Start Post here still offered; greyed until 28 Oct 2026), nothing greyed; one undo puts Post back in Weeks with the title typed before kept',
+      !!p4g.ids && p4g.ids.indexOf('phase-end') < 0 && p4g.ids.indexOf('phase-start') >= 0 && p4g.greyed === 0 && eq(sig(), a.before) && fv('unit-post') === 'weeks',
+      {onItsEnd: p4g, diff: sigDiff(a.before, sig())}, 'no End, then one step back');
 
     // P5 / P5u (Colour… on a bar) and P6 / P6u (Show in Phases card) went with their items (T1): the phase row's own
     // swatch and the row itself do both. P6w, the Settings window closing when an item reveals the sidebar, moved to
@@ -1178,7 +1184,7 @@ window.addEventListener('load', function () { (async function () {
     if(showTabR) showTabR.click();
     await T.sleep(700);
 
-    // P3: Production. End is greyed out (ruling Q3), and Start is a MOVER: a day mark travels with the shoot BY
+    // P3: Production. No End item (ruling Q3; greyed out until 28 Oct 2026, left out since), and Start is a MOVER: a day mark travels with the shoot BY
     // SHOOT-DAY NUMBER (owner ruling R2). Marked off on Wed 8 Jul through the menu's shoot-day Off, opened by a
     // left-click on the number (it was the Full day/Off popover until plan step 4, which retired it), natural
     // shoot day 7 (6/29, 6/30, 7/1, 7/2, 7/6, 7/7, 7/8; 7/3 is a holiday). Moved to Mon 13 Jul, day 7 is Tue 21
@@ -1230,12 +1236,12 @@ window.addEventListener('load', function () { (async function () {
     function header(iso){ return rclick(iso, 'num').then(function () { var c = menuInfo().ctx; key('Escape'); return c; }); }
     var h3a = {d8: await header('2026-07-08'), d9: await header('2026-07-09')};
     a = await primeThenOpen('2026-07-13', 'bar:production');
-    var p3e = item(menuInfo(), 'phase-end');
+    var p3i = menuInfo(), p3e = {ids: p3i ? p3i.items.map(function (x) { return x.id; }) : null, greyed: p3i ? p3i.items.filter(function (x) { return x.disabled; }).length : null};
     choose('phase-start');
     await settle();
     var h3b = {start: fv('start-production'), first: pillDays('production')[0], d21: await header('2026-07-21'), d22: await header('2026-07-22')};
-    add('P3', 'Production: End is greyed out ("Its end comes from the shoot days"); Start Production here on Mon 13 Jul moves the shoot there AND its Off mark with it by shoot-day number: off on 8 Jul (9 Jul shoot day 7) before, off on 21 Jul (22 Jul shoot day 7) after',
-      !!offOpt && p3e.disabled && p3e.second === 'Its end comes from the shoot days' && !/Shoot day/.test(h3a.d8) && /^Shoot day 7 /.test(h3a.d9)
+    add('P3', 'Production: no End item (its end comes from the shoot days; LEFT OUT since 28 Oct 2026, greyed before), nothing greyed; Start Production here on Mon 13 Jul moves the shoot there AND its Off mark with it by shoot-day number: off on 8 Jul (9 Jul shoot day 7) before, off on 21 Jul (22 Jul shoot day 7) after',
+      !!offOpt && !!p3e.ids && p3e.ids.indexOf('phase-end') < 0 && p3e.ids.indexOf('phase-start') >= 0 && p3e.greyed === 0 && !/Shoot day/.test(h3a.d8) && /^Shoot day 7 /.test(h3a.d9)
         && h3b.start === '2026-07-13' && h3b.first === '2026-07-13' && !/Shoot day/.test(h3b.d21) && /^Shoot day 7 /.test(h3b.d22),
       {offOpt: !!offOpt, end: p3e, before: h3a, after: h3b}, 'mark on 21 Jul, 22 Jul shoot day 7');
     await T.sleep(700);
@@ -1399,8 +1405,10 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(700);
     await undo();
     v8.undone = {en: fv('phiatus-en-production'), prod: prodOn(WK6).length, title: (document.getElementById('show-title') || {}).value};
-    add('V8', 'With Production\'s own hiatus over 6–19 Jul, 8 Jul has a section "Production’s hiatus · 6 Jul – 19 Jul" after the shoot day\'s, whose one item, Remove Production’s hiatus (red, no question), unticks it and the shoot is back on 6–17 Jul; one undo puts it back, the title kept',
-      eq(v8.sections, ['day', 'shoot', 'phase-hiatus', 'out']) && v8.phi.length === 1 && v8.phi[0].label === 'Production’s hiatus · 6 Jul – 19 Jul'
+    // ⛔ No shoot section here since 28 Oct 2026: it held only ruling 1's greyed Work this day, now left out (owner:
+    // "remove options from the menu when they aren't accessible, rather than greying them out"), so it is not shown.
+    add('V8', 'With Production\'s own hiatus over 6–19 Jul, 8 Jul has a section "Production’s hiatus · 6 Jul – 19 Jul" (and no shoot section: its one row, the greyed Work this day, is left out since 28 Oct 2026), whose one item, Remove Production’s hiatus (red, no question), unticks it and the shoot is back on 6–17 Jul; one undo puts it back, the title kept',
+      eq(v8.sections, ['day', 'phase-hiatus', 'out']) && v8.phi.length === 1 && v8.phi[0].label === 'Production’s hiatus · 6 Jul – 19 Jul'
         && eq(v8.phi[0].items.map(function (x) { return [x.id, x.text, x.danger]; }), [['phi-remove-production', 'Remove Production’s hiatus', true]])
         && v8.after.en === false && v8.after.prod === WK6.length && v8.undone.en === true && v8.undone.prod === 0 && v8.undone.title === 'Menu step ' + n,
       v8, 'removed; one step');
@@ -1444,7 +1452,7 @@ window.addEventListener('load', function () { (async function () {
     // ⚠️ On the day's NUMBER since 20 Oct 2026 (MONTH-NOTES-PLAN.md §4): a hiatus day has "+" lanes now, so a left-click
     // at its middle adds a note there, as on any day. It opened the menu only because a hiatus day used to draw none.
     await lclick('2026-07-22', 'num');
-    n1.named = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows()};
+    n1.named = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows(), sections: sections()};
     key('Escape');
     document.getElementById('view-sheet-btn').click();
     await settle();
@@ -1461,14 +1469,15 @@ window.addEventListener('load', function () { (async function () {
     }
     await toMonth('July 2026');
     await lclick('2026-07-22', 'num');
-    n1.blank = {day: menuInfo() && menuInfo().day, ctx: menuInfo() && menuInfo().ctx, label: shootLabel(), rows: shootRows()};
+    n1.blank = {day: menuInfo() && menuInfo().day, ctx: menuInfo() && menuInfo().ctx, label: shootLabel(), rows: shootRows(), sections: sections()};
     key('Escape');
-    var GREY = function (name) { return [['on', 'Work this day', true, 'Inside ' + name + ' — shorten the hiatus to work these days']]; };
-    var rowsOf = function (x) { return (x.rows || []).map(function (r) { return [r.ov, r.text, r.disabled, r.second]; }); };
-    add('N1', '⭐ Plan §8.1: Wed 22 Jul inside a hiatus offers only the greyed-out Work this day, both while its band reads "Hiatus" and after its label is emptied on purpose ("Inside the hiatus — …"), never Full day / Off',
-      !!band && n1.named.day === '2026-07-22' && n1.named.label === 'Not a shoot day' && eq(rowsOf(n1.named), GREY('Hiatus'))
-        && n1.blank.day === '2026-07-22' && n1.blank.label === 'Not a shoot day' && eq(rowsOf(n1.blank), GREY('the hiatus')),
-      {band: !!band, named: n1.named, blank: n1.blank}, 'the greyed Work this day, both times');
+    // ⛔ FLIPPED 28 Oct 2026 (owner: "remove options from the menu when they aren't accessible, rather than greying them
+    // out"). Until then the shoot section held ruling 1's greyed Work this day here ("Inside Hiatus — shorten the hiatus
+    // to work these days"). Now it has no row, so no shoot section at all; the hiatus's own section still is there.
+    var noShoot = function (x) { return x.label === null && (x.rows || []).length === 0 && x.sections.indexOf('shoot') < 0 && x.sections.indexOf('hiatus') >= 0; };
+    add('N1', '⭐ Plan §8.1: Wed 22 Jul inside a hiatus offers no shoot-day row at all (no greyed Work this day since 28 Oct 2026, and never Full day / Off), both while its band reads "Hiatus" and after its label is emptied on purpose; the hiatus section is there both times',
+      !!band && n1.named.day === '2026-07-22' && noShoot(n1.named) && n1.blank.day === '2026-07-22' && noShoot(n1.blank),
+      {band: !!band, named: n1.named, blank: n1.blank}, 'no shoot section, both times');
 
     // V9 (step 5): two all-phase hiatuses on one day get a section each, told apart by their dates (plan §3.10).
     // Run last, after N1: a one-week hiatus from Mon 21 Dec beside halfdays' two-week one.
@@ -1485,17 +1494,17 @@ window.addEventListener('load', function () { (async function () {
       v9, 'two sections, by dates');
 
     // T1: ⛔ the owner's cut, over EVERY month menu and submenu the leg opened (recorded as each was built). No cut item
-    // in any, no "Shift + right-click" footer line, and nothing greyed but the Start / End pair and Work this day
-    // inside a hiatus (T3). A build that brings one back anywhere turns this red, whichever case opened the menu.
+    // in any, no "Shift + right-click" footer line, and nothing greyed at all (T3, and the owner, 28 Oct 2026, for the
+    // Start / End pair and Work this day inside a hiatus that T3 had let stay greyed). A build that brings one back anywhere turns this red, whichever case opened the menu.
     menuObs.disconnect();
     var t1 = {menus: seenMenus.length, days: seenMenus.filter(function (m) { return !/^sub:/.test(m.day); }).length, cut: [], greyed: [], shift: [], foot: 0};
     seenMenus.forEach(function (m) {
       m.items.forEach(function (id) { if(CUT.test(id)) t1.cut.push(m.day + ':' + id); });
-      m.greyed.forEach(function (id) { if(!MAY_GREY.test(id)) t1.greyed.push(m.day + ':' + id); });
+      m.greyed.forEach(function (id) { t1.greyed.push(m.day + ':' + id); });
       if(/Shift/.test(m.foot)) t1.shift.push(m.day);
       if(m.foot) t1.foot++;
     });
-    add('T1', '⭐ The owner\'s cut holds in every month menu the leg opened: no Add note, Colour… on a bar, Show in Phases card, Lock in place or Number weeks; no "Shift + right-click" footer line; nothing greyed but the Start / End pair and Work this day inside a hiatus',
+    add('T1', '⭐ The owner\'s cut holds in every month menu the leg opened: no Add note, Colour… on a bar, Show in Phases card, Lock in place or Number weeks; no "Shift + right-click" footer line; nothing greyed at all (owner, 28 Oct 2026: left out instead)',
       t1.days >= 40 && t1.menus > t1.days && t1.cut.length === 0 && t1.greyed.length === 0 && t1.shift.length === 0 && t1.foot >= 1,
       t1, 'none, over 40+ menus');
 

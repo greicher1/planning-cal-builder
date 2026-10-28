@@ -115,7 +115,9 @@ window.addEventListener('load', function () { (async function () {
     if(!top || !top.closest || top.closest('.mv-daycell') !== cell) throw new Error('day ' + n + ' is not reachable at its number band');
     return top;
   }
-  async function openDay(n){
+  // noShoot: the day is expected to have NO shoot-day section (a hiatus day, since 28 Oct 2026), so only the menu
+  // itself must open.
+  async function openDay(n, noShoot){
     closePops(); await T.sleep(150);
     // ⚠️ hitDay's scroll can land AFTER the click: the month menu closes on any scroll, and under the harness's
     // virtual time a scroll event waits for a frame, which comes only when the page changes, here when the menu the
@@ -128,7 +130,7 @@ window.addEventListener('load', function () { (async function () {
     if(scrolled && !document.querySelector('.day-menu')){ out.reclicked.push(n); (await hitDay(n)).click(); await T.sleep(250); }
     box.removeEventListener('scroll', onScroll);
     var pop = document.querySelector('.day-menu');
-    if(!pop || !pop.querySelector('[data-section="shoot"]')) throw new Error('no day menu with a shoot-day section opened for day ' + n);
+    if(!pop || (!noShoot && !pop.querySelector('[data-section="shoot"]'))) throw new Error('no day menu with a shoot-day section opened for day ' + n);
     return pop;
   }
   function options(pop){
@@ -278,10 +280,12 @@ window.addEventListener('load', function () { (async function () {
     add('H5u', 'one undo puts the half day back', sameReading(reading(), r0), reading(), r0);
 
     // ---- H6/H7: where nothing half is offered ----
-    pop = await openDay(18);
-    var o6 = options(pop);
-    add('H6', 'Sat 7/18 inside the Summer Break: only the greyed Work this day (a hiatus always wins)',
-      o6.length === 1 && o6[0].v === 'on' && o6[0].disabled, o6, "[{v:'on', disabled:true}]");
+    // ⛔ FLIPPED 28 Oct 2026 (owner: "remove options from the menu when they aren't accessible, rather than greying them
+    // out"). It offered only the greyed Work this day here (ruling 1); now no row, so no shoot-day section at all.
+    pop = await openDay(18, true);
+    var o6 = options(pop), s6 = {rows: o6, shoot: !!pop.querySelector('[data-section="shoot"]'), hiatus: !!pop.querySelector('[data-section="hiatus"]')};
+    add('H6', 'Sat 7/18 inside the Summer Break: no shoot-day row at all, so no shoot-day section (a hiatus always wins; the greyed Work this day is left out since 28 Oct 2026), and the hiatus\'s own section is there',
+      o6.length === 0 && !s6.shoot && s6.hiatus, s6, 'no rows, no shoot section, the hiatus section');
     pop = await openDay(28);
     var o7 = options(pop);
     add('H7', '⭐ WITHDRAWN: Tue 7/28, an ordinary shoot day, offers Full day · Off -- no Half day',

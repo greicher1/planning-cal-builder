@@ -9654,14 +9654,14 @@ export function initLegacyApp() {
       // '' -- which read as "no hiatus", so that hiatus's days offered Full day / Off, both inert there
       // because the shoot never runs inside a hiatus. A nameless one is "the hiatus" in the reason.
       if(sit.hiatus != null){
-        // ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT with its
-        // reason, rather than hiding it. The BEHAVIOUR is unchanged -- 'on' still does not punch
-        // through a hiatus, because a hiatus is a stop-work period the user deliberately scheduled
-        // and a per-day flag that overrode it would make the band mean nothing. What changes is
-        // that the gap stops being silent, which is this project's standing rule that a refusal
-        // must name its reason.
-        rows.push({v:'on', label:'Work this day', disabled:true,
-                   reason:'Inside ' + (sit.hiatus || 'the hiatus') + ' — shorten the hiatus to work these days'});
+        // ⛔ NO ROW on a hiatus day. 'on' does not punch through a hiatus, because a hiatus is a
+        // stop-work period the user deliberately scheduled and a per-day flag that overrode it would
+        // make the band mean nothing. Owner ruling 1 (18 Sep 2026) showed "Work this day" here GREYED
+        // OUT with its reason ("Inside … — shorten the hiatus to work these days"); the owner then
+        // asked for the menu to LEAVE OUT what it cannot do rather than grey it (28 Oct 2026: "remove
+        // options from the menu when they aren't accessible, rather than greying them out"), so the
+        // row is gone. A mark stored before the hiatus covered the day still gets its stale line and
+        // its Clear override, below.
       } else if(sit.weekend || sit.holiday){
         const warn = sit.holiday ? ('Overrides ' + sit.holiday.name) : '';
         rows.push({v:'', label: sit.holiday ? 'Holiday — not shot' : 'Weekend — not shot'});
@@ -9699,7 +9699,7 @@ export function initLegacyApp() {
     // popover's choices, from dayOverrideRows(), in the menu's own item shape. Each row:
     //   - keeps data-ov="<value>" (the halfdays, halfworked and mvmenu legs read it);
     //   - is a menuitemradio, checked on the state the day is in now (the popover's tick);
-    //   - carries its reason (greyed out) or its warning as the item's second line;
+    //   - carries its warning as the item's second line (a row that cannot act is not offered at all);
     //   - is ONE undo step, through setOverride's own push idiom.
     // A stale value's "Stored “…” — not in effect on this day" is a line under the section. The label
     // is the shoot-day number where the day has one; a weekend, a holiday, a hiatus day or a day marked
@@ -9709,6 +9709,8 @@ export function initLegacyApp() {
       if(!sit) return null;
       const n = currentSchedule.productionInfo.shootDays.indexOf(sit.iso) + 1;
       const {rows, stale} = dayOverrideRows(sit);
+      // A hiatus day with nothing stored has no row at all (above), and a section with no item is not shown.
+      if(!rows.length) return null;
       return {id: 'shoot', label: n > 0 ? 'Shoot day ' + n : 'Not a shoot day',
         notice: stale ? 'Stored “' + stale + '” — not in effect on this day' : '',
         items: rows.map(r=>({
@@ -9952,11 +9954,13 @@ export function initLegacyApp() {
     // The bar under the pointer (plan §3.4–3.7, step 3): its own section, after "This day", headed by its
     // name and colour. A phase's bar, a custom phase's, or a Prep pill; the sim-post bar names no phase.
     //   Start <phase> here  a MOVER, the same as dragging the bar to this day (installMonthPillDrag).
-    //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
+    //   End <phase> here    the end handle's own rule (phaseEdgePlan). Never on Production (ruling Q3).
     //   Back to date order  while a reorder is set (MONTH-ORDER-PLAN.md §3.1): the only way back from one.
     //   Remove <phase>…     a CUSTOM phase only, the row's own × with its question (step 4, removePhaseHere).
-    // Start / End are a PAIR, greyed with the reason when one is refused rather than banking an empty step (the
-    // waterfall's R6 exception: one missing from the pair would read as a bug). ⛔ TRIMMED (plan §13, ruling T1):
+    // ⛔ Start / End are each LEFT OUT where they cannot act (it already starts / ends on this day, it can't end here,
+    // Production's end), never greyed: the owner, 28 Oct 2026, "remove options from the menu when they aren't
+    // accessible, rather than greying them out". (They were a greyed PAIR until then, the waterfall's R6 exception,
+    // on the reasoning that one missing would read as a bug; the owner ruled the other way.) ⛔ TRIMMED (plan §13, ruling T1):
     // Colour… and Show in Phases card are gone, the phase row's swatch and the row itself, and on a PREP bar so is
     // the pair -- Prep is worked out from each episode's first shoot day, so neither could ever act there. A section
     // with no item left is not shown.
@@ -9974,17 +9978,15 @@ export function initLegacyApp() {
         const startEl = document.getElementById('start-' + key);
         const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
         const noMove = !!startEl && startEl.value === ctx.iso && !(snapEl && snapEl.checked && ctx.date.getUTCDay() !== 1);
-        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', note: 'Moves it. Its length stays',
-          disabled: !startEl || noMove, why: 'It already starts on this day',
-          run: ()=> startPhaseHere(ctx, key)});
-        if(key === 'production'){
-          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true,
-            why: 'Its end comes from the shoot days'});
-        } else {
+        if(startEl && !noMove)
+          items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', note: 'Moves it. Its length stays',
+            run: ()=> startPhaseHere(ctx, key)});
+        // Production's end comes from the shoot days, so it has no End item at all.
+        if(key !== 'production'){
           const d = phaseEdgePlan(key, 'end'), D = d && phaseEdgeSolve(d, ctx.iso);
-          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', note: 'Keeps its start. Changes its length',
-            disabled: !D || D === d.edge0, why: D ? 'It already ends on this day' : 'It can’t end on this day',
-            run: ()=> endPhaseHere(ctx, key)});
+          if(D && D !== d.edge0)
+            items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', note: 'Keeps its start. Changes its length',
+              run: ()=> endPhaseHere(ctx, key)});
         }
       }
       // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set, and LEFT OUT when the

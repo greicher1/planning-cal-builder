@@ -4,7 +4,41 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), on `origin/main` at `d25eaf6` (merged in at `62233d0`); plan `a7eda85`, build `07096a5`; ✅ FULL GATE 3,012 / 1 on the merged build (`6ac77d19…`), the 1 the recorded `pilllabel` month-walk flake, green alone 7 times; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
+### 🔨 28 Oct 2026 (latest): THE MONTH MENU GREYS NOTHING OUT — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` (`26516be`, v1.9.0 + the Season hint line) merged in as `a8ae3cb`; COMMITTED on the branch; targeted legs green; NO full gate yet; NOT merged into `main`, NOT pushed
+
+- **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want
+  to remove options from the menu when they aren't accessible, rather than greying them out"*. Tracker card
+  `month-menu-trim` (moved ready → building).
+- **Where it stood:** the trim (entry below, 23 Oct) was built and full-gated but never merged; the v1.9.0 landing
+  skipped it. It already left most refused items out (ruling T3), but kept TWO greyed: the Start / End pair, and
+  ruling 1's *Work this day* inside a hiatus.
+- **Merged `main` in first** (`a8ae3cb`, 96 commits behind). Only docs and `mvmenu` conflicted. ⚠️ Since 26 Oct the
+  month's scroll box is `#table-wrap` (it was `.preview-panel`), so `mvmenu` C1 / C4 (ruling T4's real scroll) now
+  scroll and spacer `#table-wrap`; the spacer goes in before the menu opens and out after it closed, so the month's
+  subtree render rule never sees it while open. `scrollBoxes` already walks the day cell's ancestors, so the app code
+  needed nothing. UI-CONVENTIONS §10: main's `softlines` item stays 20, the trim's is 21.
+- **Done** (`installMonthDayMenu`, no frozen code, no saved key, no id):
+  - `phaseSection`: Start ‹phase› here is left out on the day it already starts; End ‹phase› here where it already
+    ends or can't end; **End Production here is gone entirely** (it was always greyed: *"Its end comes from the shoot
+    days"*). A section with no item left is not shown (already the rule).
+  - `dayOverrideRows`: a hiatus day (all-phase or Production's own) gets **no row**, so `shootSection` returns null and
+    the day has no shoot-day section. ⛔ This withdraws owner ruling 1's greyed row (18 Sep 2026) on the owner's own
+    newer word. The behaviour is unchanged ('on' still never punches through a hiatus). A mark stored before the
+    hiatus covered the day still gets its "Stored … — not in effect" line and Clear override.
+  - **The waterfall menu is NOT changed:** its Start / End pair and its Cut · Copy · Clear row still grey (its own
+    R6 exception). Whether the same rule should reach it is the owner's call; asked at the end of this turn.
+- **Verified** (build `ce9261f2…`, 1,868,191 bytes): `npm run check` 40/40; `mvmenu` 81/81, T1 now failing on ANY
+  greyed item (85 menus + submenus seen, 0 greyed), H1s / P2m / P3 / P4u / N1 / V8 flipped from "greyed" to "left
+  out"; `halfworked` 24/24 (H6 flipped; `openDay(n, noShoot)`); `wfmenu` 38/38; `halfdays` 27/27; `phasefold` 11/11;
+  `labelsetup` 41/41; `offweek` live + offweek pass; `shootdays` offweek / blocks pass, dayoverrides-onhalf failed
+  once while another session's full gate ran (its JSON was overwritten before it was read) and passed on the re-run.
+  That leg reads only "Shoot day N" from the menu, so a missing shoot section reads as it always did. **Red on the
+  pre-change build** (`a8ae3cb`, built with `git archive`): `mvmenu` 74/81, the 7 failing H1s, P2m, P4u, P3, V8,
+  N1 and T1.
+- ⏭ **Next:** merging into `main` is the owner's picker. Then a FULL gate on `main` (none has run on this merged
+  build; another session's gate was running, and two at once stall), then a separate push picker.
+
+### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER (⬆️ continued 28 Oct, entry above: nothing greyed, main merged in) — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), on `origin/main` at `d25eaf6` (merged in at `62233d0`); plan `a7eda85`, build `07096a5`; ✅ FULL GATE 3,012 / 1 on the merged build (`6ac77d19…`), the 1 the recorded `pilllabel` month-walk flake, green alone 7 times; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
 
 - **Asked** (relayed by the session that started this one): the waterfall menu's ruling R7, *"Trim the month menu
   too"*, as its own task. Tracker card `month-menu-trim`.
@@ -52,7 +86,7 @@
 - ⏭ **Next:** merging into `main` and the push are each the owner's picker. ⚠️ Local `main` is ahead of `origin/main`
   (`99a145e`, Scenarios, unpushed); this branch is on `origin/main`, so merge it into local `main` as it stands. The tracker card is `building` until the gate is green.
 
-### ✅ 28 Oct 2026 (latest): SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 
 - **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
   a gate just remove and push"*.

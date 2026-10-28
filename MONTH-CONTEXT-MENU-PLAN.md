@@ -645,7 +645,7 @@ there is no one-gesture way to do it already. The gestures the month view alread
 |---|---|---|
 | ✅ T1 | Trim to the short list (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks and the Shift footer line go; Prep's Start / End go)? Previewed on Production's bar and on a plain day | **"Trim to this list"**. Declined: also cutting Start / End here |
 | ✅ T2 | Which of the owner's own earlier items stay: Add 1-day phase here (Q1), Remove ‹phase›… (19 Oct), hiatus Colour… (20 Oct), the holiday section (Q6)? | **All four** |
-| ✅ T3 | An item that cannot act on the day: left out, or greyed with its reason? | **"Leave it out"**, the waterfall's R6. Start / End stay a greyed pair; *Work this day* inside a hiatus stays greyed with its reason (owner ruling 1, 18 Sep 2026) |
+| ✅ T3 | An item that cannot act on the day: left out, or greyed with its reason? | **"Leave it out"**, the waterfall's R6. Start / End stay a greyed pair; *Work this day* inside a hiatus stays greyed with its reason (owner ruling 1, 18 Sep 2026). ⛔ **Both exceptions withdrawn 28 Oct 2026** (§13.9): nothing in the month menu is greyed |
 | ✅ T4 | Close on any scroll, or only when the calendar itself scrolls? | **"Only when the calendar scrolls"**: the waterfall menu's rule, so one rule for both menus |
 
 This session's calls, each cheap to change: Prep's greyed pair goes (T1's wording named it); the double-click hint shows
@@ -657,8 +657,8 @@ already starts (T3), which the waterfall's submenu shares, and the waterfall's o
 | Section | Shows when | Items |
 |---|---|---|
 | *(This day)* | always | Add 1-day phase here (not on a weekend or inside an all-phase hiatus) · Add 1-week phase here · Add hiatus ▸ |
-| *‹phase›* | the pointer is on that phase's bar, and the section has an item | Start / End ‹phase› here (a greyed pair; not on Prep) · Back to date order (while an order is set and differs from date order) · Remove ‹phase›… (custom phases) |
-| Shoot day N | the day is inside the shoot | the shoot rows, unchanged (L1) |
+| *‹phase›* | the pointer is on that phase's bar, and the section has an item | Start ‹phase› here (not on the day it starts) · End ‹phase› here (not on Production, nor where it already ends or can't end) · neither on Prep · Back to date order (while an order is set and differs from date order) · Remove ‹phase›… (custom phases). *Start / End were a greyed pair until 28 Oct 2026 (§13.9)* |
+| Shoot day N | the day is inside the shoot, and has a row | the shoot rows (L1). Inside a hiatus: none since 28 Oct 2026, so no section, unless a mark stored before the hiatus needs its Clear override (§13.9) |
 | ‹hiatus› · dates | the day is inside an all-phase hiatus | Colour… · Remove hiatus… |
 | ‹phase›'s hiatus · dates | the day is inside a phase's own hiatus | Remove ‹phase›'s hiatus |
 | Holiday · ‹name› | a holiday falls on the day | Enabled · Show in month view · Show in waterfall (the two Show items only while the holiday is on) |
@@ -724,3 +724,26 @@ Where the build adds to the plan:
 6. **The full gate**, on the branch merged up to `origin/main` (`62233d0`, build `6ac77d19…`): 3,012 PASS, 1 FAIL, every
    frozen output identical to its baseline (gate 13's written month PDFs byte for byte). The FAIL is `pilllabel
    (blocksoff)` W2's cut-short month walk, a flake on record in HANDOFF; green alone 7 times on the same build.
+
+### 13.9 Nothing greyed (owner, 28 Oct 2026)
+
+The owner, asking where the trim stood: *"At the bare minimum, i want to remove options from the menu when they aren't
+accessible, rather than greying them out"*. T3 had already left most refused items out, but kept two greyed. Both go:
+
+| Item | Was | Now |
+|---|---|---|
+| Start ‹phase› here, on the day it already starts | greyed, "It already starts on this day" | left out |
+| End ‹phase› here, where it already ends or can't end | greyed, "It already ends on this day" / "It can’t end on this day" | left out |
+| End Production here | always greyed, "Its end comes from the shoot days" (ruling Q3) | never offered |
+| Work this day, inside an all-phase hiatus or Production's own | greyed, "Inside ‹hiatus› — shorten the hiatus to work these days" (owner ruling 1, 18 Sep 2026) | no row; the day has no shoot-day section |
+
+- **The behaviour is unchanged:** a hiatus still always wins over a day mark, and Production's end still comes from the
+  shoot days. Only the refused line is gone.
+- A mark stored before a hiatus covered its day still shows its "Stored … — not in effect on this day" notice and its
+  Clear override, so it can always be removed.
+- Production's bar on a shoot day is 7 lines now (8 after the trim, 11 before it).
+- **Not the waterfall.** Its menu still greys its Start / End pair and its Cut · Copy · Clear row (its own R6). The same
+  rule there is a separate question for the owner.
+- **Proof:** `mvmenu` T1 now fails on ANY greyed item in any month menu or submenu the leg opens (85 of them); H1s,
+  P2m, P3, P4u, N1 and V8 assert the item or section is ABSENT. `halfworked` H6 the same. Red on the build just before
+  (`a8ae3cb`): 74/81.

@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — The month view's day menu, trimmed by the owner (23 Oct 2026, branch `claude/adoring-chaum-0206c1`)
+### Unreleased — The month view's day menu, trimmed by the owner, with nothing greyed out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
 
 The owner asked for the waterfall's right-click menu to be cut down (*"we really dont need the swap collumn feature …
 We dont need an add notes button at all. right now the right click menu especially on phases is huge"*), then chose
@@ -46,10 +46,17 @@ there is no one-gesture way to do it already. The owner approved the short list 
 - **An item that cannot act on the day is left out, not greyed** (as in the waterfall): Add 1-day phase here on a
   weekend or hiatus day, a holiday's Show items while it is off, Back to date order when the bars are already in date
   order, and *Move ‹phase›'s hiatus here* in the week it already starts (in the Add hiatus ▸ submenu both menus share).
-  Start / End stay a greyed pair, and Work this day inside a hiatus stays greyed with its reason.
+- **28 Oct 2026: nothing in the month menu is greyed out any more.** The owner: *"remove options from the menu when
+  they aren't accessible, rather than greying them out"*. The two items the trim had kept greyed are left out where
+  they cannot act: Start ‹phase› here on the day it already starts, End ‹phase› here on the day it already ends or
+  can't end, End Production here always (its end comes from the shoot days), and Work this day inside a hiatus (owner
+  ruling 1 of 18 Sep 2026 had it greyed with "shorten the hiatus to work these days"). A hiatus day therefore has no
+  shoot-day section at all, unless it holds a mark stored before the hiatus covered it, which still gets its notice and
+  Clear override. The waterfall's own menu is unchanged: its Start / End pair and its clipboard row still grey.
 - **"Double-click a marked day to clear it"** shows only on a day that holds a mark.
 - **It closes only when the calendar scrolls**, the waterfall menu's rule: scrolling the sidebar leaves it open.
-- Production's bar on a shoot day: 11 lines to 8. A hiatus day with Christmas on it: 13 to 8. A plain day: 5 to 4.
+- Production's bar on a shoot day: 11 lines to 8, and to 7 on 28 Oct (End Production here gone). A hiatus day with
+  Christmas on it: 13 to 8. A plain day: 5 to 4.
 - No frozen code, no saved key, no new id. Built on the waterfall menu's engine, merged up to `origin/main` at `d25eaf6`.
 - **Verified:** `mvmenu` 81/81, with every menu it checks held to its exact item list and a new case (T1) watching all
   75 month menus the leg opens for a cut item or a stray greyed one; red on the pre-trim build (21 cases). `wfmenu`
@@ -58,6 +65,11 @@ there is no one-gesture way to do it already. The owner approved the short list 
   open while a calendar scroll of 60 px closed it. Full gate on the build merged up to `origin/main` (`6ac77d19…`):
   3,012 PASS, 1 FAIL, the recorded `pilllabel` month-walk flake (green alone 7 times on the same build); every frozen
   output identical to its baseline. Not merged, not pushed.
+- **Verified, 28 Oct 2026** (current `main`, v1.9.0, merged in; then nothing greyed): `npm run check` 40/40; `mvmenu`
+  81/81, its T1 now failing on ANY greyed item in the 85 menus and submenus it opens, and H1s, P2m, P3, P4u, N1 and V8
+  flipped from greyed to left out; `halfworked` 24/24 (H6 flipped the same way); `wfmenu` 38/38, `halfdays` 27/27,
+  `phasefold` 11/11, `labelsetup` 41/41, `offweek` and `shootdays` pass. `mvmenu` is red on the build just before
+  (7 cases). No full gate yet on this build.
 
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 

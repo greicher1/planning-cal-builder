@@ -1648,8 +1648,10 @@ done
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's. ⛔ TRIMMED BY THE OWNER,
 # 23 Oct 2026 (plan §13, rulings T1-T4): every menu it checks is held to its EXACT item list, its T1 case watches all
 # 75 month menus it opens for a cut item (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks),
-# the "Shift + right-click" line or a stray greyed item, and C1 / C4 hold the waterfall's close-on-scroll rule. Red
-# on the pre-trim build (21 cases).
+# the "Shift + right-click" line or ANY greyed item, and C1 / C4 hold the waterfall's close-on-scroll rule. Red
+# on the pre-trim build (21 cases). ⛔ Since 28 Oct 2026 nothing in a month menu is greyed (owner: "remove options from
+# the menu when they aren't accessible, rather than greying them out"): Start / End and ruling 1's Work this day inside
+# a hiatus are left out where they cannot act, as everything else already was.
 # wfmenu guards the waterfall's right-click menu (WATERFALL-CONTEXT-MENU-PLAN.md, rulings R1-R7, 22-23 Oct 2026), the
 # same engine as mvmenu's, on halfdays.sptcal. LEAN BY RULING (owner, 23 Oct 2026: no Swap column, no Add note), so
 # every cell kind's EXACT item list is asserted: a phase week (Start / End <phase> this week, a greyed pair when

@@ -1377,8 +1377,9 @@ Nothing in this document ships without all of these, every stage:
     weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the
     left-click menu), and T1, which watches every month menu and submenu the leg opens (75 of them) for a cut item
     (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks), a "Shift + right-click" footer
-    line, or anything greyed but the Start / End pair and ruling 1's Work this day inside a hiatus (T3: an item
-    that cannot act is left out). C1 and C4 hold the waterfall menu's close-on-scroll rule (T4): a scroll that moves
+    line, or ANYTHING greyed (T3: an item that cannot act is left out; since 28 Oct 2026 the owner's *"remove
+    options from the menu when they aren't accessible, rather than greying them out"* took out T3's two exceptions,
+    the Start / End pair and ruling 1's Work this day inside a hiatus). C1 and C4 hold the waterfall menu's close-on-scroll rule (T4): a scroll that moves
     the day closes it; an unmoved event or a sidebar scroll does not. `phasefold` F8 and `labelsetup` C1 moved off
     the cut items. Red on the pre-trim build (21 cases).
 
