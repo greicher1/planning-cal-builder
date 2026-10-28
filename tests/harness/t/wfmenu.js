@@ -6,7 +6,10 @@
 // click menu. We dont need an add notes button at all. right now the right click menu especially on phases is
 // huge"). So every H-case asserts the EXACT item list for its kind of cell: an item that comes back (Swap column,
 // Add note, Colour…, Show in Phases card, Expand cells, the holiday checkboxes) turns it red, as does an item that
-// cannot act being shown greyed instead of left out (ruling R6).
+// cannot act being shown greyed instead of left out (ruling R6). ⛔ Since 28 Oct 2026 with NO exception (owner, by
+// picker: "Yes, waterfall too", after "remove options from the menu when they aren't accessible, rather than greying
+// them out" for the month menu): Start / End and Cut · Copy · Clear, R6's greyed exceptions, are left out too, and
+// case G0 fails on any greyed item in any waterfall menu the leg opens.
 //
 // tests/fixtures/halfdays.sptcal (synthetic), as the waterfall draws it:
 //   Production  6/29/26 - 8/31/26 (10 rows); Notes: "Start Principal Photography 6/29/26" (week of 6/29) and
@@ -175,6 +178,21 @@ window.addEventListener('load', function () { (async function () {
 
   var PH5 = ['phase-start', 'phase-end', 'phase-week', 'hiatus', 'month'];
   var CLIP = ['cut', 'copy', 'paste', 'clear'];
+  // Every waterfall menu (and submenu) the leg opens, as it was built, for G0: nothing in any may be greyed.
+  var seenWf = [];
+  var wfObs = new MutationObserver(function (recs) {
+    recs.forEach(function (r) {
+      [].forEach.call(r.addedNodes, function (m) {
+        if(m.nodeType !== 1 || !m.classList.contains('day-menu')) return;
+        var sub = m.classList.contains('day-menu-sub');
+        if(!sub && m.getAttribute('data-view') !== 'sheet') return;
+        seenWf.push({at: m.getAttribute('data-week') || m.getAttribute('data-day') || (sub ? 'sub' : '?'),
+          greyed: [].filter.call(m.querySelectorAll('.day-menu-item'), function (b) { return b.getAttribute('aria-disabled') === 'true'; })
+            .map(function (b) { return b.getAttribute('data-item'); })});
+      });
+    });
+  });
+  wfObs.observe(document.body, {childList: true});
 
   try {
     await T.appReady();
@@ -225,19 +243,23 @@ window.addEventListener('load', function () { (async function () {
 
     await rc(phaseTd('production', '2026-07-27'));
     var i2 = info();
-    add('H2', 'A Production week: the same five; End Production greyed with "Its end comes from the shoot days" (month ruling Q3), Start offered',
-      eq(ids(i2), PH5) && item(i2, 'phase-end').off && item(i2, 'phase-end').second === 'Its end comes from the shoot days' && !item(i2, 'phase-start').off,
-      i2 && i2.items, 'phase-end greyed');
+    // ⛔ FLIPPED 28 Oct 2026: End Production this week was always greyed ("Its end comes from the shoot days", month
+    // ruling Q3); now it is never offered (owner: left out, never greyed).
+    var PH4S = ['phase-start', 'phase-week', 'hiatus', 'month'];
+    add('H2', 'A Production week: Start offered, NO End (its end comes from the shoot days, so it is left out; greyed until 28 Oct 2026), nothing greyed',
+      eq(ids(i2), PH4S) && i2.items.every(function (x) { return !x.off; }),
+      i2 && i2.items, PH4S.join(', '));
     await esc();
 
     await rc(phaseTd('post', '2026-11-02'));
     var i3a = info(); await esc();
     await rc(phaseTd('post', '2027-03-01'));
     var i3b = info(); await esc();
-    add('H3', 'Post\'s first week greys Start ("It already starts this week"); its last greys End ("It already ends this week"): Start and End stay a pair (R6)',
-      item(i3a, 'phase-start').off && item(i3a, 'phase-start').second === 'It already starts this week' && !item(i3a, 'phase-end').off
-        && item(i3b, 'phase-end').off && item(i3b, 'phase-end').second === 'It already ends this week' && !item(i3b, 'phase-start').off,
-      {first: i3a && i3a.items.slice(0, 2), last: i3b && i3b.items.slice(0, 2)}, 'one greyed each');
+    // ⛔ FLIPPED 28 Oct 2026: they were a greyed pair ("It already starts / ends this week", R6's exception).
+    var PH4E = ['phase-end', 'phase-week', 'hiatus', 'month'];
+    add('H3', 'Post\'s first week LEAVES OUT Start (End offered); its last LEAVES OUT End (Start offered); nothing greyed (a greyed pair until 28 Oct 2026)',
+      eq(ids(i3a), PH4E) && eq(ids(i3b), PH4S) && i3a.items.concat(i3b.items).every(function (x) { return !x.off; }),
+      {first: i3a && i3a.items, last: i3b && i3b.items}, 'first: ' + PH4E.join(', ') + '; last: ' + PH4S.join(', '));
 
     await rc(noteTd('2026-06-29'));
     var i4 = info();
@@ -249,10 +271,13 @@ window.addEventListener('load', function () { (async function () {
 
     var h5x = await rc(noteTd('2026-07-06'));
     var i5 = info();
-    add('H5', 'An empty Notes cell (7/6): Cut, Copy and Clear greyed with "The note is empty" under the row, Paste offered; Show this WEEK',
-      i5 && eq(ids(i5), CLIP.concat(['month'])) && item(i5, 'cut').off && item(i5, 'copy').off && item(i5, 'clear').off && !item(i5, 'paste').off
-        && i5.notice === 'The note is empty' && item(i5, 'month').text === 'Show this week in the month view',
-      i5 || h5x.log, 'paste only, with the reason');
+    // ⛔ FLIPPED 28 Oct 2026: Cut, Copy and Clear were greyed here with "The note is empty" under the row. Now they are
+    // left out, and Paste alone is an ordinary row (one button would sit in a quarter of the four-wide strip), so focus
+    // opens on it.
+    add('H5', 'An empty Notes cell (7/6): EXACTLY Paste, as an ordinary row (no strip, no notice), and Show this WEEK; nothing greyed; focus on Paste',
+      i5 && eq(ids(i5), ['paste', 'month']) && i5.strip === 0 && !i5.notice && i5.items.every(function (x) { return !x.off; })
+        && item(i5, 'month').text === 'Show this week in the month view' && i5.focus === 'paste',
+      i5 || h5x.log, 'paste, month');
     await esc();
 
     var h6 = await rc(W('td.sheet-hiatus-cell[data-week="2026-12-28"]'));
@@ -369,8 +394,9 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     var n2u = noteText('2026-06-29');
     await undo();
-    add('N2', 'Then the cleared cell offers Back to automatic text ("Start Principal Photography 6/29/26"), between the row and the way out; it brings the text back as ONE undo step (undo empties it again; one more undo, nothing left)',
-      n2i && eq(ids(n2i), CLIP.concat(['note-auto', 'month'])) && item(n2i, 'note-auto').second === 'Start Principal Photography 6/29/26'
+    // The cleared cell is empty, so since 28 Oct 2026 its clipboard row is Paste alone (Cut, Copy and Clear left out).
+    add('N2', 'Then the cleared cell offers Paste (alone: it is empty) and Back to automatic text ("Start Principal Photography 6/29/26"), before the way out; it brings the text back as ONE undo step (undo empties it again; one more undo, nothing left)',
+      n2i && eq(ids(n2i), ['paste', 'note-auto', 'month']) && item(n2i, 'note-auto').second === 'Start Principal Photography 6/29/26'
         && n2.text === 'Start Principal Photography 6/29/26' && n2u === '' && noteText('2026-06-29') === 'Start Principal Photography 6/29/26' && !undoOn(),
       {menu: n2i && n2i.items, back: n2.text, undone: n2u, undo: undoOn()}, 'back, one step');
 
@@ -465,8 +491,9 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     var hUndone = Math.round(phaseTd('production', '2026-07-06').parentElement.getBoundingClientRect().height);
     await undo();
+    // A Production week: no End item since 28 Oct 2026 (H2).
     add('S1', 'After a row is dragged taller, its cells offer Reset row height in a Size section before the way out; it puts the row back as ONE undo step',
-      hDragged > hDefault && s1 && eq(ids(s1), ['phase-start', 'phase-end', 'phase-week', 'hiatus', 'size-row', 'month']) && s1.sections.indexOf('size') === s1.sections.length - 2
+      hDragged > hDefault && s1 && eq(ids(s1), ['phase-start', 'phase-week', 'hiatus', 'size-row', 'month']) && s1.sections.indexOf('size') === s1.sections.length - 2
         && hReset === hDefault && hUndone === hDragged && !undoOn(),
       {default: hDefault, dragged: hDragged, reset: hReset, undone: hUndone, items: ids(s1), sections: s1 && s1.sections}, 'reset, one step');
 
@@ -548,6 +575,14 @@ window.addEventListener('load', function () { (async function () {
     add('P6', 'Start Writer\'s Room this week (1/19/26) when it starts on a Wednesday (1/7/26, Snap off): it moves by whole weeks to Wed 1/21/26, its first row 1/19/26',
       p6pre === '2026-01-05' && $('start-writersRoom').value === '2026-01-21' && rows('writersRoom')[0] === '2026-01-19',
       {pre: p6pre, start: $('start-writersRoom').value, first: rows('writersRoom')[0]}, '2026-01-21');
+
+    // G0: ⛔ the owner's rule (28 Oct 2026), over EVERY waterfall menu and submenu the leg opened, as each was built:
+    // nothing greyed. A build that greys an item again, on any cell a case happens to open, turns this red.
+    wfObs.disconnect();
+    var g0 = {menus: seenWf.length, greyed: []};
+    seenWf.forEach(function (m) { m.greyed.forEach(function (id) { g0.greyed.push(m.at + ':' + id); }); });
+    add('G0', '⭐ Nothing is greyed in any waterfall menu or submenu the leg opened (owner, 28 Oct 2026: left out, never greyed)',
+      g0.menus >= 20 && g0.greyed.length === 0, g0, 'none greyed, over 20+ menus');
 
     out.health = T.appHealth();
     add('E1', 'No uncaught page errors', !(out.health.errors || []).length, out.health.errors, '[]');

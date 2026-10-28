@@ -100,6 +100,10 @@ pair would read as a bug.
 Inside the clipboard row, the four buttons are one unit: on a Notes cell all four show, and Cut / Copy / Clear are
 greyed when no highlighted note shows text, with the reason as a line under the row ("The note is empty").
 
+> ⛔ **Both exceptions WITHDRAWN 28 Oct 2026** (§11): the owner, asked by picker after the month menu's same change,
+> chose *"Yes, waterfall too"*. Start and End are each left out where refused (End Production is never offered), and
+> on an empty note Cut, Copy and Clear are left out, Paste alone shown as an ordinary row. Nothing in this menu greys.
+
 ### 2.2 ✅ Ruling R5 (owner, 23 Oct 2026, by picker): a week offers Add 1-week phase here and Add hiatus ▸
 
 *"Both"*, over *"Neither"* (recommended) and *"Add hiatus only"*. The question was asked about a phase week. **This
@@ -276,7 +280,7 @@ exactly as it was. `monthCursor` is session UI and was never saved.
 | ✅ R4 | The way out | **Show this day** on a dated note or holiday line, **Show this week** elsewhere (22 Oct 2026). |
 | ✅ C1 | (in chat, 23 Oct 2026) | **Be cautious: no Swap column, no Add note; the phase menu is too big.** §1. |
 | ✅ R5 | Add hiatus / Add 1-week phase on a week? | **Both** (by picker, 23 Oct 2026). |
-| ✅ R6 | An item that can't act: leave out or grey? | **Leave it out**; Start / End stay a greyed pair (by picker, 23 Oct 2026). |
+| ✅ R6 | An item that can't act: leave out or grey? | **Leave it out**; Start / End stay a greyed pair (by picker, 23 Oct 2026). ⛔ The pair and the clipboard row's greyed three withdrawn 28 Oct 2026 (§11): nothing greys |
 | ✅ R7 | Trim the month menu the same way? | **Yes, as its own task** after this one (by picker, 23 Oct 2026). |
 
 This session's calls, each cheap to change: Start moves by whole weeks keeping the weekday (§3.1); End keeps a Weeks
@@ -343,3 +347,23 @@ the `wf*` items beside the month menu's own). Where the build differs or adds:
    (`d2ac914e…`, the live file): it stops at V1, no menu.
 7. **Not done, deliberately:** no mutants beyond the pre-change build. The exact item lists (H-cases) are what holds
    the owner's cut.
+
+## 11. Nothing greyed (owner, 28 Oct 2026)
+
+The owner, about the month menu: *"At the bare minimum, i want to remove options from the menu when they aren't
+accessible, rather than greying them out"*. Asked by picker whether the waterfall should follow, they chose *"Yes,
+waterfall too"* (the recommendation). R6's two greyed exceptions go:
+
+| Cell | Was | Now |
+|---|---|---|
+| A phase's first week | Start greyed, "It already starts this week" | Start left out |
+| A phase's last week, or a week it can't end in | End greyed, "It already ends this week" / "It can’t end here" / "It can’t be shorter than one week" | End left out |
+| Any Production week | End always greyed, "Its end comes from the shoot days" | never offered |
+| An empty Notes cell, or a highlight of empty ones | Cut · Copy · Clear greyed, "The note is empty" under the row | left out; Paste alone, as an ORDINARY row (one button would sit in a quarter of the four-wide strip), so focus opens on it |
+
+- `wfEndPlan()` still returns its reasons; nothing shows them now. The menu's greyed-item machinery
+  (`is-disabled`, `aria-disabled`, the keys stepping over it) stays, unused by either menu.
+- **Proof:** `wfmenu` 39/39: H2, H3, H5, N2 and S1 flipped from greyed to absent, and a new G0 watches every
+  waterfall menu and submenu the leg opens (33) for any greyed item. Red on the build just before (`3c42554`,
+  the month menu's same change alone): 33/39, the 6 failing exactly H2, H3, H5, N2, S1 and G0. `mvmenu` 81/81 (shared
+  engine). `npm run check` 40/40.

@@ -1654,11 +1654,13 @@ done
 # a hiatus are left out where they cannot act, as everything else already was.
 # wfmenu guards the waterfall's right-click menu (WATERFALL-CONTEXT-MENU-PLAN.md, rulings R1-R7, 22-23 Oct 2026), the
 # same engine as mvmenu's, on halfdays.sptcal. LEAN BY RULING (owner, 23 Oct 2026: no Swap column, no Add note), so
-# every cell kind's EXACT item list is asserted: a phase week (Start / End <phase> this week, a greyed pair when
-# refused; Add 1-week phase here; Add hiatus), a Notes cell (Cut / Copy / Paste / Clear, Back to automatic text), a
+# every cell kind's EXACT item list is asserted: a phase week (Start / End <phase> this week, each left out when
+# refused; Add 1-week phase here; Add hiatus), a Notes cell (Cut / Copy / Paste / Clear; Paste alone when empty; Back
+# to automatic text), a
 # band (Remove hiatus…), a date or empty cell, a highlight of several; an item that cannot act is left out (R6), Size
 # only after a hand resize. Each item one undo step; Show this day / week in the month view banks none and rings the
 # day. Cut keeps the note when the clipboard refuses. Red on the pre-change build. mvmenu G3 now expects it too.
+# ⛔ Since 28 Oct 2026 nothing greys (owner, "Yes, waterfall too"): its G0 watches every waterfall menu it opens.
 # mvnotes guards bundle A of the 20 Oct 2026 gap list (MONTH-NOTES-PLAN.md, the owner's rulings by picker): the day-note
 # editor's palette, No fill and remembered colour (P), one month each side and the custom holidays drawn there (E),
 # notes on every hiatus day (H), Paste notes… (V) and one-day custom pills that wrap (W). LIVE builds the synthetic

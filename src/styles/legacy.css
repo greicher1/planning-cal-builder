@@ -3314,14 +3314,14 @@
   @keyframes day-menu-flash{ 0%, 60%{ opacity:1; } 100%{ opacity:0; } }
   @media (prefers-reduced-motion: reduce){ .day-menu-ring.is-flash{ animation:none; } }
   /* The waterfall menu's clipboard row (ruling R1, Excel's Paste Options row): four buttons side by side, the
-     icon over the word. A refusal's reason is the .day-menu-notice line under the row. */
+     icon over the word. On an empty note Cut, Copy and Clear are left out (owner, 28 Oct 2026, never greyed), and
+     Paste alone is an ordinary row, not this strip. */
   .day-menu-strip{ display:grid; grid-template-columns:repeat(4, 1fr); gap:2px; }
   .day-menu-strip .day-menu-item{
     flex-direction:column; gap:3px; min-height:0; padding:6px 4px 5px;
     justify-content:center; text-align:center;
   }
   .day-menu-strip .day-menu-text{ flex:none; font-size:var(--mantine-font-size-xs); line-height:14px; }
-  .day-menu-strip + .day-menu-notice{ padding-left:10px; }
 
   .note-day-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
   .note-day-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);

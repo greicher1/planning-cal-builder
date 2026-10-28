@@ -1357,7 +1357,8 @@ Nothing in this document ships without all of these, every stage:
 19. **NEW — the waterfall's right-click menu stays short, and each item is one undo step** (23 Oct 2026,
     WATERFALL-CONTEXT-MENU-PLAN.md). `gate.sh`'s `wfmenu` leg (`halfdays`), every right-click hit-tested: the EXACT
     item list per kind of cell (owner, 23 Oct 2026: no Swap column, no Add note; ruling R6: an item that cannot act
-    is left out, Start / End a greyed pair), so an item that creeps back is red; each item's effect and its one
+    is left out; since 28 Oct 2026 with no exception, the Start / End pair and the empty note's Cut · Copy · Clear
+    left out too, and G0 red on any greyed item), so an item that creeps back is red; each item's effect and its one
     undo step; Show this day / week in the month view banking none; Cut keeping the note when the clipboard
     refuses; the highlight rule; no menu on a heading or with Shift; a render closing the menu, a repaint or an
     unmoved scroll not; no id, and `fields.byId` unchanged. ⚠️ Before adding a menu item anywhere, read that plan's

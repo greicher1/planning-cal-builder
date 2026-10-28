@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — The month view's day menu, trimmed by the owner, with nothing greyed out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
+### Unreleased — The month view's day menu, trimmed by the owner, and neither right-click menu greys anything out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
 
 The owner asked for the waterfall's right-click menu to be cut down (*"we really dont need the swap collumn feature …
 We dont need an add notes button at all. right now the right click menu especially on phases is huge"*), then chose
@@ -52,7 +52,11 @@ there is no one-gesture way to do it already. The owner approved the short list 
   can't end, End Production here always (its end comes from the shoot days), and Work this day inside a hiatus (owner
   ruling 1 of 18 Sep 2026 had it greyed with "shorten the hiatus to work these days"). A hiatus day therefore has no
   shoot-day section at all, unless it holds a mark stored before the hiatus covered it, which still gets its notice and
-  Clear override. The waterfall's own menu is unchanged: its Start / End pair and its clipboard row still grey.
+  Clear override.
+- **The waterfall's right-click menu follows the same rule** (owner, by picker, 28 Oct 2026: *"Yes, waterfall too"*).
+  Start / End ‹phase› this week are each left out where refused, End Production this week is never offered, and an
+  empty Notes cell offers Paste alone (as an ordinary row) instead of greying Cut, Copy and Clear with "The note is
+  empty". [`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md) §11.
 - **"Double-click a marked day to clear it"** shows only on a day that holds a mark.
 - **It closes only when the calendar scrolls**, the waterfall menu's rule: scrolling the sidebar leaves it open.
 - Production's bar on a shoot day: 11 lines to 8, and to 7 on 28 Oct (End Production here gone). A hiatus day with
@@ -69,7 +73,8 @@ there is no one-gesture way to do it already. The owner approved the short list 
   81/81, its T1 now failing on ANY greyed item in the 85 menus and submenus it opens, and H1s, P2m, P3, P4u, N1 and V8
   flipped from greyed to left out; `halfworked` 24/24 (H6 flipped the same way); `wfmenu` 38/38, `halfdays` 27/27,
   `phasefold` 11/11, `labelsetup` 41/41, `offweek` and `shootdays` pass. `mvmenu` is red on the build just before
-  (7 cases). No full gate yet on this build.
+  (7 cases). The waterfall: `wfmenu` 39/39, with a new G0 watching its 33 menus for any greyed item and H2, H3, H5,
+  N2, S1 flipped; red on the build before it (6 cases). No full gate yet on this build.
 
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 

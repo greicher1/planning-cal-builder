@@ -10344,23 +10344,28 @@ export function initLegacyApp() {
     // ---- The waterfall's sections (WATERFALL-CONTEXT-MENU-PLAN.md §2, §3) ----
     // In this order, each only where it can act (ruling R6):
     //   the clipboard row   on a Notes cell, or inside a highlight holding one (the wf-keys actions act on notes only)
-    //   the cell's own      a phase week: Start / End <phase> this week (a pair, greyed when refused), then the week's
+    //   the cell's own      a phase week: Start / End <phase> this week (each only where it can act), then the week's
     //                       two adds (ruling R5); a date, an empty cell or Sim Post: the two adds; a Notes cell: Back
     //                       to automatic text; a band: Remove hiatus…. None of these inside a highlight of several.
     //   Size                only after a hand resize of a row or column the cell (or the highlight) covers
     //   the way out         Show this day / week in the month view (ruling R4), a view switch: NO undo step.
+    // ⛔ NOTHING IS GREYED (owner, 28 Oct 2026, asked by picker after the month menu's same change: "Yes, waterfall
+    // too"; the owner's words were "remove options from the menu when they aren't accessible, rather than greying them
+    // out"). Until then R6 kept two greyed exceptions here, the Start / End pair and Cut · Copy · Clear on an empty note.
     function wfMenuSections(ctx){
       const out = [];
       const noteWeeks = wfSelNoteWeeks(ctx.keys);
       if(noteWeeks.length){
+        // An empty note (or a highlight of empty ones) has nothing to cut, copy or clear, so it offers Paste alone, as an
+        // ordinary row: one button in the four-wide strip would sit in a quarter of it. (It greyed the three with "The
+        // note is empty" until 28 Oct 2026.)
         const shows = noteWeeks.some(wfNoteShows);
-        const why = noteWeeks.length > 1 ? 'The notes are empty' : 'The note is empty';
-        out.push({id: 'clip', strip: true, notice: shows ? '' : why, items: [
-          {id: 'cut', icon: 'cut', text: 'Cut', disabled: !shows, run: ()=> wfCutHere(ctx)},
-          {id: 'copy', icon: 'copy', text: 'Copy', disabled: !shows, run: ()=> wfCopyHere(ctx)},
+        out.push({id: 'clip', strip: shows, items: [
+          shows && {id: 'cut', icon: 'cut', text: 'Cut', run: ()=> wfCutHere(ctx)},
+          shows && {id: 'copy', icon: 'copy', text: 'Copy', run: ()=> wfCopyHere(ctx)},
           {id: 'paste', icon: 'paste', text: 'Paste', run: ()=> wfPasteHere(ctx)},
-          {id: 'clear', icon: 'clear', text: 'Clear', disabled: !shows, run: ()=> wfNotesClear(ctx.keys)},
-        ]});
+          shows && {id: 'clear', icon: 'clear', text: 'Clear', run: ()=> wfNotesClear(ctx.keys)},
+        ].filter(Boolean)});
       }
       if(!ctx.many){
         const weekCtx = {iso: ctx.iso, date: ctx.date, span: 7};
@@ -10401,19 +10406,19 @@ export function initLegacyApp() {
       return ((seg && (seg.name || seg.label)) || phaseLabelFor(key)).replace(/\s*wk\s*\d+\s*$/i, '');
     }
     // Start / End <phase> this week (plan §3.1, §3.2): offered on the phase's own cells, so Start moves it LATER (or
-    // nowhere) and End SHORTENS it (or does nothing), the month menu's shape. A pair: greyed with the reason when one
-    // is refused, never left out (ruling R6).
+    // nowhere) and End SHORTENS it (or does nothing), the month menu's shape. Each is LEFT OUT where it is refused
+    // (owner, 28 Oct 2026); until then they were a greyed pair with the reason (R6's exception), so End Production
+    // this week, never possible, is never offered now. wfEndPlan()'s reasons are no longer shown.
     function wfPhaseItems(ctx){
       const key = ctx.key, name = wfPhaseName(key), weeks = wfPhaseWeeks(key);
       const items = [];
       const startEl = document.getElementById('start-' + key);
-      items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' this week', note: 'Moves it. Its length stays',
-        disabled: !startEl || !weeks.length || weeks[0] === ctx.iso,
-        why: weeks[0] === ctx.iso ? 'It already starts this week' : 'It can’t move from here',
-        run: ()=> wfStartPhase(ctx)});
-      const end = wfEndPlan(ctx, weeks);
-      items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' this week', note: 'Keeps its start. Changes its length',
-        disabled: !end.ok, why: end.why, run: ()=> wfEndPhase(ctx)});
+      if(startEl && weeks.length && weeks[0] !== ctx.iso)
+        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' this week', note: 'Moves it. Its length stays',
+          run: ()=> wfStartPhase(ctx)});
+      if(wfEndPlan(ctx, weeks).ok)
+        items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' this week', note: 'Keeps its start. Changes its length',
+          run: ()=> wfEndPhase(ctx)});
       return items;
     }
     // ⛔ A MOVER, by whole weeks: the phase's first worked week becomes this one, its weekday and its length kept.

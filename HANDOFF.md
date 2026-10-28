@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): THE MONTH MENU GREYS NOTHING OUT — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` (`26516be`, v1.9.0 + the Season hint line) merged in as `a8ae3cb`; COMMITTED on the branch; targeted legs green; NO full gate yet; NOT merged into `main`, NOT pushed
+### 🔨 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), `main` (`26516be`, v1.9.0 + the Season hint line) merged in as `a8ae3cb`; COMMITTED on the branch; targeted legs green; NO full gate yet; NOT merged into `main`, NOT pushed
 
 - **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want
   to remove options from the menu when they aren't accessible, rather than greying them out"*. Tracker card
@@ -25,8 +25,12 @@
     the day has no shoot-day section. ⛔ This withdraws owner ruling 1's greyed row (18 Sep 2026) on the owner's own
     newer word. The behaviour is unchanged ('on' still never punches through a hiatus). A mark stored before the
     hiatus covered the day still gets its "Stored … — not in effect" line and Clear override.
-  - **The waterfall menu is NOT changed:** its Start / End pair and its Cut · Copy · Clear row still grey (its own
-    R6 exception). Whether the same rule should reach it is the owner's call; asked at the end of this turn.
+  - **Then the waterfall menu too** (owner, by picker: *"Yes, waterfall too"*, the recommendation;
+    WATERFALL-CONTEXT-MENU-PLAN §11). `wfPhaseItems`: Start / End ‹phase› this week each left out where refused, End
+    Production this week never offered. `wfMenuSections`: on an empty note (or a highlight of empty ones) Cut, Copy
+    and Clear are left out and Paste alone is an ORDINARY row (`strip: shows`), because one button in the four-wide
+    strip sat in a quarter of it; focus then opens on Paste. The dead `.day-menu-strip + .day-menu-notice` rule went.
+    The greyed-item machinery (`is-disabled`, `aria-disabled`, keys stepping over it) stays, unused by either menu.
 - **Verified** (build `ce9261f2…`, 1,868,191 bytes): `npm run check` 40/40; `mvmenu` 81/81, T1 now failing on ANY
   greyed item (85 menus + submenus seen, 0 greyed), H1s / P2m / P3 / P4u / N1 / V8 flipped from "greyed" to "left
   out"; `halfworked` 24/24 (H6 flipped; `openDay(n, noShoot)`); `wfmenu` 38/38; `halfdays` 27/27; `phasefold` 11/11;
@@ -34,9 +38,16 @@
   once while another session's full gate ran (its JSON was overwritten before it was read) and passed on the re-run.
   That leg reads only "Shoot day N" from the menu, so a missing shoot section reads as it always did. **Red on the
   pre-change build** (`a8ae3cb`, built with `git archive`): `mvmenu` 74/81, the 7 failing H1s, P2m, P4u, P3, V8,
-  N1 and T1.
-- ⏭ **Next:** merging into `main` is the owner's picker. Then a FULL gate on `main` (none has run on this merged
-  build; another session's gate was running, and two at once stall), then a separate push picker.
+  N1 and T1. **The waterfall half:** `wfmenu` 39/39 (H2, H3, H5, N2, S1 flipped; new G0 saw 33 waterfall menus, 0
+  greyed), red on the month-only build `3c42554` at 33/39 (exactly those six); `mvmenu` 81/81 again.
+- **Owner, by picker (28 Oct 2026):** *"Merge, then full gate"* and *"Yes, waterfall too"*. The waterfall change was
+  made on this branch first so ONE full gate covers both.
+- ⚠️ **The merge waits on the main checkout:** it holds another session's UNCOMMITTED Pre-Prep work in `HANDOFF.md`,
+  `README.md`, `src/legacy/app.js`, `gate.sh` and five legs, so a merge there would collide. This branch is `main`
+  (`26516be`) plus this work, so once that checkout is committed it merges as a fast-forward or a small docs merge.
+  The full gate runs on the BRANCH meanwhile (the same tree `main` gets, while `main` has not moved).
+- ⏭ **Next:** the full gate on the branch (after the `month-step` session's gate, which was running); then merge into
+  `main`; then a separate push picker.
 
 ### 🔨 23 Oct 2026: THE MONTH DAY MENU, TRIMMED BY THE OWNER (⬆️ continued 28 Oct, entry above: nothing greyed, main merged in) — branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`), on `origin/main` at `d25eaf6` (merged in at `62233d0`); plan `a7eda85`, build `07096a5`; ✅ FULL GATE 3,012 / 1 on the merged build (`6ac77d19…`), the 1 the recorded `pilllabel` month-walk flake, green alone 7 times; NOT merged, NOT pushed ([`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md) §13)
 
