@@ -54,6 +54,86 @@ NF1 and NF2 removed fails X1 and P1 exactly. `base` byte-identical to the 29 Aug
 Excel part) and `restore`/gate 5 green; `mvnotes` 30/30 + 14/14 (P5 updated: it held the old ten-colour rule),
 `wfkeys` 84/84, `textstyle` 51/51, `notewrap` 16/16, `monthnotes` 7/7; `npm run check` 40/40.
 
+### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
+
+Owner: *"When you double click on a phase in the month view, could it reveal that phase menu in the left side
+bar"*.
+
+- **Double-click any phase's bar in the month view** and the sidebar switches to the Phases tab, unfolds that
+  phase's card if it was folded, and scrolls it into view. It is the right-click menu's **Show in Phases card**,
+  so the two always agree. Prep's bars open the Prep card. The Sim Post bar names no phase, so it does nothing, as
+  in the menu.
+  - The two clicks still pick the bar for the Text bar, as one click always has. Dragging is unchanged.
+  - Opening the tab is one undo step, as the menu item is. No date moves.
+  - The Waterfall is untouched: a double-click on a phase cell there still fills the free columns beside it.
+- **How:** one document-level `dblclick` listener beside `showPhaseRow()` in `app.js`. It finds the bar by point
+  with `mvTextAt()`, the Text bar's own hit test, so it also works over a bar's end handle and its six-dot grip.
+  A press on a handle puts a full-window shield on top, which makes the double-click's target `<body>`, so a
+  listener on the calendar would never hear it. Nothing frozen changed, and nothing is saved.
+  The Help's "What sits on top in the Month view" paragraph says it.
+- **Verified:**
+  - new leg `mvbarcard` (in `gate.sh`), 7/7. Every event is hit-tested. It covers Production, a custom phase
+    through its end handle, and Prep. Also: one undo step, no date moved, and nothing happens on a press that
+    travelled, on a day with no bar, or in the Waterfall. Red on the build before the change (B1–B4). Red with
+    the bar found by `e.target` instead of by point (B3 only);
+  - neighbours green: `mvtextstyle` ×2, `mvmenu (halfdays)` 89, `halfworked` 24, `phasefold` 11, `mvnotes` 30,
+    `mvbarsize` 13, `monthmap` 20. `npm run check` 40/40;
+  - in the pane, with a real mouse: double-clicks on Set Build's bar and on Shoot Ep. 101 each opened their card,
+    on screen, with the dates unchanged. No full gate.
+
+### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`, merged into local `main`)
+
+Owner: *"I think we still need proper left and right buttons to move the month view cal one month
+forward/backwards"*. Four places were mocked up (`mockups/month-arrows.html`), and the owner picked **B: on the
+style bar**. Plan: `MONTH-RAIL-PLAN.md` §18.
+
+- **Today and ‹ October 2026 ›** now sit at the right end of the text style bar's line, directly above the calendar,
+  in the month view only. They are 34 px tall like the style bar, and the month name stays in view after you scroll
+  down a long month.
+  - ‹ and › step one month and are disabled at the first and last month. Each says which month it goes to.
+  - **Today** goes to this month. It is disabled when this month is already on screen, or is outside the calendar.
+  - The phase map's two small arrows are gone, so there is one set. Clicking a month or a phase in the map still
+    jumps there.
+- **How:** a new `MonthStepper` in `MonthMap.jsx`, fed by the same push as the map and committed with it. The
+  buttons use the engine's existing `data-mvstep` / `data-mvgo` handler, the frozen arrows' range rule. Nothing frozen
+  changed. The style bar's line is a new `.style-row` wrapper; the style bar's host is untouched inside it.
+- **Verified:**
+  - leg `monthmap` grew a part C (label equals the month band's month after every ‹ › and map click, ends, Today,
+    no ids): 20/20 on 8 calendars, Today both inside and outside the calendar;
+  - 11 nearby legs green (`textstyle`, `mvtextstyle` ×2, `hdrcontrols`, `wfmenu`, `mvmenu`, `weeknum` ×2, `softlines`,
+    `halfworked`, `notescols`); `npm run check` 40/40;
+  - in the pane at 1440 × 900, against main's build: the waterfall's layout is identical, and the month view's
+    calendar keeps the same top and height. The switch moves the calendar 0 px, and takes 19–30 ms (main: 20–27);
+  - at 1,000 px wide it still fits on one line with every style bar control showing;
+  - full gate 3,324 PASS, 1 FAIL: `customunits` produced no result at all in the gate, and passed 28/28 alone three
+    times on the same build.
+
+### Unreleased — All-phase hiatus cards fold to their head, like phase cards (28 Oct 2026)
+
+Each all-phase hiatus card in the Phases tab has the phase card's caret now (owner, 28 Oct 2026: *"give collapsing
+arrows to the all phase hiatuses just like phases"*). Folded, the card shows only its red head: the name, still
+editable, its dates and ×. Starts, Weeks, Lock in place and Number weeks hide. **What it is not:** calendar data. A fold
+is never saved, never an undo step, and changes nothing in the waterfall, the month view or any export. Folds hold
+through undo and redo; a Load, a recovery or New opens every card. Show in Phases card (month view) unfolds its card.
+⚠️ A hiatus row has no key (they save by position), so `applyStateSnapshot()` carries each fold across the rebuild:
+position for position, or by the row's own values when an undo or redo put back or took away a row.
+Verified: new leg `hiatusfold` 11/11 (in `gate.sh`), red on `main` before it (9 of 11) and with the carry removed
+(H5–H9); `npm run check`; the neighbouring legs (listed in HANDOFF).
+
+### Unreleased — Pre Prep's default name is "Pre-Prep" (28 Oct 2026)
+
+A new calendar names the phase **Pre-Prep** (owner, 28 Oct 2026), so its weeks read "Pre-Prep Wk 1", its automatic
+notes "Pre-Prep Begins", and its hiatus "Pre-Prep Hiatus". The Automatic notes row, the Blue colour's name and the Help
+follow. **Calendars saved before keep "Pre Prep"**, as episode names did ("Leave them as saved", 20 Oct 2026): the name
+was always saved in `fields.byId['name-prePrep']`, and that old name still draws "Pre Prep Wk N" with its capital W
+(`PHASES`' new `was`), where any other typed name draws "<name> wk N". No save-format change; nothing frozen touched.
+
+Verified: new leg `prepreptitle` 7/7 (new calendar, Save, New, the old name typed, a real v1.8.0 file). The harness's
+reference calendar now types the old name, and with it `base`'s waterfall PDF, workbook and grid are identical to the
+29 Aug baseline, which proves an old calendar draws exactly as before; with the old-name mapping removed, both the leg
+and `base` go red. `autonotephases`, `builtindates`, `phiatusnum` and `phasenum` now expect "Pre-Prep" on the calendars
+they build fresh, and pass, with 14 other legs that touch phase names. `npm run check` 40/40. No full gate yet.
+
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The

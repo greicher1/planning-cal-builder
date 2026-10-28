@@ -47,7 +47,7 @@ import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
-import { MonthMap } from './MonthMap.jsx'
+import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
 export function PreviewToolbar() {
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
@@ -283,8 +283,14 @@ export function PreviewToolbar() {
           engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once
           and never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside.
           ⛔ Inside .view-toggle-row on purpose: a sibling between that row and #table-wrap would break the pair
-          the contracts above need. ⛔ No id on anything in it (collectFieldValues). */}
-      <div className="style-bar-host"></div>
+          the contracts above need. ⛔ No id on anything in it (collectFieldValues).
+          Since 28 Oct 2026 it shares a line with the month stepper (MONTH-RAIL-PLAN.md §18, option B): .style-row is
+          that line, full width as the host was. The engine finds the host by its class, so the wrapper changes
+          nothing for it, and the host still gets no React children. In the waterfall the stepper renders nothing. */}
+      <div className="style-row">
+        <div className="style-bar-host"></div>
+        <MonthStepper />
+      </div>
     </>
   )
 }

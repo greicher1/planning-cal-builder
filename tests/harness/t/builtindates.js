@@ -55,7 +55,7 @@ window.addEventListener('load', function () { (async function () {
       Array.from(tr.children).forEach(function (td) {
         var t = (td.textContent || '').trim();
         if(/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(t)){ date = t; return; }
-        var m = /^(.*?) [wW]k \d+$/.exec(t);   // Pre Prep's template says "Wk"; the others "wk"
+        var m = /^(.*?) [wW]k \d+$/.exec(t);   // Pre-Prep's template (and the old Pre Prep's) says "Wk"; the others "wk"
         if(m && date){ (map[m[1]] = map[m[1]] || []).push(date); }
       });
     });
@@ -106,7 +106,7 @@ window.addEventListener('load', function () { (async function () {
       out.fallback = [val('weeks-prePrep'), val('weeks-post')];
       check(out.fallback.join() === '3,7', 'weeks-<key> holds the old-build fallback (3, 7)');
       out.sheet = sheetRows();
-      check((out.sheet['Pre Prep'] || []).join() === '2/8/27,2/22/27', 'waterfall: Pre Prep on the weeks of 2/8 and 2/22 (2/15 is the hiatus row)');
+      check((out.sheet['Pre-Prep'] || []).join() === '2/8/27,2/22/27', 'waterfall: Pre-Prep on the weeks of 2/8 and 2/22 (2/15 is the hiatus row)');
       await view('month'); await gotoMonth('February 2027');
       out.pillsPre = pills('prePrep');
       check(out.pillsPre === '4/7 2/4', 'month: Pre Prep Wed 10-Fri 12, hiatus week blank, Mon 22-Tue 23');

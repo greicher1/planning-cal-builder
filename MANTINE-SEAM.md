@@ -257,9 +257,13 @@ frozen CSS change was the `.mv-tools` rule, approved for it, and gate 10 stayed 
 ✅ **`#mv-prev` / `#mv-next` were promoted the same way (27 Oct 2026, owner, MONTH-RAIL-PLAN.md).**
 - They are still emitted, unchanged, and are hidden on screen by `visibility:hidden; pointer-events:none`. Their boxes
   still size the month band, so the grid does not move.
-- Their twin is the phase map above the month view (`MonthMap.jsx`, a line of `.view-toggle-row`). Its buttons carry
-  `data-mvgo` / `data-mvstep`, and the engine's `goToMonth()` applies the frozen handler's own range rule. A scripted
-  `.click()` on the originals still pages the month, and the map follows it.
+- Their twin is the phase map above the month view (`MonthMap.jsx`, a line of `.view-toggle-row`), and since 28 Oct
+  2026 the month stepper, Today and ‹ October 2026 › at the right end of the style bar's line (`MonthStepper`, the
+  same file; MONTH-RAIL-PLAN.md §18), which replaced the map's own small arrows. Their buttons carry `data-mvgo` /
+  `data-mvstep`, and the engine's `goToMonth()` applies the frozen handler's own range rule. A scripted `.click()` on
+  the originals still pages the month, and the map and the stepper follow it.
+  - The style bar's line is `.style-row`, a wrapper around `.style-bar-host` and the stepper. The host is still EMPTY
+    to React and found by class by the engine, so the wrapper changes nothing for it.
 - The same change gave the month view a screen-only paint, "Soft Lines". It is a `@media screen` block in
   `legacy.css` whose every selector starts `#table-wrap .month-view`, so it can never match `#print-root`.
   - It is paint only: no font-size, padding, weight or border-width change on anything that sizes a box.
