@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Waterfall notes take every colour a month note can (28 Oct 2026)
+
+Owner: *"add all the same note bg color options for notes in the waterfall as we currently have for notes in the month
+view"*. A waterfall note's editor now offers the month note palette in the same two rows: the ten standard colours,
+then **No fill**, four light tints (Pink, Lavender, Peach, Pale blue) and three greys. So does the month view's editor
+for a waterfall note, which kept the ten until now. A hiatus band keeps the ten. Both editors draw the palette from one
+builder (`notePaletteRowsHtml`), so they cannot drift apart.
+
+- The tints and greys are plain `#RRGGBB` and needed nothing else: the waterfall, Excel and both PDFs take them as any
+  colour.
+- **No fill** (`#FFFFFF00`, the day notes' own value) needed two **frozen edits, signed off by picker the same day**:
+  **NF1** in `exportExcel` (no fill on the cell, where `setFill` would write the 10-digit ARGB `FFFFFFFF00`) and
+  **NF2** in `buildWaterfallPdf` (no rectangle, where `pdfRgb` reads `#FFFFFF00` as yellow). Each is one guard; every
+  other colour writes exactly as before. `noteColorFor`, `sanitizeSnapshot` and the waterfall clipboard now let that
+  one value through; the screen and the month view needed no change.
+- ⚠️ A file holding a No fill waterfall note, opened in v1.3.0–v1.9.0, shows that note in the default purple (their
+  sanitizer drops the value). No format change and no `SNAPSHOT_VERSION` bump.
+
+**Verified:** new leg `wfnotecolors` 14/14 (in `gate.sh` AFSPEC, on the `wfkeys` fixture): both editors' rows, Pink,
+No fill on screen, undo/redo, the workbook (no fill, black ink), the waterfall PDF (exactly one fill rectangle fewer than
+purple, no yellow), copy/paste, Save/Load, a near-miss value dropped, the month view and its written PDF. A build with
+NF1 and NF2 removed fails X1 and P1 exactly. `base` byte-identical to the 29 Aug baseline (grid, waterfall PDF, every
+Excel part) and `restore`/gate 5 green; `mvnotes` 30/30 + 14/14 (P5 updated: it held the old ten-colour rule),
+`wfkeys` 84/84, `textstyle` 51/51, `notewrap` 16/16, `monthnotes` 7/7; `npm run check` 40/40.
+
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The

@@ -1775,6 +1775,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
+              wfnotecolors:wfkeys:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

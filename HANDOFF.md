@@ -4,7 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 28 Oct 2026 (latest): SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+### 🔨 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), targeted legs green, FULL GATE PENDING, not merged
+
+- **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
+  in the month view"*. Tracker card `waterfall-note-colours`.
+- **Ruled** (owner, by picker, same day): **"Approve both edits"** for No fill. ⚠️ I proposed them as "X1" and "P1";
+  both names were already taken (hide-notes' X1, paper size's P1), so they shipped as **NF1** and **NF2**.
+- **Done:** `notePaletteRowsHtml(curColor)` (beside `MV_NOTE_PALETTE`) is the one builder of the two swatch rows; the
+  waterfall's `openNoteEditor` uses it for a NOTE (a hiatus band keeps one row of `EXCEL_STANDARD_COLORS`), and
+  `openMvNoteEditor` uses it for both kinds (a waterfall note there kept the ten before). The rows carry
+  `.note-palette-row`; a new `.note-pop .note-palette-row` rule gives the waterfall popover the month popover's 5 px gap
+  (the existing `.mv-note-pop` rules were left alone). `.mv-note-tints` is gone (nothing styled or tested it).
+- **No fill plumbing:** `noteColorFor` returns `#FFFFFF00` as well as `#RRGGBB` (the H-1 guard still refuses anything
+  else); `sanitizeSnapshot`'s `noteColors` map and `wfCleanClipItem` accept it. **NF1** (`exportExcel`): no `setFill`
+  for it. **NF2** (`buildWaterfallPdf`): no `page.rect` for it. The screen needed nothing (`background:#FFFFFF00` is
+  transparent, `textColorFor` inks it black), nor the month view (`renderMonthView` reads `noteColors` directly, and the
+  block is a day note's No fill: the frozen CSS line takes its border away, the writer's `mvlNoFill` skips fill and ring).
+- ⚠️ **Older builds:** v1.3.0–v1.9.0 drop the value in `sanitizeSnapshot` (purple, plus their repair warning). A
+  pre-v1.3.0 build's writers would misread it (yellow PDF, 10-digit ARGB): the new-file-in-old-app case nothing
+  supports. No `SNAPSHOT_VERSION` bump, on the `'onhalf'` precedent (older builds safely fall back).
+- **Verified:** new leg `wfnotecolors` 14/14 (AFSPEC `wfnotecolors:wfkeys:400`); a mutant build with NF1+NF2 removed
+  turns X1 and P1 red, and nothing else. `base` + `restore` + gate 5 byte-identical / green (gate.sh's first 173 lines,
+  run alone). `mvnotes` 30/30 + 14/14: **P5 was rewritten**, since it asserted the old rule ("a WATERFALL note's editor
+  keeps the ten standard colours only") and now asserts the same two rows as a day note's. `wfkeys` 84/84, `textstyle`
+  51/51, `notewrap` 16/16, `monthnotes` 7/7, `npm run check` 40/40. Screenshots of both editors taken with headless
+  Chrome over CDP (the pane's five server slots were all other chats', and it would not open a local file).
+- **Next:** the full gate (queued behind the `month-step` worktree's, which was running), then ask the owner to merge
+  into `main` and, separately, to push. ⚠️ `main`'s checkout holds another session's UNCOMMITTED Pre-Prep work (its
+  HANDOFF entry is not on this branch), which also adds a line to `gate.sh`'s AFSPEC list: keep both lines in the merge.
+
+### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 
 - **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
   a gate just remove and push"*.

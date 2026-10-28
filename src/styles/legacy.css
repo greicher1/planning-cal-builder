@@ -3357,6 +3357,10 @@
      the waterfall palette's gap so ten fit the popover's width on one row. */
   .mv-note-pop .note-color-row{ gap:5px; }
   .mv-note-pop .note-color-row + .note-color-row{ padding-top:2px; }
+  /* The waterfall note editor draws the same two rows since 28 Oct 2026 (owner: waterfall notes take the month
+     note palette), at the same gap; a hiatus band's single row keeps the wider one. */
+  .note-pop .note-palette-row{ gap:5px; }
+  .note-pop .note-palette-row + .note-palette-row{ padding-top:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */

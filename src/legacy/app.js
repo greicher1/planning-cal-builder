@@ -14155,9 +14155,12 @@ export function initLegacyApp() {
     td.classList.add('editing');
     td.style.background = curColor;
     td.style.color = textColorFor(curColor);
-    const swatches = EXCEL_STANDARD_COLORS.map(c =>
-      `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
-    ).join('');
+    // A note picks from the note palette, the month view's (owner, 28 Oct 2026); a hiatus band keeps the standard ten.
+    const swatchRows = isHiatus
+      ? `<div class="note-color-row" title="Highlight color">${EXCEL_STANDARD_COLORS.map(c =>
+          `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
+        ).join('')}</div>`
+      : notePaletteRowsHtml(curColor);
     // Day picker: the waterfall's unit is a week, so a note typed here needs a day before the
     // month view can place it. Default is "Mon (default)" -- the same fallback the month view
     // uses -- so this is opt-in rather than another required field.
@@ -14195,7 +14198,7 @@ export function initLegacyApp() {
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
-      <div class="note-color-row" title="Highlight color">${swatches}</div>
+      ${swatchRows}
       </div>
       <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
@@ -14843,7 +14846,10 @@ export function initLegacyApp() {
               size: Math.round(11 * fit.scale * 100) / 100
             }});
             nCell.value = noteText;
-            setFill(nCell, nCol);
+            // ⛔ FROZEN EDIT NF1 (owner sign-off by picker, 28 Oct 2026: waterfall notes take the month note palette):
+            // a No fill note (#FFFFFF00) gets no fill at all, where setFill would write the 10-digit ARGB
+            // "FFFFFFFF00". Its ink is textColorFor's black, as above. Every other colour fills exactly as before.
+            if(!isMvNoFill(nCol)) setFill(nCell, nCol);
             // wrapText must also be on when the text carries an explicit newline. Without it
             // Excel keeps the break in the cell's value but lays the whole string out on ONE
             // line, so a week with two notes -- autoNotesText joins them with '\n' -- ran
@@ -17039,10 +17045,17 @@ export function initLegacyApp() {
     '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'
   ];
   // ⭐ THE MONTH NOTE PALETTE (MONTH-NOTES-PLAN.md §2; owner, 20 Oct 2026, by picker: "Remember last colour",
-  // "'No fill' plain text", "Light tints", "Greys", all four). A DAY note's colours: No fill, the ten standard
+  // "'No fill' plain text", "Light tints", "Greys", all four). A note's colours: No fill, the ten standard
   // colours above, four light tints and three greys. Its own list, because the literal above is frozen
-  // (MANTINE-SEAM §4.8) and is still the WATERFALL note's palette: a waterfall-owned note's colour is
-  // noteColors[week], which the waterfall, Excel and the waterfall PDF print, and none of them knows No fill.
+  // (MANTINE-SEAM §4.8) and is still the hiatus band's palette.
+  // ⭐ WATERFALL NOTES TAKE IT TOO (owner, 28 Oct 2026: "add all the same note bg color options for notes in the
+  // waterfall as we currently have for notes in the month view"). A waterfall note's colour is noteColors[week],
+  // which the waterfall, Excel and the waterfall PDF print: the tints and greys needed nothing, and No fill
+  // needed frozen edits X1 (exportExcel) and P1 (buildWaterfallPdf), signed off by picker the same day, plus
+  // noteColorFor and sanitizeSnapshot letting it through. Its month block is a day note's, so the month view and
+  // both month PDFs draw it with no edit. ⚠️ A file with a No fill waterfall note in an older build: v1.3.0 to
+  // v1.9.0 drop it in sanitizeSnapshot (the note shows the default purple); a pre-v1.3.0 build's own writers
+  // would misread it, which is the new-file-in-old-app case nothing supports.
   // Each entry carries a name, which "Paste notes…" reads (pasteNoteColor). Every tint and grey is plain
   // #RRGGBB, so the frozen renderer, sanitizeSnapshot and both month PDFs take it as they take any colour.
   // ⛔ NO FILL IS '#FFFFFF00', white at zero alpha. It needs no format change, and every build draws it
@@ -17060,6 +17073,14 @@ export function initLegacyApp() {
      {name: 'Pale blue', color: '#BBDCF7'},
      {name: 'Light grey', color: '#D9D9D9'}, {name: 'Grey', color: '#A6A6A6'}, {name: 'Dark grey', color: '#595959'}]);
   function isMvNoFill(c){ return typeof c === 'string' && c.toUpperCase() === MV_NOTE_NOFILL; }
+  // The palette as every note editor draws it, in two rows: the standard ten, then No fill, the tints and the
+  // greys. One builder, so the waterfall's editor and both kinds of month note editor cannot drift apart.
+  function notePaletteRowsHtml(curColor){
+    const cur = String(curColor).toUpperCase();
+    const swatch = p => `<span class="color-swatch${isMvNoFill(p.color) ? ' is-nofill' : ''}${p.color.toUpperCase() === cur ? ' selected' : ''}" data-color="${p.color}" title="${p.name}"${isMvNoFill(p.color) ? '' : ` style="background:${p.color};"`}></span>`;
+    return `<div class="note-color-row note-palette-row" title="Highlight color">${MV_NOTE_PALETTE.slice(1, 11).map(swatch).join('')}</div>`
+      + `<div class="note-color-row note-palette-row" title="Highlight color">${[MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(swatch).join('')}</div>`;
+  }
   // The colour a NEW day note opens on: the one last committed from the editor (prefs.mvNoteColor, per user,
   // never in a saved calendar), or the default purple. Only a palette colour is honoured, so a hand-edited
   // store cannot reach a style attribute.
@@ -17655,7 +17676,9 @@ export function initLegacyApp() {
   }
   // ⛔ The two colour getters are what the frozen renderers read for style="background:${…}", so a
   // colour that is not #rrggbb falls back to the default here, whatever put it in the store (H-1).
-  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return isHexColor(c) ? c : MILESTONE_COLOR; }
+  // A note may also be No fill (#FFFFFF00, owner 28 Oct 2026), the one other value: the screen paints it
+  // transparent with black ink as it stands, and the two writers skip its fill (frozen edits X1, P1).
+  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return (isHexColor(c) || isMvNoFill(c)) ? c : MILESTONE_COLOR; }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
   function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
   function hiatusFontSizeFor(weekKey){ return hiatusFontSize[weekKey]; }
@@ -18941,7 +18964,7 @@ export function initLegacyApp() {
     const out = { text: stripXmlIllegal(it.text, '\n') };
     if(Number.isInteger(it.dow) && it.dow >= 0 && it.dow <= 6) out.dow = it.dow;
     if(typeof it.stamp === 'string' && /^\d{1,2}\/\d{1,2}\/\d{2}$/.test(it.stamp)) out.stamp = it.stamp;
-    if(isHexColor(it.color)) out.color = it.color;
+    if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
     const size = finiteNum(it.size);
     if(size !== null && size >= 1 && size <= 400) out.size = size;
     if(it.style !== undefined){ const f = cleanTextStyleEntry('note', it.style, { n: 0 }); if(f) out.style = f; }
@@ -28873,7 +28896,9 @@ export function initLegacyApp() {
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
                                   Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX },
                                                 nts && nts.bold ? { bold: true } : {}));
-          page.rect(nx, ry, nw, rh, nCol);
+          // ⛔ FROZEN EDIT NF2 (owner sign-off by picker, 28 Oct 2026, with NF1): a No fill note draws no rectangle;
+          // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
+          if(!isMvNoFill(nCol)) page.rect(nx, ry, nw, rh, nCol);
           page.clipPush(nx, ry, nw, rh);
           if(nts) drawStyled(fit.wrap ? wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold) : String(nTxt).split('\n'),
                              nx, nw, ry, rh, S(11*fit.scale), textColorFor(nCol), nts, false, fit.wrap);
@@ -31044,15 +31069,8 @@ export function initLegacyApp() {
       curColor = entry ? (entry.color || MILESTONE_COLOR) : mvNoteStartColor();
       editIdx = entry ? ni : null;
     }
-    // A day note picks from the month note palette (No fill, the standard ten, the tints, the greys), in two
-    // rows; a waterfall-owned note keeps the standard ten, which are all its writers know.
-    const swatch = (c, name) =>
-      `<span class="color-swatch${isMvNoFill(c) ? ' is-nofill' : ''}${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${name || c}"${isMvNoFill(c) ? '' : ` style="background:${c};"`}></span>`;
-    const swatches = isWf
-      ? EXCEL_STANDARD_COLORS.map(c => swatch(c)).join('')
-      : MV_NOTE_PALETTE.slice(1, 11).map(p => swatch(p.color, p.name)).join('')
-        + '</div><div class="note-color-row mv-note-tints" title="Highlight color">'
-        + [MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(p => swatch(p.color, p.name)).join('');
+    // Both kinds pick from the note palette (No fill, the standard ten, the tints, the greys), in two rows. A
+    // waterfall-owned note kept the standard ten until 28 Oct 2026, when its writers learned No fill (X1, P1).
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
     pop.className = 'mv-note-pop';
@@ -31062,7 +31080,7 @@ export function initLegacyApp() {
     const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     pop.innerHTML = `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
       <textarea rows="3" placeholder="Note text${isWf?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
-      <div class="note-color-row" title="Highlight color">${swatches}</div>
+      ${notePaletteRowsHtml(curColor)}
       <div class="mv-note-pop-hint">${scopeNote} \u00b7 ${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
@@ -32023,8 +32041,9 @@ export function initLegacyApp() {
     const colour = v => isHexColor(v) ? v : undefined;
     const str = v => (typeof v === 'string') ? stripXmlIllegal(v, '\n') : undefined;
     const bool = v => (typeof v === 'boolean') ? v : undefined;
-    // Colours -- every one of these reaches a style attribute.
-    setMap('noteColors', colour);
+    // Colours -- every one of these reaches a style attribute. A waterfall note may also be No fill (owner,
+    // 28 Oct 2026), exactly #FFFFFF00, which its writers skip (X1, P1); a band never is.
+    setMap('noteColors', v => (isHexColor(v) || isMvNoFill(v)) ? v : undefined);
     setMap('hiatusColors', colour);
     setMap('dayNoteColors', colour);
     // Numbers that reach style/attribute values (font-size, height, width, lanes).
