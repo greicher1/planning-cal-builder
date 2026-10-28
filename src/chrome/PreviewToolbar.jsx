@@ -47,6 +47,7 @@ import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
+import { MonthMap } from './MonthMap.jsx'
 
 export function PreviewToolbar() {
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
@@ -272,6 +273,11 @@ export function PreviewToolbar() {
         </Group>
       </div>
 
+      {/* The phase map (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+): a full-width line of this row in the month
+          view only, ABOVE the style bar, so the style bar sits on the calendar it styles. Its own component with its own
+          state, so its re-renders never reach this component's engine-owned children. Inside this row for the reason
+          the style bar's host is. */}
+      <MonthMap />
       {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026): a full-width second line
           of this row, under the toggle and the tools, outside the calendar. EMPTY here and filled once by the
           engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once

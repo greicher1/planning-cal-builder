@@ -29,7 +29,7 @@
 // and a row's warning is its small.day-menu-warn line.
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
-  var T = window.__T, cases = [], out = {test: 'halfworked'};
+  var T = window.__T, cases = [], out = {test: 'halfworked', reclicked: []};   // reclicked: openDay's second clicks
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: pass, observed: observed, expected: expected}); }
   function txt(id){ return ((document.getElementById(id) || {}).textContent || '').replace(/\s+/g, ' ').trim(); }
   function reading(){ return {meta: txt('meta-production'), note: txt('prod-ov-note')}; }
@@ -102,7 +102,14 @@ window.addEventListener('load', function () { (async function () {
   async function hitDay(n){
     var cell = dayCell(n);
     if(!cell) throw new Error('no cell for day ' + n);
-    cell.scrollIntoView({block: 'center'}); await T.sleep(120);
+    // mvmenu's bringIntoView: scroll the month's box (#table-wrap) only when the day is out of view. It used to
+    // scrollIntoView every day, which scrolled nothing while July fit the box. The phase map (MONTH-RAIL-PLAN.md §17)
+    // made the box ~69 px shorter, so the scroll is real now, and openDay has to allow for its event (see there).
+    var box = document.getElementById('table-wrap'), r0 = cell.getBoundingClientRect(), q = box.getBoundingClientRect();
+    if(r0.top < q.top + 20 || r0.bottom > q.bottom - 20){
+      box.scrollTop += (r0.top + r0.height / 2) - (q.top + q.height / 2);
+      await T.sleep(120);
+    }
     var r = cell.getBoundingClientRect();
     var top = document.elementFromPoint(Math.round(r.left + 12), Math.round(r.top + 9));
     if(!top || !top.closest || top.closest('.mv-daycell') !== cell) throw new Error('day ' + n + ' is not reachable at its number band');
@@ -110,7 +117,16 @@ window.addEventListener('load', function () { (async function () {
   }
   async function openDay(n){
     closePops(); await T.sleep(150);
+    // ⚠️ hitDay's scroll can land AFTER the click: the month menu closes on any scroll, and under the harness's
+    // virtual time a scroll event waits for a frame, which comes only when the page changes, here when the menu the
+    // click added is drawn. Waiting for the event does not work (it never came in 2 s of polling, 7 runs in 10), and
+    // the base build, whose July fit the box, was 10 in 10 green. So: if that scroll landed and took the menu with
+    // it, click once more, now that it has landed. Only on that evidence, so a menu that fails to open still fails.
+    var box = document.getElementById('table-wrap'), scrolled = false, onScroll = function(){ scrolled = true; };
+    box.addEventListener('scroll', onScroll);
     (await hitDay(n)).click(); await T.sleep(250);
+    if(scrolled && !document.querySelector('.day-menu')){ out.reclicked.push(n); (await hitDay(n)).click(); await T.sleep(250); }
+    box.removeEventListener('scroll', onScroll);
     var pop = document.querySelector('.day-menu');
     if(!pop || !pop.querySelector('[data-section="shoot"]')) throw new Error('no day menu with a shoot-day section opened for day ' + n);
     return pop;

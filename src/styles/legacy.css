@@ -2824,6 +2824,88 @@
     flex:none;
   }
 
+  /* ---------- The phase map above the month view (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+) ----------
+     MonthMap.jsx: a full-width line of the toolbar row, above the text style bar, in the month view only. Chrome,
+     never grid content: no .mv-* rule, nothing under #table-wrap. Sizes are the plan's §5 and §12 (13 px named rows,
+     4 px thin rows, months at least 36 px, bars at least 8 px); the component computes rows and positions. */
+  .view-toggle-row > .month-map{ flex:1 1 100%; min-width:0; }
+  .month-map{
+    display:flex; align-items:center; gap:4px; box-sizing:border-box; padding:4px;
+    background:#fff; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+  }
+  .month-map .mm-step{
+    flex:none; width:24px; height:24px; padding:0; border:1px solid var(--mantine-color-gray-3); border-radius:6px;
+    background:#fff; color:var(--text-muted); font-size:15px; line-height:1; cursor:pointer;
+  }
+  .month-map .mm-step:hover:not(:disabled){ background:var(--mantine-color-gray-0); color:var(--text); }
+  .month-map .mm-step:disabled{ opacity:.35; cursor:default; }
+  /* A long show scrolls sideways inside the map, never the toolbar row (R4). */
+  .month-map .mm-scroll{ flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+  .month-map .mm-body{ position:relative; padding:2px 0 0; }
+  .month-map .mm-sel{ position:absolute; top:0; bottom:0; background:rgba(44,62,80,.07); border-radius:5px; pointer-events:none; }
+  .month-map .mm-bands{ position:relative; margin-bottom:3px; }
+  .month-map .mm-line{ position:absolute; top:-2px; bottom:-29px; width:1px; background:var(--mantine-color-gray-1); pointer-events:none; }
+  .month-map .mm-line.yr{ background:var(--mantine-color-gray-4); }
+  .month-map .mm-band{
+    position:absolute; height:13px; box-sizing:border-box; margin:0; padding:0 6px; border:1px solid; border-radius:7px;
+    font:inherit; font-size:9.5px; font-weight:600; line-height:11px; text-align:left;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+  }
+  .month-map .mm-band:hover{ filter:brightness(.95); }
+  .month-map .mm-band.thin{ height:4px; padding:0; border-radius:2px; }
+  .month-map .mm-months{ position:relative; display:flex; }
+  .month-map .mm-hiatus{ position:absolute; top:0; height:3px; background:var(--c-hiatus); border-radius:2px; pointer-events:none; z-index:1; }
+  .month-map .mm-month{
+    position:relative; flex:1 1 0; min-width:0; height:26px; padding:1px 0 0; border:0; border-radius:5px;
+    background:transparent; color:var(--text); cursor:pointer; display:flex; flex-direction:column; align-items:center;
+    font:inherit; line-height:1;
+  }
+  .month-map .mm-month:hover{ background:var(--mantine-color-gray-0); }
+  .month-map .mm-year{ height:9px; font-size:8.5px; font-weight:600; color:var(--text-faint); }
+  .month-map .mm-label{ font-size:11px; font-weight:600; margin-top:2px; }
+  .month-map .mm-month.edge .mm-label{ color:var(--text-faint); font-weight:500; }
+  .month-map .mm-month.on{ background:var(--accent); }
+  .month-map .mm-month.on .mm-label, .month-map .mm-month.on .mm-year{ color:#fff; }
+  /* This month: a small navy dot, white on the month on screen (R6). */
+  .month-map .mm-month.today::after{
+    content:''; position:absolute; top:3px; right:4px; width:4px; height:4px; border-radius:50%; background:var(--accent);
+  }
+  .month-map .mm-month.on.today::after{ background:#fff; }
+  .month-map button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  /* ---------- Soft Lines: the month view's ON-SCREEN look (MONTH-RAIL-PLAN.md step 4; owner, 27 Oct 2026) ----------
+     The owner's "a little more modern" pick (Option 1, Soft Lines), and "Screen only for now". The month view's own
+     rules are FROZEN and are not edited: these override them on screen only, by owner instruction.
+     ⛔ EVERY SELECTOR STARTS #table-wrap .month-view. #print-root is a different subtree of <body> (measured 18 Sep
+     2026), so no rule here can match the print path's document, and the direct month-PDF writer reads renderMonthView's
+     HTML, never this stylesheet. Gates 10 and 13 byte-identical are the proof. @media screen is belt and braces, and it
+     is how the softlines leg finds this block to switch it off and measure the look underneath.
+     ⛔ PAINT ONLY. Colours, the outer box's corners and shadow, and the arrows' visibility. No width, padding, margin,
+     font-size, font-weight on a box that sizes itself, line-height or border WIDTH, so no cell, lane, bar or note moves
+     by a pixel (the softlines leg holds every .mv-* box to the look underneath).
+     - The arrows go with `visibility`, not `display`: hidden, never deleted (as #mv-hdr-mode-btn), and their boxes still
+       size the month band, so the grid does not rise. The phase map's ‹ › replace them (MonthMap.jsx).
+     - ⛔ THE DAY MARKS WIN. #table-wrap outranks every frozen day-cell rule, so the tints below exclude each cell that
+       something else paints: .mv-day-on (worked day), .mv-day-off (the hatch), .mv-day-half (the ½), and :hover (the
+       edit band and its chip, `#table-wrap .mv-daycell:hover`). Those cells look exactly as they do without this block.
+     - No overflow:hidden to round the grid's corners: it would clip the row-expand edge and anything hanging past the
+       grid. The two bottom corner cells take the radius instead (10 px less the 1 px border). */
+  @media screen{
+    #table-wrap .month-view{ border-color:var(--border); border-radius:12px; box-shadow:0 1px 2px rgba(30,29,27,.05); }
+    #table-wrap .month-view .mv-arrow{ visibility:hidden; pointer-events:none; }
+    #table-wrap .month-view .mv-monthbar{ background:var(--bg); border-color:#DCD9D0; border-radius:10px 10px 0 0; }
+    #table-wrap .month-view .mv-dowrow{ background:#fff; border-color:#DCD9D0; }
+    #table-wrap .month-view .mv-dow{ color:#8A867D; font-weight:600; letter-spacing:.08em; }
+    #table-wrap .month-view .mv-body{ border-color:#DCD9D0; border-radius:0 0 10px 10px; }
+    #table-wrap .month-view .mv-week{ border-top-color:#DCD9D0; }
+    #table-wrap .month-view .mv-daycell{ border-left-color:#E6E4DE; }
+    #table-wrap .month-view .mv-body > .mv-week:last-child .mv-daycell:first-child{ border-bottom-left-radius:9px; }
+    #table-wrap .month-view .mv-body > .mv-week:last-child .mv-daycell:last-child{ border-bottom-right-radius:9px; }
+    #table-wrap .month-view .mv-out:not(.mv-weekend):not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#fff; }
+    #table-wrap .month-view .mv-weekend:not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#FAF9F6; }
+    #table-wrap .month-view .mv-daycell:not(.mv-day-on):not(.mv-day-off):not(.mv-day-half):not(:hover) .mv-daynum{ color:#5E5B54; }
+  }
+
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */

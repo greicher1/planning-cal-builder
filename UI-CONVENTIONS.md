@@ -827,6 +827,7 @@ page scrolls, exactly as before.
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
 | the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
 | the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md.)* A full-width second line of `.view-toggle-row` (`.view-toggle-row > .style-bar-host{flex:1 1 100%}`; the row already wraps), 34 px tall at 1600×1200, so it costs one toolbar line of grid height at every width. ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit already observes `.view-toggle-row` (its ResizeObserver), so the grid still ends at the panel's bottom with no change; `calzoom` W1b and `textstyle` B3 hold it |
+| the phase map | *(27 Oct 2026, MONTH-RAIL-PLAN.md, owner's option 3d+.)* `MonthMap.jsx`, a full-width line of `.view-toggle-row` ABOVE the text style bar, in the month view only (null in the waterfall, so the style bar keeps its place there). It draws the engine's `monthMap` push: every month (at least 36 px each, scrolling sideways inside the map past that), the phases as named 13 px bars in at most 3 rows plus 4 px thin rows, the all-phase hiatuses as red marks. 54 / 69 / 84 px tall for 1 / 2 / 3 rows. Plain buttons with `data-mvgo` / `data-mvstep`, no ids. In the month view `#table-wrap` is the flex scroll box, so the calendar gives up the map's height with no grid-fit change. `monthmap` holds it |
 
 ⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
 `body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct
@@ -1361,6 +1362,16 @@ Nothing in this document ships without all of these, every stage:
     refuses; the highlight rule; no menu on a heading or with Shift; a render closing the menu, a repaint or an
     unmoved scroll not; no id, and `fields.byId` unchanged. ⚠️ Before adding a menu item anywhere, read that plan's
     §1.1: an item must be what you reach for on that cell AND have no one-gesture way there already.
+20. **NEW — the month view's screen-only look moves nothing, and the phase map is the arrows' twin** (27 Oct 2026,
+    MONTH-RAIL-PLAN.md).
+    - `softlines` (dayoverrides, halfmarks): every month page is measured with the Soft Lines `@media screen` block
+      and with it deleted from the page's own stylesheet. Every `.mv-*` box must be identical to 0.01 px, and every
+      day mark, bar, note, hiatus band and header line painted identically.
+    - `monthmap` (mvnotes, colreuse, offweek): the map's months and highlight equal the frozen arrows' on every page,
+      and a bar spans every phase the month view draws.
+    - Gates 10 and 13 byte-identical are the proof the look stays off both month PDFs.
+    - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
+      itself turns `softlines` L1 red.
 
 ---
 

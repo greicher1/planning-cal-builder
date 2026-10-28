@@ -88,6 +88,15 @@ there for a specific, measured reason, and the reasons are not visible from the 
   ⛔ Mantine's CSS is imported PER-COMPONENT now, and **the order is derived, never alphabetical** —
   they share one layer, so order decides, and sorting it put `UnstyledButton` after `Button` and
   stripped every button in the app of its background, border and padding.
+- ⚠️ **One owner-instructed exception to the month view's frozen LOOK (27 Oct 2026, MONTH-RAIL-PLAN.md): "Soft
+  Lines", on screen only.**
+  - It is an `@media screen` block in `legacy.css`, every selector `#table-wrap .month-view`, so it cannot reach
+    `#print-root` or either month PDF.
+  - Paint only: soft grey lines and tints, and the frozen `#mv-prev` / `#mv-next` hidden by `visibility`. Their
+    twin is the phase map in the toolbar row (`MonthMap.jsx`).
+  - It edits no frozen rule. Its tints exclude the day marks and `:hover`.
+  - The `softlines` leg holds every box to 0.01 px with and without it. Keep it paint only, or that leg goes red.
+  - Making the PDFs follow is a separate frozen edit the owner has not ruled on.
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 

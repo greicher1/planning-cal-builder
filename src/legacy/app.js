@@ -21601,6 +21601,176 @@ export function initLegacyApp() {
   }
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
+
+  // ---------- THE PHASE MAP above the month view (MONTH-RAIL-PLAN.md; owner, 27 Oct 2026) ----------
+  // A fixed row under the preview toolbar, in the month view only: every month of the calendar with the phases
+  // drawn over them as named bars, to jump to a month or to the month a phase starts in. Chrome, never grid
+  // content: nothing here touches #table-wrap.
+  //
+  // THE MODEL: plain data in, plain data out, and NOTHING FROM THE ENGINE, so the monthmapmeasure leg can slice it
+  // out of this file verbatim and run it (the owner's "slice it, no hook" ruling, 1 Oct 2026). Plan step 2 feeds it
+  // from the schedule; this half alone decides what the map shows.
+  //   input.first, input.last     'YYYY-MM': the months the map spans. monthRangeForSchedule()'s screen range,
+  //                               so exactly the months the frozen arrows page through.
+  //   input.coreFirst, coreLast   'YYYY-MM': the months the phases cover. The one each side is dimmed (ruling R3).
+  //   input.cursor                'YYYY-MM': the month on screen.
+  //   input.today                 'YYYY-MM-DD'.
+  //   input.spans                 [{key, name, fill, ink, start, end}], in the month view's own phase order (R7),
+  //                               dates 'YYYY-MM-DD' with `end` EXCLUSIVE, as a segment's is.
+  //   input.hiatus                [{name, start, end}]: the all-phase hiatuses. A mark on the month row, never a
+  //                               row of their own (R2).
+  // A bar's `from` and `to` are places along the map in MONTHS: the month's index plus the share of it gone by.
+  // ⭐ ROWS are packed first-fit in the order given, the rule renderMonthView packs its lanes by, and two spans share
+  // a row only when their DAYS do not overlap. The first MONTH_MAP_NAMED_ROWS rows carry names, the next
+  // MONTH_MAP_THIN_ROWS are thin lines with the name on hover, and anything past those shares the last thin row
+  // (ruling R1, the owner's guardrail "at most 3 named rows"). `rows.needed` is what the packing asked for before
+  // that cap: the number the plan's step 1 measures on every fixture.
+  const MONTH_MAP_NAMED_ROWS = 3, MONTH_MAP_THIN_ROWS = 2;
+  function monthMapModel(input){
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ym = s => { const r = /^(\d{4})-(\d{2})/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1 } : null; };
+    const ymd = s => { const r = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return r ? { y: +r[1], m: +r[2] - 1, d: +r[3] } : null; };
+    const a = ym(input && input.first), b = ym(input && input.last);
+    if(!a || !b) return null;
+    const index = (y, m) => (y - a.y) * 12 + (m - a.m);
+    // 240 months is buildMonthLayout's walk guard; a calendar that long is a typo'd year (MAX_WEEKS).
+    const count = Math.min(240, index(b.y, b.m) + 1);
+    if(!(count > 0)) return null;
+    const cf = ym(input.coreFirst) || a, cl = ym(input.coreLast) || b, cur = ym(input.cursor), td = ym(input.today);
+    const months = [];
+    for(let i = 0; i < count; i++){
+      const y = a.y + Math.floor((a.m + i) / 12), m = (a.m + i) % 12;
+      months.push({ key: y + '-' + String(m + 1).padStart(2, '0'), y, m, label: MON[m],
+                    // The year rides on the first month and on each January: "Apr ’26" ... "Jan ’27".
+                    year: (i === 0 || m === 0) ? '’' + String(y).slice(2) : '',
+                    edge: i < index(cf.y, cf.m) || i > index(cl.y, cl.m),
+                    on: !!cur && cur.y === y && cur.m === m,
+                    today: !!td && td.y === y && td.m === m });
+    }
+    const n = months.length;
+    const place = s => {
+      const d = ymd(s);
+      if(!d) return NaN;
+      const dim = new Date(Date.UTC(d.y, d.m + 1, 0)).getUTCDate();
+      return Math.max(0, Math.min(n, index(d.y, d.m) + (d.d - 1) / dim));
+    };
+    const dayNo = s => { const d = ymd(s); return d ? Date.UTC(d.y, d.m, d.d) / 86400000 : NaN; };
+    const used = [];               // per row: the [first day, end day) pairs already in it
+    let needed = 0;
+    const bands = [];
+    (input.spans || []).forEach(sp => {
+      const s = dayNo(sp.start), e = dayNo(sp.end);
+      if(!(e > s)) return;
+      let row = 0;
+      for(;; row++){
+        const r = used[row] || (used[row] = []);
+        if(r.every(u => e <= u[0] || s >= u[1])){ r.push([s, e]); break; }
+      }
+      needed = Math.max(needed, row + 1);
+      const from = place(sp.start), to = place(sp.end);
+      if(!(to > from)) return;   // wholly outside the map's months
+      const thin = row >= MONTH_MAP_NAMED_ROWS;
+      bands.push({ key: sp.key, name: sp.name, fill: sp.fill, ink: sp.ink, start: sp.start, end: sp.end, from, to,
+                   startMonth: months[Math.min(n - 1, Math.floor(from))].key,
+                   row: Math.min(row, MONTH_MAP_NAMED_ROWS + MONTH_MAP_THIN_ROWS - 1), thin });
+    });
+    const hiatus = (input.hiatus || []).map(h => ({ name: h.name, start: h.start, end: h.end, from: place(h.start), to: place(h.end) }))
+      .filter(h => h.to > h.from);
+    return { months, bands, hiatus,
+             rows: { needed, named: Math.min(needed, MONTH_MAP_NAMED_ROWS),
+                     thin: Math.max(0, Math.min(needed - MONTH_MAP_NAMED_ROWS, MONTH_MAP_THIN_ROWS)) } };
+  }
+
+  // ---- The engine's half (plan step 2): what the model is fed, the push, and going to a month ----
+  // THE MONTHS are the screen's range: the months the phases cover (monthCoreRange) and one each side, exactly what
+  // monthRangeForSchedule() returns on screen and what the frozen arrows page through.
+  // ⛔ NOT monthRangeForSchedule() itself. It consumes the print path's one-shot mvPrintRangeOnce, and a push landing
+  // between exportMonthPdf setting that flag and renderMonthView reading it would hand the print the screen's range.
+  function monthMapRange(sch){
+    const core = sch ? monthCoreRange(sch) : null;
+    return core ? { first: monthStep(core.first, -1), last: monthStep(core.last, 1), core } : null;
+  }
+  function monthMapInput(schedule){
+    const sch = wholeCalendar(schedule);
+    const range = monthMapRange(sch);
+    if(!range) return null;
+    // THE PHASES, in the month view's own order (mvLaneOrder, ruling R7), coloured as its bars are. Episode prep's
+    // `start` is only a lane anchor: its real days are firstDay..lastDay, as monthCoreRange reads them.
+    // ⭐ PRODUCTION runs from its first SHOOT day to its last (shootDays, the simulation's own list, the one the month
+    // view draws from). Its segment's `end` is week-based, so it would carry the bar on past the wrap to the end of
+    // that week (the monthmap leg's B2 caught it: a Tuesday wrap drawn to the Sunday).
+    const spans = mvLaneOrder(sch.segments || []).map(s => {
+      const fill = s.color || '#eee';
+      const shot = Array.isArray(s.shootDays) && s.shootDays.length ? s.shootDays : null;
+      const start = shot ? parseDateUTC(shot[0]) : (s.firstDay || s.start);
+      const end = shot ? addDays(parseDateUTC(shot[shot.length - 1]), 1) : (s.lastDay ? addDays(s.lastDay, 1) : s.end);
+      return { key: s.key, name: s.prep ? (s.name || s.label || 'Prep') : phaseDisplayName(s.key),
+               fill, ink: s.textColor || textColorFor(fill), start: isoOf(start), end: isoOf(end) };
+    });
+    // Simultaneous Post is no segment: its weeks carry `simPost`. One bar per unbroken run of them, Monday to the
+    // Friday the month view's last Sim Post pill ends on, placed after the phases as renderMonthView places it.
+    let run = null;
+    (sch.weeks || []).forEach(w => {
+      if(!w.simPost){ run = null; return; }
+      if(run && isoOf(addDays(run.last, 7)) === isoOf(w.date)){ run.last = w.date; return; }
+      run = { first: w.date, last: w.date };
+      spans.push({ key: 'simPost', name: 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
+    });
+    spans.forEach(s => { if(s.run){ s.end = isoOf(addDays(s.run.last, 5)); delete s.run; } });
+    const now = new Date();
+    return {
+      first: ymOfDate(range.first), last: ymOfDate(range.last),
+      coreFirst: ymOfDate(range.core.first), coreLast: ymOfDate(range.core.last),
+      cursor: monthCursor ? ymOfDate(monthCursor) : '',
+      today: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'),
+      spans,
+      // The all-phase hiatuses, unnamed in the schedule: the band's own default word stands in.
+      hiatus: (sch.hiatuses || []).map(h => ({ name: HIATUS_DEFAULT_LABEL, start: isoOf(h.start), end: isoOf(h.end) })),
+    };
+  }
+  function ymOfDate(d){ return isoOf(d).slice(0, 7); }
+  // THE PUSH, off its own childList observer on #table-wrap (sanctioned pattern 3), registered HERE rather than
+  // inside pushViewControls(), which runs at evaluation time above this section, before these consts exist. Every way
+  // the month on screen or the calendar changes ends in render() rebuilding #table-wrap: a frozen arrow, the map, an
+  // edit, a view switch, a Load, an undo, a scenario tab. The waterfall, a calendar with no phases, and the print
+  // walk (printingCursor) all push null.
+  function pushMonthMap(){
+    // update() calls this before render(), and update() can run while this file is still evaluating (a restored
+    // calendar), before the map section's consts exist. `var`, so it reads undefined there rather than throwing.
+    if(!monthMapReady) return;
+    let model = null;
+    if(viewMode === 'month' && !printingCursor && currentSchedule){
+      const input = monthMapInput(currentSchedule);
+      model = input ? monthMapModel(input) : null;
+    }
+    chrome.monthMap(model);
+  }
+  var monthMapReady = true;
+  new MutationObserver(pushMonthMap).observe(document.getElementById('table-wrap'), { childList: true });
+  // GOING TO A MONTH: the frozen arrow handler's rule exactly (its `range` check, at the screen's range), for any
+  // month rather than the one beside it. Paging is session UI: no undo step, nothing dirty, nothing saved.
+  function goToMonth(ym){
+    const r = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+    // ⚠️ The month is checked, not trusted: Date.UTC(2026, 12, 1) is January 2027, so "2026-13" would otherwise land
+    // somewhere real (the monthmap leg's A3 caught exactly that).
+    if(!r || +r[2] < 1 || +r[2] > 12 || viewMode !== 'month' || !currentSchedule) return false;
+    const target = new Date(Date.UTC(+r[1], +r[2] - 1, 1));
+    const range = monthMapRange(wholeCalendar(currentSchedule));
+    if(!range || target < range.first || target > range.last) return false;
+    monthCursor = target;
+    render(currentSchedule);
+    return true;
+  }
+  // The map's buttons (MonthMap.jsx, plan step 3) carry what they do as data, caught here on document, the
+  // [data-shownotes] pattern: data-mvgo="2026-10" goes to that month, data-mvstep="-1" / "1" steps one month.
+  // ⛔ No id on any of them (collectFieldValues).
+  document.addEventListener('click', e=>{
+    const go = e.target.closest && e.target.closest('[data-mvgo], [data-mvstep]');
+    if(!go || go.disabled) return;
+    if(go.hasAttribute('data-mvgo')){ goToMonth(go.getAttribute('data-mvgo')); return; }
+    const n = parseInt(go.getAttribute('data-mvstep'), 10);
+    if(monthCursor && (n === 1 || n === -1)) goToMonth(ymOfDate(monthStep(monthCursor, n)));
+  });
   // Header: Off on screen and in the print fallback (HEADER-ROW-PLAN §2). The frozen renderer still
   // emits .cal-header-bar, with every line empty; a <body> class hides it (legacy.css), because the
   // print fallback renders into #print-root, which is <body>'s child and not inside #table-wrap.
@@ -21863,6 +22033,15 @@ export function initLegacyApp() {
     // ⛔ BEFORE render() too: the phase bar size's <body> class, so the bars are drawn at their size and anything that
     // measures them after the render sees it (MONTH-BAR-SIZE-PLAN.md; see reflectMvBarSize).
     reflectMvBarSize();
+    // ⛔ THE PHASE MAP BEFORE render() (MONTH-RAIL-PLAN.md, the full gate of step 6). The map sits above #table-wrap,
+    // so its height decides where the calendar starts. Pushed only by the after-render observer, it appeared a task
+    // AFTER a switch to the month view and dropped the calendar ~70 px under everything already placed against it:
+    // the "Show in the month view" ring (wfmenu V1/V2) and a right-click on a day (weeknum) landed in the wrong place.
+    // The cursor is final here (placed just above), and MonthMap commits synchronously any push that changes its
+    // height, so the map has that height before the grid is drawn. A view switch, an edit that changes its rows, a
+    // Load: every height change comes through update(). The observer still pushes after every render, for a month
+    // paged without one (same height, so committed the ordinary way).
+    pushMonthMap();
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();

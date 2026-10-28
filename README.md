@@ -159,6 +159,40 @@ Found while planning MONTH-TEXT-STYLE-PLAN.md (§7), from the code, then reprodu
   italic in the fixture and dragged up a row, are italic on their new week in the waterfall and gone from the old one.
   Red before the fix (both arrived upright), green after; H0–H12 unchanged, 14/14.
 
+### Month view: a phase map above the calendar, and a softer look on screen (27 Oct 2026)
+
+Owner: *"I want it to look a little more modern. I also dont want the buttons to change the months to be on the page
+itself, they should be fixed buttons above"*, then option 3d+ from the mockups, with *"slimmer phase rows, at most 3
+named rows, measured on real calendars first. Screen only for now."* Plan: `MONTH-RAIL-PLAN.md`.
+
+- **The phase map.** A fixed row under the toolbar, in the month view only, with the text style bar under it.
+  - It shows every month of the calendar, and every phase as a named bar over the months it runs.
+  - Click a month to go there, click a phase to go to the month it starts in, or step with ‹ ›.
+  - A dot marks this month, and the all-phase hiatuses show as red marks.
+  - A long calendar scrolls sideways inside the map. It stays put at any zoom.
+  - It is 54, 69 or 84 px tall for one, two or three rows of phases.
+  - Measured first on all 94 test calendars: 88 of the 89 that draw need 3 rows or fewer.
+- **The old month arrows are gone from the page.** They are hidden, not deleted, so nothing moves and every scripted
+  click still works.
+- **Soft Lines, on screen only:** light grey grid lines, a soft rounded month band, day names without the grey fill,
+  and lighter weekend and edge-of-month tints.
+  - Paint only. Worked, Off and half days keep their own marks.
+  - **Both month PDFs are unchanged**, byte for byte.
+- **Verified:**
+  - new legs `monthmap` (15 cases) and `softlines` (6 cases, nothing moves to 0.01 px);
+  - gates 10 and 13: 293 checks, 0 failures; gate 7: 511 entries identical;
+  - 27 existing legs; `npm run check` 40/40.
+  - Two engine fixes the legs found on the way: a month value of 13 rolling into the next year, and the map's
+    Production bar running past the wrap day.
+  - **Full gate: 3,142 checks, 0 failures**, the third run. The first two found two real bugs, both fixed:
+    - the calendar dropped ~70 px just after a switch to the month view, under anything already placed on it, because
+      the map arrived a task later. It is now pushed before the render and committed at once, so it moves 0 px.
+    - committing every push at once held back other panels' updates (Settings' Hidden Notes row read stale). Now
+      only a push that changes the map's height is committed at once.
+  - The `halfworked` leg was made robust to a scroll event that arrives late in headless Chrome, which the map's
+    shorter scroll box made reachable. No assertion changed.
+  - The switch still takes 108–127 ms month → waterfall and 15–26 ms back, timed in the pane.
+
 ### Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026, `273692c`)
 
 Owner: *"do the phase starts and ends. they should be disabled by default."*
