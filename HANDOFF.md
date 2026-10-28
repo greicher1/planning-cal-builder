@@ -4,7 +4,30 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 27 Oct 2026: TWO OR MORE SEASONS TICKED IN SHOW INFO'S SEASON DROPDOWN, NAMED IN THE HEADER. Built in the main checkout, UNCOMMITTED, full gate queued
+### 🔨 27 Oct 2026 (latest): FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; MERGED INTO LOCAL `main`; NOT PUSHED
+
+- **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then
+  run one single gate"*. **Picked:** month text styling, the phase map rail + Soft Lines, two or more seasons — NOT the
+  month menu trim (`claude/adoring-chaum-0206c1`, still waiting on its own merge picker). **Stop all three** per-feature
+  gates (month-rail's had already finished 3,142/0; Seasons' was stopped 17 min in; month text styling's 20 min in).
+- **Done** by the month-bar-size session:
+  - The Seasons session's uncommitted work committed on `main` in the main checkout as `15ac6ce` (Seasons files only;
+    the stray `stintswap-reshape.sptcal` edit, the Reshape fixture, `WATERFALL-PDF-LOOK-PLAN.md` left alone).
+  - Integrated on `month-bar-size`: `main` (`4dc1aa1`), `land-month-text-style` (`9d67f4c`), `claude/month-rail`
+    (`1bc01d5`). Conflicts were README/HANDOFF tops, gate.sh lists, two pre-render calls in `update()`, and — the one
+    with substance — bar size and text styling both editing `mvPillLineCount` and the writer's layout signature.
+  - ⭐ **Where they meet:** a month text style's size on a bar or band is written in the bar size's own line box
+    (`mvBarLinePx()`: 15 px at Standard, unchanged; 18 / 21 px at Large / Extra large), the box the writer draws.
+    `monthemit` on the styled fixture at Standard, Large and Extra large: 16/16 each.
+  - v1.9.0 re-cut over all four (`releases/v1.9.0.html` = build `c352d88b…`; the README `## v1.9.0` intro names them).
+- ✅ **The single release gate** on `c352d88b…`: **3,338 PASS, 0 FAIL** (17:50–18:20, no other gate running); every baseline byte-identical, gate 13's 23 written month PDFs (the new Large one included) and gate 10's 68 print checks.
+- **Local `main`** fast-forwarded to the branch in the main checkout (its untracked `MONTH-RAIL-PLAN.md` and
+  `mockups/month-view-redesign.html`, byte-identical to the committed copies, removed first; the stray
+  `stintswap-reshape.sptcal` edit, the Reshape fixture and `WATERFALL-PDF-LOOK-PLAN.md` left as they were). Tag
+  `v1.9.0` on the final commit (moved from the bar-size-only `5e94671`; never pushed).
+- ⏭ **Next:** the owner's push picker. A push of `main` to `origin` is a fast-forward and ships v1.9.0.
+
+### 🔨 27 Oct 2026: TWO OR MORE SEASONS TICKED IN SHOW INFO'S SEASON DROPDOWN, NAMED IN THE HEADER. Built in the main checkout, COMMITTED on `main` as `15ac6ce` (owner's picker, by the month-bar-size session), merged for the single v1.9.0 gate (entry above)
 
 - **Asked** (owner): *"what do we do if multiple seasons (usually max of 2) are shot simultaenously and would be on
   the same calendar"*. After an answer about one crew or two, they narrowed it: *"no its really just about being able
@@ -38,8 +61,8 @@
   - Gate: the Excel baselines are byte-identical (base.xlsx's header has no `&`, checked), plus leg S4/S4b.
 - **Proof:** new leg `t/seasons.js` (in `gate.sh` AFSPEC, 400 s), **15/15** on the build, the dropdown driven by mouse
   (hit-tested) and keyboard. `npm run check` 40/40. Checked by eye in the pane: the closed field reads "Seasons 3 & 4",
-  the open list shows ten rows with boxes, 3 and 4 ticked. Full gate: queued behind three other
-  sessions' gates (port 8473), result pending.
+  the open list shows ten rows with boxes, 3 and 4 ticked. Its own full gate was stopped by the owner's call;
+  ✅ **v1.9.0's single release gate** (with the three other features): 3,338 PASS, 0 FAIL, `seasons` 15/15 in it.
 - ⚠️ **Harness trap found:** after a Load through `T.openViaFakePicker`, `#file-menu` is closed
   (`aria-expanded="false"`) but its dropdown stays drawn (display block, 153,50 280×293), because its closing transition
   never finishes in headless Chrome. It covers the top of the sidebar, so a hit-tested click there fails. `seasons.js`
@@ -47,7 +70,7 @@
 - **Not done:** no commit, no push. Episode numbering for a second season (401…) was not asked for. The ticks stop at
   Season 10, like the old dropdown.
 
-### 🔨 27 Oct 2026 (latest): STYLE ANY TEXT IN THE MONTH VIEW: BUILT on `claude/sharp-stonebraker-8d2cd2`, committed locally, NOT merged, NOT pushed ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md) §12)
+### 🔨 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW: BUILT on `claude/sharp-stonebraker-8d2cd2`; ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry), NOT pushed ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md) §12)
 
 - **Built, plan §9 steps 0–7, one commit per step:**
   - **Step 0, a real bug fixed:** the month hiatus drag left a band's WATERFALL text style on its old weeks
@@ -262,7 +285,7 @@
   between the weeks (`mvlFrame`). Both 12 px caps are arithmetic and must be measured before the size lists are fixed.
 - Rough size: L, 2–3 sessions (plan §9).
 
-### 🔨 27 Oct 2026: BIGGER PHASE BARS IN THE MONTH VIEW: v1.9.0 CUT AND TAGGED on branch `month-bar-size` (`5e94671`, worktree `.claude/worktrees/month-bar-size`), local `main` merged in; NOT PUSHED, local `main` NOT YET FAST-FORWARDED ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md))
+### 🔨 27 Oct 2026: BIGGER PHASE BARS IN THE MONTH VIEW: ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry), NOT pushed; first cut alone on branch `month-bar-size` (`5e94671`, worktree `.claude/worktrees/month-bar-size`), local `main` merged in; NOT PUSHED, local `main` NOT YET FAST-FORWARDED ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md))
 
 - 🔨 **Step 5 (owner: "Do step 5 … here: merge into main and cut the version. Ask before pushing.")**
   - **Merged** local `main` (`9cdd5cb`) into the branch as `46509c3` (only README's changelog top conflicted). The
@@ -421,7 +444,7 @@
   (gridlines on screen: reverses the 3 Sep ruling), and R3–R7. Each has a recommended default.
 - Committed: nothing. The plan file is new and uncommitted.
 
-### 🔨 27 Oct 2026: A MORE MODERN MONTH VIEW + A PHASE MAP ABOVE IT — 3d+ BUILT on branch `claude/month-rail` (all 6 steps COMMITTED, tip `819e11a`; third full gate 3,142 / 0), rulings R1–R7 at their defaults (owner) ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md), [`mockups/month-view-redesign.html`](mockups/month-view-redesign.html)); NOT in main, NOT pushed
+### 🔨 27 Oct 2026: A MORE MODERN MONTH VIEW + A PHASE MAP ABOVE IT — ➡️ MERGED INTO LOCAL `main` for v1.9.0 (top entry), NOT pushed — 3d+ BUILT on branch `claude/month-rail` (all 6 steps COMMITTED, tip `819e11a`; third full gate 3,142 / 0), rulings R1–R7 at their defaults (owner) ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md), [`mockups/month-view-redesign.html`](mockups/month-view-redesign.html)); NOT in main, NOT pushed
 
 - **Where it stands:** the owner picked 3d+ with guardrails (*"slimmer phase rows, at most 3 named rows, measured on
   real calendars first. Screen only for now."*). The plan's step 1 measures phase rows on all 95 fixtures before

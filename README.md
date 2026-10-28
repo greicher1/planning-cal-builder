@@ -29,17 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## v1.9.0 — bigger phase bars in the month view (27 Oct 2026)
+## v1.9.0 — the month view's bigger bars, styled text and phase map; two or more seasons (27 Oct 2026)
 
-37 changes since v1.8.0, from 21–27 Oct 2026. All but one were already live before this cut; this version is how
-installed copies hear about them, since `version.json` moves with `APP_VERSION`. New with this push: **Phase bar
-size** (Settings ▸ Preferences ▸ Month view: Standard, Large, Extra large), which makes the month view's phase bars
-and hiatus bands bigger on screen and in the month PDF, and is saved with the calendar. It was merged with local
-`main` (the phase start/end automatic notes and the view-switch speedup) as `46509c3`; on that merged build, both
-features' legs, `settingswin`, the switch-speedup legs and four month PDFs byte for byte against gate 13 all passed.
-The cut build (`d9d9297c`) differs from it in exactly two places, the version literal and the script's CSP hash.
-`releases/v1.9.0.html` is byte-identical to it. `tests/fixtures/v1.9.0-saved.sptcal` is a real Save
-(`t/mintfixture.js`): 43 keys, as in v1.8.0, and 77 ids (v1.8.0's plus `show-location`), version 1, 0 clipped.
+41 changes since v1.8.0, from 21–27 Oct 2026. New with this push, four features merged into `main` together and
+gated once (owner, 27 Oct 2026: *"lets merge all the features were working on into main then run one single gate"*):
+
+- **Phase bar size** (Settings ▸ Preferences ▸ Month view: Standard, Large, Extra large): the month view's phase bars
+  and hiatus bands bigger on screen and in the month PDF, saved with the calendar.
+- **Two or more seasons** ticked in Show info's Season dropdown, named in the header ("S3 & S4").
+- **Month text styling:** any month-view text styled from the text style bar, in the PDF too.
+- **The phase map** above the month view, and the **Soft Lines** look on screen.
+
+The other 36 were already live; this version is how installed copies hear about them, since `version.json` moves
+with `APP_VERSION`. Where two of the four meet: a month text style's size on a bar keeps the bar size's own line box
+(15 px at Standard, as before; 18 and 21 px at Large and Extra large), so a styled bar at a size draws the same on
+screen and in the PDF; `monthemit` holds every styled text kind at Large and at Extra large to Chrome's print layout.
+**Release gate** on the cut build `c352d88b…` (17:50–18:20, no other gate running): **3,338 PASS, 0 FAIL**. Every
+baseline byte-identical: the waterfall PDF, every Excel part, gate 10's 68 print checks and all 23 of gate 13's written
+month PDFs, the new Large one included.
 
 ### Month view: Phase bar size, on screen and in the month PDF (27 Oct 2026)
 
@@ -107,7 +114,7 @@ drop down menu with the checkboxes inside the drop down"*.
   the closed field's text, the waterfall and month titles, Excel,
   both PDFs, the tokens, three seasons, unticking the first, one undo step, Save/Load and the M-5 trap, a
   hand-edited file, the old single-select path, a real v1.8.0 file, New, and the Excel `&` (including a shaved
-  header). `npm run check` 40/40. Full gate: pending.
+  header). `npm run check` 40/40. Full gate: v1.9.0's single release gate, 3,338 PASS, 0 FAIL.
 
 ### Month view: style any month text from the text style bar (27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md)
 

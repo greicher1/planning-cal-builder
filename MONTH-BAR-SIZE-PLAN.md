@@ -418,9 +418,22 @@ merge into main and cut the version. Ask before pushing."*)
   entries since v1.8.0; `releases/v1.9.0.html` byte-identical to the cut build `d9d9297c…`, which differs from the
   merged build only in the version literal and the CSP hash; `tests/fixtures/v1.9.0-saved.sptcal` (real Save, 43 keys,
   77 ids); tag `v1.9.0`.
-- ⏳ Local `main` is the main checkout's, which holds another session's uncommitted Seasons work in files this merge
-  touches, so it cannot be fast-forwarded without disturbing that work. The push, asked separately, can go from this
-  branch as a fast-forward of `origin/main`.
+- 🔁 **Then the owner widened it** (*"lets merge all the features were working on into main then run one single gate"*;
+  picker: month text styling, the phase map rail + Soft Lines, two or more seasons; NOT the month menu trim; stop the
+  three per-feature gates). The Seasons session's uncommitted work was committed on `main` as `15ac6ce`, and the
+  integration happened on this branch: `main` → `4dc1aa1`, `land-month-text-style` → `9d67f4c`, `claude/month-rail` →
+  `1bc01d5`.
+  - ⭐ **Where bar size meets month text styling** (both edit `mvPillLineCount` and the writer's layout signature): a
+    styled size on a bar or band is written in the bar size's own line box, `mvBarLinePx()` (15 px at Standard, as
+    M1 always had; 18 / 21 px at a size), because that is the box the writer draws (`S.big`). A bar styled in weight
+    alone measures at the bars' size (`mvlStyledWidthOf(…, barPx)`), and the style bar reads a bar's unstyled size as
+    the size's. `mvlMonthLayout(html, widthOf, pillWidthOf, fonts, barSize)`; the month legs pass `fonts` as null.
+  - On the merged builds: `monthemit` on the styled fixture `mvtextstyle` at Standard, Large and Extra large, 16/16
+    each; `mvtextstyle` 23/23 and 6/6; `monthmap` 15/15 twice; `softlines` 6/6; `mvbarsize` 13/13 and 12/12;
+    `seasons` 15/15; `settingswin` 21/21; `monthlayout` 14/14; month PDFs byte-identical to gate 13 (reference,
+    `mvbarsize-large`, `mvnotes`); `npm run check` 40/40.
+  - **v1.9.0 re-cut** over all four: `releases/v1.9.0.html` = the build `c352d88b…`; the fixture re-minted unchanged.
+  - ✅ **The single full gate** on `c352d88b…`: **3,338 PASS, 0 FAIL** (17:50–18:20, no other gate running); every baseline byte-identical, gate 13's 23 written month PDFs (the new Large one included) and gate 10's 68 print checks.
 
 **Size:** M–L. Probably steps 1–2 in one session and steps 3–4 in another. It is the first month-view change that
 alters row heights on purpose. That is why step 1 exists.
