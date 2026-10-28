@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch; merged with `main` twice (`bc80460`, `a8eccf4`), re-checked on the merged build; local `main` FAST-FORWARDED to it (owner's picker, *"Merge into main"*); PUSH APPROVED after the re-check (owner's picker, *"Push after the re-check"*)
+### ✅ 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — ✅ LIVE at `1a4fb48` — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch; merged with `main` twice (`bc80460`, `a8eccf4`), re-checked on the merged build; local `main` FAST-FORWARDED to it (owner's picker, *"Merge into main"*); PUSH APPROVED after the re-check (owner's picker, *"Push after the re-check"*)
 
 - **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
   in the month view"*. Tracker card `waterfall-note-colours`.
@@ -42,6 +42,9 @@
   `wfkeys` 84/84; gate.sh's first section: `base` (grid, waterfall PDF, every Excel part identical to the 29 Aug
   baseline), `restore` and gate 5 all PASS. No second full gate: two other sessions' gates were running, and none of
   `ep-shoot-bars`' re-cut month baselines can contain a No fill waterfall note (older builds' sanitizer dropped it).
+- **Pushed** on the owner's picker (*"Push after the re-check"*): `b9f0ff7..1a4fb48` at 14:10:05. At 14:11:48 the live
+  `index.html`, fetched with a cache-buster, was byte-identical to the re-checked build `9659c632…`. No version cut
+  (still v1.9.0).
 - ⏭ **Next:** nothing owed. The next full gate runs `wfnotecolors` with everything else.
 
 ### ✅ 28 Oct 2026: EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — ✅ LIVE at `b9f0ff7` (owner's picker: "Merge into main", "Push now, no version cut"; the live page served the gated build `212b2faf` byte for byte ~66 s after the push)
