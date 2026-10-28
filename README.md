@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`)
+### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`, merged into local `main`)
 
 Owner: *"I think we still need proper left and right buttons to move the month view cal one month
 forward/backwards"*. Four places were mocked up (`mockups/month-arrows.html`), and the owner picked **B: on the

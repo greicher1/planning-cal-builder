@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); NOT COMMITTED, NOT in main, NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
+### 🔨 28 Oct 2026 (latest): PROPER ‹ › MONTH BUTTONS, WITH TODAY, ON THE STYLE BAR'S LINE (owner's option B) — BUILT on branch `claude/month-step` (worktree `.claude/worktrees/month-step`, from `main` at `76099c4`); FULL GATE 3,324 / 1 (the 1 a `customunits` no-result, 28/28 alone ×3); COMMITTED `2ee0a21` (owner's picker), `main` merged in as `f151902`; ➡️ **MERGED INTO LOCAL `main`** (fast-forward, owner's picker: *"Merge into main here"*); NOT pushed ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md) §18, mockup [`mockups/month-arrows.html`](mockups/month-arrows.html))
 
 - **Asked:** *"I think we still need proper left and right buttons to move the month view cal one month
   forward/backwards. propose a few ideas for places it could go"*. Four places mocked up (A big ends on the map, B on
@@ -24,7 +24,12 @@
   (main: 20–27). At 1,000 px wide it still fits on one line. The app's minimum width (~714 px) never forces the wrap.
 - **Full gate** (`tests/harness/gate-monthstep.log` in the worktree): 3,324 PASS, 1 FAIL. The one was `customunits
   (customunits)` producing no JSON at all; alone on the same build it passed 28/28 three times running.
-- **Next:** the owner's commit picker, then merge into `main` and push (each asked separately).
+- **Merged:** `main` had moved to `646ff9d` (hiatus cards fold, Pre-Prep's name, the Season hint line, all live), so
+  it was merged into the branch first (`f151902`; HANDOFF and README conflicts only, both sides kept). On the
+  merged build: `npm run check` 40/40 and 18 legs green, `monthmap` ×3 plus the new features' own legs (`hiatusfold`,
+  `prepreptitle`, `autonotephases`, `phiatusnum`, `builtindates` ×2, `phasenum` ×2) and `textstyle`, `mvtextstyle`,
+  `softlines`, `wfmenu`, `weeknum`, `customunits` ×2. No full gate on the merged build yet.
+- **Next:** the push, asked on its own (a full gate on the merged build first is recommended).
 
 ### ✅ 28 Oct 2026: ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — ✅ LIVE at `9d5fe4a` — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89`, merged with `main` (`c6cdfd3`) and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); no full gate (owner's question, answered below); ✅ PUSHED (owner's picker, *"Push now"*)
 
