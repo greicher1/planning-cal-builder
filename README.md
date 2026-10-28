@@ -54,7 +54,12 @@ picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
 - **Recorded:** at Extra large on `mvnotes`, one two-line bar is drawn 1.31 px lower than Chrome's print.
   - Chrome leaves 3.4 px of that row unused, against the spec, which the writer follows.
   - The rule that reproduced Chrome broke `month-lanecap` at Standard and was reverted.
-- **Not shippable yet:** the full gate and the new baselines are plan step 4.
+- **Gated** (plan step 4): a new gate-13 baseline, `mvbarsize-large.pdf` (16 pages, 84,839 bytes), cut on the owner's
+  sign-off from contact sheets of Standard against Large. The full gate on `76315d2`: 3,178 PASS, 3 FAIL, none in a
+  month-view or bar-size leg (`notewrap` no result, `hdrcut` ExcelJS timeout, `offweek` R14 Load timing), and each
+  passed alone on the same build. Gates 10
+  and 13 byte-identical on every existing calendar, and the new case matched. No version cut: that is at ship, on
+  `main`.
 - **Verified:**
   - new leg `mvbarsize` 13/13 on `mvnotes` and 12/12 on `hiatus-blanklabel`, with six mutants each red;
   - the gate's new sized block, 82 checks green, with five writer mutants each red;

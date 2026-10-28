@@ -379,12 +379,32 @@ The plan for step 3, as written before the build:
 - At Large and Extra large: `monthemit` (boxes against Chrome's print layout), `monthwriter` (the fit) and
   `monthexport` (the built app's file).
 
-**Step 4: the gate.**
-- The full gate.
-- Gates 10 and 13 byte-identical on every existing calendar.
-- New gate-13 baselines for the new fixture, cut only with your sign-off.
-- `npm run check`.
-- The changelog, HANDOFF and a version cut.
+**Step 4: the gate.** ✅ DONE, 27 Oct 2026 (owner: "Do step 4 … here").
+- ✅ **The new gate-13 baseline is CUT, on the owner's sign-off.**
+  - The owner saw `monthbase.py sheets` contact sheets of all 16 months: the same calendar at Standard | Large |
+    difference, so only what the size changes shows red. The answer was **"Yes, cut it"** (picker).
+  - `tests/baselines/2026-10-05-monthwriter/mvbarsize-large.pdf`: 16 pages, 84,839 bytes, sha256
+    `2208e3ae4806e9d0…`. It was byte-identical across two runs. Its README records the cut.
+  - Added to gate 13's two lists as `bl`.
+- ✅ **The full gate ran on `76315d2`** (15:41–16:32, `HARNESS_PORT=8463`, after two other sessions' gates): **3,178
+  PASS, 3 FAIL.** None of the three is in a month-view or bar-size leg:
+  - `notewrap` produced no result;
+  - `hdrcut` EX: timed out waiting for ExcelJS (the CDN script);
+  - `offweek (offweek)` R14: the Pause prep switch was covered by an open file-menu item after a Load. That is the
+    leg's Load-timing wait, the same shape as the `offweek` R8 flake on record.
+  - ✅ Each passed alone on the same build, once, while another session's gate ran: `notewrap` 16/16, `hdrcut` 7/7,
+    `offweek (offweek)` 42/42 with R14 green. `offweek` R14 has failed the same way in ten other sessions' gates.
+- ✅ **Gate 10 (the print path) is byte-identical** on every existing calendar: every `monthprint` document matched,
+  one sheet per month.
+- ✅ **Gate 13 is byte-identical** on all 20 existing writer baselines, and the new `bl` case
+  (`mvbarsize-large (Large phase bars)`) matched its baseline, 84,839 bytes, `2208e3ae4806e9d0…`.
+- ✅ The sized block passed: `monthemit` (`mvbarsize-large`; `hiatus-blanklabel` and `month-dense60` at `barsize=xl`),
+  `monthwriter` (`mvbarsize-large`; `month-dense60` at XL), `monthexport` (`mvbarsize-large`) and the text check.
+  `mvbarsize` passed on `mvnotes` (13/13) and `hiatus-blanklabel` (12/12).
+- ✅ `npm run check` 40/40.
+- ✅ The changelog and HANDOFF. ⚠️ **The version cut moves to step 5.** A version is cut on `main` at ship time
+  (`APP_VERSION` + `version.json`, the tag, `releases/`), never on a branch that other sessions' commits will be merged
+  around.
 
 **Step 5: ship**, on your picker, commit and push asked separately.
 
