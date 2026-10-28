@@ -29,6 +29,12 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
+
+The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The
+dropdown and its checkboxes are unchanged. Chrome only: no id, no saved key, nothing the grid or the exports read.
+Verified with `npm run build` and `npm run check` (40/40); no gate, on the owner's word.
+
 ## v1.9.0 — the month view's bigger bars, styled text and phase map; two or more seasons (27 Oct 2026)
 
 41 changes since v1.8.0, from 21–27 Oct 2026. New with this push, four features merged into `main` together and

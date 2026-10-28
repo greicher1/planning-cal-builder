@@ -41,8 +41,7 @@ function SeasonField() {
   const many = seasonsText(list)
   const data = many ? SEASONS.map((s) => (s.value === String(list[0]) ? { value: s.value, label: many } : s)) : SEASONS
   return (
-    <NativeSelect id="season-num" label="Season" data={data}
-                  description="Tick more than one when seasons share this calendar." />
+    <NativeSelect id="season-num" label="Season" data={data} />
   )
 }
 
