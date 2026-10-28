@@ -1758,6 +1758,24 @@
   .select-pop .sp-date{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); flex:none; }
   .select-pop .sp-cur .sp-date{ color:inherit; opacity:.75; }
   .select-pop .sp-empty{ padding:8px 10px; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
+  /* Show info's Season dropdown (SeasonPop.jsx, 27 Oct 2026): the same shell and rows, but at body level like
+     .date-pop (fixed, the popover tier) and tall enough for all ten seasons without a scroll. Each row is a button
+     with a drawn box in the sidebar checkbox's look (.form-panel input[type=checkbox]), because a real checkbox
+     here would need an id-free uncontrolled input inside a button. A ticked row is not accented like .sp-cur:
+     several are ticked at once, and the box says it. */
+  .select-pop.season-pop{ position:fixed; z-index:300; max-height:none; overflow:visible; }
+  .season-pop .season-item{ justify-content:flex-start; align-items:center; gap:10px; }
+  .season-pop .season-box{
+    width:16px; height:16px; flex:none; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px; background:var(--mantine-color-white);
+    transition:background-color 100ms ease, border-color 100ms ease;
+  }
+  .season-pop .sp-hi .season-box{ border-color:var(--mantine-color-gray-5); }
+  .season-pop .season-box.on{
+    background-color:var(--mantine-primary-color-filled); border-color:var(--mantine-primary-color-filled);
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E");
+    background-size:62% auto; background-position:center; background-repeat:no-repeat;
+  }
 
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }

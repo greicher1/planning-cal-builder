@@ -128,6 +128,11 @@ export const chrome = {
   // SCENARIOS-PLAN.md). The engine's scenarioTabs is the only store; every action goes back as a DOM event,
   // 'sptcal-scenario' {op, id, name, to}, as the zoom's does.
   scenarios: noop,
+  // [3, 4] — the seasons ticked in Show info, ascending (owner, 27 Oct 2026). The engine's seasonList is the only
+  // store, pushed by update(). Two readers: the Season select's own option text (Sidebar.jsx, "Seasons 3 & 4") and
+  // its checkbox dropdown (SeasonPop.jsx). The input half needs no bridge: a row's click reaches the engine's
+  // document listener by its `data-season`. (Not `scenarios` above: that is the scenario tabs.)
+  seasons: noop,
   // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
   // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
   compareDialog: noop,

@@ -22,11 +22,29 @@ import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
+import { useSeasons, seasonsText } from './SeasonPop.jsx'
 
 const SEASONS = [
   { value: '', label: '—' },
   ...Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: `Season ${i + 1}` })),
 ]
+
+// Show info's Season (owner, 27 Oct 2026: "being able to select two or more seasons in the Show info input and
+// having those seasons translate to the header", then "keep the selector as a drop down menu with the checkboxes
+// inside the drop down"). It is still the native #season-num, and it still holds ONE value, the FIRST ticked
+// season: the save format's season (fields.byId), what episode numbering reads, and what an older build shows.
+// Its list is SeasonPop's checkbox dropdown, and the engine's seasonList keeps the others. With two or more
+// ticked, the first season's option reads "Seasons 3 & 4", so the closed field says what is ticked. Only that
+// option's TEXT changes, never a value.
+function SeasonField() {
+  const list = useSeasons()
+  const many = seasonsText(list)
+  const data = many ? SEASONS.map((s) => (s.value === String(list[0]) ? { value: s.value, label: many } : s)) : SEASONS
+  return (
+    <NativeSelect id="season-num" label="Season" data={data}
+                  description="Tick more than one when seasons share this calendar." />
+  )
+}
 
 export function ShowInfoCard() {
   return (
@@ -40,9 +58,10 @@ export function ShowInfoCard() {
           about input HEIGHT, which this does not touch. */}
       <Stack gap="xl">
         <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
-        {/* ⛔ NativeSelect, never Select. Select puts the option LABEL in the id-bearing input, so
-            this would save "Season 2" where the format expects "2". */}
-        <NativeSelect id="season-num" label="Season" data={SEASONS} />
+        {/* ⛔ The Season select, never Mantine's Select: Select puts the option LABEL in the id-bearing
+            input, so this would save "Season 2" where the format expects "2". Since 27 Oct 2026 its list is a
+            checkbox dropdown (SeasonPop.jsx), so two or more seasons can share one calendar. */}
+        <SeasonField />
         {/* Block shooting (BLOCKS-PLAN.md §3). The mode decides which input drives Production's
             total: Σ episode days, or Σ block days. ⛔ Three NEW ids, and they are PERMANENT: every
             id'd control here is swept into fields.byId, so `show-mode`, `num-blocks` and

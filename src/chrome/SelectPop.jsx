@@ -34,7 +34,8 @@ import { createPortal } from 'react-dom'
 
 // A select participates if it lives in a tool popover. The sidebar's selects (Season, Country,
 // Area, Province) deliberately do not — the ask was the tool pickers, and those four are part of
-// fields.byId with their own restore path; leave their UI native until asked.
+// fields.byId with their own restore path; leave their UI native until asked. (Season was asked for, 27 Oct 2026,
+// and has its own panel: SeasonPop.jsx, because its list holds checkboxes.)
 function pickerTarget(el) {
   if (!el || el.tagName !== 'SELECT') return null
   if (!el.closest('.tools-menu')) return null

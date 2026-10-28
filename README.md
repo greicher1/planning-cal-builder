@@ -80,6 +80,35 @@ picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
     green;
   - `npm run check` 40/40.
 
+### Two or more seasons on one calendar, named in the header (27 Oct 2026)
+
+Owner: *"its really just about being able to select two or more seasons in the Show info input and having those
+seasons translate to the header"*. Picked: "Tick any seasons", "S3 & S4". Then: *"I'd like to keep the selector as a
+drop down menu with the checkboxes inside the drop down"*.
+
+- **Show info's Season is still a dropdown, with a checkbox beside each season inside it** (Seasons 1–10). Tick one
+  season as before, or two or more when seasons share the calendar; the list stays open while you tick, and the
+  closed field reads "Seasons 3 & 4". Keyboard: Enter, Space or an arrow opens it, arrows move, Space ticks, Escape
+  closes.
+- **The header names every ticked season:** "Show Title S3 & S4", "Show Title S3, S4 & S5". That covers the
+  waterfall's title line, the month view's title, Excel's page header, both PDFs, and the `{season}` /
+  `{titleSeason}` template tokens. Nothing about the schedule changes. Episodes number from the first ticked season
+  (Seasons 3 and 4 give 301, 302…).
+- **Save format:** the first ticked season is still `fields.byId['season-num']`. The field is the same native
+  select; only its list is replaced (`SeasonPop.jsx`, built like the tool pickers' `SelectPop`), and its rows are
+  buttons with no id. An older build therefore opens a two-season file showing its first season. Every ticked season is
+  saved under a new key, `seasons` (e.g. `[3, 4]`), written only when two or more are ticked. A one-season calendar
+  saves exactly what it did before. No new id, so the saved field set is unchanged.
+- **Excel now keeps a typed "&" (frozen edit A1, owner's sign-off by picker).** `exportExcel` used to delete every
+  `&` from its page header, because `&` is a code there. That turned "S3 & S4" into "S3  S4", and a title like
+  "Law & Order" into "Law  Order". It now writes `&&`, Excel's code for a printed `&`. The 255-character shave was
+  changed to never split an `&&` pair. A header with no `&` is byte for byte what it was.
+- **Verified:** new leg `seasons`, 15/15. It covers the dropdown (opened by mouse and by keyboard, no id, placement),
+  the closed field's text, the waterfall and month titles, Excel,
+  both PDFs, the tokens, three seasons, unticking the first, one undo step, Save/Load and the M-5 trap, a
+  hand-edited file, the old single-select path, a real v1.8.0 file, New, and the Excel `&` (including a shaved
+  header). `npm run check` 40/40. Full gate: pending.
+
 ### Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026, `273692c`)
 
 Owner: *"do the phase starts and ends. they should be disabled by default."*

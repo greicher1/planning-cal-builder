@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 27 Oct 2026: TWO OR MORE SEASONS TICKED IN SHOW INFO'S SEASON DROPDOWN, NAMED IN THE HEADER. Built in the main checkout, UNCOMMITTED, full gate queued
+
+- **Asked** (owner): *"what do we do if multiple seasons (usually max of 2) are shot simultaenously and would be on
+  the same calendar"*. After an answer about one crew or two, they narrowed it: *"no its really just about being able
+  to select two or more seasons in the Show info input and having those seasons translate to the header"*. Tracker
+  card `two-seasons-one-calendar`. **Picked:** "Tick any seasons" (not a "Season … to …" range), "S3 & S4" (three:
+  "S3, S4 & S5"). First built as ten ticks in the card; then the owner: *"I'd like to keep the selector as a drop down
+  menu with the checkboxes inside the drop down"*, so it is a dropdown again.
+- **Built** (no new id, no `SNAPSHOT_VERSION` bump):
+  - `SeasonPop.jsx` (new, mounted in `#react-root` beside `SelectPop`): `#season-num` stays the visible native
+    NativeSelect; a mousedown on it is preventDefault'd (Chrome's list never opens) and a fixed panel opens below it,
+    `.select-pop.season-pop`, ten `<button data-season>` rows with a drawn box (no id, no form field). Keys that
+    would change a native select's value (arrows, Home/End, typeahead, Enter/Space) open the panel instead, so a
+    keystroke can never quietly drop a second season. While open: arrows move, Space/Enter tick via the row's
+    click, Escape closes (consumed), Tab closes, an outside press closes, it follows scroll.
+  - Bridge `chrome.seasons(list)` (pushed by `reflectSeasons()` in `update()`) feeds a tiny store (`useSeasons`) read
+    by the panel AND by `SeasonField` in `Sidebar.jsx`, which relabels the first season's option "Seasons 3 & 4"
+    (text only, never a value). The engine takes a row's `click` on document by `data-season`. ⛔ Click, not a
+    checkbox `change`: a controlled checkbox would be restored by React inside the click, before the engine reads it.
+  - `app.js`: `seasonList`, `seasonsShown()`, `seasonLabel()`, `reflectSeasons()` (called from `update()`), sitting
+    beside `episodeNumberFor`. `#season-num` holds the FIRST ticked season, so episode numbering and older builds keep
+    working. ⛔ New PERMANENT key `seasons` (ascending ints 1–10), written only with two or more. Sanitized: bad entries
+    dropped and counted, and a list left with one is dropped whole. Restored unconditionally after the field replay;
+    a list that disagrees with `season-num` wins and sets it. A change event on `#season-num` itself means ONE season,
+    which keeps every `T.set('season-num', …)` leg working.
+  - The three header readers (`computeHeaderDefaults`, `computeMvHeaderDefaults`, `buildHeaderCtx`) use
+    `seasonLabel()`. None is frozen. One season reads `'S' + n`, exactly as before.
+- ⛔ **FROZEN EDIT A1, `exportExcel`** (owner's picker, 27 Oct 2026: *"Yes, apply it (Recommended)"*):
+  - `hdrSafe` writes `&` as `&&` instead of deleting it. Before, "S3 & S4" printed in Excel as "S3  S4".
+  - Second half, disclosed when it was added: the 255-character shave never leaves a lone `&` before the `…`.
+  - `estimateExcelHeaderLength()` counts the doubled `&` too.
+  - Gate: the Excel baselines are byte-identical (base.xlsx's header has no `&`, checked), plus leg S4/S4b.
+- **Proof:** new leg `t/seasons.js` (in `gate.sh` AFSPEC, 400 s), **15/15** on the build, the dropdown driven by mouse
+  (hit-tested) and keyboard. `npm run check` 40/40. Checked by eye in the pane: the closed field reads "Seasons 3 & 4",
+  the open list shows ten rows with boxes, 3 and 4 ticked. Full gate: queued behind three other
+  sessions' gates (port 8473), result pending.
+- ⚠️ **Harness trap found:** after a Load through `T.openViaFakePicker`, `#file-menu` is closed
+  (`aria-expanded="false"`) but its dropdown stays drawn (display block, 153,50 280×293), because its closing transition
+  never finishes in headless Chrome. It covers the top of the sidebar, so a hit-tested click there fails. `seasons.js`
+  `onTop()` tolerates exactly that case.
+- **Not done:** no commit, no push. Episode numbering for a second season (401…) was not asked for. The ticks stop at
+  Season 10, like the old dropdown.
+
 ### ✅ 27 Oct 2026: AUTOMATIC NOTES FOR EACH PHASE'S START AND END, OFF BY DEFAULT. ✅ LIVE at `273692c` (pushed alone on top of `31eddd0`; owner's picker: "Commit and merge", "Push it alone, once verified")
 
 - **Asked** (owner): *"what are all the other automatic notes we could have?"*, then *"do the phase starts and ends.
@@ -163,6 +206,265 @@
   size or smaller (17 px, 11 px): they set the height of the band above the weeks, and the PDF divides what is left
   between the weeks (`mvlFrame`). Both 12 px caps are arithmetic and must be measured before the size lists are fixed.
 - Rough size: L, 2–3 sessions (plan §9).
+
+### 🔨 27 Oct 2026: BIGGER PHASE BARS IN THE MONTH VIEW: v1.9.0 CUT AND TAGGED on branch `month-bar-size` (`5e94671`, worktree `.claude/worktrees/month-bar-size`), local `main` merged in; NOT PUSHED, local `main` NOT YET FAST-FORWARDED ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md))
+
+- 🔨 **Step 5 (owner: "Do step 5 … here: merge into main and cut the version. Ask before pushing.")**
+  - **Merged** local `main` (`9cdd5cb`) into the branch as `46509c3` (only README's changelog top conflicted). The
+    code beyond `origin/main` is exactly Phase bar size.
+  - **On the merged build** `a21455d6…`: `npm run check` 40/40; `mvbarsize` 13/13 + 12/12, `autonotephases` 17/17,
+    `autonotekinds` 16/16, `settingswin` 21/21, `customunits` / `builtindates` live + restore, `mvnotes` 14/14,
+    `monthlayout` 14/14, `monthexport` 9/9 on four calendars, each written PDF byte-identical to gate 13. No full gate
+    on the merged build yet (three other sessions' gates queued).
+  - **v1.9.0 cut** as `5e94671`, tag `v1.9.0`: `APP_VERSION` + `version.json` + `package.json`; README `## v1.9.0`
+    over the 37 entries since v1.8.0 (all live except the bar size); `releases/v1.9.0.html` = the cut build
+    `d9d9297c…`, which differs from the merged build only in the version literal and the CSP hash;
+    `tests/fixtures/v1.9.0-saved.sptcal`, a real Save (43 keys, 77 ids = v1.8.0's + `show-location`).
+  - ⚠️ **Local `main` is NOT fast-forwarded.** The main checkout holds the Seasons session's uncommitted work in six
+    files this merge changes (README, `Sidebar.jsx`, `bridge.js`, `app.js`, `legacy.css`, `gate.sh`), so
+    `--ff-only` would be refused. That session was told (and told v1.9.0 is taken). Once its work is committed,
+    `git merge month-bar-size` in the main checkout brings `main` up. A push, if approved, goes from the branch as a
+    fast-forward of `origin/main`.
+
+- ✅ **Step 4 DONE (owner: "Do step 4 … here"), committed on the branch as `41799d5` (owner's picker: "Commit on the
+  branch", "Don't push"). Not merged, not pushed.**
+  - **New gate-13 baseline:** `tests/baselines/2026-10-05-monthwriter/mvbarsize-large.pdf` (16 pages, 84,839 bytes,
+    `2208e3ae4806e9d0…`). It was cut on the owner's "Yes, cut it", after contact sheets of all 16 months, Standard |
+    Large | difference. It is case `bl` in gate 13's two lists.
+  - **Full gate on `76315d2`: 3,178 PASS, 3 FAIL.** None of the three is in a month-view or bar-size leg:
+    - `notewrap`: no result;
+    - `hdrcut`: ExcelJS CDN timeout;
+    - `offweek (offweek)` R14: the switch was covered by a file-menu item still open after a Load.
+  - ✅ Each passed alone on the same build, once, while another session's gate ran: `notewrap` 16/16, `hdrcut` 7/7,
+    `offweek (offweek)` 42/42 with R14 green. `offweek` R14 has failed the same way in ten other sessions' gates.
+  - Gates 10 and 13 are byte-identical on every existing calendar. The new case matched. `npm run check` 40/40.
+  - **No version cut on the branch.** It moves to step 5, on `main`, at ship.
+  - **Next is step 5:** merge into `main` and ship, on the owner's picker, with the push asked separately.
+
+- ✅ **Step 2 DONE (owner: "Do step 2 … here"), committed on the branch as `3e00633` (owner's picker: "Commit on the
+  branch", "Don't push"). Not merged, not pushed.**
+  - **Built:**
+    - `mvBarSize` state, save, load, undo and New;
+    - *Phase bar size* (Standard · Large · Extra large) in Settings ▸ Preferences ▸ Month view;
+    - E1 (screen CSS under `body.mv-bar-large` / `body.mv-bar-xl`, scoped to `#table-wrap`);
+    - E2 (`mvPillLineCount` at the bar's size);
+    - the leg `mvbarsize`, added to `gate.sh`.
+  - ⭐ **Design change found by the leg:** a bar's height is now FIXED (22 / 25 px; 40 / 46 px for a wrapping one-day
+    bar), not a `min-height`. At 75% zoom Chrome's rounded borders made a text-sized bar taller than the minimum.
+    Fixed heights are exact at 75%, 150% and 200%.
+  - **Verified:**
+    - `mvbarsize` 13/13 (`mvnotes`) and 12/12 (`hiatus-blanklabel`), six mutants each red on its own cases;
+    - month PDFs byte-identical to gate 13 on 8 calendars;
+    - 13 existing month and settings legs green;
+    - `npm run check` 40/40.
+
+    No full gate yet. Another session's gate was running, so every run used `HARNESS_PORT=8463`.
+  - The branch was cut from `32f47d5`. Main's uncommitted waterfall edits (another session's) are not on it.
+- ✅ **Step 3 DONE (owner: "Start step 3 … here")**, on the same branch, committed as `76315d2` (owner's picker: "Commit on
+  the branch", "Don't push"): the month PDF writer draws the picked size, and the print rollback follows (E3).
+  - **Size as an ARGUMENT:** `buildMonthLayout(…, barSize)` → `mvlMonthLayout(…, barSize)`, not a stamp like
+    `headerOff`, because the model decides a one-day pill's wrap.
+  - **Sizes:** `MVL_BAR_SIZES` sits with the model, because the `monthlayout` leg slices only the model.
+  - **E3** sits OUTSIDE `@media print`, because frozen `exportMonthPdf` measures in screen media.
+  - **Harness:**
+    - `t/lib.js` `applyBarSizeQuery()` (`HARNESS_QUERY=barsize=large|xl`) / `barSizeShown()`;
+    - the three month legs made size-aware;
+    - `monthwriter`'s oracle gained the `wrap` change (screen and PDF wrap a one-day pill at different widths);
+    - new fixture `mvbarsize-large.sptcal` (minted);
+    - `gate.sh` sized block, 82 checks green, with 5 writer mutants each red.
+  - **Standard untouched:** gate 13 bytes on 10 calendars, gate 10 6/6 on 5.
+  - ⚠️ **RECORDED, NOT MODELLED:** `mvnotes` at Extra large draws one two-line bar 1.31 px below Chrome's print.
+    - Chrome's lanes are 23.69 / 22 / 22 with 3.4 px of the row unused; the spec gives 25 / 22 / 22.
+    - The rule that reproduced Chrome broke `month-lanecap` at Standard and was reverted.
+    - Left out of the gate deliberately (plan §5 step 3).
+  - **Next is step 4:** the full gate, and the gate-13 baselines for the sized fixture, cut only with the owner's
+    sign-off. Then merge and ship on the owner's picker.
+
+- **Asked** (owner): *"what would it take to allow increasing the size of phase bars in the month view?"*, then *"Write
+  a plan … with the rulings up front and a recommended default for each."* Tracker card `month-bar-size`, planned.
+- ✅ **RULED, owner's picker, 27 Oct 2026:** every recommendation taken EXCEPT R1. R0 *"Yes, this setting only"* (the
+  three frozen edits, gated on 10 and 13 byte-identical). **R1 *"Phase bars and hiatus bands"*** (against the
+  recommendation of phase bars only). R2 text and bar together. R3 Standard · Large · Extra large. R4 screen and PDF.
+  R5 saved in the calendar. R6 Settings ▸ Preferences ▸ Month view, label *Phase bar size*. R7 the print rollback
+  follows.
+- **The design, as ruled:** *Phase bar size* (12 / 14 px text, 22 / 25 px bars and bands) on screen and in the PDF.
+  Standard is an ABSENT `mvBarSize` key. Three frozen edits, all inert at Standard: E1 screen CSS under a body class
+  (`.mv-pill` and `.mv-hiatus-bar` grow, everything else gets `contain:size`), E2 `mvPillLineCount` measures at the
+  bar's size, E3 the print rollback. The writer reads a `barSize` stamped per month by `exportMonthPdfDirect` (the
+  `headerOff` shape) and draws pills, Sim Post and bands from `S.big`.
+- **Measured** (`monthwriter` leg, throwaway `?src=` copies of app.js, 173 months), first for pills, then again with
+  bands growing too, with IDENTICAL results: Large shrinks no extra month and cuts no extra label; Extra large shrinks
+  the same 3 dense months slightly more (0.469 → 0.453 at worst) and cuts 7 more labels (Production's grey tags on
+  short pieces). A printed bar is already 19 px, so the page absorbs it.
+- ✅ **Plan step 1 DONE (owner: "Start step 1"): the screen mechanism holds, with ONE RULE ADDED.**
+  - **How:** a throwaway leg, deleted after the run. It added E1's rules at run time to the built app, then walked
+    every month of `mvnotes`, `month-dense60` and `hiatus-blanklabel` (54 months) at all three sizes, reading
+    `grid-template-rows` and each bar's box.
+  - **Run 1** failed two ways:
+    - at 150% zoom, Chrome rounds the 1 px borders, so a Large lane was 21.33 px own-px, not 22;
+    - an emptied band has no line box, so it stayed 17 px.
+  - **Fix:** `min-height` at the bar height on `.mv-pill` / `.mv-hiatus-bar` (plan §4.2). Run 2: all 25 checks green
+    on all three calendars:
+    - inert with no size picked;
+    - the same lane placement at every size;
+    - every lane with no bar or band exactly 17 px (889 per size, including 84 multi-lane notes), every bar lane
+      exactly 17 / 22 / 25 (242);
+    - fonts 10 / 12 / 14 (tags 9 / 11 / 12);
+    - emptied bands full height;
+    - 150% exact;
+    - no one-line bar overflows its box.
+  - **Measured on screen:** a month is a median of 4.4% taller at Large and 7.1% at Extra large (at most 6.5% and
+    10.9%).
+  - ⭐ **Found in passing:** today 262 of the 268 bars overflow their 17 px box by 2 px. The bottom padding is hidden,
+    and the text fits.
+  - The two-line custom bar shares its extra height across its two lanes by the grid's spanning rule (19 + 19 at
+    Large). Step 3's `monthemit` must confirm the writer's `mvlLaneTracks` agrees.
+  - Step 2 followed (above).
+- ⚠️ **LESSON, learned the hard way: `run.sh` on the default port KILLS another session's running gate's server.** It
+  runs `pkill -f "srv.js $PORT "` before starting its own. Step 1's first run did that, on 8231, for about a minute
+  (11:57) while another session's full gate ran. That gate then showed a `launchopen EX: harness` failure, possibly
+  ours, and that session was told. **Whenever a gate may be running (`pgrep -fl gate.sh`), pass `HARNESS_PORT=<free
+  port>`**, which also namespaces the Chrome profile.
+- **Overlaps `month-text-style`** (the entry above): plan §7 gives the rule that keeps them apart. This setting sets a
+  bar's height and default text size, and a text style sets one bar's text inside that height. Whichever builds second
+  adopts it.
+- Committed: the plan file alone, `fe9c2f6` (the plan) and `d7bed0a` (the rulings), local, not pushed (owner's picker
+  both times: "Plan file only", "Don't push"). This entry is NOT committed: HANDOFF.md also holds another session's
+  uncommitted entry.
+
+#### The scoping answer that came first (kept for its numbers)
+- **Where the size lives today:** screen `.mv-bars{grid-auto-rows:17px}` (fixed lanes; a bar stretches to 17 px) and
+  `.mv-bar{10px 600; line-height:1.5; padding:1px 8px}`. In print, lanes are `minmax(17px, auto)` and bars are
+  `align-self:start`, so 19 px. The writer copies both (`MVL_PAINT.bar`, `laneMin`), and `mvlLaneTracks` already
+  grows a lane to its tallest one-lane bar. `mvPillLineCount` / `mvlPillLines` (one-day custom pills that wrap)
+  measure at 10 px.
+- **Recommended route (not ruled):** an opt-in setting. When it is on, a body class and rules scoped to `#table-wrap`
+  enlarge `.mv-pill` and make the screen's lanes content-sized like print's, so only lanes holding a bar grow. The
+  writer takes a pill scale in `mvlWeekPaint`. Off = byte-identical (gates 10 and 13). It is still a change to the frozen surface's
+  look, so it needs the owner's specific instruction plus the gates. Open questions: what grows, global or per
+  phase, which sizes, file or preference, and whether the print rollback follows (it's the monthemit oracle for the writer).
+- ⚠️ Dense months already shrink in the PDF (`fitMonthLayout`'s k), which would undo bigger bars where they matter
+  most; measure on the fixtures before choosing sizes. The calendar zoom already enlarges the screen month view.
+
+### 📝 27 Oct 2026: MAKE THE LIVE WATERFALL LOOK LIKE ITS PDF — PLANNED, rulings R0–R7 OPEN, no app code ([`WATERFALL-PDF-LOOK-PLAN.md`](WATERFALL-PDF-LOOK-PLAN.md))
+
+- **Asked** (owner): *"Build a plan for what it would take to make the live view of the waterfall resemble the pdf
+  export as closely as possible … the canvas can be flexibile as it currently is … while maintaining all
+  functionality and ease of use"*. Tracker card `waterfall-pdf-look`, planned.
+- **Measured** (`blocks.sptcal`, build of `ae39e3e`, PDF rasterised at its 100% grid scale beside a screenshot):
+  columns, body type, fills and text widths already match exactly (a note: 129.11 px on screen, 116.20 pt at the
+  PDF's 0.90 fit). What differs: rows 20 px vs 15; lines (always-on `#D4D4D4` grid and a 2 px frame vs the
+  preference's lines, a 1.2 frame and year separators); the heading row (`#F2F2F2`, 11 px, dividers vs `#D9D9D9`,
+  8.25 bold, none); the title block (a 70.5 px bar, 13/11 px vs no bar, 11/8); the "+" in every empty Notes cell.
+  ⚠️ A three-line PDF header is always squeezed to fit the top margin: measured ×0.742 (title 8.2 pt, lines 5.9 pt).
+- **The plan:** keep the `<table>` (every feature hangs off it); a scoped stylesheet under
+  `body.wf-look-pdf #table-wrap` (never reaches `#print-root`); four small frozen edits for the row geometry
+  (L1–L4, plus L5 only if measurement calls for it), all skipped under `wfPrintRender`; rules painted on cell edges
+  so they take no room; row drags seeded from the STORED height (closes MANTINE-SEAM §5.7). Exports byte-identical
+  throughout, no save-format change. Step 0 is a `wflook` leg that compares the screen to the PDF's drawing operators.
+- **Waiting on the owner:** R0 (does this lift the 29 Aug hold on the editor's look), R1 (one look, no setting), R2
+  (gridlines on screen: reverses the 3 Sep ruling), and R3–R7. Each has a recommended default.
+- Committed: nothing. The plan file is new and uncommitted.
+
+### 🔨 27 Oct 2026: A MORE MODERN MONTH VIEW + A PHASE MAP ABOVE IT — 3d+ BUILT on branch `claude/month-rail` (all 6 steps COMMITTED, tip `819e11a`; third full gate 3,142 / 0), rulings R1–R7 at their defaults (owner) ([`MONTH-RAIL-PLAN.md`](MONTH-RAIL-PLAN.md), [`mockups/month-view-redesign.html`](mockups/month-view-redesign.html)); NOT in main, NOT pushed
+
+- **Where it stands:** the owner picked 3d+ with guardrails (*"slimmer phase rows, at most 3 named rows, measured on
+  real calendars first. Screen only for now."*). The plan's step 1 measures phase rows on all 95 fixtures before
+  any UI. Read the plan, not the history below, to build it.
+- **Step 1 DONE, uncommitted** on branch `claude/month-rail` (worktree `.claude/worktrees/month-rail`; the plan and
+  mockup are copied there, and the branch's copy of the plan is the live one): `monthMapModel()` (pure, after
+  `pushViewControls()`), leg `monthmapmeasure` + `monthmapmeasure.sh`. Results in the plan's §12: of 89 fixtures that
+  draw, 6 need 1 row, 71 need 2, 11 need 3, 1 needs 4 (a one-day custom phase); the model's packing matched an
+  independent overlap count on every one. Longest is 29 months (~38 px a month), so R4's minimum is proposed down to
+  36 px, plus an 8 px minimum bar. `npm run check` 40/40. ⚠️ Another session planned MONTH-BAR-SIZE-PLAN.md (bigger
+  month bars, frozen edits) the same day: compatible with the map, but step 4's "every .mv-* box identical" must be
+  measured against whichever build is current.
+- **Step 1 committed** on the branch as `5d5a2e9` (owner's picker). **Step 2 DONE, uncommitted:** `monthMapInput`,
+  `pushMonthMap` (own observer), `goToMonth`, the `data-mvgo` / `data-mvstep` listener, bridge key `monthMap`. Leg
+  `monthmap` part A green on 9 fixtures; nearby legs green. Details and the one bug it caught are in the plan's §13.
+- **Step 2 committed** as `5f89cc7` (owner's picker). **Step 3 DONE, uncommitted:** `src/chrome/MonthMap.jsx` (in
+  `PreviewToolbar.jsx` before `.style-bar-host`), its CSS block in `legacy.css`, and Production's span now from its
+  shoot days. Leg `monthmap` is 15 cases (parts A + B), green on 15 fixtures; 20 existing legs green; switch timing
+  unchanged (~110 ms). Plan §14 has it all, including the leg trap (no rAF under virtual time).
+- **Step 3 committed** as `4c9863f`. **Step 4 DONE, uncommitted:** the Soft Lines `@media screen` block in
+  `legacy.css` (every selector `#table-wrap .month-view`; arrows by `visibility`, so nothing moves; tints exclude the day
+  marks and :hover). New leg `softlines` measures each page with and without the block in one run (L1 nothing moves,
+  L2 marks win), green on 10 fixtures. Gates 10 + 13: 293 PASS, 0 FAIL. Gate 7: 511 identical. Plan §15.
+- **Step 4 committed** as `33d0a98`. **Step 5 DONE, uncommitted:** Help (new "Getting around the Month view"; the
+  export line no longer claims screen = PDF), `gate.sh` (monthmap ×3, softlines ×2), UI-CONVENTIONS §7 + §10 gate 20,
+  MANTINE-SEAM §4.2, CLAUDE.md's freeze section, README Unreleased entry (plan §16).
+- **Step 6, the full gate (plan §17), found two real bugs and one test made honest.** Every frozen output was
+  byte-identical in both gates so far (waterfall PDF, Excel, gates 10 and 13).
+  - Gate 1 (3,132 / 4): the map appeared a task AFTER a switch to the month view, and the calendar dropped ~70 px under
+    what was placed against it (`wfmenu` V1/V2, `weeknum`). Fixed: `update()` pushes the map before `render()`, and
+    MonthMap commits that push synchronously. The calendar now moves 0 px on a switch.
+  - Gate 2 (3,132 / 3): ⚠️ **`flushSync` on every push deferred OTHER panels' updates** (`notescols` A9: Settings'
+    Hidden Notes row stale at the check, right a second later). Now it runs only on a push that changes the map's
+    HEIGHT (shows / rows / month count), so the waterfall never calls it. `notescols` 49/49 ×2.
+  - Gate 2's `halfworked` EX was NOT a flake (base 10/10, branch 5/10): the map makes `#table-wrap`, the month's scroll
+    box, ~69 px shorter, so the leg's scroll is real, and its event lands late under virtual time and closes the
+    month menu (any scroll closes it). Fixed in the leg only (mvmenu's scroll-when-needed, plus one re-click on
+    evidence of a late scroll); no assertion changed; 9/9 + 3/3, base 5/5. Waiting for the event and poking a frame
+    were tried first and do not work; the plan records both.
+  - `pilllabel (shootorder)` X2 "months 1 vs 18" is the contention flake already on record; passed 2/2 alone.
+  - ✅ **Gate 3: 3,142 PASS, 0 FAIL, GATE PASSED** (`tests/harness/gate-step6c.log` in the worktree). Ten more
+    checks than gate 2, matched leg by leg: its 3 failures pass, and `halfworked` runs 24 checks, not 17.
+  - Switch timed in the visible pane (1440 × 900, `mvnotes`): month → waterfall 108–127 ms, waterfall → month
+    15–26 ms. Same as step 2 and `ae39e3e`'s ~110 ms.
+  - ⚠️ **Before the merge:** the branch forked at `fe9c2f6c` and lacks main's `31eddd0` (switch ~4× faster, frozen edit
+    L1) and `273692c` (phase start/end notes). A dry-run merge of the committed steps is clean. After merging,
+    re-time month → waterfall (the map's synchronous unmount is a bigger share of a ~25 ms switch), then a full gate.
+  - **Steps 5–6 committed as `819e11a`** (owner's picker; the three `gate-step6*.log` files stay untracked in the
+    worktree). Owner chose a **fresh session for the merge**: merge main in, re-time the switch, full gate, then ask
+    (picker) about merging into local `main`, and separately about push. Nothing has reached `main` yet.
+  - What a user sees: a dense month scrolls ~69 px sooner (the map's planned height); the month menu's "any scroll
+    closes it" rule is met a bit more often (unchanged; `month-menu-trim`, ready on its own branch, narrows it to
+    calendar scrolls, which this still is).
+
+- **Asked** (owner): *"Offer me 5 options for redesigns of the look of the month view calendar page. I want it to look
+  a little more modern. I also dont want the buttons to change the months to be on the page itself, they should be
+  fixed buttons above"*. Tracker cards `month-view-modern-look` and `month-nav-in-toolbar`, both requested.
+- **The mockup:** one synthetic October 2026, six tabs (today's look, copied from `legacy.css`, plus five themes laid
+  over the SAME markup `renderMonthView` emits): 1 Soft Lines (‹ month › in the toolbar after the view switch),
+  2 Clean Sheet (fixed row: month name left, Today + ‹ › right), 3 Month Rail (a strip of every month with phase
+  dots), 4 Navy Band (‹ month ▾ › at the toolbar's right end, the month opens a list), 5 Tiles (centred pill). Looks
+  and button placements are independent, so the owner may mix them. Not committed.
+- **Then** (owner): *"Lets see a mockup of version 1 with the calendar left right selector on the right side of the
+  screen in-line with the styling menu bar"*. Added as tab **1b**: Option 1's look, toolbar untouched, and
+  `‹ October 2026 ›` at the right end of the text style bar's row (the bar gives up the width; the selector sits
+  outside the bar's box, its right edge on the undo/redo buttons' above). Owner reviewing.
+- **Then** (owner): *"Mockup a few variations of the month rail"*. Tabs **3a-3d**, all on Option 1's look: 3a Timeline
+  (every month, thin phase lines under them, ~58 px row), 3b Compact (seven months at the right of the style bar's
+  row, no extra row), 3c By year (one joined bar per year, phase dots, ~60 px), 3d Phase map (named phase bars over
+  the months; a phase click jumps to its first month, ~100 px). The mockup's month controls now respond (the calendar
+  stays on October); its rails are drawn from per-phase date spans, packed into shared tracks as the waterfall packs
+  columns. A real rail would read `monthRangeForSchedule()` and the schedule's phase segments.
+- **Then** (owner): *"plan 3d"*, and mid-plan *"maybe the position of the phase map rail should be swapped with the
+  position of the styling bar"*: tab **3d+** (toolbar → phase map → style bar → calendar). Not planned yet; my honest
+  concerns went to the owner first: the map's height (~100 px, about one week row) grows with every overlapping
+  phase (the mockup's made-up show needs only 3 rows), a long show squeezes or scrolls it, and soft grey lines on
+  screen with black lines in the PDF break what-you-see-is-what-prints. Proposed guardrails: rows ~14 px, at most 3
+  named rows (more as thin lines), measured on real fixtures first.
+- **Build facts gathered for the plan:** the rail must be a third line INSIDE `.view-toggle-row` (PreviewToolbar.jsx
+  renders the style bar's host there; a sibling between that row and `#table-wrap` breaks the contract). React from a
+  new bridge key, clicks back by delegated data attributes (the `hiddenNotes` pattern). The month range is
+  `monthRangeForSchedule()` (core ±1 month); the cursor is `monthCursor`, clamped in `update()` before `render()`.
+  Phases are `schedule.segments` (`color`, `textColor`, `start`, `end`), plus Sim Post from `weeks[].simPost` and the
+  all-phase hiatuses. In the month view `#table-wrap` is the flex:1 scroll box, so a taller toolbar row shrinks it
+  without touching the grid fit. ~100 harness files click `#mv-prev`/`#mv-next` by script; hidden-not-deleted keeps
+  them working.
+- ⛔ **What a build must respect.** `.mv-*` CSS and `renderMonthView` are frozen (the print-path month PDF prints
+  them; the direct writer parses the HTML and hand-copies the print rules in `MVL_PAINT`). So:
+  - Every new rule scoped to `#table-wrap` (never matches inside `#print-root`); gates 10 and 13 byte-identical is the
+    acceptance gate. Options 1-4 are paint only (no cell, lane or note changes size); 5 narrows each day ~6 px on
+    screen, so notes could wrap differently from the PDF.
+  - The arrows `#mv-prev` / `#mv-next` are hidden on screen, never deleted, and the new buttons drive them: the
+    shape `#mv-hdr-mode-btn` took to the toolbar (30 Sep 2026). A jump to any month (options 3, 4) needs a small
+    new engine setter for `monthCursor`, clamped like the arrow handler's range check.
+  - Options 2, 4, 5's "today" marker: the renderer marks no date on a cell, so it would be added from outside after
+    each render (sanctioned pattern 3), not by a frozen edit.
+- **Open with the owner:** which look, which buttons, and whether the month PDF should follow the new look later
+  (that would change `MVL_PAINT` and the print rollback's frozen print rules, and re-cut gate 13 with sign-off).
 
 ### 📝 27 Oct 2026 (latest): EXPORT THE MONTH VIEW AS AN .ics FILE — PLANNED, R1/R2/R4 RULED, R3/R5/R6 OPEN, no code ([`ICS-EXPORT-PLAN.md`](ICS-EXPORT-PLAN.md))
 
