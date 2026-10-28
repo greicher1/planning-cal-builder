@@ -93,7 +93,8 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - It is an `@media screen` block in `legacy.css`, every selector `#table-wrap .month-view`, so it cannot reach
     `#print-root` or either month PDF.
   - Paint only: soft grey lines and tints, and the frozen `#mv-prev` / `#mv-next` hidden by `visibility`. Their
-    twin is the phase map in the toolbar row (`MonthMap.jsx`).
+    twins are the phase map in the toolbar row and the month stepper on the style bar's line (`MonthMap.jsx`;
+    the stepper since 28 Oct 2026, MONTH-RAIL-PLAN.md §18).
   - It edits no frozen rule. Its tints exclude the day marks and `:hover`.
   - The `softlines` leg holds every box to 0.01 px with and without it. Keep it paint only, or that leg goes red.
   - Making the PDFs follow is a separate frozen edit the owner has not ruled on.

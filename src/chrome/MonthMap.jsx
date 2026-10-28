@@ -1,6 +1,10 @@
 // The phase map above the month view (MONTH-RAIL-PLAN.md; owner, 27 Oct 2026, option 3d+): every month of the
 // calendar with the phases drawn over them as named bars. Click a month to go there, click a phase to go to the
-// month it starts in, or step with ‹ ›. In the month view only; in the waterfall it renders nothing.
+// month it starts in. In the month view only; in the waterfall it renders nothing.
+//
+// MonthStepper, below, is its twin on the text style bar's row (owner, 28 Oct 2026, option B of
+// mockups/month-arrows.html; MONTH-RAIL-PLAN.md §18): Today and ‹ October 2026 ›, directly above the calendar. It
+// replaced the map's own two small arrows, so there is one set of month buttons.
 //
 // It DRAWS what the engine pushes (`monthMap`, app.js "THE PHASE MAP": monthMapModel's output) and decides nothing:
 // which months, which are dimmed, where a bar sits and on which row are all the model's. Its buttons hand the
@@ -8,7 +12,7 @@
 // (goToMonth, the frozen arrow handler's own range rule). So it holds no month of its own and cannot disagree
 // with the month on screen.
 //
-// ⛔ Rendered by PreviewToolbar INSIDE .view-toggle-row, before .style-bar-host: a sibling between that row and
+// ⛔ Rendered by PreviewToolbar INSIDE .view-toggle-row, before .style-row: a sibling between that row and
 // #table-wrap would break the pair the contracts there need. buildSavedHtml() empties .view-toggle-row, so the
 // map never travels in a shareable copy.
 // ⛔ No id on anything here (collectFieldValues), and plain buttons rather than Mantine's, which would add nothing
@@ -35,6 +39,10 @@ const dayBefore = (iso) => {
   return d.toISOString().slice(0, 10)
 }
 
+// The stepper's setState, while it is mounted. MonthMap's push handler sets it in the same go as its own, so the two
+// always show the same month and appear and disappear in one commit.
+let stepperSet = null
+
 export function MonthMap() {
   const [model, setModel] = useState(null)
   const [width, setWidth] = useState(0)
@@ -54,9 +62,10 @@ export function MonthMap() {
     installChrome({ monthMap: (m) => {
       const next = m || null
       const s = next && next.months.length ? next.months.length + ':' + next.rows.named + ':' + next.rows.thin : ''
-      if (s === shape.current) { setModel(next); return }
+      const apply = () => { setModel(next); if (stepperSet) stepperSet(next) }
+      if (s === shape.current) { apply(); return }
       shape.current = s
-      flushSync(() => setModel(next))
+      flushSync(apply)
     } })
   }, [])
 
@@ -92,8 +101,6 @@ export function MonthMap() {
 
   return (
     <nav className="month-map" aria-label="Months of the calendar">
-      <button type="button" className="mm-step" data-mvstep="-1" disabled={onIdx <= 0}
-        aria-label="Previous month" title="Previous month">‹</button>
       <div className="mm-scroll" ref={scroller}>
         <div className="mm-body" style={{ minWidth: n * MONTH_MIN + 'px' }}>
           {onIdx >= 0 && <span className="mm-sel" style={{ left: at(onIdx), width: at(1) }} />}
@@ -131,8 +138,41 @@ export function MonthMap() {
           </div>
         </div>
       </div>
-      <button type="button" className="mm-step" data-mvstep="1" disabled={onIdx < 0 || onIdx >= n - 1}
-        aria-label="Next month" title="Next month">›</button>
+    </nav>
+  )
+}
+
+// Today and ‹ October 2026 ›, at the right end of the text style bar's row, in the month view only (§18). Like the
+// map it decides nothing: the label is the model's month on screen, and the buttons hand data-mvstep / data-mvgo to
+// the engine's document listener (goToMonth, the frozen arrows' range rule).
+// ⛔ No id on anything (collectFieldValues).
+export function MonthStepper() {
+  const [model, setModel] = useState(null)
+  useLayoutEffect(() => {
+    stepperSet = setModel
+    return () => { if (stepperSet === setModel) stepperSet = null }
+  }, [])
+
+  if (!model || !model.months.length) return null
+  const months = model.months
+  const onIdx = months.findIndex((m) => m.on)
+  if (onIdx < 0) return null
+  const prev = months[onIdx - 1], next = months[onIdx + 1]
+  const today = months.find((m) => m.today)
+  const todayTip = !today ? 'This month is outside the calendar'
+    : months[onIdx].today ? 'This month is on screen' : 'Go to this month (' + monthName(today.key) + ')'
+
+  return (
+    <nav className="month-step" aria-label="Step through the months">
+      <button type="button" className="ms-today" data-mvgo={today ? today.key : undefined}
+        disabled={!today || months[onIdx].today} title={todayTip}>Today</button>
+      <span className="ms-group">
+        <button type="button" className="ms-arrow" data-mvstep="-1" disabled={!prev} aria-label="Previous month"
+          title={prev ? 'Previous month (' + monthName(prev.key) + ')' : 'This is the first month'}>‹</button>
+        <span className="ms-label" aria-live="polite">{monthName(months[onIdx].key)}</span>
+        <button type="button" className="ms-arrow" data-mvstep="1" disabled={!next} aria-label="Next month"
+          title={next ? 'Next month (' + monthName(next.key) + ')' : 'This is the last month'}>›</button>
+      </span>
     </nav>
   )
 }
