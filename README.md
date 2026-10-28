@@ -29,7 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased, branch `month-bar-size` — Month view: Phase bar size, on screen and in the month PDF (27 Oct 2026)
+## v1.9.0 — bigger phase bars in the month view (27 Oct 2026)
+
+37 changes since v1.8.0, from 21–27 Oct 2026. All but one were already live before this cut; this version is how
+installed copies hear about them, since `version.json` moves with `APP_VERSION`. New with this push: **Phase bar
+size** (Settings ▸ Preferences ▸ Month view: Standard, Large, Extra large), which makes the month view's phase bars
+and hiatus bands bigger on screen and in the month PDF, and is saved with the calendar. It was merged with local
+`main` (the phase start/end automatic notes and the view-switch speedup) as `46509c3`; on that merged build, both
+features' legs, `settingswin`, the switch-speedup legs and four month PDFs byte for byte against gate 13 all passed.
+The cut build (`d9d9297c`) differs from it in exactly two places, the version literal and the script's CSP hash.
+`releases/v1.9.0.html` is byte-identical to it. `tests/fixtures/v1.9.0-saved.sptcal` is a real Save
+(`t/mintfixture.js`): 43 keys, as in v1.8.0, and 77 ids (v1.8.0's plus `show-location`), version 1, 0 clipped.
+
+### Month view: Phase bar size, on screen and in the month PDF (27 Oct 2026)
 
 Owner: *"what would it take to allow increasing the size of phase bars in the month view?"*, then rulings R0–R7 by
 picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
@@ -68,7 +80,7 @@ picker ([`MONTH-BAR-SIZE-PLAN.md`](MONTH-BAR-SIZE-PLAN.md)).
     green;
   - `npm run check` 40/40.
 
-### Live — Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026, `273692c`)
+### Automatic notes for each phase's start and end, off until you tick them (27 Oct 2026, `273692c`)
 
 Owner: *"do the phase starts and ends. they should be disabled by default."*
 
@@ -91,7 +103,7 @@ Owner: *"do the phase starts and ends. they should be disabled by default."*
   ("months 1 vs 18"), 29/29 when re-run alone with the gate's own judging. Every baseline is byte-identical: the
   waterfall PDF, every Excel part, all of gate 13's written month PDFs, 0 clipped cells.
 
-### Unreleased — Month to waterfall switch about 4× faster (27 Oct 2026)
+### Month to waterfall switch about 4× faster (27 Oct 2026)
 
 Owner: *"I think the lag when you switch from month view to waterfall is still there"*.
 
@@ -116,7 +128,7 @@ Owner: *"I think the lag when you switch from month view to waterfall is still t
   - Full gate: 3,059 pass. The 3 failures all come from an unrelated, uncommitted fixture edit
     (`stintswap-reshape`). `launchopen` failed only while another session's harness was running; alone it passes 16/16.
 
-### Unreleased — Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
+### Month to waterfall switch: the lag `71a6c87` added is gone (26 Oct 2026)
 
 Owner: *"theres now a slight lag when you switch from the month view to the waterfall view"*.
 
@@ -128,7 +140,7 @@ Owner: *"theres now a slight lag when you switch from the month view to the wate
 - **Verified:** `calzoom`, `mvmenu`, `labelsetup`, `scenariofacts`, `zoomresize`, `sideboxes` and both `phasenum`
   runs all pass; `npm run check` 40/40.
 
-### Live — Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026, `71a6c87`)
+### Month view: the toolbar stays put; the calendar scrolls and zooms in its own box (26 Oct 2026, `71a6c87`)
 
 Owner: *"The viewport of the month view needs to work the same way as the viewport of the waterfall view. When you
 zoom in with the slider, it needs to zoom in just the viewport of the calendar and the header only. not the
@@ -149,7 +161,7 @@ surrounding menus. The surrounding menus need to stay fixed in place."*
   edits in the working tree before this change. `stintreshape` and `phasesui` P1 fail the same way on the unchanged
   HEAD build. Every other frozen output matched its baseline. `npm run check` 40/40.
 
-### Unreleased — Month view settings: clearer label switches, regrouped (24 Oct 2026)
+### Month view settings: clearer label switches, regrouped (24 Oct 2026)
 
 Owner: *"remove it"* (the caption over the switches), then *"maybe the toggle should say something more clear like
 'Add Production Week Label in Month View'"*.
@@ -165,7 +177,7 @@ Owner: *"remove it"* (the caption over the switches), then *"maybe the toggle sh
 - **Verified** on the dev build in the pane: the caption is absent and the new label shows. `npm run check` 40/40;
   `pilllabel` on `blocks` and `halfdays` ran clean with the Show-row table unchanged. No full gate (chrome label only).
 
-### Unreleased — All-phase hiatus card: a blank name shows in full black (24 Oct 2026)
+### All-phase hiatus card: a blank name shows in full black (24 Oct 2026)
 
 Owner: *"show the hiatus name in full black on the lighter red"*. The default hiatuses have no name, so each card's
 head showed the field's placeholder, "Hiatus", drawn at 55%: grey-pink on the head's lighter red (2.7:1).
@@ -178,7 +190,7 @@ head showed the field's placeholder, "Hiatus", drawn at 55%: grey-pink on the he
 Verified: `npm run check` 40/40; `phasesui` 8/8, `hidewf` 19/19, `hiatuslabel` 7/7, `hiatusblank` 4/4, `mvmenu` 89/89,
 `loadcarry` 6/6 on build `29f581b3`; a screenshot of the cards. No full gate: the class exists only in the sidebar.
 
-### Unreleased — Holidays that cost a shoot day are flagged (24 Oct 2026)
+### Holidays that cost a shoot day are flagged (24 Oct 2026)
 
 Owner: *"flag which holidays in the holiday section are during production and specifically during the working week
 and affecting a shoot day"*.
@@ -193,7 +205,7 @@ and affecting a shoot day"*.
   `npm run check` 40/40; legs `holidays2031` 6/6, `regionlock` 9/9, `regioncaveat` 10/10, `wrapdate` PASS. No full gate
   (sidebar-only change).
 
-### Unreleased — Month-view-only phases ("Hide in waterfall") and a redesigned Phases tab (23 Oct 2026)
+### Month-view-only phases ("Hide in waterfall") and a redesigned Phases tab (23 Oct 2026)
 
 Owner: *"if you add a very specific phase to the month view (such as color grading week) you wouldn't want that to
 show on the waterfall calendar"*, and *"overhaul the design of the phase UI. right now its pretty cluttered and ugly
@@ -235,7 +247,7 @@ the push: combined full gate on build `91421ba4`, 3,081 PASS, every frozen outpu
 `hidewf.sptcal` predating the new `show-location` field (re-minted from the app's Save; the leg then 19/19) and a
 `scenariocompat` timeout on the frozen v1.2.0 page (green twice alone).
 
-### Unreleased — Scenarios: the key facts band centred over the calendar (23 Oct 2026; branch `scenario-facts`, not pushed)
+### Scenarios: the key facts band centred over the calendar (23 Oct 2026; live at `91a5d24`)
 
 The band went live centred on the WINDOW (option B), and the owner asked *"how is this centered?"*. The bar was
 exactly in the window's middle, but the sidebar fills the left of the window, so that middle falls well inside the
@@ -250,7 +262,7 @@ Verified: `scenariofacts` 12/12 (F12 now measures against the calendar area: off
 `npm run check` 40/40; in the browser pane at 1000 px (offset 0) and resized to 1440 px (offset 1, a half-pixel
 round). No full gate: chrome only.
 
-### Unreleased — Scenarios: the key facts band centred in the window (23 Oct 2026; live at `1ab777c`)
+### Scenarios: the key facts band centred in the window (23 Oct 2026; live at `1ab777c`)
 
 Owner: *"what if we centered the bar left to right in the window"*. Of two mocked readings (centred over the calendar,
 or in the whole window), the owner chose the whole window, sidebar included.
@@ -264,7 +276,7 @@ Verified: `scenariofacts` 12/12 (new F12: centred within 1 px of the window's ce
 `scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1440, 1280, 1000 and 961 px (the last two clamped to
 the calendar's edge). No full gate: chrome only.
 
-### Unreleased — Scenarios: the key facts band as stat tiles (23 Oct 2026; live at `f29f268`)
+### Scenarios: the key facts band as stat tiles (23 Oct 2026; live at `f29f268`)
 
 Owner, on the live band: *"its not necessarily clear that the 20wks refers to the length of the writers room and the
 17 weeks refers to length of production"*. On one line, every separator was the same "·", so a phase's weeks floated
@@ -283,7 +295,7 @@ Verified: `scenariofacts` 11/11 (it now reads the tiles, and F9 proves a real se
 `scenarios` 22/22; `npm run check` 40/40; in the browser pane at 1000 px, on one row and wrapped. No full gate:
 nothing frozen, saved or printed changed.
 
-### Unreleased — Month view: no purple flash between the "+" note buttons (23 Oct 2026)
+### Month view: no purple flash between the "+" note buttons (23 Oct 2026)
 
 Owner: *"as you scroll up and down over a square in the month view, the square flashes purple for a split second as
 your cursor hovers in between the tiny gap between the selector buttons for comments. this is distracting and feel
@@ -306,7 +318,7 @@ The band's left-click, a right-click in a gap and the "+" all behave as before. 
 pass. Full gate: 3,035 PASS. The 2 FAILs come from a `stintswap-reshape` fixture modified in the checkout before this
 work. On the committed fixture, the written month PDF is byte-identical to its baseline and the leg passes.
 
-### Unreleased — Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; live at `8c78372`)
+### Scenarios: a key facts band above the tabs, and a Location box (23 Oct 2026; live at `8c78372`)
 
 Owner: *"a bar or section somewhere that gives the major key considerations of each scenario in one clear easy
 place ... as you switch between scenarios you should be able to see at a glance what the key differences between each
@@ -333,7 +345,7 @@ Verified: the new `scenariofacts` leg 11/11, red on the pre-change build (it sto
 3,054 / 2: every frozen output byte-identical; the two FAILs are the new id itself (gate 5's key set gains
 `show-location`, and `settingswin` W3's anchor, moved and 21/21 alone).
 
-### Unreleased — Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
+### Compare scenarios: the window fits its table, nothing cut off (23 Oct 2026; live at `acdae89`)
 
 Owner: *"the window needs to scale larger so we dont have elipses/things cut off"*. A long scenario name ended in
 "…" in its heading, and a long location wrapped, while the window used only 776 px of a 1,440 px screen.
@@ -351,7 +363,7 @@ Verified: in the browser pane at 1440×900 with a 36-character name, the window 
 table clips. With 12 scenarios it is 1,392 px wide and the 2,511 px table scrolls. `scenarios` 22/22,
 `npm run check` 40/40, and the workbook's columns are 29 / 21 / 41 / 41 characters.
 
-### Unreleased — Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026; live at `93836f5`)
+### Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026; live at `93836f5`)
 
 These are the owner's notes on the Compare window, made after Scenarios went live
 ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md) §2). Each change is in the window, the Excel export, the PDF export and
@@ -375,7 +387,7 @@ a one-sided phase kept). `npm run check` 40/40, and `monthemit`, `monthwriter`, 
 PDF still reaches the writer only through `buildListPdf`). Also checked in the browser pane on
 `tests/fixtures/scenarios-3.sptcal`, and in the written PDF and workbook.
 
-### Unreleased — A right-click menu on waterfall cells, kept short (23 Oct 2026; live at `d25eaf6`, with Header: Off for the Month view)
+### A right-click menu on waterfall cells, kept short (23 Oct 2026; live at `d25eaf6`, with Header: Off for the Month view)
 
 Item 5 of the owner's Excel-gaps list. A right-click on a waterfall cell opens a short menu of what that cell can
 do ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md)). The owner cut it down before it was built:
@@ -404,7 +416,7 @@ on that cell and the cell has no one-gesture way to do it already (a double-clic
   view: combined full gate on build `75968ba8…` 3,010 PASS, 2 FAIL, both load timeouts (`hdrrow`, one `monthexport`
   time-zone run) that pass alone on the same build.
 
-### Unreleased — Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026; live at `d08832e`)
+### Scenarios: several versions of one calendar, side by side, in one file (23 Oct 2026; live at `d08832e`)
 
 The owner: *"comparing multiple scenarios is HUGE"*, then *"start building it"*. [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md)
 holds the rulings (D1–D6, the 50-scenario cap, no highlight on a flip, the Compare window's look and content, its chips,
@@ -449,7 +461,7 @@ Full gate on local main with the live `d25eaf6` merged in: 3,040 / 1 (`launchope
 runs of three). Every byte comparison is identical. **Not built yet:** "Add a calendar file as a scenario…", and ◀ ▶ arrows with a ▾ list when tabs
 overflow (they scroll with the wheel today).
 
-### Unreleased — Header: Off for the Month view (23 Oct 2026)
+### Header: Off for the Month view (23 Oct 2026)
 
 The owner: *"also add "Off" for the month view header"*.
 - **What users see:** the Header menu in the Month view has Off, as the Waterfall's has had since 20 Oct. Off hides
@@ -468,7 +480,7 @@ The owner: *"also add "Off" for the month view header"*.
   value, and the template editor. `hdrrow` 37/37 (O1 now expects Off in both menus), `hdrcontrols` 12/12,
   `npm run check` 40/40. Full gate: see HANDOFF.
 
-### Unreleased — Month view: notes stay put when you rearrange, sit between phases, and drag to another day (23 Oct 2026)
+### Month view: notes stay put when you rearrange, sit between phases, and drag to another day (23 Oct 2026)
 
 The owner: *"sometimes when you move one phase or note it moves others in adjacent days … notes need to be able to
 individually move in or around phases on a per day basis. Additionally, i want the ability to drag notes from one day
@@ -500,7 +512,7 @@ MONTH-ORDER-PLAN.md §9.
   with `main`'s three Settings changes merged in, 2,974 PASS / 0 FAIL on `d34f917a…`. **Live at `2c6a822`**, verified
   byte-identical; no version cut.
 
-### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
+### the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
 
 The owner asked to delete four pieces of explanatory text, then: *"make the header dropdown tighter (less wide) now
 that we dont need all the subtext"*.
@@ -523,7 +535,7 @@ that we dont need all the subtext"*.
   180 px wide with nothing spilling out of a row, and T4 requires the same while in Template, with the warning
   showing. `npm run check` 40/40.
 
-### Unreleased — Settings appears at once instead of sliding in (23 Oct 2026)
+### Settings appears at once instead of sliding in (23 Oct 2026)
 
 The owner: *"can we just have the menu already there rather than still sliding in"*.
 - **What users see:** clicking Settings shows the window at once, under the Show / Phases / Settings bar. It no
@@ -534,7 +546,7 @@ The owner: *"can we just have the menu already there rather than still sliding i
   moment it opens, gone the moment it closes). W15 fails on the build that was live, `5804869a…`. Also green:
   `mvnotes` 30 and 14, `mvmenu (halfdays)` 89, `offweek (offweek)` 44. `npm run check` 40/40.
 
-### Unreleased — Settings opens below the Show / Phases / Settings bar (23 Oct 2026)
+### Settings opens below the Show / Phases / Settings bar (23 Oct 2026)
 
 The owner: *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it should
 appear right below it with the preferences/region/presets menu below"*.
@@ -548,7 +560,7 @@ appear right below it with the preferences/region/presets menu below"*.
   clicks on Phases, Show and Settings; an arrow key; an undo leaves the window open). On the live build, `d2ac914e…`,
   W10, W11 and W14 fail. `npm run check` 40/40. The other legs that open Settings were run too (see HANDOFF).
 
-### Unreleased — eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
+### eight branches landed in `main` as one, one gate for all of them (23 Oct 2026)
 
 The owner: *"anything built and in the "ready to merge" section, merge it into main"*, then *"push everything at
 once"*. These all came in through one landing branch, `land-ready-1023`, with no new behaviour of its own:
@@ -567,7 +579,7 @@ clipped cells and 76 ids. Not pushed.
   compressed stream can end in one. Today's header date did exactly that, and the leg counted no "Hiatus" on any
   build. It now cuts at the stream's `/Length`, the same as `pdfdialog`, and passes 7/7. Seven other legs still trim.
 
-### Unreleased — The waterfall PDF's header leaves 4 pt above the grid, not 1 (built 5 Oct, merged 23 Oct 2026)
+### The waterfall PDF's header leaves 4 pt above the grid, not 1 (built 5 Oct, merged 23 Oct 2026)
 
 **Users see a small change** in the waterfall PDF. With three header lines, the centre's last line ("Writer's Room
 Opens …") used to end 1 pt above the grid, close enough to read as touching. Now it ends 4 pt above, level with the
@@ -594,7 +606,7 @@ right section's.
     `2626faea…`, gate 2's `base` leg matches the re-cut baseline bar the stamp, and the clearance measures 4.0 pt.
     `npm run check` 40/40. Its full gate is the combined one of the 23 Oct landing (`land-ready-1023`).
 
-### Unreleased — column headings are editable all the time; the switch is gone (22 Oct 2026)
+### column headings are editable all the time; the switch is gone (22 Oct 2026)
 
 The owner, while the Notes-hiding work was being built: *"i say we remove the custom column headings toggle in
 settings and just make it editable all the time"*. Ruled by picker the same day: untouched calendars keep
@@ -630,7 +642,7 @@ was off come back (Q1, "Bring them back"); frozen edits H1–H3 signed off. Plan
   2026) wants one merge into `main` and one push for every ready feature, so one full gate runs on the combination
   (branch `land-ready-1023`).
 
-### Unreleased — hide a year's Notes column (22 Oct 2026)
+### hide a year's Notes column (22 Oct 2026)
 
 The owner: *"we need an option to be able to hide unused notes collumns"*. They chose hiding each column by hand
 (option B) from two mockups, then: *"just flag that a collumn contains notes ... keep things clean and elegant and in
@@ -666,7 +678,7 @@ mantine style"*. Plan and rulings: [`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md).
   parts, month print documents, written month PDFs), with 0 clipped cells and 76 ids. The one FAIL, `sideboxes` R16,
   also fails on the pre-change build, so it is an existing flake.
 
-### Unreleased — Export PDF recommends Letter or Legal (22 Oct 2026)
+### Export PDF recommends Letter or Legal (22 Oct 2026)
 
 The owner: *"could the app reccomend a paper size based on the waterfall cal? Really it should only reccomend
 between letter size and legal"*. Ruled by picker the same day: P-R1 *"15% larger"*, P-R2 *"Mark it only"*
@@ -693,7 +705,7 @@ between letter size and legal"*. Ruled by picker the same day: P-R1 *"15% larger
   any gain, Tabloid allowed, the clicked orientation ignored, the tag selecting Legal). `npm run check` 40/40.
   Full gate: see HANDOFF.
 
-### Unreleased — resize columns and rows at any zoom (22 Oct 2026)
+### resize columns and rows at any zoom (22 Oct 2026)
 
 The owner: *"can we make it so you can still adjust the size of columns and rows at any zoom level of the
 viewport"*. Since the calendar zoom (20 Oct), the waterfall's column, row and cell-edge handles were hidden at any
@@ -720,7 +732,7 @@ zoom but 100%.
   30 px for 45 px of pointer travel and a row drag saved 40 px. **Full gate on build `d80112ba`: 2,801 PASS, 0 FAIL,
   GATE PASSED**, every baseline comparison identical (the waterfall PDF, every Excel part, the month PDF).
 
-### Unreleased — ⌘Z and ⇧⌘Z after every kind of edit; a view switch is no undo step (22 Oct 2026)
+### ⌘Z and ⇧⌘Z after every kind of edit; a view switch is no undo step (22 Oct 2026)
 
 The owner: *"Does command z and command shift z works for EVERYTHING?"* It did not, and then: *"also command z
 should not count switching between views as an undo step"*.
@@ -747,7 +759,7 @@ should not count switching between views as an undo step"*.
   checked in the app with real key presses. `npm run check` 40/40. Full gate on build `d007e3cf…`: 2,770 pass, 2 fail
   (those two `mvmenu` checks, then 89/89 on the same build); every frozen output identical to its baseline.
 
-### Unreleased — Excel's editing keys in the waterfall: arrows, Tab, Delete, copy, cut, paste, and dragging notes (22 Oct 2026)
+### Excel's editing keys in the waterfall: arrows, Tab, Delete, copy, cut, paste, and dragging notes (22 Oct 2026)
 
 The owner picked these two from the list of Excel features SPTCal lacks: *"arrow keys, Tab and Delete on the
 selection"* and *"copy, cut and paste notes, and drag a note to another week"*. Ruled by picker the same day (all four
@@ -784,7 +796,7 @@ note asks first. [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md) has the deta
   Paste, so the trusted leg's command path stands in for it. Full gate: 2,854 pass, 1 fail. The waterfall PDF and
   every Excel part are unchanged. The one failure, `sideboxes` R16, fails the same way on the build before this change.
 
-### Unreleased — the text style highlight stays on its cells when you zoom (22 Oct 2026)
+### the text style highlight stays on its cells when you zoom (22 Oct 2026)
 
 Found by a zoom audit the owner asked for (*"are there any other features that dont work at every zoom level"*).
 - **Cells highlighted for the text style bar now stay highlighted where they are at every zoom.** The highlight
@@ -801,7 +813,7 @@ Found by a zoom audit the owner asked for (*"are there any other features that d
   at 200%), green after; `calzoom` 25/25, `textstyle` 51/51, `npm run check` 40/40. In the browser on the `colreuse`
   fixture, where the drift was first measured: 0 px off at 50%, 150% and 200%, selected at 100% or at 50%.
 
-### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
+### the side boxes and the waterfall scroll separately (22 Oct 2026)
 
 The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your
 cursor is"*.
@@ -827,7 +839,7 @@ cursor is"*.
   that scrolls the grid, one that never scrolls). In the browser pane, a box held at the bottom edge scrolled its
   column to the end with the grid unmoved.
 
-### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
+### Side boxes go anywhere up and down either side (21 Oct 2026)
 
 The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in
 predetermined locking positions … this should reflect in the pdf writer and the excel writer"*.
@@ -864,7 +876,7 @@ predetermined locking positions … this should reflect in the pdf writer and th
   the lowest, Alt+Down swap and step, a hostile row dropped. `npm run check` 40/40. The PDF rendered and looked at;
   headless screenshots of the wide and narrow layouts. Full gate: see HANDOFF.
 
-### Unreleased — Hide from Exports, per side box (21 Oct 2026)
+### Hide from Exports, per side box (21 Oct 2026)
 
 The owner: *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
 app"*. By picker: per box, and the button *"should just say "Hide from Exports""*.
@@ -885,7 +897,7 @@ app"*. By picker: per box, and the button *"should just say "Hide from Exports""
 - The gate's two `hdrversion` failures were a bug in that leg (its PDF reader trimmed a stream's last byte when
   the date made it a space); the live branch fixed it the same night, and the merge took that fix.
 
-### Unreleased — drag bars and notes up and down in the month view, and see what you drag (21 Oct 2026)
+### drag bars and notes up and down in the month view, and see what you drag (21 Oct 2026)
 
 The owner: *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
 view"*, then *"we actually need to see the phases/notes visibly dragged animation when we drag either for the
@@ -915,7 +927,7 @@ purpose of reordering them top to bottom or for changing a phases timing"*. Plan
   (`21c5444`): 2,648 PASS, 1 FAIL (`winansi`, ExcelJS's CDN load timed out at 03:35; 7/7 alone). Gate 10 (every
   month print document) and gate 13 (every written month PDF, byte for byte) green: E1 and E2 are inert without an order.
 
-### Unreleased — the test harness cleans up after itself (21 Oct 2026)
+### the test harness cleans up after itself (21 Oct 2026)
 
 Test tooling only: nothing in `src/`, the grid, the exports or the save format changed. The disk had gone down to
 1.4 GB free with **2,010 headless-Chrome profiles in `/tmp` (15.5 GB)**, because every harness run left its

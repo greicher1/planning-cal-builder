@@ -406,7 +406,21 @@ The plan for step 3, as written before the build:
   (`APP_VERSION` + `version.json`, the tag, `releases/`), never on a branch that other sessions' commits will be merged
   around.
 
-**Step 5: ship**, on your picker, commit and push asked separately.
+**Step 5: ship**, on your picker, commit and push asked separately. (In progress, 27 Oct 2026; owner: *"Do step 5 … here:
+merge into main and cut the version. Ask before pushing."*)
+- ✅ **Merged** local `main` (`9cdd5cb`: the phase start/end automatic notes, the view-switch speedup, plans) into the
+  branch as `46509c3`. Only README's changelog top conflicted; both entries kept.
+- ✅ **On the merged build** (`a21455d6…`): `npm run check` 40/40; `mvbarsize` 13/13 and 12/12; `autonotephases` 17/17;
+  `autonotekinds` 16/16; `settingswin` 21/21; `customunits` and `builtindates`, live and restore, all green; `mvnotes`
+  14/14; `monthlayout` 14/14; `monthexport` 9/9 on four calendars, each written PDF byte-identical to its gate-13
+  baseline (reference, `mvbarsize-large`, `mvnotes`, `hiatus-blanklabel`).
+- ✅ **v1.9.0 cut** on the branch: `APP_VERSION`, `version.json` and `package.json`; README `## v1.9.0` over the 37
+  entries since v1.8.0; `releases/v1.9.0.html` byte-identical to the cut build `d9d9297c…`, which differs from the
+  merged build only in the version literal and the CSP hash; `tests/fixtures/v1.9.0-saved.sptcal` (real Save, 43 keys,
+  77 ids); tag `v1.9.0`.
+- ⏳ Local `main` is the main checkout's, which holds another session's uncommitted Seasons work in files this merge
+  touches, so it cannot be fast-forwarded without disturbing that work. The push, asked separately, can go from this
+  branch as a fast-forward of `origin/main`.
 
 **Size:** M–L. Probably steps 1–2 in one session and steps 3–4 in another. It is the first month-view change that
 alters row heights on purpose. That is why step 1 exists.
