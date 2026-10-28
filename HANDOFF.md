@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch, NOT merged, NOT pushed; month re-cut awaits the owner
+### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch, month baselines re-cut (owner sign-off), NOT merged, NOT pushed
 
 - **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
   Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
@@ -34,7 +34,8 @@
   `halfdays` D2s wants "Shoot N". The two blocksoff-vs-reference blocks in gate.sh also read "Shoot N" as the episode.
 - ✅ **Nine affected legs on the build** (port 9531): halfdays, halfmarks, monthlayout, mvmenu, labelsetup, seasons,
   shootorder, pilllabel ×8, pilldrag, episodeprep ×3: **548 PASS, 0 FAIL**. Committed on the branch as `bb940e6`.
-- ⏳ **Gates 10 and 13 CLASSIFIED, awaiting the owner's re-cut sign-off** (gate.sh's rule). Every case exported from
+- ✅ **Gates 10 and 13 RE-CUT on the owner's sign-off** (*"Re-cut + gate"*, picker, after the classification and the
+  halfdays July contact sheet), commit `b061428`; tables in both baseline READMEs. The classification: Every case exported from
   the build (port 9533) and compared with a scratch script:
   - Gate 10, all 11 print documents: identical to their baselines once "Shoot Ep. N" / "Episode N" (old) and "Shoot N"
     (new) are read as the episode, counts equal (40–64 each); `blocks` and `month-lanecap` raw-identical.
@@ -42,9 +43,10 @@
     `month-lanecap`, `month-dense60` byte-identical. No "Shoot Ep" or "Episode" left in any new export.
   - `monthbase.py sheets` on halfdays: only June–September move, and only the bar names and the grey text after them
     (it starts closer, since "Shoot 201" is narrower than "Episode 201").
-  - ⭐ After the re-cut, `blocksoff` and `reference` read the same words again, so blocksoff could go back to
-    reference's baseline; left as two baselines (no reason to move it now).
-- **Not done:** no merge to `main`, no push, no re-cut, no full gate, no version cut.
+  - ⭐ After the re-cut, `blocksoff` is BYTE-IDENTICAL to `reference` again in both gates (print document and written
+    PDF). Left as two baselines; the gate's blocksoff-vs-reference blocks still run.
+- ⏳ **Full gate** on build `465e3e03…` (port 9541), queued behind the month-step session's gate.
+- **Not done:** no merge to `main`, no push, no version cut.
 
 ### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
