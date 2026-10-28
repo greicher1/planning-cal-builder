@@ -6576,24 +6576,28 @@ export function initLegacyApp() {
   let blockCounter = 0;
   // ⛔ CALENDAR DATA, both stores: an episode's or block's own month-bar prefix, `barPrefix` on its entry
   // (owner, 20 Oct 2026; v1.6.0 only). A PERMANENT key, though nothing writes it any more: the same evening
-  // the owner moved "Shoot" into the episode's NAME (episodeNamesLegacy, below) and retired the day menu's
-  // Prefix… that set it. A v1.6.0 file that carries one keeps it, round-trips it, and its bar still reads
-  // the way v1.6.0 drew it (unitBarLabel) until that episode is renamed, which clears it.
+  // the owner moved "Shoot" into the episode's NAME and retired the day menu's Prefix… that set it (and on
+  // 28 Oct moved it to the bar, episodeBarName below). A v1.6.0 file that carries one keeps it, round-trips
+  // it, and its bar still reads the way v1.6.0 drew it (unitBarLabel) until that episode is renamed, which
+  // clears it.
   const BAR_PREFIX_MAX = 24;
-  // ⭐ AN EPISODE'S DEFAULT NAME IS ITS MONTH-BAR TEXT (owner, 20 Oct 2026, by picker): "Shoot Ep. 101",
-  // "Shoot Ep. 102"..., so renaming one in the episode list changes exactly what its bar says, with no
-  // second control. It replaced v1.6.0's separate "Shoot" prefix ("so that you can easily change them and it
-  // doesn't mess things up"). Rulings: Prefix… is removed; a typed name is the bar's text as typed;
-  // prep pills and episode LISTS still read the number ("Prep 101", "Ep. 201, 202"; shortEpisodeName).
-  // ⛔ OLD FILES KEEP "Episode 101" (the owner's pick, "Leave them as saved"): a calendar whose stored
-  // names follow the old default keeps naming episodes that way, so an episode added to it is "Episode 111"
-  // beside "Episode 110", and its bars read those names. Not a saved key: applyStateSnapshot() reads it off
-  // the names themselves (an un-renamed "Episode N" can only have been written by an older build), so no
-  // file format moved, and every load, undo and crash recovery re-derives it from the state it restores.
-  const EPISODE_NAME_PREFIX = 'Shoot Ep. ', EPISODE_NAME_PREFIX_LEGACY = 'Episode ';
-  let episodeNamesLegacy = false;
-  function storesLegacyEpisodeNames(defs){
-    return Array.isArray(defs) && defs.some(e=> e && !e.nameEdited && /^Episode \d+$/.test(String(e.name || '')));
+  // ⭐ EPISODES ARE NAMED "Episode 101"; THEIR MONTH BARS READ "Shoot 101" (owner, 28 Oct 2026: "I want them
+  // titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as Shoot 101
+  // ... if you change the title to anything other than default, it switches to the exact words").
+  // An episode whose name is still "Episode <number>" draws "Shoot <number>"; any other name draws exactly
+  // as typed ("Pilot"). The rule reads the NAME, not `nameEdited`, so an episode renumbered by hand
+  // ("Episode 109", a season split across two calendars) still reads "Shoot 109" beside its neighbours.
+  // Prep pills and episode LISTS still read the number ("Prep 101", "Ep. 201, 202"; shortEpisodeName).
+  // ⚠️ HISTORY, and why no migration is written: 20 Oct 2026 the default name was "Shoot Ep. 101" and the bar
+  // read the name as typed, with older files keeping "Episode 101" through a flag read off their names
+  // (episodeNamesLegacy, gone). An un-renamed name is never the file's: syncEpisodesFromShowInfo() rewrites
+  // every `!nameEdited` name from defaultEpisodeName() on each restore (refreshAfterRestore ->
+  // refreshEpisodesUI), so a file saved with "Shoot Ep. 101" opens as "Episode 101", and a pre-20-Oct
+  // file's "Episode 101" is simply the default again. A name someone TYPED is never touched.
+  const EPISODE_NAME_PREFIX = 'Episode ', EPISODE_BAR_PREFIX = 'Shoot ';
+  function episodeBarName(name){
+    const m = /^Episode\s+(\d+)$/.exec(String(name || ''));
+    return m ? EPISODE_BAR_PREFIX + m[1] : null;
   }
   // false = the episode split is the automatic front-loaded one (ruling 1) and is recomputed
   // whenever the episode or block count changes. true = someone moved an episode by hand, and the
@@ -12841,8 +12845,7 @@ export function initLegacyApp() {
     return String(s * 100 + index + 1);
   }
   function defaultEpisodeName(index){
-    return (episodeNamesLegacy ? EPISODE_NAME_PREFIX_LEGACY : EPISODE_NAME_PREFIX)
-      + episodeNumberFor(document.getElementById('season-num').value, index);
+    return EPISODE_NAME_PREFIX + episodeNumberFor(document.getElementById('season-num').value, index);
   }
   function defaultEpisodeDays(){
     const v = dayCountVal(document.getElementById('shoot-days-per-ep').value);
@@ -12972,9 +12975,9 @@ export function initLegacyApp() {
     blockDefs.forEach(b=> b.episodes.sort((a, c)=> pos.get(a) - pos.get(c)));
   }
 
-  // "Shoot Ep. 201" (or an older file's "Episode 201") -> "201": the number is what a UPM reads on a
-  // board, so prep pills and episode lists keep reading it (owner, 20 Oct 2026). A name someone typed
-  // that does not follow either pattern ("Pilot") is shown whole.
+  // "Episode 201" (or a "Shoot Ep. 201" typed in the 20-28 Oct builds) -> "201": the number is what a UPM
+  // reads on a board, so prep pills and episode lists keep reading it (owner, 20 Oct 2026). A name someone
+  // typed that does not follow either pattern ("Pilot") is shown whole.
   function shortEpisodeName(e){
     const nm = (e && e.name) || '';
     return nm.replace(/^(?:Episode|Shoot\s+Ep\.)\s+/i, '') || nm;
@@ -13418,12 +13421,11 @@ export function initLegacyApp() {
     return {parts, bar};
   }
   // `run` is the run being named (segPillLabel's, from takeProdRun), for the half-day rule below.
-  // ⭐ AN EPISODE'S BAR READS ITS NAME, AS TYPED (owner, 20 Oct 2026, by picker; episodeNamesLegacy). A new
-  // calendar names its episodes "Shoot Ep. 101", so its bars read exactly what v1.6.0's "Shoot" prefix
-  // drew; rename one to "Pilot" and its bar reads "Pilot". An older file's "Episode 101" reads "Episode 101"
-  // (the owner's "Leave them as saved"). This replaced the bar prefix (v1.6.0, the same day): first asked
-  // 16 Oct, "Can it say 'Shoot' before Ep. 101", then "I also want the default names to literally be
-  // 'Shoot Ep. 101' ... so that you can easily change them and it doesn't mess things up".
+  // ⭐ AN EPISODE'S BAR READS "Shoot 101" WHILE IT IS NAMED "Episode 101", AND ANY OTHER NAME AS TYPED
+  // (owner, 28 Oct 2026; episodeBarName). Rename one to "Pilot" and its bar reads "Pilot". This replaced
+  // 20 Oct's "Shoot Ep. 101" default NAMES (the bar read the name as typed, and older files' bars read
+  // "Episode 101"), which had in turn replaced v1.6.0's per-bar prefix; first asked 16 Oct, "Can it say
+  // 'Shoot' before Ep. 101".
   // Only a bar that names ONE episode reads a name. A block's bar, a week's, and a Blocks calendar's
   // bar labelled by its episodes ("Ep. 201, 202", ruled "unchanged") read unitLabelParts()'s text.
   // ⛔ A switch day's ONE-DAY HALF BAR reads the short form, "Ep. 101" (16 Oct ruling, kept): measured then,
@@ -13439,7 +13441,7 @@ export function initLegacyApp() {
     if(halfDay) return text;
     const def = unitDefOf(kind, unit);
     if(def && typeof def.barPrefix === 'string') return def.barPrefix ? def.barPrefix + ' ' + text : text;
-    if(kind === 'episode' && L.bar === 'episode' && def && def.name) return def.name;
+    if(kind === 'episode' && L.bar === 'episode' && def && def.name) return episodeBarName(def.name) || def.name;
     return text;
   }
   // The unit's own entry, or null.
@@ -23976,7 +23978,6 @@ export function initLegacyApp() {
     { const loc = document.getElementById('show-location'); if(loc) loc.value = ''; }   // KEY-FACTS-PLAN §5
     ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
-    episodeNamesLegacy = false;   // a blank calendar names its episodes "Shoot Ep. 101"
     // Back to Episodes, the mode every calendar starts in -- and the block list with it.
     const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
     ['num-blocks', 'days-per-block'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
@@ -32350,9 +32351,6 @@ export function initLegacyApp() {
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
     }
-    // Which default name this calendar's episodes take (episodeNamesLegacy), read off the names it
-    // stores. ⛔ UNCONDITIONAL, so an undo or Load never inherits the previous calendar's style.
-    episodeNamesLegacy = storesLegacyEpisodeNames(snap.episodeDefs);
     // ⛔ UNCONDITIONAL (audit M-2, FIX-PLAN.md 1.1, 25 Sep 2026). This block was gated on
     // `snap.customPhaseDefs.length`, so a file with NO custom phases skipped it and the previously
     // open calendar's custom rows stayed -- with their names, dates and colours -- and were scheduled

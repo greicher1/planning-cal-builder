@@ -24,12 +24,12 @@ window.addEventListener('load', function () { (async function () {
   }
   function meta() { return ((document.getElementById('meta-production') || {}).textContent || '').trim(); }
   // Production's pills in the month on screen: [label, grey text] per pill. The label's episode as "Ep. N", whether the
-  // bar reads "Shoot Ep. N" or an older file's "Episode N" (owner, 20 Oct 2026): this leg is about shooting order, and
-  // epnames holds the names.
+  // bar reads "Shoot N" (owner, 28 Oct 2026) or what the 20-28 Oct builds drew ("Shoot Ep. N", "Episode N"): this leg
+  // is about shooting order, and epnames holds the names.
   function pills() {
     return [].map.call(document.querySelectorAll('#table-wrap .mv-pill[data-ph="production"]'), function (p) {
       var sp = p.querySelector('.mv-pill-block');
-      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '),
+      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\.|Shoot|Episode) /, 'Ep. '),
               sp ? sp.textContent : ''];
     });
   }

@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — episodes are named "Episode 101" again, and their month bars read "Shoot 101" (28 Oct 2026)
+
+Asked by the owner: *"I want them titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be
+labelled as Shoot 101 ... if you change the title to anything other than default, it switches to the exact words."*
+
+- **Names:** the episode list names episodes "Episode 101", "Episode 102"… (since 20 Oct they were "Shoot Ep. 101").
+- **Bars:** a month bar for one episode reads "Shoot 101" while that episode is named "Episode" plus a number. Rename it
+  to anything else ("Pilot") and the bar reads the new name exactly. The rule reads the name, so an episode renumbered
+  by hand ("Episode 219") still reads "Shoot 219". A switch day's one-day half bar keeps "Ep. 101": measured, it is
+  44 px on screen and "Shoot 202" needs 50 px of text.
+- **Older files:** a calendar saved since 20 Oct opens with its un-renamed "Shoot Ep. 101" names as "Episode 101",
+  because un-renamed names were always re-derived on load. A name someone typed is never changed. A calendar saved
+  before 20 Oct already says "Episode 101", and its bars now read "Shoot 101" instead of "Episode 101".
+- Prep pills and episode lists are unchanged ("Prep 101", "Ep. 201, 202"), and so are block bars, week bars and
+  v1.6.0's own bar prefixes. The month view and both month PDFs show the new bar text; the waterfall, Excel and the
+  waterfall PDF never showed episode names. No saved key, no frozen code.
+- Removed: `episodeNamesLegacy` and `storesLegacyEpisodeNames()`, the 20 Oct flag that kept older files' style.
+- Verified: `epnames` rewritten (N0–N9 + B0–B3, 16/16 on the build, including the written month PDF's text), and the
+  legs that read bar or episode names updated to read "Shoot N" too. ⚠️ Gates 10 and 13 hold month baselines whose bars
+  say "Shoot Ep. N" / "Episode N"; they need a re-cut on the owner's sign-off before the full gate can be green.
+
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The

@@ -4,7 +4,39 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 27 Oct 2026 (latest): FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
+### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; NOT committed to `main`, NOT pushed
+
+- **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
+  Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
+  we have both but still be able to change the names of episodes? Maybe if you change the title to anything other than
+  default, it switches to the exact words"*. Reverses the 20 Oct "Shoot Ep. 101" default names (entry further down,
+  "AN EPISODE'S NAME IS ITS MONTH BAR"). Tracker card `episode-names-shoot-bars`.
+- **Built** (`src/legacy/app.js`, no frozen code, no saved key):
+  - `EPISODE_NAME_PREFIX = 'Episode '`; new `episodeBarName(name)`: "Episode <digits>" → "Shoot <digits>", else null.
+    `unitBarLabel()` returns `episodeBarName(def.name) || def.name` for a bar naming one episode.
+  - ⭐ **Decided, not asked:** the rule reads the NAME, not `nameEdited` (the owner said "anything other than default").
+    So a hand-renumbered "Episode 219" draws "Shoot 219" beside its neighbours, which "exactly the default for this
+    position" would not have. Tell the owner if it comes up; switching to the strict reading is one line.
+  - `episodeNamesLegacy`, `storesLegacyEpisodeNames()` and `EPISODE_NAME_PREFIX_LEGACY` are GONE (the flag was never
+    saved). No migration was needed: `syncEpisodesFromShowInfo()` rewrites every `!nameEdited` name from
+    `defaultEpisodeName()` on each restore (refreshAfterRestore → refreshEpisodesUI), so a v1.7.0–v1.9.0 file's
+    un-renamed "Shoot Ep. 201" opens as "Episode 201" (checked on `v1.9.0-saved.sptcal` in the pane). A typed name is
+    never touched, and a typed "Shoot Ep. 205" draws exactly that.
+  - Kept: the one-day HALF bar's "Ep. 101" (measured in the pane: the half bar is 44 px with 8 + 8 px padding, "Shoot
+    202" is 49.9 px at 600 10px Inter, "Ep. 202" 37.1); prep pills, episode lists, block and week bars, v1.6.0
+    `barPrefix`. `shortEpisodeName()` still strips "Shoot Ep." for typed names.
+  - Help (src/index.html, the episode-list paragraph) gains one sentence on names vs bars. CLAUDE.md's state-table row
+    for `episodeNamesLegacy` is replaced by one for the name → bar rule.
+- **Legs:** `epnames` rewritten (N0–N9 halfdays incl. N5 a 20–28 Oct file and N9 a hand-renumbered name + Season 3,
+  B0–B3 blocks; gate.sh's PDF text check now wants "Shoot 201" + "Pilot" and none of "Shoot 202" / "Shoot Ep" /
+  "Episode"): 16/16 on the build. Name-agnostic readers learn "Shoot N" (`halfmarks`, `episodeprep`, `halfdays`,
+  `labelsetup`, `shootorder`, `pilllabel`, `pilldrag.mjs`); `episodeprep` LIVE and `seasons` expect "Episode 30N";
+  `halfdays` D2s wants "Shoot N". The two blocksoff-vs-reference blocks in gate.sh also read "Shoot N" as the episode.
+- ⏳ **Gates 10 and 13 will go red until re-cut:** every Episodes baseline's bars say "Shoot Ep. N" (typed fresh) or
+  "Episode N" (older fixtures). Re-cut ONLY on the owner's sign-off (gate.sh's rule), then run the full gate.
+- **Not done:** no commit, no push, no full gate, no version cut.
+
+### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
 - **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then
   run one single gate"*. **Picked:** month text styling, the phase map rail + Soft Lines, two or more seasons — NOT the
@@ -3352,7 +3384,9 @@
 
 ### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **LIVE at `70d7485`** via `land-zoom-epnames`
 
-- ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
+- ⛔ **SUPERSEDED 28 Oct 2026** (top entry, "EPISODES NAMED "Episode 101" AGAIN"): names are "Episode 101" again and
+  the bar reads "Shoot 101"; `episodeNamesLegacy` is gone. What follows is history.
+- Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
   before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
   you can easily change them and it doesn't mess things up"*. (They first read a recreated calendar's renamed
   Production phase, "Shoot wk N", as an app change. It was not: the app's "Production wk N" / "Production Week N" are
