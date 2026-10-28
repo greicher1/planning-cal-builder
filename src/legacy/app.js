@@ -7135,6 +7135,58 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⭐ THE CARET ON EVERY ALL-PHASE HIATUS CARD (owner, 28 Oct 2026: "give collapsing arrows to the all phase
+  // hiatuses just like phases"). The phase card's caret ("THE CARET ON EVERY PHASE CARD", above buildPhaseRows) on
+  // the hiatus card: folded, only the red head shows, the name still editable, its dates and ×. The same rules:
+  //   - ⛔ NOT STATE. Session UI, never in captureSnapshot(), never an undo step. The caret is a <button> with NO
+  //     id, and collectFieldValues() reads a hiatus row by class, so the saved file cannot see it.
+  //   - A hiatus row has NO KEY (fields.hiatuses saves the rows by position), so the fold lives on the row itself,
+  //     as .is-collapsed. Undo, redo, a scenario tab and Compare's probe REBUILD every row (applyStateSnapshot
+  //     step 2), which carries the folds across with carryHiatusFolds(): position for position while the count is
+  //     unchanged, and by the row's own values when the step added or removed a row (an undone ×, a redone Add).
+  //     A Load or a recovery is a different calendar and unfolds them all, beside collapsedPhaseKeys.clear(); New
+  //     rebuilds the default rows, which start open.
+  //   - Folding is pure CSS off .is-collapsed (legacy.css, "Phase card caret"): .hiatus-body hides, never cleared.
+  const HIATUS_COLLAPSE_BTN = '<button type="button" class="hiatus-collapse-btn" aria-expanded="true" title="Hide this hiatus’s settings" aria-label="Hide this hiatus’s settings"></button>';
+  function setHiatusCollapsed(row, on){
+    if(!row) return;
+    if(row.classList.contains('is-collapsed') !== on) row.classList.toggle('is-collapsed', on);
+    const btn = row.querySelector('.hiatus-collapse-btn');
+    const want = on ? 'false' : 'true';
+    if(btn && btn.getAttribute('aria-expanded') !== want){
+      const tip = on ? 'Show this hiatus’s settings' : 'Hide this hiatus’s settings';
+      btn.setAttribute('aria-expanded', want);
+      btn.title = tip;
+      btn.setAttribute('aria-label', tip);
+    }
+  }
+  function hiatusRowsNow(){ return Array.from(document.querySelectorAll('#hiatus-list > .hiatus-entry')); }
+  // A row's values, which is all that tells two rows apart across a rebuild.
+  function hiatusRowSig(row){
+    const v = s => (row.querySelector(s) || {}).value || '', c = s => !!(row.querySelector(s) || {}).checked;
+    return [v('.hiatus-start'), v('.hiatus-weeks'), v('.hiatus-name'), c('.hiatus-locked'), c('.hiatus-num')].join('\u0001');
+  }
+  function hiatusFolds(){
+    return hiatusRowsNow().map(row => ({on: row.classList.contains('is-collapsed'), sig: hiatusRowSig(row)}));
+  }
+  function carryHiatusFolds(before){
+    const rows = hiatusRowsNow();
+    if(rows.length === before.length){ rows.forEach((row, i) => setHiatusCollapsed(row, before[i].on)); return; }
+    const pool = before.filter(b => b.on).map(b => b.sig);
+    rows.forEach(row=>{
+      const j = pool.indexOf(hiatusRowSig(row));
+      setHiatusCollapsed(row, j !== -1);
+      if(j !== -1) pool.splice(j, 1);
+    });
+  }
+  function unfoldAllHiatuses(){ hiatusRowsNow().forEach(row => setHiatusCollapsed(row, false)); }
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest && e.target.closest('.hiatus-collapse-btn');
+    if(!btn) return;
+    const row = btn.closest('.hiatus-entry');
+    if(row) setHiatusCollapsed(row, !row.classList.contains('is-collapsed'));
+  });
+
   // `prefillLocked` defaults to TRUE: an all-phase hiatus is normally anchored to the real
   // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
   // is unless the user unlocks it. Per-phase hiatuses have no such lock -- they belong to their
@@ -7164,6 +7216,7 @@ export function initLegacyApp() {
     // collectFieldValues() reads it by class.
     row.innerHTML = `
       <div class="hiatus-head">
+        ${HIATUS_COLLAPSE_BTN}
         <div class="hiatus-head-text">
           <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}" aria-label="Hiatus name">
           <div class="hiatus-range"></div>
@@ -10279,6 +10332,7 @@ export function initLegacyApp() {
       pushUndoSnapshot();
       revealSidebarTab('phases');
       pushUndoSnapshot();
+      setHiatusCollapsed(row, false);   // a folded card would show only its head
       if(row.isConnected) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
     // Exactly the row's own ×: its question first (ruling Q4), then its removal, ONE undo step banked
@@ -24695,7 +24749,7 @@ export function initLegacyApp() {
   function probeScenarioTabs(need){
     if(!need.length) return;
     const back = JSON.parse(JSON.stringify(captureSnapshot()));
-    const keep = { collapsed: new Set(collapsedPhaseKeys), cursor: monthCursor, recheck: monthCursorRecheck,
+    const keep = { collapsed: new Set(collapsedPhaseKeys), hiatusFolds: hiatusFolds(), cursor: monthCursor, recheck: monthCursorRecheck,
                    sup: suppressDirty, app: applyingUndoRedo, scroll: captureScroll() };
     suppressDirty = true; applyingUndoRedo = true;
     try {
@@ -24706,6 +24760,7 @@ export function initLegacyApp() {
     } finally {
       try { applyStateSnapshot(back); } catch(e){ console.error(e); }
       collapsedPhaseKeys.clear(); keep.collapsed.forEach(k => collapsedPhaseKeys.add(k));
+      carryHiatusFolds(keep.hiatusFolds);   // back is the same rows, so position for position
       monthCursor = keep.cursor; monthCursorRecheck = keep.recheck;
       refreshAfterRestore();
       suppressDirty = keep.sup; applyingUndoRedo = keep.app;
@@ -25460,11 +25515,11 @@ export function initLegacyApp() {
   // on screen before. Re-applying the captured state cannot itself throw: it is what THIS build just
   // produced with captureSnapshot(). The caller runs refreshAfterRestore() either way.
   function applyStateSnapshotAtomically(snap){
-    const prev = JSON.stringify(captureSnapshot());
+    const prev = JSON.stringify(captureSnapshot()), folds = hiatusFolds();
     try {
       applyStateSnapshot(snap);
     } catch(e){
-      try { applyStateSnapshot(JSON.parse(prev)); } catch(_){ /* prev is this build's own output; it cannot fail */ }
+      try { applyStateSnapshot(JSON.parse(prev)); carryHiatusFolds(folds); } catch(_){ /* prev is this build's own output; it cannot fail */ }
       throw e;
     }
   }
@@ -26418,6 +26473,7 @@ export function initLegacyApp() {
     restoreSavedState();
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
+    unfoldAllHiatuses();         // ...and every all-phase hiatus card (their rows carried the old folds across)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
@@ -26717,6 +26773,7 @@ export function initLegacyApp() {
     adoptScenarios(parsed.scenarios);   // the file's tabs (one tab for a one-calendar file)
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
+    unfoldAllHiatuses();         // ...and every all-phase hiatus card (their rows carried the old folds across)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // opening a different file starts a fresh undo history
@@ -32395,10 +32452,12 @@ export function initLegacyApp() {
 
     // 2. Rebuild hiatus rows to match the saved set (replaces the defaults)
     if(snap.fields && Array.isArray(snap.fields.hiatuses)){
+      const folds = hiatusFolds();   // session UI: the caret's folds ride across the rebuild (carryHiatusFolds)
       document.getElementById('hiatus-list').innerHTML = '';
       // h.locked is absent in saves written before the lock existed -> addHiatusRow defaults it to
       // locked, which matches how those calendars behaved (nothing shifted them).
       snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name, h.numbered === true));
+      carryHiatusFolds(folds);
     }
 
     // ⚠️ RESTORE UNCONDITIONALLY -- and step 3 below cannot do that on its own. It iterates the

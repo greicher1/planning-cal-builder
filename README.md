@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — All-phase hiatus cards fold to their head, like phase cards (28 Oct 2026)
+
+Each all-phase hiatus card in the Phases tab has the phase card's caret now (owner, 28 Oct 2026: *"give collapsing
+arrows to the all phase hiatuses just like phases"*). Folded, the card shows only its red head: the name, still
+editable, its dates and ×. Starts, Weeks, Lock in place and Number weeks hide. **What it is not:** calendar data. A fold
+is never saved, never an undo step, and changes nothing in the waterfall, the month view or any export. Folds hold
+through undo and redo; a Load, a recovery or New opens every card. Show in Phases card (month view) unfolds its card.
+⚠️ A hiatus row has no key (they save by position), so `applyStateSnapshot()` carries each fold across the rebuild:
+position for position, or by the row's own values when an undo or redo put back or took away a row.
+Verified: new leg `hiatusfold` 11/11 (in `gate.sh`), red on `main` before it (9 of 11) and with the carry removed
+(H5–H9); `npm run check`; the neighbouring legs (listed in HANDOFF).
+
 ### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The

@@ -4,7 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 27 Oct 2026 (latest): FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
+### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; NOT COMMITTED, NOT GATED IN FULL
+
+- **Asked** (owner): *"Lets give collapsing arrows to the all phase hiatuses just like phases"*. Tracker card
+  `hiatus-card-fold`.
+- **Built** (app.js "THE CARET ON EVERY ALL-PHASE HIATUS CARD", beside `removeHiatusRow`; legacy.css "Phase card
+  caret"): `addHiatusRow()` puts a `.hiatus-collapse-btn` (a `<button>` with NO id) first in `.hiatus-head`; it shares
+  the phase caret's CSS. Folded, `.hiatus-body` hides and the card keeps the folded phase card's 4 px white edge.
+  Session UI, exactly the phase fold's rules: not in `captureSnapshot()`, never an undo step. Show in Phases card
+  (`showHiatusRow`) unfolds its card.
+- ⭐ **The one thing that differs from the phase fold: a hiatus row has NO KEY** (`fields.hiatuses` saves rows by
+  position), so there is no `collapsedPhaseKeys` twin. The fold lives on the row as `.is-collapsed`, and every
+  rebuild carries it: `applyStateSnapshot()` step 2 reads `hiatusFolds()` before emptying `#hiatus-list` and calls
+  `carryHiatusFolds()` after. Same row count → position for position. Different count (an undone ×, a redone Add) →
+  each folded row is found again by its own values (`hiatusRowSig`: start, weeks, name, lock, numbered).
+  `probeScenarioTabs` and `applyStateSnapshotAtomically`'s rollback save and put back the folds the same way. The two
+  Load / recovery sites call `unfoldAllHiatuses()` beside `collapsedPhaseKeys.clear()`, AFTER the apply (which has
+  already carried the old calendar's folds in). New needs nothing: `addDefaultHiatuses()` rebuilds open rows.
+- **Proof:** new leg `t/hiatusfold.js` (gate.sh AFSPEC, beside `phasefold`) 11/11 on the build. Red on `main` before
+  it (`dist-pre`: 9 of 11; H3 and E0 green, as they should be) and on a mutant with the carry removed (H5–H9).
+  `npm run check` 40/40. Neighbours, all green on the build: `phasefold` 11, `sharecopy2`, `hiatusblank` 4,
+  `hiatuslabel` 7, `spanhint` 9, `badyear` 6, `loadcarry` 6, `dlgkeys` 16, `mvmenu (halfdays)` 89,
+  `wfmenu (halfdays)` 38, `labelsetup (halfdays)` 41, `phiatusnum` 18, `phasesui (hidewf)` 8. Those ran on the build
+  before the folded card's 4 px edge was added (one rule, folded state only); on the final build `b275b591…`, check
+  40/40 and `hiatusfold` 11/11 again (folded card 61 px).
+  Seen in the pane: folded cards show the red head, caret pointing right; open ones are unchanged.
+- ⚠️ **The pane's screenshots lagged the page** (it was running hidden): a `scrollTop` set by script showed up one or
+  two screenshots later. Measure with `getBoundingClientRect()`, not by eye, when the pane is not on screen.
+- **Not done:** no commit, no push, no full gate (chrome only: no frozen code, no saved key, no id).
+
+### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
 - **Asked** (owner, at the push picker for bar size alone): *"lets merge all the features were working on into main then
   run one single gate"*. **Picked:** month text styling, the phase map rail + Soft Lines, two or more seasons — NOT the

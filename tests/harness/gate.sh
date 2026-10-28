@@ -1714,6 +1714,11 @@ done
 # unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
 # folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
 # Its own line, mid-list, so sessions appending at the end never conflict with it.
+# hiatusfold is the same caret on every ALL-PHASE HIATUS card (owner, 28 Oct 2026): a hit-tested click folds a card to
+# its red head, the name still editable and its dates still on it; session UI (not marked changed, grid unchanged, Save
+# byte-identical); a hiatus row has no key, so undo and redo carry each fold position for position, and BY THE ROW'S
+# VALUES when the step put back or took away a row (an undone ×); + Add hiatus opens unfolded; Show in Phases card
+# unfolds; Load and New unfold all. Red on main before it (9 of 11) and with the carry removed (H5-H9). Its own line too.
 # papersize guards the paper the waterfall PDF and the workbook are laid out for (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md,
 # rulings R1-R4): the Paper select in Settings ▸ Preferences ▸ Waterfall, inert on Letter (no key, a Letter page box,
 # Excel paper 1), Legal and Tabloid read back from the PDF's page box and Excel's paper number (5, 3), the PDF and the
@@ -1766,6 +1771,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               papersize:-:500 \
               pdfdialog:-:500 \
               phasefold:-:300 \
+              hiatusfold:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \

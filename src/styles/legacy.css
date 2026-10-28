@@ -1151,25 +1151,30 @@
   /* Phase card caret (owner, 20 Oct 2026; app.js "THE CARET ON EVERY PHASE CARD"): folds a card down
      to its head, the name still editable. Mantine's ActionIcon variant="subtle", black on the head (R9). The
      chevron is drawn geometry, like the remove ×, so it centres exactly and paints currentColor. Down while
-     the card is open, right while it is folded. */
-  .phase-collapse-btn{
+     the card is open, right while it is folded. The all-phase hiatus card's caret (app.js "THE CARET ON EVERY
+     ALL-PHASE HIATUS CARD", owner 28 Oct 2026) is the same button on the red head. */
+  .phase-collapse-btn, .hiatus-collapse-btn{
     width:22px; height:22px; flex:none; padding:0; margin-top:3px;
     border:0; border-radius:var(--mantine-radius-default); background:transparent;
     color:var(--mantine-color-black); cursor:pointer; font-family:inherit;
     display:inline-flex; align-items:center; justify-content:center;
     transition:background-color 100ms ease;
   }
-  .phase-collapse-btn:hover{ background:rgba(0,0,0,.07); }
-  .phase-collapse-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
-  .phase-collapse-btn::before{
+  .phase-collapse-btn:hover, .hiatus-collapse-btn:hover{ background:rgba(0,0,0,.07); }
+  .phase-collapse-btn:focus-visible, .hiatus-collapse-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .phase-collapse-btn::before, .hiatus-collapse-btn::before{
     content:""; width:14px; height:14px; background:currentColor; transition:transform 150ms ease;
     -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
     mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
   }
-  .phase-collapse-btn[aria-expanded="false"]::before{ transform:rotate(-90deg); }
+  .phase-collapse-btn[aria-expanded="false"]::before, .hiatus-collapse-btn[aria-expanded="false"]::before{ transform:rotate(-90deg); }
   /* The fold itself. !important because the engine shows and hides some of these children with an
      inline style.display (#ep-panel, the sim-post rows), which would otherwise beat this rule. */
   .phase-row.is-collapsed > :not(.swatch):not(.custom-phase-header){ display:none !important; }
+  /* A hiatus card folds to its head. Nothing sets an inline display on .hiatus-body, so no !important. The 4 px is
+     the folded phase card's own white edge under its head (.phase-row's padding-bottom), so the two fold alike. */
+  .hiatus-entry.is-collapsed > .hiatus-body{ display:none; }
+  .hiatus-entry.is-collapsed{ padding-bottom:4px; }
 
   /* ---- The body: Starts and Length side by side, then the switch rows ----------------------------------------
      Each block carries the body's 12 px sides itself, so the head can run edge to edge. */
