@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — branch `ep-shoot-bars` (worktree `.claude/worktrees/ep-shoot-bars`), from `main` at `73de2b6`; committed on the branch and merged with today's `main`, month baselines re-cut (owner sign-off), full gate run twice; NOT merged into `main`, NOT pushed
+### ✅ 28 Oct 2026 (latest): EPISODES NAMED "Episode 101" AGAIN, THEIR MONTH BARS READ "Shoot 101" — ✅ LIVE at `b9f0ff7` (owner's picker: "Merge into main", "Push now, no version cut"; the live page served the gated build `212b2faf` byte for byte ~66 s after the push)
 
 - **Asked** (owner): *"I dont want episodes to be titled "Shoot Ep. 101, Shoot Ep. 102, etc. I want them titled just
   Episode 101, Episode 102, etc. BUT by default I want the phases to be labelled as "Shoot 101, Shoot 102, etc. How can
@@ -67,7 +67,13 @@
     (empty header). Alone: merged build 4 of 5 green, `main`'s own build (`2f8208ec`, no episode change) 5 of 5, all
     while another gate loaded the Mac. Bar text cannot reach a right-click on the day-number band. ⚠️ A timing flake
     in that leg; a longer wait or an until() for `.day-menu` would remove it (not done here).
-- **Not done:** no merge to `main`, no push, no version cut.
+- ✅ **SHIPPED.** Owner's picker: *"Merge into main"*, *"Push now, no version cut"*. Local `main` fast-forwarded to
+  the branch (`b9f0ff7`); a clean build of its tree is `212b2faf…` (the second gate's build), `npm run check` 40/40,
+  `APP_VERSION` and `version.json` both still 1.9.0, root `index.html` still equals `releases/v1.2.0.html`. ONE
+  `git push origin main` at 14:06:24 (`7965ebc..b9f0ff7`, which also carried the month-step session's unpushed
+  HANDOFF commit `633f92d`). At 14:07:30 the live `index.html`, fetched with a cache-buster, was byte-identical to
+  `212b2faf` (1,875,270 bytes, `cmp`).
+- **Not done:** no version cut (owner's choice), so installed copies get no update notice; they pick it up on load.
 
 ### ✅ 28 Oct 2026: DOUBLE-CLICK A MONTH BAR TO OPEN ITS PHASE'S CARD — ✅ LIVE at `7965ebc` — BUILT in the main checkout and COMMITTED on `main` on top of `c2a2949`, the month stepper's merge (owner's picker, *"Commit locally"*); no full gate; PUSH APPROVED together with the month stepper (owner's picker, *"Push both now"*)
 
