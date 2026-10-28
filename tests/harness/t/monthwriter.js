@@ -204,7 +204,7 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], pages = parseDoc(doc.html);
       if(pages.length !== doc.measured.length) throw new Error(doc.name + ': ' + pages.length + ' pages but ' + doc.measured.length + ' measured');
-      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, doc.barSize || ''); });
+      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, null, doc.barSize || ''); });
       var layout = {geometry: G, months: months};
       var fitted = F.fitMonthLayout(layout, fonts);
       var again = F.fitMonthLayout(layout, fonts), viaJson = F.fitMonthLayout(JSON.parse(JSON.stringify(layout)), fonts);

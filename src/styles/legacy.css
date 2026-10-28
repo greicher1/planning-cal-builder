@@ -3944,6 +3944,21 @@
 .hiatus-drag-shield{ position:fixed; inset:0; z-index:300; cursor:ns-resize; }
 .hiatus-drag-shield.is-move{ cursor:grabbing; }
 
+/* ---- The month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2, 27 Oct 2026) -----------------------------
+   Body-level chrome on the hiatus layer's terms (above): nothing inside #table-wrap, no `.mv-*` rule, and nothing the
+   print path can reach (it hides every direct child of <body> but #print-root). One fixed box over each picked month
+   text's visible box: the waterfall highlight's purple (.text-sel-cell) as an OUTER ring with a white ring inside it,
+   because a month note's default fill is that same purple (MILESTONE_COLOR) and a purple ring alone vanished on it.
+   The active pick's outer ring is thicker. No pointer events: a click goes to the text under it, as if the box were
+   not there. Under the edge layers (z 49/50). */
+.month-sel-box{ position:fixed; z-index:48; box-sizing:border-box; pointer-events:none; border-radius:3px;
+  border:1.5px solid rgba(255,255,255,.95); box-shadow:0 0 0 1.5px #7030A0; background:rgba(112,48,160,.10); }
+.month-sel-box.is-active{ box-shadow:0 0 0 2.5px #7030A0; }
+/* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
+.style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
+/* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */
+.style-bar .hf-al-toggle.is-disabled{ opacity:.35; pointer-events:none; }
+
 /* ---- The month view's reorder grip and moving copy (MONTH-ORDER-PLAN.md, 21 Oct 2026) -------------
    Body-level chrome on the edge grips' terms (above): nothing inside #table-wrap, no `.mv-*` rule, and
    nothing the print path can reach (it hides every direct child of <body> but #print-root). The grip sits

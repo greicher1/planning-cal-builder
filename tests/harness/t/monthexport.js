@@ -186,7 +186,7 @@ window.addEventListener('load', function () { (async function () {
       // No print document (the switch did not reach the print path) is the case's failure, judged there.
       if(!got) return {layout: {months: []}, bytes: new Uint8Array(0), months: 0, printed: false};
       var dom = new DOMParser().parseFromString('<div id="x">' + printed + '</div>', 'text/html');
-      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW, pillW, T.barSizeShown()); });
+      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW, pillW, null, T.barSizeShown()); });
       var layout = F.fitMonthLayout({geometry: F.G, months: months}, fonts);
       return {layout: layout, bytes: await F.buildMonthPdf(layout), months: months.length, printed: true};
     }

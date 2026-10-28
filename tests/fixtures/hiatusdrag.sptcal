@@ -69,6 +69,26 @@
  "cellSpans": {},
  "gridColSwaps": {},
  "gridStintSwaps": {},
+ "textStyles": {
+  "hiatus": {
+   "2027-03-22": {
+    "italic": true
+   },
+   "2027-05-17|post": {
+    "italic": true
+   }
+  }
+ },
+ "mvTextStyles": {
+  "band": {
+   "2027-03-22": {
+    "bold": false
+   },
+   "2027-05-17|post": {
+    "bold": false
+   }
+  }
+ },
  "fields": {
   "byId": {
    "show-title": {

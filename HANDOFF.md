@@ -47,6 +47,61 @@
 - **Not done:** no commit, no push. Episode numbering for a second season (401…) was not asked for. The ticks stop at
   Season 10, like the old dropdown.
 
+### 🔨 27 Oct 2026 (latest): STYLE ANY TEXT IN THE MONTH VIEW: BUILT on `claude/sharp-stonebraker-8d2cd2`, committed locally, NOT merged, NOT pushed ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md) §12)
+
+- **Built, plan §9 steps 0–7, one commit per step:**
+  - **Step 0, a real bug fixed:** the month hiatus drag left a band's WATERFALL text style on its old weeks
+    (`installHiatusDrag` `rekey()`/`setMaps()` lacked `textStyle.hiatus`). Reproduced first: `hiatusdrag` H13 (new) was
+    red, then green. It now carries the month band style (`mvTextStyle.band`) too.
+  - **M2 + gate 10 re-cut, all eleven cases** (only the note tooltips moved; baseline README has the table).
+  - **Sizes measured (plan §3.3a): bars and bands 6–11**, not 12 (12 cuts descenders by 1 px on screen), notes 6–10,
+    month name 6–17, weekday row 6–11. Held line boxes moved no row.
+  - Store `mvTextStyle` / save key `mvTextStyles` / `fmt` on a day note (CLAUDE.md state table); the month highlight
+    and R1; M1; the writer W1–W5.
+- **Decided while building (plan §12):** prep bars keyed by unit, block bars by block id, un-numbered Sim Post by its
+  would-be N; bold toggles 600 → 400 → 700 on a bar (header rule); the month name's alignment control greys; the
+  outline is white-in-purple (a default note is the highlight's purple); `.month-sel-box` stripped from shareable copies.
+- ⚠️ **Learned:**
+  - M1's `line-height:15px` on a sized bar is INHERITED by the grey `.mv-pill-block` as a length, moving its baseline up
+    to 1 px; the writer copies that. `monthemit` found it.
+  - `monthemit` compared starts, which is wrong for aligned text (Chrome kerns, the writer does not). It now anchors
+    each text at its alignment's anchor, and a centred/right note line at its VISIBLE characters (`pre-wrap`'s hanging
+    space).
+  - The highlight resolver must not call writer names (`mvlDecls`): the month legs' F0 forbids it.
+  - A `t/` leg's own source is injected into the page, so a shareable copy contains it: never search a copy for a
+    literal the leg also contains.
+- **Verified:** `mvtextstyle` LIVE 23/23, RESTORE 6/6, v1.8.0 opens the file; `monthemit` 16/16 on the styled fixture;
+  `hiatusdrag` 14/14; `textstyle`, `mvnotes` green; `npm run check` 40/40. **Mutants (plan §8): all twelve red, each
+  on its own case** (listed in `gate.sh` above the mvtextstyle block). ⚠️ `monthemit` slices `/src/legacy/app.js`
+  unless given `HARNESS_QUERY=src=<path>`, so a mutant BUILD alone leaves it testing the real writer (it went green
+  until run with `src=`). And an undo re-sanitizes its snapshot, so a bad value written by the bar can vanish before a
+  later Save sees it: check by Save straight after the press.
+- **Full gate, run 1** (`8f5ec75`, 13:21–14:23, 62 min): **7 FAIL**, fixed in `c9514cf`:
+  - ⛔ **R1 broke three older cases, which expected a click on a month note to open its editor:** `mvmenu` L4 (a
+    synthetic press-release-click), `mvorder` N5 and N6 (trusted CDP input; N6 THREW, `.focus()` on an editor that
+    never opened, so the leg looked like a crash, not a rule change). Each now holds R1: a press picks (outline drawn,
+    no editor, no menu, no drag), then a double-click opens. ⚠️ `el.click()` from a script (no press) still opens a
+    note, which is why `mvnotes` and `mvmenu` P7 never noticed. Any new leg that opens a month note by a real click
+    must double-click.
+  - `monthlayout` EX on all four fixtures: it slices the writer out of app.js, anchored on `buildMonthLayout`'s last
+    line, which W3 changed. Re-anchored, and it hit two things the slice lacked. (1) The model read `MVL_PAINT`, the
+    emitter's constant declared AFTER it. `mvlStyledWidthOf` now reads it only once a style needs it, which only the
+    export does (bytes unchanged). (2) M1's `MV_TEXT_LINE_PX`, now sliced in too. F0's names gain `mvlTextFmt`,
+    `mvlFrameFmt` and `mvlStyledWidthOf`.
+  - `monthexport (hiatus-blanklabel)` wrote no file, so gate 13 had none for it: a stall. Standalone 9/9, and its file
+    is byte-identical to gate 13's baseline. The other 21 gate 13 files were byte-identical in the run.
+- ✅ **Full gate, run 2** (`c9514cf`, 14:57–15:41, no other gate running at its start): **3,096 PASS, 3 FAIL, all three
+  stalls.** `papersize` and `undokeys` produced no result and `pdfdialog` stopped after D2. These are waterfall and undo
+  legs this branch does not touch, and all three passed in run 1. Standalone on port 9905 against this build:
+  papersize 12/12, pdfdialog 15/15, undokeys 11/11. Every run-1 failure is green: mvmenu L4, monthlayout 56/56, mvorder
+  30/30, monthexport (hiatus-blanklabel). Gate 13: 22/22 byte-identical. Gate 10 (`monthprint`): 67/67 against the
+  re-cut.
+  ⚠️ Running a leg beside another session's gate: `run.sh` and the `.mjs` drivers `pkill` the `srv.js` on THEIR port
+  before starting their own. So a standalone run on the default 8231 kills a running gate's server. Use a
+  non-default `HARNESS_PORT`.
+- **Next:** the owner's picker to merge into `main`, then a separate one to push. Tracker card `month-text-style` is
+  at "ready".
+
 ### ✅ 27 Oct 2026: AUTOMATIC NOTES FOR EACH PHASE'S START AND END, OFF BY DEFAULT. ✅ LIVE at `273692c` (pushed alone on top of `31eddd0`; owner's picker: "Commit and merge", "Push it alone, once verified")
 
 - **Asked** (owner): *"what are all the other automatic notes we could have?"*, then *"do the phase starts and ends.
@@ -137,7 +192,7 @@
 - ⚠️ **Harness trap seen again:** a `run.sh` on the DEFAULT port 8231 `pkill`s the gate's own server. Run single
   legs on another `HARNESS_PORT` whenever a gate may be running.
 
-### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF, no code ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md))
+### 📝 27 Oct 2026: STYLE ANY TEXT IN THE MONTH VIEW WITH THE TEXT STYLE BAR: PLANNED, EVERYTHING RULED, M1 + M2 SIGNED OFF ([`MONTH-TEXT-STYLE-PLAN.md`](MONTH-TEXT-STYLE-PLAN.md); superseded by the BUILT entry at the top)
 
 - ✅ **Ruled by picker, 27 Oct 2026** (plan §2, §6):
   - **N1, in the owner's own words: *"maybe disable recoloring phase bar text"*.** Read as: no text colour on any bar
@@ -149,7 +204,7 @@
   - **Sign-off: "Yes, M1 and M2 as planned (Recommended)"**, with plan §6's gate (gate 10 re-cut for M2's tooltips only,
     then 10 and 13 byte-identical unstyled; 0 clipped glyphs, rows and PDF scale unchanged on a styled fixture; the
     waterfall's exports untouched).
-- **Next:** build from plan §9, step 0 (the hiatus drag carrying `textStyle.hiatus`) first. Not started.
+- **Next:** (done; see the entry above.)
 
 - **The plan is written** (owner: *"Write MONTH-TEXT-STYLE-PLAN.md from the four rulings, with the frozen edit and its
   gate spelled out for sign-off"*, adding *"actually no dont let the day number be editable"*, which confirms R4).
