@@ -364,6 +364,9 @@ window.addEventListener('load', function () { (async function () {
       await clickTick('custom1');                         // nothing hidden now
       var plain = await save();
       var fx = JSON.parse(fixtureText); delete fx.phaseHidden;
+      // The fixture was saved when un-renamed episodes were named "Shoot Ep. 201"; since 28 Oct 2026 they open (and so
+      // save) as "Episode 201", the default again. A typed name would be kept, and this fixture has none.
+      (fx.episodeDefs || []).forEach(function (e) { if (!e.nameEdited) e.name = String(e.name).replace(/^Shoot Ep\. /, 'Episode '); });
       var noKey = !('phaseHidden' in JSON.parse(plain));
       kase('F3', 'with nothing hidden the file carries no phaseHidden key, and is byte for byte the fixture without one (tab and view aside)',
            noKey && comparable(plain) === comparable(JSON.stringify(fx, null, 1)), { noKey: noKey, len: plain.length });
