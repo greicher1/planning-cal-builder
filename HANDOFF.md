@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), targeted legs green, FULL GATE PENDING, not merged
+### 🔨 28 Oct 2026 (latest): WATERFALL NOTES TAKE EVERY MONTH NOTE COLOUR — built on branch `wf-note-colors` (worktree `.claude/worktrees/wf-note-colors`), FULL GATE 3,352 / 0 on the branch, not merged
 
 - **Asked** (owner): *"add all the same note bg color options for notes in the waterfall as we currently have for notes
   in the month view"*. Tracker card `waterfall-note-colours`.
@@ -29,9 +29,13 @@
   keeps the ten standard colours only") and now asserts the same two rows as a day note's. `wfkeys` 84/84, `textstyle`
   51/51, `notewrap` 16/16, `monthnotes` 7/7, `npm run check` 40/40. Screenshots of both editors taken with headless
   Chrome over CDP (the pane's five server slots were all other chats', and it would not open a local file).
-- **Next:** the full gate (queued behind the `month-step` worktree's, which was running), then ask the owner to merge
-  into `main` and, separately, to push. ⚠️ `main`'s checkout holds another session's UNCOMMITTED Pre-Prep work (its
-  HANDOFF entry is not on this branch), which also adds a line to `gate.sh`'s AFSPEC list: keep both lines in the merge.
+- **Full gate** (`HARNESS_PORT=8257 ./gate.sh` in the worktree, after the `month-step` worktree's finished):
+  **3,352 PASS / 0 FAIL / 1 INFO** (the INFO is monthwriter's usual "reported, not judged" January 2026 line), in 31 min.
+- **Next:** ask the owner to merge into `main` and, separately, to push. `main` has moved since this branch was cut
+  (Pre-Prep's default name, the hiatus-card caret, the month stepper, the month double-click, all committed now). A
+  trial `git merge-tree` conflicts in HANDOFF.md and README.md only (both top entries: keep every one); `app.js`,
+  `legacy.css` and `gate.sh` merge clean, and gate.sh must keep both `prepreptitle` and `wfnotecolors`. Re-check the
+  MERGED build (`npm run build` + `check`, `wfnotecolors`, `mvnotes`, base/restore/gate 5) before any push.
 
 ### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
 
