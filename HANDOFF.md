@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; NOT COMMITTED, NOT GATED IN FULL
+### 🔨 28 Oct 2026 (latest): ALL-PHASE HIATUS CARDS FOLD TO THEIR HEAD, LIKE PHASE CARDS — branch `hiatus-fold` (worktree `.claude/worktrees/hiatus-fold`), cut from `main` at `73de2b6`; COMMITTED as `5575e89` and MERGED into local `main` (owner's picker, *"Commit and merge to main"*); NOT PUSHED, NOT GATED IN FULL
 
 - **Asked** (owner): *"Lets give collapsing arrows to the all phase hiatuses just like phases"*. Tracker card
   `hiatus-card-fold`.
@@ -31,7 +31,55 @@
   Seen in the pane: folded cards show the red head, caret pointing right; open ones are unchanged.
 - ⚠️ **The pane's screenshots lagged the page** (it was running hidden): a `scrollTop` set by script showed up one or
   two screenshots later. Measure with `getBoundingClientRect()`, not by eye, when the pane is not on screen.
-- **Not done:** no commit, no push, no full gate (chrome only: no frozen code, no saved key, no id).
+- **Merged with `main`** after the Pre-Prep default name went live (`19eb0c0`, `84af9b2`): only README and HANDOFF
+  conflicted (both tops kept). Re-checked on the merged build (below).
+- **Not done:** no push, no full gate (chrome only: no frozen code, no saved key, no id). The owner asked whether a full
+  gate is needed before the push.
+
+### ✅ 28 Oct 2026: PRE PREP'S DEFAULT NAME IS "PRE-PREP" — ✅ LIVE at `19eb0c0`
+
+- **Asked** (owner): *"Default name for Pre Prep should be "Pre-Prep""*. Tracker card `pre-prep-default-name`.
+- **Done:** `PHASES`' prePrep label and template are "Pre-Prep" / "Pre-Prep Wk N" (the capital W kept: only the name
+  was asked for). Followed by the name box's value and placeholder, its hiatus placeholder, the Automatic notes row's
+  first paint (`Sidebar.jsx`), the colour option's name "Blue (like Pre-Prep)" (a name, not an index: the array order
+  is untouched) and the Help's Phases paragraph.
+- ⛔ **Saved calendars keep "Pre Prep"** (the episode-names precedent, *"Leave them as saved"*, 20 Oct 2026). Every
+  file stores the name in `fields.byId['name-prePrep']`, all 100 real fixtures as "Pre Prep". Read as a typed name it
+  would have drawn "Pre Prep **w**k N" (a typed name's template), so prePrep carries `was: {label, template}` and
+  `getAllPhaseDefs()` gives that old name the old def exactly. A file with the box emptied (none known) would now show
+  the new default.
+- ⚠️ **The harness pins the old name.** `T.buildFixture()` types "Pre Prep" first, so every baseline cut from the
+  reference calendar (base, gate 10, gate 13, …) stays byte-identical, and doing so proves `was`. The new default is
+  held by the new leg `prepreptitle` (in `gate.sh` AFSPEC, 200 s). A leg that builds its OWN fresh calendar sees
+  "Pre-Prep": `autonotephases`, `builtindates` (live), `phiatusnum` and `phasenum` (live only; its restore run loads
+  a file saved as "Pre Prep", so the leg picks the name by run) were moved to it.
+- ⚠️ **Learned:** a first search for legs naming "Pre Prep" was cut off by `head`, and missed `phasenum` and
+  `phiatusnum`; the run found them. Search with no cap. Also, an apostrophe added to a single-quoted case title
+  broke `autonotephases`' syntax, and the leg then writes NO result at all (it reads like a timeout): `node --check`
+  a leg after editing it.
+- **Verified** (build `8da39b6c…`, targeted legs on a private port while three other sessions' gates ran):
+  `npm run check` 40/40; `prepreptitle` 7/7; `base` identical to the 29 Aug baseline (grid keys, waterfall PDF but the
+  date stamp, workbook parts); `autonotephases` 17/17, `phiatusnum` 18/18, `phasenum` live + restore (the gate's own
+  judge), `builtindates` live + restore, `blocks` (16 gate checks), `onecol` (gate judge), `calrange` 18/18,
+  `customunits` ×2, `loadfail` 6/6, `phasefold` 11/11, `seasons` 15/15, `snaptools` 14/14, `undokeys` 11/11,
+  `noresetall` 5/5, `badyear` 6/6. `phasesui` 7/8: P1 fails ONLY on `stintswap-reshape`, the fixture with the stray
+  uncommitted edit that predates this work (re-saved with 112 fields instead of 61; its Pre Prep name unchanged).
+  **Mutant** (the `was` branch compiled out): `prepreptitle` N4 + N6 red, and `base`'s PDF and grid both differ.
+  Seen in the app: the Phases tab's second card reads "Pre-Prep". **No full gate** (three others were running).
+- **Pushed** on the owner's picker (*"Commit locally"*, *"Push now"*, on the targeted legs; no full gate), with the
+  unpushed HANDOFF-only `26516be`: `73de2b6..19eb0c0` at 11:31:25. At 11:32:12 the live `index.html`, fetched with a
+  cache-buster, was byte-identical to the tested build `8da39b6c…`. No version cut (still v1.9.0).
+- ⏭ **Next:** the next full gate should include `prepreptitle`; nothing else owed.
+
+### ✅ 28 Oct 2026: SHOW INFO'S SEASON HINT LINE REMOVED — ✅ LIVE at `73de2b6`
+
+- **Asked** (owner): *"remove this text: tick more than one when seasons share this calendar."*, then *"no need to run
+  a gate just remove and push"*.
+- **Done:** the `description` prop dropped from `#season-num`'s `NativeSelect` in `src/chrome/Sidebar.jsx`'s
+  `SeasonField`. Chrome only: no id, no saved key, nothing the grid or the exports read. README has an Unreleased line.
+- **Verified:** `npm run build` + `npm run check` 40/40; no gate, on the owner's word. Pushed with the unpushed
+  HANDOFF-only `76099c4`; the deploy run succeeded and the live page served the local `dist/index.html` byte for byte
+  on the first fetch. No version cut (still v1.9.0).
 
 ### ✅ 27 Oct 2026: FOUR FEATURES MERGED FOR ONE GATE — v1.9.0 = PHASE BAR SIZE + TWO OR MORE SEASONS + MONTH TEXT STYLING + THE PHASE MAP / SOFT LINES, on branch `month-bar-size` (worktree `.claude/worktrees/month-bar-size`); RELEASE GATE 3,338 / 0; ✅ **LIVE at `9282356`** with tag `v1.9.0` (owner's picker, *"Push v1.9.0 now"*; the live page served the gated build `c352d88b` byte for byte ~56 s later)
 
