@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 28 Oct 2026 (latest): A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there (owner's picker, *"Commit locally"*); PUSH APPROVED (owner's picker, *"Push now"*, over the recommended "Not yet"); no full gate
+### ✅ 28 Oct 2026 (latest): A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there as `ddafe45` (owner's picker, *"Commit locally"*); ✅ **LIVE at `ddafe45`** (owner's picker, *"Push now"*, over the recommended "Not yet"; `cc3ea13..ddafe45` at 22:35:32, also carrying the docs-only `e1bf969`; the live `index.html` matched the tested build `c5906f52…` byte for byte at 22:36:23); no full gate
 
 - **Asked** (owner): *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick
   color for phases"*. Tracker card `hiatus-card-colour`.
