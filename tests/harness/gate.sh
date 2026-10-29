@@ -1731,6 +1731,13 @@ done
 # byte-identical); a hiatus row has no key, so undo and redo carry each fold position for position, and BY THE ROW'S
 # VALUES when the step put back or took away a row (an undone ×); + Add hiatus opens unfolded; the trimmed month menu
 # offers no Show in Phases card on a band and folds nothing open (H8); Load and New unfold all. Red on main before it (9 of 11) and with the carry removed (H5-H9). Its own line too.
+# hiatuscolour is the colour square on every all-phase hiatus card (owner, 28 Oct 2026: "just like you can pick color
+# for phases"): one square after the caret, where a phase card's sits; a hit-tested pick paints every week of the
+# hiatus in the waterfall, the month view, the square and the head, and the file holds it as hiatusColors on exactly
+# those weeks (no new key, no id, fields.byId and a hiatus row's keys unchanged); one undo step; the colour follows
+# a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu's
+# Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
+# carry removed (C5-C8). Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;
@@ -1794,6 +1801,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               pdfdialog:-:500 \
               phasefold:-:300 \
               hiatusfold:-:300 \
+              hiatuscolour:-:300 \
               mvbarcard:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \

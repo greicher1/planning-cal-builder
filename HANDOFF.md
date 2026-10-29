@@ -4,6 +4,51 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 28 Oct 2026 (latest): A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there (owner's picker, *"Commit locally"*); PUSH APPROVED (owner's picker, *"Push now"*, over the recommended "Not yet"); no full gate
+
+- **Asked** (owner): *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick
+  color for phases"*. Tracker card `hiatus-card-colour`.
+- **Built** (`src/legacy/app.js`, block "AN ALL-PHASE HIATUS'S COLOUR, FROM ITS CARD" after `removeHiatusRow`; no frozen
+  code, no saved key, no id):
+  - `addHiatusRow()`: a `.swatch.hiatus-swatch` between the caret and the name. CSS (`legacy.css`, after `.hiatus-head`)
+    puts it in the head's flow at exactly the phase square's place (36 px in, 12 down, name at 58), and the head's tint
+    now reads `--hiatus-color` (falling back to `--c-hiatus`), written on the row like a phase card's `--phase-color`.
+  - A click runs `openHiatusColourPop()`: the phase picker (`openPhaseColorPop`) with `EXCEL_STANDARD_COLORS`, the band
+    palette the waterfall band editor and the month day menu's *Colour…* already use. A pick runs
+    `setHiatusRowColour()` (writes `hiatusColors` for EVERY week; red deletes the keys) then `update()`, one undo step.
+    The day menu's *Colour…* (`hiatusColourHere`) now calls the same two, and its private `bandSpan` is the shared
+    `hiatusRowSpan()`, so there is one copy of the span rule.
+  - `reflectHiatusSwatches()` paints the square and the tint from the hiatus's first week OF ITS OWN (one no other
+    all-phase hiatus covers), from `update()` and from a `#table-wrap` childList observer, because the band editor and
+    the day menu redraw with `render()` alone.
+  - ⭐ **Decided, not asked: the colour follows a retyped Starts or Weeks** (`carryHiatusRowColour`, run on the row's
+    own `input` before `update()`, against `row._colourSpan`, the span the last paint saw; a blank field keeps the last
+    real span). Without it a colour picked on the card stayed on the old weeks while the band moved, which is the
+    known gap the hiatus drag entry (19 Oct) recorded. A hiatus whose own weeks share one colour carries it to every
+    new week; a mixed one moves week for week and an added week takes the last week's (the drag's rule 4). A week
+    another all-phase hiatus covers is never written, on or off, so a hiatus moved across another doesn't recolour it
+    and comes back whole. ⚠️ Only the COLOUR follows: a band's typed label, size and text style still stay on the old
+    weeks when the dates are retyped (unchanged; the drag carries them, typing doesn't).
+  - Help: one sentence in the All-phase hiatus paragraph.
+- **Save format: unchanged.** `hiatusColors` was always in `captureSnapshot()`, sanitized as hex and read by every
+  renderer and writer. `fields.byId` and a hiatus row's saved keys are unchanged (leg C9).
+- **Verified** (build of the working tree, `npm run check` 40/40):
+  - New leg **`hiatuscolour` 11/11** (`tests/harness/t/hiatuscolour.js`; in `gate.sh` on its own line after
+    `hiatusfold`). Red on a `git archive` build of `main` (9 of 11: everything but C9 and E0) and on a mutant with the
+    carry removed (C5–C8).
+  - Targeted legs on the build: `hiatusfold` 11/11, `mvmenu (halfdays)` 81/81 (the day menu's *Colour…* now runs
+    through the shared helpers), `wfmenu (halfdays)` 39/39 (its Remove hiatus… reads `bandSpan`), `phasecolors`
+    10/10, `hiatuslabel` 7/7, `hiatusblank` 4/4, `loadcarry` 6/6, `hiatusdrag` 14/14 (it first hit its 480 s
+    deadline with no case run, in a batch on port 8262; 14/14 alone in 2 min). `phasesui (hidewf)` 7/8: P1 fails on
+    `stintswap-reshape` only, and fails IDENTICALLY on the `main` build without this change. ⚠️ Cause: the main
+    checkout's `tests/fixtures/stintswap-reshape.sptcal` carries ANOTHER session's uncommitted edit (+378/−30, in
+    `git status` before this work began), so it no longer matches `tests/baselines/2026-10-23-phasesui/before.json`.
+    Not this change; left untouched, and it will turn P1 red in any gate run from this checkout until it is resolved.
+  - In the browser pane on `hiatusdrag.sptcal`: the square sits where a phase card's does, a fixture band recoloured in
+    the waterfall shows on its card, a pick colours all three Summer Hiatus weeks and the head, Weeks 3 → 4 adds a
+    coloured week, a new Starts moves the colour.
+- ⏭ **Next:** nothing owed once the push is verified live. No version cut. The next full gate runs `hiatuscolour`.
+
 ### ✅ 28 Oct 2026 (latest): NEITHER RIGHT-CLICK MENU GREYS ANYTHING OUT (month, then the waterfall by the owner's picker) — built on the trim's branch `claude/adoring-chaum-0206c1` (worktree `.claude/worktrees/adoring-chaum-0206c1`); `main` merged in three times (`26516be`, `633f92d`, `013b4a8`); ✅ FULL GATE 3,386 / 0 on the final merged build (`e9b86652…`); local `main` FAST-FORWARDED to it (owner's picker, *"Merge, then full gate"*); ✅ **LIVE at `cc3ea13`** (owner's picker, *"Push now"*; the live page served the gated build `e9b86652` byte for byte ~80 s after the push)
 
 - **Asked** (owner): *"Where are we at with reducing the right click menu for the month view. At the bare minimum, i want

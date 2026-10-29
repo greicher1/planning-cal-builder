@@ -29,6 +29,26 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A colour square on every all-phase hiatus card (28 Oct 2026, `main`)
+
+The owner: *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick color for
+phases"*. Each all-phase hiatus card now has the phase card's colour square on its head, in the same place (after the
+caret, left of the name). A click opens the same picker the phase squares use, with the hiatus band's ten colours (the
+ones the waterfall's band editor and the month day menu's *Colour…* already offer).
+- **A pick colours the whole hiatus**: every one of its weeks, in the waterfall, the month view, the Excel workbook and
+  both PDFs, and the card's head takes a tint of it, as a phase card's does. It is one undo step.
+- **No save-format change.** The pick writes `hiatusColors` for each week, the store the band editor already writes one
+  week of and every renderer and writer already reads. No new key, no id. Older builds open such a file as they open
+  any calendar with recoloured bands.
+- **The colour follows the hiatus when its Starts or Weeks are retyped**, so a colour picked on the card doesn't stay
+  behind on the old weeks. Before this, a band's colour never moved with a retyped date. Added weeks take the colour.
+  A week another all-phase hiatus also covers is never recoloured. A band's typed label, size and text style still
+  stay on the old weeks, as before.
+- The month day menu's *Colour…* now shares the square's picker and write (`openHiatusColourPop`,
+  `setHiatusRowColour`), and the day menu's `bandSpan` is the shared `hiatusRowSpan`.
+- **Verified:** new leg `hiatuscolour` 11/11 (in `gate.sh` after `hiatusfold`), red on `main` before it (9 of 11) and
+  with the date carry removed (C5–C8); see HANDOFF for the other legs run. No frozen code was edited.
+
 ### Unreleased — The month view's day menu, trimmed by the owner, and neither right-click menu greys anything out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
 
 The owner asked for the waterfall's right-click menu to be cut down (*"we really dont need the swap collumn feature …

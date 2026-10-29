@@ -7145,6 +7145,110 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⭐ AN ALL-PHASE HIATUS'S COLOUR, FROM ITS CARD (owner, 28 Oct 2026: "add the color picker menu to the all phase
+  // hiatuses in the left side bar just like you can pick color for phases"). The square on the card's head, where a
+  // phase card has its own, opens the phase picker's popover with the hiatus band's palette (EXCEL_STANDARD_COLORS,
+  // which the waterfall band editor and the month day menu's Colour… already use). It writes no new store:
+  //   - A pick writes hiatusColors for EVERY week of the hiatus, as the day menu's Colour… does. That is the store the
+  //     band editor writes one week of and the frozen renderers and writers read, so both views and every export
+  //     follow, and the save format is unchanged (no key, no id). The default red deletes the keys.
+  //   - The square and the head's tint (--hiatus-color) show the hiatus's first week of its own (one no other hiatus
+  //     shares), painted from update() and after every render (a band editor or day menu pick redraws without
+  //     update()). A week recoloured on its own in the waterfall can differ from it; the picker then opens with
+  //     nothing marked, as the day menu's does.
+  //   - ⭐ THE COLOUR FOLLOWS A RETYPED Starts OR Weeks (carryHiatusRowColour). A one-colour hiatus keeps its colour on
+  //     every week it lands on; a mixed one moves week for week, an added week taking the last week's (the month
+  //     drag's rule 4). Without it a colour picked here would stay on the old weeks while the band moved. ⚠️ Only the colour: a band's typed label, size
+  //     and text style still stay on the old weeks when the dates are retyped (HANDOFF, the hiatus drag entry).
+  // A row's span, as readState() reads it (a start and weeks > 0) and computeSchedule() places it (from its start's
+  // Monday, whole weeks), or null when the row draws nothing. The day menu's bandSpan() is this.
+  function hiatusRowSpan(row){
+    const s = parseDateUTC((row.querySelector('.hiatus-start') || {}).value || '');
+    const w = Math.min(parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10), MAX_WEEKS);
+    if(!s || !(w > 0)) return null;
+    const a = mondayOf(s);
+    return {start: a, end: addDays(a, w * 7)};
+  }
+  // Its weeks as hiatusColors keys (an all-phase band's key is its week's Monday).
+  function hiatusSpanWeeks(sp){
+    const out = [];
+    if(sp) for(let w = sp.start; w < sp.end; w = addDays(w, 7)) out.push(isoOf(w));
+    return out;
+  }
+  function hiatusRowWeeks(row){ return hiatusSpanWeeks(hiatusRowSpan(row)); }
+  function setHiatusRowColour(row, c){
+    const def = c.toUpperCase() === HIATUS_COLOR.toUpperCase();
+    hiatusRowWeeks(row).forEach(wk=>{ if(def) delete hiatusColors[wk]; else hiatusColors[wk] = c; });
+  }
+  // The picker under `anchorEl`, marked on the hiatus's colour when every week has the same one. `onPick` gets the
+  // hex. A row with no dates has no weeks to colour, and opens nothing.
+  // The weeks another all-phase hiatus covers too: two rows on one week share its key (one band).
+  function hiatusWeeksSharedWith(row){
+    const shared = new Set();
+    hiatusRowsNow().forEach(r=>{ if(r !== row) hiatusRowWeeks(r).forEach(wk=> shared.add(wk)); });
+    return shared;
+  }
+  // The weeks that are this hiatus's alone, which say what colour IT is (all of them when it shares every one).
+  function hiatusOwnWeeks(weeks, shared){
+    const own = weeks.filter(wk=> !shared.has(wk));
+    return own.length ? own : weeks;
+  }
+  function openHiatusColourPop(anchorEl, row, onPick){
+    const weeks = hiatusRowWeeks(row);
+    if(!weeks.length) return;
+    const palette = EXCEL_STANDARD_COLORS.map(c=> ({color: c, name: c}));
+    const cur = hiatusOwnWeeks(weeks, hiatusWeeksSharedWith(row)).map(hiatusColorFor);
+    const same = cur.every(c=> c.toUpperCase() === cur[0].toUpperCase());
+    const at = same ? palette.findIndex(o=> o.color.toUpperCase() === cur[0].toUpperCase()) : -1;
+    openPhaseColorPop(anchorEl, at, i=> onPick(palette[i].color), palette);
+  }
+  function reflectHiatusSwatches(){
+    hiatusRowsNow().forEach(row=>{
+      const sw = row.querySelector('.hiatus-swatch');
+      if(!sw) return;
+      const sp = hiatusRowSpan(row);
+      if(sp) row._colourSpan = sp;       // carryHiatusRowColour's "before"; a blank field keeps the last real span
+      const weeks = hiatusSpanWeeks(sp);
+      const c = weeks.length ? hiatusColorFor(hiatusOwnWeeks(weeks, hiatusWeeksSharedWith(row))[0]) : HIATUS_COLOR;
+      if(sw.dataset.color !== c){
+        sw.dataset.color = c;
+        sw.style.background = c;
+        row.style.setProperty('--hiatus-color', c);
+      }
+      const can = weeks.length > 0;
+      if(sw.classList.contains('clickable') !== can){
+        sw.classList.toggle('clickable', can);
+        sw.title = can ? 'Change colour' : 'Enter its dates to choose a colour';
+        sw.setAttribute('aria-label', sw.title);
+      }
+    });
+  }
+  // Runs on the row's own input, BEFORE update(): the span the last update() painted is "before", the fields are
+  // "after". When the hiatus's own weeks share one colour (the square's pick, or none), that colour is the hiatus's
+  // and every new week takes it. Otherwise week i of the new span takes the colour of week min(i, last) of the old
+  // one. The old weeks' keys go first, and a new week with no colour to take loses any leftover key, so an old colour
+  // cannot show on this hiatus.
+  // ⚠️ A week another all-phase hiatus covers is never written, old or new (hiatusWeeksSharedWith): moving this
+  // hiatus onto or off it must not recolour the other one.
+  function carryHiatusRowColour(row){
+    const was = row._colourSpan, now = hiatusRowSpan(row);
+    if(!was || !now || (was.start.getTime() === now.start.getTime() && was.end.getTime() === now.end.getTime())) return;
+    const shared = hiatusWeeksSharedWith(row);
+    const from = hiatusSpanWeeks(was), to = hiatusSpanWeeks(now);
+    const cols = from.map(wk=> hiatusColors[wk]);
+    const own = hiatusOwnWeeks(from, shared).map(wk=> hiatusColors[wk]);
+    const whole = own.every(c=> c === own[0]);
+    from.forEach(wk=>{ if(!shared.has(wk)) delete hiatusColors[wk]; });
+    to.forEach((wk, i)=>{
+      if(shared.has(wk)) return;
+      const c = whole ? own[0] : cols[Math.min(i, cols.length - 1)];
+      if(c) hiatusColors[wk] = c; else delete hiatusColors[wk];
+    });
+    row._colourSpan = now;
+  }
+  // A band editor or day menu pick redraws without update(); every redraw replaces #table-wrap's children.
+  new MutationObserver(reflectHiatusSwatches).observe(document.getElementById('table-wrap'), { childList: true });
+
   // ⭐ THE CARET ON EVERY ALL-PHASE HIATUS CARD (owner, 28 Oct 2026: "give collapsing arrows to the all phase
   // hiatuses just like phases"). The phase card's caret ("THE CARET ON EVERY PHASE CARD", above buildPhaseRows) on
   // the hiatus card: folded, only the red head shows, the name still editable, its dates and ×. The same rules:
@@ -7227,6 +7331,7 @@ export function initLegacyApp() {
     row.innerHTML = `
       <div class="hiatus-head">
         ${HIATUS_COLLAPSE_BTN}
+        <div class="swatch clickable hiatus-swatch" title="Change colour" aria-label="Change colour"></div>
         <div class="hiatus-head-text">
           <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}" aria-label="Hiatus name">
           <div class="hiatus-range"></div>
@@ -7249,7 +7354,11 @@ export function initLegacyApp() {
       if(!(await confirmRemoveHiatus(row))) return;
       removeHiatusRow(row);
     });
-    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
+    // The colour square (reflectHiatusSwatches paints it). update() ends in markDirty(), which banks the one undo
+    // step, as a phase swatch's pick does (setPhaseColor).
+    const sw = row.querySelector('.hiatus-swatch');
+    sw.addEventListener('click', ()=> openHiatusColourPop(sw, row, c=>{ setHiatusRowColour(row, c); update(); }));
+    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{ carryHiatusRowColour(row); update(); }));
     list.appendChild(row);
   }
 
@@ -10236,13 +10345,8 @@ export function initLegacyApp() {
     const dm = d=> d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
     // A hiatus row's span, read as readState() reads it (a start and weeks > 0) and as computeSchedule()
     // places it (from its start's Monday, whole weeks), or null when the row draws nothing.
-    function bandSpan(row){
-      const s = parseDateUTC((row.querySelector('.hiatus-start') || {}).value || '');
-      const w = Math.min(parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10), MAX_WEEKS);
-      if(!s || !(w > 0)) return null;
-      const a = mondayOf(s);
-      return {start: a, end: addDays(a, w * 7)};
-    }
+    // ONE copy of that rule since the hiatus card's colour square (28 Oct 2026) needed it too: hiatusRowSpan().
+    const bandSpan = hiatusRowSpan;
     // Each hiatus on the day gets a section of its own (plan §3.10). Bands can never be a pointer target,
     // so the rows come from the sidebar: #hiatus-list's own rows, which line up with schedule.hiatuses.
     // Two on one day are told apart by their dates, which every label carries. Then each phase's OWN
@@ -10281,29 +10385,19 @@ export function initLegacyApp() {
     // day. A pick writes hiatusColors for EVERY week of this hiatus -- the store the waterfall's band editor
     // writes one week of and frozen renderMonthView reads -- so both views change together. The default
     // colour deletes the keys, as the waterfall editor does. Opening it changes nothing; a pick is one step.
+    // The picker and the write are the hiatus card's colour square's own (openHiatusColourPop, setHiatusRowColour).
     function hiatusColourHere(ctx, row){
-      const sp = bandSpan(row);
-      if(!sp) return;
+      if(!bandSpan(row)) return;
       const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
         c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; });
       if(!cell) return;
-      const weeks = [];
-      for(let w = sp.start; w < sp.end; w = addDays(w, 7)) weeks.push(isoOf(w));
-      const palette = EXCEL_STANDARD_COLORS.map(c=> ({color: c, name: c}));
-      const cur = weeks.map(hiatusColorFor);
-      const same = cur.every(c=> c.toUpperCase() === cur[0].toUpperCase());
-      const at = same ? palette.findIndex(o=> o.color.toUpperCase() === cur[0].toUpperCase()) : -1;
-      openPhaseColorPop(cell, at, i=>{
-        const c = palette[i].color;
+      openHiatusColourPop(cell, row, c=>{
         pushUndoSnapshot();
-        weeks.forEach(wk=>{
-          if(c.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[wk];
-          else hiatusColors[wk] = c;
-        });
+        setHiatusRowColour(row, c);
         render(currentSchedule);
         markDirty();
         pushUndoSnapshot();
-      }, palette);
+      });
     }
 
     // Exactly the row's own ×: its question first (ruling Q4), then its removal, ONE undo step banked
@@ -22089,6 +22183,7 @@ export function initLegacyApp() {
     refreshOverrideNote();
     reflectColMoveNotes();
     reflectHiatusRanges();
+    reflectHiatusSwatches();
     refreshCustomUnitMeta(currentSchedule);
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
