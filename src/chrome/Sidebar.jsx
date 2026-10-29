@@ -218,25 +218,17 @@ export function HiatusResetButton() {
 // never offer different places.
 // ⚠️ The option set stays STATIC so a restored save can set any value directly; that is the same
 // contract the three old selects had, and the reason none of them were ever repopulated per country.
-// ⛔ VALUES ARE SAVE FORMAT (fields.byId['union-place']): append only, never rename or remove one.
+// ⛔ VALUES ARE SAVE FORMAT (fields.byId['union-place']): append only, never rename one, and never remove one
+// without a load-time migration for it. The US's thirteen cities and states went on 29 Oct 2026 (owner: "reduce
+// the US list to just "U.S. Area Standards" and "New York""), and RETIRED_PLACES in app.js folds every one of
+// them into us-general on load. Without that a <select> with no matching option coerces the value to '', and an
+// old calendar would reopen with no holidays.
 const REGION_OPTIONS = (
   <>
     <option value="">None</option>
     <optgroup label="United States">
-      <option value="us-atlanta">Atlanta, GA</option>
-      <option value="us-chicago">Chicago, IL</option>
-      <option value="us-florida">Florida — statewide</option>
-      <option value="us-los-angeles">Los Angeles, CA</option>
-      <option value="us-maryland">Maryland / DC</option>
-      <option value="us-miami">Miami, FL</option>
-      <option value="us-new-mexico">New Mexico</option>
-      <option value="us-new-orleans">New Orleans, LA</option>
-      <option value="us-new-york">New York, NY</option>
-      <option value="us-oahu">Oahu, HI</option>
-      <option value="us-pittsburgh">Pittsburgh, PA</option>
-      <option value="us-puerto-rico">Puerto Rico</option>
-      <option value="us-san-francisco">San Francisco, CA</option>
-      <option value="us-general">Elsewhere in the U.S. — Area Standards</option>
+      <option value="us-general">U.S. Area Standards</option>
+      <option value="us-new-york">New York</option>
     </optgroup>
     <optgroup label="Canada">
       <option value="ca-montreal">Montreal, QC</option>
@@ -292,8 +284,9 @@ export function RegionCard() {
       {/* Same round-5 spacing as the Show card. */}
       <Stack gap="xl">
         {/* ONE control. The user picks WHERE THEY SHOOT; the agreement resolves behind it and is
-            never selected directly -- which is the right way round, because a UPM knows the city
-            and should not have to know that Florida is an Area Standards market.
+            never selected directly -- which is the right way round, because a UPM knows the city.
+            The US is the exception since 29 Oct 2026 (owner): it offers its two lists by name, and
+            the town goes in Show info's Location.
             ⛔ THIS is the Region: the id is in fields.byId, and the engine's change handler (the
             "Continue?" question) is bound here. The Show info card's copy only forwards to it. */}
         <NativeSelect id="union-place" label="Location">{REGION_OPTIONS}</NativeSelect>
@@ -302,8 +295,8 @@ export function RegionCard() {
         <Box>
           <p id="union-resolves" className="region-resolves"></p>
           <p id="union-locals" className="region-locals"></p>
-          {/* Chicago and San Francisco are ASA carve-outs whose agreements are unpublished, so
-              their list is a proxy. This is the line a region key had no way to say. */}
+          {/* A place's own warning, then its agreement's (Brandenburg's Babelsberg trap, Quebec's
+              Good Friday or Easter Monday). This is the line a region key had no way to say. */}
           <div id="union-caveat" className="region-caveat" style={{ display: 'none' }}></div>
         </Box>
       </Stack>

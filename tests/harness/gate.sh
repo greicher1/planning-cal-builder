@@ -1755,6 +1755,10 @@ done
 # through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
 # both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
 # write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
+# retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
+# saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
+# name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
+# value, and a parked scenario tab is folded when switched to. Through the real file menu. Own line.
 # hidewf (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2) is Hide in waterfall: on tests/fixtures/hidewf.sptcal (a custom
 # "Colour Grading" phase, Dates, ticked) the waterfall, the workbook and the waterfall PDF are EXACTLY those of the same
 # calendar with the phase not scheduled (so no cell, no empty column, no year block -- alone in 2028 included), a
@@ -1797,6 +1801,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
               regionmirror:-:150 \
+              retiredplaces:-:300 \
               papersize:-:500 \
               pdfdialog:-:500 \
               phasefold:-:300 \

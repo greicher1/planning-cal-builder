@@ -190,6 +190,16 @@ a restored save can set any value directly. 27 options under five `<optgroup>`s:
 markets, plus province-wide Canadian entries and an "Elsewhere in the U.S. — Area Standards"
 fallback, so nothing the old three selects could express was lost.
 
+⚠️ **Since 29 Oct 2026 the US is TWO places** (owner: *"reduce the US list to just "U.S. Area Standards" and
+"New York""*): `us-general` "U.S. Area Standards" and `us-new-york` "New York", because the US has exactly two lists.
+The other twelve US cities and states went, and with them their five caveats (the Chicago and San Francisco proxies,
+Mardi Gras, Hawaii's and Puerto Rico's own days); the owner chose that with the cost shown. For the US the user now
+picks the LIST, and the town goes in Show info's Location. ⛔ Their values are still in saved files:
+`retirePlaceSnapshot()` (right after `migrateRegionSnapshot()` in `applyStateSnapshot()`, for the same reason) folds
+each into `us-general` by `RETIRED_PLACES`, which moves no date (all twelve were US-GEN), and puts the place's old
+short name in a blank Location; a typed one wins. The picker has 21 options. Leg `retiredplaces`. The rest of this
+section describes the 14 Sep shape.
+
 **The user picks WHERE THEY SHOOT. The agreement resolves behind it and is never selected**, because
 a UPM knows the city and should not have to know that Florida is an Area Standards market. Nine US
 markets share one list, so `20 places → 12 lists` is structural, not coincidence.
@@ -227,15 +237,27 @@ word-for-word identical, so **LA = Atlanta = Albuquerque**):
 > New Year's Day · Martin Luther King Jr. Day · Presidents' Day · **Good Friday** · Memorial Day ·
 > Juneteenth · Independence Day · Labor Day · Thanksgiving · Day After Thanksgiving · Christmas
 
-`US-NY` (IATSE Local 52 Majors Agreement) — **swaps Good Friday for Veterans Day.** Same count
-(11), different days.
+`US-NY` — **swaps Good Friday for Veterans Day.** Same count (11), different days. Two agreements carry this exact
+list, both re-read on 29 Oct 2026 from the fully executed copies on the AMPTP site:
+
+- **IATSE Local 52** Feature & Television Production Contract with Major Producers (1 Oct 2024 – 30 Sep 2027),
+  **Part A § 11** (p. 49), which covers crews working in **New York and/or New Jersey**. It names Juneteenth from
+  1 Jan 2025, so the old "inferred, not read" caveat is gone.
+- **Teamsters Local 817** Feature Film Agreement (1 Nov 2025 – 31 Oct 2028), **Art. 11**: the same eleven, Juneteenth
+  by name. Its weekend rule is Local 52's (Sat → Fri, Sun → Mon, no six-day exception), plus one the app does not
+  model: a holiday on a driver's regular WEEKDAY off moves to the workday before or after, at the company's pick.
+- ⚠️ Local 52 **Part B § 37** (its crews in Connecticut, Delaware and Pennsylvania) is the **Area Standards list**
+  instead (Good Friday, no Veterans Day). So `US-NY` is New York's list, not Local 52's everywhere. Local 817's
+  distant locations include Connecticut, so a Connecticut shoot can have crew on one list and drivers on the other.
 
 **Critical corrections that were made** (the app previously had these wrong):
 
 - **Columbus Day is on NO IATSE calendar.** It appears in neither US list. It was wrongly
   costing shoot days.
-- **Veterans Day is AICP *commercial*-contract only** — so it is correct for **New York only**,
-  never for General.
+- **Veterans Day is not an Area Standards / West Coast holiday** (Local 695's calendar lists it for the AICP
+  *commercial* contract only). It is correct for **New York only**, because Local 52 Part A § 11 and Local 817
+  Art. 11 list it. *(Corrected 29 Oct 2026: this line used to give the AICP fact as the reason it is a New York
+  holiday, which it is not.)*
 - **Good Friday IS a US union holiday** (not Canada/UK-only).
 - **Day After Thanksgiving** is recognized (Basic + Low Budget, not AICP).
 - **Juneteenth** was added effective **1 Jan 2025** (2024 MOA). Since v1.3.1 the data runs **2024–2031**
@@ -319,7 +341,8 @@ the weekend entry itself.
 - IATSE Local 695 holiday calendar — https://www.local695.com/iatse-holiday-calendar/
 - IATSE Basic Agreement 2021–2027 — https://www.editorsguild.com/Portals/0/FullContract/COMBINED%20IATSE%20BASIC%20AGREEMENT%20-%202021-2027.pdf
 - 2024 IATSE Area Standards Agreement MOA — https://iatse.net/wp-content/uploads/2024/07/2024-IATSE-Area-Standards-Agreement-MOA-FINAL.pdf
-- IATSE Local 52 Majors Agreement — https://amptp.org/wp-content/themes/amptp/assets/pdf/IATSE/New%20York%20Agreements/Local%2052/
+- IATSE Local 52 Majors Agreement 2024–2027 (Part A § 11, Part B § 37) — https://amptp.org/wp-content/themes/amptp/assets/pdf/IATSE/New%20York%20Agreements/Local%2052/2024%20Local%2052%20(NY)%20Studio%20Mechanics%20Majors%20Agreement%20FULLY%20EXECUTED.pdf
+- Teamsters Local 817 (Drivers) Feature Film Agreement 2025–2028 (Art. 11) — https://amptp.org/wp-content/themes/amptp/assets/pdf/Teamsters/Local%20817%20%28Drivers%29/2025%20Local%20817%20%28Drivers%29%20Agreement%20-%20FULLY%20EXECUTED.pdf
 - BC statutory holidays — https://www2.gov.bc.ca/gov/content/employment-business/employment-standards-advice/employment-standards/statutory-holidays
 - Ontario ESA public holidays — https://www.ontario.ca/document/your-guide-employment-standards-act-0/public-holidays
 - Alberta general holidays — https://www.alberta.ca/general-holidays-pay
@@ -328,10 +351,10 @@ the weekend entry itself.
 - France, film agreement IDCC 3097 (BOCC 2013/34 copy) — https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf
 - France, Code du travail (the Labour Ministry's mirror) — https://code.travail.gouv.fr/code-du-travail/l3133-1
 
-**Not verified:** DGA and Teamsters holiday lists (those claims failed verification). IATSE is
-the safe anchor because crew holidays are what actually stop a shoot day. Also unverified:
-whether Juneteenth reached Local 52 (industry-wide pattern says yes; the current Local 52 MOA
-would not open).
+**Not verified:** DGA holiday lists, and Teamsters lists outside New York (those claims failed verification).
+IATSE is the safe anchor because crew holidays are what actually stop a shoot day. *(29 Oct 2026: Teamsters
+Local 817's list IS verified, and so is Juneteenth in Local 52. This line used to say the Local 52 MOA would not
+open; the fully executed 2024 agreement does, and § 11(a) names Juneteenth.)*
 
 ### Holiday identity — stable IDs
 

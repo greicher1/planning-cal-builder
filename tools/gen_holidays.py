@@ -204,17 +204,25 @@ REGIONS = {
         rules=US_IATSE_CORE + [("Good Friday", ("easter", -2))],
     ),
 
+    # Both agreements read 29 Oct 2026, fully executed copies on the AMPTP site:
+    #   https://amptp.org/wp-content/themes/amptp/assets/pdf/IATSE/New%20York%20Agreements/Local%2052/2024%20Local%2052%20(NY)%20Studio%20Mechanics%20Majors%20Agreement%20FULLY%20EXECUTED.pdf
+    #   https://amptp.org/wp-content/themes/amptp/assets/pdf/Teamsters/Local%20817%20%28Drivers%29/2025%20Local%20817%20%28Drivers%29%20Agreement%20-%20FULLY%20EXECUTED.pdf
+    # Local 52 Part A § 11 (New York and/or New Jersey) and Local 817 Art. 11 list the SAME eleven days, Juneteenth
+    # by name in both. ⚠️ Local 52 Part B § 37 (its crews in Connecticut, Delaware and Pennsylvania) is the Area
+    # Standards list instead (Good Friday, no Veterans Day), so this list is New York's, not Local 52's everywhere.
+    # The caveat this region carried until then ("Juneteenth ... inferred, not read from the Local 52 agreement") is
+    # gone: § 11(a) names it, effective 1 Jan 2025.
     "US-NY": dict(
-        label="New York — IATSE Local 52",
-        agreement="Local 52 Feature & Television Production Contract with Major Producers, Part A § 11",
-        term="2024-10-01 → 2027-09-30",
-        source="https://amptp.org/contracts/",
+        label="New York — IATSE Local 52 · Teamsters Local 817",
+        agreement="Local 52 Feature & Television Production Contract with Major Producers, Part A § 11 · "
+                  "Local 817 Feature Film Agreement, Art. 11",
+        term="Local 52 2024-10-01 → 2027-09-30 · Local 817 2025-11-01 → 2028-10-31",
+        source="https://amptp.org/contracts/ (Local 52 2024 Majors Agreement; Local 817 Drivers 2025 Agreement)",
+        verified="2026-10-29",
         observance="us_iatse",
-        note="Same count as the national list, different days: Local 52 carries Veterans Day and "
-             "does NOT carry Good Friday. MLK Day was added effective 1 Jan 2023.",
-        caveat="Juneteenth's presence in Local 52 is inferred from the industry-wide pattern, not "
-               "read from the Local 52 agreement. Included because under-counting costs a wrap date; "
-               "confirm with the local before locking.",
+        note="Same count as the national list, different days: Local 52 Part A (New York and New Jersey) and "
+             "Teamsters Local 817 both carry Veterans Day and do NOT carry Good Friday. Juneteenth is named in "
+             "both from 1 Jan 2025. MLK Day was added to Local 52 effective 1 Jan 2023.",
         rules=US_IATSE_CORE + [("Veterans Day", ("fixed", 11, 11))],
     ),
 
@@ -515,34 +523,15 @@ for key, (label, src, extra) in LEGACY_CA.items():
 # The dropdown shows PLACES. The agreement is resolved behind it, never selected.
 
 PLACES = [
-    ("Atlanta",        "US-GEN", "IATSE Local 479 — Georgia excl. Savannah, Alabama excl. Mobile", None),
-    ("Chicago",        "US-GEN", "IATSE Local 476",
-     "PROXY: the Area Standards Agreement expressly excludes Illinois and Local 476 from its scope. "
-     "Local 476 does not publish its agreement. The ASA list is used as a planning placeholder — confirm before locking dates."),
-    ("Florida",        "US-GEN", "IATSE Local 477 — entire state", None),
+    # Owner, 29 Oct 2026: the US is TWO places, because it has two lists. The thirteen city entries it had
+    # (Atlanta ... San Francisco) all resolved to one of these two; src/legacy/app.js RETIRED_PLACES folds them in.
+    ("U.S. Area Standards", "US-GEN", "West Coast Studio Locals in Los Angeles; elsewhere, the Area Standards local for the area", None),
+    ("New York",       "US-NY",  "IATSE Local 52, plus 161, 764, 798, USA 829 on separate paper · Teamsters 817", None),
     ("Lithuania",      "LT",     "No crew collective agreement identified", None),
     ("France",         "FR",     "Film crew: production cinématographique (IDCC 3097)", None),
     ("London",         "UK-EW",  "Bectu / Pact", None),
-    ("Los Angeles",    "US-GEN", "Craft by craft — Locals 44, 80, 600, 695, 700, 705, 706, 728, 729, 800, 871, 884, 892", None),
-    ("Maryland",       "US-GEN", "IATSE Local 487 — Mid-Atlantic, incl. DC and Virginia", None),
     ("Melbourne",      "AU-VIC", "MEAA", None),
-    ("Miami",          "US-GEN", "IATSE Local 477 — same as all Florida", None),
     ("Montreal",       "CA-QC",  "AQTIS 514 IATSE", None),
-    ("New Mexico",     "US-GEN", "IATSE Local 480", None),
-    ("New Orleans",    "US-GEN", "IATSE Local 478 — Louisiana, S. Mississippi, Mobile AL",
-     "Mardi Gras is NOT in ASA Article 7, and the agreement has no mechanism for adding a regional "
-     "holiday. If your show observes it, add it as a custom holiday."),
-    ("New York",       "US-NY",  "IATSE Local 52, plus 161, 764, 798, USA 829 on separate paper", None),
-    ("Oahu",           "US-GEN", "IATSE Local 665 — State of Hawaii",
-     "Prince Kūhiō Day, King Kamehameha Day and Statehood Day are NOT in ASA Article 7. Add as "
-     "custom holidays if the production observes them."),
-    ("Pittsburgh",     "US-GEN", "IATSE Local 489", None),
-    ("Puerto Rico",    "US-GEN", "IATSE Local 494 — PR and USVI",
-     "Puerto Rico's statutory calendar differs materially from the federal one and none of those "
-     "days are in ASA Article 7. The widest statute-to-agreement gap of any US market here."),
-    ("San Francisco",  "US-GEN", "IATSE Local 16 — Stage Employees, not Studio Mechanics",
-     "PROXY: the Area Standards Agreement expressly excludes Local 16's jurisdiction. Northern "
-     "California sits outside both national agreements. The ASA list is a placeholder — confirm before locking dates."),
     ("Scotland",       "UK-SCT", "Bectu / Pact — same agreements as London", None),
     ("Belfast",        "UK-NI",  "Bectu / Pact — same agreements as London", None),
     ("Wales",          "UK-EW",  "Bectu / Pact — same agreements and same bank holidays as England", None),

@@ -12,7 +12,7 @@
 //     RESTORE + MOVERS. Loads the fixture and asserts it comes back, then runs every mover on the
 //     built-in Dates phases with one undo after each.
 //
-// THE CALENDAR (Atlanta = US-GEN; one all-phase hiatus, the week of Mon 2/15/27, LOCKED):
+// THE CALENDAR (Atlanta = US-GEN, saved as us-atlanta, which loads as us-general since 29 Oct 2026; one all-phase hiatus, the week of Mon 2/15/27, LOCKED):
 //   writersRoom   WEEKS  Mon 1/4/27 x 4 wk       -> the Weeks control
 //   prePrep       DATES  Wed 2/10/27 -> Tue 2/23/27 (stays put; the hiatus week drawn blank)
 //   prodPrep      WEEKS  Mon 3/1/27 x 4 wk       -> ends Fri 3/26 (exclusive Mon 3/29)
@@ -76,7 +76,7 @@ window.addEventListener('load', function () { (async function () {
 
     if(!st){
       // ---------------- LIVE: build it through the UI ----------------
-      T.set('union-place', 'us-atlanta');
+      T.set('union-place', 'us-general');   // was us-atlanta, retired 29 Oct 2026: same list (RETIRED_PLACES)
       T.addHiatus('2027-02-15', 1);
       T.set('start-writersRoom', '2027-01-04'); T.set('weeks-writersRoom', '4');
       T.set('unit-prePrep', 'dates'); T.set('start-prePrep', '2027-02-10'); T.set('end-prePrep', '2027-02-23');

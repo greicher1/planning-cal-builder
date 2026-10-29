@@ -13,7 +13,7 @@
 //     exactly: the units, the visible boxes, the month pills day for day, the waterfall rows, the
 //     hint lines and the {key.close} header tokens (the fixture's month header is a template).
 //
-// THE CALENDAR (region Atlanta = US-GEN, so MLK Day Mon 1/18/27 and Presidents' Day Mon 2/15/27 are
+// THE CALENDAR (region Atlanta = US-GEN, saved as us-atlanta, which loads as us-general since 29 Oct 2026, so MLK Day Mon 1/18/27 and Presidents' Day Mon 2/15/27 are
 // union holidays; one all-phase hiatus, the week of Mon 2/15/27):
 //   custom1 Scout         WEEKS, Snap off, Wed 1/13/27 x 2 wk      -> ends Tue 1/26 (the {close} bug case)
 //   custom2 Read-through  DAYS 6 from Thu 1/14/27                  -> Thu 14, Fri 15, [Mon 18 MLK],
@@ -99,7 +99,7 @@ window.addEventListener('load', function () { (async function () {
 
     if(!st){
       // ---------------- LIVE: build it through the UI ----------------
-      T.set('union-place', 'us-atlanta');
+      T.set('union-place', 'us-general');   // was us-atlanta, retired 29 Oct 2026: same list (RETIRED_PLACES)
       T.set('start-prePrep', '2027-01-04'); T.set('weeks-prePrep', '4');
       T.addHiatus('2027-02-15', 1);
       for(var i = 0; i < 4; i++){ $('add-phase-btn').click(); await T.sleep(80); }

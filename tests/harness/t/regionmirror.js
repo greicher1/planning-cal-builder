@@ -21,7 +21,8 @@
 //   M6  with a note to misplace, a pick on the copy ASKS; while it asks both selects hold the OLD Region
 //       and the dates have not moved; Cancel leaves both on the old Region
 //   M7  asked again and answered Continue: both show the new Region and the dates recompute
-//   M8  Load (the real file menu, a fake picker): a calendar saved with us-atlanta shows us-atlanta in both
+//   M8  Load (the real file menu, a fake picker): a calendar saved with us-atlanta (a place retired 29 Oct 2026)
+//       shows us-general in both
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -61,10 +62,11 @@ window.addEventListener('load', function () { (async function () {
     var wrap = m && m.closest('.mantine-InputWrapper-root');
     var label = wrap ? ((wrap.querySelector('.mantine-InputWrapper-label') || {}).textContent || '').trim() : '';
     var mOpts = optionList(m), rOpts = optionList(real());
+    // 21 options since 29 Oct 2026 (None, the US's two, eighteen elsewhere); 33 before the owner cut the US to two places.
     add('M0', 'the Show info card has ONE select.region-mirror, the field right after Version, with no id, labelled "Production Region", offering exactly #union-place\'s options',
       mirrors().length === 1 && !!m && !!card && card.dataset.tab === 'show' && card.contains(m) && after === m && !m.id
         && !!wrap && !wrap.querySelector('input[id], select[id], textarea[id]') && label === 'Production Region'
-        && m.getAttribute('aria-label') === 'Production Region' && mOpts.length > 30 && mOpts.join('|') === rOpts.join('|'),
+        && m.getAttribute('aria-label') === 'Production Region' && mOpts.length > 20 && mOpts.join('|') === rOpts.join('|'),
       {count: mirrors().length, inShowCard: !!(card && m && card.contains(m)), afterVersion: after === m, afterIs: after && (after.id || after.className),
        id: m && m.id, label: label, aria: m && m.getAttribute('aria-label'), options: mOpts.length, sameOptions: mOpts.join('|') === rOpts.join('|')},
       'one; in the Show card; after #show-version; no id; "Production Region"; identical option list');
@@ -126,13 +128,15 @@ window.addEventListener('load', function () { (async function () {
       !!asked7 && agree('uk-london') && prodMeta() !== metaN, {asked: asked7.slice(0, 40), both: both(), meta: prodMeta(), was: metaN},
       'both uk-london; the dates move');
 
-    // M8: Load, through the real file menu. customunits.sptcal was saved with us-atlanta.
+    // M8: Load, through the real file menu. customunits.sptcal was saved with us-atlanta, which the owner retired on
+    // 29 Oct 2026; RETIRED_PLACES folds it into us-general on load (the leg retiredplaces holds the rest of that).
     var p = T.openViaFakePicker('/tests/fixtures/customunits.sptcal', 'customunits.sptcal', {writes: []});
-    for(var i = 0; i < 150; i++){ await T.sleep(100); if(T.clickModalButton('Load') || real().value === 'us-atlanta') break; }
+    for(var i = 0; i < 150; i++){ await T.sleep(100); if(T.clickModalButton('Load') || real().value === 'us-general') break; }
     await p;
-    await T.until(function () { return real().value === 'us-atlanta'; }, 'the loaded calendar\'s Region', 300, 100);
+    // M7 left uk-london, so us-general here is the load.
+    await T.until(function () { return real().value === 'us-general'; }, 'the loaded calendar\'s Region', 300, 100);
     await T.sleep(900);
-    add('M8', 'Load: a calendar saved with us-atlanta shows us-atlanta in both selects', agree('us-atlanta'), both(), 'both us-atlanta');
+    add('M8', 'Load: a calendar saved with the retired us-atlanta shows us-general in both selects', agree('us-general'), both(), 'both us-general');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'regionmirror', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

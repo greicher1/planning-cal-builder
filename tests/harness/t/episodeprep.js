@@ -22,7 +22,7 @@
 // Both fixtures were minted with the OLD default, "Prep", so RESTORE and BLOCKS also prove that a file
 // saved before the change opens on the new default (R0, K0). Do not re-mint them without keeping one.
 //
-// THE CALENDAR (made-up 2027 dates and a made-up show shape; region Atlanta = US-GEN):
+// THE CALENDAR (made-up 2027 dates and a made-up show shape; region Atlanta = US-GEN, saved as us-atlanta, which loads as us-general since 29 Oct 2026):
 //   Prod Prep Mon 1/18/27 x 5 wk; Production from Mon 2/22/27, Season 3, 6 episodes x 5 days; Post Mon
 //   4/19/27 x 8 wk; one all-phase hiatus, the week of Mon 3/15/27 (LOCKED, as every new hiatus row is).
 //   Union holidays in range: Presidents' Day Mon 2/15/27, Good Friday Fri 3/26/27.
@@ -295,7 +295,7 @@ window.addEventListener('load', function () { (async function () {
     if(!st){
       // ================= LIVE: build it through the UI =================
       T.set('show-title', 'Prep Fixture'); T.set('season-num', '3'); T.set('num-episodes', '6');
-      T.set('shoot-days-per-ep', '5'); T.set('union-place', 'us-atlanta');
+      T.set('shoot-days-per-ep', '5'); T.set('union-place', 'us-general');
       T.set('start-prodPrep', '2027-01-18'); T.set('weeks-prodPrep', '5');
       T.set('start-production', '2027-02-22');
       T.set('start-post', '2027-04-19'); T.set('weeks-post', '8');

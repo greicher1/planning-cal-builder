@@ -4,7 +4,71 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 28 Oct 2026 (latest): A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there as `ddafe45` (owner's picker, *"Commit locally"*); ✅ **LIVE at `ddafe45`** (owner's picker, *"Push now"*, over the recommended "Not yet"; `cc3ea13..ddafe45` at 22:35:32, also carrying the docs-only `e1bf969`; the live `index.html` matched the tested build `c5906f52…` byte for byte at 22:36:23); no full gate
+### 🔨 29 Oct 2026 (latest): THE US IS TWO PLACES, "U.S. Area Standards" AND "New York"; NEW YORK'S HOLIDAY SOURCES RE-READ — branch `us-two-places` (worktree `.claude/worktrees/us-two-places`, from `main` at `5fc7855`); FULL GATE 3,246 / 13, ALL 13 GREEN ALONE; NOT COMMITTED, NOT PUSHED
+
+- **Asked** (owner), after this session showed that the 14 US places used only two holiday lists and read both New York
+  agreements from the AMPTP site: *"update them. Also reduce the US list to just "U.S. Area Standards" and "New York""*.
+  "Them" = the New York Juneteenth warning and the docs. Tracker cards `trim-us-region-list`, `ny-holiday-sources`.
+- **What the agreements say** (fully executed copies, read 29 Oct 2026; URLs in PROJECT-CONTEXT §5's sources):
+  - IATSE Local 52 Majors (2024–2027) **Part A § 11** (p. 49), crews in **New York and/or New Jersey**: New Year's, MLK,
+    Presidents', Memorial, Fourth of July, Labor, **Veterans**, Thanksgiving, day after, Christmas, and **Juneteenth
+    named, effective 1 Jan 2025**. No Good Friday. Sat → Fri, Sun → Mon, no six-day exception.
+  - Local 52 **Part B § 37** (p. 84), its crews in **CT, DE, PA**: the Area Standards list (Good Friday, no Veterans).
+  - **Teamsters Local 817** Feature Film Agreement (2025–2028) **Art. 11**: the same eleven as Part A, Juneteenth named;
+    same weekend rule, plus a holiday on a driver's regular weekday off moving to the workday before or after (not
+    modelled). Its "distant locations" include NY, NJ, CT, RI, so a Connecticut shoot can split crew and drivers.
+  - So `US-NY`'s dates were already right. What was wrong: the caveat "Juneteenth ... inferred, not read" (removed),
+    PROJECT-CONTEXT's "Veterans Day is AICP commercial-only, so New York only" reasoning (corrected), and "Teamsters
+    not verified / the Local 52 MOA would not open" (corrected).
+- **Built:**
+  - `tools/gen_holidays.py`: US-NY cites both agreements (label, agreement, term, source, `verified="2026-10-29"`),
+    no caveat; its PLACES list has the two US entries. Regenerated and spliced: `HOLIDAYS` changed only in US-NY's two
+    comment lines, `REGION_CAVEATS` lost `'US-NY'`; `validate_holidays.py` CLEAN (every date identical).
+  - `src/chrome/Sidebar.jsx` `REGION_OPTIONS`: the US optgroup is `us-general` "U.S. Area Standards" then `us-new-york`
+    "New York". Both selects share it, so Show info's copy follows.
+  - `src/legacy/app.js` `PLACES`: the twelve other US entries removed; `us-general` relabelled (no `short` any more,
+    so the band reads "U.S. Area Standards"; it read "U.S. (Area Standards)"), new locals line; `us-new-york` "New York".
+  - ⛔ **`RETIRED_PLACES` + `retirePlaceSnapshot()`**, defined after `migrateRegionSnapshot()` and called in
+    `applyStateSnapshot()` right after it, before the `fields.byId` replay: a retired value
+    becomes `us-general` (all twelve were US-GEN, so no date moves) and the place's old short name goes into a BLANK
+    `show-location` (a typed one wins). Every restore path runs through it: Load, `?state=`, a shareable copy, crash
+    recovery, a parked scenario tab when switched to or probed for facts. Parked snapshots stay unmigrated in memory
+    and in the file until that tab is live and saved; harmless, the fold is idempotent. ⛔ Never remove an entry.
+  - `src/index.html` Help: *Which holidays these are* names the two lists, says the town goes in Location, and New
+    York cites Local 52 (New York or New Jersey) and Local 817.
+- **Save format:** no key added or renamed. A re-saved old calendar carries `union-place` `us-general` and a
+  `show-location`; both values existed before, so an older build opens it. `fields.byId`'s id set is unchanged.
+- **Tests:**
+  - New leg **`retiredplaces`** R0–R6 + E0, 8/8, in `gate.sh`'s audit loop after `regionmirror`.
+  - `regionmirror` M8 now expects `us-general` (and M0's option floor is > 20: 21 options, was 33).
+  - `regioncaveat`: A1 is "New York shows no caveat", P1's own-caveat control is Brandenburg (Chicago is gone).
+  - The live builds of `customunits`, `builtindates`, `episodeprep` set `us-general` (was `us-atlanta`); their
+    committed fixtures still carry `us-atlanta` on purpose (tests/fixtures/README.md says so).
+  - `dlgkeys` flips to `us-general` (was `us-los-angeles`). `scenarios` S9 and `scenariofacts` F5/F6 expect "U.S. Area
+    Standards".
+  - ⚠️ **`phasesui`'s `before.json` was EDITED IN PLACE**, eight values in four fixtures (`union-place` →
+    `us-general`, `show-location` → `Atlanta`), by a script that asserted each; its README records it. Not a re-cut.
+  - Green on build `428f5b13…`: `npm run check` 40/40, `retiredplaces` 8/8, `regionmirror` 9/9, `regioncaveat`
+    13/13, `regionlock` 14/14, `dlgkeys` 16/16, `settingswin` 21/21, `scenarios` 22/22, `scenariofacts` 12/12,
+    `customunits` live 23/23 + restore 28/28, `builtindates` 17/17 + 15/15, `episodeprep` 33/33 + 25/25 + 11/11.
+  - In the browser pane: both selects offer the two US places, and `?state=customunits` opens as U.S. Area Standards
+    with Location "Atlanta".
+  - **Full gate** on build `428f5b13…` (HARNESS_PORT 9741, 11:33–14:19, on battery, no other gate running):
+    **3,246 PASS, 13 FAIL**, every FAIL in a leg that never touches the Region, and mostly waits: ExcelJS not loading
+    in 30 s (`autonotekinds` A4, `phasecolors` C2, `wfnotecolors` X1 and the three after it), no result at all
+    (`papersize`, `mvmenu (halfdays)`, `phiatusnum`, `hidewf`), `hdrrow` EX, `pwagate` C1, `epnames (halfdays)` N5.
+    ⚠️ The run took 2 h 46 min, about three times the usual, so the machine or the CDN was slow. **Each of the ten legs
+    re-run alone on the same build: all green** (pwagate 13/13, hdrrow 37/37, papersize 12/12, mvmenu 81/81,
+    phiatusnum 18/18, autonotekinds 16/16, phasecolors 10/10, hidewf 19/19, wfnotecolors 14/14, epnames 11/11).
+    `retiredplaces` 8/8 and `phasesui` P1–P7 (with the edited baseline) passed inside the gate.
+- ⚠️ **The owner dropped five warnings knowingly** (Chicago and San Francisco are Area Standards proxies, New Orleans'
+  Mardi Gras, Hawaii's and Puerto Rico's own days). If they want them back, the place is a caveat on `us-general` in
+  `PLACES`, not more options.
+- ⚠️ CLAUDE.md's Conventions bullet ("`US-NY` (Local 52 Majors)") is still true and was left alone; it could name
+  Local 817 too. The owner's to change.
+- ⏭ **Next:** the owner's pickers for commit and push. No version cut.
+
+### ✅ 28 Oct 2026: A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there as `ddafe45` (owner's picker, *"Commit locally"*); ✅ **LIVE at `ddafe45`** (owner's picker, *"Push now"*, over the recommended "Not yet"; `cc3ea13..ddafe45` at 22:35:32, also carrying the docs-only `e1bf969`; the live `index.html` matched the tested build `c5906f52…` byte for byte at 22:36:23); no full gate
 
 - **Asked** (owner): *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick
   color for phases"*. Tracker card `hiatus-card-colour`.

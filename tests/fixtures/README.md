@@ -147,6 +147,12 @@ refused), `parse-empty.sptcal` (`{}`: refused once the shape gate lands), `parse
 | `customunits.sptcal` | A synthetic calendar on made-up 2027 dates, Atlanta (US-GEN) region, with one all-phase hiatus (week of 2/15/27). Four custom phases, one per case: **Scout**, Weeks with Snap off from Wed 1/13/27, the `{key.close}` bug case; **Read-through**, Days 6 across MLK Day; **Stage Build**, Dates 2/10–2/23/27 across the hiatus; and **Rigging**, Days 5 across the hiatus. Pre Prep (Weeks) is the Monday-end control. Minted by the `customunits` leg's LIVE run through the real Save (15 Oct 2026). Then **its month header was set by script** to a template naming every phase's `{close}` (`mvHeaderMode: manual`, `mvHeaderTemplates: true`, `mvHeaderManual`, the only keys touched), so the RESTORE run can read the tokens on screen. On the pre-change build `{custom1.close}` printed `1.24.27`, a Sunday; it must print `1.26.27` |
 | `builtindates.sptcal` | Step 6 (§7a): the five built-in Weeks phases in Dates mode. A synthetic calendar on made-up 2027 dates, Atlanta (US-GEN), with one locked all-phase hiatus (the week of 2/15/27): **Writer's Rm**, Weeks from Mon 1/4/27 for 4 weeks (the control); **Pre Prep**, Dates 2/10–2/23/27 across the hiatus; **Prod Prep**, Weeks from Mon 3/1/27 for 4 weeks; and **Post**, Dates 4/1–5/12/27. Production and Localization are unscheduled. Minted by the `builtindates` leg's LIVE run through the real Save (15 Oct 2026), **unmodified**. The pre-step-6 build opens it with Pre Prep and Post in whole weeks, from the `weeks-<key>` fallback, so neither vanishes |
 
+⚠️ **Since 29 Oct 2026 `customunits`, `builtindates`, `episodeprep` and `episodeprep-blocks` are also the real-file proof
+of a retired place.** All four were saved with `us-atlanta`, one of the twelve US places the owner removed from the
+picker that day. They load as `us-general` with Location "Atlanta" (`RETIRED_PLACES` in app.js), on the same
+holidays. Do not re-mint them without keeping a copy saved with a retired place: the `retiredplaces` leg loads
+`customunits.sptcal` as that proof, and its LIVE runs now build with `us-general`.
+
 ### A custom phase without "wk N" (PHASE-NUMBERING-PLAN.md, 19 Oct 2026)
 
 | File | Use |

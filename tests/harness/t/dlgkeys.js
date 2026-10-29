@@ -203,7 +203,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- D3: the Region's "Continue?" -----------------------------------------------------------------
     document.getElementById('sidetab-show').click();
     await T.sleep(300);
-    var r0 = region(), r1 = r0 === 'us-new-york' ? 'us-los-angeles' : 'us-new-york';
+    var r0 = region(), r1 = r0 === 'us-new-york' ? 'us-general' : 'us-new-york';
     await probe('D3', 'the Region’s “Continue?” -- the keys do nothing, and Continue applies the new Region',
       async function () { T.set('union-place', r1); },
       /Production Region/, 'Continue',
@@ -278,7 +278,7 @@ window.addEventListener('load', function () { (async function () {
     // dialog answers the first as Cancel (Dialogs.jsx).
     await step('Probe D11');
     ctl.touch(theirs(ctl.text(), 'Someone else’s title again'));
-    var wD11 = writes.length, rD11 = region(), rWant = rD11 === 'us-new-york' ? 'us-los-angeles' : 'us-new-york';
+    var wD11 = writes.length, rD11 = region(), rWant = rD11 === 'us-new-york' ? 'us-general' : 'us-new-york';
     document.getElementById('sidetab-show').click();
     await T.sleep(300);
     T.set('union-place', rWant);

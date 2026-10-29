@@ -1665,8 +1665,8 @@ export function initLegacyApp() {
       {date:'2031-11-28', name:'Day After Thanksgiving'},
       {date:'2031-12-25', name:'Christmas Day'},
     ],
-    // New York — IATSE Local 52 -- Local 52 Feature & Television Production Contract with Major Producers, Part A § 11
-    // source: https://amptp.org/contracts/  (verified 2026-09-11)
+    // New York — IATSE Local 52 · Teamsters Local 817 -- Local 52 Feature & Television Production Contract with Major Producers, Part A § 11 · Local 817 Feature Film Agreement, Art. 11
+    // source: https://amptp.org/contracts/ (Local 52 2024 Majors Agreement; Local 817 Drivers 2025 Agreement)  (verified 2026-10-29)
     'US-NY': [
       {date:'2024-01-01', name:'New Year\'s Day'},
       {date:'2024-01-15', name:'Martin Luther King Jr. Day'},
@@ -3039,7 +3039,6 @@ export function initLegacyApp() {
   // what its holiday list cannot express (audit N-9). reflectRegionUI() shows it under the
   // location picker, after the place's own caveat. Change the text in the generator, never here.
   const REGION_CAVEATS = {
-    'US-NY': "Juneteenth's presence in Local 52 is inferred from the industry-wide pattern, not read from the Local 52 agreement. Included because under-counting costs a wrap date; confirm with the local before locking.",
     'CA-ON': "ON4.02 ends in a catch-all — 'any other Day declared a holiday by the federal, provincial, or municipal (local) government'. That floats and cannot be generated. Use a custom holiday when one is declared.",
     'CA-QC': "Quebec gives the employer a choice of Good Friday OR Easter Monday — one day, not two. Good Friday is listed; if the production observes Easter Monday, turn Good Friday off and add Easter Monday as a custom holiday.",
     'UK-EW': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
@@ -22442,54 +22441,23 @@ export function initLegacyApp() {
 
   // ---- Production Region (country + optional province) -------------------------------------
   // WHERE the production shoots, which is what a user knows -- resolved to WHICH AGREEMENT
-  // governs, which is what the holiday math needs. Several places share one agreement: nine US
-  // markets are the same Area Standards list, so the collapse is structural rather than luck.
+  // governs, which is what the holiday math needs. Several places may share one agreement.
   //
-  // `caveat` is the thing a region key could never express. Chicago and San Francisco are
-  // expressly carved out of the Area Standards Agreement by name and neither local publishes its
-  // agreement, so their list is a PROXY, not a finding -- and the user has to be told.
+  // `caveat` is the thing a region key could never express (Brandenburg's Babelsberg trap below).
+  //
+  // ⛔ THE US IS TWO PLACES (owner, 29 Oct 2026: "reduce the US list to just "U.S. Area Standards" and
+  // "New York""), because it has exactly two lists. Until then it was fourteen: thirteen cities and
+  // states that all resolved to US-GEN or US-NY, five of them with a caveat (Chicago and San Francisco
+  // as Area Standards proxies, Mardi Gras, Hawaii's and Puerto Rico's own days), which the owner chose
+  // to drop with them. Their VALUES are still in saved files, so they are not gone: RETIRED_PLACES
+  // folds each into us-general on load, before the fields.byId replay, or a select with no such
+  // option would coerce it to '' and the calendar would reopen with no holidays at all.
   const PLACES = {
-    'us-atlanta': {region:'US-GEN', label:'Atlanta, GA',
-      locals:'IATSE Local 479 — Georgia excl. Savannah, Alabama excl. Mobile',
-      caveat:null},
-    'us-chicago': {region:'US-GEN', label:'Chicago, IL',
-      locals:'IATSE Local 476 · Teamsters 727',
-      caveat:'Area Standards proxy. The ASA preamble excludes Illinois and Local 476 by name, and Local 476 does not publish its agreement. Confirm before locking dates.'},
-    'us-florida': {region:'US-GEN', label:'Florida — statewide',
-      locals:'IATSE Local 477 — the whole state',
-      caveat:null},
-    'us-los-angeles': {region:'US-GEN', label:'Los Angeles, CA',
-      locals:'Craft by craft — Locals 44, 80, 600, 695, 700, 705, 706, 728, 729, 800, 871, 884, 892 · Teamsters 399',
-      caveat:null},
-    'us-maryland': {region:'US-GEN', label:'Maryland / DC',
-      locals:'IATSE Local 487 — Mid-Atlantic, incl. DC and Virginia',
-      caveat:null},
-    'us-miami': {region:'US-GEN', label:'Miami, FL',
-      locals:'IATSE Local 477 — same as all Florida · Teamsters 769',
-      caveat:null},
-    'us-new-mexico': {region:'US-GEN', label:'New Mexico',
-      locals:'IATSE Local 480',
-      caveat:null},
-    'us-new-orleans': {region:'US-GEN', label:'New Orleans, LA',
-      locals:'IATSE Local 478 — Louisiana, S. Mississippi, Mobile AL',
-      caveat:'Mardi Gras is not in ASA Article 7, and the agreement has no mechanism for adding a regional holiday. If your show observes it, add it as a custom holiday.'},
-    'us-new-york': {region:'US-NY', label:'New York, NY',
+    'us-new-york': {region:'US-NY', label:'New York',
       locals:'IATSE Local 52, plus 161, 764, 798, USA 829 on separate paper · Teamsters 817',
       caveat:null},
-    'us-oahu': {region:'US-GEN', label:'Oahu, HI',
-      locals:'IATSE Local 665 — State of Hawaii',
-      caveat:'Prince Kūhiō Day, King Kamehameha Day and Statehood Day are not in ASA Article 7. Add as custom holidays if the production observes them.'},
-    'us-pittsburgh': {region:'US-GEN', label:'Pittsburgh, PA',
-      locals:'IATSE Local 489',
-      caveat:null},
-    'us-puerto-rico': {region:'US-GEN', label:'Puerto Rico',
-      locals:'IATSE Local 494 — PR and USVI',
-      caveat:'Puerto Rico\'s statutory calendar differs materially from the federal one and none of those days are in ASA Article 7 — the widest statute-to-agreement gap of any US market here.'},
-    'us-san-francisco': {region:'US-GEN', label:'San Francisco, CA',
-      locals:'IATSE Local 16 — Stage Employees',
-      caveat:'Area Standards proxy. The ASA excludes Local 16\'s jurisdiction by name, so Northern California sits outside both national agreements. Confirm before locking dates.'},
-    'us-general': {region:'US-GEN', label:'Elsewhere in the U.S. — Area Standards', short:'U.S. (Area Standards)',
-      locals:'The Area Standards local holding that jurisdiction',
+    'us-general': {region:'US-GEN', label:'U.S. Area Standards',
+      locals:'West Coast Studio Locals in Los Angeles; elsewhere, the Area Standards local for the area',
       caveat:null},
     'ca-montreal': {region:'CA-QC', label:'Montreal, QC',
       locals:'AQTIS 514 IATSE · UDA (French) / ACTRA (English)',
@@ -31973,6 +31941,26 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⛔ SAVE-FORMAT MIGRATION, same rule as above: BEFORE the fields.byId replay. The US places the
+  // owner retired on 29 Oct 2026 (PLACES' comment), each with the Location the scenario band and
+  // Compare showed for it (the old label, shortened by placeShortLabel). Every one was a US-GEN
+  // place, so folding it into us-general moves no date: the holiday list is the same list. Only the
+  // NAME would be lost, so it moves into Show info's Location when that is blank; a typed Location
+  // wins. ⛔ Never remove an entry: these values live on in every calendar saved before that day.
+  const RETIRED_PLACES = {
+    'us-atlanta':'Atlanta', 'us-chicago':'Chicago', 'us-florida':'Florida', 'us-los-angeles':'Los Angeles',
+    'us-maryland':'Maryland / DC', 'us-miami':'Miami', 'us-new-mexico':'New Mexico', 'us-new-orleans':'New Orleans',
+    'us-oahu':'Oahu', 'us-pittsburgh':'Pittsburgh', 'us-puerto-rico':'Puerto Rico', 'us-san-francisco':'San Francisco'
+  };
+  function retirePlaceSnapshot(snap){
+    const byId = snap && snap.fields && snap.fields.byId;
+    const v = byId && byId['union-place'] && byId['union-place'].value;
+    if(typeof v !== 'string' || !Object.prototype.hasOwnProperty.call(RETIRED_PLACES, v)) return;
+    byId['union-place'] = {value: 'us-general'};
+    const loc = byId['show-location'];
+    if(!loc || typeof loc.value !== 'string' || !loc.value.trim()) byId['show-location'] = {value: RETIRED_PLACES[v]};
+  }
+
   // ---------- What a FILE may put into the stores (audit H-1, FIX-PLAN.md 1.4, 25 Sep 2026) ----------
   // ⛔ A saved calendar is untrusted input. It arrives by email and shared drive, and every one of
   // its values used to be copied into the stores VERBATIM -- and from there into innerHTML, because
@@ -32469,6 +32457,7 @@ export function initLegacyApp() {
     snap = sanitizeSnapshot(snap);
     // Assigned per restore, so an undo back onto a current-format file cannot inherit a stale true.
     restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
+    retirePlaceSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
     if(Array.isArray(snap.episodeDefs)){
       // ⛔ FIELD BY FIELD, so a new per-episode key must be named here or every load, undo and crash

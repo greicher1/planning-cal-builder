@@ -111,10 +111,10 @@ window.addEventListener('load', function () { (async function () {
     var atOnce = bandFirst(), flipText = bandText(), flipTiles = tiles();
     await T.sleep(700);
     add('F5', 'a flip shows the other tab\'s facts at once and marks nothing unsaved',
-      current() === 'Scenario A' && atOnce === 'U.S. (Area Standards)' && flipTiles.Location === 'U.S. (Area Standards)' && flipTiles.Episodes === '10' &&
+      current() === 'Scenario A' && atOnce === 'U.S. Area Standards' && flipTiles.Location === 'U.S. Area Standards' && flipTiles.Episodes === '10' &&
       (document.getElementById('save-status') || {}).textContent === statusBefore,
       {current: current(), first30ms: atOnce, band: flipText, status: [statusBefore, (document.getElementById('save-status') || {}).textContent]},
-      'Scenario A, "Location U.S. (Area Standards) | Episodes 10 | …" within 30 ms, status unchanged');
+      'Scenario A, "Location U.S. Area Standards | Episodes 10 | …" within 30 ms, status unchanged');
 
     // F6 -- the Location box: typed text wins in the band and in Compare; blank is the short region; ⌘Z undoes it.
     var locEl = document.getElementById('show-location');
@@ -124,8 +124,8 @@ window.addEventListener('load', function () { (async function () {
     key('z'); await T.sleep(900);
     var undoneLoc = locEl.value, undoneBand = bandFirst();
     add('F6', 'typed Location shows in the band and Compare; ⌘Z puts back the short region',
-      !!locEl && typedBand === 'Winnipeg' && typedCmp && typedCmp[0] === 'Winnipeg' && undoneLoc === '' && undoneBand === 'U.S. (Area Standards)',
-      {typed: [typedBand, typedCmp], undone: [undoneLoc, undoneBand]}, 'Winnipeg twice, then "" and U.S. (Area Standards)');
+      !!locEl && typedBand === 'Winnipeg' && typedCmp && typedCmp[0] === 'Winnipeg' && undoneLoc === '' && undoneBand === 'U.S. Area Standards',
+      {typed: [typedBand, typedCmp], undone: [undoneLoc, undoneBand]}, 'Winnipeg twice, then "" and U.S. Area Standards');
 
     // F7 -- saved per scenario, and a file without the key loads blank.
     T.set('show-location', 'Winnipeg'); await T.sleep(700);

@@ -25,3 +25,10 @@ and the leg's `records` written here. The leg's record mode reads only ids, Save
 
 **Re-cut it only if a fixture is added to the leg's list, or the save format changes on purpose** -- and then from a
 build that has not changed the phase cards' markup since, so it stays a "before".
+
+⚠️ **Edited 29 Oct 2026, a save-format change on purpose** (owner: the US is two places, "U.S. Area Standards" and
+"New York"). Four fixtures were saved with `us-atlanta`, a place that went: `customunits`, `builtindates`,
+`episodeprep`, `episodeprep-blocks`. RETIRED_PLACES (app.js) now loads each as `us-general` with the place's name in
+the empty Location, so their re-save carries `union-place` `us-general` and `show-location` `Atlanta`. Those eight
+values were changed in place by a script that asserted each one before writing it (`diff` against the old file: eight
+lines, nothing else). Not a re-cut: every other value, and the other 42 fixtures, are the 24 Oct cut unchanged.

@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The US is two places, "U.S. Area Standards" and "New York"; New York's holiday sources re-read (29 Oct 2026, branch `us-two-places`)
+
+The owner, after seeing that the fourteen US places used only two holiday lists: *"reduce the US list to just "U.S.
+Area Standards" and "New York""*, and *"update them"* for the New York warning and the docs.
+- **The Production Region picker's US group is two options**, U.S. Area Standards and New York, in both selects (Settings
+  ▸ Region and Show info). The other twelve US cities and states are gone, and so are the warnings five of them carried
+  (the Chicago and San Francisco proxies, Mardi Gras, Hawaii's and Puerto Rico's own days); the owner chose that with
+  the cost shown. The town goes in Show info's Location. Help's *Which holidays these are* says so. The scenario band
+  and Compare show "U.S. Area Standards" (was "U.S. (Area Standards)") when no Location is typed.
+- **Every calendar saved with a removed place still opens on the same holidays.** `retirePlaceSnapshot()` runs in
+  `applyStateSnapshot()` right after `migrateRegionSnapshot()`, before the `fields.byId` replay, and folds each of the
+  twelve old values into `us-general` (`RETIRED_PLACES`). All twelve were Area Standards places, so no date moves. The
+  place's name moves into a blank Location ("Atlanta"), so the band still says it; a typed Location wins. Without this
+  the select would have coerced the value to None and the calendar would have reopened with no holidays. Saving writes
+  the new value. ⛔ Save format: a re-saved old calendar now carries `union-place` `us-general` and a `show-location`;
+  nothing is renamed and no key is added. An older build opens it fine (both values existed).
+- **New York's sources, re-read from the signed agreements:** IATSE Local 52 Part A § 11 (crews in New York and New
+  Jersey) and Teamsters Local 817 Art. 11 list the same eleven days: Veterans Day, no Good Friday, and Juneteenth BY
+  NAME from 2025. So the warning under New York ("Juneteenth ... inferred, not read") is gone, and the generator's
+  US-NY entry cites both (`tools/gen_holidays.py`, regenerated; every date identical, `validate_holidays.py` CLEAN).
+  Local 52's Part B (Connecticut, Delaware, Pennsylvania) is the Area Standards list, noted in PROJECT-CONTEXT §5,
+  whose wrong "AICP" reason for New York's Veterans Day is corrected.
+- **Verified:** `npm run check` 40/40. New leg `retiredplaces` 8/8 (in `gate.sh` after `regionmirror`): the two
+  options, a real file saved with `us-atlanta`, all twelve values, a typed Location, the grid unchanged, Save, and a
+  parked scenario tab. `regionmirror` 9/9 (M8 now expects `us-general`), `regioncaveat` 13/13 (New York shows no
+  warning; P1's control is Brandenburg's), `regionlock` 14/14, `dlgkeys` 16/16, `settingswin` 21/21, `scenarios`
+  22/22, `scenariofacts` 12/12, and `customunits`, `builtindates`, `episodeprep` live and restore all green. The
+  `phasesui` baseline's four Atlanta fixtures were edited in place (eight values, its README says which). Full gate
+  3,246 PASS / 13 FAIL in a slow run (2 h 46 min), none in a Region leg; all ten failing legs green alone.
+
 ### Unreleased — A colour square on every all-phase hiatus card (28 Oct 2026, `main`)
 
 The owner: *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick color for

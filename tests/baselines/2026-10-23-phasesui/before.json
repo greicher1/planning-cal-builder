@@ -3597,7 +3597,7 @@
 [
 "show-location",
 {
-"value":""
+"value":"Atlanta"
 }
 ],
 [
@@ -3615,7 +3615,7 @@
 [
 "union-place",
 {
-"value":"us-atlanta"
+"value":"us-general"
 }
 ],
 [
@@ -4448,7 +4448,7 @@
 [
 "show-location",
 {
-"value":""
+"value":"Atlanta"
 }
 ],
 [
@@ -4466,7 +4466,7 @@
 [
 "union-place",
 {
-"value":"us-atlanta"
+"value":"us-general"
 }
 ],
 [
@@ -5011,7 +5011,7 @@
 [
 "show-location",
 {
-"value":""
+"value":"Atlanta"
 }
 ],
 [
@@ -5029,7 +5029,7 @@
 [
 "union-place",
 {
-"value":"us-atlanta"
+"value":"us-general"
 }
 ],
 [
@@ -5574,7 +5574,7 @@
 [
 "show-location",
 {
-"value":""
+"value":"Atlanta"
 }
 ],
 [
@@ -5592,7 +5592,7 @@
 [
 "union-place",
 {
-"value":"us-atlanta"
+"value":"us-general"
 }
 ],
 [

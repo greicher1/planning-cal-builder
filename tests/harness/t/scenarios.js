@@ -158,9 +158,9 @@ window.addEventListener('load', function () { (async function () {
       {tabs: loadedTabs, place: loadedPlace}, 'Scenario A | 8 eps | *Toronto, ca-toronto');
     add('S9', 'Compare on a freshly loaded file: Toronto first, every column filled by probing the parked tabs',
       cols.join('|') === 'Toronto|Scenario A|8 eps' && chips === 2 && cmpEps && cmpEps[0] === '8' && /^10/.test(cmpEps[1]) && cmpEps[2] === '8' &&
-      // Location reads the Region SHORTENED since KEY-FACTS-PLAN.md §3.3: "Toronto", and "U.S. (Area Standards)" for
-      // "Elsewhere in the U.S. — Area Standards" (the one entry with its own `short`).
-      cmpLoc && cmpLoc[0] === 'Toronto' && cmpLoc[1] === 'U.S. (Area Standards)',
+      // Location reads the Region SHORTENED since KEY-FACTS-PLAN.md §3.3: "Toronto", and "U.S. Area Standards", the
+      // US place's whole name since the owner cut the US to two places (29 Oct 2026; it read "U.S. (Area Standards)").
+      cmpLoc && cmpLoc[0] === 'Toronto' && cmpLoc[1] === 'U.S. Area Standards',
       {cols: cols, chips: chips, episodes: cmpEps, wrap: cmpWrap, location: cmpLoc}, 'Toronto | Scenario A | 8 eps; 8, 10 (+2), 8');
     add('S10', 'probing the parked tabs leaves the calendar on screen exactly as it was', gridBefore === gridAfter && formBefore === formAfter,
       {gridSame: gridBefore === gridAfter, formSame: formBefore === formAfter}, 'grid and fields unchanged');
@@ -258,7 +258,7 @@ window.addEventListener('load', function () { (async function () {
       refusals, 'four "damaged", one "newer version", the calendar unchanged');
 
     // S18-S21 -- the owner's notes on the window (23 Oct 2026). Toronto, alone again, loses its Localization; a copy
-    // of it, US, moves to Elsewhere in the U.S. and is the tab on screen, so US is the first column and Toronto the
+    // of it, US, moves to U.S. Area Standards and is the tab on screen, so US is the first column and Toronto the
     // second. Same 36.5 shoot days, so the wrap moves by holidays alone.
     T.set('start-localization', ''); await T.sleep(700);
     addBtn().click(); await T.sleep(600);
