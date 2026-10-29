@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 29 Oct 2026 (latest): THE US IS TWO PLACES, "U.S. Area Standards" AND "New York"; NEW YORK'S HOLIDAY SOURCES RE-READ — branch `us-two-places` (worktree `.claude/worktrees/us-two-places`, from `main` at `5fc7855`); FULL GATE 3,246 / 13, ALL 13 GREEN ALONE; NOT COMMITTED, NOT PUSHED
+### 🔨 29 Oct 2026 (latest): THE US IS TWO PLACES, "U.S. Area Standards" AND "New York"; NEW YORK'S HOLIDAY SOURCES RE-READ — branch `us-two-places` (worktree `.claude/worktrees/us-two-places`, from `main` at `5fc7855`); FULL GATE 3,246 / 13, ALL 13 GREEN ALONE; COMMITTED `44bf663`, local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); ✅ **LIVE at `44bf663`** (owner's picker, *"Push now"*; `ddafe45..44bf663` at 14:22:31, also carrying the docs-only `5fc7855`; the live `index.html` matched the gated build `428f5b13…` byte for byte at 14:23:22); no version cut
 
 - **Asked** (owner), after this session showed that the 14 US places used only two holiday lists and read both New York
   agreements from the AMPTP site: *"update them. Also reduce the US list to just "U.S. Area Standards" and "New York""*.
@@ -66,7 +66,9 @@
   `PLACES`, not more options.
 - ⚠️ CLAUDE.md's Conventions bullet ("`US-NY` (Local 52 Majors)") is still true and was left alone; it could name
   Local 817 too. The owner's to change.
-- ⏭ **Next:** the owner's pickers for commit and push. No version cut.
+- ⏭ **Next:** nothing owed. No version cut (`version.json` still 1.9.0, so installed copies pick it up silently). The
+  worktree `.claude/worktrees/us-two-places` (its `node_modules` is a symlink: unlink it before `git worktree remove`)
+  and the branch can go on the owner's word.
 
 ### ✅ 28 Oct 2026: A COLOUR SQUARE ON EVERY ALL-PHASE HIATUS CARD — built in the MAIN CHECKOUT on `main` (`e1bf969`) and COMMITTED there as `ddafe45` (owner's picker, *"Commit locally"*); ✅ **LIVE at `ddafe45`** (owner's picker, *"Push now"*, over the recommended "Not yet"; `cc3ea13..ddafe45` at 22:35:32, also carrying the docs-only `e1bf969`; the live `index.html` matched the tested build `c5906f52…` byte for byte at 22:36:23); no full gate
 
