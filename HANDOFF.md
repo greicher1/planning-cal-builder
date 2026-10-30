@@ -12,7 +12,7 @@
 - Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
   (label tweak rule).
 
-### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit (*"Restore it"*); NOT merged into `main`, NOT pushed (*"Not yet"*); gated build `3cf17115…`
+### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch as `5bad4c7` (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit `65edf8f` (*"Restore it"*); NOT merged into `main`, NOT pushed (*"Not yet"*); gated build `3cf17115…`
 
 - **The ask:** after the mockup (entry below) and the pros and cons of A and B, the owner: *"Build A"*. Not ruled,
   so built as the mockup showed them: the **starting ticks** (every built-in ticked, every custom phase unticked;
