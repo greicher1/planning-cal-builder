@@ -538,6 +538,8 @@ explained after it. `firstDayOfWeek={1}` makes Monday column one so the band rea
 > - **The exact day, with no band**, for Snap off, Days/Dates phases, a Dates end, a custom holiday, and
 >   Anchor To's "ends by".
 > - **The band** only where any day picks its week: the calendar range and Anchor To's start.
+> - **Only Fridays** for an Ends phase's end (the Ends box, `.phase-endsdate`; owner, 30 Oct 2026, "Yes, no
+>   switch"): an Ends phase always ends on the Friday of the week picked. Leg `endsdate`.
 >
 > Not every week field is snapped, so the "six week-snapped fields" below is no longer a fixed list. Holidays
 > are still marked, never excluded: a greyed day keeps its dot. Leg `datepick`.

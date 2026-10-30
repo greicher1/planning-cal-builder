@@ -4,6 +4,66 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — BUILT on branch `weeks-end-date` (worktree `.claude/worktrees/weeks-end-date`), NOT COMMITTED, NOT MERGED, NOT PUSHED
+
+- **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.
+  Built as the mockup shows. The three open questions were NOT answered, so: the meta line is left alone (it still
+  ends on the week's Sunday), custom Weeks phases get Ends too (the suggestion), and "Start after previous phase" is
+  hidden in Ends (as the mockup showed). Tracker card `weeks-end-date`.
+- **Where it lives (src/legacy/app.js):**
+  - `phaseEnds` (beside `phaseHidden`): key -> true. Read through `phaseEndsOn(key)`, which is also false unless
+    the unit is Weeks. Saved as `phaseEnds`, a sorted array, ⛔ PERMANENT, written only while non-empty
+    (`phaseEndsSnapshot()` drops a flag whose phase left Weeks). Sanitized, restored unconditionally, cleared by New,
+    pruned with its custom phase.
+  - The END is `end-<key>` (Dates mode's box, already in fields.byId and already moved by `setPhaseStart()`); the
+    visible box is the id-less `.phase-endsdate` in the new date column (`startsFieldHtml()`, built like
+    `byUnitHtml()`), beside `start-<key>`, which stays in place (document order, so fields.byId's key order) and is
+    hidden in Ends. The select is the id-less `select.phase-anchor`. No new id anywhere.
+  - `readState()` reads the end for an Ends phase and, once both hiatus lists are read, solves its start with
+    `weeksStartForEnd()` (the mirror of `computeSchedule()`'s `extendEndForHiatus()`). `computeSchedule()` is
+    untouched: the state it gets is a Starts phase on that Monday.
+  - ⚠️ `update()` writes that start into `start-<key>` (`syncPhaseEndsStarts()`) right after `readState()`. It is
+    the ONE field `update()` writes, against `syncCustomUnitFallback()`'s rule, and it is safe only because the value
+    changes only with an edit that already banks an undo step. Frozen `readCfgForMeta()` reads `start-<key>`, so
+    without it the meta line would show the old start plus a bogus "Snapped to Mon" line.
+  - `setPhaseStart()` moves an Ends phase's end by the same distance, rounded to whole weeks, so every mover moves
+    the end. `phaseSnapped()` is true for an Ends phase (DatePop's copy reads the card's `ends-mode` class).
+  - `onCustomUnitChange()` returns the phase to Starts on any unit change; leaving Ends it rewrites `end-<key>` as
+    scheduled (Dates) or empties it (Days), so a later Dates switch never takes a stale end. Back to Starts
+    (`setPhaseEnds()`) also empties `end-<key>`, which is what keeps a round trip byte-identical.
+  - `reflectPhaseEnds()` runs in every `update()`: select value, `ends-mode` class, Ends box (left alone while
+    focused; a focusout redraws it as its Friday).
+  - ⚠️ The Ends box's `input` handler is a CAPTURE listener on the row containers: a custom row's own blanket
+    `input -> update()` listener would otherwise run first, on the old end.
+  - ⚠️ A month-view EDGE drag sets the unit to Dates with no event, so the flag lingers, unread, until the Length
+    select's handler clears it. Deliberate: the drag's "back where it began" restores the unit and the flag must
+    still be there.
+  - CSS (legacy.css, beside the `.pu-by` rules): the column, the select drawn as `select.phase-unit`, and the Ends
+    hides keyed on the card's class, never an attribute behind `:has()` (the 27 Oct lag). DatePop: kind `'friday'`.
+- **Seen, not changed:** a phase with Snap to Monday OFF switched to Ends becomes whole weeks (its start moves to its
+  week's Monday, its end to that week's Friday). An end inside a hiatus week cannot be worked in, so the phase ends
+  the week before.
+- **Proof:** new leg `endsdate` (15/15; in `gate.sh` after `datepick`), red on three mutants (no backward walk: 13
+  red; movers leaving the end: S1; no Fridays-only picker: E5). `npm run check` 40/40. `customunits` and
+  `builtindates` (live + restore), `datepick` 17/17, `snaptools` 14/14, `hidewf` 19/19, `phasefold` 11/11,
+  `autonotephases` 17/17, `snapoff`, `sharecopy2` all green. Seen in the browser pane (the card, the Fridays-only
+  picker, a pick moving the start).
+  - **Full gate on build `7ef47d45…`: 3,374 PASS, 6 FAIL, every one explained.** Three were timeouts under load
+    (~6.6), each green alone: `loadcarry` 6/6, `pilldrag` 30/30, `mvorder` 30/30. Three are the
+    `stintswap-reshape.sptcal` fixture `62fd9ab` rewrote (below): `phasesui` P1 and `stintreshape` (9/9) pass with
+    the fixture as it was at `2b15444`; gate 13's month PDF for that fixture moves because the fixture did (not
+    re-run separately). The waterfall PDF matches its baseline, fields.byId has the same 77 ids, every other
+    written month PDF is byte-identical, and `endsdate` is 15/15 inside the gate.
+- ⚠️ **FOUND, NOT FIXED: `tests/fixtures/stintswap-reshape.sptcal` was rewritten by `62fd9ab`**, a commit whose
+  message is only "HANDOFF: Region label removal live at 9522aa3" (+379/−31 in the fixture, apparently a Save over it).
+  It turns `phasesui` P1 red ("stintswap-reshape: controls / fields.byId") on `main` and on this branch alike; with
+  the fixture as it was at `2b15444`, `phasesui` is 8/8. The `rebuild-from-rethink` card's gate saw the same. Restoring
+  it on `main` is the owner's call.
+- ⛔ **LESSON (this session):** with another session working in the same checkout, never stage a blob built from an
+  earlier HEAD. `ff84d6f` did exactly that (a HANDOFF.md made from `3fd85ff`, staged by `git update-index` after
+  `64e9a16` landed) and silently removed `64e9a16`'s HANDOFF entry; `2826feb` put it back. Build the content from
+  `HEAD` and check `HEAD` in the same command that commits.
+
 ### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — BUILT in the main checkout, UNCOMMITTED, NOT PUSHED
 
 - **The ask** (owner): *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates
@@ -34,7 +94,7 @@
 - **For the Ends-mode plan below:** offering only Fridays in Ends mode is one more `fieldKind` branch returning a
   `'friday'` kind. The `'monday'` branch's disabled-day styling would carry over unchanged.
 
-### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ONLY, NO APP CODE ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html))
+### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html)); BUILT, see the 🔨 ENDS entry above
 
 - **The ask** (owner, 30 Oct 2026): *"what if for phases you could select EITHER starting date OR ending date. So if
   you selected ending date and then 20 weeks, it would calculate backwards"*, in Weeks mode, and whether Ends should

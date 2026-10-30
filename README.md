@@ -29,6 +29,41 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a Weeks phase can be held by its END, and its start is worked out backwards (30 Oct 2026)
+
+The owner: *"what if for phases you could select EITHER starting date OR ending date. So if you selected ending date
+and then 20 weeks, it would calculate backwards"*, then, on snapping, *"Yes, no switch"*, then *"build it"*
+(`mockups/weeks-end-date.html`). The word **Starts** over a Weeks phase's date is now a small select, **Starts** or
+**Ends**, drawn as **Length · Weeks** is beside it. With **Ends** picked:
+
+- **The end holds.** Change the week count, or add a hiatus inside the phase (all-phase or its own), and the START
+  moves instead. A phase still delivers every week it is given, so a hiatus pulls its start earlier.
+- **It always ends on a Friday**, the Friday of the week picked (ruled: no switch). Snap to Monday is hidden, as it
+  is for Dates. A typed Wednesday reads as that week's Friday, and the picker offers only Fridays.
+- **"Start after previous phase" is hidden**: an Ends phase's start is worked out, never chained.
+- **Switching moves nothing.** To Ends, the box takes the phase's end as scheduled now; back to Starts, the start
+  stays where it was worked out. Changing the Length to Dates or Days returns the phase to Starts, also without moving.
+- **Every tool that moves phases moves the end**, by whole weeks: they all write through `setPhaseStart()` (Shift
+  All, Shift From, Anchor To, Rebuild From, Close all gaps, the month-view body drag), and the leg exercises Shift
+  All. A month-view EDGE drag switches the phase to Dates, as it does any Weeks phase, which leaves Ends.
+- On the five built-in Weeks phases and on custom phases in Weeks. Not Production, whose length is shoot days.
+
+**Save format:** one new key, `phaseEnds` (a sorted list of phase keys), written only while a phase uses Ends, so
+every other calendar saves byte for byte as before. ⛔ PERMANENT. No new id: the end is kept in `end-<key>` (the box
+Dates mode already uses), and `start-<key>` always holds the start as worked out, so an older build opens the file
+with the phase in the same place (held by its start). The meta line under the name is unchanged: it still ends on
+the week's Sunday (frozen `render()` writes it); the owner has not ruled on making it say Friday.
+
+How: `readState()` works out the start (`weeksStartForEnd()`, the mirror of `computeSchedule()`'s
+`extendEndForHiatus()`), `update()` writes it into `start-<key>` before anything reads it, and `setPhaseStart()`
+moves an Ends phase's end. `computeSchedule()` is untouched, and nothing frozen changed. Verified with a new leg,
+`endsdate` (15/15 on the build, red on three mutants: no backward walk, movers leaving the end, no Fridays-only
+picker), plus `npm run check` (40/40), `customunits`, `builtindates`, `datepick` (17/17), `snaptools` (14/14),
+`hidewf` (19/19), `phasefold` (11/11), `autonotephases` (17/17), `snapoff`, `sharecopy2`, and `phasesui` (8/8 with
+`stintswap-reshape.sptcal` as it was before `62fd9ab`; see HANDOFF), and in the app. Full gate: 3,374 pass and 6
+fail, all explained (three load timeouts, each green alone, and three from that fixture); the waterfall PDF, the
+saved field ids and every other month PDF are unchanged.
+
 ### Unreleased — with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
 
 The owner: *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates except

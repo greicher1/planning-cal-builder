@@ -120,7 +120,8 @@
   .dp-day.dp-off:hover{ background:transparent; }   /* outranks .dp-day:hover:not(.dp-cap) by order */
   .dp-off.dp-out{ color:var(--mantine-color-gray-3); }
   /* ...and a Monday of the month before or after, still pickable, must not read as one of them. */
-  .dp-mondays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
+  .dp-mondays .dp-out:not(.dp-off):not(.dp-cap),
+  .dp-fridays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
   .dp-dot{
     position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
     width:3px; height:3px; border-radius:50%;
@@ -3970,14 +3971,37 @@
   }
   .phase-row:has(select.phase-unit option[value="dates"]:checked) .pu-cap-len,
   .phase-row:not(:has(select.phase-unit option[value="dates"]:checked)) .pu-cap-end{ display:none; }
-  .phase-fields .pu-by-cap select.phase-unit{
+  /* ENDS (phaseEnds, owner, 30 Oct 2026): the date column, built like the Length column (.pu-by): a caption line the
+     height of .pu-by-cap, then the box, so the two boxes stay level. Over a Weeks phase the caption is the Starts /
+     Ends select, drawn as the Length select is (the rule below); Days and Dates show the plain word. */
+  .phase-fields .ph-starts{ display:flex; flex-direction:column; gap:3px; flex:1 1 118px; min-width:0; }
+  .phase-fields .ph-starts > label{ flex:none; }
+  .ph-starts-cap{
+    display:flex; align-items:center; gap:4px; height:14px;
+    font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-6);
+  }
+  .ph-cap-word{ display:none; }
+  .phase-row:has(select.phase-unit option[value="days"]:checked) .ph-cap-word,
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) .ph-cap-word{ display:inline; }
+  .phase-row:has(select.phase-unit option[value="days"]:checked) select.phase-anchor,
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) select.phase-anchor{ display:none; }
+  /* With Ends, the Ends box stands in for the start's, and Snap to Monday and "Start after previous phase" go: an
+     Ends phase always ends on a Friday (ruled "Yes, no switch") and its start is worked out, never chained. Keyed on
+     the card's class, which update() sets (reflectPhaseEnds), never on an attribute behind a :has() (see below). */
+  .phase-row:not(.ends-mode) .ph-ends-box,
+  .phase-row.ends-mode .ph-start-box,
+  .phase-row.ends-mode .phase-snap,
+  .phase-row.ends-mode .autostart-btn{ display:none; }
+  .phase-fields .pu-by-cap select.phase-unit,
+  .phase-fields .ph-starts-cap select.phase-anchor{
     width:auto; min-width:0; height:18px; padding:0 16px 0 0; border:0; background-color:transparent;
     font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-navy-5);
     -webkit-appearance:none; appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 2px center; background-size:11px 11px;
   }
-  .phase-fields .pu-by-cap select.phase-unit:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; border-radius:3px; }
+  .phase-fields .pu-by-cap select.phase-unit:focus-visible,
+  .phase-fields .ph-starts-cap select.phase-anchor:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; border-radius:3px; }
   /* Which boxes show is pure CSS off the select's CHECKED OPTION -- the #show-mode pattern -- so no
      restore, undo or load path can leave the visible boxes disagreeing with the unit actually
      scheduling. Hidden boxes keep their values. Production is the one row with no .phase-unit, so

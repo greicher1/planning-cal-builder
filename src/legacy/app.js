@@ -4323,6 +4323,30 @@ export function initLegacyApp() {
     return rawValue;
   }
 
+  // ENDS (see phaseEnds): the Monday a Weeks phase must start on to END in the week of `end`, delivering `weeks`
+  // working weeks. The mirror of computeSchedule()'s extendEndForHiatus(): it walks BACK from the Monday after the
+  // end's week over the same hiatus weeks (all-phase, and the phase's own), built the same way (a Monday-snapped
+  // start plus whole weeks), so the forward walk from this start ends on that week. An end inside a hiatus week
+  // cannot be worked in, so the phase then ends on the last working week before it.
+  function weeksStartForEnd(end, weeks, hiatusList, ownHiatus){
+    const range = h=>{
+      const pd = h && h.start ? parseDateUTC(h.start) : null;
+      if(!pd || !(h.weeks > 0)) return null;
+      const s = mondayOf(pd);
+      return {start: s, end: addDays(s, h.weeks*7)};
+    };
+    const his = (hiatusList || []).map(range).filter(Boolean), own = range(ownHiatus);
+    let cur = addDays(mondayOf(end), 7), got = 0, safety = 0;
+    while(got < weeks && safety++ < 2000){
+      cur = addDays(cur, -7);
+      const inHiatus = his.some(h=> cur >= h.start && cur < h.end) || (own && cur >= own.start && cur < own.end);
+      if(!inHiatus) got++;
+    }
+    return cur;
+  }
+  // The Friday of the week `d` falls in (Monday to Sunday): where an Ends phase ends.
+  function fridayOfWeek(d){ return addDays(mondayOf(d), 4); }
+
   function readState(){
     const allDefs = getAllPhaseDefs();
     const phases = {};
@@ -4375,6 +4399,16 @@ export function initLegacyApp() {
       // intent survives someone later storing the flag as a string.
       const snapEl = document.getElementById('snap-'+p.key);
       const snap = snapEl ? !!snapEl.checked : true;
+      // ENDS (see phaseEnds): the end, not the start, is the date read. Always whole weeks (snapped), whatever
+      // Snap to Monday says. `start` is a placeholder until the hiatuses are read below, which solve the real one.
+      if(phaseEndsOn(p.key)){
+        const endEl = document.getElementById('end-'+p.key);
+        const endStr = endEl ? endEl.value : '';
+        const endsBox = endEl && endEl.closest('.phase-row') ? endEl.closest('.phase-row').querySelector('.phase-endsdate') : null;
+        if(endStr && parseDateUTC(endStr)===null){ hasInvalidYear = true; badYearFields.push(endsBox || endEl); }
+        phases[p.key] = (endStr && parseDateUTC(endStr) && weeks>0) ? {start:endStr, weeks, rawValue, snap:true, endsAt:endStr} : null;
+        return;
+      }
       phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue, snap} : null;
     });
     const hiatuses = [];
@@ -4400,6 +4434,12 @@ export function initLegacyApp() {
       const weeks = wEl ? parseInt(wEl.value, 10) : NaN;
       if(start && parseDateUTC(start)===null){ hasInvalidYear = true; badYearFields.push(sEl); }
       if(start && weeks>0) phaseHiatuses[p.key] = {start, weeks};
+    });
+    // ENDS: each pinned phase's start, now that both hiatus lists are known. From here on the state is the same as
+    // a Starts phase typed with that Monday, so computeSchedule() needs no branch of its own.
+    Object.keys(phases).forEach(k=>{
+      const cfg = phases[k];
+      if(cfg && cfg.endsAt) cfg.start = isoOf(weeksStartForEnd(parseDateUTC(cfg.endsAt), cfg.weeks, hiatuses, phaseHiatuses[k]));
     });
     // ⭐ THE CALENDAR RANGE (owner ruling 3, 20 Oct 2026): the Show tab's two dates, which replace the
     // waterfall's full-year padding (computeSchedule). Either may be blank, and blank is today's padding.
@@ -7090,6 +7130,56 @@ export function initLegacyApp() {
     });
   });
 
+  // ⭐ ENDS (phaseEnds): Starts <-> Ends. Neither direction moves the phase. To Ends, end-<key> takes the end as
+  // scheduled now, the Friday of its last week (a phase with no dates yet gets an empty box to fill). To Starts,
+  // start-<key> already holds the start as worked out, and end-<key> is emptied: it was this mode's, and a later
+  // switch to Dates must prefill from the schedule rather than take a stale end. One undo step (one update()).
+  function setPhaseEnds(key, on){
+    if(!key || key === 'production' || (phaseEnds[key] === true) === on) return;
+    const endEl = document.getElementById('end-' + key);
+    const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key);
+    if(on){
+      if(endEl) endEl.value = seg ? isoOf(fridayOfWeek(addDays(seg.end, -1))) : '';
+      phaseEnds[key] = true;
+    } else {
+      delete phaseEnds[key];
+      if(endEl) endEl.value = '';
+    }
+    reflectPhaseEnds();
+    update();
+  }
+  // Delegated on the two row containers, as Hide in waterfall's tick is, so a custom row rebuilt by undo or Load
+  // needs no binding; the key is read off the card at event time.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('change', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('phase-anchor')) return;
+      setPhaseEnds(phaseRowKey(t.closest('.phase-row')), t.value === 'ends');
+    });
+    // The Ends box writes end-<key>, on its week's Friday (ruled: "Yes, no switch"). CAPTURE, so the end is written
+    // before a custom row's own blanket input -> update() listener runs. A value whose year cannot be read is
+    // written as typed, so readState() refuses it and rings this box, as it does a start's.
+    host.addEventListener('input', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('phase-endsdate')) return;
+      const key = phaseRowKey(t.closest('.phase-row'));
+      const endEl = key ? document.getElementById('end-' + key) : null;
+      if(!endEl) return;
+      const d = parseDateUTC(t.value);
+      const iso = d ? isoOf(fridayOfWeek(d)) : t.value;
+      if(endEl.value === iso) return;
+      endEl.value = iso;
+      update();
+    }, true);
+    // Typed a Wednesday? The box shows its Friday once it loses focus (reflectPhaseEnds leaves a focused box alone).
+    host.addEventListener('focusout', e=>{
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-endsdate')) setTimeout(reflectPhaseEnds, 0);
+    });
+  });
+
   // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
   // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
   // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates
@@ -7117,6 +7207,20 @@ export function initLegacyApp() {
     return `<label class="${cls} sw-row"${title ? ` title="${title}"` : ''}><span class="sw-label">${label}</span>${inputHtml}</label>`;
   }
   const SNAP_TITLE = 'On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick.';
+  // ⭐ ENDS (phaseEnds): a phase's date column, built like the Length column beside it (byUnitHtml): a caption line,
+  // then the box. Over a Weeks phase the caption is a select, Starts or Ends, as "Length · [Weeks ▾]" is; Days and
+  // Dates show the plain word (CSS off the Length select's checked option). With Ends, the id-less .phase-endsdate
+  // takes start-<key>'s place, and start-<key> stays in the document, hidden, holding the start as worked out.
+  // ⛔ No id on the select or the Ends box: an id would enter fields.byId. start-<key> keeps its place in DOCUMENT
+  // order (before unit-<key>), so fields.byId's key order, and so every saved file's bytes, are unchanged.
+  const ANCHOR_TITLE = 'Starts: the phase begins on this date. Ends: it finishes in this week, on the Friday, and its start is worked out back from its length.';
+  function startsFieldHtml(key){
+    return `<div class="ph-starts">
+        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${ANCHOR_TITLE}" aria-label="This date is when the phase"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
+        <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
+        <label class="ph-ends-box"><input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked"></label>
+      </div>`;
+  }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
   const HIDEWF_HTML = swRow('phase-hidewf', 'Hide in waterfall', '<input type="checkbox" class="phase-hidewf-cb">',
     'On: this phase shows in the month view and its PDF only. The waterfall, the Excel workbook and the waterfall PDF leave it out, with its automatic notes.');
@@ -7160,7 +7264,7 @@ export function initLegacyApp() {
       // where it always was, now inside the switch group, so fields.byId keeps its key order.
       const fieldsHtml = (p.key === 'production')
         ? `<label>Starts <input type="date" id="start-${p.key}"></label>`
-        : `<label>Starts <input type="date" id="start-${p.key}"></label>
+        : `${startsFieldHtml(p.key)}
            ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}`;
       const switchesHtml = (p.key === 'production')
         ? `${snapHtml}
@@ -7755,6 +7859,9 @@ export function initLegacyApp() {
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
     pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
+    delete phaseEnds[k];     // ...and its Ends
+    // ⚠️ Custom keys are not renumbered when one is removed (a restore re-keys rows to the saved keys instead), so
+    // no other phase's entry needs to move.
     row.remove();
     update();
     return true;
@@ -7780,7 +7887,7 @@ export function initLegacyApp() {
           <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>`,
         `<button class="icon-btn remove-custom-phase" title="Remove">&times;</button>`)}
       <div class="phase-fields">
-        <label>Starts <input type="date" id="start-${key}"></label>
+        ${startsFieldHtml(key)}
         ${byUnitHtml(key, true, `<input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12" aria-label="Weeks">`)}
       </div>
       <div class="phase-switches">
@@ -7880,6 +7987,16 @@ export function initLegacyApp() {
     // describes the phase in its previous unit.
     const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key);
     const startEl = document.getElementById('start-' + key);
+    // ENDS (phaseEnds) belongs to Weeks, so any change of unit returns the phase to Starts (back to Weeks too: it
+    // comes back on Starts). Leaving an Ends phase, end-<key> held ITS end, so it is rewritten as the phase is
+    // scheduled (Dates) or emptied (Days), never left to be taken later for an end typed in Dates. The flag can also
+    // be waiting from a month-view edge drag that switched to Dates with no event; then the drag's end stays.
+    const wasEnds = phaseEnds[key] === true && !!seg && !(seg.unit === 'days' || seg.unit === 'dates');
+    delete phaseEnds[key];
+    if(wasEnds){
+      const endEl = document.getElementById('end-' + key);
+      if(endEl) endEl.value = unit === 'dates' ? isoOf(segLastWeekday(seg)) : '';
+    }
     if(seg && unit !== 'weeks'){
       // Days and Dates use the typed start as typed, so write the start AS SCHEDULED: leaving Weeks
       // with Snap to Mon on, that is the week's Monday, not the typed day; leaving Days, it is the
@@ -7980,8 +8097,44 @@ export function initLegacyApp() {
       const end = endEl ? parseDateUTC(endEl.value) : null;
       if(end) endEl.value = isoOf(addDays(end, Math.round((to - was) / DAY_MS)));
     }
+    // An Ends phase (phaseEnds) is held by its END, so a mover moves that: by the same distance, to the nearest
+    // whole week, so it stays on a Friday (a month-view drag can move a start by days). The start written below
+    // is then solved again from it on the next update().
+    if(was && to && phaseEndsOn(key)){
+      const endEl = document.getElementById('end-' + key);
+      const end = endEl ? parseDateUTC(endEl.value) : null;
+      if(end) endEl.value = isoOf(addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
+    }
     el.value = iso;
     return true;
+  }
+  // ENDS: write each pinned phase's worked-out start into start-<key> (see update()). No event: update() is running.
+  function syncPhaseEndsStarts(state){
+    Object.keys(phaseEnds).forEach(k=>{
+      const cfg = state && state.phases ? state.phases[k] : null;
+      if(!cfg || !cfg.endsAt) return;
+      const el = document.getElementById('start-' + k);
+      if(el && el.value !== cfg.start) el.value = cfg.start;
+    });
+  }
+  // ENDS: every card's Starts / Ends select, its Ends box and its ends-mode class, from phaseEnds and end-<key>. Run
+  // by update(), so no restore, undo or Load path can leave a card disagreeing with what is scheduled. A box being
+  // typed in is left alone; it shows its Friday when it loses focus (the focusout handler runs this again).
+  function reflectPhaseEnds(){
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const sel = row.querySelector('select.phase-anchor');
+      if(!sel) return;
+      const key = phaseRowKey(row);
+      const want = phaseEnds[key] === true ? 'ends' : 'starts';
+      if(sel.value !== want) sel.value = want;
+      const on = phaseEndsOn(key);
+      if(row.classList.contains('ends-mode') !== on) row.classList.toggle('ends-mode', on);
+      const box = row.querySelector('.phase-endsdate'), endEl = document.getElementById('end-' + key);
+      if(!box || !endEl || document.activeElement === box) return;
+      const end = parseDateUTC(endEl.value);
+      const show = !on ? '' : end ? isoOf(fridayOfWeek(end)) : endEl.value;
+      if(box.value !== show) box.value = show;
+    });
   }
 
   // Does this phase have a length for Rebuild From to place it with? Production's comes from Show
@@ -16749,6 +16902,26 @@ export function initLegacyApp() {
     Object.keys(phaseHidden).sort().forEach(k=>{ o[k] = Object.assign({}, phaseHidden[k]); });
     return o;
   }
+  // ⭐ ENDS: A WEEKS PHASE PINNED BY ITS END (owner, 30 Oct 2026; mockups/weeks-end-date.html). Phase key -> true.
+  // The date over a Weeks phase reads Starts or Ends; with Ends the END holds, and the start is worked out back from
+  // it and the week count, so a longer count or a hiatus moves the start instead. Ruled "Yes, no switch": an Ends
+  // phase always ends on the FRIDAY of the week picked, and Snap to Monday is hidden.
+  //   - The end lives in end-<key>, the box Dates mode already uses (already in fields.byId, already moved by
+  //     setPhaseStart()). The visible box is the id-less .phase-endsdate beside start-<key>, mirrored both ways.
+  //   - start-<key> always holds the start as worked out (readState() solves it, update() writes it back), so frozen
+  //     readCfgForMeta(), every tool that reads a start, and an older build that ignores this key all see the real one.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `phaseEnds`, a sorted array of keys, written only while a Weeks phase
+  //     uses Ends, so a calendar that never does saves byte for byte as before. PERMANENT from the first file saved
+  //     with it. Never Production (its length is shoot days). The select carries NO id (it would enter fields.byId).
+  //   - Live only while the phase is in Weeks: a month-view edge drag switches the unit to Dates without an event, and
+  //     the flag then waits, unread, until the Length select's own handler (onCustomUnitChange) clears it.
+  let phaseEnds = {};
+  function phaseEndsOn(key){
+    return key !== 'production' && phaseEnds[key] === true && customPhaseUnit(key) === 'weeks';
+  }
+  function phaseEndsSnapshot(){
+    return Object.keys(phaseEnds).filter(k=> phaseEndsOn(k)).sort();
+  }
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -23069,6 +23242,11 @@ export function initLegacyApp() {
     // remove sidebar rows call once they have already changed the page height.
     const scrollSnap = captureScroll();
     const state = readState();
+    // ENDS: start-<key> takes the start readState() just worked out, BEFORE anything reads it (frozen render()'s meta
+    // line does, through readCfgForMeta()). ⚠️ The one field update() writes, which syncCustomUnitFallback()'s comment
+    // warns against: safe here because it changes only when an Ends phase's end, week count or a hiatus changed,
+    // and each of those is already an edit, so the value lands in that edit's undo step and never banks one alone.
+    syncPhaseEndsStarts(state);
     syncHiatusNamesFromSidebar();
     // A tool is moving the shoot: put every day override on its shoot day for the dates as they
     // stand NOW, before anything is scheduled from them (see beginShootDayMove).
@@ -23143,6 +23321,7 @@ export function initLegacyApp() {
     reflectHiatusRanges();
     reflectHiatusSwatches();
     refreshCustomUnitMeta(currentSchedule);
+    reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
@@ -23284,7 +23463,7 @@ export function initLegacyApp() {
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
     hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end, ' + PREP_FIELDS + ', #cal-range-start, #cal-range-end').forEach(el=>{
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end, .form-panel .phase-endsdate, ' + PREP_FIELDS + ', #cal-range-start, #cal-range-end').forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{
@@ -24619,6 +24798,7 @@ export function initLegacyApp() {
     // Snap to Mon box is hidden and readState() ignores it, so the tools must not honour it either --
     // chainedStart() would otherwise push it to the next Monday, Rebuild would pin it to one.
     if(customPhaseUnit(key) !== 'weeks') return false;
+    if(phaseEndsOn(key)) return true;   // an Ends phase is always whole weeks; its Snap to Monday is hidden and ignored
     const el = document.getElementById('snap-' + key);
     return el ? !!el.checked : true;
   }
@@ -25039,6 +25219,7 @@ export function initLegacyApp() {
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
+    phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -26404,6 +26585,10 @@ export function initLegacyApp() {
       // key. Nothing hidden is an ABSENT key, so a calendar that never hides a phase saves byte for byte as before.
       // Keys in sorted order: the undo stack compares snapshots as text.
       ...(Object.keys(phaseHidden).length ? {phaseHidden: phaseHiddenSnapshot()} : {}),
+      // 30 Oct 2026 (Ends, see phaseEnds): the Weeks phases held by their END, a sorted array of keys. ⛔ PERMANENT key.
+      // None is an ABSENT key, so a calendar that never uses Ends saves byte for byte as before. Each one's end is
+      // end-<key> and its worked-out start is start-<key>, both in fields.byId, so an older build opens it where it is.
+      ...(phaseEndsSnapshot().length ? {phaseEnds: phaseEndsSnapshot()} : {}),
       // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
       // written only while it holds something.
       ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
@@ -33494,6 +33679,19 @@ export function initLegacyApp() {
         if(Object.keys(o).length) s.phaseHidden = o; else delete s.phaseHidden;
       }
     }
+    // The Weeks phases held by their end (phaseEnds): a built-in phase other than Production, or a custom phase this
+    // file defines, each once. The app writes nothing else, so anything else is dropped and counted, and an emptied
+    // list is dropped (absent already means "none").
+    if('phaseEnds' in s){
+      if(!Array.isArray(s.phaseEnds)){ bad.n++; delete s.phaseEnds; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key).filter(k=> k !== 'production'));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = [];
+        s.phaseEnds.forEach(k=>{ if(typeof k === 'string' && known.has(k) && o.indexOf(k) < 0) o.push(k); else bad.n++; });
+        if(o.length) s.phaseEnds = o.sort(); else delete s.phaseEnds;
+      }
+    }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -33895,6 +34093,12 @@ export function initLegacyApp() {
     if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
       const v = snap.phaseHidden[k];
       if(k !== 'production' && isPlainObj(v) && v.sheet === true) phaseHidden[k] = {sheet: true};
+    });
+    // ⛔ UNCONDITIONAL (Ends, see phaseEnds): a file with no key holds every phase by its start -- never the previously
+    // open calendar's Ends. Rebuilt entry by entry; update() (refreshAfterRestore) puts the cards in step.
+    phaseEnds = {};
+    if(Array.isArray(snap.phaseEnds)) snap.phaseEnds.forEach(k=>{
+      if(typeof k === 'string' && k !== 'production') phaseEnds[k] = true;
     });
     // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
     // object should carry can never reach the store's prototype.

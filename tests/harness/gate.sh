@@ -1761,6 +1761,12 @@ done
 # Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and is not rewritten);
 # Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact day with no
 # week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# endsdate (owner, 30 Oct 2026: "what if for phases you could select EITHER starting date OR ending date", "Yes, no
+# switch", "build it") holds a Weeks phase held by its END (phaseEnds): the Starts / Ends select on every Weeks card
+# but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
+# move the start, a typed Wednesday read as its Friday, the picker's Fridays only, Shift All moving the end, Save /
+# Load / a file with no key / a hostile key, Length -> Dates, a custom phase, and a round trip saving byte for byte
+# as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1816,6 +1822,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              endsdate:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
