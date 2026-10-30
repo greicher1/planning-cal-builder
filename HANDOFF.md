@@ -85,7 +85,7 @@
 - Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
   (label tweak rule).
 
-### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch as `5bad4c7` (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit `65edf8f` (*"Restore it"*); NOT merged into `main`, NOT pushed (*"Not yet"*); gated build `3cf17115…`
+### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch as `5bad4c7` (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit `65edf8f` (*"Restore it"*); ➡️ **MERGED INTO LOCAL `main`** (owner: *"Merge into main"*): `main` merged into the branch twice (`c2e6194` for `64e9a16` + `ff84d6f`, the date picker's Mondays-only change and the weeks-end-date mockup, one README conflict, both entries kept; `ceb0dc5` for `2826feb`, HANDOFF only), then local `main` FAST-FORWARDED to it; NOT pushed (*"Not yet"*); gated build `3cf17115…`, merged build `0818b629…` (re-checked: `npm run check` 40/40, `rebuildticks` 19/19, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `builtindates` 17 + 15, `customunits` 23 + 28, `hdrcontrols` 12/12; no second full gate)
 
 - **The ask:** after the mockup (entry below) and the pros and cons of A and B, the owner: *"Build A"*. Not ruled,
   so built as the mockup showed them: the **starting ticks** (every built-in ticked, every custom phase unticked;
@@ -142,9 +142,8 @@
   `rebuildticks` U1/U2 now hold both cases (19/19).
 - **Open for the owner:** Close all gaps (above). Known limit, unchanged: a custom phase with no date can only go at
   the end of the chain.
-- ⚠️ **Before merging into `main`:** the branch now TRACKS `mockups/rebuild-from-ticks.html`, and the main checkout
-  still has it as an UNTRACKED file (the same content, made there on 29 Oct). Git can refuse a merge that would
-  overwrite an untracked file, so remove the main checkout's copy first (it is identical: `cmp` it).
+- The main checkout's untracked copy of `mockups/rebuild-from-ticks.html` (identical, `cmp`) was removed before the
+  fast-forward, since the branch tracks it.
 
 ### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED; ➡️ LAYOUT A BUILT (entry above) ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
 
