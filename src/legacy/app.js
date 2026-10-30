@@ -3952,7 +3952,7 @@ export function initLegacyApp() {
   // location picker, after the place's own caveat. Change the text in the generator, never here.
   const REGION_CAVEATS = {
     'CA-QC': "Pick either Good Friday OR Easter Monday. Good Friday is enabled by default.",
-    'CA-MB': "The union calls the Civic Holiday, Remembrance Day and Boxing Day “proclaimed” holidays, not statutory ones. They’re included; switch one off if your crew works it.",
+    'CA-MB': "The union calls the Civic Holiday, Remembrance Day and Boxing Day “proclaimed” holidays, not statutory ones. They’re enabled by default but should be disabled below as needed.",
     'CA-YT': "These are Yukon’s legal holidays. Crews usually work under the BC and Yukon film unions’ agreement, which may add days, so check before locking dates.",
     'CA-NT': "These are the NWT’s legal holidays. The Teamsters 362 agreement also gives Family Day and Boxing Day, so check your crew’s agreement.",
     'CA-NU': "These are Nunavut’s legal holidays, plus Truth and Reconciliation Day. No crew agreement was found, so check before locking dates.",
@@ -3971,7 +3971,7 @@ export function initLegacyApp() {
   // box under the location picker -- source, holidays, added, weekends, the source link and the date it
   // was last checked. reflectRegionUI() draws it after the warning. Change the text in the generator.
   const REGION_NOTES = {
-    'US-GEN': {"source": "IATSE Area Standards Agreement and the West Coast Studio Local Agreements, 2024–2027.", "holidays": "11 per year. Juneteenth was added in 2025.", "weekends": "a Saturday holiday moves to the Friday before, a Sunday one to the Monday after. On a six-day week, a Saturday holiday stays on Saturday.", "url": "https://www.asa.iatse.net/", "checked": "11 Sep 2026"},
+    'US-GEN': {"source": "IATSE Area Standards Agreement and the West Coast Studio Local Agreements, 2024–2027.", "holidays": "11 per year. Juneteenth was added in 2025. Veterans Day is not included.", "weekends": "a Saturday holiday moves to the Friday before, a Sunday one to the Monday after. On a six-day week, a Saturday holiday stays on Saturday.", "url": "https://www.asa.iatse.net/", "checked": "11 Sep 2026"},
     'US-NY': {"source": "IATSE Local 52 (2024–2027) and Teamsters Local 817 (2025–2028) agreements.", "holidays": "11 per year. Same count as Area Standards, but Veterans Day instead of Good Friday.", "weekends": "a Saturday holiday moves to the Friday before, a Sunday one to the Monday after. On a six-day week, a Saturday holiday stays on Saturday.", "url": "https://amptp.org/contracts/", "checked": "29 Oct 2026"},
     'CA-BC': {"source": "BCCFU Master Agreement (IATSE 891, Teamsters 155, ICG 669), 2025–2028.", "holidays": "11 per year.", "weekends": "move to the next weekday.", "url": "https://cmpa.ca/wp-content/uploads/2025/08/2025-BCCFU-Master-Agreement.pdf", "checked": "11 Sep 2026"},
     'CA-ON': {"source": "DGC Ontario agreement and IATSE Local 873, 2026–2028.", "holidays": "11 per year: Ontario law’s 9, plus the Civic Holiday and Truth and Reconciliation Day.", "weekends": "move to the next weekday.", "url": "https://cmpa.ca/wp-content/uploads/2026/05/DGC-CMPA-Standard-Agreement-2026-2028-ONTARIO-Final-website.pdf", "checked": "11 Sep 2026"},

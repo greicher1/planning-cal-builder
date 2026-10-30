@@ -795,7 +795,8 @@ UK_SOURCE = "Pact/Bectu Scripted TV and Major Motion Picture agreements."
 
 BOX = {
     "US-GEN": dict(source="IATSE Area Standards Agreement and the West Coast Studio Local Agreements, 2024–2027.",
-                   holidays="11 per year. Juneteenth was added in 2025.", weekends=WK_US),
+                   holidays="11 per year. Juneteenth was added in 2025. Veterans Day is not included.",
+                   weekends=WK_US),
     "US-NY":  dict(source="IATSE Local 52 (2024–2027) and Teamsters Local 817 (2025–2028) agreements.",
                    holidays="11 per year. Same count as Area Standards, but Veterans Day instead of Good Friday.",
                    weekends=WK_US),
@@ -811,7 +812,7 @@ BOX = {
     "CA-AB":  dict(source="IATSE Local 212 (Calgary, 2026–2027) and Local 210 (Edmonton, 2025) agreements.",
                    holidays="12 per year. The Teamsters 362 agreement doesn’t include Heritage Day.", weekends=WK_NEXT),
     "CA-MB":  dict(warn="The union calls the Civic Holiday, Remembrance Day and Boxing Day “proclaimed” holidays, not "
-                        "statutory ones. They’re included; switch one off if your crew works it.",
+                        "statutory ones. They’re enabled by default but should be disabled below as needed.",
                    source="IATSE Local 856 agreement, 2026.", holidays="12 per year.", weekends=WK_NEXT),
     "CA-SK":  dict(source="DGC Saskatchewan agreement (2023–2025) and the IATSE Local 295 agreement.",
                    holidays="12 per year.", weekends=WK_NEXT),

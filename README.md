@@ -29,6 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — U.S. Area Standards' notes say Veterans Day is not included; Manitoba's warning reworded (29 Oct 2026)
+
+The owner asked for the U.S. Area Standards Holidays line to read *"11 per year. Juneteenth was added in 2025.
+Veterans Day is not included."* (it ended at "2025."). Changed in `tools/gen_holidays.py`'s `BOX` table and
+regenerated. Then Manitoba's warning, at the owner's wording: its second sentence was *"They’re included; switch one
+off if your crew works it."* and is now *"They’re enabled by default but should be disabled below as needed."* The
+regenerated block differs from the engine's on exactly those two lines, and `validate_holidays.py` is CLEAN (no
+holiday date moved). Verified with `npm run check` (40/40), `regioncaveat` (7/7) and `caholidays` (11/11) on the build.
+
 ### Unreleased — Melbourne's notes no longer say the MEAA agreement is members-only (29 Oct 2026)
 
 The owner asked for *"The MEAA crew agreement is members-only."* to go from the Melbourne notes box. The Source line
