@@ -50,7 +50,9 @@
     Veterans Day is not included." And Manitoba's warning ends "They’re enabled by default but should be disabled
     below as needed." (was "They’re included; switch one off if your crew works it."). Regenerated block differs from
     the engine's on those two lines only; `validate_holidays.py` CLEAN, `npm run check` 40/40, `regioncaveat` 7/7,
-    `caholidays` 11/11 (both match Manitoba on "proclaimed"). No full gate: chrome text. Not committed.
+    `caholidays` 11/11 (both match Manitoba on "proclaimed"). No full gate: chrome text. **Live at `a64fd1f`**
+    (owner's picker, Commit + Push; pushed 17:43:00, the live `index.html` matched the tested build `c63ebbab…` byte
+    for byte at 17:43:38).
 - **Mexico: BUILT** (owner: *"As "Mexico""*, with their own warning text). Region `MX`, place `mx-mexico`, under
   "Latin America". LFT Art. 74's seven days, plus dated `extras`: election Sundays 2027-06-06 and 2030-06-02, and
   the inauguration 2030-10-01. `observance="none"`.
