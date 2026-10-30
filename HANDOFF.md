@@ -4,7 +4,58 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — BUILT in the main checkout, UNCOMMITTED, NOT PUSHED
+### 🔨 30 Oct 2026: RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE — BUILT on branch `holiday-note-edit` (worktree `.claude/worktrees/holiday-note-edit`, from `main` at `2826feb`; its `node_modules` is a symlink: unlink it before `git worktree remove`), UNCOMMITTED, NOT PUSHED; full gate clean for this change
+
+- **The ask:** the owner's screenshot of Thanksgiving's month-view note editor, *"do you see the issue?"* The editor
+  for 11/26 held "Day After Thanksgiving" too (it was the WEEK's waterfall note); a colour recoloured both; an edit
+  ("Thanksgiving, office closed") left the original on the day as well (twice) and printed the edit in the waterfall,
+  Excel and the waterfall PDF, which hide holidays. Reproduced on the build before any change. Tracker card
+  `month-holiday-note-one-line`.
+- **How the design moved (read this before reopening it):**
+  - Rulings by picker: colour **"Just that holiday"** (with the frozen-edit gate named in the option), holiday text
+    **"Month view only"**, other waterfall notes open **"Just the clicked line"**.
+  - The owner then floated a symbol on untouched holidays, with any edit turning the holiday into a regular month
+    note. Then the owner overruled it themself: *"if someone just wants to rename a holiday slightly ... we dont want
+    it to loose its features as a holiday ... thats really the only use case"*. So a holiday is RENAMED, never
+    converted, and no symbol.
+  - Final rulings: rename **"Just this date"**, new name shows **"Everywhere it shows"** (this supersedes "Month view
+    only" for text), and yes to the same in the waterfall (*"do you think this same menu should work/show in the
+    waterfall view?"*).
+- **Built (`src/legacy/app.js`):**
+  - `holidayNames` / `holidayColors` (hid → name / colour), declared beside `holidayOff`. The name is applied ONCE, in
+    `fullHolidayList()` (`name` = `holidayNameFor()`, `origName` = the list's own); the hid is still `holidaySlug()`
+    of the original. So notes, the Holidays list (hover "renamed from …"), the day menu, the date pickers and every
+    writer follow with no frozen edit.
+  - Month editor (`openMvNoteEditor`): `mvHolidayLineInfo()` (the old `mvIsHolidayLine` body, now returning which
+    holiday) makes a click on a holiday line open **holiday mode**: heading "m/d/yy · Holiday", the name alone, Enter
+    saves, clear restores (`stripHolidayDate`, `setHolidayName`, which also rewrites a waterfall override carrying the
+    old line word for word and copies the line's month style/place keys). A rename runs `update()`, not `render()`.
+    It replaces the edge-month rule (a month-only holiday with no waterfall row used to open a blank day note).
+  - Other waterfall lines: **line mode**, the editor holds the clicked line and `writeActiveMvNote` splices it back;
+    the day pin comes from `wfLinePin()` (keep the existing pin while another undated line shares the note, else the
+    clicked day). Colour still the week's.
+  - Waterfall editor: `wfHolidayRenames()` in `commitActiveNoteEditor` turns a changed holiday line (same line count,
+    no other trailing date) into a rename, so the cell stays automatic.
+  - ⛔ **Frozen edit H1** in `renderMonthView`: `const fill = b.color || wfColor`. `mvDayNotePlan` sets `b.color`
+    only while some holiday has a colour, so gates 10 and 13 should stay byte-identical (the full gate is the proof).
+  - Snapshot: both keys PERMANENT, ABSENT while empty, sorted (`sortedObj`); sanitized (name = one line ≤200, colour
+    = hex or No fill); restored unconditionally, entry by entry; New clears both, Reset Month Notes clears colours only.
+- **Verified:** new leg `holidayrename` 14/14 in `gate.sh` (fixture `holidayrename.sptcal`, synthetic); `monthnotes`
+  8/8 (N4 rewritten, N6 added); `mvnotes` 14/14 + 30/30 (E7 rewritten); `wfnotecolors`, `mvtextstyle`, `mvmenu`,
+  `hidewf`, `caholidays`, `autonote` all green; `npm run check` 40/40; seen in the app. **Full gate 3,437 PASS / 3
+  FAIL** (12:02-12:33, build `87b763bf…`). The 3 fails (`stintreshape` timeout, `phasesui` P1, gate 13 on
+  `stintswap-reshape`) are NOT this change: see the next bullet. With that fixture as it was, all three pass here and gate
+  13 for it is byte-identical, so H1 moved no baseline.
+- ⚠️ **Found: local `main` carries a broken fixture.** `62fd9ab` ("HANDOFF: Region label removal live at 9522aa3",
+  committed 09:50 30 Oct, NOT pushed) also committed `tests/fixtures/stintswap-reshape.sptcal`, a working-tree edit
+  from 21 Oct (more episodes, two more custom phases) that was sitting uncommitted in the main checkout. Every gate run
+  from `main` since fails those three checks (the `weeks-end-date` branch's gate did too). The fix is restoring the file
+  from `62fd9ab~1`; it needs the owner's say, since the edit may have been theirs.
+- **Not done / known:** the frozen tooltip on a holiday's month block still says "double-click to edit (also updates
+  the Waterfall)" (changing it would move gate 10's print baselines, so it was left). A holiday's own colour does not
+  reach the waterfall cell (one cell, one fill).
+
+### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — COMMITTED on `main` as `64e9a16` (owner's picker, *"Commit locally"*), NOT PUSHED (owner: *"Not yet"*)
 
 - **The ask** (owner): *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates
   except mondays?"*, then *"ok do all the changes you suggested"*. Tracker card `snap-monday-picker`.

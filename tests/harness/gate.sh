@@ -1799,6 +1799,11 @@ done
 # Wk N"), Automatic notes row and Save; New puts it back; and the OLD name, typed or loaded from a real v1.8.0 file,
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
+# holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
+# editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
+# waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
+# month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
+# the month view, the Holidays list and the workbook.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1836,6 +1841,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
               wfnotecolors:wfkeys:400 \
+              holidayrename:holidayrename:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

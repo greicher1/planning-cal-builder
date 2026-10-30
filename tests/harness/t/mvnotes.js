@@ -195,15 +195,17 @@ window.addEventListener('load', function () { (async function () {
     add('E6', 'a custom holiday in a GAP between two phases (4/1/26, between Writer\'s Room and Pre Prep) draws in the month view too',
       eq(e6, ['Office Move 4/1/26']), e6, ['Office Move 4/1/26']);
 
-    // E7: a click on the edge holiday, whose week has no waterfall row, adds a DAY note there, as its "+" would.
+    // E7: a click on the edge holiday, whose week has no waterfall row, never opens a waterfall note. Until 30 Oct 2026
+    // it opened a blank DAY note there, as its "+" would; since then every holiday opens its own editor (its name, its
+    // month colour), which writes no waterfall note either (owner, 30 Oct 2026; holidayrename holds the rest).
     await goTo('December 2025');
     var hb = blocks('2025-12-15', 'wf')[0];
     if(hb) hb.click();
     await T.sleep(200);
-    var e7 = {open: !!pop(), hint: pop() ? (q('.mv-note-pop-hint', pop()) || {}).textContent : '', text: pop() ? q('textarea', pop()).value : null};
+    var e7 = {open: !!pop(), head: pop() ? (q('.mv-note-pop-day', pop()) || {}).textContent : '', hint: pop() ? (q('.mv-note-pop-hint', pop()) || {}).textContent : '', text: pop() ? q('textarea', pop()).value : null};
     escEditor(); await T.sleep(100);
-    add('E7', 'clicking the edge month\'s holiday (a week with no waterfall row) opens a DAY note editor ("Month view only"), blank, never a waterfall note',
-      e7.open && /Month view only/.test(e7.hint) && e7.text === '' && !pop(), e7, 'a blank day-note editor');
+    add('E7', 'clicking the edge month\'s holiday (a week with no waterfall row) opens the HOLIDAY editor on its name, never a waterfall note',
+      e7.open && /Holiday/.test(e7.head) && /Renames this holiday/.test(e7.hint) && !/Waterfall/.test(e7.hint) && e7.text === 'Studio Shutdown' && !pop(), e7, 'the holiday editor on "Studio Shutdown"');
 
     if(!st){
       // ================= P: item 2, the editor =================
