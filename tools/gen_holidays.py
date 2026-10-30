@@ -851,8 +851,7 @@ BOX = {
                    holidays="12 per year, including Easter Sunday and Whit Sunday, which always fall on a Sunday.",
                    weekends=WK_NONE),
     "AU-VIC": dict(warn="Outside Melbourne, a council can swap Melbourne Cup Day for its own local holiday.",
-                   source="Victoria’s Public Holidays Act and the Broadcasting award. The MEAA crew agreement is "
-                          "members-only.",
+                   source="Victoria’s Public Holidays Act and the Broadcasting award.",
                    holidays="13 per year. The AFL Grand Final Friday date is confirmed each year.",
                    weekends="only New Year’s Day, Australia Day, Christmas and Boxing Day move to the next weekday."),
     "FR":     dict(warn="In Alsace-Moselle, add Good Friday and 26 December. TV productions work Whit Monday.",

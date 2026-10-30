@@ -29,6 +29,13 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Melbourne's notes no longer say the MEAA agreement is members-only (29 Oct 2026)
+
+The owner asked for *"The MEAA crew agreement is members-only."* to go from the Melbourne notes box. The Source line
+now reads "Victoria’s Public Holidays Act and the Broadcasting award." Changed in `tools/gen_holidays.py`'s `BOX`
+table and regenerated: the generated block matches the engine's line for line, and no holiday date moved. Verified
+with `npm run check` (40/40) and the `regioncaveat` leg (7/7) on the build.
+
 ### Unreleased — Canada's holidays on the crew agreements, every province and territory, and an IATSE tag on the days the practical list lacks (29 Oct 2026, branch `canada-holidays`)
 
 The owner ruled a "practical production list" of Canadian union holidays *"a good source of truth"*, with Truth and
