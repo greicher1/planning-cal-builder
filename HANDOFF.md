@@ -58,7 +58,8 @@
     Memorial Day and Canada Day.", which the owner asked the meaning of). The holiday's own name, "Memorial Day /
     Canada Day", is untouched (`holidaySlug` is its id in saved files). Regenerated block identical to the engine's;
     `validate_holidays.py` CLEAN, `npm run check` 40/40, `regioncaveat` 7/7, `caholidays` 11/11. No full gate:
-    chrome text. Not committed.
+    chrome text. **Live at `2b95fd6`** (owner's picker, Push; pushed 17:49:25, the live `index.html` matched the tested
+    build `4808c387…` byte for byte at 17:51:16).
 - **Mexico: BUILT** (owner: *"As "Mexico""*, with their own warning text). Region `MX`, place `mx-mexico`, under
   "Latin America". LFT Art. 74's seven days, plus dated `extras`: election Sundays 2027-06-06 and 2030-06-02, and
   the inauguration 2030-10-01. `observance="none"`.
