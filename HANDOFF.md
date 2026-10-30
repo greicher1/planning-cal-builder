@@ -4,37 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — BUILT in the main checkout, UNCOMMITTED, NOT PUSHED
-
-- **The ask** (owner): *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates
-  except mondays?"*, then *"ok do all the changes you suggested"*. Tracker card `snap-monday-picker`.
-- **What was wrong:** `DatePop.jsx` decided week-vs-day by one test, `target.id !== 'custom-hol-date'`. So every
-  other field got the Monday band and every day was clickable. With Snap on, a picked Wednesday sat in the Starts box
-  while `computeSchedule()` started the phase that Monday. With Snap off, or on a Days/Dates phase, the band showed a
-  Monday start that never happened.
-- **Built:** `fieldKind(el)` in `DatePop.jsx` reads the DOM the engine reads (a local copy of `phaseSnapped()`: the
-  `unit-<key>` value first, then `snap-<key>`, a missing box = snapped), and returns:
-  - `'monday'`: `start-<key>` when snapped, `.hiatus-start` and `.phiatus-start` (`computeSchedule` always
-    `mondayOf`s them), `#tool-solve-date` when `#tool-solve-phase`'s phase is snapped (`rebuildBackwards` pins
-    `anchorMonday` then). Non-Mondays get `.dp-off` + `aria-disabled` + `tabIndex -1` and no onClick. The picked
-    Monday is capped alone (`.dp-cap.dp-solo`), with no band. A hint line explains it (one wording for phases, one for
-    hiatuses).
-  - `'day'`: `start-<key>` when not snapped, `end-<key>`, `#custom-hol-date`, `#tool-anchor-date` while
-    `#tool-anchor-edge` is `end` (`weeksToFinishBy` floors on the exact day). No band, no hint.
-  - `'week'`: `#cal-range-start` / `-end` (cut by `mondayOf`) and Anchor To's start (`weeksBetweenMondays`). Unchanged.
-- ⚠️ **`aria-disabled`, not `disabled`.** With `disabled`, Chrome drops mouse events on the button, so the popover's
-  `onMouseDown` preventDefault never ran and a click on a greyed day took focus out of the field (seen in the browser
-  pane).
-- **Not changed, on purpose:** typing; the engine's own snapping; no field is rewritten (a Wednesday already in a
-  snapped field stays, and the picker caps its Monday); toggling Snap leaves the date alone, so Snap off still
-  restores the typed day. Old calendars open unchanged. No frozen code, no id (`.date-pop` holds none), no snapshot key.
-- **Proof:** new leg `datepick` (17/17 on the build; on the old `DatePop.jsx` it goes red at P1/P2 and stops), added
-  to `gate.sh` on its own line. `npm run check` 40/40, `snaptools` 14/14, `calrange` 18/18, `snapoff` and
-  `builtindates` pass. Seen in the browser pane. No full gate (chrome-only rule).
-- **For the Ends-mode plan below:** offering only Fridays in Ends mode is one more `fieldKind` branch returning a
-  `'friday'` kind. The `'monday'` branch's disabled-day styling would carry over unchanged.
-
-### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, NO PLAN, NO APP CODE
+### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ONLY, NO APP CODE ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html))
 
 - **The ask** (owner, 30 Oct 2026): *"what if for phases you could select EITHER starting date OR ending date. So if
   you selected ending date and then 20 weeks, it would calculate backwards"*, in Weeks mode, and whether Ends should
@@ -64,6 +34,18 @@
   trap `unit-<key>` was defaulted against), and gate 5 is re-cut. The backward hiatus walk is the mirror of
   `extendEndForHiatus()`, inside `computeSchedule()`, which is not on the frozen list. The picker should offer only
   Fridays in Ends mode, the twin of card `snap-monday-picker`.
+- **The mockup** (owner: "Mock it up"): a copy of the live Post card (measured in the browser pane) with "Starts"
+  as a caption select like "Length · Weeks", beside a waterfall stand-in with a "What moved" strip in the owner's
+  Pushed / Pulled wording. Ends hides Snap to Monday and "Start after previous phase"; the picker (a copy of
+  `DatePop.jsx` with that day's Monday-only change) offers only Fridays; a typed Wednesday or Sunday reads as its
+  Friday; Dates mode drops the choice. Synthetic calendar, one live phase, a fixed hiatus. Checked in the browser
+  pane with scripted and real clicks: 20 → 22 weeks in Ends pulls the start 2 wks and holds Fri 10/16/26, the
+  hiatus pulls it 2 more, Starts moves the end instead; no console errors.
+  - **Open for the owner:** (1) the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
+    `seg.end − 1`), so it says 10/18/26 beside a box saying 10/16/26: leave it, or end it on the Friday everywhere
+    (suggested; reachable without a frozen edit by the observer pattern `reflectHalfDayTotal` uses)? (2) Custom
+    Weeks phases too (suggested yes)? (3) "Start after previous phase" hidden in Ends (shown), or kept and
+    switching the phase back to Starts?
 
 ### ✅ 30 Oct 2026: REGION SELECT'S "LOCATION" LABEL REMOVED — ✅ LIVE at `9522aa3` (owner's picker, commit + push; live `index.html` matched the build `e6d5d0bc…`)
 
