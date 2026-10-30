@@ -4,9 +4,17 @@
   {
    "key": "custom2",
    "colorIndex": 7
+  },
+  {
+   "key": "custom3",
+   "colorIndex": 1
+  },
+  {
+   "key": "custom5",
+   "colorIndex": 2
   }
  ],
- "customPhaseCounter": 2,
+ "customPhaseCounter": 5,
  "phaseColorOverride": {
   "prodPrep": 1,
   "prePrep": 3
@@ -15,7 +23,7 @@
   {
    "id": "ep1",
    "name": "Episode 101",
-   "days": "14",
+   "days": "9",
    "nameEdited": false,
    "daysEdited": true
   },
@@ -29,45 +37,129 @@
   {
    "id": "ep3",
    "name": "Episode 103",
-   "days": 12,
+   "days": "14",
    "nameEdited": false,
-   "daysEdited": false
+   "daysEdited": true
   },
   {
    "id": "ep4",
    "name": "Episode 104",
-   "days": 12,
+   "days": "14",
    "nameEdited": false,
-   "daysEdited": false
+   "daysEdited": true
   },
   {
    "id": "ep5",
    "name": "Episode 105",
-   "days": 12,
+   "days": "14",
    "nameEdited": false,
-   "daysEdited": false
+   "daysEdited": true
   },
   {
    "id": "ep6",
    "name": "Episode 106",
-   "days": 12,
+   "days": "14",
+   "nameEdited": false,
+   "daysEdited": true
+  },
+  {
+   "id": "ep7",
+   "name": "Episode 107",
+   "days": 14.5,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep8",
+   "name": "Episode 108",
+   "days": 14.5,
    "nameEdited": false,
    "daysEdited": false
   }
  ],
- "episodeCounter": 6,
+ "episodeCounter": 8,
+ "blockDefs": [
+  {
+   "id": "blk1",
+   "name": "Block 1",
+   "days": "22",
+   "daysEdited": true,
+   "episodes": [
+    "ep2",
+    "ep1"
+   ]
+  },
+  {
+   "id": "blk2",
+   "name": "Block 2",
+   "days": "20",
+   "daysEdited": true,
+   "episodes": [
+    "ep3",
+    "ep4"
+   ]
+  },
+  {
+   "id": "blk3",
+   "name": "Block 3",
+   "days": 20,
+   "daysEdited": false,
+   "episodes": [
+    "ep5",
+    "ep6"
+   ]
+  },
+  {
+   "id": "blk4",
+   "name": "Block 4",
+   "days": 20,
+   "daysEdited": false,
+   "episodes": [
+    "ep7",
+    "ep8"
+   ]
+  }
+ ],
+ "blockCounter": 4,
+ "blockAssignEdited": false,
+ "episodeShootOrder": [
+  "ep2",
+  "ep1",
+  "ep3",
+  "ep4",
+  "ep5",
+  "ep6",
+  "ep7",
+  "ep8"
+ ],
  "userNotes": {
   "2027-10-18": {
    "text": "Start Principal Photography 10/18/27"
   }
  },
  "dayNotes": {},
- "mvExtraLanes": {},
+ "mvExtraLanes": {
+  "2027-10-04": 1,
+  "2026-09-28": 1,
+  "2027-11-01": 1,
+  "2027-10-25": 1
+ },
  "dayNoteColors": {},
+ "dayOverrides": {
+  "2027-11-12": "off",
+  "2027-11-15": "off",
+  "2027-11-16": "off",
+  "2027-10-21": "off",
+  "2027-10-22": "off",
+  "2027-11-10": "off",
+  "2027-11-18": "off"
+ },
  "headerMode": "auto",
  "headerManual": {},
+ "headerTemplates": false,
  "mvHeaderMode": "auto",
  "mvHeaderManual": {},
+ "mvHeaderTemplates": false,
  "headerFormat": {},
  "mvHeaderFormat": {},
  "noteColors": {},
@@ -85,13 +177,75 @@
   "2027-03-01|writersRoom": "WR Break",
   "2027-03-08|writersRoom": "WR Break"
  },
- "holidayView": {},
+ "holidayView": {
+  "thanksgiving@2026": {
+   "sheet": true
+  },
+  "new-years-day@2027": {
+   "sheet": false
+  },
+  "family-day@2027": {
+   "sheet": false
+  }
+ },
  "holidayOff": {},
  "customHolidays": [],
- "viewMode": "sheet",
- "sidebarTab": "show",
- "colWidths": {},
- "rowHeights": {},
+ "viewMode": "month",
+ "singleColumn": false,
+ "sidebarTab": "phases",
+ "prepPauseOff": true,
+ "sideBoxes": {
+  "boxes": [
+   {
+    "side": "right",
+    "kind": "key",
+    "title": "Color Key",
+    "names": {},
+    "hidden": []
+   },
+   {
+    "side": "right",
+    "kind": "text",
+    "title": "Notes",
+    "lines": [
+     {
+      "t": "Note"
+     },
+     {
+      "t": "Note"
+     },
+     {
+      "t": "Note"
+     },
+     {
+      "t": "Note"
+     },
+     {
+      "t": "Note"
+     },
+     {
+      "t": "Note"
+     }
+    ]
+   }
+  ],
+  "widths": {
+   "right": 43.54
+  }
+ },
+ "mvNumberShootDays": true,
+ "colWidths": {
+  "y2026:notes": 33.57,
+  "y2028:s1": 16.05,
+  "y2028:s0": 21.95
+ },
+ "colWidthsAlt": {},
+ "rowHeights": {
+  "40": 39
+ },
+ "rowHeightsByWeek": {
+  "2026-10-12": 39
+ },
  "cellSpans": {
   "2027-08-09|prePrep": {
    "l": 0,
@@ -229,7 +383,48 @@
   },
   "2028-02-07|production": {
    "l": 0,
-   "r": 1
+   "r": 0,
+   "k": 1
+  },
+  "2027-11-08|custom5": {
+   "l": 0,
+   "r": 1,
+   "k": 2
+  },
+  "2027-11-15|custom3": {
+   "l": 0,
+   "r": 1,
+   "k": 2
+  },
+  "2028-03-13|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2028-03-20|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2028-03-27|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2028-04-03|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2028-04-10|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2028-04-17|production": {
+   "l": 0,
+   "r": 1,
+   "k": 1
   }
  },
  "gridColSwaps": {},
@@ -242,20 +437,32 @@
    "season-num": {
     "value": "1"
    },
+   "show-mode": {
+    "value": "episodes"
+   },
    "shoot-days-per-ep": {
-    "value": "12"
+    "value": "14.5"
    },
    "num-episodes": {
-    "value": "6"
+    "value": "8"
    },
-   "union-country": {
-    "value": "CA"
+   "num-blocks": {
+    "value": "4"
    },
-   "union-usregion": {
-    "value": "US-GEN"
+   "days-per-block": {
+    "value": "20"
    },
-   "union-subregion": {
-    "value": "CA-BC"
+   "show-version": {
+    "value": ""
+   },
+   "cal-range-start": {
+    "value": ""
+   },
+   "cal-range-end": {
+    "value": ""
+   },
+   "union-place": {
+    "value": "ca-bc"
    },
    "custom-hol-name": {
     "value": ""
@@ -269,8 +476,17 @@
    "start-writersRoom": {
     "value": "2026-10-12"
    },
+   "unit-writersRoom": {
+    "value": "weeks"
+   },
    "weeks-writersRoom": {
-    "value": "39"
+    "value": "43"
+   },
+   "end-writersRoom": {
+    "value": "2027-08-06"
+   },
+   "snap-writersRoom": {
+    "checked": true
    },
    "phiatus-en-writersRoom": {
     "checked": true
@@ -290,8 +506,17 @@
    "start-prePrep": {
     "value": "2027-07-19"
    },
+   "unit-prePrep": {
+    "value": "weeks"
+   },
    "weeks-prePrep": {
     "value": "7"
+   },
+   "end-prePrep": {
+    "value": ""
+   },
+   "snap-prePrep": {
+    "checked": true
    },
    "phiatus-en-prePrep": {
     "checked": false
@@ -311,8 +536,17 @@
    "start-prodPrep": {
     "value": "2027-08-16"
    },
+   "unit-prodPrep": {
+    "value": "weeks"
+   },
    "weeks-prodPrep": {
     "value": "9"
+   },
+   "end-prodPrep": {
+    "value": ""
+   },
+   "snap-prodPrep": {
+    "checked": true
    },
    "phiatus-en-prodPrep": {
     "checked": false
@@ -326,14 +560,23 @@
    "phiatus-weeks-prodPrep": {
     "value": "2"
    },
+   "prep-name": {
+    "value": "Episodic Prep"
+   },
+   "prep-days": {
+    "value": "8"
+   },
    "name-production": {
     "value": "Production"
    },
    "start-production": {
-    "value": "2027-10-18"
+    "value": "2027-10-21"
+   },
+   "snap-production": {
+    "checked": false
    },
    "weeks-production": {
-    "value": "76"
+    "value": "108"
    },
    "phiatus-en-production": {
     "checked": true
@@ -360,10 +603,19 @@
     "value": "Post"
    },
    "start-post": {
-    "value": "2028-03-06"
+    "value": "2028-04-24"
+   },
+   "unit-post": {
+    "value": "dates"
    },
    "weeks-post": {
     "value": "30"
+   },
+   "end-post": {
+    "value": "2028-11-17"
+   },
+   "snap-post": {
+    "checked": true
    },
    "phiatus-en-post": {
     "checked": false
@@ -383,8 +635,17 @@
    "start-localization": {
     "value": ""
    },
+   "unit-localization": {
+    "value": "weeks"
+   },
    "weeks-localization": {
     "value": ""
+   },
+   "end-localization": {
+    "value": ""
+   },
+   "snap-localization": {
+    "checked": true
    },
    "phiatus-en-localization": {
     "checked": false
@@ -404,8 +665,23 @@
    "start-custom2": {
     "value": "2028-03-06"
    },
+   "unit-custom2": {
+    "value": "days"
+   },
    "weeks-custom2": {
     "value": "1"
+   },
+   "days-custom2": {
+    "value": "3"
+   },
+   "end-custom2": {
+    "value": ""
+   },
+   "snap-custom2": {
+    "checked": true
+   },
+   "wknum-custom2": {
+    "checked": true
    },
    "phiatus-en-custom2": {
     "checked": false
@@ -417,6 +693,78 @@
     "value": ""
    },
    "phiatus-weeks-custom2": {
+    "value": "2"
+   },
+   "name-custom3": {
+    "value": "Test"
+   },
+   "start-custom3": {
+    "value": "2027-11-15"
+   },
+   "unit-custom3": {
+    "value": "days"
+   },
+   "weeks-custom3": {
+    "value": "1"
+   },
+   "days-custom3": {
+    "value": "2"
+   },
+   "end-custom3": {
+    "value": "2027-11-10"
+   },
+   "snap-custom3": {
+    "checked": true
+   },
+   "wknum-custom3": {
+    "checked": true
+   },
+   "phiatus-en-custom3": {
+    "checked": false
+   },
+   "phiatus-name-custom3": {
+    "value": ""
+   },
+   "phiatus-start-custom3": {
+    "value": ""
+   },
+   "phiatus-weeks-custom3": {
+    "value": "2"
+   },
+   "name-custom5": {
+    "value": "Hello"
+   },
+   "start-custom5": {
+    "value": "2027-11-08"
+   },
+   "unit-custom5": {
+    "value": "dates"
+   },
+   "weeks-custom5": {
+    "value": "1"
+   },
+   "days-custom5": {
+    "value": ""
+   },
+   "end-custom5": {
+    "value": "2027-11-08"
+   },
+   "snap-custom5": {
+    "checked": true
+   },
+   "wknum-custom5": {
+    "checked": true
+   },
+   "phiatus-en-custom5": {
+    "checked": false
+   },
+   "phiatus-name-custom5": {
+    "value": ""
+   },
+   "phiatus-start-custom5": {
+    "value": ""
+   },
+   "phiatus-weeks-custom5": {
     "value": "2"
    }
   },

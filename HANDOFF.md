@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 30 Oct 2026: REGION SELECT'S "LOCATION" LABEL REMOVED — on local `main`, uncommitted until the owner says
+### ✅ 30 Oct 2026: REGION SELECT'S "LOCATION" LABEL REMOVED — ✅ LIVE at `9522aa3` (owner's picker, commit + push; live `index.html` matched the build `e6d5d0bc…`)
 
 - Owner: *"maybe we remove the word "Location" here - its not necessary"*. `Sidebar.jsx`'s `#union-place` NativeSelect
   now has `aria-label="Production Region"` and no `label`. Chrome only; no id, option or save-format change. Show
