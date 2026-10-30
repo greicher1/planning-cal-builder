@@ -29,6 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Newfoundland's notes say 1 July is one day off, not two (29 Oct 2026)
+
+The owner asked what Newfoundland and Labrador's Holidays line, *"11 per year. 1 July is both Memorial Day and Canada
+Day."*, meant, then picked a clearer one from three: *"11 per year. Memorial Day and Canada Day are both on 1 July, so
+that’s one day off, not two."* Changed in `tools/gen_holidays.py`'s `BOX` table and regenerated; the regenerated block
+is identical to the engine's, and `validate_holidays.py` is CLEAN (no holiday date moved). The holiday keeps its name,
+"Memorial Day / Canada Day", since that name is its id in saved files. Verified with `npm run check` (40/40),
+`regioncaveat` (7/7) and `caholidays` (11/11) on the build.
+
 ### Unreleased — U.S. Area Standards' notes say Veterans Day is not included; Manitoba's warning reworded (29 Oct 2026)
 
 The owner asked for the U.S. Area Standards Holidays line to read *"11 per year. Juneteenth was added in 2025.

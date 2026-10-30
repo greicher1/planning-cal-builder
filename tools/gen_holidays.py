@@ -826,7 +826,7 @@ BOX = {
     # No warning (owner, 29 Oct 2026: "remove the warning about regatta day"). Regatta Day is still generated as the
     # first Wednesday of August; the region's `note` keeps that the regatta committee can move it for weather.
     "CA-NL":  dict(source="IATSE Local 709 agreement (March 2026).",
-                   holidays="11 per year. 1 July is both Memorial Day and Canada Day.",
+                   holidays="11 per year. Memorial Day and Canada Day are both on 1 July, so that’s one day off, not two.",
                    added="Victoria Day, Regatta Day and Remembrance Day (tagged IATSE 709).", weekends=WK_NEXT),
     "CA-YT":  dict(warn="These are Yukon’s legal holidays. Crews usually work under the BC and Yukon film unions’ "
                         "agreement, which may add days, so check before locking dates.",

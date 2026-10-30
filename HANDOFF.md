@@ -53,6 +53,12 @@
     `caholidays` 11/11 (both match Manitoba on "proclaimed"). No full gate: chrome text. **Live at `a64fd1f`**
     (owner's picker, Commit + Push; pushed 17:43:00, the live `index.html` matched the tested build `c63ebbab…` byte
     for byte at 17:43:38).
+  - Then (owner, 29 Oct 2026, picked from three wordings) Newfoundland and Labrador's Holidays line reads "11 per
+    year. Memorial Day and Canada Day are both on 1 July, so that’s one day off, not two." (was "1 July is both
+    Memorial Day and Canada Day.", which the owner asked the meaning of). The holiday's own name, "Memorial Day /
+    Canada Day", is untouched (`holidaySlug` is its id in saved files). Regenerated block identical to the engine's;
+    `validate_holidays.py` CLEAN, `npm run check` 40/40, `regioncaveat` 7/7, `caholidays` 11/11. No full gate:
+    chrome text. Not committed.
 - **Mexico: BUILT** (owner: *"As "Mexico""*, with their own warning text). Region `MX`, place `mx-mexico`, under
   "Latin America". LFT Art. 74's seven days, plus dated `extras`: election Sundays 2027-06-06 and 2030-06-02, and
   the inauguration 2030-10-01. `observance="none"`.
