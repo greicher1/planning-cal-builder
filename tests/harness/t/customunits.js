@@ -246,7 +246,7 @@ window.addEventListener('load', function () { (async function () {
       //   Rigging hands off on 2/18, inside the hiatus, so chainedStart() steps a week to Thu 2/25.
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'custom1'); T.set('tool-solve-date', '2027-01-13');
-      $('tool-solve-fwd').click(); await settle();
+      T.rebuildAll(1); await settle();   // the custom phases start unticked: tick them all
       out.movers.fwd = dates(); out.movers.fwdHint2 = meta('custom2');
       check(out.movers.fwd.s2 === '2027-01-27' && out.movers.fwd.s3 === '2027-02-04' && out.movers.fwd.e3 === '2027-02-17'
             && out.movers.fwd.s4 === '2027-02-25', 'Rebuild forwards chains Days and Dates phases, a Dates phase keeping its length');
@@ -259,7 +259,7 @@ window.addEventListener('load', function () { (async function () {
       //   Pre Prep (snapped) 4 working weeks back from 1/18, the 12/21/26 winter hiatus skipped: 12/7/26.
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'custom4'); T.set('tool-solve-date', '2027-03-01');
-      $('tool-solve-back').click(); await settle();
+      T.rebuildAll(-1); await settle();
       out.movers.back = dates(); out.movers.backHint2 = meta('custom2');
       check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-28', 'Rebuild backwards: a Dates phase ends the day before the next, keeping its length');
       check(out.movers.back.s2 === '2027-02-05' && out.movers.backHint2.indexOf('Fri 2/5/27 \u2192 Fri 2/12/27') !== -1,

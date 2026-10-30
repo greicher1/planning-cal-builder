@@ -41,7 +41,7 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(150);
     var pre = val('tool-solve-date');
     add('M1', 'Rebuild From prefill shows a snap-off phase\'s real start (Wed 4/8, not Mon 4/6)', pre === '2026-04-08', {prefill: pre}, '2026-04-08');
-    document.getElementById('tool-solve-fwd').click();
+    T.rebuildAll(1);
     await settle();
     var s1 = starts();
     add('M2', 'Rebuild forward from snap-off Pre Prep keeps its Wednesday start', s1.prePrep === '2026-04-08' && document.getElementById('snap-prePrep').checked === false,
@@ -57,7 +57,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-solve-phase', 'prePrep');
     await T.sleep(150);
     T.set('tool-solve-date', '2026-04-15');
-    document.getElementById('tool-solve-back').click();
+    T.rebuildAll(-1);
     await settle();
     var s2 = starts(), wr2 = val('start-writersRoom');
     add('M5', 'Rebuild backwards pinning snap-off Pre Prep on Wed 4/15 keeps the Wednesday', s2.prePrep === '2026-04-15', {prePrep: s2.prePrep, writersRoom: wr2, msg: msg('pop-solve')}, '2026-04-15');
@@ -96,15 +96,22 @@ window.addEventListener('load', function () { (async function () {
     if(val('start-prodPrep') !== '2026-05-18') await undo(1);
 
     // L-15 -- Rebuild From Post, forwards: nothing after Post has a week count. Type a new date: the
-    // tool must refuse BEFORE writing it.
+    // tool must refuse BEFORE writing it. Since the tick list (30 Oct 2026) it refuses in the panel: the
+    // phase after Post reads "No length", and the button says "Nothing to rebuild" and cannot be pressed.
+    // (The engine's own refusal, before the pin is written, is still there behind it.)
     await openPop('pop-solve-btn');
     T.set('tool-solve-phase', 'post');
     await T.sleep(150);
     T.set('tool-solve-date', '2026-11-16');
     document.getElementById('tool-solve-fwd').click();
+    await T.sleep(250);
+    var go15 = document.getElementById('tool-solve-go');
+    var rows15 = Array.prototype.map.call(document.querySelectorAll('#pop-solve .solve-row'), function (r) { return (r.textContent || '').replace(/\s+/g, ' ').trim(); });
+    go15.click();
     await settle();
-    add('L15', 'Rebuild with nothing to place says so and moves nothing', val('start-post') === '2026-11-02' && /nothing to place/i.test(msg('pop-solve')),
-      {post: val('start-post'), msg: msg('pop-solve')}, 'Post still 2026-11-02, "Nothing to place"');
+    add('L15', 'Rebuild with nothing to place can\'t be pressed, says why, and moves nothing',
+      val('start-post') === '2026-11-02' && go15.disabled && /nothing to rebuild/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
+      {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Nothing to rebuild" disabled, a "No length" row');
 
     // L-14 -- a note on the week of 7/6, Shift All +1 wk: it lands on the Summer Break week.
     closePops(); await T.sleep(150);

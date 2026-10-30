@@ -1793,6 +1793,8 @@ done
 # Wk N"), Automatic notes row and Save; New puts it back; and the OLD name, typed or loaded from a real v1.8.0 file,
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
+# rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
+# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1828,6 +1830,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
+              rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \

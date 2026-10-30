@@ -1358,16 +1358,18 @@
      paintable element, and the check is Mantine's own icon path as an inline SVG mask. Scoped to
      .form-panel deliberately -- the frozen renderers emit no checkboxes, but scoping means that can
      never become a question. The engine's generated markup (phiatus-en, hv-en/hv-cb, simpost,
-     hiatus-lock) picks this up with no template change. */
-  .form-panel input[type=checkbox]{
+     hiatus-lock) picks this up with no template change. Rebuild From's ticks (.solve-row, in a
+     toolbar popover, outside .form-panel) wear the same box, so a tick looks the same everywhere. */
+  .form-panel input[type=checkbox], .solve-row input[type=checkbox]{
     -webkit-appearance:none; appearance:none;
     border:1px solid var(--mantine-color-gray-4); border-radius:4px;
     background:var(--mantine-color-white);
     display:inline-block; vertical-align:middle; margin:0; padding:0; flex:none;
     transition:background-color 100ms ease, border-color 100ms ease;
   }
-  .form-panel input[type=checkbox]:hover:not(:disabled){ border-color:var(--mantine-color-gray-5); }
-  .form-panel input[type=checkbox]:checked{
+  .form-panel input[type=checkbox]:hover:not(:disabled),
+  .solve-row input[type=checkbox]:hover:not(:disabled){ border-color:var(--mantine-color-gray-5); }
+  .form-panel input[type=checkbox]:checked, .solve-row input[type=checkbox]:checked{
     background-color:var(--mantine-primary-color-filled);
     border-color:var(--mantine-primary-color-filled);
     /* Mantine's CheckIcon path, white, drawn as a background -- no SVG child, so the engine's
@@ -1375,10 +1377,10 @@
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E");
     background-size:62% auto; background-position:center; background-repeat:no-repeat;
   }
-  .form-panel input[type=checkbox]:focus-visible{
+  .form-panel input[type=checkbox]:focus-visible, .solve-row input[type=checkbox]:focus-visible{
     outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;
   }
-  .form-panel input[type=checkbox]:disabled{
+  .form-panel input[type=checkbox]:disabled, .solve-row input[type=checkbox]:disabled{
     background:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-3);
     cursor:not-allowed;
   }
@@ -1710,7 +1712,6 @@
     padding:var(--mantine-spacing-lg); z-index:300; text-align:left;
   }
   .tools-menu-sm{width:280px;}
-  .tools-menu-lg{width:364px;}
   .tools-div{height:1px; background:var(--mantine-color-gray-3); margin:var(--mantine-spacing-lg) 0;}
   .tools-menu.open{display:block;}
   .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
@@ -1743,6 +1744,54 @@
   .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
   .tools-msg:empty{display:none;}
   .tools-msg.warn{color:var(--danger);}
+
+  /* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html). The
+     panel is the widest of the four because each row holds a tick, a colour, the name, a date and
+     "Pushed 3 wks", and only the name may give way. Everything here is chrome inside .tools-menu:
+     nothing reaches #table-wrap. */
+  .tools-menu-solve{width:400px;}
+  /* The direction is a choice now, drawn as a segmented control: the app's own view toggle's look
+     (.view-toggle), white on gray-1 for the side that is on. */
+  .solve-dir{display:flex; background:var(--mantine-color-gray-1); border-radius:var(--mantine-radius-md);
+    padding:3px; margin:2px 0 var(--mantine-spacing-md);}
+  .solve-dir button{flex:1; min-width:0; height:26px; border:0; background:none; border-radius:var(--mantine-radius-sm);
+    font:inherit; font-size:11.5px; font-weight:500; color:var(--mantine-color-gray-7); cursor:pointer; white-space:nowrap;}
+  .solve-dir button:hover{color:var(--mantine-color-gray-9);}
+  .solve-dir button[aria-pressed="true"]{background:var(--mantine-color-white); color:var(--mantine-color-gray-9);
+    font-weight:600; box-shadow:var(--mantine-shadow-xs);}
+  .solve-dir button:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;}
+  .solve-count{margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500;}
+  /* Capped, so a calendar with many custom phases scrolls inside the list rather than running the
+     panel off the bottom of the preview. */
+  .solve-list{border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-md);
+    max-height:276px; overflow-y:auto; margin-bottom:6px;}
+  .solve-row{display:grid; grid-template-columns:16px 8px minmax(0,1fr) 54px 84px; align-items:center; gap:7px;
+    padding:5px 9px; font-size:12px; line-height:1.4; border-top:1px solid var(--mantine-color-gray-1); cursor:pointer;}
+  .solve-row:first-child{border-top:0;}
+  label.solve-row:hover{background:var(--mantine-color-gray-0);}
+  .solve-dot{width:8px; height:8px; border-radius:2px;}
+  .solve-nm{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .solve-dt{text-align:right; font-variant-numeric:tabular-nums;}
+  .solve-ch{text-align:right; font-size:11px; color:var(--mantine-color-gray-6); white-space:nowrap;}
+  .solve-row.is-off .solve-nm, .solve-row.is-off .solve-dt{color:var(--mantine-color-gray-6);}
+  .solve-row.is-nolen{cursor:default;}
+  .solve-row.is-moving .solve-ch{color:var(--mantine-color-navy-6); font-weight:500;}
+  /* The pinned phase: it starts on the date above. A tint, because it is the one row you chose. */
+  .solve-row.is-pin{background:var(--mantine-color-navy-0); cursor:default;}
+  .solve-row.is-pin .solve-nm{font-weight:600;}
+  .solve-row.is-pin .solve-ch{color:var(--mantine-color-navy-7); font-weight:500;}
+  .solve-pin-ic{width:14px; height:14px; color:var(--mantine-color-navy-6); justify-self:center;}
+  .solve-row.solve-empty{display:block; color:var(--mantine-color-gray-6); cursor:default; padding:9px;}
+  .solve-hint{margin:0 0 var(--mantine-spacing-sm);}
+  /* The one filled button in these panels: it is the only one that acts on a list you just set up.
+     A plain <button>, because the engine writes its label and disables it, and a Mantine Button
+     takes its disabled look from [data-disabled] and keeps its label in inner spans. */
+  .solve-go{display:block; width:100%; height:30px; border:0; border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-navy-6); color:var(--mantine-color-white);
+    font:inherit; font-size:12px; font-weight:600; cursor:pointer;}
+  .solve-go:hover:not(:disabled){background:var(--mantine-color-navy-7);}
+  .solve-go:disabled{background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-6); cursor:default;}
+  .solve-go:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;}
 
   /* The tool popovers' pop-out picker (SelectPop.jsx, round 5): the loader dropdown's look over
      the native selects. It is portaled INSIDE .tools-menu — the component says why — and

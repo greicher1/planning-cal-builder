@@ -12,7 +12,68 @@
 - Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
   (label tweak rule).
 
-### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
+### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit (*"Restore it"*); NOT merged into `main`, NOT pushed (*"Not yet"*); gated build `3cf17115…`
+
+- **The ask:** after the mockup (entry below) and the pros and cons of A and B, the owner: *"Build A"*. Not ruled,
+  so built as the mockup showed them: the **starting ticks** (every built-in ticked, every custom phase unticked;
+  the other choice offered was "also untick any phase that already runs alongside another"), and **Close all gaps
+  unchanged** (it does not read the ticks).
+- **What changed, all chrome or unfrozen engine; no frozen code, no save-format change:**
+  - `PreviewToolbar.jsx` `#pop-solve`: the two direction buttons keep their ids (`#tool-solve-back`,
+    `#tool-solve-fwd`) but are now plain `<button>`s in a `.solve-dir` segmented control that only CHOOSE the side
+    (`aria-pressed`, set by the engine). Under them: "Phases to rebuild" with a count (`[data-solve-count]`), the
+    list (`[data-solve-list]`, engine-written), a hint (`[data-solve-hint]`), and a plain navy `#tool-solve-go`
+    ("Rebuild N phases"). The result line moved up under it, above Close all gaps. Width 400 px
+    (`.tools-menu-solve`; `.tools-menu-lg` is gone, nothing else used it).
+  - `app.js` solvers: `workBackwardsFrom` / `workForwardsFrom` take `opts.leave` (a Set of keys taken OUT of the
+    chain before it is walked, so they keep their dates and the chain carries on from the last placed phase: the
+    rule a phase with no length already had) and `opts.trial`. `written` entries now carry `key`.
+  - **The preview is the real solver, run and put back** (`trialRebuild`): it saves every `start-`/`end-` field, the
+    day overrides, `currentSchedule` and `lastShootDayMove`, runs the solver with the forward pass's `update()`
+    swapped for `trialSchedule()` (re-pin the marks as update() does, then `computeSchedule(readState())`, no
+    render), and restores everything in `finally`. Nothing renders, nothing is marked dirty, no undo step.
+    ⛔ Do not replace it with arithmetic in the panel: Production is SEARCHED and Post chains off its wrap.
+  - The tools IIFE: `renderSolve()` draws the list from `phaseSequence()`; `solveTicks` (reset on every open),
+    `solveDir` (kept for the session); rows say the new date and "Pushed N wks" / "Pulled N days" / "New" /
+    "Stays" / "Not dated" / "No length" / "Can’t place" (same weeks-or-days rule as Compare's `moved`). A phase
+    with no length is in `leave` too, so the result line no longer lists it as "Skipped". Redraw measured at
+    15-50 ms per tick, Production search included. ⚠️ It is NOT drawn at IIFE evaluation (the scheduler reads
+    state declared further down the file); `openPop()` draws it.
+  - CSS: `.solve-*` rules after `.tools-msg`; the ticks reuse `.form-panel`'s Mantine checkbox rules (selectors
+    added, not copied). Ticks carry no id and sit inside `.tools-menu`.
+- **Legs:** new `rebuildticks` (19 checks, in `gate.sh`'s generic list): the list, the starting ticks, every previewed
+  date and word, that drawing the preview moves nothing, that Rebuild writes the previewed dates and leaves unticked
+  Casting / Localization alone, undo, the ticks resetting, the direction persisting, no ids. A new lib helper,
+  `T.rebuildAll(dir)`, ticks everything and presses Rebuild (the old one-click behaviour), used by `snaptools`,
+  `overrides`, `builtindates` and `customunits`. `snaptools` L15 now asserts the disabled "Nothing to rebuild"
+  button and a "No length" row (the engine's own L-15 guard is still behind it).
+- **Verified on the build:** `npm run check` 40/40; `rebuildticks` 19/19; `snaptools` 14/14; `overrides` 20/20;
+  `builtindates` live 17 + restore 15 checks; `customunits` live 23 + restore 28; `hdrcontrols` 12/12; in the
+  browser pane (backwards and forwards, unticking Localization, Rebuild, no console errors). FULL GATE 3,418 / 6
+  on the branch build, all six explained, none this branch's:
+  - ⚠️ **Three come from `tests/fixtures/stintswap-reshape.sptcal`, which LOCAL `main`'s `62fd9ab` changed** (another
+    session's "HANDOFF: Region label removal live at 9522aa3", NOT pushed, swept the main checkout's uncommitted edit of
+    it into the commit: +379 lines, 8 episodes, a BC region, day marks, side boxes; still the synthetic "Reshape
+    Fixture", but no longer the calendar its baselines were cut from). `stintreshape` (load timeout), gate 13's
+    stintswap-reshape month PDF ("THE CONTENT MOVED", 25 -> 26 pages) and `phasesui (hidewf)` P1. With the fixture as
+    committed before `62fd9ab` restored in the worktree (and put back after): `stintreshape` 9/9, the month PDF
+    BYTE-IDENTICAL to its baseline, `phasesui (hidewf)` 8/8. ✅ The owner chose *"Restore it"*: a separate commit on
+    THIS branch puts the pre-`62fd9ab` file back, so local `main` is fixed when this branch merges. Until then `main`
+    still carries the edited file, and a gate run from `main` will show those three failures.
+  - Three load timeouts, green alone: `retiredplaces` 8/8, `launchopen` 16/16, `mvbarsize (hiatus-blanklabel)` 12/12.
+    (A `rebuildticks` run on another port overlapped the gate and may have slowed it.)
+- **Localization's starting tick (owner, 30 Oct 2026):** *"localization should also be unticked by default (unless
+  someone entered a number of weeks or a starting date for it)"*. Already true as built, so no code changed: a new
+  calendar leaves Localization's weeks blank, a phase with no length is never ticked (its row reads "No length"),
+  and a start date alone is no length, so it cannot be placed either way. With its weeks entered it starts ticked.
+  `rebuildticks` U1/U2 now hold both cases (19/19).
+- **Open for the owner:** Close all gaps (above). Known limit, unchanged: a custom phase with no date can only go at
+  the end of the chain.
+- ⚠️ **Before merging into `main`:** the branch now TRACKS `mockups/rebuild-from-ticks.html`, and the main checkout
+  still has it as an UNTRACKED file (the same content, made there on 29 Oct). Git can refuse a merge that would
+  overwrite an untracked file, so remove the main checkout's copy first (it is identical: `cmp` it).
+
+### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED; ➡️ LAYOUT A BUILT (entry above) ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
 
 - **The ask** (owner, 28–29 Oct 2026): first *"should we consider getting rid of "Rebuild From""*, then *"Ok maybe we
   should keep it BUT … what if you dont want localization added by rebuild From or you do want a custom phase moved

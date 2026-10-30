@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Rebuild From lists the phases it will move, and you tick which (30 Oct 2026)
+
+The owner asked how Rebuild From knows which phases to move: *"what if you dont want localization added by rebuild
+From or you do want a custom phase moved by rebuild from"*. Until now it moved every phase on the chosen side that
+had a length, and said which only afterwards. Layout A of
+[`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html) is now built (owner: *"Build A"*):
+
+- **Work backwards / Work forwards now choose a side** instead of acting at once.
+- **The panel lists that side's phases** in the order they run, with the pinned phase marked. Each row shows the
+  start the phase would get and how far it moves, in the owner's words: "Pushed 3 wks", "Pulled 1 wk", "New",
+  "Stays", "No length".
+- **Rebuild N phases moves only the ticked ones.** An unticked phase keeps its dates, and the chain carries on from
+  the last phase placed.
+- **Starting ticks:** every built-in phase that has a length is ticked, and every custom phase unticked. A custom
+  phase often runs alongside the chain, and chaining it end to end pushed the phases before it earlier by its
+  whole length. Localization starts unticked until its weeks are entered (owner): a phase with no length reads
+  "No length" and can't be ticked.
+- **Session only:** the ticks reset each time the panel opens, and the direction is kept for the session. Nothing new
+  goes into a saved file.
+- **Close all gaps is unchanged.**
+
+The dates in the list come from the real rebuild, run and then put back (`trialRebuild`), so the list can't show a
+date the rebuild won't deliver. Verified with a new leg, `rebuildticks` (19/19): the previewed dates are the ones
+Rebuild writes, drawing the list changes nothing, and unticked Casting and Localization keep their dates. The four
+legs that drive the tool (`snaptools`, `overrides`, `builtindates`, `customunits`) pass on the build, as do
+`hdrcontrols` and `npm run check`. It was also tried in the app. Full gate 3,418 / 6, all six explained: three
+load timeouts green alone, and three from an unrelated test-fixture edit, green with that fixture restored.
+
 ### Unreleased — the Region select loses its "Location" label (30 Oct 2026)
 
 The owner: *"maybe we remove the word "Location" here - its not necessary"*. The Settings window's Region tab

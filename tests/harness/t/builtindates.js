@@ -192,7 +192,7 @@ window.addEventListener('load', function () { (async function () {
       // so Mon 2/15 -> Sun 2/28; Writer's Room (snapped, 4 wk) ends by Mon 2/15 -> starts Mon 1/18.
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
-      $('tool-solve-back').click(); await settle();
+      T.rebuildAll(-1); await settle();
       out.movers.back = dates();
       check(out.movers.back.pre === '2027-02-15' && out.movers.back.preEnd === '2027-02-28' && out.movers.back.wr === '2027-01-18',
             'Rebuild backwards: a built-in Dates phase ends the day before the next, keeping its length');
@@ -202,7 +202,7 @@ window.addEventListener('load', function () { (async function () {
       // follows Prod Prep's exclusive end Mon 3/29 -> Mon 3/29 to Sun 5/9.
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
-      $('tool-solve-fwd').click(); await settle();
+      T.rebuildAll(1); await settle();
       out.movers.fwd = dates();
       check(out.movers.fwd.post === '2027-03-29' && out.movers.fwd.postEnd === '2027-05-09', 'Rebuild forwards chains a built-in Dates phase, keeping its length');
       await undo(); check(same(), 'one undo restores every date after Rebuild forwards');

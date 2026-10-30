@@ -172,7 +172,7 @@ window.addEventListener('load', function () { (async function () {
     // O6 -- Rebuild From Prod Prep, forward, pinned one week later (5/25): Production lands on 7/6.
     await openPop('pop-solve-btn');
     T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2026-05-25');
-    document.getElementById('tool-solve-fwd').click();
+    T.rebuildAll(1);
     await settle();
     var s6 = await snap(), r6 = reading(), post6 = document.getElementById('start-post').value;
     add('O6', 'Rebuild From Prod Prep forward (+1 wk): Production on 7/6 with the marks on their shoot days',
@@ -186,7 +186,7 @@ window.addEventListener('load', function () { (async function () {
     // ends by 11/9 must be searched with the marks where they will actually be.
     await openPop('pop-solve-btn');
     T.set('tool-solve-phase', 'post'); T.set('tool-solve-date', '2026-11-09');
-    document.getElementById('tool-solve-back').click();
+    T.rebuildAll(-1);
     await settle();
     var s7 = await snap(), r7 = reading(), post7 = document.getElementById('start-post').value;
     add('O7', 'Rebuild From Post backwards (11/9): Production on 7/6 with the marks on their shoot days',

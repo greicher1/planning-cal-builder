@@ -581,6 +581,9 @@ a description — it reads as a distinction while distinguishing nothing.
   no date is invisible to it. It never reads week counts to position anything.
 - **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
   recomputes one side to run consecutively, **writing** start dates including into empty fields.
+  Since 30 Oct 2026 (owner, "Build A") the direction only chooses the side: the panel lists that
+  side's phases with the start each would get (`trialRebuild`, the real solver run and put back),
+  and moves only the **ticked** ones (`opts.leave`). Built-ins start ticked, custom phases not.
 - **Close all gaps** — `closeAllGaps()`, folded into the Rebuild From popover. It is
   Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
   From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
