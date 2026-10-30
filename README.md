@@ -64,6 +64,47 @@ picker), plus `npm run check` (40/40), `customunits`, `builtindates`, `datepick`
 fail, all explained (three load timeouts, each green alone, and three from that fixture); the waterfall PDF, the
 saved field ids and every other month PDF are unchanged.
 
+### Unreleased — rename a holiday, colour one holiday, edit one note line (30 Oct 2026)
+
+The owner sent a screenshot of Thanksgiving's note editor in the month view and asked *"do you see the issue?"* A
+click on one holiday opened its WEEK's waterfall note: the editor for 11/26 also held "Day After Thanksgiving
+11/27/26". A colour picked there recoloured both holidays. And an edit ("Thanksgiving, office closed") left the
+original holiday on the day as well, so it showed twice, and printed the edited line in the waterfall, Excel and the
+waterfall PDF, which hide holidays by default. The owner's use case: *"being able to edit the name of a holiday
+slightly"* without it losing its features as a holiday. Rulings, by picker: rename **just this date**, the new name
+shows **everywhere the holiday shows**, a colour colours **just that holiday**, and any other waterfall note opens
+**just the clicked line**. The owner also asked whether the same should work in the waterfall (yes).
+
+- **A holiday opens its own editor** in the month view: heading "11/27/26 · Holiday", its name alone (the date stays
+  automatic), Enter saves, and clearing the box restores the original name, which the box names. It is still the
+  holiday: same day, same id, still costs the shoot day, still follows the Region and the Holidays list switches,
+  still cannot be dragged to another day. The rename is applied once, in `fullHolidayList()`, so the notes, the
+  Holidays list (hover says "renamed from …"), the day menu, the date pickers and the writers all read it. Thanksgiving
+  2027 keeps its name.
+- **Its colour picker colours that holiday alone**, in the month view and both month PDFs (frozen edit **H1**, signed
+  off by the "Just that holiday" picker: `renderMonthView` draws `b.color || wfColor`, and `mvDayNoteBlocks` sets
+  `b.color` only for a holiday with its own colour). In the waterfall a holiday is a line in its week's one Notes cell,
+  so it keeps the cell's colour.
+- **In the waterfall's own note editor**, changing a holiday's line (Labor Day switched on for the waterfall) renames
+  the holiday, so the cell stays automatic instead of becoming typed text that no longer follows the holiday.
+- **Any other waterfall note opens just the clicked line** in the month editor, and saving puts it back among the
+  week's other lines. Its colour is still the week's.
+- **Two new PERMANENT snapshot keys**, `holidayNames` and `holidayColors` (holiday id → name / colour), each written
+  only while it holds something, so a calendar that renames nothing saves byte for byte as before. Sanitized on Load,
+  restored unconditionally, cleared by New; Reset Month Notes clears the colours (a name is the holiday's, not a month
+  note's). SNAPSHOT_VERSION not bumped: an older build ignores both keys and shows the original names.
+- Replaces the edge-month rule that turned a click on a month-only holiday with no waterfall row into a new day note.
+
+Verified on the build: new leg `holidayrename` 14/14 (in `gate.sh`), `monthnotes` 8/8 (N4 rewritten: it added a line
+by clicking Labor Day, which now opens Labor Day's own editor; the same guarantee is held through a waterfall line,
+and N6 holds the rename), `mvnotes` 14/14 and 30/30 (E7 now expects the holiday editor), `wfnotecolors` 14/14,
+`mvtextstyle` 6/6, `mvmenu` 81/81, `hidewf` 19/19, `caholidays` 11/11, `autonote` 9/9, `npm run check` 40/40, and in
+the app. **Full gate: 3,437 PASS / 3 FAIL** (12:02 to 12:33). All three fails are the `stintswap-reshape` fixture,
+which `62fd9ab` (a HANDOFF-only commit, not pushed) swept in with an unrelated working-tree edit from 21 Oct. Another
+branch's gate failed the same three that morning. With the fixture as it was before `62fd9ab`, all three pass on this
+build: `stintreshape` all checks, `phasesui` 8/8, and gate 13's written month PDF for that calendar byte-identical to
+its baseline. So frozen edit H1 moved no baseline.
+
 ### Unreleased — with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
 
 The owner: *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates except

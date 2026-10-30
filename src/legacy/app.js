@@ -4286,14 +4286,26 @@ export function initLegacyApp() {
       const hid = holidaySlug(h.name, h.date);
       // `src` / `statutory`: the agreement tag a Canadian day carries when the owner's practical list does
       // not have it (CANADA-HOLIDAYS-PLAN.md §6). Shown in the Holidays list only; it never reaches the id.
-      out.push({date:h.date, name:h.name, hid, custom:false, enabled:holidayEnabled(hid),
+      // `name` is what every reader shows, so a rename (holidayNames) lands here and nowhere else; `origName` is
+      // the list's own, for the editor's "Clear to restore" and the Holidays list's tooltip.
+      out.push({date:h.date, name:holidayNameFor(hid, h.name), origName:h.name, hid, custom:false, enabled:holidayEnabled(hid),
                 src:h.src || null, statutory:!!h.statutory});
     });
     (customHolidays || []).forEach(c=>{
       if(!c || !c.date || !c.name) return;
-      out.push({date:c.date, name:c.name, hid:c.id, custom:true, enabled:holidayEnabled(c.id)});
+      out.push({date:c.date, name:holidayNameFor(c.id, c.name), origName:c.name, hid:c.id, custom:true, enabled:holidayEnabled(c.id)});
     });
     return out;
+  }
+  // A holiday's name as shown: its rename, else its own (see holidayNames).
+  function holidayNameFor(hid, name){
+    return Object.prototype.hasOwnProperty.call(holidayNames, hid) ? holidayNames[hid] : name;
+  }
+  // A holiday's ORIGINAL name, by id, in this calendar's Region (or among the user's own): what clearing a rename
+  // brings back. Null for an id this calendar no longer has.
+  function holidayOrigName(hid){
+    const h = fullHolidayList(effectiveRegionKey()).find(x=> x.hid === hid);
+    return h ? h.origName : null;
   }
   // Drop holiday auto-notes the user hasn't enabled for this view, and any note of a KIND the calendar has
   // switched off (owner ruling 9, the Automatic notes card: autoNotesOff); pass everything else through.
@@ -5162,7 +5174,7 @@ export function initLegacyApp() {
         if(!hd || seen[h.hid]) return;
         if(!segments.some(s=> hd>=s.start && hd<s.end)) return;
         seen[h.hid] = true;
-        phaseHolidays.push({iso:h.date, name:h.name, date:hd, hid:h.hid,
+        phaseHolidays.push({iso:h.date, name:h.name, origName:h.origName, date:hd, hid:h.hid,
                             custom:!!h.custom, enabled:h.enabled, src:h.src || null, statutory:!!h.statutory});
       });
       phaseHolidays.sort((a,b)=> a.date - b.date);
@@ -12596,7 +12608,7 @@ export function initLegacyApp() {
       const d = parseDateUTC(c.date);
       if(!d) return;
       const inView = !!monthOnly[c.id] || (!!viewFrom && d >= viewFrom && d < viewTo);
-      shown.push({iso:c.date, name:c.name, date:d, hid:c.id, custom:true,
+      shown.push({iso:c.date, name:holidayNameFor(c.id, c.name), origName:c.name, date:d, hid:c.id, custom:true,
                   enabled:holidayEnabled(c.id), outOfRange:!inView, monthOnly:inView});
     });
     shown.sort((a,b)=> a.date - b.date);
@@ -12631,6 +12643,8 @@ export function initLegacyApp() {
       const dow = h.date.getUTCDay();
       const weekend = (dow === 0 || dow === 6);
       const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
+      // A renamed holiday (holidayNames) says what it was, on hover: the row is still that holiday.
+      const renamed = (h.origName && h.origName !== h.name) ? escHtml(' (renamed from ' + h.origName + ')') : '';
       // Presentation lives in .hv-* classes (legacy.css) rather than inline style= attributes --
       // these rows used to carry ~7 inline declarations each, which no stylesheet pass could touch.
       // The .hv-en/.hv-cb/.hv-del classes and data-hid/data-view attributes are the delegated
@@ -12661,7 +12675,7 @@ export function initLegacyApp() {
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
       return '<div class="hv-row">'
-        + '<span class="hv-label'+dim+'" title="'+label+'">'
+        + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
@@ -13580,12 +13594,17 @@ export function initLegacyApp() {
               // in (mvNoteLineCount) and appended to its style (mvTextCss). Unstyled, both are what they were.
               const wfKey = mvWfNoteKey(n);
               const span = mvNoteLineCount(n, noteBoxW, mvTextStyleOf('wfnote', wfKey));
+              // ⛔ FROZEN EDIT H1 (owner sign-off by picker, 30 Oct 2026, "Just that holiday": a colour picked on one
+              // holiday colours that holiday alone). A holiday with its own month colour (holidayColors) is drawn in it;
+              // mvDayNoteBlocks carries it in as `b.color`, and only for such a holiday, so every other line -- and every
+              // calendar with no holiday colour, which is every calendar in gates 10 and 13 -- draws exactly as before.
+              const fill = b.color || wfColor;
               // ⛔ FROZEN EDIT M2 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): both note tooltips say
               // "double-click to edit", because a click now PICKS a note for the text style bar (ruling R1). Nothing else
               // changed. A title is in the markup the print rollback prints, so gate 10's baselines were re-cut for it,
               // with a diff showing only these titles moved; gate 13 is untouched (the writer draws no tooltip).
               place(i, i, 'mv-bar mv-note-block mv-note-click',
-                `background:${wfColor}; color:${textColorFor(wfColor)};` + mvTextCss('wfnote', wfKey),
+                `background:${fill}; color:${textColorFor(fill)};` + mvTextCss('wfnote', wfKey),
                 escHtml(n) + ' \u2014 double-click to edit (also updates the Waterfall)', escHtml(n),
                 `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"` + anc,
                 span, null, b.minLane);
@@ -15556,6 +15575,7 @@ export function initLegacyApp() {
     if(!activeNoteEditor) return;
     const {td, pop, weekKey, textarea, autoNotes, isHiatus, pendingColor, pendingSize, sizeTouched,
            defaultLabel} = activeNoteEditor;
+    let renamed = null;
     if(isHiatus){
       const text = textarea.value.trim();
       if(text === (defaultLabel || HIATUS_DEFAULT_LABEL)) delete hiatusTexts[weekKey];
@@ -15571,7 +15591,10 @@ export function initLegacyApp() {
     } else {
       const daySel = pop.querySelector('.note-day-select');
       const chosenDate = daySel ? (daySel.value || '') : '';
-      saveNoteEdit(weekKey, textarea.value, autoNotes, chosenDate);
+      // A holiday's line changed here renames the holiday (see wfHolidayRenames), so the cell keeps following it.
+      renamed = wfHolidayRenames(weekKey, effectiveNoteText(weekKey, autoNotes), textarea.value, autoNotes);
+      const auto = renamed ? renamed.autoNotes : autoNotes;
+      saveNoteEdit(weekKey, renamed ? renamed.text : textarea.value, auto, chosenDate);
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
@@ -15584,12 +15607,43 @@ export function initLegacyApp() {
       }
       // A cell with no note has no highlight and no size; drop both with it -- and its text style, the same
       // rule (TEXT-STYLE-BAR-PLAN.md §2a: a note's style goes with its text).
-      if(!effectiveNoteText(weekKey, autoNotes)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; delete textStyle.note[weekKey]; }
+      if(!effectiveNoteText(weekKey, auto)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; delete textStyle.note[weekKey]; }
     }
     closeNoteEditorPop();
     activeNoteEditor = null;
+    // A renamed holiday is a new line in schedule.notesByIdx, so the calendar is rebuilt (update() draws and marks dirty).
+    if(renamed){ update(); return; }
     render(currentSchedule);
     markDirty(); // was previously missing here -- waterfall note/hiatus edits were invisible to save-dirty tracking and undo
+  }
+  // ⭐ A HOLIDAY RENAMED IN THE WATERFALL (owner, 30 Oct 2026: "do you think this same menu should work/show in the
+  // waterfall view?" -- yes). A holiday switched on for the waterfall is a line in its week's Notes cell, and typing
+  // over that line used to turn the cell into plain text: the line stopped being the holiday (a Region change or a
+  // rename no longer reached it). Now a line that WAS a holiday's, changed to anything not ending in another date,
+  // renames that holiday (setHolidayName, as the month view's holiday editor does) and stays its automatic line.
+  // Only when the edit keeps the number of lines, so each line is the one it was; anything else saves as typed, as
+  // before. Returns {text, autoNotes} with the renames applied, or null when nothing was renamed.
+  function wfHolidayRenames(weekKey, before, after, autoNotes){
+    const b = String(before || '').split('\n'), a = String(after || '').split('\n');
+    if(b.length !== a.length || !currentSchedule) return null;
+    const idx = (currentSchedule.weeks || []).findIndex(w=> isoOf(w.date) === weekKey);
+    const hols = (idx >= 0 && currentSchedule.notesByIdx ? (currentSchedule.notesByIdx[idx] || []) : []).filter(n=> n.holiday && n.date);
+    const names = {};
+    b.forEach((line, i)=>{
+      const was = line.trim(), now = a[i].trim();
+      if(was === now || !now) return;
+      const n = hols.find(n=> `${n.label} ${fmtShort(n.date)}` === was);
+      if(!n || Object.prototype.hasOwnProperty.call(names, n.hid)) return;
+      const orig = holidayOrigName(n.hid) || n.label;
+      const name = stripHolidayDate(now, n.date) || orig;                   // just its date: back to its own name
+      if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return;      // given another date: a note, not a rename
+      setHolidayName({hid: n.hid, name: n.label, origName: orig, date: n.date}, name === orig ? null : name);
+      names[n.hid] = name;
+      a[i] = `${name} ${fmtShort(n.date)}`;
+    });
+    if(!Object.keys(names).length) return null;
+    return {text: a.join('\n'),
+            autoNotes: (autoNotes || []).map(n=> (n.holiday && Object.prototype.hasOwnProperty.call(names, n.hid)) ? Object.assign({}, n, {label: names[n.hid]}) : n)};
   }
 
   function closeWithoutSaving(){
@@ -16381,10 +16435,16 @@ export function initLegacyApp() {
     const iso = isoOf(d);
     const own = dayNoteList(iso).map((entry, index)=> ({kind: 'day', entry, index,
       group: legacy ? 'below' : mvPlaceGroup(entry), bottom: !legacy && !!entry && entry.bottom === true}));
+    // A holiday with its own month colour (holidayColors) carries it on its block as `color`, which frozen edit H1
+    // draws in place of the week's. Asked only while some holiday has one, so every other calendar plans as before.
+    const anyHolColor = Object.keys(holidayColors).length > 0;
     const wf = notesForWaterfallDate(schedule, d).map(text=>{
       const p = legacy ? null : mvWfPlaceFor(schedule, text, iso, memo);
-      return {kind: 'wf', text, group: mvPlaceGroup(p), bottom: !!p && p.bottom === true,
-              at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
+      const b = {kind: 'wf', text, group: mvPlaceGroup(p), bottom: !!p && p.bottom === true,
+                 at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
+      const hol = anyHolColor ? mvHolidayLineInfo(schedule, iso, text) : null;
+      if(hol && Object.prototype.hasOwnProperty.call(holidayColors, hol.hid)) b.color = holidayColors[hol.hid];
+      return b;
     });
     const groups = [];
     own.concat(wf).forEach(b=>{ if(groups.indexOf(b.group) < 0) groups.push(b.group); });
@@ -16930,6 +16990,19 @@ export function initLegacyApp() {
   // The user's own one-off holidays: [{id, name, date}]. Single days, which the hiatus rows can't
   // express (those are whole Monday-snapped weeks). Not tied to a region.
   let customHolidays = [];
+  // ⭐ A HOLIDAY'S OWN NAME, hid -> name (owner, 30 Oct 2026, by picker: "Just this date", "Everywhere it shows";
+  // HANDOFF "Holiday rename"). The use case is shortening one: "Day After Thanksgiving" -> "Thanksgiving Fri". It is
+  // still the holiday -- same day, same id, still costs the shoot day, still follows the Region and the Holidays
+  // list's switches -- only its NAME reads differently. Keyed by hid, so it renames that one date (Thanksgiving 2027
+  // keeps its name), and applied once, in fullHolidayList(), so the notes, the Holidays list, the day menu and the
+  // date pickers all read it, and the writers with them. ⛔ Never the id: holidaySlug() runs on the ORIGINAL name.
+  // Saved as `holidayNames`, a PERMANENT key, written only while one is renamed.
+  let holidayNames = {};
+  // A holiday's own MONTH-VIEW colour, hid -> colour (the same day's picker: "Just that holiday"). Without one a
+  // holiday line takes its week's waterfall note colour, as it always did. Month view and both month PDFs only (frozen
+  // edit H1): in the waterfall a holiday is a line inside its week's one Notes cell, which has one fill. Saved as
+  // `holidayColors`, a PERMANENT key, written only while one is set.
+  let holidayColors = {};
 
   // ---------- SIDE BOXES (owner ruling 7, 20 Oct 2026; SIDE-BOXES-PLAN.md) ----------
   // Boxes beside the waterfall: a COLOUR KEY or a titled TEXT BOX, any number of each, stacked on the
@@ -23078,6 +23151,7 @@ export function initLegacyApp() {
     dayNoteColors = {}; mvExtraLanes = {};
     mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
     mvTextStyle.wfnote = {};   // ...and their month styles; a day note's own style went with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
+    holidayColors = {};        // ...and each holiday's own month colour. Not its NAME: that is the holiday's, in every view.
     render(currentSchedule);
     markDirty();
   }
@@ -25297,6 +25371,7 @@ export function initLegacyApp() {
     textStyle = emptyTextStyle();
     mvTextStyle = emptyMvTextStyle();
     holidayOff = {}; customHolidays = [];
+    holidayNames = {}; holidayColors = {};   // every holiday back to its own name and its week's colour
     // Hand-dragged column widths, row heights, cell spans and column ORDER are layout, not notes,
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
     // them. gridColSwaps follows that same rule on purpose: its absence from the notes-reset branch
@@ -26488,6 +26563,11 @@ export function initLegacyApp() {
   // Single source of truth for "the current app state" as a plain-JSON-able object -- reused by
   // the save file, the local crash-recovery backup, and the undo/redo stack so all three always
   // agree on exactly what counts as state.
+  function sortedObj(m){
+    const o = {};
+    Object.keys(m).sort().forEach(k=>{ o[k] = m[k]; });
+    return o;
+  }
   function captureSnapshot(){
     return {
       version: SNAPSHOT_VERSION,
@@ -26592,6 +26672,11 @@ export function initLegacyApp() {
       // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
       // written only while it holds something.
       ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
+      // 30 Oct 2026: a holiday's own name and its own month colour, by holiday id (see holidayNames). ⛔ PERMANENT keys,
+      // each written only while it holds something, so a calendar that renames nothing saves byte for byte as before.
+      // Keys in sorted order: the undo stack compares snapshots as text.
+      ...(Object.keys(holidayNames).length ? {holidayNames: sortedObj(holidayNames)} : {}),
+      ...(Object.keys(holidayColors).length ? {holidayColors: sortedObj(holidayColors)} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -32224,6 +32309,24 @@ export function initLegacyApp() {
     if(!activeMvNote) return false;
     const {kind, weekKey, dayIso, lane, editIndex, textarea, pendingColor} = activeMvNote;
     const text = textarea.value.trim();
+    if(kind === 'holiday'){
+      // A holiday's name and its month colour (see openMvNoteEditor). A rename changes the line every view
+      // builds from schedule.notesByIdx, so the commit recomputes (activeMvNote.renamed) rather than just drawing.
+      const h = activeMvNote.holiday;
+      const typed = stripHolidayDate(text.replace(/\s*\n\s*/g, ' '), h.date);
+      if(typed !== h.name){
+        const next = (!typed || typed === h.origName) ? null : typed;   // empty, or the original: no rename
+        const shown = next || h.origName;
+        if(shown !== h.name){ setHolidayName(h, next); activeMvNote.renamed = true; }
+      }
+      if(pendingColor){
+        // Its week's colour is what it shows without one, so picking that stores nothing.
+        const base = noteColors[weekKey] || MILESTONE_COLOR;
+        if(pendingColor.toUpperCase() === base.toUpperCase()) delete holidayColors[h.hid];
+        else holidayColors[h.hid] = pendingColor;
+      }
+      return true;
+    }
     if(kind === 'wf'){
       // A waterfall-owned note: write it back to the week store so the Waterfall and the Excel
       // export see the same edit. Pin it to this day so it stays where it was clicked.
@@ -32244,9 +32347,19 @@ export function initLegacyApp() {
                                         .concat(monthOnlyNotesForWeek(weekKey))   // no waterfall row prints these at all
                                         .map(n => autoNotesText([n])));
       if(text !== String(activeMvNote.initialText || '').trim()){
-        const kept = text.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
-        saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), dayIso);
-        carryWfLineStyles(String(activeMvNote.initialText || '').trim(), text);
+        // The editor held one line (openMvNoteEditor): it goes back where it was among the week's lines, and an
+        // emptied one leaves. The day pin is the one worked out when it opened (wfLinePin).
+        const ln = activeMvNote.line;
+        const before = ln ? ln.full : String(activeMvNote.initialText || '').trim();
+        let after = text;
+        if(ln){
+          const ls = ln.lines.slice();
+          ls.splice(ln.index, 1, ...(text ? text.split('\n') : []));
+          after = ls.join('\n').trim();
+        }
+        const kept = after.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
+        saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), ln ? ln.pin : dayIso);
+        carryWfLineStyles(before, after);
       }
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
@@ -32286,9 +32399,65 @@ export function initLegacyApp() {
   function commitMvNoteEditor(){
     if(!activeMvNote) return;
     writeActiveMvNote();
+    const recompute = !!activeMvNote.renamed;
     closeMvNoteEditor();
+    // A renamed holiday is a new line in schedule.notesByIdx, so it is rebuilt (update() draws and marks dirty).
+    if(recompute){ update(); return; }
     markDirty();
     render(currentSchedule);
+  }
+  // A waterfall line's own day: its trailing date when that falls in its week, the rule notesForWaterfallDate()
+  // places it by; else null (it sits on the note's pinned day, or the week's Monday).
+  function wfLineOwnDay(lineText, weekKey){
+    const m = String(lineText || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
+    if(!m) return null;
+    const d = new Date(Date.UTC(2000 + parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10)));
+    return isoOf(mondayOf(d)) === weekKey ? isoOf(d) : null;
+  }
+  // Which day to pin a week's note to when ONE of its lines is edited in the month view. Only undated lines read the
+  // pin, and they all sit on one day, so: while another undated line shares the note, keep the pin they already sit
+  // on (the clicked line, if undated, is on that day too); otherwise pin to the clicked day, as the whole-week editor
+  // always did, so an undated edit stays where it was clicked.
+  function wfLinePin(weekKey, lines, index, dayIso){
+    const others = lines.some((l, i)=> i !== index && l.trim() && !wfLineOwnDay(l, weekKey));
+    if(!others) return dayIso;
+    const v = userNotes[weekKey];
+    return (v && typeof v === 'object' && typeof v.date === 'string' && v.date) ? v.date : null;
+  }
+  // A holiday name as typed, without a trailing copy of its own date ("Thanksgiving Fri 11/27/26"): the date is
+  // added back automatically, as on every holiday line. Any other trailing date is kept as typed.
+  function stripHolidayDate(text, date){
+    const t = String(text || '').trim();
+    const m = t.match(/^(.*?)\s*(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/);
+    if(!m || !date) return t;
+    const y = m[4].length === 2 ? 2000 + parseInt(m[4], 10) : parseInt(m[4], 10);
+    const same = y === date.getUTCFullYear() && parseInt(m[2], 10) === date.getUTCMonth() + 1 && parseInt(m[3], 10) === date.getUTCDate();
+    return same ? m[1].trim() : t;
+  }
+  // Rename one holiday (`next` null = back to its own name), and take along what was keyed by its old line: a
+  // waterfall note that carries the line word for word (the waterfall's editor freezes the week's lines into its
+  // override), and the line's month text style and place (keyed by the line without its date). Copied, not moved:
+  // the same name on another date (next year's) still uses the old key.
+  function setHolidayName(h, next){
+    const oldLine = `${h.name} ${fmtShort(h.date)}`;
+    if(next) holidayNames[h.hid] = next; else delete holidayNames[h.hid];
+    const newName = next || h.origName;
+    const newLine = `${newName} ${fmtShort(h.date)}`;
+    const wk = isoOf(mondayOf(h.date));
+    const v = userNotes[wk];
+    const swap = t => String(t || '').split('\n').map(l => l.trim() === oldLine ? newLine : l).join('\n');
+    if(v && typeof v === 'object'){
+      if(Array.isArray(v.notes)) v.notes = v.notes.map(n => Object.assign({}, n, {text: swap(n.text)}));
+      else if(typeof v.text === 'string') v.text = swap(v.text);
+    }
+    const oldKey = mvWfNoteKey(oldLine), newKey = mvWfNoteKey(newLine);
+    if(oldKey !== newKey && MV_WFNOTE_KEY.test(newKey)){
+      [mvTextStyle.wfnote, mvWfNotePlace].forEach(m=>{
+        if(Object.prototype.hasOwnProperty.call(m, oldKey) && !Object.prototype.hasOwnProperty.call(m, newKey)){
+          m[newKey] = JSON.parse(JSON.stringify(m[oldKey]));
+        }
+      });
+    }
   }
   // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
   // used after committing a note (which re-renders and detaches the original click target) so the
@@ -32342,31 +32511,45 @@ export function initLegacyApp() {
       kind = fresh.dataset.noteKind || 'day';
     }
     closeMvNoteEditor();
-    // A month-only holiday in a week with NO waterfall row (an edge month's, MONTH-NOTES-PLAN.md §3) has no
-    // waterfall note to edit, and writing one would store a week the waterfall cannot show. A click on it adds
-    // a day note there instead, as that day's "+" does. Only that block: any other waterfall note keeps its
-    // editor, a stale one left outside the weeks included.
-    if(kind === 'wf' && currentSchedule && !(currentSchedule.weeks || []).some(w => isoOf(w.date) === weekKey)){
-      const said = (anchor.textContent || '').trim();
-      if(monthOnlyNotesForWeek(weekKey).some(n => isoOf(n.date) === dayIso && autoNotesText([n]) === said)) kind = 'day';
-    }
-    const isWf = (kind === 'wf');
+    // ⭐ A HOLIDAY OPENS ITS OWN EDITOR (owner, 30 Oct 2026: "being able to edit the name of a holiday slightly",
+    // and by picker "Just this date", "Everywhere it shows", "Just that holiday"). It used to open its WEEK's
+    // waterfall note: Thanksgiving's editor held "Day After Thanksgiving" too, a colour recoloured both, and an edit
+    // stored the line as typed text beside the holiday, which then showed twice (and printed in the waterfall,
+    // which hides holidays). Now it edits the holiday's NAME (holidayNames: the date stays automatic, shown above)
+    // and its own month colour (holidayColors), and it stays the holiday. This replaces the edge-month rule that
+    // turned a click on a month-only holiday with no waterfall row into a new day note: it has its own editor now,
+    // which writes no waterfall note, so there is no week to be wrong about.
+    const said = (anchor.textContent || '').trim();
+    const holiday = (kind === 'wf' && currentSchedule) ? mvHolidayLineInfo(currentSchedule, dayIso, said) : null;
+    if(holiday){ kind = 'holiday'; holiday.origName = holidayOrigName(holiday.hid) || holiday.name; }
+    const isWf = (kind === 'wf'), isHol = (kind === 'holiday');
     // Which line was clicked. Notes remember it so they stay on the line you chose.
     const laneAttr = anchor.style.gridRow ? (parseInt(anchor.style.gridRow, 10) - 1) : null;
     let editIdx = null;
     // Prefill: a waterfall note shows its current text (auto or overridden); a day note shows
     // its own, and a blank day starts empty.
-    let curText, curColor;
-    if(isWf){
+    let curText, curColor, line = null;
+    if(isHol){
+      curText = holiday.name;
+      curColor = holidayColors[holiday.hid] || noteColors[weekKey] || MILESTONE_COLOR;
+    } else if(isWf){
       // A waterfall note is a WEEK-level thing: an override replaces the week's whole text.
-      // So show every note the week currently has, not just the line clicked -- otherwise
-      // saving would silently drop the others (e.g. editing Thanksgiving would delete
-      // "Day after Thanksgiving" from the same week).
+      // ⭐ The editor shows JUST THE LINE CLICKED (owner, 30 Oct 2026, by picker), and saving puts it back in its
+      // place among the week's other lines (writeActiveMvNote), so none of them is dropped -- the reason it showed
+      // the whole week until now ("editing Thanksgiving would delete 'Day after Thanksgiving' from the same week").
+      // The colour is still the week's: in the waterfall the week's lines are one Notes cell with one fill. A line
+      // not found in the week's text (nothing should reach here so) opens the whole week, as before.
       const autoNotes = ((currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
         return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
       })() : []).concat(monthOnlyNotesForWeek(weekKey));
-      curText = effectiveNoteText(weekKey, autoNotes);
+      const full = effectiveNoteText(weekKey, autoNotes);
+      const lines = full.split('\n');
+      const at = said ? lines.findIndex(l => l.trim() === said) : -1;
+      if(at >= 0){
+        line = {lines, index: at, full: full.trim(), pin: wfLinePin(weekKey, lines, at, dayIso)};
+        curText = lines[at].trim();
+      } else curText = full;
       curColor = noteColors[weekKey] || MILESTONE_COLOR;
     } else {
       // Editing an existing note (index carried on the clicked block) prefills just that one;
@@ -32388,7 +32571,14 @@ export function initLegacyApp() {
       ? 'Also updates the Waterfall + Excel'
       : 'Month view only';
     const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
-    pop.innerHTML = `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
+    // A holiday's editor says what it is and what saving does: the NAME, wherever the holiday shows. Its date is in
+    // the heading (it is the holiday's, not text to edit), and an empty box says what clearing it brings back.
+    pop.innerHTML = isHol
+      ? `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))} \u00b7 Holiday</div>
+      <textarea rows="2" placeholder="Clear to go back to \u201c${escHtml(holiday.origName)}\u201d">${curText.replace(/</g,'&lt;')}</textarea>
+      ${notePaletteRowsHtml(curColor)}
+      <div class="mv-note-pop-hint">Renames this holiday wherever it shows \u00b7 Colour is for the month view \u00b7 Enter to save \u00b7 Esc to cancel</div>`
+      : `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
       <textarea rows="3" placeholder="Note text${isWf?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       ${notePaletteRowsHtml(curColor)}
       <div class="mv-note-pop-hint">${scopeNote} \u00b7 ${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
@@ -32421,9 +32611,18 @@ export function initLegacyApp() {
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
     const textarea = pop.querySelector('textarea');
+    // A holiday's name is one line: Enter saves it, and a pasted line break becomes a space.
+    if(isHol){
+      textarea.addEventListener('input', ()=>{
+        if(/\n/.test(textarea.value)) textarea.value = textarea.value.replace(/\s*\n\s*/g, ' ');
+      });
+      textarea.addEventListener('keydown', e=>{
+        if(e.key === 'Enter' && !e.metaKey && !e.ctrlKey){ e.preventDefault(); commitMvNoteEditor(); }
+      });
+    }
     // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
     // aren't capped -- there each line is a separate milestone across the week.
-    if(!isWf){
+    if(!isWf && !isHol){
       const cap3 = ()=>{
         const lines = textarea.value.split('\n');
         if(lines.length > 3) textarea.value = lines.slice(0,3).join('\n');
@@ -32437,15 +32636,17 @@ export function initLegacyApp() {
     }
     textarea.focus(); textarea.select();
     // A new day note TAKES the remembered colour unless another is picked, so it is pending from the start.
-    const startPending = (!isWf && editIdx === null && curColor !== MILESTONE_COLOR) ? curColor : null;
-    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:startPending,
+    const startPending = (!isWf && !isHol && editIdx === null && curColor !== MILESTONE_COLOR) ? curColor : null;
+    activeMvNote = {kind: isHol ? 'holiday' : isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:startPending,
                     anchor, place,
+                    // A holiday's {hid, name, origName, date}; a waterfall line's place among its week's lines.
+                    holiday: isHol ? holiday : null, line,
                     // What the editor opened with, so a waterfall note that was opened and left
                     // unchanged is not frozen into an override on the way out (audit M-13).
                     initialText: curText,
                     // The same descriptor shape relocateNoteAnchor() takes — captured now so the
                     // rebuild guard can re-find the equivalent node in a freshly-rendered grid.
-                    anchorDesc: { week: weekKey, day: dayIso, kind: isWf ? 'wf' : 'day',
+                    anchorDesc: { week: weekKey, day: dayIso, kind: (isWf || isHol) ? 'wf' : 'day',
                                   index: anchor.dataset.noteIndex, gridRow: anchor.style.gridRow,
                                   isAdd: anchor.classList.contains('mv-note-add') }};
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -32529,14 +32730,22 @@ export function initLegacyApp() {
   }
   // Is this waterfall line, shown on `iso`, one of the calendar's holidays? (They stay on their day.)
   function mvIsHolidayLine(schedule, iso, text){
+    return !!mvHolidayLineInfo(schedule, iso, text);
+  }
+  // ...and which one: {hid, name, date} for the holiday whose line `text` is on `iso`, else null. Its line is
+  // "Name m/d/yy" with the name as shown (a rename included, holidayNames), as every view writes it. Read by the
+  // drag above, the month note editor's holiday mode and a holiday's own month colour (mvDayNotePlan).
+  function mvHolidayLineInfo(schedule, iso, text){
     const d = parseDateUTC(iso);
-    if(!d) return false;
+    if(!d || !schedule) return null;
     const wk = isoOf(mondayOf(d));
     const idx = (schedule.weeks || []).findIndex(w=> isoOf(w.date) === wk);
     const autos = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
     const t = String(text || '').trim();
-    if(autos.some(n=> n.holiday && (n.date ? `${n.label} ${fmtShort(n.date)}` : n.label) === t)) return true;
-    return (schedule.monthOnlyHolidays || []).some(h=> h.iso === iso && `${h.name} ${fmtShort(h.date)}` === t);
+    const n = autos.find(n=> n.holiday && (n.date ? `${n.label} ${fmtShort(n.date)}` : n.label) === t);
+    if(n) return {hid: n.hid, name: n.label, date: n.date};
+    const h = (schedule.monthOnlyHolidays || []).find(h=> h.iso === iso && `${h.name} ${fmtShort(h.date)}` === t);
+    return h ? {hid: h.hid, name: h.name, date: h.date} : null;
   }
   // Move one waterfall line, as the waterfall's own note text: out of the week it is in, into the week of the day
   // it was dropped on (the same week: rewritten where it stands, so the cell's line order holds). Through
@@ -33412,6 +33621,13 @@ export function initLegacyApp() {
       ['sheet', 'month'].forEach(k=>{ if(typeof v[k] === 'boolean') out[k] = v[k]; });
       return out;
     });
+    // A holiday's own name (one line, as its editor writes it) and its own month colour (a note colour).
+    setMap('holidayNames', v => {
+      if(typeof v !== 'string') return undefined;
+      const t = stripXmlIllegal(v, ' ').replace(/\s+/g, ' ').trim();
+      return (t && t.length <= 200) ? t : undefined;
+    });
+    setMap('holidayColors', v => (isHexColor(v) || isMvNoFill(v)) ? v : undefined);
     // A day override is a plain word the simulation understands ('half' | 'off' | 'on' | 'onhalf' | 'lead'). Unknown
     // WORDS are kept -- a round trip must never lose data, and the simulation ignores them -- but
     // nothing that is not a lowercase word gets through.
@@ -34018,6 +34234,18 @@ export function initLegacyApp() {
     customHolidays = Array.isArray(snap.customHolidays)
       ? snap.customHolidays.filter(c=>c && c.name && c.date).map(c=>({id:c.id || ('cst-' + Math.random().toString(36).slice(2,9)), name:String(c.name), date:String(c.date)}))
       : [];
+    // ⛔ UNCONDITIONAL: no key, every holiday under its own name and its week's colour. Rebuilt entry by entry, so a key
+    // no object should carry can never reach the store's prototype. An id this calendar has no holiday for is kept:
+    // it lies dormant, as holidayView's do, and wakes if the Region comes back.
+    holidayNames = {}; holidayColors = {};
+    if(isPlainObj(snap.holidayNames)) Object.keys(snap.holidayNames).forEach(k=>{
+      const v = snap.holidayNames[k];
+      if(!MV_UNSAFE_KEY.test(k) && typeof v === 'string' && v.trim()) holidayNames[k] = v.trim();
+    });
+    if(isPlainObj(snap.holidayColors)) Object.keys(snap.holidayColors).forEach(k=>{
+      const v = snap.holidayColors[k];
+      if(!MV_UNSAFE_KEY.test(k) && (isHexColor(v) || isMvNoFill(v))) holidayColors[k] = v;
+    });
     // Runs after snap.fields is applied above, so the region selects already hold their saved
     // values and the date->name lookup resolves against the right list.
     migrateHolidayViewKeys();
