@@ -302,8 +302,10 @@ export function RegionCard() {
             The US is the exception since 29 Oct 2026 (owner): it offers its two lists by name, and
             the town goes in Show info's Location.
             ⛔ THIS is the Region: the id is in fields.byId, and the engine's change handler (the
-            "Continue?" question) is bound here. The Show info card's copy only forwards to it. */}
-        <NativeSelect id="union-place" label="Location">{REGION_OPTIONS}</NativeSelect>
+            "Continue?" question) is bound here. The Show info card's copy only forwards to it.
+            No visible label (owner, 30 Oct 2026: "Location" under the card's own Production Region
+            heading said nothing); the aria-label keeps it named for screen readers. */}
+        <NativeSelect id="union-place" aria-label="Production Region">{REGION_OPTIONS}</NativeSelect>
 
         {/* What the city name hides. Written by reflectRegionUI(), so they stay plain elements. */}
         <Box>

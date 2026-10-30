@@ -29,6 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Region select loses its "Location" label (30 Oct 2026)
+
+The owner: *"maybe we remove the word "Location" here - its not necessary"*. The Settings window's Region tab
+showed "Location" above `#union-place`, directly under the card's own **Production Region** heading, so it said
+nothing. The visible label is gone; an `aria-label` of "Production Region" keeps the select named for screen readers.
+The id, its options and the save format are unchanged. (Show info's free-text **Location** box is a different field
+and keeps its label.) Verified with `npm run check` (40/40), `regionmirror` (9/9) and `settingswin` (21/21) on the
+build, and seen in the app.
+
 ### Unreleased — Newfoundland's notes say 1 July is one day off, not two (29 Oct 2026)
 
 The owner asked what Newfoundland and Labrador's Holidays line, *"11 per year. 1 July is both Memorial Day and Canada

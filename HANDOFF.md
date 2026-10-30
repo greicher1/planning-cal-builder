@@ -4,6 +4,46 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 30 Oct 2026: REGION SELECT'S "LOCATION" LABEL REMOVED — on local `main`, uncommitted until the owner says
+
+- Owner: *"maybe we remove the word "Location" here - its not necessary"*. `Sidebar.jsx`'s `#union-place` NativeSelect
+  now has `aria-label="Production Region"` and no `label`. Chrome only; no id, option or save-format change. Show
+  info's `#show-location` ("Location") is a different field and was left alone.
+- Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
+  (label tweak rule).
+
+### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
+
+- **The ask** (owner, 28–29 Oct 2026): first *"should we consider getting rid of "Rebuild From""*, then *"Ok maybe we
+  should keep it BUT … what if you dont want localization added by rebuild From or you do want a custom phase moved
+  by rebuild from. How does it know which phases to affect?"*, then *"Mock it up"*. **Keep the tool**: it is the only
+  one that works BACKWARDS from a date and the only one that fills in a phase with no date.
+- **How it picks today, read from the code (`phaseSequence`, `phaseHasSpan`, `rebuildBackwards` / `rebuildForwards`),
+  not reproduced in the app:**
+  - The built-ins chain in `PHASE_CHAIN` order; a DATED custom phase is slotted in before the first phase that starts
+    later than it; an UNDATED one goes last.
+  - Every phase on the chosen side with a length is placed end to end, dated or not; one with no length is skipped.
+    Nothing asks, and the popover names what moved only afterwards.
+  - So Localization can be kept out only by blanking its week count. A custom phase that runs alongside (a "Casting"
+    beside Prod Prep) is chained end to end and pushes Prod Prep earlier by its whole length. An undated custom phase
+    is reachable only by Work forwards, after Localization.
+  - Close all gaps, in the same popover, follows a DIFFERENT rule: built-ins only (`PHASE_CHAIN`), already-dated only.
+- **The mockup:** the popover lists the phases on the rebuilt side in chain order, each with a tick, its new start and
+  "Pushed N wks" / "Pulled N wks" / "New" / "Stays" (the owner's wording). Unticked phases stay where they are, and
+  the chain carries on from the last phase placed: the existing skip rule, so the solvers barely change. One navy
+  "Rebuild N phases" button replaces the two acting direction buttons.
+  - **A:** pick a direction first (a segmented control), then tick.
+  - **B:** one list with both sides, the pinned phase in the middle, and one button.
+  - A synthetic calendar in whole weeks, without hiatuses, and an explanatory timeline under it that is NOT part of
+    the design. Checked in the browser pane: both options, ticking, Rebuild, Reset; no console errors.
+- **Open for the owner:** A or B. Starting ticks (shown: built-ins ticked, custom phases unticked; or also untick any
+  phase that already runs alongside another). Close all gaps (leave it, or use the same ticks). Shown and not asked:
+  ticks are forgotten on close, so nothing new enters the save format.
+- **Building it would touch:** `PreviewToolbar.jsx` (`#pop-solve`), `runSolve` and the two solvers (a set of keys to
+  skip), Anchor To's help line, and the legs that drive the tool (`snaptools`, `overrides`, `builtindates`,
+  `customunits`). The ticks must carry no id, or sit inside `.tools-menu` (they do), so `collectFieldValues()` never
+  sweeps them. No frozen code.
+
 ### ✅ 29 Oct 2026 (latest): CANADIAN HOLIDAY LISTS ONTO THE CREW AGREEMENTS, SEVEN NEW PROVINCES/TERRITORIES, AND AN IATSE TAG — BUILT on branch `canada-holidays` (worktree `.claude/worktrees/canada-holidays`, from `main` at `5a694b4`; its `node_modules` is a symlink: unlink it before `git worktree remove`); all four rulings made (owner: *"Yes, all four"*), owner: *"Build it now"*; with the dropped cities, Brandenburg, the notes box and MEXICO added on the same branch; COMMITTED `015fc46` on `canada-holidays` and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge"*, 29 Oct 2026); ✅ **LIVE at `015fc46`** (owner's picker, *"Push now"*; `44bf663..015fc46` at 17:16:29, also carrying the docs-only `5a694b4`; the live `index.html` matched the tested build `2ef3e657…` byte for byte at 17:17:24); no version cut ([`CANADA-HOLIDAYS-PLAN.md`](CANADA-HOLIDAYS-PLAN.md) §7 is the as-built record)
 
 - **Verified on the branch:**
