@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — COMMITTED on branch `weeks-end-date` as `83d2b34` (worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear"), `main` merged in, NOT PUSHED
+### 🔨 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — MERGED into local `main` by fast-forward (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear"), NOT PUSHED
 
 - **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.
   Built as the mockup shows. The three open questions were NOT answered, so: the meta line is left alone (it still
@@ -54,6 +54,11 @@
     the fixture as it was at `2b15444`; gate 13's month PDF for that fixture moves because the fixture did (not
     re-run separately). The waterfall PDF matches its baseline, fields.byId has the same 77 ids, every other
     written month PDF is byte-identical, and `endsdate` is 15/15 inside the gate.
+  - **`main` moved while it waited** (`4cd40b7` holiday rename, `9b728c7` the fixture restored, `88f3bb9` HANDOFF), so
+    `main` was merged into the branch (only HANDOFF.md / README.md conflicted: new top entries, both kept) and the
+    gate re-run on the merge `db84523`, build `979dd995…`: **3,461 PASS, 2 FAIL, both green alone** (`pilllabel`
+    blocksoff, all 29 checks; `scenariocompat` on `releases/v1.2.0.html`, which this branch cannot change), at load
+    ~10. `endsdate` 15/15 and `holidayrename` 14/14 on the merge. `88f3bb9` was HANDOFF only, merged after the gate.
 - ✅ **FOUND, AND RESTORED ON `main` BY ANOTHER SESSION AS `9b728c7`: `tests/fixtures/stintswap-reshape.sptcal` was rewritten by `62fd9ab`**, a commit whose
   message is only "HANDOFF: Region label removal live at 9522aa3" (+379/−31 in the fixture, apparently a Save over it).
   It turns `phasesui` P1 red ("stintswap-reshape: controls / fields.byId") on `main` and on this branch alike; with
@@ -63,7 +68,7 @@
   `64e9a16` landed) and silently removed `64e9a16`'s HANDOFF entry; `2826feb` put it back. Build the content from
   `HEAD` and check `HEAD` in the same command that commits.
 
-### 🔨 30 Oct 2026: RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE — BUILT on branch `holiday-note-edit` (worktree `.claude/worktrees/holiday-note-edit`, from `main` at `2826feb`; its `node_modules` is a symlink: unlink it before `git worktree remove`), UNCOMMITTED, NOT PUSHED; full gate clean for this change
+### 🔨 30 Oct 2026: RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE — BUILT on branch `holiday-note-edit` (worktree `.claude/worktrees/holiday-note-edit`, from `main` at `2826feb`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `4cd40b7` (+ the fixture restore `9b728c7`) and local `main` FAST-FORWARDED (owner's picker, *"Commit and merge to main"*); ✅ **LIVE at `9b728c7`** (owner's picker, *"Push now"*, whose question named the five other unpushed commits it would ship; `9522aa3..9b728c7` at 15:11:26; the live `index.html` matched the gated build `87b763bf…` byte for byte at 15:12:17)
 
 - **The ask:** the owner's screenshot of Thanksgiving's month-view note editor, *"do you see the issue?"* The editor
   for 11/26 held "Day After Thanksgiving" too (it was the WEEK's waterfall note); a colour recoloured both; an edit
@@ -109,12 +114,12 @@
   committed 09:50 30 Oct, NOT pushed) also committed `tests/fixtures/stintswap-reshape.sptcal`, a working-tree edit
   from 21 Oct (more episodes, two more custom phases) that was sitting uncommitted in the main checkout. Every gate run
   from `main` since fails those three checks (the `weeks-end-date` branch's gate did too). The fix is restoring the file
-  from `62fd9ab~1`; it needs the owner's say, since the edit may have been theirs.
+  from `62fd9ab~1`. ✅ Done in `9b728c7` (owner's picker, *"Restore it"*); live with the rest. The untracked `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` in the main checkout is probably where that edit came from; it was left alone.
 - **Not done / known:** the frozen tooltip on a holiday's month block still says "double-click to edit (also updates
   the Waterfall)" (changing it would move gate 10's print baselines, so it was left). A holiday's own colour does not
   reach the waterfall cell (one cell, one fill).
 
-### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — COMMITTED on `main` as `64e9a16` (owner's picker, *"Commit locally"*), NOT PUSHED (owner: *"Not yet"*)
+### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — COMMITTED on `main` as `64e9a16` (owner's picker, *"Commit locally"*); ✅ **LIVE at `9b728c7`**, pushed with the holiday rename (owner's picker, *"Push now"*, 30 Oct 2026, whose question said this commit would ship with it)
 
 - **The ask** (owner): *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates
   except mondays?"*, then *"ok do all the changes you suggested"*. Tracker card `snap-monday-picker`.
