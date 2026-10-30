@@ -57,6 +57,27 @@ legs that drive the tool (`snaptools`, `overrides`, `builtindates`, `customunits
 `hdrcontrols` and `npm run check`. It was also tried in the app. Full gate 3,418 / 6, all six explained: three
 load timeouts green alone, and three from an unrelated test-fixture edit, green with that fixture restored.
 
+### Unreleased — with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
+
+The owner: *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates except
+mondays?"*, then *"ok do all the changes you suggested"*. The pop-out date picker let you click any day, so a phase
+with Snap to Monday on could show Wednesday in its Starts box while it really started that Monday (the meta line said
+"Snapped to Mon"). And it drew the Monday week band on every field, even where the exact day is used. Now each field
+is picked the way the engine reads it (`fieldKind()` in `src/chrome/DatePop.jsx`):
+
+- **Only Mondays**: a phase start with Snap to Monday on, every hiatus start (all-phase and a phase's own), and
+  Rebuild From's date for a snapped phase. The other days are greyed out and do nothing; holiday and hiatus dots
+  still show. A short line under the calendar says why.
+- **The exact day, no week band**: a phase with Snap to Monday off, a Days or Dates phase (start and end), a custom
+  holiday, and Anchor To's "ends by".
+- **Unchanged, any day picks its week**: the calendar range and Anchor To's start.
+
+Typing a date is unchanged, and the engine still decides what a typed date means. Nothing is rewritten: a Wednesday
+already in a snapped field (typed, or saved before this) stays there and the picker marks its Monday, and turning Snap
+on or off leaves the date alone. Chrome only: no frozen code, no id, no save-format change. Verified with a new leg,
+`datepick` (17/17 on the build, red on the old picker), plus `npm run check` (40/40), `snaptools` (14/14), `calrange`
+(18/18), `snapoff` and `builtindates`, and in the app.
+
 ### Unreleased — the Region select loses its "Location" label (30 Oct 2026)
 
 The owner: *"maybe we remove the word "Location" here - its not necessary"*. The Settings window's Region tab

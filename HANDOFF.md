@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ONLY, NO APP CODE ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html))
+
+- **The ask** (owner, 30 Oct 2026): *"what if for phases you could select EITHER starting date OR ending date. So if
+  you selected ending date and then 20 weeks, it would calculate backwards"*, in Weeks mode, and whether Ends should
+  have a Snap to Friday option. Tracker card `weeks-end-date`, status planned.
+- **Why it is worth having:** it changes which end HOLDS. Today a phase is held by its start, so adding a hiatus or
+  changing 20 weeks to 22 moves the end, often the delivery date. An Ends phase keeps the end and moves the start.
+  It is not Dates mode: Dates fixes both ends and a hiatus leaves blank days, while an Ends phase still delivers its
+  full week count, so a hiatus pushes its start earlier.
+- ✅ **RULED (owner: "Yes, no switch"):** with Ends picked, a Weeks phase ALWAYS ends on the Friday of the week
+  picked. No Snap to Friday switch; the Snap to Monday switch is hidden in Ends mode, as it already is for Days and
+  Dates. The date box shows that Friday, so a typed Wednesday reads as its Friday.
+  - **Why not "no snapping":** 20 × 7 days back from Fri 16 Oct 2026 starts on Sat 30 May, so the waterfall shows the
+    phase in the week of 25 May too: 21 rows for a 20-week phase. Snapped it runs Mon 1 Jun to Fri 16 Oct, 20 rows.
+    Rebuild From's Dates work hit the same trap (a range that began on a Saturday, an empty week row). An exact end
+    day is what Dates mode is for.
+- **Suggested, NOT ruled:**
+  - the row's "Starts" label becomes a Starts / Ends choice over the same date box; flipping to Ends fills in the
+    phase's current end, so nothing moves;
+  - Production stays out (working back from a shoot-day count is a search, as `productionEndFor()` is);
+  - "↳ Start after previous phase" is hidden while Ends is picked;
+  - every mover moves the END, which `setPhaseStart()` (the one writer) can do in one place;
+  - the calculated start keeps being written to `start-<key>`, so an older build opens the same calendar (as a
+    start-held phase);
+  - custom phases in Weeks get it too.
+- **Hazards for whoever builds it:** Ends is a new per-phase saved setting, so a PERMANENT key or id. If it is an id
+  on the static built-in rows, it needs an explicit absent → Starts default in `applyStateSnapshot()` and New (the
+  trap `unit-<key>` was defaulted against), and gate 5 is re-cut. The backward hiatus walk is the mirror of
+  `extendEndForHiatus()`, inside `computeSchedule()`, which is not on the frozen list. The picker should offer only
+  Fridays in Ends mode, the twin of card `snap-monday-picker`.
+- **The mockup** (owner: "Mock it up"): a copy of the live Post card (measured in the browser pane) with "Starts"
+  as a caption select like "Length · Weeks", beside a waterfall stand-in with a "What moved" strip in the owner's
+  Pushed / Pulled wording. Ends hides Snap to Monday and "Start after previous phase"; the picker (a copy of
+  `DatePop.jsx` with that day's Monday-only change) offers only Fridays; a typed Wednesday or Sunday reads as its
+  Friday; Dates mode drops the choice. Synthetic calendar, one live phase, a fixed hiatus. Checked in the browser
+  pane with scripted and real clicks: 20 → 22 weeks in Ends pulls the start 2 wks and holds Fri 10/16/26, the
+  hiatus pulls it 2 more, Starts moves the end instead; no console errors.
+  - **Open for the owner:** (1) the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
+    `seg.end − 1`), so it says 10/18/26 beside a box saying 10/16/26: leave it, or end it on the Friday everywhere
+    (suggested; reachable without a frozen edit by the observer pattern `reflectHalfDayTotal` uses)? (2) Custom
+    Weeks phases too (suggested yes)? (3) "Start after previous phase" hidden in Ends (shown), or kept and
+    switching the phase back to Starts?
+
 ### ✅ 30 Oct 2026: REGION SELECT'S "LOCATION" LABEL REMOVED — ✅ LIVE at `9522aa3` (owner's picker, commit + push; live `index.html` matched the build `e6d5d0bc…`)
 
 - Owner: *"maybe we remove the word "Location" here - its not necessary"*. `Sidebar.jsx`'s `#union-place` NativeSelect

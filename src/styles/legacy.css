@@ -112,6 +112,15 @@
     border-radius:var(--mantine-radius-sm) 0 0 var(--mantine-radius-sm); font-weight:600;
   }
   .dp-day:hover:not(.dp-cap){ background:var(--mantine-color-gray-2); }
+  /* A day picked alone, with no band to cap (DatePop's fieldKind 'day' and 'monday'): round both ends. */
+  .dp-cap.dp-solo{ border-radius:var(--mantine-radius-sm); }
+  /* A Monday-only field (Snap to Monday on, every hiatus start; owner, 30 Oct 2026): the other days are
+     disabled but stay readable, dots and all, because a holiday or hiatus beside the Monday still matters. */
+  .dp-off{ color:var(--mantine-color-gray-4); cursor:default; }
+  .dp-day.dp-off:hover{ background:transparent; }   /* outranks .dp-day:hover:not(.dp-cap) by order */
+  .dp-off.dp-out{ color:var(--mantine-color-gray-3); }
+  /* ...and a Monday of the month before or after, still pickable, must not read as one of them. */
+  .dp-mondays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
   .dp-dot{
     position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
     width:3px; height:3px; border-radius:50%;

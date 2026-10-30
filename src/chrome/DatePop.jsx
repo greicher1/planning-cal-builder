@@ -9,14 +9,19 @@
 // 'input' event, exactly like a keystroke — the engine cannot tell the difference.
 //
 // The design is UI-CONVENTIONS.md §5, delivered here because DateInput could not deliver it:
-//   * Monday-snap made VISIBLE: for week-snapped fields the whole Mon–Sun week of the current
-//     value paints as a band with the Monday capped, and hovering previews the week a click would
-//     choose. Every day stays clickable — the engine's own snapping still decides.
+//   * Each field is picked the way the engine READS it (fieldKind below; owner, 30 Oct 2026). A
+//     date the engine snaps to its Monday (a phase start with Snap to Monday on, every hiatus
+//     start) can only be picked ON a Monday: the other days are disabled, so the field can no
+//     longer show a Wednesday the phase does not start on. A date used to the day (Snap off, a
+//     Days or Dates phase, a Dates end) is picked alone, with no week band. Only the fields where
+//     any day picks its week (the calendar range, Anchor To's start) keep the band, and hovering
+//     there previews the week a click would choose. Typing is untouched, and the engine's own
+//     snapping still decides what a typed date means.
 //   * Union holidays and all-phase hiatus weeks are MARKED (a dot), never excluded: a scheduler
 //     must be able to choose a date that lands on a holiday and see the consequence. The data
 //     arrives through the bridge (chrome.dateContext, pushed by update()) like every other chrome
 //     surface — the popover never reaches into the engine.
-//   * #custom-hol-date is the one single-DAY field, so it gets no week band — that difference was
+//   * #custom-hol-date was the first single-DAY field to get no week band — that difference was
 //     invisible before and is the reason it kept being mistaken for a week field.
 //
 // Save-format hygiene: NOTHING in here carries an id. collectFieldValues() sweeps every
@@ -50,6 +55,40 @@ function pickerTarget(el) {
   if (!el || el.tagName !== 'INPUT' || el.type !== 'date') return null
   if (!el.closest('.form-panel') && !el.closest('.tools-menu')) return null
   return el
+}
+
+// Is this phase's start snapped to its Monday? The engine's phaseSnapped(), read from the same
+// DOM: a Days or Dates phase never snaps (its switch is hidden and ignored), and a MISSING
+// snap-<key> box reads as snapped, readState()'s own default. Keep the two in step.
+function phaseSnapped(key) {
+  const unit = document.getElementById('unit-' + key)
+  if (unit && (unit.value === 'days' || unit.value === 'dates')) return false
+  const cb = document.getElementById('snap-' + key)
+  return cb ? cb.checked : true
+}
+
+// How the engine reads the date in `el`, and so how it may be picked:
+//   'monday' — snapped to its week's Monday (readState / computeSchedule), so only Mondays;
+//   'day'    — used to the day, so a single day and no band;
+//   'week'   — any day picks its week (the range is cut by whole weeks, and Anchor To's start
+//              moves the calendar by whole weeks: weeksBetweenMondays), so the band stays.
+// Read on every render: the popover closes on any outside press, so a switch cannot change
+// under it.
+function fieldKind(el) {
+  if (el.id === 'custom-hol-date') return 'day'
+  if (el.classList.contains('hiatus-start') || el.classList.contains('phiatus-start')) return 'monday'
+  if (el.id.startsWith('end-')) return 'day'                       // a Dates phase's end
+  if (el.id.startsWith('start-')) return phaseSnapped(el.id.slice(6)) ? 'monday' : 'day'
+  // Rebuild From pins the chosen phase's start by that phase's own Snap to Monday (audit M-11).
+  if (el.id === 'tool-solve-date') {
+    const key = (document.getElementById('tool-solve-phase') || {}).value
+    return key && !phaseSnapped(key) ? 'day' : 'monday'
+  }
+  // Anchor To's "ends by" is a deadline to the day (weeksToFinishBy floors on it).
+  if (el.id === 'tool-anchor-date') {
+    return (document.getElementById('tool-anchor-edge') || {}).value === 'end' ? 'day' : 'week'
+  }
+  return 'week'                                                     // the calendar range
 }
 
 export function DatePop() {
@@ -129,7 +168,8 @@ export function DatePop() {
 
   if (!target) return null
 
-  const weekMode = target.id !== 'custom-hol-date'
+  const kind = fieldKind(target)
+  const weekMode = kind === 'week'
 
   // The write-back: the native setter plus a real 'input' event, so React's value tracker (on the
   // uncontrolled Mantine inputs) and the engine's per-field listeners both see a normal edit.
@@ -158,6 +198,10 @@ export function DatePop() {
   const todayIso = iso(Date.now())
   const selWeek = weekMode && value != null ? mondayOf(value) : null
   const hoverWeek = weekMode && hover != null ? mondayOf(hover) : null
+  // The one day shown as picked when there is no band. On a Monday-only field it is the Monday the
+  // engine snaps to, so a Wednesday already in the field (typed, or saved before 30 Oct 2026)
+  // shows the day the phase really starts.
+  const selDay = weekMode || value == null ? null : (kind === 'monday' ? mondayOf(value) : value)
 
   const cells = []
   for (let i = 0; i < 42; i++) {
@@ -166,11 +210,16 @@ export function DatePop() {
     const inMonth = d.getUTCMonth() === m
     const dayIso = iso(t)
     const isMon = d.getUTCDay() === 1
+    // ⚠️ aria-disabled, not `disabled`: Chrome drops mouse events on a disabled button, so the
+    // popover's mousedown preventDefault never ran and a click on a greyed day took focus out
+    // of the field.
+    const off = kind === 'monday' && !isMon
     const cls = ['dp-day']
+    if (off) cls.push('dp-off')
     if (!inMonth) cls.push('dp-out')
     if (dayIso === todayIso) cls.push('dp-today')
     if (selWeek != null && mondayOf(t) === selWeek) { cls.push('dp-band'); if (isMon) cls.push('dp-cap') }
-    if (!weekMode && value != null && t === value) cls.push('dp-cap')
+    if (t === selDay) cls.push('dp-cap', 'dp-solo')
     if (hoverWeek != null && mondayOf(t) === hoverWeek) cls.push('dp-hband')
     const hol = holidayByIso[dayIso]
     cells.push(
@@ -179,8 +228,10 @@ export function DatePop() {
         type="button"
         className={cls.join(' ')}
         title={hol || undefined}
+        aria-disabled={off || undefined}
+        tabIndex={off ? -1 : undefined}
         onMouseEnter={weekMode ? () => setHover(t) : undefined}
-        onClick={() => pick(t)}
+        onClick={off ? undefined : () => pick(t)}
       >
         {d.getUTCDate()}
         {(hol || hiatusDays.has(t)) && (
@@ -209,9 +260,16 @@ export function DatePop() {
         <button type="button" className="dp-nav" aria-label="Next month" onClick={() => nav(1)}>›</button>
       </div>
       <div className="dp-dow" aria-hidden="true">{DOW.map((d) => <span key={d}>{d}</span>)}</div>
-      <div className="dp-grid">{cells}</div>
+      <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : '')}>{cells}</div>
       {weekMode && (
         <div className="dp-hint">Any day picks its week — the calendar snaps to that Monday.</div>
+      )}
+      {kind === 'monday' && (
+        <div className="dp-hint">
+          {target.classList.contains('hiatus-start') || target.classList.contains('phiatus-start')
+            ? 'A hiatus always starts on a Monday.'
+            : 'Snap to Monday is on, so only Mondays can be picked.'}
+        </div>
       )}
     </div>
   )

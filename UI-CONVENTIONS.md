@@ -529,6 +529,19 @@ week paints as a selected band with the Monday capped — and **every day stays 
 existing snapping behaviour is unchanged; it just becomes visible before the click instead of
 explained after it. `firstDayOfWeek={1}` makes Monday column one so the band reads as a row.
 
+> ⛔ **Superseded by the owner, 30 Oct 2026** (*"when snap to monday is on wouldn't it make sense that you
+> aren't able to pick any dates except mondays?"*). "Every day stays clickable" let a snapped phase's Starts
+> box show a Wednesday the phase does not start on. The built picker (`DatePop.jsx`, `fieldKind()`) now picks
+> each field the way the engine reads it:
+> - **Only Mondays** for a snapped phase start, every hiatus start, and Rebuild From on a snapped phase.
+>   Other days are greyed out (`aria-disabled`) and do nothing.
+> - **The exact day, with no band**, for Snap off, Days/Dates phases, a Dates end, a custom holiday, and
+>   Anchor To's "ends by".
+> - **The band** only where any day picks its week: the calendar range and Anchor To's start.
+>
+> Not every week field is snapped, so the "six week-snapped fields" below is no longer a fixed list. Holidays
+> are still marked, never excluded: a greyed day keeps its dot. Leg `datepick`.
+
 **Union holidays and hiatus weeks get marked in the calendar** — `getDayProps` emits `data-holiday`
 / `data-hiatus`, and `renderDay` adds a 3 px dot rather than recolouring the number. **Mark, never
 exclude:** a scheduler must be able to *choose* a date that lands on a holiday and see the

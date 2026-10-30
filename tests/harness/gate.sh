@@ -1755,6 +1755,12 @@ done
 # through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
 # both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
 # write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
+# datepick (owner, 30 Oct 2026: "when snap to monday is on wouldn't it make sense that you aren't able to pick any
+# dates except mondays?") holds the pop-out date picker to the way the engine reads each field (DatePop.jsx's
+# fieldKind): a phase start with Snap to Monday on, every hiatus start and Rebuild From on a snapped phase offer only
+# Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and is not rewritten);
+# Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact day with no
+# week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1811,6 +1817,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
               regionmirror:-:150 \
+              datepick:-:150 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
