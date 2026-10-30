@@ -1548,6 +1548,15 @@ export function initLegacyApp() {
   const MILESTONE_TEXT = '#FFFFFF';
   const ROWS_PER_BLOCK = 53; // legacy fallback only, no longer used for grouping
 
+  // ⛔ THE HOLIDAY-DATA VERSION (29 Oct 2026, CANADA-HOLIDAYS-PLAN.md §3 step 4, owner ruling D4). A saved
+  // calendar stores inputs, never computed dates, so a corrected holiday list silently moves a wrap date on
+  // reopen. HOLIDAY_LISTS_CHANGED names each region whose list changed and the version it changed at;
+  // captureSnapshot() stamps `holidayLists` on a calendar in one of them, and maybeShowHolidayNotice() raises
+  // the "holiday list was corrected" strip for a file in one of them whose stamp is older. ⛔ To correct a list
+  // again: bump the version, add the region here at the new version, and give it a HOLIDAY_FIX_NOTE_2 line.
+  const HOLIDAY_LISTS_VERSION = 2;
+  const HOLIDAY_LISTS_CHANGED = {'CA-AB': 2, 'CA-MB': 2, 'CA-NS': 2};
+
   // Union/statutory holiday data, keyed by REGION. The no-shoot days genuinely differ by
   // jurisdiction, so one list per agreement -- not one per country.
   //
@@ -1567,7 +1576,14 @@ export function initLegacyApp() {
   //
   // Weekend handling: a holiday landing on Sat/Sun also emits an '(Observed)' weekday entry.
   // US shifts Sat->Fri / Sun->Mon per ASA Art. 7. Canada/UK/Victoria roll forward to the next
-  // free weekday. Lithuania, Germany and France do not transfer at all.
+  // free weekday, except the days IATSE 849 never moves (Truth and Reconciliation in NB, NS and
+  // PEI; Remembrance Day in NS). Lithuania, Germany and France do not transfer at all.
+  //
+  // ⭐ CANADA (owner, 29 Oct 2026, CANADA-HOLIDAYS-PLAN.md): every province follows a "practical
+  // production list" plus Truth and Reconciliation. A row the practical list does NOT have carries
+  // `src` (the agreement that puts it there: 'IATSE 849', 'IATSE 709') and `statutory:true` when the
+  // province's law makes it a holiday too. renderHolidayVisList() shows `src` as a tag. ⛔ The tag is
+  // never part of `name`: holidaySlug(name, date) is the holiday's id in every saved calendar.
   const HOLIDAYS = {
     // United States — IATSE general -- IATSE Area Standards Agreement (Art. 7) · West Coast Studio Local Agreements (¶ 9(e)(4))
     // source: https://www.asa.iatse.net/  (verified 2026-09-11)
@@ -2037,46 +2053,60 @@ export function initLegacyApp() {
       {date:'2031-10-13', name:'Thanksgiving'},
       {date:'2031-12-25', name:'Christmas Day'},
     ],
-    // Alberta -- Provincial employment standards
-    // source: https://www.alberta.ca/general-holidays-pay  (verified 2026-09-11)
+    // Alberta -- IATSE Local 212 Art. 14.1 · IATSE Local 210 Art. 14(a) · Teamsters 362 Art. 10.01
+    // source: https://www.iatse212.com/downloads/agreements/2026CollectiveAgreementFinal.pdf  (verified 2026-10-29)
     'CA-AB': [
       {date:'2024-01-01', name:'New Year\'s Day'},
       {date:'2024-02-19', name:'Alberta Family Day'},
       {date:'2024-03-29', name:'Good Friday'},
       {date:'2024-05-20', name:'Victoria Day'},
       {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'Heritage Day'},
       {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2024-10-14', name:'Thanksgiving'},
       {date:'2024-11-11', name:'Remembrance Day'},
       {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
       {date:'2025-01-01', name:'New Year\'s Day'},
       {date:'2025-02-17', name:'Alberta Family Day'},
       {date:'2025-04-18', name:'Good Friday'},
       {date:'2025-05-19', name:'Victoria Day'},
       {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'Heritage Day'},
       {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2025-10-13', name:'Thanksgiving'},
       {date:'2025-11-11', name:'Remembrance Day'},
       {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
       {date:'2026-01-01', name:'New Year\'s Day'},
       {date:'2026-02-16', name:'Alberta Family Day'},
       {date:'2026-04-03', name:'Good Friday'},
       {date:'2026-05-18', name:'Victoria Day'},
       {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Heritage Day'},
       {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2026-10-12', name:'Thanksgiving'},
       {date:'2026-11-11', name:'Remembrance Day'},
       {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
       {date:'2027-01-01', name:'New Year\'s Day'},
       {date:'2027-02-15', name:'Alberta Family Day'},
       {date:'2027-03-26', name:'Good Friday'},
       {date:'2027-05-24', name:'Victoria Day'},
       {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Heritage Day'},
       {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2027-10-11', name:'Thanksgiving'},
       {date:'2027-11-11', name:'Remembrance Day'},
       {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
       {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
       {date:'2028-01-01', name:'New Year\'s Day'},
       {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
       {date:'2028-02-21', name:'Alberta Family Day'},
@@ -2084,81 +2114,109 @@ export function initLegacyApp() {
       {date:'2028-05-22', name:'Victoria Day'},
       {date:'2028-07-01', name:'Canada Day'},
       {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'Heritage Day'},
       {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
       {date:'2028-10-09', name:'Thanksgiving'},
       {date:'2028-11-11', name:'Remembrance Day'},
       {date:'2028-11-13', name:'Remembrance Day (Observed)'},
       {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
       {date:'2029-01-01', name:'New Year\'s Day'},
       {date:'2029-02-19', name:'Alberta Family Day'},
       {date:'2029-03-30', name:'Good Friday'},
       {date:'2029-05-21', name:'Victoria Day'},
       {date:'2029-07-01', name:'Canada Day'},
       {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'Heritage Day'},
       {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
       {date:'2029-10-08', name:'Thanksgiving'},
       {date:'2029-11-11', name:'Remembrance Day'},
       {date:'2029-11-12', name:'Remembrance Day (Observed)'},
       {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
       {date:'2030-01-01', name:'New Year\'s Day'},
       {date:'2030-02-18', name:'Alberta Family Day'},
       {date:'2030-04-19', name:'Good Friday'},
       {date:'2030-05-20', name:'Victoria Day'},
       {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'Heritage Day'},
       {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2030-10-14', name:'Thanksgiving'},
       {date:'2030-11-11', name:'Remembrance Day'},
       {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
       {date:'2031-01-01', name:'New Year\'s Day'},
       {date:'2031-02-17', name:'Alberta Family Day'},
       {date:'2031-04-11', name:'Good Friday'},
       {date:'2031-05-19', name:'Victoria Day'},
       {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'Heritage Day'},
       {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2031-10-13', name:'Thanksgiving'},
       {date:'2031-11-11', name:'Remembrance Day'},
       {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
     ],
-    // Manitoba -- Provincial employment standards
-    // source: https://www.gov.mb.ca/labour/standards/  (verified 2026-09-11)
+    // Manitoba -- IATSE Local 856 Collective Agreement, Art. 10.02
+    // source: https://iatse856.com/wp-content/uploads/2025/02/1.-04.08.2026-Collective-Agreement.pdf  (verified 2026-10-29)
     'CA-MB': [
       {date:'2024-01-01', name:'New Year\'s Day'},
       {date:'2024-02-19', name:'Louis Riel Day'},
       {date:'2024-03-29', name:'Good Friday'},
       {date:'2024-05-20', name:'Victoria Day'},
       {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'Civic Holiday'},
       {date:'2024-09-02', name:'Labour Day'},
       {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
       {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
       {date:'2025-01-01', name:'New Year\'s Day'},
       {date:'2025-02-17', name:'Louis Riel Day'},
       {date:'2025-04-18', name:'Good Friday'},
       {date:'2025-05-19', name:'Victoria Day'},
       {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'Civic Holiday'},
       {date:'2025-09-01', name:'Labour Day'},
       {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
       {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
       {date:'2026-01-01', name:'New Year\'s Day'},
       {date:'2026-02-16', name:'Louis Riel Day'},
       {date:'2026-04-03', name:'Good Friday'},
       {date:'2026-05-18', name:'Victoria Day'},
       {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Civic Holiday'},
       {date:'2026-09-07', name:'Labour Day'},
       {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
       {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
       {date:'2027-01-01', name:'New Year\'s Day'},
       {date:'2027-02-15', name:'Louis Riel Day'},
       {date:'2027-03-26', name:'Good Friday'},
       {date:'2027-05-24', name:'Victoria Day'},
       {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Civic Holiday'},
       {date:'2027-09-06', name:'Labour Day'},
       {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
       {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
       {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
       {date:'2028-01-01', name:'New Year\'s Day'},
       {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
       {date:'2028-02-21', name:'Louis Riel Day'},
@@ -2166,95 +2224,886 @@ export function initLegacyApp() {
       {date:'2028-05-22', name:'Victoria Day'},
       {date:'2028-07-01', name:'Canada Day'},
       {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'Civic Holiday'},
       {date:'2028-09-04', name:'Labour Day'},
       {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
       {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)'},
       {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
       {date:'2029-01-01', name:'New Year\'s Day'},
       {date:'2029-02-19', name:'Louis Riel Day'},
       {date:'2029-03-30', name:'Good Friday'},
       {date:'2029-05-21', name:'Victoria Day'},
       {date:'2029-07-01', name:'Canada Day'},
       {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'Civic Holiday'},
       {date:'2029-09-03', name:'Labour Day'},
       {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
       {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)'},
       {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
       {date:'2030-01-01', name:'New Year\'s Day'},
       {date:'2030-02-18', name:'Louis Riel Day'},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'Civic Holiday'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-02-17', name:'Louis Riel Day'},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'Civic Holiday'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
+    ],
+    // Nova Scotia -- IATSE Local 849 Standard Agreement, Art. 16.1(3)
+    // source: https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf  (verified 2026-10-29)
+    'CA-NS': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-02-19', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'Natal Day', src:'IATSE 849'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-02-17', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'Natal Day', src:'IATSE 849'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-02-16', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Natal Day', src:'IATSE 849'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-02-15', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Natal Day', src:'IATSE 849'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-02-21', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'Natal Day', src:'IATSE 849'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-02-19', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'Natal Day', src:'IATSE 849'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-02-18', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'Natal Day', src:'IATSE 849'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-02-17', name:'Nova Scotia Heritage Day', src:'IATSE 849', statutory:true},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'Natal Day', src:'IATSE 849'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
+    ],
+    // Saskatchewan -- DGC–CMPA Standard Agreement, Saskatchewan Schedule SK4.02 · IATSE Local 295 Art. 10.01
+    // source: https://web.archive.org/web/20230703052756/https://cmpa.ca/wp-content/uploads/2017/10/2023-2025-DGC-Schedule-6-Saskatchewan-District-Council-FULLY-EXECUTED.pdf  (verified 2026-10-29)
+    'CA-SK': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-02-19', name:'Family Day'},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'Saskatchewan Day'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-02-17', name:'Family Day'},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'Saskatchewan Day'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-02-16', name:'Family Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Saskatchewan Day'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-02-15', name:'Family Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Saskatchewan Day'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-02-21', name:'Family Day'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'Saskatchewan Day'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-02-19', name:'Family Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'Saskatchewan Day'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)'},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-02-18', name:'Family Day'},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'Saskatchewan Day'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-02-17', name:'Family Day'},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'Saskatchewan Day'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
+    ],
+    // New Brunswick -- IATSE Local 849 Standard Agreement, Art. 16.1(1)
+    // source: https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf  (verified 2026-10-29)
+    'CA-NB': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-02-19', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'New Brunswick Day'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-02-17', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'New Brunswick Day'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-02-16', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'New Brunswick Day'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-02-15', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'New Brunswick Day'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-02-21', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'New Brunswick Day'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)', src:'IATSE 849', statutory:true},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-02-19', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'New Brunswick Day'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)', src:'IATSE 849', statutory:true},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-02-18', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'New Brunswick Day'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-02-17', name:'Family Day', src:'IATSE 849', statutory:true},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'New Brunswick Day'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
+    ],
+    // Prince Edward Island -- IATSE Local 849 Standard Agreement, Art. 16.1(2)
+    // source: https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf  (verified 2026-10-29)
+    'CA-PE': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-02-19', name:'Islander Day'},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-02-17', name:'Islander Day'},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-02-16', name:'Islander Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-02-15', name:'Islander Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-02-21', name:'Islander Day'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)', src:'IATSE 849', statutory:true},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-02-19', name:'Islander Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)', src:'IATSE 849', statutory:true},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-02-18', name:'Islander Day'},
       {date:'2030-04-19', name:'Good Friday'},
       {date:'2030-05-20', name:'Victoria Day'},
       {date:'2030-07-01', name:'Canada Day'},
       {date:'2030-09-02', name:'Labour Day'},
       {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
       {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
       {date:'2031-01-01', name:'New Year\'s Day'},
-      {date:'2031-02-17', name:'Louis Riel Day'},
+      {date:'2031-02-17', name:'Islander Day'},
       {date:'2031-04-11', name:'Good Friday'},
       {date:'2031-05-19', name:'Victoria Day'},
       {date:'2031-07-01', name:'Canada Day'},
       {date:'2031-09-01', name:'Labour Day'},
       {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
       {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day', src:'IATSE 849', statutory:true},
       {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
     ],
-    // Nova Scotia -- Provincial employment standards
-    // source: https://novascotia.ca/lae/employmentrights/holidaychart.asp  (verified 2026-09-11)
-    'CA-NS': [
+    // Newfoundland and Labrador -- IATSE Local 709 Standard Agreement, Art. 16.1
+    // source: https://iatse709.com/production-downloads (Standard with Rates, March 2026)  (verified 2026-10-29)
+    'CA-NL': [
       {date:'2024-01-01', name:'New Year\'s Day'},
-      {date:'2024-02-19', name:'Nova Scotia Heritage Day'},
       {date:'2024-03-29', name:'Good Friday'},
-      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-05-20', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2024-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2024-08-07', name:'Regatta Day', src:'IATSE 709'},
       {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2024-12-26', name:'Boxing Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2025-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2025-08-06', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2025-12-26', name:'Boxing Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2026-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2026-08-05', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2027-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2027-08-04', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-26', name:'Boxing Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2027-12-28', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2028-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2028-07-03', name:'Memorial Day / Canada Day (Observed)'},
+      {date:'2028-08-02', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)', src:'IATSE 709', statutory:true},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2029-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2029-07-02', name:'Memorial Day / Canada Day (Observed)'},
+      {date:'2029-08-01', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)', src:'IATSE 709', statutory:true},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2029-12-26', name:'Boxing Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2030-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2030-08-07', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2030-12-26', name:'Boxing Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day', src:'IATSE 709'},
+      {date:'2031-07-01', name:'Memorial Day / Canada Day'},
+      {date:'2031-08-06', name:'Regatta Day', src:'IATSE 709'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day', src:'IATSE 709', statutory:true},
+      {date:'2031-12-25', name:'Christmas Day'},
+      {date:'2031-12-26', name:'Boxing Day'},
+    ],
+    // Yukon -- Yukon Employment Standards Act (statutory list)
+    // source: https://yukon.ca/en/doing-business/employer-responsibilities/find-yukon-statutory-holiday  (verified 2026-10-29)
+    'CA-YT': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-19', name:'Discovery Day'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
       {date:'2024-12-25', name:'Christmas Day'},
       {date:'2025-01-01', name:'New Year\'s Day'},
-      {date:'2025-02-17', name:'Nova Scotia Heritage Day'},
       {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2025-06-23', name:'National Indigenous Peoples Day (Observed)'},
       {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-18', name:'Discovery Day'},
       {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
       {date:'2025-12-25', name:'Christmas Day'},
       {date:'2026-01-01', name:'New Year\'s Day'},
-      {date:'2026-02-16', name:'Nova Scotia Heritage Day'},
       {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2026-06-22', name:'National Indigenous Peoples Day (Observed)'},
       {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-17', name:'Discovery Day'},
       {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
       {date:'2026-12-25', name:'Christmas Day'},
       {date:'2027-01-01', name:'New Year\'s Day'},
-      {date:'2027-02-15', name:'Nova Scotia Heritage Day'},
       {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-06-21', name:'National Indigenous Peoples Day'},
       {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-16', name:'Discovery Day'},
       {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
       {date:'2027-12-25', name:'Christmas Day'},
       {date:'2027-12-27', name:'Christmas Day (Observed)'},
       {date:'2028-01-01', name:'New Year\'s Day'},
       {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
-      {date:'2028-02-21', name:'Nova Scotia Heritage Day'},
       {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-06-21', name:'National Indigenous Peoples Day'},
       {date:'2028-07-01', name:'Canada Day'},
       {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-21', name:'Discovery Day'},
       {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)'},
       {date:'2028-12-25', name:'Christmas Day'},
       {date:'2029-01-01', name:'New Year\'s Day'},
-      {date:'2029-02-19', name:'Nova Scotia Heritage Day'},
       {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-06-21', name:'National Indigenous Peoples Day'},
       {date:'2029-07-01', name:'Canada Day'},
       {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-20', name:'Discovery Day'},
       {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)'},
       {date:'2029-12-25', name:'Christmas Day'},
       {date:'2030-01-01', name:'New Year\'s Day'},
-      {date:'2030-02-18', name:'Nova Scotia Heritage Day'},
       {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-06-21', name:'National Indigenous Peoples Day'},
       {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-19', name:'Discovery Day'},
       {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
       {date:'2030-12-25', name:'Christmas Day'},
       {date:'2031-01-01', name:'New Year\'s Day'},
-      {date:'2031-02-17', name:'Nova Scotia Heritage Day'},
       {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2031-06-23', name:'National Indigenous Peoples Day (Observed)'},
       {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-18', name:'Discovery Day'},
       {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+    ],
+    // Northwest Territories -- NWT Employment Standards Act (statutory list)
+    // source: https://www.ece.gov.nt.ca/en/services/employment-standards/frequently-asked-questions  (verified 2026-10-29)
+    'CA-NT': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-08-05', name:'Civic Holiday'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2025-06-23', name:'National Indigenous Peoples Day (Observed)'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-08-04', name:'Civic Holiday'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2026-06-22', name:'National Indigenous Peoples Day (Observed)'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Civic Holiday'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Civic Holiday'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-08-07', name:'Civic Holiday'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-08-06', name:'Civic Holiday'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)'},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-08-05', name:'Civic Holiday'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2031-06-23', name:'National Indigenous Peoples Day (Observed)'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-08-04', name:'Civic Holiday'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+    ],
+    // Nunavut -- Nunavut Labour Standards Act (statutory list) + Truth and Reconciliation
+    // source: https://nu-lsco.ca/faq-s?tmpl=component&faqid=11  (verified 2026-10-29)
+    'CA-NU': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-03-29', name:'Good Friday'},
+      {date:'2024-05-20', name:'Victoria Day'},
+      {date:'2024-07-01', name:'Canada Day'},
+      {date:'2024-07-09', name:'Nunavut Day'},
+      {date:'2024-08-05', name:'Civic Holiday'},
+      {date:'2024-09-02', name:'Labour Day'},
+      {date:'2024-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2024-10-14', name:'Thanksgiving'},
+      {date:'2024-11-11', name:'Remembrance Day'},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-04-18', name:'Good Friday'},
+      {date:'2025-05-19', name:'Victoria Day'},
+      {date:'2025-07-01', name:'Canada Day'},
+      {date:'2025-07-09', name:'Nunavut Day'},
+      {date:'2025-08-04', name:'Civic Holiday'},
+      {date:'2025-09-01', name:'Labour Day'},
+      {date:'2025-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2025-10-13', name:'Thanksgiving'},
+      {date:'2025-11-11', name:'Remembrance Day'},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-07-09', name:'Nunavut Day'},
+      {date:'2026-08-03', name:'Civic Holiday'},
+      {date:'2026-09-07', name:'Labour Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-07-09', name:'Nunavut Day'},
+      {date:'2027-08-02', name:'Civic Holiday'},
+      {date:'2027-09-06', name:'Labour Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-27', name:'Christmas Day (Observed)'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-01-03', name:'New Year\'s Day (Observed)'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-07-03', name:'Canada Day (Observed)'},
+      {date:'2028-07-09', name:'Nunavut Day'},
+      {date:'2028-07-10', name:'Nunavut Day (Observed)'},
+      {date:'2028-08-07', name:'Civic Holiday'},
+      {date:'2028-09-04', name:'Labour Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-02', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-11-13', name:'Remembrance Day (Observed)'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-07-02', name:'Canada Day (Observed)'},
+      {date:'2029-07-09', name:'Nunavut Day'},
+      {date:'2029-08-06', name:'Civic Holiday'},
+      {date:'2029-09-03', name:'Labour Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-01', name:'National Day for Truth and Reconciliation (Observed)'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-11-12', name:'Remembrance Day (Observed)'},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-04-19', name:'Good Friday'},
+      {date:'2030-05-20', name:'Victoria Day'},
+      {date:'2030-07-01', name:'Canada Day'},
+      {date:'2030-07-09', name:'Nunavut Day'},
+      {date:'2030-08-05', name:'Civic Holiday'},
+      {date:'2030-09-02', name:'Labour Day'},
+      {date:'2030-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2030-10-14', name:'Thanksgiving'},
+      {date:'2030-11-11', name:'Remembrance Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-04-11', name:'Good Friday'},
+      {date:'2031-05-19', name:'Victoria Day'},
+      {date:'2031-07-01', name:'Canada Day'},
+      {date:'2031-07-09', name:'Nunavut Day'},
+      {date:'2031-08-04', name:'Civic Holiday'},
+      {date:'2031-09-01', name:'Labour Day'},
+      {date:'2031-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2031-10-13', name:'Thanksgiving'},
+      {date:'2031-11-11', name:'Remembrance Day'},
       {date:'2031-12-25', name:'Christmas Day'},
     ],
     // England & Wales -- Pact/Bectu Scripted TV Agreement cl. 11 · Major Motion Picture Agreement cl. 5.6
@@ -3033,19 +3882,119 @@ export function initLegacyApp() {
       {date:'2031-11-11', name:'Armistice Day (Armistice 1918)'},
       {date:'2031-12-25', name:'Christmas Day (Noël)'},
     ],
+    // Mexico -- Ley Federal del Trabajo, Art. 74 (statutory list; fr. VII reformed DOF 30-09-2024)
+    // source: https://www.diputados.gob.mx/LeyesBiblio/pdf/LFT.pdf  (verified 2026-10-29)
+    'MX': [
+      {date:'2024-01-01', name:'New Year\'s Day'},
+      {date:'2024-02-05', name:'Constitution Day'},
+      {date:'2024-03-18', name:'Benito Juárez\'s Birthday'},
+      {date:'2024-05-01', name:'Labour Day'},
+      {date:'2024-09-16', name:'Independence Day'},
+      {date:'2024-11-18', name:'Revolution Day'},
+      {date:'2024-12-25', name:'Christmas Day'},
+      {date:'2025-01-01', name:'New Year\'s Day'},
+      {date:'2025-02-03', name:'Constitution Day'},
+      {date:'2025-03-17', name:'Benito Juárez\'s Birthday'},
+      {date:'2025-05-01', name:'Labour Day'},
+      {date:'2025-09-16', name:'Independence Day'},
+      {date:'2025-11-17', name:'Revolution Day'},
+      {date:'2025-12-25', name:'Christmas Day'},
+      {date:'2026-01-01', name:'New Year\'s Day'},
+      {date:'2026-02-02', name:'Constitution Day'},
+      {date:'2026-03-16', name:'Benito Juárez\'s Birthday'},
+      {date:'2026-05-01', name:'Labour Day'},
+      {date:'2026-09-16', name:'Independence Day'},
+      {date:'2026-11-16', name:'Revolution Day'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2027-01-01', name:'New Year\'s Day'},
+      {date:'2027-02-01', name:'Constitution Day'},
+      {date:'2027-03-15', name:'Benito Juárez\'s Birthday'},
+      {date:'2027-05-01', name:'Labour Day'},
+      {date:'2027-06-06', name:'Federal Election Day'},   // ONE-OFF -- government-declared, no rule produces this
+      {date:'2027-09-16', name:'Independence Day'},
+      {date:'2027-11-15', name:'Revolution Day'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2028-01-01', name:'New Year\'s Day'},
+      {date:'2028-02-07', name:'Constitution Day'},
+      {date:'2028-03-20', name:'Benito Juárez\'s Birthday'},
+      {date:'2028-05-01', name:'Labour Day'},
+      {date:'2028-09-16', name:'Independence Day'},
+      {date:'2028-11-20', name:'Revolution Day'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2029-01-01', name:'New Year\'s Day'},
+      {date:'2029-02-05', name:'Constitution Day'},
+      {date:'2029-03-19', name:'Benito Juárez\'s Birthday'},
+      {date:'2029-05-01', name:'Labour Day'},
+      {date:'2029-09-16', name:'Independence Day'},
+      {date:'2029-11-19', name:'Revolution Day'},
+      {date:'2029-12-25', name:'Christmas Day'},
+      {date:'2030-01-01', name:'New Year\'s Day'},
+      {date:'2030-02-04', name:'Constitution Day'},
+      {date:'2030-03-18', name:'Benito Juárez\'s Birthday'},
+      {date:'2030-05-01', name:'Labour Day'},
+      {date:'2030-06-02', name:'Federal Election Day'},   // ONE-OFF -- government-declared, no rule produces this
+      {date:'2030-09-16', name:'Independence Day'},
+      {date:'2030-10-01', name:'Presidential Inauguration'},   // ONE-OFF -- government-declared, no rule produces this
+      {date:'2030-11-18', name:'Revolution Day'},
+      {date:'2030-12-25', name:'Christmas Day'},
+      {date:'2031-01-01', name:'New Year\'s Day'},
+      {date:'2031-02-03', name:'Constitution Day'},
+      {date:'2031-03-17', name:'Benito Juárez\'s Birthday'},
+      {date:'2031-05-01', name:'Labour Day'},
+      {date:'2031-09-16', name:'Independence Day'},
+      {date:'2031-11-17', name:'Revolution Day'},
+      {date:'2031-12-25', name:'Christmas Day'},
+    ],
   };
 
   // ⛔ GENERATED with HOLIDAYS by tools/gen_holidays.py: the caveat each agreement carries --
   // what its holiday list cannot express (audit N-9). reflectRegionUI() shows it under the
   // location picker, after the place's own caveat. Change the text in the generator, never here.
   const REGION_CAVEATS = {
-    'CA-ON': "ON4.02 ends in a catch-all — 'any other Day declared a holiday by the federal, provincial, or municipal (local) government'. That floats and cannot be generated. Use a custom holiday when one is declared.",
-    'CA-QC': "Quebec gives the employer a choice of Good Friday OR Easter Monday — one day, not two. Good Friday is listed; if the production observes Easter Monday, turn Good Friday off and add Easter Monday as a custom holiday.",
-    'UK-EW': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
-    'UK-NI': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
-    'AU-VIC': "Melbourne Cup Day applies statewide only where a non-metro council has not arranged an alternate local holiday — a regional unit may be off on a different day.",
-    'LT': "Lithuania does not transfer a holiday that falls on a weekend. Separately, the Government moves WORKING days around holidays by annual resolution — that is not derivable and must be checked each year.",
-    'FR': "Alsace-Moselle (Bas-Rhin, Haut-Rhin, Moselle) adds Good Friday and 26 December — add them as custom holidays for a shoot there. TV productions under the audiovisual agreement (IDCC 2642) work Whit Monday as the solidarity day.",
+    'CA-QC': "Pick either Good Friday OR Easter Monday. Good Friday is enabled by default.",
+    'CA-MB': "The union calls the Civic Holiday, Remembrance Day and Boxing Day “proclaimed” holidays, not statutory ones. They’re included; switch one off if your crew works it.",
+    'CA-YT': "These are Yukon’s legal holidays. Crews usually work under the BC and Yukon film unions’ agreement, which may add days, so check before locking dates.",
+    'CA-NT': "These are the NWT’s legal holidays. The Teamsters 362 agreement also gives Family Day and Boxing Day, so check your crew’s agreement.",
+    'CA-NU': "These are Nunavut’s legal holidays, plus Truth and Reconciliation Day. No crew agreement was found, so check before locking dates.",
+    'UK-EW': "The producer can count bank holidays as paid leave, except on Band 4 productions. If your crew works them, switch them off.",
+    'UK-SCT': "The producer can count bank holidays as paid leave, except on Band 4 productions. If your crew works them, switch them off.",
+    'UK-NI': "The producer can count bank holidays as paid leave, except on Band 4 productions. If your crew works them, switch them off.",
+    'DE-BE': "These are Berlin’s legal holidays. The crew agreement’s holiday terms weren’t checked, so confirm before locking dates.",
+    'DE-BB': "These are Brandenburg’s legal holidays. The crew agreement’s holiday terms weren’t checked, so confirm before locking dates.",
+    'AU-VIC': "Outside Melbourne, a council can swap Melbourne Cup Day for its own local holiday.",
+    'LT': "The government moves working days around holidays every year, so check that year’s schedule.",
+    'FR': "In Alsace-Moselle, add Good Friday and 26 December. TV productions work Whit Monday.",
+    'MX': "These are Mexico’s legal holidays but please confirm before locking dates.",
+  };
+
+  // ⛔ GENERATED with HOLIDAYS by tools/gen_holidays.py (its BOX table): the rest of each region's notes
+  // box under the location picker -- source, holidays, added, weekends, the source link and the date it
+  // was last checked. reflectRegionUI() draws it after the warning. Change the text in the generator.
+  const REGION_NOTES = {
+    'US-GEN': {"source": "IATSE Area Standards Agreement and the West Coast Studio Local Agreements, 2024–2027.", "holidays": "11 per year. Juneteenth was added in 2025.", "weekends": "a Saturday holiday moves to the Friday before, a Sunday one to the Monday after. On a six-day week, a Saturday holiday stays on Saturday.", "url": "https://www.asa.iatse.net/", "checked": "11 Sep 2026"},
+    'US-NY': {"source": "IATSE Local 52 (2024–2027) and Teamsters Local 817 (2025–2028) agreements.", "holidays": "11 per year. Same count as Area Standards, but Veterans Day instead of Good Friday.", "weekends": "a Saturday holiday moves to the Friday before, a Sunday one to the Monday after. On a six-day week, a Saturday holiday stays on Saturday.", "url": "https://amptp.org/contracts/", "checked": "29 Oct 2026"},
+    'CA-BC': {"source": "BCCFU Master Agreement (IATSE 891, Teamsters 155, ICG 669), 2025–2028.", "holidays": "11 per year.", "weekends": "move to the next weekday.", "url": "https://cmpa.ca/wp-content/uploads/2025/08/2025-BCCFU-Master-Agreement.pdf", "checked": "11 Sep 2026"},
+    'CA-ON': {"source": "DGC Ontario agreement and IATSE Local 873, 2026–2028.", "holidays": "11 per year: Ontario law’s 9, plus the Civic Holiday and Truth and Reconciliation Day.", "weekends": "move to the next weekday.", "url": "https://cmpa.ca/wp-content/uploads/2026/05/DGC-CMPA-Standard-Agreement-2026-2028-ONTARIO-Final-website.pdf", "checked": "11 Sep 2026"},
+    'CA-QC': {"source": "AQTIS 514 agreement with the AQPM, 2024–2028.", "holidays": "8 per year. Truth and Reconciliation Day and Remembrance Day are not holidays in Quebec.", "weekends": "move to the next weekday.", "url": "https://www.aqpm.ca/relations-de-travail/television/aqtis-514-aiest/", "checked": "11 Sep 2026"},
+    'CA-AB': {"source": "IATSE Local 212 (Calgary, 2026–2027) and Local 210 (Edmonton, 2025) agreements.", "holidays": "12 per year. The Teamsters 362 agreement doesn’t include Heritage Day.", "weekends": "move to the next weekday.", "url": "https://www.iatse212.com/downloads/agreements/2026CollectiveAgreementFinal.pdf", "checked": "29 Oct 2026"},
+    'CA-MB': {"source": "IATSE Local 856 agreement, 2026.", "holidays": "12 per year.", "weekends": "move to the next weekday.", "url": "https://iatse856.com/wp-content/uploads/2025/02/1.-04.08.2026-Collective-Agreement.pdf", "checked": "29 Oct 2026"},
+    'CA-NS': {"source": "IATSE Local 849 agreement (March 2026).", "holidays": "12 per year.", "added": "Heritage Day and Natal Day (tagged IATSE 849).", "weekends": "move to the next weekday, except Truth and Reconciliation Day and Remembrance Day, which stay put.", "url": "https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf", "checked": "29 Oct 2026"},
+    'CA-SK': {"source": "DGC Saskatchewan agreement (2023–2025) and the IATSE Local 295 agreement.", "holidays": "12 per year.", "weekends": "move to the next weekday.", "url": "https://web.archive.org/web/20230703052756/https://cmpa.ca/wp-content/uploads/2017/10/2023-2025-DGC-Schedule-6-Saskatchewan-District-Council-FULLY-EXECUTED.pdf", "checked": "29 Oct 2026"},
+    'CA-NB': {"source": "IATSE Local 849 agreement (March 2026), which covers New Brunswick, Nova Scotia and PEI.", "holidays": "12 per year.", "added": "Family Day and Remembrance Day (tagged IATSE 849 in the list).", "weekends": "move to the next weekday, except Truth and Reconciliation Day, which stays put.", "url": "https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf", "checked": "29 Oct 2026"},
+    'CA-PE': {"source": "IATSE Local 849 agreement (March 2026).", "holidays": "11 per year.", "added": "Remembrance Day (tagged IATSE 849).", "weekends": "move to the next weekday, except Truth and Reconciliation Day, which stays put.", "url": "https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf", "checked": "29 Oct 2026"},
+    'CA-NL': {"source": "IATSE Local 709 agreement (March 2026).", "holidays": "11 per year. 1 July is both Memorial Day and Canada Day.", "added": "Victoria Day, Regatta Day and Remembrance Day (tagged IATSE 709).", "weekends": "move to the next weekday.", "url": "https://iatse709.com/production-downloads", "checked": "29 Oct 2026"},
+    'CA-YT': {"source": "Yukon Employment Standards Act.", "holidays": "11 per year.", "weekends": "move to the next weekday.", "url": "https://yukon.ca/en/doing-business/employer-responsibilities/find-yukon-statutory-holiday", "checked": "29 Oct 2026"},
+    'CA-NT': {"source": "NWT Employment Standards Act.", "holidays": "11 per year.", "weekends": "move to the next weekday.", "url": "https://www.ece.gov.nt.ca/en/services/employment-standards/frequently-asked-questions", "checked": "29 Oct 2026"},
+    'CA-NU': {"source": "Nunavut Labour Standards Act.", "holidays": "11 per year.", "weekends": "move to the next weekday.", "url": "https://nu-lsco.ca/faq-s?tmpl=component&faqid=11", "checked": "29 Oct 2026"},
+    'UK-EW': {"source": "Pact/Bectu Scripted TV and Major Motion Picture agreements.", "holidays": "8 per year (England and Wales bank holidays).", "weekends": "move to the next weekday.", "url": "https://www.gov.uk/bank-holidays", "checked": "11 Sep 2026"},
+    'UK-SCT': {"source": "Pact/Bectu Scripted TV and Major Motion Picture agreements.", "holidays": "9 per year (Scottish bank holidays).", "weekends": "move to the next weekday.", "url": "https://www.gov.uk/bank-holidays", "checked": "11 Sep 2026"},
+    'UK-NI': {"source": "Pact/Bectu Scripted TV and Major Motion Picture agreements.", "holidays": "10 per year (Northern Ireland bank holidays).", "weekends": "move to the next weekday.", "url": "https://www.gov.uk/bank-holidays", "checked": "11 Sep 2026"},
+    'DE-BE': {"source": "Berlin public holiday law.", "holidays": "10 per year.", "weekends": "stay put.", "url": "https://www.berlin.de/sen/inneres/buerger-und-staat/verfassungs-und-verwaltungsrecht/artikel.1435639.php", "checked": "11 Sep 2026"},
+    'DE-BB': {"source": "Brandenburg public holiday law.", "holidays": "12 per year, including Easter Sunday and Whit Sunday, which always fall on a Sunday.", "weekends": "stay put.", "url": "https://bravors.brandenburg.de/gesetze/ftg_2003/6", "checked": "11 Sep 2026"},
+    'AU-VIC': {"source": "Victoria’s Public Holidays Act and the Broadcasting award. The MEAA crew agreement is members-only.", "holidays": "13 per year. The AFL Grand Final Friday date is confirmed each year.", "weekends": "only New Year’s Day, Australia Day, Christmas and Boxing Day move to the next weekday.", "url": "https://business.vic.gov.au/business-information/public-holidays", "checked": "11 Sep 2026"},
+    'LT': {"source": "Lithuanian Labour Code.", "holidays": "16 per year.", "weekends": "stay put.", "url": "https://e-seimas.lrs.lt/portal/legalAct/lt/TAD/10c6bfd07bd511e6a0f68fd135e6f40c", "checked": "11 Sep 2026"},
+    'FR': {"source": "French film crew agreement (IDCC 3097).", "holidays": "11 per year.", "weekends": "stay put.", "url": "https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf", "checked": "20 Oct 2026"},
+    'MX': {"source": "Mexico’s Federal Labour Law (Ley Federal del Trabajo), Art. 74.", "holidays": "7 per year, plus federal election days (first Sunday of June in 2027 and 2030) and the presidential inauguration on 1 October 2030.", "weekends": "stay put.", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFT.pdf", "checked": "29 Oct 2026"},
   };
 
   // ⛔ WHICH COLUMN BLOCK DOES THIS WEEK BELONG TO? Until 10 Sep 2026 that was the same question as
@@ -3335,7 +4284,10 @@ export function initLegacyApp() {
       if(seen[h.date + '|' + h.name]) return;
       seen[h.date + '|' + h.name] = true;
       const hid = holidaySlug(h.name, h.date);
-      out.push({date:h.date, name:h.name, hid, custom:false, enabled:holidayEnabled(hid)});
+      // `src` / `statutory`: the agreement tag a Canadian day carries when the owner's practical list does
+      // not have it (CANADA-HOLIDAYS-PLAN.md §6). Shown in the Holidays list only; it never reaches the id.
+      out.push({date:h.date, name:h.name, hid, custom:false, enabled:holidayEnabled(hid),
+                src:h.src || null, statutory:!!h.statutory});
     });
     (customHolidays || []).forEach(c=>{
       if(!c || !c.date || !c.name) return;
@@ -4171,7 +5123,7 @@ export function initLegacyApp() {
         if(!segments.some(s=> hd>=s.start && hd<s.end)) return;
         seen[h.hid] = true;
         phaseHolidays.push({iso:h.date, name:h.name, date:hd, hid:h.hid,
-                            custom:!!h.custom, enabled:h.enabled});
+                            custom:!!h.custom, enabled:h.enabled, src:h.src || null, statutory:!!h.statutory});
       });
       phaseHolidays.sort((a,b)=> a.date - b.date);
     }
@@ -11534,9 +12486,16 @@ export function initLegacyApp() {
       const noteAttrs = on ? '' : ' disabled';   // notes are meaningless with the holiday off
       const s = holidayVisibleIn(h.hid, 'sheet') ? ' checked' : '';
       const m = holidayVisibleIn(h.hid, 'month') ? ' checked' : '';
+      // ⭐ THE AGREEMENT TAG (owner, 29 Oct 2026: "flag when they differ from the screenshot source of truth";
+      // CANADA-HOLIDAYS-PLAN.md §6). A Canadian day the practical production list does not have says which
+      // crew agreement puts it there. The NAME is untouched: holidaySlug(name, date) is its id in saved files.
+      const srcTitle = h.src
+        ? 'Not on the practical production list. The ' + h.src + ' crew agreement lists it.'
+          + (h.statutory ? ' It is a statutory holiday here too.' : '')
+        : '';
       const tag = h.custom
         ? ' <span class="hv-tag">custom</span>'
-        : '';
+        : (h.src ? ' <span class="hv-tag hv-src" title="'+escHtml(srcTitle)+'">'+escHtml(h.src)+'</span>' : '');
       const oor = h.outOfRange
         ? ' <span class="hv-oor">(outside schedule)</span>'
         : (h.monthOnly ? ' <span class="hv-oor">(month view only)</span>' : '');
@@ -22443,7 +23402,8 @@ export function initLegacyApp() {
   // WHERE the production shoots, which is what a user knows -- resolved to WHICH AGREEMENT
   // governs, which is what the holiday math needs. Several places may share one agreement.
   //
-  // `caveat` is the thing a region key could never express (Brandenburg's Babelsberg trap below).
+  // `caveat` is the thing a region key could never express. No place carries one since 29 Oct 2026: every warning is
+  // its region's (REGION_CAVEATS), shown with the region's notes. The slot stays for a place that needs its own.
   //
   // ⛔ THE US IS TWO PLACES (owner, 29 Oct 2026: "reduce the US list to just "U.S. Area Standards" and
   // "New York""), because it has exactly two lists. Until then it was fourteen: thirteen cities and
@@ -22459,32 +23419,26 @@ export function initLegacyApp() {
     'us-general': {region:'US-GEN', label:'U.S. Area Standards',
       locals:'West Coast Studio Locals in Los Angeles; elsewhere, the Area Standards local for the area',
       caveat:null},
-    'ca-montreal': {region:'CA-QC', label:'Montreal, QC',
-      locals:'AQTIS 514 IATSE · UDA (French) / ACTRA (English)',
+    // ⛔ Canada's three cities went on 29 Oct 2026 (owner: "Yes, drop them"): Montreal, Toronto and Vancouver each
+    // resolved to their province's list, so they were the same holidays twice. RETIRED_PLACES folds a saved one into
+    // its province, and each province's `locals` now carries the unions its city's did.
+    'ca-alberta': {region:'CA-AB', label:'Alberta',
+      locals:'IATSE 212 (Calgary) · IATSE 210 (Edmonton) · Teamsters 362',
       caveat:null},
-    'ca-toronto': {region:'CA-ON', label:'Toronto, ON',
+    'ca-bc': {region:'CA-BC', label:'British Columbia',
+      locals:'IATSE 891, Teamsters 155, ICG 669 (BCCFU Master Agreement) · UBCP/ACTRA',
+      caveat:null},
+    'ca-manitoba': {region:'CA-MB', label:'Manitoba',
+      locals:'IATSE 856',
+      caveat:null},
+    'ca-nova-scotia': {region:'CA-NS', label:'Nova Scotia',
+      locals:'IATSE 849',
+      caveat:null},
+    'ca-ontario': {region:'CA-ON', label:'Ontario',
       locals:'IATSE Local 873 · DGC Ontario · NABET 700-M',
       caveat:null},
-    'ca-vancouver': {region:'CA-BC', label:'Vancouver, BC',
-      locals:'IATSE 891, Teamsters 155, ICG 669 (BCCFU) · UBCP/ACTRA',
-      caveat:null},
-    'ca-alberta': {region:'CA-AB', label:'Alberta — province-wide',
-      locals:'Provincial employment standards',
-      caveat:null},
-    'ca-bc': {region:'CA-BC', label:'British Columbia — province-wide',
-      locals:'BCCFU Master Agreement',
-      caveat:null},
-    'ca-manitoba': {region:'CA-MB', label:'Manitoba — province-wide',
-      locals:'Provincial employment standards',
-      caveat:null},
-    'ca-nova-scotia': {region:'CA-NS', label:'Nova Scotia — province-wide',
-      locals:'Provincial employment standards',
-      caveat:null},
-    'ca-ontario': {region:'CA-ON', label:'Ontario — province-wide',
-      locals:'IATSE Local 873 · DGC Ontario',
-      caveat:null},
-    'ca-quebec': {region:'CA-QC', label:'Quebec — province-wide',
-      locals:'AQTIS 514 IATSE',
+    'ca-quebec': {region:'CA-QC', label:'Quebec',
+      locals:'AQTIS 514 IATSE · UDA (French) / ACTRA (English)',
       caveat:null},
     'uk-london': {region:'UK-EW', label:'London',
       locals:'Bectu / Pact · Equity',
@@ -22498,12 +23452,15 @@ export function initLegacyApp() {
     'uk-wales': {region:'UK-EW', label:'Wales',
       locals:'Bectu / Pact — same agreements AND same bank holidays as England',
       caveat:null},
+    // Owner, 29 Oct 2026: "delete the note about studio babelsberg" and "delete brandenburg as an option". Berlin's
+    // Babelsberg warning is gone. Brandenburg stays HERE (and as a hidden option in Sidebar.jsx) only so calendars saved
+    // on it keep their own list: it is not offered any more.
     'de-berlin': {region:'DE-BE', label:'Berlin',
       locals:'ver.di / Produzentenallianz (TV FFS)',
-      caveat:'Shooting at Studio Babelsberg? That is Potsdam, which is BRANDENBURG — pick Brandenburg instead. It has Reformation Day and no Women\u2019s Day, so the two lists differ in both directions.'},
-    'de-brandenburg': {region:'DE-BB', label:'Brandenburg — incl. Studio Babelsberg',
+      caveat:null},
+    'de-brandenburg': {region:'DE-BB', label:'Brandenburg',
       locals:'ver.di / Produzentenallianz (TV FFS)',
-      caveat:'Statutory list, verified against the Brandenburg Feiertagsgesetz. The TV FFS crew agreement\u2019s own holiday clause was NOT verified — confirm before locking dates.'},
+      caveat:null},   // its "crew clause not verified" warning is REGION_CAVEATS['DE-BB'] now, as Berlin's is
     'au-melbourne': {region:'AU-VIC', label:'Melbourne, VIC',
       locals:'MEAA · Screen Producers Australia',
       caveat:null},
@@ -22515,15 +23472,44 @@ export function initLegacyApp() {
     'eu-france': {region:'FR', label:'France',
       locals:'Film crew: production cinématographique (IDCC 3097)',
       caveat:null},
+    // Every other Canadian province and territory (owner, 29 Oct 2026, CANADA-HOLIDAYS-PLAN.md). ⛔ Save format,
+    // appended. Each list's caveat (Regatta Day's weather, the territories' unread agreements) is REGION_CAVEATS'.
+    'ca-saskatchewan': {region:'CA-SK', label:'Saskatchewan',
+      locals:'IATSE 295 · DGC Saskatchewan',
+      caveat:null},
+    'ca-new-brunswick': {region:'CA-NB', label:'New Brunswick',
+      locals:'IATSE 849',
+      caveat:null},
+    'ca-pei': {region:'CA-PE', label:'Prince Edward Island',
+      locals:'IATSE 849',
+      caveat:null},
+    'ca-newfoundland': {region:'CA-NL', label:'Newfoundland and Labrador',
+      locals:'IATSE 709',
+      caveat:null},
+    'ca-yukon': {region:'CA-YT', label:'Yukon',
+      locals:'Statutory list · BC and Yukon film unions (IATSE 891)',
+      caveat:null},
+    'ca-nwt': {region:'CA-NT', label:'Northwest Territories',
+      locals:'Statutory list · Teamsters 362',
+      caveat:null},
+    'ca-nunavut': {region:'CA-NU', label:'Nunavut',
+      locals:'Statutory list · no crew agreement found',
+      caveat:null},
+    // Mexico (owner, 29 Oct 2026: "Can we add Mexico City", then "As "Mexico""): the law is national and Mexico City
+    // adds no day of its own, so the town goes in Show info's Location. ⛔ Save format, appended.
+    'mx-mexico': {region:'MX', label:'Mexico',
+      locals:'Statutory list · STPC (film crew union), agreement not found',
+      caveat:null},
   };
   const DEFAULT_PLACE = 'us-general';
 
   // ---- Location (KEY-FACTS-PLAN.md, owner 23 Oct 2026) ----
-  // The Region picks the HOLIDAYS; it is not always the town. "Manitoba — province-wide" is a Winnipeg shoot as often
+  // The Region picks the HOLIDAYS; it is not always the town. "Manitoba" is a Winnipeg shoot as often
   // as not (owner: "if you selected a province in canada, you might actually mean winnipeg"), so Show info has a
   // free-text #show-location, and the scenario band and Compare's Location row show what was typed there. Blank, they
-  // show the Region SHORTENED: the list's own label without its " — …" tail or ", ON" code, so "Manitoba", not
-  // "Manitoba — province-wide". An entry the rule gets wrong carries its own `short`. None is no value at all.
+  // show the Region SHORTENED: the list's own label without its " — …" tail or ", VIC" code, so "Melbourne". (No label
+  // has a " — …" tail since 29 Oct 2026, when the owner dropped "— province-wide" and "— incl. Studio Babelsberg"; the
+  // rule stays for any that gains one.) An entry the rule gets wrong carries its own `short`. None is no value at all.
   // ⛔ The Location never reaches a date. Only #union-place decides holidays.
   const LOCATION_MAX = 40;
   function placeShortLabel(value){
@@ -22583,12 +23569,37 @@ export function initLegacyApp() {
     if(res) res.textContent = p ? (p.label + ' \u2192 ' + p.region) : '';
     if(loc) loc.textContent = p ? p.locals : '';
     if(cav){
-      // The PLACE's own caveat (a proxy list, a local holiday the agreement lacks), then its
-      // AGREEMENT's (audit N-9: REGION_CAVEATS, generated beside HOLIDAYS by tools/gen_holidays.py).
-      // Either, both or neither, one per line. Text only: every line is the app's own data.
-      const lines = [p && p.caveat, p && REGION_CAVEATS[p.region]].filter(Boolean);
-      cav.replaceChildren(...lines.map(t => { const d = document.createElement('div'); d.textContent = t; return d; }));
-      cav.style.display = lines.length ? 'block' : 'none';
+      // ⭐ THE NOTES BOX (owner, 29 Oct 2026: "Add any and all notes to the yellowish notes box to be as transparent
+      // as possible per region", every line then reviewed by the owner). The PLACE's own caveat if it has one, then
+      // the region's warning (REGION_CAVEATS, audit N-9), then the same labelled lines for every region
+      // (REGION_NOTES): Source with a link, Holidays, Added from the crew agreement (Canada only), Weekend holidays,
+      // Last checked. All generated by tools/gen_holidays.py (its BOX table). Built with textContent: every string
+      // is the app's own data, and the link is used only when it is http(s).
+      const kids = [];
+      const line = (cls, label, text) => {
+        const d = document.createElement('div');
+        d.className = cls;
+        if(label){ const b = document.createElement('span'); b.className = 'rc-label'; b.textContent = label + ' '; d.append(b); }
+        d.append(text);
+        return d;
+      };
+      const r = p ? p.region : null;
+      [p && p.caveat, r && REGION_CAVEATS[r]].filter(Boolean).forEach(t => kids.push(line('rc-warn', '\u26A0\uFE0F', t)));
+      const n = r && REGION_NOTES[r];
+      if(n){
+        const src = line('rc-line', 'Source:', n.source);
+        if(/^https?:\/\//.test(n.url || '')){
+          const a = document.createElement('a');
+          a.href = n.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.textContent = new URL(n.url).hostname.replace(/^www\./, '');
+          src.append(' ', a);
+        }
+        kids.push(src, line('rc-line', 'Holidays:', n.holidays));
+        if(n.added) kids.push(line('rc-line', 'Added from the crew agreement:', n.added));
+        kids.push(line('rc-line', 'Weekend holidays:', n.weekends), line('rc-line', 'Last checked:', n.checked));
+      }
+      cav.replaceChildren(...kids);
+      cav.style.display = kids.length ? 'block' : 'none';
     }
   }
 
@@ -25378,6 +26389,11 @@ export function initLegacyApp() {
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
       ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
+      // 29 Oct 2026 (CANADA-HOLIDAYS-PLAN.md, D4): the holiday-data version this calendar was saved against.
+      // ⛔ PERMANENT key, a whole number. Written ONLY on a calendar whose region's list has been corrected
+      // (HOLIDAY_LISTS_CHANGED), so every other calendar's snapshot is byte for byte what it was. Absent on one
+      // of those regions = saved before the correction, which is what raises the strip.
+      ...(HOLIDAY_LISTS_CHANGED[effectiveRegionKey()] ? {holidayLists: HOLIDAY_LISTS_VERSION} : {}),
       // 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md §4.1): the month view's phase bar size. ⛔ PERMANENT key, whose two values
       // are 'large' and 'xl'. STANDARD IS AN ABSENT KEY, so a Standard calendar's snapshot is the one it was before.
       ...(mvBarSize ? {mvBarSize: mvBarSize} : {}),
@@ -26586,14 +27602,39 @@ export function initLegacyApp() {
              'St Andrew\u2019s Day, and drops Easter Monday.'
   };
   const HOLIDAY_NOTICE_PREF = 'holidayFixNoticeSeen';
+  // ⛔ THE SECOND CORRECTION, 29 Oct 2026 (CANADA-HOLIDAYS-PLAN.md, owner ruling D4): Alberta, Manitoba and
+  // Nova Scotia moved from provincial statute onto their crew agreements, so a calendar saved on one of them
+  // reopens with MORE holidays and can wrap later. The migration flag above cannot see it: a file saved
+  // between 14 Sep and 29 Oct 2026 already carries union-place. Only captureSnapshot()'s `holidayLists`
+  // stamp tells it apart (absent = saved before this change). Its own preference key, so someone who
+  // dismissed September's strip still sees this one. The two tables name different regions, so at most one
+  // strip applies to any calendar.
+  const HOLIDAY_FIX_NOTE_2 = {
+    'CA-AB': 'Alberta now follows its IATSE 212 / 210 crew agreements: <strong>Heritage Day</strong>, the ' +
+             '<strong>National Day for Truth and Reconciliation</strong> and <strong>Boxing Day</strong> were ' +
+             'added (9 days, now 12).',
+    'CA-MB': 'Manitoba now follows its IATSE 856 crew agreement: the <strong>August Civic Holiday</strong>, ' +
+             '<strong>Remembrance Day</strong> and <strong>Boxing Day</strong> were added (9 days, now 12).',
+    'CA-NS': 'Nova Scotia now follows its IATSE 849 crew agreement: <strong>Victoria Day</strong>, ' +
+             '<strong>Natal Day</strong>, the <strong>National Day for Truth and Reconciliation</strong>, ' +
+             '<strong>Thanksgiving</strong>, <strong>Remembrance Day</strong> and <strong>Boxing Day</strong> ' +
+             'were added (6 days, now 12).'
+  };
+  const HOLIDAY_NOTICE_PREF_2 = 'holidayFixNoticeSeen2';
+  let holidayNoticePref = HOLIDAY_NOTICE_PREF;        // which strip is up, so its own × records it
   function maybeShowHolidayNotice(){
     const el = document.getElementById('holiday-notice');
     if(!el) return;
-    if(!restoredFileIsPreHolidayFix) return;          // a current-format file cannot be affected
-    if(prefs[HOLIDAY_NOTICE_PREF]) return;            // one time, ever, per browser
     const key = effectiveRegionKey();
-    const why = key && HOLIDAY_FIX_NOTE[key];
-    if(!why) return;                                  // every other list is date-identical
+    if(!key) return;
+    // Each strip: only for a file that predates its correction, one time ever per browser, and only for a
+    // region whose list it changed (every other list is date-identical).
+    const first = restoredFileIsPreHolidayFix && !prefs[HOLIDAY_NOTICE_PREF] && HOLIDAY_FIX_NOTE[key];
+    const changedAt = HOLIDAY_LISTS_CHANGED[key] || 0;
+    const second = restoredHolidayLists < changedAt && !prefs[HOLIDAY_NOTICE_PREF_2] && HOLIDAY_FIX_NOTE_2[key];
+    const why = first || second;
+    if(!why) return;
+    holidayNoticePref = first ? HOLIDAY_NOTICE_PREF : HOLIDAY_NOTICE_PREF_2;
     el.querySelector('.ln-text').innerHTML =
       'Heads up \u2014 this calendar\u2019s <strong>holiday list was corrected</strong>, so its dates ' +
       'may have shifted since you last opened it. ' + why +
@@ -26612,7 +27653,7 @@ export function initLegacyApp() {
     // input/select/textarea sweep cannot pick them up either.
     el.querySelector('.ln-x').addEventListener('click', ()=>{
       hideHolidayNotice();
-      prefs[HOLIDAY_NOTICE_PREF] = true;
+      prefs[holidayNoticePref] = true;
       savePrefs();
     });
   })();
@@ -31904,6 +32945,9 @@ export function initLegacyApp() {
     'CA-AB':'ca-alberta', 'CA-MB':'ca-manitoba', 'CA-NS':'ca-nova-scotia'
   };
   let restoredFileIsPreHolidayFix = false;
+  // The `holidayLists` stamp of the snapshot last applied (captureSnapshot; 1 when absent). Read only by
+  // maybeShowHolidayNotice(), the 29 Oct 2026 strip for Alberta, Manitoba and Nova Scotia.
+  let restoredHolidayLists = HOLIDAY_LISTS_VERSION;
   // ⛔ RETURNS whether it migrated; it must NOT read or write anything outside itself.
   // tests/verify_migration.mjs lifts this function out of the source and evals it in an isolated
   // scope with only LEGACY_PROVINCE_PLACE supplied -- that is what stops the test drifting from
@@ -31947,16 +32991,20 @@ export function initLegacyApp() {
   // place, so folding it into us-general moves no date: the holiday list is the same list. Only the
   // NAME would be lost, so it moves into Show info's Location when that is blank; a typed Location
   // wins. ⛔ Never remove an entry: these values live on in every calendar saved before that day.
+  // The same day the owner dropped Canada's three cities ("Yes, drop them"), each into its own province rather than
+  // into us-general (RETIRED_PLACE_TO); each is that province's list, so again no date moves.
   const RETIRED_PLACES = {
     'us-atlanta':'Atlanta', 'us-chicago':'Chicago', 'us-florida':'Florida', 'us-los-angeles':'Los Angeles',
     'us-maryland':'Maryland / DC', 'us-miami':'Miami', 'us-new-mexico':'New Mexico', 'us-new-orleans':'New Orleans',
-    'us-oahu':'Oahu', 'us-pittsburgh':'Pittsburgh', 'us-puerto-rico':'Puerto Rico', 'us-san-francisco':'San Francisco'
+    'us-oahu':'Oahu', 'us-pittsburgh':'Pittsburgh', 'us-puerto-rico':'Puerto Rico', 'us-san-francisco':'San Francisco',
+    'ca-montreal':'Montreal', 'ca-toronto':'Toronto', 'ca-vancouver':'Vancouver'
   };
+  const RETIRED_PLACE_TO = {'ca-montreal':'ca-quebec', 'ca-toronto':'ca-ontario', 'ca-vancouver':'ca-bc'};
   function retirePlaceSnapshot(snap){
     const byId = snap && snap.fields && snap.fields.byId;
     const v = byId && byId['union-place'] && byId['union-place'].value;
     if(typeof v !== 'string' || !Object.prototype.hasOwnProperty.call(RETIRED_PLACES, v)) return;
-    byId['union-place'] = {value: 'us-general'};
+    byId['union-place'] = {value: RETIRED_PLACE_TO[v] || 'us-general'};
     const loc = byId['show-location'];
     if(!loc || typeof loc.value !== 'string' || !loc.value.trim()) byId['show-location'] = {value: RETIRED_PLACES[v]};
   }
@@ -32398,6 +33446,9 @@ export function initLegacyApp() {
       if(ts) s.mvTextStyles = ts; else delete s.mvTextStyles;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    if('holidayLists' in s && !(Number.isInteger(s.holidayLists) && s.holidayLists >= 1 && s.holidayLists <= 1000)){
+      bad.n++; delete s.holidayLists;
+    }
     // Phase bar size (MONTH-BAR-SIZE-PLAN.md): only the two words a Save writes. Anything else is dropped, so it opens
     // at Standard, as a file with no key does.
     if('mvBarSize' in s && s.mvBarSize !== 'large' && s.mvBarSize !== 'xl'){ bad.n++; delete s.mvBarSize; }
@@ -32457,6 +33508,8 @@ export function initLegacyApp() {
     snap = sanitizeSnapshot(snap);
     // Assigned per restore, so an undo back onto a current-format file cannot inherit a stale true.
     restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
+    // Same rule: assigned on every restore. Absent = a file saved before 29 Oct 2026 (version 1).
+    restoredHolidayLists = (typeof snap.holidayLists === 'number') ? snap.holidayLists : 1;
     retirePlaceSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
     if(Array.isArray(snap.episodeDefs)){

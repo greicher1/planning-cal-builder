@@ -81,12 +81,12 @@ window.addEventListener('load', function () { (async function () {
     var wrap8 = wrapIn(header());
     addBtn().click(); await T.sleep(600);
     await rename('Toronto');
-    T.set('union-place', 'ca-toronto'); await T.sleep(500);
+    T.set('union-place', 'ca-ontario'); await T.sleep(500);
     var regionModal = await answerAnyModal();
     await T.sleep(700);
     var wrapTor = wrapIn(header());
-    add('S2', 'three tabs, the last made current with its typed name', tabs() === 'Scenario A | 8 eps | *Toronto' && eps() === '8' && document.getElementById('union-place').value === 'ca-toronto',
-      {tabs: tabs(), eps: eps(), place: document.getElementById('union-place').value, regionModal: regionModal.slice(0, 80)}, 'Scenario A | 8 eps | *Toronto, 8 episodes, ca-toronto');
+    add('S2', 'three tabs, the last made current with its typed name', tabs() === 'Scenario A | 8 eps | *Toronto' && eps() === '8' && document.getElementById('union-place').value === 'ca-ontario',
+      {tabs: tabs(), eps: eps(), place: document.getElementById('union-place').value, regionModal: regionModal.slice(0, 80)}, 'Scenario A | 8 eps | *Toronto, 8 episodes, ca-ontario');
 
     // S3 -- switching keeps the view and changes the calendar; each tab kept its own edits.
     await clickTab('Scenario A');
@@ -134,11 +134,11 @@ window.addEventListener('load', function () { (async function () {
     var sc = f.scenarios || {};
     var parked = (sc.tabs || []).filter(function(t){ return t.snapshot; });
     add('S7', 'Save writes version 2 with three tabs; the current one is the top level, the others version-1 snapshots',
-      f.version === 2 && (sc.tabs || []).length === 3 && f.fields.byId['union-place'].value === 'ca-toronto' && parked.length === 2 &&
+      f.version === 2 && (sc.tabs || []).length === 3 && f.fields.byId['union-place'].value === 'ca-ontario' && parked.length === 2 &&
       parked.every(function(t){ return t.snapshot.version === 1 && t.snapshot.fields && t.snapshot.fields.byId; }) &&
       (sc.tabs || []).map(function(t){ return t.name; }).join('|') === 'Scenario A|8 eps|Toronto',
       {version: f.version, tabs: (sc.tabs || []).map(function(t){ return t.name + (t.snapshot ? '' : '*'); }), place: f.fields.byId['union-place'].value},
-      'version 2; Scenario A | 8 eps | Toronto*; ca-toronto');
+      'version 2; Scenario A | 8 eps | Toronto*; ca-ontario');
     out.sptcal = btoa(unescape(encodeURIComponent(writes[writes.length - 1].text)));
 
     // S8 -- Load it back into a fresh calendar: the tabs, their names, the current one, and each tab's own calendar.
@@ -154,13 +154,14 @@ window.addEventListener('load', function () { (async function () {
     var chips = document.querySelectorAll('.compare-dlg .mantine-Chip-root').length;
     await closeCompare();
     var gridAfter = JSON.stringify(T.gridSignature()), formAfter = JSON.stringify(T.formSignature());
-    add('S8', 'Load brings back the three tabs, Toronto on screen', loadedTabs === 'Scenario A | 8 eps | *Toronto' && loadedPlace === 'ca-toronto',
-      {tabs: loadedTabs, place: loadedPlace}, 'Scenario A | 8 eps | *Toronto, ca-toronto');
+    add('S8', 'Load brings back the three tabs, Toronto on screen', loadedTabs === 'Scenario A | 8 eps | *Toronto' && loadedPlace === 'ca-ontario',
+      {tabs: loadedTabs, place: loadedPlace}, 'Scenario A | 8 eps | *Toronto, ca-ontario');
     add('S9', 'Compare on a freshly loaded file: Toronto first, every column filled by probing the parked tabs',
       cols.join('|') === 'Toronto|Scenario A|8 eps' && chips === 2 && cmpEps && cmpEps[0] === '8' && /^10/.test(cmpEps[1]) && cmpEps[2] === '8' &&
-      // Location reads the Region SHORTENED since KEY-FACTS-PLAN.md §3.3: "Toronto", and "U.S. Area Standards", the
-      // US place's whole name since the owner cut the US to two places (29 Oct 2026; it read "U.S. (Area Standards)").
-      cmpLoc && cmpLoc[0] === 'Toronto' && cmpLoc[1] === 'U.S. Area Standards',
+      // Location reads the Region SHORTENED since KEY-FACTS-PLAN.md §3.3: "Ontario" (the tab is still NAMED Toronto; the
+      // Toronto place went with Canada's cities, 29 Oct 2026), and "U.S. Area Standards", the US place's whole name since
+      // the owner cut the US to two places the same day (it read "U.S. (Area Standards)").
+      cmpLoc && cmpLoc[0] === 'Ontario' && cmpLoc[1] === 'U.S. Area Standards',
       {cols: cols, chips: chips, episodes: cmpEps, wrap: cmpWrap, location: cmpLoc}, 'Toronto | Scenario A | 8 eps; 8, 10 (+2), 8');
     add('S10', 'probing the parked tabs leaves the calendar on screen exactly as it was', gridBefore === gridAfter && formBefore === formAfter,
       {gridSame: gridBefore === gridAfter, formSame: formBefore === formAfter}, 'grid and fields unchanged');
@@ -224,7 +225,7 @@ window.addEventListener('load', function () { (async function () {
     var last = JSON.parse(writes[writes.length - 1].text);
     add('S14', 'Delete asks and removes the tab; Keep only leaves one, and the file is version 1 again',
       /Delete .Scenario A/.test(delQ) && afterDel === '8 eps | *Toronto' && document.querySelectorAll('.sc-tab').length === 0 &&
-      last.version === 1 && !('scenarios' in last) && last.fields.byId['union-place'].value === 'ca-toronto',
+      last.version === 1 && !('scenarios' in last) && last.fields.byId['union-place'].value === 'ca-ontario',
       {question: delQ.slice(0, 60), afterDelete: afterDel, tabsLeft: document.querySelectorAll('.sc-tab').length, version: last.version, scenarios: 'scenarios' in last},
       'asked; 8 eps | *Toronto; then one calendar, version 1');
 

@@ -4,7 +4,73 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 29 Oct 2026 (latest): THE US IS TWO PLACES, "U.S. Area Standards" AND "New York"; NEW YORK'S HOLIDAY SOURCES RE-READ — branch `us-two-places` (worktree `.claude/worktrees/us-two-places`, from `main` at `5fc7855`); FULL GATE 3,246 / 13, ALL 13 GREEN ALONE; COMMITTED `44bf663`, local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); ✅ **LIVE at `44bf663`** (owner's picker, *"Push now"*; `ddafe45..44bf663` at 14:22:31, also carrying the docs-only `5fc7855`; the live `index.html` matched the gated build `428f5b13…` byte for byte at 14:23:22); no version cut
+### 🔨 29 Oct 2026 (latest): CANADIAN HOLIDAY LISTS ONTO THE CREW AGREEMENTS, SEVEN NEW PROVINCES/TERRITORIES, AND AN IATSE TAG — BUILT on branch `canada-holidays` (worktree `.claude/worktrees/canada-holidays`, from `main` at `5a694b4`; its `node_modules` is a symlink: unlink it before `git worktree remove`); all four rulings made (owner: *"Yes, all four"*), owner: *"Build it now"*; with the dropped cities, Brandenburg, the notes box and MEXICO added on the same branch; COMMITTED on `canada-holidays` and local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge"*, 29 Oct 2026); ⛔ NOT PUSHED ([`CANADA-HOLIDAYS-PLAN.md`](CANADA-HOLIDAYS-PLAN.md) §7 is the as-built record)
+
+- **Verified on the branch:**
+  - The generator regenerated; `validate_holidays.py`'s diff is exactly the added days, and the spliced block is its
+    output byte for byte.
+  - `npm run check` 40/40.
+  - New leg `caholidays` 10/10.
+  - Seen in the app (the tag, Newfoundland's caveat).
+  - **FULL GATE 3,415 PASS / 0 FAIL, 31 minutes solo** (14:56 to 15:27).
+  - ⚠️ The "2 h 46 min" in the US entry below was a slow run, not the norm. Don't quote it as the gate's length.
+- **After the gate:** the owner had " — province-wide" / " — territory-wide" removed from the place names (labels only,
+  values unchanged). Checked with `npm run check` 40/40 and the four Region legs. No second full gate, per the
+  label-tweak rule.
+- **Cities dropped (owner: *"Yes, drop them"*):** Montreal, Toronto and Vancouver were exactly Quebec's, Ontario's and
+  BC's lists.
+  - A saved city calendar folds into its province, with the city as its Location (`RETIRED_PLACES` +
+    `RETIRED_PLACE_TO`).
+  - Their union names moved onto the provinces' `locals`.
+  - Plan §7 has the test changes. `scenarios-3.sptcal` still says `ca-toronto` on purpose: it is the real-file test of
+    the fold.
+  - Full gate after this: 3,390 / 2 (53 min, under load). The two fails were timeouts: `seasons` S11 and `phaseedge`'s
+    480 s deadline. Both are green alone (15/15, 23/23).
+- **Brandenburg no longer offered, Berlin's Babelsberg warning removed** (owner).
+  - `de-brandenburg` stays as a HIDDEN option, so saved calendars keep DE-BB: folding into Berlin would move dates.
+  - `regioncaveat` P2/P3 hold it. Checked with the Region legs; no third full gate (a picker option and a warning text).
+- **Every region's notes in the yellow box: BUILT** (owner reviewed every line over four drafts, then *"Yes, add
+  them"*).
+  - ⛔ The text lives ONLY in `tools/gen_holidays.py`'s `BOX` table: `warn` becomes `REGION_CAVEATS`, the rest
+    `REGION_NOTES`. The regions' old `caveat=` texts are gone.
+  - `reflectRegionUI()` draws the warning (`.rc-warn`), then Source + link (hostname as the text), Holidays, Added
+    from the crew agreement, Weekend holidays and Last checked (`.rc-line`).
+  - No place has its own caveat now (Brandenburg's moved to DE-BB's warning).
+  - Nova Scotia's "until 29 Oct" line was dropped with Alberta's and Manitoba's, for consistency (the owner's button
+    said so).
+  - Region legs green; seen on screen (Nova Scotia, Newfoundland). No third full gate: chrome text, and the
+    generator's HOLIDAYS block is byte-identical.
+  - Then, at the owner's request (*"remove the warning about regatta day"*), Newfoundland has no warning. Regatta
+    Day is still generated (first Wednesday of August), and the generator's NL `note` keeps the weather fact.
+- **Mexico: BUILT** (owner: *"As "Mexico""*, with their own warning text). Region `MX`, place `mx-mexico`, under
+  "Latin America". LFT Art. 74's seven days, plus dated `extras`: election Sundays 2027-06-06 and 2030-06-02, and
+  the inauguration 2030-10-01. `observance="none"`.
+  - ⚠️ The STPC crew agreement was NOT found. The government registry (CFCRL) shows only the union's writers'-section
+    contract (CC-553/1985-III), and its PDF host turns away automated requests. A 2028 judicial election Sunday was
+    left out (unclear it counts; a Sunday anyway). The generator's MX `note` has the rest.
+  - ⚠️ The election and inauguration dates are hand-dated `extras`, not rules. Past 2031, add them by hand (first
+    Sunday of June every three years; 1 Oct every six).
+  - New leg `mxholidays` 6/6 in `gate.sh`; seen on screen.
+- **The owner's ruling:** a "practical production list" of Canadian union holidays is *"a good source of truth"*, with
+  Truth & Reconciliation added and the five statutory days it lacked (*"plan to update and add those 5"*).
+- **What changes:** Alberta goes 9 → 12, Manitoba 9 → 12, Nova Scotia 6 → 12 (with Natal Day, D2). Saskatchewan,
+  New Brunswick, PEI, Newfoundland (IATSE 709's 11, D1), Yukon, NWT and Nunavut (statutory lists with a caveat, D3)
+  are added. BC, Ontario and Quebec are unchanged.
+- **Every province's list is now backed by a crew agreement read in full** (IATSE 212, 210, 295, 856, 849, 709;
+  Teamsters 362; DGC 2023–25 Prairie schedules); the plan's §2 table names each article.
+- ⚠️ **Learned:** what the app had for Alberta, Manitoba and Nova Scotia was provincial statute only, which is short of
+  what crews actually get. Nova Scotia's IATSE 849 list, which PROJECT-CONTEXT says had "no primary source", is at
+  iatse849.com.
+- ⚠️ **cmpa.ca now puts a Cloudflare human check in front of every PDF** (29 Oct 2026). Sessions can no longer read the
+  DGC schedules there, including the 2026–28 ones; the Ontario source URL in the generator is on it.
+- ⚠️ **The existing "holiday list was corrected" strip cannot fire for this change.** It only sees files from before
+  14 Sep 2026. Plan §3 step 4 is the fix (D4, ruled yes): a new snapshot stamp and a new preference key.
+- **Flag (owner, same day, plan §6):** the eight Atlantic days that are in the app but not on the practical list
+  (plus Truth & Reconciliation) get an **IATSE 849** or **IATSE 709** tag in the sidebar's Holidays list.
+  - ⛔ It is a separate `src` field, never part of the name. A built-in holiday's id is `holidaySlug(name, date)`, which
+    saved calendars key each holiday's switches by, so a renamed day loses them.
+
+### 🔨 29 Oct 2026: THE US IS TWO PLACES, "U.S. Area Standards" AND "New York"; NEW YORK'S HOLIDAY SOURCES RE-READ — branch `us-two-places` (worktree `.claude/worktrees/us-two-places`, from `main` at `5fc7855`); FULL GATE 3,246 / 13, ALL 13 GREEN ALONE; COMMITTED `44bf663`, local `main` FAST-FORWARDED to it (owner's picker, *"Commit and merge to main"*); ✅ **LIVE at `44bf663`** (owner's picker, *"Push now"*; `ddafe45..44bf663` at 14:22:31, also carrying the docs-only `5fc7855`; the live `index.html` matched the gated build `428f5b13…` byte for byte at 14:23:22); no version cut
 
 - **Asked** (owner), after this session showed that the 14 US places used only two holiday lists and read both New York
   agreements from the AMPTP site: *"update them. Also reduce the US list to just "U.S. Area Standards" and "New York""*.

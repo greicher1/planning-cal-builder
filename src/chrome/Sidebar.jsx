@@ -231,15 +231,27 @@ const REGION_OPTIONS = (
       <option value="us-new-york">New York</option>
     </optgroup>
     <optgroup label="Canada">
-      <option value="ca-montreal">Montreal, QC</option>
-      <option value="ca-toronto">Toronto, ON</option>
-      <option value="ca-vancouver">Vancouver, BC</option>
-      <option value="ca-alberta">Alberta — province-wide</option>
-      <option value="ca-bc">British Columbia — province-wide</option>
-      <option value="ca-manitoba">Manitoba — province-wide</option>
-      <option value="ca-nova-scotia">Nova Scotia — province-wide</option>
-      <option value="ca-ontario">Ontario — province-wide</option>
-      <option value="ca-quebec">Quebec — province-wide</option>
+      {/* Every province and territory (owner, 29 Oct 2026, CANADA-HOLIDAYS-PLAN.md), alphabetical, and no cities:
+          Montreal, Toronto and Vancouver were their provinces' lists twice (owner, same day: "Yes, drop them"), and
+          RETIRED_PLACES in app.js folds a saved one into its province. ⛔ The values are save format: the seven
+          added that day are new values, never renamed ones. */}
+      <option value="ca-alberta">Alberta</option>
+      <option value="ca-bc">British Columbia</option>
+      <option value="ca-manitoba">Manitoba</option>
+      <option value="ca-new-brunswick">New Brunswick</option>
+      <option value="ca-newfoundland">Newfoundland and Labrador</option>
+      <option value="ca-nwt">Northwest Territories</option>
+      <option value="ca-nova-scotia">Nova Scotia</option>
+      <option value="ca-nunavut">Nunavut</option>
+      <option value="ca-ontario">Ontario</option>
+      <option value="ca-pei">Prince Edward Island</option>
+      <option value="ca-quebec">Quebec</option>
+      <option value="ca-saskatchewan">Saskatchewan</option>
+      <option value="ca-yukon">Yukon</option>
+    </optgroup>
+    {/* Mexico (owner, 29 Oct 2026): one national list -- Mexico City adds no day of its own. */}
+    <optgroup label="Latin America">
+      <option value="mx-mexico">Mexico</option>
     </optgroup>
     <optgroup label="United Kingdom">
       <option value="uk-london">London</option>
@@ -247,12 +259,14 @@ const REGION_OPTIONS = (
       <option value="uk-scotland">Scotland</option>
       <option value="uk-belfast">Belfast</option>
     </optgroup>
-    {/* Germany is federal and the Länder genuinely differ, so it is NOT one entry. The pair
-        below is the trap this whole control exists to avoid: Studio Babelsberg is in Potsdam,
-        which is Brandenburg, so a "Berlin shoot" staging there is on the other list. */}
+    {/* Germany is federal and the Länder genuinely differ, so a Land is its own entry. Berlin is the one offered.
+        ⛔ Brandenburg is no longer OFFERED (owner, 29 Oct 2026: "delete brandenburg as an option"), but its option
+        stays, HIDDEN: calendars saved on it carry the value, and a select with no matching option coerces it to
+        None, so they would reopen with no holidays at all. Its own list (DE-BB) is unchanged, and folding it into
+        Berlin would move dates (the two differ both ways). `hidden` keeps it out of the dropdown in both selects. */}
     <optgroup label="Germany">
       <option value="de-berlin">Berlin</option>
-      <option value="de-brandenburg">Brandenburg — incl. Studio Babelsberg</option>
+      <option value="de-brandenburg" hidden>Brandenburg</option>
     </optgroup>
     <optgroup label="Australia">
       <option value="au-melbourne">Melbourne, VIC</option>
@@ -295,8 +309,8 @@ export function RegionCard() {
         <Box>
           <p id="union-resolves" className="region-resolves"></p>
           <p id="union-locals" className="region-locals"></p>
-          {/* A place's own warning, then its agreement's (Brandenburg's Babelsberg trap, Quebec's
-              Good Friday or Easter Monday). This is the line a region key had no way to say. */}
+          {/* The notes box (owner, 29 Oct 2026): the region's warning, then the same labelled lines for every
+              region -- Source, Holidays, Added from the crew agreement, Weekend holidays, Last checked. */}
           <div id="union-caveat" className="region-caveat" style={{ display: 'none' }}></div>
         </Box>
       </Stack>

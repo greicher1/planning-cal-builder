@@ -1759,6 +1759,14 @@ done
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
 # value, and a parked scenario tab is folded when switched to. Through the real file menu. Own line.
+# caholidays (owner, 29 Oct 2026; CANADA-HOLIDAYS-PLAN.md) holds Canada's lists on the crew agreements: the Canada group
+# offers all thirteen provinces and territories, each place lists its 2026 days (AB/MB/NS/SK/NB 12, PE/NL/YT/NT/NU 11,
+# BC/ON 11, QC 8), the IATSE 849 / 709 tag sits on exactly the eight days the practical list lacks, Production skips a
+# day on each new list, the new caveats show, and an Alberta calendar saved before the change raises the one-time
+# "holiday list was corrected" strip (holidayLists stamp; holidayFixNoticeSeen2) while a stamped or BC one does not.
+# Own line. mxholidays (owner, same day: "As "Mexico"") holds Mexico: its "Latin America" group, 2030's nine days (Art.
+# 74's seven, the election Sunday, the inauguration), no "(Observed)" day, the inauguration costing a shoot day, and
+# its notes box with the owner's warning. Own line.
 # hidewf (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §2) is Hide in waterfall: on tests/fixtures/hidewf.sptcal (a custom
 # "Colour Grading" phase, Dates, ticked) the waterfall, the workbook and the waterfall PDF are EXACTLY those of the same
 # calendar with the phase not scheduled (so no cell, no empty column, no year block -- alone in 2028 included), a
@@ -1796,12 +1804,14 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               notewrap:-:150 hdrcut:hdr-cut:150 xlsxlimits:-:150 xlsxdates:-:150 \
               legacyparse:-:900 hdroverrides:-:150 badyear:-:120 spanhint:-:150 \
               wholenum:-:150 regionlock:-:150 nofsa:-:150 exportrefused:-:150 \
-              regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
+              regioncaveat:-:150 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               retiredplaces:-:300 \
+              caholidays:-:400 \
+              mxholidays:-:300 \
               papersize:-:500 \
               pdfdialog:-:500 \
               phasefold:-:300 \

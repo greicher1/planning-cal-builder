@@ -269,21 +269,44 @@ list, both re-read on 29 Oct 2026 from the fully executed copies on the AMPTP si
 - **Christmas Eve and New Year's Eve are NOT holidays** (in BC they carry premium pay but are
   working days). Do not mark them as no-shoot.
 
-**Canada — per province, because the statutory lists genuinely diverge:**
+**Canada — every province and territory, on the crew agreements (29 Oct 2026, [`CANADA-HOLIDAYS-PLAN.md`](CANADA-HOLIDAYS-PLAN.md)):**
 
-| Holiday | BC | ON | QC | AB | MB | NS |
-|---|:--:|:--:|:--:|:--:|:--:|:--:|
-| New Year's, Good Friday, Canada Day, Labour Day, Christmas | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Family Day / Louis Riel / Heritage Day (3rd Mon Feb) | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
-| Victoria Day (Patriotes in QC) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Thanksgiving | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Boxing Day** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Remembrance Day** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **Truth & Reconciliation** | ✅ | ❌* | ❌ | ❌ | ✅ | ❌ |
-| **Aug civic holiday** | ✅ BC Day | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Fête nationale (24 Jun)** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+The owner ruled a "practical production list" of union holidays the source of truth, plus Truth & Reconciliation (never
+in Quebec) and the five statutory days it lacked. Each list is backed by the crew agreement named in the generator.
+Until that day Alberta, Manitoba and Nova Scotia were provincial statute only (9, 9, 6), short of what crews get.
 
-Totals: **BC 11 · ON 11 · QC 8 · AB 9 · MB 9 · NS 6**
+| Holiday | BC | ON | QC | AB | MB | SK | NS | NB | PE | NL | YT | NT | NU |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| New Year's, Good Friday, Canada Day, Labour Day, Christmas | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅¹ | ✅ | ✅ | ✅ |
+| Family Day / Louis Riel / Heritage / Islander (3rd Mon Feb) | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Victoria Day (Patriotes in QC) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Thanksgiving | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Boxing Day** | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Remembrance Day** | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Truth & Reconciliation** | ✅ | ✅* | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Aug civic holiday (1st Mon)** | ✅ BC Day | ✅ | ❌ | ✅ Heritage | ✅ | ✅ Sask. Day | ✅ Natal | ✅ NB Day | ❌ | ❌ | ❌² | ✅ | ✅ |
+| **Other** | | | Fête nationale | | | | | | | Regatta Day³ | Nat. Indigenous Peoples Day, Discovery Day² | Nat. Indigenous Peoples Day | Nunavut Day (9 Jul) |
+
+Totals: **BC 11 · ON 11 · QC 8 · AB 12 · MB 12 · SK 12 · NS 12 · NB 12 · PE 11 · NL 11 · YT 11 · NT 11 · NU 11**
+
+¹ Newfoundland's 1 July is Memorial Day and Canada Day, one entry. ² Yukon's Discovery Day is the THIRD Monday of
+August. ³ Regatta Day is St. John's, the first Wednesday of August, moved by the regatta committee for weather. The app
+generates the first Wednesday; the owner had the notes box's warning about the weather removed (29 Oct 2026).
+
+- **Sources:** IATSE 212 / 210 (AB), DGC Saskatchewan SK4.02 2023–25 and IATSE 295 (SK), IATSE 856 Art. 10.02 (MB),
+  IATSE 849 Art. 16.1 (NS, NB, PE; one agreement, a list per province), IATSE 709 Art. 16.1 (NL). Each was read in its
+  PDF on 29 Oct 2026; the generator carries every URL.
+- **Manitoba:** 856 calls the Civic Holiday, Remembrance Day and Boxing Day "Proclaimed (not Statutory)"; they are
+  counted, with a caveat.
+- **The territories** are each territory's STATUTORY list (Nunavut's plus Truth & Reconciliation, which is optional in
+  its law), with a caveat to confirm the crew agreement. No territorial terms of any agreement were read.
+- **The IATSE tag:** a day the practical list lacks carries `src` (and `statutory`) and shows a tag in the Holidays
+  list. These are NB Family Day and Remembrance Day, NS Heritage Day and Natal Day, PE Remembrance Day, and NL Victoria
+  Day, Regatta Day and Remembrance Day.
+- **Weekends:** 849 gives no make-up day for Truth & Reconciliation (NB, NS, PE) or Remembrance Day (NS), which is the
+  generator's `no_observed`.
+- ⚠️ **cmpa.ca now puts a Cloudflare human check on every PDF** (29 Oct 2026). The DGC 2026–28 schedules were not
+  read, the Maritimes one (MT4.02) included.
 
 *(ON moved 9 → 11 on 14 Sep 2026: DGC Ontario Art. ON4.02 enumerates eleven, adding the August
 Civic Holiday and Truth & Reconciliation. Under-reserving a wrap date is not recoverable;
@@ -297,6 +320,11 @@ twelve, and the only one that carries one-off holidays (Scotland had a World Cup
 15 June 2026 that no rule produces). Sync from it rather than trusting rules alone.
 
 **Added 14 Sep 2026:** `AU-VIC` (13) and `LT` (16).
+
+**Added 29 Oct 2026: `MX` (7, plus dated election Sundays 2027-06-06 / 2030-06-02 and the inauguration 2030-10-01),
+place `mx-mexico` under "Latin America"** (owner: *"Can we add Mexico City"*, then *"As "Mexico""*). Ley Federal del
+Trabajo Art. 74; no weekend substitution (`observance="none"`). The film crew union's (STPC) agreement was NOT found;
+the notes box carries the owner's warning to confirm. Mexico City adds no local day (labour law is federal).
 
 **Added 20 Oct 2026: `FR` (11), place `eu-france`** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 8; owner:
 *"Film agreement's list"*, *"France only"*, then *"France, 11 days"* on seeing the list). The film agreement
@@ -316,10 +344,9 @@ auto-upgrade clause if Ontario legislates it.
 Other notes: **Quebec requires Good Friday *or* Easter Monday (employer's choice)** — the app
 lists Good Friday; switch manually if a production observes Easter Monday. *(Since v1.4.1 this, Local
 52's Juneteenth inference and the five other agreement caveats show under the location picker:
-`REGION_CAVEATS`, generated beside `HOLIDAYS`; audit N-9.)* **Nova Scotia is the
-outlier** with only 6 (no Victoria Day, Thanksgiving, or Boxing Day) — a Halifax production's
-IATSE 849 agreement may add some back, but there was no primary source for it so nothing was
-invented.
+`REGION_CAVEATS`, generated beside `HOLIDAYS`; audit N-9.)* ~~**Nova Scotia is the
+outlier** with only 6 … no primary source~~ — superseded 29 Oct 2026: IATSE 849's own agreement is at iatse849.com,
+and Nova Scotia follows it (12).
 
 **Weekend observance rule** (verified verbatim from the ASA):
 
@@ -348,6 +375,19 @@ the weekend entry itself.
 - Alberta general holidays — https://www.alberta.ca/general-holidays-pay
 - Manitoba general holidays — https://www.gov.mb.ca/labour/standards/
 - Nova Scotia paid holidays — https://novascotia.ca/lae/employmentrights/holidaychart.asp
+- *(29 Oct 2026: AB, MB and NS now follow their crew agreements; the statute pages above are kept for reference.)*
+- IATSE Local 212 Collective Agreement, 2026 edition (Art. 14.1) — https://www.iatse212.com/downloads/agreements/2026CollectiveAgreementFinal.pdf
+- IATSE Local 210 Film Agreement, 2025 (Art. 14(a)) — https://iatse210.com/wp-content/uploads/2025/04/IATSE-210-2025-Film-Agreement.pdf
+- Teamsters 362 – CMPA Master Agreement 2026–2029 (Art. 10.01) — https://teamsters362.com/wp-content/uploads/CMPA-Teamsters-362-Master-Agreement.pdf
+- IATSE Local 856 Collective Agreement, 2026 (Art. 10.02) — https://iatse856.com/wp-content/uploads/2025/02/1.-04.08.2026-Collective-Agreement.pdf
+- DGC Saskatchewan Schedule SK4.02, 2023–2025 (Wayback) — https://web.archive.org/web/20230703052756/https://cmpa.ca/wp-content/uploads/2017/10/2023-2025-DGC-Schedule-6-Saskatchewan-District-Council-FULLY-EXECUTED.pdf
+- IATSE Local 849 Standard Agreement, rev. 1 Mar 2026 (Art. 16) — https://www.iatse849.com/images/documents/standardagreements/2026-2027_IATSE_Local_849_Standard_Agreement.pdf
+- IATSE Local 709 Standard Agreement, Mar 2026 (Art. 16) — linked from https://iatse709.com/production-downloads
+- Newfoundland and Labrador Labour Standards Act s.14 — https://assembly.nl.ca/legislation/sr/statutes/l02.htm
+- Yukon statutory holidays — https://yukon.ca/en/doing-business/employer-responsibilities/find-yukon-statutory-holiday
+- NWT employment standards FAQ — https://www.ece.gov.nt.ca/en/services/employment-standards/frequently-asked-questions
+- Nunavut general holidays — https://nu-lsco.ca/faq-s?tmpl=component&faqid=11
+- Mexico, Ley Federal del Trabajo Art. 74 (official consolidated text) — https://www.diputados.gob.mx/LeyesBiblio/pdf/LFT.pdf
 - France, film agreement IDCC 3097 (BOCC 2013/34 copy) — https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf
 - France, Code du travail (the Labour Ministry's mirror) — https://code.travail.gouv.fr/code-du-travail/l3133-1
 

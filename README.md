@@ -29,6 +29,93 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Canada's holidays on the crew agreements, every province and territory, and an IATSE tag on the days the practical list lacks (29 Oct 2026, branch `canada-holidays`)
+
+The owner ruled a "practical production list" of Canadian union holidays *"a good source of truth"*, with Truth and
+Reconciliation added and the five statutory days it lacked; then *"Yes, all four"* to the recommendations; then
+*"flag in the app when specific holidays are according to IATSE 849"* ([`CANADA-HOLIDAYS-PLAN.md`](CANADA-HOLIDAYS-PLAN.md)).
+- **Alberta 9 → 12, Manitoba 9 → 12, Nova Scotia 6 → 12.**
+  - These three were provincial statute only, which is short of what crews get.
+  - Alberta now follows IATSE 212 / 210: Heritage Day, Truth and Reconciliation and Boxing Day are added.
+  - Manitoba now follows IATSE 856: the Civic Holiday, Remembrance Day and Boxing Day are added. 856 calls these three
+    "Proclaimed", and a warning says so.
+  - Nova Scotia now follows IATSE 849: Victoria Day, Natal Day, Truth and Reconciliation, Thanksgiving, Remembrance Day
+    and Boxing Day are added.
+  - Every existing holiday keeps its name, because a name is part of the holiday's saved id.
+- **Seven new places**, appended values, each with its own list:
+  - Saskatchewan (12): the DGC schedule, and IATSE 295 minus Truth and Reconciliation.
+  - New Brunswick (12) and PEI (11): IATSE 849.
+  - Newfoundland and Labrador (11): IATSE 709, with Regatta Day (the first Wednesday of August; the owner had its
+    weather warning removed).
+  - Yukon, Northwest Territories and Nunavut (11 each): each territory's statutory list, with a warning to confirm the
+    crew agreement.
+  - BC, Ontario and Quebec are unchanged.
+- **Plain names in the picker:** "Alberta", not "Alberta — province-wide" (owner). The values are unchanged.
+- **No cities: Montreal, Toronto and Vancouver are gone** (owner: *"Yes, drop them"*). Each was its province's list
+  again, holiday names included.
+  - A calendar saved with one opens on its province, with the city in Show info's Location; a typed Location wins.
+    It uses `RETIRED_PLACES`, as the US cities did, now with `RETIRED_PLACE_TO` for each city's province.
+  - Each province's union line now names the unions its city's did.
+  - Tests: `regioncaveat` loses its two city cases, and `scenarios` uses Ontario.
+  - Full gate after dropping the cities: 3,390 PASS / 2 FAIL (53 minutes, under load). Both fails were timeouts, and
+    both legs are green alone (`seasons` 15/15, `phaseedge` 23/23).
+- **No Studio Babelsberg warning, and Brandenburg is no longer offered** (owner: *"delete the note about studio
+  babelsberg delete brandenburg as an option"*).
+  - Berlin shows no warning now.
+  - Brandenburg's option stays in both selects but `hidden`. A calendar saved on it keeps its own list (DE-BB);
+    folding it into Berlin would have moved dates, since the two lists differ both ways.
+  - Checked: `npm run check` 40/40, `regioncaveat` 13/13 (new P2: Berlin has no warning; new P3: Brandenburg is hidden
+    in both selects yet still loads), `regionmirror` 9/9, `caholidays` 11/11, `retiredplaces` 8/8.
+- **Mexico is a Production Region** (owner: *"Can we add Mexico City"*, then *"As "Mexico""*).
+  - Picker: Settings ▸ Region ▸ Latin America ▸ Mexico (`mx-mexico`, region `MX`). Mexico City adds no day of its
+    own, so the town goes in Show info's Location.
+  - Holidays: the Ley Federal del Trabajo's Art. 74 seven (New Year's, Constitution Day, Benito Juárez's Birthday,
+    Labour Day, Independence Day, Revolution Day, Christmas), plus the dated ones it names: federal election Sundays
+    6 Jun 2027 and 2 Jun 2030, and the presidential inauguration, Tue 1 Oct 2030.
+  - Weekend holidays are not moved.
+  - The film crew union's (STPC) agreement was not found, so the box's warning is the owner's: *"These are Mexico's
+    legal holidays but please confirm before locking dates."*
+  - New leg `mxholidays` 6/6. `regioncaveat` now counts 24 places (7/7).
+- **Every region's notes in the yellow box under the picker** (owner: *"Add any and all notes to the yellowish notes
+  box to be as transparent as possible per region"*, then each line reviewed and edited by the owner).
+  - Every region shows the same labelled lines: its warning (if any), **Source** (with a link to the document),
+    **Holidays** (how many per year), **Added from the crew agreement** (Canada's tagged days), **Weekend holidays**
+    and **Last checked**.
+  - The text is written once, in the generator's new `BOX` table, which emits `REGION_CAVEATS` (the warnings, which
+    the owner reworded) and `REGION_NOTES` (the rest).
+  - Warnings removed at the owner's request: Ontario's catch-all and Saskatchewan's 2014–16 note. Quebec now reads
+    "Pick either Good Friday OR Easter Monday. Good Friday is enabled by default."
+  - Scotland gains the Band 4 warning London and Belfast already had. Berlin and Brandenburg say their crew clause
+    is unverified.
+  - Newfoundland's source link is now the union's downloads page, and its Regatta Day warning is gone (owner:
+    *"remove the warning about regatta day"*).
+  - Tests: `regioncaveat` rewritten (N0, B1 all 23 places carry the four core lines and a link, W1 each warning,
+    A1, P2, P3, E0: 7/7). `caholidays` C4 and `labelsetup` F1 follow the new wording (11/11, 41/41). `regionmirror`
+    9/9, `settingswin` 21/21, `retiredplaces` 8/8.
+- **Weekend days.** IATSE 849 never moves Truth and Reconciliation (NB, NS, PEI) or Remembrance Day (NS) to a weekday
+  when it falls on a weekend, so those get no "(Observed)" day. The generator gained a per-region `no_observed` set for
+  this.
+- **The IATSE tag.** The eight Atlantic days that are in the app but not on the practical list show a blue **IATSE 849**
+  or **IATSE 709** tag in Settings ▸ Region ▸ Holidays. Its tooltip says why, and "statutory here too" on the four that
+  are.
+  - The tagged days are New Brunswick's Family Day and Remembrance Day, Nova Scotia's Heritage Day and Natal Day,
+    PEI's Remembrance Day, and Newfoundland's Victoria Day, Regatta Day and Remembrance Day.
+  - The tag travels as the rows' new `src` / `statutory` fields, never in the name.
+- **Calendars saved on Alberta, Manitoba or Nova Scotia before today** raise the "holiday list was corrected" strip
+  once, naming the added days. The September strip could not see them, because they already carry `union-place`.
+  - ⛔ Save format: a NEW permanent key, `holidayLists` (now 2). It is written only on a calendar in a region whose
+    list was corrected (`HOLIDAY_LISTS_CHANGED`), so every other calendar saves byte for byte as before.
+  - Its own preference key, `holidayFixNoticeSeen2`.
+  - `SNAPSHOT_VERSION` is not bumped; an older build ignores the key.
+- **Verified:**
+  - `tools/gen_holidays.py` regenerated. `validate_holidays.py`'s diff is exactly the added days, and no existing row
+    changed.
+  - The spliced block is the generator's output byte for byte.
+  - `npm run check` 40/40.
+  - New leg `caholidays`, 10/10, in `gate.sh` after `retiredplaces`.
+  - Seen in the app: the tag in the Holidays list and Newfoundland's warning.
+  - **Full gate 3,415 PASS / 0 FAIL** in 31 minutes, solo, on the build.
+
 ### Unreleased — The US is two places, "U.S. Area Standards" and "New York"; New York's holiday sources re-read (29 Oct 2026, branch `us-two-places`)
 
 The owner, after seeing that the fourteen US places used only two holiday lists: *"reduce the US list to just "U.S.

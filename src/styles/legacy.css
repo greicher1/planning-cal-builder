@@ -3898,6 +3898,12 @@
     font-size:var(--mantine-font-size-xxs); border:1px solid var(--mantine-color-gray-4);
     border-radius:var(--mantine-radius-xs); padding:0 3px; color:var(--mantine-color-gray-6);
   }
+  /* The agreement a Canadian day comes from when the practical production list does not have it
+     ("IATSE 849", owner 29 Oct 2026). Blue, so it never reads as the red "Costs a shoot day". */
+  .hv-src{
+    color:var(--mantine-color-blue-8); background:var(--mantine-color-blue-0);
+    border-color:var(--mantine-color-blue-3); white-space:nowrap; cursor:help;
+  }
   .hv-oor{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
   /* A holiday that costs Production a shoot day (renderHolidayVisList), on the date line. */
   .hv-shoot{
@@ -4015,6 +4021,13 @@
   margin:10px 0 0; padding:9px 11px; border-radius:7px; font-size:11px; line-height:1.5;
   background:#FEF6E7; border:1px solid #F0D9A8; color:#7A5B14;   /* warn 0 / 2 / 9 */
 }
+/* The notes box's lines (reflectRegionUI, owner 29 Oct 2026): the warning first and set apart, then the same
+   labelled lines for every region. */
+.region-caveat .rc-warn{ font-weight:600; }
+.region-caveat .rc-warn + .rc-line{ margin-top:6px; }
+.region-caveat .rc-line + .rc-line{ margin-top:2px; }
+.region-caveat .rc-label{ font-weight:600; }
+.region-caveat a{ color:inherit; text-decoration:underline; }
 
 /* ---- Production's handles (MONTH-VIEW-PLAN.md §6.7, rulings 3a and 9a-9c, 15 Oct 2026) ---------
    BODY-LEVEL chrome laid over the month grid by installProductionEdgeHandles(), never markup inside

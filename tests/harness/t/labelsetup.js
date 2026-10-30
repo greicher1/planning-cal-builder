@@ -451,7 +451,8 @@ window.addEventListener('load', function () { (async function () {
               locals: txt(document.getElementById('union-locals')), caveat: txt(document.getElementById('union-caveat'))};
     add('F1', '⭐ Location ▸ Europe ▸ France resolves to FR, the film agreement, and its caveat (Alsace-Moselle, Whit Monday on TV)',
       f1.opt === 'France' && f1.group === 'Europe' && f1.resolves === 'France → FR' && /IDCC 3097/.test(f1.locals)
-        && /Alsace-Moselle .* adds Good Friday and 26 December/.test(f1.caveat) && /Whit Monday as the solidarity day/.test(f1.caveat), f1, 'France → FR');
+        // The warning's wording is the owner's since 29 Oct 2026 (the notes box): Alsace-Moselle's two days, TV's Whit Monday.
+        && /Alsace-Moselle, add Good Friday and 26 December/.test(f1.caveat) && /TV productions work Whit Monday/.test(f1.caveat), f1, 'France → FR');
     await toMonth('July 2026');
     await lclick('2026-07-14');
     var f2 = {label: shootLabel(), ctx: menuCtx()};
