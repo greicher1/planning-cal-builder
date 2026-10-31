@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
+
+The owner, with screenshots of the stepper and the header's Export PDF button: *"make the left and right buttons the
+same color/style as the export pdf button"*, then, when a first pass also reshaped them into separate rounded buttons,
+*"i just wanted you to change the bg color of the buttons, not the shape and look"*. So the stepper keeps its shape (one
+white bordered box, the month name between the two arrows) and only the ‹ and › ends are filled with Export PDF's navy,
+with its hover shade and a white arrow (and a white focus ring, which would vanish on navy). Their disabled look at
+the first or last month is unchanged (faded). Today is unchanged. CSS only (`.month-step` in `legacy.css`): nothing in
+the grid, the exports or a saved file moves.
+
+Verified: the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`), white glyph; the box is the same 202 px
+with 5 px corners as before; `monthmap` 20/20 on all three of its gate fixtures (part C is the stepper);
+`npm run check` 40/40; seen in the app.
+
 ### Unreleased — every Weeks phase's date line ends on its last Friday (30 Oct 2026)
 
 The grey line under a phase's name (`11/2/26 → 3/7/27 (16 wk)`) ended on the SUNDAY of the phase's last week,

@@ -4,6 +4,24 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — BUILT in the main checkout, UNCOMMITTED
+
+- **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the
+  same color/style as the export pdf button"*. Tracker card `month-stepper-navy-arrows`.
+- ⛔ **"color/style" meant the COLOUR only.** A first pass also split the arrows out of the box into separate rounded
+  buttons (Export PDF's 7 px radius, 4 px gaps, Mantine's disabled grey). The owner: *"i just wanted you to change the
+  bg color of the buttons, not the shape and look"*. Reverted to the original shape. Lesson: when the owner points at
+  another control's "style", change the paint and ask before changing the geometry.
+- **What changed (CSS only, `.month-step` in `src/styles/legacy.css`):** `.ms-arrow` background is
+  `--mantine-primary-color-filled` (hover `-filled-hover`), glyph white, focus ring white (the navy `--accent` ring
+  would vanish on navy). The box, borders, radius, widths, disabled fade and Today are exactly as before.
+- **Proof:** the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`); the box is the same 202 px with 5 px
+  corners; `monthmap` 20/20 on `mvnotes`, `colreuse`, `offweek`; `npm run check` 40/40; seen in the browser pane. No
+  full gate (chrome CSS; both print paths hide the toolbar).
+- ⚠️ **Before committing:** origin/main is `fdf9324` (another session's snapped-start-box push, 17:39), one past local
+  `main` `9ec805f`, and adds top entries to HANDOFF.md and README.md. Commit, then merge origin/main keeping both top
+  entries.
+
 ### ✅ 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — + THE META LINE ENDS ON THE FRIDAY — ✅ **LIVE at `d43b931`** (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear", fast-forwarded as `d81655f`; the Friday line `d43b931`, fast-forwarded too; pushed at the owner's *"Ok go with choice 1, then push"*, `9b728c7..d43b931` at 17:13:49; the live `index.html` matched the tested build `2f1fe876…` byte for byte at 17:14:38). No version cut: installed users get it on their next relaunch (no service worker)
 
 - **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.

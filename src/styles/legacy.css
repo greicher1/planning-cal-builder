@@ -2893,7 +2893,9 @@
 
   /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): Today and ‹ October 2026 › at the right
      end of the style bar's line, in the month view only. The map's own small arrows went with it. As tall as the
-     style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move. */
+     style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move.
+     The arrows are filled with the header's Export PDF navy (owner, 30 Oct 2026: the colour only, the shape stays),
+     with its hover shade and a white arrow; their focus ring is white so it shows on the navy. */
   .month-step{ flex:none; display:flex; align-items:stretch; gap:6px; height:34px; margin-left:auto; }
   .month-step .ms-today, .month-step .ms-group{
     box-sizing:border-box; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
@@ -2902,17 +2904,19 @@
   .month-step .ms-today{ padding:0 12px; font-size:12px; font-weight:600; color:var(--accent); cursor:pointer; }
   .month-step .ms-group{ display:inline-flex; align-items:stretch; overflow:hidden; }
   .month-step .ms-arrow{
-    width:34px; padding:0; border:0; background:transparent; color:var(--text); font-size:19px; line-height:1;
-    cursor:pointer;
+    width:34px; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    font-size:19px; line-height:1; cursor:pointer;
   }
   .month-step .ms-label{
     min-width:132px; padding:0 10px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
     border-left:1px solid var(--mantine-color-gray-2); border-right:1px solid var(--mantine-color-gray-2);
   }
-  .month-step .ms-today:hover:not(:disabled), .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .month-step .ms-today:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
   .month-step button:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .month-step .ms-arrow:focus-visible{ outline-color:#fff; }
 
   /* ---------- Soft Lines: the month view's ON-SCREEN look (MONTH-RAIL-PLAN.md step 4; owner, 27 Oct 2026) ----------
      The owner's "a little more modern" pick (Option 1, Soft Lines), and "Screen only for now". The month view's own
