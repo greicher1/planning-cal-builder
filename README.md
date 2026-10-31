@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — every Weeks phase's date line ends on its last Friday (30 Oct 2026)
+
+The grey line under a phase's name (`11/2/26 → 3/7/27 (16 wk)`) ended on the SUNDAY of the phase's last week,
+because a waterfall week is a Monday-to-Sunday row. Beside the new Ends box, which shows the Friday, the card named two
+ends two days apart. The owner picked the Friday for every Weeks phase, Starts and Ends alike (*"go with choice 1"*),
+so the line now reads `11/2/26 → 3/5/27 (16 wk)` everywhere. Only that text moves: the waterfall, the month view,
+Excel, both PDFs, the phase's weeks and the saved file are unchanged. Production's line (its last shoot day), a Days or
+Dates phase's line, and a snap-off phase that starts mid-week (whose end is already a real day) are left as they were.
+
+How: frozen `render()` still writes the Sunday; `reflectWeeksMetaFriday()` rewrites it from outside, through the same
+observer as the half-day total (sanctioned pattern 3), now watching custom phases' cards too. Verified: `endsdate` gains
+M1 (on Starts, every Weeks phase's line names a Friday) and M2 (on Ends, the line and the box agree, through a
+month-view round trip), 17/17, both red with the rewrite disabled; `builtindates`, `customunits`, `snapoff`,
+`loadcarry`, `phasefold`, `halfdays`, `datepick` green; `npm run check` 40/40; seen in the app.
+
 ### Unreleased — a Weeks phase can be held by its END, and its start is worked out backwards (30 Oct 2026)
 
 The owner: *"what if for phases you could select EITHER starting date OR ending date. So if you selected ending date
@@ -51,8 +66,8 @@ and then 20 weeks, it would calculate backwards"*, then, on snapping, *"Yes, no 
 **Save format:** one new key, `phaseEnds` (a sorted list of phase keys), written only while a phase uses Ends, so
 every other calendar saves byte for byte as before. ⛔ PERMANENT. No new id: the end is kept in `end-<key>` (the box
 Dates mode already uses), and `start-<key>` always holds the start as worked out, so an older build opens the file
-with the phase in the same place (held by its start). The meta line under the name is unchanged: it still ends on
-the week's Sunday (frozen `render()` writes it); the owner has not ruled on making it say Friday.
+with the phase in the same place (held by its start). The meta line under the name ends on the Friday too: see the
+entry above, which ships with this one.
 
 How: `readState()` works out the start (`weeksStartForEnd()`, the mirror of `computeSchedule()`'s
 `extendEndForHiatus()`), `update()` writes it into `start-<key>` before anything reads it, and `setPhaseStart()`

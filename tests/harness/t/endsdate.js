@@ -10,9 +10,12 @@
 //   C1  every Weeks phase card but Production's has the Starts / Ends select and the Ends box, neither with an id;
 //       all on Starts
 //   R1  Starts -> Ends -> Starts leaves the file byte for byte as it was (no phaseEnds key, the same fields)
+//   M1  on Starts the meta line under the name ends on the FRIDAY (Post: 11/2/26 → 3/5/27), every Weeks phase's
+//       too, Production's untouched (owner, 30 Oct 2026, "go with choice 1")
 //   E1  to Ends moves nothing: the same Post cells; end-post is Fri 3/5/27; the Ends box shows it in the start box's
 //       place; Snap to Monday and "Start after previous phase" go (Localization keeps both)
 //   U1  one undo step back to Starts (end-post emptied), one redo to Ends
+//   M2  on Ends the line and the box name the same Friday, and still do after a month-view round trip
 //   E2  the end holds: 16 -> 18 weeks moves the START two weeks earlier (10/19/26), and Post still ends the week of 3/1/27
 //   E3  the phase's own hiatus inside it pulls the start one more week; turned off, it goes back
 //   E4  a typed Wednesday is read as its week's Friday (end-post), and the box shows that Friday once it loses focus
@@ -147,6 +150,26 @@ window.addEventListener('load', function () { (async function () {
            comparable(a) === comparable(b) && !('phaseEnds' in JSON.parse(b)), { lenA: a.length, lenB: b.length });
     });
 
+    // ===== M1: the meta line ends on the Friday (owner, 30 Oct 2026, "go with choice 1") ===========================
+    // On Starts, before anything else: Post's line names Fri 3/5/27, not the week row's Sunday 3/7/27, and so does
+    // every other Weeks phase's line that names an end. Production's line (the last shoot day) is not touched.
+    function metaOf(key) { return ((byId('meta-' + key) || {}).textContent || '').split('\n')[0].trim(); }
+    function metaEndDow(key) {
+      var m = /→ (\d{1,2})\/(\d{1,2})\/(\d{2}) \(\d+ wk\)/.exec(metaOf(key));
+      return m ? new Date(Date.UTC(2000 + +m[3], +m[1] - 1, +m[2])).getUTCDay() : null;
+    }
+    var M1 = {};
+    await step('M1', async function () {
+      M1.post = metaOf('post');
+      var weeksKeys = ['writersRoom', 'prePrep', 'prodPrep', 'post', 'localization'];
+      M1.dows = weeksKeys.map(function (k) { return k + ':' + metaEndDow(k); });
+      var fridays = weeksKeys.every(function (k) { var d = metaEndDow(k); return d === null || d === 5; })
+                 && weeksKeys.some(function (k) { return k !== 'post' && metaEndDow(k) === 5; });
+      M1.prod = metaOf('production');
+      kase('M1', 'on Starts, Post\'s meta line ends Fri 3/5/27 (not Sun 3/7/27), and every Weeks phase\'s line that names an end names a Friday; Production\'s names its last shoot day',
+           /^11\/2\/26 → 3\/5\/27 \(\d+ wk\)/.test(M1.post) && fridays && /shoot day/.test(M1.prod), M1);
+    });
+
     // ===== E1 / U1: to Ends moves nothing ===========================================================================
     await step('E1', async function () {
       await anchor('post', 'ends');
@@ -164,6 +187,24 @@ window.addEventListener('load', function () { (async function () {
       await redo();
       var again = sel('post').value === 'ends' && byId('end-post').value === '2027-03-05' && same(postState(), Object.assign({}, P0, { end: '2027-03-05' }));
       kase('U1', 'one undo step back to Starts (end-post emptied, the same cells), one redo to Ends', back && again, { back: back, again: again });
+    });
+
+    // ===== M2: on Ends the line and the box name the same Friday, and a bare render() keeps it ======================
+    // A view switch re-renders without update(), so frozen render() writes the Sunday again; the observer must catch it.
+    await step('M2', async function () {
+      var onEnds = metaOf('post');
+      byId('view-month-btn').click();
+      await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month view', 100, 100);
+      await T.sleep(300);
+      var inMonth = metaOf('post');
+      byId('view-sheet-btn').click();
+      await T.until(function () { return !!document.querySelector('#table-wrap table.sheet-table'); }, 'the waterfall', 100, 100);
+      await settle();
+      var back = metaOf('post');
+      var want = /^11\/2\/26 → 3\/5\/27 \(\d+ wk\)/;
+      kase('M2', 'on Ends, Post\'s meta line names Fri 3/5/27, the Ends box\'s date, and still does after a switch to the month view and back',
+           want.test(onEnds) && want.test(inMonth) && want.test(back) && box('post').value === '2027-03-05' && onEnds === M1.post,
+           { onEnds: onEnds, inMonth: inMonth, back: back });
     });
 
     // ===== E2: the end holds ========================================================================================

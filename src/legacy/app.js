@@ -10802,6 +10802,29 @@ export function initLegacyApp() {
     el.textContent = t + ' shoot days' + txt.slice(m[0].length);
   }
 
+  // ✅ A WEEKS PHASE'S META LINE ENDS ON ITS LAST FRIDAY (owner, 30 Oct 2026, "go with choice 1", asked once Ends
+  // put a Friday box on the card). Frozen render() writes `start → end (N wk)` with end = seg.end − 1, the last week
+  // row's SUNDAY, because a waterfall week is Monday to Sunday; beside an Ends box showing Fri 10/16/26 the line said
+  // 10/18/26. The owner ruled the Friday for EVERY Weeks phase, Starts and Ends alike, so the line reads one way.
+  // Corrected from outside by the same observer as reflectHalfDayTotal(), and the same idempotent shape: only an end
+  // that is a Sunday is moved, so the observer's own write finds nothing left to change. That guard also leaves a
+  // snap-off phase alone (it starts mid-week, so its end is a real mid-week day, not a week row's Sunday). Only the
+  // line's text moves: the cells, the exports, the meta's "Snapped to Mon" row and the file are untouched. Production
+  // is left out (its line names the last shoot day), and so is a Days / Dates phase, whose line is unitmeta-<key>.
+  function reflectWeeksMetaFriday(){
+    getAllPhaseDefs().forEach(p=>{
+      if(p.key === 'production') return;
+      const el = document.getElementById('meta-' + p.key);
+      if(!el) return;
+      const txt = el.textContent;
+      const m = /^(\d{1,2}\/\d{1,2}\/\d{2} → )(\d{1,2})\/(\d{1,2})\/(\d{2})(?= \(\d+ wk\))/.exec(txt);
+      if(!m) return;
+      const end = new Date(Date.UTC(2000 + +m[4], +m[2] - 1, +m[3]));
+      if(end.getUTCDay() !== 0) return;
+      el.textContent = m[1] + fmtShort(addDays(end, -2)) + txt.slice(m[0].length);
+    });
+  }
+
   function refreshOverrideNote(){
     const el = document.getElementById('prod-ov-note');
     if(!el) return;
@@ -24934,10 +24957,12 @@ export function initLegacyApp() {
   });
 
   buildPhaseRows();
-  // Production's meta line under a half total (reflectHalfDayTotal): watched, because frozen render()
-  // rewrites it from many places.
-  new MutationObserver(reflectHalfDayTotal).observe(document.getElementById('phase-rows'),
-    {childList: true, characterData: true, subtree: true});
+  // Production's meta line under a half total (reflectHalfDayTotal), and every Weeks phase's ending on its Friday
+  // (reflectWeeksMetaFriday): watched, because frozen render() rewrites them from many places. Custom phases'
+  // cards are in #custom-phase-rows, a sibling, so both are observed.
+  const metaObserver = new MutationObserver(()=>{ reflectHalfDayTotal(); reflectWeeksMetaFriday(); });
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>
+    metaObserver.observe(document.getElementById(cid), {childList: true, characterData: true, subtree: true}));
   refreshSimPostUI();
   addDefaultHiatuses();
   PHASES.forEach(p=>{

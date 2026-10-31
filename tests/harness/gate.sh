@@ -1766,7 +1766,9 @@ done
 # but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
 # move the start, a typed Wednesday read as its Friday, the picker's Fridays only, Shift All moving the end, Save /
 # Load / a file with no key / a hostile key, Length -> Dates, a custom phase, and a round trip saving byte for byte
-# as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Own line.
+# as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Since the
+# owner's "go with choice 1" it also holds every Weeks phase's meta line ending on the FRIDAY, on Starts and on Ends
+# and through a month-view round trip (M1, M2; red with reflectWeeksMetaFriday disabled). Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new

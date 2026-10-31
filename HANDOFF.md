@@ -7,9 +7,10 @@
 ### 🔨 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — MERGED into local `main` by fast-forward (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear"), NOT PUSHED
 
 - **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.
-  Built as the mockup shows. The three open questions were NOT answered, so: the meta line is left alone (it still
-  ends on the week's Sunday), custom Weeks phases get Ends too (the suggestion), and "Start after previous phase" is
-  hidden in Ends (as the mockup showed). Tracker card `weeks-end-date`.
+  Built as the mockup shows. Of the three open questions, (1) was answered after the merge (the meta line ends on the
+  Friday for every Weeks phase, the owner's *"go with choice 1"*: bullet below); (2) and (3) were not, so custom
+  Weeks phases get Ends too (the suggestion), and "Start after previous phase" is hidden in Ends (as the mockup
+  showed). Tracker card `weeks-end-date`.
 - **Where it lives (src/legacy/app.js):**
   - `phaseEnds` (beside `phaseHidden`): key -> true. Read through `phaseEndsOn(key)`, which is also false unless
     the unit is Weeks. Saved as `phaseEnds`, a sorted array, ⛔ PERMANENT, written only while non-empty
@@ -40,6 +41,19 @@
     still be there.
   - CSS (legacy.css, beside the `.pu-by` rules): the column, the select drawn as `select.phase-unit`, and the Ends
     hides keyed on the card's class, never an attribute behind `:has()` (the 27 Oct lag). DatePop: kind `'friday'`.
+- ✅ **THE META LINE ENDS ON THE FRIDAY, for every Weeks phase** (owner, 30 Oct 2026, after the merge: the choice was
+  explained as "Friday for every Weeks phase / Friday only in Ends / leave Sunday", and they said *"Ok go with choice
+  1, then push"*). Frozen `render()` still writes `start → seg.end − 1 (N wk)`, the last week row's SUNDAY;
+  `reflectWeeksMetaFriday()` (beside `reflectHalfDayTotal()`) moves a Sunday end back two days. It runs from the same
+  MutationObserver, which now watches `#custom-phase-rows` as well as `#phase-rows` (custom cards are a sibling).
+  Idempotent: only a Sunday end moves, so its own write finds nothing to do, and a snap-off phase that starts mid-week
+  (its end is already a real day, e.g. `4/8/26 → 5/19/26`) is left alone. Production (its last shoot day) and a
+  Days / Dates phase (`unitmeta-<key>`) are out. Text only: no cell, export, baseline or saved byte moves. Proof:
+  `endsdate` M1 (on Starts every Weeks line names a Friday, Production's untouched) and M2 (on Ends the line equals
+  the box, through a month-view round trip), 17/17, both red with the rewrite disabled (they read `3/7/27`);
+  `builtindates` 17/17, `customunits` 23/23, `snapoff` (sheet, friday), `loadcarry` 6/6, `phasefold` 11/11,
+  `halfdays` 27/27, `datepick` 17/17, `npm run check` 40/40; seen in the browser pane on the `hidewf` fixture. No
+  full gate (chrome text only; the merged gate above covers Ends).
 - **Seen, not changed:** a phase with Snap to Monday OFF switched to Ends becomes whole weeks (its start moves to its
   week's Monday, its end to that week's Friday). An end inside a hiatus week cannot be worked in, so the phase ends
   the week before.
@@ -186,7 +200,8 @@
   Friday; Dates mode drops the choice. Synthetic calendar, one live phase, a fixed hiatus. Checked in the browser
   pane with scripted and real clicks: 20 → 22 weeks in Ends pulls the start 2 wks and holds Fri 10/16/26, the
   hiatus pulls it 2 more, Starts moves the end instead; no console errors.
-  - **Open for the owner:** (1) the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
+  - **Open for the owner:** (1) ✅ RULED 30 Oct, *"go with choice 1"*: the Friday everywhere, built (see the 🔨 Ends
+    entry's "meta line" bullet). Was: the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
     `seg.end − 1`), so it says 10/18/26 beside a box saying 10/16/26: leave it, or end it on the Friday everywhere
     (suggested; reachable without a frozen edit by the observer pattern `reflectHalfDayTotal` uses)? (2) Custom
     Weeks phases too (suggested yes)? (3) "Start after previous phase" hidden in Ends (shown), or kept and
