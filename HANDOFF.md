@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — MERGED into local `main` by fast-forward (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear"), NOT PUSHED
+### ✅ 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — + THE META LINE ENDS ON THE FRIDAY — ✅ **LIVE at `d43b931`** (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear", fast-forwarded as `d81655f`; the Friday line `d43b931`, fast-forwarded too; pushed at the owner's *"Ok go with choice 1, then push"*, `9b728c7..d43b931` at 17:13:49; the live `index.html` matched the tested build `2f1fe876…` byte for byte at 17:14:38). No version cut: installed users get it on their next relaunch (no service worker)
 
 - **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.
   Built as the mockup shows. Of the three open questions, (1) was answered after the merge (the meta line ends on the
