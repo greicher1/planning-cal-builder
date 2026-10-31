@@ -91,7 +91,7 @@ window.addEventListener('load', function () { (async function () {
         }
         var cl = el.classList;
         if(cl.contains('mv-daycell')){
-          if(cl.contains('mv-weekend')){ plainWeekend++; if(A.backgroundColor !== WEEKEND) lookBad.push({page: label, el: 'weekend', bg: A.backgroundColor}); }
+          if(cl.contains('mv-weekend') || cl.contains('mv-holiday')){ plainWeekend++; if(A.backgroundColor !== WEEKEND) lookBad.push({page: label, el: 'weekend', bg: A.backgroundColor}); }
           else if(cl.contains('mv-out')){ plainOut++; if(A.backgroundColor !== WHITE) lookBad.push({page: label, el: 'out', bg: A.backgroundColor}); }
           if(el.previousElementSibling){ lines++; if(A.borderLeftColor !== CELL_LINE) lookBad.push({page: label, el: 'cell line', c: A.borderLeftColor}); }
         }

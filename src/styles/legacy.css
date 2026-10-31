@@ -1893,6 +1893,11 @@
   .mv-out{ background:#FAFAF9; }
   .mv-out .mv-daynum{ opacity:.35; }
   .mv-weekend{ background:#F4F3F0; }
+  /* ⛔ FROZEN EDIT HT1 (owner-approved 30 Oct 2026 by picker, "Weekend tint", screen and both PDFs): a holiday's day
+     takes the weekend's grey, because the calendar takes it off as it does a weekend. renderMonthView marks only the
+     days a holiday's line is drawn on (mvHolidayDays). Paint only, and the worked-day tint and the Off hatch below
+     still win. ⚠️ The month-PDF writer paints the same fill (mvlParseMonth's `holiday`); change one, change both. */
+  .mv-holiday{ background:#F4F3F0; }
   /* ---- Day overrides (MONTH-VIEW-PLAN.md §4). ⛔ HEIGHT-NEUTRAL BY CONSTRUCTION. ----
      Every rule here paints or uses ::after on an element that already exists. Nothing adds a box
      to the flow, so month-view row heights -- which come from lane and note-line counts -- cannot
@@ -2946,8 +2951,10 @@
     #table-wrap .month-view .mv-daycell{ border-left-color:#E6E4DE; }
     #table-wrap .month-view .mv-body > .mv-week:last-child .mv-daycell:first-child{ border-bottom-left-radius:9px; }
     #table-wrap .month-view .mv-body > .mv-week:last-child .mv-daycell:last-child{ border-bottom-right-radius:9px; }
-    #table-wrap .month-view .mv-out:not(.mv-weekend):not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#fff; }
-    #table-wrap .month-view .mv-weekend:not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#FAF9F6; }
+    #table-wrap .month-view .mv-out:not(.mv-weekend):not(.mv-holiday):not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#fff; }
+    /* A holiday's day (frozen edit HT1, 30 Oct 2026) takes the weekend's soft tint too: "Weekend tint". */
+    #table-wrap .month-view .mv-weekend:not(.mv-day-on):not(.mv-day-off):not(:hover),
+    #table-wrap .month-view .mv-holiday:not(.mv-day-on):not(.mv-day-off):not(:hover){ background:#FAF9F6; }
     #table-wrap .month-view .mv-daycell:not(.mv-day-on):not(.mv-day-off):not(.mv-day-half):not(:hover) .mv-daynum{ color:#5E5B54; }
   }
 

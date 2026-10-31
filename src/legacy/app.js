@@ -13181,6 +13181,30 @@ export function initLegacyApp() {
     return out;
   }
 
+  // The days the month view writes a holiday on, as ISO dates, for renderMonthView to give each the weekend's grey
+  // (owner, 30 Oct 2026: "Weekend tint", over the Off hatch; frozen edit HT1, `.mv-holiday`). A holiday is a day the
+  // CALENDAR takes off, like a weekend; the hatch stays the mark of a day someone took out of the shoot.
+  // ⭐ Tinted exactly where its line is drawn, never from the holiday list alone: switched on, shown in the month view
+  // (autoNotesForView / holidayVisibleIn), and still among that day's lines in notesForWaterfallDate(). So a holiday
+  // hidden from the month view, or one whose line a waterfall edit dropped on purpose, is never left as a grey weekday
+  // with nothing to say why. Union holidays inside a phase and the user's own anywhere in view (monthOnlyHolidays),
+  // the same two sources the lines come from. A calendar with no holiday line gets an empty set, so every cell is
+  // written byte for byte as before.
+  function mvHolidayDays(schedule){
+    const lines = {};   // ISO date -> the line(s) a holiday on that day draws
+    const add = (date, name)=>{ const iso = isoOf(date); (lines[iso] = lines[iso] || []).push(`${name} ${fmtShort(date)}`); };
+    Object.keys(schedule.notesByIdx || {}).forEach(i=>{
+      autoNotesForView(schedule.notesByIdx[i] || [], 'month').forEach(n=>{ if(n.holiday && n.date) add(n.date, n.label); });
+    });
+    (schedule.monthOnlyHolidays || []).forEach(h=>{ if(holidayVisibleIn(h.hid, 'month')) add(h.date, h.name); });
+    const days = new Set();
+    Object.keys(lines).forEach(iso=>{
+      const drawn = notesForWaterfallDate(schedule, parseDateUTC(iso));
+      if(lines[iso].some(t=> drawn.indexOf(t) !== -1)) days.add(iso);
+    });
+    return days;
+  }
+
   // Notes can be up to 3 lines tall and render as ONE solid block. To lay them out we need to know,
   // before placing them, how many lines a note's text occupies at the day-column width -- both for
   // user notes with real line breaks and for long auto-notes that wrap. Measured in a hidden element
@@ -13381,6 +13405,11 @@ export function initLegacyApp() {
         return shot.has(iso) ? (v === 'half' ? 'half' : ((v === 'on' || v === 'lead') ? 'on' : '')) : '';
       };
     })();
+    // ⛔ FROZEN EDIT HT1, owner-approved 30 Oct 2026 by picker ("Screen and both PDFs", "Approve with that gate"):
+    // a holiday's day takes the weekend's grey. A CLASS on the existing cell, so it is height-neutral exactly as the
+    // marks above are. Which days: mvHolidayDays(), the days a holiday's line is drawn on. The worked-day tint and the
+    // Off hatch still win (their rules come later), as they do on a weekend.
+    const _holDays = mvHolidayDays(schedule);
 
     // ⛔ FROZEN EDIT, owner-instructed 21 Sep 2026: "can we visually show a half day in the pill
     // somehow". Until now a half day showed only as a ½ beside the DATE -- and the date is not what
@@ -13503,6 +13532,7 @@ export function initLegacyApp() {
         const cls = ['mv-daycell'];
         if(!inMonth) cls.push('mv-out');
         if(dow===0 || dow===6) cls.push('mv-weekend');
+        if(_holDays.has(isoOf(d))) cls.push('mv-holiday');   // HT1, above
         // One extra class, or none -- or, for a half-worked weekend or holiday, the two existing
         // marks together (the 'on' tint + the ½), so it needs no CSS of its own. See _ovDays above.
         const ov = _ovDays ? _ovDays(isoOf(d)) : '';
@@ -30946,9 +30976,13 @@ export function initLegacyApp() {
         const sdAttr = c.getAttribute('data-shoot-day');
         const sd = sdAttr === null ? 0 : parseInt(sdAttr, 10);
         if(sdAttr !== null && !(sd > 0 && String(sd) === sdAttr)) throw new Error('Month layout: ' + label + ', ' + isoOf(d) + ' is shoot day "' + sdAttr + '".');
-        return { iso: isoOf(d), n, out, weekend,
-                 mark: cl.contains('mv-day-off') ? 'off' : (cl.contains('mv-day-on') ? 'on' : ''),
-                 half: cl.contains('mv-day-half'), sd };
+        const day = { iso: isoOf(d), n, out, weekend,
+                      mark: cl.contains('mv-day-off') ? 'off' : (cl.contains('mv-day-on') ? 'on' : ''),
+                      half: cl.contains('mv-day-half'), sd };
+        // A holiday's day (frozen edit HT1, 30 Oct 2026), painted as a weekend. Only when true, so a month with no
+        // holiday line models exactly as it did.
+        if(cl.contains('mv-holiday')) day.holiday = true;
+        return day;
       });
       const items = Array.from(wkEl.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add)')).map(mvlParseItem);
       return { start: days[0].iso, days, items };
@@ -31185,7 +31219,7 @@ export function initLegacyApp() {
     // .mv-dowrow{ background:#F7F7F7 }, .mv-dow{ 11px 700 var(--text-muted); padding:6px 0; uppercase; .04em }
     dowRow: { fill: '#F7F7F7', padY: 6, size: 11, weight: '700', ink: '#726F68', spacing: 0.44 },
     // .mv-daycell{ padding:3px 5px }, and its backgrounds in the order the rules stack: an override,
-    // then the weekend, then spillover, then the page's white. ⚠️ The cell sets no font size, so it has
+    // then the weekend (and a holiday, .mv-holiday, the same grey), then spillover, then the page's white. ⚠️ The cell sets no font size, so it has
     // body{ font-size:14px }, and that 14 px STRUT, not the 11 px number, puts the number's baseline
     // (Chrome's layout measured it 4 px lower than the number's own line box would).
     cellPadTop: 3, cellPadLeft: 5, cellStrut: 14,
@@ -31730,7 +31764,7 @@ export function initLegacyApp() {
           // Text over the stripes is mixed with their mean, 2 levels from either stripe (#EFEFEF / #F8F8F8).
           bg = mvlMix(mvlRgb(P.hatch.ink), 0.5, mvlRgb(P.hatch.ground));
         } else {
-          const fillHex = d.mark === 'on' ? P.onFill : (d.weekend ? P.weekendFill : (d.out ? P.outFill : null));
+          const fillHex = d.mark === 'on' ? P.onFill : ((d.weekend || d.holiday) ? P.weekendFill : (d.out ? P.outFill : null));
           if(fillHex){
             bg = mvlRgb(fillHex);
             out.push({ k: 'fill', x: box.x, y: box.y, w: box.w, h: box.h, r: 0, c: bg, role: 'cell', wk: wi, d: di });

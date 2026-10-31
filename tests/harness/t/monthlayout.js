@@ -341,6 +341,7 @@ window.addEventListener('load', function () { (async function () {
                        weekend: lc.cls.indexOf(' mv-weekend ') >= 0,
                        mark: lc.cls.indexOf(' mv-day-off ') >= 0 ? 'off' : lc.cls.indexOf(' mv-day-on ') >= 0 ? 'on' : '',
                        half: lc.cls.indexOf(' mv-day-half ') >= 0, sd: lc.sd};
+            if(lc.cls.indexOf(' mv-holiday ') >= 0) exp.holiday = true;   // frozen edit HT1: only when true
             if(lc.n !== exp.n || !same(c, exp)) bad.P0.push(wWhere + ' day ' + (i + 1) + ': ' + JSON.stringify(c) + ' vs ' + JSON.stringify(exp));
           });
           if(w.items.length !== lw.bars.length) { bad.P0.push(wWhere + ': ' + w.items.length + ' bars vs ' + lw.bars.length); return; }
