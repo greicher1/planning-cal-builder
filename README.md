@@ -43,6 +43,27 @@ Verified: the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`), whit
 with 5 px corners as before; `monthmap` 20/20 on all three of its gate fixtures (part C is the stepper);
 `npm run check` 40/40; seen in the app.
 
+### Unreleased — a snapped start's box shows the Monday it snapped to (30 Oct 2026)
+
+Typing a Wednesday into a phase's Starts box with Snap to Monday on started the phase that Monday, but the box kept the
+Wednesday, and only the grey "Snapped to Mon 3/23/26" line under the name said so. The owner: *"It should also change
+the actual the date shows in the box. Otherwise this is confusing."* Now, on **Enter** or on **leaving the box**, a
+typed non-Monday becomes its Monday in the box, and the "Snapped to" line goes. The same for Production with Snap on,
+custom Weeks phases, and every hiatus's Starts (all-phase and a phase's own), which always snap. Nothing moves on the
+calendar: that Monday is the start it was already using.
+
+- **One undo step.** Undo takes back the typing and the rewrite together. A Wednesday typed over its own week's
+  Monday leaves no step at all.
+- **Left alone:** Snap to Monday off, Days and Dates phases (the exact day is the point), a box tabbed through without
+  typing, and a non-Monday already in an older calendar. Those still show the "Snapped to" line until the box is
+  edited. Switching Snap to Monday on over a typed Wednesday also leaves it, so switching it back off still gives back
+  that day.
+
+How: delegated listeners on the phase and hiatus containers (`showSnappedMonday()`, the Starts box's twin of the Ends
+box's Friday), writing through a real input event; `foldIntoBankedStep()` folds the write into the typing's undo step.
+No frozen code, no id, no snapshot key. Verified: new leg `snapbox` 12/12 (red on two mutants: no rewrite, 7 checks;
+no undo fold, U1 and U3); `npm run check` 40/40; seen in the app with real keystrokes (Enter and click-out).
+
 ### Unreleased — every Weeks phase's date line ends on its last Friday (30 Oct 2026)
 
 The grey line under a phase's name (`11/2/26 → 3/7/27 (16 wk)`) ended on the SUNDAY of the phase's last week,

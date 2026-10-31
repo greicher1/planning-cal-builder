@@ -7192,6 +7192,50 @@ export function initLegacyApp() {
     });
   });
 
+  // ⭐ A SNAPPED START SHOWS ITS MONDAY once it has been typed (owner, 30 Oct 2026, of a Wednesday left in Pre-Prep's
+  // Starts box under "Snapped to Mon 3/23/26": "It should also change the actual the date shows in the box.
+  // Otherwise this is confusing."). The Starts box's twin of the Ends box just above. On Enter, or on leaving the
+  // box, a non-Monday in a box that snaps is rewritten to its Monday through a real input event, as if that Monday
+  // had been typed. Nothing is rescheduled: it is the start the calendar was already using, and the meta line's
+  // "Snapped to Mon" row goes because frozen render() writes it only while the box and the start differ.
+  //   - Which boxes: start-<key> while phaseSnapped(key) (a Weeks phase with Snap to Monday on, Production
+  //     included), and every hiatus's Starts, which computeSchedule() always snaps (DatePop's 'monday' kind, less
+  //     Rebuild From's date, which is a tool's field and no calendar data). Snap off, Days, Dates and an Ends
+  //     phase's hidden start box are left as typed.
+  //   - Only after TYPING during this visit to the box (the rule the Show Info counts' focusout follows): tabbing
+  //     through, or a Wednesday loaded from an older calendar, rewrites nothing and dirties nothing. Those, and a
+  //     Wednesday already in the box when Snap to Monday is switched on, keep the "Snapped to Mon" line, so
+  //     switching Snap back off still gives back the day that was typed (datepick P7).
+  //   - One undo step: foldIntoBankedStep() makes the rewrite part of the typing's step.
+  // Delegated, so a custom row or hiatus row rebuilt by undo or Load needs no binding.
+  function snapsToMonday(el){
+    if(!el || el.type !== 'date' || !el.classList) return false;
+    if(el.classList.contains('hiatus-start') || el.classList.contains('phiatus-start')) return true;
+    const key = /^start-/.test(el.id) ? el.id.slice(6) : '';
+    return !!key && getAllPhaseDefs().some(p=> p.key === key) && phaseSnapped(key);
+  }
+  const snapTyped = new WeakSet();   // the date boxes typed in since they last took focus
+  function showSnappedMonday(el){
+    if(!snapTyped.has(el)) return;
+    snapTyped.delete(el);
+    if(!snapsToMonday(el)) return;
+    const d = parseDateUTC(el.value);
+    if(!d || d.getUTCDay() === 1) return;
+    const before = undoStateJSON();
+    el.value = isoOf(mondayOf(d));
+    el.dispatchEvent(new Event('input', {bubbles: true}));
+    snapTyped.delete(el);   // that input event was this write, not typing
+    foldIntoBankedStep(before);
+  }
+  ['phase-rows', 'custom-phase-rows', 'hiatus-list'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('focusin', e=>{ snapTyped.delete(e.target); });
+    host.addEventListener('input', e=>{ if(e.target && e.target.type === 'date') snapTyped.add(e.target); });
+    host.addEventListener('focusout', e=>{ showSnappedMonday(e.target); });
+    host.addEventListener('keydown', e=>{ if(e.key === 'Enter') showSnappedMonday(e.target); });
+  });
+
   // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
   // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
   // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates
@@ -26856,6 +26900,21 @@ export function initLegacyApp() {
   // falls out for free. Only a gesture that cannot preview without changing state has to call this
   // after each step and bank its own snapshot on release.
   function cancelPendingUndoPush(){ clearTimeout(undoPushTimer); }
+  // ⭐ FOLD A FOLLOW-ON WRITE INTO THE EDIT THAT CAUSED IT, for a value the engine writes as the closing half of the
+  // user's own edit (a snapped start shown as its Monday when its box is left: showSnappedMonday()). `beforeJSON` is
+  // undoStateJSON() taken just before that write. Equal to the baseline, the typing was already banked (the user
+  // paused past UNDO_DEBOUNCE_MS before leaving the box), so the baseline moves onto the result and no step is
+  // pushed: one Cmd+Z takes back the typing and the rewrite together. Otherwise the typing's push is still pending
+  // and covers both. A rewrite that lands back on the state before the typing (a Wednesday typed over its own
+  // week's Monday) takes the banked step off again, so no Cmd+Z is spent on an edit that changed nothing; the
+  // pending case needs nothing, since pushUndoSnapshot() then finds nothing changed.
+  function foldIntoBankedStep(beforeJSON){
+    if(applyingUndoRedo || suppressDirty || beforeJSON !== lastPushedSnapshotJSON) return;
+    cancelPendingUndoPush();
+    const now = undoStateJSON();
+    if(undoStack.length && undoStack[undoStack.length - 1] === now){ undoStack.pop(); refreshUndoRedoUI(); }
+    lastPushedSnapshotJSON = now;
+  }
   // Discards all undo/redo history and re-baselines on the current state. Called whenever a
   // different document replaces what's on screen (New, Open, a recent file, backup recovery, or
   // the initial page load) -- undoing "past" the start of a different calendar makes no sense.

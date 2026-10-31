@@ -18,9 +18,48 @@
 - **Proof:** the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`); the box is the same 202 px with 5 px
   corners; `monthmap` 20/20 on `mvnotes`, `colreuse`, `offweek`; `npm run check` 40/40; seen in the browser pane. No
   full gate (chrome CSS; both print paths hide the toolbar).
-- ⚠️ **Before committing:** origin/main is `fdf9324` (another session's snapped-start-box push, 17:39), one past local
-  `main` `9ec805f`, and adds top entries to HANDOFF.md and README.md. Commit, then merge origin/main keeping both top
-  entries.
+- **Landed:** committed `c89ec8c` (owner, *"Commit and push"*), then merged with origin/main `fdf9324` (another
+  session's snapped-start-box push); only the top entries of HANDOFF.md and README.md conflicted, both kept.
+
+### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
+
+- **The ask** (owner, screenshot of Pre-Prep with 03/25/2026 in the box and "Snapped to Mon 3/23/26" under the name):
+  *"right now when you enter a non monday date as the start date for a phase and click enter or click out of it, it
+  only shows the snapped to date in the grey text. It should also change the actual the date shows in the box.
+  Otherwise this is confusing."* Tracker card `snap-start-box`.
+- ⚠️ **This REVERSES one line of the `snap-monday-picker` entry below** ("Not changed, on purpose: … no field is
+  rewritten"). For a TYPED value only: the picker still never rewrites a field, and switching Snap on still leaves a
+  typed Wednesday (datepick P4 and P7 unchanged).
+- **Built (`src/legacy/app.js`, right after the Ends box's focusout, its twin):**
+  - `snapsToMonday(el)`: `start-<key>` of a real phase while `phaseSnapped(key)` (so Production with Snap on, and
+    custom Weeks phases; Snap off, Days, Dates and an Ends phase's hidden box are out), plus every `.hiatus-start`
+    and `.phiatus-start` (computeSchedule always snaps them). Rebuild From's `#tool-solve-date` is left out: a tool
+    field, not calendar data, and not in these containers.
+  - `snapTyped` (WeakSet): an `input` on a date box adds it, `focusin` clears it. `showSnappedMonday(el)` runs on
+    `focusout` and on `keydown` Enter: only for a box typed in this visit, it writes `isoOf(mondayOf(d))` and fires a
+    real `input` event, so every existing per-field listener (update, carryHiatusRowColour, the phase-hiatus
+    delegation, DatePop's onType) runs as if the Monday had been typed. Delegated on `#phase-rows`,
+    `#custom-phase-rows`, `#hiatus-list`. A bad year (parseDateUTC null) is left as typed, ringed as before.
+  - **Undo:** `foldIntoBankedStep(beforeJSON)` (beside `cancelPendingUndoPush`). If the typing was already banked
+    (the user paused past the 500 ms debounce), the baseline moves onto the result with no push; if the result equals
+    the stack top (a Wednesday typed over its own Monday) that step is popped too. If the push is still pending it
+    covers both. So one Cmd+Z takes back typing + rewrite; never a step that changes nothing.
+  - Nothing reschedules (that Monday is what computeSchedule already used), so no cell, export, baseline or saved
+    format moves; the saved VALUE of the field is the Monday instead of the Wednesday, which is the point. No frozen
+    code, no id, no snapshot key.
+- **Left alone, by design:** tabbing through a box without typing (a clean calendar stays clean), a non-Monday loaded
+  from an older calendar (keeps the frozen meta's "Snapped to Mon" row until the box is edited), switching Snap to
+  Monday on over a typed Wednesday (so switching it back off still gives back that day). The owner was not asked about
+  the switch case; ask if it comes up.
+- **Seen in the app, not changed:** the date picker opened on an EMPTY box stays on today's month while a date is
+  typed (DatePop's `onType` updates the value, not the month). Pre-existing.
+- **Proof:** new leg `snapbox` 12/12 (in `gate.sh` after `datepick`), red on two mutants (no rewrite: T2, U1-U3, K1,
+  P1, H1; no undo fold: U1, U3). Neighbours green on the build: datepick 17/17, endsdate 17/17, snaptools 14/14,
+  snapoff ×3, loadcarry 6/6, builtindates 17/17 + 15/15, customunits 23/23 + 28/28, undokeys 11/11, hiatusfold,
+  hiatuscolour, hiatuslabel, phasefold, phiatusnum, calrange, numclamp, hidewf 19/19, phasesui 8/8. `npm run check`
+  40/40. Seen in the browser pane with real keystrokes: Wed 3/25/26 + Enter → 03/23/2026, Thu 4/2/26 + click out →
+  03/30/2026, the "Snapped to" row gone both times, one undo back past both. No full gate (sidebar behaviour only;
+  nothing reaches the grid, the writers or the save format).
 
 ### ✅ 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — + THE META LINE ENDS ON THE FRIDAY — ✅ **LIVE at `d43b931`** (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear", fast-forwarded as `d81655f`; the Friday line `d43b931`, fast-forwarded too; pushed at the owner's *"Ok go with choice 1, then push"*, `9b728c7..d43b931` at 17:13:49; the live `index.html` matched the tested build `2f1fe876…` byte for byte at 17:14:38). No version cut: installed users get it on their next relaunch (no service worker)
 
