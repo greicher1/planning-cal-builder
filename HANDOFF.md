@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — BUILT in the main checkout, UNCOMMITTED
+### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
 
 - **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the
   same color/style as the export pdf button"*. Tracker card `month-stepper-navy-arrows`.
