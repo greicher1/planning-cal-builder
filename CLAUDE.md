@@ -470,6 +470,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 | `dayNotes` / `dayNoteColors` | month-view per-day notes and legacy colors (folded in by `dayNoteList()`) |
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
 | `holidayView` | which holidays show in which view (`{sheet, month}`) |
+| `holidayNames`, `holidayColors` | a holiday's own name and its own month colour, keyed by holiday id (owner, 30 Oct 2026: rename one date, "Everywhere it shows", colour "Just that holiday"). PERMANENT keys, each ABSENT while empty. The name is applied once, in `fullHolidayList()` (`name`; `origName` keeps the list's own), so every reader and both writers follow; ⛔ the id is still `holidaySlug()` of the ORIGINAL name. The colour is month view only, drawn by frozen edit H1 (`b.color` from `mvDayNoteBlocks`). Set from the month view's holiday editor and, for a holiday shown in the waterfall, by changing its line in the waterfall's note editor (`wfHolidayRenames`) |
 | `headerMode`/`headerManual`, `mvHeaderMode`/`mvHeaderManual` | auto vs. hand-edited header lines |
 | `headerFormat`, `mvHeaderFormat` | per-header-line size/bold/italic/colour/highlight/align. Consumed by **four** places — both renderers, `exportExcel` and `buildWaterfallPdf` — so screen and exports cannot disagree |
 | `mvExtraLanes` | extra note lanes per month-view week |

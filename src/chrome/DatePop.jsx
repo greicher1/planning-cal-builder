@@ -63,12 +63,18 @@ function pickerTarget(el) {
 function phaseSnapped(key) {
   const unit = document.getElementById('unit-' + key)
   if (unit && (unit.value === 'days' || unit.value === 'dates')) return false
+  // An Ends phase (the engine's phaseEnds) is always whole weeks, its Snap to Monday hidden and ignored. Read off
+  // the card's ends-mode class, which update() sets (reflectPhaseEnds).
+  const start = document.getElementById('start-' + key)
+  if (start && start.closest('.phase-row.ends-mode')) return true
   const cb = document.getElementById('snap-' + key)
   return cb ? cb.checked : true
 }
 
 // How the engine reads the date in `el`, and so how it may be picked:
 //   'monday' — snapped to its week's Monday (readState / computeSchedule), so only Mondays;
+//   'friday' — an Ends phase's end (the engine's phaseEnds; owner, 30 Oct 2026: "Yes, no switch"), which always
+//              lands on its week's Friday, so only Fridays;
 //   'day'    — used to the day, so a single day and no band;
 //   'week'   — any day picks its week (the range is cut by whole weeks, and Anchor To's start
 //              moves the calendar by whole weeks: weeksBetweenMondays), so the band stays.
@@ -77,6 +83,7 @@ function phaseSnapped(key) {
 function fieldKind(el) {
   if (el.id === 'custom-hol-date') return 'day'
   if (el.classList.contains('hiatus-start') || el.classList.contains('phiatus-start')) return 'monday'
+  if (el.classList.contains('phase-endsdate')) return 'friday'      // an Ends phase's end (id-less)
   if (el.id.startsWith('end-')) return 'day'                       // a Dates phase's end
   if (el.id.startsWith('start-')) return phaseSnapped(el.id.slice(6)) ? 'monday' : 'day'
   // Rebuild From pins the chosen phase's start by that phase's own Snap to Monday (audit M-11).
@@ -201,7 +208,8 @@ export function DatePop() {
   // The one day shown as picked when there is no band. On a Monday-only field it is the Monday the
   // engine snaps to, so a Wednesday already in the field (typed, or saved before 30 Oct 2026)
   // shows the day the phase really starts.
-  const selDay = weekMode || value == null ? null : (kind === 'monday' ? mondayOf(value) : value)
+  const selDay = weekMode || value == null ? null
+    : kind === 'monday' ? mondayOf(value) : kind === 'friday' ? mondayOf(value) + 4 * MS : value
 
   const cells = []
   for (let i = 0; i < 42; i++) {
@@ -213,7 +221,7 @@ export function DatePop() {
     // ⚠️ aria-disabled, not `disabled`: Chrome drops mouse events on a disabled button, so the
     // popover's mousedown preventDefault never ran and a click on a greyed day took focus out
     // of the field.
-    const off = kind === 'monday' && !isMon
+    const off = (kind === 'monday' && !isMon) || (kind === 'friday' && d.getUTCDay() !== 5)
     const cls = ['dp-day']
     if (off) cls.push('dp-off')
     if (!inMonth) cls.push('dp-out')
@@ -260,7 +268,7 @@ export function DatePop() {
         <button type="button" className="dp-nav" aria-label="Next month" onClick={() => nav(1)}>›</button>
       </div>
       <div className="dp-dow" aria-hidden="true">{DOW.map((d) => <span key={d}>{d}</span>)}</div>
-      <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : '')}>{cells}</div>
+      <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : kind === 'friday' ? ' dp-fridays' : '')}>{cells}</div>
       {weekMode && (
         <div className="dp-hint">Any day picks its week — the calendar snaps to that Monday.</div>
       )}
@@ -270,6 +278,9 @@ export function DatePop() {
             ? 'A hiatus always starts on a Monday.'
             : 'Snap to Monday is on, so only Mondays can be picked.'}
         </div>
+      )}
+      {kind === 'friday' && (
+        <div className="dp-hint">This phase ends on a Friday, so only Fridays can be picked.</div>
       )}
     </div>
   )

@@ -69,12 +69,15 @@ window.addEventListener('load', function () { (async function () {
     add('N3', 'a holiday already baked into an old override is shown ONCE',
       n3.filter(function (t) { return t === 'Memorial Day 5/25/26'; }).length === 1 && n3.indexOf('Office closed') !== -1, {may25: n3}, 'Memorial Day once + Office closed');
 
-    // N4 -- the REVERSE: edit Labor Day's note from the month view. The saved waterfall note must not
-    // carry "Labor Day 9/7/26" (a month-only holiday); the month view still shows it.
-    await goTo('September 2026');
-    var lab = document.querySelector('#table-wrap .mv-note-block[data-note-kind="wf"][data-note-day="2026-09-07"]');
-    if(!lab) throw new Error('no Labor Day block on 9/7');
-    lab.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+    // N4 -- the REVERSE: add a line to Thanksgiving week's note from the month view. Since 30 Oct 2026 a waterfall
+    // line opens ALONE in the month editor (owner, by picker), and saving puts it back among the week's lines, so the
+    // week is edited through its own line, "Post screening Wed". The saved waterfall note must not carry Thanksgiving
+    // or the day after (month-only holidays); the month view still shows them. (Until 30 Oct 2026 this clicked Labor
+    // Day, whose editor was its week's note; a holiday now opens its own editor, N6.)
+    await goTo('November 2026');
+    var ps = document.querySelector('#table-wrap .mv-note-block[data-note-kind="wf"][data-note-day="2026-11-23"]');
+    if(!ps) throw new Error('no "Post screening Wed" block on 11/23');
+    ps.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
     await T.sleep(400);
     var ta = document.querySelector('#mv-note-pop textarea');
     if(!ta) throw new Error('the month-view note editor did not open');
@@ -84,20 +87,48 @@ window.addEventListener('load', function () { (async function () {
     ta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));
     await T.sleep(800);
     var s4 = await snap();
-    var stored = s4.userNotes && s4.userNotes['2026-09-07'];
+    var stored = s4.userNotes && s4.userNotes['2026-11-23'];
     var storedText = stored ? (stored.text || '') : null;
-    add('N4', 'editing a holiday week from the month view does NOT bake the month-only holiday into the waterfall note',
-      storedText === 'Crew BBQ', {prefill: prefill, stored: stored}, '"Crew BBQ"');
-    var n4 = blocks('2026-09-07');
-    add('N4b', '...and the month view still shows both the holiday and the new line',
-      n4.indexOf('Labor Day 9/7/26') !== -1 && n4.indexOf('Crew BBQ') !== -1, {sep7: n4}, 'Labor Day 9/7/26 + Crew BBQ');
+    add('N4', 'editing a line of a holiday week from the month view does NOT bake the month-only holidays into the waterfall note; the editor held just that line',
+      prefill === 'Post screening Wed' && storedText === 'Post screening Wed\nCrew BBQ', {prefill: prefill, stored: stored}, 'prefill "Post screening Wed"; saved "Post screening Wed\\nCrew BBQ"');
+    var n4 = {mon: blocks('2026-11-23'), thu: blocks('2026-11-26'), fri: blocks('2026-11-27')};
+    add('N4b', '...and the month view still shows both holidays and both lines',
+      n4.thu.indexOf('Thanksgiving 11/26/26') !== -1 && n4.fri.indexOf('Day After Thanksgiving 11/27/26') !== -1
+        && n4.mon.indexOf('Post screening Wed') !== -1 && n4.mon.indexOf('Crew BBQ') !== -1, n4, 'Thanksgiving, Day After, Post screening Wed + Crew BBQ');
 
-    // N5 -- the waterfall shows the new note, and no holiday line in it.
+    // N6 -- a holiday opens ITS OWN editor (owner, 30 Oct 2026): its name, never its week's note. Renaming Labor Day
+    // writes no waterfall note at all.
+    await goTo('September 2026');
+    var lab = document.querySelector('#table-wrap .mv-note-block[data-note-kind="wf"][data-note-day="2026-09-07"]');
+    if(!lab) throw new Error('no Labor Day block on 9/7');
+    lab.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+    await T.sleep(400);
+    var pop6 = document.getElementById('mv-note-pop');
+    var ta6 = pop6 && pop6.querySelector('textarea');
+    if(!ta6) throw new Error('the holiday editor did not open');
+    var head6 = ((pop6.querySelector('.mv-note-pop-day') || {}).textContent || '').trim(), pre6 = ta6.value;
+    ta6.value = 'Labor Day BBQ';
+    ta6.dispatchEvent(new Event('input', {bubbles: true}));
+    ta6.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    await T.sleep(800);
+    var s6 = await snap();
+    var n6 = blocks('2026-09-07');
+    add('N6', 'Labor Day opens the holiday editor (its name alone) and a rename writes no waterfall note: the day reads "Labor Day BBQ 9/7/26" once',
+      head6 === '9/7/26 · Holiday' && pre6 === 'Labor Day' && !(s6.userNotes && s6.userNotes['2026-09-07'])
+        && s6.holidayNames && s6.holidayNames['labor-day@2026'] === 'Labor Day BBQ'
+        && n6.filter(function (t) { return t === 'Labor Day BBQ 9/7/26'; }).length === 1 && n6.indexOf('Labor Day 9/7/26') === -1,
+      {head: head6, prefill: pre6, userNote: s6.userNotes && s6.userNotes['2026-09-07'], names: s6.holidayNames, sep7: n6}, 'heading "9/7/26 · Holiday", prefill "Labor Day", no userNotes, renamed once');
+
+    // N5 -- the waterfall shows the week's two lines, and no holiday line in it; Labor Day's week stays empty there.
     document.getElementById('view-sheet-btn').click();
     await T.sleep(900);
-    var cell = document.querySelector('#table-wrap td.sheet-note-cell[data-week="2026-09-07"]');
-    var cellText = cell ? ((cell.querySelector('.cell-body') || cell).innerText || '').trim() : null;
-    add('N5', 'the waterfall note for 9/7 reads just "Crew BBQ"', cellText === 'Crew BBQ', {cell: cellText}, 'Crew BBQ');
+    function cellText(wk){
+      var cell = document.querySelector('#table-wrap td.sheet-note-cell[data-week="' + wk + '"]');
+      return cell ? ((cell.querySelector('.cell-body') || cell).innerText || '').replace(/\s*\n\s*/g, '\n').trim() : null;
+    }
+    var c23 = cellText('2026-11-23'), c07 = cellText('2026-09-07');
+    add('N5', 'the waterfall note for 11/23 reads just "Post screening Wed" and "Crew BBQ"; the 9/7 cell has no note',
+      c23 === 'Post screening Wed\nCrew BBQ' && (c07 === '' || c07 === '+'), {nov23: c23, sep7: c07}, '"Post screening Wed\\nCrew BBQ"; 9/7 empty');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'monthnotes', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

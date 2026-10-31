@@ -57,6 +57,132 @@ legs that drive the tool (`snaptools`, `overrides`, `builtindates`, `customunits
 `hdrcontrols` and `npm run check`. It was also tried in the app. Full gate 3,418 / 6, all six explained: three
 load timeouts green alone, and three from an unrelated test-fixture edit, green with that fixture restored.
 
+### Unreleased — the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
+
+The owner, with screenshots of the stepper and the header's Export PDF button: *"make the left and right buttons the
+same color/style as the export pdf button"*, then, when a first pass also reshaped them into separate rounded buttons,
+*"i just wanted you to change the bg color of the buttons, not the shape and look"*. So the stepper keeps its shape (one
+white bordered box, the month name between the two arrows) and only the ‹ and › ends are filled with Export PDF's navy,
+with its hover shade and a white arrow (and a white focus ring, which would vanish on navy). Their disabled look at
+the first or last month is unchanged (faded). Today is unchanged. CSS only (`.month-step` in `legacy.css`): nothing in
+the grid, the exports or a saved file moves.
+
+Verified: the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`), white glyph; the box is the same 202 px
+with 5 px corners as before; `monthmap` 20/20 on all three of its gate fixtures (part C is the stepper);
+`npm run check` 40/40; seen in the app.
+
+### Unreleased — a snapped start's box shows the Monday it snapped to (30 Oct 2026)
+
+Typing a Wednesday into a phase's Starts box with Snap to Monday on started the phase that Monday, but the box kept the
+Wednesday, and only the grey "Snapped to Mon 3/23/26" line under the name said so. The owner: *"It should also change
+the actual the date shows in the box. Otherwise this is confusing."* Now, on **Enter** or on **leaving the box**, a
+typed non-Monday becomes its Monday in the box, and the "Snapped to" line goes. The same for Production with Snap on,
+custom Weeks phases, and every hiatus's Starts (all-phase and a phase's own), which always snap. Nothing moves on the
+calendar: that Monday is the start it was already using.
+
+- **One undo step.** Undo takes back the typing and the rewrite together. A Wednesday typed over its own week's
+  Monday leaves no step at all.
+- **Left alone:** Snap to Monday off, Days and Dates phases (the exact day is the point), a box tabbed through without
+  typing, and a non-Monday already in an older calendar. Those still show the "Snapped to" line until the box is
+  edited. Switching Snap to Monday on over a typed Wednesday also leaves it, so switching it back off still gives back
+  that day.
+
+How: delegated listeners on the phase and hiatus containers (`showSnappedMonday()`, the Starts box's twin of the Ends
+box's Friday), writing through a real input event; `foldIntoBankedStep()` folds the write into the typing's undo step.
+No frozen code, no id, no snapshot key. Verified: new leg `snapbox` 12/12 (red on two mutants: no rewrite, 7 checks;
+no undo fold, U1 and U3); `npm run check` 40/40; seen in the app with real keystrokes (Enter and click-out).
+
+### Unreleased — every Weeks phase's date line ends on its last Friday (30 Oct 2026)
+
+The grey line under a phase's name (`11/2/26 → 3/7/27 (16 wk)`) ended on the SUNDAY of the phase's last week,
+because a waterfall week is a Monday-to-Sunday row. Beside the new Ends box, which shows the Friday, the card named two
+ends two days apart. The owner picked the Friday for every Weeks phase, Starts and Ends alike (*"go with choice 1"*),
+so the line now reads `11/2/26 → 3/5/27 (16 wk)` everywhere. Only that text moves: the waterfall, the month view,
+Excel, both PDFs, the phase's weeks and the saved file are unchanged. Production's line (its last shoot day), a Days or
+Dates phase's line, and a snap-off phase that starts mid-week (whose end is already a real day) are left as they were.
+
+How: frozen `render()` still writes the Sunday; `reflectWeeksMetaFriday()` rewrites it from outside, through the same
+observer as the half-day total (sanctioned pattern 3), now watching custom phases' cards too. Verified: `endsdate` gains
+M1 (on Starts, every Weeks phase's line names a Friday) and M2 (on Ends, the line and the box agree, through a
+month-view round trip), 17/17, both red with the rewrite disabled; `builtindates`, `customunits`, `snapoff`,
+`loadcarry`, `phasefold`, `halfdays`, `datepick` green; `npm run check` 40/40; seen in the app.
+
+### Unreleased — a Weeks phase can be held by its END, and its start is worked out backwards (30 Oct 2026)
+
+The owner: *"what if for phases you could select EITHER starting date OR ending date. So if you selected ending date
+and then 20 weeks, it would calculate backwards"*, then, on snapping, *"Yes, no switch"*, then *"build it"*
+(`mockups/weeks-end-date.html`). The word **Starts** over a Weeks phase's date is now a small select, **Starts** or
+**Ends**, drawn as **Length · Weeks** is beside it. With **Ends** picked:
+
+- **The end holds.** Change the week count, or add a hiatus inside the phase (all-phase or its own), and the START
+  moves instead. A phase still delivers every week it is given, so a hiatus pulls its start earlier.
+- **It always ends on a Friday**, the Friday of the week picked (ruled: no switch). Snap to Monday is hidden, as it
+  is for Dates. A typed Wednesday reads as that week's Friday, and the picker offers only Fridays.
+- **"Start after previous phase" is hidden**: an Ends phase's start is worked out, never chained.
+- **Switching moves nothing.** To Ends, the box takes the phase's end as scheduled now; back to Starts, the start
+  stays where it was worked out. Changing the Length to Dates or Days returns the phase to Starts, also without moving.
+- **Every tool that moves phases moves the end**, by whole weeks: they all write through `setPhaseStart()` (Shift
+  All, Shift From, Anchor To, Rebuild From, Close all gaps, the month-view body drag), and the leg exercises Shift
+  All. A month-view EDGE drag switches the phase to Dates, as it does any Weeks phase, which leaves Ends.
+- On the five built-in Weeks phases and on custom phases in Weeks. Not Production, whose length is shoot days.
+
+**Save format:** one new key, `phaseEnds` (a sorted list of phase keys), written only while a phase uses Ends, so
+every other calendar saves byte for byte as before. ⛔ PERMANENT. No new id: the end is kept in `end-<key>` (the box
+Dates mode already uses), and `start-<key>` always holds the start as worked out, so an older build opens the file
+with the phase in the same place (held by its start). The meta line under the name ends on the Friday too: see the
+entry above, which ships with this one.
+
+How: `readState()` works out the start (`weeksStartForEnd()`, the mirror of `computeSchedule()`'s
+`extendEndForHiatus()`), `update()` writes it into `start-<key>` before anything reads it, and `setPhaseStart()`
+moves an Ends phase's end. `computeSchedule()` is untouched, and nothing frozen changed. Verified with a new leg,
+`endsdate` (15/15 on the build, red on three mutants: no backward walk, movers leaving the end, no Fridays-only
+picker), plus `npm run check` (40/40), `customunits`, `builtindates`, `datepick` (17/17), `snaptools` (14/14),
+`hidewf` (19/19), `phasefold` (11/11), `autonotephases` (17/17), `snapoff`, `sharecopy2`, and `phasesui` (8/8 with
+`stintswap-reshape.sptcal` as it was before `62fd9ab`; see HANDOFF), and in the app. Full gate: 3,374 pass and 6
+fail, all explained (three load timeouts, each green alone, and three from that fixture); the waterfall PDF, the
+saved field ids and every other month PDF are unchanged.
+
+### Unreleased — rename a holiday, colour one holiday, edit one note line (30 Oct 2026)
+
+The owner sent a screenshot of Thanksgiving's note editor in the month view and asked *"do you see the issue?"* A
+click on one holiday opened its WEEK's waterfall note: the editor for 11/26 also held "Day After Thanksgiving
+11/27/26". A colour picked there recoloured both holidays. And an edit ("Thanksgiving, office closed") left the
+original holiday on the day as well, so it showed twice, and printed the edited line in the waterfall, Excel and the
+waterfall PDF, which hide holidays by default. The owner's use case: *"being able to edit the name of a holiday
+slightly"* without it losing its features as a holiday. Rulings, by picker: rename **just this date**, the new name
+shows **everywhere the holiday shows**, a colour colours **just that holiday**, and any other waterfall note opens
+**just the clicked line**. The owner also asked whether the same should work in the waterfall (yes).
+
+- **A holiday opens its own editor** in the month view: heading "11/27/26 · Holiday", its name alone (the date stays
+  automatic), Enter saves, and clearing the box restores the original name, which the box names. It is still the
+  holiday: same day, same id, still costs the shoot day, still follows the Region and the Holidays list switches,
+  still cannot be dragged to another day. The rename is applied once, in `fullHolidayList()`, so the notes, the
+  Holidays list (hover says "renamed from …"), the day menu, the date pickers and the writers all read it. Thanksgiving
+  2027 keeps its name.
+- **Its colour picker colours that holiday alone**, in the month view and both month PDFs (frozen edit **H1**, signed
+  off by the "Just that holiday" picker: `renderMonthView` draws `b.color || wfColor`, and `mvDayNoteBlocks` sets
+  `b.color` only for a holiday with its own colour). In the waterfall a holiday is a line in its week's one Notes cell,
+  so it keeps the cell's colour.
+- **In the waterfall's own note editor**, changing a holiday's line (Labor Day switched on for the waterfall) renames
+  the holiday, so the cell stays automatic instead of becoming typed text that no longer follows the holiday.
+- **Any other waterfall note opens just the clicked line** in the month editor, and saving puts it back among the
+  week's other lines. Its colour is still the week's.
+- **Two new PERMANENT snapshot keys**, `holidayNames` and `holidayColors` (holiday id → name / colour), each written
+  only while it holds something, so a calendar that renames nothing saves byte for byte as before. Sanitized on Load,
+  restored unconditionally, cleared by New; Reset Month Notes clears the colours (a name is the holiday's, not a month
+  note's). SNAPSHOT_VERSION not bumped: an older build ignores both keys and shows the original names.
+- Replaces the edge-month rule that turned a click on a month-only holiday with no waterfall row into a new day note.
+
+Verified on the build: new leg `holidayrename` 14/14 (in `gate.sh`), `monthnotes` 8/8 (N4 rewritten: it added a line
+by clicking Labor Day, which now opens Labor Day's own editor; the same guarantee is held through a waterfall line,
+and N6 holds the rename), `mvnotes` 14/14 and 30/30 (E7 now expects the holiday editor), `wfnotecolors` 14/14,
+`mvtextstyle` 6/6, `mvmenu` 81/81, `hidewf` 19/19, `caholidays` 11/11, `autonote` 9/9, `npm run check` 40/40, and in
+the app. **Full gate: 3,437 PASS / 3 FAIL** (12:02 to 12:33). All three fails are the `stintswap-reshape` fixture,
+which `62fd9ab` (a HANDOFF-only commit, not pushed) swept in with an unrelated working-tree edit from 21 Oct. Another
+branch's gate failed the same three that morning. With the fixture as it was before `62fd9ab`, all three pass on this
+build: `stintreshape` all checks, `phasesui` 8/8, and gate 13's written month PDF for that calendar byte-identical to
+its baseline. So frozen edit H1 moved no baseline.
+
 ### Unreleased — with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
 
 The owner: *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates except

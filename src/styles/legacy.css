@@ -120,7 +120,8 @@
   .dp-day.dp-off:hover{ background:transparent; }   /* outranks .dp-day:hover:not(.dp-cap) by order */
   .dp-off.dp-out{ color:var(--mantine-color-gray-3); }
   /* ...and a Monday of the month before or after, still pickable, must not read as one of them. */
-  .dp-mondays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
+  .dp-mondays .dp-out:not(.dp-off):not(.dp-cap),
+  .dp-fridays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
   .dp-dot{
     position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
     width:3px; height:3px; border-radius:50%;
@@ -2941,7 +2942,9 @@
 
   /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): Today and ‹ October 2026 › at the right
      end of the style bar's line, in the month view only. The map's own small arrows went with it. As tall as the
-     style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move. */
+     style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move.
+     The arrows are filled with the header's Export PDF navy (owner, 30 Oct 2026: the colour only, the shape stays),
+     with its hover shade and a white arrow; their focus ring is white so it shows on the navy. */
   .month-step{ flex:none; display:flex; align-items:stretch; gap:6px; height:34px; margin-left:auto; }
   .month-step .ms-today, .month-step .ms-group{
     box-sizing:border-box; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
@@ -2950,17 +2953,19 @@
   .month-step .ms-today{ padding:0 12px; font-size:12px; font-weight:600; color:var(--accent); cursor:pointer; }
   .month-step .ms-group{ display:inline-flex; align-items:stretch; overflow:hidden; }
   .month-step .ms-arrow{
-    width:34px; padding:0; border:0; background:transparent; color:var(--text); font-size:19px; line-height:1;
-    cursor:pointer;
+    width:34px; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    font-size:19px; line-height:1; cursor:pointer;
   }
   .month-step .ms-label{
     min-width:132px; padding:0 10px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
     border-left:1px solid var(--mantine-color-gray-2); border-right:1px solid var(--mantine-color-gray-2);
   }
-  .month-step .ms-today:hover:not(:disabled), .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .month-step .ms-today:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
   .month-step button:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .month-step .ms-arrow:focus-visible{ outline-color:#fff; }
 
   /* ---------- Soft Lines: the month view's ON-SCREEN look (MONTH-RAIL-PLAN.md step 4; owner, 27 Oct 2026) ----------
      The owner's "a little more modern" pick (Option 1, Soft Lines), and "Screen only for now". The month view's own
@@ -4019,14 +4024,37 @@
   }
   .phase-row:has(select.phase-unit option[value="dates"]:checked) .pu-cap-len,
   .phase-row:not(:has(select.phase-unit option[value="dates"]:checked)) .pu-cap-end{ display:none; }
-  .phase-fields .pu-by-cap select.phase-unit{
+  /* ENDS (phaseEnds, owner, 30 Oct 2026): the date column, built like the Length column (.pu-by): a caption line the
+     height of .pu-by-cap, then the box, so the two boxes stay level. Over a Weeks phase the caption is the Starts /
+     Ends select, drawn as the Length select is (the rule below); Days and Dates show the plain word. */
+  .phase-fields .ph-starts{ display:flex; flex-direction:column; gap:3px; flex:1 1 118px; min-width:0; }
+  .phase-fields .ph-starts > label{ flex:none; }
+  .ph-starts-cap{
+    display:flex; align-items:center; gap:4px; height:14px;
+    font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-6);
+  }
+  .ph-cap-word{ display:none; }
+  .phase-row:has(select.phase-unit option[value="days"]:checked) .ph-cap-word,
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) .ph-cap-word{ display:inline; }
+  .phase-row:has(select.phase-unit option[value="days"]:checked) select.phase-anchor,
+  .phase-row:has(select.phase-unit option[value="dates"]:checked) select.phase-anchor{ display:none; }
+  /* With Ends, the Ends box stands in for the start's, and Snap to Monday and "Start after previous phase" go: an
+     Ends phase always ends on a Friday (ruled "Yes, no switch") and its start is worked out, never chained. Keyed on
+     the card's class, which update() sets (reflectPhaseEnds), never on an attribute behind a :has() (see below). */
+  .phase-row:not(.ends-mode) .ph-ends-box,
+  .phase-row.ends-mode .ph-start-box,
+  .phase-row.ends-mode .phase-snap,
+  .phase-row.ends-mode .autostart-btn{ display:none; }
+  .phase-fields .pu-by-cap select.phase-unit,
+  .phase-fields .ph-starts-cap select.phase-anchor{
     width:auto; min-width:0; height:18px; padding:0 16px 0 0; border:0; background-color:transparent;
     font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-navy-5);
     -webkit-appearance:none; appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 2px center; background-size:11px 11px;
   }
-  .phase-fields .pu-by-cap select.phase-unit:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; border-radius:3px; }
+  .phase-fields .pu-by-cap select.phase-unit:focus-visible,
+  .phase-fields .ph-starts-cap select.phase-anchor:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; border-radius:3px; }
   /* Which boxes show is pure CSS off the select's CHECKED OPTION -- the #show-mode pattern -- so no
      restore, undo or load path can leave the visible boxes disagreeing with the unit actually
      scheduling. Hidden boxes keep their values. Production is the one row with no .phase-unit, so

@@ -1758,9 +1758,23 @@ done
 # datepick (owner, 30 Oct 2026: "when snap to monday is on wouldn't it make sense that you aren't able to pick any
 # dates except mondays?") holds the pop-out date picker to the way the engine reads each field (DatePop.jsx's
 # fieldKind): a phase start with Snap to Monday on, every hiatus start and Rebuild From on a snapped phase offer only
-# Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and is not rewritten);
-# Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact day with no
-# week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and opening the picker does
+# not rewrite it); Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact
+# day with no week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# snapbox (owner, 30 Oct 2026, of a Wednesday left in a snapped Starts box: "It should also change the actual the date
+# shows in the box. Otherwise this is confusing.") holds the box's half: after TYPING a non-Monday, Enter or leaving the
+# box writes its Monday (built-in, Production, custom Weeks, both kinds of hiatus), the "Snapped to Mon" row goes and
+# the waterfall does not move; one undo step either way (paused or not), none for a Wednesday over its own Monday;
+# tabbing through, Snap off and a Dates phase leave the typed day. Red on two mutants (no rewrite: T2/U1-U3/K1/P1/H1;
+# no undo fold: U1/U3). Own line.
+# endsdate (owner, 30 Oct 2026: "what if for phases you could select EITHER starting date OR ending date", "Yes, no
+# switch", "build it") holds a Weeks phase held by its END (phaseEnds): the Starts / Ends select on every Weeks card
+# but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
+# move the start, a typed Wednesday read as its Friday, the picker's Fridays only, Shift All moving the end, Save /
+# Load / a file with no key / a hostile key, Length -> Dates, a custom phase, and a round trip saving byte for byte
+# as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Since the
+# owner's "go with choice 1" it also holds every Weeks phase's meta line ending on the FRIDAY, on Starts and on Ends
+# and through a month-view round trip (M1, M2; red with reflectWeeksMetaFriday disabled). Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1801,6 +1815,11 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
+# editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
+# waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
+# month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
+# the month view, the Holidays list and the workbook.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1818,6 +1837,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              snapbox:-:300 \
+              endsdate:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
@@ -1839,6 +1860,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
+              holidayrename:holidayrename:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

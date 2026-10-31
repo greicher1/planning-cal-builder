@@ -4,7 +4,193 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — BUILT in the main checkout, UNCOMMITTED, NOT PUSHED
+### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
+
+- **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the
+  same color/style as the export pdf button"*. Tracker card `month-stepper-navy-arrows`.
+- ⛔ **"color/style" meant the COLOUR only.** A first pass also split the arrows out of the box into separate rounded
+  buttons (Export PDF's 7 px radius, 4 px gaps, Mantine's disabled grey). The owner: *"i just wanted you to change the
+  bg color of the buttons, not the shape and look"*. Reverted to the original shape. Lesson: when the owner points at
+  another control's "style", change the paint and ask before changing the geometry.
+- **What changed (CSS only, `.month-step` in `src/styles/legacy.css`):** `.ms-arrow` background is
+  `--mantine-primary-color-filled` (hover `-filled-hover`), glyph white, focus ring white (the navy `--accent` ring
+  would vanish on navy). The box, borders, radius, widths, disabled fade and Today are exactly as before.
+- **Proof:** the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`); the box is the same 202 px with 5 px
+  corners; `monthmap` 20/20 on `mvnotes`, `colreuse`, `offweek`; `npm run check` 40/40; seen in the browser pane. No
+  full gate (chrome CSS; both print paths hide the toolbar).
+- **Landed:** committed `c89ec8c` (owner, *"Commit and push"*), then merged with origin/main `fdf9324` (another
+  session's snapped-start-box push); only the top entries of HANDOFF.md and README.md conflicted, both kept.
+
+### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
+
+- **The ask** (owner, screenshot of Pre-Prep with 03/25/2026 in the box and "Snapped to Mon 3/23/26" under the name):
+  *"right now when you enter a non monday date as the start date for a phase and click enter or click out of it, it
+  only shows the snapped to date in the grey text. It should also change the actual the date shows in the box.
+  Otherwise this is confusing."* Tracker card `snap-start-box`.
+- ⚠️ **This REVERSES one line of the `snap-monday-picker` entry below** ("Not changed, on purpose: … no field is
+  rewritten"). For a TYPED value only: the picker still never rewrites a field, and switching Snap on still leaves a
+  typed Wednesday (datepick P4 and P7 unchanged).
+- **Built (`src/legacy/app.js`, right after the Ends box's focusout, its twin):**
+  - `snapsToMonday(el)`: `start-<key>` of a real phase while `phaseSnapped(key)` (so Production with Snap on, and
+    custom Weeks phases; Snap off, Days, Dates and an Ends phase's hidden box are out), plus every `.hiatus-start`
+    and `.phiatus-start` (computeSchedule always snaps them). Rebuild From's `#tool-solve-date` is left out: a tool
+    field, not calendar data, and not in these containers.
+  - `snapTyped` (WeakSet): an `input` on a date box adds it, `focusin` clears it. `showSnappedMonday(el)` runs on
+    `focusout` and on `keydown` Enter: only for a box typed in this visit, it writes `isoOf(mondayOf(d))` and fires a
+    real `input` event, so every existing per-field listener (update, carryHiatusRowColour, the phase-hiatus
+    delegation, DatePop's onType) runs as if the Monday had been typed. Delegated on `#phase-rows`,
+    `#custom-phase-rows`, `#hiatus-list`. A bad year (parseDateUTC null) is left as typed, ringed as before.
+  - **Undo:** `foldIntoBankedStep(beforeJSON)` (beside `cancelPendingUndoPush`). If the typing was already banked
+    (the user paused past the 500 ms debounce), the baseline moves onto the result with no push; if the result equals
+    the stack top (a Wednesday typed over its own Monday) that step is popped too. If the push is still pending it
+    covers both. So one Cmd+Z takes back typing + rewrite; never a step that changes nothing.
+  - Nothing reschedules (that Monday is what computeSchedule already used), so no cell, export, baseline or saved
+    format moves; the saved VALUE of the field is the Monday instead of the Wednesday, which is the point. No frozen
+    code, no id, no snapshot key.
+- **Left alone, by design:** tabbing through a box without typing (a clean calendar stays clean), a non-Monday loaded
+  from an older calendar (keeps the frozen meta's "Snapped to Mon" row until the box is edited), switching Snap to
+  Monday on over a typed Wednesday (so switching it back off still gives back that day). The owner was not asked about
+  the switch case; ask if it comes up.
+- **Seen in the app, not changed:** the date picker opened on an EMPTY box stays on today's month while a date is
+  typed (DatePop's `onType` updates the value, not the month). Pre-existing.
+- **Proof:** new leg `snapbox` 12/12 (in `gate.sh` after `datepick`), red on two mutants (no rewrite: T2, U1-U3, K1,
+  P1, H1; no undo fold: U1, U3). Neighbours green on the build: datepick 17/17, endsdate 17/17, snaptools 14/14,
+  snapoff ×3, loadcarry 6/6, builtindates 17/17 + 15/15, customunits 23/23 + 28/28, undokeys 11/11, hiatusfold,
+  hiatuscolour, hiatuslabel, phasefold, phiatusnum, calrange, numclamp, hidewf 19/19, phasesui 8/8. `npm run check`
+  40/40. Seen in the browser pane with real keystrokes: Wed 3/25/26 + Enter → 03/23/2026, Thu 4/2/26 + click out →
+  03/30/2026, the "Snapped to" row gone both times, one undo back past both. No full gate (sidebar behaviour only;
+  nothing reaches the grid, the writers or the save format).
+
+### ✅ 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — + THE META LINE ENDS ON THE FRIDAY — ✅ **LIVE at `d43b931`** (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear", fast-forwarded as `d81655f`; the Friday line `d43b931`, fast-forwarded too; pushed at the owner's *"Ok go with choice 1, then push"*, `9b728c7..d43b931` at 17:13:49; the live `index.html` matched the tested build `2f1fe876…` byte for byte at 17:14:38). No version cut: installed users get it on their next relaunch (no service worker)
+
+- **The ask** (owner): the idea and the snapping ruling are in the 📝 entry below; then *"build it"* after the mockup.
+  Built as the mockup shows. Of the three open questions, (1) was answered after the merge (the meta line ends on the
+  Friday for every Weeks phase, the owner's *"go with choice 1"*: bullet below); (2) and (3) were not, so custom
+  Weeks phases get Ends too (the suggestion), and "Start after previous phase" is hidden in Ends (as the mockup
+  showed). Tracker card `weeks-end-date`.
+- **Where it lives (src/legacy/app.js):**
+  - `phaseEnds` (beside `phaseHidden`): key -> true. Read through `phaseEndsOn(key)`, which is also false unless
+    the unit is Weeks. Saved as `phaseEnds`, a sorted array, ⛔ PERMANENT, written only while non-empty
+    (`phaseEndsSnapshot()` drops a flag whose phase left Weeks). Sanitized, restored unconditionally, cleared by New,
+    pruned with its custom phase.
+  - The END is `end-<key>` (Dates mode's box, already in fields.byId and already moved by `setPhaseStart()`); the
+    visible box is the id-less `.phase-endsdate` in the new date column (`startsFieldHtml()`, built like
+    `byUnitHtml()`), beside `start-<key>`, which stays in place (document order, so fields.byId's key order) and is
+    hidden in Ends. The select is the id-less `select.phase-anchor`. No new id anywhere.
+  - `readState()` reads the end for an Ends phase and, once both hiatus lists are read, solves its start with
+    `weeksStartForEnd()` (the mirror of `computeSchedule()`'s `extendEndForHiatus()`). `computeSchedule()` is
+    untouched: the state it gets is a Starts phase on that Monday.
+  - ⚠️ `update()` writes that start into `start-<key>` (`syncPhaseEndsStarts()`) right after `readState()`. It is
+    the ONE field `update()` writes, against `syncCustomUnitFallback()`'s rule, and it is safe only because the value
+    changes only with an edit that already banks an undo step. Frozen `readCfgForMeta()` reads `start-<key>`, so
+    without it the meta line would show the old start plus a bogus "Snapped to Mon" line.
+  - `setPhaseStart()` moves an Ends phase's end by the same distance, rounded to whole weeks, so every mover moves
+    the end. `phaseSnapped()` is true for an Ends phase (DatePop's copy reads the card's `ends-mode` class).
+  - `onCustomUnitChange()` returns the phase to Starts on any unit change; leaving Ends it rewrites `end-<key>` as
+    scheduled (Dates) or empties it (Days), so a later Dates switch never takes a stale end. Back to Starts
+    (`setPhaseEnds()`) also empties `end-<key>`, which is what keeps a round trip byte-identical.
+  - `reflectPhaseEnds()` runs in every `update()`: select value, `ends-mode` class, Ends box (left alone while
+    focused; a focusout redraws it as its Friday).
+  - ⚠️ The Ends box's `input` handler is a CAPTURE listener on the row containers: a custom row's own blanket
+    `input -> update()` listener would otherwise run first, on the old end.
+  - ⚠️ A month-view EDGE drag sets the unit to Dates with no event, so the flag lingers, unread, until the Length
+    select's handler clears it. Deliberate: the drag's "back where it began" restores the unit and the flag must
+    still be there.
+  - CSS (legacy.css, beside the `.pu-by` rules): the column, the select drawn as `select.phase-unit`, and the Ends
+    hides keyed on the card's class, never an attribute behind `:has()` (the 27 Oct lag). DatePop: kind `'friday'`.
+- ✅ **THE META LINE ENDS ON THE FRIDAY, for every Weeks phase** (owner, 30 Oct 2026, after the merge: the choice was
+  explained as "Friday for every Weeks phase / Friday only in Ends / leave Sunday", and they said *"Ok go with choice
+  1, then push"*). Frozen `render()` still writes `start → seg.end − 1 (N wk)`, the last week row's SUNDAY;
+  `reflectWeeksMetaFriday()` (beside `reflectHalfDayTotal()`) moves a Sunday end back two days. It runs from the same
+  MutationObserver, which now watches `#custom-phase-rows` as well as `#phase-rows` (custom cards are a sibling).
+  Idempotent: only a Sunday end moves, so its own write finds nothing to do, and a snap-off phase that starts mid-week
+  (its end is already a real day, e.g. `4/8/26 → 5/19/26`) is left alone. Production (its last shoot day) and a
+  Days / Dates phase (`unitmeta-<key>`) are out. Text only: no cell, export, baseline or saved byte moves. Proof:
+  `endsdate` M1 (on Starts every Weeks line names a Friday, Production's untouched) and M2 (on Ends the line equals
+  the box, through a month-view round trip), 17/17, both red with the rewrite disabled (they read `3/7/27`);
+  `builtindates` 17/17, `customunits` 23/23, `snapoff` (sheet, friday), `loadcarry` 6/6, `phasefold` 11/11,
+  `halfdays` 27/27, `datepick` 17/17, `npm run check` 40/40; seen in the browser pane on the `hidewf` fixture. No
+  full gate (chrome text only; the merged gate above covers Ends).
+- **Seen, not changed:** a phase with Snap to Monday OFF switched to Ends becomes whole weeks (its start moves to its
+  week's Monday, its end to that week's Friday). An end inside a hiatus week cannot be worked in, so the phase ends
+  the week before.
+- **Proof:** new leg `endsdate` (15/15; in `gate.sh` after `datepick`), red on three mutants (no backward walk: 13
+  red; movers leaving the end: S1; no Fridays-only picker: E5). `npm run check` 40/40. `customunits` and
+  `builtindates` (live + restore), `datepick` 17/17, `snaptools` 14/14, `hidewf` 19/19, `phasefold` 11/11,
+  `autonotephases` 17/17, `snapoff`, `sharecopy2` all green. Seen in the browser pane (the card, the Fridays-only
+  picker, a pick moving the start).
+  - **Full gate on build `7ef47d45…`: 3,374 PASS, 6 FAIL, every one explained.** Three were timeouts under load
+    (~6.6), each green alone: `loadcarry` 6/6, `pilldrag` 30/30, `mvorder` 30/30. Three are the
+    `stintswap-reshape.sptcal` fixture `62fd9ab` rewrote (below): `phasesui` P1 and `stintreshape` (9/9) pass with
+    the fixture as it was at `2b15444`; gate 13's month PDF for that fixture moves because the fixture did (not
+    re-run separately). The waterfall PDF matches its baseline, fields.byId has the same 77 ids, every other
+    written month PDF is byte-identical, and `endsdate` is 15/15 inside the gate.
+  - **`main` moved while it waited** (`4cd40b7` holiday rename, `9b728c7` the fixture restored, `88f3bb9` HANDOFF), so
+    `main` was merged into the branch (only HANDOFF.md / README.md conflicted: new top entries, both kept) and the
+    gate re-run on the merge `db84523`, build `979dd995…`: **3,461 PASS, 2 FAIL, both green alone** (`pilllabel`
+    blocksoff, all 29 checks; `scenariocompat` on `releases/v1.2.0.html`, which this branch cannot change), at load
+    ~10. `endsdate` 15/15 and `holidayrename` 14/14 on the merge. `88f3bb9` was HANDOFF only, merged after the gate.
+- ✅ **FOUND, AND RESTORED ON `main` BY ANOTHER SESSION AS `9b728c7`: `tests/fixtures/stintswap-reshape.sptcal` was rewritten by `62fd9ab`**, a commit whose
+  message is only "HANDOFF: Region label removal live at 9522aa3" (+379/−31 in the fixture, apparently a Save over it).
+  It turns `phasesui` P1 red ("stintswap-reshape: controls / fields.byId") on `main` and on this branch alike; with
+  the fixture as it was at `2b15444`, `phasesui` is 8/8. The `rebuild-from-rethink` card's gate saw the same.
+- ⛔ **LESSON (this session):** with another session working in the same checkout, never stage a blob built from an
+  earlier HEAD. `ff84d6f` did exactly that (a HANDOFF.md made from `3fd85ff`, staged by `git update-index` after
+  `64e9a16` landed) and silently removed `64e9a16`'s HANDOFF entry; `2826feb` put it back. Build the content from
+  `HEAD` and check `HEAD` in the same command that commits.
+
+### 🔨 30 Oct 2026: RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE — BUILT on branch `holiday-note-edit` (worktree `.claude/worktrees/holiday-note-edit`, from `main` at `2826feb`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `4cd40b7` (+ the fixture restore `9b728c7`) and local `main` FAST-FORWARDED (owner's picker, *"Commit and merge to main"*); ✅ **LIVE at `9b728c7`** (owner's picker, *"Push now"*, whose question named the five other unpushed commits it would ship; `9522aa3..9b728c7` at 15:11:26; the live `index.html` matched the gated build `87b763bf…` byte for byte at 15:12:17)
+
+- **The ask:** the owner's screenshot of Thanksgiving's month-view note editor, *"do you see the issue?"* The editor
+  for 11/26 held "Day After Thanksgiving" too (it was the WEEK's waterfall note); a colour recoloured both; an edit
+  ("Thanksgiving, office closed") left the original on the day as well (twice) and printed the edit in the waterfall,
+  Excel and the waterfall PDF, which hide holidays. Reproduced on the build before any change. Tracker card
+  `month-holiday-note-one-line`.
+- **How the design moved (read this before reopening it):**
+  - Rulings by picker: colour **"Just that holiday"** (with the frozen-edit gate named in the option), holiday text
+    **"Month view only"**, other waterfall notes open **"Just the clicked line"**.
+  - The owner then floated a symbol on untouched holidays, with any edit turning the holiday into a regular month
+    note. Then the owner overruled it themself: *"if someone just wants to rename a holiday slightly ... we dont want
+    it to loose its features as a holiday ... thats really the only use case"*. So a holiday is RENAMED, never
+    converted, and no symbol.
+  - Final rulings: rename **"Just this date"**, new name shows **"Everywhere it shows"** (this supersedes "Month view
+    only" for text), and yes to the same in the waterfall (*"do you think this same menu should work/show in the
+    waterfall view?"*).
+- **Built (`src/legacy/app.js`):**
+  - `holidayNames` / `holidayColors` (hid → name / colour), declared beside `holidayOff`. The name is applied ONCE, in
+    `fullHolidayList()` (`name` = `holidayNameFor()`, `origName` = the list's own); the hid is still `holidaySlug()`
+    of the original. So notes, the Holidays list (hover "renamed from …"), the day menu, the date pickers and every
+    writer follow with no frozen edit.
+  - Month editor (`openMvNoteEditor`): `mvHolidayLineInfo()` (the old `mvIsHolidayLine` body, now returning which
+    holiday) makes a click on a holiday line open **holiday mode**: heading "m/d/yy · Holiday", the name alone, Enter
+    saves, clear restores (`stripHolidayDate`, `setHolidayName`, which also rewrites a waterfall override carrying the
+    old line word for word and copies the line's month style/place keys). A rename runs `update()`, not `render()`.
+    It replaces the edge-month rule (a month-only holiday with no waterfall row used to open a blank day note).
+  - Other waterfall lines: **line mode**, the editor holds the clicked line and `writeActiveMvNote` splices it back;
+    the day pin comes from `wfLinePin()` (keep the existing pin while another undated line shares the note, else the
+    clicked day). Colour still the week's.
+  - Waterfall editor: `wfHolidayRenames()` in `commitActiveNoteEditor` turns a changed holiday line (same line count,
+    no other trailing date) into a rename, so the cell stays automatic.
+  - ⛔ **Frozen edit H1** in `renderMonthView`: `const fill = b.color || wfColor`. `mvDayNotePlan` sets `b.color`
+    only while some holiday has a colour, so gates 10 and 13 should stay byte-identical (the full gate is the proof).
+  - Snapshot: both keys PERMANENT, ABSENT while empty, sorted (`sortedObj`); sanitized (name = one line ≤200, colour
+    = hex or No fill); restored unconditionally, entry by entry; New clears both, Reset Month Notes clears colours only.
+- **Verified:** new leg `holidayrename` 14/14 in `gate.sh` (fixture `holidayrename.sptcal`, synthetic); `monthnotes`
+  8/8 (N4 rewritten, N6 added); `mvnotes` 14/14 + 30/30 (E7 rewritten); `wfnotecolors`, `mvtextstyle`, `mvmenu`,
+  `hidewf`, `caholidays`, `autonote` all green; `npm run check` 40/40; seen in the app. **Full gate 3,437 PASS / 3
+  FAIL** (12:02-12:33, build `87b763bf…`). The 3 fails (`stintreshape` timeout, `phasesui` P1, gate 13 on
+  `stintswap-reshape`) are NOT this change: see the next bullet. With that fixture as it was, all three pass here and gate
+  13 for it is byte-identical, so H1 moved no baseline.
+- ⚠️ **Found: local `main` carries a broken fixture.** `62fd9ab` ("HANDOFF: Region label removal live at 9522aa3",
+  committed 09:50 30 Oct, NOT pushed) also committed `tests/fixtures/stintswap-reshape.sptcal`, a working-tree edit
+  from 21 Oct (more episodes, two more custom phases) that was sitting uncommitted in the main checkout. Every gate run
+  from `main` since fails those three checks (the `weeks-end-date` branch's gate did too). The fix is restoring the file
+  from `62fd9ab~1`. ✅ Done in `9b728c7` (owner's picker, *"Restore it"*); live with the rest. The untracked `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` in the main checkout is probably where that edit came from; it was left alone.
+- **Not done / known:** the frozen tooltip on a holiday's month block still says "double-click to edit (also updates
+  the Waterfall)" (changing it would move gate 10's print baselines, so it was left). A holiday's own colour does not
+  reach the waterfall cell (one cell, one fill).
+
+### 🔨 30 Oct 2026: SNAP TO MONDAY ON = THE DATE PICKER OFFERS ONLY MONDAYS — COMMITTED on `main` as `64e9a16` (owner's picker, *"Commit locally"*); ✅ **LIVE at `9b728c7`**, pushed with the holiday rename (owner's picker, *"Push now"*, 30 Oct 2026, whose question said this commit would ship with it)
 
 - **The ask** (owner): *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates
   except mondays?"*, then *"ok do all the changes you suggested"*. Tracker card `snap-monday-picker`.
@@ -34,7 +220,7 @@
 - **For the Ends-mode plan below:** offering only Fridays in Ends mode is one more `fieldKind` branch returning a
   `'friday'` kind. The `'monday'` branch's disabled-day styling would carry over unchanged.
 
-### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ONLY, NO APP CODE ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html))
+### 📝 30 Oct 2026: WEEKS PHASES COUNT BACK FROM AN END DATE — SNAPPING RULED, MOCKUP ([`mockups/weeks-end-date.html`](mockups/weeks-end-date.html)); BUILT, see the 🔨 ENDS entry above
 
 - **The ask** (owner, 30 Oct 2026): *"what if for phases you could select EITHER starting date OR ending date. So if
   you selected ending date and then 20 weeks, it would calculate backwards"*, in Weeks mode, and whether Ends should
@@ -71,7 +257,8 @@
   Friday; Dates mode drops the choice. Synthetic calendar, one live phase, a fixed hiatus. Checked in the browser
   pane with scripted and real clicks: 20 → 22 weeks in Ends pulls the start 2 wks and holds Fri 10/16/26, the
   hiatus pulls it 2 more, Starts moves the end instead; no console errors.
-  - **Open for the owner:** (1) the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
+  - **Open for the owner:** (1) ✅ RULED 30 Oct, *"go with choice 1"*: the Friday everywhere, built (see the 🔨 Ends
+    entry's "meta line" bullet). Was: the meta line under the name ends on the week's SUNDAY (frozen `render()` writes it:
     `seg.end − 1`), so it says 10/18/26 beside a box saying 10/16/26: leave it, or end it on the Friday everywhere
     (suggested; reachable without a frozen edit by the observer pattern `reflectHalfDayTotal` uses)? (2) Custom
     Weeks phases too (suggested yes)? (3) "Start after previous phase" hidden in Ends (shown), or kept and
