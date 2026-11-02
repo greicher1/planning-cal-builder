@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), code COMMITTED `6f10a6a` on the branch; gate 10 and 13 baselines RE-CUT (owner's sign-off); NOT MERGED, NOT PUSHED
+### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; NOT IN `main`, NOT PUSHED
 
 - **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
   like this in the month view? thoughts?"* Suggested the weekend tint instead: the calendar takes a holiday off as it
@@ -54,9 +54,16 @@
   - `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14 once the load fell to ~7 (about 2 min each). Above a load
     of ~30 all three hit their 480 s deadline on BOTH builds, and even a 40-minute deadline did not save them, as
     already on record for 22 Sep (the PASS count stalls, it does not slow).
-- **Next:** the owner's picker for commit of the re-cut + docs on the branch, merge to `main`, and (separately) push.
-  ⚠️ `main` was mid-merge by another session (HANDOFF.md and README.md conflicted) while this was built, so merging
-  will need this entry and the README changelog entry placed on top of whatever that merge lands.
+- **2 Nov 2026 (the owner: *"continue"*, after declining a commit/merge/push picker):** the re-cut baselines and docs
+  COMMITTED on the branch as `26f2065`; `main` (`12cd4ca`: Rebuild From ticks, the snapped start box, the month
+  stepper) MERGED INTO the branch as `deaa45e` (HANDOFF.md and README.md conflicted only as two new top entries; both
+  kept, so over `main` the branch adds only this entry, its changelog entry, HT1 and the re-cut baselines).
+- ✅ **Full gate on the merged build** (`3a7dcbd1e21b1e83…`, port 8361, load ~6 at the start): **3,496 PASS, 0 FAIL,
+  GATE PASSED.** Gate 13 23/23 written month PDFs and gate 10's 11 print documents identical to the re-cut
+  baselines; the waterfall PDF and every Excel part identical; `npm run check` 40/40.
+- **Next:** the owner's picker to fast-forward local `main` to the branch, and (separately) to push. ⚠️ `main`'s
+  checkout holds ANOTHER session's uncommitted HANDOFF.md edit, which a fast-forward that touches HANDOFF.md cannot
+  pass: it has to be committed (by its session) first.
 
 ### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
 
