@@ -1540,9 +1540,25 @@ export function initLegacyApp() {
   // The marker text for a Simultaneous Post week, shared by the waterfall, the Excel export and the
   // month view so all three always agree. computeSchedule only assigns simPostNum in the numbered
   // mode, so a falsy number means the un-numbered ("old") mode and we print the bare label.
+  // ⭐ THE NAME IS THE USER'S (owner, 2 Nov 2026: "Allow me to be able to edit the name of Simultaneous Post"):
+  // simPostName, typed in the box under Sim Post's switch, '' = the default. Every view and both writers take the
+  // label from here, so the waterfall, Excel, both PDFs and the month view follow, as a phase's typed name does.
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `simPostName`, a PERMANENT key written only while renamed, so a calendar
+  // that never renames it saves byte for byte as before. Its box has NO id, so fields.byId never holds it and
+  // this variable is the one store (the box only reflects it: reflectSimPostName).
+  const SIMPOST_DEFAULT_NAME = 'Simultaneous Post';
+  let simPostName = '';
+  function simPostDisplayName(){ return simPostName || SIMPOST_DEFAULT_NAME; }
+  // A name as typed or read from a file: one line, nothing XML forbids, at most 200 characters. The default typed
+  // in full is the default, so it saves as no key.
+  function cleanSimPostName(v){
+    const t = stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+    return t === SIMPOST_DEFAULT_NAME ? '' : t;
+  }
   function simPostLabel(week){
     const n = week && week.simPostNum;
-    return n ? ('Simultaneous Post wk ' + n) : 'Simultaneous Post';
+    const name = simPostDisplayName();
+    return n ? (name + ' wk ' + n) : name;
   }
   const MILESTONE_COLOR = '#7030A0';
   const MILESTONE_TEXT = '#FFFFFF';
@@ -4411,6 +4427,19 @@ export function initLegacyApp() {
       // intent survives someone later storing the flag as a string.
       const snapEl = document.getElementById('snap-'+p.key);
       const snap = snapEl ? !!snapEl.checked : true;
+      // ENDS FOR PRODUCTION (see productionEnds): update() has already put the start that holds the wrap into
+      // start-production, so the start is read as ever, to the day. A wrap not set yet, or whose year cannot be read,
+      // leaves Production out; the second also refuses the calendar and rings the box, as a bad start does.
+      if(p.key === 'production' && productionEnds !== null){
+        const badWrap = !!productionEnds && parseDateUTC(productionEnds) === null;
+        if(badWrap){
+          hasInvalidYear = true;
+          const box = document.querySelector('#phase-rows .prod-wrapdate');
+          if(box) badYearFields.push(box);
+        }
+        phases[p.key] = (productionEnds && !badWrap && startStr && weeks>0) ? {start:startStr, weeks, rawValue, snap:false} : null;
+        return;
+      }
       // ENDS (see phaseEnds): the end, not the start, is the date read. Always whole weeks (snapped), whatever
       // Snap to Monday says. `start` is a placeholder until the hiatuses are read below, which solve the real one.
       if(phaseEndsOn(p.key)){
@@ -5784,10 +5813,28 @@ export function initLegacyApp() {
     if(el) el.hidden = true;
   });
 
-  // Cache the gate against a cheap structural key. Everything the verdict depends on is in it:
-  // how many weeks there are, each week's col multiset (the only thing the layout reads), the stored
-  // overrides, the hand-dragged widths that sheetColumnWidths' `pick` consults, and whether
-  // Simultaneous Post is on -- which flips blockSimSlot and can turn a legal swap illegal.
+  // Cache the gate's VERDICT against a cheap structural key: everything a layoutFingerprint reads that
+  // a stored swap can be judged on.
+  //   - the weeks: how many, the first one's date, each week's col MULTISET, and each week's Sim Post
+  //     flag and number (the offset and "Number these weeks" move the simpost lane week by week);
+  //   - every cell's label, and Sim Post's name: sheetColumnWidths measures them, and G3 compares the
+  //     widths, so a rename can turn a legal swap illegal;
+  //   - the stores the layout reads beside the schedule: the swaps, the block swaps (stintOrderFor),
+  //     the cell spans' VALUES (applyCellSpanOverrides), column reuse and the hand-moved columns
+  //     (segCol), and the hand-dragged widths that sheetColumnWidths' `pick` consults;
+  //   - whether Simultaneous Post is on, which flips blockSimSlot.
+  // ⛔ The MULTISET, never each cell's col. A swap is a within-week transposition, so the multiset is the
+  // same with or without the suppressions this gate decides, and so is every other part of the key. A
+  // per-cell col would differ between the schedule this pass was handed and the next one (computed WITH
+  // the new suppressions), and every refusal would run the gate twice.
+  //
+  // ⛔ A HIT RETURNS THE VERDICT WITH THE SCHEDULE IT WAS HANDED, never the schedule of the pass that
+  // filled the cache (fixed 2 Nov 2026, leg colswapcache). update() draws whatever schedule this
+  // returns, and the cached one was computed at the last MISS: a phase renamed, Sim Post's offset, its
+  // numbering, an undo of any of them reached the screen only once something moved a column. The
+  // schedule update() just computed already carries the verdict: computeSchedule's reconciler reads
+  // swapSuppressed, which the last miss left holding exactly this key's refusals, and runColSwapGate's
+  // `after` is always computeSchedule(state) under its final suppressions. So only the verdict is kept.
   let _swapGateKey = '', _swapGateRes = null;
   function maybeRunColSwapGate(state, schedule){
     const applied = schedule.appliedColSwaps || [];
@@ -5795,19 +5842,29 @@ export function initLegacyApp() {
       if(_swapGateKey !== ''){ _swapGateKey = ''; _swapGateRes = null; reflectSwapNotice({rejected:[],widened:[]}); }
       return null;
     }
-    const key = schedule.weeks.length
-      + '|' + schedule.weeks.map(w => w.cells.map(c => c.col === undefined ? 'x' : c.col).sort().join('')).join('.')
+    const weeks = schedule.weeks;
+    const key = weeks.length + '|' + (weeks.length ? isoOf(weeks[0].date) : '')
+      + '|' + weeks.map(w => (w.simPost ? 's' + (w.simPostNum || 0) : '')
+          + ':' + w.cells.map(c => c.col === undefined ? 'x' : c.col).sort().join('')).join('.')
+      + '|' + weeks.map(w => w.cells.map(c => (c.key || '') + '=' + (c.label || '')).join('\u0001')).join('\u0002')
+      + '|' + simPostDisplayName()
       + '|' + Object.keys(gridColSwaps).sort().join(',')
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '')).join(',')
+      + '|' + Object.keys(cellSpans).sort().map(k => {
+          const v = cellSpans[k];
+          return k + ':' + (v && typeof v === 'object' ? (v.l|0) + ',' + (v.r|0) : '?');
+        }).join(',')
+      + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
       + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
-    if(key === _swapGateKey) return _swapGateRes;
+    if(key === _swapGateKey) return Object.assign({}, _swapGateRes, { schedule });
     // Recompute from a clean suppression set, or a pair suppressed by an edit that has since been
     // undone would stay suppressed for the rest of the session.
     swapSuppressed = new Set();
     const fresh = computeSchedule(state);
     const res = runColSwapGate(state, fresh);
     _swapGateKey = key;
-    _swapGateRes = res;
+    _swapGateRes = { rejected: res.rejected, widened: res.widened, reason: res.reason };
     reflectSwapNotice(res);
     return res;
   }
@@ -7171,13 +7228,16 @@ export function initLegacyApp() {
     host.addEventListener('change', e=>{
       const t = e.target;
       if(!t || !t.classList || !t.classList.contains('phase-anchor')) return;
-      setPhaseEnds(phaseRowKey(t.closest('.phase-row')), t.value === 'ends');
+      const key = phaseRowKey(t.closest('.phase-row'));
+      if(key === 'production') setProductionEnds(t.value === 'ends');
+      else setPhaseEnds(key, t.value === 'ends');
     });
     // The Ends box writes end-<key>, on its week's Friday (ruled: "Yes, no switch"). CAPTURE, so the end is written
     // before a custom row's own blanket input -> update() listener runs. A value whose year cannot be read is
     // written as typed, so readState() refuses it and rings this box, as it does a start's.
     host.addEventListener('input', e=>{
       const t = e.target;
+      if(t && t.classList && t.classList.contains('prod-wrapdate')){ setProductionWrap(t.value); return; }
       if(!t || !t.classList || !t.classList.contains('phase-endsdate')) return;
       const key = phaseRowKey(t.closest('.phase-row'));
       const endEl = key ? document.getElementById('end-' + key) : null;
@@ -7191,9 +7251,48 @@ export function initLegacyApp() {
     // Typed a Wednesday? The box shows its Friday once it loses focus (reflectPhaseEnds leaves a focused box alone).
     host.addEventListener('focusout', e=>{
       const t = e.target;
-      if(t && t.classList && t.classList.contains('phase-endsdate')) setTimeout(reflectPhaseEnds, 0);
+      if(t && t.classList && (t.classList.contains('phase-endsdate') || t.classList.contains('prod-wrapdate'))) setTimeout(reflectPhaseEnds, 0);
     });
   });
+  // ⭐ ENDS FOR PRODUCTION (productionEnds): Starts <-> Ends, one undo step (one update()), and neither direction moves
+  // the shoot. To Ends, the wrap held is the shoot's last day now and the start its first day, Snap to Monday off
+  // (Ends is to the day; the box is hidden). A shoot with no days yet gets an empty box to fill. To Starts, the start
+  // stays where it was worked out to, and Snap to Monday comes back on only if that start is a Monday (on or off, a
+  // Monday start is the same shoot).
+  function setProductionEnds(on){
+    if((productionEnds !== null) === on) return;
+    const startEl = document.getElementById('start-production'), snapEl = document.getElementById('snap-production');
+    const info = currentSchedule && currentSchedule.productionInfo;
+    const days = (info && info.shootDays) || [];
+    if(on){
+      productionEnds = days.length ? days[days.length - 1] : '';
+      if(days.length && startEl) startEl.value = days[0];
+      if(snapEl) snapEl.checked = false;
+    } else {
+      productionEnds = null;
+      const s = startEl ? parseDateUTC(startEl.value) : null;
+      if(snapEl && s && s.getUTCDay() === 1) snapEl.checked = true;
+    }
+    prodEndsForward = false;
+    update();
+  }
+  // The wrap box. The day the shoot wraps on is the latest shoot day on or before the one typed or picked, so a
+  // weekend or a holiday reads as the shoot day before it: the search finds that day, and the held wrap is that day,
+  // so the file says what the card shows. A value whose year cannot be read is kept as typed, so readState() refuses
+  // it and rings the box, as it does a start's.
+  function setProductionWrap(value){
+    if(productionEnds === null) return;
+    const was = productionEnds, d = parseDateUTC(value);
+    // Set first: the search's trials leave Production out while the held wrap is empty.
+    productionEnds = d ? isoOf(d) : value;
+    if(d){
+      const warm = prodEndsWarm(productionEnds);
+      const r = warm ? solveProductionEndsStart(productionEnds, warm) : null;
+      if(r) productionEnds = r.wrap;
+    }
+    // Unchanged (a Saturday after a Friday wrap): no edit, but the box still shows the wrap, unless it is being typed in.
+    if(productionEnds !== was) update(); else reflectPhaseEnds();
+  }
 
   // ⭐ A SNAPPED START SHOWS ITS MONDAY once it has been typed (owner, 30 Oct 2026, of a Wednesday left in Pre-Prep's
   // Starts box under "Snapped to Mon 3/23/26": "It should also change the actual the date shows in the box.
@@ -7273,11 +7372,29 @@ export function initLegacyApp() {
   // ⛔ No id on the select or the Ends box: an id would enter fields.byId. start-<key> keeps its place in DOCUMENT
   // order (before unit-<key>), so fields.byId's key order, and so every saved file's bytes, are unchanged.
   const ANCHOR_TITLE = 'Starts: the phase begins on this date. Ends: it finishes in this week, on the Friday, and its start is worked out back from its length.';
+  // Production's column (productionEnds) is the same, but its Ends box is the WRAP, to the day (the id-less
+  // .prod-wrapdate, so the Weeks handlers never match it), and a line under it says where the start was worked out
+  // to (reflectProductionEnds). start-production keeps its place in document order, so fields.byId does too.
+  // The shoot as a span under the date (owner, 30 Oct 2026, option B of mockups/production-start-readout.html, "This would
+  // also be shown whether you do Starts or Ends, changing which is highlited in solid green depending on which mode"):
+  // the first shoot day and the wrap, the end that holds solid, the one worked out from it dashed (reflectProductionEnds).
+  // No id, no input: nothing in it is saved.
+  const PROD_SPAN_HTML = `<div class="prod-span" hidden>
+          <div class="prod-span-end" data-end="start"><span class="prod-span-k">Starts</span><span class="prod-span-d"></span></div>
+          <div class="prod-span-line" aria-hidden="true"></div>
+          <div class="prod-span-end" data-end="wrap"><span class="prod-span-k">Wraps</span><span class="prod-span-d"></span></div>
+        </div>`;
+  const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
   function startsFieldHtml(key){
+    const prod = key === 'production';
+    const endsBox = prod
+      ? '<input type="date" class="prod-wrapdate" aria-label="Wrap date" title="The last shoot day. The start is worked out back from the shoot days.">'
+      : '<input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked">';
     return `<div class="ph-starts">
-        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${ANCHOR_TITLE}" aria-label="This date is when the phase"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
+        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
-        <label class="ph-ends-box"><input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked"></label>
+        <label class="ph-ends-box">${endsBox}</label>
+        ${prod ? PROD_SPAN_HTML : ''}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -7321,8 +7438,9 @@ export function initLegacyApp() {
       // owner, 16 Oct 2026), shared with the custom rows: see byUnitHtml().
       // ⚠️ DOCUMENT ORDER (PHASES-TAB-PLAN.md §3.1): Production's hidden weeks-production stays AFTER snap-production,
       // where it always was, now inside the switch group, so fields.byId keeps its key order.
+      // Production's date column has its Starts / Ends choice since 30 Oct 2026 (productionEnds), and no Length column.
       const fieldsHtml = (p.key === 'production')
-        ? `<label>Starts <input type="date" id="start-${p.key}"></label>`
+        ? startsFieldHtml(p.key)
         : `${startsFieldHtml(p.key)}
            ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}`;
       const switchesHtml = (p.key === 'production')
@@ -7369,6 +7487,7 @@ export function initLegacyApp() {
         <div class="simpost-panel">
           ${swRow('simpost-toggle', 'Simultaneous Post', '<input type="checkbox" id="simpost-enabled">')}
           <div class="simpost-body">
+            <input type="text" class="simpost-name" maxlength="200" placeholder="Simultaneous Post" aria-label="Simultaneous Post name" title="Name it: every view and export shows what you type here. Leave it blank for &quot;Simultaneous Post&quot;.">
             <label class="simpost-offset-row" id="simpost-offset-row">
               Starts
               <input type="number" id="simpost-offset" min="0" step="1" value="0" aria-label="Calendar weeks after Production begins">
@@ -8164,6 +8283,9 @@ export function initLegacyApp() {
       const end = endEl ? parseDateUTC(endEl.value) : null;
       if(end) endEl.value = isoOf(addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
     }
+    // Production held by its wrap (productionEnds): a mover moves the shoot as it does in Starts, and the next update()
+    // takes the wrap it lands on as the held one (ruled with the mockup: "Yes, build it").
+    if(key === 'production' && productionEnds !== null && to) prodEndsForward = true;
     el.value = iso;
     return true;
   }
@@ -8184,10 +8306,12 @@ export function initLegacyApp() {
       const sel = row.querySelector('select.phase-anchor');
       if(!sel) return;
       const key = phaseRowKey(row);
-      const want = phaseEnds[key] === true ? 'ends' : 'starts';
+      const prod = key === 'production';
+      const want = (prod ? productionEnds !== null : phaseEnds[key] === true) ? 'ends' : 'starts';
       if(sel.value !== want) sel.value = want;
-      const on = phaseEndsOn(key);
+      const on = prod ? productionEnds !== null : phaseEndsOn(key);
       if(row.classList.contains('ends-mode') !== on) row.classList.toggle('ends-mode', on);
+      if(prod){ reflectProductionEnds(row, on); return; }
       const box = row.querySelector('.phase-endsdate'), endEl = document.getElementById('end-' + key);
       if(!box || !endEl || document.activeElement === box) return;
       const end = parseDateUTC(endEl.value);
@@ -8195,6 +8319,43 @@ export function initLegacyApp() {
       if(box.value !== show) box.value = show;
     });
   }
+  // ENDS FOR PRODUCTION: the wrap box shows the day the shoot really wraps (the held wrap, unless a mark or a hiatus
+  // has since taken that day), left alone while it is being typed in.
+  // Under it, IN BOTH MODES, the shoot as a span: its first shoot day and its wrap. The end that holds is solid, the
+  // one worked out from it dashed, so in Ends the card says where the start went (the condition the owner's go-ahead
+  // rested on: an added episode moves it without the start box being touched). Drawn in Production's own colour pair
+  // (its option's text colour as the ink), so a recoloured Production keeps a matching span. (An amber "That is during
+  // Prod Prep" line came first and was taken out, owner: "thats obvious from just looking at the calendar"; then a
+  // plain "Starts ..., worked back from the wrap." line, replaced by this span, option B.)
+  function reflectProductionEnds(row, on){
+    const box = row.querySelector('.prod-wrapdate'), span = row.querySelector('.prod-span');
+    const info = currentSchedule && currentSchedule.productionInfo;
+    const days = (info && info.shootDays) || [];
+    if(box && document.activeElement !== box){
+      const show = !on ? '' : days.length ? days[days.length - 1] : (productionEnds || '');
+      if(box.value !== show) box.value = show;
+    }
+    if(!span) return;
+    const opt = PHASE_COLOR_OPTIONS[phaseColorIndexOf('production')] || PHASE_COLOR_OPTIONS[0];
+    // Rewritten only when what it shows changes: every update() runs this, and the card's observers watch the rows.
+    const sig = days.length ? [days[0], days[days.length - 1], on ? 'wrap' : 'start', opt.text].join('|') : '';
+    if(span.dataset.sig === sig && span.hidden === !days.length) return;
+    span.dataset.sig = sig;
+    span.hidden = !days.length;
+    if(!days.length) return;
+    span.style.setProperty('--span-ink', opt.text);
+    const day = iso=>{ const d = parseDateUTC(iso); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d); };
+    span.querySelectorAll('.prod-span-end').forEach(end=>{
+      const isStart = end.dataset.end === 'start';
+      end.classList.toggle('held', isStart !== on);
+      end.querySelector('.prod-span-d').textContent = day(isStart ? days[0] : days[days.length - 1]);
+      end.title = (isStart !== on)
+        ? (isStart ? 'The first shoot day. It holds: the wrap is worked out from it.' : 'The wrap. It holds: the start is worked out back from it.')
+        : (isStart ? 'The first shoot day, worked out back from the wrap.' : 'The wrap, worked out from the start.');
+    });
+  }
+
+
 
   // Does this phase have a length for Rebuild From to place it with? Production's comes from Show
   // Info; a Weeks phase's is its week count; a Days phase's its day count; a Dates phase's its range.
@@ -9676,6 +9837,7 @@ export function initLegacyApp() {
     function endDrag(){
       const d = drag;
       drag = null;
+      prodEndsDrag = false;
       if(shield){ shield.remove(); shield = null; }
       hideHandles();
       // ⛔ THE TRAILING PUSH IS THE STEP, as body-drag's. A drag that ends where it began banks none.
@@ -9748,6 +9910,9 @@ export function initLegacyApp() {
       // Flush whatever came before into its own step (body-drag's leading push).
       pushUndoSnapshot();
       drag = d;
+      // Production held by its wrap (productionEnds): for the whole gesture the shoot is dragged as in Starts, and the
+      // wrap it lands on becomes the held one (syncProductionEndsStart runs forward while this is set).
+      prodEndsDrag = productionEnds !== null;
       hideHandles(h);
       // A full-window shield owns the pointer for the gesture: one cursor everywhere, no hover effects
       // or text selection underneath, and no CSS reaching into the grid to get either.
@@ -13018,7 +13183,7 @@ export function initLegacyApp() {
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
   let printingCursor = null;
-  // The room the symbol takes at the left of a marked note (frozen edit S1): the note is measured this much narrower,
+  // The room the symbol takes at the left of a marked note (frozen edit NS1): the note is measured this much narrower,
   // and `.mv-note-mark`'s padding-left is the block's own 4px plus exactly this, so the two agree to the pixel.
   const MV_NOTE_MARK_W = 10;
   // Armed by the two callers of frozen exportMonthPdf for its first read of the month range; see
@@ -13696,7 +13861,7 @@ export function initLegacyApp() {
               // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): the line's month style, measured
               // in (mvNoteLineCount) and appended to its style (mvTextCss). Unstyled, both are what they were.
               const wfKey = mvWfNoteKey(n);
-              // ⛔ FROZEN EDIT S1 (owner sign-off by picker, 2 Nov 2026, "Month view, on screen (Recommended)", whose option
+              // ⛔ FROZEN EDIT NS1 (owner sign-off by picker, 2 Nov 2026, "Month view, on screen (Recommended)", whose option
               // named this edit and its gate: both month PDFs byte-identical; AUTO-NOTE-RENAME-PLAN.md "The note symbol"). A
               // line mvDayNotePlan marked -- only ever on screen -- is measured MV_NOTE_MARK_W narrower and carries the
               // .mv-note-mark class, whose CSS draws ↻ (an automatic note) or ⚑ (a holiday) in that room, so the text
@@ -13917,7 +14082,11 @@ export function initLegacyApp() {
           else if(sp){ spRuns.push(sp); sp = null; }
         }
         if(sp) spRuns.push(sp);
-        const spLabel = simPostLabel(wkRec);
+        // ⛔ FROZEN EDIT S1 (owner-approved 2 Nov 2026 by picker, "Approve the frozen edit"): the label is ESCAPED, as
+        // every phase pill's is. place() writes title and text as raw HTML, which was safe only while this label was
+        // fixed text; since the name is the user's (simPostName), a name holding & < > or " would break the bar. The
+        // default label holds none of them, so every month view and month PDF is byte-identical to before.
+        const spLabel = escHtml(simPostLabel(wkRec));
         // ⛔ FROZEN EDIT M1: Sim Post's month style, keyed by the N its label shows (no colour, N1).
         const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
@@ -16563,7 +16732,7 @@ export function initLegacyApp() {
     if(r.arranged) r.ref = mvReferenceAnchors(schedule);
     return r;
   }
-  // Whether a marked line still fits a month note's three lines once the symbol's room is taken (frozen edit S1 measures
+  // Whether a marked line still fits a month note's three lines once the symbol's room is taken (frozen edit NS1 measures
   // it MV_NOTE_MARK_W narrower, and mvNoteLineCount never gives a note more than three lanes). A line that would need a
   // fourth is drawn WITHOUT its symbol, so the symbol can never cut a line off; a wider window gives it back. Measured
   // with mvNoteLineCount's own hidden measurer and rules, unclamped. The box is the renderer's own (mvNoteBoxWidth).
@@ -16593,7 +16762,7 @@ export function initLegacyApp() {
     // A holiday with its own month colour (holidayColors) carries it on its block as `color`, which frozen edit H1
     // draws in place of the week's. Asked only while some holiday has one, so every other calendar plans as before.
     // An automatic note's own colour (autoNoteColors) rides the same way, asked only while some note has one.
-    // ⭐ ...and, ON SCREEN ONLY, which kind of line it is, as `mark` ('auto' | 'holiday'), the symbol frozen edit S1 draws
+    // ⭐ ...and, ON SCREEN ONLY, which kind of line it is, as `mark` ('auto' | 'holiday'), the symbol frozen edit NS1 draws
     // before it (owner, 2 Nov 2026, by picker: "Month view, on screen", "↻ auto, ⚑ holiday"). Never while
     // printingCursor is set -- the print rollback and the month-PDF writer -- so both month PDFs build exactly as before.
     const anyHolColor = Object.keys(holidayColors).length > 0, anyAutoColor = Object.keys(autoNoteColors).length > 0;
@@ -17200,6 +17369,23 @@ export function initLegacyApp() {
   function phaseEndsSnapshot(){
     return Object.keys(phaseEnds).filter(k=> phaseEndsOn(k)).sort();
   }
+  // ⭐ ENDS FOR PRODUCTION: THE SHOOT HELD BY ITS WRAP (owner, 30 Oct 2026: "would it be possible we could add the
+  // "ends" date option to production ... if i know production needs to end on a certain day we could work backwards
+  // to calculate"; ruled "id say do exactly then"; mockups/production-end-date.html, "Yes, build it"). The same
+  // Starts / Ends choice as a Weeks phase, but a shoot is counted in shoot days, so it is held to the DAY:
+  //   - null: Starts, as every calendar before this. A string: Ends, the wrap held. An ISO date, or '' while the box is
+  //     still empty (Production is then unscheduled, as a Weeks phase in Ends with no end is).
+  //   - The shoot wraps EXACTLY on that day. update() asks the real scheduler for the latest start whose last shoot
+  //     day is on or before it (solveProductionEndsStart; a picked day the shoot cannot work, a weekend or a holiday,
+  //     wraps on the shoot day before), and writes that start into start-production with Snap to Monday off. So the
+  //     schedule, frozen readCfgForMeta() and an older build that ignores this key all read a shoot starting that day.
+  //   - A mover (setPhaseStart) or a month-view shoot grip moves the shoot as it does in Starts, and the wrap it lands
+  //     on becomes the held wrap (prodEndsForward, one update; prodEndsDrag, the whole gesture). Ruled with the mockup.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `productionEnds`, a PERMANENT key, written only in Ends, so a calendar
+  //     that never uses it saves byte for byte as before. No id anywhere: the box is the id-less .prod-wrapdate and
+  //     the select the id-less select.phase-anchor (an id would enter fields.byId).
+  let productionEnds = null;
+  let prodEndsForward = false, prodEndsDrag = false;
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -17406,7 +17592,7 @@ export function initLegacyApp() {
         if(c.type === 'phase') add(c.color, labelOf[c.key] || 'Phase');
         else if(c.type === 'phaseHiatus') hiatus = true;
       });
-      if(w.simPost) add(SIMPOST_COLOR, 'Simultaneous Post');
+      if(w.simPost) add(SIMPOST_COLOR, simPostDisplayName());   // its typed name, as a phase's is
     });
     if(hiatus) add(HIATUS_COLOR, 'Hiatus');
     // The hiatus row goes LAST even when a phase shares the red: moved, not duplicated.
@@ -23294,7 +23480,7 @@ export function initLegacyApp() {
       if(!w.simPost){ run = null; return; }
       if(run && isoOf(addDays(run.last, 7)) === isoOf(w.date)){ run.last = w.date; return; }
       run = { first: w.date, last: w.date };
-      spans.push({ key: 'simPost', name: 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
+      spans.push({ key: 'simPost', name: simPostName || 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
     });
     spans.forEach(s => { if(s.run){ s.end = isoOf(addDays(s.run.last, 5)); delete s.run; } });
     const now = new Date();
@@ -23556,6 +23742,8 @@ export function initLegacyApp() {
     // grid is rebuilt, and update() is what the handlers that add or
     // remove sidebar rows call once they have already changed the page height.
     const scrollSnap = captureScroll();
+    // ENDS FOR PRODUCTION: start-production takes the start that holds the wrap, before readState() reads it.
+    syncProductionEndsStart();
     const state = readState();
     // ENDS: start-<key> takes the start readState() just worked out, BEFORE anything reads it (frozen render()'s meta
     // line does, through readCfgForMeta()). ⚠️ The one field update() writes, which syncCustomUnitFallback()'s comment
@@ -23654,7 +23842,15 @@ export function initLegacyApp() {
       holidays: fullHolidayList(state.unionCountry)
         .filter(h => h.enabled !== false)
         .map(h => ({ iso: h.date, name: h.name })),
-      hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
+      hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks })),
+      // Ends for Production (productionEnds): what the wrap box's picker needs to offer only days the shoot can work --
+      // the day marks that skip a day or force one, and Production's own hiatus. Null in Starts.
+      prodShoot: productionEnds === null ? null : {
+        off: Object.keys(dayOverrides).filter(k => dayOverrides[k] === 'off'),
+        on: Object.keys(dayOverrides).filter(k => ['on', 'onhalf', 'lead'].indexOf(dayOverrides[k]) >= 0),
+        hiatus: (state.phaseHiatuses && state.phaseHiatuses.production)
+          ? { start: state.phaseHiatuses.production.start, weeks: state.phaseHiatuses.production.weeks } : null
+      }
     });
     reflectStartDateValidity(state, refreshSpanHint(state).concat(calRangeEmptyFields(currentSchedule)));
     scheduleScenarioFacts();   // the key facts band re-reads the tab on screen (KEY-FACTS-PLAN.md), debounced
@@ -25215,6 +25411,26 @@ export function initLegacyApp() {
       }
     });
   });
+  // Its name box (see simPostName). Each keystroke renames it everywhere, as a phase's name box does; leaving the
+  // box tidies what it shows to what was kept (spaces collapsed, the default in full back to blank).
+  document.getElementById('phase-rows').addEventListener('input', e=>{
+    if(!e.target || !e.target.classList || !e.target.classList.contains('simpost-name')) return;
+    const next = cleanSimPostName(e.target.value);
+    if(next === simPostName) return;
+    simPostName = next;
+    update();
+  });
+  document.getElementById('phase-rows').addEventListener('change', e=>{
+    if(e.target && e.target.classList && e.target.classList.contains('simpost-name')) reflectSimPostName(true);
+  });
+  // Puts the box in step with simPostName after a restore, an undo or New. While the box is being typed in it is
+  // left alone if it already says the same name, so a space typed between two words is never swallowed.
+  function reflectSimPostName(force){
+    const box = document.querySelector('#phase-rows .simpost-name');
+    if(!box) return;
+    if(!force && cleanSimPostName(box.value) === simPostName) return;
+    box.value = simPostName;
+  }
   // The offset and the numbering mode only mean something when the feature is on. Since the blend (PHASES-TAB-PLAN.md
   // §3.4a) CSS HIDES them while it is off, off the box itself; the class this keeps in step no longer styles anything.
   function refreshSimPostUI(){
@@ -25537,6 +25753,7 @@ export function initLegacyApp() {
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
+    productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -25569,6 +25786,7 @@ export function initLegacyApp() {
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
     if(spCount) spCount.checked = false; // un-numbered is the default
+    simPostName = ''; reflectSimPostName(true);   // ...and named "Simultaneous Post" again
     refreshSimPostUI();
     // ⚠️ One select now. This block used to clear #union-country and park the two dependent
     // selects on their defaults; all three ids are gone, and so are DEFAULT_PROVINCE /
@@ -26835,6 +27053,9 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 2 Nov 2026: Simultaneous Post's own name (owner). ⛔ PERMANENT key. The default name is an ABSENT key, so a
+      // calendar that never renames it saves byte for byte as before. An older build ignores it and shows the default.
+      ...(simPostName ? {simPostName} : {}),
       // 20 Oct 2026 (LABELS-SETUP-PLAN.md item 4): "this Blocks calendar schedules with no episode count".
       // ⛔ PERMANENT key. Written ONLY where it changes something -- Blocks mode, no count, not an old file
       // on the old rule -- so every other snapshot is byte-for-byte what it was. Its ABSENCE on a count-less
@@ -26913,6 +27134,11 @@ export function initLegacyApp() {
       // None is an ABSENT key, so a calendar that never uses Ends saves byte for byte as before. Each one's end is
       // end-<key> and its worked-out start is start-<key>, both in fields.byId, so an older build opens it where it is.
       ...(phaseEndsSnapshot().length ? {phaseEnds: phaseEndsSnapshot()} : {}),
+      // 30 Oct 2026 (Ends for Production, see productionEnds): the wrap the shoot is held by, an ISO day ('' while the
+      // box is empty). ⛔ PERMANENT key. Starts is an ABSENT key, so a calendar that never uses it saves byte for byte as
+      // before. The start it gives is start-production (Snap to Monday off), in fields.byId, so an older build opens
+      // the same shoot, held by its start.
+      ...(productionEnds !== null ? {productionEnds} : {}),
       // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
       // written only while it holds something.
       ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
@@ -27742,23 +27968,107 @@ export function initLegacyApp() {
   //
   // computeSchedule() is called directly rather than through update(), so nothing re-renders during
   // the search. The field is put back immediately, so a failed search leaves no trace.
-  function productionEndFor(startIso){
+  // One trial: the whole schedule with Production starting on `startIso`, or null. Shared by productionEndFor() and
+  // the Ends search below (productionShootTrial), so both ask the scheduler the same question.
+  function productionTrial(startIso){
     const el = document.getElementById('start-production');
     if(!el) return null;
     const prev = el.value, prevOverrides = dayOverrides;
     el.value = startIso;
-    let end = null;
+    let sch = null;
     try {
       // Inside a move the day overrides travel with the shoot (asShootDayMove), so each candidate
       // is tried with its marks where they would ACTUALLY land. Without this the search fitted a
       // shoot whose marks were still on the old dates, and the real wrap came out different.
       if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
-      const sch = computeSchedule(readState());
-      const seg = (sch.segments || []).find(s=>s.key === 'production');
-      if(seg) end = seg.end;
+      sch = computeSchedule(readState());
     } catch(e){ /* treat an unschedulable candidate as "doesn't fit" */ }
     finally { dayOverrides = prevOverrides; el.value = prev; }
-    return end;
+    return sch;
+  }
+  function productionEndFor(startIso){
+    const sch = productionTrial(startIso);
+    const seg = sch ? (sch.segments || []).find(s=>s.key === 'production') : null;
+    return seg ? seg.end : null;
+  }
+  // ENDS FOR PRODUCTION (see productionEnds): the shoot a start gives, as ISO days -- its first and last shoot day and
+  // the one after the first (the next start worth trying) -- or null when it shoots nothing.
+  function productionShootTrial(startIso){
+    const sch = productionTrial(startIso);
+    const days = sch && sch.productionInfo && sch.productionInfo.shootDays;
+    return (days && days.length) ? {first: days[0], last: days[days.length - 1], next: days[1] || null} : null;
+  }
+  // The LATEST start whose shoot wraps on or before `targetIso`, searched from `warmIso` (the start worked out last
+  // time, so a calendar whose wrap still fits pays two trials). Returns {start, wrap} as ISO days, or null.
+  // A start later by a day never wraps earlier: it only loses days to count from. So:
+  //   1. step the start by however many days the wrap misses by, until it lands or the steps repeat;
+  //   2. if the wrap is still late, step back until it is not;
+  //   3. step forward one SHOOT day at a time while the wrap stays on or before the day. The start found is then a
+  //      shoot day, the latest possible, and the wrap is the target whenever the target is a shoot day.
+  // ⚠️ Rebuild From's productionStartEndingBy() searches whole weeks from the far end instead, because a 'lead'
+  // weekend mark can break that rule near the start. The guard in step 3 stops on it; the answer is then a start that
+  // still wraps by the day.
+  function solveProductionEndsStart(targetIso, warmIso){
+    const memo = new Map();
+    const at = iso=>{ if(!memo.has(iso)) memo.set(iso, productionShootTrial(iso)); return memo.get(iso); };
+    const gap = (a, b)=> Math.round((parseDateUTC(a) - parseDateUTC(b)) / DAY_MS);
+    let c = warmIso, r = at(c);
+    if(!r) return null;
+    for(let i = 0; i < 12 && r.last !== targetIso; i++){
+      const n = isoOf(addDays(parseDateUTC(c), gap(targetIso, r.last)));
+      if(memo.has(n)) break;
+      c = n; r = at(c);
+      if(!r) return null;
+    }
+    for(let i = 0; i < 60 && r.last > targetIso; i++){
+      c = isoOf(addDays(parseDateUTC(c), -Math.max(1, gap(r.last, targetIso))));
+      r = at(c);
+      if(!r) return null;
+    }
+    if(r.last > targetIso) return null;
+    for(let i = 0; i < 40 && r.next && r.next > c; i++){
+      const n = at(r.next);
+      if(!n || n.last > targetIso) break;
+      c = r.next; r = n;
+    }
+    return {start: r.first, wrap: r.last};
+  }
+  // Run by update() BEFORE readState(): put the start that holds the wrap into start-production. ⚠️ Like
+  // syncPhaseEndsStarts(), a field update() writes. Safe for the same reason: it changes only when something the shoot
+  // is counted from changed (the wrap, a count, a hiatus, a holiday, a day mark, the Region), each already an edit
+  // with its own undo step. After a mover or during a shoot-grip drag it runs the other way: the start holds, and the
+  // wrap it gives becomes the held one.
+  function syncProductionEndsStart(){
+    if(productionEnds === null) return;
+    const startEl = document.getElementById('start-production');
+    if(!startEl) return;
+    const snapEl = document.getElementById('snap-production');
+    if(snapEl && snapEl.checked) snapEl.checked = false;   // Ends is to the day (setProductionEnds turns it off)
+    const startOk = !!parseDateUTC(startEl.value);
+    if(prodEndsForward || prodEndsDrag){
+      prodEndsForward = false;
+      const r = startOk ? productionShootTrial(startEl.value) : null;
+      if(!r) return;
+      productionEnds = r.last;
+      // The start as the first shoot day, so the next search finds the same one. Never mid-gesture: the grip checks
+      // the start it wrote.
+      if(!prodEndsDrag && startEl.value !== r.first) startEl.value = r.first;
+      return;
+    }
+    if(!parseDateUTC(productionEnds)) return;
+    const warm = prodEndsWarm(productionEnds);
+    const r = warm ? solveProductionEndsStart(productionEnds, warm) : null;
+    if(r && startEl.value !== r.start) startEl.value = r.start;
+  }
+  // Where the search starts from: the start worked out last time, or with none on or before the wrap, a guess five
+  // shoot days to a week back from it. '' when there is no shoot-day count to guess with.
+  function prodEndsWarm(targetIso){
+    const startEl = document.getElementById('start-production');
+    const s = startEl ? startEl.value : '';
+    if(parseDateUTC(s) && s <= targetIso) return s;
+    const info = showInfoStatus();
+    const n = info.complete ? info.totalShootDays : parseFloat((document.getElementById('weeks-production') || {}).value);
+    return n > 0 ? isoOf(addDays(parseDateUTC(targetIso), -Math.ceil(n * 7 / 5))) : '';
   }
   // The latest Monday on which the shoot can start and still be finished by `cursor`.
   //
@@ -27993,6 +28303,9 @@ export function initLegacyApp() {
       if(el) fields.push([el, el.value]);
     }));
     const sch = currentSchedule, marks = dayOverrides, note = lastShootDayMove;
+    // Ends for Production: a trial that moves Production goes through setPhaseStart(), which marks the held wrap to be
+    // taken from the next update(). The trial is put back, so is that mark (and the wrap, to be safe).
+    const ends = productionEnds, endsForward = prodEndsForward;
     const opts = {leave, trial: true};
     try {
       return direction < 0 ? workBackwardsFrom(key, targetIso, opts) : workForwardsFrom(key, targetIso, opts);
@@ -28002,6 +28315,7 @@ export function initLegacyApp() {
       // .value writes fire no events, so putting the fields back is as silent as the trial was.
       fields.forEach(([el, v])=>{ el.value = v; });
       currentSchedule = sch; dayOverrides = marks; lastShootDayMove = note;
+      productionEnds = ends; prodEndsForward = endsForward;
     }
   }
 
@@ -32641,7 +32955,7 @@ export function initLegacyApp() {
     if(p.kind === 'note') return 'in the note on ' + day;
     if(p.kind === 'hiatus') return 'in the hiatus band ' + quote(p.text) + ' (from ' + day + ')';
     if(p.kind === 'tag') return 'in the grey text ' + quote(p.text) + ' (from ' + day + ')';
-    if(p.kind === 'simpost') return 'in the Simultaneous Post bar (from ' + day + ')';
+    if(p.kind === 'simpost') return 'in the ' + simPostDisplayName() + ' bar (from ' + day + ')';
     return 'in the bar ' + quote(p.text) + ' (from ' + day + ')';
   }
   // The waterfall PDF's warning (confirmPdfPrintable), for the month: resolves true to go ahead.
@@ -34332,6 +34646,11 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // Sim Post's name: a string the app would have kept as typed. Anything else is dropped, and it reads the default.
+    if('simPostName' in s){
+      const t = typeof s.simPostName === 'string' ? cleanSimPostName(s.simPostName) : '';
+      if(t !== s.simPostName){ bad.n++; if(t) s.simPostName = t; else delete s.simPostName; }
+    }
     // A hiatus's "Number weeks" (ruling 8): only `true` means ticked, and the app never writes anything else.
     setMap('phaseHiatusNumbered', v => v === true ? true : undefined, SNAP_ID);
     // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
@@ -34456,6 +34775,10 @@ export function initLegacyApp() {
         if(o.length) s.phaseEnds = o.sort(); else delete s.phaseEnds;
       }
     }
+    // Production's held wrap (productionEnds): an ISO day, or '' (Ends with the box still empty). Anything else is
+    // dropped and counted, and the file opens on Starts.
+    if('productionEnds' in s && !(typeof s.productionEnds === 'string'
+        && (s.productionEnds === '' || /^\d{4}-\d{2}-\d{2}$/.test(s.productionEnds)))){ bad.n++; delete s.productionEnds; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -34837,6 +35160,10 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL: a file with no key (every calendar saved before 2 Nov 2026, and every one never renamed) reads
+    // "Simultaneous Post" -- never the previous file's name.
+    simPostName = typeof snap.simPostName === 'string' ? cleanSimPostName(snap.simPostName) : '';
+    reflectSimPostName(true);
     // ⛔ UNCONDITIONAL as well: a file with no key numbers no hiatus -- never the previous file's ticks.
     // Assigned BEFORE 4e below, whose refreshPhaseHiatusUI() reflects it into the rebuilt rows' boxes.
     phaseHiatusNumbered = {};
@@ -34886,6 +35213,10 @@ export function initLegacyApp() {
     if(Array.isArray(snap.phaseEnds)) snap.phaseEnds.forEach(k=>{
       if(typeof k === 'string' && k !== 'production') phaseEnds[k] = true;
     });
+    // ⛔ UNCONDITIONAL (Ends for Production, see productionEnds): no key, the shoot is held by its start. The start and
+    // Snap to Monday come back through fields.byId like any other calendar's.
+    productionEnds = typeof snap.productionEnds === 'string' ? snap.productionEnds : null;
+    prodEndsForward = false;
     // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
     // object should carry can never reach the store's prototype.
     mvWfNotePlace = {};

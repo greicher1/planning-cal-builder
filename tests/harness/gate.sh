@@ -1775,6 +1775,13 @@ done
 # as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Since the
 # owner's "go with choice 1" it also holds every Weeks phase's meta line ending on the FRIDAY, on Starts and on Ends
 # and through a month-view round trip (M1, M2; red with reflectWeeksMetaFriday disabled). Own line.
+# prodends (owner, 30 Oct 2026: "would it be possible we could add the "ends" date option to production", "id say do
+# exactly then", "Yes, build it"; the start shown as a span, "Yes, build it") holds Production held by its WRAP
+# (productionEnds): the card's own Starts / Ends select, wrap box and span (no id), to Ends moving nothing, one undo
+# step, the wrap holding TO THE DAY while the shoot-day count and Production's own hiatus move the start (over
+# Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
+# moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
+# round trip saving byte for byte as before. Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1824,6 +1831,15 @@ done
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
 # Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
+# simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
+# waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
+# writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
+# default, restored unconditionally, repaired on Load), undo, clearing it and New.
+# colswapcache (fixed 2 Nov 2026) is every edit reaching the waterfall on a calendar holding a stored column swap. The
+# column-swap gate's cache used to hand update() the schedule of its last MISS, so a phase renamed, Sim Post's offset,
+# "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
+# colswap-simpost-refuse, with the swap refused (Sim Post on) and applied (off). C1, a colour, is a cache HIT: red on
+# a build that only widens the key.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1843,6 +1859,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               datepick:-:150 \
               snapbox:-:300 \
               endsdate:-:400 \
+              prodends:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
@@ -1866,6 +1883,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
+              simpostname:-:400 \
+              colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

@@ -1,9 +1,14 @@
 # MONTH-NOTE-SIZE-PLAN.md: note sizes for the month view, and Phase bar size in the same px steps
 
-**Status: STEP 1 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`, from
-`main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). The screen mechanism
-holds on three calendars at every note size × bar size, with notes sized one at a time, and at 75/150/200% zoom. Three
-findings were fixed (§6, step 1). **Next is step 2.**
+**Status: STEPS 1, 2 AND 3 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`,
+from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`).
+- Step 1: the screen mechanism holds on three calendars at every note size × bar size, with notes sized one at a time,
+  and at 75/150/200% zoom. Three findings were fixed.
+- Step 2: both dropdowns are in, and the `mvnotesize` leg is in `gate.sh`, red on ten mutants.
+- Step 3: the month PDF writer draws sized notes and 11 / 13 px bars, and the print rollback follows (E3). All 22
+  existing written month PDFs are byte-identical. It also fixed how the writer shares out a crowded week's lanes, which
+  cures Phase bar size's recorded 1.31 px difference. See §6.
+- **Next is step 4** (the full gate, and new baselines cut only on the owner's sign-off).
 
 **ALL TEN RULINGS ANSWERED (owner, by picker, 2 Nov 2026), plus two later instructions:**
 - **R4 is the owner's own design:** per-note sizes from the same list, which supersedes the recommended ceiling.
@@ -394,12 +399,134 @@ The state, the dropdowns, `mvNoteGeom`, the style bar's list and the writer are 
    - both dropdowns, replacing the SegmentedControl;
    - E1, E2, `mvNoteGeom` and the style bar's 6–14 list;
    - a leg `mvnotesize` in `gate.sh`, red on a mutant of each; `mvbarsize` and `settingswin` moved to the select.
+
+   ✅ **DONE, 2 Nov 2026 (owner: "Start step 2"), on branch `month-note-size`, NOT committed (awaiting the owner's
+   picker).** State, save, load, undo, New, E1, E2 and the 6–14 list landed in step 1; the geometry helper is
+   `mvTextCss` itself, not a separate `mvNoteGeom`.
+   - **The dropdowns** (`Sidebar.jsx`, in the Month view card where `BarSizeControl` was):
+     - `#pref-mv-barsize` (10 px `''`, 11 px `'11'`, 12 px `'large'`, 13 px `'13'`, 14 px `'xl'`);
+     - `#pref-mv-notesize` (10 px `''`, then `'11'` to `'14'`);
+     - both NativeSelects inside `.prefs-card`, uncontrolled, built as `#wf-paper`.
+     - `BarSizeControl`, its radio click listener and `chrome.mvBarSize` (bridge.js) are gone.
+     - `reflectMvSizeSelects()` writes both values from `reflectMvBarSize` / `reflectMvNoteSize` (every `update()`),
+       from `setSidebarTab` and at boot. One delegated `change` listener calls the setters.
+   - ⚠️ **Found: the month text style bar redraws with `render()` only**, so a note sized from it did not switch on
+     `body.mv-note-sized`, and its rows stayed 17 px. Fixed: `reflectMvNoteSize()` runs before that `render()`.
+     Mutant M8 holds it.
+   - **The leg `mvnotesize`** (in `gate.sh` on `mvnotes` and `month-dense60`, 12/12 on each). It covers:
+     - N0: inert at 10 px;
+     - N1-11..14: every note at the size, exact heights, the clamp, lanes equal to min(2, natural lines);
+     - N2: one note set to 14 px from the style bar in a 10 px calendar (only its week changes, the bar offers 6–14,
+       picking 10 stores nothing); then 8 px on that note in a 14 px calendar keeps 8 px and the 10 px rule;
+     - N3: one undo step per pick;
+     - N4: save, load, restore unconditionally, and four junk values each dropped with one warning;
+     - N5: bar sizes 11 and 13 px (20 / 23 px, saved `'11'` / `'13'`; 12 and 14 still `'large'` / `'xl'`);
+     - N6: 75 / 150 / 200% zoom;
+     - N7: New;
+     - E0: no console errors.
+   - **Mutants, each red on its own cases:**
+     - E2 off (N1);
+     - the drawn width undone (N1-11, N1-14);
+     - the two-lane CSS not matching (N1);
+     - the sanitizer keeping junk (N4, E0);
+     - restore only when the key is present (N2, N3, N4);
+     - the setter not redrawing (EX);
+     - a calendar size overriding a note's own (N2);
+     - the style bar not switching the lane rules (N2);
+     - a 21 px bar at 11 px (N5);
+     - New keeping the size (N7).
+     - Also tried: removing `markDirty()` from the setter stays green, because the redraw marks the file dirty itself.
+   - **Moved legs:**
+     - `t/lib.js` `applyBarSizeQuery` (now 11 / 12 / 13 / 14 / large / xl) drives the dropdown; it gains
+       `applyNoteSizeQuery`, `noteSizeShown` and `pickSelect`, and `barSizeShown` knows 11 and 13.
+     - `mvbarsize` picks in the dropdown.
+     - `mvtextstyle` G1 / D1 expect the new lists, and the hostile fixture `mvtextstyle-bad.sptcal` plants note size
+       15 instead of 11.
+   - **Green on the branch:**
+     - `mvbarsize` 13/13 and 12/12, `settingswin` 21/21;
+     - `mvtextstyle` 23/23 live and 6/6 restore;
+     - `mvnotes` 30/30 and 14/14, `monthmap` 20/20, `mvmenu` 81/81, `labelsetup` 41/41, `softlines` 6/6;
+     - `calzoom` 26/26, `shootdays` 15 / 15 / 14, `prefs` PASS;
+     - `npm run check` 40/40.
+   - Seen in the browser pane: both dropdowns in the Month view card; 14 px picked, a note cut at two lines with "…",
+     Unsaved changes, Undo lit.
+   - No full gate (that is step 4).
+   - ⚠️ **A sized calendar's month PDF is still wrong on the branch** (step 3), and now the dropdowns can make one.
+     Keep the branch off `main` until step 3.
 3. **The writer and E3.**
    - The harness gets `HARNESS_QUERY=notesize=<px>` and bar sizes 11 and 13.
    - The month legs become size-aware.
    - `monthemit` holds the writer to Chrome's print at 12 and 14 px notes, at 11 and 13 px bars, and with a per-note
      size.
    - A synthetic fixture, `mvnotesize-14.sptcal`, is minted.
+
+   ✅ **DONE, 2 Nov 2026 (owner: "Start step 3"), on branch `month-note-size`, NOT committed (awaiting the owner's
+   picker).**
+   - **The writer** (`app.js`, not frozen):
+     - `MVL_NOTE_SIZES` (a hand copy of the §2 table) with `mvlNoteSize(it)` and `mvlNoteLanes(it)`. A note above 10 px
+       wraps at its size, takes at most two lanes, and draws its first two lines at its size's whole-px line; a third
+       line is cut onto the second with "…", exactly as a wrapping one-day pill's.
+     - `mvlShrinkWeeks` re-wraps such a note at size × k, in its weight.
+     - The size comes from the note's inline style (`mvlTextFmt`), so there is no new argument, and a note sized on its
+       own is the same case as a sized calendar.
+     - Bars at 11 and 13 px: `MVL_BAR_SIZES` gains rows with a `line` (16, 19), read through `mvlBarLine()`. Large and
+       Extra large keep x1.5, untouched. The grey tag inherits the length line, as it does under M1.
+   - **E3** (`legacy.css`, outside `@media print`): the two-line clamp on `#print-root` sized notes, and the 11 / 13 px
+     bar rows. NO fixed note height in print: lanes size by content there, and a fixed height would follow the SCREEN's
+     lane span.
+   - ⭐ **Found and fixed: the writer did not share a crowded week's spare room the way Chrome does.**
+     - `mvlLaneTracks`' "maximize" followed the spec: freeze each lane at its limit, then re-share the leftover.
+     - Chrome does not (measured on four grids in Chrome 152 and 156, then read in
+       `grid_track_sizing_algorithm.cc`). It groups lanes into SETS between item edges, takes them in order of their
+       room (least first), gives each the free room times its lanes over the lanes left, capped at its room, and loses
+       what is left.
+     - The two agree whenever every open lane has the same room, which is every 10 px calendar. A sized note's lanes
+       are the first thing with another room than a pill's. `monthwriter` A3 found 0.97 px on `month-dense60` at
+       12 px.
+     - `mvlLaneTracks` now keeps the old arithmetic when the rooms are equal, and does Chrome's sets when they differ.
+     - This also explains, and fixes, MONTH-BAR-SIZE-PLAN's recorded 1.31 px (`mvnotes` at Extra large): Chrome's 23.69
+       there is the set rule's 23.70. `gate.sh` now runs that case.
+   - **Legs:**
+     - `monthemit`, `monthwriter`, `monthexport`: the slice is given the fonts, as `buildMonthLayout` is, so a styled or
+       sized note wraps at its own size; each also takes `?notesize=`.
+     - `monthemit`: each note's own line and two-line limit; X4 checks a cut note (two lines, one "…") and every note's
+       lanes against R2. B0 skips a week whose lanes differ, which is where a wrong count would land.
+     - `monthwriter`:
+       - the print measure, A4's re-wrap and first-fit, and the text sizes all at each note's size;
+       - the shrunk-page restyle scales a sized note's inline size and line (with `!important`);
+       - the 11 / 13 px bar rows;
+       - ⭐ A1 no longer counts as matching a week where print and the writer laid a note out at another span or line
+         count. At 10 px that always moved the week 13 px or more, but a sized note can land within the 1 px
+         tolerance by chance, where print's rows are wrong.
+     - `monthlayout`: its slice of `mvNoteLineCount` is re-anchored and carries the note-size state.
+   - **Fixtures:** `mvnotesize-14.sptcal` (the `mvnotesize` leg's real Save of `mvnotes` at 14 px) and
+     `mvnotesize-mixed.sptcal` (made from it: a 12 px calendar, 13 px bars, one note at 14 px and one at 8).
+   - **`gate.sh`:** a note-size block of eleven runs (`monthemit`, `monthwriter`, `monthexport` on both fixtures and on
+     existing calendars at a size), plus `mvnotes` at Extra large in the bar-size block.
+   - **Results:**
+     - **All 22 existing written month PDFs (gate 13's cases, `mvbarsize-large` included) are byte-identical to their
+       baselines.**
+     - `monthemit` 16/16 on tier 1, `mvtextstyle`, the bar-size fixtures, both new fixtures, and existing calendars at
+       11–14 px and with 11 / 13 px bars.
+     - `monthwriter` 12/12 on tier 1 and the same, `month-dense60`'s shrunk August included.
+     - `monthexport` 9/9 on both fixtures, `mvnotes` and `mvbarsize-large`. One X6 miss once, a timing flake: it waits
+       a fixed time for a dialog; green twice after.
+     - `monthlayout` 14/14 twice; `mvnotesize` 12/12 twice; `mvbarsize` 13/13; `npm run check` 40/40.
+   - **Mutants, each red:**
+     - a sized note given three lanes (`monthemit` X4, once that check was added);
+     - every line at 13 px (`monthemit` B0/T0, `monthwriter` A0/A2/A3);
+     - no "…" (`monthemit` X4);
+     - the old maximize (`monthwriter` A3 on `month-dense60` at 12 px and on `mvnotes` at Extra large);
+     - 13 px bars at x1.5 (`monthemit` B0/T0);
+     - E3 removed (`monthwriter` A2/A3).
+   - **Seen:** the written PDF of `mvnotesize-mixed`. December 2025 has a 14 px note, an 8 px one and 12 px ones (one
+     wrapping); November 2026 has 13 px bars and "Day After Thanksgiving…" cut at two lines.
+   - ⚠️ **Recorded, not run:**
+     - `month-dense60` at 14 px in `monthemit`: Chrome truncates each lane's share to 1/64 px, which the writer does
+       not model. It shows only because that leg takes its rows from the print path's measured fractional rows:
+       0.03–0.04 px, against a 0.03 tolerance.
+     - `monthwriter` A1 on `mvnotes` at 14 px notes with Extra large bars: 0.021 px against 0.02.
+   - Not run: gate 10 (the print documents) and the full gate. Both are step 4. No new baselines yet.
 4. **The full gate.** Gates 10 and 13 byte-identical on every existing calendar, the v1.9.0 Large baseline included. New
    gate-13 baselines (14 px notes; 11 or 13 px bars) are cut only on your sign-off, after contact sheets of every month.
 5. **Merge, version, push**: each on your picker, the push asked separately.

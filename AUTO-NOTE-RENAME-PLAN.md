@@ -48,9 +48,17 @@ Ruled 30 Oct – 2 Nov 2026. BUILT 2 Nov 2026 on branch `auto-note-rename` (HAND
 - **The note symbol (owner, 2 Nov 2026: *"some type of small symbol that sits to the left of the first letter of text
   in either an auto-note or a holiday"*), two rulings by picker:** where, **"Month view, on screen"** (the month PDF,
   waterfall and Excel unchanged), an option that named the frozen edit and its gate (both month PDFs byte-identical);
-  which, **"↻ auto, ⚑ holiday"**, in the note's own text colour. Built as frozen edit S1 (see HANDOFF). Found while
+  which, **"↻ auto, ⚑ holiday"**, in the note's own text colour. Built as frozen edit NS1 (see HANDOFF). Found while
   building: at 88 px days the symbol's room pushed "Independence Day (Observed) 7/3/26" onto a fourth line, which a
   month note never gets, so a note that would not fit in three lines with the symbol is drawn without it.
+- ⚠️ **AMENDED 2 Nov 2026 by [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) R4(a)** (owner, by
+  picker: *"Hide it in that view"*). Automatic notes get a Waterfall and a Month box each, so for an AUTO NOTE:
+  - rules 4 and 5: clearing it or its Delete Auto-Note button hides it from the view it was deleted in, not from both
+    (`autoNotesView`). Clearing it in both views, or unticking both boxes, is "off".
+  - rule 6: the waterfall's Delete key hides it from the waterfall only, as it already does for a holiday.
+  - The button's hint names that view's box as the way back.
+  - Holidays, typed text and rule 7 are unchanged. Custom phases' Begins/Ends notes (that plan's step 1) are kinds
+    like the others, so the name store and the delete cover them too.
 - **Shape it fits (not yet built):** each kind appears at most once per calendar and its `kind` word is already
   permanent (`AUTO_NOTE_PHASE_EDGES`, `autoNotesOff`/`autoNotesOn`), so a name store keyed by kind, applied once in
   `computeSchedule()`'s `addNote`, reaches every reader with no frozen edit, the way `holidayNames` is applied in

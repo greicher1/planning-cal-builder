@@ -11,7 +11,7 @@
 // Independence Day (Observed) are switched on for the waterfall, so the 6/29/26 week holds an automatic note AND a
 // holiday.
 //
-//   S1  ON SCREEN an automatic note carries the ↻ mark and a holiday the ⚑ mark (frozen edit S1), a typed line none
+//   S1  ON SCREEN an automatic note carries the ↻ mark and a holiday the ⚑ mark (frozen edit NS1), a typed line none
 //   S2  no marked note overflows its box in any month (one the symbol would push past three lines goes without it)
 //   S3  the print rollback renders no symbol (the month-PDF writer is held byte for byte by gate 13)
 //   S4  narrowed, a holiday the symbol would push past three lines goes without it, and no text is cut off
@@ -203,7 +203,7 @@ window.addEventListener('load', function () { (async function () {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     var S0 = JSON.parse(await save());
 
-    // ===== S1-S2: the note symbol, on screen only (frozen edit S1) =================================================
+    // ===== S1-S2: the note symbol, on screen only (frozen edit NS1) =================================================
     function markOf(b) { return !b ? null : b.classList.contains('mv-note-mark-auto') ? 'auto' : b.classList.contains('mv-note-mark-holiday') ? 'holiday' : '-'; }
     await step('S1', async function () {
       await toMonth('July 2026');
