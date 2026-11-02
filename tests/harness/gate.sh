@@ -1691,6 +1691,11 @@ done
 # PDF, the month view on the bar's own first/last day and the written month PDF (control P0b), the autoNotesOn key
 # with the id set unchanged, one undo step, a renamed phase, a phase hiatus moving Begins/Ends, Hide in waterfall,
 # Load and the M-5 trap, a REAL v1.8.0 file opening with none of them, and New. 15 of 17 red on the build before it.
+# Since 2 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md step 1) also a CUSTOM phase's Begins/Ends (C0-C8): its engine-drawn
+# card row lined up under the built-ins and unticked, both notes in every output once ticked, one undo step, the save
+# key with only the phase's own new ids, a rename and a blank name, Days and Dates units, Hide in waterfall, removal
+# pruning its ticks (undo brings them back, a new phase starts unticked), and Load. Red on two mutants (no custom
+# edges: C1, C2, C4-C8; no prune: C7).
 # seasons (owner, 27 Oct 2026) is two or more seasons ticked in Show info's Season dropdown: the native #season-num
 # (the first ticked) opening SeasonPop's id-less checkbox rows by mouse and keyboard, the field reading "Seasons 3 & 4",
 # "S3 & S4" / "S3, S4 & S5" in the waterfall and month titles, Excel's page header

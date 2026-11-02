@@ -319,6 +319,154 @@ window.addEventListener('load', function () { (async function () {
            mv.some(function (t) { return /Post Begins 7\/5\/27/.test(t); }) && same(notes(), sorted(ALL)), { notes: n, month: mv });
     });
 
+    // ---- CUSTOM PHASES (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
+    // AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3: off by default). Color Grading, Mon 8/2/27 x 3 weeks, inside
+    // Post's run, whose weeks carry no other note: Begins 8/2/27, Ends Fri 8/20/27.
+    var CG = { '2027-08-02': 'Color Grading Begins 8/2/27', '2027-08-16': 'Color Grading Ends 8/20/27' };
+    var ALL_CG = sorted(Object.assign({}, ALL, CG));
+    var CK = ['custom1Start', 'custom1End'];
+    function customRow(k) { var n = $('name-' + k); return n ? n.closest('.phase-row') : null; }
+    function cardIds() {
+      var sec = (document.querySelector('.autonote-list') || { closest: function () { return null; } }).closest('section.card');
+      return sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
+    }
+    var saveC;
+    await step('C0', async function () {
+      $('add-phase-btn').click(); await T.sleep(150);
+      T.set('name-custom1', 'Color Grading'); T.set('start-custom1', '2027-08-02'); T.set('weeks-custom1', '3');
+      await settle();
+      await T.openSettings('prefs');
+      var host = document.querySelector('.autonote-list .autonote-custom');
+      var kids = host ? Array.from(host.children).map(function (e) { return e.tagName + ':' + txt(e); }) : null;
+      var a = box('custom1Start'), b = box('localizationStart'), c = box('custom1End'), d = box('localizationEnd');
+      var lined = !!(a && b && c && d) && Math.abs(a.getBoundingClientRect().left - b.getBoundingClientRect().left) < 1 &&
+                  Math.abs(c.getBoundingClientRect().left - d.getBoundingClientRect().left) < 1;
+      kase('C0', 'a custom phase gets its own card row (name, Begins, Ends) lined up under the built-in rows, both boxes UNticked, no id; and no note of its own until ticked',
+           same(kids, ['SPAN:Color Grading', 'LABEL:Begins', 'LABEL:Ends']) && same(boxes(CK), [false, false]) && lined &&
+           cardIds().length === 0 && same(notes(), sorted(ALL)) && (a && a.getAttribute('aria-label')) === 'Color Grading Begins',
+           { kids: kids, boxes: boxes(CK), lined: lined, ids: cardIds(), notes: notes() });
+    });
+
+    await step('C1', async function () {
+      await clickBox('custom1Start'); await clickBox('custom1End');
+      var on = notes();
+      $('undo-btn').click(); await settle();
+      var undone = { boxes: boxes(CK), end: notes()['2027-08-16'] || '' };
+      $('redo-btn').click(); await settle();
+      kase('C1', 'ticking both (hit-tested): "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" land in their weeks; one undo takes back only the Ends tick, redo restores it',
+           same(on, ALL_CG) && same(undone, { boxes: [true, false], end: '' }) && same(notes(), ALL_CG) && same(boxes(CK), [true, true]),
+           { on: on, undone: undone, after: notes() });
+    });
+
+    await step('C2', async function () {
+      await toMonth('August 2027');
+      var mv = { d2: dayNotes('2027-08-02'), d20: dayNotes('2027-08-20') };
+      await view('sheet');
+      await T.until(function () { return typeof window.ExcelJS !== 'undefined'; }, 'ExcelJS', 300, 100);
+      var xb = await T.captureExport('export-btn', 'the .xlsx blob');
+      var wb = new window.ExcelJS.Workbook();
+      await wb.xlsx.load(await xb.arrayBuffer());
+      var cells = [];
+      wb.eachSheet(function (ws) { ws.eachRow(function (row) { row.eachCell(function (c) {
+        var v = c.value; if (v && typeof v === 'object' && v.richText) v = v.richText.map(function (r) { return r.text; }).join('');
+        if (typeof v === 'string') cells.push(v);
+      }); }); });
+      var pb = await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF blob');
+      var wfPdf = (await pdfRuns(new Uint8Array(await pb.arrayBuffer()))).join(' ');
+      var mPdf = await monthPdfText();
+      var lines = [CG['2027-08-02'], CG['2027-08-16']];
+      kase('C2', 'the custom phase\'s notes reach the month view (each on its own day), Excel, the waterfall PDF and the written month PDF',
+           mv.d2.some(function (t) { return t.indexOf(lines[0]) !== -1; }) && mv.d20.some(function (t) { return t.indexOf(lines[1]) !== -1; }) &&
+           lines.every(function (t) { return cells.indexOf(t) !== -1 && wfPdf.indexOf(t) !== -1; }) &&
+           /Grading Begins/.test(mPdf) && /Grading Ends/.test(mPdf),
+           { month: mv, excel: lines.map(function (t) { return cells.indexOf(t) !== -1; }), wfPdf: lines.map(function (t) { return wfPdf.indexOf(t) !== -1; }),
+             monthPdf: [/Grading Begins/.test(mPdf), /Grading Ends/.test(mPdf)] });
+    });
+
+    await step('C3', async function () {
+      saveC = await save();
+      var s = JSON.parse(saveC), want = { custom1Start: true, custom1End: true };
+      NEW.forEach(function (k) { want[k] = true; });
+      var extra = idSet(saveC).filter(function (id) { return idSet(saveB).indexOf(id) === -1; });
+      kase('C3', 'Save writes custom1Start / custom1End into autoNotesOn beside the nine; the only new ids in fields.byId are the custom phase\'s own (none from the card)',
+           same(sorted(s.autoNotesOn), sorted(want)) && extra.length > 0 && extra.every(function (id) { return /custom1$/.test(id); }) &&
+           cardIds().length === 0, { key: s.autoNotesOn, extra: extra });
+    });
+
+    await step('C4', async function () {
+      T.set('name-custom1', 'Online'); await settle();
+      await T.openSettings('prefs');
+      var r = { row: txt(document.querySelector('[data-autonote-custom="custom1"]')), start: notes()['2027-08-02'],
+                end: notes()['2027-08-16'], aria: box('custom1End').getAttribute('aria-label') };
+      T.set('name-custom1', ''); await settle();
+      var blank = { row: txt(document.querySelector('[data-autonote-custom="custom1"]')), start: notes()['2027-08-02'] };
+      T.set('name-custom1', 'Color Grading'); await settle();
+      kase('C4', 'renamed in the Phases tab, its notes, card row and box labels follow ("Online Begins"); a blank name reads "Custom phase", as its bars do',
+           same(r, { row: 'Online', start: 'Online Begins 8/2/27', end: 'Online Ends 8/20/27', aria: 'Online Ends' }) &&
+           same(blank, { row: 'Custom phase', start: 'Custom phase Begins 8/2/27' }) && same(notes(), ALL_CG), { renamed: r, blank: blank });
+    });
+
+    await step('C5', async function () {
+      T.set('unit-custom1', 'days'); T.set('days-custom1', '8'); await settle();
+      var days = notes();
+      T.set('unit-custom1', 'dates'); T.set('start-custom1', '2027-08-04'); T.set('end-custom1', '2027-08-18'); await settle();
+      var dates = notes();
+      await toMonth('August 2027');
+      var mv = { d4: dayNotes('2027-08-04'), d18: dayNotes('2027-08-18') };
+      await view('sheet');
+      T.set('unit-custom1', 'weeks'); T.set('start-custom1', '2027-08-02'); T.set('weeks-custom1', '3'); await settle();
+      var pick = function (n) { var o = {}; Object.keys(n).forEach(function (k) { if (/^(Color Grading)/.test(n[k])) o[k] = n[k]; }); return o; };
+      kase('C5', 'Days and Dates units are dated the same way: 8 days from Mon 8/2 end Wed 8/11; Wed 8/4 to Wed 8/18 begins and ends on those days, in the month view too; back to 3 weeks, as before',
+           same(pick(days), { '2027-08-02': 'Color Grading Begins 8/2/27', '2027-08-09': 'Color Grading Ends 8/11/27' }) &&
+           same(pick(dates), { '2027-08-02': 'Color Grading Begins 8/4/27', '2027-08-16': 'Color Grading Ends 8/18/27' }) &&
+           mv.d4.some(function (t) { return /Color Grading Begins 8\/4\/27/.test(t); }) && mv.d18.some(function (t) { return /Color Grading Ends 8\/18\/27/.test(t); }) &&
+           same(notes(), ALL_CG), { days: pick(days), dates: pick(dates), month: mv, after: notes() });
+    });
+
+    await step('C6', async function () {
+      var tick = customRow('custom1').querySelector('.phase-hidewf-cb');
+      tick.click(); await settle();
+      var n = notes();
+      await toMonth('August 2027');
+      var mv = dayNotes('2027-08-02');
+      await view('sheet');
+      customRow('custom1').querySelector('.phase-hidewf-cb').click(); await settle();
+      kase('C6', 'the custom phase hidden in the waterfall takes its notes out of the waterfall and keeps them in the month view',
+           same(n, sorted(ALL)) && mv.some(function (t) { return /Color Grading Begins 8\/2\/27/.test(t); }) && same(notes(), ALL_CG),
+           { notes: n, month: mv });
+    });
+
+    await step('C7', async function () {
+      customRow('custom1').querySelector('.remove-custom-phase').click();
+      for (var i = 0; i < 30; i++) { await T.sleep(100); if (T.clickModalButton('Remove')) break; }
+      await settle();
+      var gone = { notes: notes(), rows: document.querySelectorAll('.autonote-custom > *').length, boxes: boxes(CK) };
+      var s = JSON.parse(await save());
+      var pruned = Object.keys(s.autoNotesOn || {}).filter(function (k) { return /^custom/.test(k); });
+      $('undo-btn').click(); await settle();
+      var back = { notes: notes(), boxes: boxes(CK) };
+      $('redo-btn').click(); await settle();
+      $('add-phase-btn').click(); await T.sleep(150);
+      T.set('name-custom2', 'Mix'); T.set('start-custom2', '2027-08-09'); T.set('weeks-custom2', '2'); await settle();
+      var fresh = { boxes: boxes(['custom2Start', 'custom2End']), notes: notes() };
+      customRow('custom2').querySelector('.remove-custom-phase').click();
+      for (var j = 0; j < 30; j++) { await T.sleep(100); if (T.clickModalButton('Remove')) break; }
+      await settle();
+      kase('C7', 'removing the phase takes its notes, its card row and its saved ticks with it; one undo brings the phase back ticked; a new phase starts unticked',
+           same(gone, { notes: sorted(ALL), rows: 0, boxes: [null, null] }) && pruned.length === 0 &&
+           same(back, { notes: ALL_CG, boxes: [true, true] }) && same(fresh, { boxes: [false, false], notes: sorted(ALL) }) &&
+           same(notes(), sorted(ALL)), { gone: gone, pruned: pruned, back: back, fresh: fresh });
+    });
+
+    await step('C8', async function () {
+      await load(saveC);
+      var rt = { boxes: boxes(CK), notes: notes(), rows: document.querySelectorAll('.autonote-custom > *').length };
+      await load(saveB);
+      var none = { rows: document.querySelectorAll('.autonote-custom > *').length, notes: notes() };
+      kase('C8', 'Load round trip: the file with the custom phase ticked opens with its row and both notes; a file without it loaded after leaves no custom row behind',
+           same(rt, { boxes: [true, true], notes: ALL_CG, rows: 3 }) && same(none, { rows: 0, notes: sorted(ALL) }), { roundTrip: rt, none: none });
+    });
+
     await step('P12', async function () {
       await load(saveB);
       var rt = { boxes: boxes(NEW), notes: notes() };

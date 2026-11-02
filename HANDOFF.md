@@ -4,6 +4,40 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 2 Nov 2026: AUTOMATIC NOTES FOR CUSTOM PHASES — BUILT on branch `custom-autonotes` (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Step 1 of [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md). Tracker card `custom-phase-auto-notes`
+
+- **The ask** (owner): *"Can we also add automatic notes for all custom phases too"*, then *"Start step 1"*. Ruled
+  *"Off"* by default (R3).
+- **What it is:** each custom phase's "<name> Begins" / "<name> Ends", kind words `<custom key>Start|End`, opt-in in
+  the existing `autoNotesOn`, dated by computeSchedule's `drawn()` like the nine.
+  - `autoNoteEdgeDefs()` = the nine + each custom phase's pair, in `customPhaseDefs` order.
+  - `autoNoteOptIn(kind)` replaces `AUTO_NOTE_OPT_IN.has` in `autoNoteKindShown` and the card's change listener.
+  - `removeCustomPhaseRow` deletes the pair from `autoNotesOn`.
+  - Card: `syncCustomAutoNoteRows()` (first line of `reflectAutoNoteKinds`) draws the rows into `.autonote-custom`, a
+    `display:contents` host React renders empty at the end of `.autonote-list`. Rebuilt only when the custom keys
+    change; a rename rewrites the name and the boxes' aria-labels. No ids.
+  - No frozen code, no new save key, no `SNAPSHOT_VERSION` bump.
+- ⚠️ **Written to merge cleanly with the auto-note rename, which another session was building at the same time**
+  (worktree `.claude/worktrees/auto-note-rename`, uncommitted when this was built). That work changes the edges'
+  `addNote` line to `addAutoNote` and inserts a name store after `autoNoteKindShown`, and it rewrites help line 643.
+  This branch deliberately changes only the edge loop's FIRST line, the `return` inside `autoNoteKindShown`, and help
+  line 642. Whichever merges second:
+  - check the custom pair goes through `addAutoNote` (it does, since it rides the same `edges` array);
+  - prune a removed custom phase's NAMES too (`autoNoteNames`), beside the tick prune in `removeCustomPhaseRow`.
+- **Proof so far:** `autonotephases` grew C0-C8 (26/26 on the build), red on two mutants. Neighbours green:
+  autonotekinds 16/16, settingswin 21/21, hidewf 19/19, monthnotes 8/8, autonote 9/9, customunits 23/23 and 28/28,
+  phasesui 8/8. `npm run check` 40/40. Seen in the browser pane: the Color Grading row lines up under Localization,
+  and a real click on its Begins box writes "Color Grading Begins 8/2/27" in the 8/2/27 row.
+- ✅ **Full gate** (build `8a1f7a27…`, port 8377, 12:53-13:26, load ~10-12, run after the rename session's gate
+  finished): **3,489 PASS, 5 FAIL, every one green alone** through the gate's own judge on the same build:
+  `pilllabel (month-dense60)` C1/C3 → 35/35, `pilllabel (halfdays)` K0 + its console line → 29/29, `papersize` (no
+  result written) → 12/12. The waterfall PDF and every Excel part identical to baseline; gate 10's 11 print documents
+  identical; gate 13's written month PDFs all PASS; `autonotephases` 26/26 in the run.
+- ⚠️ **`main` moved after the branch was cut** (Production Ends `84fe1cd`, Sim Post rename `c5a1def`, both live at
+  `fa14205`). So the gate above is on the branch, not on what a merge would produce: merge `main` in and re-gate before
+  fast-forwarding, as holiday-tint did.
+- **Not committed, not merged, not pushed** at the time of writing.
+
 ### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
 
 - **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the

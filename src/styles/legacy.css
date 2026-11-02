@@ -4002,6 +4002,8 @@
   .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
     color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
   .autonote-row input{ margin:0; flex:none; }
+  /* A custom phase's rows (engine-drawn, syncCustomAutoNoteRows) take this grid's columns through their host. */
+  .autonote-custom{ display:contents; }
   .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
   #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 

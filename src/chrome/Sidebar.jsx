@@ -345,6 +345,10 @@ export function RegionCard() {
 // start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
 // `key` marks a phase whose notes follow a name typed in the Phases tab: reflectAutoNoteKinds() writes that name
 // into the row's data-autonote-name span. Writer's Room and Production keep their own words, so they have none.
+// CUSTOM PHASES' ROWS (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
+// AUTO-NOTES-PER-VIEW-PLAN.md step 1) come and go with the phases, which React does not know, so the engine draws
+// them (syncCustomAutoNoteRows) into `.autonote-custom`: rendered EMPTY here, never given children by React, and
+// display:contents, so its rows sit in this grid's three columns. Off until ticked, like the built-in phases'.
 const AUTO_NOTE_PHASES = [
   { phase: 'Writer’s Room', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
                             end: { kind: 'writersRoomEnd', word: 'Closes' } },
@@ -363,8 +367,9 @@ export function AutoNotesCard() {
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
           Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
-          one to add it to the Notes column, the month view and every export. Notes you typed yourself never
-          change. Holiday notes are chosen holiday by holiday under Holidays, in the Region tab.
+          one to add it to the Notes column, the month view and every export. Phases you add yourself are listed
+          too. Notes you typed yourself never change. Holiday notes are chosen holiday by holiday under Holidays, in
+          the Region tab.
         </InfoHint>
       </h2>
       <div className="side-block autonote-list">
@@ -378,6 +383,7 @@ export function AutoNotesCard() {
             </label>
           )),
         ])}
+        <div className="autonote-custom" />
       </div>
     </section>
   )

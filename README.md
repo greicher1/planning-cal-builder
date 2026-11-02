@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — automatic notes for custom phases (2 Nov 2026)
+
+The built-in phases have had Begins and Ends notes since 27 Oct; custom phases had none. The owner asked: *"Can we
+also add automatic notes for all custom phases too"*, and picked *"Off"* by default
+(AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3). Now:
+
+- Every custom phase has a row in Settings ▸ Preferences ▸ Automatic notes, under the built-in phases: its name, then
+  a Begins box and an Ends box. Both start unticked, so no calendar changes until you tick one.
+- Ticked, "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" appear in the waterfall, Excel, both PDFs and
+  the month view. They are dated like the built-in phases' notes, on the first and last day the bar is drawn, for
+  Weeks, Days and Dates alike.
+- The notes and the row follow a rename in the Phases tab. A custom phase hidden in the waterfall takes its notes out
+  of the waterfall only. Removing the phase removes its notes and their ticks, and Undo brings both back.
+
+How: `autoNoteEdgeDefs()` adds each custom phase's pair to the nine built-in phase edges that `computeSchedule` dates.
+The kind words are `<custom key>Start` / `<custom key>End`, stored in the existing `autoNotesOn` key, so no new save
+key. `syncCustomAutoNoteRows()` draws the card's custom rows into an empty host React leaves alone. No frozen code.
+
+Verified:
+- `autonotephases` gains nine cases, C0–C8: the card row, every output, undo, save, rename, units, Hide in waterfall,
+  removal and Load. 26/26 on the build; red on two mutants.
+- Neighbours green: `autonotekinds`, `settingswin`, `hidewf`, `monthnotes`, `autonote`, `customunits` (both states),
+  `phasesui`. `npm run check` 40/40. Seen in the browser pane with real clicks. The full gate result is in HANDOFF.
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.
