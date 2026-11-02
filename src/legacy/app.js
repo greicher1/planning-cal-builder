@@ -5228,7 +5228,8 @@ export function initLegacyApp() {
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addAutoNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
     // Each phase's start and end (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
-    // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES. ⛔ OFF until ticked (autoNoteKindShown), so every
+    // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES, and each custom phase's pair (autoNoteEdgeDefs, 2 Nov
+    // 2026). ⛔ OFF until ticked (autoNoteKindShown), so every
     // calendar, new or saved before them, shows exactly what it did. Each is dated on the first or last day the
     // month view DRAWS the phase's bar -- segCoversDate's rule (weekdays for a week-based phase), outside every
     // hiatus, as pillRunsForWeek draws it -- so the note and the bar cannot disagree, and a phase that starts
@@ -5243,7 +5244,7 @@ export function initLegacyApp() {
         return null;
       };
       const edges = [];
-      AUTO_NOTE_PHASE_EDGES.forEach(e=>{
+      autoNoteEdgeDefs().forEach(e=>{
         const s = segments.find(x=> x.key === e.phase);
         const d = s && (e.end ? drawn(s, addDays(s.end, -1), -1) : drawn(s, s.start, 1));
         if(d) edges.push({d, label: e.text || (s.label + (e.end ? ' Ends' : ' Begins')), kind: e.kind, phase: e.phase});
@@ -7655,8 +7656,8 @@ export function initLegacyApp() {
 
   // (The prep runs themselves are appendEpisodePrep's, beside productionUnits().)
 
-  // Custom phases: user-named, always standard start-date + weeks (never shooting-days mode,
-  // never auto-noted). Color is pickable -- including matching one of the 6 standard categories,
+  // Custom phases: user-named, always standard start-date + weeks (never shooting-days mode;
+  // auto-noted only once ticked, autoNoteEdgeDefs). Color is pickable -- including matching one of the 6 standard categories,
   // e.g. so a second "post-production" block for a prior season can look like Post while still
   // being a fully independent, freely-overlapping phase.
   const PHASE_COLOR_OPTIONS = [
@@ -8038,6 +8039,8 @@ export function initLegacyApp() {
     pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
     delete phaseEnds[k];     // ...and its Ends
+    delete autoNotesOn[k + 'Start']; delete autoNotesOn[k + 'End'];   // ...and its automatic notes' ticks
+    ['Start', 'End'].forEach(e=>{ delete autoNoteNames[k + e]; delete autoNoteColors[k + e]; });   // ...names and colours
     // ⚠️ Custom keys are not renumbered when one is removed (a restore re-keys rows to the saved keys instead), so
     // no other phase's entry needs to move.
     row.remove();
@@ -17260,7 +17263,8 @@ export function initLegacyApp() {
   // byte for byte as before. ⛔ PERMANENT kind words (the key's and data-autonote's), `<phase key>Start|End`.
   // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", and
   // the other four follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
-  // and wrap are principalStart / principalWrap. Custom phases are never auto-noted. Read by computeSchedule.
+  // and wrap are principalStart / principalWrap. Custom phases get the same pair, read through autoNoteEdgeDefs()
+  // below (owner, 2 Nov 2026). Read by computeSchedule.
   const AUTO_NOTE_PHASE_EDGES = [
     {kind:'writersRoomEnd',    phase:'writersRoom', end:true, text:"Writer's Room Closes"},
     {kind:'prePrepStart',      phase:'prePrep'},      {kind:'prePrepEnd',      phase:'prePrep',      end:true},
@@ -17269,11 +17273,28 @@ export function initLegacyApp() {
     {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
   ];
   const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
+  // ⭐ A CUSTOM PHASE'S START AND END (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
+  // AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3: "Off"). Each custom phase adds "<its name> Begins" and "<its name>
+  // Ends", dated as the built-ins' are, with the kind words `<custom key>Start` / `<custom key>End` (custom3Start), the
+  // pattern above. ⛔ PERMANENT from the first file saved with one ticked. Opt-in like the nine, so they live in
+  // autoNotesOn and a calendar saved before them, custom phases and all, opens exactly as it did. A custom key is never
+  // renumbered (removeCustomPhaseRow), and a removed phase's ticks go with it, so a key an undo mints again starts
+  // unticked. The card's rows for them are the engine's (reflectAutoNoteKinds), since they come and go with the phases.
+  const AUTO_NOTE_CUSTOM_KIND = /^custom\d+(Start|End)$/;
+  function autoNoteOptIn(kind){ return AUTO_NOTE_OPT_IN.has(kind) || AUTO_NOTE_CUSTOM_KIND.test(kind); }
+  // Every phase-edge note the calendar can write: the nine, then each custom phase's pair in the Phases tab's order.
+  function autoNoteEdgeDefs(){
+    const custom = [];
+    customPhaseDefs.forEach(cp=>{
+      custom.push({kind: cp.key + 'Start', phase: cp.key}, {kind: cp.key + 'End', phase: cp.key, end: true});
+    });
+    return AUTO_NOTE_PHASE_EDGES.concat(custom);
+  }
   let autoNotesOn = {};
   // Does this calendar show automatic notes of this kind? The one question both stores answer, asked by
   // autoNotesForView() and by the card's boxes (reflectAutoNoteKinds), so the two cannot disagree.
   function autoNoteKindShown(kind){
-    return AUTO_NOTE_OPT_IN.has(kind) ? autoNotesOn[kind] === true : !autoNotesOff[kind];
+    return autoNoteOptIn(kind) ? autoNotesOn[kind] === true : !autoNotesOff[kind];
   }
   // ⭐ AN AUTOMATIC NOTE'S OWN NAME AND COLOUR (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md, seven rulings
   // by picker). The holiday rename's twin: an automatic note is RENAMED and stays automatic -- on its own date, moving
@@ -17300,7 +17321,7 @@ export function initLegacyApp() {
   // with it, so a box ticked back on brings the standard wording. The card's box is put in step at once: the Settings
   // window may be open, and a stale box would write the wrong state on its next click.
   function switchOffAutoNote(kind){
-    if(AUTO_NOTE_OPT_IN.has(kind)) delete autoNotesOn[kind]; else autoNotesOff[kind] = true;
+    if(autoNoteOptIn(kind)) delete autoNotesOn[kind]; else autoNotesOff[kind] = true;   // a custom phase's pair too
     delete autoNoteNames[kind]; delete autoNoteColors[kind];
     reflectAutoNoteKinds();
   }
@@ -24874,10 +24895,13 @@ export function initLegacyApp() {
   // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry) -- or, for a kind that starts off
   // (AUTO_NOTE_OPT_IN), autoNotesOn (absent = hidden, so unticking deletes it) -- then update() re-renders every
   // view and banks ONE undo step through markDirty().
-  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, because those phases' notes
-  // do ("Edit Begins"); the card renders the default, which stands while nothing is typed. Writer's Room and
-  // Production have no such span: their notes keep their own words whatever the phase is called.
+  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, every phase's since 2 Nov 2026
+  // (owner: "if we renamed Production to "Shoot" that should reflect in the setting menu"). A name box holds the
+  // phase's own label until it is renamed, so that label, or an empty box, shows the card's own words
+  // (data-autonote-default): "Writer’s Room", never the grid's "Writer's Rm". The boxes' aria-labels follow too.
+  // Writer's Room's and Production's NOTES keep their own words ("Start Principal Photography"); only the row moves.
   function reflectAutoNoteKinds(){
+    syncCustomAutoNoteRows();
     document.querySelectorAll('input[data-autonote]').forEach(cb=>{
       const on = autoNoteKindShown(cb.getAttribute('data-autonote'));
       if(cb.checked !== on) cb.checked = on;
@@ -24886,15 +24910,68 @@ export function initLegacyApp() {
       const key = el.getAttribute('data-autonote-name');
       const def = PHASES.find(p=> p.key === key);
       const nameEl = document.getElementById('name-'+key);
-      const want = (nameEl && nameEl.value.trim()) || (def && def.label) || '';
+      const typed = nameEl ? nameEl.value.trim() : '';
+      const want = (typed && !(def && typed === def.label)) ? typed
+                 : (el.getAttribute('data-autonote-default') || (def && def.label) || '');
       if(want && el.textContent !== want) el.textContent = want;
+      // The row's two boxes are the next two cells of the card's grid.
+      for(let cell = el.nextElementSibling, n = 0; cell && n < 2; cell = cell.nextElementSibling, n++){
+        const cb = cell.querySelector('input[data-autonote]');
+        const label = want + ' ' + ((cell.textContent || '').trim());
+        if(cb && cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      }
+    });
+  }
+  // A custom phase's rows (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md step 1): its name, then a Begins box and an
+  // Ends box, in the built-in rows' three columns. React renders `.autonote-custom` EMPTY at the end of the card's grid
+  // and never touches its children; it is display:contents, so these line up with the rows above. Rebuilt only when
+  // custom phases come or go (an undo or a Load included), never under a click; a rename only rewrites the name.
+  // Plain checkboxes with NO id, as the built-in rows' are, so collectFieldValues() never sweeps them; the delegated
+  // change listener below writes autoNotesOn for them like the nine.
+  function syncCustomAutoNoteRows(){
+    const host = document.querySelector('.autonote-custom');
+    if(!host) return;
+    const keys = customPhaseDefs.map(cp=> cp.key).join(',');
+    if(host.getAttribute('data-keys') !== keys){
+      host.textContent = '';
+      customPhaseDefs.forEach(cp=>{
+        const name = document.createElement('span');
+        name.className = 'autonote-name';
+        name.setAttribute('data-autonote-custom', cp.key);
+        host.appendChild(name);
+        [['Start', 'Begins'], ['End', 'Ends']].forEach(([end, word])=>{
+          const row = document.createElement('label');
+          row.className = 'autonote-row';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.setAttribute('data-autonote', cp.key + end);
+          cb.setAttribute('data-autonote-word', word);
+          const w = document.createElement('span');
+          w.textContent = word;
+          row.append(cb, w);
+          host.appendChild(row);
+        });
+      });
+      host.setAttribute('data-keys', keys);
+    }
+    host.querySelectorAll('[data-autonote-custom]').forEach(el=>{
+      const key = el.getAttribute('data-autonote-custom');
+      const nameEl = document.getElementById('name-'+key);
+      const want = (nameEl && nameEl.value.trim()) || 'Custom phase';   // getAllPhaseDefs()'s own fallback
+      if(el.textContent !== want) el.textContent = want;
+      [key + 'Start', key + 'End'].forEach(kind=>{   // exact kinds: a prefix match would take custom10's for custom1's
+        const cb = host.querySelector('input[data-autonote="' + kind + '"]');
+        if(!cb) return;
+        const label = want + ' ' + cb.getAttribute('data-autonote-word');
+        if(cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      });
     });
   }
   document.addEventListener('change', e=>{
     const t = e.target;
     const kind = t && t.getAttribute && t.getAttribute('data-autonote');
     if(!kind || !SNAP_ID.test(kind)) return;
-    if(AUTO_NOTE_OPT_IN.has(kind)){ if(t.checked) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
+    if(autoNoteOptIn(kind)){ if(t.checked) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
     else if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
     update();
   });

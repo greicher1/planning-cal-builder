@@ -88,7 +88,70 @@
   twin is card `wf-holiday-editor-mode`). A removed note's typed name is cleared with it (the plan's suggestion; not
   ruled). Saving a rename while also adding a line in the waterfall saves as typed text (as for holidays).
 
-### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — ✅ MERGED into local `main` (owner's picker: "Merge to main"; "Push": **"Not yet"**), NOT pushed. Fix commit `c30b639` on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); `main` (`d81c140`, docs only) merged in as `c1f6109`, no code moved; mini-gate 545 / 1 (a timing flake, green alone). Tracker card `colswap-cache-stale`
+### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
+
+- **The ask** (owner): *"The names of the automatic notes in the settings menu should appear as the same name as their
+  edited title, so if we renamed Production to "Shoot" that should reflect in the setting menu"*.
+- **Built (Settings card only):** Writer's Room's and Production's rows got `data-autonote-name` (their phase key) like
+  the other four. Every named row also carries `data-autonote-default` (the card's words).
+  - `reflectAutoNoteKinds()` shows the typed name only when it differs from the phase's label. A name box holds that
+    label until it is renamed, and Writer's Room's label is the grid's "Writer's Rm", so without this rule the row
+    would have changed to "Writer's Rm" by itself.
+  - It also rewrites the row's two boxes' aria-labels ("Shoot Starts").
+  - The NOTES keep their own words ("Start Principal Photography"); the auto-note rename plan is what renames notes.
+- **Proof:** new `autonotephases` case P9b, red on `main`'s code (both rows blank). On the build: autonotephases 27/27,
+  autonotekinds 16/16, settingswin 21/21, phasesui 8/8; `npm run check` 40/40. Seen in the browser pane, with "Shoot"
+  typed into the name box. No full gate: a Settings label, nothing reaches the grid, the writers or the save format.
+- ⚠️ Browser-pane lesson: the pane's page was 1024 px wide but screenshots came in an 800 px frame, so a click at a
+  `getBoundingClientRect()` position (or a `find` ref's) landed 28% off. Scale CSS positions by the screenshot frame.
+- **Committed `315f7e5`, merged into local `main`, pushed and verified live** (see the heading). This note rides the next push.
+
+### ✅ 2 Nov 2026: AUTOMATIC NOTES FOR CUSTOM PHASES — ✅ **LIVE at `a82506c`** (owner's pickers: "Commit, merge main in, re-gate", "Push once merged and gated", then "Push both"; `fa14205..a82506c` at 14:32:29; the live `index.html` matched the gated build `8ede4fc5…` byte for byte at 14:34:23). No version cut: installed users get it on their next relaunch. Built on branch `custom-autonotes` (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Step 1 of [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md). Tracker card `custom-phase-auto-notes`
+
+- **The ask** (owner): *"Can we also add automatic notes for all custom phases too"*, then *"Start step 1"*. Ruled
+  *"Off"* by default (R3).
+- **What it is:** each custom phase's "<name> Begins" / "<name> Ends", kind words `<custom key>Start|End`, opt-in in
+  the existing `autoNotesOn`, dated by computeSchedule's `drawn()` like the nine.
+  - `autoNoteEdgeDefs()` = the nine + each custom phase's pair, in `customPhaseDefs` order.
+  - `autoNoteOptIn(kind)` replaces `AUTO_NOTE_OPT_IN.has` in `autoNoteKindShown` and the card's change listener.
+  - `removeCustomPhaseRow` deletes the pair from `autoNotesOn`.
+  - Card: `syncCustomAutoNoteRows()` (first line of `reflectAutoNoteKinds`) draws the rows into `.autonote-custom`, a
+    `display:contents` host React renders empty at the end of `.autonote-list`. Rebuilt only when the custom keys
+    change; a rename rewrites the name and the boxes' aria-labels. No ids.
+  - No frozen code, no new save key, no `SNAPSHOT_VERSION` bump.
+- ⚠️ **Written to merge cleanly with the auto-note rename, which another session was building at the same time**
+  (worktree `.claude/worktrees/auto-note-rename`, uncommitted when this was built). That work changes the edges'
+  `addNote` line to `addAutoNote` and inserts a name store after `autoNoteKindShown`, and it rewrites help line 643.
+  This branch deliberately changes only the edge loop's FIRST line, the `return` inside `autoNoteKindShown`, and help
+  line 642. Whichever merges second:
+  - check the custom pair goes through `addAutoNote` (it does, since it rides the same `edges` array);
+  - prune a removed custom phase's NAMES too (`autoNoteNames`), beside the tick prune in `removeCustomPhaseRow`.
+- **Proof so far:** `autonotephases` grew C0-C8 (26/26 on the build), red on two mutants. Neighbours green:
+  autonotekinds 16/16, settingswin 21/21, hidewf 19/19, monthnotes 8/8, autonote 9/9, customunits 23/23 and 28/28,
+  phasesui 8/8. `npm run check` 40/40. Seen in the browser pane: the Color Grading row lines up under Localization,
+  and a real click on its Begins box writes "Color Grading Begins 8/2/27" in the 8/2/27 row.
+- ✅ **Full gate** (build `8a1f7a27…`, port 8377, 12:53-13:26, load ~10-12, run after the rename session's gate
+  finished): **3,489 PASS, 5 FAIL, every one green alone** through the gate's own judge on the same build:
+  `pilllabel (month-dense60)` C1/C3 → 35/35, `pilllabel (halfdays)` K0 + its console line → 29/29, `papersize` (no
+  result written) → 12/12. The waterfall PDF and every Excel part identical to baseline; gate 10's 11 print documents
+  identical; gate 13's written month PDFs all PASS; `autonotephases` 26/26 in the run.
+- ⚠️ **`main` moved after the branch was cut** (Production Ends `84fe1cd`, Sim Post rename `c5a1def`, both live at
+  `fa14205`). So the gate above is on the branch, not on what a merge would produce: merge `main` in and re-gate before
+  fast-forwarding, as holiday-tint did.
+- ✅ **Committed `5ada271`; `main` (`fa6aa4b`: Production Ends, Sim Post rename, the column-swap cache fix, note-size
+  docs) merged in as `0e0bf01`.** Only HANDOFF.md and README.md conflicted, as new top entries; both kept.
+- ✅ **Full gate on the merged build** (`8ede4fc5…`, port 8377, 13:58-14:30, load ~7-9): **3,541 PASS, 1 FAIL**,
+  `mvbarsize (hiatus-blanklabel)` B3c (a Load round trip), **12/12 alone, twice**, on the same build. The waterfall PDF
+  and every Excel part identical; gate 10's 11 print documents identical; gate 13's written month PDFs all PASS;
+  `autonotephases` 26/26, `prodends` and `simpostname` green in the run. Targeted legs on the merged build before it:
+  autonotephases 26/26, autonotekinds 16/16, settingswin 21/21, hidewf 19/19, monthnotes 8/8, prodends 14/14,
+  simpostname 14/14, customunits 23/23 + 28/28; `npm run check` 40/40.
+- ✅ **Local `main` fast-forwarded to this branch** (`fa6aa4b..` this entry's commit).
+- **The push carried another session's fix too.** Local `main` held the column-swap cache fix (`c30b639`), whose
+  push the owner had answered **"Not yet"**, so the push was held and the owner asked. It had passed this merged
+  build's full gate as well, and the owner picked **"Push both"**. Both went live together (its entry below).
+
+### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — ✅ **LIVE at `a82506c`** (owner's picker: "Merge to main"; "Push": "Not yet", then **"Push both"** in the custom-phase notes session, 2 Nov 2026, once it had passed that merged build's FULL gate, 3,541 / 1 green alone; live `index.html` = gated build `8ede4fc5…` at 14:34:23). Fix commit `c30b639` on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); `main` (`d81c140`, docs only) merged in as `c1f6109`, no code moved; mini-gate 545 / 1 (a timing flake, green alone). Tracker card `colswap-cache-stale`
 
 - **The bug** (found by the Sim Post rename session, below; on `main` before it). On a calendar holding a stored
   column swap (`gridColSwaps`), `update()` drew `maybeRunColSwapGate()`'s CACHED result's schedule, the one computed

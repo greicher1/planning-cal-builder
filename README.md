@@ -84,6 +84,51 @@ browser pane: the Auto Note editor, a rename, and a drag to another day. Full ga
 Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
 typing over an automatic note is now a rename (details in HANDOFF).
 
+### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
+
+The owner: *"if we renamed Production to "Shoot" that should reflect in the setting menu"*. The rows for Pre-Prep,
+Prod Prep, Post, Localization and custom phases already followed a name typed in the Phases tab. Writer's Room and
+Production kept their fixed names. Now:
+
+- Every row of Settings ▸ Preferences ▸ Automatic notes shows the phase's name as typed. Production renamed "Shoot"
+  reads "Shoot", and its boxes are labelled "Shoot Starts" / "Shoot Wraps" for screen readers.
+- A name box holding the phase's own label, or nothing, shows the card's usual words. So Writer's Room still reads
+  "Writer’s Room", not the grid's short "Writer's Rm".
+- The notes themselves are unchanged: Production's still read "Start Principal Photography" and "Principal
+  Photography Wraps", and Writer's Room's "Writer's Room Opens".
+
+How: both rows got their phase key (`data-autonote-name`) and their default words (`data-autonote-default`), and
+`reflectAutoNoteKinds()` shows a typed name only when it differs from the phase's label. Settings card only; nothing
+reaches the grid, the exports or saved files.
+
+Verified: new `autonotephases` case P9b (red on the code before it); `autonotephases` 27/27, `autonotekinds` 16/16,
+`settingswin` 21/21, `phasesui` 8/8; `npm run check` 40/40. Seen in the browser pane, with "Shoot" typed into
+Production's name box. No full gate (a Settings label only).
+
+### Unreleased — automatic notes for custom phases (2 Nov 2026)
+
+The built-in phases have had Begins and Ends notes since 27 Oct; custom phases had none. The owner asked: *"Can we
+also add automatic notes for all custom phases too"*, and picked *"Off"* by default
+(AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3). Now:
+
+- Every custom phase has a row in Settings ▸ Preferences ▸ Automatic notes, under the built-in phases: its name, then
+  a Begins box and an Ends box. Both start unticked, so no calendar changes until you tick one.
+- Ticked, "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" appear in the waterfall, Excel, both PDFs and
+  the month view. They are dated like the built-in phases' notes, on the first and last day the bar is drawn, for
+  Weeks, Days and Dates alike.
+- The notes and the row follow a rename in the Phases tab. A custom phase hidden in the waterfall takes its notes out
+  of the waterfall only. Removing the phase removes its notes and their ticks, and Undo brings both back.
+
+How: `autoNoteEdgeDefs()` adds each custom phase's pair to the nine built-in phase edges that `computeSchedule` dates.
+The kind words are `<custom key>Start` / `<custom key>End`, stored in the existing `autoNotesOn` key, so no new save
+key. `syncCustomAutoNoteRows()` draws the card's custom rows into an empty host React leaves alone. No frozen code.
+
+Verified:
+- `autonotephases` gains nine cases, C0–C8: the card row, every output, undo, save, rename, units, Hide in waterfall,
+  removal and Load. 26/26 on the build; red on two mutants.
+- Neighbours green: `autonotekinds`, `settingswin`, `hidewf`, `monthnotes`, `autonote`, `customunits` (both states),
+  `phasesui`. `npm run check` 40/40. Seen in the browser pane with real clicks. The full gate result is in HANDOFF.
+
 ### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
 
 On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something

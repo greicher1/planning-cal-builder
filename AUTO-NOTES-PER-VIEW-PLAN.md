@@ -1,7 +1,9 @@
 # AUTO-NOTES-PER-VIEW-PLAN.md: automatic notes shown per view, and automatic notes for custom phases
 
-**Status: RULED, 2 Nov 2026 (owner, by picker: R1(a), R2(a), R3(a), R4(a), every one the recommendation). Nothing
-built. Next: step 1, on a branch, once the owner says go.** Tracker cards `auto-notes-per-view` and
+**Status: RULED, 2 Nov 2026 (owner, by picker: R1(a), R2(a), R3(a), R4(a), every one the recommendation). STEP 1
+BUILT on branch `custom-autonotes`** (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its
+`node_modules` is a symlink, so unlink it before `git worktree remove`). Leg and neighbours green; the full gate's result
+is in HANDOFF. Steps 2-4 not started (§7: after AUTO-NOTE-RENAME-PLAN, which another session is building). Tracker cards `auto-notes-per-view` and
 `custom-phase-auto-notes`. Related, already ruled and not built: [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md)
 (card `rename-auto-notes`), which this plan has to fit (§2 R4, §7).
 
@@ -203,7 +205,13 @@ Nothing in `renderMonthView`, the width model, `exportExcel`, `buildWaterfallPdf
 
 ## 6. Steps
 
-1. **Custom-phase notes** (§4.2, D3, D4; card rows in today's layout). No frozen code. Can ship alone.
+1. ✅ **BUILT, 2 Nov 2026 (branch `custom-autonotes`).** **Custom-phase notes** (§4.2, D3, D4; card rows in today's
+   layout). No frozen code. Can ship alone.
+   - As built: `autoNoteEdgeDefs()` feeds computeSchedule's edge loop; `autoNoteOptIn()` replaces
+     `AUTO_NOTE_OPT_IN.has` in `autoNoteKindShown` and the card's listener; `removeCustomPhaseRow` prunes the pair;
+     `syncCustomAutoNoteRows()` (called by `reflectAutoNoteKinds`) draws the rows into `.autonote-custom`, an empty
+     display:contents host at the end of the React grid. Step 2 replaces that host with the engine-drawn list (§4.5).
+   - `autonotephases` C0-C8, 26/26; red on two mutants (no custom edges: C1, C2, C4-C8; no prune: C7).
    - Leg: extend `autonotephases`.
      - A custom phase's notes are off by default; ticked, they show on the first and last drawn day in the waterfall
        and the month view.

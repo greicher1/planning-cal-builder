@@ -36,6 +36,7 @@
 //   U1  one undo puts the whole cell back; redo empties it again
 //   P1  a note pasted over that cell replaces both lines the same way, and is the week's typed note
 //   R1  Reset Notes clears the typed notes and leaves the Automatic notes switches alone
+//   C1  a custom phase's automatic note (ticked on in the fixture) renames, and Delete takes its tick out of autoNotesOn
 //   G1  a month-view drag out and back changes nothing; one to another day makes the note typed text there and
 //       switches it off, so moving Production brings no second copy
 //   E0  no console errors, apart from the one warning F2's values are meant to raise
@@ -502,6 +503,25 @@ window.addEventListener('load', function () { (async function () {
              && /^Start Principal Photography 7\/1\/26/.test(((s.userNotes || {})['2026-06-29'] || {}).text || '')
              && !jul6.some(function (l) { return /Principal Photography/.test(l); }),
            { outAndBack: back, offAfterOutAndBack: s0.autoNotesOff, jul1: m, autoNotesOff: s.autoNotesOff, userNote: (s.userNotes || {})['2026-06-29'], jul6: jul6 });
+    });
+
+    // ===== C1: a custom phase's automatic note (main's AUTO-NOTES-PER-VIEW-PLAN.md step 1) ===========================
+    // Its kind (custom1Start) starts OFF and is ticked in autoNotesOn, so deleting it must take the tick out of
+    // autoNotesOn (autoNoteOptIn), never write autoNotesOff, which an opt-in kind does not read.
+    await step('C1', async function () {
+      await load(JSON.stringify(S0));
+      await view('sheet');
+      var before = cellText('2027-01-11');
+      await wfEdit('2027-01-11', function (v) { return v.replace('Colour Grading Begins 1/11/27', 'Grade starts 1/11/27'); });
+      var renamed = cellText('2027-01-11'), s1 = JSON.parse(await save());
+      await pick(noteTd('2027-01-11'));
+      press('Delete'); await settle();
+      var after = cellText('2027-01-11'), s2 = JSON.parse(await save());
+      kase('C1', 'a custom phase\'s automatic note renames and deletes like the others: its name keyed by its kind, and Delete takes its tick out of autoNotesOn, never into autoNotesOff',
+           before === 'Colour Grading Begins 1/11/27' && renamed === 'Grade starts 1/11/27' && (s1.autoNoteNames || {}).custom1Start === 'Grade starts'
+             && !un(s1, '2027-01-11') && (after === '' || after === '+') && !(s2.autoNotesOn || {}).custom1Start
+             && !(s2.autoNotesOff || {}).custom1Start && !(s2.autoNoteNames || {}).custom1Start && !un(s2, '2027-01-11'),
+           { before: before, renamed: renamed, names1: s1.autoNoteNames, after: after, on: s2.autoNotesOn, off: s2.autoNotesOff, names2: s2.autoNoteNames });
     });
 
     var errs = (T.appHealth().errors || []).filter(function (e) { return !/were not in a form the app writes/.test(String(e)); });
