@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — MERGED into local `main` and PUSHED (owner's picker: "Commit and merge", "Push now"); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
+### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 
 - **The ask** (owner): *"The names of the automatic notes in the settings menu should appear as the same name as their
   edited title, so if we renamed Production to "Shoot" that should reflect in the setting menu"*.
@@ -20,7 +20,7 @@
   typed into the name box. No full gate: a Settings label, nothing reaches the grid, the writers or the save format.
 - ⚠️ Browser-pane lesson: the pane's page was 1024 px wide but screenshots came in an 800 px frame, so a click at a
   `getBoundingClientRect()` position (or a `find` ref's) landed 28% off. Scale CSS positions by the screenshot frame.
-- **Committed, merged into local `main` and pushed** (owner's picker). The live check is recorded in the commit after it.
+- **Committed `315f7e5`, merged into local `main`, pushed and verified live** (see the heading). This note rides the next push.
 
 ### ✅ 2 Nov 2026: AUTOMATIC NOTES FOR CUSTOM PHASES — ✅ **LIVE at `a82506c`** (owner's pickers: "Commit, merge main in, re-gate", "Push once merged and gated", then "Push both"; `fa14205..a82506c` at 14:32:29; the live `index.html` matched the gated build `8ede4fc5…` byte for byte at 14:34:23). No version cut: installed users get it on their next relaunch. Built on branch `custom-autonotes` (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Step 1 of [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md). Tracker card `custom-phase-auto-notes`
 
