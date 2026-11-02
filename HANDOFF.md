@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — committed on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); mini-gate 545 / 1 (a timing flake, green alone); NOT merged, NOT pushed. Tracker card `colswap-cache-stale`
+### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — ✅ MERGED into local `main` (owner's picker: "Merge to main"; "Push": **"Not yet"**), NOT pushed. Fix commit `c30b639` on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); `main` (`d81c140`, docs only) merged in as `c1f6109`, no code moved; mini-gate 545 / 1 (a timing flake, green alone). Tracker card `colswap-cache-stale`
 
 - **The bug** (found by the Sim Post rename session, below; on `main` before it). On a calendar holding a stored
   column swap (`gridColSwaps`), `update()` drew `maybeRunColSwapGate()`'s CACHED result's schedule, the one computed
@@ -46,7 +46,8 @@
     (colswap-simpost-refuse) 14/14, `noswapbtns` 7/7, `wholenum` 12/12, `monthmap` (colreuse) 20/20, `colreuse` 25/25.
     `npm run check` 40/40. Seen in the browser pane: "Number these weeks" relabels the cells at once.
   - NOT run: the full gate (the next one picks up `colswapcache`).
-- **Next:** ask the owner to merge and, separately, to push. Another session
+- **Next:** the push, when the owner asks for it (they said "Not yet" on 2 Nov; a full gate first is the natural
+  moment, since it picks up `colswapcache`). Another session
   (`swap-partial`, card `swap-part-of-column`) edits the swap GESTURE code (`swapEvalDir`, `weekSwapEval`), not this
   function, so the two should merge cleanly.
 
