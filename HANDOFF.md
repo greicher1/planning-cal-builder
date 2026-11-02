@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — COMMITTED `c5a1def`, MERGED TO `main` (owner's picker: "Commit", "Merge to main", "Push now"). Built on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
+### ✅ 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — ✅ **LIVE at `fa14205`** (owner's picker: "Commit", "Merge to main", "Push now"; `84fe1cd..fa14205` at 13:00:01 on 2 Nov 2026; the live `index.html` matched the verified build `e4a63ca7…` byte for byte at 13:01:38). Feature commit `c5a1def`. No version cut: installed users get it on their next relaunch. Built on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
 
 - **The ask** (owner): *"Allow me to be able to edit the name of Simultaneous Post"*.
 - **Ruled** (owner's picker): *"Approve the frozen edit"*. Frozen edit **S1** in `renderMonthView` makes Sim Post's
@@ -55,7 +55,7 @@
   HANDOFF and README conflicted only as new top entries; all kept. Re-verified on the combined build `e4a63ca7…`:
   mini-gate 325/0 again (waterfall PDF, Excel, restore, 77 ids, 11 print documents, 23 written month PDFs), plus
   `simpostname` 14/14, `prodends` 14/14, `endsdate` 17/17, `npm run check` 40/40. Local `main` fast-forwarded to it.
-- **Next:** the push (approved), then check the live page serves `e4a63ca7…`.
+- **Next:** nothing owed on this feature. The column-swap cache bug above is offered as its own task.
 
 ### 🔨 30 Oct – 2 Nov 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) + THE SHOOT AS A SPAN — BUILT on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, cut from `origin/main` at `fdf9324`, `origin/main` merged in as `cddc8f4`; `node_modules` is a symlink: unlink it before `git worktree remove`); WIP committed locally (`187aac3`), the span and the leg uncommitted; GATED (3,508 / 2, both load flakes, green alone); NOT merged, NOT pushed
 
