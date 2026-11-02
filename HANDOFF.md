@@ -4,18 +4,30 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 2 Nov 2026: ONE NOTE SIZE FOR THE MONTH VIEW, PICKED IN PX — PLANNED, RULINGS OPEN, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker card `month-note-size`
+### 📝 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — PLANNED AND RULED, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
   its just a global notes px size selector"*, then *"Yes, write the plan"*. It is MONTH-BAR-SIZE-PLAN's R1(c).
-- **The plan's design (recommendations, NOT rulings):**
-  - 10 (today) to 14 px, each with a whole-px line from a table;
-  - two lines above 10 px, cut with "…" on screen AND in the PDF;
-  - the calendar's size is each note's largest style-bar size;
-  - `mvNoteSize` (absent = 10 px);
-  - the control under Phase bar size, whose labels would become px;
-  - three frozen edits (E1 CSS, E2 `mvNoteLineCount`, E3 the print rollback), all inert at 10 px.
+- ✅ **RULED, owner's picker, 2 Nov 2026** (plan §1):
+  - R0 yes (this setting only), R1 10–14 px, R2 two lines above 10 px, R3 "…" on screen AND in the PDF;
+  - R5 every month note, R6 saved in the calendar (`mvNoteSize`, absent = 10 px), R9 the print rollback follows.
+  - **R4 was the owner's own answer:** per-note sizes from the same list, 6–14 px (follow-up picker). A note with no
+    size of its own follows the calendar's size. A note's geometry (line, height, two-line limit) follows its EFFECTIVE
+    size, so a 14 px note in a 10 px calendar is allowed and makes only its own lanes taller. This supersedes the
+    recommended ceiling.
+- ⭐ **Then two instructions, mid-session, that widened the plan** (plan §1a): *"Actually do sizes 10,11, 12, 13, and 14
+  for the phase bar sizes. And make sizes for both the phase bars and the notes be dropdown menus"*. They overtook R7
+  (five buttons) and R8 (keep Standard/Large/XL). The design that follows:
+  - Phase bar size gets 11 and 13 px. 12 and 14 stay saved as `'large'` / `'xl'`, so v1.9.0 builds still read them;
+    11 and 13 are new values `'11'` / `'13'`, which an older build draws at 10 px.
+  - Both controls become NativeSelects built as `#wf-paper` is (id inside `.prefs-card`, uncontrolled, option values =
+    save format). That replaces the shipped SegmentedControl, and `mvbarsize` / `settingswin` move to the select.
+- **The mechanism (plan §4):** each note's effective geometry rides in its inline style through a non-frozen helper
+  (`mvNoteGeom`, appended where M1's `mvTextCss` already is), so `renderMonthView` does not change. The CSS reads the
+  heights from `--mvn-h1` / `--mvn-h2`. `body.mv-note-sized` (any sized note) turns on content-sized lanes. The writer
+  reads each note's size from its style, as it does for month text styles. Three frozen edits (E1 CSS, E2
+  `mvNoteLineCount`, E3 the print rollback), all inert at 10 px with nothing sized.
 - ⚠️ **CORRECTED, how notes work today** (this entry first said "at most 3 lines, the rest cut with '…'", and so did the
   chat): a note takes at most three 17 px lanes. ON SCREEN its box clips the rest (no "…"). IN THE MONTH PDF NOTHING
   IS CUT: print sizes lanes by content and the writer draws every line, so a four-line note prints whole
@@ -28,7 +40,9 @@
   - `monthscale`'s August prints BIGGER (0.609 → 0.688–0.766), because its four-line notes are cut to two;
   - `month-dense60`, whose notes exactly fill two lines at 10 px, loses 60 of 81 notes' endings at 11 px.
   - Without the limit, crowded weeks grow by up to 76%.
-- **Next:** the owner's rulings R0–R9, then step 1 (the screen probe).
+  - Bars at 11 and 13 px are NOT measured; they should cost between Standard and Extra large (v1.9.0's §3).
+- **Next:** step 1, the screen probe (throwaway leg: note sizes, bar sizes 10–14, per-note sizes, 75/150/200% zoom).
+  Not started; ask before starting.
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 
