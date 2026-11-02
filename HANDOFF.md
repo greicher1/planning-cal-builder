@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; ✅ local `main` FAST-FORWARDED to `f3bde45` (owner, 2 Nov 2026: *"Yes, merge to main"*); NOT PUSHED
+### ✅ 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — ✅ **LIVE at `05bfdc9`** (owner's picker, *"Push now"*; `12cd4ca..05bfdc9` at 10:47:39 on 2 Nov 2026; the live `index.html` matched the gated build `3a7dcbd1…` byte for byte at 10:49:21). BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; ✅ local `main` FAST-FORWARDED to `f3bde45` (owner, 2 Nov 2026: *"Yes, merge to main"*); PUSHED (see the head of this entry). No version cut: installed users get it on their next relaunch
 
 - **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
   like this in the month view? thoughts?"* Suggested the weekend tint instead: the calendar takes a holiday off as it
@@ -67,8 +67,9 @@
   which a fast-forward cannot pass. It was carried across, NOT committed: set aside, fast-forward, then the file
   rewritten as the 3-way merge of both (its entries above this one), and proved line for line to be the same edit on
   the new `main`. This note was committed on its own (index-only), so that edit is still uncommitted for its session.
-- **Next:** the owner's picker to push. `origin/main` is at `12cd4ca`, so a push ships exactly `6f10a6a`, `26f2065`,
-  `deaa45e`, `f3bde45` and this note. Then check the live URL serves the gated build.
+- ✅ **PUSHED (owner's picker, 2 Nov 2026: *"Push now"*):** `12cd4ca..05bfdc9` at 10:47:39, exactly the five commits
+  above; the live `index.html` matched the gated build `3a7dcbd1…` byte for byte at 10:49:21. This LIVE note is
+  committed locally after the push, so it rides the next push.
 
 ### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
 
