@@ -1775,6 +1775,13 @@ done
 # as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Since the
 # owner's "go with choice 1" it also holds every Weeks phase's meta line ending on the FRIDAY, on Starts and on Ends
 # and through a month-view round trip (M1, M2; red with reflectWeeksMetaFriday disabled). Own line.
+# prodends (owner, 30 Oct 2026: "would it be possible we could add the "ends" date option to production", "id say do
+# exactly then", "Yes, build it"; the start shown as a span, "Yes, build it") holds Production held by its WRAP
+# (productionEnds): the card's own Starts / Ends select, wrap box and span (no id), to Ends moving nothing, one undo
+# step, the wrap holding TO THE DAY while the shoot-day count and Production's own hiatus move the start (over
+# Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
+# moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
+# round trip saving byte for byte as before. Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1839,6 +1846,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               datepick:-:150 \
               snapbox:-:300 \
               endsdate:-:400 \
+              prodends:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \

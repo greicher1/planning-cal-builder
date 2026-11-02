@@ -7328,6 +7328,15 @@ export function initLegacyApp() {
   // Production's column (productionEnds) is the same, but its Ends box is the WRAP, to the day (the id-less
   // .prod-wrapdate, so the Weeks handlers never match it), and a line under it says where the start was worked out
   // to (reflectProductionEnds). start-production keeps its place in document order, so fields.byId does too.
+  // The shoot as a span under the date (owner, 30 Oct 2026, option B of mockups/production-start-readout.html, "This would
+  // also be shown whether you do Starts or Ends, changing which is highlited in solid green depending on which mode"):
+  // the first shoot day and the wrap, the end that holds solid, the one worked out from it dashed (reflectProductionEnds).
+  // No id, no input: nothing in it is saved.
+  const PROD_SPAN_HTML = `<div class="prod-span" hidden>
+          <div class="prod-span-end" data-end="start"><span class="prod-span-k">Starts</span><span class="prod-span-d"></span></div>
+          <div class="prod-span-line" aria-hidden="true"></div>
+          <div class="prod-span-end" data-end="wrap"><span class="prod-span-k">Wraps</span><span class="prod-span-d"></span></div>
+        </div>`;
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
   function startsFieldHtml(key){
     const prod = key === 'production';
@@ -7338,7 +7347,7 @@ export function initLegacyApp() {
         <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
         <label class="ph-ends-box">${endsBox}</label>
-        ${prod ? '<div class="prod-ends-line" hidden></div>' : ''}
+        ${prod ? PROD_SPAN_HTML : ''}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -8263,31 +8272,41 @@ export function initLegacyApp() {
     });
   }
   // ENDS FOR PRODUCTION: the wrap box shows the day the shoot really wraps (the held wrap, unless a mark or a hiatus
-  // has since taken that day), left alone while it is being typed in. The line under it names the start the wrap
-  // gave: the condition the owner's go-ahead rested on, since in Ends an added episode moves the start without the
-  // start box being touched. (An amber "That is during Prod Prep" line was built and taken out the same evening,
-  // owner: "thats obvious from just looking at the calendar".)
+  // has since taken that day), left alone while it is being typed in.
+  // Under it, IN BOTH MODES, the shoot as a span: its first shoot day and its wrap. The end that holds is solid, the
+  // one worked out from it dashed, so in Ends the card says where the start went (the condition the owner's go-ahead
+  // rested on: an added episode moves it without the start box being touched). Drawn in Production's own colour pair
+  // (its option's text colour as the ink), so a recoloured Production keeps a matching span. (An amber "That is during
+  // Prod Prep" line came first and was taken out, owner: "thats obvious from just looking at the calendar"; then a
+  // plain "Starts ..., worked back from the wrap." line, replaced by this span, option B.)
   function reflectProductionEnds(row, on){
-    const box = row.querySelector('.prod-wrapdate'), line = row.querySelector('.prod-ends-line');
+    const box = row.querySelector('.prod-wrapdate'), span = row.querySelector('.prod-span');
     const info = currentSchedule && currentSchedule.productionInfo;
-    const days = (on && info && info.shootDays) || [];
+    const days = (info && info.shootDays) || [];
     if(box && document.activeElement !== box){
       const show = !on ? '' : days.length ? days[days.length - 1] : (productionEnds || '');
       if(box.value !== show) box.value = show;
     }
-    if(!line) return;
-    // Rebuilt only when what it says changes: every update() runs this, and the card's observers watch the rows.
-    const sig = days.length ? days[0] : '';
-    if(line.dataset.sig === sig && line.hidden === !days.length) return;
-    line.dataset.sig = sig;
-    line.hidden = !days.length;
-    line.textContent = '';
+    if(!span) return;
+    const opt = PHASE_COLOR_OPTIONS[phaseColorIndexOf('production')] || PHASE_COLOR_OPTIONS[0];
+    // Rewritten only when what it shows changes: every update() runs this, and the card's observers watch the rows.
+    const sig = days.length ? [days[0], days[days.length - 1], on ? 'wrap' : 'start', opt.text].join('|') : '';
+    if(span.dataset.sig === sig && span.hidden === !days.length) return;
+    span.dataset.sig = sig;
+    span.hidden = !days.length;
     if(!days.length) return;
-    const d = parseDateUTC(days[0]);
-    const b = document.createElement('b');
-    b.textContent = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d);
-    line.append('Starts ', b, ', worked back from the wrap.');
+    span.style.setProperty('--span-ink', opt.text);
+    const day = iso=>{ const d = parseDateUTC(iso); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d); };
+    span.querySelectorAll('.prod-span-end').forEach(end=>{
+      const isStart = end.dataset.end === 'start';
+      end.classList.toggle('held', isStart !== on);
+      end.querySelector('.prod-span-d').textContent = day(isStart ? days[0] : days[days.length - 1]);
+      end.title = (isStart !== on)
+        ? (isStart ? 'The first shoot day. It holds: the wrap is worked out from it.' : 'The wrap. It holds: the start is worked out back from it.')
+        : (isStart ? 'The first shoot day, worked out back from the wrap.' : 'The wrap, worked out from the start.');
+    });
   }
+
 
 
   // Does this phase have a length for Rebuild From to place it with? Production's comes from Show
@@ -28062,6 +28081,9 @@ export function initLegacyApp() {
       if(el) fields.push([el, el.value]);
     }));
     const sch = currentSchedule, marks = dayOverrides, note = lastShootDayMove;
+    // Ends for Production: a trial that moves Production goes through setPhaseStart(), which marks the held wrap to be
+    // taken from the next update(). The trial is put back, so is that mark (and the wrap, to be safe).
+    const ends = productionEnds, endsForward = prodEndsForward;
     const opts = {leave, trial: true};
     try {
       return direction < 0 ? workBackwardsFrom(key, targetIso, opts) : workForwardsFrom(key, targetIso, opts);
@@ -28071,6 +28093,7 @@ export function initLegacyApp() {
       // .value writes fire no events, so putting the fields back is as silent as the trial was.
       fields.forEach(([el, v])=>{ el.value = v; });
       currentSchedule = sch; dayOverrides = marks; lastShootDayMove = note;
+      productionEnds = ends; prodEndsForward = endsForward;
     }
   }
 

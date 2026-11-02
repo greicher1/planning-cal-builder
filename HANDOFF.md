@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 30 Oct 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) — BUILDING on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, from `origin/main` at `fdf9324`; `node_modules` is a symlink: unlink it before `git worktree remove`), UNCOMMITTED, no leg or gate yet
+### 🔨 30 Oct – 2 Nov 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) + THE SHOOT AS A SPAN — BUILT on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, cut from `origin/main` at `fdf9324`, `origin/main` merged in as `cddc8f4`; `node_modules` is a symlink: unlink it before `git worktree remove`); WIP committed locally (`187aac3`), the span and the leg uncommitted; GATED (3,508 / 2, both load flakes, green alone); NOT merged, NOT pushed
 
 - **The ask** (owner, after Ends went live): *"would it be possible we could add the "ends" date option to production
   or would that mess things up? That way if i know production needs to end on a certain day we could work backwards
@@ -35,8 +35,11 @@
   owner picked **B with two changes**: *"removing the "30 shoot days" in the middle. This would also be shown whether
   you do Starts or Ends, changing which is highlited in solid green depending on which mode."* So under the date box,
   in BOTH modes, a STARTS pill and a WRAPS pill joined by a dashed line; the end that holds (the box's date) is solid
-  green (`--prod-text` fill, white text), the worked-out end dashed. The mockup now shows exactly that, two cards
-  (Starts, Ends), each switchable; awaiting the owner's go-ahead to build it in place of `.prod-ends-line`.
+  green (`--prod-text` fill, white text), the worked-out end dashed. The mockup shows exactly that, two cards
+  (Starts, Ends), each switchable. ✅ Owner, 2 Nov 2026: *"Yes, build it"*. BUILT: `PROD_SPAN_HTML` (id-less, inside
+  Production's `.ph-starts`), drawn by `reflectProductionEnds()` in BOTH modes from `productionInfo.shootDays` (first
+  and last), `.held` on the end that holds, its ink Production's own colour option's `text` (`--span-ink`, so a
+  recoloured Production keeps a matching span), rewritten only when its signature changes (the rows are observed).
 - **Built so far on the branch (not committed, not gated):** `productionEnds` / `prodEndsForward` / `prodEndsDrag`
   (beside `phaseEnds`); `productionTrial` (productionEndFor's body, shared), `productionShootTrial`,
   `solveProductionEndsStart` (step by the miss, step back, then climb one shoot day at a time), `prodEndsWarm`,
@@ -49,11 +52,26 @@
   rules. Measured on `episodeprep`: an update in Ends ~10-18 ms; Fri 4/16/27 → start Fri 2/26/27; +1 episode day →
   Thu 2/25/27; Production's own hiatus over the fixture's 3/15/27 hiatus → Fri 2/19/27; a typed Sat 4/17/27 holds
   Fri 4/16/27; the picker greys weekends, the hiatus weeks and Good Friday.
-  - ⚠️ **`endsdate` C1 asserts Production has NO `select.phase-anchor`**: it goes red on this branch until updated
-    (Production now has one, with `.prod-wrapdate`, never `.phase-endsdate`).
-  - **Still to do:** the span (replacing `.prod-ends-line`), a `prodends` leg in `gate.sh` (switch, undo, held wrap,
-    own hiatus, typed weekend / holiday, picker, Shift All, Save / Load / no key / hostile key, round trip byte for
-    byte), `endsdate` C1, the full gate (the save path changed), README entry.
+  - `endsdate` C1 now expects Production's own select and `.prod-wrapdate` (it asserted Production had no select).
+  - ⚠️ **Found on the merge: Rebuild From's preview (`trialRebuild`, from `5bad4c7`) runs the real movers and puts
+    the fields back.** Through `setPhaseStart()` it left `prodEndsForward` set, so the next `update()` would have
+    taken the wrap from the start. Harmless when the wrap is reachable, but it would have dropped a held wrap a
+    mark had since taken. `trialRebuild` now saves and restores `productionEnds` and `prodEndsForward` with the fields.
+  - **New leg `prodends`** (14 cases, in `gate.sh` after `endsdate`, budget 400): C1 the card, R1 a round trip byte for
+    byte, E1 to Ends moves nothing, U1 undo/redo, E2 90 shoot days wrapping Tue 10/20/26 start Fri 6/12/26 over
+    Juneteenth, E3 Production's own hiatus → Fri 6/5/26, E4 a typed Sat 10/24 → Fri 10/23 and the day after
+    Thanksgiving → Wed 11/25, E5 the picker (October: weekends off; November: 26, 27 off too), S1 Shift All +1 wk →
+    Mon 6/22/26 to Tue 10/27/26 and an idle update keeps both, F1-F3 the file, B1 back to Starts, E0. ⚠️ Not timed:
+    under `--virtual-time-budget` `performance.now()` does not move in synchronous code (a timing case read 0 ms
+    twice and was removed); the browser pane measured 10-18 ms an update in Ends.
+  - README entry written (Unreleased, 2 Nov 2026).
+  - **Proof:** `prodends` 14/14; `endsdate` 17/17, `rebuildticks` 19/19, `snaptools` (dayoverrides) 14/14, `datepick`
+    17/17, `snapbox` 12/12, `prodspan` 8/8, `phasefold` 11/11, `loadcarry` 6/6, `builtindates` 17/17 + 15/15,
+    `customunits` 23/23 + 28/28, `pilldrag` 30/30, `phaseedge` 23/23; `npm run check` 40/40. **Full gate on build
+    `226cd796…` (11:48-12:20, 2 Nov): 3,508 PASS, 2 FAIL**, both load (average ~11): `pwagate` C1 ("Link copied", its
+    known flake) 13/13 twice alone once the load fell to ~6; `scenariocompat` on `releases/v1.2.0.html` opens the
+    scenario alone. Every waterfall PDF, Excel part and month PDF baseline held. Seen in the browser pane on
+    `episodeprep` (the span in both modes, the picker, an episode day moving only the dashed start).
 - ⚠️ **`main` moved under this entry:** another session pushed `fdf9324` ("Snapped start box: show the Monday it
   snapped to", top HANDOFF entry + README) and left local `main` at `9ec805f` because this entry was uncommitted.
   Before committing here, bring in `origin/main`; the only conflict should be HANDOFF.md's top entries (keep both).
@@ -75,6 +93,7 @@
   beside `syncPhaseEndsStarts()`, warm-started from the current start, and measure the per-keystroke cost. A finer
   day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
   when Ends moves the start, as they do today when the end moves.
+
 ### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; ✅ local `main` FAST-FORWARDED to `f3bde45` (owner, 2 Nov 2026: *"Yes, merge to main"*); NOT PUSHED
 
 - **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
