@@ -2090,6 +2090,50 @@
   body.mv-bar-xl #table-wrap .mv-hiatus-bar{ font-size:14px; border-radius:13px; height:25px; }
   body.mv-bar-xl #table-wrap .mv-pill.mv-pill-2l{ height:46px; }
   body.mv-bar-xl #table-wrap .mv-pill-block{ font-size:12px; }
+  /* ---- 11 and 13 px (owner, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md §1a: "do sizes 10, 11, 12, 13, and 14 for the phase bar
+     sizes"), the same rules as Large and Extra large. Their line is a WHOLE px, 16 and 19, written out because .mv-bar's
+     1.5 would make it 16.5 and 19.5 (MV_BAR_SIZES' `line`). Inert unless <body> has mv-bar-11 or mv-bar-13. */
+  body.mv-bar-11 #table-wrap .mv-bars,
+  body.mv-bar-13 #table-wrap .mv-bars{ grid-auto-rows:minmax(17px, auto); }
+  body.mv-bar-11 #table-wrap .mv-bar:not(.mv-pill):not(.mv-hiatus-bar),
+  body.mv-bar-13 #table-wrap .mv-bar:not(.mv-pill):not(.mv-hiatus-bar){ contain:size; }
+  body.mv-bar-11 #table-wrap .mv-pill,
+  body.mv-bar-11 #table-wrap .mv-hiatus-bar{ font-size:11px; line-height:16px; border-radius:10px; height:20px; }
+  body.mv-bar-11 #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
+  body.mv-bar-11 #table-wrap .mv-pill-block{ font-size:10px; }
+  body.mv-bar-13 #table-wrap .mv-pill,
+  body.mv-bar-13 #table-wrap .mv-hiatus-bar{ font-size:13px; line-height:19px; border-radius:12px; height:23px; }
+  body.mv-bar-13 #table-wrap .mv-pill.mv-pill-2l{ height:42px; }
+  body.mv-bar-13 #table-wrap .mv-pill-block{ font-size:12px; }
+  /* ---- FROZEN EDIT E1 (owner sign-off by picker, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md R0: "Yes, this setting only"):
+     NOTE SIZE, on screen. A note whose effective size is above 10 px (the calendar's Note size, or the note's own month
+     text style: R4) carries its size, its whole-px line and its one- and two-line heights in its OWN inline style
+     (--mvn-h1 / --mvn-h2, written by app.js's mvTextCss), so one rule draws both, and renderMonthView is unchanged.
+     ⛔ INERT BY CONSTRUCTION on every calendar with no note above 10 px: no note carries --mvn-h1, and <body> never has
+     mv-note-sized (reflectMvNoteSize). Every rule is scoped to #table-wrap, so none can reach #print-root.
+     - Lanes are sized by what is in them (minmax), as at a phase bar size.
+     - Every other bar that is not a pill or a band -- a 10 px note, a "+" slot -- adds no height (contain:size), so its
+       lane stays exactly 17 px, as Phase bar size's E1 does it.
+     - A sized note has a FIXED height, its one-line box or (when the renderer gave it two lanes, matched by its own
+       `/ span 2;`, as the No-fill rule matches a note by its style) its two-line box, and shows at most two lines, the
+       second ending in "…" (R2, R3). Fixed for Phase bar size's reason: a text-sized box comes out wrong at a zoom.
+       ⚠️ Matched on "span 2", never "/ span 2;": once any script touches an element's .style, Chrome re-serialises the
+       attribute ("grid-area: 2 / 3 / span 2 / 4; …"), which the step-1 probe saw drop a two-lane note to one lane.
+       Both forms contain "span 2", and a sized note never spans more than two lanes, so "span 2" cannot be "span 20".
+       Its selector out-ranks the containment rules above and Phase bar size's, so it is never contained.
+     - Pills and bands at the 10 px bar size get the FIXED height their 17 px lanes stretch them to today (17 px, 36 px
+       for a two-lane one-day bar), so they look the same and never stretch into a taller note lane. Not at a bar size,
+       whose own rules set their heights. */
+  body.mv-note-sized #table-wrap .mv-bars{ grid-auto-rows:minmax(17px, auto); }
+  body.mv-note-sized #table-wrap .mv-bar:not(.mv-pill):not(.mv-hiatus-bar){ contain:size; }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
+    contain:none; height:var(--mvn-h1);
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:var(--mvn-h2); }
+  body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill,
+  body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-hiatus-bar{ height:17px; }
+  body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
   /* ---- FROZEN EDIT (owner-approved 18 Sep 2026): make a phase pill DRAGGABLE. ----------------
      ⛔ WITHOUT THIS THE BODY-DRAG GESTURE CANNOT FIRE AT ALL. `.mv-bars` above sets
      pointer-events:none so the bar layer does not swallow clicks, and a pill inherits it -- so a
