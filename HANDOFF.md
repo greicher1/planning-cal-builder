@@ -4,6 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
+
+- **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
+  changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
+  auto note or want to replace the auto note with your own non-auto note"*.
+- **Seven rulings by picker, all in [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md).** In short: the name shows
+  everywhere; its colour is its own (month view); typing over it in the waterfall renames it; clearing it or its
+  Delete Auto-Note button switches it off; the holiday editor gets no delete button; the waterfall Delete key stops
+  writing a week blank (each line goes by its kind; a holiday is hidden from the waterfall only); Reset Notes leaves
+  the Automatic notes ticks alone.
+- ⚠️ **Found while answering, and it is live today:** a deleted auto note is a blank on its WEEK (`{text:''}`), so
+  after a schedule move the note comes back in its new week and the old week stays blank, hiding whatever auto note
+  lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
+
+
 ### 📝 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — PLANNED AND RULED, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting

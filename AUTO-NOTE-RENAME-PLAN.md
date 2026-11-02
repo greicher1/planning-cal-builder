@@ -14,7 +14,7 @@ Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way th
   comes back in its new week, and the old week stays blank and hides any auto note that later lands there
   (`rewriteMovedAutoNotes` deliberately leaves '' alone). Only unticking the kind in Settings ▸ Automatic notes
   follows the note.
-- **Rulings, by picker (five):**
+- **Rulings, by picker (seven; 6 and 7 on 2 Nov 2026, "Yes, adopt both"):**
   1. The new name shows **"Everywhere"**: month view, waterfall, Excel, both PDFs.
   2. A colour picked in its editor colours **"Just that note"** (month view, as `holidayColors` does; the waterfall
      cell keeps the week's one fill).
@@ -28,6 +28,23 @@ Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way th
      The **holiday editor gets no button** (owner's picker, "No button"): deleting a holiday would give Production
      the day back and move the shoot, which a note popup must not do; hiding and switching off stay in Settings ▸
      Holidays.
+  6. **The waterfall's Delete key still empties the cell** (the earlier ruling Q1, "the cell goes blank whatever it
+     showed"), but it **no longer writes a week blank** (`{text:''}`, today's `wfClearNote`). Each line goes by what
+     it is:
+     - an **auto note** is switched off, as 4 and 5;
+     - **typed text** is deleted;
+     - a **holiday** is hidden from the waterfall only (`holidayView[hid].sheet = false`, the Holidays list's
+       Waterfall tick). It stays in the month view and stays a day off, so no date moves. Holidays are hidden in the
+       waterfall by default, so a holiday line is there only because someone turned it on.
+     The same rule covers Cut (⌘X). Pasting or dragging a note over an auto note REPLACES it: the auto note is
+     switched off and the pasted or dragged note takes the week. One Undo restores all of it (`autoNotesOff` /
+     `autoNotesOn`, `holidayView` and `userNotes` are all in `captureSnapshot()`).
+     Rejected: keeping the week blank (the deleted note comes back after a move, and the blank week hides whatever
+     lands there next), and deleting only typed text (the cell would not go blank).
+  7. **Reset Notes & Hiatus leaves the Automatic notes ticks alone.** It used to bring back a deleted milestone by
+     clearing `userNotes`; a deleted auto note is now a switched-off kind, and the reset cannot tell one deleted from
+     one switched off in Settings on purpose. Its tooltip (`#notes-reset-btn`'s title) and the help text say to tick
+     a note in Settings ▸ Automatic notes to bring it back.
 - **Shape it fits (not yet built):** each kind appears at most once per calendar and its `kind` word is already
   permanent (`AUTO_NOTE_PHASE_EDGES`, `autoNotesOff`/`autoNotesOn`), so a name store keyed by kind, applied once in
   `computeSchedule()`'s `addNote`, reaches every reader with no frozen edit, the way `holidayNames` is applied in
@@ -37,6 +54,6 @@ Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way th
   `mvTextStyle.wfnote` / `mvWfNotePlace` keys, as `setHolidayName` does. Per-note colour would reuse frozen edit
   H1's `b.color` route from `mvDayNotePlan`. A delete writes `autoNotesOff` (or removes from `autoNotesOn` for an
   opt-in kind). Whether a removed note keeps its typed name for when it is ticked back on is open (suggest: no,
-  removing clears it). Still to settle while building: the waterfall Delete key on a cell that mixes an auto note
-  with a holiday or typed lines. Related cards: `wf-holiday-editor-mode`, `autonote-follow-sidebar`.
+  removing clears it). Deleting one line from a multi-line waterfall cell (the other lines unchanged) is a removal
+  under rule 4, not a typed-text save. Related cards: `wf-holiday-editor-mode`, `autonote-follow-sidebar`.
 
