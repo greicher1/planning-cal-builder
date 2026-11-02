@@ -4,6 +4,34 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*) (tracker card `note-kind-symbol`)
+
+- **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an
+  auto-note or a holiday that indicates its either an auto note or holiday and not a regular note"*. Rulings by picker:
+  **"Month view, on screen (Recommended)"**, whose option named the frozen edit and its gate (both month PDFs
+  byte-identical), and **"↻ auto, ⚑ holiday (Recommended)"**. Recorded in `AUTO-NOTE-RENAME-PLAN.md`.
+- **Where it lives:**
+  - `mvDayNotePlan` sets `b.mark` ('auto' | 'holiday', from `mvHolidayLineInfo` / `mvAutoLineInfo`) ONLY while
+    `printingCursor` is null, and only when `mvNoteMarkFits()` says the line still fits three lines with the room taken.
+  - ⛔ **Frozen edit S1** in `renderMonthView`'s waterfall-line branch: a marked line is measured `MV_NOTE_MARK_W`
+    (10px, declared beside `printingCursor`) narrower and gets `.mv-note-mark .mv-note-mark-<kind>`.
+  - CSS in `legacy.css`, an `@media screen` block before the text style bar's, every selector under `#table-wrap`:
+    padding-left 14px (4 + 10), and an 8px `::before` mask in `currentColor`. The icons are inline SVG data URIs
+    (the CSP allows `img-src data:`).
+- ⚠️ **Found while building: a symbol can push a note onto a fourth line, and a month note gets at most three.** In
+  the browser pane at 88px days, "Independence Day (Observed) 7/3/26" lost its last line. `mvNoteMarkFits` measures
+  the line unclamped with `mvNoteLineCount`'s own measurer and leaves the symbol off when it would need a fourth;
+  a wider window gives it back.
+- ⚠️ **A one-lane note always reports 2px of overflow** (its 15px lane hides its own bottom padding), marked or not,
+  so `scrollHeight > clientHeight` is no clip test. `autonoterename` S2/S4 test where the TEXT ends (a Range).
+- **Proof:** `autonoterename` 23/23 (S1 the marks, S2 no text cut off in six months, S3 the print rollback draws none,
+  S4 narrowed to 640px: the Observed holiday goes without, 7/4 keeps its ⚑, nothing cut off). S4 is red on an
+  always-fits mutant; S2 alone is not (nothing reaches four lines at the gate's width). `monthlayout` 14/14,
+  `softlines` 6/6, `mvnotes` 14/14, `npm run check` 40/40. Seen in the browser pane at 100% and zoomed.
+  - **Full gate (13:26-13:58, port 8247): 3,505 PASS, 2 FAIL**, both load timeouts green alone (`pdfdialog` 15/15,
+    `pilllabel` blocks W3 true). **Gate 13: all 22 written month PDFs byte-identical; gate 10: all 11 printed month
+    documents identical** — S1's acceptance. The waterfall PDF and every Excel part match too.
+
 ### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), NOT MERGED, NOT PUSHED (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be

@@ -98,6 +98,11 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - It edits no frozen rule. Its tints exclude the day marks and `:hover`.
   - The `softlines` leg holds every box to 0.01 px with and without it. Keep it paint only, or that leg goes red.
   - Making the PDFs follow is a separate frozen edit the owner has not ruled on.
+- ⚠️ **A second, the note symbol (2 Nov 2026, owner's picker, AUTO-NOTE-RENAME-PLAN.md): ↻ before an automatic note, ⚑
+  before a holiday, in the month view ON SCREEN ONLY.** Frozen edit S1 in `renderMonthView` reads `b.mark`, which
+  `mvDayNotePlan` sets only while `printingCursor` is null, so the print rollback and the month-PDF writer never see it
+  (gates 10 and 13 byte-identical). A marked note is measured `MV_NOTE_MARK_W` narrower and its CSS padding grows by the
+  same, so it cannot clip; one the symbol would push past three lines goes without it (`mvNoteMarkFits`).
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 

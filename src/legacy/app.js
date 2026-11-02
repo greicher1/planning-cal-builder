@@ -13018,6 +13018,9 @@ export function initLegacyApp() {
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
   let printingCursor = null;
+  // The room the symbol takes at the left of a marked note (frozen edit S1): the note is measured this much narrower,
+  // and `.mv-note-mark`'s padding-left is the block's own 4px plus exactly this, so the two agree to the pixel.
+  const MV_NOTE_MARK_W = 10;
   // Armed by the two callers of frozen exportMonthPdf for its first read of the month range; see
   // monthRangeForSchedule (MONTH-NOTES-PLAN.md §3). Declared up here so no early render meets it in its TDZ.
   let mvPrintRangeOnce = false;
@@ -13693,7 +13696,13 @@ export function initLegacyApp() {
               // ⛔ FROZEN EDIT M1 (owner sign-off, 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6): the line's month style, measured
               // in (mvNoteLineCount) and appended to its style (mvTextCss). Unstyled, both are what they were.
               const wfKey = mvWfNoteKey(n);
-              const span = mvNoteLineCount(n, noteBoxW, mvTextStyleOf('wfnote', wfKey));
+              // ⛔ FROZEN EDIT S1 (owner sign-off by picker, 2 Nov 2026, "Month view, on screen (Recommended)", whose option
+              // named this edit and its gate: both month PDFs byte-identical; AUTO-NOTE-RENAME-PLAN.md "The note symbol"). A
+              // line mvDayNotePlan marked -- only ever on screen -- is measured MV_NOTE_MARK_W narrower and carries the
+              // .mv-note-mark class, whose CSS draws ↻ (an automatic note) or ⚑ (a holiday) in that room, so the text
+              // never sits under the symbol or clips. Unmarked, and in every print or PDF render, both are what they were.
+              const mark = b.mark || null;
+              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey));
               // ⛔ FROZEN EDIT H1 (owner sign-off by picker, 30 Oct 2026, "Just that holiday": a colour picked on one
               // holiday colours that holiday alone). A holiday with its own month colour (holidayColors) is drawn in it;
               // mvDayNoteBlocks carries it in as `b.color`, and only for such a holiday, so every other line -- and every
@@ -13703,7 +13712,7 @@ export function initLegacyApp() {
               // "double-click to edit", because a click now PICKS a note for the text style bar (ruling R1). Nothing else
               // changed. A title is in the markup the print rollback prints, so gate 10's baselines were re-cut for it,
               // with a diff showing only these titles moved; gate 13 is untouched (the writer draws no tooltip).
-              place(i, i, 'mv-bar mv-note-block mv-note-click',
+              place(i, i, 'mv-bar mv-note-block mv-note-click' + (mark ? ' mv-note-mark mv-note-mark-' + mark : ''),
                 `background:${fill}; color:${textColorFor(fill)};` + mvTextCss('wfnote', wfKey),
                 escHtml(n) + ' \u2014 double-click to edit (also updates the Waterfall)', escHtml(n),
                 `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"` + anc,
@@ -16554,6 +16563,26 @@ export function initLegacyApp() {
     if(r.arranged) r.ref = mvReferenceAnchors(schedule);
     return r;
   }
+  // Whether a marked line still fits a month note's three lines once the symbol's room is taken (frozen edit S1 measures
+  // it MV_NOTE_MARK_W narrower, and mvNoteLineCount never gives a note more than three lanes). A line that would need a
+  // fourth is drawn WITHOUT its symbol, so the symbol can never cut a line off; a wider window gives it back. Measured
+  // with mvNoteLineCount's own hidden measurer and rules, unclamped. The box is the renderer's own (mvNoteBoxWidth).
+  const _mvMarkFitCache = new Map();
+  function mvNoteMarkFits(text, fmt){
+    const boxW = mvNoteBoxWidth() - MV_NOTE_MARK_W;
+    const sig = mvMeasureSig(fmt);
+    const key = Math.round(boxW) + '|' + text + (sig ? '|' + sig : '');
+    if(_mvMarkFitCache.has(key)) return _mvMarkFitCache.get(key);
+    mvNoteLineCount('x', boxW);                           // makes the measurer, once
+    const el = _mvNoteMeasureEl;
+    el.style.width = Math.max(24, boxW) + 'px';
+    mvMeasureFont(el, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
+    el.textContent = String(text || '');
+    const fits = Math.round((el.offsetHeight - 6) / 13) <= 3;
+    if(_mvMarkFitCache.size > 800) _mvMarkFitCache.clear();
+    _mvMarkFitCache.set(key, fits);
+    return fits;
+  }
   // One day's notes, in order, each with its group. With `legacy` (no order or place anywhere, or the untouched
   // layout being drawn) every note is 'below': the waterfall's lines, then the day's own in array order -- the
   // loop renderMonthView always had.
@@ -16564,15 +16593,20 @@ export function initLegacyApp() {
     // A holiday with its own month colour (holidayColors) carries it on its block as `color`, which frozen edit H1
     // draws in place of the week's. Asked only while some holiday has one, so every other calendar plans as before.
     // An automatic note's own colour (autoNoteColors) rides the same way, asked only while some note has one.
+    // ⭐ ...and, ON SCREEN ONLY, which kind of line it is, as `mark` ('auto' | 'holiday'), the symbol frozen edit S1 draws
+    // before it (owner, 2 Nov 2026, by picker: "Month view, on screen", "↻ auto, ⚑ holiday"). Never while
+    // printingCursor is set -- the print rollback and the month-PDF writer -- so both month PDFs build exactly as before.
     const anyHolColor = Object.keys(holidayColors).length > 0, anyAutoColor = Object.keys(autoNoteColors).length > 0;
+    const onScreen = !printingCursor;
     const wf = notesForWaterfallDate(schedule, d).map(text=>{
       const p = legacy ? null : mvWfPlaceFor(schedule, text, iso, memo);
       const b = {kind: 'wf', text, group: mvPlaceGroup(p), bottom: !!p && p.bottom === true,
                  at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
-      const hol = anyHolColor ? mvHolidayLineInfo(schedule, iso, text) : null;
+      const hol = (anyHolColor || onScreen) ? mvHolidayLineInfo(schedule, iso, text) : null;
       if(hol && Object.prototype.hasOwnProperty.call(holidayColors, hol.hid)) b.color = holidayColors[hol.hid];
-      const auto = (anyAutoColor && !hol) ? mvAutoLineInfo(schedule, iso, text) : null;
+      const auto = ((anyAutoColor || onScreen) && !hol) ? mvAutoLineInfo(schedule, iso, text) : null;
       if(auto && Object.prototype.hasOwnProperty.call(autoNoteColors, auto.kind)) b.color = autoNoteColors[auto.kind];
+      if(onScreen && (hol || auto) && mvNoteMarkFits(text, mvTextStyleOf('wfnote', mvWfNoteKey(text)))) b.mark = hol ? 'holiday' : 'auto';
       return b;
     });
     const groups = [];

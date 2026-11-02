@@ -11,6 +11,10 @@
 // Independence Day (Observed) are switched on for the waterfall, so the 6/29/26 week holds an automatic note AND a
 // holiday.
 //
+//   S1  ON SCREEN an automatic note carries the ↻ mark and a holiday the ⚑ mark (frozen edit S1), a typed line none
+//   S2  no marked note overflows its box in any month (one the symbol would push past three lines goes without it)
+//   S3  the print rollback renders no symbol (the month-PDF writer is held byte for byte by gate 13)
+//   S4  narrowed, a holiday the symbol would push past three lines goes without it, and no text is cut off
 //   A1  Start Principal Photography opens the AUTO NOTE editor: "6/29/26 · Auto Note", its name alone, a placeholder
 //       saying clearing deletes it, a Delete Auto-Note button, the week's purple selected
 //   A2  renamed "First Day of Shoot": the month view, the waterfall cell (beside the holiday) and the file follow, and
@@ -198,6 +202,73 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     var S0 = JSON.parse(await save());
+
+    // ===== S1-S2: the note symbol, on screen only (frozen edit S1) =================================================
+    function markOf(b) { return !b ? null : b.classList.contains('mv-note-mark-auto') ? 'auto' : b.classList.contains('mv-note-mark-holiday') ? 'holiday' : '-'; }
+    await step('S1', async function () {
+      await toMonth('July 2026');
+      var start = block('2026-06-29', /^Start Principal Photography/), hol = block('2026-07-04', /^Independence Day 7/);
+      var cs = start ? { pad: getComputedStyle(start).paddingLeft } : {}, b4 = start ? getComputedStyle(start, '::before') : null;
+      var be = b4 ? { width: b4.width, mask: b4.webkitMaskImage || b4.maskImage || '' } : {};
+      await toMonth('November 2026');
+      var post = block('2026-11-02', /^Post Begins/), typed = block('2026-11-03', /^Post kickoff/);
+      kase('S1', 'on screen an automatic note carries the ↻ mark and a holiday the ⚑ mark, a typed line none; the symbol is an 8px mask in 10px of extra left padding',
+           markOf(start) === 'auto' && markOf(hol) === 'holiday' && markOf(post) === 'auto' && markOf(typed) === '-'
+             && cs.pad === '14px' && be.width === '8px' && /svg/.test(be.mask),
+           { start: markOf(start), holiday: markOf(hol), post: markOf(post), typed: markOf(typed), pad: cs.pad, symbol: be.width });
+    });
+    // Cut off = the TEXT ends below the inside of its box. (Every one-lane note hides its own 2 px of bottom padding,
+    // marked or not, so scrollHeight against clientHeight is no test.)
+    function textClipped(b) {
+      var r = document.createRange(); r.selectNodeContents(b);
+      var tr = r.getBoundingClientRect(), br = b.getBoundingClientRect();
+      return tr.bottom > br.bottom - 1 + 0.5;
+    }
+    await step('S2', async function () {
+      var bad = [], marked = 0, plain = 0, plainBad = [];
+      var months = ['January 2026', 'June 2026', 'July 2026', 'September 2026', 'October 2026', 'November 2026'];
+      for (var i = 0; i < months.length; i++) {
+        await toMonth(months[i]);
+        qa('#table-wrap .mv-note-block').forEach(function (b) {
+          var m = b.classList.contains('mv-note-mark');
+          if (m) marked++; else plain++;
+          if (textClipped(b)) (m ? bad : plainBad).push(months[i] + ': ' + txt(b));
+        });
+      }
+      kase('S2', 'no marked note has its text cut off in any month shown (one the symbol would push past three lines goes without it); nor does any unmarked one',
+           marked >= 5 && plain >= 1 && bad.length === 0 && plainBad.length === 0, { marked: marked, plain: plain, cut: bad, plainCut: plainBad });
+    });
+    await step('S3', async function () {
+      T.monthPrintPath(true);
+      var printed = false, marks = -1;
+      var realPrint = window.print;
+      window.print = function () { printed = true; marks = document.querySelectorAll('#print-root .mv-note-mark').length; };
+      try {
+        byId('export-btn').click();
+        await T.until(function () { return printed; }, 'the print path\'s print call', 100, 100);
+      } finally { window.print = realPrint; T.monthPrintPath(false); window.dispatchEvent(new Event('afterprint')); await settle(); }
+      kase('S3', 'the print rollback renders no symbol (the month PDF writer is held byte for byte by gate 13)', printed && marks === 0, { printed: printed, marks: marks });
+    });
+
+    // S4 makes the case S2 cannot meet at this window's width: the calendar narrowed until "Independence Day (Observed)
+    // 7/3/26" fills its three lines, so the symbol's room would push it onto a fourth (the browser pane showed it, 88 px
+    // days). It must go without its symbol, and nothing anywhere may be cut off.
+    await step('S4', async function () {
+      var tw = byId('table-wrap'), w0 = tw.style.width;
+      var r = null, cut = null;
+      try {
+        tw.style.width = '640px';
+        await view('sheet'); await view('month'); await toMonth('July 2026');
+        var obs = block('2026-07-03', /^Independence Day \(Observed\)/), hol = block('2026-07-04', /^Independence Day 7/);
+        r = { observed: markOf(obs), observedCut: obs ? textClipped(obs) : null, day: obs && obs.clientWidth, jul4: markOf(hol) };
+        cut = qa('#table-wrap .mv-note-block').filter(textClipped).map(txt);
+      } finally {
+        tw.style.width = w0;
+        await view('sheet'); await view('month');
+      }
+      kase('S4', 'narrowed, a holiday the symbol would push past three lines is drawn without it, a shorter one keeps its ⚑, and no text is cut off',
+           r.observed === '-' && r.observedCut === false && r.jul4 === 'holiday' && cut.length === 0, { narrow: r, cut: cut });
+    });
 
     // ===== A1-A4: rename and colour Start Principal Photography in the month view ==================================
     await step('A1', async function () {

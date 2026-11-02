@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
+
+The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an
+auto-note or a holiday"*, so an automatic line no longer looks like one you typed. By picker: **↻** before an automatic
+note and **⚑** before a holiday, in the Month view **on screen only**. Your own notes get none, and the month PDF, the
+Waterfall and Excel are unchanged.
+
+- The symbol is in the note's own text colour, and wrapped lines line up under the text, not under the symbol.
+- The note is measured that much narrower, so its text is never cut off. A note the symbol would push past three lines
+  (a long holiday name in a narrow window) goes without it, and gets it back in a wider window.
+
+How: frozen edit S1 in `renderMonthView`, signed off with its gate. It reads a mark the note plan sets only when
+drawing the screen, so the print path and the month-PDF writer render exactly as before.
+
+Verified: gate 13's 22 written month PDFs and gate 10's 11 printed month documents are byte-identical to their
+baselines. `autonoterename` S1-S4 (23/23): the marks, no text cut off, none in print, and the narrow case (red on a
+mutant without the fit rule). Full gate 3,505 PASS / 2 FAIL, both load timeouts that pass alone.
+
 ### Unreleased — rename an automatic note and it stays automatic; deleting one switches it off (2 Nov 2026)
 
 The owner asked for automatic notes to work as holidays now do: *"labelled as "Auto Note" in the popup when you go to
