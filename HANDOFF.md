@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: AUTOMATIC NOTES FOR CUSTOM PHASES — BUILT on branch `custom-autonotes` (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Step 1 of [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md). Tracker card `custom-phase-auto-notes`
+### ✅ 2 Nov 2026: AUTOMATIC NOTES FOR CUSTOM PHASES — ✅ MERGED into local `main` (owner's picker: "Commit, merge main in, re-gate"; push: "Push once merged and gated", HELD, see the last bullet), NOT pushed. Built on branch `custom-autonotes` (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Step 1 of [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md). Tracker card `custom-phase-auto-notes`
 
 - **The ask** (owner): *"Can we also add automatic notes for all custom phases too"*, then *"Start step 1"*. Ruled
   *"Off"* by default (R3).
@@ -36,7 +36,19 @@
 - ⚠️ **`main` moved after the branch was cut** (Production Ends `84fe1cd`, Sim Post rename `c5a1def`, both live at
   `fa14205`). So the gate above is on the branch, not on what a merge would produce: merge `main` in and re-gate before
   fast-forwarding, as holiday-tint did.
-- **Not committed, not merged, not pushed** at the time of writing.
+- ✅ **Committed `5ada271`; `main` (`fa6aa4b`: Production Ends, Sim Post rename, the column-swap cache fix, note-size
+  docs) merged in as `0e0bf01`.** Only HANDOFF.md and README.md conflicted, as new top entries; both kept.
+- ✅ **Full gate on the merged build** (`8ede4fc5…`, port 8377, 13:58-14:30, load ~7-9): **3,541 PASS, 1 FAIL**,
+  `mvbarsize (hiatus-blanklabel)` B3c (a Load round trip), **12/12 alone, twice**, on the same build. The waterfall PDF
+  and every Excel part identical; gate 10's 11 print documents identical; gate 13's written month PDFs all PASS;
+  `autonotephases` 26/26, `prodends` and `simpostname` green in the run. Targeted legs on the merged build before it:
+  autonotephases 26/26, autonotekinds 16/16, settingswin 21/21, hidewf 19/19, monthnotes 8/8, prodends 14/14,
+  simpostname 14/14, customunits 23/23 + 28/28; `npm run check` 40/40.
+- ✅ **Local `main` fast-forwarded to this branch** (`fa6aa4b..` this entry's commit).
+- ⛔ **PUSH HELD.** The owner chose "Push once merged and gated", but local `main` also carries another session's
+  column-swap cache fix (`c30b639`), whose push the owner answered **"Not yet"** (its entry above). A push of `main`
+  would release both, so nothing was pushed; the owner was asked. Pushing this work ALONE means cherry-picking
+  `5ada271` onto `origin/main` and gating that build too.
 
 ### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — ✅ MERGED into local `main` (owner's picker: "Merge to main"; "Push": **"Not yet"**), NOT pushed. Fix commit `c30b639` on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); `main` (`d81c140`, docs only) merged in as `c1f6109`, no code moved; mini-gate 545 / 1 (a timing flake, green alone). Tracker card `colswap-cache-stale`
 
