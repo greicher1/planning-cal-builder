@@ -29,6 +29,73 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
+
+A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.
+The owner asked whether it should take the Off day's hatch; the suggestion was the weekend tint instead. The calendar
+takes a holiday off as it does a weekend, while the hatch means a day someone took out of the shoot, and a worked
+holiday already turns orange. The owner picked *"Weekend tint"*, on screen and in both month PDFs, and approved the
+frozen edit with its gate. Now:
+
+- A holiday's day is grey wherever the month view writes the holiday's name, in prep and post as well as the shoot.
+  It is the faint Soft Lines grey on screen and the weekend's grey in the month PDF and the print rollback.
+- A holiday switched off, hidden from the month view, or dropped from a waterfall note stays white. Only a day whose
+  holiday line is drawn turns grey, so a grey weekday always says why.
+- The date gets no line through it. The worked-day tint and the Off hatch still win, as they do on a weekend.
+- Nothing moves: no row height, no lane, no sheet. The waterfall, Excel, the waterfall PDF and saved files are untouched.
+
+How: `mvHolidayDays()` finds the days whose holiday line is drawn. Frozen edit HT1 is the `.mv-holiday` class in
+`renderMonthView` and its rule beside `.mv-weekend`. The Soft Lines screen rule tints it as a weekend, and the
+month-PDF writer reads it back and paints the weekend fill.
+
+Verified:
+- Gate 13: 15 of 20 written month PDFs moved. Every changed line is a new grey cell fill, or an out-of-month holiday
+  recoloured from the spillover tint to the grey. The other 5 are byte-identical.
+- Gate 10: 7 of 11 print documents moved, by the class alone. Fit tables and sheet counts are identical.
+- The owner signed off old/new/difference sheets, then both sets were re-cut (their READMEs record it).
+- `monthlayout` and `softlines` learned the new class and pass. The full gate result is in HANDOFF.
+### Unreleased — Rebuild From lists the phases it will move, and you tick which (30 Oct 2026)
+
+The owner asked how Rebuild From knows which phases to move: *"what if you dont want localization added by rebuild
+From or you do want a custom phase moved by rebuild from"*. Until now it moved every phase on the chosen side that
+had a length, and said which only afterwards. Layout A of
+[`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html) is now built (owner: *"Build A"*):
+
+- **Work backwards / Work forwards now choose a side** instead of acting at once.
+- **The panel lists that side's phases** in the order they run, with the pinned phase marked. Each row shows the
+  start the phase would get and how far it moves, in the owner's words: "Pushed 3 wks", "Pulled 1 wk", "New",
+  "Stays", "No length".
+- **Rebuild N phases moves only the ticked ones.** An unticked phase keeps its dates, and the chain carries on from
+  the last phase placed.
+- **Starting ticks:** every built-in phase that has a length is ticked, and every custom phase unticked. A custom
+  phase often runs alongside the chain, and chaining it end to end pushed the phases before it earlier by its
+  whole length. Localization starts unticked until its weeks are entered (owner): a phase with no length reads
+  "No length" and can't be ticked.
+- **Session only:** the ticks reset each time the panel opens, and the direction is kept for the session. Nothing new
+  goes into a saved file.
+- **Close all gaps is unchanged.**
+
+The dates in the list come from the real rebuild, run and then put back (`trialRebuild`), so the list can't show a
+date the rebuild won't deliver. Verified with a new leg, `rebuildticks` (19/19): the previewed dates are the ones
+Rebuild writes, drawing the list changes nothing, and unticked Casting and Localization keep their dates. The four
+legs that drive the tool (`snaptools`, `overrides`, `builtindates`, `customunits`) pass on the build, as do
+`hdrcontrols` and `npm run check`. It was also tried in the app. Full gate 3,418 / 6, all six explained: three
+load timeouts green alone, and three from an unrelated test-fixture edit, green with that fixture restored.
+
+### Unreleased — the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
+
+The owner, with screenshots of the stepper and the header's Export PDF button: *"make the left and right buttons the
+same color/style as the export pdf button"*, then, when a first pass also reshaped them into separate rounded buttons,
+*"i just wanted you to change the bg color of the buttons, not the shape and look"*. So the stepper keeps its shape (one
+white bordered box, the month name between the two arrows) and only the ‹ and › ends are filled with Export PDF's navy,
+with its hover shade and a white arrow (and a white focus ring, which would vanish on navy). Their disabled look at
+the first or last month is unchanged (faded). Today is unchanged. CSS only (`.month-step` in `legacy.css`): nothing in
+the grid, the exports or a saved file moves.
+
+Verified: the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`), white glyph; the box is the same 202 px
+with 5 px corners as before; `monthmap` 20/20 on all three of its gate fixtures (part C is the stepper);
+`npm run check` 40/40; seen in the app.
+
 ### Unreleased — a snapped start's box shows the Monday it snapped to (30 Oct 2026)
 
 Typing a Wednesday into a phase's Starts box with Snap to Monday on started the phase that Monday, but the box kept the

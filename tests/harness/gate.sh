@@ -1813,6 +1813,8 @@ done
 # Wk N"), Automatic notes row and Save; New puts it back; and the OLD name, typed or loaded from a real v1.8.0 file,
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
+# rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
+# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1856,6 +1858,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
+              rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \

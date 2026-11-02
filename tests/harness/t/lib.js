@@ -58,6 +58,16 @@ window.__T = (function(){
   function altSwap(dir){
     document.dispatchEvent(new KeyboardEvent('keydown', {key: dir < 0 ? 'ArrowLeft' : 'ArrowRight', altKey: true, bubbles: true, cancelable: true}));
   }
+  // Rebuild From since its tick list (owner, 30 Oct 2026: "Build A"): choose the side, tick EVERY phase the
+  // list offers, press Rebuild. That is exactly what the two direction buttons did on one click before the
+  // ticks, so a leg written against the old buttons keeps asserting the same dates. The popover must be
+  // open with its phase and date set. ** RE-QUERY each tick: the list is redrawn on every change. The
+  // rebuildticks leg is the one that holds what unticked phases do.
+  function rebuildAll(dir){
+    document.getElementById(dir < 0 ? 'tool-solve-back' : 'tool-solve-fwd').click();
+    for(var guard = 0, box; guard < 60 && (box = document.querySelector('#pop-solve .solve-list input[data-key]:not(:checked)')); guard++) box.click();
+    document.getElementById('tool-solve-go').click();
+  }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
   function buildFixture(){
@@ -599,5 +609,6 @@ window.__T = (function(){
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
-          pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown};
+          pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
+          rebuildAll:rebuildAll};
 })();

@@ -43,6 +43,27 @@ Each case is two files: **`<case>.html`** is `#print-root`'s innerHTML at the mo
 **`<case>.json`** is what `monthcmp.py` derived from it plus the sheet count and page box of the PDF
 Chrome actually printed (`/MediaBox [0 0 792 612]`, landscape Letter, every case).
 
+## ✅ RE-CUT 30 Oct 2026 — SEVEN CASES: a holiday's day takes the weekend's grey (frozen edit HT1)
+
+Owner, 30 Oct 2026, by picker: *"Weekend tint"*, *"Screen and both PDFs"*, *"Approve with that gate"*.
+`renderMonthView` puts `.mv-holiday` on each day a holiday's line is drawn (`mvHolidayDays`), and the frozen month
+block paints it the weekend's `#F4F3F0`. Signed off on before / after / difference sheets of the written PDF (gate
+13's README, same day): *"Yes, cut them"* (picker).
+
+**The class only, proven:** each new document equals its old one, character for character, once ` mv-holiday` is
+removed from the day cells' class lists. Every fit table (every row height) is identical, and so is every sheet count.
+
+| case | holiday cells | sheets |
+|---|---|---|
+| `reference`, `blocks`, `blocksoff`, `month-lanecap`, `hiatus-blanklabel` | 17 | 16 → 16 |
+| `halfdays` | 16 | 16 → 16 |
+| `mvnotes` | 20 | 17 → 17 |
+
+**Not moved, identical:** `dayoverrides`, `mvheader`, `mvheaderlegacy`, `dayoverrides-onhalf` (no holiday line).
+
+Cut with `monthcmp.py cut` from `monthprint` runs (port 8361) on build `cb7c30ac89690772…`, branch `holiday-tint` at
+`6f10a6a`, Google Chrome 156.0.8078.74.
+
 ## ✅ RE-CUT the same day for RULING 8 — episode pills become "Production Week N" + grey episodes
 
 A deliberate change to the month PDF of **every episodic calendar**, on the owner's instruction

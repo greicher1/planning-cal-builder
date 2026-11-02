@@ -75,6 +75,88 @@
   beside `syncPhaseEndsStarts()`, warm-started from the current start, and measure the per-keystroke cost. A finer
   day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
   when Ends moves the start, as they do today when the end moves.
+### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; ✅ local `main` FAST-FORWARDED to `f3bde45` (owner, 2 Nov 2026: *"Yes, merge to main"*); NOT PUSHED
+
+- **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
+  like this in the month view? thoughts?"* Suggested the weekend tint instead: the calendar takes a holiday off as it
+  does a weekend; the hatch is the mark of a day someone took OUT of the shoot (a day-menu Off, drawn only inside the
+  shoot); a worked holiday already turns orange (`.mv-day-on`). So grey = the calendar's days off, hatch = taken out,
+  orange = put in. With the hatch a holiday Monday and a manual Off would look the same, and a Saturday holiday would
+  sit hatched beside grey Saturdays.
+- ✅ **RULED (owner, 30 Oct 2026, by picker):** *"Weekend tint"*; then *"Screen and both PDFs (Recommended)"* and
+  *"Approve with that gate"* (gate: the full gate green, waterfall and Excel byte-identical, month baselines changed
+  only by holiday-day fills checked line by line, sheets shown before any re-cut); then, on the sheets, *"Yes, cut
+  them"*. Tracker card `holiday-shading` (it already existed from the 20 Oct gap report, item 19).
+- **Which days** (`mvHolidayDays(schedule)`, beside `notesForDate`): a day is tinted only when the month view DRAWS a
+  holiday's line on it: the holiday notes in `notesByIdx` through `autoNotesForView(…, 'month')` (so switched on and
+  ticked for the month view), plus `monthOnlyHolidays` shown in the month view, and the line still among
+  `notesForWaterfallDate()`'s lines for that day (so a both-views holiday a waterfall override dropped on purpose stays
+  white). Nothing grey without its name. ⚠️ Union holidays still draw a line only inside a phase (the old rule), so a
+  union holiday outside every phase stays white; the user's own holidays tint wherever the month view shows them.
+- **Where it lives:**
+  - `renderMonthView`: `const _holDays = mvHolidayDays(schedule)` after `_ovDays`, and `mv-holiday` pushed right
+    after `mv-weekend`. A class only, so height-neutral exactly as the day marks are.
+  - `legacy.css`, frozen month block: `.mv-holiday{ background:#F4F3F0 }` right after `.mv-weekend`, BEFORE the
+    `.mv-day-off` / `.mv-day-on` rules, so the hatch and the worked-day tint still win by order. Soft Lines (screen
+    only): the weekend rule's `#FAF9F6` now also matches `.mv-holiday`, and the spillover-white rule excludes it, so on
+    screen a holiday is exactly a weekend's faint grey.
+  - Month-PDF writer: `mvlParseMonth` sets `day.holiday = true` ONLY when the class is there (so a month with no
+    holiday line models exactly as before; the `monthlayout` leg compares the day objects whole), and the cell fill
+    is `(d.weekend || d.holiday) ? P.weekendFill`. ⚠️ Do NOT put `mv-weekend` on a holiday instead: the writer throws
+    when `weekend` is not exactly Saturday/Sunday.
+  - Legs taught the class: `monthlayout` (P0's expected day gains `holiday: true`) and `softlines` (a holiday counts
+    with the plain weekends, `#FAF9F6`).
+- **Measured before the cut** (build `cb7c30ac…`, rebuilt from `6f10a6a` to the same bytes): gate 13, 15 of 20 written
+  PDFs moved, every changed line a new grey fill (`0.9569 0.9529 0.9412 rg` + `re f`) or an out-of-month holiday's fill
+  and faded number recoloured (`rg` only); 5 byte-identical. Gate 10, 7 of 11 print documents moved by the class alone
+  (identical once ` mv-holiday` is stripped), fit tables and sheet counts identical. Both baseline READMEs record the
+  re-cut with tables.
+- **Full gate** (port 8361, build `cb7c30ac…`, 30–31 Oct, load average 43–99 from other sessions' runs): 3,183 PASS,
+  32 FAIL, every one a contention failure, each re-run green ALONE through the gate's own judges:
+  - gate 10's 11 print documents and 22 of gate 13's 23 written PDFs identical to the re-cut baselines in the run
+    itself; the 23rd (`monthnotes`, no file written) byte-identical alone; waterfall PDF and every Excel part identical.
+  - `onecol` 17/17, `rowmigrate` 4/4, `sideboxes` 78/78, `sbnoexport` 28/28, `colreuse` (live) 21/21,
+    `scenariofacts` 12/12, `mvorder` 30/30, `monthexport` (hiatus-blanklabel, monthnotes) 9/9 each, `scenariocompat`
+    (v1.8.0, v1.2.0), `shootdays` (blocks 16/16, offweek 17/17).
+  - Held against a CONTROL, `main`'s `c89ec8c` built without HT1 and served beside it: `pwagate` C1 ("Link copied")
+    13/13 on both; `shootdays (dayoverrides-onhalf)` failed on the control too (8 fails; its A2 click lands while the
+    re-open is still settling: Undo on before the click, off after); `scenarios` S15 (a refusal read after a fixed
+    0.7 s) 3/3 on each build, alternated.
+  - `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14 once the load fell to ~7 (about 2 min each). Above a load
+    of ~30 all three hit their 480 s deadline on BOTH builds, and even a 40-minute deadline did not save them, as
+    already on record for 22 Sep (the PASS count stalls, it does not slow).
+- **2 Nov 2026 (the owner: *"continue"*, after declining a commit/merge/push picker):** the re-cut baselines and docs
+  COMMITTED on the branch as `26f2065`; `main` (`12cd4ca`: Rebuild From ticks, the snapped start box, the month
+  stepper) MERGED INTO the branch as `deaa45e` (HANDOFF.md and README.md conflicted only as two new top entries; both
+  kept, so over `main` the branch adds only this entry, its changelog entry, HT1 and the re-cut baselines).
+- ✅ **Full gate on the merged build** (`3a7dcbd1e21b1e83…`, port 8361, load ~6 at the start): **3,496 PASS, 0 FAIL,
+  GATE PASSED.** Gate 13 23/23 written month PDFs and gate 10's 11 print documents identical to the re-cut
+  baselines; the waterfall PDF and every Excel part identical; `npm run check` 40/40.
+- ✅ **MERGED (owner, 2 Nov 2026: *"Yes, merge to main"*): local `main` fast-forwarded `12cd4ca..f3bde45`.** Its build
+  is the gated `3a7dcbd1…` byte for byte. `main`'s checkout held ANOTHER session's uncommitted HANDOFF.md edit (the
+  2 Nov "month-view notes bigger" and 30 Oct "no date snapping" entries, and the snapped-start-box heading going LIVE),
+  which a fast-forward cannot pass. It was carried across, NOT committed: set aside, fast-forward, then the file
+  rewritten as the 3-way merge of both (its entries above this one), and proved line for line to be the same edit on
+  the new `main`. This note was committed on its own (index-only), so that edit is still uncommitted for its session.
+- **Next:** the owner's picker to push. `origin/main` is at `12cd4ca`, so a push ships exactly `6f10a6a`, `26f2065`,
+  `deaa45e`, `f3bde45` and this note. Then check the live URL serves the gated build.
+
+### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
+
+- **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the
+  same color/style as the export pdf button"*. Tracker card `month-stepper-navy-arrows`.
+- ⛔ **"color/style" meant the COLOUR only.** A first pass also split the arrows out of the box into separate rounded
+  buttons (Export PDF's 7 px radius, 4 px gaps, Mantine's disabled grey). The owner: *"i just wanted you to change the
+  bg color of the buttons, not the shape and look"*. Reverted to the original shape. Lesson: when the owner points at
+  another control's "style", change the paint and ask before changing the geometry.
+- **What changed (CSS only, `.month-step` in `src/styles/legacy.css`):** `.ms-arrow` background is
+  `--mantine-primary-color-filled` (hover `-filled-hover`), glyph white, focus ring white (the navy `--accent` ring
+  would vanish on navy). The box, borders, radius, widths, disabled fade and Today are exactly as before.
+- **Proof:** the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`); the box is the same 202 px with 5 px
+  corners; `monthmap` 20/20 on `mvnotes`, `colreuse`, `offweek`; `npm run check` 40/40; seen in the browser pane. No
+  full gate (chrome CSS; both print paths hide the toolbar).
+- **Landed:** committed `c89ec8c` (owner, *"Commit and push"*), then merged with origin/main `fdf9324` (another
+  session's snapped-start-box push); only the top entries of HANDOFF.md and README.md conflicted, both kept.
 
 ### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
 
@@ -327,7 +409,67 @@
 - Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
   (label tweak rule).
 
-### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
+### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch as `5bad4c7` (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit `65edf8f` (*"Restore it"*); ➡️ **MERGED INTO LOCAL `main`** (owner: *"Merge into main"*): `main` merged into the branch twice (`c2e6194` for `64e9a16` + `ff84d6f`, the date picker's Mondays-only change and the weeks-end-date mockup, one README conflict, both entries kept; `ceb0dc5` for `2826feb`, HANDOFF only), then a fast-forward of local `main` was RECORDED here (`d14cb0e`) but ⛔ **NEVER HAPPENED**: `main`'s reflog has no such move, and `main` went on without it (`9b728c7` at 15:11). Almost certainly refused because the main checkout held an UNTRACKED `mockups/rebuild-from-ticks.html` (byte-identical to the committed one), which git will not overwrite, and the refusal went unread. Found 30 Oct 2026 when the owner asked where the feature went; ➡️ **MERGED FOR REAL** (owner: *"Yes, merge it"*): `main` at `3c2d6cf` merged into the branch as `d9334c1` (README.md and gate.sh conflicted, both sides kept), the untracked copy removed, then local `main` fast-forwarded, CHECKED with `git merge-base --is-ancestor`; re-checked on that merge: `npm run check` 40/40, `rebuildticks` 19/19, `snaptools` 14/14, `overrides` 20/20, `builtindates` live + restore, `customunits` live + restore, `hdrcontrols` 12/12, `endsdate` 17/17, `holidayrename` 14/14, `datepick` 17/17 (no second full gate); NOT pushed; gated build `3cf17115…`, merged build `0818b629…` (re-checked: `npm run check` 40/40, `rebuildticks` 19/19, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `builtindates` 17 + 15, `customunits` 23 + 28, `hdrcontrols` 12/12; no second full gate)
+
+- **The ask:** after the mockup (entry below) and the pros and cons of A and B, the owner: *"Build A"*. Not ruled,
+  so built as the mockup showed them: the **starting ticks** (every built-in ticked, every custom phase unticked;
+  the other choice offered was "also untick any phase that already runs alongside another"), and **Close all gaps
+  unchanged** (it does not read the ticks).
+- **What changed, all chrome or unfrozen engine; no frozen code, no save-format change:**
+  - `PreviewToolbar.jsx` `#pop-solve`: the two direction buttons keep their ids (`#tool-solve-back`,
+    `#tool-solve-fwd`) but are now plain `<button>`s in a `.solve-dir` segmented control that only CHOOSE the side
+    (`aria-pressed`, set by the engine). Under them: "Phases to rebuild" with a count (`[data-solve-count]`), the
+    list (`[data-solve-list]`, engine-written), a hint (`[data-solve-hint]`), and a plain navy `#tool-solve-go`
+    ("Rebuild N phases"). The result line moved up under it, above Close all gaps. Width 400 px
+    (`.tools-menu-solve`; `.tools-menu-lg` is gone, nothing else used it).
+  - `app.js` solvers: `workBackwardsFrom` / `workForwardsFrom` take `opts.leave` (a Set of keys taken OUT of the
+    chain before it is walked, so they keep their dates and the chain carries on from the last placed phase: the
+    rule a phase with no length already had) and `opts.trial`. `written` entries now carry `key`.
+  - **The preview is the real solver, run and put back** (`trialRebuild`): it saves every `start-`/`end-` field, the
+    day overrides, `currentSchedule` and `lastShootDayMove`, runs the solver with the forward pass's `update()`
+    swapped for `trialSchedule()` (re-pin the marks as update() does, then `computeSchedule(readState())`, no
+    render), and restores everything in `finally`. Nothing renders, nothing is marked dirty, no undo step.
+    ⛔ Do not replace it with arithmetic in the panel: Production is SEARCHED and Post chains off its wrap.
+  - The tools IIFE: `renderSolve()` draws the list from `phaseSequence()`; `solveTicks` (reset on every open),
+    `solveDir` (kept for the session); rows say the new date and "Pushed N wks" / "Pulled N days" / "New" /
+    "Stays" / "Not dated" / "No length" / "Can’t place" (same weeks-or-days rule as Compare's `moved`). A phase
+    with no length is in `leave` too, so the result line no longer lists it as "Skipped". Redraw measured at
+    15-50 ms per tick, Production search included. ⚠️ It is NOT drawn at IIFE evaluation (the scheduler reads
+    state declared further down the file); `openPop()` draws it.
+  - CSS: `.solve-*` rules after `.tools-msg`; the ticks reuse `.form-panel`'s Mantine checkbox rules (selectors
+    added, not copied). Ticks carry no id and sit inside `.tools-menu`.
+- **Legs:** new `rebuildticks` (19 checks, in `gate.sh`'s generic list): the list, the starting ticks, every previewed
+  date and word, that drawing the preview moves nothing, that Rebuild writes the previewed dates and leaves unticked
+  Casting / Localization alone, undo, the ticks resetting, the direction persisting, no ids. A new lib helper,
+  `T.rebuildAll(dir)`, ticks everything and presses Rebuild (the old one-click behaviour), used by `snaptools`,
+  `overrides`, `builtindates` and `customunits`. `snaptools` L15 now asserts the disabled "Nothing to rebuild"
+  button and a "No length" row (the engine's own L-15 guard is still behind it).
+- **Verified on the build:** `npm run check` 40/40; `rebuildticks` 19/19; `snaptools` 14/14; `overrides` 20/20;
+  `builtindates` live 17 + restore 15 checks; `customunits` live 23 + restore 28; `hdrcontrols` 12/12; in the
+  browser pane (backwards and forwards, unticking Localization, Rebuild, no console errors). FULL GATE 3,418 / 6
+  on the branch build, all six explained, none this branch's:
+  - ⚠️ **Three come from `tests/fixtures/stintswap-reshape.sptcal`, which LOCAL `main`'s `62fd9ab` changed** (another
+    session's "HANDOFF: Region label removal live at 9522aa3", NOT pushed, swept the main checkout's uncommitted edit of
+    it into the commit: +379 lines, 8 episodes, a BC region, day marks, side boxes; still the synthetic "Reshape
+    Fixture", but no longer the calendar its baselines were cut from). `stintreshape` (load timeout), gate 13's
+    stintswap-reshape month PDF ("THE CONTENT MOVED", 25 -> 26 pages) and `phasesui (hidewf)` P1. With the fixture as
+    committed before `62fd9ab` restored in the worktree (and put back after): `stintreshape` 9/9, the month PDF
+    BYTE-IDENTICAL to its baseline, `phasesui (hidewf)` 8/8. ✅ The owner chose *"Restore it"*: a separate commit on
+    THIS branch puts the pre-`62fd9ab` file back, so local `main` is fixed when this branch merges. Until then `main`
+    still carries the edited file, and a gate run from `main` will show those three failures.
+  - Three load timeouts, green alone: `retiredplaces` 8/8, `launchopen` 16/16, `mvbarsize (hiatus-blanklabel)` 12/12.
+    (A `rebuildticks` run on another port overlapped the gate and may have slowed it.)
+- **Localization's starting tick (owner, 30 Oct 2026):** *"localization should also be unticked by default (unless
+  someone entered a number of weeks or a starting date for it)"*. Already true as built, so no code changed: a new
+  calendar leaves Localization's weeks blank, a phase with no length is never ticked (its row reads "No length"),
+  and a start date alone is no length, so it cannot be placed either way. With its weeks entered it starts ticked.
+  `rebuildticks` U1/U2 now hold both cases (19/19).
+- **Open for the owner:** Close all gaps (above). Known limit, unchanged: a custom phase with no date can only go at
+  the end of the chain.
+- The main checkout's untracked copy of `mockups/rebuild-from-ticks.html` (identical, `cmp`) was removed before the
+  fast-forward, since the branch tracks it.
+
+### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED; ➡️ LAYOUT A BUILT (entry above) ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
 
 - **The ask** (owner, 28–29 Oct 2026): first *"should we consider getting rid of "Rebuild From""*, then *"Ok maybe we
   should keep it BUT … what if you dont want localization added by rebuild From or you do want a custom phase moved
