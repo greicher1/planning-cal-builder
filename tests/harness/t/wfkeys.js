@@ -218,8 +218,10 @@ window.addEventListener('load', function () { (async function () {
     await click(noteTd('2026-01-05'));
     await press('Backspace'); await settle();
     var S2 = await snap();
-    check(noteText('2026-01-05') === '' && JSON.stringify((S2.userNotes || {})['2026-01-05']) === '{"text":""}',
-          'D4 Backspace empties an AUTOMATIC note, stored as the editor\'s explicit clear (' + JSON.stringify((S2.userNotes || {})['2026-01-05']) + ')');
+    // ⭐ Since 2 Nov 2026 (AUTO-NOTE-RENAME-PLAN.md, ruling 6) an emptied automatic note is SWITCHED OFF, and no week
+    // blank is left: the explicit clear ({text:''}) this checked until then stayed on the week after a move.
+    check(noteText('2026-01-05') === '' && !('2026-01-05' in (S2.userNotes || {})) && (S2.autoNotesOff || {}).writersRoomOpens === true,
+          'D4 Backspace empties an AUTOMATIC note: switched off, and no week blank (' + JSON.stringify((S2.userNotes || {})['2026-01-05']) + ', ' + JSON.stringify(S2.autoNotesOff) + ')');
     await undo();
     check(noteText('2026-01-05') === 'Writer\'s Room Opens 1/5/26', 'D5 undo brings the automatic note back');
     // A sweep over phases, dates, a band and notes: only the notes go.
@@ -265,8 +267,8 @@ window.addEventListener('load', function () { (async function () {
           'C4 Paste fills three weeks down (Q3: the third, an automatic note, emptied by the blank line), with the look (Q2)');
     check(hiIs(['*note:2026-10-05', 'note:2026-10-12', 'note:2026-10-19']), 'C5 the pasted cells end up highlighted (' + hi().join(' ') + ')');
     var S3 = await snap();
-    check((S3.noteFontSize || {})['2026-10-05'] === 9 && JSON.stringify((S3.userNotes || {})['2026-10-19']) === '{"text":""}',
-          'C6 saved: the size travelled, and the emptied automatic note is the explicit clear');
+    check((S3.noteFontSize || {})['2026-10-05'] === 9 && !('2026-10-19' in (S3.userNotes || {})) && Object.keys(S3.autoNotesOff || {}).length === 1,
+          'C6 saved: the size travelled, and the emptied automatic note is switched off, with no week blank (ruling 6)');
     await undo();
     check(noteText('2026-10-05') === '' && noteText('2026-10-19') === 'Principal Photography Wraps 10/20/26', 'C7 one undo takes back the whole paste');
     // Text from outside SPTCal: the cell's own look; Excel's trailing line break ignored; quotes; illegal characters.
@@ -433,14 +435,16 @@ window.addEventListener('load', function () { (async function () {
     await letGo();
     check(noteText(seq[seq.length - 2]) === 'Penult' && /Not enough weeks below/.test(chip()), 'G16 and the drop is refused, with the reason ("' + chip() + '")');
     await undo();
-    // An automatic note dragged away leaves an explicit clear behind.
+    // An automatic note dragged away is REPLACED by the typed copy it travels as (ruling 6): it is switched off, and its
+    // week is left with no blank (until 2 Nov 2026 it left the explicit clear, which hid what landed there next).
     await click(noteTd('2026-06-29'));
     await grab(noteTd('2026-06-29'));
     await moveTo(noteTd('2026-07-06'));
     await letGo();
     var S6 = await snap();
     check(noteText('2026-07-06') === 'Start Principal Photography 6/29/26' && noteText('2026-06-29') === '' &&
-          JSON.stringify((S6.userNotes || {})['2026-06-29']) === '{"text":""}', 'G17 an automatic note dragged away leaves its week empty (the explicit clear)');
+          !('2026-06-29' in (S6.userNotes || {})) && (S6.autoNotesOff || {}).principalStart === true,
+          'G17 an automatic note dragged away leaves its week empty: switched off, no week blank');
     await undo();
 
     // ---- F: the file and the grid -------------------------------------------------------------------------------

@@ -347,7 +347,7 @@ export function Header() {
         leftSection={<IconRotateCcw className="btn-ic" />}
         title={notesReset.view === 'month'
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
-          : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well.'}>
+          : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
         {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
       </Button>
     </Group>

@@ -379,14 +379,30 @@ window.addEventListener('load', function () { (async function () {
       p5, 'a hiatus from 11/9/26, one step');
 
     // ---- N: the clipboard row and Back to automatic ----
+    // ⭐ Since 2 Nov 2026 (AUTO-NOTE-RENAME-PLAN.md, ruling 6) Clear on an automatic note SWITCHES IT OFF and leaves no
+    // week blank, so the emptied cell has nothing to go back to (Settings ▸ Automatic notes brings it back, ruling 7).
+    // Back to automatic text is held on a note TYPED OVER instead: ending in another date makes it typed text, not a
+    // rename (ruling 3).
     await rc(noteTd('2026-06-29'));
     await choose('clear');
     var n1 = {text: noteText('2026-06-29'), undo: undoOn()};
     var S2 = await snap();
-    add('N1', 'Clear on the automatic note (6/29) empties the cell and stores the explicit clear, userNotes["2026-06-29"] = {text: ""} (R2); an undo step',
-      n1.text === '' && n1.undo && eq((S2.userNotes || {})['2026-06-29'], {text: ''}),
-      {n1: n1, stored: (S2.userNotes || {})['2026-06-29']}, '{text: ""}');
+    add('N1', 'Clear on the automatic note (6/29) empties the cell, switches the note off and leaves no week blank (ruling 6); an undo step',
+      n1.text === '' && n1.undo && !('2026-06-29' in (S2.userNotes || {})) && (S2.autoNotesOff || {}).principalStart === true,
+      {n1: n1, stored: (S2.userNotes || {})['2026-06-29'], off: S2.autoNotesOff}, 'switched off, no blank');
 
+    await rc(noteTd('2026-06-29'));
+    var n2c = info();
+    await esc();
+    await undo();
+    var n2back = noteText('2026-06-29');
+    noteTd('2026-06-29').scrollIntoView({block: 'center'}); await T.sleep(100);
+    T.openCell(noteTd('2026-06-29')); await T.sleep(300);
+    var ta = q('.note-pop textarea');
+    if(!ta) throw new Error('the waterfall note editor did not open on 6/29');
+    ta.value = 'Start Principal Photography 6/30/26'; ta.dispatchEvent(new Event('input', {bubbles: true}));
+    ta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));
+    await settle(); bodyFocus();
     await rc(noteTd('2026-06-29'));
     var n2i = info();
     await choose('note-auto');
@@ -395,10 +411,11 @@ window.addEventListener('load', function () { (async function () {
     var n2u = noteText('2026-06-29');
     await undo();
     // The cleared cell is empty, so since 28 Oct 2026 its clipboard row is Paste alone (Cut, Copy and Clear left out).
-    add('N2', 'Then the cleared cell offers Paste (alone: it is empty) and Back to automatic text ("Start Principal Photography 6/29/26"), before the way out; it brings the text back as ONE undo step (undo empties it again; one more undo, nothing left)',
-      n2i && eq(ids(n2i), ['paste', 'note-auto', 'month']) && item(n2i, 'note-auto').second === 'Start Principal Photography 6/29/26'
-        && n2.text === 'Start Principal Photography 6/29/26' && n2u === '' && noteText('2026-06-29') === 'Start Principal Photography 6/29/26' && !undoOn(),
-      {menu: n2i && n2i.items, back: n2.text, undone: n2u, undo: undoOn()}, 'back, one step');
+    add('N2', 'Then the cleared cell offers Paste alone and the way out (nothing to go back to); a note typed over the automatic one offers Back to automatic text ("Start Principal Photography 6/29/26"), which brings it back as ONE undo step (undo restores the typed text; one more undo, the automatic note, nothing left)',
+      n2c && eq(ids(n2c), ['paste', 'month']) && n2back === 'Start Principal Photography 6/29/26'
+        && n2i && ids(n2i).indexOf('note-auto') !== -1 && item(n2i, 'note-auto').second === 'Start Principal Photography 6/29/26'
+        && n2.text === 'Start Principal Photography 6/29/26' && n2u === 'Start Principal Photography 6/30/26' && noteText('2026-06-29') === 'Start Principal Photography 6/29/26' && !undoOn(),
+      {cleared: n2c && n2c.items, back0: n2back, menu: n2i && n2i.items, back: n2.text, undone: n2u, undo: undoOn()}, 'back, one step');
 
     clipMode = 'refuse'; clipLog = [];
     await rc(noteTd('2026-08-31'));

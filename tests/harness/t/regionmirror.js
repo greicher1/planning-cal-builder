@@ -104,7 +104,9 @@ window.addEventListener('load', function () { (async function () {
       {both: both(), meta: prodMeta(), want: meta0}, 'both us-general; the dates as before');
 
     // M6: with a note to misplace, the copy's pick asks, holds, and Cancel keeps the old Region on both.
-    var week = (document.querySelector('td.sheet-note-cell[data-week]') || {dataset: {}}).dataset.week;
+    // An EMPTY cell: typed over an automatic note, the text would be a rename (AUTO-NOTE-RENAME-PLAN.md, ruling 3,
+    // 2 Nov 2026), which stays on its date and so gives a Region change nothing to misplace.
+    var week = (document.querySelector('td.sheet-note-cell[data-week]:not(.has-note)') || {dataset: {}}).dataset.week;
     if(!week) throw new Error('no note cell to type in');
     await T.typeUserNote(week, 'Crew BBQ');
     var metaN = prodMeta();

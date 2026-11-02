@@ -4,19 +4,61 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
+### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), NOT MERGED, NOT PUSHED (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
   changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
-  auto note or want to replace the auto note with your own non-auto note"*.
+  auto note or want to replace the auto note with your own non-auto note"*, and *"Build it"*.
 - **Seven rulings by picker, all in [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md).** In short: the name shows
   everywhere; its colour is its own (month view); typing over it in the waterfall renames it; clearing it or its
   Delete Auto-Note button switches it off; the holiday editor gets no delete button; the waterfall Delete key stops
   writing a week blank (each line goes by its kind; a holiday is hidden from the waterfall only); Reset Notes leaves
   the Automatic notes ticks alone.
-- ⚠️ **Found while answering, and it is live today:** a deleted auto note is a blank on its WEEK (`{text:''}`), so
-  after a schedule move the note comes back in its new week and the old week stays blank, hiding whatever auto note
-  lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
+- **Where it lives (`src/legacy/app.js`):**
+  - `autoNoteNames` / `autoNoteColors` (kind → name / colour), declared beside `autoNotesOn`, with the helpers
+    `autoNoteNameFor`, `autoNoteLine`, `isKindNote`, `switchOffAutoNote`, `hideHolidayInWaterfall`, `setAutoNoteName`,
+    `deleteAutoNote`. Snapshot keys PERMANENT, ABSENT while empty, sorted; sanitized (name one line ≤200, colour a
+    note colour, key `SNAP_ID`, unknown kind words kept); restored unconditionally; New clears both; Reset Month Notes
+    clears the colours only; Reset Notes clears neither.
+  - The name is applied once, in `computeSchedule()`'s new `addAutoNote` (all four auto-note `addNote` calls), which
+    also puts `origLabel` (the standard wording) on the note. No frozen edit.
+  - Month editor: `mvAutoLineInfo()` (beside `mvHolidayLineInfo`) makes a click on an automatic line open mode
+    `'auto'` in `openMvNoteEditor`: "m/d/yy · Auto Note", the name alone, Enter saves, the `.note-pop-delete` button
+    (CSS beside `.mv-note-pop-hint`). `writeActiveMvNote`'s `'auto'` branch: empty or the button → `deleteAutoNote`;
+    only the date typed → standard name; else `setAutoNoteName`. Colour → `autoNoteColors`, drawn through
+    `mvDayNotePlan`'s `b.color` (frozen edit H1, unchanged).
+  - `setHolidayName`'s line carrying is now `carryRenamedLine()`, shared by both renames (it also handles a legacy
+    string override now).
+  - `stripHolidayDate()` now strips the note's OWN date anywhere in the typed name, not just at the end ("Start
+    Principal Photography 6/29/26 (tbc)" → "... (tbc)" + the date), for holidays too.
+  - Waterfall: `wfHolidayRenames` became `wfLineEdits()` (renames holidays and automatic notes; a line-only REMOVAL
+    switches an automatic note off / hides a holiday from the waterfall). An editor emptied is `wfClearNote`.
+    `wfClearNote` no longer writes `{text:''}`: `wfSwitchOffLines()` takes each automatic line out by its kind.
+    `wfPutNote` (paste and drop) switches off what it replaces unless the note IS the week's automatic text.
+    `wfNoteStep`'s signature includes the switches and runs `update()` when one moved.
+  - Month drag: `moveWfLine` switches off an automatic note dragged to another day; the drag's press copy and
+    `restore()` now include the four auto-note stores, so out-and-back and Escape restore them.
+  - Chrome: the Reset Notes tooltip (`Header.jsx`) and four help-text sentences (`src/index.html`).
+- **Changed on purpose, and the legs that held the old behaviour:** `wfkeys` D4, C6, G17 and `wfmenu` N1, N2
+  asserted the old week blank; rewritten to the rulings. "Back to automatic text" (the right-click item) is now only
+  offered on a note typed over an automatic one, because a cleared one leaves no override (N2 holds both).
+  - ⚠️ **`T.typeUserNote` over an automatic note is now a RENAME** (ruling 3), not a typed note: `regionmirror` M6 and
+    `dlgkeys` typed "a note the Region could misplace" into the first Notes cell, which holds an automatic note, so the
+    Region / holiday "Continue?" no longer asked (correctly: a renamed note follows its date). Both now type into an
+    EMPTY cell (`:not(.has-note)`). A new leg that needs a typed note must do the same, or add a line.
+  - `mvmenu` P7 added a line to "Start Principal Photography" through the MONTH editor, which is now the one-line Auto
+    Note editor; it makes that typed note in the waterfall's editor instead.
+- **Proof:** new leg `autonoterename` 19/19 (fixture `autonoterename.sptcal`, synthetic), in `gate.sh` after
+  `holidayrename`. Red on mutants: no rename + no Delete switch-off (14 of 19 red), no drag switch-off (G1 only).
+  `wfkeys` 84/84, `wfmenu` 39/39, `holidayrename` 14/14, `npm run check` 40/40. Seen in the browser pane: the Auto
+  Note editor, a rename, a drag to 7/1 with no second copy after Production moved.
+  - **Full gate (12:21-12:53, port 8247): 3,499 PASS, 9 FAIL, every one explained.** Eight are the legs above that
+    held the old behaviour (`regionmirror` M6/M7, `dlgkeys` D3/D4/D5/D11, `mvmenu` P7/P7u), rewritten and green alone
+    (9/9, 16/16, 81/81). One is `pdfdialog`'s 6 s wait for the Save button under load (~10), 15/15 alone. The waterfall
+    PDF, every Excel part, every printed month document and every written month PDF match their baselines.
+- **Not done / open:** the waterfall's note editor still reads "Note · <Monday>" on an automatic line (the holiday
+  twin is card `wf-holiday-editor-mode`). A removed note's typed name is cleared with it (the plan's suggestion; not
+  ruled). Saving a rename while also adding a line in the waterfall saves as typed text (as for holidays).
 
 
 ### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEP 1 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), NOT COMMITTED ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`

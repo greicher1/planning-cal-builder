@@ -1,6 +1,6 @@
 # AUTO-NOTE-RENAME-PLAN.md
 
-Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way the holiday rename was
+Ruled 30 Oct – 2 Nov 2026. BUILT 2 Nov 2026 on branch `auto-note-rename` (HANDOFF has where it lives and the proof). Tracker card `rename-auto-notes`. Built the way the holiday rename was
 (HANDOFF, "RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE").
 
 - **The ask** (owner): *"like how holidays notes now work, Auto notes are labelled as "Auto Note" in the popup when

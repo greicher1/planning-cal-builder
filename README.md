@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — rename an automatic note and it stays automatic; deleting one switches it off (2 Nov 2026)
+
+The owner asked for automatic notes to work as holidays now do: *"labelled as "Auto Note" in the popup when you go to
+edit it and allow you to edit the name of it, without affecting its date and ability to move automatically."* Until
+now any edit to Start Principal Photography, the wrap, Writer's Room Opens or a phase's Begins / Ends saved its week as
+typed text, so it stopped following its date. Deleting one blanked its *week*, so after a schedule move the note came
+back in its new week and the blank week hid whatever landed there next. Seven rulings by picker
+(`AUTO-NOTE-RENAME-PLAN.md`). Now:
+
+- **Click an automatic note in the Month view** and it opens as an **Auto Note**: its date in the heading, its name
+  alone, its own colour, and a **Delete Auto-Note** button. A new name shows everywhere: the Month view, the Waterfall,
+  Excel and both PDFs. The note keeps its own date and moves with the schedule.
+- **In the Waterfall**, typing over an automatic line renames it the same way. Ending it in a different date still
+  makes it your own typed note.
+- **Deleting an automatic note switches it off** for the whole calendar. That covers clearing its text, Delete
+  Auto-Note, taking its line out of a cell, the Delete key and Cut. It stays gone when dates move, and no week is left
+  blank. Tick it in Settings ▸ Preferences ▸ Automatic notes to bring it back.
+- **The Delete key on a cell that also holds a holiday** hides the holiday from the Waterfall only. It stays in the
+  Month view and keeps its day off, so no date moves.
+- **Pasting or dragging a note over an automatic note replaces it**, and the automatic note is switched off.
+  Dragging an automatic note to another day in the Month view does the same.
+- **Reset Notes** leaves the Automatic notes ticks alone. Its tooltip and the help say where a deleted note comes back.
+- A holiday's or automatic note's own date typed anywhere in its new name is taken out, so the date never shows
+  twice ("Start Principal Photography 6/29/26 (tbc)" becomes "Start Principal Photography (tbc) 6/29/26").
+
+How: two new saved keys, `autoNoteNames` and `autoNoteColors`, keyed by the note's kind and written only while they
+hold something, so an untouched calendar saves exactly as before. The name is applied once, where the notes are made
+(`computeSchedule`), so every view and writer reads it with no frozen edit. The colour rides frozen edit H1, as a
+holiday's does. Deleting writes the existing `autoNotesOff` / `autoNotesOn` switches.
+
+Verified: new leg `autonoterename` (19 checks, in the gate). It goes red on a mutant with no rename and no switch-off
+on Delete (14 of 19 red), and on one with no switch-off when a note is dragged (G1). `wfkeys` (84) and `wfmenu` (39)
+were changed where they held the old week blank, and pass. `holidayrename` 14/14. `npm run check` 40/40. Seen in the
+browser pane: the Auto Note editor, a rename, and a drag to another day. Full gate: every baseline (the waterfall PDF,
+Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
+typing over an automatic note is now a rename (details in HANDOFF).
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.

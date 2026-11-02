@@ -1820,6 +1820,10 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
+# the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
+# moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1861,6 +1865,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
+              autonoterename:autonoterename:500 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

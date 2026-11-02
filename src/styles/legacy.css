@@ -3273,6 +3273,15 @@
     font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
+  /* An automatic note's Delete Auto-Note (AUTO-NOTE-RENAME-PLAN.md, ruling 5): a quiet text button in the danger
+     colour of the day menu's Delete, tinted on hover, so it reads as an action without crowding the swatches. */
+  .mv-note-pop .note-pop-delete{
+    display:block; margin:var(--mantine-spacing-sm) 0 0 -8px; padding:4px 8px;
+    font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    cursor:pointer;
+  }
+  .mv-note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
 
   /* ---- Paste notes… (MONTH-NOTES-PLAN.md §5, openPasteNotes) ----
      ⭐ NOT FROZEN: a body-level dialog over the app, like the template header editor (.hde-overlay) whose tier
