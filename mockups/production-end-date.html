@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production Wrap Date</title>
+<!-- MOCKUP, not the app. Production's date can be its START or its WRAP, asked for by the owner on 30 Oct 2026
+     ("would it be possible we could add the "ends" date option to production ... if i know production needs to
+     end on a certain day we could work backwards to calculate"), the day Weeks phases got Ends. Ruled the same day
+     ("id say do exactly then"): in Ends the shoot wraps EXACTLY on the day picked, so the start can be mid-week.
+     The card copies the live Production card (measured in the browser pane on the episodeprep fixture); the picker
+     copies src/chrome/DatePop.jsx. The calendar is synthetic: six episodes, one holiday, a fixed Prod Prep and a
+     fixed hiatus. The day grid is a stand-in that mixes the waterfall's week rows with the month view's days. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-5:#4A6479; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6;
+  --prod:#E2F0D9; --prod-text:#375623; --prod-tint:#EFF7EA;
+  --pp:#DDEBF7; --pp-text:#1F4E79; --pp-tint:#EEF5FB;
+  --amber:#F2B33D;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+[hidden]{ display:none !important; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.page-head .try{ color:var(--gray-9); max-width:none; }
+.reset{ margin-left:6px; padding:0; border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; }
+.info{ display:grid; grid-template-columns:1fr 1fr 1.3fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin:14px 0; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 5px; }
+.info ol{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+.info .rec{ color:var(--navy-6); }
+.shown{ font-size:12.5px; color:var(--gray-6); margin:-4px 0 14px; padding:0 4px; }
+.shown b{ color:var(--gray-9); font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+
+/* ---------- A stand-in for the app: sidebar + preview ---------- */
+.frame{ display:grid; grid-template-columns:270px 1fr; background:#fff; border:1px solid var(--gray-4); border-radius:12px;
+        overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.08); min-height:640px; }
+@media (max-width:760px){ .frame{ grid-template-columns:1fr; } }
+.side{ background:var(--gray-0); border-right:1px solid var(--gray-2); padding:12px; }
+.side-head{ font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); margin:2px 2px 8px; }
+
+/* The phase card (legacy.css .phase-row, as measured) */
+.card{ background:#fff; border:1px solid var(--gray-2); border-radius:var(--r-lg); overflow:hidden; margin-bottom:10px; }
+.card-head{ display:flex; align-items:flex-start; gap:6px; padding:6px 8px; }
+.chev{ width:16px; height:21px; display:grid; place-items:center; color:var(--gray-7); flex:none; }
+.chev svg{ width:12px; height:12px; }
+.card.collapsed .chev svg{ transform:rotate(-90deg); }
+.swatch{ width:16px; height:16px; border-radius:3px; flex:none; margin:2.5px 2px 0 0; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.ht{ min-width:0; }
+.nm{ font-weight:600; font-size:14px; line-height:21px; padding:0 4px; }
+.meta{ font-size:11px; line-height:14.85px; color:rgba(30,29,27,.75); padding:0 5px; white-space:pre-line; }
+.card-body{ padding:8px 12px 6px; }
+.fld{ margin-bottom:6px; }
+.cap{ font-size:11px; font-weight:500; color:var(--gray-6); line-height:16.5px; margin-bottom:3px; display:flex; align-items:center; gap:4px; }
+.cap-sel{ -webkit-appearance:none; appearance:none; border:0; background:transparent; color:var(--navy-5); font-size:11px; font-weight:500;
+  padding:0 14px 0 0; height:18px; cursor:pointer; border-radius:var(--r-md);
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%234A6479' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 0 center/11px 11px; }
+.cap-sel:focus-visible{ outline:2px solid var(--navy-2); outline-offset:1px; }
+/* New on this card, marked for the mock-up only. */
+.new{ box-shadow:0 0 0 1.5px #fff, 0 0 0 3px var(--amber); }
+.box{ width:100%; height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); padding:0 8px; font-size:12px; font-weight:500;
+      color:var(--gray-9); background:#fff; }
+.box:focus{ outline:none; border-color:var(--navy-5); box-shadow:0 0 0 2px var(--navy-0); }
+.startline{ font-size:11px; line-height:1.4; color:var(--navy-6); background:var(--navy-0); border-radius:var(--r-sm); padding:4px 7px; margin:6px 0 2px; }
+.startline .ov{ display:block; color:#7A5200; }
+.startline.warn{ background:#FDF3DC; }
+.autostart{ border:0; background:none; padding:1px 0; font-size:11px; color:#6E6A62; cursor:pointer; margin:2px 0 2px; }
+.autostart:hover{ color:var(--gray-9); }
+.sw-row{ display:flex; align-items:center; justify-content:space-between; font-size:12px; padding:7px 0; cursor:pointer; }
+.sw{ -webkit-appearance:none; appearance:none; width:32px; height:18px; border-radius:999px; background:var(--gray-3); position:relative;
+     margin:0; cursor:pointer; transition:background .15s; flex:none; }
+.sw::before{ content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff;
+             box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .15s; }
+.sw:checked{ background:var(--navy-6); }
+.sw:checked::before{ transform:translateX(14px); }
+.hia-box{ font-size:11.5px; color:var(--gray-7); background:var(--gray-0); border:1px solid var(--gray-2); border-radius:var(--r-md);
+          padding:6px 8px; margin:0 0 6px; }
+.mock{ color:var(--gray-5); }
+
+/* Total shooting days + shooting order (legacy.css .prod-total-block / .ep-panel, joined) */
+.ptr{ border:1px solid var(--gray-3); border-radius:var(--r-lg); margin:6px 0 4px; overflow:hidden; background:#fff; }
+.ptr-top{ padding:8px 12px 6px; }
+.ptr-label{ font-size:10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--gray-6); }
+.ptr-value{ display:flex; align-items:baseline; gap:6px; }
+.ptr-value strong{ font-size:26px; font-weight:700; line-height:1.1; }
+.ptr-unit{ font-size:12px; color:var(--gray-6); }
+.ptr-badge{ margin-left:auto; align-self:center; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+            background:var(--gray-2); border-radius:999px; padding:2px 8px; }
+.ep-list{ border-top:1px solid var(--gray-2); padding:4px 6px 6px; }
+.ep-head{ display:flex; justify-content:space-between; font-size:9.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+          color:var(--gray-6); padding:2px 6px 3px; }
+.ep-row{ display:flex; align-items:center; gap:6px; padding:3px 4px 3px 6px; border-top:1px solid var(--gray-1); }
+.ep-head + .ep-row{ border-top:0; }
+.grip{ color:var(--gray-4); font-size:11px; letter-spacing:-2px; width:10px; }
+.ep-name{ flex:1; font-size:12.5px; font-weight:500; }
+.ep-days{ display:flex; align-items:center; justify-content:flex-end; gap:3px; border:1px solid var(--gray-4); border-radius:6px; height:24px; padding:0 6px; width:66px; }
+.ep-days input{ width:28px; border:0; text-align:right; font-size:12px; font-weight:500; padding:0; background:transparent; }
+.ep-days input:focus{ outline:none; }
+.ep-days:focus-within{ border-color:var(--navy-5); box-shadow:0 0 0 2px var(--navy-0); }
+.ep-days span{ font-size:10.5px; color:var(--gray-6); }
+
+/* ---------- The preview ---------- */
+.preview{ padding:12px 14px 16px; min-width:0; background:#FBFAF8; }
+.readout{ display:flex; gap:10px; align-items:baseline; background:var(--navy-0); border-left:3px solid var(--navy-6); border-radius:6px;
+          padding:8px 12px; font-size:12.5px; margin-bottom:10px; min-height:38px; }
+.ro-k{ font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--navy-6); flex:none; }
+.grid-wrap{ max-height:640px; overflow:auto; background:#fff; border:1px solid var(--gray-3); border-radius:6px; padding:10px 10px 14px; }
+table.days{ border-collapse:collapse; font-size:11px; table-layout:fixed; }
+.days th{ background:#F2F2F2; font-weight:600; border:1px solid #C9C9C9; height:22px; font-size:10.5px; }
+.days td{ border:1px solid #DADADA; height:40px; vertical-align:top; padding:2px 4px; text-align:left; overflow:hidden; }
+.days td.wk{ width:58px; font-weight:600; vertical-align:middle; text-align:center; font-family:Calibri, Carlito, 'Segoe UI', sans-serif; }
+.days td.pp{ width:96px; vertical-align:middle; text-align:center; }
+.days td.pp.on{ background:var(--pp); color:var(--pp-text); }
+.days td.d{ width:66px; }
+.days td.we, .days th.we{ width:36px; }
+.days td.we{ background:#FAFAF8; }
+.dn{ display:block; font-size:9.5px; color:var(--gray-5); line-height:12px; }
+.dl{ display:block; font-weight:600; line-height:13px; }
+.ep{ display:block; font-size:9.5px; line-height:11px; opacity:.85; }
+.days td.shoot{ background:var(--prod); color:var(--prod-text); }
+.days td.shoot .dn{ color:var(--prod-text); opacity:.7; }
+.days td.hol{ background:#F4F1EA; color:var(--gray-7); font-style:italic; }
+.days td.hia{ background:#FF0000; color:#fff; }
+.days td.hia .dn{ color:#fff; opacity:.85; }
+.days td.held{ box-shadow:inset 0 0 0 2px var(--navy-6); }
+.days td.gut, .days th.gut{ border:0; background:transparent; width:86px; padding:0 8px 0 0; text-align:right; vertical-align:middle; }
+.tag{ display:inline-block; font-size:10px; font-weight:600; color:var(--navy-6); border:1px dashed var(--navy-2); background:var(--navy-0);
+      border-radius:999px; padding:0 7px; line-height:16px; white-space:nowrap; }
+@keyframes chg{ from{ outline:2px solid var(--amber); } to{ outline:2px solid transparent; } }
+.days td.chg{ animation:chg 1.6s ease-out; outline-offset:-2px; }
+
+/* ---------- The picker (legacy.css .date-pop / .dp-*) ---------- */
+.date-pop{ position:absolute; z-index:30; width:252px; background:#fff; border:1px solid var(--gray-3); border-radius:var(--r-lg);
+           box-shadow:var(--shadow-md); padding:12px; user-select:none; }
+.dp-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.dp-title{ font-size:13px; font-weight:600; }
+.dp-nav{ width:26px; height:26px; border:0; background:transparent; cursor:pointer; font-size:15px; line-height:1; color:var(--gray-6); border-radius:var(--r-sm); }
+.dp-nav:hover{ background:var(--gray-1); color:var(--gray-9); }
+.dp-dow{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:2px; }
+.dp-dow span{ text-align:center; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--gray-5); padding:2px 0; }
+.dp-grid{ display:grid; grid-template-columns:repeat(7,1fr); }
+.dp-day{ position:relative; height:30px; border:0; background:transparent; cursor:pointer; font-size:13px; color:var(--gray-9); border-radius:var(--r-sm); padding:0; }
+.dp-day:hover:not(.dp-cap){ background:var(--gray-2); }
+.dp-out{ color:var(--gray-4); }
+.dp-cap{ background:var(--navy-6); color:#fff; font-weight:600; }
+.dp-off{ color:var(--gray-4); cursor:default; }
+.dp-day.dp-off:hover{ background:transparent; }
+.dp-off.dp-out{ color:var(--gray-3); }
+.dp-only .dp-out:not(.dp-off):not(.dp-cap){ color:var(--gray-6); }
+.dp-hint{ margin-top:8px; padding-top:8px; border-top:1px solid var(--gray-2); font-size:10.5px; color:var(--gray-6); line-height:1.4; }
+
+/* ---------- The explainer under the frame ---------- */
+.explain{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:14px; font-size:12.5px; color:var(--gray-7); }
+.explain h2{ font-size:14px; margin:0 0 6px; color:var(--gray-9); }
+.explain ul{ margin:0; padding-left:18px; }
+.explain li{ margin-bottom:3px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Production: work back from the wrap</h1>
+    <p>Mock-up, not the app. Production's date can be when the shoot starts or when it wraps. Pick <b>Ends</b> and the wrap holds:
+      change an episode's days or add a hiatus, and the start moves instead.</p>
+    <p class="try"><b>Try it:</b> on the Production card, switch <b>Starts</b> to <b>Ends</b> (the ringed word). Click the date and pick
+      <b>Fri 4/9/27</b>. Then give an episode 6 days, or turn on <b>Hiatus</b>, and watch the start move while the wrap stays.
+      Switch back to Starts and do the same to compare.
+      <button class="reset" id="reset" type="button">Reset</button></p>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>What changes</h3>
+      <p>The <b>Starts</b> word over Production's date becomes a choice, <b>Starts</b> or <b>Ends</b>, as on the Weeks phases.</p>
+      <p>In Ends the date is the <b>wrap</b>, the last shoot day. The start is counted back from the shoot days, skipping weekends,
+        holidays, hiatus days and days marked Off. A line under the date says where the start landed.</p>
+    </div>
+    <div>
+      <h3>Ruled 30 Oct</h3>
+      <p>The shoot wraps <b>exactly</b> on the day you pick, so the start can fall mid-week.</p>
+      <p>The picker offers only shoot days. A typed weekend or holiday reads as the shoot day before it.</p>
+    </div>
+    <div>
+      <h3>Open for you</h3>
+      <ol>
+        <li>When the start runs into the phase before it (Prod Prep here), should the card say so?
+          <span class="rec">Suggested: yes, one line under the start, shown here in amber. No pop-up.</span></li>
+        <li>The shift tools (Shift All, Shift From, Anchor To, Rebuild From) keep moving the shoot as they do now, and wherever it then
+          wraps becomes the held wrap? <span class="rec">Suggested: yes.</span></li>
+        <li><b>↳ Start after Prod Prep</b> is hidden while Ends is picked (shown here), as on the Weeks phases. Or keep it, and have it
+          switch Production back to Starts?</li>
+      </ol>
+    </div>
+  </div>
+  <p class="shown"><b>Shown, not asked:</b> switching to Ends fills in the current wrap, so nothing moves. Snap to Monday is hidden in Ends.
+    Switching back to Starts keeps the start where it is, and turns Snap to Monday off if that start isn't a Monday. Prep moves with
+    the start. The worked-out start is still saved, so an older version opens the calendar as a shoot that starts on that day.</p>
+
+  <div class="frame">
+    <aside class="side">
+      <div class="side-head">Phases</div>
+
+      <div class="card collapsed">
+        <div class="card-head" style="background:var(--pp-tint)">
+          <span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>
+          <span class="swatch" style="background:var(--pp)"></span>
+          <div class="ht"><div class="nm">Prod Prep</div><div class="meta">1/11/27 → 2/19/27 (6 wk)</div></div>
+        </div>
+      </div>
+
+      <div class="card" id="prod-card">
+        <div class="card-head" style="background:var(--prod-tint)">
+          <span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>
+          <span class="swatch" style="background:var(--prod)"></span>
+          <div class="ht"><div class="nm">Production</div><div class="meta" id="meta"></div></div>
+        </div>
+        <div class="card-body">
+          <div class="fld">
+            <div class="cap">
+              <select id="anchor" class="cap-sel new" aria-label="This date is when the shoot" title="Is this date when the shoot starts, or when it wraps?">
+                <option value="starts">Starts</option><option value="ends">Ends</option>
+              </select>
+            </div>
+            <input class="box" id="date" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" autocomplete="off" aria-label="Date">
+            <div class="startline new" id="startline" hidden></div>
+          </div>
+          <button class="autostart" id="autostart" type="button">↳ Start after Prod Prep</button>
+          <label class="sw-row" id="snap-row"><span>Snap to Monday</span><input type="checkbox" class="sw" id="snap" checked></label>
+
+          <div class="ptr">
+            <div class="ptr-top">
+              <div class="ptr-label">Total shooting days</div>
+              <div class="ptr-value"><strong id="total"></strong><span class="ptr-unit">days</span><span class="ptr-badge" id="epcount"></span></div>
+            </div>
+            <div class="ep-list" id="ep-list">
+              <div class="ep-head"><span>Shooting order</span><span class="mock">drag</span></div>
+            </div>
+          </div>
+
+          <label class="sw-row"><span>Hiatus</span><input type="checkbox" class="sw" id="hiatus"></label>
+          <div class="hia-box" id="hia-box" hidden>Starts <b>3/15/27</b> · <b>1</b> week <span class="mock">(fixed in this mock-up)</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="preview">
+      <div class="readout"><span class="ro-k">What moved</span><span id="ro-text"></span></div>
+      <div class="grid-wrap"><table class="days" id="grid"></table></div>
+    </section>
+  </div>
+
+  <div class="explain">
+    <h2>About this mock-up (not part of the design)</h2>
+    <ul>
+      <li>A made-up calendar: six episodes of 5 days each, 30 shoot days. Prod Prep is fixed at 1/11/27 to 2/19/27.</li>
+      <li>One holiday, Good Friday 3/26/27. Production's own hiatus is fixed at 3/15/27 for 1 week. No days are marked Off or half.</li>
+      <li>The grid mixes the waterfall's week rows with the month view's days, so the exact start and wrap are visible. It is not either view.</li>
+      <li>The ringed parts, the "holds" tags beside the grid and the "What moved" strip are mock-up markings. Simultaneous Post is left out.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="date-pop" id="dp" hidden>
+  <div class="dp-head">
+    <button class="dp-nav" type="button" data-nav="-1" aria-label="Previous month">‹</button>
+    <span class="dp-title" id="dp-title"></span>
+    <button class="dp-nav" type="button" data-nav="1" aria-label="Next month">›</button>
+  </div>
+  <div class="dp-dow" aria-hidden="true"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+  <div class="dp-grid" id="dp-grid"></div>
+  <div class="dp-hint" id="dp-hint"></div>
+</div>
+
+<script>
+(function(){
+  // ---------- Dates: UTC midnight, as the app does ----------
+  const DAY = 86400000, WEEK = 7 * DAY;
+  const U = (y, m, d) => Date.UTC(y, m - 1, d);
+  const dow = t => new Date(t).getUTCDay();                       // 0 = Sunday
+  const mondayOf = t => t - ((dow(t) + 6) % 7) * DAY;
+  const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const fmtShort = t => { const d = new Date(t); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${String(d.getUTCFullYear()).slice(2)}`; };
+  const fmtMD = t => { const d = new Date(t); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
+  const fmtLong = t => `${DN[dow(t)]} ${fmtShort(t)}`;
+  const pad = n => String(n).padStart(2, '0');
+  const fmtBox = t => { const d = new Date(t); return `${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}/${d.getUTCFullYear()}`; };
+  function parseBox(s){
+    s = (s || '').trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/), y, mo, d;
+    if(m){ mo = +m[1]; d = +m[2]; y = +m[3]; if(y < 100) y += 2000; }
+    else if((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))){ y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else return null;
+    const t = U(y, mo, d), c = new Date(t);
+    return (c.getUTCMonth() === mo - 1 && c.getUTCDate() === d) ? t : null;
+  }
+
+  // ---------- The calendar ----------
+  const PP_START = U(2027, 1, 11), PP_WEEKS = 6, PP_END_EX = U(2027, 2, 22);   // Prod Prep, fixed; PP_END_EX is the Monday after
+  const GOOD_FRIDAY = U(2027, 3, 26);
+  const HIA = { start: U(2027, 3, 15), weeks: 1 };
+  const EPS = ['101', '102', '103', '104', '105', '106'];
+  const DEF = { anchor: 'starts', date: PP_END_EX, snap: true, hiatus: false, eps: [5, 5, 5, 5, 5, 5] };
+  let st = JSON.parse(JSON.stringify(DEF));
+
+  const isHol = t => t === GOOD_FRIDAY;
+  const inHia = t => st.hiatus && t >= HIA.start && t < HIA.start + HIA.weeks * WEEK;
+  const isShoot = t => { const d = dow(t); return d >= 1 && d <= 5 && !isHol(t) && !inHia(t); };
+  function shootDayOnOrBefore(t){ let g = 0; while(!isShoot(t) && g++ < 60) t -= DAY; return t; }
+  const totalDays = () => st.eps.reduce((a, b) => a + (b > 0 ? b : 0), 0);
+
+  // The shoot: {start, wrap, days[]}. Starts walks forward from the start; Ends walks BACK from the wrap,
+  // counting only shoot days, until it has every one (the app would ask its real scheduler instead).
+  function compute(){
+    const n = totalDays();
+    if(!(n >= 1) || st.date == null) return null;
+    const days = [];
+    let g = 0;
+    if(st.anchor === 'ends'){
+      let t = shootDayOnOrBefore(st.date);
+      while(days.length < n && g++ < 3000){ if(isShoot(t)) days.unshift(t); t -= DAY; }
+      return { start: days[0], wrap: days[days.length - 1], days };
+    }
+    const start = st.snap ? mondayOf(st.date) : st.date;
+    let t = start;
+    while(days.length < n && g++ < 3000){ if(isShoot(t)) days.push(t); t += DAY; }
+    return { start, wrap: days[days.length - 1], days };
+  }
+  const rowsOf = seg => Math.round((mondayOf(seg.wrap) - mondayOf(seg.start)) / WEEK) + 1;
+
+  // ---------- The card ----------
+  const $ = id => document.getElementById(id);
+  const els = { anchor: $('anchor'), date: $('date'), startline: $('startline'), autostart: $('autostart'), snapRow: $('snap-row'),
+    snap: $('snap'), total: $('total'), epcount: $('epcount'), epList: $('ep-list'), hiatus: $('hiatus'), hiaBox: $('hia-box'),
+    meta: $('meta'), ro: $('ro-text'), grid: $('grid') };
+
+  EPS.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'ep-row';
+    row.innerHTML = `<span class="grip" aria-hidden="true">⋮⋮</span><span class="ep-name">Episode ${name}</span>`
+      + `<label class="ep-days"><input type="number" min="1" max="15" step="1" data-ep="${i}" aria-label="Episode ${name} shoot days"><span>days</span></label>`;
+    els.epList.appendChild(row);
+  });
+  const epInputs = Array.from(els.epList.querySelectorAll('input[data-ep]'));
+
+  // The meta line as the app writes it: "N shoot days → W wk · start → last shoot day".
+  function metaText(seg){
+    if(!seg) return '';
+    let s = `${totalDays()} shoot days → ${rowsOf(seg)} wk · ${fmtShort(seg.start)} → ${fmtShort(seg.wrap)}`;
+    if(st.anchor === 'starts' && st.snap && st.date !== seg.start) s += `\nSnapped to Mon ${fmtShort(seg.start)}`;
+    return s;
+  }
+
+  // `force`: a committed change rewrites the boxes even while one has focus.
+  function reflect(force){
+    const ends = st.anchor === 'ends', seg = compute();
+    els.anchor.value = st.anchor;
+    // Ends shows the real wrap; Starts with Snap on shows the Monday it snapped to (as the app does since fdf9324).
+    const shown = st.date == null ? null : ends ? (seg ? seg.wrap : st.date) : (st.snap ? mondayOf(st.date) : st.date);
+    if(force || document.activeElement !== els.date) els.date.value = shown != null ? fmtBox(shown) : '';
+    els.snapRow.hidden = ends;                          // the start comes from the count in Ends
+    els.autostart.hidden = ends;                        // open question 3
+    els.snap.checked = st.snap;
+    els.hiatus.checked = st.hiatus;
+    els.hiaBox.hidden = !st.hiatus;
+    epInputs.forEach((inp, i) => { if(force || document.activeElement !== inp) inp.value = st.eps[i]; });
+    els.total.textContent = totalDays();
+    els.epcount.textContent = `${EPS.length} episodes`;
+    // Where the start went: always in Ends, plus a warning when it runs into Prod Prep (open question 1).
+    els.startline.hidden = !(ends && seg);
+    if(ends && seg){
+      const ov = seg.start < PP_END_EX;
+      els.startline.classList.toggle('warn', ov);
+      els.startline.innerHTML = `Starts <b>${fmtLong(seg.start)}</b>, worked back from the wrap.`
+        + (ov ? `<span class="ov">That is during Prod Prep, which runs to Fri 2/19/27.</span>` : '');
+    }
+    els.meta.textContent = metaText(seg);
+    renderGrid(seg);
+  }
+
+  // ---------- The day grid ----------
+  let prevCells = null;
+  function renderGrid(seg){
+    let first = U(2027, 2, 8), last = U(2027, 4, 12);
+    if(seg){ first = Math.min(first, mondayOf(seg.start) - WEEK); last = Math.max(last, mondayOf(seg.wrap) + WEEK); }
+    const idx = new Map();
+    if(seg) seg.days.forEach((t, i) => idx.set(t, i));
+    const epAt = new Map();                       // shoot-day index -> the episode that starts on it
+    let c = 0;
+    st.eps.forEach((d, i) => { if(d > 0){ epAt.set(c, EPS[i]); c += d; } });
+    const ends = st.anchor === 'ends';
+    let html = '<tr><th class="gut"></th><th>Week of</th><th>Prod Prep</th>'
+      + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => `<th>${d}</th>`).join('')
+      + '<th class="we">Sat</th><th class="we">Sun</th></tr>';
+    const cells = {};
+    for(let w = first; w <= last; w += WEEK){
+      const pi = Math.round((w - PP_START) / WEEK);
+      const pp = (pi >= 0 && pi < PP_WEEKS) ? `Prod Prep wk ${pi + 1}` : '';
+      let tag = '';
+      if(seg && ends && w === mondayOf(seg.wrap)) tag = 'wrap holds';
+      else if(seg && !ends && w === mondayOf(seg.start)) tag = 'start holds';
+      html += `<tr><td class="gut">${tag ? `<span class="tag">${tag}</span>` : ''}</td>`
+        + `<td class="wk">${fmtShort(w)}</td><td class="pp${pp ? ' on' : ''}">${pp}</td>`;
+      for(let d = 0; d < 7; d++){
+        const t = w + d * DAY, cls = [d < 5 ? 'd' : 'we'];
+        let body = '';
+        if(idx.has(t)){
+          const i = idx.get(t);
+          cls.push('shoot');
+          body = `<span class="dl">Day ${i + 1}</span>` + (epAt.has(i) ? `<span class="ep">Ep ${epAt.get(i)}</span>` : '');
+        } else if(isHol(t)){ cls.push('hol'); body = '<span class="ep">Good Friday</span>'; }
+        else if(inHia(t) && d < 5){ cls.push('hia'); body = '<span class="dl">Hiatus</span>'; }
+        if(seg && ((ends && t === seg.wrap) || (!ends && t === seg.start))) cls.push('held');
+        cells[t] = body;
+        if(prevCells && (prevCells[t] || '') !== body) cls.push('chg');
+        html += `<td class="${cls.join(' ')}"><span class="dn">${d < 5 ? fmtMD(t) : new Date(t).getUTCDate()}</span>${body}</td>`;
+      }
+      html += '</tr>';
+    }
+    els.grid.innerHTML = html;
+    prevCells = cells;
+  }
+
+  // ---------- What moved (the owner's wording: Pushed / Pulled) ----------
+  function moveWords(ms){
+    const days = Math.round(ms / DAY);
+    if(!days) return '';
+    const n = Math.abs(days), wk = n % 7 === 0;
+    const amt = wk ? `${n / 7} wk${n / 7 === 1 ? '' : 's'}` : `${n} day${n === 1 ? '' : 's'}`;
+    return `${days > 0 ? 'Pushed' : 'Pulled'} ${amt}`;
+  }
+  function describe(before, after){
+    if(!after) return 'Production has no dates yet.';
+    if(!before) return `Production runs ${fmtLong(after.start)} to ${fmtLong(after.wrap)}.`;
+    const s0 = before.start, s1 = after.start, e0 = before.wrap, e1 = after.wrap;
+    const out = [];
+    if(s1 !== s0) out.push(`Production now starts ${fmtLong(s1)} (${moveWords(s1 - s0)}).`);
+    if(e1 !== e0) out.push(`${s1 !== s0 ? 'It' : 'Production now'} wraps ${fmtLong(e1)} (${moveWords(e1 - e0)}).`);
+    if(s1 === s0 && e1 !== e0) out.push(`Its start, ${fmtLong(s1)}, held.`);
+    if(e1 === e0 && s1 !== s0) out.push(`Its wrap, ${fmtLong(e1)}, held.`);
+    if(!out.length) out.push('Nothing moved.');
+    if(s1 < PP_END_EX && s0 >= PP_END_EX) out.push('It now starts during Prod Prep.');
+    if(s1 >= PP_END_EX && s0 < PP_END_EX) out.push('It no longer starts during Prod Prep.');
+    return out.join(' ');
+  }
+  function change(fn, lead){
+    const before = compute();
+    fn();
+    const after = compute();
+    reflect(true);
+    els.ro.textContent = (lead ? lead + ' ' : '') + describe(before, after);
+  }
+
+  // ---------- Card handlers ----------
+  els.anchor.addEventListener('change', () => {
+    const to = els.anchor.value, seg = compute();
+    let lead;
+    change(() => {
+      if(to === 'ends'){
+        if(seg) st.date = seg.wrap;                  // the CURRENT wrap, so the switch itself moves nothing
+        lead = `Switched to Ends. The box now shows the wrap${seg ? ', ' + fmtLong(seg.wrap) : ''}.`;
+      } else {
+        lead = `Switched to Starts. The box now shows the start${seg ? ', ' + fmtLong(seg.start) : ''}.`;
+        if(seg){
+          st.date = seg.start;
+          // A mid-week start would snap back to its Monday and move the shoot, so Snap goes off instead.
+          if(dow(seg.start) !== 1 && st.snap){ st.snap = false; lead += ' Snap to Monday is off, because that start is not a Monday.'; }
+        }
+      }
+      st.anchor = to;
+    }, '');
+    els.ro.textContent = lead + ' ' + els.ro.textContent;
+  });
+
+  // Episode days: live on every keystroke, reported once typing pauses, against the value before it began.
+  let eTimer = null, eBase = null;
+  epInputs.forEach(inp => inp.addEventListener('input', () => {
+    const i = +inp.dataset.ep, n = parseInt(inp.value, 10);
+    if(!(n >= 1 && n <= 15)) return;
+    if(!eBase || eBase.i !== i) eBase = { i, seg: compute(), was: st.eps[i] };
+    st.eps[i] = n;
+    reflect();
+    clearTimeout(eTimer);
+    eTimer = setTimeout(() => {
+      const b = eBase; eBase = null;
+      els.ro.textContent = st.eps[b.i] === b.was ? 'Nothing moved.'
+        : `Episode ${EPS[b.i]}: ${b.was} → ${st.eps[b.i]} days. ` + describe(b.seg, compute());
+    }, 350);
+  }));
+  els.snap.addEventListener('change', () => change(() => { st.snap = els.snap.checked; }, `Snap to Monday ${els.snap.checked ? 'on' : 'off'}.`));
+  els.hiatus.addEventListener('change', () => change(() => { st.hiatus = els.hiatus.checked; },
+    els.hiatus.checked ? 'Hiatus on: 1 week from Mon 3/15/27.' : 'Hiatus off.'));
+  els.autostart.addEventListener('click', () => change(() => { st.date = PP_END_EX; }, 'Started after Prod Prep.'));
+
+  // Typing a date: committed on Enter or on leaving the box. In Ends the wrap must be a shoot day.
+  function commitDate(t){
+    if(st.anchor === 'ends'){
+      const f = shootDayOnOrBefore(t);
+      let lead = '';
+      if(f !== t){
+        const why = isHol(t) ? 'That is Good Friday' : inHia(t) ? 'That is in the hiatus' : 'That is a weekend';
+        lead = `You picked ${fmtLong(t)}. ${why}, so the wrap is ${fmtLong(f)}, the shoot day before.`;
+      }
+      change(() => { st.date = f; }, lead);
+    } else {
+      change(() => { st.date = t; }, '');
+    }
+  }
+  els.date.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); const t = parseBox(els.date.value); if(t != null) commitDate(t); else reflect(true); closePop(); els.date.select(); }
+    if(e.key === 'Escape'){ closePop(); reflect(true); }
+  });
+  els.date.addEventListener('blur', () => {
+    const t = parseBox(els.date.value), seg = compute();
+    const cur = st.anchor === 'ends' ? (seg ? seg.wrap : st.date) : (st.snap ? mondayOf(st.date) : st.date);
+    if(t != null && t !== cur) commitDate(t); else reflect(true);
+    closePop();
+  });
+  els.date.addEventListener('mousedown', () => openPop());
+  els.date.addEventListener('focus', () => openPop());
+
+  // ---------- The picker ----------
+  const dp = $('dp'), dpGrid = $('dp-grid'), dpTitle = $('dp-title'), dpHint = $('dp-hint');
+  let pop = null;   // {month}
+  function kind(){
+    if(st.anchor === 'ends') return 'shoot';
+    return st.snap ? 'monday' : 'day';
+  }
+  function selected(){
+    const seg = compute();
+    if(st.date == null) return null;
+    return st.anchor === 'ends' ? (seg ? seg.wrap : st.date) : st.snap ? mondayOf(st.date) : st.date;
+  }
+  function openPop(){
+    const base = selected() != null ? selected() : PP_END_EX, d = new Date(base);
+    if(!pop) pop = { month: U(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) };
+    const r = els.date.getBoundingClientRect();
+    dp.style.left = (r.left + window.scrollX) + 'px';
+    dp.style.top = (r.bottom + window.scrollY + 6) + 'px';
+    dp.hidden = false;
+    drawPop();
+  }
+  function closePop(){ dp.hidden = true; pop = null; }
+  function drawPop(){
+    if(!pop) return;
+    const k = kind(), md = new Date(pop.month), m = md.getUTCMonth(), sel = selected();
+    dpTitle.textContent = `${MN[m]} ${md.getUTCFullYear()}`;
+    dpGrid.className = 'dp-grid' + (k !== 'day' ? ' dp-only' : '');
+    let html = '';
+    const g0 = mondayOf(pop.month);
+    for(let i = 0; i < 42; i++){
+      const t = g0 + i * DAY, dd = new Date(t), wd = dow(t);
+      const off = (k === 'monday' && wd !== 1) || (k === 'shoot' && !isShoot(t));
+      const cls = ['dp-day'];
+      if(off) cls.push('dp-off');
+      if(dd.getUTCMonth() !== m) cls.push('dp-out');
+      if(t === sel) cls.push('dp-cap');
+      const title = isHol(t) ? ' title="Good Friday"' : (k === 'shoot' && inHia(t) && wd >= 1 && wd <= 5) ? ' title="Hiatus"' : '';
+      html += `<button type="button" class="${cls.join(' ')}" data-t="${t}"${title}${off ? ' aria-disabled="true" tabindex="-1"' : ''}>${dd.getUTCDate()}</button>`;
+    }
+    dpGrid.innerHTML = html;
+    dpHint.hidden = k === 'day';
+    dpHint.textContent = k === 'shoot' ? 'Production wraps on a shoot day, so weekends, holidays and hiatus days can’t be picked.'
+                       : k === 'monday' ? 'Snap to Monday is on, so only Mondays can be picked.' : '';
+  }
+  // mousedown, not click, and preventDefault: the box keeps focus, so its blur never fires mid-pick.
+  dp.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const nav = e.target.closest('[data-nav]');
+    if(nav && pop){ const d = new Date(pop.month); pop.month = U(d.getUTCFullYear(), d.getUTCMonth() + 1 + (+nav.dataset.nav), 1); drawPop(); return; }
+    const b = e.target.closest('.dp-day');
+    if(!b || b.classList.contains('dp-off') || !pop) return;
+    // Blur FIRST: the box still shows the old date, and a blur after the commit would put it back.
+    els.date.blur();
+    closePop();
+    commitDate(+b.dataset.t);
+  });
+  document.addEventListener('mousedown', e => {
+    if(dp.hidden) return;
+    if(e.target === els.date || dp.contains(e.target)) return;
+    closePop();
+  });
+
+  $('reset').addEventListener('click', () => {
+    st = JSON.parse(JSON.stringify(DEF)); prevCells = null; closePop(); reflect(true);
+    els.ro.textContent = 'Nothing yet. Make a change on the Production card.';
+  });
+
+  reflect();
+  els.ro.textContent = 'Nothing yet. Make a change on the Production card.';
+})();
+</script>
+</body>
+</html>

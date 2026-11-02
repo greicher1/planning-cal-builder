@@ -7,8 +7,8 @@
 // T.buildFixture()'s calendar: Post from Mon 11/2/26 for 16 weeks, through the locked all-phase hiatus of 12/21/26
 // (2 weeks), so its last week is 3/1/27 and its Friday 3/5/27.
 //
-//   C1  every Weeks phase card but Production's has the Starts / Ends select and the Ends box, neither with an id;
-//       all on Starts
+//   C1  every Weeks phase card has the Starts / Ends select and the Ends box, neither with an id; all on Starts.
+//       Production's card has its own (prodends): a wrap box, never .phase-endsdate
 //   R1  Starts -> Ends -> Starts leaves the file byte for byte as it was (no phaseEnds key, the same fields)
 //   M1  on Starts the meta line under the name ends on the FRIDAY (Post: 11/2/26 → 3/5/27), every Weeks phase's
 //       too, Production's untouched (owner, 30 Oct 2026, "go with choice 1")
@@ -135,9 +135,10 @@ window.addEventListener('load', function () { (async function () {
     await step('C1', async function () {
       var weeksKeys = ['writersRoom', 'prePrep', 'prodPrep', 'post', 'localization'];
       var every = weeksKeys.every(function (k) { return !!sel(k) && !!box(k) && sel(k).value === 'starts' && !rowOf(k).classList.contains('ends-mode'); });
-      var prod = !rowOf('production').querySelector('select.phase-anchor') && !rowOf('production').querySelector('.phase-endsdate');
+      // Production has its own Starts / Ends since 30 Oct 2026 (prodends), with its own wrap box, never a Weeks Ends box.
+      var prod = !rowOf('production').querySelector('.phase-endsdate') && !!rowOf('production').querySelector('.prod-wrapdate');
       var noIds = document.querySelectorAll('select.phase-anchor[id], .phase-endsdate[id]').length === 0;
-      kase('C1', 'every Weeks card but Production\'s has the Starts / Ends select and the Ends box, with no id, on Starts',
+      kase('C1', 'every Weeks card has the Starts / Ends select and the Ends box, with no id, on Starts (Production\'s Ends is its own wrap box, prodends)',
            every && prod && noIds && shown(sel('post')) && shown(byId('start-post')) && !shown(box('post')), { every: every, prod: prod, noIds: noIds });
     });
 

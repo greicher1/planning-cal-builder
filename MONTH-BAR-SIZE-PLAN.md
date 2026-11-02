@@ -359,7 +359,15 @@ The plan for step 2, as written before the build:
   | `MVL_BAR_SIZES`' tag 1 px off | `monthemit` K0 |
   | The model wraps at 10 px | `monthemit` X3, `monthexport` X2, the text check |
   | The export passes no size | `monthexport` X2, the text check |
-- ⚠️ **RECORDED, NOT MODELLED: one 1.31 px difference from Chrome's print, `mvnotes` at Extra large.** In one week
+- ✅ **FIXED 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md step 3, on branch `month-note-size` until it merges):** the
+  difference below was Chrome NOT following the spec's "maximize tracks". Chrome groups lanes into sets between item
+  edges, takes the sets in order of their room (least first), gives each the free room times its lanes over the lanes
+  left, capped at its room, and loses what is left (grid_track_sizing_algorithm.cc). Here: the 25 px bar's lane (room 8)
+  takes 20.09 x 1/3 = 6.70, so 23.70 (Chrome 23.69); the pill's two lanes (room 10) take their 10, so 22 / 22.
+  `mvlLaneTracks` now does that whenever lanes' rooms differ, and keeps the spec's arithmetic when they are equal (which
+  is why `month-lanecap` at Standard is untouched). `mvnotes` at Extra large passes `monthemit` and `monthwriter`, and
+  `gate.sh` runs it.
+- ⚠️ **(Historical) RECORDED, NOT MODELLED: one 1.31 px difference from Chrome's print, `mvnotes` at Extra large.** In one week
   (drawn in April and May 2026), a 46 px two-line pill sits alone over lanes 2-3, under a 25 px bar in lane 1, with
   20.09 px to spare.
   - Chrome's lanes (its computed `grid-template-rows`) are 23.69 / 22 / 22, which leaves 3.4 px of the row unused.
