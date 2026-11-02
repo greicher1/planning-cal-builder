@@ -393,7 +393,7 @@ window.addEventListener('load', function () { (async function () {
       await wfEdit('2026-11-02', function (v) { return v.split('\n').filter(function (l) { return !/^Post Starts/.test(l.trim()); }).join('\n'); });
       var c = cellText('2026-11-02'), s = JSON.parse(await save());
       kase('W2', 'taking "Post Starts" out of its waterfall cell deletes the note (Post Begins switched off, its name gone), and the typed line stays',
-           c === 'Post kickoff 11/3/26' && !('autoNotesOn' in s) && !('postStart' in (s.autoNoteNames || {}))
+           c === 'Post kickoff 11/3/26' && !(s.autoNotesOn || {}).postStart && !('postStart' in (s.autoNoteNames || {}))
              && s.userNotes['2026-11-02'].text === 'Post kickoff 11/3/26',
            { cell: c, autoNotesOn: s.autoNotesOn, names: s.autoNoteNames, userNote: s.userNotes['2026-11-02'] });
     });
