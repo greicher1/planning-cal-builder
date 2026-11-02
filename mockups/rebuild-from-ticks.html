@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rebuild From Choices</title>
+<!-- MOCKUP, not the app. Rebuild From with a tick list of the phases it will move, asked for by the owner on
+     29 Oct 2026 ("what if you dont want localization added by rebuild From or you do want a custom phase moved by
+     rebuild from. How does it know which phases to affect?" then "Mock it up"). Today the tool moves every phase
+     on the chosen side that has a length, in a fixed order, and asks nothing.
+     The popover copies the live one (legacy.css .tools-menu, src/theme.js tokens). The calendar is synthetic.
+     Dates are whole weeks and hiatuses are left out, so the arithmetic here is simpler than the app's; the
+     ORDER and WHICH PHASES MOVE are the app's own rules (phaseSequence, rebuildBackwards, rebuildForwards). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:880px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 14px; align-items:center; }
+.tab{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-9); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--gray-0);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.reset{ margin-left:auto; border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; }
+.info{ display:grid; grid-template-columns:1.1fr 1fr 1.2fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+
+/* ---------- A stand-in for the app's preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.frame-scroll{ overflow-x:auto; }
+.frame-inner{ min-width:900px; padding:12px 14px 16px; position:relative; }
+.tb{ display:flex; align-items:center; gap:8px; }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; height:32px; }
+.seg span{ font-size:12px; font-weight:500; padding:0 12px; display:inline-flex; align-items:center; border-radius:var(--r-sm); color:var(--gray-7); }
+.seg span.on{ background:#fff; box-shadow:var(--shadow-xs); color:var(--gray-9); }
+.split{ display:inline-flex; height:30px; border:1px solid var(--navy-6); border-radius:var(--r-md); background:#fff; }
+.split span{ font-size:12px; font-weight:500; padding:0 12px; display:flex; align-items:center; color:var(--navy-6); }
+.split span + span{ border-left:1px solid var(--navy-2); }
+.split .main{ font-weight:600; }
+.tbtn{ height:30px; display:inline-flex; align-items:center; gap:5px; padding:0 10px; border:1px solid var(--navy-6);
+       border-radius:var(--r-md); background:#fff; font-size:12px; font-weight:600; color:var(--navy-6); white-space:nowrap; }
+.tbtn .caret{ font-size:9px; }
+.tbtn.open{ background:var(--navy-0); color:var(--navy-7); }
+.tbtn.plain{ border-color:var(--gray-4); color:var(--gray-9); }
+.tbtn.plain .caret{ color:var(--gray-5); }
+.wrap{ position:relative; }
+.wrap.gap-after{ margin-right:16px; }
+.sheet{ margin-top:10px; height:560px; border:1px solid var(--gray-3); border-radius:6px; background:
+        repeating-linear-gradient(to bottom, #fff 0 19px, var(--gray-2) 19px 20px); opacity:.7; }
+
+/* ---------- The popover (legacy.css .tools-menu, widened from 364 px) ---------- */
+.pop{ position:absolute; top:calc(100% + 6px); right:0; width:400px; background:#fff; border:1px solid var(--gray-3);
+      border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:12px; z-index:5; text-align:left; }
+.head{ margin:0 0 6px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+       display:flex; align-items:center; gap:4px; }
+.head .i{ display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid var(--gray-5); border-radius:50%;
+          font-size:8.5px; color:var(--gray-6); text-transform:none; letter-spacing:0; }
+.head .count{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; }
+.row{ display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.unit{ font-size:11.5px; color:var(--gray-6); flex:none; }
+.ctl{ height:30px; border:1px solid var(--gray-3); border-radius:var(--r-md); background:#fff; font-size:12.5px; color:var(--gray-9);
+      padding:0 8px; }
+select.ctl{ flex:1; min-width:0; -webkit-appearance:none; appearance:none; padding-right:28px; cursor:pointer;
+  background:#fff url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 8px center/14px 14px; }
+input.ctl[type=date]{ width:132px; flex:none; }
+input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
+.dir{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; margin-bottom:10px; }
+.dir button{ flex:1; border:0; background:none; height:26px; border-radius:var(--r-sm); font-size:11.5px; font-weight:500;
+             color:var(--gray-7); cursor:pointer; }
+.dir button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+.list{ border:1px solid var(--gray-2); border-radius:var(--r-md); overflow:hidden; margin-bottom:6px; }
+.ph{ display:grid; grid-template-columns:18px 8px 1fr 62px 92px; align-items:center; gap:7px; padding:5px 9px; font-size:12.5px;
+     border-top:1px solid var(--gray-1); cursor:pointer; }
+.ph:first-child{ border-top:0; }
+.ph:hover{ background:var(--gray-0); }
+.ph .dot{ width:8px; height:8px; border-radius:2px; }
+.ph .nm{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ph .dt{ text-align:right; font-variant-numeric:tabular-nums; }
+.ph .ch{ text-align:right; font-size:11px; color:var(--gray-6); white-space:nowrap; }
+.ph.off .nm, .ph.off .dt{ color:var(--gray-6); }
+.ph.moves .ch{ color:var(--navy-6); font-weight:500; }
+.ph.pin{ background:var(--navy-0); cursor:default; }
+.ph.pin .nm{ font-weight:600; }
+.ph.pin .ch{ color:var(--navy-7); font-weight:500; }
+.pinicon{ width:14px; height:14px; color:var(--navy-6); justify-self:center; }
+.ph.side-sep{ grid-template-columns:1fr; padding:3px 9px; background:var(--gray-0); font-size:10px; letter-spacing:.05em;
+              text-transform:uppercase; font-weight:600; color:var(--gray-6); cursor:default; }
+.ph.empty{ grid-template-columns:1fr; color:var(--gray-6); font-size:12px; cursor:default; padding:9px; }
+.ph input[type=checkbox]{ -webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0; border:1px solid var(--gray-4);
+  border-radius:4px; background:#fff; cursor:pointer; }
+.ph input[type=checkbox]:checked{ background:var(--navy-6) url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E") no-repeat center/62% auto;
+  border-color:var(--navy-6); }
+.hint{ margin:0 0 10px; font-size:10.5px; line-height:1.4; color:var(--gray-6); }
+.go{ width:100%; height:30px; border:0; border-radius:var(--r-md); background:var(--navy-6); color:#fff; font-size:12px; font-weight:600; cursor:pointer; }
+.go:hover{ background:var(--navy-7); }
+.go:disabled{ background:var(--gray-2); color:var(--gray-5); cursor:default; }
+.msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.msg:empty{ display:none; }
+.div{ height:1px; background:var(--gray-3); margin:12px 0; }
+.wide{ width:100%; height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:500;
+       color:var(--gray-9); }
+
+/* ---------- The explainer under the frame ---------- */
+.explain{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:14px; }
+.explain h2{ font-size:14px; margin:0 0 2px; }
+.explain .sub{ font-size:12.5px; color:var(--gray-6); margin:0 0 12px; }
+.tl{ position:relative; }
+.tl-months{ display:grid; margin-left:110px; font-size:10px; color:var(--gray-6); border-bottom:1px solid var(--gray-2); padding-bottom:3px; }
+.tl-row{ display:grid; grid-template-columns:110px 1fr; align-items:center; height:24px; }
+.tl-row .lbl{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+.tl-track{ position:relative; height:100%; background:repeating-linear-gradient(to right, transparent 0, transparent calc(100%/15 - 1px), var(--gray-1) calc(100%/15 - 1px), var(--gray-1) calc(100%/15)); }
+.bar{ position:absolute; top:5px; height:14px; border-radius:3px; font-size:9.5px; line-height:14px; padding:0 5px; white-space:nowrap; overflow:hidden; }
+.bar.was{ border:1.5px dashed var(--gray-5); background:transparent; }
+.legend{ display:flex; gap:16px; font-size:11.5px; color:var(--gray-6); margin-top:10px; flex-wrap:wrap; }
+.legend i{ display:inline-block; width:22px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Rebuild From: choose which phases move</h1>
+    <p>Today Rebuild From moves every phase on one side of your date that has a length, and asks nothing. Here the popover lists those phases first, with a tick box each and the date each would get, so you can leave Localization out or bring a custom phase in before anything moves.</p>
+    <p>Try it: untick Localization, tick Casting, or change the date. The made-up calendar has Production pushed 2 weeks to 6/21/27.</p>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>What's new</h3>
+      <ul>
+        <li>A list of the phases on that side, in the order they'd be chained.</li>
+        <li>A tick each. <b>Unticked phases stay where they are.</b></li>
+        <li>Each ticked phase shows its new start, and how far it moves, before you press Rebuild.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>As shown</h3>
+      <ul>
+        <li>Built-in phases start ticked, custom phases unticked.</li>
+        <li>Ticks are forgotten when the popover closes, so nothing goes into the saved file.</li>
+        <li>Close all gaps is unchanged.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your calls</h3>
+      <ul>
+        <li><b>A or B</b>: pick a direction first, or one list with both sides?</li>
+        <li><b>Starting ticks</b>: as shown, or also leave out any phase that already runs alongside another (Localization and Casting here)?</li>
+        <li><b>Close all gaps</b>: leave it, or have it use the same ticks?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-opt="A"><span class="n">A</span>Pick a direction, then tick</button>
+    <button class="tab" role="tab" aria-selected="false" data-opt="B"><span class="n">B</span>One list, both sides</button>
+    <button class="reset" id="reset" type="button">Reset the calendar</button>
+  </div>
+
+  <div class="frame"><div class="frame-scroll"><div class="frame-inner">
+    <div class="tb">
+      <div class="seg"><span class="on">Waterfall</span><span>Month</span></div>
+      <div class="split"><span>← 1 wk</span><span class="main">Shift All ▾</span><span>1 wk →</span></div>
+      <span class="tbtn">Shift From <span class="caret">▾</span></span>
+      <span class="tbtn">Anchor To <span class="caret">▾</span></span>
+      <div class="wrap gap-after">
+        <span class="tbtn open">Rebuild From <span class="caret">▾</span></span>
+        <div class="pop" role="dialog" aria-label="Rebuild from a date">
+          <p class="head">Rebuild from a date <span class="i" title="About Rebuild from a date">i</span></p>
+          <div class="row">
+            <select class="ctl" id="phase" aria-label="Phase to work from"></select>
+            <span class="unit">starts</span>
+            <input class="ctl" type="date" id="date" aria-label="Date that phase should start on">
+          </div>
+          <div class="dir" id="dir" role="group" aria-label="Which side to rebuild">
+            <button type="button" data-dir="-1" aria-pressed="true">← Work backwards</button>
+            <button type="button" data-dir="1" aria-pressed="false">Work forwards →</button>
+          </div>
+          <p class="head">Phases to rebuild <span class="count" id="count"></span></p>
+          <div class="list" id="list"></div>
+          <p class="hint" id="hint"></p>
+          <button class="go" id="go" type="button"></button>
+          <p class="msg" id="msg"></p>
+          <div class="div"></div>
+          <button class="wide" type="button">Close all gaps between phases</button>
+        </div>
+      </div>
+      <span class="tbtn plain">Side Boxes <span class="caret">▾</span></span>
+      <span class="tbtn plain">Header: Auto <span class="caret">▾</span></span>
+    </div>
+    <div class="sheet" aria-hidden="true"></div>
+  </div></div></div>
+
+  <div class="explain">
+    <h2>What Rebuild would do</h2>
+    <p class="sub">Explanation only, not part of the design. It updates as you tick.</p>
+    <div class="tl" id="tl"></div>
+    <div class="legend">
+      <span><i style="border:1.5px dashed #A5A197"></i>Where it is now</span>
+      <span><i style="background:#2C3E50;opacity:.25"></i>Where Rebuild would put it</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DAY = 86400000, WEEK = 7 * DAY;
+  const d = s => new Date(s + 'T00:00:00Z');
+  const fmt = t => (t.getUTCMonth() + 1) + '/' + t.getUTCDate() + '/' + String(t.getUTCFullYear()).slice(2);
+  const iso = t => t.toISOString().slice(0, 10);
+  const addW = (t, w) => new Date(t.getTime() + w * WEEK);
+
+  // A made-up calendar. Production's length is a week count here; in the app it comes from Show Info.
+  const START = [
+    {key:'writersRoom',  name:"Writer's Rm",  weeks:10, start:'2027-01-04', builtin:true,  fill:'#FFF2CC', ink:'#7A6215'},
+    {key:'prePrep',      name:'Pre-Prep',     weeks:4,  start:'2027-03-22', builtin:true,  fill:'#DAE3F3', ink:'#203864'},
+    {key:'prodPrep',     name:'Prod Prep',    weeks:6,  start:'2027-04-19', builtin:true,  fill:'#D6DCE5', ink:'#222A35'},
+    {key:'production',   name:'Production',   weeks:12, start:'2027-06-07', builtin:true,  fill:'#E2F0D9', ink:'#375623'},
+    {key:'post',         name:'Post',         weeks:20, start:'2027-08-30', builtin:true,  fill:'#FBE5D6', ink:'#8A4A1F'},
+    {key:'localization', name:'Localization', weeks:8,  start:'2027-11-01', builtin:true,  fill:'#EDEDED', ink:'#525252'},
+    {key:'custom1',      name:'Casting',      weeks:6,  start:'2027-04-05', builtin:false, fill:'#E4DFEC', ink:'#4B3B6B'},
+    {key:'custom2',      name:'Marketing',    weeks:4,  start:null,         builtin:false, fill:'#DDEBF7', ink:'#1F4E78'},
+  ];
+  let phases, opt = 'A', dir = -1, pinKey = 'production', pinDate = '2027-06-21', ticks = {}, lastMsg = '';
+
+  function reset(){
+    phases = START.map(p => ({...p, start: p.start ? d(p.start) : null}));
+    pinKey = 'production'; pinDate = '2027-06-21'; lastMsg = '';
+    resetTicks();
+  }
+  function resetTicks(){ ticks = {}; phases.forEach(p => { ticks[p.key] = p.builtin; }); }
+
+  // The app's phaseSequence(): built-ins in their fixed order, a dated custom phase slotted in before the first
+  // phase that starts later than it, an undated one last.
+  function sequence(){
+    const chain = ['writersRoom','prePrep','prodPrep','production','post','localization'];
+    const seq = chain.map(k => phases.find(p => p.key === k));
+    phases.filter(p => !p.builtin).forEach(p => {
+      if(!p.start){ seq.push(p); return; }
+      let at = seq.length;
+      for(let i = 0; i < seq.length; i++){ if(seq[i].start && seq[i].start > p.start){ at = i; break; } }
+      seq.splice(at, 0, p);
+    });
+    return seq;
+  }
+
+  // Where each phase would land. Ticked phases on the rebuilt side are chained end to end from the pin;
+  // an unticked phase is skipped and the chain carries on from the last one placed (rebuildBackwards /
+  // rebuildForwards skip a phase with no length the same way).
+  function plan(){
+    const seq = sequence(), at = seq.findIndex(p => p.key === pinKey);
+    const pin = seq[at], pinStart = d(pinDate);
+    const out = {}; seq.forEach(p => { out[p.key] = {from: p.start, to: p.start, side: 0, moves: false}; });
+    out[pinKey] = {from: pin.start, to: pinStart, side: 0, pin: true, moves: true};
+    const back = opt === 'B' || dir < 0, fwd = opt === 'B' || dir > 0;
+    if(back){
+      let cursor = pinStart;
+      for(let i = at - 1; i >= 0; i--){
+        const p = seq[i]; out[p.key].side = -1;
+        if(!ticks[p.key]) continue;
+        const s = addW(cursor, -p.weeks);
+        out[p.key].to = s; out[p.key].moves = true; cursor = s;
+      }
+    }
+    if(fwd){
+      let end = addW(pinStart, pin.weeks);
+      for(let i = at + 1; i < seq.length; i++){
+        const p = seq[i]; out[p.key].side = 1;
+        if(!ticks[p.key]) continue;
+        out[p.key].to = end; out[p.key].moves = true; end = addW(end, p.weeks);
+      }
+    }
+    return {seq, at, out};
+  }
+
+  // Owner's wording for a moved date: "Pushed 2 wks" / "Pulled 1 wk", never + or -.
+  function change(o){
+    if(!o.from) return o.moves ? 'New' : 'Not dated';
+    const w = Math.round((o.to - o.from) / WEEK);
+    if(!w) return 'No change';
+    return (w > 0 ? 'Pushed ' : 'Pulled ') + Math.abs(w) + (Math.abs(w) === 1 ? ' wk' : ' wks');
+  }
+
+  const $ = id => document.getElementById(id);
+  const PIN = '<svg class="pinicon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
+
+  function render(){
+    const {seq, at, out} = plan();
+
+    const sel = $('phase');
+    sel.innerHTML = seq.filter(p => p.start || p.key === pinKey)
+      .map(p => '<option value="' + p.key + '"' + (p.key === pinKey ? ' selected' : '') + '>' + p.name + ' — ' + fmt(p.start) + '</option>').join('');
+    $('date').value = pinDate;
+    $('dir').style.display = opt === 'A' ? '' : 'none';
+    [...$('dir').children].forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.dir === dir)));
+
+    // Which rows to list: A lists one side plus the pinned phase; B lists the whole chain.
+    let rows = seq.map((p, i) => ({p, i}));
+    if(opt === 'A') rows = rows.filter(r => dir < 0 ? r.i <= at : r.i >= at);
+    const side = rows.filter(r => r.i !== at);
+    const html = [];
+    if(!side.length) html.push('<div class="ph empty">Nothing runs ' + (dir < 0 ? 'before ' : 'after ') + seq[at].name + '.</div>');
+    rows.forEach(r => {
+      const p = r.p, o = out[p.key];
+      if(o.pin){
+        html.push('<div class="ph pin" title="The phase you picked. It starts on your date.">' + PIN +
+          '<span class="dot" style="background:' + p.fill + ';box-shadow:inset 0 0 0 1px ' + p.ink + '33"></span>' +
+          '<span class="nm">' + p.name + '</span><span class="dt">' + fmt(o.to) + '</span><span class="ch">' + change(o) + '</span></div>');
+        return;
+      }
+      const on = !!ticks[p.key];
+      const dt = on ? fmt(o.to) : (p.start ? fmt(p.start) : '—');
+      const ch = on ? change(o) : (p.start ? 'Stays' : 'Not dated');
+      html.push('<label class="ph' + (on ? '' : ' off') + (on && o.moves && change(o) !== 'No change' ? ' moves' : '') + '">' +
+        '<input type="checkbox" data-key="' + p.key + '"' + (on ? ' checked' : '') + ' aria-label="Rebuild ' + p.name + '">' +
+        '<span class="dot" style="background:' + p.fill + ';box-shadow:inset 0 0 0 1px ' + p.ink + '33"></span>' +
+        '<span class="nm">' + p.name + '</span><span class="dt">' + dt + '</span><span class="ch">' + ch + '</span></label>');
+    });
+    $('list').innerHTML = html.join('');
+
+    const n = side.filter(r => ticks[r.p.key]).length;
+    $('count').textContent = side.length ? n + ' of ' + side.length + ' ticked' : '';
+    $('hint').textContent = opt === 'A'
+      ? 'Ticked phases are rebuilt end to end ' + (dir < 0 ? 'back from' : 'on from') + ' your date. Unticked phases stay where they are.'
+      : 'Phases above ' + seq[at].name + ' are worked back from your date, phases below run on from it. Unticked phases stay where they are.';
+    const go = $('go');
+    go.textContent = n ? 'Rebuild ' + n + ' phase' + (n === 1 ? '' : 's') : 'Tick a phase to rebuild';
+    go.disabled = !n;
+    $('msg').textContent = lastMsg;
+
+    timeline(seq, out);
+  }
+
+  function timeline(seq, out){
+    const t0 = d('2027-01-04'), t1 = d('2028-04-03'), span = t1 - t0;
+    const pct = t => Math.max(0, Math.min(100, (t - t0) / span * 100));
+    const months = [];
+    for(let m = new Date(t0); m < t1; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1)))
+      months.push(m.toLocaleString('en-US', {month: 'short', timeZone: 'UTC'}) + (m.getUTCMonth() === 0 ? ' ' + String(m.getUTCFullYear()).slice(2) : ''));
+    let h = '<div class="tl-months" style="grid-template-columns:repeat(' + months.length + ',1fr)">' + months.map(x => '<span>' + x + '</span>').join('') + '</div>';
+    seq.forEach(p => {
+      const o = out[p.key], moved = o.moves && o.to && (!o.from || o.to.getTime() !== o.from.getTime());
+      let bars = '';
+      if(o.from && moved) bars += '<span class="bar was" style="left:' + pct(o.from) + '%;width:' + (pct(addW(o.from, p.weeks)) - pct(o.from)) + '%"></span>';
+      const at = moved ? o.to : o.from;
+      if(at) bars += '<span class="bar" style="left:' + pct(at) + '%;width:' + (pct(addW(at, p.weeks)) - pct(at)) + '%;background:' + p.fill +
+        ';color:' + p.ink + ';box-shadow:inset 0 0 0 1px ' + p.ink + '55">' + (moved ? change(o) : '') + '</span>';
+      h += '<div class="tl-row"><span class="lbl">' + p.name + (p.start ? '' : ' <span style="color:#726F68">(not dated)</span>') + '</span><div class="tl-track">' + bars + '</div></div>';
+    });
+    $('tl').innerHTML = h;
+  }
+
+  // ---- Wiring ----
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+    opt = b.dataset.opt; lastMsg = '';
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    render();
+  }));
+  $('dir').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    dir = +b.dataset.dir; lastMsg = ''; render();
+  });
+  $('phase').addEventListener('change', e => {
+    pinKey = e.target.value; const p = phases.find(x => x.key === pinKey);
+    pinDate = iso(p.start); lastMsg = ''; render();
+  });
+  $('date').addEventListener('change', e => { if(e.target.value){ pinDate = e.target.value; lastMsg = ''; render(); } });
+  $('list').addEventListener('change', e => {
+    const cb = e.target.closest('input[type=checkbox]'); if(!cb) return;
+    ticks[cb.dataset.key] = cb.checked; lastMsg = ''; render();
+  });
+  $('go').addEventListener('click', () => {
+    const {seq, at, out} = plan();
+    const placed = seq.filter((p, i) => i !== at && ticks[p.key] && out[p.key].moves && out[p.key].side);
+    const far = opt === 'A' ? (dir < 0 ? placed[0] : placed[placed.length - 1]) : null;
+    const newly = placed.filter(p => !p.start).length;
+    lastMsg = (opt === 'A'
+      ? (dir < 0 ? 'Worked back from ' : 'Worked forward from ') + seq[at].name + ' — ' + far.name + ' starts ' + fmt(out[far.key].to) + '. '
+      : 'Rebuilt around ' + seq[at].name + '. ')
+      + placed.length + ' phase' + (placed.length === 1 ? '' : 's') + ' placed' + (newly ? ', ' + newly + ' newly dated.' : '.');
+    phases.forEach(p => { if(out[p.key] && out[p.key].moves) p.start = out[p.key].to; });
+    const msg = lastMsg; render(); $('msg').textContent = msg;
+  });
+  $('reset').addEventListener('click', () => { reset(); render(); });
+
+  reset(); render();
+})();
+</script>
+</body>
+</html>

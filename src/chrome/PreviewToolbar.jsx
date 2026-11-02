@@ -189,12 +189,13 @@ export function PreviewToolbar() {
           <Button className="tools-btn" id="pop-solve-btn" type="button" size="xs" variant="default"
                   title="Rebuild the phases on one side of a fixed date" aria-haspopup="true" aria-expanded="false"
                   rightSection={<span className="caret" aria-hidden="true">▾</span>}>Rebuild From</Button>
-          {/* Wider than the others: its phase + "starts" + date row clips the phase name below 364px. */}
-          <div className="tools-menu tools-menu-lg" id="pop-solve" role="dialog" aria-label="Rebuild from a date">
+          {/* The widest panel (400px, the owner's mockup): the phase list gives each row a tick, a
+              colour, the name, a date and "Pushed 3 wks", and the name column is what gives way. */}
+          <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Rebuild from a date">
             <p className="tools-head">
               Rebuild from a date
               <InfoHint label="Rebuild from a date" width={300}>
-                Doesn’t move the calendar — rebuilds it. Your date stays put, and the phases on one side are recalculated from their week counts to run with no gaps — including any that aren’t dated yet. Use Anchor To if the plan should keep its current spacing.
+                Doesn’t move the calendar — rebuilds it. Your date stays put, and the ticked phases on one side are recalculated from their lengths to run with no gaps — including any that aren’t dated yet. Unticked phases stay where they are. Use Anchor To if the plan should keep its current spacing.
               </InfoHint>
             </p>
             <div className="tools-row">
@@ -202,15 +203,30 @@ export function PreviewToolbar() {
               <span className="tools-unit">starts</span>
               <input type="date" id="tool-solve-date" className="tools-date-fixed" aria-label="Date that phase should start on" />
             </div>
-            <div className="tools-row">
-              <Button className="tools-half" id="tool-solve-back" type="button" size="xs" variant="default">← Work backwards</Button>
-              <Button className="tools-half" id="tool-solve-fwd" type="button" size="xs" variant="default">Work forwards →</Button>
+            {/* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html).
+                The two directions used to ACT on one click; now they CHOOSE the side, and the list
+                under them says which phases will move and where each one lands before anything does.
+                Plain <button>s with aria-pressed, which the engine sets: Mantine's SegmentedControl
+                is a set of radio inputs with generated ids (see the head of this file). The list, its
+                count, its hint and the Go button's label are all written by the engine, so none of
+                them has children here. The ticks it writes carry no id, and they sit inside
+                .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
+            <div className="solve-dir" role="group" aria-label="Which side to rebuild">
+              <button type="button" id="tool-solve-back" data-dir="-1">← Work backwards</button>
+              <button type="button" id="tool-solve-fwd" data-dir="1">Work forwards →</button>
             </div>
+            <p className="tools-head">
+              Phases to rebuild<span className="solve-count" data-solve-count=""></span>
+            </p>
+            <div className="solve-list" data-solve-list=""></div>
+            <p className="tools-hint solve-hint" data-solve-hint=""></p>
+            <button type="button" className="solve-go" id="tool-solve-go"></button>
+            <p className="tools-msg" data-tools-msg=""></p>
             {/* Folded in here rather than given its own button: it IS Work-forwards from the first
-                phase at whatever date it already sits on, and the row has no spare width. */}
+                phase at whatever date it already sits on. It does not read the ticks (owner's mockup:
+                left as it was). */}
             <div className="tools-div"></div>
             <Button className="tools-wide" id="tool-close-gaps" type="button" size="xs" variant="default" fullWidth>Close all gaps between phases</Button>
-            <p className="tools-msg" data-tools-msg=""></p>
           </div>
         </div>
 

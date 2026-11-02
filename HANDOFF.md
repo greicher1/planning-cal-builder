@@ -58,7 +58,7 @@
   ⚠️ `main` was mid-merge by another session (HANDOFF.md and README.md conflicted) while this was built, so merging
   will need this entry and the README changelog entry placed on top of whatever that merge lands.
 
-### 🔨 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — BUILT in the main checkout, UNCOMMITTED
+### ✅ 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — ✅ **LIVE at `f0822f0`** (committed `c89ec8c` in the main checkout, merged with origin/main `fdf9324`; pushed at the owner's *"Commit and push"*, `fdf9324..f0822f0` at 17:51:44; the live `index.html` matched the tested build `71adec90…` byte for byte at 17:52:40). No version cut
 
 - **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the
   same color/style as the export pdf button"*. Tracker card `month-stepper-navy-arrows`.
@@ -72,9 +72,48 @@
 - **Proof:** the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`); the box is the same 202 px with 5 px
   corners; `monthmap` 20/20 on `mvnotes`, `colreuse`, `offweek`; `npm run check` 40/40; seen in the browser pane. No
   full gate (chrome CSS; both print paths hide the toolbar).
-- ⚠️ **Before committing:** origin/main is `fdf9324` (another session's snapped-start-box push, 17:39), one past local
-  `main` `9ec805f`, and adds top entries to HANDOFF.md and README.md. Commit, then merge origin/main keeping both top
-  entries.
+- **Landed:** committed `c89ec8c` (owner, *"Commit and push"*), then merged with origin/main `fdf9324` (another
+  session's snapped-start-box push); only the top entries of HANDOFF.md and README.md conflicted, both kept.
+
+### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
+
+- **The ask** (owner, screenshot of Pre-Prep with 03/25/2026 in the box and "Snapped to Mon 3/23/26" under the name):
+  *"right now when you enter a non monday date as the start date for a phase and click enter or click out of it, it
+  only shows the snapped to date in the grey text. It should also change the actual the date shows in the box.
+  Otherwise this is confusing."* Tracker card `snap-start-box`.
+- ⚠️ **This REVERSES one line of the `snap-monday-picker` entry below** ("Not changed, on purpose: … no field is
+  rewritten"). For a TYPED value only: the picker still never rewrites a field, and switching Snap on still leaves a
+  typed Wednesday (datepick P4 and P7 unchanged).
+- **Built (`src/legacy/app.js`, right after the Ends box's focusout, its twin):**
+  - `snapsToMonday(el)`: `start-<key>` of a real phase while `phaseSnapped(key)` (so Production with Snap on, and
+    custom Weeks phases; Snap off, Days, Dates and an Ends phase's hidden box are out), plus every `.hiatus-start`
+    and `.phiatus-start` (computeSchedule always snaps them). Rebuild From's `#tool-solve-date` is left out: a tool
+    field, not calendar data, and not in these containers.
+  - `snapTyped` (WeakSet): an `input` on a date box adds it, `focusin` clears it. `showSnappedMonday(el)` runs on
+    `focusout` and on `keydown` Enter: only for a box typed in this visit, it writes `isoOf(mondayOf(d))` and fires a
+    real `input` event, so every existing per-field listener (update, carryHiatusRowColour, the phase-hiatus
+    delegation, DatePop's onType) runs as if the Monday had been typed. Delegated on `#phase-rows`,
+    `#custom-phase-rows`, `#hiatus-list`. A bad year (parseDateUTC null) is left as typed, ringed as before.
+  - **Undo:** `foldIntoBankedStep(beforeJSON)` (beside `cancelPendingUndoPush`). If the typing was already banked
+    (the user paused past the 500 ms debounce), the baseline moves onto the result with no push; if the result equals
+    the stack top (a Wednesday typed over its own Monday) that step is popped too. If the push is still pending it
+    covers both. So one Cmd+Z takes back typing + rewrite; never a step that changes nothing.
+  - Nothing reschedules (that Monday is what computeSchedule already used), so no cell, export, baseline or saved
+    format moves; the saved VALUE of the field is the Monday instead of the Wednesday, which is the point. No frozen
+    code, no id, no snapshot key.
+- **Left alone, by design:** tabbing through a box without typing (a clean calendar stays clean), a non-Monday loaded
+  from an older calendar (keeps the frozen meta's "Snapped to Mon" row until the box is edited), switching Snap to
+  Monday on over a typed Wednesday (so switching it back off still gives back that day). The owner was not asked about
+  the switch case; ask if it comes up.
+- **Seen in the app, not changed:** the date picker opened on an EMPTY box stays on today's month while a date is
+  typed (DatePop's `onType` updates the value, not the month). Pre-existing.
+- **Proof:** new leg `snapbox` 12/12 (in `gate.sh` after `datepick`), red on two mutants (no rewrite: T2, U1-U3, K1,
+  P1, H1; no undo fold: U1, U3). Neighbours green on the build: datepick 17/17, endsdate 17/17, snaptools 14/14,
+  snapoff ×3, loadcarry 6/6, builtindates 17/17 + 15/15, customunits 23/23 + 28/28, undokeys 11/11, hiatusfold,
+  hiatuscolour, hiatuslabel, phasefold, phiatusnum, calrange, numclamp, hidewf 19/19, phasesui 8/8. `npm run check`
+  40/40. Seen in the browser pane with real keystrokes: Wed 3/25/26 + Enter → 03/23/2026, Thu 4/2/26 + click out →
+  03/30/2026, the "Snapped to" row gone both times, one undo back past both. No full gate (sidebar behaviour only;
+  nothing reaches the grid, the writers or the save format).
 
 ### ✅ 30 Oct 2026: ENDS — A WEEKS PHASE HELD BY ITS END — + THE META LINE ENDS ON THE FRIDAY — ✅ **LIVE at `d43b931`** (built as `83d2b34` on branch `weeks-end-date`, worktree `.claude/worktrees/weeks-end-date`; owner's picker, "Commit on the branch", then "Merge once main is clear", fast-forwarded as `d81655f`; the Friday line `d43b931`, fast-forwarded too; pushed at the owner's *"Ok go with choice 1, then push"*, `9b728c7..d43b931` at 17:13:49; the live `index.html` matched the tested build `2f1fe876…` byte for byte at 17:14:38). No version cut: installed users get it on their next relaunch (no service worker)
 
@@ -287,7 +326,67 @@
 - Verified: `npm run check` 40/40, `regionmirror` 9/9, `settingswin` 21/21, seen in the browser pane. No full gate
   (label tweak rule).
 
-### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
+### 🔨 30 Oct 2026: REBUILD FROM — LAYOUT A BUILT: A TICK LIST OF THE PHASES IT WILL MOVE — branch `rebuild-ticks` (worktree `.claude/worktrees/rebuild-ticks`, from `main` at `62fd9ab`; its `node_modules` is a symlink: unlink it before `git worktree remove`); COMMITTED on the branch as `5bad4c7` (owner's picker, *"Commit on the branch"*), with the stintswap-reshape fixture restored as its own commit `65edf8f` (*"Restore it"*); ➡️ **MERGED INTO LOCAL `main`** (owner: *"Merge into main"*): `main` merged into the branch twice (`c2e6194` for `64e9a16` + `ff84d6f`, the date picker's Mondays-only change and the weeks-end-date mockup, one README conflict, both entries kept; `ceb0dc5` for `2826feb`, HANDOFF only), then a fast-forward of local `main` was RECORDED here (`d14cb0e`) but ⛔ **NEVER HAPPENED**: `main`'s reflog has no such move, and `main` went on without it (`9b728c7` at 15:11). Almost certainly refused because the main checkout held an UNTRACKED `mockups/rebuild-from-ticks.html` (byte-identical to the committed one), which git will not overwrite, and the refusal went unread. Found 30 Oct 2026 when the owner asked where the feature went; ➡️ **MERGED FOR REAL** (owner: *"Yes, merge it"*): `main` at `3c2d6cf` merged into the branch as `d9334c1` (README.md and gate.sh conflicted, both sides kept), the untracked copy removed, then local `main` fast-forwarded, CHECKED with `git merge-base --is-ancestor`; re-checked on that merge: `npm run check` 40/40, `rebuildticks` 19/19, `snaptools` 14/14, `overrides` 20/20, `builtindates` live + restore, `customunits` live + restore, `hdrcontrols` 12/12, `endsdate` 17/17, `holidayrename` 14/14, `datepick` 17/17 (no second full gate); NOT pushed; gated build `3cf17115…`, merged build `0818b629…` (re-checked: `npm run check` 40/40, `rebuildticks` 19/19, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `builtindates` 17 + 15, `customunits` 23 + 28, `hdrcontrols` 12/12; no second full gate)
+
+- **The ask:** after the mockup (entry below) and the pros and cons of A and B, the owner: *"Build A"*. Not ruled,
+  so built as the mockup showed them: the **starting ticks** (every built-in ticked, every custom phase unticked;
+  the other choice offered was "also untick any phase that already runs alongside another"), and **Close all gaps
+  unchanged** (it does not read the ticks).
+- **What changed, all chrome or unfrozen engine; no frozen code, no save-format change:**
+  - `PreviewToolbar.jsx` `#pop-solve`: the two direction buttons keep their ids (`#tool-solve-back`,
+    `#tool-solve-fwd`) but are now plain `<button>`s in a `.solve-dir` segmented control that only CHOOSE the side
+    (`aria-pressed`, set by the engine). Under them: "Phases to rebuild" with a count (`[data-solve-count]`), the
+    list (`[data-solve-list]`, engine-written), a hint (`[data-solve-hint]`), and a plain navy `#tool-solve-go`
+    ("Rebuild N phases"). The result line moved up under it, above Close all gaps. Width 400 px
+    (`.tools-menu-solve`; `.tools-menu-lg` is gone, nothing else used it).
+  - `app.js` solvers: `workBackwardsFrom` / `workForwardsFrom` take `opts.leave` (a Set of keys taken OUT of the
+    chain before it is walked, so they keep their dates and the chain carries on from the last placed phase: the
+    rule a phase with no length already had) and `opts.trial`. `written` entries now carry `key`.
+  - **The preview is the real solver, run and put back** (`trialRebuild`): it saves every `start-`/`end-` field, the
+    day overrides, `currentSchedule` and `lastShootDayMove`, runs the solver with the forward pass's `update()`
+    swapped for `trialSchedule()` (re-pin the marks as update() does, then `computeSchedule(readState())`, no
+    render), and restores everything in `finally`. Nothing renders, nothing is marked dirty, no undo step.
+    ⛔ Do not replace it with arithmetic in the panel: Production is SEARCHED and Post chains off its wrap.
+  - The tools IIFE: `renderSolve()` draws the list from `phaseSequence()`; `solveTicks` (reset on every open),
+    `solveDir` (kept for the session); rows say the new date and "Pushed N wks" / "Pulled N days" / "New" /
+    "Stays" / "Not dated" / "No length" / "Can’t place" (same weeks-or-days rule as Compare's `moved`). A phase
+    with no length is in `leave` too, so the result line no longer lists it as "Skipped". Redraw measured at
+    15-50 ms per tick, Production search included. ⚠️ It is NOT drawn at IIFE evaluation (the scheduler reads
+    state declared further down the file); `openPop()` draws it.
+  - CSS: `.solve-*` rules after `.tools-msg`; the ticks reuse `.form-panel`'s Mantine checkbox rules (selectors
+    added, not copied). Ticks carry no id and sit inside `.tools-menu`.
+- **Legs:** new `rebuildticks` (19 checks, in `gate.sh`'s generic list): the list, the starting ticks, every previewed
+  date and word, that drawing the preview moves nothing, that Rebuild writes the previewed dates and leaves unticked
+  Casting / Localization alone, undo, the ticks resetting, the direction persisting, no ids. A new lib helper,
+  `T.rebuildAll(dir)`, ticks everything and presses Rebuild (the old one-click behaviour), used by `snaptools`,
+  `overrides`, `builtindates` and `customunits`. `snaptools` L15 now asserts the disabled "Nothing to rebuild"
+  button and a "No length" row (the engine's own L-15 guard is still behind it).
+- **Verified on the build:** `npm run check` 40/40; `rebuildticks` 19/19; `snaptools` 14/14; `overrides` 20/20;
+  `builtindates` live 17 + restore 15 checks; `customunits` live 23 + restore 28; `hdrcontrols` 12/12; in the
+  browser pane (backwards and forwards, unticking Localization, Rebuild, no console errors). FULL GATE 3,418 / 6
+  on the branch build, all six explained, none this branch's:
+  - ⚠️ **Three come from `tests/fixtures/stintswap-reshape.sptcal`, which LOCAL `main`'s `62fd9ab` changed** (another
+    session's "HANDOFF: Region label removal live at 9522aa3", NOT pushed, swept the main checkout's uncommitted edit of
+    it into the commit: +379 lines, 8 episodes, a BC region, day marks, side boxes; still the synthetic "Reshape
+    Fixture", but no longer the calendar its baselines were cut from). `stintreshape` (load timeout), gate 13's
+    stintswap-reshape month PDF ("THE CONTENT MOVED", 25 -> 26 pages) and `phasesui (hidewf)` P1. With the fixture as
+    committed before `62fd9ab` restored in the worktree (and put back after): `stintreshape` 9/9, the month PDF
+    BYTE-IDENTICAL to its baseline, `phasesui (hidewf)` 8/8. ✅ The owner chose *"Restore it"*: a separate commit on
+    THIS branch puts the pre-`62fd9ab` file back, so local `main` is fixed when this branch merges. Until then `main`
+    still carries the edited file, and a gate run from `main` will show those three failures.
+  - Three load timeouts, green alone: `retiredplaces` 8/8, `launchopen` 16/16, `mvbarsize (hiatus-blanklabel)` 12/12.
+    (A `rebuildticks` run on another port overlapped the gate and may have slowed it.)
+- **Localization's starting tick (owner, 30 Oct 2026):** *"localization should also be unticked by default (unless
+  someone entered a number of weeks or a starting date for it)"*. Already true as built, so no code changed: a new
+  calendar leaves Localization's weeks blank, a phase with no length is never ticked (its row reads "No length"),
+  and a start date alone is no length, so it cannot be placed either way. With its weeks entered it starts ticked.
+  `rebuildticks` U1/U2 now hold both cases (19/19).
+- **Open for the owner:** Close all gaps (above). Known limit, unchanged: a custom phase with no date can only go at
+  the end of the chain.
+- The main checkout's untracked copy of `mockups/rebuild-from-ticks.html` (identical, `cmp`) was removed before the
+  fast-forward, since the branch tracks it.
+
+### 📝 29 Oct 2026: REBUILD FROM — CHOOSE WHICH PHASES IT MOVES — MOCKUP ONLY, NO APP CODE, NOTHING RULED; ➡️ LAYOUT A BUILT (entry above) ([`mockups/rebuild-from-ticks.html`](mockups/rebuild-from-ticks.html))
 
 - **The ask** (owner, 28–29 Oct 2026): first *"should we consider getting rid of "Rebuild From""*, then *"Ok maybe we
   should keep it BUT … what if you dont want localization added by rebuild From or you do want a custom phase moved

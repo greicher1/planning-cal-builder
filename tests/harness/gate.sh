@@ -1758,9 +1758,15 @@ done
 # datepick (owner, 30 Oct 2026: "when snap to monday is on wouldn't it make sense that you aren't able to pick any
 # dates except mondays?") holds the pop-out date picker to the way the engine reads each field (DatePop.jsx's
 # fieldKind): a phase start with Snap to Monday on, every hiatus start and Rebuild From on a snapped phase offer only
-# Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and is not rewritten);
-# Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact day with no
-# week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and opening the picker does
+# not rewrite it); Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact
+# day with no week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# snapbox (owner, 30 Oct 2026, of a Wednesday left in a snapped Starts box: "It should also change the actual the date
+# shows in the box. Otherwise this is confusing.") holds the box's half: after TYPING a non-Monday, Enter or leaving the
+# box writes its Monday (built-in, Production, custom Weeks, both kinds of hiatus), the "Snapped to Mon" row goes and
+# the waterfall does not move; one undo step either way (paused or not), none for a Wednesday over its own Monday;
+# tabbing through, Snap off and a Dates phase leave the typed day. Red on two mutants (no rewrite: T2/U1-U3/K1/P1/H1;
+# no undo fold: U1/U3). Own line.
 # endsdate (owner, 30 Oct 2026: "what if for phases you could select EITHER starting date OR ending date", "Yes, no
 # switch", "build it") holds a Weeks phase held by its END (phaseEnds): the Starts / Ends select on every Weeks card
 # but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
@@ -1807,6 +1813,8 @@ done
 # Wk N"), Automatic notes row and Save; New puts it back; and the OLD name, typed or loaded from a real v1.8.0 file,
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
+# rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
+# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1829,6 +1837,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              snapbox:-:300 \
               endsdate:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
@@ -1849,6 +1858,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               hidewf:hidewf:400 \
+              rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \

@@ -10,8 +10,9 @@
 //   day    -- Snap off, a Days or Dates phase, a Dates end, a custom holiday, Anchor To's "ends by": any
 //             day, the picked day capped alone, no week band.
 //   week   -- the calendar range and Anchor To's start: any day picks its week, the band stays.
-// Typing and the engine are untouched: picking never rewrites a field it did not pick into, and turning
-// Snap on or off leaves the typed date alone.
+// The engine is untouched: picking never rewrites a field it did not pick into, and turning Snap on or off
+// leaves the typed date alone. (Leaving a snapped box after TYPING a non-Monday does write its Monday, since
+// 30 Oct 2026; the snapbox leg holds that. Nothing here leaves a box after typing, so P4 and P7 still hold.)
 //
 // The picker is opened by a dispatched focusin, the event it listens for: a click inside a tool popover
 // never reaches the document (the engine stops it), and a real focus needs a focused window.
