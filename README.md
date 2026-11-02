@@ -60,6 +60,33 @@ Verified:
   `calrange`, `sideboxes`, `textstyle`. The full gate was not run.
 - `npm run check` 40/40.
 
+### Unreleased — Production can be held by its wrap (Ends), and its card shows the shoot as a span (2 Nov 2026)
+
+The owner, after Ends went live for the Weeks phases: *"would it be possible we could add the "ends" date option to
+production ... if i know production needs to end on a certain day we could work backwards to calculate"*. Production's
+date now reads **Starts** or **Ends**, as the Weeks phases' do. Ruled *"id say do exactly then"*: in Ends the shoot
+wraps **exactly** on the day picked, so the start can fall mid-week.
+
+- The start is counted back from the shoot days, skipping weekends, holidays, hiatus days and days marked Off. The
+  app asks its real scheduler for the latest start that still wraps on the day, so the two can never disagree. More
+  episodes or days, a hiatus, a holiday or a new Region now move the START, and the wrap holds.
+- The picker offers only days the shoot can work. A typed weekend or holiday wraps on the shoot day before it.
+- Snap to Monday and "Start after previous phase" are hidden in Ends. The shift tools, Rebuild From and the
+  month-view grips move the shoot as they do in Starts, and the wrap it lands on becomes the one held.
+- Under the date, in both modes, the shoot as a span: **Starts** and **Wraps** at the two ends of a dashed line. The
+  end that holds is solid in Production's colour, the one worked out from it dashed (option B of four mocked, the
+  owner's pick, *"This would also be shown whether you do Starts or Ends"*). An amber "runs into the phase before"
+  line was tried first and taken out (*"thats obvious from just looking at the calendar"*).
+- Saved as one new key, `productionEnds` (the held wrap), written only in Ends, so a calendar that never uses it saves
+  byte for byte as before. The worked-out start is still written into Production's Starts box with Snap to Monday
+  off, so an older version opens the same shoot, held by its start.
+
+Verified: new leg `prodends` (to Ends moves nothing; one undo step; 90 shoot days wrapping Tue 10/20/26 start Fri
+6/12/26 over Juneteenth; Production's own hiatus; a typed Saturday and the day after Thanksgiving; the picker; Shift
+All; Save, Load, no key, a hostile key; back to Starts; a round trip byte for byte). `endsdate`'s C1 now expects
+Production's own select. Full gate 3,508 PASS, 2 FAIL, both load flakes that pass alone (`pwagate` C1 13/13 twice,
+`scenariocompat` on v1.2.0); every waterfall, Excel and month PDF baseline held. `npm run check` 40/40.
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.

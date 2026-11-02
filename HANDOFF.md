@@ -52,6 +52,96 @@
     gated layout. Offered as its own task.
 - **Next:** commit on the branch (asked), then merge / push only on the owner's per-action yes.
 
+### 🔨 30 Oct – 2 Nov 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) + THE SHOOT AS A SPAN — BUILT on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, cut from `origin/main` at `fdf9324`, `origin/main` merged in as `cddc8f4`; `node_modules` is a symlink: unlink it before `git worktree remove`); WIP committed locally (`187aac3`), the span and the leg uncommitted; GATED (3,508 / 2, both load flakes, green alone); NOT merged, NOT pushed
+
+- **The ask** (owner, after Ends went live): *"would it be possible we could add the "ends" date option to production
+  or would that mess things up? That way if i know production needs to end on a certain day we could work backwards
+  to calculate"*. Answered yes, possible; nothing built. Tracker card `production-end-date`, status planned.
+- Asked whether to advise against it: no, a slight lean towards it (the control already exists on every Weeks card;
+  Production missing it is the inconsistency), ON CONDITION that the card makes Ends obvious and says where the start
+  went, because in Ends an added episode pulls the start (and prep) earlier unasked. Anchor To covers the one-off case.
+- ✅ **RULED (owner, 30 Oct 2026, *"id say do exactly then"*): the shoot wraps EXACTLY on the picked day.** The start
+  may land mid-week. Explained against "by" with a table (23 → 26 shoot days before a Friday deadline: "by" keeps a
+  Monday start and wraps 0–4 days early, the start jumping a whole week at the 26th day; "exactly" moves the start a
+  day at a time and always wraps on the Friday).
+- **The mockup** (made after the ruling, not separately asked for): a copy of the live Production card (measured in
+  the browser pane on the `episodeprep` fixture) with Starts / Ends over the date, beside a day grid (week rows of the
+  waterfall, days of the month view) and a "What moved" strip. Synthetic: six episodes × 5 days, Prod Prep fixed
+  1/11/27–2/19/27, Good Friday 3/26/27, a fixed 1-week hiatus at 3/15/27. In Ends: Snap to Monday and "↳ Start after
+  Prod Prep" hidden; a line under the date names the start ("Starts Fri 2/26/27, worked back from the wrap"), amber
+  with a second line when it falls inside Prod Prep; the picker offers only shoot days; a typed weekend / holiday /
+  hiatus day reads as the shoot day before. Back to Starts keeps the start and turns Snap off if it isn't a Monday.
+  Checked in the browser pane (scripted and real clicks): Fri 4/9/27 → start Fri 2/26/27; Ep 103 at 6 days → Thu
+  2/25; hiatus on → Thu 2/18, inside Prod Prep; no console errors.
+  - ✅ **"Yes, build it"** accepted all three suggestions: (1) an amber line when the start falls in the phase before;
+    (2) movers keep moving the shoot and the wrap they land on becomes the held one; (3) "Start after previous phase"
+    hidden in Ends. Then, mid-build, (1) was WITHDRAWN (owner: *"maybe we don't need the warning that it runs into a
+    previous phase....thats obvious from just looking at the calendar"*), and the start line was to be redesigned
+    (*"come up with a better looking way to tell the user what the start date of production was calculated to be"*).
+- **The start readout** ([`mockups/production-start-readout.html`](mockups/production-start-readout.html)): four
+  options were mocked (A a calculated box, B the shoot as a span, C a footer on the totals box, D a caption chip). The
+  owner picked **B with two changes**: *"removing the "30 shoot days" in the middle. This would also be shown whether
+  you do Starts or Ends, changing which is highlited in solid green depending on which mode."* So under the date box,
+  in BOTH modes, a STARTS pill and a WRAPS pill joined by a dashed line; the end that holds (the box's date) is solid
+  green (`--prod-text` fill, white text), the worked-out end dashed. The mockup shows exactly that, two cards
+  (Starts, Ends), each switchable. ✅ Owner, 2 Nov 2026: *"Yes, build it"*. BUILT: `PROD_SPAN_HTML` (id-less, inside
+  Production's `.ph-starts`), drawn by `reflectProductionEnds()` in BOTH modes from `productionInfo.shootDays` (first
+  and last), `.held` on the end that holds, its ink Production's own colour option's `text` (`--span-ink`, so a
+  recoloured Production keeps a matching span), rewritten only when its signature changes (the rows are observed).
+- **Built so far on the branch (not committed, not gated):** `productionEnds` / `prodEndsForward` / `prodEndsDrag`
+  (beside `phaseEnds`); `productionTrial` (productionEndFor's body, shared), `productionShootTrial`,
+  `solveProductionEndsStart` (step by the miss, step back, then climb one shoot day at a time), `prodEndsWarm`,
+  `syncProductionEndsStart` (top of `update()`, before `readState()`); readState's Production branch (snap off, out
+  while the wrap is empty, a bad year rings `.prod-wrapdate`); `setPhaseStart` sets `prodEndsForward`; the shoot grips
+  set `prodEndsDrag` (only in `installProductionEdgeHandles`); `setProductionEnds` / `setProductionWrap` /
+  `reflectProductionEnds`; Production's row now uses `startsFieldHtml('production')` (the `.prod-wrapdate` box and a
+  `.prod-ends-line`, to be replaced by the span); snapshot key `productionEnds` (capture, sanitize, restore
+  unconditionally, New); `dateContext.prodShoot` and DatePop's `'wrap'` kind (only shoot days); CSS beside the Ends
+  rules. Measured on `episodeprep`: an update in Ends ~10-18 ms; Fri 4/16/27 → start Fri 2/26/27; +1 episode day →
+  Thu 2/25/27; Production's own hiatus over the fixture's 3/15/27 hiatus → Fri 2/19/27; a typed Sat 4/17/27 holds
+  Fri 4/16/27; the picker greys weekends, the hiatus weeks and Good Friday.
+  - `endsdate` C1 now expects Production's own select and `.prod-wrapdate` (it asserted Production had no select).
+  - ⚠️ **Found on the merge: Rebuild From's preview (`trialRebuild`, from `5bad4c7`) runs the real movers and puts
+    the fields back.** Through `setPhaseStart()` it left `prodEndsForward` set, so the next `update()` would have
+    taken the wrap from the start. Harmless when the wrap is reachable, but it would have dropped a held wrap a
+    mark had since taken. `trialRebuild` now saves and restores `productionEnds` and `prodEndsForward` with the fields.
+  - **New leg `prodends`** (14 cases, in `gate.sh` after `endsdate`, budget 400): C1 the card, R1 a round trip byte for
+    byte, E1 to Ends moves nothing, U1 undo/redo, E2 90 shoot days wrapping Tue 10/20/26 start Fri 6/12/26 over
+    Juneteenth, E3 Production's own hiatus → Fri 6/5/26, E4 a typed Sat 10/24 → Fri 10/23 and the day after
+    Thanksgiving → Wed 11/25, E5 the picker (October: weekends off; November: 26, 27 off too), S1 Shift All +1 wk →
+    Mon 6/22/26 to Tue 10/27/26 and an idle update keeps both, F1-F3 the file, B1 back to Starts, E0. ⚠️ Not timed:
+    under `--virtual-time-budget` `performance.now()` does not move in synchronous code (a timing case read 0 ms
+    twice and was removed); the browser pane measured 10-18 ms an update in Ends.
+  - README entry written (Unreleased, 2 Nov 2026).
+  - **Proof:** `prodends` 14/14; `endsdate` 17/17, `rebuildticks` 19/19, `snaptools` (dayoverrides) 14/14, `datepick`
+    17/17, `snapbox` 12/12, `prodspan` 8/8, `phasefold` 11/11, `loadcarry` 6/6, `builtindates` 17/17 + 15/15,
+    `customunits` 23/23 + 28/28, `pilldrag` 30/30, `phaseedge` 23/23; `npm run check` 40/40. **Full gate on build
+    `226cd796…` (11:48-12:20, 2 Nov): 3,508 PASS, 2 FAIL**, both load (average ~11): `pwagate` C1 ("Link copied", its
+    known flake) 13/13 twice alone once the load fell to ~6; `scenariocompat` on `releases/v1.2.0.html` opens the
+    scenario alone. Every waterfall PDF, Excel part and month PDF baseline held. Seen in the browser pane on
+    `episodeprep` (the span in both modes, the picker, an episode day moving only the dashed start).
+- ⚠️ **`main` moved under this entry:** another session pushed `fdf9324` ("Snapped start box: show the Monday it
+  snapped to", top HANDOFF entry + README) and left local `main` at `9ec805f` because this entry was uncommitted.
+  Before committing here, bring in `origin/main`; the only conflict should be HANDOFF.md's top entries (keep both).
+- **Why it was left out of Weeks Ends:** `phaseEndsOn()` returns false for `production` by design (the 📝 entry
+  below: "working back from a shoot-day count is a search"). Production's row has its own markup (the `isDays` branch
+  of `buildPhaseRows()`), so it has no `startsFieldHtml()` select and no `end-production` field.
+- **What already exists:** `productionStartEndingBy(cursor)` (Rebuild From's backward search over
+  `productionEndFor()`, the real scheduler, weekly steps, latest fit first) and Anchor To's `end` edge
+  (`phaseLastWorkday()` = `productionInfo.lastShootDay`), which does the job ONCE: a later Show Info change still
+  moves the wrap. Ends would make the wrap HOLD and move the start (and the derived prep) instead.
+- **Open for the owner:** (1) the wrap lands EXACTLY on the picked day (the start can be mid-week; a picked weekend or
+  holiday reads as the shoot day before it) vs. a Monday start that wraps on or before it (up to ~4 days early);
+  suggested exact. (2) Movers: suggested they keep moving the start as today and the wrap they produce becomes the
+  held end (asShootDayMove unchanged).
+- **Hazards for whoever builds it:** the wrap needs a home: no `end-production` id exists, and a new id enters
+  `fields.byId` (prefer an id-less box plus a PERMANENT snapshot key, absent = Starts). Keep writing the solved start
+  into `start-production` so older builds open it as a start-held shoot (frozen `readCfgForMeta()` reads it too).
+  The search calls `computeSchedule(readState())`, so solving inside `readState()` recurses: solve in `update()`
+  beside `syncPhaseEndsStarts()`, warm-started from the current start, and measure the per-keystroke cost. A finer
+  day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
+  when Ends moves the start, as they do today when the end moves.
+
 ### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
 
 - **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the
