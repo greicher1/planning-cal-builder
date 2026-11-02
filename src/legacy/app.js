@@ -6369,6 +6369,16 @@ export function initLegacyApp() {
 
   // One evaluator for both modes, so the cached candidates, the toolbar and the synchronous fallback
   // in doSwapMove can never disagree about which kind of swap the selection means.
+  //
+  // ⭐ A REFUSED BLOCK SWAP FALLS BACK TO THE PER-WEEK ONE (owner, 2 Nov 2026: "for swapping a portion
+  // of a column (such as 3 cells only while all the others have been extended) the little blue arrow
+  // only pops up when you drag the cursor across to the cells in the column next to it"). Selecting a
+  // short phase's three cells is its WHOLE block, and the block swap carries every overlapping stint
+  // in the next column with it (E1), so one hand-widened week of the long phase beside it refused the
+  // lot (D4) -- with no knob, and a reason only on Alt+arrow. The per-week swap of the weeks the two
+  // share moves none of those widened cells, and it is what the drag across both columns already got.
+  // So when the block cannot move, the knob offers that instead, and its label names the weeks. A
+  // block swap that CAN move is still offered first, exactly as before: nothing changes for it.
   function swapEvalDir(dir){
     const mode = swapSelectionMode();
     if(mode.mode === 'stint'){
@@ -6379,12 +6389,40 @@ export function initLegacyApp() {
         const mv = followRunFor(mode.year, mode.phaseKey, dir);
         if(mv) return mv;
       }
-      return run.ok ? Object.assign(run, canSwapStint(run)) : run;
+      const v = run.ok ? Object.assign(run, canSwapStint(run)) : run;
+      if(v.ok) return v;
+      const w = weekSwapEval(dir);
+      return (w && w.ok) ? w : v;              // the BLOCK's reason when neither can move
     }
+    return weekSwapEval(dir);
+  }
+
+  // The per-week candidate for one direction: the run walked from the seed, or, when the seed has none
+  // that way, from the seed phase's OTHER selected cells in the same year block, top down. Without the
+  // second half a selection begun on a widened cell (no partner beside it) got no knob, although the
+  // weeks below it, in the same selection, could swap. The first run that passes wins, and the knob's
+  // label names its weeks. Only the seed's phase is walked: the partner's cells would offer the same
+  // pair from the other side, a second knob on the same seam.
+  function weekSwapEval(dir){
     const seed = swapSeed();
     if(!seed) return null;
-    const run = swapRunFor(seed.weekIso, seed.phaseKey, dir);
-    return run.ok ? Object.assign(run, canSwapRun(run)) : run;
+    const first = swapRunFor(seed.weekIso, seed.phaseKey, dir);
+    const v = first.ok ? Object.assign(first, canSwapRun(first)) : first;
+    if(v.ok) return v;
+    const year = blockYearOf(seed.weekIso);
+    const tried = new Set(first.weeks || [seed.weekIso]);
+    const rest = selCells()
+      .filter(td => td.dataset.pkey === seed.phaseKey && blockYearOf(td.dataset.week) === year)
+      .sort((a, b) => (+a.parentElement.dataset.row) - (+b.parentElement.dataset.row));
+    for(const td of rest){
+      if(tried.has(td.dataset.week)) continue;
+      const run = swapRunFor(td.dataset.week, seed.phaseKey, dir);
+      (run.weeks || [td.dataset.week]).forEach(w => tried.add(w));
+      if(!run.ok) continue;
+      const c = Object.assign(run, canSwapRun(run));
+      if(c.ok) return c;
+    }
+    return v;                                  // the seed's own reason, as before
   }
 
   function finishStintMove(cand){
@@ -6544,6 +6582,9 @@ export function initLegacyApp() {
     // (swapSelectionMode), and a block swap changes gridStintSwaps rather than gridColSwaps.
     const mode = swapSelectionMode();
     return mode.mode + ':' + (mode.year || '') + ':' + (mode.phaseKey || '') + ':' + gridSel.size
+      // The selection itself, not just its size: the per-week candidate walks every selected cell of the
+      // seed's phase (weekSwapEval), so two selections of one size and one seed can differ.
+      + '|' + [...gridSel].sort().join(',')
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')

@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — swapping part of a column when its other cells are widened (2 Nov 2026)
+
+The owner: *"for swapping a portion of a column (such as 3 cells only while all the others have been extended) the
+little blue arrow only pops up when you drag the cursor across to the cells in the column next to it. If you just
+select the cells in the one column, and click swap column, no blue arrow pops up."*
+
+Why: selecting a short phase's three cells is its WHOLE block in that year, and so is clicking Swap Column. A whole
+block resolves to the block swap, which carries the long phase beside it along entirely and refuses when any of its
+cells is widened by hand. So it showed no arrow, and the reason appeared only on Alt+arrow. Separately, a selection
+that began on a widened cell got no arrow, because the arrow was judged from that one cell.
+
+Now:
+- When the block swap can't happen, the arrow offers the week-by-week swap of the weeks the two phases share: the
+  same swap the drag across both columns already gave. Its tooltip names the weeks. The widened cells never move.
+- A block swap that can happen is still offered first, exactly as before.
+- In a part-column selection, the arrow is judged from each selected cell of the phase, so a selection that starts
+  on a widened cell still gets the arrow for the weeks below it.
+- Nothing about a cell, the exports or the save format changed. It is the gesture code only (`swapEvalDir`, new
+  `weekSwapEval`), and nothing frozen was touched.
+
+Verified: new gate leg `colswappartial` on a new fixture, `colswap-widened` (gesture calendar with two
+hand-widened weeks), 8/8. It is red on the build before the fix in its three cases (P1, P4, P5) and green on its
+guard. Every column-swap and block-swap leg, plus `onecol`, `colreuse` and `noswapbtns`, pass (results in HANDOFF).
+`npm run check` 40/40. In the browser pane, with real clicks: widen two weeks, select Post's cells only, and the
+arrow appears and swaps; Swap Column on Prod Prep shows the arrow too.
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.

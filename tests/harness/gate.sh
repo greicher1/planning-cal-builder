@@ -1820,6 +1820,10 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# colswappartial (owner, 2 Nov 2026) is swapping PART of a column whose other weeks are widened by hand: a refused
+# block swap (Swap Column, or a short phase's whole block selected) falls back to the per-week swap of the shared
+# weeks, a per-week selection begun on a widened cell still gets its knob, the widened weeks never move, and the
+# drag across both columns still gets exactly one knob. Red on the build before it on P1, P4 and P5.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1834,6 +1838,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               regioncaveat:-:150 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
+              colswappartial:colswap-widened:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
