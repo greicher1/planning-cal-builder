@@ -1831,6 +1831,11 @@ done
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
 # default, restored unconditionally, repaired on Load), undo, clearing it and New.
+# colswapcache (fixed 2 Nov 2026) is every edit reaching the waterfall on a calendar holding a stored column swap. The
+# column-swap gate's cache used to hand update() the schedule of its last MISS, so a phase renamed, Sim Post's offset,
+# "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
+# colswap-simpost-refuse, with the swap refused (Sim Post on) and applied (off). C1, a colour, is a cache HIT: red on
+# a build that only widens the key.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1874,6 +1879,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
               simpostname:-:400 \
+              colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

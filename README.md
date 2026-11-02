@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
+
+On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something
+moved a column. Found while building the Sim Post rename; it was on `main` before that. Measured on a build of
+`main`, on the fixture `colswap-simpost-refuse`:
+
+- Ticking Sim Post's "Number these weeks": the cells still read "Simultaneous Post".
+- Changing Sim Post's offset from 1 to 0: nothing moved.
+- Renaming Post to "Edit": the cells still read "Post wk N".
+- Also stuck: an undo of any of those, and a phase's new colour.
+
+Why: every edit, the app checks whether each stored swap is still safe (the column-swap gate). That check is slow,
+so its answer is cached against the column layout, the swaps, the widths and whether Sim Post is on. When none of
+those changed, the app drew the calendar it had cached at the last full check, not the one it had just worked out.
+Now a cached answer is applied to the calendar just worked out, so every edit shows at once. The cache's key also
+covers more of what the check measures: Sim Post's weeks and numbers, every cell's label, Sim Post's name, block
+swaps, cell spans and column reuse. A rename can therefore change whether a swap is still allowed.
+
+`maybeRunColSwapGate` only; it is not on the frozen list. Nothing changes on a calendar without a stored swap.
+
+Verified:
+- New leg `colswapcache` 9/9 (in `gate.sh`), on `colswap-simpost-refuse` with the swap refused (Sim Post on) and
+  applied (off). On the build before the fix, 6 of its 9 cases fail. On a build that only widens the key, the colour
+  case still fails, which is how the leg holds the other half of the fix.
+- Gates 1–5, 10 and 13 plus every column-swap and block-swap leg, run from gate.sh's own blocks (another session's
+  full gate was running): 545 PASS, 1 FAIL. The one failure was `monthexport (blocksoff) X4`, a timing case on a
+  calendar with no swap; it passed 9/9 when re-run alone. The waterfall PDF, every Excel part, the restore, the saved
+  field list (77 ids), all 11 print documents and all 22 written month PDFs are unchanged.
+- Neighbouring legs green: `simpostname`, `simpostlabel`, `monthlayout` and `monthmap` (on swap and reuse
+  fixtures), `noswapbtns`, `wholenum`, `colreuse`. `npm run check` 40/40. The full gate was not run.
+- Checked in the browser pane on the same fixture: "Number these weeks" relabels the cells at once.
+
 ### Unreleased — Simultaneous Post can be renamed (2 Nov 2026)
 
 The owner asked: *"Allow me to be able to edit the name of Simultaneous Post"*. Every other phase could be renamed;

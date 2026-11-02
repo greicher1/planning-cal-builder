@@ -9,7 +9,8 @@
 // ⚠️ NOT colswap-simpost-refuse, the one fixture that already has Sim Post on: it holds a stored column swap, and on
 // such a calendar update() draws the column-swap gate's CACHED schedule, whose key ignores Sim Post's offset and
 // numbering (and a phase's typed name), so "Number these weeks" changes nothing there. That is a bug of its own,
-// on main before this change (found 2 Nov 2026 while writing this leg); see HANDOFF.
+// on main before this change (found 2 Nov 2026 while writing this leg); see HANDOFF. Fixed the same day, and held by
+// leg colswapcache on that fixture.
 //
 // The name is typed with & < > and " in it on purpose: the month view's Sim Post bar is drawn by frozen
 // renderMonthView, whose place() writes its label as raw HTML, so it is escaped there now (frozen edit S1, owner's

@@ -4,6 +4,52 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — committed on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); mini-gate 545 / 1 (a timing flake, green alone); NOT merged, NOT pushed. Tracker card `colswap-cache-stale`
+
+- **The bug** (found by the Sim Post rename session, below; on `main` before it). On a calendar holding a stored
+  column swap (`gridColSwaps`), `update()` drew `maybeRunColSwapGate()`'s CACHED result's schedule, the one computed
+  at the cache's last MISS, in place of the schedule it had just computed. The key was the week count, each week's
+  col multiset, the swaps, `colWidths` and Sim Post on/off. So these never reached the screen until a column moved:
+  a phase renamed, Sim Post's offset, "Number these weeks", an undo of any of them, and (found here) a phase's colour.
+  It also handed `canSwapRun` a stale `currentSchedule` as its baseline.
+- **The fix**, `maybeRunColSwapGate` only (not frozen; `computePhaseRowLayout` and the renderers untouched):
+  - **A hit returns the cached VERDICT with the schedule it was handed.** That schedule already carries the verdict:
+    the reconciler in `computeSchedule` reads `swapSuppressed`, which the last miss left holding this key's refusals,
+    and `runColSwapGate`'s `after` is always `computeSchedule(state)` under its final suppressions. The cache now
+    keeps only `{rejected, widened, reason}`, so nothing can read the stale schedule again. `canSwapRun` and the stint
+    trial read only `.rejected`.
+  - **The key covers what the verdict measures.** Added: the first week's date; each week's Sim Post flag and number;
+    every cell's `key=label`; `simPostDisplayName()` (`sheetColumnWidths` measures labels and G3 compares the widths,
+    so a rename can flip a verdict); `gridStintSwaps` (`stintOrderFor`); `cellSpans` VALUES
+    (`applyCellSpanOverrides`); `colReuse` / `colFollow` (`segCol`). Every part is the same with or without the
+    gate's suppressions (a swap is a within-week transposition), so a refusal still costs one gate run, not two.
+    Never key on each cell's col: that differs between the schedule a pass is handed and the next one.
+  - Not keyed, on purpose: notes (same before and after a swap), text styles and font sizes (`measureTextPx` is
+    called with bold off), Single Column / paper / hidden Notes columns (they scale or drop columns equally on both
+    sides of G3). They reach the screen anyway now, through the hit path.
+- **Proof:**
+  - New leg `colswapcache` 9/9, in `gate.sh`'s AFSPEC list on `colswap-simpost-refuse`. G0 as loaded (swap refused,
+    Sim Post on); N1 numbering; O1 offset 1 → 0; R1 rename with the swap refused; S1 Sim Post off (the swap
+    applies); R2 rename with the swap applied; U1 undo/redo; C1 a colour; E0.
+  - Red where it should be: on the build before the fix (`e4a63ca7…`, the live build) N1, O1, R1, R2, U1 and C1 fail.
+    On a mutant that keeps the old hit path but has the wider key, only C1 fails: a colour is the one edit the key
+    cannot see, so C1 is what holds the hit path. The wider key has no leg of its own (a rename that flips G3 needs a
+    spanning cell whose label decides a slot's width; not constructed).
+  - ✅ Mini-gate on build `c96c5980…` (port 8493; gate.sh's own blocks: header through gate 5, gate 10, every
+    colswap*/stint* block, colreuse, an AFSPEC loop of `colswapcache` and its neighbours, monthexport + gate 13, the
+    provers), because another session's full gate was running: **545 PASS, 1 FAIL.** The FAIL was
+    `monthexport (blocksoff) X4` (the click's activation lapsing, a timing case; blocksoff holds no swap, so the
+    changed function returns at its first line); re-run alone 9/9 and its PDF byte-identical. Waterfall PDF and every
+    Excel part identical; restore identical; 0 clipped cells; `fields.byId` 77 ids; all 11 gate-10 print documents and
+    all 22 gate-13 written month PDFs byte-identical (`colswap-simpost-refuse` among them); every colswap/stint leg
+    green; `prove-col-permutation` holds. Neighbours green: `simpostname` 14/14, `simpostlabel` 3/3, `monthlayout`
+    (colswap-simpost-refuse) 14/14, `noswapbtns` 7/7, `wholenum` 12/12, `monthmap` (colreuse) 20/20, `colreuse` 25/25.
+    `npm run check` 40/40. Seen in the browser pane: "Number these weeks" relabels the cells at once.
+  - NOT run: the full gate (the next one picks up `colswapcache`).
+- **Next:** ask the owner to merge and, separately, to push. Another session
+  (`swap-partial`, card `swap-part-of-column`) edits the swap GESTURE code (`swapEvalDir`, `weekSwapEval`), not this
+  function, so the two should merge cleanly.
+
 ### ✅ 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — ✅ **LIVE at `fa14205`** (owner's picker: "Commit", "Merge to main", "Push now"; `84fe1cd..fa14205` at 13:00:01 on 2 Nov 2026; the live `index.html` matched the verified build `e4a63ca7…` byte for byte at 13:01:38). Feature commit `c5a1def`. No version cut: installed users get it on their next relaunch. Built on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
 
 - **The ask** (owner): *"Allow me to be able to edit the name of Simultaneous Post"*.
@@ -41,7 +87,7 @@
     `monthlayout` (colswap-simpost-refuse) 14/14, `monthmap` (mvnotes) 20/20, `calrange` 18/18, and through
     gate.sh's own checks `sideboxes` 78/78 and `textstyle` (carry-rich) 51/51.
   - NOT run: the full gate (the next one picks up `simpostname`).
-- ⚠️ **FOUND, NOT FIXED, on `main` before this change (a separate bug):** on a calendar holding a stored COLUMN SWAP
+- ⚠️ **FOUND here, FIXED on its own branch (2 Nov 2026 entry above, leg `colswapcache`):** on a calendar holding a stored COLUMN SWAP
   (`gridColSwaps`), `update()` draws `maybeRunColSwapGate()`'s CACHED schedule. Its cache key is the cells' column
   layout, swaps, widths and Sim Post on/off only. So edits that change neither columns nor that switch never reach the
   screen until something moves a column. Measured on `colswap-simpost-refuse` against a build of `main` (`270687f`):

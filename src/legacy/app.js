@@ -5810,10 +5810,28 @@ export function initLegacyApp() {
     if(el) el.hidden = true;
   });
 
-  // Cache the gate against a cheap structural key. Everything the verdict depends on is in it:
-  // how many weeks there are, each week's col multiset (the only thing the layout reads), the stored
-  // overrides, the hand-dragged widths that sheetColumnWidths' `pick` consults, and whether
-  // Simultaneous Post is on -- which flips blockSimSlot and can turn a legal swap illegal.
+  // Cache the gate's VERDICT against a cheap structural key: everything a layoutFingerprint reads that
+  // a stored swap can be judged on.
+  //   - the weeks: how many, the first one's date, each week's col MULTISET, and each week's Sim Post
+  //     flag and number (the offset and "Number these weeks" move the simpost lane week by week);
+  //   - every cell's label, and Sim Post's name: sheetColumnWidths measures them, and G3 compares the
+  //     widths, so a rename can turn a legal swap illegal;
+  //   - the stores the layout reads beside the schedule: the swaps, the block swaps (stintOrderFor),
+  //     the cell spans' VALUES (applyCellSpanOverrides), column reuse and the hand-moved columns
+  //     (segCol), and the hand-dragged widths that sheetColumnWidths' `pick` consults;
+  //   - whether Simultaneous Post is on, which flips blockSimSlot.
+  // ⛔ The MULTISET, never each cell's col. A swap is a within-week transposition, so the multiset is the
+  // same with or without the suppressions this gate decides, and so is every other part of the key. A
+  // per-cell col would differ between the schedule this pass was handed and the next one (computed WITH
+  // the new suppressions), and every refusal would run the gate twice.
+  //
+  // ⛔ A HIT RETURNS THE VERDICT WITH THE SCHEDULE IT WAS HANDED, never the schedule of the pass that
+  // filled the cache (fixed 2 Nov 2026, leg colswapcache). update() draws whatever schedule this
+  // returns, and the cached one was computed at the last MISS: a phase renamed, Sim Post's offset, its
+  // numbering, an undo of any of them reached the screen only once something moved a column. The
+  // schedule update() just computed already carries the verdict: computeSchedule's reconciler reads
+  // swapSuppressed, which the last miss left holding exactly this key's refusals, and runColSwapGate's
+  // `after` is always computeSchedule(state) under its final suppressions. So only the verdict is kept.
   let _swapGateKey = '', _swapGateRes = null;
   function maybeRunColSwapGate(state, schedule){
     const applied = schedule.appliedColSwaps || [];
@@ -5821,19 +5839,29 @@ export function initLegacyApp() {
       if(_swapGateKey !== ''){ _swapGateKey = ''; _swapGateRes = null; reflectSwapNotice({rejected:[],widened:[]}); }
       return null;
     }
-    const key = schedule.weeks.length
-      + '|' + schedule.weeks.map(w => w.cells.map(c => c.col === undefined ? 'x' : c.col).sort().join('')).join('.')
+    const weeks = schedule.weeks;
+    const key = weeks.length + '|' + (weeks.length ? isoOf(weeks[0].date) : '')
+      + '|' + weeks.map(w => (w.simPost ? 's' + (w.simPostNum || 0) : '')
+          + ':' + w.cells.map(c => c.col === undefined ? 'x' : c.col).sort().join('')).join('.')
+      + '|' + weeks.map(w => w.cells.map(c => (c.key || '') + '=' + (c.label || '')).join('\u0001')).join('\u0002')
+      + '|' + simPostDisplayName()
       + '|' + Object.keys(gridColSwaps).sort().join(',')
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '')).join(',')
+      + '|' + Object.keys(cellSpans).sort().map(k => {
+          const v = cellSpans[k];
+          return k + ':' + (v && typeof v === 'object' ? (v.l|0) + ',' + (v.r|0) : '?');
+        }).join(',')
+      + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
       + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
-    if(key === _swapGateKey) return _swapGateRes;
+    if(key === _swapGateKey) return Object.assign({}, _swapGateRes, { schedule });
     // Recompute from a clean suppression set, or a pair suppressed by an edit that has since been
     // undone would stay suppressed for the rest of the session.
     swapSuppressed = new Set();
     const fresh = computeSchedule(state);
     const res = runColSwapGate(state, fresh);
     _swapGateKey = key;
-    _swapGateRes = res;
+    _swapGateRes = { rejected: res.rejected, widened: res.widened, reason: res.reason };
     reflectSwapNotice(res);
     return res;
   }
