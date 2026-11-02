@@ -19,7 +19,7 @@
   lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
 
 
-### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEP 1 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), NOT COMMITTED ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
+### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–2 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); step 1 committed `edd4b87` ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
@@ -70,7 +70,22 @@
   - "+" slots reading 17 px was the probe's own artefact; a `height:100%` rule tried for it was removed.
   - `mvtextstyle` G1 / D1 and restore R3 / R4 move as R4 intends (note sizes now reach 14); update them in step 2.
   - ⚠️ A sized calendar's month PDF is wrong on the branch until step 3.
-- **Next:** step 2 (the dropdowns, the `mvnotesize` leg, the moved legs). Ask before starting.
+- ✅ **Step 2 DONE (owner: "Start step 2"), plan §6.**
+  - Both controls are NativeSelects in the Month view card, built as `#wf-paper`: `#pref-mv-barsize` (option values
+    `''`, `'11'`, `'large'`, `'13'`, `'xl'`) and `#pref-mv-notesize` (`''`, `'11'`–`'14'`).
+  - `BarSizeControl` and `chrome.mvBarSize` are gone. `reflectMvSizeSelects()` writes both values; one delegated
+    `change` listener calls the setters.
+  - ⚠️ **Found and fixed:** the month style bar redraws with `render()` only, so a note sized from it never switched on
+    `body.mv-note-sized`. `reflectMvNoteSize()` now runs before that render.
+  - **New leg `mvnotesize`** in `gate.sh` on `mvnotes` and `month-dense60`, 12/12 each, red on ten mutants.
+  - **Moved:** `t/lib.js` (the bar dropdown, plus `applyNoteSizeQuery` / `noteSizeShown` / `pickSelect`), `mvbarsize`,
+    `mvtextstyle` G1 / D1, and the hostile fixture `mvtextstyle-bad.sptcal` (note size 15, no longer 11).
+  - **Green on the branch:** the month and settings neighbours (`mvbarsize`, `settingswin`, `mvtextstyle` live and
+    restore, `mvnotes`, `monthmap`, `mvmenu`, `labelsetup`, `softlines`, `calzoom`, `shootdays`, `prefs`) and
+    `npm run check` 40/40.
+  - Step 2 is NOT committed (awaiting the owner's picker).
+  - ⚠️ The dropdowns can now make a sized calendar, whose month PDF is wrong until step 3. Keep the branch off `main`.
+- **Next:** step 3, the month PDF writer and E3. Ask before starting.
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 

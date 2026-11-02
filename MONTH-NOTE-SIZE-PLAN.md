@@ -1,9 +1,11 @@
 # MONTH-NOTE-SIZE-PLAN.md: note sizes for the month view, and Phase bar size in the same px steps
 
-**Status: STEP 1 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`, from
-`main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). The screen mechanism
-holds on three calendars at every note size × bar size, with notes sized one at a time, and at 75/150/200% zoom. Three
-findings were fixed (§6, step 1). **Next is step 2.**
+**Status: STEPS 1 AND 2 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`,
+from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`).
+- Step 1: the screen mechanism holds on three calendars at every note size × bar size, with notes sized one at a time,
+  and at 75/150/200% zoom. Three findings were fixed.
+- Step 2: both dropdowns are in, and the `mvnotesize` leg is in `gate.sh`, red on ten mutants. See §6.
+- **Next is step 3** (the month PDF writer and E3).
 
 **ALL TEN RULINGS ANSWERED (owner, by picker, 2 Nov 2026), plus two later instructions:**
 - **R4 is the owner's own design:** per-note sizes from the same list, which supersedes the recommended ceiling.
@@ -394,6 +396,60 @@ The state, the dropdowns, `mvNoteGeom`, the style bar's list and the writer are 
    - both dropdowns, replacing the SegmentedControl;
    - E1, E2, `mvNoteGeom` and the style bar's 6–14 list;
    - a leg `mvnotesize` in `gate.sh`, red on a mutant of each; `mvbarsize` and `settingswin` moved to the select.
+
+   ✅ **DONE, 2 Nov 2026 (owner: "Start step 2"), on branch `month-note-size`, NOT committed (awaiting the owner's
+   picker).** State, save, load, undo, New, E1, E2 and the 6–14 list landed in step 1; the geometry helper is
+   `mvTextCss` itself, not a separate `mvNoteGeom`.
+   - **The dropdowns** (`Sidebar.jsx`, in the Month view card where `BarSizeControl` was):
+     - `#pref-mv-barsize` (10 px `''`, 11 px `'11'`, 12 px `'large'`, 13 px `'13'`, 14 px `'xl'`);
+     - `#pref-mv-notesize` (10 px `''`, then `'11'` to `'14'`);
+     - both NativeSelects inside `.prefs-card`, uncontrolled, built as `#wf-paper`.
+     - `BarSizeControl`, its radio click listener and `chrome.mvBarSize` (bridge.js) are gone.
+     - `reflectMvSizeSelects()` writes both values from `reflectMvBarSize` / `reflectMvNoteSize` (every `update()`),
+       from `setSidebarTab` and at boot. One delegated `change` listener calls the setters.
+   - ⚠️ **Found: the month text style bar redraws with `render()` only**, so a note sized from it did not switch on
+     `body.mv-note-sized`, and its rows stayed 17 px. Fixed: `reflectMvNoteSize()` runs before that `render()`.
+     Mutant M8 holds it.
+   - **The leg `mvnotesize`** (in `gate.sh` on `mvnotes` and `month-dense60`, 12/12 on each). It covers:
+     - N0: inert at 10 px;
+     - N1-11..14: every note at the size, exact heights, the clamp, lanes equal to min(2, natural lines);
+     - N2: one note set to 14 px from the style bar in a 10 px calendar (only its week changes, the bar offers 6–14,
+       picking 10 stores nothing); then 8 px on that note in a 14 px calendar keeps 8 px and the 10 px rule;
+     - N3: one undo step per pick;
+     - N4: save, load, restore unconditionally, and four junk values each dropped with one warning;
+     - N5: bar sizes 11 and 13 px (20 / 23 px, saved `'11'` / `'13'`; 12 and 14 still `'large'` / `'xl'`);
+     - N6: 75 / 150 / 200% zoom;
+     - N7: New;
+     - E0: no console errors.
+   - **Mutants, each red on its own cases:**
+     - E2 off (N1);
+     - the drawn width undone (N1-11, N1-14);
+     - the two-lane CSS not matching (N1);
+     - the sanitizer keeping junk (N4, E0);
+     - restore only when the key is present (N2, N3, N4);
+     - the setter not redrawing (EX);
+     - a calendar size overriding a note's own (N2);
+     - the style bar not switching the lane rules (N2);
+     - a 21 px bar at 11 px (N5);
+     - New keeping the size (N7).
+     - Also tried: removing `markDirty()` from the setter stays green, because the redraw marks the file dirty itself.
+   - **Moved legs:**
+     - `t/lib.js` `applyBarSizeQuery` (now 11 / 12 / 13 / 14 / large / xl) drives the dropdown; it gains
+       `applyNoteSizeQuery`, `noteSizeShown` and `pickSelect`, and `barSizeShown` knows 11 and 13.
+     - `mvbarsize` picks in the dropdown.
+     - `mvtextstyle` G1 / D1 expect the new lists, and the hostile fixture `mvtextstyle-bad.sptcal` plants note size
+       15 instead of 11.
+   - **Green on the branch:**
+     - `mvbarsize` 13/13 and 12/12, `settingswin` 21/21;
+     - `mvtextstyle` 23/23 live and 6/6 restore;
+     - `mvnotes` 30/30 and 14/14, `monthmap` 20/20, `mvmenu` 81/81, `labelsetup` 41/41, `softlines` 6/6;
+     - `calzoom` 26/26, `shootdays` 15 / 15 / 14, `prefs` PASS;
+     - `npm run check` 40/40.
+   - Seen in the browser pane: both dropdowns in the Month view card; 14 px picked, a note cut at two lines with "…",
+     Unsaved changes, Undo lit.
+   - No full gate (that is step 4).
+   - ⚠️ **A sized calendar's month PDF is still wrong on the branch** (step 3), and now the dropdowns can make one.
+     Keep the branch off `main` until step 3.
 3. **The writer and E3.**
    - The harness gets `HARNESS_QUERY=notesize=<px>` and bar sizes 11 and 13.
    - The month legs become size-aware.
