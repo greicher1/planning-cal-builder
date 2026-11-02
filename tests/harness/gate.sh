@@ -2001,11 +2001,13 @@ PYMF
 # the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
 # (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
 # passing the size (monthexport X2, the text check).
-# ⚠️ mvnotes at Extra large is NOT run, deliberately: in one week (drawn in April and May 2026) a two-line one-day bar
-# over two lanes leaves Chrome's print 3.4 px short of its row, and the writer, which follows the spec's "maximize
-# tracks", draws that week's two-line bar 1.31 px lower than Chrome does. Recorded in MONTH-BAR-SIZE-PLAN.md step 3.
+# ✅ mvnotes at Extra large IS run since 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md step 3). It was left out because one week's
+# two-line one-day bar came out 1.31 px lower than Chrome's print: the writer followed the spec's "maximize tracks"
+# (re-share what a capped lane leaves), and Chrome does not (grid_track_sizing_algorithm.cc: sets in order of their room,
+# what is left is lost). mvlLaneTracks now does what Chrome does when lanes' rooms differ, and that week matches.
 for BSSPEC in "monthemit:mvbarsize-large:" "monthemit:hiatus-blanklabel:barsize=xl" "monthemit:month-dense60:barsize=xl" \
-              "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" "monthexport:mvbarsize-large:"; do
+              "monthemit:mvnotes:barsize=xl" "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" \
+              "monthwriter:mvnotes:barsize=xl" "monthexport:mvbarsize-large:"; do
   BSLEG="${BSSPEC%%:*}"; BSREST="${BSSPEC#*:}"; BSSTATE="${BSREST%%:*}"; BSQ="${BSREST#*:}"
   rm -f "$HERE/$BSLEG.json" "$HERE/monthexport.built.pdf"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$BSSTATE" HARNESS_QUERY="$BSQ" "$HERE/run.sh" "$BSLEG" 400 >/dev/null 2>&1
@@ -2036,6 +2038,42 @@ ok = two and not one
 print(('  PASS  ' if ok else '  FAIL  ') + 'mvbarsize-large month PDF: the one-day bar "Camera Prep Day For T" wraps to two lines at Large (one line: %s)' % one)
 sys.exit(0 if ok else 1)
 PYBW
+
+# ---- NOTE SIZE and the 11 / 13 px bars in the month PDF (MONTH-NOTE-SIZE-PLAN.md step 3, 2 Nov 2026) --------------------
+# The same three legs on sized notes: mvnotesize-14 (the mvnotesize leg's real Save of mvnotes at 14 px) and
+# mvnotesize-mixed (made from it: a 12 px calendar, 13 px bars, one note at 14 px and one at 8), plus existing calendars at
+# a size by ?notesize= / ?barsize= (t/lib.js, through the dropdowns). monthemit holds every box and text to Chrome's print
+# layout (E3 clamps a sized note there), and checks every note's lanes against R2's rule (X4); monthwriter holds the fit,
+# month-dense60's shrunk August included; monthexport holds the built app's file to the slice's.
+# Mutants, each red (2 Nov 2026): a sized note given three lanes (monthemit X4); every size's line at 13 px (monthemit
+# B0/T0, monthwriter A0/A2/A3); no "…" on a cut note (monthemit X4); the old "maximize tracks" (monthwriter A3 on
+# month-dense60 at 12 px and on mvnotes at Extra large); 13 px bars at x1.5 (monthemit B0/T0); E3 removed (monthwriter
+# A2/A3; monthemit skips the weeks whose note lines then differ, so it cannot see it).
+# ⚠️ Recorded, not run: month-dense60 at 14 px in monthemit, whose rows are the print path's MEASURED (fractional) rows,
+# so Chrome's 1/64 px truncation of each lane's share shows, 0.03-0.04 px down one crowded week (tolerance 0.03); and
+# monthwriter A1 on mvnotes at 14 px notes with Extra large bars, 0.021 px against print's own rows (tolerance 0.02).
+for NSSPEC in "monthemit:mvnotesize-14:" "monthemit:mvnotesize-mixed:" "monthemit:month-dense60:notesize=12" \
+              "monthemit:mvnotes:barsize=11" "monthemit:mvnotes:barsize=13" \
+              "monthwriter:mvnotesize-14:" "monthwriter:mvnotesize-mixed:" "monthwriter:month-dense60:notesize=12" \
+              "monthwriter:month-dense60:notesize=13&barsize=11" \
+              "monthexport:mvnotesize-14:" "monthexport:mvnotesize-mixed:"; do
+  NSLEG="${NSSPEC%%:*}"; NSREST="${NSSPEC#*:}"; NSSTATE="${NSREST%%:*}"; NSQ="${NSREST#*:}"
+  rm -f "$HERE/$NSLEG.json" "$HERE/monthexport.built.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$NSSTATE" HARNESS_QUERY="$NSQ" "$HERE/run.sh" "$NSLEG" 400 >/dev/null 2>&1
+  python3 - "$HERE/$NSLEG.json" "$NSLEG ($NSSTATE${NSQ:+, $NSQ})" <<'PYNS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:100])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYNS
+done
 
 # ⭐ mvtextstyle (in the list above, LIVE and RESTORE; 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §8) was run red on twelve
 # mutants before it was wired in, each on its own case: the writer ignoring a style (P1; and monthemit M0/T0/K0 here,

@@ -140,6 +140,12 @@ window.addEventListener('load', function () { (async function () {
     var pillWidthOf = function (s) { return F.mvlTextWidth(fonts['600'].font, s, G.noteFontPx); };
     // Chrome's rounded ascent at a size: a text fragment's rect top is its baseline less this.
     var ascentAt = function (size) { return Math.round(fonts['400'].font.ascent * size / fonts['400'].font.unitsPerEm); };
+    // ⭐ NOTE SIZE (MONTH-NOTE-SIZE-PLAN.md step 3): a note above 10 px has its size's whole-px line and at most two lines,
+    // stated here, never read from the writer. A note at 10 px or less keeps the 13 px line and up to three.
+    var NOTE_LINE = {11: 14, 12: 16, 13: 17, 14: 18};
+    function noteSizedPx(it){ var z = it.fmt && it.fmt.size; return NOTE_LINE[z] ? z : 0; }
+    function noteLine(it){ var z = noteSizedPx(it); return z ? NOTE_LINE[z] : G.noteLinePx; }
+    function noteShown(it){ return noteSizedPx(it) ? Math.min(2, it.lines.length) : it.lines.length; }
 
     // ---- the documents, stamp pinned ----------------------------------------------------------------------
     var docs = [];
@@ -160,6 +166,8 @@ window.addEventListener('load', function () { (async function () {
                  html: cap.html, stampHits: cap.hits, barSize: T.barSizeShown()});
     }
     info.barSize = docs.map(function (d) { return d.barSize || ''; });
+    // The note size the captured document carries (MONTH-NOTE-SIZE-PLAN.md step 3): how many of its notes are sized.
+    info.sizedNotes = docs.map(function (d) { return (d.html.match(/--mvn-h1/g) || []).length; });
     info.stampHits = docs.map(function (d) { return d.name + ':' + d.stampHits; });
     // What the determinism controls change, recorded so a control that changed nothing is visible.
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
@@ -183,7 +191,8 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], lay = chromeLayout(doc.html);
       var months = lay.pages.map(function (pg, pi) {
-        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, null, doc.barSize || '');
+        // `fonts`, as buildMonthLayout passes them, so a styled or sized note wraps in its own size and weight (W3).
+        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, fonts, doc.barSize || '');
         m.fit = {rows: pg.rows.slice()};
         return m;
       });
@@ -545,8 +554,8 @@ window.addEventListener('load', function () { (async function () {
       totals.bars += wk.items.length;
       var notesSame = cw.bars.length === wk.items.length && wk.items.every(function (it, k) {
         if(it.kind !== 'note') return true;
-        var chLines = Math.round((cw.bars[k].box.h - 6) / G.noteLinePx);
-        return chLines === it.lines.length;
+        var chLines = Math.round((cw.bars[k].box.h - 6) / noteLine(it));
+        return chLines === noteShown(it);
       }) && sameLanes(m, pg, wi);
       if(!notesSame){ totals.weeksSkipped++; return; }
       wk.items.forEach(function (it, k) {
@@ -579,9 +588,10 @@ window.addEventListener('load', function () { (async function () {
         };
         anchor(first, c0, bWhere);
         if(it.kind === 'note'){
-          // Every further line: the same anchor, 13 px lower each (Chrome's line rects, one per line box).
+          // Every further line: the same anchor, one line lower each (13 px, or a sized note's own line; Chrome's line
+          // rects, one per line box). A "…" (a sized note cut at two lines) is the writer's, not a text node's.
           texts.forEach(function (o) {
-            var c = cb.text.filter(function (rc) { return Math.round((rc.y - c0.y) / G.noteLinePx) === o.li; })[0];
+            var c = cb.text.filter(function (rc) { return Math.round((rc.y - c0.y) / noteLine(it)) === o.li; })[0];
             if(c){ judgeNear('T0', bWhere + ' line ' + (o.li + 1) + ' baseline', o.y, c.y + A(o.size), BASE_TOL, 'baseline');
                    anchor(o, c, bWhere + ' line ' + (o.li + 1)); }
           });
@@ -864,8 +874,19 @@ window.addEventListener('load', function () { (async function () {
           var mine = texts.filter(function (o) { return o.wk === wi && o.i === k; });
           if(it.kind === 'note'){
             var drawnLines = mine.filter(function (o) { return o.role === 'bar-text'; }).map(function (o) { return o.s; });
-            var wantLines = it.lines.filter(function (l) { return l !== ''; });
-            if(!same(drawnLines, wantLines)) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + JSON.stringify(drawnLines) + ' for ' + JSON.stringify(wantLines));
+            var ell = mine.filter(function (o) { return o.role === 'bar-ell'; }).length;
+            // The lanes the model gave the note: its lines, at most three at 10 px and at most TWO above it (R2). Checked
+            // here because B0 skips a week whose lanes are not the document's, which is exactly where a wrong count lands.
+            var wantLanes = Math.min(noteSizedPx(it) ? 2 : 3, Math.max(1, it.lines.length));
+            if(it.lanes !== wantLanes) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + it.lanes + ' lanes for ' + it.lines.length + ' lines' + (noteSizedPx(it) ? ' at ' + noteSizedPx(it) + ' px' : ''));
+            if(noteSizedPx(it) && it.lines.length > 2){
+              // A sized note cut at two lines: its first line as wrapped, a start of its second, and one "…".
+              var ok2 = drawnLines.length === 2 && drawnLines[0] === it.lines[0] && it.lines[1].indexOf(drawnLines[1]) === 0 && ell === 1;
+              if(!ok2) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ' (cut): ' + JSON.stringify(drawnLines) + ' +' + ell + ' "…" for ' + JSON.stringify(it.lines.slice(0, 2)));
+            } else {
+              var wantLines = it.lines.filter(function (l) { return l !== ''; });
+              if(!same(drawnLines, wantLines) || ell) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + JSON.stringify(drawnLines) + ' for ' + JSON.stringify(wantLines));
+            }
           } else {
             // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6) draws its label as LINES, the model's breaks, so
             // they are joined with the space each break took; every other bar draws one run.
@@ -980,6 +1001,7 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
     await T.applyBarSizeQuery();
+    await T.applyNoteSizeQuery();   // ?notesize= (MONTH-NOTE-SIZE-PLAN.md step 3): an existing calendar at a note size
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };

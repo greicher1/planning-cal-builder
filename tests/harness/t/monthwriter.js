@@ -68,6 +68,16 @@ window.addEventListener('load', function () { (async function () {
   // The shrink factor's step, stated here and never read from the writer: a mutant that changed the writer's own step
   // would otherwise pass its own test (mutant S3 did, until this line).
   var STEPS = 64;
+  // ⭐ NOTE SIZE (MONTH-NOTE-SIZE-PLAN.md step 3): a note above 10 px has its size's whole-px line and at most two lines,
+  // stated here, never read from the writer. A model item knows its size from `fmt`; a print-document note from the
+  // font-size its inline style carries with --mvn-h1 (mvTextCss writes both).
+  var NOTE_LINE = {11: 14, 12: 16, 13: 17, 14: 18};
+  function noteSizedPx(it){ var z = it && it.fmt && it.fmt.size; return NOTE_LINE[z] ? z : 0; }
+  function noteMaxLanes(it){ return noteSizedPx(it) ? 2 : 3; }
+  function elNoteLine(b){
+    var st = b.getAttribute('style') || '', m = /font-size:\s*(\d+)px/.exec(st);
+    return (st.indexOf('--mvn-h1') >= 0 && m && NOTE_LINE[+m[1]]) ? NOTE_LINE[+m[1]] : 13;
+  }
   function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
   function near(a, b, tol){ return typeof a === 'number' && typeof b === 'number' && isFinite(a) && isFinite(b) && Math.abs(a - b) <= tol; }
   function r3(v){ return Math.round(v * 1000) / 1000; }
@@ -169,8 +179,10 @@ window.addEventListener('load', function () { (async function () {
     // .mv-bar's 10 px. Stated here, never read from the writer (the STEPS rule below), and C0 holds them to Chrome's
     // computed styles as ever. A bar's height is FIXED at a size (E3): its line and padding scale, its border does not.
     info.barSize = docs.map(function (d) { return d.barSize || ''; });
-    var SIZED = ({large: {size: 12, tag: 11, radius: 11}, xl: {size: 14, tag: 12, radius: 13}})[docs[0].barSize || ''] || null;
-    if(SIZED){ BASE_STYLE.barFont = SIZED.size; BASE_STYLE.radius = SIZED.radius; BASE_STYLE.tagFont = SIZED.tag; }
+    // 11 and 13 px (MONTH-NOTE-SIZE-PLAN.md §1a) carry a whole-px `line` (16, 19), which E3 writes as a length.
+    var SIZED = ({'11': {size: 11, tag: 10, radius: 10, line: 16}, large: {size: 12, tag: 11, radius: 11},
+                  '13': {size: 13, tag: 12, radius: 12, line: 19}, xl: {size: 14, tag: 12, radius: 13}})[docs[0].barSize || ''] || null;
+    if(SIZED){ BASE_STYLE.barFont = SIZED.size; BASE_STYLE.radius = SIZED.radius; BASE_STYLE.tagFont = SIZED.tag; BASE_STYLE.barLine = SIZED.line; }
     info.stampHits = docs.map(function (d) { return d.name + ':' + d.stampHits; });
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
     info.window = [window.innerWidth, window.innerHeight];
@@ -204,7 +216,8 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], pages = parseDoc(doc.html);
       if(pages.length !== doc.measured.length) throw new Error(doc.name + ': ' + pages.length + ' pages but ' + doc.measured.length + ' measured');
-      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, null, doc.barSize || ''); });
+      // `fonts`, as buildMonthLayout passes them, so a styled or sized note wraps in its own size and weight (W3).
+      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf, fonts, doc.barSize || ''); });
       var layout = {geometry: G, months: months};
       var fitted = F.fitMonthLayout(layout, fonts);
       var again = F.fitMonthLayout(layout, fonts), viaJson = F.fitMonthLayout(JSON.parse(JSON.stringify(layout)), fonts);
@@ -237,7 +250,7 @@ window.addEventListener('load', function () { (async function () {
             if(!mk) return;
             if(it.kind === 'note'){
               if(mk.span !== it.lanes) why.push('span');
-              if(mk.lines !== it.lines.length) why.push('lines');
+              if(mk.lines !== Math.min(noteSizedPx(it) ? 2 : Infinity, it.lines.length)) why.push('lines');
             } else if(it.kind === 'hiatus' && F.mvlFlat(it.text) === '' && F.mvlFlat(it.tag || '') === '') why.push('blankBand');
             // ⭐ A one-day custom pill the writer wraps and the print document does not, or the other way round
             // (MONTH-BAR-SIZE-PLAN.md step 3). Each decides at its own box: the print path at the SCREEN's day width, the
@@ -247,6 +260,11 @@ window.addEventListener('load', function () { (async function () {
             else if(it.kind === 'pill' && mk.span !== it.lanes) why.push('wrap');
           });
           if(why.indexOf('wrap') >= 0) kept = false;
+          // ⭐ A note the print path laid out at another span or line count than the writer (MONTH-NOTE-SIZE-PLAN.md step
+          // 3). At 10 px that always moved the week by a lane or a line (13 px or more), far outside the 1 px tolerance. A
+          // sized note can land within it by coincidence (14 px: one lane of 42 in print, two of 20 + 2 in the writer), and
+          // then A1 would hold rows to print's, which are wrong there (the fit's lead comment), so it does not keep the table.
+          if(why.indexOf('span') >= 0 || why.indexOf('lines') >= 0) kept = false;
           return {kept: kept, why: why.filter(function (w, i, a) { return a.indexOf(w) === i; }), tableBasis: tBasis, basis: basisNow};
         });
         var allKept = weekInfo.every(function (w) { return w.kept; });
@@ -304,7 +322,8 @@ window.addEventListener('load', function () { (async function () {
         dt.months.push({label: m.label, mode: m.fit.mode, printMode: pg.mode, scale: m.fit.scale, printScale: pg.scale,
                         kept: allKept, changed: weekInfo.filter(function (w) { return !w.kept; }).map(function (w, i) { return w.why.join('+') || '?'; }),
                         blankBands: m.weeks.reduce(function (a, wk) { return a + wk.items.filter(function (it) { return it.kind === 'hiatus' && F.mvlFlat(it.text) === '' && F.mvlFlat(it.tag || '') === ''; }).length; }, 0),
-                        rows: m.fit.rows.map(r3), printRows: printLay.pages[pi].rows.map(r3)});
+                        rows: m.fit.rows.map(r3), printRows: printLay.pages[pi].rows.map(r3),
+                        basis: m.fit.basis.map(r3), grow: m.fit.grow.map(r3), table: pg.table, why: weekInfo.map(function (w) { return w.why; })});
       });
       // The file, built twice and through JSON.
       var bytes = await F.buildMonthPdf(fitted), bytes2 = await F.buildMonthPdf(fitted);
@@ -411,7 +430,7 @@ window.addEventListener('load', function () { (async function () {
           var items = Array.prototype.map.call(bars.querySelectorAll(':scope > .mv-bar:not(.mv-note-add)'), function (b) {
             var gr = /grid-row:\s*(\d+)(?:\s*\/\s*span\s*(\d+))?/.exec(b.getAttribute('style') || '');
             var o = {note: b.classList.contains('mv-note-block'), span: gr && gr[2] ? +gr[2] : 1};
-            if(o.note){ b.style.alignSelf = 'start'; o.lines = Math.round((b.getBoundingClientRect().height - 6) / 13); }
+            if(o.note){ b.style.alignSelf = 'start'; o.lines = Math.round((b.getBoundingClientRect().height - 6) / elNoteLine(b)); }
             return o;
           });
           bars.style.gridAutoRows = prevGAR;
@@ -490,9 +509,13 @@ window.addEventListener('load', function () { (async function () {
       // At a phase bar size (E3) notes keep .mv-bar's 10 px, the bars and bands take BASE_STYLE's sized type, and their
       // FIXED height scales but its two 1 px borders do not (every line weight is kept).
       sel + ' .mv-bar{ font-size:' + px(10) + ' }',
-      sel + ' .mv-pill, ' + sel + ' .mv-hiatus-bar{ font-size:' + px(B.barFont) + '; height:' + ((B.barFont * 1.5 + 2 * B.barPadY) * k + 2) + 'px }',
-      sel + ' .mv-pill.mv-pill-2l{ height:' + ((2 * B.barFont * 1.5 + 2 * B.barPadY) * k + 2) + 'px }',
-    ] : []).join('\n');
+      sel + ' .mv-pill, ' + sel + ' .mv-hiatus-bar{ font-size:' + px(B.barFont) + '; height:' + (((B.barLine || B.barFont * 1.5) + 2 * B.barPadY) * k + 2) + 'px' +
+            (B.barLine ? '; line-height:' + px(B.barLine) : '') + ' }',
+      sel + ' .mv-pill.mv-pill-2l{ height:' + ((2 * (B.barLine || B.barFont * 1.5) + 2 * B.barPadY) * k + 2) + 'px }',
+    ] : []).concat([11, 12, 13, 14].map(function (z) {
+      // A sized note carries its size and line INLINE (mvTextCss), which a stylesheet rule outranks only with !important.
+      return sel + ' .mv-note-block[style*="--mvn-h1"][style*="font-size:' + z + 'px"]{ font-size:' + px(z) + ' !important; line-height:' + px(NOTE_LINE[z]) + ' !important }';
+    })).join('\n');
   }
   // C0's second half: the base numbers the restyle multiplies are the app's computed print styles, read off the
   // unscaled print layout (the first element of each kind any page has).
@@ -677,7 +700,8 @@ window.addEventListener('load', function () { (async function () {
       // At a phase bar size (MONTH-BAR-SIZE-PLAN.md step 3) a bar's or band's text and grey tag are SIZED's type, at
       // the factor; a note's text keeps .mv-bar's 10 px.
       var it = /^bar-/.test(o.role) && m.weeks[o.wk] ? m.weeks[o.wk].items[o.i] : null;
-      var want = (SIZED && it && it.kind !== 'note') ? (o.role === 'bar-tag' ? SIZED.tag : SIZED.size) : base[o.role];
+      var want = (SIZED && it && it.kind !== 'note') ? (o.role === 'bar-tag' ? SIZED.tag : SIZED.size)
+               : (it && noteSizedPx(it)) ? noteSizedPx(it) : base[o.role];
       if(Math.abs(o.size - want * k) > 1e-9) bad.A4.push(where0 + ': a ' + o.role + ' at ' + o.size + ' px, not ' + want * k);
     });
     // Every week re-packed by the renderer's first-fit rule at the new spans -- a note at min(3, its lines), anything
@@ -685,7 +709,7 @@ window.addEventListener('load', function () { (async function () {
     m.weeks.forEach(function (wk, wi) {
       var used = [];
       wk.items.forEach(function (it, k) {
-        var span = it.kind === 'note' ? Math.min(3, it.lines.length) : model.weeks[wi].items[k].lanes, lane = 0;
+        var span = it.kind === 'note' ? Math.min(noteMaxLanes(it), it.lines.length) : model.weeks[wi].items[k].lanes, lane = 0;
         var free = function (L) { for(var q = L; q < L + span; q++) for(var c = it.from; c <= it.to; c++) if(used[q] && used[q][c]) return false; return true; };
         while(!free(lane)) lane++;
         for(var q = lane; q < lane + span; q++){ used[q] = used[q] || {}; for(var c = it.from; c <= it.to; c++) used[q][c] = true; }
@@ -697,7 +721,7 @@ window.addEventListener('load', function () { (async function () {
       wk.items.forEach(function (it) {
         if(it.kind !== 'note' || !String(it.text || '').trim()) return;
         totals.rewrapped++;
-        var c = chromeLines(it.text, G.noteFontPx * k, G.noteLinePx * k);
+        var zs = noteSizedPx(it), c = zs ? chromeLines(it.text, zs * k, NOTE_LINE[zs] * k) : chromeLines(it.text, G.noteFontPx * k, G.noteLinePx * k);
         if(!same(c, it.lines)) bad.A4.push(where0 + ': "' + it.text.slice(0, 40) + '" wraps as ' + JSON.stringify(it.lines) + ', Chrome ' + JSON.stringify(c));
       });
     });
@@ -774,6 +798,7 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
     await T.applyBarSizeQuery();
+    await T.applyNoteSizeQuery();   // ?notesize= (MONTH-NOTE-SIZE-PLAN.md step 3): an existing calendar at a note size
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };

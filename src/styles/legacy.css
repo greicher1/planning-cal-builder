@@ -2419,6 +2419,28 @@
   body.mv-bar-xl #print-root .mv-hiatus-bar{ font-size:14px; border-radius:13px; height:25px; }
   body.mv-bar-xl #print-root .mv-pill.mv-pill-2l{ height:46px; }
   body.mv-bar-xl #print-root .mv-pill-block{ font-size:12px; }
+  /* 11 and 13 px (MONTH-NOTE-SIZE-PLAN.md §1a), E1's rows for the print document, with their whole-px lines. */
+  body.mv-bar-11 #print-root .mv-pill,
+  body.mv-bar-11 #print-root .mv-hiatus-bar{ font-size:11px; line-height:16px; border-radius:10px; height:20px; }
+  body.mv-bar-11 #print-root .mv-pill.mv-pill-2l{ height:36px; }
+  body.mv-bar-11 #print-root .mv-pill-block{ font-size:10px; }
+  body.mv-bar-13 #print-root .mv-pill,
+  body.mv-bar-13 #print-root .mv-hiatus-bar{ font-size:13px; line-height:19px; border-radius:12px; height:23px; }
+  body.mv-bar-13 #print-root .mv-pill.mv-pill-2l{ height:42px; }
+  body.mv-bar-13 #print-root .mv-pill-block{ font-size:12px; }
+  /* ---- FROZEN EDIT E3 (owner sign-off by picker, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md R9: "Yes, it follows"): NOTE SIZE
+     in the PRINT ROLLBACK. A note above 10 px already carries its size and whole-px line in its inline style (mvTextCss),
+     which the print document keeps; this adds its two-line clamp, so the rollback prints what the screen shows and the
+     direct writer draws (R2, R3).
+     ⛔ INERT on every calendar with no note above 10 px: no note carries --mvn-h1. Outside @media print for bar size's
+     E3 reason: frozen exportMonthPdf measures #print-root in screen media.
+     - NO fixed height here, unlike E1. Print sizes its lanes by content (bars align-self:start), and a clamped note's
+       content box is exactly its one- or two-line height. A fixed height would also be keyed to the SCREEN's lane span,
+       which is measured at the window's day width, so a note that is one line on screen but two at print width would
+       lose its second line. */
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned
