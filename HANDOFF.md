@@ -235,7 +235,7 @@
   lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
 
 
-### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–2 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); step 1 committed `edd4b87` ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
+### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–3 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`, which `main` has since moved past; its `node_modules` is a symlink, so unlink it before `git worktree remove`) ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
@@ -301,7 +301,24 @@
     `npm run check` 40/40.
   - Step 2 is NOT committed (awaiting the owner's picker).
   - ⚠️ The dropdowns can now make a sized calendar, whose month PDF is wrong until step 3. Keep the branch off `main`.
-- **Next:** step 3, the month PDF writer and E3. Ask before starting.
+- ✅ **Step 3 DONE (owner: "Start step 3"), plan §6.**
+  - The month PDF writer draws sized notes (their line, two lines, "…") and 11 / 13 px bars (whole-px lines), reading
+    the size from each note's inline style. E3 clamps sized notes in the print rollback.
+  - **All 22 existing written month PDFs are byte-identical.**
+  - ⭐ **Found and fixed in the writer:** `mvlLaneTracks` shared a crowded week's spare room by the spec (re-sharing what
+    capped lanes leave). Chrome uses SETS, least room first, and the leftover is lost (`grid_track_sizing_algorithm.cc`,
+    and measured). The writer now does Chrome's rule when lanes' rooms differ and keeps the old arithmetic when they are
+    equal, which is every 10 px calendar. This also fixes MONTH-BAR-SIZE-PLAN's recorded 1.31 px (`mvnotes` at Extra
+    large), now in `gate.sh`.
+  - **Legs:** the slice gets the fonts as production does; note lines and the two-line limit everywhere; X4 checks lanes
+    and the "…"; `monthwriter` A1 treats a note laid out differently as not matching. New fixtures `mvnotesize-14` and
+    `mvnotesize-mixed`; a note-size block in `gate.sh`; six writer and CSS mutants red.
+  - ⚠️ **Recorded, not run:** `monthemit` on `month-dense60` at 14 px (Chrome's 1/64 px share truncation, 0.03–0.04 px,
+    seen only with the print path's fractional rows) and `monthwriter` A1 on `mvnotes` 14 + Extra large (0.021 / 0.02).
+  - Step 3 is NOT committed (awaiting the owner's picker). Step 2 is committed `8f2da10`.
+- **Next:** step 4: merge `main` into the branch (`main` moved: the Sim Post rename and others), run the full gate,
+  and cut gate-13 baselines for the two new fixtures only on the owner's sign-off (contact sheets). Ask before
+  starting.
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 
