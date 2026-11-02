@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — BUILT on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
+### ✅ 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — COMMITTED `c5a1def`, MERGED TO `main` (owner's picker: "Commit", "Merge to main", "Push now"). Built on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
 
 - **The ask** (owner): *"Allow me to be able to edit the name of Simultaneous Post"*.
 - **Ruled** (owner's picker): *"Approve the frozen edit"*. Frozen edit **S1** in `renderMonthView` makes Sim Post's
@@ -50,7 +50,12 @@
   - Post renamed "Edit": cells still "Post wk N", until Post's weeks changed.
   - Likely fix: key the cache on everything the gate's schedule carries, or re-run computeSchedule's labels over the
     gated layout. Offered as its own task.
-- **Next:** commit on the branch (asked), then merge / push only on the owner's per-action yes.
+- **Merged, 2 Nov 2026.** `main` (`270687f`, docs) merged into the branch as `938b90f`. Then `origin/main` (`84fe1cd`, Ends for
+  Production, which its session had pushed WITHOUT updating local `main`, so the two had diverged) merged as `b82e3b0`.
+  HANDOFF and README conflicted only as new top entries; all kept. Re-verified on the combined build `e4a63ca7…`:
+  mini-gate 325/0 again (waterfall PDF, Excel, restore, 77 ids, 11 print documents, 23 written month PDFs), plus
+  `simpostname` 14/14, `prodends` 14/14, `endsdate` 17/17, `npm run check` 40/40. Local `main` fast-forwarded to it.
+- **Next:** the push (approved), then check the live page serves `e4a63ca7…`.
 
 ### 🔨 30 Oct – 2 Nov 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) + THE SHOOT AS A SPAN — BUILT on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, cut from `origin/main` at `fdf9324`, `origin/main` merged in as `cddc8f4`; `node_modules` is a symlink: unlink it before `git worktree remove`); WIP committed locally (`187aac3`), the span and the leg uncommitted; GATED (3,508 / 2, both load flakes, green alone); NOT merged, NOT pushed
 
