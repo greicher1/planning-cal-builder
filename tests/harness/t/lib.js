@@ -586,19 +586,42 @@ window.__T = (function(){
   // dirtied), so the month legs can run any calendar at a size without a fixture per size. Returns the size set, or ''
   // when the query names none. A leg that builds the writer's model passes barSizeShown(), the size on screen, which
   // is also a sized FIXTURE's size: the size is read off <body>'s class, as legacy.css's rules read it.
+  // ?barsize=11|large|13|xl (or 12 / 14 for large / xl) picks the phase bar size through its dropdown,
+  // #pref-mv-barsize, as a user picks it (MONTH-NOTE-SIZE-PLAN.md §1a: a dropdown since 2 Nov 2026, Standard /
+  // Large / Extra large segments before). ?notesize=11-14 picks the note size through #pref-mv-notesize.
+  async function pickSelect(id, value, label){
+    var sel = document.getElementById(id);
+    if(!sel) throw new Error('no #' + id);
+    if(![].some.call(sel.options, function(o){ return o.value === value; })) throw new Error('#' + id + ' has no option ' + value);
+    sel.value = value;
+    sel.dispatchEvent(new Event('change', {bubbles: true}));
+    await sleep(300);
+    return label;
+  }
   async function applyBarSizeQuery(){
-    var q = (/[?&]barsize=(large|xl)\b/.exec(location.search) || [])[1] || '';
+    var q = (/[?&]barsize=(11|12|13|14|large|xl)\b/.exec(location.search) || [])[1] || '';
     if(!q) return '';
-    var r = document.querySelector('input[name="mv-bar-size"][value="' + q + '"]');
-    if(!r) throw new Error('no Phase bar size radio for ' + q);
-    r.click();
+    q = q === '12' ? 'large' : q === '14' ? 'xl' : q;
+    await pickSelect('pref-mv-barsize', q, q);
     await until(function(){ return document.body.classList.contains('mv-bar-' + q); }, 'the ' + q + ' bar size', 50, 100);
+    await sleep(300);
+    return q;
+  }
+  async function applyNoteSizeQuery(){
+    var q = (/[?&]notesize=(11|12|13|14)\b/.exec(location.search) || [])[1] || '';
+    if(!q) return '';
+    await pickSelect('pref-mv-notesize', q, q);
+    await until(function(){ return document.body.classList.contains('mv-note-sized'); }, 'the ' + q + ' px note size', 50, 100);
     await sleep(300);
     return q;
   }
   function barSizeShown(){
     var c = document.body.classList;
-    return c.contains('mv-bar-xl') ? 'xl' : c.contains('mv-bar-large') ? 'large' : '';
+    return c.contains('mv-bar-xl') ? 'xl' : c.contains('mv-bar-13') ? '13' : c.contains('mv-bar-large') ? 'large' : c.contains('mv-bar-11') ? '11' : '';
+  }
+  function noteSizeShown(){
+    var n = document.getElementById('pref-mv-notesize');
+    return n ? n.value : '';
   }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
@@ -610,5 +633,6 @@ window.__T = (function(){
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
+          applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
           rebuildAll:rebuildAll};
 })();

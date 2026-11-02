@@ -11,7 +11,9 @@
 //     Three hiatus bands whose labels were emptied (the 1 Oct 2026 "full height" ruling).
 //
 // Every calendar is opened through the real Load path (T.openViaFakePicker) as JSON with viewMode 'month' and no
-// mvBarSize, so the undo stack starts EMPTY; every size is picked by a click on its segment's label, as a user picks it.
+// mvBarSize, so the undo stack starts EMPTY; every size is picked in its dropdown, #pref-mv-barsize, as a user picks it
+// (a SegmentedControl until 2 Nov 2026, when Phase bar size became 10-14 px in a dropdown: MONTH-NOTE-SIZE-PLAN.md §1a;
+// Standard is 10 px, Large 12 px, Extra large 14 px, saved as they always were).
 // Measured in the box's own px (rect / currentCSSZoom), lanes read from Chrome's computed grid-template-rows.
 //
 // CASES
@@ -34,8 +36,8 @@
 //        lines, uncut, and no one-day custom bar anywhere is cut on one line
 //   B3a  each pick is ONE undo step: Undo from Extra large gives Large, again gives Standard (Undo off), Redo twice
 //        gives Extra large; the month on screen byte-identical to the one first drawn at each size
-//   B3b  Save writes mvBarSize: "xl", and fields.byId has exactly the opened file's ids (the control's radios carry
-//        ids, all inside .prefs-card)
+//   B3b  Save writes mvBarSize: "xl", and fields.byId has exactly the opened file's ids (the dropdown carries an id,
+//        inside .prefs-card)
 //   B3c  Load of that text opens at Extra large; the same file with no key, loaded right after, opens at Standard
 //        (restore unconditionally); so do "huge", true and "toString", each with one validator warning
 //   B6   a shareable copy made at Extra large carries mvBarSize: "xl" in its saved state and a bare #table-wrap
@@ -91,18 +93,17 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(200);
     return writes[writes.length - 1].text;
   }
+  // The dropdown's value, in this leg's names: '' (10 px) is Standard.
   function ctl() {
-    var r = [].filter.call(document.querySelectorAll('input[name="mv-bar-size"]'), function (x) { return x.checked; });
-    return r.length === 1 ? r[0].value : null;
+    var sel = $('pref-mv-barsize');
+    return sel ? (sel.value || 'standard') : null;
   }
   function bodySize() {
     var c = document.body.classList;
     return c.contains('mv-bar-xl') ? (c.contains('mv-bar-large') ? 'both' : 'xl') : c.contains('mv-bar-large') ? 'large' : 'standard';
   }
   async function pick(v) {
-    var lab = document.querySelector('label[for="mv-bar-size-' + v + '"]');
-    if (!lab) throw new Error('no segment label for ' + v);
-    lab.click();
+    await T.pickSelect('pref-mv-barsize', v === 'standard' ? '' : v, v);
     await T.until(function () { return ctl() === v && bodySize() === v; }, 'picked ' + v, 60, 100);
     await settle('size ' + v);
   }
@@ -262,7 +263,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- B0: Standard, as every calendar saved before the setting opens ----
     var w0 = [];
     await openText(text, w0);
-    var input = document.querySelector('input[name="mv-bar-size"]');
+    var input = $('pref-mv-barsize');
     var inCard = !!(input && input.closest('.prefs-card') && input.closest('.pref-view-month'));
     var std = await walk(), J0 = judge(std, 'standard');
     kase('B0', 'opened with no key: the control shows Standard in the Month view card (.prefs-card), no size class, every lane and bar 17 px, not dirty, Undo off',
@@ -460,7 +461,7 @@ window.addEventListener('load', function () { (async function () {
     var ids0 = Object.keys(snapStd.fields.byId).sort(), ids1 = Object.keys(snap.fields.byId).sort();
     kase('B3b', 'Save writes mvBarSize: "xl"; a Save at Standard writes NO mvBarSize key; both hold exactly the same fields.byId ids',
          snap.mvBarSize === 'xl' && !('mvBarSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
-         !ids1.some(function (k) { return /bar-size/.test(k); }),
+         !ids1.some(function (k) { return /bar-?size|note-?size/.test(k); }),
          { mvBarSize: snap.mvBarSize, stdHasKey: 'mvBarSize' in snapStd, added: ids1.filter(function (k) { return ids0.indexOf(k) < 0; }), lost: ids0.filter(function (k) { return ids1.indexOf(k) < 0; }) });
     // The minted fixture (plan step 3): this calendar's real Save at Large, out.sptcal -> mvbarsize.sptcal, copied by
     // hand to tests/fixtures/mvbarsize-large.sptcal when it is meant to be one (it is cut from the mvnotes run).

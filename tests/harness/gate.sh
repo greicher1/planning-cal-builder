@@ -1857,6 +1857,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               prepreptitle:-:200 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
+              mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
@@ -2043,6 +2044,14 @@ PYBW
 # style object (F1), restore only when the key is present (R5), a click opening a note (D1, G1, G2), typing replacing a
 # note (D1), a month style read by the waterfall (W1), an id on a bar control (B1), and the hiatus drag dropping a
 # month band style (hiatusdrag H13).
+#
+# ⭐ mvnotesize (in the list above, on mvnotes and month-dense60; 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md step 2) was run
+# red on ten mutants before it was wired in, each on its own cases: E2 off, so a sized note is measured at 10 px
+# (N1-11..14); the drawn-width fix undone, so a note is measured 6/7 px too wide (N1-11, N1-14); the two-lane height
+# rule not matching (N1-11..14); the sanitizer keeping a junk value (N4, E0); restore only when the key is present (N2,
+# N3, N4); the setter not redrawing (EX); a calendar size overriding a note's own (N2); the style bar not switching the
+# lane rules (N2); a 21 px bar at 11 px (N5); New keeping the size (N7). Removing markDirty() from the setter was ALSO
+# tried and stays green, because the redraw marks the file dirty by itself.
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle

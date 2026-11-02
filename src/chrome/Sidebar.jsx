@@ -683,10 +683,38 @@ export function MonthViewCard() {
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
 
-        {/* Phase bar size (MONTH-BAR-SIZE-PLAN.md, owner rulings 27 Oct 2026: R3 three sizes, R6 here, beside
-            Number Production Days). CALENDAR DATA (R5) -- see BarSizeControl. */}
+        {/* Phase bar size and Note size, two dropdowns of 10-14 px (MONTH-NOTE-SIZE-PLAN.md §1a, §4.7; owner, 2 Nov
+            2026: "do sizes 10, 11, 12, 13, and 14 for the phase bar sizes. And make sizes for both the phase bars and
+            the notes be dropdown menus"). They replace Phase bar size's Standard · Large · Extra large segments
+            (MONTH-BAR-SIZE-PLAN.md R3, R6), in the same place. CALENDAR DATA: the engine's mvBarSize and mvNoteSize
+            are the one stores, saved as captureSnapshot()'s own keys.
+            ⛔ Built as #wf-paper is: an id INSIDE .prefs-card (so collectFieldValues() skips it and fields.byId
+            does not move), UNCONTROLLED (reflectMvBarSize / reflectMvNoteSize write .value on every update()), and a
+            delegated 'change' sets it (one undo step, the file dirtied).
+            ⛔ THE OPTION VALUES ARE THE SAVE FORMAT. Bars: '' (10 px, an absent key), '11', 'large' (12 px, as since
+            v1.9.0), '13', 'xl' (14 px, as since v1.9.0). Notes: '' (10 px, an absent key), '11' to '14'. */}
         <Divider my="sm" />
-        <BarSizeControl />
+        <SettingRow htmlFor="pref-mv-barsize" label="Phase bar size">
+          <NativeSelect id="pref-mv-barsize" size="xs" w={96} aria-label="Phase bar size"
+                        title="How big the phase bars and hiatus bands are in the month view, on screen and in the month PDF. Saved with the calendar">
+            <option value="">10 px</option>
+            <option value="11">11 px</option>
+            <option value="large">12 px</option>
+            <option value="13">13 px</option>
+            <option value="xl">14 px</option>
+          </NativeSelect>
+        </SettingRow>
+        <Divider my="sm" />
+        <SettingRow htmlFor="pref-mv-notesize" label="Note size">
+          <NativeSelect id="pref-mv-notesize" size="xs" w={96} aria-label="Note size"
+                        title="How big the notes are in the month view, on screen and in the month PDF. Above 10 px a note shows at most two lines. A note can take its own size from the text style bar. Saved with the calendar">
+            <option value="">10 px</option>
+            <option value="11">11 px</option>
+            <option value="12">12 px</option>
+            <option value="13">13 px</option>
+            <option value="14">14 px</option>
+          </NativeSelect>
+        </SettingRow>
 
         {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
             here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
@@ -756,37 +784,6 @@ function ProdLabelControl() {
                           { value: 'week', label: 'Week' },
                           { value: 'episode', label: 'Episode' },
                           { value: 'block', label: blockLabel, disabled: !blockAvailable },
-                        ]} />
-    </Box>
-  )
-}
-
-// "Phase bar size: Standard · Large · Extra large" (MONTH-BAR-SIZE-PLAN.md §4.6). How big the month view's phase
-// bars and hiatus bands are, on screen and in the month PDF.
-//
-// ⛔ CALENDAR DATA (ruling R5, "Saved in the calendar"), built exactly as ProdLabelControl is, for its reasons:
-// the engine's `mvBarSize` is the ONE store and travels as captureSnapshot()'s own key; `value` comes in through
-// bridge.js (chrome.mvBarSize); a pick goes out as the radios' native `click`, caught on document by the name
-// `mv-bar-size` (setMvBarSize: one undo step, the file dirtied). The explicit name keeps Mantine's radio ids
-// stable (UI-CONVENTIONS §8.3), and they are swept by nothing: collectFieldValues() skips .prefs-card.
-function BarSizeControl() {
-  const [value, setValue] = useState('standard')
-
-  useLayoutEffect(() => {
-    installChrome({ mvBarSize: (next) => setValue(next && next.value ? next.value : 'standard') })
-  }, [])
-
-  return (
-    <Box className="pref-mv-barsize"
-         title="How big the phase bars and hiatus bands are in the month view, on screen and in the month PDF. Saved with the calendar">
-      <Text size="sm" mb={6}>Phase bar size</Text>
-      <SegmentedControl name="mv-bar-size" size="xs" fullWidth
-                        aria-label="Phase bar size"
-                        value={value}
-                        data={[
-                          { value: 'standard', label: 'Standard' },
-                          { value: 'large', label: 'Large' },
-                          { value: 'xl', label: 'Extra large' },
                         ]} />
     </Box>
   )

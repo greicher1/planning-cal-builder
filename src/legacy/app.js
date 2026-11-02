@@ -16762,6 +16762,7 @@ export function initLegacyApp() {
     reflectDateFormat();
     reflectPaperSize();
     reflectMvNumberShootDays();
+    reflectMvSizeSelects();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
   // window first, because it lies over the sidebar's cards (everything below the rail) and would
@@ -16778,6 +16779,7 @@ export function initLegacyApp() {
   reflectDateFormat();
   reflectPaperSize();
   reflectMvNumberShootDays();
+  reflectMvSizeSelects();
   (function(){
     const track = document.querySelector('.side-tabs-track');
     if(!track) return;
@@ -21263,6 +21265,9 @@ export function initLegacyApp() {
       Object.keys(cur).forEach(p=>{ if(cur[p] === '' || cur[p] == null) delete cur[p]; });
       write(Object.keys(cur).length ? cur : null);
     });
+    // A note given a size above 10 px here (or cleared back) turns the note size's lane rules on or off
+    // (MONTH-NOTE-SIZE-PLAN.md R4), before the redraw, as update() does it for every other path.
+    reflectMvNoteSize();
     render(currentSchedule);
     if(!live){ pushUndoSnapshot(); }
     markDirty();
@@ -24709,28 +24714,38 @@ export function initLegacyApp() {
   // style), set by update() BEFORE render(), as reflectMvBarSize is and for its reasons.
   function reflectMvNoteSize(){
     document.body.classList.toggle('mv-note-sized', mvAnyNoteSized());
+    reflectMvSizeSelects();
   }
   // The <body> class legacy.css's E1 rules key on, and the control's value. Called by update() BEFORE render(), so
   // every path that can change the size (a pick, undo/redo, Load, backup recovery, New) has the class on before the
   // bars are drawn, and whatever measures a bar right after the render (the edge grips, the reorder grip) reads its
   // new height. A <body> class rather than one on #table-wrap because #table-wrap is the frozen render's own
   // container; E1 scopes every rule to #table-wrap, so the class can never reach #print-root.
-  // ⛔ The value is PUSHED to React (bridge.js), never written to a radio's .checked: the mvProdLabel reason.
+  // Since 2 Nov 2026 the control is a dropdown, #pref-mv-barsize (MONTH-NOTE-SIZE-PLAN.md §1a), REFLECTED as #wf-paper
+  // is: its option values are mvBarSize's own ('' for 10 px), so .value is written straight from the store.
   function reflectMvBarSize(){
     document.body.classList.toggle('mv-bar-11', mvBarSize === '11');
     document.body.classList.toggle('mv-bar-large', mvBarSize === 'large');
     document.body.classList.toggle('mv-bar-13', mvBarSize === '13');
     document.body.classList.toggle('mv-bar-xl', mvBarSize === 'xl');
-    chrome.mvBarSize({ value: mvBarSize || 'standard' });
+    reflectMvSizeSelects();
   }
-  // The control's radios, caught on document by their `name` (set in Sidebar.jsx, so stable), as "Label Production
-  // by"'s are and for its reasons: 'click', never 'change' (a controlled radio fires none); the value, never
-  // .checked (React has restored it by now); and a click on the segment already shown is not a pick.
-  document.addEventListener('click', e=>{
-    const t = e.target;
-    if(!t || t.name !== 'mv-bar-size' || t.disabled) return;
-    if(t.value === (mvBarSize || 'standard')) return;
-    setMvBarSize(t.value);
+  // Both size dropdowns, written from their stores. Also run when the Settings tab is shown (setSidebarTab), so a
+  // late React commit cannot leave either on its first option.
+  function reflectMvSizeSelects(){
+    const b = document.getElementById('pref-mv-barsize'), n = document.getElementById('pref-mv-notesize');
+    if(b && b.value !== mvBarSize) b.value = mvBarSize;
+    if(n && n.value !== mvNoteSize) n.value = mvNoteSize;
+  }
+  // ⛔ 'change' on document, as #wf-paper's: React renders the selects, so they are reached by delegation, never
+  // captured at evaluation time. Either setter ignores a value it does not know and leaves the store as it was, so
+  // the select is put back to the store whatever happened.
+  document.addEventListener('change', e=>{
+    const id = e.target && e.target.id;
+    if(id !== 'pref-mv-barsize' && id !== 'pref-mv-notesize') return;
+    if(id === 'pref-mv-barsize') setMvBarSize(e.target.value);
+    else setMvNoteSize(e.target.value);
+    reflectMvSizeSelects();
   });
   // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
   // and a keyboard toggle (Space) fires change too.
