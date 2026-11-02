@@ -24750,9 +24750,11 @@ export function initLegacyApp() {
   // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry) -- or, for a kind that starts off
   // (AUTO_NOTE_OPT_IN), autoNotesOn (absent = hidden, so unticking deletes it) -- then update() re-renders every
   // view and banks ONE undo step through markDirty().
-  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, because those phases' notes
-  // do ("Edit Begins"); the card renders the default, which stands while nothing is typed. Writer's Room and
-  // Production have no such span: their notes keep their own words whatever the phase is called.
+  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, every phase's since 2 Nov 2026
+  // (owner: "if we renamed Production to "Shoot" that should reflect in the setting menu"). A name box holds the
+  // phase's own label until it is renamed, so that label, or an empty box, shows the card's own words
+  // (data-autonote-default): "Writer’s Room", never the grid's "Writer's Rm". The boxes' aria-labels follow too.
+  // Writer's Room's and Production's NOTES keep their own words ("Start Principal Photography"); only the row moves.
   function reflectAutoNoteKinds(){
     syncCustomAutoNoteRows();
     document.querySelectorAll('input[data-autonote]').forEach(cb=>{
@@ -24763,8 +24765,16 @@ export function initLegacyApp() {
       const key = el.getAttribute('data-autonote-name');
       const def = PHASES.find(p=> p.key === key);
       const nameEl = document.getElementById('name-'+key);
-      const want = (nameEl && nameEl.value.trim()) || (def && def.label) || '';
+      const typed = nameEl ? nameEl.value.trim() : '';
+      const want = (typed && !(def && typed === def.label)) ? typed
+                 : (el.getAttribute('data-autonote-default') || (def && def.label) || '');
       if(want && el.textContent !== want) el.textContent = want;
+      // The row's two boxes are the next two cells of the card's grid.
+      for(let cell = el.nextElementSibling, n = 0; cell && n < 2; cell = cell.nextElementSibling, n++){
+        const cb = cell.querySelector('input[data-autonote]');
+        const label = want + ' ' + ((cell.textContent || '').trim());
+        if(cb && cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      }
     });
   }
   // A custom phase's rows (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md step 1): its name, then a Begins box and an

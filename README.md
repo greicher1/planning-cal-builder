@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
+
+The owner: *"if we renamed Production to "Shoot" that should reflect in the setting menu"*. The rows for Pre-Prep,
+Prod Prep, Post, Localization and custom phases already followed a name typed in the Phases tab. Writer's Room and
+Production kept their fixed names. Now:
+
+- Every row of Settings ▸ Preferences ▸ Automatic notes shows the phase's name as typed. Production renamed "Shoot"
+  reads "Shoot", and its boxes are labelled "Shoot Starts" / "Shoot Wraps" for screen readers.
+- A name box holding the phase's own label, or nothing, shows the card's usual words. So Writer's Room still reads
+  "Writer’s Room", not the grid's short "Writer's Rm".
+- The notes themselves are unchanged: Production's still read "Start Principal Photography" and "Principal
+  Photography Wraps", and Writer's Room's "Writer's Room Opens".
+
+How: both rows got their phase key (`data-autonote-name`) and their default words (`data-autonote-default`), and
+`reflectAutoNoteKinds()` shows a typed name only when it differs from the phase's label. Settings card only; nothing
+reaches the grid, the exports or saved files.
+
+Verified: new `autonotephases` case P9b (red on the code before it); `autonotephases` 27/27, `autonotekinds` 16/16,
+`settingswin` 21/21, `phasesui` 8/8; `npm run check` 40/40. Seen in the browser pane, with "Shoot" typed into
+Production's name box. No full gate (a Settings label only).
+
 ### Unreleased — automatic notes for custom phases (2 Nov 2026)
 
 The built-in phases have had Begins and Ends notes since 27 Oct; custom phases had none. The owner asked: *"Can we

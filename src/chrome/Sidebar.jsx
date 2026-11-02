@@ -343,18 +343,21 @@ export function RegionCard() {
 // note uses ("Post Begins"). The three original kinds keep their boxes, as Writer's Room's Opens and Production's
 // Starts / Wraps. ⛔ `on` is only the FIRST paint: the engine's autoNoteKindShown() is the truth, and the new kinds
 // start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
-// `key` marks a phase whose notes follow a name typed in the Phases tab: reflectAutoNoteKinds() writes that name
-// into the row's data-autonote-name span. Writer's Room and Production keep their own words, so they have none.
+// `key` is the phase whose name the row shows: reflectAutoNoteKinds() writes a name typed in the Phases tab into the
+// row's data-autonote-name span, and puts back data-autonote-default (the words below) when the box holds the phase's
+// own label again. EVERY row has one since 2 Nov 2026 (owner: "if we renamed Production to "Shoot" that should reflect
+// in the setting menu"). Writer's Room's and Production's NOTES still keep their own words ("Writer's Room Opens",
+// "Start Principal Photography") whatever the phase is called; only the row's name follows.
 // CUSTOM PHASES' ROWS (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
 // AUTO-NOTES-PER-VIEW-PLAN.md step 1) come and go with the phases, which React does not know, so the engine draws
 // them (syncCustomAutoNoteRows) into `.autonote-custom`: rendered EMPTY here, never given children by React, and
 // display:contents, so its rows sit in this grid's three columns. Off until ticked, like the built-in phases'.
 const AUTO_NOTE_PHASES = [
-  { phase: 'Writer’s Room', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
+  { phase: 'Writer’s Room', key: 'writersRoom', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
                             end: { kind: 'writersRoomEnd', word: 'Closes' } },
   { phase: 'Pre-Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
   { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
-  { phase: 'Production', start: { kind: 'principalStart', word: 'Starts', on: true },
+  { phase: 'Production', key: 'production', start: { kind: 'principalStart', word: 'Starts', on: true },
                          end: { kind: 'principalWrap', word: 'Wraps', on: true } },
   { phase: 'Post', key: 'post', start: { kind: 'postStart', word: 'Begins' }, end: { kind: 'postEnd', word: 'Ends' } },
   { phase: 'Localization', key: 'localization', start: { kind: 'localizationStart', word: 'Begins' },
@@ -375,7 +378,7 @@ export function AutoNotesCard() {
       <div className="side-block autonote-list">
         {AUTO_NOTE_PHASES.map((r) => [
           <span key={r.start.kind + '-name'} className="autonote-name"
-                {...(r.key ? { 'data-autonote-name': r.key } : {})}>{r.phase}</span>,
+                data-autonote-name={r.key} data-autonote-default={r.phase}>{r.phase}</span>,
           ...[r.start, r.end].map((b) => (
             <label key={b.kind} className="autonote-row">
               <input type="checkbox" data-autonote={b.kind} defaultChecked={!!b.on} aria-label={r.phase + ' ' + b.word} />

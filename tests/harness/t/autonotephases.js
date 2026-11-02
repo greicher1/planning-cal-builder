@@ -286,6 +286,27 @@ window.addEventListener('load', function () { (async function () {
            same(back, { row: 'Post', start: 'Post Begins 7/5/27' }), { renamed: renamed, back: back });
     });
 
+    // Owner, 2 Nov 2026: "if we renamed Production to "Shoot" that should reflect in the setting menu". Writer's Room's
+    // and Production's rows follow a rename too; their NOTES keep their own words. A box holding the phase's own label
+    // ("Writer's Rm") or nothing shows the card's words ("Writer’s Room"), never the label.
+    await step('P9b', async function () {
+      function row(k) { return txt(document.querySelector('[data-autonote-name="' + k + '"]')); }
+      T.set('name-production', 'Shoot'); T.set('name-writersRoom', 'Writers'); await settle();
+      await T.openSettings('prefs');
+      var renamed = { prod: row('production'), wr: row('writersRoom'), aria: box('principalWrap').getAttribute('aria-label'),
+                      start: notes()['2027-05-03'], opens: notes()['2027-01-04'] };
+      T.set('name-production', 'Production'); T.set('name-writersRoom', "Writer's Rm"); await settle();
+      var own = { prod: row('production'), wr: row('writersRoom'), aria: box('principalWrap').getAttribute('aria-label') };
+      T.set('name-writersRoom', ''); await settle();
+      var blank = row('writersRoom');
+      T.set('name-writersRoom', "Writer's Rm"); await settle();
+      kase('P9b', 'Production renamed "Shoot" and Writer\'s Room renamed: their card rows (and box labels) follow, their notes keep their own words; back on the phase\'s own label, or blank, the rows read "Production" and "Writer’s Room"',
+           same(renamed, { prod: 'Shoot', wr: 'Writers', aria: 'Shoot Wraps', start: 'Start Principal Photography 5/3/27',
+                           opens: "Writer's Room Opens 1/4/27" }) &&
+           same(own, { prod: 'Production', wr: 'Writer’s Room', aria: 'Production Wraps' }) && blank === 'Writer’s Room' &&
+           same(notes(), sorted(ALL)), { renamed: renamed, own: own, blank: blank });
+    });
+
     await step('P10', async function () {
       var en = $('phiatus-en-prePrep');
       if (!en.checked) en.click();
