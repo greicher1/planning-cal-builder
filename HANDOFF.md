@@ -4,6 +4,78 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 30 Oct 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) — BUILDING on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, from `origin/main` at `fdf9324`; `node_modules` is a symlink: unlink it before `git worktree remove`), UNCOMMITTED, no leg or gate yet
+
+- **The ask** (owner, after Ends went live): *"would it be possible we could add the "ends" date option to production
+  or would that mess things up? That way if i know production needs to end on a certain day we could work backwards
+  to calculate"*. Answered yes, possible; nothing built. Tracker card `production-end-date`, status planned.
+- Asked whether to advise against it: no, a slight lean towards it (the control already exists on every Weeks card;
+  Production missing it is the inconsistency), ON CONDITION that the card makes Ends obvious and says where the start
+  went, because in Ends an added episode pulls the start (and prep) earlier unasked. Anchor To covers the one-off case.
+- ✅ **RULED (owner, 30 Oct 2026, *"id say do exactly then"*): the shoot wraps EXACTLY on the picked day.** The start
+  may land mid-week. Explained against "by" with a table (23 → 26 shoot days before a Friday deadline: "by" keeps a
+  Monday start and wraps 0–4 days early, the start jumping a whole week at the 26th day; "exactly" moves the start a
+  day at a time and always wraps on the Friday).
+- **The mockup** (made after the ruling, not separately asked for): a copy of the live Production card (measured in
+  the browser pane on the `episodeprep` fixture) with Starts / Ends over the date, beside a day grid (week rows of the
+  waterfall, days of the month view) and a "What moved" strip. Synthetic: six episodes × 5 days, Prod Prep fixed
+  1/11/27–2/19/27, Good Friday 3/26/27, a fixed 1-week hiatus at 3/15/27. In Ends: Snap to Monday and "↳ Start after
+  Prod Prep" hidden; a line under the date names the start ("Starts Fri 2/26/27, worked back from the wrap"), amber
+  with a second line when it falls inside Prod Prep; the picker offers only shoot days; a typed weekend / holiday /
+  hiatus day reads as the shoot day before. Back to Starts keeps the start and turns Snap off if it isn't a Monday.
+  Checked in the browser pane (scripted and real clicks): Fri 4/9/27 → start Fri 2/26/27; Ep 103 at 6 days → Thu
+  2/25; hiatus on → Thu 2/18, inside Prod Prep; no console errors.
+  - ✅ **"Yes, build it"** accepted all three suggestions: (1) an amber line when the start falls in the phase before;
+    (2) movers keep moving the shoot and the wrap they land on becomes the held one; (3) "Start after previous phase"
+    hidden in Ends. Then, mid-build, (1) was WITHDRAWN (owner: *"maybe we don't need the warning that it runs into a
+    previous phase....thats obvious from just looking at the calendar"*), and the start line was to be redesigned
+    (*"come up with a better looking way to tell the user what the start date of production was calculated to be"*).
+- **The start readout** ([`mockups/production-start-readout.html`](mockups/production-start-readout.html)): four
+  options were mocked (A a calculated box, B the shoot as a span, C a footer on the totals box, D a caption chip). The
+  owner picked **B with two changes**: *"removing the "30 shoot days" in the middle. This would also be shown whether
+  you do Starts or Ends, changing which is highlited in solid green depending on which mode."* So under the date box,
+  in BOTH modes, a STARTS pill and a WRAPS pill joined by a dashed line; the end that holds (the box's date) is solid
+  green (`--prod-text` fill, white text), the worked-out end dashed. The mockup now shows exactly that, two cards
+  (Starts, Ends), each switchable; awaiting the owner's go-ahead to build it in place of `.prod-ends-line`.
+- **Built so far on the branch (not committed, not gated):** `productionEnds` / `prodEndsForward` / `prodEndsDrag`
+  (beside `phaseEnds`); `productionTrial` (productionEndFor's body, shared), `productionShootTrial`,
+  `solveProductionEndsStart` (step by the miss, step back, then climb one shoot day at a time), `prodEndsWarm`,
+  `syncProductionEndsStart` (top of `update()`, before `readState()`); readState's Production branch (snap off, out
+  while the wrap is empty, a bad year rings `.prod-wrapdate`); `setPhaseStart` sets `prodEndsForward`; the shoot grips
+  set `prodEndsDrag` (only in `installProductionEdgeHandles`); `setProductionEnds` / `setProductionWrap` /
+  `reflectProductionEnds`; Production's row now uses `startsFieldHtml('production')` (the `.prod-wrapdate` box and a
+  `.prod-ends-line`, to be replaced by the span); snapshot key `productionEnds` (capture, sanitize, restore
+  unconditionally, New); `dateContext.prodShoot` and DatePop's `'wrap'` kind (only shoot days); CSS beside the Ends
+  rules. Measured on `episodeprep`: an update in Ends ~10-18 ms; Fri 4/16/27 → start Fri 2/26/27; +1 episode day →
+  Thu 2/25/27; Production's own hiatus over the fixture's 3/15/27 hiatus → Fri 2/19/27; a typed Sat 4/17/27 holds
+  Fri 4/16/27; the picker greys weekends, the hiatus weeks and Good Friday.
+  - ⚠️ **`endsdate` C1 asserts Production has NO `select.phase-anchor`**: it goes red on this branch until updated
+    (Production now has one, with `.prod-wrapdate`, never `.phase-endsdate`).
+  - **Still to do:** the span (replacing `.prod-ends-line`), a `prodends` leg in `gate.sh` (switch, undo, held wrap,
+    own hiatus, typed weekend / holiday, picker, Shift All, Save / Load / no key / hostile key, round trip byte for
+    byte), `endsdate` C1, the full gate (the save path changed), README entry.
+- ⚠️ **`main` moved under this entry:** another session pushed `fdf9324` ("Snapped start box: show the Monday it
+  snapped to", top HANDOFF entry + README) and left local `main` at `9ec805f` because this entry was uncommitted.
+  Before committing here, bring in `origin/main`; the only conflict should be HANDOFF.md's top entries (keep both).
+- **Why it was left out of Weeks Ends:** `phaseEndsOn()` returns false for `production` by design (the 📝 entry
+  below: "working back from a shoot-day count is a search"). Production's row has its own markup (the `isDays` branch
+  of `buildPhaseRows()`), so it has no `startsFieldHtml()` select and no `end-production` field.
+- **What already exists:** `productionStartEndingBy(cursor)` (Rebuild From's backward search over
+  `productionEndFor()`, the real scheduler, weekly steps, latest fit first) and Anchor To's `end` edge
+  (`phaseLastWorkday()` = `productionInfo.lastShootDay`), which does the job ONCE: a later Show Info change still
+  moves the wrap. Ends would make the wrap HOLD and move the start (and the derived prep) instead.
+- **Open for the owner:** (1) the wrap lands EXACTLY on the picked day (the start can be mid-week; a picked weekend or
+  holiday reads as the shoot day before it) vs. a Monday start that wraps on or before it (up to ~4 days early);
+  suggested exact. (2) Movers: suggested they keep moving the start as today and the wrap they produce becomes the
+  held end (asShootDayMove unchanged).
+- **Hazards for whoever builds it:** the wrap needs a home: no `end-production` id exists, and a new id enters
+  `fields.byId` (prefer an id-less box plus a PERMANENT snapshot key, absent = Starts). Keep writing the solved start
+  into `start-production` so older builds open it as a start-held shoot (frozen `readCfgForMeta()` reads it too).
+  The search calls `computeSchedule(readState())`, so solving inside `readState()` recurses: solve in `update()`
+  beside `syncPhaseEndsStarts()`, warm-started from the current start, and measure the per-keystroke cost. A finer
+  day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
+  when Ends moves the start, as they do today when the end moves.
+
 ### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
 
 - **The ask** (owner, screenshot of Pre-Prep with 03/25/2026 in the box and "Snapped to Mon 3/23/26" under the name):
