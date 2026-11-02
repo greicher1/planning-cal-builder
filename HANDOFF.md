@@ -4,6 +4,56 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 2 Nov 2026: ONE NOTE SIZE FOR THE MONTH VIEW, PICKED IN PX — PLANNED, RULINGS OPEN, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker card `month-note-size`
+
+- **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
+  to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
+  its just a global notes px size selector"*, then *"Yes, write the plan"*. It is MONTH-BAR-SIZE-PLAN's R1(c).
+- **The plan's design (recommendations, NOT rulings):**
+  - 10 (today) to 14 px, each with a whole-px line from a table;
+  - two lines above 10 px, cut with "…" on screen AND in the PDF;
+  - the calendar's size is each note's largest style-bar size;
+  - `mvNoteSize` (absent = 10 px);
+  - the control under Phase bar size, whose labels would become px;
+  - three frozen edits (E1 CSS, E2 `mvNoteLineCount`, E3 the print rollback), all inert at 10 px.
+- ⚠️ **CORRECTED, how notes work today** (this entry first said "at most 3 lines, the rest cut with '…'", and so did the
+  chat): a note takes at most three 17 px lanes. ON SCREEN its box clips the rest (no "…"). IN THE MONTH PDF NOTHING
+  IS CUT: print sizes lanes by content and the writer draws every line, so a four-line note prints whole
+  (`month-lanecap`, `monthscale`). The plan's §0 has it.
+- **Measured** (throwaway leg slicing the writer as `monthwriter` does, note geometry patched per size, deleted after;
+  the 10 px control was JSON-identical to the unpatched writer on all 16 calendars). With the two-line limit:
+  - no ordinary month prints smaller at any size;
+  - weeks need a median 0.3–3.5% more room, at most ~14% (21% on `mvnotes`);
+  - on ordinary calendars, 0–1 notes are cut at 11–12 px and 3–5 at 13–14 px;
+  - `monthscale`'s August prints BIGGER (0.609 → 0.688–0.766), because its four-line notes are cut to two;
+  - `month-dense60`, whose notes exactly fill two lines at 10 px, loses 60 of 81 notes' endings at 11 px.
+  - Without the limit, crowded weeks grow by up to 76%.
+- **Next:** the owner's rulings R0–R9, then step 1 (the screen probe).
+
+### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
+
+- **The ask** (owner, *"purely hypothetically"*): drop snapping so every phase starts and ends on the exact day; the
+  month view shows it, the waterfall counts it as Snap off does today. Also *"add the Dates option for default
+  phases"*. ⚠️ They already have it (Weeks or Dates, ruling 7, v1.5.0). Only Production has neither, and Days is still
+  custom-only (CUSTOM-PHASE-UNITS-PLAN line 41: "the ruling named Dates", not a technical reason).
+- **Measured on `main` (dev server), Snap off:** a phase gets a waterfall row for every Mon–Sun week it touches by one
+  day or more, numbered on: 4 wk from Wed 4/8/26 = 5 rows, `wk 1`–`wk 5`, while its meta line says `(4 wk)`. A Dates
+  phase Wed 4/8 → Fri 5/1 = 4 rows; to Tue 5/5 = 5.
+- ⚠️ **AN EXISTING BUG, found doing this:** Writer's Rm (Snap off, 4/8, 4 wk, ends Tue 5/5) followed by Pre-Prep (Snap
+  off, starts Wed 5/6). Column placement is day-accurate (`colFreeAt <= startT`), so Pre-Prep reuses Writer's Rm's
+  column, but the row is a week, so both want the cell of 5/4/26. Pre-Prep wins and `Writer's Rm wk 5` disappears from
+  the waterfall. The month view is right (Wk 5 Mon–Tue, Pre-Prep Wk 1 Wed–Fri). Excel / PDF not checked; they read the
+  same layout. Rare while Snap is on by default, but without snapping it would happen at every mid-week handover.
+  Not fixed (computeSchedule is not frozen; the cell model is).
+  - It repeats down a chain: add Prod Prep from Wed 5/27 and `Pre-Prep Wk 4` vanishes the same way. The labels then
+    LOOK right (wk 1–4 for 4 weeks, Wk 1–3 for 3) only because each phase's part week was overwritten.
+  - ⚠️ **"Give it its own column" is NOT a one-week column.** A phase keeps ONE column for its whole run, and must sit
+    right of every phase still running at its start. The same three phases moved one day earlier (a one-day overlap,
+    which is what the fix would make a handover act like) STAIRCASE: 3 columns, each phase in its own for its whole
+    run. So a week-rounded `colFreeAt` widens the waterfall by a column at every mid-week handover. Fine as today's
+    opt-in Snap off fix; a strong reason against "no snapping anywhere" unless the waterfall rounds each phase to
+    whole weeks for itself.
+
 ### ✅ 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — ✅ **LIVE at `05bfdc9`** (owner's picker, *"Push now"*; `12cd4ca..05bfdc9` at 10:47:39 on 2 Nov 2026; the live `index.html` matched the gated build `3a7dcbd1…` byte for byte at 10:49:21). BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), COMMITTED `6f10a6a` + `26f2065` (gate 10 and 13 baselines RE-CUT on the owner's sign-off), `main` merged in as `deaa45e`; ✅ FULL GATE PASSED 3,496 / 0 on the merged build; ✅ local `main` FAST-FORWARDED to `f3bde45` (owner, 2 Nov 2026: *"Yes, merge to main"*); PUSHED (see the head of this entry). No version cut: installed users get it on their next relaunch
 
 - **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
@@ -88,7 +138,7 @@
 - **Landed:** committed `c89ec8c` (owner, *"Commit and push"*), then merged with origin/main `fdf9324` (another
   session's snapped-start-box push); only the top entries of HANDOFF.md and README.md conflicted, both kept.
 
-### 🔨 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — BUILT on branch `snap-start-box` (worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT COMMITTED, NOT MERGED, NOT PUSHED (awaiting the owner's picker)
+### ✅ 30 Oct 2026: A SNAPPED START'S BOX SHOWS ITS MONDAY — ✅ **LIVE at `fdf9324`** (built on branch `snap-start-box`, worktree `.claude/worktrees/snap-start-box`, from `main` at `ea1eae6`; its `node_modules` is a symlink: unlink it before `git worktree remove`). *(Heading corrected 30 Oct 2026: it still said "not committed, not merged, not pushed" on local `main`; the branch's own HANDOFF commit `ba039cb`, which says it is live, never reached `main`.)*
 
 - **The ask** (owner, screenshot of Pre-Prep with 03/25/2026 in the box and "Snapped to Mon 3/23/26" under the name):
   *"right now when you enter a non monday date as the start date for a phase and click enter or click out of it, it
