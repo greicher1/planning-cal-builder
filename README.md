@@ -29,6 +29,96 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
+
+On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something
+moved a column. Found while building the Sim Post rename; it was on `main` before that. Measured on a build of
+`main`, on the fixture `colswap-simpost-refuse`:
+
+- Ticking Sim Post's "Number these weeks": the cells still read "Simultaneous Post".
+- Changing Sim Post's offset from 1 to 0: nothing moved.
+- Renaming Post to "Edit": the cells still read "Post wk N".
+- Also stuck: an undo of any of those, and a phase's new colour.
+
+Why: every edit, the app checks whether each stored swap is still safe (the column-swap gate). That check is slow,
+so its answer is cached against the column layout, the swaps, the widths and whether Sim Post is on. When none of
+those changed, the app drew the calendar it had cached at the last full check, not the one it had just worked out.
+Now a cached answer is applied to the calendar just worked out, so every edit shows at once. The cache's key also
+covers more of what the check measures: Sim Post's weeks and numbers, every cell's label, Sim Post's name, block
+swaps, cell spans and column reuse. A rename can therefore change whether a swap is still allowed.
+
+`maybeRunColSwapGate` only; it is not on the frozen list. Nothing changes on a calendar without a stored swap.
+
+Verified:
+- New leg `colswapcache` 9/9 (in `gate.sh`), on `colswap-simpost-refuse` with the swap refused (Sim Post on) and
+  applied (off). On the build before the fix, 6 of its 9 cases fail. On a build that only widens the key, the colour
+  case still fails, which is how the leg holds the other half of the fix.
+- Gates 1–5, 10 and 13 plus every column-swap and block-swap leg, run from gate.sh's own blocks (another session's
+  full gate was running): 545 PASS, 1 FAIL. The one failure was `monthexport (blocksoff) X4`, a timing case on a
+  calendar with no swap; it passed 9/9 when re-run alone. The waterfall PDF, every Excel part, the restore, the saved
+  field list (77 ids), all 11 print documents and all 22 written month PDFs are unchanged.
+- Neighbouring legs green: `simpostname`, `simpostlabel`, `monthlayout` and `monthmap` (on swap and reuse
+  fixtures), `noswapbtns`, `wholenum`, `colreuse`. `npm run check` 40/40. The full gate was not run.
+- Checked in the browser pane on the same fixture: "Number these weeks" relabels the cells at once.
+
+### Unreleased — Simultaneous Post can be renamed (2 Nov 2026)
+
+The owner asked: *"Allow me to be able to edit the name of Simultaneous Post"*. Every other phase could be renamed;
+Sim Post always read "Simultaneous Post". Now:
+
+- A name box sits at the top of Sim Post's settings, under its switch, the way a hiatus's name box does. It is blank
+  and shows "Simultaneous Post" until you type.
+- The name shows everywhere Sim Post does: the waterfall, the month view and its phase map, the colour key, the Excel
+  workbook, the waterfall PDF and the month PDF. Numbered weeks read "*name* wk 3".
+- Clearing the box, or typing "Simultaneous Post" in full, goes back to the default. New does too. Each edit is one
+  undo step.
+- The switch keeps its label, "Simultaneous Post", as Hiatus's switch does.
+
+How: `simPostLabel()` reads the name, so every view and writer follows without a change to any of them. The name is
+saved under a new key, `simPostName`, only while it is renamed, so other calendars save byte for byte as before.
+Its box has no id, so the saved field list (gate 5) does not move. An older build ignores the key and shows
+"Simultaneous Post". One frozen edit, **S1** (owner-approved by picker): `renderMonthView` now escapes Sim Post's
+label as it does every phase's. It wrote it as raw HTML, safe only while the label was fixed text. Unescaped, a name
+with `&`, `<`, `>` or `"` garbled the bar and made the month PDF writer fail. The default label has none of those
+characters, so the month view is unchanged.
+
+Verified:
+- New leg `simpostname` 14/14 (in `gate.sh`). It is red on a build without S1 (bar text and title wrong, month PDF
+  writer throws) and on one that restores the name conditionally.
+- Gates 1–5, 10 and 13, run from gate.sh's own blocks: 325 PASS, 0 FAIL. The waterfall PDF, every Excel part, the
+  restore and the field list (77 ids) are unchanged. All 11 print documents and all 23 written month PDFs are
+  byte-identical.
+- Neighbouring legs green: `simpostlabel`, `mvtextstyle`, `wholenum`, `phasesui`, `monthlayout`, `monthmap`,
+  `calrange`, `sideboxes`, `textstyle`. The full gate was not run.
+- `npm run check` 40/40.
+
+### Unreleased — Production can be held by its wrap (Ends), and its card shows the shoot as a span (2 Nov 2026)
+
+The owner, after Ends went live for the Weeks phases: *"would it be possible we could add the "ends" date option to
+production ... if i know production needs to end on a certain day we could work backwards to calculate"*. Production's
+date now reads **Starts** or **Ends**, as the Weeks phases' do. Ruled *"id say do exactly then"*: in Ends the shoot
+wraps **exactly** on the day picked, so the start can fall mid-week.
+
+- The start is counted back from the shoot days, skipping weekends, holidays, hiatus days and days marked Off. The
+  app asks its real scheduler for the latest start that still wraps on the day, so the two can never disagree. More
+  episodes or days, a hiatus, a holiday or a new Region now move the START, and the wrap holds.
+- The picker offers only days the shoot can work. A typed weekend or holiday wraps on the shoot day before it.
+- Snap to Monday and "Start after previous phase" are hidden in Ends. The shift tools, Rebuild From and the
+  month-view grips move the shoot as they do in Starts, and the wrap it lands on becomes the one held.
+- Under the date, in both modes, the shoot as a span: **Starts** and **Wraps** at the two ends of a dashed line. The
+  end that holds is solid in Production's colour, the one worked out from it dashed (option B of four mocked, the
+  owner's pick, *"This would also be shown whether you do Starts or Ends"*). An amber "runs into the phase before"
+  line was tried first and taken out (*"thats obvious from just looking at the calendar"*).
+- Saved as one new key, `productionEnds` (the held wrap), written only in Ends, so a calendar that never uses it saves
+  byte for byte as before. The worked-out start is still written into Production's Starts box with Snap to Monday
+  off, so an older version opens the same shoot, held by its start.
+
+Verified: new leg `prodends` (to Ends moves nothing; one undo step; 90 shoot days wrapping Tue 10/20/26 start Fri
+6/12/26 over Juneteenth; Production's own hiatus; a typed Saturday and the day after Thanksgiving; the picker; Shift
+All; Save, Load, no key, a hostile key; back to Starts; a round trip byte for byte). `endsdate`'s C1 now expects
+Production's own select. Full gate 3,508 PASS, 2 FAIL, both load flakes that pass alone (`pwagate` C1 13/13 twice,
+`scenariocompat` on v1.2.0); every waterfall, Excel and month PDF baseline held. `npm run check` 40/40.
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.

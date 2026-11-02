@@ -64,9 +64,10 @@ function phaseSnapped(key) {
   const unit = document.getElementById('unit-' + key)
   if (unit && (unit.value === 'days' || unit.value === 'dates')) return false
   // An Ends phase (the engine's phaseEnds) is always whole weeks, its Snap to Monday hidden and ignored. Read off
-  // the card's ends-mode class, which update() sets (reflectPhaseEnds).
+  // the card's ends-mode class, which update() sets (reflectPhaseEnds). Not Production: held by its wrap
+  // (productionEnds), its start is to the day, and the engine turns its Snap to Monday off, so the box answers.
   const start = document.getElementById('start-' + key)
-  if (start && start.closest('.phase-row.ends-mode')) return true
+  if (key !== 'production' && start && start.closest('.phase-row.ends-mode')) return true
   const cb = document.getElementById('snap-' + key)
   return cb ? cb.checked : true
 }
@@ -75,6 +76,8 @@ function phaseSnapped(key) {
 //   'monday' — snapped to its week's Monday (readState / computeSchedule), so only Mondays;
 //   'friday' — an Ends phase's end (the engine's phaseEnds; owner, 30 Oct 2026: "Yes, no switch"), which always
 //              lands on its week's Friday, so only Fridays;
+//   'wrap'   — Production's wrap (the engine's productionEnds; owner, 30 Oct 2026: "id say do exactly then"), the
+//              last shoot day, so only days the shoot can work (shootable below);
 //   'day'    — used to the day, so a single day and no band;
 //   'week'   — any day picks its week (the range is cut by whole weeks, and Anchor To's start
 //              moves the calendar by whole weeks: weeksBetweenMondays), so the band stays.
@@ -84,6 +87,7 @@ function fieldKind(el) {
   if (el.id === 'custom-hol-date') return 'day'
   if (el.classList.contains('hiatus-start') || el.classList.contains('phiatus-start')) return 'monday'
   if (el.classList.contains('phase-endsdate')) return 'friday'      // an Ends phase's end (id-less)
+  if (el.classList.contains('prod-wrapdate')) return 'wrap'         // Production's wrap (id-less)
   if (el.id.startsWith('end-')) return 'day'                       // a Dates phase's end
   if (el.id.startsWith('start-')) return phaseSnapped(el.id.slice(6)) ? 'monday' : 'day'
   // Rebuild From pins the chosen phase's start by that phase's own Snap to Monday (audit M-11).
@@ -198,6 +202,24 @@ export function DatePop() {
     const n = Math.max(1, +h.weeks || 1) * 7
     for (let i = 0; i < n; i++) hiatusDays.add(mon + i * MS)
   }
+  // A day Production can wrap on: the engine's simulateProductionSchedule() rule, read from what update() pushes
+  // (prodShoot, set only while Production is held by its wrap). No hiatus day, all-phase or Production's own; a day
+  // marked to be worked (a weekend, a holiday, the weekend before) shoots; a day marked Off does not; otherwise a
+  // weekday that is not an enabled holiday. Keep the two in step.
+  const ps = ctx.prodShoot
+  const prodOn = new Set((ps && ps.on) || []), prodOff = new Set((ps && ps.off) || [])
+  const prodHiatus = new Set()
+  if (ps && ps.hiatus) {
+    const start = parseIso(ps.hiatus.start)
+    if (start) for (let i = 0; i < Math.max(1, +ps.hiatus.weeks || 1) * 7; i++) prodHiatus.add(mondayOf(start) + i * MS)
+  }
+  const shootable = (t, dayIso) => {
+    if (hiatusDays.has(t) || prodHiatus.has(t)) return false
+    if (prodOn.has(dayIso)) return true
+    if (prodOff.has(dayIso)) return false
+    const w = new Date(t).getUTCDay()
+    return w >= 1 && w <= 5 && !holidayByIso[dayIso]
+  }
 
   const d0 = new Date(month)
   const y = d0.getUTCFullYear(), m = d0.getUTCMonth()
@@ -222,6 +244,7 @@ export function DatePop() {
     // popover's mousedown preventDefault never ran and a click on a greyed day took focus out
     // of the field.
     const off = (kind === 'monday' && !isMon) || (kind === 'friday' && d.getUTCDay() !== 5)
+      || (kind === 'wrap' && !shootable(t, dayIso))
     const cls = ['dp-day']
     if (off) cls.push('dp-off')
     if (!inMonth) cls.push('dp-out')
@@ -268,7 +291,7 @@ export function DatePop() {
         <button type="button" className="dp-nav" aria-label="Next month" onClick={() => nav(1)}>›</button>
       </div>
       <div className="dp-dow" aria-hidden="true">{DOW.map((d) => <span key={d}>{d}</span>)}</div>
-      <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : kind === 'friday' ? ' dp-fridays' : '')}>{cells}</div>
+      <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : kind === 'friday' ? ' dp-fridays' : kind === 'wrap' ? ' dp-shootdays' : '')}>{cells}</div>
       {weekMode && (
         <div className="dp-hint">Any day picks its week — the calendar snaps to that Monday.</div>
       )}
@@ -281,6 +304,9 @@ export function DatePop() {
       )}
       {kind === 'friday' && (
         <div className="dp-hint">This phase ends on a Friday, so only Fridays can be picked.</div>
+      )}
+      {kind === 'wrap' && (
+        <div className="dp-hint">The shoot wraps on a shoot day, so only shoot days can be picked.</div>
       )}
     </div>
   )

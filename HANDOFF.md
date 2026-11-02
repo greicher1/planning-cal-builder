@@ -4,7 +4,239 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — PLANNED AND RULED, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
+### ✅ 2 Nov 2026: FIX — EDITS NOW SHOW AT ONCE ON A CALENDAR WITH A STORED COLUMN SWAP — ✅ MERGED into local `main` (owner's picker: "Merge to main"; "Push": **"Not yet"**), NOT pushed. Fix commit `c30b639` on branch `claude/magical-neumann-6c65f2` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, from `main` at `d53ec98`); `main` (`d81c140`, docs only) merged in as `c1f6109`, no code moved; mini-gate 545 / 1 (a timing flake, green alone). Tracker card `colswap-cache-stale`
+
+- **The bug** (found by the Sim Post rename session, below; on `main` before it). On a calendar holding a stored
+  column swap (`gridColSwaps`), `update()` drew `maybeRunColSwapGate()`'s CACHED result's schedule, the one computed
+  at the cache's last MISS, in place of the schedule it had just computed. The key was the week count, each week's
+  col multiset, the swaps, `colWidths` and Sim Post on/off. So these never reached the screen until a column moved:
+  a phase renamed, Sim Post's offset, "Number these weeks", an undo of any of them, and (found here) a phase's colour.
+  It also handed `canSwapRun` a stale `currentSchedule` as its baseline.
+- **The fix**, `maybeRunColSwapGate` only (not frozen; `computePhaseRowLayout` and the renderers untouched):
+  - **A hit returns the cached VERDICT with the schedule it was handed.** That schedule already carries the verdict:
+    the reconciler in `computeSchedule` reads `swapSuppressed`, which the last miss left holding this key's refusals,
+    and `runColSwapGate`'s `after` is always `computeSchedule(state)` under its final suppressions. The cache now
+    keeps only `{rejected, widened, reason}`, so nothing can read the stale schedule again. `canSwapRun` and the stint
+    trial read only `.rejected`.
+  - **The key covers what the verdict measures.** Added: the first week's date; each week's Sim Post flag and number;
+    every cell's `key=label`; `simPostDisplayName()` (`sheetColumnWidths` measures labels and G3 compares the widths,
+    so a rename can flip a verdict); `gridStintSwaps` (`stintOrderFor`); `cellSpans` VALUES
+    (`applyCellSpanOverrides`); `colReuse` / `colFollow` (`segCol`). Every part is the same with or without the
+    gate's suppressions (a swap is a within-week transposition), so a refusal still costs one gate run, not two.
+    Never key on each cell's col: that differs between the schedule a pass is handed and the next one.
+  - Not keyed, on purpose: notes (same before and after a swap), text styles and font sizes (`measureTextPx` is
+    called with bold off), Single Column / paper / hidden Notes columns (they scale or drop columns equally on both
+    sides of G3). They reach the screen anyway now, through the hit path.
+- **Proof:**
+  - New leg `colswapcache` 9/9, in `gate.sh`'s AFSPEC list on `colswap-simpost-refuse`. G0 as loaded (swap refused,
+    Sim Post on); N1 numbering; O1 offset 1 → 0; R1 rename with the swap refused; S1 Sim Post off (the swap
+    applies); R2 rename with the swap applied; U1 undo/redo; C1 a colour; E0.
+  - Red where it should be: on the build before the fix (`e4a63ca7…`, the live build) N1, O1, R1, R2, U1 and C1 fail.
+    On a mutant that keeps the old hit path but has the wider key, only C1 fails: a colour is the one edit the key
+    cannot see, so C1 is what holds the hit path. The wider key has no leg of its own (a rename that flips G3 needs a
+    spanning cell whose label decides a slot's width; not constructed).
+  - ✅ Mini-gate on build `c96c5980…` (port 8493; gate.sh's own blocks: header through gate 5, gate 10, every
+    colswap*/stint* block, colreuse, an AFSPEC loop of `colswapcache` and its neighbours, monthexport + gate 13, the
+    provers), because another session's full gate was running: **545 PASS, 1 FAIL.** The FAIL was
+    `monthexport (blocksoff) X4` (the click's activation lapsing, a timing case; blocksoff holds no swap, so the
+    changed function returns at its first line); re-run alone 9/9 and its PDF byte-identical. Waterfall PDF and every
+    Excel part identical; restore identical; 0 clipped cells; `fields.byId` 77 ids; all 11 gate-10 print documents and
+    all 22 gate-13 written month PDFs byte-identical (`colswap-simpost-refuse` among them); every colswap/stint leg
+    green; `prove-col-permutation` holds. Neighbours green: `simpostname` 14/14, `simpostlabel` 3/3, `monthlayout`
+    (colswap-simpost-refuse) 14/14, `noswapbtns` 7/7, `wholenum` 12/12, `monthmap` (colreuse) 20/20, `colreuse` 25/25.
+    `npm run check` 40/40. Seen in the browser pane: "Number these weeks" relabels the cells at once.
+  - NOT run: the full gate (the next one picks up `colswapcache`).
+- **Next:** the push, when the owner asks for it (they said "Not yet" on 2 Nov; a full gate first is the natural
+  moment, since it picks up `colswapcache`). Another session
+  (`swap-partial`, card `swap-part-of-column`) edits the swap GESTURE code (`swapEvalDir`, `weekSwapEval`), not this
+  function, so the two should merge cleanly.
+
+### ✅ 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — ✅ **LIVE at `fa14205`** (owner's picker: "Commit", "Merge to main", "Push now"; `84fe1cd..fa14205` at 13:00:01 on 2 Nov 2026; the live `index.html` matched the verified build `e4a63ca7…` byte for byte at 13:01:38). Feature commit `c5a1def`. No version cut: installed users get it on their next relaunch. Built on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
+
+- **The ask** (owner): *"Allow me to be able to edit the name of Simultaneous Post"*.
+- **Ruled** (owner's picker): *"Approve the frozen edit"*. Frozen edit **S1** in `renderMonthView` makes Sim Post's
+  bar escape its label (`escHtml(simPostLabel(wkRec))`), as every phase pill does. `place()` writes title and text
+  as raw HTML. That was safe only while the label was fixed text, and the default label has no `& < > "`, so the gate
+  was: every month PDF baseline (gates 10, 13), the waterfall PDF and Excel byte-identical.
+  - Measured on a mutant without S1, the name `Post & VFX "<A>"`: the bar's title read `Post & VFX `, its text
+    `"">Post & VFX ""`, and the month PDF writer threw (*"Month layout: a week of 0 days in July 2026"*).
+- **Design, Claude's call, following house patterns:**
+  - An id-less text box at the top of `.simpost-body`, placeholder "Simultaneous Post". It is the hiatus name box's
+    shape. The switch keeps its label.
+  - The store is `simPostName` (`''` = default), beside `simPostLabel()` at the top of the engine, read through
+    `simPostDisplayName()`. Every reader takes the label from `simPostLabel()`: computePhaseRowLayout (waterfall,
+    Excel, waterfall PDF, its character check), renderMonthView (month view, print rollback, month PDF writer). The
+    colour key (`sideKeyEntries`), the month map (`'Sim Post'` stays its short default) and the month PDF's
+    character warning read the name too.
+  - Saved as a new PERMANENT top-level key `simPostName`, ABSENT while default. The default typed in full also counts
+    as default (`cleanSimPostName`). Restored unconditionally, sanitized (`sanitizeSnapshot`: not text = dropped, a
+    control character or runs of spaces tidied; both reported), cleared by New.
+  - Why not an id'd box like a phase's name: an id joins `fields.byId` in EVERY saved calendar, so gate 5 would need a
+    re-cut and every file would change. The key keeps unrenamed calendars byte for byte.
+  - The swap-refusal sentences ("…while Simultaneous Post is on") and the count row's tooltip keep the feature's name.
+- **Proof:**
+  - New leg `simpostname` 14/14, in `gate.sh` (reference calendar plus Sim Post on). It is red on two mutants: S1
+    removed (N2, F2, M1, E0) and a conditional restore (F2, F3).
+  - `npm run check` 40/40. Colour key checked in the pane ("Sim Post" in `.sb-key-name`).
+  - ✅ Gates 1–5, 10, 13 by a mini-gate on build `efc11ddf…` (gate.sh's own blocks: header through gate 5, gate 10,
+    `monthexport` + gate 13; port 8489, because another session's full gate was running): **325 PASS, 0 FAIL.**
+    - Waterfall PDF and every Excel part identical; restore identical; 0 clipped cells.
+    - `fields.byId` key set identical (77 ids).
+    - All 11 gate-10 print documents and all 23 gate-13 written month PDFs byte-identical, so S1 changes nothing for
+      the default name.
+  - Neighbour legs green: `simpostlabel` 3/3, `mvtextstyle` 23/23, `wholenum` 12/12, `phasesui` (hidewf) 8/8,
+    `monthlayout` (colswap-simpost-refuse) 14/14, `monthmap` (mvnotes) 20/20, `calrange` 18/18, and through
+    gate.sh's own checks `sideboxes` 78/78 and `textstyle` (carry-rich) 51/51.
+  - NOT run: the full gate (the next one picks up `simpostname`).
+- ⚠️ **FOUND here, FIXED on its own branch (2 Nov 2026 entry above, leg `colswapcache`):** on a calendar holding a stored COLUMN SWAP
+  (`gridColSwaps`), `update()` draws `maybeRunColSwapGate()`'s CACHED schedule. Its cache key is the cells' column
+  layout, swaps, widths and Sim Post on/off only. So edits that change neither columns nor that switch never reach the
+  screen until something moves a column. Measured on `colswap-simpost-refuse` against a build of `main` (`270687f`):
+  - "Number these weeks" ticked: cells stay "Simultaneous Post".
+  - Sim Post's offset 1 → 0: grid identical.
+  - Post renamed "Edit": cells still "Post wk N", until Post's weeks changed.
+  - Likely fix: key the cache on everything the gate's schedule carries, or re-run computeSchedule's labels over the
+    gated layout. Offered as its own task.
+- **Merged, 2 Nov 2026.** `main` (`270687f`, docs) merged into the branch as `938b90f`. Then `origin/main` (`84fe1cd`, Ends for
+  Production, which its session had pushed WITHOUT updating local `main`, so the two had diverged) merged as `b82e3b0`.
+  HANDOFF and README conflicted only as new top entries; all kept. Re-verified on the combined build `e4a63ca7…`:
+  mini-gate 325/0 again (waterfall PDF, Excel, restore, 77 ids, 11 print documents, 23 written month PDFs), plus
+  `simpostname` 14/14, `prodends` 14/14, `endsdate` 17/17, `npm run check` 40/40. Local `main` fast-forwarded to it.
+- **Next:** nothing owed on this feature. The column-swap cache bug above is offered as its own task.
+
+### 🔨 30 Oct – 2 Nov 2026: ENDS FOR PRODUCTION (WORK BACK FROM THE WRAP) + THE SHOOT AS A SPAN — BUILT on branch `production-end-date` (worktree `.claude/worktrees/production-end-date`, cut from `origin/main` at `fdf9324`, `origin/main` merged in as `cddc8f4`; `node_modules` is a symlink: unlink it before `git worktree remove`); WIP committed locally (`187aac3`), the span and the leg uncommitted; GATED (3,508 / 2, both load flakes, green alone); NOT merged, NOT pushed
+
+- **The ask** (owner, after Ends went live): *"would it be possible we could add the "ends" date option to production
+  or would that mess things up? That way if i know production needs to end on a certain day we could work backwards
+  to calculate"*. Answered yes, possible; nothing built. Tracker card `production-end-date`, status planned.
+- Asked whether to advise against it: no, a slight lean towards it (the control already exists on every Weeks card;
+  Production missing it is the inconsistency), ON CONDITION that the card makes Ends obvious and says where the start
+  went, because in Ends an added episode pulls the start (and prep) earlier unasked. Anchor To covers the one-off case.
+- ✅ **RULED (owner, 30 Oct 2026, *"id say do exactly then"*): the shoot wraps EXACTLY on the picked day.** The start
+  may land mid-week. Explained against "by" with a table (23 → 26 shoot days before a Friday deadline: "by" keeps a
+  Monday start and wraps 0–4 days early, the start jumping a whole week at the 26th day; "exactly" moves the start a
+  day at a time and always wraps on the Friday).
+- **The mockup** (made after the ruling, not separately asked for): a copy of the live Production card (measured in
+  the browser pane on the `episodeprep` fixture) with Starts / Ends over the date, beside a day grid (week rows of the
+  waterfall, days of the month view) and a "What moved" strip. Synthetic: six episodes × 5 days, Prod Prep fixed
+  1/11/27–2/19/27, Good Friday 3/26/27, a fixed 1-week hiatus at 3/15/27. In Ends: Snap to Monday and "↳ Start after
+  Prod Prep" hidden; a line under the date names the start ("Starts Fri 2/26/27, worked back from the wrap"), amber
+  with a second line when it falls inside Prod Prep; the picker offers only shoot days; a typed weekend / holiday /
+  hiatus day reads as the shoot day before. Back to Starts keeps the start and turns Snap off if it isn't a Monday.
+  Checked in the browser pane (scripted and real clicks): Fri 4/9/27 → start Fri 2/26/27; Ep 103 at 6 days → Thu
+  2/25; hiatus on → Thu 2/18, inside Prod Prep; no console errors.
+  - ✅ **"Yes, build it"** accepted all three suggestions: (1) an amber line when the start falls in the phase before;
+    (2) movers keep moving the shoot and the wrap they land on becomes the held one; (3) "Start after previous phase"
+    hidden in Ends. Then, mid-build, (1) was WITHDRAWN (owner: *"maybe we don't need the warning that it runs into a
+    previous phase....thats obvious from just looking at the calendar"*), and the start line was to be redesigned
+    (*"come up with a better looking way to tell the user what the start date of production was calculated to be"*).
+- **The start readout** ([`mockups/production-start-readout.html`](mockups/production-start-readout.html)): four
+  options were mocked (A a calculated box, B the shoot as a span, C a footer on the totals box, D a caption chip). The
+  owner picked **B with two changes**: *"removing the "30 shoot days" in the middle. This would also be shown whether
+  you do Starts or Ends, changing which is highlited in solid green depending on which mode."* So under the date box,
+  in BOTH modes, a STARTS pill and a WRAPS pill joined by a dashed line; the end that holds (the box's date) is solid
+  green (`--prod-text` fill, white text), the worked-out end dashed. The mockup shows exactly that, two cards
+  (Starts, Ends), each switchable. ✅ Owner, 2 Nov 2026: *"Yes, build it"*. BUILT: `PROD_SPAN_HTML` (id-less, inside
+  Production's `.ph-starts`), drawn by `reflectProductionEnds()` in BOTH modes from `productionInfo.shootDays` (first
+  and last), `.held` on the end that holds, its ink Production's own colour option's `text` (`--span-ink`, so a
+  recoloured Production keeps a matching span), rewritten only when its signature changes (the rows are observed).
+- **Built so far on the branch (not committed, not gated):** `productionEnds` / `prodEndsForward` / `prodEndsDrag`
+  (beside `phaseEnds`); `productionTrial` (productionEndFor's body, shared), `productionShootTrial`,
+  `solveProductionEndsStart` (step by the miss, step back, then climb one shoot day at a time), `prodEndsWarm`,
+  `syncProductionEndsStart` (top of `update()`, before `readState()`); readState's Production branch (snap off, out
+  while the wrap is empty, a bad year rings `.prod-wrapdate`); `setPhaseStart` sets `prodEndsForward`; the shoot grips
+  set `prodEndsDrag` (only in `installProductionEdgeHandles`); `setProductionEnds` / `setProductionWrap` /
+  `reflectProductionEnds`; Production's row now uses `startsFieldHtml('production')` (the `.prod-wrapdate` box and a
+  `.prod-ends-line`, to be replaced by the span); snapshot key `productionEnds` (capture, sanitize, restore
+  unconditionally, New); `dateContext.prodShoot` and DatePop's `'wrap'` kind (only shoot days); CSS beside the Ends
+  rules. Measured on `episodeprep`: an update in Ends ~10-18 ms; Fri 4/16/27 → start Fri 2/26/27; +1 episode day →
+  Thu 2/25/27; Production's own hiatus over the fixture's 3/15/27 hiatus → Fri 2/19/27; a typed Sat 4/17/27 holds
+  Fri 4/16/27; the picker greys weekends, the hiatus weeks and Good Friday.
+  - `endsdate` C1 now expects Production's own select and `.prod-wrapdate` (it asserted Production had no select).
+  - ⚠️ **Found on the merge: Rebuild From's preview (`trialRebuild`, from `5bad4c7`) runs the real movers and puts
+    the fields back.** Through `setPhaseStart()` it left `prodEndsForward` set, so the next `update()` would have
+    taken the wrap from the start. Harmless when the wrap is reachable, but it would have dropped a held wrap a
+    mark had since taken. `trialRebuild` now saves and restores `productionEnds` and `prodEndsForward` with the fields.
+  - **New leg `prodends`** (14 cases, in `gate.sh` after `endsdate`, budget 400): C1 the card, R1 a round trip byte for
+    byte, E1 to Ends moves nothing, U1 undo/redo, E2 90 shoot days wrapping Tue 10/20/26 start Fri 6/12/26 over
+    Juneteenth, E3 Production's own hiatus → Fri 6/5/26, E4 a typed Sat 10/24 → Fri 10/23 and the day after
+    Thanksgiving → Wed 11/25, E5 the picker (October: weekends off; November: 26, 27 off too), S1 Shift All +1 wk →
+    Mon 6/22/26 to Tue 10/27/26 and an idle update keeps both, F1-F3 the file, B1 back to Starts, E0. ⚠️ Not timed:
+    under `--virtual-time-budget` `performance.now()` does not move in synchronous code (a timing case read 0 ms
+    twice and was removed); the browser pane measured 10-18 ms an update in Ends.
+  - README entry written (Unreleased, 2 Nov 2026).
+  - **Proof:** `prodends` 14/14; `endsdate` 17/17, `rebuildticks` 19/19, `snaptools` (dayoverrides) 14/14, `datepick`
+    17/17, `snapbox` 12/12, `prodspan` 8/8, `phasefold` 11/11, `loadcarry` 6/6, `builtindates` 17/17 + 15/15,
+    `customunits` 23/23 + 28/28, `pilldrag` 30/30, `phaseedge` 23/23; `npm run check` 40/40. **Full gate on build
+    `226cd796…` (11:48-12:20, 2 Nov): 3,508 PASS, 2 FAIL**, both load (average ~11): `pwagate` C1 ("Link copied", its
+    known flake) 13/13 twice alone once the load fell to ~6; `scenariocompat` on `releases/v1.2.0.html` opens the
+    scenario alone. Every waterfall PDF, Excel part and month PDF baseline held. Seen in the browser pane on
+    `episodeprep` (the span in both modes, the picker, an episode day moving only the dashed start).
+- ⚠️ **`main` moved under this entry:** another session pushed `fdf9324` ("Snapped start box: show the Monday it
+  snapped to", top HANDOFF entry + README) and left local `main` at `9ec805f` because this entry was uncommitted.
+  Before committing here, bring in `origin/main`; the only conflict should be HANDOFF.md's top entries (keep both).
+- **Why it was left out of Weeks Ends:** `phaseEndsOn()` returns false for `production` by design (the 📝 entry
+  below: "working back from a shoot-day count is a search"). Production's row has its own markup (the `isDays` branch
+  of `buildPhaseRows()`), so it has no `startsFieldHtml()` select and no `end-production` field.
+- **What already exists:** `productionStartEndingBy(cursor)` (Rebuild From's backward search over
+  `productionEndFor()`, the real scheduler, weekly steps, latest fit first) and Anchor To's `end` edge
+  (`phaseLastWorkday()` = `productionInfo.lastShootDay`), which does the job ONCE: a later Show Info change still
+  moves the wrap. Ends would make the wrap HOLD and move the start (and the derived prep) instead.
+- **Open for the owner:** (1) the wrap lands EXACTLY on the picked day (the start can be mid-week; a picked weekend or
+  holiday reads as the shoot day before it) vs. a Monday start that wraps on or before it (up to ~4 days early);
+  suggested exact. (2) Movers: suggested they keep moving the start as today and the wrap they produce becomes the
+  held end (asShootDayMove unchanged).
+- **Hazards for whoever builds it:** the wrap needs a home: no `end-production` id exists, and a new id enters
+  `fields.byId` (prefer an id-less box plus a PERMANENT snapshot key, absent = Starts). Keep writing the solved start
+  into `start-production` so older builds open it as a start-held shoot (frozen `readCfgForMeta()` reads it too).
+  The search calls `computeSchedule(readState())`, so solving inside `readState()` recurses: solve in `update()`
+  beside `syncPhaseEndsStarts()`, warm-started from the current start, and measure the per-keystroke cost. A finer
+  day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
+  when Ends moves the start, as they do today when the end moves.
+
+### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
+
+- **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the
+  waterfall and month view"*, then *"Can we also add automatic notes for all custom phases too"*, then *"Write the
+  plan"*.
+- **Per view:** the one filter, `autoNotesForView`, already takes the view, so a new key `autoNotesView`
+  (`{kind: {sheet:false} | {month:false}}`, absent = both views) is right in every week nobody typed in, with no
+  frozen code.
+  - ⚠️ **A typed waterfall note replaces its week's automatic text.** So a month-only note would vanish from the month
+    view under any typed note, and a waterfall-only one would still show there.
+  - Holidays had the same hole (audit M-13). The fix is two one-line frozen edits in `notesForWaterfallDate` (N1, N2),
+    plus `writeActiveMvNote` keeping and dropping the right lines.
+  - N1 would also fix the recorded hidden-phase hole: a waterfall note typed into a hidden phase's week drops its notes
+    from the month view.
+- **Custom phases:** Begins/Ends per custom phase, kind words `custom<n>Start|End` (the pattern already declared
+  permanent), opt-in in `autoNotesOn`, dated by `computeSchedule`'s `drawn()`, pruned on removal. No frozen code. The
+  card becomes engine-rendered, as `#holiday-vis-list` is, because its rows come and go with the phases.
+- ✅ **RULED (owner, by picker, 2 Nov 2026), every one the recommendation:**
+  - R1 the card is grouped by phase;
+  - R2 N1 + N2 approved with the plan's §6 gate, hidden phases included;
+  - R3 custom-phase notes start off;
+  - R4 a delete hides an automatic note from the view it was deleted in. ⚠️ That amends AUTO-NOTE-RENAME-PLAN rulings
+    4–6 for automatic notes; that plan now says so.
+- **Recommended order (plan §7):** custom-phase notes, then AUTO-NOTE-RENAME-PLAN, then per view. The rename keeps an
+  edited automatic note automatic, which closes the one leak the month editor cannot (a month-only line edited in the
+  month view would otherwise save as typed waterfall text).
+
+### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
+
+- **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
+  changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
+  auto note or want to replace the auto note with your own non-auto note"*.
+- **Seven rulings by picker, all in [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md).** In short: the name shows
+  everywhere; its colour is its own (month view); typing over it in the waterfall renames it; clearing it or its
+  Delete Auto-Note button switches it off; the holiday editor gets no delete button; the waterfall Delete key stops
+  writing a week blank (each line goes by its kind; a holiday is hidden from the waterfall only); Reset Notes leaves
+  the Automatic notes ticks alone.
+- ⚠️ **Found while answering, and it is live today:** a deleted auto note is a blank on its WEEK (`{text:''}`), so
+  after a schedule move the note comes back in its new week and the old week stays blank, hiding whatever auto note
+  lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
+
+
+### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–3 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`, which `main` has since moved past; its `node_modules` is a symlink, so unlink it before `git worktree remove`) ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
@@ -41,8 +273,53 @@
   - `month-dense60`, whose notes exactly fill two lines at 10 px, loses 60 of 81 notes' endings at 11 px.
   - Without the limit, crowded weeks grow by up to 76%.
   - Bars at 11 and 13 px are NOT measured; they should cost between Standard and Extra large (v1.9.0's §3).
-- **Next:** step 1, the screen probe (throwaway leg: note sizes, bar sizes 10–14, per-note sizes, 75/150/200% zoom).
-  Not started; ask before starting.
+- ✅ **Step 1 DONE (owner: "Start step 1"), plan §6.** A note's lanes are decided in JS, so the renderer side was built
+  on the branch first: state, E2, the geometry in `mvTextCss`, E1 CSS, and bar sizes 11 / 13. NOT built yet: the
+  dropdowns, the writer, E3, any gate leg. A throwaway probe (deleted) walked `mvnotes`, `month-dense60` and `notewrap`.
+  - **76 configurations pass:** every note size × bar size, notes sized one at a time, and 75/150/200% zoom. Lanes,
+    note and bar heights are exact, lanes equal each note's natural lines capped at two, and there are no console
+    errors.
+  - **Unsized, every month's HTML and lane tracks are byte-identical to a build of `main`.**
+  - ⚠️ **Found and fixed:** frozen `mvNoteBoxWidth()` is 6/7 px wider than a note's drawn box. At 14 px a note measured
+    as one line wrapped to two, its second line hidden, so sized notes now measure at `boxW − 6/7`.
+  - ⚠️ **Found and fixed:** the two-lane selector is `[style*="span 2"]`, because Chrome re-serialises a touched style
+    attribute. The No-fill rule has the same old exposure.
+  - "+" slots reading 17 px was the probe's own artefact; a `height:100%` rule tried for it was removed.
+  - `mvtextstyle` G1 / D1 and restore R3 / R4 move as R4 intends (note sizes now reach 14); update them in step 2.
+  - ⚠️ A sized calendar's month PDF is wrong on the branch until step 3.
+- ✅ **Step 2 DONE (owner: "Start step 2"), plan §6.**
+  - Both controls are NativeSelects in the Month view card, built as `#wf-paper`: `#pref-mv-barsize` (option values
+    `''`, `'11'`, `'large'`, `'13'`, `'xl'`) and `#pref-mv-notesize` (`''`, `'11'`–`'14'`).
+  - `BarSizeControl` and `chrome.mvBarSize` are gone. `reflectMvSizeSelects()` writes both values; one delegated
+    `change` listener calls the setters.
+  - ⚠️ **Found and fixed:** the month style bar redraws with `render()` only, so a note sized from it never switched on
+    `body.mv-note-sized`. `reflectMvNoteSize()` now runs before that render.
+  - **New leg `mvnotesize`** in `gate.sh` on `mvnotes` and `month-dense60`, 12/12 each, red on ten mutants.
+  - **Moved:** `t/lib.js` (the bar dropdown, plus `applyNoteSizeQuery` / `noteSizeShown` / `pickSelect`), `mvbarsize`,
+    `mvtextstyle` G1 / D1, and the hostile fixture `mvtextstyle-bad.sptcal` (note size 15, no longer 11).
+  - **Green on the branch:** the month and settings neighbours (`mvbarsize`, `settingswin`, `mvtextstyle` live and
+    restore, `mvnotes`, `monthmap`, `mvmenu`, `labelsetup`, `softlines`, `calzoom`, `shootdays`, `prefs`) and
+    `npm run check` 40/40.
+  - Step 2 is NOT committed (awaiting the owner's picker).
+  - ⚠️ The dropdowns can now make a sized calendar, whose month PDF is wrong until step 3. Keep the branch off `main`.
+- ✅ **Step 3 DONE (owner: "Start step 3"), plan §6.**
+  - The month PDF writer draws sized notes (their line, two lines, "…") and 11 / 13 px bars (whole-px lines), reading
+    the size from each note's inline style. E3 clamps sized notes in the print rollback.
+  - **All 22 existing written month PDFs are byte-identical.**
+  - ⭐ **Found and fixed in the writer:** `mvlLaneTracks` shared a crowded week's spare room by the spec (re-sharing what
+    capped lanes leave). Chrome uses SETS, least room first, and the leftover is lost (`grid_track_sizing_algorithm.cc`,
+    and measured). The writer now does Chrome's rule when lanes' rooms differ and keeps the old arithmetic when they are
+    equal, which is every 10 px calendar. This also fixes MONTH-BAR-SIZE-PLAN's recorded 1.31 px (`mvnotes` at Extra
+    large), now in `gate.sh`.
+  - **Legs:** the slice gets the fonts as production does; note lines and the two-line limit everywhere; X4 checks lanes
+    and the "…"; `monthwriter` A1 treats a note laid out differently as not matching. New fixtures `mvnotesize-14` and
+    `mvnotesize-mixed`; a note-size block in `gate.sh`; six writer and CSS mutants red.
+  - ⚠️ **Recorded, not run:** `monthemit` on `month-dense60` at 14 px (Chrome's 1/64 px share truncation, 0.03–0.04 px,
+    seen only with the print path's fractional rows) and `monthwriter` A1 on `mvnotes` 14 + Extra large (0.021 / 0.02).
+  - Step 3 is NOT committed (awaiting the owner's picker). Step 2 is committed `8f2da10`.
+- **Next:** step 4: merge `main` into the branch (`main` moved: the Sim Post rename and others), run the full gate,
+  and cut gate-13 baselines for the two new fixtures only on the owner's sign-off (contact sheets). Ask before
+  starting.
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 

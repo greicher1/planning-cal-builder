@@ -121,7 +121,8 @@
   .dp-off.dp-out{ color:var(--mantine-color-gray-3); }
   /* ...and a Monday of the month before or after, still pickable, must not read as one of them. */
   .dp-mondays .dp-out:not(.dp-off):not(.dp-cap),
-  .dp-fridays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
+  .dp-fridays .dp-out:not(.dp-off):not(.dp-cap),
+  .dp-shootdays .dp-out:not(.dp-off):not(.dp-cap){ color:var(--mantine-color-gray-6); }
   .dp-dot{
     position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
     width:3px; height:3px; border-radius:50%;
@@ -4118,6 +4119,26 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
+  /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): under Production's date, in both modes, the shoot as a span
+     (option B of mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed
+     line. The end that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the
+     one worked out from it dashed. */
+  .prod-span{ display:grid; grid-template-columns:auto 1fr auto; align-items:end; gap:6px; margin-top:6px; --span-ink:#375623; }
+  .prod-span[hidden]{ display:none; }
+  .prod-span-end{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
+  .prod-span-k{
+    font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--mantine-color-gray-6);
+  }
+  .prod-span-d{
+    margin-top:3px; padding:2px 8px; border-radius:999px; white-space:nowrap;
+    font-size:var(--mantine-font-size-xs); font-weight:600;
+    border:1px dashed var(--span-ink); color:var(--span-ink); background:var(--mantine-color-white);
+  }
+  .prod-span-end.held .prod-span-d{ border-style:solid; background:var(--span-ink); color:var(--mantine-color-white); }
+  .prod-span-line{
+    height:2px; margin-bottom:10px;
+    background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--span-ink) 45%, transparent) 0 5px, transparent 5px 8px);
+  }
   .phase-fields .pu-by-cap select.phase-unit,
   .phase-fields .ph-starts-cap select.phase-anchor{
     width:auto; min-width:0; height:18px; padding:0 16px 0 0; border:0; background-color:transparent;
