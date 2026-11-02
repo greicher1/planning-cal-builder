@@ -48,6 +48,36 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 30 Oct 2026 — FIFTEEN CASES: a holiday's day takes the weekend's grey (frozen edit HT1)
+
+- **The ruling.** Owner, 30 Oct 2026, by picker: *"Weekend tint"* (over the Off hatch), *"Screen and both PDFs"*, and
+  *"Approve with that gate"*. `renderMonthView` puts `.mv-holiday` on each day a holiday's line is drawn
+  (`mvHolidayDays`), and the writer paints those cells `MVL_PAINT.weekendFill` (`#F4F3F0`).
+- **The sign-off came first.** The owner saw `monthbase.py sheets` (old | new | difference) of `reference`'s November
+  2026 (Thanksgiving and the day after) and June 2026 (Juneteenth, and the observed July 3 in the spillover row), with
+  the classification below; the answer was *"Yes, cut them"* (picker).
+- **What moved, classified line by line** (every content stream inflated through `monthbase.parse`, then compared):
+  in all fifteen, every part but the pages' contents is identical. In each page's content every change is one of two:
+  - an inserted pair, `0.9569 0.9529 0.9412 rg` and `… re f`: a new grey cell fill;
+  - for a holiday in another month's spillover row, a same-length swap of `rg` lines only. The cell's fill goes from
+    `#FAFAF9` to the grey, and the faded day number's mixed ink follows it, as an out-of-month weekend's does.
+
+  No text run, position or clip moved. The classifier was shown red on a real change first (`blocks`' file against
+  `reference`'s baseline).
+
+  | case | new grey cells | recoloured `rg` lines |
+  |---|---|---|
+  | `reference`, `blocks`, `blocksoff`, `monthscale`, `month-lanecap`, `hiatus-blanklabel`, `month-dense60`, `monthnotes`, `shootorder`, `notewrap` | 13 | 4 |
+  | `stintswap-reshape` | 21 | 8 |
+  | `carry-rich`, `halfdays` | 12 | 4 |
+  | `mvnotes`, `mvbarsize-large` | 15 | 6 |
+
+- **Not moved, byte-identical:** `colswap-simpost-refuse`, `dayoverrides`, `mvheader`, `mvheaderlegacy`,
+  `dayoverrides-onhalf`. None of their months draws a holiday's line.
+- **Cut from** build `cb7c30ac89690772…` (1,935,211 bytes), branch `holiday-tint` at `6f10a6a`, rebuilt from the
+  committed source to the same bytes before the copy. The files are the `monthexport` leg's, run case by case on port
+  8361 (all 9/9). The full gate that follows proves the cut. Google Chrome **156.0.8078.74**.
+
 ## ✅ RE-CUT 21 Oct 2026 — ALL NINETEEN CASES: phases ringed in their own darker colour (ring paint only)
 
 - **The ruling.** Owner, 21 Oct 2026, in chat (SPAN-NOTES-PLAN.md §1 D1, shown both routes mocked): *"go for the

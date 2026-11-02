@@ -4,6 +4,60 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 30 Oct 2026: HOLIDAY DAYS TAKE THE WEEKEND'S GREY IN THE MONTH VIEW (FROZEN EDIT HT1) — BUILT on branch `holiday-tint` (worktree `.claude/worktrees/holiday-tint`, from `main` at `c89ec8c`; its `node_modules` is a symlink: unlink it before `git worktree remove`), code COMMITTED `6f10a6a` on the branch; gate 10 and 13 baselines RE-CUT (owner's sign-off); NOT MERGED, NOT PUSHED
+
+- **The ask** (owner, with a screenshot of the Off hatch): *"Should holidays (not shot) days get the same background
+  like this in the month view? thoughts?"* Suggested the weekend tint instead: the calendar takes a holiday off as it
+  does a weekend; the hatch is the mark of a day someone took OUT of the shoot (a day-menu Off, drawn only inside the
+  shoot); a worked holiday already turns orange (`.mv-day-on`). So grey = the calendar's days off, hatch = taken out,
+  orange = put in. With the hatch a holiday Monday and a manual Off would look the same, and a Saturday holiday would
+  sit hatched beside grey Saturdays.
+- ✅ **RULED (owner, 30 Oct 2026, by picker):** *"Weekend tint"*; then *"Screen and both PDFs (Recommended)"* and
+  *"Approve with that gate"* (gate: the full gate green, waterfall and Excel byte-identical, month baselines changed
+  only by holiday-day fills checked line by line, sheets shown before any re-cut); then, on the sheets, *"Yes, cut
+  them"*. Tracker card `holiday-shading` (it already existed from the 20 Oct gap report, item 19).
+- **Which days** (`mvHolidayDays(schedule)`, beside `notesForDate`): a day is tinted only when the month view DRAWS a
+  holiday's line on it: the holiday notes in `notesByIdx` through `autoNotesForView(…, 'month')` (so switched on and
+  ticked for the month view), plus `monthOnlyHolidays` shown in the month view, and the line still among
+  `notesForWaterfallDate()`'s lines for that day (so a both-views holiday a waterfall override dropped on purpose stays
+  white). Nothing grey without its name. ⚠️ Union holidays still draw a line only inside a phase (the old rule), so a
+  union holiday outside every phase stays white; the user's own holidays tint wherever the month view shows them.
+- **Where it lives:**
+  - `renderMonthView`: `const _holDays = mvHolidayDays(schedule)` after `_ovDays`, and `mv-holiday` pushed right
+    after `mv-weekend`. A class only, so height-neutral exactly as the day marks are.
+  - `legacy.css`, frozen month block: `.mv-holiday{ background:#F4F3F0 }` right after `.mv-weekend`, BEFORE the
+    `.mv-day-off` / `.mv-day-on` rules, so the hatch and the worked-day tint still win by order. Soft Lines (screen
+    only): the weekend rule's `#FAF9F6` now also matches `.mv-holiday`, and the spillover-white rule excludes it, so on
+    screen a holiday is exactly a weekend's faint grey.
+  - Month-PDF writer: `mvlParseMonth` sets `day.holiday = true` ONLY when the class is there (so a month with no
+    holiday line models exactly as before; the `monthlayout` leg compares the day objects whole), and the cell fill
+    is `(d.weekend || d.holiday) ? P.weekendFill`. ⚠️ Do NOT put `mv-weekend` on a holiday instead: the writer throws
+    when `weekend` is not exactly Saturday/Sunday.
+  - Legs taught the class: `monthlayout` (P0's expected day gains `holiday: true`) and `softlines` (a holiday counts
+    with the plain weekends, `#FAF9F6`).
+- **Measured before the cut** (build `cb7c30ac…`, rebuilt from `6f10a6a` to the same bytes): gate 13, 15 of 20 written
+  PDFs moved, every changed line a new grey fill (`0.9569 0.9529 0.9412 rg` + `re f`) or an out-of-month holiday's fill
+  and faded number recoloured (`rg` only); 5 byte-identical. Gate 10, 7 of 11 print documents moved by the class alone
+  (identical once ` mv-holiday` is stripped), fit tables and sheet counts identical. Both baseline READMEs record the
+  re-cut with tables.
+- **Full gate** (port 8361, build `cb7c30ac…`, 30–31 Oct, load average 43–99 from other sessions' runs): 3,183 PASS,
+  32 FAIL, every one a contention failure, each re-run green ALONE through the gate's own judges:
+  - gate 10's 11 print documents and 22 of gate 13's 23 written PDFs identical to the re-cut baselines in the run
+    itself; the 23rd (`monthnotes`, no file written) byte-identical alone; waterfall PDF and every Excel part identical.
+  - `onecol` 17/17, `rowmigrate` 4/4, `sideboxes` 78/78, `sbnoexport` 28/28, `colreuse` (live) 21/21,
+    `scenariofacts` 12/12, `mvorder` 30/30, `monthexport` (hiatus-blanklabel, monthnotes) 9/9 each, `scenariocompat`
+    (v1.8.0, v1.2.0), `shootdays` (blocks 16/16, offweek 17/17).
+  - Held against a CONTROL, `main`'s `c89ec8c` built without HT1 and served beside it: `pwagate` C1 ("Link copied")
+    13/13 on both; `shootdays (dayoverrides-onhalf)` failed on the control too (8 fails; its A2 click lands while the
+    re-open is still settling: Undo on before the click, off after); `scenarios` S15 (a refusal read after a fixed
+    0.7 s) 3/3 on each build, alternated.
+  - `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14 once the load fell to ~7 (about 2 min each). Above a load
+    of ~30 all three hit their 480 s deadline on BOTH builds, and even a 40-minute deadline did not save them, as
+    already on record for 22 Sep (the PASS count stalls, it does not slow).
+- **Next:** the owner's picker for commit of the re-cut + docs on the branch, merge to `main`, and (separately) push.
+  ⚠️ `main` was mid-merge by another session (HANDOFF.md and README.md conflicted) while this was built, so merging
+  will need this entry and the README changelog entry placed on top of whatever that merge lands.
+
 ### 🔨 30 Oct 2026: THE MONTH STEPPER'S ‹ › FILLED WITH THE EXPORT PDF NAVY — BUILT in the main checkout, UNCOMMITTED
 
 - **The ask** (owner, two screenshots: the stepper and the header's Export PDF): *"make the left and right buttons the

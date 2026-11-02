@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
+
+A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.
+The owner asked whether it should take the Off day's hatch; the suggestion was the weekend tint instead. The calendar
+takes a holiday off as it does a weekend, while the hatch means a day someone took out of the shoot, and a worked
+holiday already turns orange. The owner picked *"Weekend tint"*, on screen and in both month PDFs, and approved the
+frozen edit with its gate. Now:
+
+- A holiday's day is grey wherever the month view writes the holiday's name, in prep and post as well as the shoot.
+  It is the faint Soft Lines grey on screen and the weekend's grey in the month PDF and the print rollback.
+- A holiday switched off, hidden from the month view, or dropped from a waterfall note stays white. Only a day whose
+  holiday line is drawn turns grey, so a grey weekday always says why.
+- The date gets no line through it. The worked-day tint and the Off hatch still win, as they do on a weekend.
+- Nothing moves: no row height, no lane, no sheet. The waterfall, Excel, the waterfall PDF and saved files are untouched.
+
+How: `mvHolidayDays()` finds the days whose holiday line is drawn. Frozen edit HT1 is the `.mv-holiday` class in
+`renderMonthView` and its rule beside `.mv-weekend`. The Soft Lines screen rule tints it as a weekend, and the
+month-PDF writer reads it back and paints the weekend fill.
+
+Verified:
+- Gate 13: 15 of 20 written month PDFs moved. Every changed line is a new grey cell fill, or an out-of-month holiday
+  recoloured from the spillover tint to the grey. The other 5 are byte-identical.
+- Gate 10: 7 of 11 print documents moved, by the class alone. Fit tables and sheet counts are identical.
+- The owner signed off old/new/difference sheets, then both sets were re-cut (their READMEs record it).
+- `monthlayout` and `softlines` learned the new class and pass. The full gate result is in HANDOFF.
+
 ### Unreleased — the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
 
 The owner, with screenshots of the stepper and the header's Export PDF button: *"make the left and right buttons the
