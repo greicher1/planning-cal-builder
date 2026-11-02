@@ -1,12 +1,17 @@
 # MONTH-NOTE-SIZE-PLAN.md: note sizes for the month view, and Phase bar size in the same px steps
 
-**Status: PLANNED, no code. ALL TEN RULINGS ANSWERED (owner, by picker, 2 Nov 2026), plus two later instructions:**
+**Status: STEP 1 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`, from
+`main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). The screen mechanism
+holds on three calendars at every note size × bar size, with notes sized one at a time, and at 75/150/200% zoom. Three
+findings were fixed (§6, step 1). **Next is step 2.**
+
+**ALL TEN RULINGS ANSWERED (owner, by picker, 2 Nov 2026), plus two later instructions:**
 - **R4 is the owner's own design:** per-note sizes from the same list, which supersedes the recommended ceiling.
 - **R7 and R8 were overtaken the same day** by *"do sizes 10, 11, 12, 13, and 14 for the phase bar sizes"* and *"make
   sizes for both the phase bars and the notes be dropdown menus"*.
 
-The plan therefore now covers TWO settings (§1a). The cost of bigger notes was measured on 16 test calendars (§3). Next
-is step 1. On the tracker as `month-note-size` and `bar-size-px-steps`.
+The plan therefore covers TWO settings (§1a). The cost of bigger notes was measured on 16 test calendars (§3). On the
+tracker as `month-note-size` and `bar-size-px-steps`.
 
 Owner, 2 Nov 2026:
 
@@ -326,6 +331,64 @@ The state, the dropdowns, `mvNoteGeom`, the style bar's list and the writer are 
    - every bar exactly its size's height (11 and 13 included);
    - the clamp's line count equal to the measure's, with a "…" exactly where a note is cut;
    - all of the above at 75%, 150% and 200% zoom.
+
+   ✅ **DONE, 2 Nov 2026 (owner: "Start step 1"), on branch `month-note-size`, NOT committed (awaiting the owner's
+   picker).**
+   - **Why code came first.** A note's lane count is decided in JavaScript (`mvNoteLineCount`), so, unlike Phase bar
+     size, CSS added at run time could not show bigger notes. The renderer-side pieces were built as step 2 will need
+     them, then probed:
+     - in `app.js`: `MV_NOTE_SIZES`, `mvNoteSize` and `mvNoteEffPx`; E2 (`mvNoteLineCountSized`, plus `mvNoteMeasurer`
+       shared with the 10 px path); the geometry in `mvTextCss`; `setMvNoteSize`, `mvAnyNoteSized` and
+       `reflectMvNoteSize` (called from `update()` before render); save, sanitize, restore and New;
+     - also in `app.js`: bar sizes `'11'` / `'13'` (`mvBarSizeKnown`, a `line` per size, so `mvBarLinePx()` gives 16 / 19
+       and `mvPillLineCount` reads it); `MV_TEXT_SIZES.note` 6–14; a note's style-bar default is the calendar's size;
+     - in `legacy.css`: E1's note block and the two bar rows.
+     - NOT built yet: the dropdowns, the writer, E3, any gate leg.
+   - **The probe** was a throwaway leg, deleted after the run. It opened each calendar through the real Load path and
+     walked all 18 months at:
+     - every note size × bar size (4 × 5), and bar sizes 11–14 alone;
+     - 6 notes sized 14 / 12 in a 10 px calendar, and 3 notes sized 8 in a 14 px calendar;
+     - 75, 150 and 200% zoom for 14 / 10 and 12 / 13.
+   - **Results: 76 configurations on `mvnotes`, `month-dense60` and `notewrap` (26 + 26 + 24; `notewrap` has no day
+     notes to size one at a time), all passing:**
+     - every lane without a sized note exactly 17 px or its bar's height;
+     - every lane of one-lane sized notes exactly their height;
+     - every sized note exactly its one- or two-line height, in its size's font and line, clamped at two lines;
+     - each sized note's lanes equal to its natural line count (the element itself, unclamped), capped at two;
+     - every bar exactly its height (20 and 23 px at 11 and 13), in its font and grey tag size;
+     - every 10 px note and "+" filling exactly its lanes;
+     - zoom: every lane and box identical to 100%, in the box's own px;
+     - no console errors.
+   - **Inert, proven:** with nothing sized, every month's HTML and every lane track on all three calendars is
+     byte-identical to a build of `main` (`8125dd0`).
+   - **Seen in the browser pane** (Chrome 152, 1600 × 1057): a 14 px note cut at two lines reads "Principal /
+     Photography Wraps…"; "Presidents' Day 2/16/26" wraps onto two lines in its own taller row; bars unchanged.
+   - **Three findings, fixed:**
+     1. ⚠️ **Frozen `mvNoteBoxWidth()` measures 6/7 px wider than the box a note is drawn in** (the writer's
+        `MVL_GEOMETRY` comment found the same in 2026-09). At 10 px that has never shown. At 14 px a note measured as
+        one line at 158 px wrapped to two in its real 157.14 px box, and its second line was hidden. A sized note is
+        now measured at the drawn width (`boxW − 6/7`). The 10 px path is unchanged.
+     2. ⚠️ **The two-lane selector matches `span 2`, not `/ span 2;`.** Once any script touches an element's `.style`,
+        Chrome re-serialises the attribute (`grid-area: 2 / 3 / span 2 / 4; …`). The probe saw a two-lane note drop to
+        one lane that way. The No-fill rule (`[style*="background:#FFFFFF00" i]`) has the same exposure, which predates
+        this work; nothing in the app is known to touch a note's `.style`.
+     3. **A probe artefact, not a product bug.** Unclamping a note to count its lines re-lays the week, and "+" slots
+        read straight after that came back 17 px in rows 20 px tall. Reading every box first fixed it, confirmed on the
+        probe's own path. A `height:100%` rule tried on the "+" was removed.
+   - Chrome 156 reports `display:-webkit-box` with a clamp as `flow-root`; the clamp still applies.
+   - **Screen cost** (each month's height against the unsized month, median / largest):
+     - notes 11–14 px with 10 px bars: 0.7–1.9% / 1.6–8.5% (the 8.5% is `month-dense60` at 14 px);
+     - bars alone: 11 px 4.1% / 5.7%, 13 px 8.1% / 12.2%, against 12 px 6.8% and 14 px 10.8% (all on `mvnotes`).
+   - **Notes cut on screen** (160 px day cells, wider than the PDF's 128 px note box):
+     - `mvnotes`: 0 at 11–13 px, 2 at 14 px;
+     - `notewrap`: 2–4;
+     - `month-dense60`: 0 at 11–12 px, 60–62 at 13–14 px.
+   - **Existing legs that move, as R4 intends** (to update in step 2). `mvtextstyle` live: G1 (a mixed pick's size list
+     is now 6–11) and D1 (a note's list is now 6–14). `mvtextstyle` restore: R3 / R4 (its hostile note size 11 is legal
+     now; plant 15). `mvnotes` 14/14, `monthmap` 20/20, `mvbarsize` 13/13 and `npm run check` 40/40 pass on the branch.
+   - ⚠️ **Until step 3 a sized calendar's month PDF is wrong on this branch.** The writer draws a sized note's text at
+     its size in the 13 px line box, and bars at 11 or 13 px at Standard. Nothing sized can be saved from the UI yet,
+     because the dropdowns are step 2.
 2. **The settings:**
    - `mvNoteSize` and the two new `mvBarSize` values: state, save, load, undo and New;
    - both dropdowns, replacing the SegmentedControl;

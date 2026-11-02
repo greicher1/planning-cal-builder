@@ -19,7 +19,7 @@
   lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
 
 
-### 📝 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — PLANNED AND RULED, NOTHING BUILT ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
+### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEP 1 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), NOT COMMITTED ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
@@ -56,8 +56,21 @@
   - `month-dense60`, whose notes exactly fill two lines at 10 px, loses 60 of 81 notes' endings at 11 px.
   - Without the limit, crowded weeks grow by up to 76%.
   - Bars at 11 and 13 px are NOT measured; they should cost between Standard and Extra large (v1.9.0's §3).
-- **Next:** step 1, the screen probe (throwaway leg: note sizes, bar sizes 10–14, per-note sizes, 75/150/200% zoom).
-  Not started; ask before starting.
+- ✅ **Step 1 DONE (owner: "Start step 1"), plan §6.** A note's lanes are decided in JS, so the renderer side was built
+  on the branch first: state, E2, the geometry in `mvTextCss`, E1 CSS, and bar sizes 11 / 13. NOT built yet: the
+  dropdowns, the writer, E3, any gate leg. A throwaway probe (deleted) walked `mvnotes`, `month-dense60` and `notewrap`.
+  - **76 configurations pass:** every note size × bar size, notes sized one at a time, and 75/150/200% zoom. Lanes,
+    note and bar heights are exact, lanes equal each note's natural lines capped at two, and there are no console
+    errors.
+  - **Unsized, every month's HTML and lane tracks are byte-identical to a build of `main`.**
+  - ⚠️ **Found and fixed:** frozen `mvNoteBoxWidth()` is 6/7 px wider than a note's drawn box. At 14 px a note measured
+    as one line wrapped to two, its second line hidden, so sized notes now measure at `boxW − 6/7`.
+  - ⚠️ **Found and fixed:** the two-lane selector is `[style*="span 2"]`, because Chrome re-serialises a touched style
+    attribute. The No-fill rule has the same old exposure.
+  - "+" slots reading 17 px was the probe's own artefact; a `height:100%` rule tried for it was removed.
+  - `mvtextstyle` G1 / D1 and restore R3 / R4 move as R4 intends (note sizes now reach 14); update them in step 2.
+  - ⚠️ A sized calendar's month PDF is wrong on the branch until step 3.
+- **Next:** step 2 (the dropdowns, the `mvnotesize` leg, the moved legs). Ask before starting.
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 
