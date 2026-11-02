@@ -4,6 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
+
+- **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the
+  waterfall and month view"*, then *"Can we also add automatic notes for all custom phases too"*, then *"Write the
+  plan"*.
+- **Per view:** the one filter, `autoNotesForView`, already takes the view, so a new key `autoNotesView`
+  (`{kind: {sheet:false} | {month:false}}`, absent = both views) is right in every week nobody typed in, with no
+  frozen code.
+  - ⚠️ **A typed waterfall note replaces its week's automatic text.** So a month-only note would vanish from the month
+    view under any typed note, and a waterfall-only one would still show there.
+  - Holidays had the same hole (audit M-13). The fix is two one-line frozen edits in `notesForWaterfallDate` (N1, N2),
+    plus `writeActiveMvNote` keeping and dropping the right lines.
+  - N1 would also fix the recorded hidden-phase hole: a waterfall note typed into a hidden phase's week drops its notes
+    from the month view.
+- **Custom phases:** Begins/Ends per custom phase, kind words `custom<n>Start|End` (the pattern already declared
+  permanent), opt-in in `autoNotesOn`, dated by `computeSchedule`'s `drawn()`, pruned on removal. No frozen code. The
+  card becomes engine-rendered, as `#holiday-vis-list` is, because its rows come and go with the phases.
+- ✅ **RULED (owner, by picker, 2 Nov 2026), every one the recommendation:**
+  - R1 the card is grouped by phase;
+  - R2 N1 + N2 approved with the plan's §6 gate, hidden phases included;
+  - R3 custom-phase notes start off;
+  - R4 a delete hides an automatic note from the view it was deleted in. ⚠️ That amends AUTO-NOTE-RENAME-PLAN rulings
+    4–6 for automatic notes; that plan now says so.
+- **Recommended order (plan §7):** custom-phase notes, then AUTO-NOTE-RENAME-PLAN, then per view. The rename keeps an
+  edited automatic note automatic, which closes the one leak the month editor cannot (a month-only line edited in the
+  month view would otherwise save as typed waterfall text).
+
 ### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
