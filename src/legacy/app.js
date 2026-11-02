@@ -1540,9 +1540,25 @@ export function initLegacyApp() {
   // The marker text for a Simultaneous Post week, shared by the waterfall, the Excel export and the
   // month view so all three always agree. computeSchedule only assigns simPostNum in the numbered
   // mode, so a falsy number means the un-numbered ("old") mode and we print the bare label.
+  // ⭐ THE NAME IS THE USER'S (owner, 2 Nov 2026: "Allow me to be able to edit the name of Simultaneous Post"):
+  // simPostName, typed in the box under Sim Post's switch, '' = the default. Every view and both writers take the
+  // label from here, so the waterfall, Excel, both PDFs and the month view follow, as a phase's typed name does.
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `simPostName`, a PERMANENT key written only while renamed, so a calendar
+  // that never renames it saves byte for byte as before. Its box has NO id, so fields.byId never holds it and
+  // this variable is the one store (the box only reflects it: reflectSimPostName).
+  const SIMPOST_DEFAULT_NAME = 'Simultaneous Post';
+  let simPostName = '';
+  function simPostDisplayName(){ return simPostName || SIMPOST_DEFAULT_NAME; }
+  // A name as typed or read from a file: one line, nothing XML forbids, at most 200 characters. The default typed
+  // in full is the default, so it saves as no key.
+  function cleanSimPostName(v){
+    const t = stripXmlIllegal(String(v == null ? '' : v), ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+    return t === SIMPOST_DEFAULT_NAME ? '' : t;
+  }
   function simPostLabel(week){
     const n = week && week.simPostNum;
-    return n ? ('Simultaneous Post wk ' + n) : 'Simultaneous Post';
+    const name = simPostDisplayName();
+    return n ? (name + ' wk ' + n) : name;
   }
   const MILESTONE_COLOR = '#7030A0';
   const MILESTONE_TEXT = '#FFFFFF';
@@ -7366,6 +7382,7 @@ export function initLegacyApp() {
         <div class="simpost-panel">
           ${swRow('simpost-toggle', 'Simultaneous Post', '<input type="checkbox" id="simpost-enabled">')}
           <div class="simpost-body">
+            <input type="text" class="simpost-name" maxlength="200" placeholder="Simultaneous Post" aria-label="Simultaneous Post name" title="Name it: every view and export shows what you type here. Leave it blank for &quot;Simultaneous Post&quot;.">
             <label class="simpost-offset-row" id="simpost-offset-row">
               Starts
               <input type="number" id="simpost-offset" min="0" step="1" value="0" aria-label="Calendar weeks after Production begins">
@@ -13905,7 +13922,11 @@ export function initLegacyApp() {
           else if(sp){ spRuns.push(sp); sp = null; }
         }
         if(sp) spRuns.push(sp);
-        const spLabel = simPostLabel(wkRec);
+        // ⛔ FROZEN EDIT S1 (owner-approved 2 Nov 2026 by picker, "Approve the frozen edit"): the label is ESCAPED, as
+        // every phase pill's is. place() writes title and text as raw HTML, which was safe only while this label was
+        // fixed text; since the name is the user's (simPostName), a name holding & < > or " would break the bar. The
+        // default label holds none of them, so every month view and month PDF is byte-identical to before.
+        const spLabel = escHtml(simPostLabel(wkRec));
         // ⛔ FROZEN EDIT M1: Sim Post's month style, keyed by the N its label shows (no colour, N1).
         const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
@@ -17285,7 +17306,7 @@ export function initLegacyApp() {
         if(c.type === 'phase') add(c.color, labelOf[c.key] || 'Phase');
         else if(c.type === 'phaseHiatus') hiatus = true;
       });
-      if(w.simPost) add(SIMPOST_COLOR, 'Simultaneous Post');
+      if(w.simPost) add(SIMPOST_COLOR, simPostDisplayName());   // its typed name, as a phase's is
     });
     if(hiatus) add(HIATUS_COLOR, 'Hiatus');
     // The hiatus row goes LAST even when a phase shares the red: moved, not duplicated.
@@ -23151,7 +23172,7 @@ export function initLegacyApp() {
       if(!w.simPost){ run = null; return; }
       if(run && isoOf(addDays(run.last, 7)) === isoOf(w.date)){ run.last = w.date; return; }
       run = { first: w.date, last: w.date };
-      spans.push({ key: 'simPost', name: 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
+      spans.push({ key: 'simPost', name: simPostName || 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
     });
     spans.forEach(s => { if(s.run){ s.end = isoOf(addDays(s.run.last, 5)); delete s.run; } });
     const now = new Date();
@@ -25071,6 +25092,26 @@ export function initLegacyApp() {
       }
     });
   });
+  // Its name box (see simPostName). Each keystroke renames it everywhere, as a phase's name box does; leaving the
+  // box tidies what it shows to what was kept (spaces collapsed, the default in full back to blank).
+  document.getElementById('phase-rows').addEventListener('input', e=>{
+    if(!e.target || !e.target.classList || !e.target.classList.contains('simpost-name')) return;
+    const next = cleanSimPostName(e.target.value);
+    if(next === simPostName) return;
+    simPostName = next;
+    update();
+  });
+  document.getElementById('phase-rows').addEventListener('change', e=>{
+    if(e.target && e.target.classList && e.target.classList.contains('simpost-name')) reflectSimPostName(true);
+  });
+  // Puts the box in step with simPostName after a restore, an undo or New. While the box is being typed in it is
+  // left alone if it already says the same name, so a space typed between two words is never swallowed.
+  function reflectSimPostName(force){
+    const box = document.querySelector('#phase-rows .simpost-name');
+    if(!box) return;
+    if(!force && cleanSimPostName(box.value) === simPostName) return;
+    box.value = simPostName;
+  }
   // The offset and the numbering mode only mean something when the feature is on. Since the blend (PHASES-TAB-PLAN.md
   // §3.4a) CSS HIDES them while it is off, off the box itself; the class this keeps in step no longer styles anything.
   function refreshSimPostUI(){
@@ -25425,6 +25466,7 @@ export function initLegacyApp() {
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
     if(spCount) spCount.checked = false; // un-numbered is the default
+    simPostName = ''; reflectSimPostName(true);   // ...and named "Simultaneous Post" again
     refreshSimPostUI();
     // ⚠️ One select now. This block used to clear #union-country and park the two dependent
     // selects on their defaults; all three ids are gone, and so are DEFAULT_PROVINCE /
@@ -26690,6 +26732,9 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 2 Nov 2026: Simultaneous Post's own name (owner). ⛔ PERMANENT key. The default name is an ABSENT key, so a
+      // calendar that never renames it saves byte for byte as before. An older build ignores it and shows the default.
+      ...(simPostName ? {simPostName} : {}),
       // 20 Oct 2026 (LABELS-SETUP-PLAN.md item 4): "this Blocks calendar schedules with no episode count".
       // ⛔ PERMANENT key. Written ONLY where it changes something -- Blocks mode, no count, not an old file
       // on the old rule -- so every other snapshot is byte-for-byte what it was. Its ABSENCE on a count-less
@@ -32492,7 +32537,7 @@ export function initLegacyApp() {
     if(p.kind === 'note') return 'in the note on ' + day;
     if(p.kind === 'hiatus') return 'in the hiatus band ' + quote(p.text) + ' (from ' + day + ')';
     if(p.kind === 'tag') return 'in the grey text ' + quote(p.text) + ' (from ' + day + ')';
-    if(p.kind === 'simpost') return 'in the Simultaneous Post bar (from ' + day + ')';
+    if(p.kind === 'simpost') return 'in the ' + simPostDisplayName() + ' bar (from ' + day + ')';
     return 'in the bar ' + quote(p.text) + ' (from ' + day + ')';
   }
   // The waterfall PDF's warning (confirmPdfPrintable), for the month: resolves true to go ahead.
@@ -34094,6 +34139,11 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // Sim Post's name: a string the app would have kept as typed. Anything else is dropped, and it reads the default.
+    if('simPostName' in s){
+      const t = typeof s.simPostName === 'string' ? cleanSimPostName(s.simPostName) : '';
+      if(t !== s.simPostName){ bad.n++; if(t) s.simPostName = t; else delete s.simPostName; }
+    }
     // A hiatus's "Number weeks" (ruling 8): only `true` means ticked, and the app never writes anything else.
     setMap('phaseHiatusNumbered', v => v === true ? true : undefined, SNAP_ID);
     // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
@@ -34589,6 +34639,10 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL: a file with no key (every calendar saved before 2 Nov 2026, and every one never renamed) reads
+    // "Simultaneous Post" -- never the previous file's name.
+    simPostName = typeof snap.simPostName === 'string' ? cleanSimPostName(snap.simPostName) : '';
+    reflectSimPostName(true);
     // ⛔ UNCONDITIONAL as well: a file with no key numbers no hiatus -- never the previous file's ticks.
     // Assigned BEFORE 4e below, whose refreshPhaseHiatusUI() reflects it into the rebuilt rows' boxes.
     phaseHiatusNumbered = {};

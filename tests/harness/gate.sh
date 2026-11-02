@@ -1820,6 +1820,10 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
+# waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
+# writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
+# default, restored unconditionally, repaired on Load), undo, clearing it and New.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1861,6 +1865,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
+              simpostname:-:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

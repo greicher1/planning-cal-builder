@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Simultaneous Post can be renamed (2 Nov 2026)
+
+The owner asked: *"Allow me to be able to edit the name of Simultaneous Post"*. Every other phase could be renamed;
+Sim Post always read "Simultaneous Post". Now:
+
+- A name box sits at the top of Sim Post's settings, under its switch, the way a hiatus's name box does. It is blank
+  and shows "Simultaneous Post" until you type.
+- The name shows everywhere Sim Post does: the waterfall, the month view and its phase map, the colour key, the Excel
+  workbook, the waterfall PDF and the month PDF. Numbered weeks read "*name* wk 3".
+- Clearing the box, or typing "Simultaneous Post" in full, goes back to the default. New does too. Each edit is one
+  undo step.
+- The switch keeps its label, "Simultaneous Post", as Hiatus's switch does.
+
+How: `simPostLabel()` reads the name, so every view and writer follows without a change to any of them. The name is
+saved under a new key, `simPostName`, only while it is renamed, so other calendars save byte for byte as before.
+Its box has no id, so the saved field list (gate 5) does not move. An older build ignores the key and shows
+"Simultaneous Post". One frozen edit, **S1** (owner-approved by picker): `renderMonthView` now escapes Sim Post's
+label as it does every phase's. It wrote it as raw HTML, safe only while the label was fixed text. Unescaped, a name
+with `&`, `<`, `>` or `"` garbled the bar and made the month PDF writer fail. The default label has none of those
+characters, so the month view is unchanged.
+
+Verified:
+- New leg `simpostname` 14/14 (in `gate.sh`). It is red on a build without S1 (bar text and title wrong, month PDF
+  writer throws) and on one that restores the name conditionally.
+- Gates 1–5, 10 and 13, run from gate.sh's own blocks: 325 PASS, 0 FAIL. The waterfall PDF, every Excel part, the
+  restore and the field list (77 ids) are unchanged. All 11 print documents and all 23 written month PDFs are
+  byte-identical.
+- Neighbouring legs green: `simpostlabel`, `mvtextstyle`, `wholenum`, `phasesui`, `monthlayout`, `monthmap`,
+  `calrange`, `sideboxes`, `textstyle`. The full gate was not run.
+- `npm run check` 40/40.
+
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.

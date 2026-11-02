@@ -4,6 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 2 Nov 2026: SIMULTANEOUS POST CAN BE RENAMED — BUILT on branch `simpost-name` (worktree `.claude/worktrees/simpost-name`, from `main` at `3abdeb2`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `simpost-name`
+
+- **The ask** (owner): *"Allow me to be able to edit the name of Simultaneous Post"*.
+- **Ruled** (owner's picker): *"Approve the frozen edit"*. Frozen edit **S1** in `renderMonthView` makes Sim Post's
+  bar escape its label (`escHtml(simPostLabel(wkRec))`), as every phase pill does. `place()` writes title and text
+  as raw HTML. That was safe only while the label was fixed text, and the default label has no `& < > "`, so the gate
+  was: every month PDF baseline (gates 10, 13), the waterfall PDF and Excel byte-identical.
+  - Measured on a mutant without S1, the name `Post & VFX "<A>"`: the bar's title read `Post & VFX `, its text
+    `"">Post & VFX ""`, and the month PDF writer threw (*"Month layout: a week of 0 days in July 2026"*).
+- **Design, Claude's call, following house patterns:**
+  - An id-less text box at the top of `.simpost-body`, placeholder "Simultaneous Post". It is the hiatus name box's
+    shape. The switch keeps its label.
+  - The store is `simPostName` (`''` = default), beside `simPostLabel()` at the top of the engine, read through
+    `simPostDisplayName()`. Every reader takes the label from `simPostLabel()`: computePhaseRowLayout (waterfall,
+    Excel, waterfall PDF, its character check), renderMonthView (month view, print rollback, month PDF writer). The
+    colour key (`sideKeyEntries`), the month map (`'Sim Post'` stays its short default) and the month PDF's
+    character warning read the name too.
+  - Saved as a new PERMANENT top-level key `simPostName`, ABSENT while default. The default typed in full also counts
+    as default (`cleanSimPostName`). Restored unconditionally, sanitized (`sanitizeSnapshot`: not text = dropped, a
+    control character or runs of spaces tidied; both reported), cleared by New.
+  - Why not an id'd box like a phase's name: an id joins `fields.byId` in EVERY saved calendar, so gate 5 would need a
+    re-cut and every file would change. The key keeps unrenamed calendars byte for byte.
+  - The swap-refusal sentences ("…while Simultaneous Post is on") and the count row's tooltip keep the feature's name.
+- **Proof:**
+  - New leg `simpostname` 14/14, in `gate.sh` (reference calendar plus Sim Post on). It is red on two mutants: S1
+    removed (N2, F2, M1, E0) and a conditional restore (F2, F3).
+  - `npm run check` 40/40. Colour key checked in the pane ("Sim Post" in `.sb-key-name`).
+  - ✅ Gates 1–5, 10, 13 by a mini-gate on build `efc11ddf…` (gate.sh's own blocks: header through gate 5, gate 10,
+    `monthexport` + gate 13; port 8489, because another session's full gate was running): **325 PASS, 0 FAIL.**
+    - Waterfall PDF and every Excel part identical; restore identical; 0 clipped cells.
+    - `fields.byId` key set identical (77 ids).
+    - All 11 gate-10 print documents and all 23 gate-13 written month PDFs byte-identical, so S1 changes nothing for
+      the default name.
+  - Neighbour legs green: `simpostlabel` 3/3, `mvtextstyle` 23/23, `wholenum` 12/12, `phasesui` (hidewf) 8/8,
+    `monthlayout` (colswap-simpost-refuse) 14/14, `monthmap` (mvnotes) 20/20, `calrange` 18/18, and through
+    gate.sh's own checks `sideboxes` 78/78 and `textstyle` (carry-rich) 51/51.
+  - NOT run: the full gate (the next one picks up `simpostname`).
+- ⚠️ **FOUND, NOT FIXED, on `main` before this change (a separate bug):** on a calendar holding a stored COLUMN SWAP
+  (`gridColSwaps`), `update()` draws `maybeRunColSwapGate()`'s CACHED schedule. Its cache key is the cells' column
+  layout, swaps, widths and Sim Post on/off only. So edits that change neither columns nor that switch never reach the
+  screen until something moves a column. Measured on `colswap-simpost-refuse` against a build of `main` (`270687f`):
+  - "Number these weeks" ticked: cells stay "Simultaneous Post".
+  - Sim Post's offset 1 → 0: grid identical.
+  - Post renamed "Edit": cells still "Post wk N", until Post's weeks changed.
+  - Likely fix: key the cache on everything the gate's schedule carries, or re-run computeSchedule's labels over the
+    gated layout. Offered as its own task.
+- **Next:** commit on the branch (asked), then merge / push only on the owner's per-action yes.
+
 ### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
