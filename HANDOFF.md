@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged. Full gate run: 4 timeouts, being rerun. Tracker card `swap-part-of-column`
+### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged into `main` (main merged INTO it, 3 Nov). Tracker card `swap-part-of-column`
 
 - **The report** (owner): *"for swapping a portion of a collumn (such as 3 cells only while all the others have been
   extended) the little blue arrow only pops up when you drag the cursor across to the cells in the collumn next to it.
@@ -44,8 +44,30 @@
   - `mvhdroff` timed out waiting for the loaded calendar (10 s of real time), so its E0 check failed;
   - `wfkeysreal` hit its 300 s deadline after R1 and R2 had passed.
   None of them goes near the swap code.
-- **NOT done:** the rerun of those four on a quiet machine, alone. It is queued behind the other session's gate
-  (scratchpad `recheck4.sh`). Merge only once it is green.
+  - **Rerun alone, 3 Nov, at load 3:** all four are green: papersize 12/12, mvhdroff 9/9, wfkeysreal 6/6 and
+    scenarios 22/22. So the branch's own gate is green.
+- **Merged `main` in (3 Nov, `38a0f10`).** `main` had moved about 20 commits, including the column-swap cache fix
+  (`c30b639`) and Reuse Empty Columns on for new calendars (`c8fda83`).
+  - The conflicts were three add/add collisions at the top of HANDOFF, README and gate.sh's comments. Each keeps
+    both sides.
+  - `app.js` merged cleanly. Main's cache fix is in `maybeRunColSwapGate`, the gate's verdict cache; this branch's
+    change is in the knob candidates. They are separate caches.
+  - Swap mini-gate on the merged build: 183 PASS, 0 FAIL, including main's `colswapcache` and the updated `colreuse`.
+- ⚠️ **The merge exposed a second gap, now fixed.** With Reuse Empty Columns ticked (as every NEW calendar starts),
+  there was no arrow to swap BACK after the first swap:
+  - After the per-week swap, Prod Prep sits in two columns (its widened weeks in one, the swapped weeks in the
+    other), so Post's block has no partner: `stintRunFor` gives 'no-partner'.
+  - With reuse on, 'no-partner' asks `followRunFor` for a move into the free column. That move is refused (Prod Prep
+    is in it), and `swapEvalDir` returned the refusal outright, so the per-week fallback never ran.
+  - Fix: a refused move falls through to the per-week swap as well, and its reason is still the one returned when
+    nothing can move. A move that CAN happen is still offered first.
+  - Proof: `colswappartial` on a new fixture, `colswap-widened-reuse` (the same calendar with `colReuse: true`), was
+    red in P3 and P4 on the merged build without this fix. gate.sh now runs the leg on both fixtures. In the pane,
+    with real clicks: Swap Column on Post, the left arrow, the swap; then the right arrow appears and swaps back
+    exactly.
+- **NOT done:** the swap mini-gate on the FIXED merged build, then a full gate on it, before `main` is fast-forwarded
+  to it. The owner decides the merge into `main` and, separately, the push.
+
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an

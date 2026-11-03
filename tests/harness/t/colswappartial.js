@@ -19,6 +19,11 @@
 // share, and the per-week swap walks on past a seed with nothing beside it. Both must leave the widened
 // weeks exactly as they were.
 //
+// gate.sh runs it on colswap-widened-reuse too: the same calendar with Reuse Empty Columns ticked, as every
+// new calendar starts since 2 Nov 2026. After the first swap Prod Prep sits in two columns, so Post's block
+// has no partner, and with reuse on that asks for a move into the free column. A refused move used to be
+// returned before the per-week fallback, which left no knob to swap back (P3, then P4).
+//
 // ⛔ Hover, selection and the button are REAL pointer events at REAL coordinates, as in stintbtn: hitCell()
 // walks elementsFromPoint, and gridSel is session UI unreachable from outside the IIFE.
 window.addEventListener('load', function () { (async function () {

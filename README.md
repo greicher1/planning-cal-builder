@@ -46,14 +46,21 @@ Now:
 - A block swap that can happen is still offered first, exactly as before.
 - In a part-column selection, the arrow is judged from each selected cell of the phase, so a selection that starts
   on a widened cell still gets the arrow for the weeks below it.
+- The same holds with Reuse Empty Columns ticked, as every new calendar starts since 2 Nov 2026. There, after a
+  swap like this, the arrow to swap BACK was missing: the long phase then sits in two columns, so the short one's
+  block has no partner, and reuse asks for a move into the free column instead. That move is refused, and the
+  refusal used to come back before the week-by-week swap was tried. Now a refused move falls through too, and its
+  reason is still the one shown when nothing can move. Found when this branch was brought up to date with `main`.
 - Nothing about a cell, the exports or the save format changed. It is the gesture code only (`swapEvalDir`, new
   `weekSwapEval`), and nothing frozen was touched.
 
 Verified: new gate leg `colswappartial` on a new fixture, `colswap-widened` (gesture calendar with two
-hand-widened weeks), 8/8. It is red on the build before the fix in its three cases (P1, P4, P5) and green on its
-guard. Every column-swap and block-swap leg, plus `onecol`, `colreuse` and `noswapbtns`, pass (results in HANDOFF).
+hand-widened weeks), 8/8, and again on `colswap-widened-reuse` (the same calendar with Reuse Empty Columns ticked),
+8/8. It is red on the build before the fix in its three cases (P1, P4, P5) and green on its guard; with reuse on,
+the first version of the fix was red in P3 and P4. Every column-swap and block-swap leg, plus `onecol`, `colreuse` and `noswapbtns`, pass (results in HANDOFF).
 `npm run check` 40/40. In the browser pane, with real clicks: widen two weeks, select Post's cells only, and the
 arrow appears and swaps; Swap Column on Prod Prep shows the arrow too.
+
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
 The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an

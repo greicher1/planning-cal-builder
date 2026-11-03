@@ -6452,14 +6452,21 @@ export function initLegacyApp() {
       const run = stintRunFor(mode.year, mode.phaseKey, dir);
       // A whole block beside a FREE column, with column reuse on, is a move rather than a refused swap
       // (COLUMN-REUSE-PLAN.md §4). Null when there is no column there at all: the swap's own refusal.
+      // ⛔ A REFUSED move falls through to the per-week swap too, keeping its reason for when that cannot
+      // move either. Returning it outright left no knob to swap BACK a per-week swap made beside widened
+      // weeks: the long phase then sits in two columns, so the short one's block has no partner, and the
+      // move is refused because that column is busy. Found on main's merge, where new calendars start
+      // with column reuse on (leg colswappartial on colswap-widened-reuse, P3).
+      let moveWhy = null;
       if(!run.ok && run.reason === 'no-partner' && colReuse){
         const mv = followRunFor(mode.year, mode.phaseKey, dir);
-        if(mv) return mv;
+        if(mv && mv.ok) return mv;
+        moveWhy = mv;
       }
       const v = run.ok ? Object.assign(run, canSwapStint(run)) : run;
       if(v.ok) return v;
       const w = weekSwapEval(dir);
-      return (w && w.ok) ? w : v;              // the BLOCK's reason when neither can move
+      return (w && w.ok) ? w : (moveWhy || v);  // the BLOCK's reason when neither can move
     }
     return weekSwapEval(dir);
   }
