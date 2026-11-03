@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — BUILT on branch `span-counts` (the same worktree, on top of `96bfe8d`); NOT committed. Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
+### ✅ 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — ✅ **LIVE at `08bd218`** (owner's picker: "Commit", "Push once committed"; pushed from branch `span-counts` `ab566e0..08bd218` at 14:23:10, a fast-forward with nothing new on `origin/main`; the live `index.html` matched the tested build `fca63761…` byte for byte at 14:24:08; ⚠️ local `main` is still at `4c11cdb`, NOT moved, because the main checkout still holds another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh: fast-forward it to the branch once that session commits). Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
 
 - **The asks, in order** (owner, 3 Nov 2026, after the shoot-days-lost sum went live at `ab566e0`):
   1. With a screenshot of the card: *"yes it can drop the whole thing: 80 shoot days → 17 wk · 11/23/26 → 4/2/27"*,
@@ -39,7 +39,7 @@
   gate.sh's own blocks: blocks (16 PASS), episodeprep live / episodeprep / episodeprep-blocks (34, 28, 12 PASS),
   labelsetup 41/41, wholenum 12/12; and phasefold 11/11, prodends 14/14, overrides 20/20 (clicks the link),
   endsdate 17/17, snapbox 12/12, mvmenu 81/81, phasesui 8/8 on `hidewf`. `npm run check` 40/40. No full gate (no
-  writer, save path or frozen code involved).
+  writer, save path or frozen code involved). This note rides the next push.
 
 ### ✅ 2 Nov 2026: PRODUCTION'S CARD SHOWS ITS WEEKS AND THE SHOOT DAYS IT LOST (VERSION C, A NET SUM) — ✅ **LIVE at `ab566e0`** (pushed from the branch `b225ecf..ab566e0` at 13:58:16 on 3 Nov 2026; the live `index.html` matched the tested build `7e6b21d3…` byte for byte at 13:59:15; ⚠️ local `main` was NOT moved: the main checkout still held another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh, so it fast-forwards to `ab566e0` once that session commits) — BUILT on branch `span-counts` (worktree `.claude/worktrees/span-counts`, from `main` at `ba3a745`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); COMMITTED as `1350226` (owner's picker: *"Commit and merge"*, *"Push once merged"*), local `main` (`4c11cdb`) merged in as `a4f0dfb` and `origin/main` (`b225ecf`, the PDF mark) merged in after it; PUSHED FROM THE BRANCH, because the main checkout held another session's uncommitted `src/legacy/app.js` edits and a fast-forward there would have overwritten them (local `main` catches up with a fast-forward once that session commits); NOT gated in full. Mockups [`mockups/production-span-stats.html`](mockups/production-span-stats.html) (round 1, moved here from the main checkout, where it was untracked) and [`mockups/production-span-net.html`](mockups/production-span-net.html) (round 2). Tracker card `production-span-counts`
 
