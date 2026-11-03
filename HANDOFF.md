@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), MERGED and PUSHED with the rename (see its entry below) (tracker card `note-kind-symbol`)
+### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an
   auto-note or a holiday that indicates its either an auto note or holiday and not a regular note"*. Rulings by picker:
@@ -54,8 +54,10 @@
     `wrapdate` 6/6, `autonoterename` 24/24, `npm run check` 40/40.
 - **Local `main` fast-forwarded to `4a6582d`'s HANDOFF commit and PUSHED** (owner's picker, *"Push after main
   moves"*, whose option named what rides along: both features and `625c3ce`, another session's HANDOFF-only note).
+  `ba3a745..e1ed962` at 18:12:51; the live `index.html` was serving it at 18:13:46 and is **byte-identical to the
+  tested build** (sha256 `b12df7227aefe016…`). This HANDOFF note rides the next push.
 
-### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), then MERGED into local `main` and PUSHED with the symbol (owner's pickers, *"Fast-forward main now"*, *"Push after main moves"*) (tracker card `rename-auto-notes`)
+### ✅ 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), then MERGED into local `main` and ✅ **LIVE at `e1ed962`** with the symbol (owner's pickers, *"Fast-forward main now"*, *"Push after main moves"*) (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
   changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
