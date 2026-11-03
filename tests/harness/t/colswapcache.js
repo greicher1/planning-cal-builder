@@ -60,12 +60,14 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
   async function click(id) { byId(id).click(); await settle(); }
-  // Which phase holds which column in a week, as colswapgate reads it: "post@1 production@0".
+  // Which phase holds which column in a week, as colswapgate reads it: "post@2 production@0".
   function rowOf(wk) {
     return qa('#table-wrap td.sheet-phase-cell').filter(function (td) { return td.dataset.week === wk; })
       .map(function (td) { return td.dataset.pkey + '@' + td.dataset.own; }).sort().join(' ');
   }
-  function refused() { return SWAPPED.every(function (w) { return rowOf(w) === 'post@1 production@0'; }); }
+  // Post at 2: since frozen edit SP1 (2 Nov 2026) Sim Post has its own column between Production and Post (see
+  // colswapgate.js). Every case that asks refused() has Sim Post on.
+  function refused() { return SWAPPED.every(function (w) { return rowOf(w) === 'post@2 production@0'; }); }
   function applied() { return SWAPPED.every(function (w) { return rowOf(w) === 'post@0 production@1'; }); }
   function rows() { var o = {}; SWAPPED.forEach(function (w) { o[w] = rowOf(w); }); return o; }
   // Every Post cell's text, in date order.

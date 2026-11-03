@@ -44,10 +44,36 @@
     the swap (`run.glue`) requires the lane to land at Production + 1 instead of staying put; `mc` must still match.
     The drag ghosts draw the 2-wide unit. The per-week swap keeps D5 (moving some of Production's weeks would strand
     Sim Post), now also when the lane sits between a phase and Production, with a sentence pointing to Swap Column.
-- **Proof so far:** new leg `t/simpostbeside.js` (L1–L6 layout and exports, S1–S6 swaps, W1–W3 old files, T1–T3 the
-  switch, E0). Results and the gate: see below.
-- ⏭ **Open:** green leg, neighbour legs, full gate (baselines with Sim Post in conflict WILL move: expected and to be
-  listed), then commit + ask the owner to merge/push.
+  - ⛔ **D5 for STORED per-week swaps, now by name** (`runColSwapGate`, first check of its loop): a stored per-week
+    swap involving Production in a block with a Sim Post week is suppressed with reason `simpost` ("Simultaneous Post
+    stays beside Production, which moves only as a whole column"). Before SP1 such a swap was refused only by
+    accident (the far-right lane made it a column-count change, G2); after SP1 it would have APPLIED and stranded
+    Sim Post for those weeks. Found by `colswapgate` / `colswapcache` going red on the first SP1 build.
+- **Tests changed, and why:**
+  - `colswapgate.js`, `colswapcache.js`: the refused (natural) order on `colswap-simpost-refuse` is now
+    `post@2 production@0`, since Sim Post sits between them. Same refusal, new reason.
+  - `prove-col-permutation.mjs`: SP1 widens its one documented exception. A within-week swap that moves Production
+    in a Sim Post block can now RENUMBER the slot map, not only change `mc`. Counted under the exception
+    (269 of 6,783 trials), and only there: every other permutation still leaves `blockSlotMaps` identical
+    (0). Such a swap never reaches the screen (gesture and stored-swap gate both refuse it).
+- **Proof:**
+  - New leg `t/simpostbeside.js` **19/19** (L1–L6 layout and exports, S1–S6 swaps, W1–W3 old files, T1–T3 the
+    switch, E0), in `gate.sh`'s AFSPEC list. Red on a build without SP1: 11 cases (L1–L4, S2–S4, S6, W1, W2, T2).
+  - ✅ **Mini-gate** on build `acdb4b50…` (port 8612; gate.sh's own blocks: header through restore, every
+    colswap*/stint* block, onecol, colreuse, an AFSPEC loop of simpostbeside, simpostname, colswapcache, wholenum,
+    noswapbtns, simpostlabel, monthlayout (colswap-simpost-refuse), hdrrow, calrange, hidewf, autonotephases, and
+    both provers): **360 PASS, 0 FAIL.** Waterfall PDF and every Excel part identical to baseline (the reference
+    calendar has no Sim Post, so SP1 is inert there, as it must be); restore identical; 0 clipped.
+  - `npm run check` 40/40.
+  - Seen in the browser pane on the owner's calendar: reuse off and on, and a real Swap Column click on Production
+    (knob: "Swap the 2026 block of Production with Pre-Prep (Writer's Rm moves with it)") giving Pre-Prep |
+    Production | Sim Post | Prod Prep.
+  - ⚠️ Visible side effect, by the grid's existing rule: with reuse on, Writer's Rm (sharing Production's column)
+    now spreads into Sim Post's empty column in the weeks before Sim Post begins, because that column is free for
+    its whole run. Nothing new decides it; a phase always spreads into an empty neighbour.
+- ⏭ **Open:** the full gate (gates 10/13, the month PDFs, should not move: the month view never reads
+  computeBlockLayout), then ask the owner to merge and push. ⚠️ `main`'s working tree holds another session's
+  uncommitted "Reuse Empty Columns on by default" work; merge after it lands.
 
 ### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 

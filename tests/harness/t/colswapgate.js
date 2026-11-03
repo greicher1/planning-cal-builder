@@ -43,9 +43,13 @@ window.addEventListener('load', function () { (async function () {
 
     // 1. The swap must NOT have been applied. Natural order is Production left of Post, because
     //    Production starts first and segCol assigns in start order.
+    //    ⭐ Post's own column is 2, not 1, since frozen edit SP1 (2 Nov 2026): Post runs in Sim Post weeks right
+    //    of Production, so Sim Post now gets its own column BETWEEN them (it used to go to the far right). And
+    //    the refusal is now by name -- runColSwapGate's D5 rule: a per-week swap may not take Production away
+    //    from Sim Post -- where it used to be G2 (the far-right lane made it a column-count change).
     out.overlapWeeks = { '2026-11-30': rowOf('2026-11-30'), '2026-12-07': rowOf('2026-12-07') };
-    out.refused = out.overlapWeeks['2026-11-30'] === 'post@1 production@0' &&
-                  out.overlapWeeks['2026-12-07'] === 'post@1 production@0';
+    out.refused = out.overlapWeeks['2026-11-30'] === 'post@2 production@0' &&
+                  out.overlapWeeks['2026-12-07'] === 'post@2 production@0';
 
     // 2. The refusal must be VISIBLE, and it must say WHY. A silent revert was the specific failure
     //    an earlier draft of this design shipped, so assert the strip is shown and names a reason.

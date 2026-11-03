@@ -57,8 +57,17 @@ happened on nearly every calendar.
   stored by position, so every other calendar saves byte for byte as before. Turning Sim Post on or off now moves them
   as well, since the switch can open or close a column in the middle of a year.
 
-Verified: new leg `simpostbeside` (the owner's two screenshots rebuilt, the swaps, an old file's widths and heading,
-the switch).
+- **A stored per-week swap that moves Production** in a year with Sim Post (one saved in a file, or made while Sim
+  Post was off) is now paused by name, with the notice "Simultaneous Post stays beside Production, which moves only
+  as a whole column". It used to be paused only because the far-right lane made it change the column count; with the
+  lane beside Production it would otherwise have applied and left Sim Post behind for those weeks.
+
+Verified: new leg `simpostbeside` 19/19 (the owner's two screenshots rebuilt, the workbook, the swaps, an old file's
+widths and heading, the switch), red on a build without SP1. `colswapgate` and `colswapcache` now expect Post one
+column further right on their fixture (Sim Post sits between), and `prove-col-permutation` counts SP1's renumbering
+under its existing Production-and-Sim-Post exception (0 anywhere else). Mini-gate 360/0, with the waterfall PDF and
+every Excel part identical to baseline; `npm run check` 40/40; seen in the browser pane, including a real Swap Column
+click.
 
 ### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
 

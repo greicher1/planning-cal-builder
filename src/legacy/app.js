@@ -5680,7 +5680,7 @@ export function initLegacyApp() {
     'column-exchange': 'the two phases would not actually trade places',
     'content':         'a cell would be lost',
     'collateral-wide': 'it would re-flow weeks you did not select by more than one column',
-    'simpost':         'Simultaneous Post is anchored to Production’s column',
+    'simpost':         'Simultaneous Post stays beside Production, which moves only as a whole column',
     'collide':         'two phases would need the same column in the same week',
   };
 
@@ -5730,7 +5730,22 @@ export function initLegacyApp() {
       const isos = blockIsosFor(after);
       let worst = null;
 
-      for(let bi = 0; bi < blocks.length; bi++){
+      // ⛔ RULING D5 FOR STORED SWAPS. A per-week swap that moves Production in a year with a Sim Post week would
+      // take Production away from Sim Post for just those weeks (the lane sits beside Production's FIRST week).
+      // Until frozen edit SP1 (2 Nov 2026) that was refused only by accident, because the far-right lane turned
+      // it into a column-count change (G2). With the lane beside Production it no longer is, so it is refused by
+      // name: the gesture already does (swapRunFor), and this catches one stored while Sim Post was off, or in a
+      // file. Swap Column moves Production whole and takes Sim Post along (simLaneOf).
+      blocks.forEach((b, bi)=>{
+        if(worst) return;
+        let sim = false;
+        for(let i = b.startIdx; i < b.startIdx + b.count && !sim; i++) if(after.weeks[i].simPost) sim = true;
+        if(!sim) return;
+        const glued = live.filter(p => (p.a === 'production' || p.b === 'production') && isos[bi].indexOf(p.weekIso) >= 0);
+        if(glued.length) worst = { bi, reason: 'simpost', pairs: glued };
+      });
+
+      for(let bi = 0; bi < blocks.length && !worst; bi++){
         const swappedIsos = new Set(live.filter(p => isos[bi].indexOf(p.weekIso) >= 0).map(p => p.weekIso));
         const reason = blockRejectReason(base.fp[bi], fpAfter[bi], swappedIsos, isos[bi]);
         if(reason){ worst = { bi, reason, isos: swappedIsos }; break; }
@@ -5743,7 +5758,7 @@ export function initLegacyApp() {
       if(!worst) break;
 
       // Suppress every pair implicated by the offending block (or the single bad pair) and recompute.
-      const drop = worst.pair ? [worst.pair]
+      const drop = worst.pairs ? worst.pairs : worst.pair ? [worst.pair]
                               : live.filter(p => worst.isos && worst.isos.has(p.weekIso));
       if(!drop.length) break;
       drop.forEach(p=>{

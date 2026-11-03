@@ -23,6 +23,13 @@
 //   swap accepted while SimPost is OFF becomes an mc-changing swap the moment it is switched ON).
 //   This script measures that exception separately: SimPost-free schedules must show ZERO drift in
 //   mc/simSlot, and Production-involving swaps in SimPost blocks are reported, not asserted away.
+//   ⭐ Since frozen edit SP1 (2 Nov 2026) the same exception can also RENUMBER the slot map: when a
+//   phase takes the column right of Production during a Sim Post week, SP1 gives Sim Post its own column
+//   right after Production and moves every later slot one right, so a swap that moves Production can
+//   change which slots are moved. Counted under the exception too, and only there: a swap that does not
+//   touch Production, or a block with no Sim Post week, must still leave blockSlotMaps exactly as they
+//   were. Such a swap never reaches the screen -- the gesture refuses it (swapRunFor) and so does the
+//   stored-swap gate (runColSwapGate's D5 rule) -- so slot identity, and every dragged width, still holds.
 //
 // Run:  node tests/harness/prove-col-permutation.mjs [trials]
 // Exit: 0 = theorem holds, 1 = violated (do not ship the swap feature)
@@ -170,7 +177,7 @@ const slotSig = (m) => [...m.entries()].sort((a, b) => a[0] - b[0]).map(([c, s])
 // ---- Run ----------------------------------------------------------------------------------------
 const TRIALS = Number(process.argv[2] || 20000);
 let ran = 0;
-let slotViolations = 0, sizeViolations = 0;
+let slotViolations = 0, sizeViolations = 0, slotDriftProdSim = 0;
 let orderDrift = 0;                                // blockColOrder vs computeBlockLayout: MUST be 0
 let mcDriftNoSim = 0, simDriftNoSim = 0;          // MUST be zero
 let mcDriftProdSim = 0;                            // the documented, designed-for exception
@@ -205,7 +212,8 @@ for (let t = 0; t < TRIALS; t++) {
   const afterSig = after.blockSlotMaps.map(slotSig);
 
   for (let bi = 0; bi < blocks.length; bi++) {
-    if (afterSig[bi] !== beforeSig[bi]) {
+    if (afterSig[bi] !== beforeSig[bi] && anySim && touched.has('production')) slotDriftProdSim++;   // SP1, see the header
+    else if (afterSig[bi] !== beforeSig[bi]) {
       slotViolations++;
       if (examples.length < 3) examples.push({ kind: 'slotMap', bi, before: beforeSig[bi], after: afterSig[bi] });
     }
@@ -236,6 +244,7 @@ console.log(`  blockSlotMaps changed          : ${slotViolations}   (must be 0)`
 console.log(`  slotMap.size changed           : ${sizeViolations}   (must be 0)`);
 console.log(`  mc changed, no SimPost/Prod    : ${mcDriftNoSim}   (must be 0)`);
 console.log(`  simSlot changed, no SimPost/Prod: ${simDriftNoSim}   (must be 0)`);
+console.log(`  slots renumbered via Production+SimPost (SP1): ${slotDriftProdSim}   (EXPECTED, same reason)`);
 console.log(`  mc changed via Production+SimPost: ${mcDriftProdSim}   (EXPECTED -- this is why the`);
 console.log(`      plan refuses Production swaps in a SimPost block, and why gate check G2 runs on`);
 console.log(`      every update() and not only at gesture time)`);
