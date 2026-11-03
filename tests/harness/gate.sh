@@ -1845,6 +1845,10 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
+# the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
+# moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -1897,6 +1901,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
+              autonoterename:autonoterename:500 \
               simpostname:-:400 \
               colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \

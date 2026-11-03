@@ -3008,6 +3008,23 @@
     #table-wrap .month-view .mv-daycell:not(.mv-day-on):not(.mv-day-off):not(.mv-day-half):not(:hover) .mv-daynum{ color:#5E5B54; }
   }
 
+  /* ---------- The note symbol: ↻ before an automatic note, ⚑ before a holiday (owner, 2 Nov 2026, by picker) ----------
+     ⛔ Part of frozen edit NS1 (renderMonthView), and ON SCREEN ONLY: NS1 puts .mv-note-mark on a month note only while it
+     draws the screen, never in #print-root and never for the month-PDF writer, and every selector here is under
+     #table-wrap in screen media besides. The block's left padding grows by MV_NOTE_MARK_W (10px), and NS1 measures the
+     note that much narrower, so the text keeps exactly the width it is measured at and never sits under the symbol.
+     The symbol is a mask in the note's own text colour, 8px square, centred on the first line (the 2px padding plus
+     half of the 13px line box, which every note size keeps, less half the symbol). */
+  @media screen{
+    #table-wrap .mv-note-block.mv-note-mark{ position:relative; padding-left:14px; }
+    #table-wrap .mv-note-block.mv-note-mark::before{
+      content:''; position:absolute; left:4px; top:4.5px; width:8px; height:8px; background:currentColor;
+      pointer-events:none;
+    }
+    #table-wrap .mv-note-mark-auto::before{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.5 7.4A4.8 4.8 0 1 1 9.6 4.5'/%3E%3Cpath d='M7 5.45 9.6 4.5 8.2 2.1'/%3E%3C/svg%3E") center / contain no-repeat; }
+    #table-wrap .mv-note-mark-holiday::before{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='black' stroke='black' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 15V1.6' fill='none' stroke-width='2'/%3E%3Cpath d='M4.5 2.4h8.2l-2.3 3.3 2.3 3.3H4.5z' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+  }
+
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
@@ -3274,6 +3291,15 @@
     font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
+  /* An automatic note's Delete Auto-Note (AUTO-NOTE-RENAME-PLAN.md, ruling 5): a quiet text button in the danger
+     colour of the day menu's Delete, tinted on hover, so it reads as an action without crowding the swatches. */
+  .mv-note-pop .note-pop-delete{
+    display:block; margin:var(--mantine-spacing-sm) 0 0 -8px; padding:4px 8px;
+    font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    cursor:pointer;
+  }
+  .mv-note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
 
   /* ---- Paste notes… (MONTH-NOTES-PLAN.md §5, openPasteNotes) ----
      ⭐ NOT FROZEN: a body-level dialog over the app, like the template header editor (.hde-overlay) whose tier

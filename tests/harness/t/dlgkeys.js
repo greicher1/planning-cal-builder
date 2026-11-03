@@ -144,7 +144,9 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-sheet-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap td.sheet-note-cell'); }, 'the waterfall', 100, 100);
     // A note edit, with Production scheduled, is what makes a Region or holiday change ask first.
-    var noteWeek = document.querySelector('#table-wrap td.sheet-note-cell').dataset.week;
+    // An EMPTY cell: typed over an automatic note, the text would be a rename (AUTO-NOTE-RENAME-PLAN.md, ruling 3,
+    // 2 Nov 2026), which stays on its date and so gives a Region change nothing to misplace.
+    var noteWeek = document.querySelector('#table-wrap td.sheet-note-cell:not(.has-note)').dataset.week;
     await T.typeUserNote(noteWeek, 'A note the Region could misplace');
     out.noteWeek = noteWeek;
 

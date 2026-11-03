@@ -1,6 +1,6 @@
 # AUTO-NOTE-RENAME-PLAN.md
 
-Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way the holiday rename was
+Ruled 30 Oct – 2 Nov 2026. BUILT 2 Nov 2026 on branch `auto-note-rename` (HANDOFF has where it lives and the proof). Tracker card `rename-auto-notes`. Built the way the holiday rename was
 (HANDOFF, "RENAME A HOLIDAY, COLOUR ONE HOLIDAY, EDIT ONE NOTE LINE").
 
 - **The ask** (owner): *"like how holidays notes now work, Auto notes are labelled as "Auto Note" in the popup when
@@ -45,6 +45,12 @@ Ruled 30 Oct 2026, not built. Tracker card `rename-auto-notes`. Built the way th
      clearing `userNotes`; a deleted auto note is now a switched-off kind, and the reset cannot tell one deleted from
      one switched off in Settings on purpose. Its tooltip (`#notes-reset-btn`'s title) and the help text say to tick
      a note in Settings ▸ Automatic notes to bring it back.
+- **The note symbol (owner, 2 Nov 2026: *"some type of small symbol that sits to the left of the first letter of text
+  in either an auto-note or a holiday"*), two rulings by picker:** where, **"Month view, on screen"** (the month PDF,
+  waterfall and Excel unchanged), an option that named the frozen edit and its gate (both month PDFs byte-identical);
+  which, **"↻ auto, ⚑ holiday"**, in the note's own text colour. Built as frozen edit NS1 (see HANDOFF). Found while
+  building: at 88 px days the symbol's room pushed "Independence Day (Observed) 7/3/26" onto a fourth line, which a
+  month note never gets, so a note that would not fit in three lines with the symbol is drawn without it.
 - ⚠️ **AMENDED 2 Nov 2026 by [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) R4(a)** (owner, by
   picker: *"Hide it in that view"*). Automatic notes get a Waterfall and a Month box each, so for an AUTO NOTE:
   - rules 4 and 5: clearing it or its Delete Auto-Note button hides it from the view it was deleted in, not from both

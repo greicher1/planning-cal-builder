@@ -71,7 +71,116 @@
   full gate is not run (nothing in any writer, the save path or frozen code reads the three new lists). Whether the
   meta line should drop its "→ N wk" now that the weeks sit on the span is unasked.
 
-### ✅ 2 Nov 2026: 2029'S DEFAULT WINTER HIATUS IS MON 12/17/29 — committed on `main` (owner's picker: "Commit", "Push now")
+### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
+
+- **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an
+  auto-note or a holiday that indicates its either an auto note or holiday and not a regular note"*. Rulings by picker:
+  **"Month view, on screen (Recommended)"**, whose option named the frozen edit and its gate (both month PDFs
+  byte-identical), and **"↻ auto, ⚑ holiday (Recommended)"**. Recorded in `AUTO-NOTE-RENAME-PLAN.md`.
+- **Where it lives:**
+  - `mvDayNotePlan` sets `b.mark` ('auto' | 'holiday', from `mvHolidayLineInfo` / `mvAutoLineInfo`) ONLY while
+    `printingCursor` is null, and only when `mvNoteMarkFits()` says the line still fits three lines with the room taken.
+  - ⛔ **Frozen edit NS1** in `renderMonthView`'s waterfall-line branch: a marked line is measured `MV_NOTE_MARK_W`
+    (10px, declared beside `printingCursor`) narrower and gets `.mv-note-mark .mv-note-mark-<kind>`.
+  - CSS in `legacy.css`, an `@media screen` block before the text style bar's, every selector under `#table-wrap`:
+    padding-left 14px (4 + 10), and an 8px `::before` mask in `currentColor`. The icons are inline SVG data URIs
+    (the CSP allows `img-src data:`).
+- ⚠️ **Found while building: a symbol can push a note onto a fourth line, and a month note gets at most three.** In
+  the browser pane at 88px days, "Independence Day (Observed) 7/3/26" lost its last line. `mvNoteMarkFits` measures
+  the line unclamped with `mvNoteLineCount`'s own measurer and leaves the symbol off when it would need a fourth;
+  a wider window gives it back.
+- ⚠️ **A one-lane note always reports 2px of overflow** (its 15px lane hides its own bottom padding), marked or not,
+  so `scrollHeight > clientHeight` is no clip test. `autonoterename` S2/S4 test where the TEXT ends (a Range).
+- **Proof:** `autonoterename` 23/23 (S1 the marks, S2 no text cut off in six months, S3 the print rollback draws none,
+  S4 narrowed to 640px: the Observed holiday goes without, 7/4 keeps its ⚑, nothing cut off). S4 is red on an
+  always-fits mutant; S2 alone is not (nothing reaches four lines at the gate's width). `monthlayout` 14/14,
+  `softlines` 6/6, `mvnotes` 14/14, `npm run check` 40/40. Seen in the browser pane at 100% and zoomed.
+  - **Full gate (13:26-13:58, port 8247): 3,505 PASS, 2 FAIL**, both load timeouts green alone (`pdfdialog` 15/15,
+    `pilllabel` blocks W3 true). **Gate 13: all 22 written month PDFs byte-identical; gate 10: all 11 printed month
+    documents identical** — NS1's acceptance. The waterfall PDF and every Excel part match too.
+- ✅ **Committed `5e982dc`; `main` merged in TWICE**, because it moved during the gates:
+  - `c3f1520` (Sim Post rename, column-swap cache fix, Production Ends, note size). Only top entries conflicted, plus
+    the plan's amendment by `AUTO-NOTES-PER-VIEW-PLAN.md` (both kept). ⚠️ **Frozen edit S1 was renamed NS1 here:** main's
+    Sim Post label escape and Scenarios' download each already called theirs S1. Gate (14:31-15:03): 3,554 PASS, 2 FAIL,
+    both green alone (`monthexport` dayoverrides 9/9; `scenariocompat` on `releases/v1.2.0.html`, after.episodes 8).
+  - `47fd413` (automatic notes for custom phases, the card's row names). Did the two things that entry asked of whoever
+    merged second: the delete now asks their `autoNoteOptIn()` (a custom pair starts off, so its tick leaves
+    `autoNotesOn`; it used to be `AUTO_NOTE_OPT_IN.has`, which would have written `autoNotesOff` and changed nothing),
+    and `removeCustomPhaseRow` prunes the pair's names and colours. Help line 642/643 conflicted: main's paragraph,
+    with this branch's four changes put back and the ↻ / ⚑ marks mentioned. New `autonoterename` C1 (24/24; the
+    fixture now ticks Colour Grading's Begins), `autonotephases` 27/27.
+  - **Gate on `689f05c` (17:02-17:35, run alongside another session's gate at the owner's word, "Run mine now"):
+    3,565 PASS, 1 FAIL**, `offweek` R13's 10 s wait for a Load, 42/42 alone. Gate 13's 22 written month PDFs
+    byte-identical, gate 10's 11 print documents identical, the waterfall PDF and every Excel part identical.
+  - `41145ab` (Reuse Empty Columns on for new calendars). **Gate (17:36-18:08): 3,510 PASS, 4 FAIL, all green alone**:
+    `colreuse` (live) stopped on a 20 s wait for the shareable copy, so its checks never ran (23/23 alone through the
+    gate's own judge), `pilllabel` dayoverrides-onhalf (29/29), `loadcarry` (6/6), `scenarios` S15 (22/22). Every
+    baseline identical again.
+  - `4a6582d` (2029's default winter break, 12/17/29). **No fourth full gate** (owner's picker, *"Fast-forward main
+    now"*): it adds six lines read only by a NEW calendar, gated in its own session; here `hiatuscolour` 14/14,
+    `wrapdate` 6/6, `autonoterename` 24/24, `npm run check` 40/40.
+- **Local `main` fast-forwarded to `4a6582d`'s HANDOFF commit and PUSHED** (owner's picker, *"Push after main
+  moves"*, whose option named what rides along: both features and `625c3ce`, another session's HANDOFF-only note).
+  `ba3a745..e1ed962` at 18:12:51; the live `index.html` was serving it at 18:13:46 and is **byte-identical to the
+  tested build** (sha256 `b12df7227aefe016…`). This HANDOFF note rides the next push.
+
+### ✅ 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), then MERGED into local `main` and ✅ **LIVE at `e1ed962`** with the symbol (owner's pickers, *"Fast-forward main now"*, *"Push after main moves"*) (tracker card `rename-auto-notes`)
+
+- **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
+  changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
+  auto note or want to replace the auto note with your own non-auto note"*, and *"Build it"*.
+- **Seven rulings by picker, all in [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md).** In short: the name shows
+  everywhere; its colour is its own (month view); typing over it in the waterfall renames it; clearing it or its
+  Delete Auto-Note button switches it off; the holiday editor gets no delete button; the waterfall Delete key stops
+  writing a week blank (each line goes by its kind; a holiday is hidden from the waterfall only); Reset Notes leaves
+  the Automatic notes ticks alone.
+- **Where it lives (`src/legacy/app.js`):**
+  - `autoNoteNames` / `autoNoteColors` (kind → name / colour), declared beside `autoNotesOn`, with the helpers
+    `autoNoteNameFor`, `autoNoteLine`, `isKindNote`, `switchOffAutoNote`, `hideHolidayInWaterfall`, `setAutoNoteName`,
+    `deleteAutoNote`. Snapshot keys PERMANENT, ABSENT while empty, sorted; sanitized (name one line ≤200, colour a
+    note colour, key `SNAP_ID`, unknown kind words kept); restored unconditionally; New clears both; Reset Month Notes
+    clears the colours only; Reset Notes clears neither.
+  - The name is applied once, in `computeSchedule()`'s new `addAutoNote` (all four auto-note `addNote` calls), which
+    also puts `origLabel` (the standard wording) on the note. No frozen edit.
+  - Month editor: `mvAutoLineInfo()` (beside `mvHolidayLineInfo`) makes a click on an automatic line open mode
+    `'auto'` in `openMvNoteEditor`: "m/d/yy · Auto Note", the name alone, Enter saves, the `.note-pop-delete` button
+    (CSS beside `.mv-note-pop-hint`). `writeActiveMvNote`'s `'auto'` branch: empty or the button → `deleteAutoNote`;
+    only the date typed → standard name; else `setAutoNoteName`. Colour → `autoNoteColors`, drawn through
+    `mvDayNotePlan`'s `b.color` (frozen edit H1, unchanged).
+  - `setHolidayName`'s line carrying is now `carryRenamedLine()`, shared by both renames (it also handles a legacy
+    string override now).
+  - `stripHolidayDate()` now strips the note's OWN date anywhere in the typed name, not just at the end ("Start
+    Principal Photography 6/29/26 (tbc)" → "... (tbc)" + the date), for holidays too.
+  - Waterfall: `wfHolidayRenames` became `wfLineEdits()` (renames holidays and automatic notes; a line-only REMOVAL
+    switches an automatic note off / hides a holiday from the waterfall). An editor emptied is `wfClearNote`.
+    `wfClearNote` no longer writes `{text:''}`: `wfSwitchOffLines()` takes each automatic line out by its kind.
+    `wfPutNote` (paste and drop) switches off what it replaces unless the note IS the week's automatic text.
+    `wfNoteStep`'s signature includes the switches and runs `update()` when one moved.
+  - Month drag: `moveWfLine` switches off an automatic note dragged to another day; the drag's press copy and
+    `restore()` now include the four auto-note stores, so out-and-back and Escape restore them.
+  - Chrome: the Reset Notes tooltip (`Header.jsx`) and four help-text sentences (`src/index.html`).
+- **Changed on purpose, and the legs that held the old behaviour:** `wfkeys` D4, C6, G17 and `wfmenu` N1, N2
+  asserted the old week blank; rewritten to the rulings. "Back to automatic text" (the right-click item) is now only
+  offered on a note typed over an automatic one, because a cleared one leaves no override (N2 holds both).
+  - ⚠️ **`T.typeUserNote` over an automatic note is now a RENAME** (ruling 3), not a typed note: `regionmirror` M6 and
+    `dlgkeys` typed "a note the Region could misplace" into the first Notes cell, which holds an automatic note, so the
+    Region / holiday "Continue?" no longer asked (correctly: a renamed note follows its date). Both now type into an
+    EMPTY cell (`:not(.has-note)`). A new leg that needs a typed note must do the same, or add a line.
+  - `mvmenu` P7 added a line to "Start Principal Photography" through the MONTH editor, which is now the one-line Auto
+    Note editor; it makes that typed note in the waterfall's editor instead.
+- **Proof:** new leg `autonoterename` 19/19 (fixture `autonoterename.sptcal`, synthetic), in `gate.sh` after
+  `holidayrename`. Red on mutants: no rename + no Delete switch-off (14 of 19 red), no drag switch-off (G1 only).
+  `wfkeys` 84/84, `wfmenu` 39/39, `holidayrename` 14/14, `npm run check` 40/40. Seen in the browser pane: the Auto
+  Note editor, a rename, a drag to 7/1 with no second copy after Production moved.
+  - **Full gate (12:21-12:53, port 8247): 3,499 PASS, 9 FAIL, every one explained.** Eight are the legs above that
+    held the old behaviour (`regionmirror` M6/M7, `dlgkeys` D3/D4/D5/D11, `mvmenu` P7/P7u), rewritten and green alone
+    (9/9, 16/16, 81/81). One is `pdfdialog`'s 6 s wait for the Save button under load (~10), 15/15 alone. The waterfall
+    PDF, every Excel part, every printed month document and every written month PDF match their baselines.
+- **Not done / open:** the waterfall's note editor still reads "Note · <Monday>" on an automatic line (the holiday
+  twin is card `wf-holiday-editor-mode`). A removed note's typed name is cleared with it (the plan's suggestion; not
+  ruled). Saving a rename while also adding a line in the waterfall saves as typed text (as for holidays).
+
+### ✅ 2 Nov 2026: 2029'S DEFAULT WINTER HIATUS IS MON 12/17/29 — ✅ **LIVE at `ba3a745`** (owner's picker: "Commit", "Push now"; `c8fda83..ba3a745` at 17:56:22, carrying another session's HANDOFF-only `4ce11c9`; the live `index.html` matched the local build `ae184de1…` byte for byte at 17:57:22)
 
 - **The ask** (owner, with a screenshot of an all-phase card at Starts 12/17/2029, Weeks 2, Lock in place on, Number
   weeks off): *"this should replace the default all phase hiatus for 2029"*.
@@ -86,7 +195,7 @@
   `npm run check` 40/40. No full gate: `buildFixture` ends in 2027, so no byte-compared baseline reaches Dec 2029.
 - Comments that listed the four defaults were updated (`hiatuscolour.js`, `wrapdate.js`, the wrap-date row in the
   lessons table below).
-- ⏭ **Open:** nothing once the push is verified live.
+- ⏭ **Open:** nothing. This note rides the next push.
 
 ### ✅ 2 Nov 2026: REUSE EMPTY COLUMNS IS ON FOR NEW CALENDARS — ✅ **LIVE at `c8fda83`** (owner's picker: "Commit", "Push now"; `315f7e5..c8fda83` at 17:18:44, carrying another session's HANDOFF-only `6cc1046`; the live `index.html` matched the gated build `bcf3febb…` byte for byte at 17:19:54)
 
@@ -394,21 +503,6 @@
 - **Recommended order (plan §7):** custom-phase notes, then AUTO-NOTE-RENAME-PLAN, then per view. The rename keeps an
   edited automatic note automatic, which closes the one leak the month editor cannot (a month-only line edited in the
   month view would otherwise save as typed waterfall text).
-
-### 📝 30 Oct – 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC — RULED, NOT BUILT (tracker card `rename-auto-notes`)
-
-- **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
-  changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
-  auto note or want to replace the auto note with your own non-auto note"*.
-- **Seven rulings by picker, all in [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md).** In short: the name shows
-  everywhere; its colour is its own (month view); typing over it in the waterfall renames it; clearing it or its
-  Delete Auto-Note button switches it off; the holiday editor gets no delete button; the waterfall Delete key stops
-  writing a week blank (each line goes by its kind; a holiday is hidden from the waterfall only); Reset Notes leaves
-  the Automatic notes ticks alone.
-- ⚠️ **Found while answering, and it is live today:** a deleted auto note is a blank on its WEEK (`{text:''}`), so
-  after a schedule move the note comes back in its new week and the old week stays blank, hiding whatever auto note
-  lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
-
 
 ### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–3 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`, which `main` has since moved past; its `node_modules` is a symlink, so unlink it before `git worktree remove`) ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 

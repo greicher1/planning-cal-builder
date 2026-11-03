@@ -98,6 +98,11 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - It edits no frozen rule. Its tints exclude the day marks and `:hover`.
   - The `softlines` leg holds every box to 0.01 px with and without it. Keep it paint only, or that leg goes red.
   - Making the PDFs follow is a separate frozen edit the owner has not ruled on.
+- ⚠️ **A second, the note symbol (2 Nov 2026, owner's picker, AUTO-NOTE-RENAME-PLAN.md): ↻ before an automatic note, ⚑
+  before a holiday, in the month view ON SCREEN ONLY.** Frozen edit NS1 in `renderMonthView` reads `b.mark`, which
+  `mvDayNotePlan` sets only while `printingCursor` is null, so the print rollback and the month-PDF writer never see it
+  (gates 10 and 13 byte-identical). A marked note is measured `MV_NOTE_MARK_W` narrower and its CSS padding grows by the
+  same, so it cannot clip; one the symbol would push past three lines goes without it (`mvNoteMarkFits`).
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
@@ -471,6 +476,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
 | `holidayView` | which holidays show in which view (`{sheet, month}`) |
 | `holidayNames`, `holidayColors` | a holiday's own name and its own month colour, keyed by holiday id (owner, 30 Oct 2026: rename one date, "Everywhere it shows", colour "Just that holiday"). PERMANENT keys, each ABSENT while empty. The name is applied once, in `fullHolidayList()` (`name`; `origName` keeps the list's own), so every reader and both writers follow; ⛔ the id is still `holidaySlug()` of the ORIGINAL name. The colour is month view only, drawn by frozen edit H1 (`b.color` from `mvDayNoteBlocks`). Set from the month view's holiday editor and, for a holiday shown in the waterfall, by changing its line in the waterfall's note editor (`wfHolidayRenames`) |
+| `autoNoteNames`, `autoNoteColors` | an AUTOMATIC note's own name and its own month colour, keyed by its `kind` (owner, 30 Oct - 2 Nov 2026, AUTO-NOTE-RENAME-PLAN.md). PERMANENT keys, each ABSENT while empty, sorted. The name is applied once, in `computeSchedule()`'s `addAutoNote` (`origLabel` keeps the standard wording), so every reader and both writers follow; the colour is month view only, through frozen edit H1's `b.color`. ⛔ DELETING an automatic note (its editor, the Delete key, Cut, a removed line, a paste or drag over it) SWITCHES ITS KIND OFF (`autoNotesOff` / `autoNotesOn`) and clears both; it never writes the old week blank `{text:''}`. A holiday line deleted in the waterfall is hidden there (`holidayView[hid].sheet = false`). Reset Notes leaves the switches alone |
 | `headerMode`/`headerManual`, `mvHeaderMode`/`mvHeaderManual` | auto vs. hand-edited header lines |
 | `headerFormat`, `mvHeaderFormat` | per-header-line size/bold/italic/colour/highlight/align. Consumed by **four** places — both renderers, `exportExcel` and `buildWaterfallPdf` — so screen and exports cannot disagree |
 | `mvExtraLanes` | extra note lanes per month-view week |
