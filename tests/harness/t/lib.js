@@ -513,10 +513,42 @@ window.__T = (function(){
     return rec;
   }
   // A PDF's page count, read off the writer's own page objects (and Chrome's: both say /Type /Page per page).
+  // ⚠️ Counted by OBJECT NUMBER since the SPTCal mark (2 Nov 2026): the mark's update redefines every page as
+  // itself, so a saved PDF holds each page dictionary twice under one number. Chrome's print PDFs and the
+  // writers' own bytes count exactly as they did.
   function pdfPages(u8){
+    var s = '', seen = {}, n = 0, m, re = /(\d+)\s+0\s+obj\s*<<\s*\/Type\s*\/Page(?![s\w])/g;
+    for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    while((m = re.exec(s))) if(!seen[m[1]]){ seen[m[1]] = 1; n++; }
+    return n;
+  }
+  // The SPTCal mark (markPdf in the engine, 2 Nov 2026): a saved PDF is the writer's bytes and then one appended
+  // update. Returns {writer, mark} -- `writer` the bytes up to and including the writer's own %%EOF, `mark` what the
+  // update says: {prev, creator, producer, pages: [{n, contents: [pre, own, post], pre, post}]} -- or null when the
+  // file carries no update (the writer's bytes as they were). Read by the update's own trailer, never by searching
+  // the binary: /Prev is the writer's xref, and the first %%EOF after it is where the writer stopped.
+  function pdfUnmark(u8){
     var s = '';
     for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
-    return (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
+    var tr = /trailer\s*<<([^]*?)>>\s*startxref\s+(\d+)\s+%%EOF\s*$/.exec(s.slice(-400));
+    var prev = tr && /\/Prev\s+(\d+)/.exec(tr[1]);
+    if(!prev) return null;
+    var end = s.indexOf('%%EOF\n', +prev[1]);
+    if(end < 0) return null;
+    end += 6;
+    var upd = s.slice(end), info = /\/Info\s+(\d+)\s+0\s+R/.exec(tr[1]);
+    var obj = function(n){ var m = new RegExp('(?:^|\\n)' + n + ' 0 obj\\n([^]*?)\\nendobj\\n').exec(upd); return m ? m[1] : null; };
+    var str = function(d, k){ var m = d && new RegExp('/' + k + ' \\(((?:\\\\.|[^\\\\)])*)\\)').exec(d); return m ? m[1] : null; };
+    var body = function(d){ var m = d && /^<< \/Length (\d+) >>\nstream\n/.exec(d); return m ? d.substr(m[0].length, +m[1]) : null; };
+    var pages = [], pm, pre = /(?:^|\n)(\d+) 0 obj\n(<< \/Type \/Page [^]*?)\nendobj\n/g;
+    while((pm = pre.exec(upd))){
+      var c = /\/Contents \[(\d+) 0 R (\d+) 0 R (\d+) 0 R\]/.exec(pm[2]);
+      pages.push({n: +pm[1], dict: pm[2], contents: c ? [+c[1], +c[2], +c[3]] : null,
+                  pre: c ? body(obj(c[1])) : null, post: c ? body(obj(c[3])) : null});
+    }
+    var infoDict = info ? obj(info[1]) : null;
+    return {writer: u8.subarray(0, end), mark: {prev: +prev[1], trailer: tr[1].trim(), info: infoDict,
+            creator: str(infoDict, 'Creator'), producer: str(infoDict, 'Producer'), pages: pages, bytes: u8.length - end}};
   }
   // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
   // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
@@ -607,7 +639,7 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,pdfUnmark:pdfUnmark,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           rebuildAll:rebuildAll};

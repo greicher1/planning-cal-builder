@@ -31244,7 +31244,9 @@ export function initLegacyApp() {
     // ⛔ FROZEN EDIT S2 (D6, as S1 in exportExcel): the download's NAME only; '' with one scenario, and gate 1
     // compares the PDF's bytes.
     const name = (safe ? safe + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.pdf';
-    const url = URL.createObjectURL(new Blob([out.bytes], {type:'application/pdf'}));
+    // ⛔ FROZEN EDIT MK1 (owner, 2 Nov 2026: "Add hidden text too"): the SPTCal mark, APPENDED after the writer's
+    // bytes (markPdf), so out.bytes is still the file's prefix byte for byte and gate 2 compares it unchanged.
+    const url = URL.createObjectURL(new Blob([markPdf(out.bytes)], {type:'application/pdf'}));
     const a = document.createElement('a');
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
@@ -33064,6 +33066,118 @@ export function initLegacyApp() {
       + '\n\nThe month view on screen keeps them.',
       { title: 'Some characters won’t print', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
   }
+  // ---------- The SPTCal mark (owner, 2 Nov 2026: "Add hidden text too") ----------
+  // Every PDF the two writers save says, invisibly, that SPTCal made it. The document's properties name it (Creator
+  // "SPTCal", Producer "SPTCal <version>": Preview's Inspector, Acrobat's File > Properties), and every page carries
+  // "Made with SPTCal <version>" as text that is never painted (text render mode 3). The properties are what a
+  // viewer shows; the text is what survives a re-save in Preview or a page pulled into another PDF, and a search
+  // for "SPTCal" finds it. Neither is proof: anyone can edit a PDF's properties. It is a label.
+  //
+  // ⛔ THE WRITERS' BYTES ARE NOT TOUCHED. The mark is an INCREMENTAL UPDATE (PDF 1.4 §3.4.5) appended after the
+  // writer's own %%EOF: an /Info dictionary, and each page redefined as itself with /Contents [q, <its own
+  // stream>, Q + the text]. So every byte the writer wrote is still the file's prefix, which is why gates 2 and 13
+  // still compare the writers' bytes to their baselines unchanged (tests/harness/pdfmark.py checks the update and
+  // strips it first), and why neither writer had to learn about it. Both writers leave out /Info on purpose (no
+  // creation date, so the same calendar gives the same bytes every day), and the mark carries no date either:
+  // only APP_VERSION, so it changes when a version is cut and at no other time.
+  //
+  // The new streams are uncompressed and a few dozen bytes each, so this needs no await: the waterfall's frozen
+  // export gains one synchronous call (frozen edit MK1) and nothing else. q before the page's own stream and Q
+  // after it put the text in the page's starting graphics state whatever the stream leaves behind, and each new
+  // stream has whitespace at its seam, since a reader may join the three streams with nothing between them.
+  //
+  // ⚠️ FAILS OPEN. A file not in the shape the two writers write is saved unmarked with a console error, never
+  // refused: a missing mark must never cost anyone their export. The harness's console checks and pdfmark leg are
+  // what turn that into a red line.
+  function markPdf(bytes){
+    try { return pdfAppendMark(bytes, 'Made with SPTCal ' + APP_VERSION); }
+    catch(err){ console.error('The PDF was saved without its SPTCal mark: ' + err.message); return bytes; }
+  }
+  function pdfAppendMark(bytes, text){
+    const latin = (from, to)=>{
+      let s = '';
+      for(let i = from; i < to; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(to, i + 0x8000)));
+      return s;
+    };
+    const sx = /startxref\s+(\d+)\s+%%EOF\s*$/.exec(latin(Math.max(0, bytes.length - 64), bytes.length));
+    if(!sx) throw new Error('no startxref');
+    const prev = +sx[1];
+    const xt = /^xref\s+([\s\S]*?)trailer\s*<<([\s\S]*?)>>\s*startxref/.exec(latin(prev, bytes.length));
+    if(!xt) throw new Error('no cross-reference table at ' + prev);
+    const trailer = xt[2];
+    if(/\/(Info|Prev|Encrypt)\b/.test(trailer)) throw new Error('the file has already been updated');
+    const size = /\/Size\s+(\d+)/.exec(trailer), root = /\/Root\s+(\d+)\s+0\s+R/.exec(trailer);
+    if(!size || !root) throw new Error('the trailer has no /Size or /Root');
+    // The table: subsections of "first count", each followed by count entries of "offset generation n|f".
+    const offsets = {}, tok = xt[1].trim().split(/\s+/);
+    for(let i = 0; i < tok.length;){
+      const first = +tok[i++], count = +tok[i++];
+      if(!(first >= 0 && count >= 0)) throw new Error('a cross-reference subsection is unreadable');
+      for(let k = 0; k < count; k++, i += 3) if(tok[i + 2] === 'n') offsets[first + k] = +tok[i];
+    }
+    // An object's dictionary, to its matching >> (the waterfall's page nests its /Resources).
+    const dict = n=>{
+      const at = offsets[n];
+      if(!(at >= 0)) throw new Error('object ' + n + ' is not in the table');
+      const s = latin(at, Math.min(bytes.length, at + 4096)), h = new RegExp('^' + n + ' 0 obj\\s*<<').exec(s);
+      if(!h) throw new Error('object ' + n + ' is not a dictionary');
+      for(let i = h[0].length - 2, depth = 0; i < s.length - 1; i++){
+        const two = s.substr(i, 2);
+        if(two === '<<'){ depth++; i++; }
+        else if(two === '>>'){ depth--; i++; if(!depth) return s.slice(h[0].length - 2, i + 1); }
+      }
+      throw new Error('object ' + n + ' never closes');
+    };
+    const pagesRef = /\/Pages\s+(\d+)\s+0\s+R/.exec(dict(+root[1]));
+    const kids = pagesRef && /\/Kids\s*\[([^\]]*)\]/.exec(dict(+pagesRef[1]));
+    if(!kids) throw new Error('no page tree');
+    const pages = (kids[1].match(/\d+\s+0\s+R/g) || []).map(r=>{
+      const n = parseInt(r, 10), d = dict(n), c = /\/Contents\s+(\d+)\s+0\s+R/.exec(d);
+      if(!/\/Type\s*\/Page(?![s\w])/.test(d) || !c) throw new Error('object ' + n + ' is not a page with one content stream');
+      const res = /\/Resources\s+(\d+)\s+0\s+R/.exec(d);   // the month writer's shared resources; the waterfall's are inline
+      const f = /\/Font\s*<<\s*\/([^\s\/<>\[\]()]+)\s+\d+\s+0\s+R/.exec(res ? dict(+res[1]) : d);
+      if(!f) throw new Error('page ' + n + ' has no font');
+      return { n: n, d: d, contents: +c[1], font: f[1] };
+    });
+    if(!pages.length) throw new Error('no pages');
+    const say = pdfEscape(text);
+    if(!/^[\x20-\x7E]*$/.test(say)) throw new Error('the mark is not plain ASCII');
+
+    // The update: ASCII only, so a character is a byte and `len` is every new object's offset in the file.
+    const parts = [], at = {};
+    let len = bytes.length, next = +size[1];
+    const put = s=>{ parts.push(s); len += s.length; };
+    const obj = (n, body)=>{ at[n] = len; put(n + ' 0 obj\n' + body + '\nendobj\n'); };
+    const stream = (n, data)=> obj(n, '<< /Length ' + data.length + ' >>\nstream\n' + data + '\nendstream');
+    if(bytes[bytes.length - 1] !== 0x0A) put('\n');
+    pages.forEach(p=>{
+      const pre = next++, post = next++;
+      stream(pre, 'q\n');
+      stream(post, '\nQ\nq BT /' + p.font + ' 2 Tf 3 Tr 2 2 Td (' + say + ') Tj ET Q\n');
+      obj(p.n, p.d.replace(/\/Contents\s+\d+\s+0\s+R/, '/Contents [' + pre + ' 0 R ' + p.contents + ' 0 R ' + post + ' 0 R]'));
+    });
+    const info = next++;
+    obj(info, '<< /Creator (SPTCal) /Producer (' + pdfEscape('SPTCal ' + APP_VERSION) + ') >>');
+    const xref = len, nums = Object.keys(at).map(Number).sort((a, b)=> a - b);
+    let x = 'xref\n';
+    for(let i = 0; i < nums.length;){
+      let j = i;
+      while(j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+      x += nums[i] + ' ' + (j - i + 1) + '\n';
+      for(let k = i; k <= j; k++) x += String(at[nums[k]]).padStart(10, '0') + ' 00000 n \n';
+      i = j + 1;
+    }
+    put(x);
+    // Every key of the writer's trailer but /Size (the spec's rule for an update), then /Info and /Prev.
+    put('trailer\n<< /Size ' + next + ' ' + trailer.replace(/\/Size\s+\d+/, '').trim() + ' /Info ' + info + ' 0 R /Prev ' + prev
+        + ' >>\nstartxref\n' + xref + '\n%%EOF\n');
+    const tail = new TextEncoder().encode(parts.join(''));
+    if(tail.length !== len - bytes.length) throw new Error('the update is not plain ASCII');
+    const out = new Uint8Array(bytes.length + tail.length);
+    out.set(bytes, 0); out.set(tail, bytes.length);
+    return out;
+  }
+
   // The Save dialog, or a download where there is none. Resolves 'saved', 'download' or 'cancelled'.
   async function saveMonthPdf(bytes, name){
     if(!supportsFsAccess){ downloadTextFile(bytes, 'application/pdf', name); return 'download'; }
@@ -33121,7 +33235,8 @@ export function initLegacyApp() {
         return;
       }
       if(places.length && !(await confirmMonthPdfPrintable(places))) return;
-      await saveMonthPdf(bytes, monthPdfFileName());
+      // The SPTCal mark (markPdf), appended after the writer's bytes, which gate 13 still holds to its baselines.
+      await saveMonthPdf(markPdf(bytes), monthPdfFileName());
     } catch(err){
       console.error(err);
       await uiAlert('Could not save the month PDF: ' + err.message);

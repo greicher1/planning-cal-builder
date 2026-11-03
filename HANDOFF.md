@@ -4,6 +4,73 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 2 Nov 2026: THE SPTCal PDF MARK — EVERY SAVED PDF SAYS, INVISIBLY, THAT SPTCal MADE IT — BUILT on branch `pdf-mark` (worktree `.claude/worktrees/pdf-mark`, from `main` at `4c11cdb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED and fast-forwarded into `main`, then PUSHED (owner's pickers, 3 Nov: *"Commit and merge to main"*, *"Push after main moves"*; the Copilot kit *"Leave it for now"*) (tracker card `pdf-watermark`)
+
+- **The ask** (owner): *"how could we add a virtually invisible watermark to the pdf writer so i know which calendars
+  were made from sptcal"*. Offered two versions, properties only or properties plus hidden text, with the frozen edit
+  named. The owner picked **"Add hidden text too"**, which this session reads as sign-off for frozen edit MK1 below.
+- **What a saved PDF now carries** (both the waterfall PDF and the written month PDF):
+  - properties: Creator `SPTCal`, Producer `SPTCal <APP_VERSION>`. No date.
+  - on every page, `Made with SPTCal <APP_VERSION>` at (2, 2) pt, 2 pt, in text render mode 3, so it is never painted.
+- **Where it lives:** `markPdf` / `pdfAppendMark` in `src/legacy/app.js`, just before `saveMonthPdf`.
+  - `exportMonthPdfDirect` calls it on the writer's bytes before the Save dialog. That function is not frozen.
+  - ⛔ **Frozen edit MK1** in `exportWaterfallPdfDirect`: `new Blob([markPdf(out.bytes)], …)`. That is the whole edit.
+    It is synchronous (the new streams are uncompressed), so the export's flow is unchanged.
+- ⛔ **WHY AN APPENDED INCREMENTAL UPDATE, not an edit to the writers.** The update adds an `/Info` object and
+  redefines each page under its OWN object number with `/Contents [q, <its own stream>, Q + the line]`. So:
+  - every byte the writer wrote is still the file's prefix;
+  - both writers' deliberate "no /Info, no /ID" determinism is untouched;
+  - gates 2 and 13 still compare the writers' bytes to their baselines, after `tests/harness/pdfmark.py` checks the
+    update piece by piece and strips it. **No baseline was re-cut.**
+  - The design first described to the owner put the hidden text in `buildWaterfallPdf`'s drawing (a bigger frozen
+    edit). Putting it in the update made that unnecessary.
+- ⚠️ **What this does to the harness, and the trap for any new leg:**
+  - A saved PDF holds each page dictionary TWICE under one object number. `T.pdfPages` now counts page objects by
+    NUMBER (Chrome's print PDFs and the writers' bytes count as before).
+  - A leg that compares a saved PDF to a writer's bytes must take `T.pdfUnmark(u8).writer` (lib.js), as monthexport's
+    X2, X5 and X6 now do (`writerOf`). In Python, use `pdfmark.py check|strip`.
+  - Legs that inflate every stream skip the mark's two streams, because they are not Flate. `pdftotext` legs see
+    one extra line per page at the bottom; none of today's checks count lines.
+  - ⚠️ **Found by the full gate: `cmdprint` had its OWN page counter** (`/\/Type\s*\/Page[^s]/`) and read the marked
+    waterfall PDF as 2 pages (P1, P2 red). It now calls `T.pdfPages`. A sweep of every leg and tool for `/Page`
+    found no other counter on a SAVED file: monthcmp.py and printpaper.mjs read Chrome's print PDFs, monthemit,
+    monthwriter and monthab.py read the sliced writer's bytes, monthbase.py reads gate 13's stripped copies, and
+    cspproof.mjs only asks for more than 0 pages.
+- ⚠️ **It fails open.** A file not in the two writers' shape is saved unmarked, with
+  `console.error('The PDF was saved without its SPTCal mark: …')`, never refused.
+- ⚠️ **Not marked:** the print rollbacks (`exportMonthPdf`, the waterfall's print path; Chrome writes its own
+  properties) and the Excel workbook.
+- ⚠️ **The Copilot import kit (`~/Downloads/SPTCal PDF Import (Copilot)/`) is now stale.** Its spec §2.1 says an
+  SPTCal PDF has "ONE page, no /Info dictionary, one FlateDecode content stream". A marked file has /Info, and a naive
+  count finds the page twice. Its single Flate stream is unchanged. NOT updated: the owner picked *"Leave it for
+  now"* (3 Nov). Do it before the kit is next used on a PDF exported after this push.
+- **Proof:**
+  - `pdfmark` leg 6/6 (W0/W1 waterfall, M0/M1 month, S0 the sliced source makes exactly the built files and fails
+    open, E0). Its gate block reads both files with poppler: `pdfmark.py`, `pdfinfo` reads both properties,
+    `pdftotext` finds the line once on each page, and `pdftoppm` renders every page to the same pixels with and
+    without the mark.
+  - Mutants, each red: no `markPdf` in the waterfall export; render mode 0; Producer without its version.
+  - Apple's PDFKit (what Preview uses): both properties and the line read. After a PDFKit re-save, Creator and the line
+    survive and Producer becomes macOS's. A page copied into a new PDF keeps only the line.
+  - `npm run check` 40/40.
+  - **Full gate (2 Nov 19:56 to 3 Nov 13:23, port 8231): 3,467 PASS, 19 FAIL.** It took 17.5 hours because macOS
+    services (contactsd, searchpartyd, Spotlight) held the load average at 45-132 all night.
+    - **Every PDF line is green:** gate 2 (the waterfall writer's bytes identical to the baseline, and the mark
+      present), gate 13 (all 22 written month PDFs byte-identical after the strip), gate 10 (the print path), the
+      monthexport X2/X5/X6 prefixes, and all 18 `pdfmark` lines.
+    - **Two failures were this branch's:** `cmdprint` P1 and P2 (the counter above), fixed after the gate.
+    - **The other 17 were timeouts or "produced no result"** in legs that never read a saved PDF's pages:
+      `stintcollide`, `loadcarry`, `conflict` C3-C6 (the known load flake; its JSON is kept in the session's
+      scratchpad), `xlsxlimits`, `endsdate`, `papersize` (its P1-P3 PDF cases passed, then a 6 s wait for Save),
+      `mvnotes`, `phasecolors` C7/C8, `monthwriter` tier 1 twice and the file compare that follows, `offweek` R14, and
+      `scenariocompat`, which runs `releases/v1.2.0.html` and cannot see this change.
+    - **Re-run alone on the quiet machine (3 Nov 13:24, load 3.8), every one green:** `cmdprint` 6/6 (the fix),
+      `loadcarry` 6/6, `conflict` 9/9, `xlsxlimits` 5/5, `endsdate` 17/17, `papersize` 12/12, `mvnotes` 30/30,
+      `phasecolors` 10/10, `monthwriter` 12/12 in both time zones with the 8 tier-1 files byte-identical, and
+      `scenariocompat` (v1.2.0). `stintcollide` (4 lines) and `offweek` (54 lines, including its pdftotext read of
+      the marked waterfall PDF) were run through the gate's own blocks. The re-run script is `rerun.zsh` in the
+      session's scratchpad.
+
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an
