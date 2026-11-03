@@ -66,6 +66,37 @@ is a plain Monday-to-Friday wrap moved by its total. Neighbours green on the bui
 mvmenu (the three that read the hidden line), snaptools, halfdays, halfmarks, prodspan, endsdate, snapbox, phasefold,
 offweek live; offweek on its fixture timed out on a Load poll under heavy machine load (42/42 on the round-1 build).
 `npm run check` 40/40. No full gate: no writer, no save path and no frozen code reads the three new lists.
+
+### Unreleased — every saved PDF carries an invisible SPTCal mark (2 Nov 2026)
+
+The owner asked for *"a virtually invisible watermark to the pdf writer so i know which calendars were made from
+sptcal"*, and by picker took both layers (*"Add hidden text too"*). Every waterfall PDF and month PDF the app saves now
+carries:
+
+- **Its properties:** Creator `SPTCal`, Producer `SPTCal 1.9.0`. Preview shows them under Tools ▸ Show Inspector, and
+  Acrobat under File ▸ Properties.
+- **A hidden line on every page,** `Made with SPTCal 1.9.0`, set in text render mode 3, so it is never painted on
+  screen or on paper. Searching the PDF for "SPTCal" finds it, and so does copying its text.
+
+Measured with Apple's PDFKit (what Preview uses): after a re-save, Creator and the hidden line survive and Producer
+becomes macOS's. A page pulled into a new PDF keeps only the hidden line. Nothing survives printing and scanning. It
+is a label, not proof: anyone can edit a PDF's properties.
+
+How: the mark is a PDF **incremental update appended after the writer's own bytes** (`markPdf`). It adds the
+properties and redefines each page as itself with `/Contents [q, <its own stream>, Q + the line]`. Neither writer
+changed: every byte they write is still the file's prefix, and the mark carries no date, only the version. The month
+PDF calls it before its Save dialog. The waterfall PDF needed one frozen edit, **MK1**: one synchronous call in
+`exportWaterfallPdfDirect`, owner-approved by the same picker. A file the mark can't read is saved unmarked, with a
+console error, rather than refused.
+
+Verified: the new `pdfmark` leg (6/6), and poppler on both files (`pdfinfo` reads both properties, `pdftotext` finds the
+line once on each of 1 + 16 pages, and `pdftoppm` renders every page to the same pixels with and without the mark).
+Three mutants each go red. Gates 2 and 13 still compare the writers' bytes to their baselines, after
+`tests/harness/pdfmark.py` checks the mark and strips it; no baseline was re-cut. Full gate: 3,467 PASS / 19 FAIL on a
+machine at load 45-132. Every PDF line was green, including gate 2, all 22 of gate 13's month PDFs and gate 10. The
+gate also found `cmdprint` counting the marked page twice with its own counter, now fixed. The other 17 failures were
+timeouts, and all pass alone.
+
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
 The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an

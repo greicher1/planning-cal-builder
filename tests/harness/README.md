@@ -152,6 +152,7 @@ timing flake.
 | `pdf-info.js` | reads back a waterfall PDF so two exports can be diffed |
 | `gate.sh` | ⭐ **the acceptance gate in one command**, diffed against `tests/baselines/`; defaults to `/dist/index.html` |
 | `pdfcmp.py` | byte-compares two waterfall PDFs with ONLY the header's today-stamp normalised (see below) |
+| `pdfmark.py` | checks the SPTCal mark appended to a saved PDF (`markPdf`, 2 Nov 2026) and hands back the writer's bytes before it, which gates 2 and 13 compare |
 | `t/fence.js` | every computed style on the frozen surface, so two pages can be compared property by property |
 | `t/noresetall.js` | Reset All is gone from the header and New does its job; A1 is the guard that its unguarded engine listener went with it (owner ruling 3). In the gate |
 | `t/hdrcontrols.js` | `HARNESS_STATE=carry-rich`: the header controls off the calendar (owner rulings 1, 4, 5): the toolbar's Header button follows the view and anchors the mode menu, the Manual-only editor strip, nothing above the header otherwise, the view-split notes reset in the app header, "Reset hiatus bands" in the sidebar, one undo step each. In the gate |

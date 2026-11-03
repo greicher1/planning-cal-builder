@@ -67,6 +67,9 @@ window.addEventListener('load', function () { (async function () {
   var fromState = /[?&]state=/.test(location.search), realTime = /[?&]realtime=1\b/.test(location.search);
   var phase = null; try { phase = sessionStorage.getItem('monthexport-phase'); } catch (e) {}
   function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
+  // The writer's bytes in a saved file: everything before the SPTCal mark's update (markPdf, 2 Nov 2026), which every
+  // saved month PDF carries. null when the file has no mark, so a build that drops it cannot match the slice.
+  function writerOf(u8){ var u = u8 && T.pdfUnmark(u8); return u ? u.writer : null; }
   function sameBytes(a, b){ if(!a || !b || a.length !== b.length) return false; for(var i = 0; i < a.length; i++) if(a[i] !== b[i]) return false; return true; }
   function b64(u8){ var s = ''; for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
   function unb64(s){ var bin = atob(s), u8 = new Uint8Array(bin.length); for(var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
@@ -250,14 +253,14 @@ window.addEventListener('load', function () { (async function () {
     info.sha = built ? await sha(built) : null;
     var call = sp2.calls[0] || {};
     var types = call.types || [];
-    add('X2', 'Export PDF writes the month PDF through the Save dialog, one page per month, and its bytes ARE the sliced source\'s',
+    add('X2', 'Export PDF writes the month PDF through the Save dialog, one page per month, and its bytes ARE the sliced source\'s, then the SPTCal mark',
         sp2.calls.length === 1 && call.suggestedName === wantName &&
         same(types, [{description: 'PDF document', accept: {'application/pdf': ['.pdf']}}]) &&
         !!f2 && f2.closed && f2.parts.length === 1 && T.pdfPages(built) === ref.months && prints2 === 0 && busySeen && !busy() &&
-        sameBytes(built, ref.bytes),
+        sameBytes(writerOf(built), ref.bytes),
         {calls: sp2.calls.length, name: call.suggestedName, wantName: wantName, types: types, closed: !!(f2 && f2.closed),
          writes: f2 ? f2.parts.length : 0, pages: built ? T.pdfPages(built) : 0, months: ref.months, prints: prints2,
-         busyWhileBuilding: busySeen, busyAfter: busy(), sameAsSlice: sameBytes(built, ref.bytes),
+         busyWhileBuilding: busySeen, busyAfter: busy(), sameAsSlice: sameBytes(writerOf(built), ref.bytes),
          bytes: built ? built.length : 0, sliceBytes: ref.bytes.length},
         'one call; that name; PDF; one write, closed; a page per month; no print; busy then free; identical to the slice');
     if(built) out.pdfs.built = b64(built);
@@ -324,8 +327,8 @@ window.addEventListener('load', function () { (async function () {
       if(it.kind === 'note' && /production meeting/.test(it.text)){ shyNote = it.lines; if(it.lines.join('').indexOf('\u00AD') >= 0) shyLeft++; }
     }); }); });
     add('X5', 'a soft hyphen is dropped: no warning, a file written, and the note\'s lines carry none',
-        !m5 && sp5.files.length === 1 && !!shyNote && shyLeft === 0 && sameBytes(sp5.files[0].bytes, ref5.bytes),
-        {warning: m5, files: sp5.files.length, lines: shyNote, sameAsSlice: !!sp5.files[0] && sameBytes(sp5.files[0].bytes, ref5.bytes),
+        !m5 && sp5.files.length === 1 && !!shyNote && shyLeft === 0 && sameBytes(writerOf(sp5.files[0].bytes), ref5.bytes),
+        {warning: m5, files: sp5.files.length, lines: shyNote, sameAsSlice: !!sp5.files[0] && sameBytes(writerOf(sp5.files[0].bytes), ref5.bytes),
          slicePrinted: ref5.printed},
         'no warning; one file; no soft hyphen; identical to the slice');
 
@@ -346,11 +349,11 @@ window.addEventListener('load', function () { (async function () {
     add('X6', 'characters the PDF cannot set are named first, with where they are; Cancel writes nothing, Export anyway writes the slice\'s bytes',
         /Some characters won\u2019t print/.test(m6) && wantChars.every(listed) && /\u0160 \u017D \u017E as a box/.test(m6) && /in the note on /.test(m6) &&
         !listed('\u00F3') && after6.calls === 0 && after6.files === 0 && !after6.modal && /Export anyway/.test(m6b) &&
-        sp6.files.length === 1 && sameBytes(sp6.files[0].bytes, ref6.bytes) &&
+        sp6.files.length === 1 && sameBytes(writerOf(sp6.files[0].bytes), ref6.bytes) &&
         places.length === 1 && places[0].kind === 'note' && same(places[0].chars.map(function (c) { return c.ch + c.as; }),
           ['\u0141?', '\u017A?', '\u2192?', '\u0160box', '\u011B?', '\u017Dbox', '\u017Ebox', '\u2713?']),
         {dialog: m6.slice(0, 400), afterCancel: after6, files: sp6.files.length,
-         sameAsSlice: !!sp6.files[0] && sameBytes(sp6.files[0].bytes, ref6.bytes), places: places, slicePrinted: ref6.printed},
+         sameAsSlice: !!sp6.files[0] && sameBytes(writerOf(sp6.files[0].bytes), ref6.bytes), places: places, slicePrinted: ref6.printed},
         'each character named; Š Ž ž as a box; nothing on Cancel; the slice\'s file on Export anyway');
 
     // ---- T0: the build against a click's activation (real time only) ------------------------------------------------

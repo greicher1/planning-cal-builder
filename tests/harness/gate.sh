@@ -8,7 +8,7 @@
 # that are automatable and diffs them against tests/baselines/2026-08-29-stage-7/:
 #
 #   1. horizontally clipped cells stay 0        (the padding trap, which has landed twice)
-#   2. the waterfall PDF diffs clean            (byte-compare)
+#   2. the waterfall PDF diffs clean            (byte-compare; the writer's bytes, before the SPTCal mark)
 #   3. the Excel opens without a corrupt alert  (check-xlsx.sh) AND its parts are unchanged
 #   4. a real v1.0.0 saved calendar restores identically
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
@@ -19,6 +19,12 @@
 #  13. the WRITTEN month PDF (what Export PDF writes since step 5) is byte-identical to its baseline, on seventeen
 #      calendars (monthexport + monthbase.py; added 5 Oct 2026). Items 11 and 12 (the audit-fix legs, the CSP) are
 #      blocks of their own below, not numbered here.
+#
+# ⭐ THE SPTCal MARK (owner, 2 Nov 2026; markPdf in src/legacy/app.js). Every PDF the app SAVES is the writer's bytes
+# and then one appended update: the properties (Creator "SPTCal", Producer "SPTCal <version>") and an unpainted
+# "Made with SPTCal <version>" on every page. Gates 2 and 13 run pdfmark.py on each saved file first: it checks the
+# update piece by piece and hands back the writer's bytes, which are what those gates have always compared, so no
+# baseline was re-cut for it. The pdfmark leg (its own block) holds the mark itself, in the app and in poppler.
 #
 # ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
 # earlier revision of this comment listed it, which read as coverage that did not exist. There is
@@ -44,6 +50,8 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BASE="$HERE/../baselines/2026-08-29-stage-7"
 PAGE="${1:-/dist/index.html}"
+# The version the SPTCal mark must name (markPdf): the build's own APP_VERSION, read from its source.
+MARKVER="$(sed -n "s/^  const APP_VERSION = '\(.*\)';$/\1/p" "$HERE/../../src/legacy/app.js" | head -1)"
 
 # ⛔ THE BUILD IS NOT REBUILT BY THIS SCRIPT, AND A STALE ONE PASSES SILENTLY.
 # gate.sh serves dist/index.html; `npm run build` is a separate step nobody is reminded to run. Edit
@@ -98,9 +106,14 @@ fi
 
 # ---- the waterfall PDF, byte for byte ---------------------------------------------------------
 # TODAY / BASEDATE are the only tokens allowed to differ -- see pdfcmp.py's header.
+# The saved file carries the SPTCal mark after the writer's bytes: pdfmark.py checks it and writes the writer's bytes to
+# base.writer.pdf, which is what is compared. A file without a mark is compared whole, and fails twice.
 TODAY="$(date +%-m.%-d.%y)"; BASEDATE="8.29.26"
-if cmp -s "$HERE/base.pdf" "$BASE/base.pdf"; then ok "waterfall PDF byte-identical to baseline"
-elif PDFOUT="$(python3 "$HERE/pdfcmp.py" "$HERE/base.pdf" "$BASE/base.pdf" --today "$TODAY" --base "$BASEDATE" 2>&1)"; then
+if MARKOUT="$(python3 "$HERE/pdfmark.py" check "$HERE/base.pdf" --version "$MARKVER" --out "$HERE/base.writer.pdf" 2>&1)"; then
+  ok "waterfall PDF carries the SPTCal mark (${MARKOUT#pdfmark: })"
+else bad "waterfall PDF's SPTCal mark: ${MARKOUT#pdfmark: }"; cp -f "$HERE/base.pdf" "$HERE/base.writer.pdf"; fi
+if cmp -s "$HERE/base.writer.pdf" "$BASE/base.pdf"; then ok "waterfall PDF byte-identical to baseline"
+elif PDFOUT="$(python3 "$HERE/pdfcmp.py" "$HERE/base.writer.pdf" "$BASE/base.pdf" --today "$TODAY" --base "$BASEDATE" 2>&1)"; then
   ok "waterfall PDF identical to baseline (header date stamp $BASEDATE -> $TODAY)"
 else bad "waterfall PDF differs beyond the date stamp: $(print -r -- "$PDFOUT" | head -4)"; fi
 
@@ -1956,6 +1969,60 @@ chk(any(l.startswith('Costume and Hair Camera Tests With The Director Week 2') f
 sys.exit(bad)
 PYMN
 
+# ---- pdfmark: the SPTCal mark on both saved PDFs (owner, 2 Nov 2026: "Add hidden text too"; markPdf) --------------
+# ⭐ ADDED 2 Nov 2026. The leg exports both PDFs through their real buttons on base's calendar and holds the mark in the
+# page: the writer's bytes, then one update naming SPTCal and this version and redefining every page as
+# [q, its own stream, the unpainted text] (W0, M0); the same file twice (W1, M1); the source's markPdf, sliced, making
+# exactly the files the build saved and failing open (S0). Here poppler reads the same two files: pdfmark.py's
+# piece-by-piece check, the properties by pdfinfo, the hidden line by pdftotext on every page, and pdftoppm rendering
+# every page of the file and of the writer's bytes alone to the same pixels, which is what "never painted" means in a
+# real renderer. Mutants run 2 Nov 2026, each red: the waterfall export without markPdf (W0, S0, pdfmark.py), render
+# mode 0 (W0, M0, pdfmark.py on both files), the Producer without its version (W0, M0, pdfmark.py on both files). A
+# file pdfmark.py refuses skips the poppler lines after it, so those three never saw them.
+rm -f "$HERE/pdfmark.json" -- "$HERE"/pdfmark.*.pdf(N)
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" pdfmark 300 >/dev/null 2>&1
+python3 - "$HERE/pdfmark.json" "$HERE" "$MARKVER" <<'PYPM' || FAIL=1
+import json, os, subprocess, sys, tempfile
+path, here, ver = sys.argv[1], sys.argv[2], sys.argv[3]
+bad = 0
+def chk(c, m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ') + 'pdfmark ' + m)
+    if not c: bad = 1
+try: a = json.load(open(path))
+except Exception as e:
+    print('  FAIL  pdfmark produced no result: ' + str(e)); sys.exit(1)
+chk(not a.get('EX'), 'ran to the end' + (': ' + str(a.get('EX'))[:200] if a.get('EX') else ''))
+cases = a.get('cases') or []
+chk(len(cases) == 6, 'ran all 6 cases (%d)' % len(cases))
+for c in cases: chk(c.get('pass') is True, str(c.get('id')) + ': ' + str(c.get('title', ''))[:110])
+run = lambda *cmd: subprocess.run(cmd, capture_output=True, text=True, check=True).stdout
+text = 'Made with SPTCal ' + ver
+with tempfile.TemporaryDirectory() as tmp:
+    for name, what in (('wf', 'waterfall PDF'), ('month', 'month PDF')):
+        f = os.path.join(here, 'pdfmark.%s.pdf' % name)
+        if not os.path.exists(f):
+            chk(False, what + ': the leg saved no file'); continue
+        w = os.path.join(tmp, name + '.writer.pdf')
+        r = subprocess.run([sys.executable, os.path.join(here, 'pdfmark.py'), 'check', f, '--version', ver, '--out', w],
+                           capture_output=True, text=True)
+        chk(r.returncode == 0, what + ': pdfmark.py -- ' + (r.stdout or r.stderr).strip().replace('pdfmark: ', ''))
+        if r.returncode: continue
+        props = dict(l.split(':', 1) for l in run('pdfinfo', f).splitlines() if ':' in l)
+        pages = int(props.get('Pages', '0').strip())
+        chk(props.get('Creator', '').strip() == 'SPTCal' and props.get('Producer', '').strip() == 'SPTCal ' + ver,
+            what + ': pdfinfo reads Creator "%s", Producer "%s"' % (props.get('Creator', '').strip(), props.get('Producer', '').strip()))
+        hits = [run('pdftotext', '-f', str(p), '-l', str(p), f, '-').count(text) for p in range(1, pages + 1)]
+        chk(pages > 0 and hits == [1] * pages, what + ': pdftotext finds "%s" once on each of its %d pages %s' % (text, pages, hits if hits != [1] * pages else ''))
+        run('pdftoppm', '-r', '40', '-png', f, os.path.join(tmp, name + '-m'))
+        run('pdftoppm', '-r', '40', '-png', w, os.path.join(tmp, name + '-w'))
+        pm = sorted(x for x in os.listdir(tmp) if x.startswith(name + '-m'))
+        pw = sorted(x for x in os.listdir(tmp) if x.startswith(name + '-w'))
+        same = len(pm) == len(pw) == pages and all(open(os.path.join(tmp, x), 'rb').read() == open(os.path.join(tmp, y), 'rb').read() for x, y in zip(pm, pw))
+        chk(same, what + ': every page renders to the same pixels with and without the mark (pdftoppm, %d pages)' % len(pm))
+sys.exit(bad)
+PYPM
+
 # ---- monthemit (MONTH-PDF-WRITER-PLAN.md §8 step 3): the month-PDF writer's emitter + serializer --------
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer out of src/legacy/app.js (owner ruling: "slice it, no hook"
 # extends to the emitter), lays every print document out in Chrome with the app's print rules, hands the emitter
@@ -2225,6 +2292,9 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
   ( [[ -n $MXTZ ]] && export TZ="$MXTZ"; [[ -n $MXWIN ]] && export HARNESS_WINDOW="$MXWIN"
     HARNESS_PAGE="$PAGE" HARNESS_STATE="$MXSTATE" "$HERE/run.sh" monthexport 300 >/dev/null 2>&1 )
   cp "$HERE/monthexport.built.pdf" "$MXA/$MXRUN.pdf" 2>/dev/null
+  # The SPTCal mark: checked, then stripped in place, so rz/rw below and gate 13 hold the writer's bytes as before.
+  if [[ -f "$MXA/$MXRUN.pdf" ]] && ! MARKOUT="$(python3 "$HERE/pdfmark.py" strip "$MXA/$MXRUN.pdf" --version "$MARKVER" 2>&1)"; then
+    bad "monthexport ($MXRUN): the written month PDF's SPTCal mark: ${MARKOUT#pdfmark: }"; fi
   python3 - "$HERE/monthexport.json" "monthexport (${MXSTATE:-reference}${MXTZ:+, $MXTZ}${MXWIN:+, $MXWIN})" "$MXTZ" "$MXWIN" <<'PYMX' || FAIL=1
 import json,sys
 path, label, tz, win = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]

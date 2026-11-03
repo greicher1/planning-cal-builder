@@ -39,9 +39,11 @@ window.addEventListener('load', function () { (async function () {
     document.dispatchEvent(e);
     return e.defaultPrevented;
   }
+  // Pages by T.pdfPages, which counts page OBJECTS: the SPTCal mark (2 Nov 2026) redefines each page as itself, so
+  // a saved PDF holds the waterfall's one page dictionary twice and a plain /Type /Page count says 2.
   async function pdfPages(blob) {
-    var s = await blob.text();
-    return { head: s.slice(0, 5), pages: (s.match(/\/Type\s*\/Page[^s]/g) || []).length };
+    var u8 = new Uint8Array(await blob.arrayBuffer());
+    return { head: String.fromCharCode.apply(null, u8.subarray(0, 5)), pages: T.pdfPages(u8) };
   }
   try {
     await T.appReady();
