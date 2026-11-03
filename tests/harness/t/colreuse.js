@@ -7,9 +7,12 @@
 // ⛔ SYNTHETIC CALENDAR. Made-up phases and dates, 2030-2032. Each phase is placed to exercise ONE
 // rule of the plan's §3, and the comment beside it says which. Never replace this with a real calendar.
 //
+// ⭐ A NEW calendar starts with the box ticked (owner, 2 Nov 2026); a file without the key opens unticked.
+//
 // Two runs:
-//   LIVE     builds the calendar through the DOM, checks every rule, the drag, the note, Reset, the
-//            width clearing (ruled Q7), undo and the save format, then emits the snapshot.
+//   LIVE     proves a fresh page starts ticked, unticks it, then builds the calendar through the DOM,
+//            checks every rule, the drag, the note, Reset, the width clearing (ruled Q7), undo and the
+//            save format, emits the snapshot, and finally Loads the unticked copy as an old file.
 //   RESTORE  (?state=colreuse, tests/fixtures/colreuse.sptcal, cut from LIVE's snapshot) proves a saved
 //            calendar opens with the box ticked, the hand move applied, and the same columns.
 //
@@ -80,6 +83,11 @@ window.addEventListener('load', function () { (async function () {
     }
 
     if (!RESTORE) {
+      // ---- 0. a NEW calendar starts ticked (owner, 2 Nov 2026: "this can just be for calendars going
+      // forward not old ones") ----------------------------------------------------------------------
+      out.boxExists = !!box();
+      out.boxStartsOn = out.boxExists && box().checked === true;
+
       // ---- the calendar ---------------------------------------------------------------------------
       T.set('show-title', 'Column Reuse'); T.set('season-num', '1');
       T.set('num-episodes', '20'); T.set('shoot-days-per-ep', '8');          // 160 days = 32 weeks
@@ -107,10 +115,16 @@ window.addEventListener('load', function () { (async function () {
       T.addHiatus('2030-12-23', 2);
       T.addHiatus('2031-06-02', 2);
       await settle('the grid');
+      var snapNew = await snapshot();
+      out.newSnapSaysOn = !!snapNew && snapNew.colReuse === true;
 
-      // ---- 1. OFF is today ----------------------------------------------------------------------
-      out.boxExists = !!box();
-      out.boxStartsOff = out.boxExists && box().checked === false;
+      // ---- 1. OFF is the old rule: untick it --------------------------------------------------------
+      // Everything below was written when the box started off, so unticking first leaves it as it was.
+      out.onAtStart = columns();
+      box().click();
+      await T.sleep(400);
+      await settle('the unticked grid');
+      out.boxUnticks = box().checked === false;
       out.boxSkippedBySweep = out.boxExists && !!box().closest('.prefs-card');
       out.off = columns();
       out.offCols2030 = nCols(out.off, '2030');
@@ -143,7 +157,8 @@ window.addEventListener('load', function () { (async function () {
       await settle('the reused grid');
       out.boxNowOn = box().checked === true;
       var on = out.on = columns();
-      out.onCols = { '2030': nCols(on, '2030'), '2031': nCols(on, '2031'), '2032': nCols(on, '2032') };
+      out.freshWasOn = JSON.stringify(out.onAtStart) === JSON.stringify(on);   // the new calendar's columns were the reused ones
+      out.onCols ={ '2030': nCols(on, '2030'), '2031': nCols(on, '2031'), '2032': nCols(on, '2032') };
       out.fewerColumns = out.onCols['2030'] === 3 && out.offCols2030 > 3;
       out.handoff     = same(on, '2030', 'custom1', 'writersRoom') && !same(on, '2030', 'custom1', 'prePrep');
       out.chainTie    = same(on, '2030', 'production', 'prodPrep') && !same(on, '2030', 'production', 'custom2');
@@ -234,6 +249,19 @@ window.addEventListener('load', function () { (async function () {
       out.undoReset = same(columns(), '2031', 'custom5', 'localization');
       out.finalCols = columns();
       out.fixture = await snapshot();
+
+      // ---- 8. an OLD calendar opens as it was: no colReuse key = unticked, the old columns ----------
+      // snapOff is this calendar saved unticked, which is exactly what every file from before 2 Nov 2026
+      // looks like: the key is absent.
+      var answer = setInterval(function () { T.clickModalButton(/^(Load|Discard|Don.t save)/); }, 50);
+      await T.openViaFakePicker('/tests/fixtures/colreuse.sptcal', 'old.sptcal', {text: JSON.stringify(snapOff)});
+      await T.until(function () { return !!box() && box().checked === false; }, 'the old file to load', 100, 100);
+      clearInterval(answer);
+      await settle('the old file');
+      out.oldFileOff = box().checked === false;
+      out.oldFileLayout = JSON.stringify(columns()) === JSON.stringify(out.off);
+      var snapOld = await snapshot();
+      out.oldFileStillNoKey = !!snapOld && !('colReuse' in snapOld) && !('colFollow' in snapOld);
     } else {
       // ---- RESTORE: a saved calendar opens exactly as it was saved ---------------------------------
       await T.until(function () { return document.querySelectorAll('#table-wrap td.sheet-phase-cell').length > 20; }, 'the restored grid', 200, 100);
@@ -245,13 +273,13 @@ window.addEventListener('load', function () { (async function () {
                           slotOf(rc, '2031', 'production') === 0 && same(rc, '2031', 'custom7', 'custom6');
       out.restoredNote = noteOf('custom5');
       out.noteRestored = !!out.restoredNote && /Moved by hand into Loc/.test(out.restoredNote.text);
-      // New clears both, unconditionally.
+      // New starts a new calendar: the box ticked (2 Nov 2026) and every hand move cleared.
       document.getElementById('new-file-btn').click();
       await T.sleep(700);
       var go = [].find.call(document.querySelectorAll('button'), function (b) { return /Start new/.test(b.textContent || ''); });
       if (go) go.click();
       await T.sleep(1200);
-      out.newClears = !!box() && box().checked === false && document.querySelectorAll('.col-move-note').length === 0;
+      out.newTicks = !!box() && box().checked === true && document.querySelectorAll('.col-move-note').length === 0;
     }
     out.errors = (window.__ERR || []).slice(0, 6);
   } catch (e) {

@@ -1281,9 +1281,12 @@ PY
 # drag to fix a pick, and a row note only when something was moved by hand.
 #
 # ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
-# frozen computeBlockLayout derives fewer columns from `col` as data. The byte-compare above, on
-# calendars that never tick it, is the inertness proof. This leg proves the rules, on a SYNTHETIC
-# calendar (2030-2032) with one phase per rule of the plan's §3.
+# frozen computeBlockLayout derives fewer columns from `col` as data. This leg proves the rules, on a
+# SYNTHETIC calendar (2030-2032) with one phase per rule of the plan's §3.
+# ⭐ Since 2 Nov 2026 a NEW calendar starts ticked (owner: "this can just be for calendars going forward
+# not old ones"), so the byte-compare above runs with it ON. Its calendar (buildFixture) has no handoff week
+# and lays out identically either way (checked when the default changed), which is why its baselines did
+# not move. Every ?state= fixture without the key still opens unticked.
 # Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
 # LIVE's own snapshot.
 for CRSTATE in "" colreuse; do
@@ -1303,10 +1306,12 @@ except Exception as e:
 if a.get('EX'):
     print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
 if a.get('mode') == 'live':
-    chk(a.get('boxExists') and a.get('boxStartsOff') and a.get('boxSkippedBySweep'),
-        'the box exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
+    chk(a.get('boxExists') and a.get('boxStartsOn') and a.get('newSnapSaysOn') and a.get('freshWasOn'),
+        'a NEW calendar starts with the box ticked, lays out with reused columns, and saves colReuse: true (owner, 2 Nov 2026)')
+    chk(a.get('boxUnticks') and a.get('boxSkippedBySweep'),
+        'the box unticks, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
     chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
-        'OFF saves no colReuse/colFollow key and shows no row note: a calendar that never ticks it is unchanged')
+        'OFF saves no colReuse/colFollow key and shows no row note: a calendar saved unticked is unchanged')
     oc=a.get('onCols') or {}
     chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
     chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
@@ -1330,10 +1335,12 @@ if a.get('mode') == 'live':
     chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
         f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
     chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
+    chk(a.get('oldFileOff') and a.get('oldFileLayout') and a.get('oldFileStillNoKey'),
+        'an OLD calendar (no colReuse key) Loads unticked, with its old columns, and still saves no key')
 else:
     chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
     chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
-    chk(a.get('newClears'), 'New clears the box and the hand moves')
+    chk(a.get('newTicks'), 'New starts a new calendar with the box ticked and no hand moves')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYCR

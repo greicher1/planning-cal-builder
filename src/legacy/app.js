@@ -230,6 +230,12 @@ export function initLegacyApp() {
   // placeSegmentsReusingColumns() instead of its start-order block, so a phase can move into the column
   // of one that has just finished. ⛔ CALENDAR DATA, in captureSnapshot() as `colReuse` -- and ABSENT
   // when clear, so every file saved without it is byte-for-byte the snapshot it was.
+  // ⭐ ON FOR NEW CALENDARS (owner, 2 Nov 2026: "this can just be for calendars going forward not old
+  // ones"). Two places turn it on: the boot, just before restoreSavedState(), and New (resetAll()).
+  // ⛔ An absent key still restores OFF, because every file saved before then, and every one saved with
+  // the box unticked, lacks it. Never flip that default in applyStateSnapshot().
+  // ⛔ FALSE HERE ON PURPOSE: placeSegmentsReusingColumns() reads PHASE_CHAIN, a const declared ~25,000
+  // lines below. Turned on any earlier than the boot, an update() would hit its temporal dead zone.
   let colReuse = false;
   // Phases moved by hand: colFollow[phaseKey] = the phase whose column it takes. Set only by dragging a
   // block into a free column (the one control, by the owner's keep-it-simple ruling), cleared by the
@@ -25680,7 +25686,7 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
-    colReuse = false; colFollow = {}; reflectColReuse();
+    colReuse = true; colFollow = {}; reflectColReuse();   // a new calendar reuses columns (owner, 2 Nov 2026)
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
@@ -35060,7 +35066,8 @@ export function initLegacyApp() {
       if(Object.keys(o).length) mvWfNotePlace[k] = o;
     });
     // ⛔ UNCONDITIONAL, both (COLUMN-REUSE-PLAN.md §5): a file with no key places phases the old way and
-    // has no hand moves -- never the previously open calendar's.
+    // has no hand moves -- never the previously open calendar's. ⛔ Absent stays OFF even though a NEW
+    // calendar starts ticked (2 Nov 2026): every older file, and every one saved unticked, lacks the key.
     colReuse = snap.colReuse === true;
     colFollow = (snap.colFollow && typeof snap.colFollow === 'object') ? Object.assign({}, snap.colFollow) : {};
     reflectColReuse();
@@ -35278,6 +35285,9 @@ export function initLegacyApp() {
 
   // The calendar zoom this machine remembers, before the first render ("CALENDAR ZOOM").
   applyCalZoom();
+  // A new calendar reuses empty columns (owner, 2 Nov 2026). Before the restore, so a shareable copy or a
+  // recovered backup replaces it with its own `colReuse`, and absent means OFF there.
+  colReuse = true; reflectColReuse();
   restoreSavedState();
   refreshAfterRestore();
   pushScenarioChrome();   // the strip under the calendar (one tab, unless a shareable copy or backup brought more)
