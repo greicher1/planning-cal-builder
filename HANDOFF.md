@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged, NOT fully gated. Tracker card `swap-part-of-column`
+### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged. Full gate run: 4 timeouts, being rerun. Tracker card `swap-part-of-column`
 
 - **The report** (owner): *"for swapping a portion of a collumn (such as 3 cells only while all the others have been
   extended) the little blue arrow only pops up when you drag the cursor across to the cells in the collumn next to it.
@@ -37,8 +37,15 @@
   - `npm run check` 40/40.
   - In the pane with real clicks: the knob shows with only Post's cells selected, swaps the four weeks and swaps back,
     and the widened weeks never move. Swap Column on Prod Prep shows the knob.
-- **NOT done:** the full gate. Two other sessions' gates were running or queued, and two gates at once stall each other.
-  Run it before merging.
+- **Full gate** (owner: *"Yes, run the gate"*), on `dist` sha256 `f8f3d5a6…`. It was queued behind two other sessions'
+  gates and ran 18:11–19:56: **3,461 PASS, 4 FAIL.** Every swap leg passed, `colswappartial` included. The four
+  failures are all timeouts. Load rose from 7 at the start to about 50 by the end, as another session's gate started:
+  - `papersize` and `scenarios` produced no result;
+  - `mvhdroff` timed out waiting for the loaded calendar (10 s of real time), so its E0 check failed;
+  - `wfkeysreal` hit its 300 s deadline after R1 and R2 had passed.
+  None of them goes near the swap code.
+- **NOT done:** the rerun of those four on a quiet machine, alone. It is queued behind the other session's gate
+  (scratchpad `recheck4.sh`). Merge only once it is green.
 
 ### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
 
