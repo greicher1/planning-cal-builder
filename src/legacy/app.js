@@ -8691,11 +8691,15 @@ export function initLegacyApp() {
     list.appendChild(row);
   }
 
+  // A new calendar's winter breaks (the boot and New), all-phase and locked. Only NEW calendars read this list: a
+  // saved file carries its own rows in fields.hiatuses, so moving a date here never moves a saved calendar's break.
+  // 2029's was 12/24/29 until the owner set it to Mon 12/17/29 (2 Nov 2026), which ends Sun 12/30 so the crew is
+  // back on Mon 12/31.
   const DEFAULT_HIATUSES = [
     ['2026-12-21', 2],
     ['2027-12-20', 2],
     ['2028-12-18', 2],
-    ['2029-12-24', 2],
+    ['2029-12-17', 2],
   ];
   function addDefaultHiatuses(){
     document.getElementById('hiatus-list').innerHTML = '';

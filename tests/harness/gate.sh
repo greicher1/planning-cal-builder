@@ -1749,7 +1749,8 @@ done
 # those weeks (no new key, no id, fields.byId and a hiatus row's keys unchanged); one undo step; the colour follows
 # a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu's
 # Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
-# carry removed (C5-C8). Its own line.
+# carry removed (C5-C8). D0-D2 (2 Nov 2026) hold New's four default breaks, 2029's on 12/17/29, and that a file saved
+# with the old 12/24/29 Loads with it. Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;

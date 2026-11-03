@@ -9,7 +9,7 @@
 // colour follows the hiatus when its Starts or Weeks are retyped, and never recolours a week another hiatus shares.
 //
 // THE CALENDAR (synthetic: made-up dates, no region, so no holidays), with New's four default hiatuses
-// (12/21/26, 12/20/27, 12/18/28, 12/24/29, two weeks each):
+// (12/21/26, 12/20/27, 12/18/28, 12/17/29, two weeks each):
 //   prePrep    Pre Prep    Mon 11/2/26 x 10 weeks   (crosses the 12/21/26 hiatus)
 //   production             Mon 1/11/27, 4 episodes x 5 days
 window.__T.memoryIDB();
@@ -127,6 +127,22 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     var saveA = await save();
     var snapA = JSON.parse(saveA);
+
+    // D0-D2: New's four default breaks (DEFAULT_HIATUSES). Owner, 2 Nov 2026: 2029's is Mon 12/17/29, two weeks,
+    // locked, unnumbered; it was 12/24/29. Each row as [Starts, Weeks, Lock in place, Number weeks].
+    var BREAKS = [['2026-12-21', '2', true, false], ['2027-12-20', '2', true, false],
+                  ['2028-12-18', '2', true, false], ['2029-12-17', '2', true, false]];
+    function breaks() {
+      return rows().map(function (r) {
+        return [r.querySelector('.hiatus-start').value, r.querySelector('.hiatus-weeks').value,
+                r.querySelector('.hiatus-locked').checked, r.querySelector('.hiatus-num').checked];
+      });
+    }
+    await step('D0', async function () {
+      var saved = (snapA.fields.hiatuses || []).map(function (h) { return [h.start, String(h.weeks), h.locked === true, h.numbered === true]; });
+      kase('D0', 'a fresh calendar\'s four breaks are 12/21/26, 12/20/27, 12/18/28 and 12/17/29, two weeks each, locked, unnumbered, on the cards and in the file',
+           eq(breaks(), BREAKS) && eq(saved, BREAKS), { cards: breaks(), file: saved });
+    });
 
     await step('C1', async function () {
       var rs = rows(), ph = document.querySelector('#phase-rows > .phase-row');
@@ -259,10 +275,21 @@ window.addEventListener('load', function () { (async function () {
       $('new-file-btn').click();
       for (var i = 0; i < 30; i++) { await T.sleep(100); if (/Start a new blank calendar/.test(T.modalText())) { T.clickModalButton('Start new'); break; } }
       await settle();
-      var fresh = squares();
+      var fresh = squares(), freshBreaks = breaks();
       await load(text);
       kase('C10', 'New puts every square back to red; a Load of the saved file paints the first card purple again (and only it)',
            eq(fresh, [RED, RED, RED, RED]) && eq(squares(), [PURPLE, RED, RED, RED]), { afterNew: fresh, afterLoad: squares() });
+      kase('D1', 'New lays the same four breaks, 2029\'s on 12/17/29', eq(freshBreaks, BREAKS), { afterNew: freshBreaks });
+    });
+
+    await step('D2', async function () {
+      // A calendar saved before the change carries 12/24/29 in its own rows, and must open with it.
+      var old = saveA.split('"2029-12-17"').join('"2029-12-24"');
+      if (old === saveA) throw new Error('the fresh save has no 2029-12-17 row to age');
+      await load(old);
+      var want = BREAKS.slice(0, 3).concat([['2029-12-24', '2', true, false]]);
+      kase('D2', 'a file saved with 2029\'s old 12/24/29 break Loads with 12/24/29: the default never moves a saved calendar',
+           eq(breaks(), want), { cards: breaks() });
     });
 
     var errs = (T.appHealth().errors || []);
