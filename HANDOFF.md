@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*) (tracker card `note-kind-symbol`)
+### 🔨 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), MERGED and PUSHED with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an
   auto-note or a holiday that indicates its either an auto note or holiday and not a regular note"*. Rulings by picker:
@@ -45,8 +45,17 @@
   - **Gate on `689f05c` (17:02-17:35, run alongside another session's gate at the owner's word, "Run mine now"):
     3,565 PASS, 1 FAIL**, `offweek` R13's 10 s wait for a Load, 42/42 alone. Gate 13's 22 written month PDFs
     byte-identical, gate 10's 11 print documents identical, the waterfall PDF and every Excel part identical.
+  - `41145ab` (Reuse Empty Columns on for new calendars). **Gate (17:36-18:08): 3,510 PASS, 4 FAIL, all green alone**:
+    `colreuse` (live) stopped on a 20 s wait for the shareable copy, so its checks never ran (23/23 alone through the
+    gate's own judge), `pilllabel` dayoverrides-onhalf (29/29), `loadcarry` (6/6), `scenarios` S15 (22/22). Every
+    baseline identical again.
+  - `4a6582d` (2029's default winter break, 12/17/29). **No fourth full gate** (owner's picker, *"Fast-forward main
+    now"*): it adds six lines read only by a NEW calendar, gated in its own session; here `hiatuscolour` 14/14,
+    `wrapdate` 6/6, `autonoterename` 24/24, `npm run check` 40/40.
+- **Local `main` fast-forwarded to `4a6582d`'s HANDOFF commit and PUSHED** (owner's picker, *"Push after main
+  moves"*, whose option named what rides along: both features and `625c3ce`, another session's HANDOFF-only note).
 
-### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), NOT MERGED, NOT PUSHED (tracker card `rename-auto-notes`)
+### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), then MERGED into local `main` and PUSHED with the symbol (owner's pickers, *"Fast-forward main now"*, *"Push after main moves"*) (tracker card `rename-auto-notes`)
 
 - **The ask** (owner): auto notes open an editor labelled "Auto Note", as holidays now do, where the name can be
   changed without affecting the note's date or its moving with the schedule. Then: *"what happens if you delete the
