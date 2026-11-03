@@ -1795,6 +1795,11 @@ done
 # Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
 # moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
 # round trip saving byte for byte as before. Own line.
+# spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
+# of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
+# whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
+# a shoot day and the days added, each naming its days on hover, a zero greyed, an Off week left out of the weeks, the
+# same counts on Ends, a wrapped row with no leading hairline, and the old totals line hidden. Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1869,6 +1874,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               snapbox:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
+              spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \

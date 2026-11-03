@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Production's card shows its weeks and the shoot days it lost (2 Nov 2026)
+
+The owner: *"can we have three icons: one that says the number of production weeks, one that says the number of
+holidays costing a shoot day, and something that says the number of Off Days costing a shoot day"*. Five layouts were
+mocked (`mockups/production-span-stats.html`); the owner picked D, then ruled *"D replaces the whole line"* (the totals
+box's "16 off · 3 added — 102 days on the floor" line), then asked for *"the sum of these listed"*, *"net: lost minus
+added"*. Six ways to show the sum were mocked (`mockups/production-span-net.html`); the owner picked C, *"but I want it
+to dynamically hide the off days and added days part of the calculation if there are none"*, and *"if you hover over
+holidays, it should show you which ones"*.
+
+- **On the dashed line between Starts and Wraps: "17 weeks"**, the meta line's "→ 17 wk" (hiatus weeks and weeks
+  marked Off are not counted). When the line is too short for it, on a small window, it moves to its own row under the
+  dates.
+- **Under the dates, the shoot days lost as a sum:** "2 holidays + 2 Off days − 1 added = 3 shoot days lost". A count of
+  zero drops out, so a shoot with only holidays reads "2 holidays = 2 shoot days lost", and one with nothing reads "No
+  shoot days lost". More weekends worked than days lost reads "1 shoot day gained", in green.
+  - **Holidays** are the ones that cost the shoot a day; hover to see each by name and date.
+  - **Off days** are days marked Off that cost a shoot day; hover for their dates. An Off mark on a weekend or in a
+    hiatus costs nothing and is not counted. A holiday marked Off counts here.
+  - **Added** is weekend days worked; hover for their dates. A worked holiday is not added: it simply isn't lost, and
+    the total's hover names it.
+  - **The total is exactly how far the wrap moved** from a plain Monday-to-Friday shoot. Hover it for the sum.
+- **The totals box's line is gone from the card.** Its half-day count and "days on the floor" are no longer shown
+  (half-day marks only come from older files). The element is still written, hidden, because the halfworked, overrides
+  and mvmenu legs read the walk's numbers from it.
+
+How: the production walk (`simulateProductionSchedule`) now returns `offsHit`, `addedDays` and `holidaysWorked` beside
+`holidaysHit`, and `productionInfo` carries them; `prodSpanParts()` draws the weeks and the sum inside `.prod-span`,
+from `reflectProductionEnds()`, and `fitProdSpanWeeks()` moves the weeks off the line when it is too short. No id,
+nothing saved, no frozen code. The walk's dates are unchanged.
+
+Verified: new leg `spancounts`, 8/8 on the build: holidays only, marks Loaded from a file (Off days, a worked Saturday,
+a worked holiday), an Off week, days gained, Region None, Ends, a narrow sidebar, no console errors. Every case's wrap
+is a plain Monday-to-Friday wrap moved by its total. Neighbours green on the build: prodends, overrides, halfworked and
+mvmenu (the three that read the hidden line), snaptools, halfdays, halfmarks, prodspan, endsdate, snapbox, phasefold,
+offweek live; offweek on its fixture timed out on a Load poll under heavy machine load (42/42 on the round-1 build).
+`npm run check` 40/40. No full gate: no writer, no save path and no frozen code reads the three new lists.
+
 ### Unreleased — 2029's default winter hiatus starts Mon 12/17/29 (2 Nov 2026)
 
 The owner, with a screenshot of the card set the way they want it: *"this should replace the default all phase hiatus

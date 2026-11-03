@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoot Span Counts</title>
+<!-- MOCKUP, not the app. Three counts on Production's shoot span (the STARTS / WRAPS pills built 2 Nov 2026 from
+     mockups/production-start-readout.html option B). Owner, 2 Nov 2026: "Either in the middle of the dashed line or
+     somewhere below, can we have three icons: one that says the number of production weeks, one that says the number
+     of holidays costing a shoot day, and something that says the number of Off Days costing a shoot day. Mock up
+     differnt versions". Five versions, A-E. The card copies the live one (legacy.css .phase-row, .prod-span).
+     The calendar is made up: a 100-day shoot from Mon 1/11/27 on the U.S. Area Standards holidays (the app's own
+     2027 list), with two days marked Off. The counts follow the production walk's own rules (simulateProductionSchedule):
+     a holiday costs a day only on a weekday the shoot would otherwise have worked (holidaysHit); an Off day costs one
+     only on such a weekday too. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-0:#EAEEF2; --navy-2:#B4BFC9; --navy-5:#4A6479; --navy-6:#2C3E50;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6;
+  --prod:#E2F0D9; --prod-text:#375623; --prod-tint:#EFF7EA; --prod-line:#A9D08E;
+  --hol:#9A5B13; --hol-bg:#FBF1E2; --hol-line:#E8C48F;
+  --off:#5A5750; --off-bg:#EEECE5; --off-line:#C4C1B6;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+[hidden]{ display:none !important; }
+
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:760px; }
+.try{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; background:#fff; border:1px solid var(--gray-2); border-radius:12px;
+      padding:10px 14px; margin:14px 0 18px; font-size:13px; }
+.try b{ font-weight:600; }
+.btn{ border:1px solid var(--gray-4); background:#fff; border-radius:var(--r-md); padding:4px 10px; font-size:12.5px; cursor:pointer; }
+.btn:hover{ background:var(--gray-0); }
+.btn.on{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+
+.grid{ display:grid; grid-template-columns:repeat(auto-fill, 360px); justify-content:center; gap:22px 20px; }
+@media (max-width:760px){ .grid{ grid-template-columns:minmax(0, 360px); } }
+.col-head{ font-size:12.5px; color:var(--gray-7); margin:0 0 8px; min-height:56px; }
+.col-head b{ color:var(--gray-9); font-weight:700; }
+.col-head .tag{ display:inline-block; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--gray-6); background:#fff; border:1px solid var(--gray-3); border-radius:999px; padding:0 7px; margin-left:4px; vertical-align:1px; }
+
+/* ---------- The phase card (legacy.css .phase-row, as measured) ---------- */
+.side{ background:var(--gray-0); border:1px solid var(--gray-3); border-radius:12px; padding:12px; }
+.card{ background:#fff; border:1px solid var(--gray-2); border-radius:var(--r-lg); overflow:visible; }
+.card-head{ display:flex; align-items:flex-start; gap:6px; padding:6px 8px; background:var(--prod-tint); border-radius:var(--r-lg) var(--r-lg) 0 0; }
+.chev{ width:16px; height:21px; display:grid; place-items:center; color:var(--gray-7); flex:none; }
+.chev svg{ width:12px; height:12px; }
+.swatch{ width:16px; height:16px; border-radius:3px; flex:none; margin:2.5px 2px 0 0; background:var(--prod); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); }
+.nm{ font-weight:600; font-size:14px; line-height:21px; padding:0 4px; }
+.meta{ font-size:11px; line-height:14.85px; color:rgba(30,29,27,.75); padding:0 5px; }
+.card-body{ padding:8px 12px 10px; }
+.cap{ font-size:11px; font-weight:500; color:var(--navy-5); line-height:16.5px; margin-bottom:3px; display:flex; align-items:center; gap:3px; }
+.cap svg{ width:11px; height:11px; }
+.box{ width:100%; height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); padding:0 8px; font-size:12px; font-weight:500;
+      color:var(--gray-9); background:#fff; display:flex; align-items:center; }
+.autostart{ border:0; background:none; padding:1px 0; font-size:11px; color:var(--navy-5); margin:8px 0 0; display:block; }
+
+/* The span (legacy.css .prod-span): Starts on the left, Wraps on the right; the end that holds is solid. */
+.span{ margin-top:8px; display:grid; grid-template-columns:auto 1fr auto; align-items:end; gap:6px; }
+.end{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
+.end-k{ font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--gray-6); }
+.end-d{ font-size:11.5px; font-weight:600; padding:2px 8px; border-radius:999px; margin-top:3px; white-space:nowrap;
+        border:1px dashed var(--prod-text); color:var(--prod-text); background:#fff; }
+.end.held .end-d{ border-style:solid; background:var(--prod-text); color:#fff; }
+.line{ height:2px; margin-bottom:10px; background:repeating-linear-gradient(90deg, var(--prod-line) 0 5px, transparent 5px 8px); }
+.mid{ position:relative; align-self:stretch; display:flex; align-items:flex-end; min-width:0; }
+.mid .line{ flex:1; }
+
+/* Shared: an icon, and the hover card that lists what a count is made of */
+.ic{ width:12px; height:12px; flex:none; }
+.has-tip{ position:relative; cursor:default; outline:none; }
+.tip{ position:absolute; z-index:5; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); width:max-content; max-width:270px;
+  background:var(--gray-9); color:#fff; border-radius:8px; padding:7px 10px 8px; font-size:11px; font-weight:400; line-height:1.45;
+  text-align:left; letter-spacing:0; text-transform:none; box-shadow:0 6px 18px rgba(0,0,0,.18); pointer-events:none;
+  opacity:0; transition:opacity .12s; white-space:normal; }
+.tip::after{ content:''; position:absolute; left:50%; top:100%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--gray-9); }
+.tip b{ font-weight:600; display:block; margin-bottom:2px; }
+.tip .r{ display:flex; justify-content:space-between; gap:12px; color:rgba(255,255,255,.82); }
+.tip .r span:last-child{ font-variant-numeric:tabular-nums; color:#fff; white-space:nowrap; }
+.tip .none{ color:rgba(255,255,255,.7); }
+.has-tip:hover .tip, .has-tip:focus-visible .tip{ opacity:1; }
+
+/* ---------- A: three icon chips ON the line ---------- */
+.a-chips{ position:absolute; left:0; right:0; bottom:3px; display:flex; justify-content:center; gap:4px; }
+.a-chip{ display:inline-flex; align-items:center; gap:3px; height:20px; padding:0 6px 0 5px; border-radius:999px; background:#fff;
+  border:1px solid var(--gray-3); font-size:11px; font-weight:600; color:var(--gray-7); font-variant-numeric:tabular-nums; }
+.a-chip.wk{ border-color:var(--prod-line); color:var(--prod-text); }
+.a-chip.hol{ border-color:var(--hol-line); color:var(--hol); }
+.a-chip.zero{ color:var(--gray-5); border-color:var(--gray-2); }
+
+/* ---------- B: weeks ON the line, the two costs as a line below ---------- */
+.b-wk{ position:absolute; left:50%; bottom:2px; transform:translateX(-50%); display:inline-flex; align-items:center; gap:4px;
+  background:var(--prod-tint); border:1px solid var(--prod-line); color:var(--prod-text); border-radius:999px; height:20px; padding:0 8px;
+  font-size:11px; font-weight:600; white-space:nowrap; }
+.b-costs{ display:flex; justify-content:center; gap:14px; margin-top:7px; font-size:11px; color:var(--gray-7); }
+.b-cost{ display:inline-flex; align-items:center; gap:4px; }
+.b-cost strong{ font-weight:700; color:var(--gray-9); font-variant-numeric:tabular-nums; }
+.b-cost.hol .ic{ color:var(--hol); }
+.b-cost.off .ic{ color:var(--gray-6); }
+.b-cost.zero, .b-cost.zero strong{ color:var(--gray-5); }
+
+/* ---------- C: three tiles below ---------- */
+.c-tiles{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-top:10px; }
+.c-tile{ border:1px solid var(--gray-2); border-radius:8px; padding:6px 8px 6px; background:#fff; display:flex; flex-direction:column; gap:1px; }
+.c-top{ display:flex; align-items:center; justify-content:space-between; }
+.c-num{ font-size:17px; font-weight:700; line-height:1.15; font-variant-numeric:tabular-nums; }
+.c-lbl{ font-size:10px; color:var(--gray-6); line-height:1.25; }
+.c-tile.wk{ background:var(--prod-tint); border-color:color-mix(in srgb, var(--prod-line) 55%, transparent); }
+.c-tile.wk .c-num, .c-tile.wk .ic{ color:var(--prod-text); }
+.c-tile.hol .ic{ color:var(--hol); }
+.c-tile.off .ic{ color:var(--gray-6); }
+.c-tile.zero .c-num{ color:var(--gray-5); }
+
+/* ---------- D: one quiet line below ---------- */
+.d-line{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 0; margin-top:7px; font-size:11px; color:var(--gray-6); }
+.d-item{ display:inline-flex; align-items:center; gap:4px; padding:0 9px; }
+.d-item + .d-item{ border-left:1px solid var(--gray-3); }
+.d-item strong{ color:var(--gray-9); font-weight:600; font-variant-numeric:tabular-nums; }
+.d-item.zero strong{ color:var(--gray-5); }
+
+/* ---------- E: the line becomes a little timeline ---------- */
+.e-track{ position:absolute; left:0; right:0; bottom:5px; height:12px; }
+.e-mark{ position:absolute; bottom:0; width:12px; height:12px; margin-left:-6px; display:grid; place-items:center; border-radius:50%; }
+.e-mark i{ display:block; width:8px; height:8px; border-radius:50%; }
+.e-mark.hol i{ background:var(--hol); box-shadow:0 0 0 2px #fff; }
+.e-mark.off i{ background:#fff; box-shadow:inset 0 0 0 1.5px var(--gray-6), 0 0 0 2px #fff; }
+.e-mark:hover i{ transform:scale(1.3); }
+.e-wk{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); font-size:10px; font-weight:600; color:var(--prod-text); letter-spacing:.02em; white-space:nowrap; }
+.e-legend{ display:flex; justify-content:center; gap:14px; margin-top:6px; font-size:11px; color:var(--gray-7); }
+.e-key{ display:inline-flex; align-items:center; gap:5px; }
+.e-key i{ width:8px; height:8px; border-radius:50%; flex:none; }
+.e-key.hol i{ background:var(--hol); }
+.e-key.off i{ border:1.5px solid var(--gray-6); }
+.e-key strong{ font-weight:700; color:var(--gray-9); font-variant-numeric:tabular-nums; }
+.e-key.zero, .e-key.zero strong{ color:var(--gray-5); }
+
+/* The rest of the card, for scale */
+.ptr{ border:1px solid var(--gray-3); border-radius:var(--r-lg); margin:12px 0 2px; overflow:hidden; background:#fff; }
+.ptr-top{ padding:8px 12px 7px; }
+.ptr-label{ font-size:10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--gray-6); }
+.ptr-value{ display:flex; align-items:baseline; gap:6px; }
+.ptr-value strong{ font-size:26px; font-weight:700; line-height:1.1; }
+.ptr-unit{ font-size:12px; color:var(--gray-6); }
+.ptr-badge{ margin-left:auto; align-self:center; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+            background:var(--gray-2); border-radius:999px; padding:2px 8px; }
+
+.notes{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:24px; font-size:12.5px; color:var(--gray-7); max-width:900px; margin-left:auto; margin-right:auto; }
+.notes h2{ font-size:14px; margin:0 0 6px; color:var(--gray-9); }
+.notes ul{ margin:0; padding-left:18px; }
+.notes li{ margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Production: weeks, holidays and Off days on the shoot span</h1>
+  <p class="lede">Mock-up, not the app. Five ways to show three counts with the Starts and Wraps pills: the shoot's weeks,
+    the holidays that cost it a shoot day, and the Off days that cost it one. Hover any count to see what it's made of.</p>
+
+  <div class="try">
+    <b>Try it:</b>
+    <button class="btn" id="long" type="button">Longer shoot (145 days)</button>
+    <button class="btn" id="nooff" type="button">No Off days</button>
+    <button class="btn" id="ends" type="button">Ends mode</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="notes">
+    <h2>About this mock-up (not part of the design)</h2>
+    <ul>
+      <li><b>What counts.</b> A holiday counts only on a weekday the shoot would otherwise have worked, so a weekend holiday,
+        one inside a hiatus, one marked Off, or one you're working doesn't count. An Off day counts only on a weekday the
+        shoot would otherwise have worked too. The app already keeps the holiday list (the Holidays list's
+        "costs a shoot day" flag reads it). The Off-day count would follow the same rule.</li>
+      <li><b>Weeks</b> is the same number as the "→ 22 wk" in the card's top line. If one of these goes in, that line could
+        drop it.</li>
+      <li><b>A zero.</b> A count of zero stays, in grey, so the three keep their places. Try "No Off days".</li>
+      <li><b>The made-up calendar:</b> a 100-day shoot from Mon 1/11/27 on the U.S. Area Standards holidays, with Fri 2/12/27
+        and Mon 4/19/27 marked Off. The longer shoot is 145 days.</li>
+      <li>Only the date, the span and the top of the totals box are drawn. The rest of the card sits below as it does now.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DAY = 86400000;
+  const U = (y, m, d) => Date.UTC(y, m - 1, d);
+  const dow = t => new Date(t).getUTCDay();
+  const iso = t => new Date(t).toISOString().slice(0, 10);
+  const mondayOf = t => t - ((dow(t) + 6) % 7) * DAY;
+  const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const fmtShort = t => { const d = new Date(t); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${String(d.getUTCFullYear()).slice(2)}`; };
+  const fmtLong = t => `${DN[dow(t)]} ${fmtShort(t)}`;
+  const pad = n => String(n).padStart(2, '0');
+  const fmtBox = t => { const d = new Date(t); return `${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}/${d.getUTCFullYear()}`; };
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  // The app's own 2027 list for U.S. Area Standards (HOLIDAYS['US-GEN']).
+  const HOL = {
+    '2027-01-01':"New Year's Day", '2027-01-18':'Martin Luther King Jr. Day', '2027-02-15':"Presidents' Day",
+    '2027-03-26':'Good Friday', '2027-05-31':'Memorial Day', '2027-06-18':'Juneteenth (Observed)', '2027-06-19':'Juneteenth',
+    '2027-07-04':'Independence Day', '2027-07-05':'Independence Day (Observed)', '2027-09-06':'Labor Day',
+    '2027-11-25':'Thanksgiving', '2027-11-26':'Day After Thanksgiving'
+  };
+  const START = U(2027, 1, 11);
+  const OFF = ['2027-02-12', '2027-04-19'];
+  const st = { days: 100, off: true, ends: false };
+
+  // The walk, as simulateProductionSchedule() does it: weekdays, minus holidays, minus days marked Off.
+  function shoot(){
+    const off = new Set(st.off ? OFF : []);
+    const hols = [], offs = [];
+    let t = START, n = 0, first = null, last = null;
+    while(n < st.days){
+      const d = dow(t), wk = d >= 1 && d <= 5, k = iso(t);
+      if(wk && off.has(k)) offs.push(t);
+      else if(wk && HOL[k]) hols.push({ t, name: HOL[k] });
+      else if(wk){ n++; if(!first) first = t; last = t; }
+      t += DAY;
+    }
+    const weeks = Math.round((mondayOf(last) - mondayOf(first)) / (7 * DAY)) + 1;
+    return { first, last, weeks, hols, offs };
+  }
+
+  const svg = (d, extra) => `<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}${extra || ''}</svg>`;
+  // Same family as src/chrome/icons.jsx: 16 viewBox, stroke 1.6, round caps.
+  const IC = {
+    wk: svg('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4"/>'),
+    hol: svg('<path d="M3.5 14.5V2"/><path d="M3.5 2.5h8.5l-2 2.75 2 2.75H3.5"/>'),
+    off: svg('<circle cx="8" cy="8" r="5.75"/><path d="M4 12 12 4"/>')
+  };
+  const CHEV = '<span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>';
+
+  // What each count's hover card says.
+  function tipWeeks(s){ return `<span class="tip" role="tooltip"><b>${s.weeks} production weeks</b>The week of ${fmtShort(mondayOf(s.first))} to the week of ${fmtShort(mondayOf(s.last))}.</span>`; }
+  function tipList(title, rows, none){
+    return `<span class="tip" role="tooltip"><b>${title}</b>${rows.length ? rows.map(r => `<span class="r"><span>${esc(r[0])}</span><span>${r[1]}</span></span>`).join('') : `<span class="none">${none}</span>`}</span>`;
+  }
+  const tipHol = s => tipList(`${s.hols.length} holiday${s.hols.length === 1 ? '' : 's'} cost a shoot day`, s.hols.map(h => [h.name, fmtLong(h.t)]), 'None of this shoot\'s holidays fall on a day it would have shot.');
+  const tipOff = s => tipList(`${s.offs.length} Off day${s.offs.length === 1 ? '' : 's'} cost a shoot day`, s.offs.map(t => ['Marked Off', fmtLong(t)]), 'No day in the shoot is marked Off.');
+  const z = n => n ? '' : ' zero';
+  const plural = (n, one, many) => n === 1 ? one : many;
+
+  function ends(s, midHtml){
+    return `<div class="span">
+      <div class="end${st.ends ? '' : ' held'}"><span class="end-k">Starts</span><span class="end-d">${fmtLong(s.first)}</span></div>
+      <div class="mid"><div class="line"></div>${midHtml || ''}</div>
+      <div class="end${st.ends ? ' held' : ''}"><span class="end-k">Wraps</span><span class="end-d">${fmtLong(s.last)}</span></div>
+    </div>`;
+  }
+
+  const VERSIONS = [
+    { id:'A', where:'On the line', name:'Three icon chips',
+      blurb:'Icon and number only, sitting on the dashed line. The smallest footprint, but the words are only in the hover card.',
+      mid: s => `<div class="a-chips">
+          <span class="a-chip wk has-tip" tabindex="0">${IC.wk}${s.weeks}${tipWeeks(s)}</span>
+          <span class="a-chip hol has-tip${z(s.hols.length)}" tabindex="0">${IC.hol}${s.hols.length}${tipHol(s)}</span>
+          <span class="a-chip off has-tip${z(s.offs.length)}" tabindex="0">${IC.off}${s.offs.length}${tipOff(s)}</span>
+        </div>`,
+      below: () => '' },
+    { id:'B', where:'On the line + below', name:'Weeks on the line, costs under it',
+      blurb:'The span\'s length sits on the line it measures. What cost the shoot days reads as words on one line underneath.',
+      mid: s => `<span class="b-wk has-tip" tabindex="0">${IC.wk}${s.weeks} weeks${tipWeeks(s)}</span>`,
+      below: s => `<div class="b-costs">
+          <span class="b-cost hol has-tip${z(s.hols.length)}" tabindex="0">${IC.hol}<strong>${s.hols.length}</strong> ${plural(s.hols.length, 'holiday', 'holidays')}${tipHol(s)}</span>
+          <span class="b-cost off has-tip${z(s.offs.length)}" tabindex="0">${IC.off}<strong>${s.offs.length}</strong> Off ${plural(s.offs.length, 'day', 'days')}${tipOff(s)}</span>
+        </div>` },
+    { id:'C', where:'Below', name:'Three tiles',
+      blurb:'Three small boxes under the span, number first. The easiest to read at a glance, and the tallest (about 46 px).',
+      mid: () => '',
+      below: s => `<div class="c-tiles">
+          <div class="c-tile wk has-tip" tabindex="0"><div class="c-top"><span class="c-num">${s.weeks}</span>${IC.wk}</div><span class="c-lbl">Production weeks</span>${tipWeeks(s)}</div>
+          <div class="c-tile hol has-tip${z(s.hols.length)}" tabindex="0"><div class="c-top"><span class="c-num">${s.hols.length}</span>${IC.hol}</div><span class="c-lbl">${plural(s.hols.length, 'Holiday', 'Holidays')} cost a day</span>${tipHol(s)}</div>
+          <div class="c-tile off has-tip${z(s.offs.length)}" tabindex="0"><div class="c-top"><span class="c-num">${s.offs.length}</span>${IC.off}</div><span class="c-lbl">Off ${plural(s.offs.length, 'day', 'days')} cost a day</span>${tipOff(s)}</div>
+        </div>` },
+    { id:'D', where:'Below', name:'One quiet line',
+      blurb:'Icon, number and word, split by hairlines, in the card\'s small grey type. Adds one line of height.',
+      mid: () => '',
+      below: s => `<div class="d-line">
+          <span class="d-item has-tip" tabindex="0">${IC.wk}<strong>${s.weeks}</strong> weeks${tipWeeks(s)}</span>
+          <span class="d-item has-tip${z(s.hols.length)}" tabindex="0">${IC.hol}<strong>${s.hols.length}</strong> ${plural(s.hols.length, 'holiday', 'holidays')}${tipHol(s)}</span>
+          <span class="d-item has-tip${z(s.offs.length)}" tabindex="0">${IC.off}<strong>${s.offs.length}</strong> Off ${plural(s.offs.length, 'day', 'days')}${tipOff(s)}</span>
+        </div>` },
+    { id:'E', where:'On the line + below', name:'The line as a timeline',
+      blurb:'Each lost day is a dot on the line at its date, so you see where it falls; hover a dot for its name. A key underneath gives the counts.',
+      mid: s => {
+        const span = s.last - s.first || 1;
+        const at = t => Math.max(2, Math.min(98, (t - s.first) / span * 100));
+        const dots = s.hols.map(h => `<span class="e-mark hol has-tip" tabindex="0" style="left:${at(h.t)}%"><i></i><span class="tip" role="tooltip"><b>${esc(h.name)}</b>${fmtLong(h.t)}: costs a shoot day.</span></span>`)
+          .concat(s.offs.map(t => `<span class="e-mark off has-tip" tabindex="0" style="left:${at(t)}%"><i></i><span class="tip" role="tooltip"><b>Marked Off</b>${fmtLong(t)}: costs a shoot day.</span></span>`));
+        return `<span class="e-wk">${s.weeks} weeks</span><div class="e-track">${dots.join('')}</div>`;
+      },
+      below: s => `<div class="e-legend">
+          <span class="e-key hol has-tip${z(s.hols.length)}" tabindex="0"><i></i><strong>${s.hols.length}</strong> ${plural(s.hols.length, 'holiday', 'holidays')}${tipHol(s)}</span>
+          <span class="e-key off has-tip${z(s.offs.length)}" tabindex="0"><i></i><strong>${s.offs.length}</strong> Off ${plural(s.offs.length, 'day', 'days')}${tipOff(s)}</span>
+        </div>` }
+  ];
+
+  const grid = document.getElementById('grid');
+  function render(){
+    const s = shoot();
+    grid.innerHTML = VERSIONS.map(v => `<div>
+      <p class="col-head"><b>${v.id}. ${v.name}</b><span class="tag">${v.where}</span><br>${v.blurb}</p>
+      <div class="side"><div class="card">
+        <div class="card-head">${CHEV}<span class="swatch"></span><div><div class="nm">Production</div>
+          <div class="meta">${st.days} shoot days → ${s.weeks} wk · ${fmtShort(s.first)} → ${fmtShort(s.last)}</div></div></div>
+        <div class="card-body">
+          <div class="cap">${st.ends ? 'Ends' : 'Starts'} <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></div>
+          <div class="box">${fmtBox(st.ends ? s.last : START)}</div>
+          ${ends(s, v.mid(s))}
+          ${v.below(s)}
+          ${st.ends ? '' : '<span class="autostart">↳ Start after Prod Prep</span>'}
+          <div class="ptr"><div class="ptr-top"><div class="ptr-label">Total shooting days</div>
+            <div class="ptr-value"><strong>${st.days}</strong><span class="ptr-unit">days</span><span class="ptr-badge">${st.days === 100 ? 20 : 29} episodes</span></div></div></div>
+        </div>
+      </div></div>
+    </div>`).join('');
+    document.getElementById('long').classList.toggle('on', st.days !== 100);
+    document.getElementById('nooff').classList.toggle('on', !st.off);
+    document.getElementById('ends').classList.toggle('on', st.ends);
+  }
+  document.getElementById('long').addEventListener('click', () => { st.days = st.days === 100 ? 145 : 100; render(); });
+  document.getElementById('nooff').addEventListener('click', () => { st.off = !st.off; render(); });
+  document.getElementById('ends').addEventListener('click', () => { st.ends = !st.ends; render(); });
+  render();
+})();
+</script>
+</body>
+</html>

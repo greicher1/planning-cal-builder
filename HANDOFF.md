@@ -4,6 +4,73 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 2 Nov 2026: PRODUCTION'S CARD SHOWS ITS WEEKS AND THE SHOOT DAYS IT LOST (VERSION C, A NET SUM) — BUILT on branch `span-counts` (worktree `.claude/worktrees/span-counts`, from `main` at `ba3a745`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); NOT committed, NOT gated in full; ⚠️ `main` has moved on since (`e1ed962`, pushed), so merge it in before committing to `main`. Mockups [`mockups/production-span-stats.html`](mockups/production-span-stats.html) (round 1, moved here from the main checkout, where it was untracked) and [`mockups/production-span-net.html`](mockups/production-span-net.html) (round 2). Tracker card `production-span-counts`
+
+- **The asks, in order** (owner, 2 Nov 2026):
+  1. *"Either in the middle of the dashed line or somewhere below, can we have three icons: one that says the number of
+     production weeks, one that says the number of holidays costing a shoot day, and something that says the number of
+     Off Days costing a shoot day. Mock up differnt versions"*. Five mocked (A-E); *"Lets go with D"* (one quiet line).
+  2. Asked how D and the totals box's "16 off · 3 added — 102 days on the floor for 102 of 102" line share the card:
+     *"D replaces the whole line"*, with a fourth count for the days added. D was built.
+  3. *"I think it needs to be more clear how many total days are "off" whether that be a holiday, off day, or added day
+     - we need the sum of these listed"*; asked how added goes in: *"net: lost minus added but mock up a few better
+     ways we could visualize it in the design"*. Six mocked in round 2 (A total at the line's end, B a pill under it,
+     C the counts as a sum, D a ledger, E a tile per day, F the total first).
+  4. *"Lets go with C but I want it to dynamically hide the off days and added days part of the calculation if there
+     are none. If its just holidays being factored in, we can have a cleaner view. Show both"*, and *"And if you hover
+     over holidays, it should show you which ones"*. C was built, and both views were shown as screenshots.
+- **What is built (C):**
+  - **On the dashed line, "▦ 17 weeks"**: Production's `seg.weeks`, the meta line's "→ N wk" (no hiatus or Off weeks).
+    `.prod-span-mid` wraps the line and the label; when the line is too short, `fitProdSpanWeeks()` sets
+    `.weeks-under` (label `visibility:hidden`, so it can still be measured) and shows `.prod-span-weeksrow`, a row of
+    its own under the dates.
+  - **Under the dates, the sum**: "⚑ 2 holidays + ⊘ 2 Off days − ⊕ 1 added = 3 shoot days lost". A count of zero is
+    left OUT of the markup, holidays included (one rule for all three): holidays only reads "2 holidays = 2 shoot days
+    lost"; nothing reads just "No shoot days lost" (grey, no "="); a negative net reads "1 shoot day gained" (green).
+    Each operator rides inside the count after it, so a wrapped row never starts with a bare sign.
+  - **Hover**: holidays list each by name and date; Off days and added days list their dates; the total says how far
+    the wrap moved and names any WORKED holiday ("Worked, so not lost"). Native `title=`, as the span's pills use.
+  - `prodSpanParts()` (replaced D's `prodSpanStatsHtml()`) returns `{weeks, sum}`; both are in the span's signature.
+    `PROD_STAT_ICONS` is `src/chrome/icons.jsx`'s family. Colours: the total in the theme's warn pair (warn-0 / warn-9),
+    gained `#3F7A2A` on `#E6F2DF`, the flag `#B26A16`, the plus green.
+  - **The walk** (`simulateProductionSchedule`) returns `offsHit` (a day marked Off on a weekday outside a hiatus, a
+    holiday included, since `holidaysHit` leaves a holiday marked Off out), `addedDays` (a WEEKEND day forced on:
+    `forced && !isWeekday`) and `holidaysWorked` (`forced && isWeekday && holiday`). `productionInfo` carries all
+    three. Nothing else reads them; the walk's dates are unchanged.
+  - ⛔ **"Added" is weekends only, on purpose.** D's first build counted a worked holiday as added too
+    (`forced && !natural`). But `holidaysHit` already leaves a worked holiday out, so the net subtracted it twice: on
+    the M1 marks it read 2 − 2 = 0 while the wrap moved one shoot day. With weekends only, holidays + Off days − added
+    is EXACTLY how many shoot days the wrap moved from a plain Monday-to-Friday shoot, and `spancounts` checks that on
+    every case (each wrap is Fri 10/16/26 moved by its net). Half days are not in the sum (only older files hold them).
+  - **`#prod-ov-note` is HIDDEN, not removed** (`hidden` in the markup). `refreshOverrideNote()` still writes it,
+    because `halfworked`, `overrides` and `mvmenu` read the walk's halves and days on the floor from it. Its "off"
+    counts every Off mark in the shot range, and its "added" every 'on' in the shoot, so both can differ from the sum.
+- ⚠️ **The sidebar's width follows the window**, measured: the span is 221 px at a 961 px window, 227 at 1100, 274 at
+  1280, 287 at 1440, 344 at 1680, 381 at 1920. At 1440 the weeks still fit on the line and the full sum wraps "= 3
+  shoot days lost" onto a second row; at 1920 it is one row.
+- ⚠️ **ResizeObserver, two lessons.** (1) Observing the SPAN raised "ResizeObserver loop completed with undelivered
+  notifications" as a console error (`spancounts` E0 caught it): moving the weeks to their own row changes the span's
+  height, which re-fired the observer in the same frame. It observes `.prod-span-mid` now, whose box keeps its size
+  either way. (2) In the harness a bare probe observer saw 0 callbacks while the leg ran (`hdrfit`'s comment says a
+  short sleep is enough; not what was measured here), though Chrome evidently ran the span's observer at some point,
+  since it reported that loop. So `spancounts` N1 proves the fit through a redraw at a narrow width, and the observer
+  path (a live window resize moving the weeks) is NOT proved by any leg. The browser pane could not open the build
+  (five preview servers already taken by other chats; a `file://` URL refused), so it is not proved in a browser.
+- **Proof:** `spancounts` 8/8 on the build (in `gate.sh` after `prodends`, budget 300): C1 holidays only, the weeks on
+  the line, the holidays named on hover, no id, the old line hidden; M1 marks Loaded from a file ("2 Off days − 1 added
+  = 1 shoot day lost", the worked holiday named on the total, wrap Mon 10/19/26); W1 an Off week (weeks unchanged, wrap
+  Tue 10/27/26); G1 three Saturdays worked ("2 holidays − 3 added = 1 shoot day gained", wrap Thu 10/15/26); Z1 Region
+  None ("No shoot days lost"); E1 Ends the same; N1 a 210 px span moves the weeks to their own row; E0. Neighbours on
+  the final build: prodends 14/14, overrides 20/20, halfworked 24/24, snaptools 14/14, halfdays 27/27, halfmarks 5/5,
+  endsdate 17/17, snapbox 12/12, phasefold 11/11, offweek 5/5 live, and (rerun alone) mvmenu 81/81, prodspan 8/8.
+  ⚠️ `offweek (offweek)` timed out twice on C's build on a Load poll ("the loaded file's name in the file menu", R9
+  then R7), at load averages of 124-126 with other sessions' gates running; 42/42 on D's build, and nothing here
+  touches Load (the same poll timed out in the 2 Nov full gate above, R13, green alone). Rerun it when the machine is
+  quiet. `npm run check` 40/40 on C's build. Screenshots in headless Chrome at 1920 and 1440 px windows.
+- **Open:** commit and push need the owner's picker (asked once, unanswered: the net-total message came instead). A
+  full gate is not run (nothing in any writer, the save path or frozen code reads the three new lists). Whether the
+  meta line should drop its "→ N wk" now that the weeks sit on the span is unasked.
+
 ### ✅ 2 Nov 2026: 2029'S DEFAULT WINTER HIATUS IS MON 12/17/29 — committed on `main` (owner's picker: "Commit", "Push now")
 
 - **The ask** (owner, with a screenshot of an all-phase card at Starts 12/17/2029, Weeks 2, Lock in place on, Number

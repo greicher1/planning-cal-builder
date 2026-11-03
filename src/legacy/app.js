@@ -4687,6 +4687,17 @@ export function initLegacyApp() {
       // later. The header and the grid note both need this rather than the entered date.
       let firstShootDay = null;
       const holidaysHit = [];
+      // The days marked Off that COST a shoot day, the WEEKEND days worked, and the holidays worked: this walk's own
+      // verdicts, as holidaysHit is, for the sum under Production's span (prodSpanParts): holidays + Off days - added
+      // is exactly how many shoot days the wrap moved from a plain Monday-to-Friday shoot (owner, 2 Nov 2026, "net:
+      // lost minus added"). So:
+      //   - an Off mark on a weekend or a hiatus day costs nothing, and is not counted;
+      //   - a holiday marked Off is counted HERE: holidaysHit leaves it out (below), so without it the day would be in
+      //     neither count. Every weekday the walk skips outside a hiatus is in exactly one of the two;
+      //   - ⛔ a worked HOLIDAY is not "added": holidaysHit already leaves it out, so counting it as added too would
+      //     subtract it twice. It is a weekday, simply not lost. holidaysWorked names it, for the hover;
+      //   - an 'on' on a day the calendar shoots anyway adds nothing.
+      const offsHit = [], addedDays = [], holidaysWorked = [];
       const shootDays = [];   // the actual working days Production shoots (for the month view)
       // The shoot days that counted HALF -- this function's own verdict, so nothing downstream keeps
       // a second copy of the rule (the sidebar's count and the month view's ½ marks both read it).
@@ -4725,6 +4736,7 @@ export function initLegacyApp() {
         if(!skipped && !inHiatus && isWeekday && holiday && !forced){
           holidaysHit.push({date:current, name:holiday.name});
         }
+        if(skipped && !inHiatus && isWeekday) offsHit.push(iso);
         const natural = isWeekday && !holiday;     // a day the calendar shoots with no override
         const shoots = !skipped && !inHiatus && (forced || natural);
         if(shoots){
@@ -4738,6 +4750,8 @@ export function initLegacyApp() {
           const half = (ov === 'half') || (ov === 'onhalf' && !natural);
           count += half ? 0.5 : 1;
           if(half) halfDays.push(iso);
+          if(forced && !isWeekday) addedDays.push(iso);
+          if(forced && isWeekday && holiday) holidaysWorked.push({date:current, name:holiday.name});
           if(!firstShootDay) firstShootDay = current;
           lastShootDay = current;
           // ⚠️ A half day is STILL a shoot day and goes in this array, because the month view draws
@@ -4755,7 +4769,7 @@ export function initLegacyApp() {
       // calendar days actually on the floor. They differ the moment any override is in play, and
       // the two views want different ones -- see refreshOverrideNote().
       return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start,
-              holidaysHit, shootDays, halfDays, delivered: count};
+              holidaysHit, offsHit, addedDays, holidaysWorked, shootDays, halfDays, delivered: count};
     }
 
     // ⭐ THE WEEKEND JUST BEFORE (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 5, by picker). A shoot can
@@ -4926,7 +4940,9 @@ export function initLegacyApp() {
           // showed Production starting 1/4/27, two weeks later. Anything describing PRINCIPAL
           // PHOTOGRAPHY wants firstShootDay; anything laying out weeks wants startDate.
           productionInfo = {startDate:start, firstShootDay:sim.firstShootDay, lastShootDay:sim.lastShootDay,
-                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays, halfDays:sim.halfDays,
+                            holidaysHit:sim.holidaysHit, offsHit:sim.offsHit, addedDays:sim.addedDays,
+                            holidaysWorked:sim.holidaysWorked,
+                            shootDays:sim.shootDays, halfDays:sim.halfDays,
                             delivered:sim.delivered, requested:cfg.rawValue,
                             // The weekend just before the first shoot day (item 5), for the day menu.
                             leadDays:lead.days};
@@ -7383,11 +7399,31 @@ export function initLegacyApp() {
   // also be shown whether you do Starts or Ends, changing which is highlited in solid green depending on which mode"):
   // the first shoot day and the wrap, the end that holds solid, the one worked out from it dashed (reflectProductionEnds).
   // No id, no input: nothing in it is saved.
+  // The shoot's weeks on the dashed line, and under the two ends the shoot days it lost, as a sum (owner, 2 Nov 2026:
+  // version D of mockups/production-span-stats.html, then "D replaces the whole line", then version C of
+  // mockups/production-span-net.html, "Lets go with C but I want it to dynamically hide the off days and added days
+  // part of the calculation if there are none"): "2 holidays + 3 Off days − 1 added = 4 shoot days lost", each count
+  // naming its days on hover. It took the place of the totals box's "16 off · 3 added — 102 days on the floor" line
+  // (#prod-ov-note, hidden now). Drawn by reflectProductionEnds. The weeks come twice: on the line, and as a row of
+  // their own that stands in for it when the line is too short to hold them (fitProdSpanWeeks).
   const PROD_SPAN_HTML = `<div class="prod-span" hidden>
           <div class="prod-span-end" data-end="start"><span class="prod-span-k">Starts</span><span class="prod-span-d"></span></div>
-          <div class="prod-span-line" aria-hidden="true"></div>
+          <div class="prod-span-mid"><div class="prod-span-line" aria-hidden="true"></div><span class="prod-span-weeks"></span></div>
           <div class="prod-span-end" data-end="wrap"><span class="prod-span-k">Wraps</span><span class="prod-span-d"></span></div>
+          <div class="prod-span-weeksrow"></div>
+          <div class="prod-span-stats"></div>
         </div>`;
+  // The counts' glyphs, src/chrome/icons.jsx's family (16 viewBox, stroke 1.6, round caps): weeks is its
+  // IconCalendarRange, then a flag, a circle struck through, and a circle with a plus.
+  const PROD_STAT_ICONS = (()=>{
+    const svg = d => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
+    return {
+      weeks: svg('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4"/>'),
+      hols: svg('<path d="M3.5 14.5V2"/><path d="M3.5 2.5h8.5l-2 2.75 2 2.75H3.5"/>'),
+      offs: svg('<circle cx="8" cy="8" r="5.75"/><path d="M4 12 12 4"/>'),
+      added: svg('<circle cx="8" cy="8" r="5.75"/><path d="M8 5.25v5.5M5.25 8h5.5"/>'),
+    };
+  })();
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
   function startsFieldHtml(key){
     const prod = key === 'production';
@@ -7480,7 +7516,7 @@ export function initLegacyApp() {
         ${p.key === 'production' ? `
         <div class="prod-total-block">
           <div class="prod-total-readout" id="prod-total-readout"></div>
-          <div class="phase-ov-note" id="prod-ov-note"></div>
+          <div class="phase-ov-note" id="prod-ov-note" hidden></div>
           <div class="phase-ov-note" id="prod-hol-note"></div>
         </div>
         <div class="ep-panel" id="ep-panel" style="display:none;">
@@ -8342,14 +8378,18 @@ export function initLegacyApp() {
     }
     if(!span) return;
     const opt = PHASE_COLOR_OPTIONS[phaseColorIndexOf('production')] || PHASE_COLOR_OPTIONS[0];
+    const day = iso=>{ const d = parseDateUTC(iso); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d); };
+    const parts = days.length ? prodSpanParts(info, day) : null;
     // Rewritten only when what it shows changes: every update() runs this, and the card's observers watch the rows.
-    const sig = days.length ? [days[0], days[days.length - 1], on ? 'wrap' : 'start', opt.text].join('|') : '';
+    const sig = parts ? [days[0], days[days.length - 1], on ? 'wrap' : 'start', opt.text, parts.weeks, parts.sum].join('|') : '';
     if(span.dataset.sig === sig && span.hidden === !days.length) return;
     span.dataset.sig = sig;
     span.hidden = !days.length;
     if(!days.length) return;
     span.style.setProperty('--span-ink', opt.text);
-    const day = iso=>{ const d = parseDateUTC(iso); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d); };
+    span.querySelector('.prod-span-weeks').innerHTML = parts.weeks;
+    span.querySelector('.prod-span-weeksrow').innerHTML = parts.weeks;
+    span.querySelector('.prod-span-stats').innerHTML = parts.sum;
     span.querySelectorAll('.prod-span-end').forEach(end=>{
       const isStart = end.dataset.end === 'start';
       end.classList.toggle('held', isStart !== on);
@@ -8358,6 +8398,63 @@ export function initLegacyApp() {
         ? (isStart ? 'The first shoot day. It holds: the wrap is worked out from it.' : 'The wrap. It holds: the start is worked out back from it.')
         : (isStart ? 'The first shoot day, worked out back from the wrap.' : 'The wrap, worked out from the start.');
     });
+    // After the two dates: their pills' widths decide how long the line is.
+    fitProdSpanWeeks(span);
+    if(!span.__fitWatch){ span.__fitWatch = new ResizeObserver(()=> fitProdSpanWeeks(span)); span.__fitWatch.observe(span.querySelector('.prod-span-mid')); }
+  }
+  // The weeks and the sum (version C, owner, 2 Nov 2026). Every number is the schedule's own verdict, never a second copy
+  // of a rule: the weeks are Production's segment's (the meta line's "→ N wk", which leaves out hiatus weeks and Off
+  // weeks); the holidays, Off days and added days are the production walk's lists, so holidays + Off days − added is
+  // how many shoot days the wrap moved from a plain Monday-to-Friday shoot. A count of zero is LEFT OUT of the sum (the
+  // owner: "If its just holidays being factored in, we can have a cleaner view"), so a shoot with only holidays reads
+  // "2 holidays = 2 shoot days lost", and one with none reads "No shoot days lost". Each count's title lists its days;
+  // the total's says what it means and names any holiday that was worked, which is in no count.
+  // Each operator rides with the count after it, so a line that wraps on a narrow sidebar never starts with a bare sign.
+  function prodSpanParts(info, day){
+    const seg = ((currentSchedule && currentSchedule.segments) || []).find(s => s.key === 'production');
+    const weeks = seg ? seg.weeks : 0;
+    const hols = info.holidaysHit || [], offs = info.offsHit || [], added = info.addedDays || [];
+    const worked = info.holidaysWorked || [];
+    const many = (n, one, more) => n === 1 ? one : more;
+    const list = (head, rows) => head + ':\n' + rows.join('\n');
+    const holRow = h => h.name + ', ' + day(isoOf(h.date));
+    const weeksTitle = weeks + ' ' + many(weeks, 'week', 'weeks') + ' of shooting. Hiatus weeks and weeks marked Off are not counted.';
+    const weeksHtml = `<span class="prod-stat" data-stat="weeks" title="${escHtml(weeksTitle)}">${PROD_STAT_ICONS.weeks}<strong>${weeks}</strong> ${many(weeks, 'week', 'weeks')}</span>`;
+    const terms = [
+      { kind: 'hols', n: hols.length, op: '+', word: many(hols.length, 'holiday', 'holidays'),
+        title: list(hols.length + ' ' + many(hols.length, 'holiday costs', 'holidays cost') + ' a shoot day', hols.map(holRow)) },
+      { kind: 'offs', n: offs.length, op: '+', word: many(offs.length, 'Off day', 'Off days'),
+        title: list(offs.length + ' ' + many(offs.length, 'day marked Off costs', 'days marked Off cost') + ' a shoot day', offs.map(day)) },
+      { kind: 'added', n: added.length, op: '−', word: 'added',
+        title: list(added.length + ' weekend ' + many(added.length, 'day', 'days') + ' worked', added.map(day)) },
+    ].filter(t => t.n);
+    const net = hols.length + offs.length - added.length;
+    const words = net > 0 ? net + ' shoot ' + many(net, 'day', 'days') + ' lost'
+                : net < 0 ? (-net) + ' shoot ' + many(-net, 'day', 'days') + ' gained' : 'No shoot days lost';
+    const sumText = terms.map((t, i) => (i ? t.op + ' ' : '') + t.n + ' ' + t.word).join(' ');
+    let netTitle = terms.length
+      ? words + ': the wrap is ' + Math.abs(net) + ' shoot ' + many(Math.abs(net), 'day', 'days') + ' ' + (net < 0 ? 'earlier' : 'later')
+        + ' than it would be with no holidays, Off days or weekends worked.\n' + sumText + ' = ' + (net < 0 ? '−' + (-net) : net)
+      : 'No holiday or day marked Off costs this shoot a day, and no weekend is worked.';
+    if(worked.length) netTitle += '\n\n' + list('Worked, so not lost', worked.map(holRow));
+    // The spaces between the parts draw nothing (a flex box drops them) but make the text read "2 holidays = 2 shoot
+    // days lost" to a screen reader and to textContent.
+    const termHtml = (t, i) => `<span class="prod-stat" data-stat="${t.kind}" title="${escHtml(t.title)}">${i ? `<span class="prod-stat-op">${t.op}</span> ` : ''}${PROD_STAT_ICONS[t.kind]}<strong>${t.n}</strong> ${t.word}</span>`;
+    const netCls = net > 0 ? 'lost' : net < 0 ? 'gained' : 'none';
+    const netHtml = `<span class="prod-stat prod-stat-net" data-stat="net" title="${escHtml(netTitle)}">${terms.length ? '<span class="prod-stat-op">=</span> ' : ''}<span class="prod-span-net ${netCls}">${words}</span></span>`;
+    return { weeks: weeksHtml, sum: terms.map(termHtml).concat(netHtml).join(' ') };
+  }
+  // The sidebar grows with the window (the span measured 221 px at a 961 px window, 381 px at 1920), and the dashed
+  // line is what the two date pills leave of it. When the weeks no longer fit ON the line, .weeks-under hides them there
+  // (visibility, so they can still be measured) and shows their own row under the dates instead. Measured after every
+  // redraw and by a ResizeObserver on the LINE's box (.prod-span-mid), skipped while the card is out of view (nothing
+  // has a width then). ⛔ Never observe the span itself: the weeks' row changes its height, so the observer's own toggle
+  // re-fired it in the same frame, and Chrome reported "ResizeObserver loop completed with undelivered notifications"
+  // as a console error (measured in spancounts). The line's box keeps its size whichever way the weeks sit.
+  function fitProdSpanWeeks(span){
+    const mid = span.querySelector('.prod-span-mid'), label = span.querySelector('.prod-span-weeks');
+    if(!mid || !label || !mid.clientWidth) return;
+    span.classList.toggle('weeks-under', label.offsetWidth + 16 > mid.clientWidth);
   }
 
 
@@ -11046,6 +11143,10 @@ export function initLegacyApp() {
     });
   }
 
+  // ⚠️ HIDDEN since 2 Nov 2026: the counts under Production's span replaced this line on the card (owner, "D replaces
+  // the whole line"; prodSpanParts). It is still written, as the readout of the walk's halves and days on the floor
+  // that the halfworked, overrides and mvmenu legs read. Its "off" counts every Off mark in the shot range; the span's
+  // Off days count only the marks that cost a shoot day (offsHit), so the two can differ.
   function refreshOverrideNote(){
     const el = document.getElementById('prod-ov-note');
     if(!el) return;

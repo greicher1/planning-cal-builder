@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoot Days Lost</title>
+<!-- MOCKUP, not the app. Round 2 of mockups/production-span-stats.html. The owner picked version D (built on branch
+     span-counts: "17 weeks | 2 holidays | 0 Off days | 2 added" under the Starts / Wraps pills), then, 2 Nov 2026: "I
+     think it needs to be more clear how many total days are "off" whether that be a holiday, off day, or added day - we
+     need the sum of these listed", and, asked how added days go in: "net: lost minus added but mock up a few better
+     ways we could visualize it in the design". Six versions, A-F. The card copies the built one (legacy.css .prod-span,
+     .prod-stat). The four shoots are made up. "Added" here is a WEEKEND worked: a holiday that is worked is simply not
+     lost, so the net (holidays + Off days - added) is exactly how many shoot days the wrap moved. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-2:#B4BFC9; --navy-5:#4A6479; --navy-6:#2C3E50;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --page:#ECEBE6;
+  --prod:#E2F0D9; --prod-text:#375623; --prod-tint:#EFF7EA; --prod-line:#A9D08E;
+  --hol:#B26A16; --hol-bg:#FBF1E2;
+  --off:#726F68; --off-bg:#EEECE5;
+  --add:#3F7A2A; --add-bg:#E6F2DF;
+  --lost:#8A5A10; --lost-bg:#FBF3E4; --lost-line:#EBCF9F;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button{ font:inherit; }
+.page{ max-width:1320px; margin:0 auto; padding:24px 16px 60px; }
+h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:820px; }
+.try{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; background:#fff; border:1px solid var(--gray-2); border-radius:12px;
+      padding:10px 14px; margin:14px 0 18px; font-size:13px; }
+.try b{ font-weight:600; margin-right:2px; }
+.try .sep{ width:1px; height:20px; background:var(--gray-3); margin:0 6px; }
+.btn{ border:1px solid var(--gray-4); background:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; cursor:pointer; }
+.btn:hover{ background:var(--gray-0); }
+.btn.on{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+
+.grid{ display:grid; grid-template-columns:repeat(auto-fill, var(--cardw)); justify-content:center; gap:24px 22px; --cardw:429px; }
+.grid.narrow{ --cardw:335px; }
+@media (max-width:760px){ .grid, .grid.narrow{ grid-template-columns:minmax(0, var(--cardw)); } }
+.col-head{ font-size:12.5px; color:var(--gray-7); margin:0 0 8px; min-height:56px; }
+.col-head b{ color:var(--gray-9); font-weight:700; }
+
+/* The phase card, as built */
+.side{ background:var(--gray-0); border:1px solid var(--gray-3); border-radius:12px; padding:12px; }
+.card{ background:#fff; border:1px solid var(--gray-2); border-radius:10px; }
+.card-head{ display:flex; align-items:flex-start; gap:6px; padding:6px 8px; background:var(--prod-tint); border-radius:10px 10px 0 0; }
+.chev{ width:16px; height:21px; display:grid; place-items:center; color:var(--gray-7); flex:none; }
+.chev svg{ width:12px; height:12px; }
+.swatch{ width:16px; height:16px; border-radius:3px; flex:none; margin:2.5px 2px 0 0; background:var(--prod); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); }
+.nm{ font-weight:600; font-size:14px; line-height:21px; padding:0 4px; }
+.meta{ font-size:11px; line-height:14.85px; color:rgba(30,29,27,.75); padding:0 5px; }
+.card-body{ padding:8px 12px 10px; }
+.cap{ font-size:11px; font-weight:500; color:var(--navy-5); line-height:16.5px; margin-bottom:3px; }
+.box{ width:100%; height:30px; border:1px solid var(--gray-4); border-radius:7px; padding:0 8px; font-size:12px; font-weight:500; display:flex; align-items:center; }
+.autostart{ font-size:11px; color:var(--navy-5); margin:8px 0 0; display:block; }
+
+.span{ margin-top:6px; display:grid; grid-template-columns:auto 1fr auto; align-items:end; column-gap:6px; }
+.end{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
+.end-k{ font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--gray-6); }
+.end-d{ font-size:11.5px; font-weight:600; padding:2px 8px; border-radius:999px; margin-top:3px; white-space:nowrap; border:1px dashed var(--prod-text); color:var(--prod-text); background:#fff; }
+.end.held .end-d{ border-style:solid; background:var(--prod-text); color:#fff; }
+.mid{ position:relative; align-self:stretch; display:flex; align-items:flex-end; min-width:0; }
+.line{ flex:1; height:2px; margin-bottom:10px; background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--prod-text) 45%, transparent) 0 5px, transparent 5px 8px); }
+.on-line{ position:absolute; left:50%; bottom:2px; transform:translateX(-50%); display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+  background:#fff; padding:0 6px; font-size:11px; color:var(--gray-6); }
+.on-line strong{ color:var(--gray-9); font-weight:600; }
+.full{ grid-column:1 / -1; }
+
+.ic{ width:12px; height:12px; flex:none; }
+.ic.hol{ color:var(--hol); } .ic.off{ color:var(--off); } .ic.add{ color:var(--add); }
+.n{ font-weight:600; color:var(--gray-9); font-variant-numeric:tabular-nums; }
+.zero .n, .n.zero{ color:var(--gray-5); }
+
+/* The built line (version D) */
+.d-line{ display:flex; flex-wrap:wrap; justify-content:center; row-gap:3px; margin-top:1px; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.st{ display:inline-flex; align-items:center; gap:3px; padding:0 6px; white-space:nowrap; cursor:default; }
+.st:first-child{ padding-left:0; } .st:last-child{ padding-right:0; }
+.st + .st{ border-left:1px solid var(--gray-3); }
+
+/* The net's wording, one look everywhere: lost in amber, gained in green, none in grey */
+.net-lost{ color:var(--lost); } .net-gain{ color:var(--add); } .net-none{ color:var(--gray-6); }
+
+/* A: D + the total at the end of the line */
+.a-total{ font-weight:700; }
+.a-line .st.tot{ border-left:1.5px solid var(--gray-5); }
+
+/* B: D, and a total pill under it */
+.b-pill{ justify-self:center; margin-top:6px; display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:2px 10px 2px 8px;
+  font-size:11.5px; font-weight:600; border:1px solid var(--lost-line); background:var(--lost-bg); color:var(--lost); }
+.b-pill.gain{ border-color:color-mix(in srgb, var(--add) 35%, transparent); background:var(--add-bg); color:var(--add); }
+.b-pill.none{ border-color:var(--gray-3); background:var(--gray-0); color:var(--gray-6); }
+.b-pill .eq{ font-weight:500; opacity:.8; }
+
+/* C: the counts as a sum */
+.c-eq{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px 6px; margin-top:4px; font-size:11px; color:var(--gray-6); }
+.c-term{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+.c-op{ font-weight:600; color:var(--gray-5); font-size:12px; }
+.c-res{ display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:6px; font-weight:700; white-space:nowrap; background:var(--lost-bg); color:var(--lost); }
+.c-res.gain{ background:var(--add-bg); color:var(--add); } .c-res.none{ background:var(--gray-1); color:var(--gray-6); }
+
+/* D: a ledger */
+.l-box{ margin-top:7px; border:1px solid var(--gray-2); border-radius:8px; padding:5px 10px 6px; font-size:11px; color:var(--gray-7); }
+.l-row{ display:flex; align-items:center; gap:6px; line-height:1.65; }
+.l-row .lbl{ flex:1; display:inline-flex; align-items:center; gap:5px; }
+.l-row .v{ font-variant-numeric:tabular-nums; font-weight:600; color:var(--gray-9); min-width:2.2em; text-align:right; }
+.l-row.zero .v{ color:var(--gray-5); }
+.l-row.add .v{ color:var(--add); }
+.l-row.total{ border-top:1px solid var(--gray-3); margin-top:3px; padding-top:3px; font-weight:600; }
+.l-row.total .v{ font-size:12.5px; color:inherit; }
+
+/* E: one tile per day */
+.t-wrap{ margin-top:6px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.t-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px; max-width:100%; }
+.tile{ width:10px; height:10px; border-radius:2.5px; flex:none; }
+.tile.hol{ background:var(--hol); }
+.tile.off{ background:var(--gray-5); }
+.tile.add{ background:#fff; box-shadow:inset 0 0 0 1.5px var(--add); }
+.t-gap{ width:6px; }
+.t-res{ margin-left:6px; font-size:11px; font-weight:700; white-space:nowrap; }
+.t-key{ display:flex; flex-wrap:wrap; justify-content:center; gap:2px 10px; font-size:10.5px; color:var(--gray-6); }
+.t-key span{ display:inline-flex; align-items:center; gap:4px; }
+.t-key .tile{ width:8px; height:8px; }
+
+/* F: the total first */
+.f-head{ margin-top:8px; text-align:center; }
+.f-big{ font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1.2; }
+.f-sub{ font-size:11px; color:var(--gray-6); margin-top:2px; display:flex; flex-wrap:wrap; justify-content:center; gap:2px 8px; }
+.f-sub span{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+
+.notes{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin:26px auto 0; font-size:12.5px; color:var(--gray-7); max-width:920px; }
+.notes h2{ font-size:14px; margin:0 0 6px; color:var(--gray-9); }
+.notes ul{ margin:0; padding-left:18px; } .notes li{ margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Production: the shoot days lost, as one total</h1>
+  <p class="lede">Mock-up, not the app. Six ways to add the counts up under the Starts and Wraps pills: holidays plus
+    Off days, minus the weekend days added, is how many shoot days the wrap moved. Hover any count, tile or total.</p>
+
+  <div class="try">
+    <b>Shoot:</b>
+    <button class="btn" data-sc="0" type="button">No marks</button>
+    <button class="btn" data-sc="1" type="button">Off and worked days</button>
+    <button class="btn" data-sc="2" type="button">A busy shoot</button>
+    <button class="btn" data-sc="3" type="button">More added than lost</button>
+    <span class="sep"></span>
+    <button class="btn" id="narrow" type="button">Smaller window</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="notes">
+    <h2>About this mock-up (not part of the design)</h2>
+    <ul>
+      <li><b>The total is a net.</b> Holidays + Off days − added = how many shoot days the wrap moved. It can be 0
+        ("no shoot days lost") or below 0 ("2 shoot days gained"). Try the last two shoots.</li>
+      <li><b>"Added" now means a weekend worked.</b> A holiday you work isn't lost, so it isn't added either. Counting
+        it as both would knock the total off by one. In "Off and worked days" Independence Day is worked, so it's in
+        neither count; hover the holidays to see it named.</li>
+      <li><b>Weeks</b> is the meta line's "→ 17 wk". In C to F it moves onto the dashed line, since it isn't part of
+        the sum.</li>
+      <li><b>Smaller window</b> shows the card at a 1440 px window. The sidebar grows with the window, so a
+        smaller screen means a narrower card. A wrapped row here can start with a stray divider; the built line
+        already hides that, so ignore it.</li>
+      <li>The shoots are made up. Only the date, the span and what's under it are drawn.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const svg = d => `<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC = {
+    wk: svg('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4"/>'),
+    hol: svg('<path d="M3.5 14.5V2"/><path d="M3.5 2.5h8.5l-2 2.75 2 2.75H3.5"/>').replace('class="ic"', 'class="ic hol"'),
+    off: svg('<circle cx="8" cy="8" r="5.75"/><path d="M4 12 12 4"/>').replace('class="ic"', 'class="ic off"'),
+    add: svg('<circle cx="8" cy="8" r="5.75"/><path d="M8 5.25v5.5M5.25 8h5.5"/>').replace('class="ic"', 'class="ic add"')
+  };
+  const CHEV = '<span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>';
+
+  // Four made-up shoots: each holiday, Off day and added day is [label, date].
+  const SC = [
+    { days: 80, start: '06/29/2026', s: 'Mon 6/29/26', w: 'Tue 10/20/26', range: '6/29/26 → 10/20/26', weeks: 17,
+      hols: [['Independence Day (Observed)', 'Fri 7/3/26'], ['Labor Day', 'Mon 9/7/26']], worked: [], offs: [], added: [] },
+    { days: 80, start: '06/29/2026', s: 'Mon 6/29/26', w: 'Mon 10/19/26', range: '6/29/26 → 10/19/26', weeks: 17,
+      hols: [], worked: [['Independence Day (Observed)', 'Fri 7/3/26']], offs: [['Marked Off', 'Wed 7/15/26'], ['Marked Off (Labor Day)', 'Mon 9/7/26']], added: [['Saturday worked', 'Sat 8/1/26']] },
+    { days: 145, start: '01/11/2027', s: 'Mon 1/11/27', w: 'Thu 8/26/27', range: '1/11/27 → 8/26/27', weeks: 31,
+      hols: [['Martin Luther King Jr. Day', 'Mon 1/18/27'], ["Presidents' Day", 'Mon 2/15/27'], ['Good Friday', 'Fri 3/26/27'], ['Memorial Day', 'Mon 5/31/27'], ['Juneteenth (Observed)', 'Fri 6/18/27'], ['Independence Day (Observed)', 'Mon 7/5/27']],
+      worked: [], offs: ['2/12', '3/1', '3/2', '3/3', '3/4', '3/5', '4/19', '5/10', '5/11', '5/12', '5/13', '5/14', '6/7', '7/23', '8/2', '8/9'].map(d => ['Marked Off', d + '/27']),
+      added: [['Saturday worked', 'Sat 3/13/27'], ['Saturday worked', 'Sat 6/26/27'], ['Sunday worked', 'Sun 6/27/27']] },
+    { days: 80, start: '06/29/2026', s: 'Mon 6/29/26', w: 'Wed 10/14/26', range: '6/29/26 → 10/14/26', weeks: 16,
+      hols: [], worked: [['Independence Day (Observed)', 'Fri 7/3/26'], ['Labor Day', 'Mon 9/7/26']], offs: [['Marked Off', 'Fri 8/14/26']],
+      added: [['Saturday worked', 'Sat 7/11/26'], ['Saturday worked', 'Sat 7/18/26'], ['Saturday worked', 'Sat 7/25/26']] }
+  ];
+  let sc = 1, narrow = false;
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const many = (n, one, more) => n === 1 ? one : more;
+  const list = rows => rows.map(r => r[0] + ', ' + r[1]).join('\n');
+  function titles(d){
+    return {
+      wk: `${d.weeks} ${many(d.weeks, 'week', 'weeks')} of shooting. Hiatus weeks and weeks marked Off are not counted.`,
+      hol: (d.hols.length ? `${d.hols.length} ${many(d.hols.length, 'holiday costs', 'holidays cost')} a shoot day:\n${list(d.hols)}` : 'No holiday costs this shoot a day.')
+        + (d.worked.length ? `\n\nWorked, so not lost:\n${list(d.worked)}` : ''),
+      off: d.offs.length ? `${d.offs.length} ${many(d.offs.length, 'day marked Off costs', 'days marked Off cost')} a shoot day:\n${list(d.offs)}` : 'No day marked Off costs this shoot a day.',
+      add: d.added.length ? `${d.added.length} weekend ${many(d.added.length, 'day', 'days')} worked:\n${list(d.added)}` : 'No weekend day is worked.'
+    };
+  }
+  function net(d){
+    const lost = d.hols.length + d.offs.length, n = lost - d.added.length;
+    const cls = n > 0 ? 'lost' : n < 0 ? 'gain' : 'none';
+    const words = n > 0 ? `${n} shoot ${many(n, 'day', 'days')} lost` : n < 0 ? `${-n} shoot ${many(-n, 'day', 'days')} gained` : 'No shoot days lost';
+    const short = n > 0 ? `${n} lost` : n < 0 ? `${-n} gained` : '0 lost';
+    const sum = `${d.hols.length} ${many(d.hols.length, 'holiday', 'holidays')} + ${d.offs.length} Off ${many(d.offs.length, 'day', 'days')} − ${d.added.length} added = ${n}`;
+    const tip = `${words}: the wrap is ${Math.abs(n)} shoot ${many(Math.abs(n), 'day', 'days')} ${n >= 0 ? 'later' : 'earlier'} than a plain Monday-to-Friday shoot.\n${sum}`;
+    return { n, cls, words, short, sum, tip };
+  }
+  const st = (ic, n, word, title, extra) => `<span class="st${n ? '' : ' zero'}${extra || ''}" title="${esc(title)}">${ic}<span class="n">${n}</span> ${word}</span>`;
+  function dParts(d, t){
+    return [st(IC.wk, d.weeks, many(d.weeks, 'week', 'weeks'), t.wk),
+            st(IC.hol, d.hols.length, many(d.hols.length, 'holiday', 'holidays'), t.hol),
+            st(IC.off, d.offs.length, many(d.offs.length, 'Off day', 'Off days'), t.off)]
+      .concat(d.added.length ? [st(IC.add, d.added.length, 'added', t.add)] : []);
+  }
+  const weeksOnLine = (d, t) => `<span class="on-line" title="${esc(t.wk)}">${IC.wk}<strong>${d.weeks}</strong> ${many(d.weeks, 'week', 'weeks')}</span>`;
+
+  const VERSIONS = [
+    { id: 'A', name: 'The built line, with its total at the end',
+      blurb: 'One more item after a darker divider: "= 1 lost". The smallest change to what you picked, but on a narrow card the total wraps.',
+      mid: () => '',
+      under: (d, t, x) => `<div class="d-line a-line full">${dParts(d, t).join('')}<span class="st tot" title="${esc(x.tip)}"><span class="a-total net-${x.cls}">= ${x.short}</span></span></div>` },
+    { id: 'B', name: 'The built line, and a total under it',
+      blurb: 'The counts stay as built. Under them, one tinted pill gives the net in words, amber when days are lost, green when gained.',
+      mid: () => '',
+      under: (d, t, x) => `<div class="d-line full">${dParts(d, t).join('')}</div>
+        <span class="b-pill full ${x.cls === 'lost' ? '' : x.cls}" title="${esc(x.tip)}">${x.cls === 'gain' ? IC.add : IC.off.replace('ic off', 'ic')}${x.words}</span>` },
+    { id: 'C', name: 'The counts as a sum',
+      blurb: 'The line reads as the arithmetic: holidays + Off days − added = the total. Weeks moves onto the dashed line, since it isn\'t part of the sum.',
+      mid: weeksOnLine,
+      under: (d, t, x) => `<div class="c-eq full">
+          <span class="c-term${d.hols.length ? '' : ' zero'}" title="${esc(t.hol)}">${IC.hol}<span class="n">${d.hols.length}</span> ${many(d.hols.length, 'holiday', 'holidays')}</span><span class="c-op">+</span>
+          <span class="c-term${d.offs.length ? '' : ' zero'}" title="${esc(t.off)}">${IC.off}<span class="n">${d.offs.length}</span> Off ${many(d.offs.length, 'day', 'days')}</span><span class="c-op">−</span>
+          <span class="c-term${d.added.length ? '' : ' zero'}" title="${esc(t.add)}">${IC.add}<span class="n">${d.added.length}</span> added</span><span class="c-op">=</span>
+          <span class="c-res ${x.cls === 'lost' ? '' : x.cls}" title="${esc(x.tip)}">${x.words}</span></div>` },
+    { id: 'D', name: 'A small ledger',
+      blurb: 'Each count on its own row, added as a minus, and the net under a rule. The clearest to read, and the tallest (about 80 px).',
+      mid: weeksOnLine,
+      under: (d, t, x) => `<div class="l-box full">
+          <div class="l-row${d.hols.length ? '' : ' zero'}" title="${esc(t.hol)}"><span class="lbl">${IC.hol}Holidays</span><span class="v">${d.hols.length}</span></div>
+          <div class="l-row${d.offs.length ? '' : ' zero'}" title="${esc(t.off)}"><span class="lbl">${IC.off}Off days</span><span class="v">${d.offs.length}</span></div>
+          <div class="l-row add${d.added.length ? '' : ' zero'}" title="${esc(t.add)}"><span class="lbl">${IC.add}Weekend days added</span><span class="v">${d.added.length ? '−' + d.added.length : 0}</span></div>
+          <div class="l-row total net-${x.cls}" title="${esc(x.tip)}"><span class="lbl">${x.n < 0 ? 'Shoot days gained' : 'Shoot days lost'}</span><span class="v net-${x.cls}">${Math.abs(x.n)}</span></div></div>` },
+    { id: 'E', name: 'One tile per day',
+      blurb: 'Every day that moved the wrap is a small square: amber for a holiday, grey for an Off day, green outline for a weekend added. You see the mix at a glance; hover a tile for its day.',
+      mid: weeksOnLine,
+      under: (d, t, x) => {
+        const tile = (cls, r) => `<span class="tile ${cls}" title="${esc(r[0] + ', ' + r[1])}"></span>`;
+        const tiles = d.hols.map(r => tile('hol', r)).concat(d.offs.map(r => tile('off', r)));
+        const adds = d.added.map(r => tile('add', r));
+        return `<div class="t-wrap full">
+          <div class="t-row">${tiles.join('')}${adds.length ? '<span class="t-gap"></span>' + adds.join('') : ''}<span class="t-res net-${x.cls}" title="${esc(x.tip)}">= ${x.short}</span></div>
+          <div class="t-key"><span title="${esc(t.hol)}"><i class="tile hol"></i>${d.hols.length} ${many(d.hols.length, 'holiday', 'holidays')}</span><span title="${esc(t.off)}"><i class="tile off"></i>${d.offs.length} Off ${many(d.offs.length, 'day', 'days')}</span><span title="${esc(t.add)}"><i class="tile add"></i>${d.added.length} added</span></div></div>`;
+      } },
+    { id: 'F', name: 'The total first',
+      blurb: 'The net is the headline, in its colour; the counts that make it up sit small underneath. Weeks moves onto the dashed line.',
+      mid: weeksOnLine,
+      under: (d, t, x) => `<div class="f-head full">
+          <div class="f-big net-${x.cls}" title="${esc(x.tip)}">${x.words}</div>
+          <div class="f-sub"><span class="${d.hols.length ? '' : 'zero'}" title="${esc(t.hol)}">${IC.hol}<span class="n">${d.hols.length}</span> ${many(d.hols.length, 'holiday', 'holidays')}</span>
+            <span class="${d.offs.length ? '' : 'zero'}" title="${esc(t.off)}">${IC.off}<span class="n">${d.offs.length}</span> Off ${many(d.offs.length, 'day', 'days')}</span>
+            <span class="${d.added.length ? '' : 'zero'}" title="${esc(t.add)}">${IC.add}<span class="n">${d.added.length}</span> added</span></div></div>` }
+  ];
+
+  const grid = document.getElementById('grid');
+  function render(){
+    const d = SC[sc], t = titles(d), x = net(d);
+    grid.classList.toggle('narrow', narrow);
+    grid.innerHTML = VERSIONS.map(v => `<div>
+      <p class="col-head"><b>${v.id}. ${v.name}</b><br>${v.blurb}</p>
+      <div class="side"><div class="card">
+        <div class="card-head">${CHEV}<span class="swatch"></span><div><div class="nm">Production</div>
+          <div class="meta">${d.days} shoot days → ${d.weeks} wk · ${d.range}</div></div></div>
+        <div class="card-body">
+          <div class="cap">Starts ⌄</div>
+          <div class="box">${d.start}</div>
+          <div class="span">
+            <div class="end held"><span class="end-k">Starts</span><span class="end-d">${d.s}</span></div>
+            <div class="mid"><div class="line"></div>${v.mid(d, t, x)}</div>
+            <div class="end"><span class="end-k">Wraps</span><span class="end-d">${d.w}</span></div>
+            ${v.under(d, t, x)}
+          </div>
+          <span class="autostart">↳ Start after Prod Prep</span>
+        </div>
+      </div></div>
+    </div>`).join('');
+    document.querySelectorAll('[data-sc]').forEach(b => b.classList.toggle('on', +b.dataset.sc === sc));
+    document.getElementById('narrow').classList.toggle('on', narrow);
+  }
+  document.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => { sc = +b.dataset.sc; render(); }));
+  document.getElementById('narrow').addEventListener('click', () => { narrow = !narrow; render(); });
+  render();
+})();
+</script>
+</body>
+</html>

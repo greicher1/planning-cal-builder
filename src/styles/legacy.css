@@ -4075,6 +4075,35 @@
     height:2px; margin-bottom:10px;
     background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--span-ink) 45%, transparent) 0 5px, transparent 5px 8px);
   }
+  /* The shoot's weeks on the dashed line, and under the span the shoot days it lost as a sum (owner, 2 Nov 2026, version
+     C of mockups/production-span-net.html): "2 holidays + 3 Off days − 1 added = 4 shoot days lost". A count of zero is
+     left out of the markup (prodSpanParts), never hidden here. */
+  .prod-span-mid{ position:relative; align-self:stretch; display:flex; align-items:flex-end; min-width:0; }
+  .prod-span-mid .prod-span-line{ flex:1; }
+  /* Centred on the line, on the card's white so the dashes stop either side of it. The line's middle sits 11 px up
+     (2 px tall, 10 px margin); the label is 15.4 px tall, so its bottom is 3.3 px up. */
+  .prod-span-weeks{
+    position:absolute; left:50%; bottom:3.3px; transform:translateX(-50%); padding:0 5px;
+    background:var(--mantine-color-white); white-space:nowrap;
+  }
+  /* Their own row, under the dates, when the line is too short to hold them (fitProdSpanWeeks). */
+  .prod-span-weeksrow{ display:none; grid-column:1 / -1; justify-self:center; margin-top:2px; }
+  .prod-span.weeks-under .prod-span-weeks{ visibility:hidden; }
+  .prod-span.weeks-under .prod-span-weeksrow{ display:block; }
+  .prod-span-weeks, .prod-span-weeksrow, .prod-span-stats{ font-size:11px; line-height:1.4; color:var(--mantine-color-gray-6); }
+  .prod-span-stats{
+    grid-column:1 / -1; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px 6px; margin-top:3px;
+  }
+  .prod-stat{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap; cursor:default; }
+  .prod-stat svg{ width:12px; height:12px; flex:none; }
+  .prod-stat[data-stat="hols"] svg{ color:#B26A16; }
+  .prod-stat[data-stat="added"] svg{ color:#3F7A2A; }
+  .prod-stat strong{ font-weight:600; color:var(--mantine-color-gray-9); font-variant-numeric:tabular-nums; }
+  .prod-stat-op{ margin-right:3px; font-size:12px; font-weight:600; color:var(--mantine-color-gray-5); }
+  /* The total: amber when days are lost (the theme's warn pair, 5.86:1), green when gained, grey when none. */
+  .prod-span-net{ padding:1px 8px; border-radius:6px; font-weight:700; background:var(--mantine-color-warn-0); color:var(--mantine-color-warn-9); }
+  .prod-span-net.gained{ background:#E6F2DF; color:#3F7A2A; }
+  .prod-span-net.none{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-6); }
   .phase-fields .pu-by-cap select.phase-unit,
   .phase-fields .ph-starts-cap select.phase-anchor{
     width:auto; min-width:0; height:18px; padding:0 16px 0 0; border:0; background-color:transparent;
