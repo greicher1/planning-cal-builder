@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 2 Nov 2026: REUSE EMPTY COLUMNS IS ON FOR NEW CALENDARS — uncommitted on `main`, gate green (5 timeouts, each green alone)
+### ✅ 2 Nov 2026: REUSE EMPTY COLUMNS IS ON FOR NEW CALENDARS — ✅ **LIVE at `c8fda83`** (owner's picker: "Commit", "Push now"; `315f7e5..c8fda83` at 17:18:44, carrying another session's HANDOFF-only `6cc1046`; the live `index.html` matched the gated build `bcf3febb…` byte for byte at 17:19:54)
 
 - **The ask** (owner): *"do you think reuse Reuse empty columns should be enabled by default? Also capitalize it"*,
   then *"this can just be for calendars going forward not old ones"*.
@@ -29,7 +29,7 @@
 - ⚠️ **If a later leg builds a fresh calendar WITH a handoff week**, it now lays out reused. Should one go red for that
   reason, untick the box in that leg (the `buildFixture` "Pre Prep" precedent) rather than re-cut a baseline.
   gate.sh's colreuse comment now says the byte-compare runs with the box on.
-- ⏭ **Open:** commit and push, each only on the owner's picker.
+- ⏭ **Open:** nothing.
 
 ### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 
