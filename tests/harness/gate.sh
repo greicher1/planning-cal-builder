@@ -1841,6 +1841,10 @@ done
 # "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
 # colswap-simpost-refuse, with the swap refused (Sim Post on) and applied (off). C1, a colour, is a cache HIT: red on
 # a build that only widens the key.
+# simpostbeside (owner, 2 Nov 2026) holds frozen edit SP1: Simultaneous Post's column directly right of Production, reuse
+# on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
+# an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
+# switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1885,6 +1889,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               holidayrename:holidayrename:400 \
               simpostname:-:400 \
               colswapcache:colswap-simpost-refuse:400 \
+              simpostbeside:-:1500 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
