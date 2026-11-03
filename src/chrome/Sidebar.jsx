@@ -524,8 +524,8 @@ export function WaterfallCard() {
             Single Column Mode in the old Preferences card, and stays beside it here, in the Settings
             window's Preferences tab, since it is this calendar's. */}
         <Divider my="sm" />
-        <SettingRow htmlFor="col-reuse-btn" label="Reuse empty columns">
-          <Switch id="col-reuse-btn" size="md" aria-label="Reuse empty columns" />
+        <SettingRow htmlFor="col-reuse-btn" label="Reuse Empty Columns">
+          <Switch id="col-reuse-btn" size="md" aria-label="Reuse Empty Columns" />
         </SettingRow>
         <Text size="xs" c="dimmed" mt={4}>
           When one phase ends and the next begins, the next one moves into the freed column.

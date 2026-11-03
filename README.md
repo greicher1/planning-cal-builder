@@ -84,6 +84,31 @@ browser pane: the Auto Note editor, a rename, and a drag to another day. Full ga
 Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
 typing over an automatic note is now a rename (details in HANDOFF).
 
+### Unreleased — Reuse Empty Columns is on for new calendars (2 Nov 2026)
+
+The owner asked whether Reuse Empty Columns should be on by default, and to capitalize it, then ruled *"this can just
+be for calendars going forward not old ones"*.
+
+- **A new calendar starts with the box ticked.** That means the first launch with no file, and File ▸ New.
+- **Every saved calendar opens exactly as it was.** A file saved before today has no `colReuse` key, and neither does
+  one saved with the box unticked; both still open unticked, with their old columns. A file saved ticked opens ticked,
+  as before. Nothing about the save format changed: the key is still written only as `colReuse: true`, and older builds
+  (v1.6.0 on) already read it.
+- **Capitalized** to match the cards around it: Settings ▸ Preferences ▸ Waterfall ▸ **Reuse Empty Columns**.
+
+How: `colReuse` is switched on at the boot, just before the saved-state restore (so a shareable copy or a recovered
+backup still applies its own value), and in New's reset. The declaration stays `false`, because the reuse rule reads
+`PHASE_CHAIN`, a const declared far below it, and an earlier `true` would put an `update()` into its temporal dead
+zone. `applyStateSnapshot()` is unchanged: absent means off. No frozen edit.
+
+Verified: the `colreuse` leg now proves a fresh page starts ticked, lays out reused and saves `colReuse: true`; that New
+ticks it; and that Loading the same calendar saved unticked (no key, like every older file) opens unticked with its
+old columns and still saves no key. LIVE and RESTORE both green, 0 console errors. The standard baseline calendar
+(`buildFixture`) lays out identically ticked or unticked (7 columns, same grid). `npm run check` 40/40. Seen in the
+browser pane: a fresh launch shows Reuse Empty Columns on. Full gate: 3,492 PASS, 5 FAIL, all five timeouts on a busy
+machine and each green run alone (papersize, pdfdialog, autonotephases, monthexport on shootorder, offweek); the
+waterfall PDF, every Excel part, the v1.0.0 restore, the 77 saved ids and the month prints identical to baseline.
+
 ### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
 
 The owner: *"if we renamed Production to "Shoot" that should reflect in the setting menu"*. The rows for Pre-Prep,

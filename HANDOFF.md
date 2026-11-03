@@ -102,6 +102,33 @@
   twin is card `wf-holiday-editor-mode`). A removed note's typed name is cleared with it (the plan's suggestion; not
   ruled). Saving a rename while also adding a line in the waterfall saves as typed text (as for holidays).
 
+### ✅ 2 Nov 2026: REUSE EMPTY COLUMNS IS ON FOR NEW CALENDARS — ✅ **LIVE at `c8fda83`** (owner's picker: "Commit", "Push now"; `315f7e5..c8fda83` at 17:18:44, carrying another session's HANDOFF-only `6cc1046`; the live `index.html` matched the gated build `bcf3febb…` byte for byte at 17:19:54)
+
+- **The ask** (owner): *"do you think reuse Reuse empty columns should be enabled by default? Also capitalize it"*,
+  then *"this can just be for calendars going forward not old ones"*.
+- **Built:** `colReuse = true` at the boot (just before `restoreSavedState()`) and in `resetAll()` (New). The label is
+  **Reuse Empty Columns** (`Sidebar.jsx`, label and aria-label). Save format untouched.
+- ⛔ **Absent still restores OFF**, in `applyStateSnapshot()`. Every file saved before 2 Nov 2026, and every file saved
+  unticked, lacks the key. Never "fix" the asymmetry (new = on, absent = off) by flipping the restore default: that
+  would re-lay every older calendar.
+- ⛔ **The declaration stays `let colReuse = false`.** `placeSegmentsReusingColumns()` reads `PHASE_CHAIN`, a const
+  ~25,000 lines below; turning reuse on any earlier than the boot puts an `update()` in its temporal dead zone (the
+  column-reuse entry's lesson 2).
+- **Proof so far:** `colreuse` LIVE + RESTORE green on the build (new checks: fresh page ticked, its snapshot says
+  `colReuse: true`, its columns are the reused ones; New ticks it; an unticked copy Loaded as an old file opens
+  unticked with the old columns and saves no key). `buildFixture`'s calendar is identical ticked or unticked, so the
+  byte-compared baselines should not move. `npm run check` 40/40. Browser pane: a fresh launch shows it on.
+- ✅ **Full gate on build `bcf3febb…` (port 8993, 15:04–17:13, alongside other sessions' legs): 3,492 PASS, 5 FAIL.**
+  All five were timeouts, none a wrong result: `papersize` and `pdfdialog` (the .xlsx blob, 20 s), `autonotephases`
+  (no result), `monthexport (shootorder)` X4 (click activation ran out), `offweek (offweek)` R13 (file-menu poll).
+  **Each is green alone** on port 8994: papersize 12/12, pdfdialog 15/15, autonotephases 27/27, monthexport
+  (shootorder) 9/9, offweek restore 42/42 plus its PDF check. Every byte-compare held: the waterfall PDF, every Excel
+  part, the v1.0.0 restore, `fields.byId` (77 ids), the month prints. `colreuse` 27/27.
+- ⚠️ **If a later leg builds a fresh calendar WITH a handoff week**, it now lays out reused. Should one go red for that
+  reason, untick the box in that leg (the `buildFixture` "Pre Prep" precedent) rather than re-cut a baseline.
+  gate.sh's colreuse comment now says the byte-compare runs with the box on.
+- ⏭ **Open:** nothing.
+
 ### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 
 - **The ask** (owner): *"The names of the automatic notes in the settings menu should appear as the same name as their
