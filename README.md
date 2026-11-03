@@ -54,6 +54,239 @@ hand-widened weeks), 8/8. It is red on the build before the fix in its three cas
 guard. Every column-swap and block-swap leg, plus `onecol`, `colreuse` and `noswapbtns`, pass (results in HANDOFF).
 `npm run check` 40/40. In the browser pane, with real clicks: widen two weeks, select Post's cells only, and the
 arrow appears and swaps; Swap Column on Prod Prep shows the arrow too.
+### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
+
+The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an
+auto-note or a holiday"*, so an automatic line no longer looks like one you typed. By picker: **↻** before an automatic
+note and **⚑** before a holiday, in the Month view **on screen only**. Your own notes get none, and the month PDF, the
+Waterfall and Excel are unchanged.
+
+- The symbol is in the note's own text colour, and wrapped lines line up under the text, not under the symbol.
+- The note is measured that much narrower, so its text is never cut off. A note the symbol would push past three lines
+  (a long holiday name in a narrow window) goes without it, and gets it back in a wider window.
+
+How: frozen edit NS1 in `renderMonthView`, signed off with its gate. It reads a mark the note plan sets only when
+drawing the screen, so the print path and the month-PDF writer render exactly as before.
+
+Verified: gate 13's 22 written month PDFs and gate 10's 11 printed month documents are byte-identical to their
+baselines. `autonoterename` S1-S4 (23/23): the marks, no text cut off, none in print, and the narrow case (red on a
+mutant without the fit rule). Full gate 3,505 PASS / 2 FAIL, both load timeouts that pass alone.
+
+### Unreleased — rename an automatic note and it stays automatic; deleting one switches it off (2 Nov 2026)
+
+The owner asked for automatic notes to work as holidays now do: *"labelled as "Auto Note" in the popup when you go to
+edit it and allow you to edit the name of it, without affecting its date and ability to move automatically."* Until
+now any edit to Start Principal Photography, the wrap, Writer's Room Opens or a phase's Begins / Ends saved its week as
+typed text, so it stopped following its date. Deleting one blanked its *week*, so after a schedule move the note came
+back in its new week and the blank week hid whatever landed there next. Seven rulings by picker
+(`AUTO-NOTE-RENAME-PLAN.md`). Now:
+
+- **Click an automatic note in the Month view** and it opens as an **Auto Note**: its date in the heading, its name
+  alone, its own colour, and a **Delete Auto-Note** button. A new name shows everywhere: the Month view, the Waterfall,
+  Excel and both PDFs. The note keeps its own date and moves with the schedule.
+- **In the Waterfall**, typing over an automatic line renames it the same way. Ending it in a different date still
+  makes it your own typed note.
+- **Deleting an automatic note switches it off** for the whole calendar. That covers clearing its text, Delete
+  Auto-Note, taking its line out of a cell, the Delete key and Cut. It stays gone when dates move, and no week is left
+  blank. Tick it in Settings ▸ Preferences ▸ Automatic notes to bring it back.
+- **The Delete key on a cell that also holds a holiday** hides the holiday from the Waterfall only. It stays in the
+  Month view and keeps its day off, so no date moves.
+- **Pasting or dragging a note over an automatic note replaces it**, and the automatic note is switched off.
+  Dragging an automatic note to another day in the Month view does the same.
+- **Reset Notes** leaves the Automatic notes ticks alone. Its tooltip and the help say where a deleted note comes back.
+- A holiday's or automatic note's own date typed anywhere in its new name is taken out, so the date never shows
+  twice ("Start Principal Photography 6/29/26 (tbc)" becomes "Start Principal Photography (tbc) 6/29/26").
+
+How: two new saved keys, `autoNoteNames` and `autoNoteColors`, keyed by the note's kind and written only while they
+hold something, so an untouched calendar saves exactly as before. The name is applied once, where the notes are made
+(`computeSchedule`), so every view and writer reads it with no frozen edit. The colour rides frozen edit H1, as a
+holiday's does. Deleting writes the existing `autoNotesOff` / `autoNotesOn` switches.
+
+Verified: new leg `autonoterename` (19 checks, in the gate). It goes red on a mutant with no rename and no switch-off
+on Delete (14 of 19 red), and on one with no switch-off when a note is dragged (G1). `wfkeys` (84) and `wfmenu` (39)
+were changed where they held the old week blank, and pass. `holidayrename` 14/14. `npm run check` 40/40. Seen in the
+browser pane: the Auto Note editor, a rename, and a drag to another day. Full gate: every baseline (the waterfall PDF,
+Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
+typing over an automatic note is now a rename (details in HANDOFF).
+
+### Unreleased — 2029's default winter hiatus starts Mon 12/17/29 (2 Nov 2026)
+
+The owner, with a screenshot of the card set the way they want it: *"this should replace the default all phase hiatus
+for 2029"*.
+
+- **A new calendar's 2029 break is now 12/17/29 → 12/30/29**, two weeks, Lock in place on, Number weeks off. It was
+  12/24/29 → 1/6/30. The other three (12/21/26, 12/20/27, 12/18/28) are unchanged. "New calendar" means the first
+  launch with no file, and File ▸ New.
+- **Every saved calendar keeps its own break.** A file stores its hiatus rows, so one saved with 12/24/29 opens with
+  12/24/29. Nothing about the save format changed.
+
+How: one entry in `DEFAULT_HIATUSES` (`src/legacy/app.js`). No frozen code.
+
+Verified: `hiatuscolour` gained D0–D2 (a fresh calendar's four breaks on the cards and in its file; New lays the same
+four; a file carrying 12/24/29 Loads with 12/24/29). 14/14 on the build. Also green on the build: wrapdate (which reads
+the breaks from the app), mxholidays (Production from 12/3/29, across the break), noresetall, `npm run check` 40/40.
+No full gate: the byte-compared baselines are built on a calendar that ends in 2027, and every fixture carries its own
+rows.
+
+### Unreleased — Reuse Empty Columns is on for new calendars (2 Nov 2026)
+
+The owner asked whether Reuse Empty Columns should be on by default, and to capitalize it, then ruled *"this can just
+be for calendars going forward not old ones"*.
+
+- **A new calendar starts with the box ticked.** That means the first launch with no file, and File ▸ New.
+- **Every saved calendar opens exactly as it was.** A file saved before today has no `colReuse` key, and neither does
+  one saved with the box unticked; both still open unticked, with their old columns. A file saved ticked opens ticked,
+  as before. Nothing about the save format changed: the key is still written only as `colReuse: true`, and older builds
+  (v1.6.0 on) already read it.
+- **Capitalized** to match the cards around it: Settings ▸ Preferences ▸ Waterfall ▸ **Reuse Empty Columns**.
+
+How: `colReuse` is switched on at the boot, just before the saved-state restore (so a shareable copy or a recovered
+backup still applies its own value), and in New's reset. The declaration stays `false`, because the reuse rule reads
+`PHASE_CHAIN`, a const declared far below it, and an earlier `true` would put an `update()` into its temporal dead
+zone. `applyStateSnapshot()` is unchanged: absent means off. No frozen edit.
+
+Verified: the `colreuse` leg now proves a fresh page starts ticked, lays out reused and saves `colReuse: true`; that New
+ticks it; and that Loading the same calendar saved unticked (no key, like every older file) opens unticked with its
+old columns and still saves no key. LIVE and RESTORE both green, 0 console errors. The standard baseline calendar
+(`buildFixture`) lays out identically ticked or unticked (7 columns, same grid). `npm run check` 40/40. Seen in the
+browser pane: a fresh launch shows Reuse Empty Columns on. Full gate: 3,492 PASS, 5 FAIL, all five timeouts on a busy
+machine and each green run alone (papersize, pdfdialog, autonotephases, monthexport on shootorder, offweek); the
+waterfall PDF, every Excel part, the v1.0.0 restore, the 77 saved ids and the month prints identical to baseline.
+
+### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
+
+The owner: *"if we renamed Production to "Shoot" that should reflect in the setting menu"*. The rows for Pre-Prep,
+Prod Prep, Post, Localization and custom phases already followed a name typed in the Phases tab. Writer's Room and
+Production kept their fixed names. Now:
+
+- Every row of Settings ▸ Preferences ▸ Automatic notes shows the phase's name as typed. Production renamed "Shoot"
+  reads "Shoot", and its boxes are labelled "Shoot Starts" / "Shoot Wraps" for screen readers.
+- A name box holding the phase's own label, or nothing, shows the card's usual words. So Writer's Room still reads
+  "Writer’s Room", not the grid's short "Writer's Rm".
+- The notes themselves are unchanged: Production's still read "Start Principal Photography" and "Principal
+  Photography Wraps", and Writer's Room's "Writer's Room Opens".
+
+How: both rows got their phase key (`data-autonote-name`) and their default words (`data-autonote-default`), and
+`reflectAutoNoteKinds()` shows a typed name only when it differs from the phase's label. Settings card only; nothing
+reaches the grid, the exports or saved files.
+
+Verified: new `autonotephases` case P9b (red on the code before it); `autonotephases` 27/27, `autonotekinds` 16/16,
+`settingswin` 21/21, `phasesui` 8/8; `npm run check` 40/40. Seen in the browser pane, with "Shoot" typed into
+Production's name box. No full gate (a Settings label only).
+
+### Unreleased — automatic notes for custom phases (2 Nov 2026)
+
+The built-in phases have had Begins and Ends notes since 27 Oct; custom phases had none. The owner asked: *"Can we
+also add automatic notes for all custom phases too"*, and picked *"Off"* by default
+(AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3). Now:
+
+- Every custom phase has a row in Settings ▸ Preferences ▸ Automatic notes, under the built-in phases: its name, then
+  a Begins box and an Ends box. Both start unticked, so no calendar changes until you tick one.
+- Ticked, "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" appear in the waterfall, Excel, both PDFs and
+  the month view. They are dated like the built-in phases' notes, on the first and last day the bar is drawn, for
+  Weeks, Days and Dates alike.
+- The notes and the row follow a rename in the Phases tab. A custom phase hidden in the waterfall takes its notes out
+  of the waterfall only. Removing the phase removes its notes and their ticks, and Undo brings both back.
+
+How: `autoNoteEdgeDefs()` adds each custom phase's pair to the nine built-in phase edges that `computeSchedule` dates.
+The kind words are `<custom key>Start` / `<custom key>End`, stored in the existing `autoNotesOn` key, so no new save
+key. `syncCustomAutoNoteRows()` draws the card's custom rows into an empty host React leaves alone. No frozen code.
+
+Verified:
+- `autonotephases` gains nine cases, C0–C8: the card row, every output, undo, save, rename, units, Hide in waterfall,
+  removal and Load. 26/26 on the build; red on two mutants.
+- Neighbours green: `autonotekinds`, `settingswin`, `hidewf`, `monthnotes`, `autonote`, `customunits` (both states),
+  `phasesui`. `npm run check` 40/40. Seen in the browser pane with real clicks. The full gate result is in HANDOFF.
+
+### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
+
+On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something
+moved a column. Found while building the Sim Post rename; it was on `main` before that. Measured on a build of
+`main`, on the fixture `colswap-simpost-refuse`:
+
+- Ticking Sim Post's "Number these weeks": the cells still read "Simultaneous Post".
+- Changing Sim Post's offset from 1 to 0: nothing moved.
+- Renaming Post to "Edit": the cells still read "Post wk N".
+- Also stuck: an undo of any of those, and a phase's new colour.
+
+Why: every edit, the app checks whether each stored swap is still safe (the column-swap gate). That check is slow,
+so its answer is cached against the column layout, the swaps, the widths and whether Sim Post is on. When none of
+those changed, the app drew the calendar it had cached at the last full check, not the one it had just worked out.
+Now a cached answer is applied to the calendar just worked out, so every edit shows at once. The cache's key also
+covers more of what the check measures: Sim Post's weeks and numbers, every cell's label, Sim Post's name, block
+swaps, cell spans and column reuse. A rename can therefore change whether a swap is still allowed.
+
+`maybeRunColSwapGate` only; it is not on the frozen list. Nothing changes on a calendar without a stored swap.
+
+Verified:
+- New leg `colswapcache` 9/9 (in `gate.sh`), on `colswap-simpost-refuse` with the swap refused (Sim Post on) and
+  applied (off). On the build before the fix, 6 of its 9 cases fail. On a build that only widens the key, the colour
+  case still fails, which is how the leg holds the other half of the fix.
+- Gates 1–5, 10 and 13 plus every column-swap and block-swap leg, run from gate.sh's own blocks (another session's
+  full gate was running): 545 PASS, 1 FAIL. The one failure was `monthexport (blocksoff) X4`, a timing case on a
+  calendar with no swap; it passed 9/9 when re-run alone. The waterfall PDF, every Excel part, the restore, the saved
+  field list (77 ids), all 11 print documents and all 22 written month PDFs are unchanged.
+- Neighbouring legs green: `simpostname`, `simpostlabel`, `monthlayout` and `monthmap` (on swap and reuse
+  fixtures), `noswapbtns`, `wholenum`, `colreuse`. `npm run check` 40/40. The full gate was not run.
+- Checked in the browser pane on the same fixture: "Number these weeks" relabels the cells at once.
+
+### Unreleased — Simultaneous Post can be renamed (2 Nov 2026)
+
+The owner asked: *"Allow me to be able to edit the name of Simultaneous Post"*. Every other phase could be renamed;
+Sim Post always read "Simultaneous Post". Now:
+
+- A name box sits at the top of Sim Post's settings, under its switch, the way a hiatus's name box does. It is blank
+  and shows "Simultaneous Post" until you type.
+- The name shows everywhere Sim Post does: the waterfall, the month view and its phase map, the colour key, the Excel
+  workbook, the waterfall PDF and the month PDF. Numbered weeks read "*name* wk 3".
+- Clearing the box, or typing "Simultaneous Post" in full, goes back to the default. New does too. Each edit is one
+  undo step.
+- The switch keeps its label, "Simultaneous Post", as Hiatus's switch does.
+
+How: `simPostLabel()` reads the name, so every view and writer follows without a change to any of them. The name is
+saved under a new key, `simPostName`, only while it is renamed, so other calendars save byte for byte as before.
+Its box has no id, so the saved field list (gate 5) does not move. An older build ignores the key and shows
+"Simultaneous Post". One frozen edit, **S1** (owner-approved by picker): `renderMonthView` now escapes Sim Post's
+label as it does every phase's. It wrote it as raw HTML, safe only while the label was fixed text. Unescaped, a name
+with `&`, `<`, `>` or `"` garbled the bar and made the month PDF writer fail. The default label has none of those
+characters, so the month view is unchanged.
+
+Verified:
+- New leg `simpostname` 14/14 (in `gate.sh`). It is red on a build without S1 (bar text and title wrong, month PDF
+  writer throws) and on one that restores the name conditionally.
+- Gates 1–5, 10 and 13, run from gate.sh's own blocks: 325 PASS, 0 FAIL. The waterfall PDF, every Excel part, the
+  restore and the field list (77 ids) are unchanged. All 11 print documents and all 23 written month PDFs are
+  byte-identical.
+- Neighbouring legs green: `simpostlabel`, `mvtextstyle`, `wholenum`, `phasesui`, `monthlayout`, `monthmap`,
+  `calrange`, `sideboxes`, `textstyle`. The full gate was not run.
+- `npm run check` 40/40.
+
+### Unreleased — Production can be held by its wrap (Ends), and its card shows the shoot as a span (2 Nov 2026)
+
+The owner, after Ends went live for the Weeks phases: *"would it be possible we could add the "ends" date option to
+production ... if i know production needs to end on a certain day we could work backwards to calculate"*. Production's
+date now reads **Starts** or **Ends**, as the Weeks phases' do. Ruled *"id say do exactly then"*: in Ends the shoot
+wraps **exactly** on the day picked, so the start can fall mid-week.
+
+- The start is counted back from the shoot days, skipping weekends, holidays, hiatus days and days marked Off. The
+  app asks its real scheduler for the latest start that still wraps on the day, so the two can never disagree. More
+  episodes or days, a hiatus, a holiday or a new Region now move the START, and the wrap holds.
+- The picker offers only days the shoot can work. A typed weekend or holiday wraps on the shoot day before it.
+- Snap to Monday and "Start after previous phase" are hidden in Ends. The shift tools, Rebuild From and the
+  month-view grips move the shoot as they do in Starts, and the wrap it lands on becomes the one held.
+- Under the date, in both modes, the shoot as a span: **Starts** and **Wraps** at the two ends of a dashed line. The
+  end that holds is solid in Production's colour, the one worked out from it dashed (option B of four mocked, the
+  owner's pick, *"This would also be shown whether you do Starts or Ends"*). An amber "runs into the phase before"
+  line was tried first and taken out (*"thats obvious from just looking at the calendar"*).
+- Saved as one new key, `productionEnds` (the held wrap), written only in Ends, so a calendar that never uses it saves
+  byte for byte as before. The worked-out start is still written into Production's Starts box with Snap to Monday
+  off, so an older version opens the same shoot, held by its start.
+
+Verified: new leg `prodends` (to Ends moves nothing; one undo step; 90 shoot days wrapping Tue 10/20/26 start Fri
+6/12/26 over Juneteenth; Production's own hiatus; a typed Saturday and the day after Thanksgiving; the picker; Shift
+All; Save, Load, no key, a hostile key; back to Starts; a round trip byte for byte). `endsdate`'s C1 now expects
+Production's own select. Full gate 3,508 PASS, 2 FAIL, both load flakes that pass alone (`pwagate` C1 13/13 twice,
+`scenariocompat` on v1.2.0); every waterfall, Excel and month PDF baseline held. `npm run check` 40/40.
 
 ### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
 

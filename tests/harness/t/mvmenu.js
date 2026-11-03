@@ -1200,11 +1200,13 @@ window.addEventListener('load', function () { (async function () {
     // ⚠️ The month view draws each LINE of a note as its own block, so the two lines are checked across blocks.
     function noteTexts(){ return [].map.call(document.querySelectorAll('#table-wrap .mv-note-block'), function (b) { return txt(b); }); }
     function has(list, re){ return list.some(function (t) { return re.test(t); }); }
-    var sp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography 6\/29\/26/.test(txt(b)); });
-    if(sp){ await bringIntoView(sp); sp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography 6\/29\/26/.test(txt(b)); }); sp.click(); }
-    var ta7 = document.querySelector('#mv-note-pop textarea');
-    if(ta7){ ta7.value = ta7.value + '\nCall sheet out'; ta7.dispatchEvent(new Event('input', {bubbles: true}));
-             ta7.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true})); }
+    // ⭐ Since 2 Nov 2026 the month view's editor on an AUTOMATIC note is the one-line Auto Note editor (a rename,
+    // AUTO-NOTE-RENAME-PLAN.md), which cannot add a line, so the edited note is typed in the waterfall's own editor:
+    // a line added keeps it the user's typed text, as before. One undo step, as the month editor's was.
+    document.getElementById('view-sheet-btn').click(); await settle();
+    var ta7 = !!document.querySelector('#table-wrap td.sheet-note-cell[data-week="2026-06-29"]');
+    if(ta7) await T.typeUserNote('2026-06-29', 'Start Principal Photography 6/29/26\nCall sheet out');
+    await toMonth('July 2026');
     await settle();
     await T.sleep(700);
     var n7a = noteTexts();

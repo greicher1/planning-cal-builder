@@ -1281,9 +1281,12 @@ PY
 # drag to fix a pick, and a row note only when something was moved by hand.
 #
 # ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
-# frozen computeBlockLayout derives fewer columns from `col` as data. The byte-compare above, on
-# calendars that never tick it, is the inertness proof. This leg proves the rules, on a SYNTHETIC
-# calendar (2030-2032) with one phase per rule of the plan's §3.
+# frozen computeBlockLayout derives fewer columns from `col` as data. This leg proves the rules, on a
+# SYNTHETIC calendar (2030-2032) with one phase per rule of the plan's §3.
+# ⭐ Since 2 Nov 2026 a NEW calendar starts ticked (owner: "this can just be for calendars going forward
+# not old ones"), so the byte-compare above runs with it ON. Its calendar (buildFixture) has no handoff week
+# and lays out identically either way (checked when the default changed), which is why its baselines did
+# not move. Every ?state= fixture without the key still opens unticked.
 # Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
 # LIVE's own snapshot.
 for CRSTATE in "" colreuse; do
@@ -1303,10 +1306,12 @@ except Exception as e:
 if a.get('EX'):
     print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
 if a.get('mode') == 'live':
-    chk(a.get('boxExists') and a.get('boxStartsOff') and a.get('boxSkippedBySweep'),
-        'the box exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
+    chk(a.get('boxExists') and a.get('boxStartsOn') and a.get('newSnapSaysOn') and a.get('freshWasOn'),
+        'a NEW calendar starts with the box ticked, lays out with reused columns, and saves colReuse: true (owner, 2 Nov 2026)')
+    chk(a.get('boxUnticks') and a.get('boxSkippedBySweep'),
+        'the box unticks, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
     chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
-        'OFF saves no colReuse/colFollow key and shows no row note: a calendar that never ticks it is unchanged')
+        'OFF saves no colReuse/colFollow key and shows no row note: a calendar saved unticked is unchanged')
     oc=a.get('onCols') or {}
     chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
     chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
@@ -1330,10 +1335,12 @@ if a.get('mode') == 'live':
     chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
         f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
     chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
+    chk(a.get('oldFileOff') and a.get('oldFileLayout') and a.get('oldFileStillNoKey'),
+        'an OLD calendar (no colReuse key) Loads unticked, with its old columns, and still saves no key')
 else:
     chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
     chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
-    chk(a.get('newClears'), 'New clears the box and the hand moves')
+    chk(a.get('newTicks'), 'New starts a new calendar with the box ticked and no hand moves')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYCR
@@ -1691,6 +1698,11 @@ done
 # PDF, the month view on the bar's own first/last day and the written month PDF (control P0b), the autoNotesOn key
 # with the id set unchanged, one undo step, a renamed phase, a phase hiatus moving Begins/Ends, Hide in waterfall,
 # Load and the M-5 trap, a REAL v1.8.0 file opening with none of them, and New. 15 of 17 red on the build before it.
+# Since 2 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md step 1) also a CUSTOM phase's Begins/Ends (C0-C8): its engine-drawn
+# card row lined up under the built-ins and unticked, both notes in every output once ticked, one undo step, the save
+# key with only the phase's own new ids, a rename and a blank name, Days and Dates units, Hide in waterfall, removal
+# pruning its ticks (undo brings them back, a new phase starts unticked), and Load. Red on two mutants (no custom
+# edges: C1, C2, C4-C8; no prune: C7).
 # seasons (owner, 27 Oct 2026) is two or more seasons ticked in Show info's Season dropdown: the native #season-num
 # (the first ticked) opening SeasonPop's id-less checkbox rows by mouse and keyboard, the field reading "Seasons 3 & 4",
 # "S3 & S4" / "S3, S4 & S5" in the waterfall and month titles, Excel's page header
@@ -1737,7 +1749,8 @@ done
 # those weeks (no new key, no id, fields.byId and a hiatus row's keys unchanged); one undo step; the colour follows
 # a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu's
 # Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
-# carry removed (C5-C8). Its own line.
+# carry removed (C5-C8). D0-D2 (2 Nov 2026) hold New's four default breaks, 2029's on 12/17/29, and that a file saved
+# with the old 12/24/29 Loads with it. Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;
@@ -1775,6 +1788,13 @@ done
 # as before. Red on three mutants (no backward walk, movers leaving the end, no Fridays-only picker). Since the
 # owner's "go with choice 1" it also holds every Weeks phase's meta line ending on the FRIDAY, on Starts and on Ends
 # and through a month-view round trip (M1, M2; red with reflectWeeksMetaFriday disabled). Own line.
+# prodends (owner, 30 Oct 2026: "would it be possible we could add the "ends" date option to production", "id say do
+# exactly then", "Yes, build it"; the start shown as a span, "Yes, build it") holds Production held by its WRAP
+# (productionEnds): the card's own Starts / Ends select, wrap box and span (no id), to Ends moving nothing, one undo
+# step, the wrap holding TO THE DAY while the shoot-day count and Production's own hiatus move the start (over
+# Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
+# moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
+# round trip saving byte for byte as before. Own line.
 # retiredplaces (owner, 29 Oct 2026: the US is two places, "U.S. Area Standards" and "New York") holds every calendar
 # saved with one of the twelve retired US places to the same holidays: it loads as us-general (both selects), its
 # name moves into an empty Location and a typed one wins, the grid is the one us-general draws, Save writes the new
@@ -1820,6 +1840,19 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
+# the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
+# moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
+# simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
+# waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
+# writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
+# default, restored unconditionally, repaired on Load), undo, clearing it and New.
+# colswapcache (fixed 2 Nov 2026) is every edit reaching the waterfall on a calendar holding a stored column swap. The
+# column-swap gate's cache used to hand update() the schedule of its last MISS, so a phase renamed, Sim Post's offset,
+# "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
+# colswap-simpost-refuse, with the swap refused (Sim Post on) and applied (off). C1, a colour, is a cache HIT: red on
+# a build that only widens the key.
 # colswappartial (owner, 2 Nov 2026) is swapping PART of a column whose other weeks are widened by hand: a refused
 # block swap (Swap Column, or a short phase's whole block selected) falls back to the per-week swap of the shared
 # weeks, a per-week selection begun on a widened cell still gets its knob, the widened weeks never move, and the
@@ -1844,6 +1877,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               datepick:-:150 \
               snapbox:-:300 \
               endsdate:-:400 \
+              prodends:-:400 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
@@ -1866,6 +1900,9 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
+              autonoterename:autonoterename:500 \
+              simpostname:-:400 \
+              colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

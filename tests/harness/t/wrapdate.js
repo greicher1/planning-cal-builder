@@ -3,7 +3,7 @@
 // ⚠️ THE FIRST VERSION OF THIS PROBE WAS WRONG AND THE APP WAS RIGHT, which is worth recording:
 // it hardcoded a holiday list (wrongly including Veterans Day, which is US-NY only, not US-GEN)
 // and it ignored the FOUR default winter hiatuses the app ships with (DEFAULT_HIATUSES: 12/21/26,
-// 12/20/27, 12/18/28, 12/24/29, two weeks each). Both errors made the expected wrap land early, and
+// 12/20/27, 12/18/28, 12/17/29 since 2 Nov 2026, two weeks each). Both errors made the expected wrap land early, and
 // the app's correct answer looked like a bug. So this version reads BOTH from the app's own state:
 // holidays from the Settings list (name · date, with its Enable box), hiatuses from the sidebar rows.
 //
