@@ -31,6 +31,20 @@
   - **Full gate (13:26-13:58, port 8247): 3,505 PASS, 2 FAIL**, both load timeouts green alone (`pdfdialog` 15/15,
     `pilllabel` blocks W3 true). **Gate 13: all 22 written month PDFs byte-identical; gate 10: all 11 printed month
     documents identical** — NS1's acceptance. The waterfall PDF and every Excel part match too.
+- ✅ **Committed `5e982dc`; `main` merged in TWICE**, because it moved during the gates:
+  - `c3f1520` (Sim Post rename, column-swap cache fix, Production Ends, note size). Only top entries conflicted, plus
+    the plan's amendment by `AUTO-NOTES-PER-VIEW-PLAN.md` (both kept). ⚠️ **Frozen edit S1 was renamed NS1 here:** main's
+    Sim Post label escape and Scenarios' download each already called theirs S1. Gate (14:31-15:03): 3,554 PASS, 2 FAIL,
+    both green alone (`monthexport` dayoverrides 9/9; `scenariocompat` on `releases/v1.2.0.html`, after.episodes 8).
+  - `47fd413` (automatic notes for custom phases, the card's row names). Did the two things that entry asked of whoever
+    merged second: the delete now asks their `autoNoteOptIn()` (a custom pair starts off, so its tick leaves
+    `autoNotesOn`; it used to be `AUTO_NOTE_OPT_IN.has`, which would have written `autoNotesOff` and changed nothing),
+    and `removeCustomPhaseRow` prunes the pair's names and colours. Help line 642/643 conflicted: main's paragraph,
+    with this branch's four changes put back and the ↻ / ⚑ marks mentioned. New `autonoterename` C1 (24/24; the
+    fixture now ticks Colour Grading's Begins), `autonotephases` 27/27.
+  - **Gate on `689f05c` (17:02-17:35, run alongside another session's gate at the owner's word, "Run mine now"):
+    3,565 PASS, 1 FAIL**, `offweek` R13's 10 s wait for a Load, 42/42 alone. Gate 13's 22 written month PDFs
+    byte-identical, gate 10's 11 print documents identical, the waterfall PDF and every Excel part identical.
 
 ### 🔨 2 Nov 2026: RENAME AN AUTO NOTE AND KEEP IT AUTOMATIC; DELETING ONE SWITCHES IT OFF — BUILT on branch `auto-note-rename` (worktree `.claude/worktrees/auto-note-rename`, from `main` at `8b66a29`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED on the branch (owner's picker, *"Commit on the branch"*; push *"Not yet: after the symbol"*), NOT MERGED, NOT PUSHED (tracker card `rename-auto-notes`)
 
