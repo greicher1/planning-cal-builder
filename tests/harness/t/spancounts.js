@@ -14,6 +14,9 @@
 //
 //   C1  the weeks on the dashed line (the meta line's "→ N wk"); under the dates, holidays only: "2 holidays = 2 shoot
 //       days lost", no Off or added term; hovering the holidays names both; no id; one row; the totals line hidden
+//   A1  "↳ Start after …" directly under the date box (owner, 3 Nov 2026), above the span, flush with the box
+//   F1  the span OPENS the Total Shooting Days box (version F of mockups/production-span-placement.html, "Build F"):
+//       its first child, over the total, inside the box's edges, with a hairline under it
 //   M1  a Load with marks: Off on Wed 7/15 (counts), Sat 7/18 (a weekend, costs nothing) and Labor Day (counts, as an
 //       Off day: the walk leaves a holiday marked Off out of its holidays); 'on' on Fri 7/3 (a holiday worked: NOT
 //       added, simply not lost, and named on the total's hover) and Sat 8/1 (added), and Wed 7/8 (a day shot anyway).
@@ -140,6 +143,28 @@ window.addEventListener('load', function () { (async function () {
            && line.getBoundingClientRect().top >= Math.max.apply(null, pills) && oneRow(s)
            && !!note && note.hidden && !shown(note) && (row().innerText || '').indexOf('on the floor') < 0,
            { stats: s, sum: sumText(), weeks: wk, meta: metaWeeks(), noteHidden: note && note.hidden });
+    });
+
+    // ===== A1: "Start after" under the date box ===================================================================
+    await step('A1', async function () {
+      var btn = byId('autostart-production'), box = byId('start-production');
+      var b = btn.getBoundingClientRect(), d = box.getBoundingClientRect(), s = span().getBoundingClientRect();
+      kase('A1', '"↳ Start after …" sits directly under the date box (owner, 3 Nov 2026), above the span, flush with the box\'s left edge',
+           shown(btn) && /^↳ Start after /.test(btn.textContent || '')
+           && b.top >= d.bottom && b.top - d.bottom <= 8 && b.bottom <= s.top && Math.abs(b.left - d.left) <= 1,
+           { btn: { top: b.top, bottom: b.bottom, left: b.left }, box: { bottom: d.bottom, left: d.left }, spanTop: s.top, text: btn.textContent });
+    });
+
+    // ===== F1: the span opens the Total Shooting Days box =========================================================
+    await step('F1', async function () {
+      var blk = row().querySelector('.prod-total-block'), rd = byId('prod-total-readout');
+      var sp = span(), b = blk && blk.getBoundingClientRect(), s = sp.getBoundingClientRect(), r = rd && rd.getBoundingClientRect();
+      var cs = getComputedStyle(sp);
+      kase('F1', 'the span opens the Total Shooting Days box: its first child, over the total, inside the box, a hairline under it',
+           !!blk && blk.firstElementChild === sp && !!rd && s.bottom <= r.top && s.top >= b.top && s.left >= b.left - 0.5 && s.right <= b.right + 0.5
+           && cs.borderBottomStyle === 'solid' && parseFloat(cs.borderBottomWidth) === 1,
+           { box: b && { top: b.top, left: b.left, right: b.right }, span: { top: s.top, bottom: s.bottom, left: s.left, right: s.right }, readoutTop: r && r.top,
+             border: cs.borderBottom, first: blk && blk.firstElementChild && blk.firstElementChild.className });
     });
 
     // ===== M1: marks ==============================================================================================

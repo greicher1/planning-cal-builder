@@ -4081,12 +4081,18 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
-  /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): under Production's date, in both modes, the shoot as a span
-     (option B of mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed
-     line. The end that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the
-     one worked out from it dashed. */
+  /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): in both modes, the shoot as a span (option B of
+     mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed line. The end
+     that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the one worked out
+     from it dashed. */
   .prod-span{ display:grid; grid-template-columns:auto 1fr auto; align-items:end; gap:6px; margin-top:6px; --span-ink:#375623; }
   .prod-span[hidden]{ display:none; }
+  /* Since 3 Nov 2026 it OPENS the Total Shooting Days box (version F, owner: "Build F"): the box's padding on its three
+     inner sides, and a hairline under it running edge to edge, as the one over the shooting order does. */
+  .prod-total-block > .prod-span{
+    margin:0 calc(-1 * var(--mantine-spacing-lg)) var(--mantine-spacing-md);
+    padding:0 var(--mantine-spacing-lg) var(--mantine-spacing-md); border-bottom:1px solid var(--mantine-color-gray-2);
+  }
   .prod-span-end{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
   .prod-span-k{
     font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--mantine-color-gray-6);

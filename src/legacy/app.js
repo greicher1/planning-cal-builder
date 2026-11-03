@@ -7398,10 +7398,12 @@ export function initLegacyApp() {
   // Production's column (productionEnds) is the same, but its Ends box is the WRAP, to the day (the id-less
   // .prod-wrapdate, so the Weeks handlers never match it), and a line under it says where the start was worked out
   // to (reflectProductionEnds). start-production keeps its place in document order, so fields.byId does too.
-  // The shoot as a span under the date (owner, 30 Oct 2026, option B of mockups/production-start-readout.html, "This would
-  // also be shown whether you do Starts or Ends, changing which is highlited in solid green depending on which mode"):
-  // the first shoot day and the wrap, the end that holds solid, the one worked out from it dashed (reflectProductionEnds).
-  // No id, no input: nothing in it is saved.
+  // The shoot as a span (owner, 30 Oct 2026, option B of mockups/production-start-readout.html, "This would also be shown
+  // whether you do Starts or Ends, changing which is highlited in solid green depending on which mode"): the first shoot
+  // day and the wrap, the end that holds solid, the one worked out from it dashed (reflectProductionEnds). No id, no
+  // input: nothing in it is saved. It sat under the date box until 3 Nov 2026; it now OPENS the Total Shooting Days box
+  // (version F of mockups/production-span-placement.html, owner: "Build F"), over the total and the shooting order, so
+  // the result and the days it is made of share one box. buildPhaseRows puts it there.
   // The shoot's weeks on the dashed line, and under the two ends the shoot days it lost, as a sum (owner, 2 Nov 2026:
   // version D of mockups/production-span-stats.html, then "D replaces the whole line", then version C of
   // mockups/production-span-net.html, "Lets go with C but I want it to dynamically hide the off days and added days
@@ -7437,7 +7439,6 @@ export function initLegacyApp() {
         <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
         <label class="ph-ends-box">${endsBox}</label>
-        ${prod ? PROD_SPAN_HTML : ''}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -7518,6 +7519,7 @@ export function initLegacyApp() {
         ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
         <div class="prod-total-block">
+          ${PROD_SPAN_HTML}
           <div class="prod-total-readout" id="prod-total-readout"></div>
           <div class="phase-ov-note" id="prod-ov-note" hidden></div>
           <div class="phase-ov-note" id="prod-hol-note"></div>
@@ -8366,7 +8368,8 @@ export function initLegacyApp() {
   }
   // ENDS FOR PRODUCTION: the wrap box shows the day the shoot really wraps (the held wrap, unless a mark or a hiatus
   // has since taken that day), left alone while it is being typed in.
-  // Under it, IN BOTH MODES, the shoot as a span: its first shoot day and its wrap. The end that holds is solid, the
+  // And IN BOTH MODES, the shoot as a span (at the top of the Total Shooting Days box since 3 Nov 2026): its first
+  // shoot day and its wrap. The end that holds is solid, the
   // one worked out from it dashed, so in Ends the card says where the start went (the condition the owner's go-ahead
   // rested on: an added episode moves it without the start box being touched). Drawn in Production's own colour pair
   // (its option's text colour as the ink), so a recoloured Production keeps a matching span. (An amber "That is during
@@ -8457,7 +8460,9 @@ export function initLegacyApp() {
   // as a console error (measured in spancounts). The line's box keeps its size whichever way the weeks sit.
   function fitProdSpanWeeks(span){
     const mid = span.querySelector('.prod-span-mid'), label = span.querySelector('.prod-span-weeks');
-    if(!mid || !label || !mid.clientWidth) return;
+    // Out of view means the SPAN has no box (a folded card, another tab). Never the line's width: a narrow span can
+    // squeeze the line to 0 px, which is exactly when the weeks must move (measured in spancounts N1).
+    if(!mid || !label || !span.getClientRects().length) return;
     span.classList.toggle('weeks-under', label.offsetWidth + 16 > mid.clientWidth);
   }
 

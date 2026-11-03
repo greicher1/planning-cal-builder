@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoot Span Placement</title>
+<!-- MOCKUP, not the app. Where Production's shoot span (the STARTS / WRAPS pills, the weeks on the dashed line and the
+     "5 holidays = 5 shoot days lost" sum, built 2 Nov 2026 from mockups/production-span-net.html version C) sits on the
+     card. Owner, 3 Nov 2026: "actually what if we consider moving this section around. Show me a mockup with it in
+     various places including both directly above and directly below the "Total Shooting days" section. Also suggest 1
+     or 2 more ideas. I want to find the cleanest way to present the info/UI". Five versions, A-E. The card copies the
+     live one (legacy.css .phase-row, .prod-span, .prod-total-block, .ep-panel). The calendar is made up: the harness
+     fixture's 80 shoot days from Mon 6/29/26 on U.S. Area Standards, ten episodes of 8 days. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-2:#B4BFC9; --navy-5:#4A6479; --navy-6:#2C3E50;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --page:#ECEBE6;
+  --prod:#E2F0D9; --prod-text:#375623; --prod-tint:#EFF7EA;
+  --warn-0:#FEF6E7; --warn-9:#7A5B14; --hol:#B26A16; --add:#3F7A2A; --add-bg:#E6F2DF;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button{ font:inherit; }
+.page{ max-width:1960px; margin:0 auto; padding:24px 16px 60px; }
+h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:860px; }
+.try{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; background:#fff; border:1px solid var(--gray-2); border-radius:12px;
+      padding:10px 14px; margin:14px 0 18px; font-size:13px; }
+.try b{ font-weight:600; }
+.try .sep{ width:1px; height:20px; background:var(--gray-3); margin:0 4px; }
+.btn{ border:1px solid var(--gray-4); background:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; cursor:pointer; }
+.btn:hover{ background:var(--gray-0); }
+.btn.on{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+
+.grid{ display:grid; grid-template-columns:repeat(auto-fill, var(--cardw)); justify-content:center; align-items:start; gap:26px 22px; --cardw:396px; }
+.grid.narrow{ --cardw:311px; }
+@media (max-width:760px){ .grid, .grid.narrow{ grid-template-columns:minmax(0, var(--cardw)); } }
+.col-head{ font-size:12.5px; color:var(--gray-7); margin:0 0 8px; min-height:74px; }
+.col-head b{ color:var(--gray-9); font-weight:700; }
+.col-head .tag{ display:inline-block; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6);
+  background:#fff; border:1px solid var(--gray-3); border-radius:999px; padding:0 7px; margin-left:4px; vertical-align:1px; }
+
+/* ---------- the Production card, as live ---------- */
+.side{ background:var(--gray-0); border:1px solid var(--gray-3); border-radius:12px; padding:12px; }
+.card{ background:#fff; border:1px solid var(--gray-3); border-radius:12px; overflow:hidden; }
+.head{ display:flex; align-items:flex-start; gap:8px; padding:9px 12px 8px; background:var(--prod-tint); }
+.chev{ width:14px; height:22px; display:grid; place-items:center; color:var(--gray-9); flex:none; }
+.chev svg{ width:12px; height:12px; transition:transform .15s; }
+.folded .chev svg{ transform:rotate(-90deg); }
+.sw{ width:17px; height:17px; border-radius:4px; flex:none; margin-top:2.5px; background:var(--prod); box-shadow:inset 0 0 0 1px rgba(0,0,0,.1); }
+.head-text{ min-width:0; flex:1; }
+.nm{ font-weight:600; font-size:15px; line-height:22px; }
+.meta{ font-size:11.5px; line-height:1.4; color:rgba(30,29,27,.72); }
+.body{ padding:9px 12px 4px; }
+.folded .body{ display:none; }
+.cap{ font-size:11px; font-weight:500; color:var(--navy-5); line-height:16px; margin-bottom:3px; }
+.box{ height:32px; border:1px solid var(--gray-4); border-radius:7px; padding:0 10px; font-size:13px; display:flex; align-items:center; }
+.autostart{ display:block; font-size:11.5px; color:var(--navy-5); margin:4px 0 0; }
+.swrow{ display:flex; align-items:center; justify-content:space-between; font-size:13px; padding:9px 0; }
+.swrow + .swrow{ border-top:1px solid var(--gray-2); }
+.tog{ width:34px; height:19px; border-radius:999px; background:var(--gray-3); position:relative; flex:none; }
+.tog::before{ content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+.tog.on{ background:var(--navy-6); } .tog.on::before{ transform:translateX(15px); }
+
+.tot{ border:1px solid var(--gray-3); border-radius:12px; margin:4px 0 8px; overflow:hidden; }
+.tot-top{ padding:10px 13px 9px; }
+.tot-k{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); }
+.tot-v{ display:flex; align-items:baseline; gap:7px; }
+.tot-v strong{ font-size:27px; font-weight:700; line-height:1.15; }
+.tot-v .u{ font-size:13px; color:var(--gray-6); }
+.badge{ margin-left:auto; align-self:center; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; background:var(--gray-2); border-radius:999px; padding:2px 10px; }
+.ord{ border-top:1px solid var(--gray-2); padding:6px 12px 6px; }
+.ord-h{ display:flex; justify-content:space-between; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); padding:2px 0 4px; }
+.ord-h span:last-child{ text-transform:none; letter-spacing:0; font-weight:500; }
+.ep{ display:flex; align-items:center; gap:10px; padding:4px 0; font-size:13px; }
+.ep + .ep{ border-top:1px solid var(--gray-2); }
+.grip{ width:8px; height:13px; flex:none; background:radial-gradient(circle, var(--gray-5) 1.1px, transparent 1.3px) 0 0/4px 4.4px; }
+.ep .nm2{ flex:1; }
+.days{ width:62px; height:27px; border:1px solid var(--gray-4); border-radius:7px; display:flex; align-items:center; justify-content:flex-end; gap:3px; padding:0 8px; font-size:12.5px; }
+.days span{ font-size:11px; color:var(--gray-6); }
+.more{ font-size:11.5px; color:var(--gray-6); padding:5px 0 2px; }
+
+/* ---------- the span, as built (legacy.css .prod-span) ---------- */
+.span{ display:grid; grid-template-columns:auto 1fr auto; align-items:end; column-gap:6px; margin:8px 0 6px; }
+.end{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
+.end-k{ font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--gray-6); }
+.end-d{ font-size:11.5px; font-weight:600; padding:2px 8px; border-radius:999px; margin-top:3px; white-space:nowrap; border:1px dashed var(--prod-text); color:var(--prod-text); background:#fff; }
+.end.held .end-d{ border-style:solid; background:var(--prod-text); color:#fff; }
+.mid{ position:relative; align-self:stretch; display:flex; align-items:flex-end; min-width:0; }
+.line{ flex:1; height:2px; margin-bottom:10px; background:repeating-linear-gradient(90deg, color-mix(in srgb, var(--prod-text) 45%, transparent) 0 5px, transparent 5px 8px); }
+.wk{ position:absolute; left:50%; bottom:3.3px; transform:translateX(-50%); display:inline-flex; align-items:center; gap:3px; padding:0 5px; white-space:nowrap; font-size:11px; line-height:1.4; color:var(--gray-6); background:var(--wkbg, #fff); }
+.wk strong, .sum strong{ font-weight:600; color:var(--gray-9); }
+.sum{ grid-column:1 / -1; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px 6px; margin-top:3px; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.term{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+.op{ margin-right:3px; font-size:12px; font-weight:600; color:var(--gray-5); }
+.net{ padding:1px 8px; border-radius:6px; font-weight:700; background:var(--warn-0); color:var(--warn-9); white-space:nowrap; }
+.ic{ width:12px; height:12px; flex:none; }
+.ic.hol{ color:var(--hol); } .ic.add{ color:var(--add); }
+
+/* D and F: inside the totals box (D under the total, F on top of it) */
+.tot .span{ margin:0; padding:9px 13px 9px; border-top:1px solid var(--gray-2); }
+.tot .span.top{ padding-top:11px; border-top:0; border-bottom:1px solid var(--gray-2); }
+
+/* E: in the header, in place of the meta line */
+.head .span{ margin:7px 0 0; --wkbg:var(--prod-tint); }
+.head .end-k{ display:none; }
+.head .end-d{ background:#fff; }
+.head .end.held .end-d{ background:var(--prod-text); }
+.head .line{ margin-bottom:9px; }
+.head .wk{ bottom:2.3px; }
+
+.notes{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin:28px auto 0; font-size:12.5px; color:var(--gray-7); max-width:940px; }
+.notes h2{ font-size:14px; margin:0 0 6px; color:var(--gray-9); }
+.notes ul{ margin:0; padding-left:18px; } .notes li{ margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Production: where the shoot span sits on the card</h1>
+  <p class="lede">Mock-up, not the app. The same Starts / Wraps span, weeks and "shoot days lost" sum in six places on
+    the full Production card. Use the buttons to fold the cards, add Off and added days, shorten the episode list, or
+    see a smaller window.</p>
+
+  <div class="try">
+    <b>Try it:</b>
+    <button class="btn" id="fold" type="button">Fold the cards</button>
+    <button class="btn" id="marks" type="button">With Off and added days</button>
+    <button class="btn" id="short" type="button">4 episodes</button>
+    <span class="sep"></span>
+    <button class="btn" id="narrow" type="button">Smaller window</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="notes">
+    <h2>About this mock-up (not part of the design)</h2>
+    <ul>
+      <li><b>A</b> is the card as built on the branch (the span under the date box, with "Start after" moved up).
+        <b>B</b> and <b>C</b> are the two places you asked about. <b>D</b> and <b>E</b> are my two extra ideas, and
+        <b>F</b> is D with its two sections swapped, as you asked: the span opens the box, the total comes after it.</li>
+      <li><b>D</b> puts everything about how long the shoot runs in one box: the shoot days, then the dates, weeks and
+        days lost, then the episodes those days are made of. The date box above stays for the input.</li>
+      <li><b>E</b> moves the span into the card's coloured header, in place of the "80 shoot days → 17 wk · …" line.
+        It's the only one you still see with the card folded (try "Fold the cards"). The shoot-day count isn't lost:
+        it's in the Total Shooting Days box. The STARTS / WRAPS words go, since the pills sit right under the name.</li>
+      <li><b>C</b> sits under the whole shooting order, so with ten episodes it's a long way from the date it depends on.
+        Try "4 episodes" to see it on a short list.</li>
+      <li>The calendar is made up. Pre-Production, Hiatus and Simultaneous Post are drawn but do nothing here.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const svg = (d, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC = {
+    wk: svg('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4"/>'),
+    hol: svg('<path d="M3.5 14.5V2"/><path d="M3.5 2.5h8.5l-2 2.75 2 2.75H3.5"/>', 'hol'),
+    off: svg('<circle cx="8" cy="8" r="5.75"/><path d="M4 12 12 4"/>'),
+    add: svg('<circle cx="8" cy="8" r="5.75"/><path d="M8 5.25v5.5M5.25 8h5.5"/>', 'add')
+  };
+  const CHEV = '<span class="chev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>';
+  const st = { fold: false, marks: false, short: false, narrow: false };
+
+  // The made-up shoot, worked out by hand from Mon 6/29/26 on U.S. Area Standards: ten episodes (80 days, Independence
+  // Day observed and Labor Day inside) or four (32 days, Independence Day only); holidays only, or with two Off days and
+  // a weekend worked (net one more shoot day lost).
+  const shoot = () => {
+    const h = st.short ? 1 : 2, lost = h + (st.marks ? 1 : 0);
+    const wrap = st.short ? (st.marks ? 'Fri 8/14/26' : 'Wed 8/12/26') : (st.marks ? 'Wed 10/21/26' : 'Tue 10/20/26');
+    const sum = `${IC.hol}<strong>${h}</strong> ${h === 1 ? 'holiday' : 'holidays'}</span>`
+      + (st.marks ? ` <span class="term"><span class="op">+</span>${IC.off}<strong>2</strong> Off days</span> <span class="term"><span class="op">−</span>${IC.add}<strong>1</strong> added</span>` : '');
+    return { days: st.short ? 32 : 80, weeks: st.short ? 7 : 17, wrap, end: wrap.slice(4), sum, net: lost + ' shoot ' + (lost === 1 ? 'day' : 'days') + ' lost' };
+  };
+
+  function spanHtml(s, cls){
+    return `<div class="span${cls ? ' ' + cls : ''}">
+      <div class="end held"><span class="end-k">Starts</span><span class="end-d">Mon 6/29/26</span></div>
+      <div class="mid"><div class="line"></div><span class="wk">${IC.wk}<strong>${s.weeks}</strong> weeks</span></div>
+      <div class="end"><span class="end-k">Wraps</span><span class="end-d">${s.wrap}</span></div>
+      <div class="sum"><span class="term">${s.sum} <span class="term"><span class="op">=</span><span class="net">${s.net}</span></span></div>
+    </div>`;
+  }
+  const dateHtml = () => `<div class="cap">Starts ⌄</div><div class="box">06/29/2026</div>`;
+  const AUTOSTART = '<span class="autostart">↳ Start after Prod Prep</span>';
+  const SNAP = '<div class="swrow"><span>Snap to Monday</span><span class="tog on"></span></div>';
+  function totalHtml(inside, top){
+    const n = st.short ? 4 : 10;
+    const eps = Array.from({ length: n }, (_, i) => `<div class="ep"><span class="grip"></span><span class="nm2">Episode ${101 + i}</span><span class="days">8 <span>days</span></span></div>`).join('');
+    return `<div class="tot">
+      ${top || ''}<div class="tot-top"><div class="tot-k">Total shooting days</div>
+        <div class="tot-v"><strong>${n * 8}</strong><span class="u">days</span><span class="badge">${n} episodes</span></div></div>
+      ${inside || ''}
+      <div class="ord"><div class="ord-h"><span>Shooting order</span><span>drag ⠿</span></div>${eps}</div>
+    </div>`;
+  }
+  const TAIL = '<div class="swrow"><span>Hiatus</span><span class="tog"></span></div><div class="swrow"><span>Simultaneous Post</span><span class="tog"></span></div>';
+  function head(s, inHead){
+    return `<div class="head">${CHEV}<span class="sw"></span><div class="head-text"><div class="nm">Production</div>
+      ${inHead ? spanHtml(s) : `<div class="meta">${s.days} shoot days → ${s.weeks} wk · 6/29/26 → ${s.end}</div>`}</div></div>`;
+  }
+
+  const VERSIONS = [
+    { id: 'A', tag: 'As built', name: 'Under the date box',
+      blurb: 'The branch as it stands: the date, "Start after", then the span right under it. What you type and what it works out to sit together.',
+      card: s => head(s) + `<div class="body">${dateHtml()}${AUTOSTART}${spanHtml(s)}${SNAP}${totalHtml()}${TAIL}</div>` },
+    { id: 'B', tag: 'You asked', name: 'Directly above Total Shooting Days',
+      blurb: 'The inputs first (date, "Start after", Snap to Monday), then the span as the summary right before the days it\'s made of.',
+      card: s => head(s) + `<div class="body">${dateHtml()}${AUTOSTART}${SNAP}${spanHtml(s)}${totalHtml()}${TAIL}</div>` },
+    { id: 'C', tag: 'You asked', name: 'Directly below Total Shooting Days',
+      blurb: 'After the whole shooting order, just above Hiatus: the result at the end, once everything that makes it is listed.',
+      card: s => head(s) + `<div class="body">${dateHtml()}${AUTOSTART}${SNAP}${totalHtml()}${spanHtml(s)}${TAIL}</div>` },
+    { id: 'D', tag: 'Idea', name: 'Inside the Total Shooting Days box',
+      blurb: 'One box for the shoot\'s length: the total, then the dates, weeks and days lost under a hairline, then the episodes.',
+      card: s => head(s) + `<div class="body">${dateHtml()}${AUTOSTART}${SNAP}${totalHtml(spanHtml(s))}${TAIL}</div>` },
+    { id: 'F', tag: 'You asked', name: 'Inside the box, above the total',
+      blurb: 'D with its two sections swapped: the dates, weeks and days lost open the box, then the total, then the episodes.',
+      card: s => head(s) + `<div class="body">${dateHtml()}${AUTOSTART}${SNAP}${totalHtml('', spanHtml(s, 'top'))}${TAIL}</div>` },
+    { id: 'E', tag: 'Idea', name: 'In the header, in place of the meta line',
+      blurb: 'The span replaces "80 shoot days → 17 wk · …" under the name, so it stays in view when the card is folded.',
+      card: s => head(s, true) + `<div class="body">${dateHtml()}${AUTOSTART}${SNAP}${totalHtml()}${TAIL}</div>` }
+  ];
+
+  const grid = document.getElementById('grid');
+  function render(){
+    const s = shoot();
+    grid.classList.toggle('narrow', st.narrow);
+    grid.innerHTML = VERSIONS.map(v => `<div>
+      <p class="col-head"><b>${v.id}. ${v.name}</b><span class="tag">${v.tag}</span><br>${v.blurb}</p>
+      <div class="side"><div class="card${st.fold ? ' folded' : ''}">${v.card(s)}</div></div>
+    </div>`).join('');
+    ['fold', 'marks', 'short', 'narrow'].forEach(k => document.getElementById(k).classList.toggle('on', st[k]));
+  }
+  ['fold', 'marks', 'short', 'narrow'].forEach(k => document.getElementById(k).addEventListener('click', () => { st[k] = !st[k]; render(); }));
+  render();
+})();
+</script>
+</body>
+</html>

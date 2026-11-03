@@ -4,6 +4,43 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — BUILT on branch `span-counts` (the same worktree, on top of `96bfe8d`); NOT committed. Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
+
+- **The asks, in order** (owner, 3 Nov 2026, after the shoot-days-lost sum went live at `ab566e0`):
+  1. With a screenshot of the card: *"yes it can drop the whole thing: 80 shoot days → 17 wk · 11/23/26 → 4/2/27"*,
+     then in the same message *"nevermind keep it but move the "Start after arrow to directly bellow the date box"*.
+     So the meta line STAYS (the open question of dropping its "→ N wk" is answered: keep it). The link was moved into
+     the date column, between the date box and the span (a helper `AUTOSTART_HTML`), built and tested, and its commit
+     picker went unanswered because ask 2 came instead.
+  2. *"actually what if we consider moving this section around. Show me a mockup with it in various places including
+     both directly above and directly below the "Total Shooting days" section. Also suggest 1 or 2 more ideas. I want
+     to find the cleanest way to present the info/UI"*. Mocked on a copy of the full card: A as built, B above the
+     totals box, C below it (after the shooting order), D inside it between the total and the order (idea), E in the
+     head in place of the meta line, visible when folded (idea; it would have HIDDEN the frozen-render meta line).
+  3. With a crop of D: *"mockup a version where we swap these two sections so the start -----end box goes above the
+     total shooting days box"*: F, the span OPENING the box. Then *"Build F"*.
+- **Built (F):**
+  - `buildPhaseRows` writes `PROD_SPAN_HTML` as the FIRST child of `.prod-total-block`, before `#prod-total-readout`
+    (it was inside `.ph-starts`, written by `startsFieldHtml`). `.prod-total-block > .prod-span` takes the box's
+    padding on its inner sides with negative margins, so its hairline (`gray-2`, as over the shooting order) runs edge
+    to edge. Nothing in it has an id, so `fields.byId` and every saved file are unchanged; `reflectProductionEnds`
+    finds it with `row.querySelector('.prod-span')` wherever it is.
+  - **Ask 1's link move is UNDONE as no longer needed:** with the span out of the date column, the button's original
+    place (after `.phase-fields`) IS directly under the date box. `AUTOSTART_HTML` and `.ph-starts > .autostart-btn`
+    are gone; the button's markup is the original line again, for every phase.
+  - `fitProdSpanWeeks()` now skips only when the SPAN has no box (`getClientRects().length`), not when the dashed line
+    has no width: inside the box's padding a 210 px span squeezes the line to exactly 0 px, which is when the weeks must
+    move (caught by `spancounts` N1).
+  - The empty state (Show info incomplete, the dashed see-through box) is unaffected: there are no shoot days then, so
+    the span is `hidden`.
+- **Proof so far:** `spancounts` 10/10 on the build (new F1: the span is the box's first child, above the readout,
+  inside its edges, a 1 px solid hairline under it; A1 the link 5 px under the date box, flush with it). Screenshot in
+  headless Chrome at a 1920 px window. Green on the build, the legs that read or measure the totals box judged by
+  gate.sh's own blocks: blocks (16 PASS), episodeprep live / episodeprep / episodeprep-blocks (34, 28, 12 PASS),
+  labelsetup 41/41, wholenum 12/12; and phasefold 11/11, prodends 14/14, overrides 20/20 (clicks the link),
+  endsdate 17/17, snapbox 12/12, mvmenu 81/81, phasesui 8/8 on `hidewf`. `npm run check` 40/40. No full gate (no
+  writer, save path or frozen code involved).
+
 ### ✅ 2 Nov 2026: PRODUCTION'S CARD SHOWS ITS WEEKS AND THE SHOOT DAYS IT LOST (VERSION C, A NET SUM) — ✅ **LIVE at `ab566e0`** (pushed from the branch `b225ecf..ab566e0` at 13:58:16 on 3 Nov 2026; the live `index.html` matched the tested build `7e6b21d3…` byte for byte at 13:59:15; ⚠️ local `main` was NOT moved: the main checkout still held another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh, so it fast-forwards to `ab566e0` once that session commits) — BUILT on branch `span-counts` (worktree `.claude/worktrees/span-counts`, from `main` at `ba3a745`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); COMMITTED as `1350226` (owner's picker: *"Commit and merge"*, *"Push once merged"*), local `main` (`4c11cdb`) merged in as `a4f0dfb` and `origin/main` (`b225ecf`, the PDF mark) merged in after it; PUSHED FROM THE BRANCH, because the main checkout held another session's uncommitted `src/legacy/app.js` edits and a fast-forward there would have overwritten them (local `main` catches up with a fast-forward once that session commits); NOT gated in full. Mockups [`mockups/production-span-stats.html`](mockups/production-span-stats.html) (round 1, moved here from the main checkout, where it was untracked) and [`mockups/production-span-net.html`](mockups/production-span-net.html) (round 2). Tracker card `production-span-counts`
 
 - **The asks, in order** (owner, 2 Nov 2026):

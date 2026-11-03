@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Production's span opens its Total Shooting Days box; "Start after" sits under the date (3 Nov 2026)
+
+The owner, after the weeks and shoot-days-lost sum went live: *"move the "Start after arrow to directly bellow the
+date box"*, then *"what if we consider moving this section around. Show me a mockup with it in various places"*. Six
+placements were mocked (`mockups/production-span-placement.html`); the owner picked F, *"swap these two sections so the
+start -----end box goes above the total shooting days box"*: *"Build F"*. The meta line ("80 shoot days → 17 wk · …")
+stays (*"nevermind keep it"*).
+
+- **The Starts / Wraps span, its weeks and the sum now open the Total Shooting Days box**, above the total and the
+  shooting order, under a hairline. So the dates the shoot works out to and the days they're made of share one box.
+- **"↳ Start after …" is directly under the date box** again on Production: the span no longer sits between them.
+- Nothing else on the card moved, and nothing about what the span says changed.
+
+How: `buildPhaseRows` writes `PROD_SPAN_HTML` as the first child of `.prod-total-block` (it was inside the date
+column, `startsFieldHtml`); one CSS rule gives it the box's padding and a hairline under it. `fitProdSpanWeeks` now
+skips only when the span itself has no box: a narrow span can squeeze the dashed line to 0 px, which is exactly when
+the weeks must move. No id, nothing saved, no frozen code.
+
+Verified: `spancounts` gained A1 (the link under the date box) and F1 (the span is the box's first child, over the
+total, inside its edges, hairline under it), 10/10 on the build. The legs that read the totals box are green
+(blocks, episodeprep in all three states, labelsetup, wholenum), and so are phasefold, prodends, overrides, endsdate,
+snapbox, mvmenu and phasesui. `npm run check` 40/40. Screenshot in headless Chrome.
+
 ### Unreleased — Production's card shows its weeks and the shoot days it lost (2 Nov 2026)
 
 The owner: *"can we have three icons: one that says the number of production weeks, one that says the number of
