@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 2 Nov 2026: 2029'S DEFAULT WINTER HIATUS IS MON 12/17/29 — committed on `main` (owner's picker: "Commit", "Push now")
+### ✅ 2 Nov 2026: 2029'S DEFAULT WINTER HIATUS IS MON 12/17/29 — ✅ **LIVE at `ba3a745`** (owner's picker: "Commit", "Push now"; `c8fda83..ba3a745` at 17:56:22, carrying another session's HANDOFF-only `4ce11c9`; the live `index.html` matched the local build `ae184de1…` byte for byte at 17:57:22)
 
 - **The ask** (owner, with a screenshot of an all-phase card at Starts 12/17/2029, Weeks 2, Lock in place on, Number
   weeks off): *"this should replace the default all phase hiatus for 2029"*.
@@ -19,7 +19,7 @@
   `npm run check` 40/40. No full gate: `buildFixture` ends in 2027, so no byte-compared baseline reaches Dec 2029.
 - Comments that listed the four defaults were updated (`hiatuscolour.js`, `wrapdate.js`, the wrap-date row in the
   lessons table below).
-- ⏭ **Open:** nothing once the push is verified live.
+- ⏭ **Open:** nothing. This note rides the next push.
 
 ### ✅ 2 Nov 2026: REUSE EMPTY COLUMNS IS ON FOR NEW CALENDARS — ✅ **LIVE at `c8fda83`** (owner's picker: "Commit", "Push now"; `315f7e5..c8fda83` at 17:18:44, carrying another session's HANDOFF-only `6cc1046`; the live `index.html` matched the gated build `bcf3febb…` byte for byte at 17:19:54)
 
