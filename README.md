@@ -84,6 +84,25 @@ browser pane: the Auto Note editor, a rename, and a drag to another day. Full ga
 Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
 typing over an automatic note is now a rename (details in HANDOFF).
 
+### Unreleased — 2029's default winter hiatus starts Mon 12/17/29 (2 Nov 2026)
+
+The owner, with a screenshot of the card set the way they want it: *"this should replace the default all phase hiatus
+for 2029"*.
+
+- **A new calendar's 2029 break is now 12/17/29 → 12/30/29**, two weeks, Lock in place on, Number weeks off. It was
+  12/24/29 → 1/6/30. The other three (12/21/26, 12/20/27, 12/18/28) are unchanged. "New calendar" means the first
+  launch with no file, and File ▸ New.
+- **Every saved calendar keeps its own break.** A file stores its hiatus rows, so one saved with 12/24/29 opens with
+  12/24/29. Nothing about the save format changed.
+
+How: one entry in `DEFAULT_HIATUSES` (`src/legacy/app.js`). No frozen code.
+
+Verified: `hiatuscolour` gained D0–D2 (a fresh calendar's four breaks on the cards and in its file; New lays the same
+four; a file carrying 12/24/29 Loads with 12/24/29). 14/14 on the build. Also green on the build: wrapdate (which reads
+the breaks from the app), mxholidays (Production from 12/3/29, across the break), noresetall, `npm run check` 40/40.
+No full gate: the byte-compared baselines are built on a calendar that ends in 2027, and every fixture carries its own
+rows.
+
 ### Unreleased — Reuse Empty Columns is on for new calendars (2 Nov 2026)
 
 The owner asked whether Reuse Empty Columns should be on by default, and to capitalize it, then ruled *"this can just
