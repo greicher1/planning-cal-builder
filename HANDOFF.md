@@ -65,8 +65,11 @@
     red in P3 and P4 on the merged build without this fix. gate.sh now runs the leg on both fixtures. In the pane,
     with real clicks: Swap Column on Post, the left arrow, the swap; then the right arrow appears and swaps back
     exactly.
-- **NOT done:** the swap mini-gate on the FIXED merged build, then a full gate on it, before `main` is fast-forwarded
-  to it. The owner decides the merge into `main` and, separately, the push.
+- Swap mini-gate on the FIXED merged build (`dist` `d111a917…`, commit `dde8856`): **191 PASS, 0 FAIL**, the new leg
+  8/8 on both fixtures. `npm run check` 40/40.
+- **NOT done:** the full gate on that build. It is queued behind another session's gate (scratchpad
+  `queue-full-run2.sh`, log `full-run2.log`). Only after it may `main` be fast-forwarded to this branch, and the
+  owner decides that merge and, separately, the push.
 
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
