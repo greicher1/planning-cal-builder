@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 2 Nov 2026: PRODUCTION'S CARD SHOWS ITS WEEKS AND THE SHOOT DAYS IT LOST (VERSION C, A NET SUM) — BUILT on branch `span-counts` (worktree `.claude/worktrees/span-counts`, from `main` at `ba3a745`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); COMMITTED as `1350226` (owner's picker: *"Commit and merge"*, *"Push once merged"*), local `main` (`4c11cdb`) merged in as `a4f0dfb` and `origin/main` (`b225ecf`, the PDF mark) merged in after it; PUSHED FROM THE BRANCH, because the main checkout held another session's uncommitted `src/legacy/app.js` edits and a fast-forward there would have overwritten them (local `main` catches up with a fast-forward once that session commits); NOT gated in full. Mockups [`mockups/production-span-stats.html`](mockups/production-span-stats.html) (round 1, moved here from the main checkout, where it was untracked) and [`mockups/production-span-net.html`](mockups/production-span-net.html) (round 2). Tracker card `production-span-counts`
+### ✅ 2 Nov 2026: PRODUCTION'S CARD SHOWS ITS WEEKS AND THE SHOOT DAYS IT LOST (VERSION C, A NET SUM) — ✅ **LIVE at `ab566e0`** (pushed from the branch `b225ecf..ab566e0` at 13:58:16 on 3 Nov 2026; the live `index.html` matched the tested build `7e6b21d3…` byte for byte at 13:59:15; ⚠️ local `main` was NOT moved: the main checkout still held another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh, so it fast-forwards to `ab566e0` once that session commits) — BUILT on branch `span-counts` (worktree `.claude/worktrees/span-counts`, from `main` at `ba3a745`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); COMMITTED as `1350226` (owner's picker: *"Commit and merge"*, *"Push once merged"*), local `main` (`4c11cdb`) merged in as `a4f0dfb` and `origin/main` (`b225ecf`, the PDF mark) merged in after it; PUSHED FROM THE BRANCH, because the main checkout held another session's uncommitted `src/legacy/app.js` edits and a fast-forward there would have overwritten them (local `main` catches up with a fast-forward once that session commits); NOT gated in full. Mockups [`mockups/production-span-stats.html`](mockups/production-span-stats.html) (round 1, moved here from the main checkout, where it was untracked) and [`mockups/production-span-net.html`](mockups/production-span-net.html) (round 2). Tracker card `production-span-counts`
 
 - **The asks, in order** (owner, 2 Nov 2026):
   1. *"Either in the middle of the dashed line or somewhere below, can we have three icons: one that says the number of
@@ -68,7 +68,10 @@
   touches Load (the same poll timed out in the 2 Nov full gate above, R13, green alone). Rerun it when the machine is
   quiet. `npm run check` 40/40 on C's build. Screenshots in headless Chrome at 1920 and 1440 px windows.
 - **Open:** a
-  full gate is not run (nothing in any writer, the save path or frozen code reads the three new lists). Whether the
+  full gate is not run (nothing in any writer, the save path or frozen code reads the three new lists). On the final
+  merge (`ab566e0`, build `7e6b21d3…`): spancounts 8/8, pdfmark 6/6, prodends 14/14, overrides 20/20, halfworked 24/24,
+  mvmenu 81/81, prodspan 8/8, autonoterename 24/24, offweek 5/5 live + 42/42 on its fixture; `npm run check` 40/40.
+  This note rides the next push. Whether the
   meta line should drop its "→ N wk" now that the weeks sit on the span is unasked.
 
 ### ✅ 2 Nov 2026: THE SPTCal PDF MARK — EVERY SAVED PDF SAYS, INVISIBLY, THAT SPTCal MADE IT — BUILT on branch `pdf-mark` (worktree `.claude/worktrees/pdf-mark`, from `main` at `4c11cdb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED and fast-forwarded into `main`, then PUSHED (owner's pickers, 3 Nov: *"Commit and merge to main"*, *"Push after main moves"*; the Copilot kit *"Leave it for now"*) (tracker card `pdf-watermark`)
