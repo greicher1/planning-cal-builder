@@ -630,7 +630,7 @@ there is no one-gesture way to do it already. The gestures the month view alread
 | Shoot day | Full day / Off, Weekend — not shot / Work this day, … | Stays | Ruling L1: the only way to mark a day |
 | Hiatus | Lock in place | **Gone** | The hiatus row's own box (the waterfall's §1.2) |
 | Hiatus | Number weeks | **Gone** | The hiatus row's own box. It came with LABELS-SETUP item 9; the owner's ruling there was *"Per hiatus row"*, and the box stays on the row |
-| Hiatus | Colour… | Stays (T2) | The owner's *"Recolour from day menu"* (20 Oct 2026). The only way to colour a whole hiatus at once |
+| Hiatus | Colour… | Stays (T2) | The owner's *"Recolour from day menu"* (20 Oct 2026). The only way to colour a whole hiatus at once. ⛔ **Cut 4 Nov 2026** (owner's picker, *"remove month color"*): a hiatus is named and coloured on its sidebar card only, whose colour square (28 Oct 2026) colours a whole hiatus |
 | Hiatus | Show in Phases card | **Gone** | The hiatus row itself |
 | Hiatus | Remove hiatus… | Stays | The waterfall's band menu has it; asks first (Q4) |
 | A phase's own hiatus | Remove ‹phase›'s hiatus | Stays | The same, for a phase's own band |
@@ -659,7 +659,7 @@ already starts (T3), which the waterfall's submenu shares, and the waterfall's o
 | *(This day)* | always | Add 1-day phase here (not on a weekend or inside an all-phase hiatus) · Add 1-week phase here · Add hiatus ▸ |
 | *‹phase›* | the pointer is on that phase's bar, and the section has an item | Start ‹phase› here (not on the day it starts) · End ‹phase› here (not on Production, nor where it already ends or can't end) · neither on Prep · Back to date order (while an order is set and differs from date order) · Remove ‹phase›… (custom phases). *Start / End were a greyed pair until 28 Oct 2026 (§13.9)* |
 | Shoot day N | the day is inside the shoot, and has a row | the shoot rows (L1). Inside a hiatus: none since 28 Oct 2026, so no section, unless a mark stored before the hiatus needs its Clear override (§13.9) |
-| ‹hiatus› · dates | the day is inside an all-phase hiatus | Colour… · Remove hiatus… |
+| ‹hiatus› · dates | the day is inside an all-phase hiatus | ~~Colour…~~ (cut 4 Nov 2026) · Remove hiatus… |
 | ‹phase›'s hiatus · dates | the day is inside a phase's own hiatus | Remove ‹phase›'s hiatus |
 | Holiday · ‹name› | a holiday falls on the day | Enabled · Show in month view · Show in waterfall (the two Show items only while the holiday is on) |
 | *(last)* | always | Show this week in the waterfall |

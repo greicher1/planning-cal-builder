@@ -307,10 +307,14 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- 9. it is NOT part of Show Info's completeness test -----------------------------------
     // A version must never gate Production. showInfoStatus() tests season + days-per-episode +
-    // episode count, and the note it writes must not have learned a fourth requirement.
-    var note = document.getElementById('show-info-note');
-    out.showInfoNote = note ? (note.textContent || '').trim().slice(0, 120) : null;
-    out.notInCompleteness = !/version/i.test(out.showInfoNote || '');
+    // episode count, and must not have learned a fourth requirement: with the Version blank,
+    // Production is still scheduled (its row not greyed, its total written). This read the Show
+    // Info note's text until 4 Nov 2026, when the owner removed that note.
+    var prodTotal = document.getElementById('weeks-production');
+    var prodRow = prodTotal ? prodTotal.closest('.phase-row') : null;
+    out.prodTotalWithoutVersion = prodTotal ? prodTotal.value : null;
+    out.notInCompleteness = !!prodRow && !prodRow.classList.contains('phase-blocked') &&
+                            !!(prodTotal && prodTotal.value);
 
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();

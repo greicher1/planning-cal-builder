@@ -11,7 +11,8 @@
 //
 //   K1  the waterfall note editor offers the month palette in two rows (the ten, then No fill, the tints, the greys),
 //       each on one line, its current colour selected
-//   K2  a hiatus band's editor keeps one row of the ten standard colours
+//   K2  the all-phase hiatus band opens NO editor (since 4 Nov 2026 a hiatus's name and colour are its sidebar card's,
+//       owner); a double-click shows its card. Only a Production off week keeps the band editor now (offweek R7).
 //   K3  the month view's editor for a WATERFALL note offers the same two rows (it kept the ten until today)
 //   S1  a tint draws as any colour: Pink #F7C1D9 with black ink
 //   S2  No fill draws the note as its text alone: transparent, black ink; its editor reopens on No fill
@@ -126,7 +127,17 @@ window.addEventListener('load', function () { (async function () {
     return c.replace(/\(\d{1,2}\.\d{1,2}\.\d{2}\) Tj/g, '(STAMP) Tj');
   }
   function count(s, re) { return (s.match(re) || []).length; }
-  var YELLOW = /1\.0000 1\.0000 0\.0000 rg/g, FILLS = /rg [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ re f/g;
+  var YELLOW = /1\.0000 1\.0000 0\.0000 rg/g;
+  // A cell's fill is followed, after any SM1 seam strips, by its own clip to the same box (pdfseams.py classifies alike).
+  function cellFills(s) {
+    var ops = s.split('\n'), n = 0, F = /^[\d.]+ [\d.]+ [\d.]+ rg ([-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+) re f$/, m, j;
+    for (var i = 0; i < ops.length; i++) {
+      if (!(m = F.exec(ops[i]))) continue;
+      for (j = i + 1; j < ops.length && F.test(ops[j]); j++);
+      if (ops[j] === 'q ' + m[1] + ' re W n') n++;
+    }
+    return n;
+  }
   // The written month PDF: every Flate stream's text, decoded.
   async function monthPdfStreams() {
     T.monthPrintPath(false);
@@ -219,10 +230,12 @@ window.addEventListener('load', function () { (async function () {
       var band = q('#table-wrap td.sheet-hiatus-cell[data-week="2026-11-23"]'); if (!band) throw new Error('no hiatus band at 11/23/26');
       band.scrollIntoView({ block: 'center' }); await T.sleep(100);
       T.openCell(band); await T.sleep(300);
-      var pop = q('.note-pop'), r = rows(pop);
-      escape(pop); await T.sleep(200);
-      kase('K2', 'a hiatus band\'s editor keeps one row of the ten standard colours (titled by hex), no No fill',
-           !!r && r.length === 1 && r[0].length === 10 && r[0].indexOf('No fill') < 0 && r[0][0] === '#C00000', { rows: r });
+      var pop = q('.note-pop'), tabNow = (q('.side-tab-btn.active') || { dataset: {} }).dataset.tab;
+      var focusName = !!document.activeElement && document.activeElement.classList.contains('hiatus-name');
+      if (pop) { escape(pop); await T.sleep(200); }
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      kase('K2', 'the all-phase hiatus band opens NO editor: a double-click shows its sidebar card (Phases tab, name box focused)',
+           !pop && tabNow === 'phases' && focusName, { editor: !!pop, tab: tabNow, focusName: focusName });
     });
 
     // ===== S1-S2, U1: picking ====================================================================================
@@ -263,7 +276,9 @@ window.addEventListener('load', function () { (async function () {
       await undo();                                       // the note back to purple
       var b = await wfPdf('the waterfall PDF, purple');
       await redo();
-      var fa = count(a, FILLS), fb = count(b, FILLS), ya = count(a, YELLOW), yb = count(b, YELLOW);
+      // CELL fills, not every `re f`: since frozen edit SM1 (4 Nov 2026) a fill touching another carries seam strips
+      // (fills between it and its own clip), and a No fill note takes its neighbours' strips into it away too.
+      var fa = cellFills(a), fb = cellFills(b), ya = count(a, YELLOW), yb = count(b, YELLOW);
       var txtA = a.indexOf('(Cast fittings) Tj') !== -1 && a.indexOf('(Network call) Tj') !== -1;
       kase('P1', 'the waterfall PDF (NF2): exactly one fill rectangle fewer than with the note purple, no yellow added, and the note\'s two lines drawn',
            fa === fb - 1 && ya === yb && txtA && /background:#FFFFFF00/i.test(noteStyle('2026-08-10')),

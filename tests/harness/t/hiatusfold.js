@@ -225,7 +225,8 @@ window.addEventListener('load', function () { (async function () {
       el.dispatchEvent(new MouseEvent('mousedown', base));
       el.dispatchEvent(new MouseEvent('contextmenu', base));
       el.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, base, { buttons: 0 })));
-      await T.until(function () { return !!document.querySelector('.day-menu [data-item^="band-colour-"]'); }, 'the day menu\'s hiatus section', 40, 100);
+      // Waits on Remove hiatus…: the section's one item since Colour… was cut (4 Nov 2026, the owner's "remove month color").
+      await T.until(function () { return !!document.querySelector('.day-menu [data-item^="band-remove-"]'); }, 'the day menu\'s hiatus section', 40, 100);
       var shows = document.querySelectorAll('.day-menu [data-item^="band-show-"]').length;
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
       await settle();

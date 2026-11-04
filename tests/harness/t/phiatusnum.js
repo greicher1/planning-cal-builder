@@ -103,7 +103,8 @@ window.addEventListener('load', function () { (async function () {
     $('save-file-btn').click();
     await T.until(function () { return written.length > n; }, 'the Save write', 100, 100);
     await T.sleep(300);
-    return written[written.length - 1];
+    var w = written[written.length - 1];
+    return typeof w === 'string' ? w : w.text;   // after a Load, the file's own handle records {file, text} (H11's reload)
   }
   var loads = 0;
   function menuLabel() { return (($('file-menu-label') || {}).textContent || '').trim(); }
@@ -246,27 +247,34 @@ window.addEventListener('load', function () { (async function () {
     });
 
     await step('H11', async function () {
-      // Retype the middle band through the real band editor.
-      var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-pkey="prePrep"][data-week="' + PP[1] + '"]');
-      T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
-      await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the band editor', 50, 100);
-      var ta = document.querySelector('.note-editor textarea');
-      ta.value = 'Lock-off';
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
-      ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
-      await T.until(function () { return !document.querySelector('.note-editor textarea'); }, 'the editor to close', 50, 100);
+      // ⛔ REWRITTEN 4 Nov 2026 (owner's picker, "Same rule, add colour"): a phase's own band opens no editor any more (its
+      // name and colour are its card's), so a band retyped in the grid is a state only an OLDER file holds. It is reached
+      // that way (T.reloadWith: Save As, the middle week's label set as the band editor stored it, Load). It prints as
+      // saved; its double-click shows the phase card's hiatus block; and the card's Number weeks box, unticked and
+      // ticked, now takes that week over (claimBandNames), where until then it kept what was typed for good.
+      await T.reloadWith(function (snap) {
+        snap.hiatusTexts = Object.assign({}, snap.hiatusTexts);
+        snap.hiatusTexts[PP[1] + '|prePrep'] = 'Lock-off';
+      }, 'phiatusnum-lockoff', { writes: written });
       await settle();
       var ticked = bands('prePrep', PP);
+      var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-pkey="prePrep"][data-week="' + PP[1] + '"]');
+      T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
+      await T.sleep(400);
+      var editor = !!document.querySelector('.note-editor textarea');
+      var focusName = document.activeElement === $('phiatus-name-prePrep');
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
       await clickBox('prePrep');
       var unticked = bands('prePrep', PP);
       await clickBox('prePrep');
       var retick = bands('prePrep', PP);
-      // "Reset hiatus bands" clears every band's own text; the sync then claims the band again, numbered.
+      // "Reset hiatus bands" clears every band's own text; the sync claims the bands again, numbered.
       $('hiatus-reset-btn').click(); await settle();
       var reset = bands('prePrep', PP);
-      kase('H11', 'a band retyped in the grid keeps exactly what was typed, ticked or not; its neighbours are numbered; Reset hiatus bands numbers it again',
-           same(ticked, [NUM[0], 'Lock-off', NUM[2]]) && same(unticked, ['Pre-Prep Hiatus', 'Lock-off', 'Pre-Prep Hiatus']) &&
-           same(retick, ticked) && same(reset, NUM), { ticked: ticked, unticked: unticked, retick: retick, reset: reset });
+      kase('H11', 'a band retyped in the grid before 4 Nov 2026 (an older file) prints as saved beside its numbered neighbours; its double-click opens NO editor but the card\'s Name box; unticking Number weeks takes it over, ticking numbers all three; Reset hiatus bands keeps them numbered',
+           same(ticked, [NUM[0], 'Lock-off', NUM[2]]) && !editor && focusName &&
+           same(unticked, ['Pre-Prep Hiatus', 'Pre-Prep Hiatus', 'Pre-Prep Hiatus']) &&
+           same(retick, NUM) && same(reset, NUM), { ticked: ticked, editor: editor, focusName: focusName, unticked: unticked, retick: retick, reset: reset });
     });
 
     await step('H12', async function () {

@@ -51,6 +51,85 @@ did. Saved as two flags written only as `true` (`userNotes[week].monthHidden`, `
 top-level key and no new field id. Older builds open such a file and ignore both. New leg `noteviews` (15 cases, in
 gate.sh), plus 13 neighbouring note legs green on the build.
 
+### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid
+lines turned off"*.
+
+**Why it happened.** The writer drew every cell as its own rectangle, one per week, laid edge to edge. A PDF viewer
+that smooths edges (Preview's Quartz, and very likely Chrome's viewer) paints the pixel on a shared edge twice, each
+time partly, so some white page shows through. The result was a light line between a phase's weeks. A Solid grid line
+covers it; Gridlines None has no line.
+
+**The fix.** Frozen edit SM1 in `buildWaterfallPdf`, owner sign-off *"ok build it"*:
+- Right after each cell's fill, the writer paints a thin strip of that colour across the edge it shares with the cell
+  below or to its right, 1 pt each side.
+- That cell paints over the strip's far half, so the edge pixel is fully painted.
+- The strip goes in before the cell's own text, so no text is covered.
+- Only filled cells take part. A strip never reaches an empty cell, a date cell or a No fill note.
+- Every Gridlines setting gets the strips. Under a line they sit beneath it.
+- Unchanged: every cell rectangle, every string, the lines, the frame, the screen, the workbook and the month PDF.
+
+**Verified.**
+- Gate 2's own PDF rendered through Quartz at 100%, 137% and 200%: before, 29 of 60 same-colour edges showed a line
+  at 100% (worst 61/255); after, 0, two-colour edges included.
+- The new stream is the old one plus 77 strips, every old operator kept in order.
+- Gate 2's `base.pdf` was re-cut, owner-approved. It is the `base` leg on the new build with the clock running from
+  29 Aug 2026, and it is identical to today's run apart from that date. Only `rectOps` (279 → 356), `bytes` and
+  `contentLen` moved. Every drawn string is identical.
+- New gate check `pdfseams` (`pdfseams.py` and a small Quartz renderer, `pdfseams-render.swift`):
+  - every pair of touching cells carries its strip, and nothing else is a strip;
+  - no edge renders as a line at 1×, 1.37× or 2×;
+  - with the strips taken out, the line does show, so the scan can see one.
+  - It fails on the old PDF.
+- `wfnotecolors` P1 now counts cell fills rather than every rectangle. A No fill note also takes its neighbours'
+  strips away, so the plain count fell by 3 instead of 1.
+### Unreleased — a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
+
+The owner's follow-up pickers to the change below: *"Same rule, add colour"* for a phase's own hiatus, and *"remove
+month color, but keep the style bar working for all"*.
+- A phase's own hiatus band in the waterfall no longer opens the label-and-colour editor either. A double-click or
+  Enter brings up that phase's card with its hiatus Name box ready to type in.
+- The hiatus block under each phase's Hiatus switch has a **colour square** before its name, like the all-phase card's.
+  It colours every week of the pause in both views and every export, and the colour follows the pause if its Starts or
+  Weeks change.
+- A Production week with every shoot day marked Off still opens the band editor: it has no card to go to.
+- The month view's right-click menu on a hiatus day no longer offers Colour…: the card's square is the one way.
+- The text style bar still styles every band's text.
+- No frozen code touched, and no saved-file change: the colours use the same `hiatusColors` store as before.
+
+Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red on the build pushed below. The month
+menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
+phase band; `notewrap` gets its Post label from a saved file.
+
+### Unreleased — the note under Show info is gone (4 Nov 2026)
+
+The blue box at the bottom of Show info, *"Production's Total Shooting Days: N — the sum of the episode list in the
+Production phase…"* with its *"Manually changed: Episode 101 → 11 days…"* line, is removed (owner, 4 Nov 2026, with a
+screenshot: *"get rid of this entire popup"*). The total is still the Production row's Total Shooting Days box, and it
+still follows every episode's or block's day count. With it went the CSS, the `overrides` list that only it read, and
+the help page's sentence about it. Nothing saved changes. ⚠️ The box was the only place an episode typed over the
+default was called out; a block's count stays bold, an episode's has no cue. Tests: `pilldrag` read "Manually
+changed" from the box, and now reads an unstyled `is-edited` class on the episode's day box (blocks already had one);
+30/30. `hdrversion`'s "a version never gates Production" case read the box's text (and passed vacuously with no box), and
+now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
+the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
+
+### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
+
+The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
+be possible in the left side bar"*.
+- Double-clicking an all-phase hiatus band in the waterfall, or pressing Enter on it, no longer opens the label-and-colour
+  editor. It brings up that hiatus's card in the sidebar instead, unfolded, with its name box ready to type in.
+- Typing on a highlighted band does nothing. A phase's own hiatus band keeps its editor, since its card has no colour.
+- A week labelled or coloured in the band before this change still prints as it was saved. The card's colour square
+  repaints every week, and typing the card's name now renames that week too (one undo brings it back).
+- No frozen code touched, and no saved-file change.
+
+Verified: a new leg, `hiatussidebar`, 11/11, red on v1.10.0 in 8 of 11. Six legs that used the old editor were
+reworked: `hiatuslabel`, `notewrap`, `mvmenu`, `wfnotecolors`, `textstyle`, `hdrcontrols`. Those six and ten neighbouring
+legs are green. Checked by hand in the browser.
+
 ### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the

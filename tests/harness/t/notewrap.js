@@ -13,8 +13,12 @@
 // The calendar is the reference one (T.buildFixture()) plus, all through the real UI:
 //   A  a long note in a default 20px row      -> floored and over budget: wraps, clipped by the row
 //   B  a long note in a row dragged to 80px   -> wraps within the row's 5-line budget
-//   C  a long all-phase hiatus label, 80px row (the 2-week hiatus from 8/24/26)
-//   D  a long per-phase hiatus label (Post, one week from 12/7/26)
+//   C  a long all-phase hiatus label, 80px row (the 2-week hiatus from 8/24/26), on its first week only.
+//      ⚠️ Since 4 Nov 2026 an all-phase band opens no editor (its name and colour are its sidebar card's, owner),
+//      so a label on ONE week is a state only an older file holds: the calendar is saved and loaded back with that
+//      week's label set as the editor stored it (T.reloadWith), before anything else is done to it.
+//   D  a long per-phase hiatus label (Post, one week from 12/7/26). ⚠️ Through the saved file too, since a phase's own
+//      band also opens no editor (owner's picker, 4 Nov 2026, "Same rule, add colour").
 // Each uses its own vocabulary (alphaN, bravoN, ...) so its text runs can be picked out of the PDF.
 //
 // Per target, from the PDF's inflated content stream:
@@ -54,18 +58,6 @@ window.addEventListener('load', function () { (async function () {
     document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x, clientY: y + dy, pointerId: 7, buttons: 1, isPrimary: true }));
     document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x, clientY: y + dy, pointerId: 7, isPrimary: true }));
     await settle('the grid after the row drag');
-  }
-  async function editCell(sel, text) {
-    var td = document.querySelector(sel);
-    if (!td) throw new Error('no cell ' + sel);
-    T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
-    await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the editor for ' + sel, 50, 100);
-    var ta = document.querySelector('.note-editor textarea');
-    ta.value = text;
-    ta.dispatchEvent(new Event('input', { bubbles: true }));
-    ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
-    await T.until(function () { return !document.querySelector('.note-editor textarea'); }, 'the editor to close', 50, 100);
-    await settle('the grid after the edit');
   }
   function rowIndexOf(weekIso) {
     var td = document.querySelector('#table-wrap td.sheet-date[data-week="' + weekIso + '"], #table-wrap [data-week="' + weekIso + '"]');
@@ -139,6 +131,14 @@ window.addEventListener('load', function () { (async function () {
     T.set('phiatus-weeks-post', '1');
     await T.until(function () { return !!document.querySelector('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2026-12-07"]'); }, 'the Post hiatus band', 200, 100);
     await settle('the calendar to settle');
+    // C's and D's labels, through a saved file (see C and D above). The reloaded file stays linked, so the mint's Save writes back to
+    // it, recorded in mintWrites.
+    var mintWrites = [];
+    await T.reloadWith(function (snap) {
+      snap.hiatusTexts = Object.assign({}, snap.hiatusTexts, { '2026-08-24': TEXT.C, '2026-12-07|post': TEXT.D });
+    }, 'notewrap-c', { writes: mintWrites });
+    await T.until(function () { return !!document.querySelector('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2026-12-07"]'); }, 'the Post hiatus band after the reload', 200, 100);
+    await settle('the reloaded calendar to settle');
 
     // A: a default row. B and C: rows dragged from 20 to 80 px (the handle sits on the row's bottom edge).
     await dragRow(rowIndexOf('2026-09-14'), 60);
@@ -146,8 +146,6 @@ window.addEventListener('load', function () { (async function () {
     await T.typeUserNote('2026-10-05', TEXT.A);
     await T.typeUserNote('2026-09-14', TEXT.B);
     await settle('the notes');
-    await editCell('#table-wrap td.sheet-hiatus-cell:not(.sheet-phase-cell)[data-week="2026-08-24"]', TEXT.C);
-    await editCell('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2026-12-07"]', TEXT.D);
 
     function lines(sel) { var td = document.querySelector(sel); return td ? +td.getAttribute('data-notelines') : null; }
     var screen = {
@@ -176,17 +174,11 @@ window.addEventListener('load', function () { (async function () {
                           { gapTop: j.gapTop, expectTop: j.expectTop, expectCentred: j.expectCentred, noDateRun: j.noDateRun });
     });
 
-    // Mint through the real Save.
-    var written = [];
-    var h = { name: 'notewrap.sptcal', kind: 'file',
-      queryPermission: async function () { return 'granted'; }, requestPermission: async function () { return 'granted'; },
-      isSameEntry: async function (o) { return o === h; },
-      getFile: async function () { return new File([written.length ? written[written.length - 1] : ''], 'notewrap.sptcal', { lastModified: 1 }); },
-      createWritable: async function () { var parts = []; return { write: async function (c) { parts.push(typeof c === 'string' ? c : await c.text()); }, close: async function () { written.push(parts.join('')); } }; } };
-    window.showSaveFilePicker = async function () { return h; };
+    // Mint through the real Save (back to the reloaded file's recording handle).
+    var nW = mintWrites.length;
     document.getElementById('save-file-btn').click();
-    await T.until(function () { return written.length > 0; }, 'the Save write', 100, 100);
-    out.mintText = written[0];
+    await T.until(function () { return mintWrites.length > nW; }, 'the Save write', 100, 100);
+    out.mintText = mintWrites[mintWrites.length - 1].text;
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });
