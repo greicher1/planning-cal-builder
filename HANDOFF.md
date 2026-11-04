@@ -569,7 +569,7 @@
   reason, untick the box in that leg (the `buildFixture` "Pre Prep" precedent) rather than re-cut a baseline.
   gate.sh's colreuse comment now says the byte-compare runs with the box on.
 - ⏭ **Open:** nothing.
-### 🔨 2 Nov 2026: SIM POST ALWAYS RIGHT OF PRODUCTION, AND SWAPPED WITH IT — branch `simpost-beside-prod` (worktree `.claude/worktrees/simpost-beside-prod`, from `main` at `6cc1046`; `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker cards `simpost-beside-production`, `swap-production-with-simpost`
+### ✅ 2 Nov 2026: SIM POST ALWAYS RIGHT OF PRODUCTION, AND SWAPPED WITH IT — ✅ **LIVE at `0e2a4fd` in v1.10.0** (merged as `0616ded` from `cb92c4a` into `release-1103` and gated there; see the v1.10.0 entry above). Built on branch `simpost-beside-prod` (from `main` at `6cc1046`; its worktree is already removed). Tracker cards `simpost-beside-production`, `swap-production-with-simpost`
 
 - **The asks** (owner, with two screenshots, reuse on and off): *"Sim post should always be directly to the right of
   production in either reuse column mode on or off"*; *"Its possible its only happening based on the order in which
@@ -636,9 +636,11 @@
   - ⚠️ Visible side effect, by the grid's existing rule: with reuse on, Writer's Rm (sharing Production's column)
     now spreads into Sim Post's empty column in the weeks before Sim Post begins, because that column is free for
     its whole run. Nothing new decides it; a phase always spreads into an empty neighbour.
-- ⏭ **Open:** the full gate (gates 10/13, the month PDFs, should not move: the month view never reads
-  computeBlockLayout), then ask the owner to merge and push. ⚠️ `main`'s working tree holds another session's
-  uncommitted "Reuse Empty Columns on by default" work; merge after it lands.
+- ✅ **Gated in the v1.10.0 release gate**, not on its own branch. Its own full gate (3 Nov, port 8615) passed 2,588
+  checks with gates 10 and 13 whole (every month PDF byte-identical) before it hung in `printpaper` and was stopped
+  at 17:30. Its four FAILs were gate 3's 11.3.26 date coincidence and three load timeouts. The branch's last commit,
+  `acffef3` (a HANDOFF note on that run), was never merged and is superseded by this entry. The branch can be
+  deleted.
 
 ### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 
