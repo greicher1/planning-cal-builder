@@ -5,6 +5,28 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 📝 4 Nov 2026: ANCHOR TO, CHOOSE WHAT MOVES — PLAN + MOCKUP, NOTHING RULED, NO APP CODE ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+
+- **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
+  *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
+- **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
+  Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
+  other side and was tested then.)
+- **Proposed:** one choice under the phase. **Everything** (today, the default) | **This and after** (Shift From's
+  set, aimed at a date) | **This and before** (new: no tool moves a phase and the phases before it while keeping
+  the gaps). A hint line names what stays. Whole schedule hides the choice.
+- ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
+  unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
+  own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
+- **Words:** not "work forward / backwards" (Rebuild From's words, for closing gaps) and not "earlier / later"
+  (Shift From's travel directions). "Before it / after it" is what Shift From's help already says.
+- **Waiting on the owner:** R1 layout (three buttons, recommended, or a dropdown naming the phase); R2 on opening
+  (back to Everything every time, recommended, or remember until the app closes).
+- ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
+  schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
+  `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a
+  full gate before any push.
+
 ### 🔨 4 Nov 2026: COMPARE'S HOLIDAY CHIP ON WRAP ONLY, IN WORDS — branch `compare-holiday-wrap` (worktree `.claude/worktrees/compare-holiday-wrap`, from `origin/main` at `9687ab5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `compare-holiday-chip-wrap`
 - **Asked** (owner, 4 Nov 2026, on a Compare window with "−1 holiday" under First shoot day and "−2 holidays" under
   Wrap): *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first

@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anchor To Choices</title>
+<!-- MOCKUP, not the app. Anchor To with a choice of what moves, asked for by the owner on 4 Nov 2026 ("would it make
+     sense to have a work forward and work backwards function for anchor to", then "Yes, write it up"). Today the
+     tool always moves everything. Plan: ANCHOR-TO-DIRECTION-PLAN.md.
+     The popover copies the live one (legacy.css .tools-menu, 340 px; .solve-dir for the buttons; src/theme.js
+     tokens). The calendar is synthetic, the same one as mockups/rebuild-from-ticks.html. Dates are whole weeks and
+     hiatuses and notes are left out, so the arithmetic is simpler than the app's; WHICH PHASES MOVE is the plan's
+     rule (§2): "after" = starts on or after the picked phase's start week, "before" = starts on or before it. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:880px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 14px; align-items:center; }
+.tab{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-9); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--gray-0);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.reset{ margin-left:auto; border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; }
+.info{ display:grid; grid-template-columns:1.1fr 1fr 1.2fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+
+/* ---------- A stand-in for the app's preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.frame-scroll{ overflow-x:auto; }
+.frame-inner{ min-width:900px; padding:12px 14px 16px; position:relative; }
+.tb{ display:flex; align-items:center; gap:8px; }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; height:32px; }
+.seg span{ font-size:12px; font-weight:500; padding:0 12px; display:inline-flex; align-items:center; border-radius:var(--r-sm); color:var(--gray-7); }
+.seg span.on{ background:#fff; box-shadow:var(--shadow-xs); color:var(--gray-9); }
+.split{ display:inline-flex; height:30px; border:1px solid var(--navy-6); border-radius:var(--r-md); background:#fff; }
+.split span{ font-size:12px; font-weight:500; padding:0 12px; display:flex; align-items:center; color:var(--navy-6); }
+.split span + span{ border-left:1px solid var(--navy-2); }
+.split .main{ font-weight:600; }
+.tbtn{ height:30px; display:inline-flex; align-items:center; gap:5px; padding:0 10px; border:1px solid var(--navy-6);
+       border-radius:var(--r-md); background:#fff; font-size:12px; font-weight:600; color:var(--navy-6); white-space:nowrap; }
+.tbtn .caret{ font-size:9px; }
+.tbtn.open{ background:var(--navy-0); color:var(--navy-7); }
+.tbtn.plain{ border-color:var(--gray-4); color:var(--gray-9); }
+.tbtn.plain .caret{ color:var(--gray-5); }
+.wrap{ position:relative; }
+.sheet{ margin-top:10px; height:330px; border:1px solid var(--gray-3); border-radius:6px; background:
+        repeating-linear-gradient(to bottom, #fff 0 19px, var(--gray-2) 19px 20px); opacity:.7; }
+
+/* ---------- The popover (legacy.css .tools-menu: 340 px, lg radius, md shadow) ---------- */
+.pop{ position:absolute; top:calc(100% + 6px); left:0; width:340px; background:#fff; border:1px solid var(--gray-3);
+      border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:16px; z-index:5; text-align:left; }
+.head{ margin:0 0 8px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+       display:flex; align-items:center; gap:6px; }
+.head .i{ display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid var(--gray-5); border-radius:50%;
+          font-size:8.5px; color:var(--gray-6); text-transform:none; letter-spacing:0; cursor:help; }
+.row{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.lbl{ font-size:11.5px; color:var(--gray-6); flex:none; width:44px; }
+.ctl{ height:30px; border:1px solid var(--gray-3); border-radius:var(--r-md); background:#fff; font-size:12.5px; color:var(--gray-9);
+      padding:0 8px; }
+select.ctl{ flex:1; min-width:0; -webkit-appearance:none; appearance:none; padding-right:28px; cursor:pointer;
+  background:#fff url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 8px center/14px 14px; }
+select.ctl.edge{ flex:none; width:92px; }
+input.ctl[type=date]{ flex:1; min-width:0; }
+input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
+.gobtn{ height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:600;
+        padding:0 12px; cursor:pointer; color:var(--gray-9); }
+.gobtn:hover{ background:var(--gray-0); }
+/* The new control, layout A: Rebuild From's direction look (.solve-dir), three ways. */
+.dir{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; margin:2px 0 6px; }
+.dir button{ flex:1; min-width:0; border:0; background:none; height:26px; border-radius:var(--r-sm); font-size:11.5px; font-weight:500;
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.dir button:hover{ color:var(--gray-9); }
+.dir button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+/* The new line: what stays put (legacy.css .tools-hint). */
+.hint{ margin:0 0 9px; font-size:10.5px; line-height:1.4; color:var(--gray-6); }
+.hint b{ font-weight:600; color:var(--gray-7); }
+.hint:empty{ display:none; }
+.new{ outline:2px dashed #E0A800; outline-offset:3px; border-radius:var(--r-md); }
+.msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.msg:empty{ display:none; }
+.tip{ display:none; position:absolute; left:16px; right:16px; top:36px; background:var(--gray-9); color:#fff; font-size:11.5px;
+      line-height:1.45; padding:8px 10px; border-radius:var(--r-md); text-transform:none; letter-spacing:0; font-weight:400; z-index:6; }
+.head .i:hover + .tip{ display:block; }
+
+/* ---------- The explainer under the frame ---------- */
+.explain{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:14px; }
+.explain h2{ font-size:14px; margin:0 0 2px; }
+.explain .sub{ font-size:12.5px; color:var(--gray-6); margin:0 0 12px; }
+.tl-scroll{ overflow-x:auto; }
+.tl{ position:relative; min-width:720px; }
+.tl-months{ display:grid; margin-left:110px; font-size:10px; color:var(--gray-6); border-bottom:1px solid var(--gray-2); padding-bottom:3px; }
+.tl-row{ display:grid; grid-template-columns:110px 1fr; align-items:center; height:24px; }
+.tl-row .lbl2{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+.tl-row.pick .lbl2{ font-weight:600; }
+.tl-track{ position:relative; height:100%; background:repeating-linear-gradient(to right, transparent 0, transparent calc(100%/16 - 1px), var(--gray-1) calc(100%/16 - 1px), var(--gray-1) calc(100%/16)); }
+.bar{ position:absolute; top:5px; height:14px; border-radius:3px; font-size:9.5px; line-height:14px; padding:0 5px; white-space:nowrap; overflow:hidden; }
+.bar.was{ border:1.5px dashed var(--gray-5); background:transparent; }
+.legend{ display:flex; gap:16px; font-size:11.5px; color:var(--gray-6); margin-top:10px; flex-wrap:wrap; }
+.legend i{ display:inline-block; width:22px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+.note{ font-size:12px; color:var(--gray-7); margin:10px 0 0; }
+.note:empty{ display:none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Anchor To: choose what moves</h1>
+    <p>Today Anchor To always moves every phase, so the one you pick lands on your date. Here the popover has one more choice under the phase: move everything, or only that phase and the ones after it, or only that phase and the ones before it. The gaps between the phases that move are kept either way.</p>
+    <p>Try it: delivery is fixed and the shoot must start 2 weeks earlier. Pick <b>This and before</b> and watch Post and Localization stay put below, then press Go. The calendar is made up.</p>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>What's new</h3>
+      <ul>
+        <li>One choice: <b>Everything</b>, <b>This and after</b>, <b>This and before</b>.</li>
+        <li>A line under it naming the phases that <b>stay where they are</b>.</li>
+        <li>The result line says how many moved and how many stayed.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>As shown</h3>
+      <ul>
+        <li>It starts on Everything, so the tool works as it does today until you change it.</li>
+        <li>Whole schedule hides the choice: there's nothing before or after it.</li>
+        <li>Holidays, locked hiatuses and dated notes still never move. A phase's own notes and hiatuses move with it.</li>
+        <li>Nothing goes into the saved file.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your calls</h3>
+      <ul>
+        <li><b>R1, layout</b>: three buttons (A) or a dropdown that names the phase (B)?</li>
+        <li><b>R2, on opening</b>: back to Everything every time, or remember your last choice until the app closes?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-opt="A"><span class="n">A</span>Three buttons</button>
+    <button class="tab" role="tab" aria-selected="false" data-opt="B"><span class="n">B</span>A dropdown</button>
+    <button class="reset" id="reset" type="button">Reset the calendar</button>
+  </div>
+
+  <div class="frame"><div class="frame-scroll"><div class="frame-inner">
+    <div class="tb">
+      <div class="seg"><span class="on">Waterfall</span><span>Month</span></div>
+      <div class="split"><span>← 1 wk</span><span class="main">Shift All ▾</span><span>1 wk →</span></div>
+      <span class="tbtn">Shift From <span class="caret">▾</span></span>
+      <div class="wrap">
+        <span class="tbtn open">Anchor To <span class="caret">▾</span></span>
+        <div class="pop" role="dialog" aria-label="Anchor to a date">
+          <p class="head">Anchor to a date <span class="i" tabindex="0">i</span>
+            <span class="tip">Moves phases so the one you pick lands on your date. Choose whether everything moves, or only that phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.</span></p>
+          <div class="row">
+            <select class="ctl" id="phase" aria-label="What to anchor"></select>
+            <select class="ctl edge" id="edge" aria-label="Anchor its start or its end">
+              <option value="start">starts on</option>
+              <option value="end">ends by</option>
+            </select>
+          </div>
+          <div id="moveA" class="dir new" role="group" aria-label="What moves">
+            <button type="button" data-move="all">Everything</button>
+            <button type="button" data-move="after">This and after</button>
+            <button type="button" data-move="before">This and before</button>
+          </div>
+          <div id="moveB" class="row new">
+            <span class="lbl">Move</span>
+            <select class="ctl" id="moveSel" aria-label="What moves"></select>
+          </div>
+          <p class="hint" id="hint"></p>
+          <div class="row">
+            <input class="ctl" type="date" id="date" aria-label="Date to anchor it to">
+            <button class="gobtn" id="go" type="button">Go</button>
+          </div>
+          <p class="msg" id="msg"></p>
+        </div>
+      </div>
+      <span class="tbtn">Rebuild From <span class="caret">▾</span></span>
+      <span class="tbtn plain">Side Boxes <span class="caret">▾</span></span>
+    </div>
+    <div class="sheet" aria-hidden="true"></div>
+  </div></div></div>
+
+  <div class="explain">
+    <h2>What Go would do</h2>
+    <p class="sub">Explanation only, not part of the design. It updates as you change the popover.</p>
+    <div class="tl-scroll"><div class="tl" id="tl"></div></div>
+    <div class="legend">
+      <span><i style="border:1.5px dashed #A5A197"></i>Where it is now</span>
+      <span><i style="background:#2C3E50;opacity:.25"></i>Where Go would put it</span>
+    </div>
+    <p class="note" id="gapnote"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DAY = 86400000, WEEK = 7 * DAY;
+  const d = s => new Date(s + 'T00:00:00Z');
+  const fmt = t => (t.getUTCMonth() + 1) + '/' + t.getUTCDate() + '/' + String(t.getUTCFullYear()).slice(2);
+  const iso = t => t.toISOString().slice(0, 10);
+  const addW = (t, w) => new Date(t.getTime() + w * WEEK);
+  const addD = (t, n) => new Date(t.getTime() + n * DAY);
+  const monday = t => addD(t, -((t.getUTCDay() + 6) % 7));
+  const ALL = '__whole__';
+
+  // A made-up calendar (the Rebuild From mockup's). Every start is a Monday; a phase's last workday is the Friday of
+  // its last week.
+  const START = [
+    {key:'writersRoom',  name:"Writer's Rm",  weeks:10, start:'2027-01-04', fill:'#FFF2CC', ink:'#7A6215'},
+    {key:'prePrep',      name:'Pre-Prep',     weeks:4,  start:'2027-03-22', fill:'#DAE3F3', ink:'#203864'},
+    {key:'custom1',      name:'Casting',      weeks:6,  start:'2027-04-05', fill:'#E4DFEC', ink:'#4B3B6B'},
+    {key:'prodPrep',     name:'Prod Prep',    weeks:6,  start:'2027-04-19', fill:'#D6DCE5', ink:'#222A35'},
+    {key:'production',   name:'Production',   weeks:12, start:'2027-06-07', fill:'#E2F0D9', ink:'#375623'},
+    {key:'post',         name:'Post',         weeks:20, start:'2027-08-30', fill:'#FBE5D6', ink:'#8A4A1F'},
+    {key:'localization', name:'Localization', weeks:8,  start:'2027-11-01', fill:'#EDEDED', ink:'#525252'},
+  ];
+  let phases, opt = 'A', pick = 'production', edge = 'start', move = 'all', date = '2027-05-24', lastMsg = '';
+
+  function reset(){
+    phases = START.map(p => ({...p, start: d(p.start)}));
+    pick = 'production'; edge = 'start'; move = 'all'; date = '2027-05-24'; lastMsg = '';
+  }
+  const sorted = () => phases.slice().sort((a, b) => a.start - b.start);
+  const lastDay = p => addD(addW(p.start, p.weeks), -3);
+  const byKey = k => phases.find(p => p.key === k);
+  const list = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+
+  // The landmark's current date (landmarkDate in the app).
+  function landmark(){
+    if(pick === ALL){
+      const s = sorted();
+      return edge === 'start' ? s[0].start : new Date(Math.max(...s.map(lastDay).map(Number)));
+    }
+    const p = byKey(pick);
+    return edge === 'start' ? p.start : lastDay(p);
+  }
+  // The whole-week delta (weeksBetweenMondays for a start; weeksToFinishBy, which floors, for an end).
+  function delta(){
+    const t = d(date), cur = landmark();
+    return edge === 'start' ? Math.round((monday(t) - monday(cur)) / WEEK) : Math.floor((t - cur) / WEEK);
+  }
+  const mode = () => pick === ALL ? 'all' : move;
+  // The plan's §2 rule for phases. "after" is exactly Shift From's cutoff.
+  function moves(p){
+    const m = mode(); if(m === 'all') return true;
+    const at = byKey(pick).start;
+    return m === 'after' ? p.start >= at : p.start <= at;
+  }
+
+  const $ = id => document.getElementById(id);
+  const name = () => pick === ALL ? 'The schedule' : byKey(pick).name;
+
+  function render(){
+    const s = sorted();
+    $('phase').innerHTML = s.map(p => '<option value="' + p.key + '"' + (p.key === pick ? ' selected' : '') + '>' + p.name + ' — ' + fmt(p.start) + '</option>').join('')
+      + '<option value="' + ALL + '"' + (pick === ALL ? ' selected' : '') + '>Whole schedule (all phases)</option>';
+    $('edge').value = edge;
+    $('date').value = date;
+
+    const whole = pick === ALL;
+    $('moveA').style.display = (opt === 'A' && !whole) ? '' : 'none';
+    $('moveB').style.display = (opt === 'B' && !whole) ? '' : 'none';
+    [...$('moveA').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === move)));
+    if(!whole){
+      const n = name();
+      $('moveSel').innerHTML = [['all', 'Everything'], ['after', n + ' and everything after it'], ['before', n + ' and everything before it']]
+        .map(([v, t]) => '<option value="' + v + '"' + (v === move ? ' selected' : '') + '>' + t + '</option>').join('');
+    }
+
+    // The hint: what stays put, the one fact that tells the three apart before Go.
+    const stay = s.filter(p => !moves(p)).map(p => p.name);
+    let hint = '';
+    if(!whole){
+      if(move === 'all') hint = 'Every phase moves by the same number of weeks.';
+      else if(!stay.length) hint = 'Nothing starts ' + (move === 'after' ? 'before ' : 'after ') + name() + ', so every phase moves.';
+      else hint = name() + ' and the phases ' + (move === 'after' ? 'after' : 'before') + ' it move. <b>' + list(stay) + '</b> ' + (stay.length === 1 ? 'stays' : 'stay') + ' where ' + (stay.length === 1 ? 'it is' : 'they are') + '.';
+    }
+    $('hint').innerHTML = hint;
+    $('msg').textContent = lastMsg;
+    timeline();
+  }
+
+  function change(w){ return !w ? '' : (w > 0 ? 'Pushed ' : 'Pulled ') + Math.abs(w) + (Math.abs(w) === 1 ? ' wk' : ' wks'); }
+
+  function timeline(){
+    const n = delta(), s = sorted();
+    const t0 = d('2026-11-30'), t1 = d('2028-03-20'), span = t1 - t0;
+    const pct = t => Math.max(0, Math.min(100, (t - t0) / span * 100));
+    const months = [];
+    for(let m = d('2026-12-01'); m < t1; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1)))
+      months.push(m.toLocaleString('en-US', {month: 'short', timeZone: 'UTC'}) + (m.getUTCMonth() === 0 ? ' ' + String(m.getUTCFullYear()).slice(2) : ''));
+    let h = '<div class="tl-months" style="grid-template-columns:repeat(' + months.length + ',1fr)">' + months.map(x => '<span>' + x + '</span>').join('') + '</div>';
+    s.forEach(p => {
+      const mv = n && moves(p), at = mv ? addW(p.start, n) : p.start;
+      let bars = '';
+      if(mv) bars += '<span class="bar was" style="left:' + pct(p.start) + '%;width:' + (pct(addW(p.start, p.weeks)) - pct(p.start)) + '%"></span>';
+      bars += '<span class="bar" style="left:' + pct(at) + '%;width:' + (pct(addW(at, p.weeks)) - pct(at)) + '%;background:' + p.fill +
+        ';color:' + p.ink + ';box-shadow:inset 0 0 0 1px ' + p.ink + '55">' + (mv ? change(n) : (n ? 'Stays' : '')) + '</span>';
+      h += '<div class="tl-row' + (p.key === pick ? ' pick' : '') + '"><span class="lbl2">' + p.name + '</span><div class="tl-track">' + bars + '</div></div>';
+    });
+    $('tl').innerHTML = h;
+
+    // Where the phases that move meet the ones that stay: a gap opens or they overlap. Not an error (phases move
+    // independently, owner 16 Sep 2026), so the app says nothing; the mockup says it here so the effect is visible.
+    let note = '';
+    if(n && mode() !== 'all'){
+      const p = byKey(pick), at = p.start;
+      const other = mode() === 'before' ? s.find(x => x.start > at) : s.slice().reverse().find(x => x.start < at);
+      if(other){
+        const pEnd = addW(addW(p.start, n), p.weeks), pStart = addW(p.start, n);
+        const gapW = mode() === 'before'
+          ? Math.round((other.start - pEnd) / WEEK)
+          : Math.round((pStart - addW(other.start, other.weeks)) / WEEK);
+        const a = mode() === 'before' ? p.name : other.name, b = mode() === 'before' ? other.name : p.name;
+        note = gapW > 0 ? 'After Go: ' + gapW + ' week' + (gapW === 1 ? '' : 's') + ' between the end of ' + a + ' and the start of ' + b + '.'
+             : gapW < 0 ? 'After Go: ' + a + ' runs ' + (-gapW) + ' week' + (gapW === -1 ? '' : 's') + ' into ' + b + '. Phases may overlap, so the app allows it.'
+             : 'After Go: ' + b + ' starts the week ' + a + ' ends.';
+      }
+    }
+    $('gapnote').textContent = note;
+  }
+
+  // ---- Wiring ----
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+    opt = b.dataset.opt; lastMsg = '';
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    render();
+  }));
+  $('moveA').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; move = b.dataset.move; lastMsg = ''; render(); });
+  $('moveSel').addEventListener('change', e => { move = e.target.value; lastMsg = ''; render(); });
+  // Picking a phase or an edge puts the date field on where that landmark sits now (syncAnchorDate).
+  $('phase').addEventListener('change', e => { pick = e.target.value; date = iso(landmark()); lastMsg = ''; render(); });
+  $('edge').addEventListener('change', e => { edge = e.target.value; date = iso(landmark()); lastMsg = ''; render(); });
+  $('date').addEventListener('change', e => { if(e.target.value){ date = e.target.value; lastMsg = ''; render(); } });
+  $('go').addEventListener('click', () => {
+    const n = delta(), nm = name();
+    if(!n){
+      lastMsg = edge === 'start' ? nm + ' already starts that week.' : nm + ' already ends ' + fmt(landmark()) + ' — as late as it can without passing that date.';
+      return render();
+    }
+    const s = sorted(), moving = s.filter(moves), stayed = s.length - moving.length, m = mode();
+    moving.forEach(p => { p.start = addW(p.start, n); });
+    const wrap = lastDay(byKey('production'));
+    const landed = landmark();
+    let out = 'Shifted ' + Math.abs(n) + (Math.abs(n) === 1 ? ' week ' : ' weeks ') + (n < 0 ? 'earlier' : 'later') + '. Wrap ' + fmt(wrap) + '. '
+      + nm + (edge === 'end' ? ' ends ' : ' starts ') + fmt(landed) + '.';
+    if(m !== 'all'){
+      out += ' ' + nm + ' and everything ' + (m === 'after' ? 'after' : 'before') + ' it moved (' + moving.length + ' phase' + (moving.length === 1 ? '' : 's') + ').';
+      if(stayed) out += ' ' + stayed + ' stayed where ' + (stayed === 1 ? 'it was' : 'they were') + '.';
+    }
+    lastMsg = out;
+    // The app re-reads the calendar into the popover after every tool run, so the date shows where it landed.
+    date = iso(landed);
+    render();
+  });
+  $('reset').addEventListener('click', () => { reset(); render(); });
+
+  reset(); render();
+})();
+</script>
+</body>
+</html>
