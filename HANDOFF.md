@@ -4,6 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+
+### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Status: GATE PENDING
+
+- **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of
+  them to be pushed live before tommorow. Come up with a plan to make that happen, in the most time efficient way
+  possible."* Picker: *"Start now"*, *"Yes, cut v1.10.0"*, *"Push when green"* (approval for THIS push only: a fully
+  green gate, no unexplained failure, any moved baseline signed off by the owner first).
+- **Why one branch, one gate:** a full gate is ~31 min solo and two at once stall each other. Five features each gated
+  on its branch and again after merging into `main` was ~10 gates in series. A dry run with `git merge-tree` (no ref
+  moved) showed only add/add conflicts at the HANDOFF/README tops, one in `gate.sh`'s comments, and one in
+  `sanitizeSnapshot` (note size and Sim Post beside each add a line), so they were merged together and gated once.
+- **What went in, in merge order:**
+  1. local `main`: the Version as typed (`f1f09c7`) + Sim Post on exactly Production's weeks and days (`140d88a`,
+     frozen edit SD1; it had been left uncommitted in the main checkout, committed for this release);
+  2. `month-note-size`: Note size + Phase bar size 10–14 px (step 4's two gate-13 baselines committed as `cada0bb`);
+  3. `swap-partial`: the swap arrow for part of a column;
+  4. `simpost-beside-prod`: Sim Post always right of Production, swapped with it (frozen edit SP1, key `simPostBeside`);
+  5. HANDOFF-only commits left on `span-counts` and `pdf-mark` (both features were already live).
+  - `sanitizeSnapshot`'s conflict: kept note size's `mvBarSizeKnown` / `mvNoteSizeKnown` checks and Sim Post beside's
+    `simPostBeside` check; dropped Sim Post beside's stale `'large' | 'xl'` bar-size check (it would have thrown away
+    every 11–14 px bar size on load).
+  - HANDOFF: note size's merge carried back the old "RENAME AN AUTO NOTE … RULED, NOT BUILT" entry that `main` had
+    removed; it was left out.
+- **v1.10.0 cut** as `cdae3bf`, BEFORE the gate, so the gated bytes are the shipped bytes: `APP_VERSION`,
+  `version.json`, `package.json`; README `## v1.10.0` over the 40 entries since v1.9.0. The PDF mark carries the
+  version, but `pdfmark.py strip` removes it before every baseline compare, so no baseline moves for it.
+- **The stuck gate:** `simpost-beside-prod`'s own full gate (started ~13:25) had hung for 3 h 20 min in
+  `printpaper.mjs --state monthscale` (headless Chrome never returned; `printpaper.mjs` has no deadline of its own).
+  Killed at 17:30 with the owner's go-ahead. ⚠️ A hang there stalls the whole gate silently: watch for it.
+- **Proof:** PENDING.
 ### ✅ 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — ✅ **LIVE at `08bd218`** (owner's picker: "Commit", "Push once committed"; pushed from branch `span-counts` `ab566e0..08bd218` at 14:23:10, a fast-forward with nothing new on `origin/main`; the live `index.html` matched the tested build `fca63761…` byte for byte at 14:24:08; ⚠️ local `main` is still at `4c11cdb`, NOT moved, because the main checkout still holds another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh: fast-forward it to the branch once that session commits). Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
 
 - **The asks, in order** (owner, 3 Nov 2026, after the shoot-days-lost sum went live at `ab566e0`):
@@ -189,7 +219,7 @@
       `scenariocompat` (v1.2.0). `stintcollide` (4 lines) and `offweek` (54 lines, including its pdftotext read of
       the marked waterfall PDF) were run through the gate's own blocks. The re-run script is `rerun.zsh` in the
       session's scratchpad.
-### 🔧 3 Nov 2026: THE VERSION PRINTS EXACTLY AS TYPED — BUILT and COMMITTED on local `main` alone (owner's picker, *"Commit this only"*), NOT PUSHED (*"Not yet: full gate first"*) (tracker card `version-as-typed`)
+### 🚀 3 Nov 2026: THE VERSION PRINTS EXACTLY AS TYPED — COMMITTED on local `main` as `f1f09c7` (owner's picker, *"Commit this only"*), shipped in v1.10.0 on branch `release-1103` (see the v1.10.0 entry at the top) (tracker card `version-as-typed`)
 
 - **The ask** (owner): *"version entered into the 'show info' section should just be exactly what is typed. So no
   longer with a v prefix"*. This retires decision H1's rule ("v" + the input, one leading v/V stripped). Ruling by
@@ -219,7 +249,7 @@
 - The Copilot import kit in ~/Downloads still works unchanged: it writes a PDF's "v3" as `3` with no key, and that
   opens as `v3`.
 
-### 🔧 3 Nov 2026: SIM POST ON EXACTLY PRODUCTION'S WEEKS AND DAYS — BUILT, UNCOMMITTED in the main checkout (tracker card `simpost-weeks-match-production`)
+### 🚀 3 Nov 2026: SIM POST ON EXACTLY PRODUCTION'S WEEKS AND DAYS — COMMITTED on local `main` as `140d88a` (owner's picker, *"Start now"*, the release plan), shipped in v1.10.0 on branch `release-1103` (see the v1.10.0 entry at the top) (tracker card `simpost-weeks-match-production`)
 
 - **The ask** (owner, 2 Nov 2026): *"when production starts (or possibly ends) on a non-monday or non-friday it doesnt
   add that first week or last week of sim post. Sim post weeks (and dates) should always match production weeks (and
