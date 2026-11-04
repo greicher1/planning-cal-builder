@@ -247,6 +247,72 @@
   once stall. Expect gate 10/13 to move only on the calendars that draw Sim Post: `colswap-simpost-refuse` (Thanksgiving
   inside a Sim Post week), and possibly `mvheaderlegacy` / `mvnotes`. Re-cut only after the owner sees old | new |
   difference (`monthbase.py sheets`) and says yes, per each baseline README. Nothing committed.
+### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged into `main` (main merged INTO it, 3 Nov). Tracker card `swap-part-of-column`
+
+- **The report** (owner): *"for swapping a portion of a collumn (such as 3 cells only while all the others have been
+  extended) the little blue arrow only pops up when you drag the cursor across to the cells in the collumn next to it.
+  If you just select the cells in the one collumn, and click swap column, no blue arrow pops up."*
+- **Reproduced in the pane** on `colswap-gesture`, with Prod Prep's two lone weeks widened by real double-clicks:
+  - selecting only Post's four cells showed no knob, and neither did Swap Column on either phase;
+  - the drag across both columns did show one;
+  - Alt+← named the hidden reason: "Prod Prep 11/2/26 has a width you widened by hand…".
+- **Why:** a selection that is one phase's WHOLE block (the short phase's three cells, or anything after Swap Column)
+  resolves to the block swap. That swap closes over every overlapping stint in the next column (E1), so it carries the
+  long phase whole and refuses on any of its hand-widened cells (D4, tested on the effect). A refused direction draws
+  no knob. Second gap: the per-week verdict was judged from the anchor alone, so a selection begun on a widened cell
+  (nothing beside it) got no knob even when the weeks below it could swap.
+- **The fix** (gesture code only, nothing frozen):
+  - `swapEvalDir`: a refused block swap falls back to the per-week candidate. A block swap that can move is still
+    offered first, unchanged. When neither can move, the BLOCK's reason is returned, so refusal text is unchanged.
+  - New `weekSwapEval`: the seed's run first, then the seed PHASE's other selected cells in that year block, top
+    down. The first run that passes `canSwapRun` wins.
+  - ⛔ Only the seed's phase is walked. Walking the partner's cells would offer the same pair from the other side:
+    a second knob on the same seam (guarded by P6).
+  - `swapCandKey` now carries the whole sorted selection, since the verdict depends on more than the seed and the size.
+  - ⚠️ This is the reverse of the "never snap UP to the whole stint" rule (1 Sep), and it does not break it: it never
+    widens a selection. It falls back to the per-week swap, which always walked from a seed rather than moving
+    exactly the selected cells, and the knob's label names the weeks before the press.
+- **Verified:**
+  - New leg `colswappartial` (in `gate.sh`'s generic list) on the new fixture `colswap-widened`, 8/8. On the pre-fix
+    build it is red in P1, P4 and P5 (no knob) and green in the P6 guard.
+  - Mini-gate on the fixed build (every gate.sh section for colswap, colswapgate, colswapmove, colswapmid,
+    colswapstale, the eleven stint legs, onecol, colreuse, plus noswapbtns and the new leg): 172 PASS, 0 FAIL.
+  - `npm run check` 40/40.
+  - In the pane with real clicks: the knob shows with only Post's cells selected, swaps the four weeks and swaps back,
+    and the widened weeks never move. Swap Column on Prod Prep shows the knob.
+- **Full gate** (owner: *"Yes, run the gate"*), on `dist` sha256 `f8f3d5a6…`. It was queued behind two other sessions'
+  gates and ran 18:11–19:56: **3,461 PASS, 4 FAIL.** Every swap leg passed, `colswappartial` included. The four
+  failures are all timeouts. Load rose from 7 at the start to about 50 by the end, as another session's gate started:
+  - `papersize` and `scenarios` produced no result;
+  - `mvhdroff` timed out waiting for the loaded calendar (10 s of real time), so its E0 check failed;
+  - `wfkeysreal` hit its 300 s deadline after R1 and R2 had passed.
+  None of them goes near the swap code.
+  - **Rerun alone, 3 Nov, at load 3:** all four are green: papersize 12/12, mvhdroff 9/9, wfkeysreal 6/6 and
+    scenarios 22/22. So the branch's own gate is green.
+- **Merged `main` in (3 Nov, `38a0f10`).** `main` had moved about 20 commits, including the column-swap cache fix
+  (`c30b639`) and Reuse Empty Columns on for new calendars (`c8fda83`).
+  - The conflicts were three add/add collisions at the top of HANDOFF, README and gate.sh's comments. Each keeps
+    both sides.
+  - `app.js` merged cleanly. Main's cache fix is in `maybeRunColSwapGate`, the gate's verdict cache; this branch's
+    change is in the knob candidates. They are separate caches.
+  - Swap mini-gate on the merged build: 183 PASS, 0 FAIL, including main's `colswapcache` and the updated `colreuse`.
+- ⚠️ **The merge exposed a second gap, now fixed.** With Reuse Empty Columns ticked (as every NEW calendar starts),
+  there was no arrow to swap BACK after the first swap:
+  - After the per-week swap, Prod Prep sits in two columns (its widened weeks in one, the swapped weeks in the
+    other), so Post's block has no partner: `stintRunFor` gives 'no-partner'.
+  - With reuse on, 'no-partner' asks `followRunFor` for a move into the free column. That move is refused (Prod Prep
+    is in it), and `swapEvalDir` returned the refusal outright, so the per-week fallback never ran.
+  - Fix: a refused move falls through to the per-week swap as well, and its reason is still the one returned when
+    nothing can move. A move that CAN happen is still offered first.
+  - Proof: `colswappartial` on a new fixture, `colswap-widened-reuse` (the same calendar with `colReuse: true`), was
+    red in P3 and P4 on the merged build without this fix. gate.sh now runs the leg on both fixtures. In the pane,
+    with real clicks: Swap Column on Post, the left arrow, the swap; then the right arrow appears and swaps back
+    exactly.
+- Swap mini-gate on the FIXED merged build (`dist` `d111a917…`, commit `dde8856`): **191 PASS, 0 FAIL**, the new leg
+  8/8 on both fixtures. `npm run check` 40/40.
+- **NOT done:** the full gate on that build. It is queued behind another session's gate (scratchpad
+  `queue-full-run2.sh`, log `full-run2.log`). Only after it may `main` be fast-forwarded to this branch, and the
+  owner decides that merge and, separately, the push.
 
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 

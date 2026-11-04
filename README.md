@@ -162,6 +162,37 @@ Verified: new leg `simpostdays` 14/14 (in `gate.sh`). It checks Monday, Wednesda
 Production hiatus, the numbering, a 2-week offset on a Friday start, and the month map. The same reads, run on the build
 before the fix, showed the first week missing (Wed/Thu/Fri), the hiatus week extra, and Mon–Fri bars on every row.
 `npm run check` 40/40.
+### Unreleased — swapping part of a column when its other cells are widened (2 Nov 2026)
+
+The owner: *"for swapping a portion of a column (such as 3 cells only while all the others have been extended) the
+little blue arrow only pops up when you drag the cursor across to the cells in the column next to it. If you just
+select the cells in the one column, and click swap column, no blue arrow pops up."*
+
+Why: selecting a short phase's three cells is its WHOLE block in that year, and so is clicking Swap Column. A whole
+block resolves to the block swap, which carries the long phase beside it along entirely and refuses when any of its
+cells is widened by hand. So it showed no arrow, and the reason appeared only on Alt+arrow. Separately, a selection
+that began on a widened cell got no arrow, because the arrow was judged from that one cell.
+
+Now:
+- When the block swap can't happen, the arrow offers the week-by-week swap of the weeks the two phases share: the
+  same swap the drag across both columns already gave. Its tooltip names the weeks. The widened cells never move.
+- A block swap that can happen is still offered first, exactly as before.
+- In a part-column selection, the arrow is judged from each selected cell of the phase, so a selection that starts
+  on a widened cell still gets the arrow for the weeks below it.
+- The same holds with Reuse Empty Columns ticked, as every new calendar starts since 2 Nov 2026. There, after a
+  swap like this, the arrow to swap BACK was missing: the long phase then sits in two columns, so the short one's
+  block has no partner, and reuse asks for a move into the free column instead. That move is refused, and the
+  refusal used to come back before the week-by-week swap was tried. Now a refused move falls through too, and its
+  reason is still the one shown when nothing can move. Found when this branch was brought up to date with `main`.
+- Nothing about a cell, the exports or the save format changed. It is the gesture code only (`swapEvalDir`, new
+  `weekSwapEval`), and nothing frozen was touched.
+
+Verified: new gate leg `colswappartial` on a new fixture, `colswap-widened` (gesture calendar with two
+hand-widened weeks), 8/8, and again on `colswap-widened-reuse` (the same calendar with Reuse Empty Columns ticked),
+8/8. It is red on the build before the fix in its three cases (P1, P4, P5) and green on its guard; with reuse on,
+the first version of the fix was red in P3 and P4. Every column-swap and block-swap leg, plus `onecol`, `colreuse` and `noswapbtns`, pass (results in HANDOFF).
+`npm run check` 40/40. In the browser pane, with real clicks: widen two weeks, select Post's cells only, and the
+arrow appears and swaps; Swap Column on Prod Prep shows the arrow too.
 
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
