@@ -6,7 +6,7 @@
 
 
 
-### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — built in the main checkout's working tree, NOT committed, NOT pushed. Tracker card `recent-reveal-in-finder`
+### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
 Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
 told why that can't be built: *"I want to see where the file is saved"*.
