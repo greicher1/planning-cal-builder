@@ -26,9 +26,9 @@
   - `rtleg --leg monthexport --secs 120 --query realtime=1`: 10/10 in 21 s.
   - The same run with `--deadline 3` exits at 3 s with its EX.
   - No Chrome is left behind by either. `node --check` clean.
-- ⚠️ **Still open:** `swap-partial`'s queued full gate (port 8523, started 18:24 by another session's
-  `queue-full-run2.sh`) was still running at 22:03. Its branch is live, so its result changes nothing. Stopping it
-  from the release session was refused by the permission check, so it was left for the owner.
+- ✅ **Closed (22:16, by `swap-partial`'s session):** that branch's queued full gate (port 8523, 18:24-22:09)
+  finished on its own: 3,513 PASS, 6 FAIL, every one explained and none in the swap code. Detail in the swap-partial
+  entry below. Its branch was already live, so it changed nothing.
 ### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd`** (owner's picker *"Push when green"*; `08bd218..0e2a4fd` plus tag `v1.10.0` at 18:17:11; the live `index.html` matched the gated build `494793a8…` byte for byte at 18:18:24, `version.json` 1.10.0). Tracker cards moved to live
 
 - **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of
@@ -350,7 +350,7 @@
   once stall. Expect gate 10/13 to move only on the calendars that draw Sim Post: `colswap-simpost-refuse` (Thanksgiving
   inside a Sim Post week), and possibly `mvheaderlegacy` / `mvnotes`. Re-cut only after the owner sees old | new |
   difference (`monthbase.py sheets`) and says yes, per each baseline README. Nothing committed.
-### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged into `main` (main merged INTO it, 3 Nov). Tracker card `swap-part-of-column`
+### ✅ 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd` in v1.10.0**: the release merged the whole branch (`3dcf88e`, the Reuse Empty Columns fix included) into `release-1103` as `200f609` (see the v1.10.0 entry). Tracker card `swap-part-of-column`
 
 - **The report** (owner): *"for swapping a portion of a collumn (such as 3 cells only while all the others have been
   extended) the little blue arrow only pops up when you drag the cursor across to the cells in the collumn next to it.
@@ -413,9 +413,21 @@
     exactly.
 - Swap mini-gate on the FIXED merged build (`dist` `d111a917…`, commit `dde8856`): **191 PASS, 0 FAIL**, the new leg
   8/8 on both fixtures. `npm run check` 40/40.
-- **NOT done:** the full gate on that build. It is queued behind another session's gate (scratchpad
-  `queue-full-run2.sh`, log `full-run2.log`). Only after it may `main` be fast-forwarded to this branch, and the
-  owner decides that merge and, separately, the push.
+- **Owner's picker (3 Nov):** *"Merge when green"* and *"Push after the merge"*. Both were overtaken: while this
+  branch's gate waited in the queue, the v1.10.0 release train merged the branch at `3dcf88e` and pushed it (LIVE at
+  `0e2a4fd`; the live `index.html` = `releases/v1.10.0.html`, `494793a8…`, re-checked 22:12). This session merged and
+  pushed nothing.
+- **Full gate on the branch's own build** (`dist` `d111a917…`, commit `dde8856`; port 8523, 18:24-22:09, load
+  average ~15-20 from other sessions): **3,513 PASS, 6 FAIL**, every swap leg green, `colswappartial` 8/8 on both
+  fixtures:
+  - gate 3 `sheet1.xml`: the 3 Nov date coincidence (the reference calendar's "Wrap: 11.3.26" is today's date, so
+    the stamp normaliser replaced it too). With the wrap date put back, byte-identical to the baseline.
+  - `monthexport (blocks)` no result, `monthexport (reference, real time)` past 120 s, `gate 13 (blocks)` no file
+    (it is monthexport's file), `pilldrag` and `phaseedge` at their 480 s deadlines: timeouts under the load.
+  - **Rerun alone, 22:11-22:16, through gate.sh's own judge blocks** (scratchpad `recheck5.sh`): **74 PASS, 0 FAIL**:
+    monthexport blocks 9/9, real time 11/11 (T0 102 ms), gate 13 blocks byte-identical, pilldrag 30/30,
+    phaseedge 23/23.
+- **Follow-up, not blocking:** remove this worktree (unlink `node_modules` first).
 
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
