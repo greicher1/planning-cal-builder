@@ -24,8 +24,12 @@
   `0499373`'s `3cb08fce…`.
   - Its deploy was refused in 3 s with the same *"in progress deployment. Please cancel e8e21fd… first"*, although
     every environment deployment record reads `failure` and the Pages endpoint reads `deployment_cancelled`. An
-    explicit `POST /repos/…/pages/deployments/e8e21fd…/cancel` returned 204 at 11:26:04. Whether that cleared GitHub's
-    lock is known only from the next deploy.
+    explicit `POST /repos/…/pages/deployments/e8e21fd…/cancel` returned 204 at 11:26:04.
+  - ⛔ **It did NOT clear it.** The owner OK'd one more push (*"Push it now"*): `eacd41b..4befff7` (this note, docs
+    only) at 11:27:03. Run 41897046513 was refused at 11:27:37 with the same message. So `origin/main` is at
+    `4befff7` and NOTHING since `0499373` is live, the other session's `9c3286a` included. Every push to `main` will
+    fail to deploy until GitHub drops the lock. Stopped there: no further pushes. ⏭ When it clears (a later push's
+    deploy succeeds), check the live `index.html` is `caf3eeb8…` (`eacd41b` = `4befff7`'s build).
   - ⛔ A re-run of the failed deploy job can't work: the job uploads its own `github-pages` artifact, and a second one
     on the run makes `deploy-pages` refuse. So the next deploy needs a fresh push. It waits on the owner's OK, e.g.
     for this note's own commit.
