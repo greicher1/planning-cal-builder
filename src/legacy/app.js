@@ -7922,8 +7922,9 @@ export function initLegacyApp() {
     if(activeColorPop._anchor && activeColorPop._anchor.contains(e.target)) return;
     closePhaseColorPop();
   }
-  // `options` ({color, name}[]) defaults to the phase palette; the month day menu's hiatus Colour… passes
-  // the waterfall band editor's (EXCEL_STANDARD_COLORS) and gets the same popover, close rules and strip.
+  // `options` ({color, name}[]) defaults to the phase palette; the hiatus colour squares (an all-phase card's and a
+  // phase's own hiatus block's) pass the band palette (EXCEL_STANDARD_COLORS) and get the same popover, close rules
+  // and strip.
   function openPhaseColorPop(anchorEl, currentIndex, onPick, options){
     closePhaseColorPop();
     const pop = document.createElement('div');
@@ -7965,16 +7966,22 @@ export function initLegacyApp() {
     // phase colour. The NAME moved off the toggle's line into the block (it was the toggle's caption, owner,
     // 1 Sep 2026), so the row is now one <label> and a click anywhere on it toggles. #phiatus-en-<key> and
     // #phiatus-name-<key> keep their ids and their document order (en, name, start, weeks).
+    // The colour square before the name (4 Nov 2026, "A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD") is a div with NO
+    // id, so fields.byId and gate 5's id set are untouched; it and the name share .phiatus-name-row, which changes no
+    // id's document order. reflectPhaseHiatusSwatches() paints it and makes it clickable once the hiatus has dates.
     return `<div class="phase-hiatus">
         ${swRow('phase-hiatus-toggle', 'Hiatus', `<input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">`)}
         <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
-          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
+          <div class="phiatus-name-row">
+            <div class="swatch phiatus-swatch"></div>
+            <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
+          </div>
           <div class="phiatus-pair">
             <label>Starts <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
             <label class="phiatus-weeks-lbl">Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
           </div>
           <div class="snap-note"></div>
-          ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed.')}
+          ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
         </div>
       </div>`;
   }
@@ -8728,14 +8735,16 @@ export function initLegacyApp() {
   // ⭐ AN ALL-PHASE HIATUS'S COLOUR, FROM ITS CARD (owner, 28 Oct 2026: "add the color picker menu to the all phase
   // hiatuses in the left side bar just like you can pick color for phases"). The square on the card's head, where a
   // phase card has its own, opens the phase picker's popover with the hiatus band's palette (EXCEL_STANDARD_COLORS,
-  // which the waterfall band editor and the month day menu's Colour… already use). It writes no new store:
-  //   - A pick writes hiatusColors for EVERY week of the hiatus, as the day menu's Colour… does. That is the store the
-  //     band editor writes one week of and the frozen renderers and writers read, so both views and every export
-  //     follow, and the save format is unchanged (no key, no id). The default red deletes the keys.
+  // which the waterfall band editor used). It writes no new store:
+  //   - A pick writes hiatusColors for EVERY week of the hiatus (the month day menu's Colour… did the same until it was
+  //     removed, 4 Nov 2026). That is the store the band editor wrote one week of and the frozen renderers and writers
+  //     read, so both views and every export follow, and the save format is unchanged (no key, no id). The default red
+  //     deletes the keys.
+  //   - ⭐ Since 4 Nov 2026 this square is the ONLY way to colour an all-phase hiatus (owner: its name and colour are its
+  //     card's alone; bandCardOf). A phase's own hiatus got the same square (A PHASE'S OWN HIATUS: ITS COLOUR).
   //   - The square and the head's tint (--hiatus-color) show the hiatus's first week of its own (one no other hiatus
-  //     shares), painted from update() and after every render (a band editor or day menu pick redraws without
-  //     update()). A week recoloured on its own in the waterfall can differ from it; the picker then opens with
-  //     nothing marked, as the day menu's does.
+  //     shares), painted from update() and after every render. A week recoloured on its own in the waterfall before 4 Nov
+  //     2026 can differ from it; the picker then opens with nothing marked.
   //   - ⭐ THE COLOUR FOLLOWS A RETYPED Starts OR Weeks (carryHiatusRowColour). A one-colour hiatus keeps its colour on
   //     every week it lands on; a mixed one moves week for week, an added week taking the last week's (the month
   //     drag's rule 4). Without it a colour picked here would stay on the old weeks while the band moved. ⚠️ Only the colour: a band's typed label, size
@@ -8802,6 +8811,7 @@ export function initLegacyApp() {
         sw.setAttribute('aria-label', sw.title);
       }
     });
+    reflectPhaseHiatusSwatches();   // a phase's own hiatus has the same square (A PHASE'S OWN HIATUS: ITS COLOUR)
   }
   // Runs on the row's own input, BEFORE update(): the span the last update() painted is "before", the fields are
   // "after". When the hiatus's own weeks share one colour (the square's pick, or none), that colour is the hiatus's
@@ -8826,8 +8836,101 @@ export function initLegacyApp() {
     });
     row._colourSpan = now;
   }
-  // A band editor or day menu pick redraws without update(); every redraw replaces #table-wrap's children.
+  // A redraw without update() (a text style, an undo's render) replaces #table-wrap's children; repaint after each.
   new MutationObserver(reflectHiatusSwatches).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ⭐ THE CARD'S NAME REACHES EVERY WEEK OF ITS HIATUS (owner, 4 Nov 2026: a hiatus's name and colour are set on its
+  // card only; the waterfall's band editor no longer opens on a band that has a card, see bandCardOf). The name sync
+  // (syncHiatusNamesFromSidebar) never touches a week whose label was typed in the band itself, because
+  // hiatusNameSyncedKeys does not hold it, so such a label used to beat every name typed on the card afterwards. Now
+  // typing the name, or ticking Number weeks, first drops that label on THIS hiatus's weeks, and the sync takes them
+  // in the same update(). Only on that edit: opening an older calendar changes nothing, so it prints as saved until
+  // its name is next typed. hiatusNameSyncedKeys and hiatusTexts are both in the snapshot, so one undo brings the
+  // typed label back. `keys` are one hiatus's band keys: an all-phase row's are week ISOs (hiatusRowWeeks), a phase's
+  // own "<week>|<phase key>" (phaseHiatusWeekKeys).
+  function claimBandNames(keys){
+    keys.forEach(k=>{
+      if((k in hiatusTexts) && hiatusNameSyncedKeys[k] !== hiatusTexts[k]) delete hiatusTexts[k];
+    });
+  }
+
+  // ⭐ A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD (owner's picker, 4 Nov 2026, "Same rule, add colour": its band
+  // lost the waterfall's editor with the all-phase band's, so its colour needed a home in the sidebar). A square before
+  // the name in the phase card's hiatus block (phaseHiatusBlockHtml), the all-phase card's square in every way:
+  //   - The same picker (openPhaseColorPop with the band palette). A pick writes hiatusColors on EVERY week of this
+  //     phase's hiatus, as "<week>|<phase key>" keys: the store the waterfall's band editor wrote one week of, which
+  //     the waterfall, the month view, Excel and the waterfall PDF already read. So no new key and no id. The default
+  //     red deletes the keys. One undo step, through update().
+  //   - Painted from update() and after every render (reflectHiatusSwatches), in the hiatus's first week's colour.
+  //   - ⭐ The colour follows a retyped Starts or Weeks (carryPhaseHiatusColour): carryHiatusRowColour's rule, minus the
+  //     weeks shared with another hiatus, which a phase's one hiatus cannot have.
+  // The span is the scheduler's (computeSchedule's phaseHiatusRanges): only while its switch is on, from the start's
+  // Monday, whole weeks, capped at MAX_WEEKS as the name sync caps it.
+  function phaseHiatusSpan(key){
+    const en = document.getElementById('phiatus-en-' + key);
+    if(!en || !en.checked) return null;
+    const s = parseDateUTC((document.getElementById('phiatus-start-' + key) || {}).value || '');
+    const w = Math.min(parseInt((document.getElementById('phiatus-weeks-' + key) || {}).value, 10), MAX_WEEKS);
+    if(!s || !(w > 0)) return null;
+    const a = mondayOf(s);
+    return {start: a, end: addDays(a, w * 7)};
+  }
+  function phaseHiatusWeekKeys(key, sp){
+    return hiatusSpanWeeks(sp === undefined ? phaseHiatusSpan(key) : sp).map(wk=> wk + '|' + key);
+  }
+  function phaseHiatusKeyOf(el){
+    const f = el && el.closest ? el.closest('.phase-hiatus-fields') : null;
+    return f ? f.id.replace('phiatus-fields-', '') : '';
+  }
+  function reflectPhaseHiatusSwatches(){
+    document.querySelectorAll('.phase-hiatus-fields').forEach(f=>{
+      const sw = f.querySelector('.phiatus-swatch');
+      if(!sw) return;
+      const key = f.id.replace('phiatus-fields-', '');
+      const sp = phaseHiatusSpan(key);
+      if(sp) f._colourSpan = sp;         // carryPhaseHiatusColour's "before"; a blank field keeps the last real span
+      const keys = phaseHiatusWeekKeys(key, sp);
+      const c = keys.length ? hiatusColorFor(keys[0]) : HIATUS_COLOR;
+      if(sw.dataset.color !== c){ sw.dataset.color = c; sw.style.background = c; }
+      const can = keys.length > 0;
+      if(sw.classList.contains('clickable') !== can || !sw.title){
+        sw.classList.toggle('clickable', can);
+        sw.title = can ? 'Change colour' : 'Enter its dates to choose a colour';
+        sw.setAttribute('aria-label', sw.title);
+      }
+    });
+  }
+  function setPhaseHiatusColour(key, c){
+    const def = c.toUpperCase() === HIATUS_COLOR.toUpperCase();
+    phaseHiatusWeekKeys(key).forEach(k=>{ if(def) delete hiatusColors[k]; else hiatusColors[k] = c; });
+  }
+  // Runs on the block's own Starts / Weeks input, BEFORE update() (the phase hiatus handler, beside refreshPhaseHiatusUI).
+  function carryPhaseHiatusColour(key){
+    const f = document.getElementById('phiatus-fields-' + key);
+    const was = f && f._colourSpan, now = phaseHiatusSpan(key);
+    if(!was || !now || (was.start.getTime() === now.start.getTime() && was.end.getTime() === now.end.getTime())) return;
+    const from = phaseHiatusWeekKeys(key, was), to = phaseHiatusWeekKeys(key, now);
+    const cols = from.map(k=> hiatusColors[k]);
+    const whole = cols.every(c=> c === cols[0]);
+    from.forEach(k=>{ delete hiatusColors[k]; });
+    to.forEach((k, i)=>{
+      const c = whole ? cols[0] : cols[Math.min(i, cols.length - 1)];
+      if(c) hiatusColors[k] = c; else delete hiatusColors[k];
+    });
+    f._colourSpan = now;
+  }
+  // Delegated, as the block's other controls are: a custom phase's block is rebuilt by undo and Load.
+  document.addEventListener('click', e=>{
+    const sw = e.target.closest && e.target.closest('.phiatus-swatch.clickable');
+    if(!sw) return;
+    const key = phaseHiatusKeyOf(sw), keys = key ? phaseHiatusWeekKeys(key) : [];
+    if(!keys.length) return;
+    const palette = EXCEL_STANDARD_COLORS.map(c=> ({color: c, name: c}));
+    const cur = keys.map(hiatusColorFor);
+    const same = cur.every(c=> c.toUpperCase() === cur[0].toUpperCase());
+    const at = same ? palette.findIndex(o=> o.color.toUpperCase() === cur[0].toUpperCase()) : -1;
+    openPhaseColorPop(sw, at, i=>{ setPhaseHiatusColour(key, palette[i].color); update(); }, palette);
+  });
 
   // ⭐ THE CARET ON EVERY ALL-PHASE HIATUS CARD (owner, 28 Oct 2026: "give collapsing arrows to the all phase
   // hiatuses just like phases"). The phase card's caret ("THE CARET ON EVERY PHASE CARD", above buildPhaseRows) on
@@ -8938,7 +9041,11 @@ export function initLegacyApp() {
     // step, as a phase swatch's pick does (setPhaseColor).
     const sw = row.querySelector('.hiatus-swatch');
     sw.addEventListener('click', ()=> openHiatusColourPop(sw, row, c=>{ setHiatusRowColour(row, c); update(); }));
-    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{ carryHiatusRowColour(row); update(); }));
+    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{
+      carryHiatusRowColour(row);
+      if(inp.classList.contains('hiatus-name') || inp.classList.contains('hiatus-num')) claimBandNames(hiatusRowWeeks(row));
+      update();
+    }));
     list.appendChild(row);
   }
 
@@ -9998,8 +10105,10 @@ export function initLegacyApp() {
       } else {
         r.days = String(step.c);
         // ⛔ daysEdited, or the next reconcile (syncEpisodesFromShowInfo / syncBlocksFromShowInfo)
-        // resets this row to the default and silently undoes the drag. It is also what lists the row
-        // under "Manually changed" in the Show Info note -- how the user sees what the drag did.
+        // resets this row to the default and silently undoes the drag. (It also listed the row under
+        // "Manually changed" in the Show Info note until the owner removed that note, 4 Nov 2026. The row's
+        // day box carries `is-edited` when the list is next drawn: bold for a block, an unstyled marker for an
+        // episode, which pilldrag's `edited` reads.)
         r.daysEdited = true;
         if(d.kind === 'start'){
           // ⛔ Through setPhaseStart(), THE ONE WRITER of a phase's start for every mover
@@ -11967,8 +12076,10 @@ export function initLegacyApp() {
     // Two on one day are told apart by their dates, which every label carries. Then each phase's OWN
     // hiatus on the day: Remove only, with no question, because unticking it in the sidebar asks none either.
     // ⛔ TRIMMED (plan §13, ruling T1): Lock in place, Number weeks and Show in Phases card are gone -- the hiatus
-    // row's own two boxes and the row itself. Colour… stays (T2: the owner's "Recolour from day menu", the only way
-    // to colour a whole hiatus at once), and so does Remove hiatus…, the waterfall band menu's one item.
+    // row's own two boxes and the row itself. ⛔ And Colour… since 4 Nov 2026 (owner's picker: "remove month color, but
+    // keep the style bar working for all"): a hiatus is named and coloured on its sidebar card only (bandCardOf). It
+    // stood under T2, the owner's "Recolour from day menu", as the only way to colour a whole hiatus at once, which the
+    // card's square (28 Oct 2026) has been since. Remove hiatus… stays, the waterfall band menu's one item.
     function bandSections(ctx){
       const d = ctx.date, out = [];
       Array.prototype.forEach.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), (row, j)=>{
@@ -11976,7 +12087,6 @@ export function initLegacyApp() {
         if(!sp || !(d >= sp.start && d < sp.end)) return;
         const name = ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL;
         out.push({id: 'hiatus', label: name + ' · ' + dm(sp.start) + ' – ' + dm(addDays(sp.end, -1)), items: [
-          {id: 'band-colour-' + j, icon: 'palette', text: 'Colour…', run: ()=> hiatusColourHere(ctx, row)},
           {id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true, run: ()=> removeHiatusHere(row)},
         ]});
       });
@@ -11995,26 +12105,6 @@ export function initLegacyApp() {
       });
       return out;
     }
-    // ✅ Colour… (owner, 20 Oct 2026, item 9: "Recolour from day menu"; supersedes MONTH-CONTEXT-MENU-PLAN
-    // §3.10's "not offered"). The phase picker's popover, given the waterfall band editor's palette, under the
-    // day. A pick writes hiatusColors for EVERY week of this hiatus -- the store the waterfall's band editor
-    // writes one week of and frozen renderMonthView reads -- so both views change together. The default
-    // colour deletes the keys, as the waterfall editor does. Opening it changes nothing; a pick is one step.
-    // The picker and the write are the hiatus card's colour square's own (openHiatusColourPop, setHiatusRowColour).
-    function hiatusColourHere(ctx, row){
-      if(!bandSpan(row)) return;
-      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
-        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; });
-      if(!cell) return;
-      openHiatusColourPop(cell, row, c=>{
-        pushUndoSnapshot();
-        setHiatusRowColour(row, c);
-        render(currentSchedule);
-        markDirty();
-        pushUndoSnapshot();
-      });
-    }
-
     // Exactly the row's own ×: its question first (ruling Q4), then its removal, ONE undo step banked
     // after the answer. Cancel changes nothing and banks nothing.
     async function removeHiatusHere(row){
@@ -14640,15 +14730,12 @@ export function initLegacyApp() {
       if(!hasRows && Number.isFinite(perBlock) && Number.isFinite(numBlocks)) totalShootDays = perBlock * numBlocks;
     } else if(!hasRows && Number.isFinite(perEp) && Number.isFinite(numEp)) totalShootDays = perEp * numEp;
 
-    // Which rows the user has personally overridden, for the Show Info flag.
-    const overrides = rows
-      .filter(e => e.daysEdited && dayCountVal(e.days) > 0)
-      .map(e => ({ name: e.name || '', days: dayCountVal(e.days) }));
-
+    // (An `overrides` list -- the rows typed over the default -- was returned here for the Show Info note's
+    // "Manually changed" line. The note was removed on 4 Nov 2026 and nothing else read it.)
     return { complete, missing, season,
       perEp: Number.isFinite(perEp) ? perEp : 0,
       numEp: Number.isFinite(numEp) ? numEp : 0,
-      totalShootDays, overrides,
+      totalShootDays,
       blocks,
       perBlock: Number.isFinite(perBlock) ? perBlock : 0,
       numBlocks: Number.isFinite(numBlocks) ? numBlocks : 0 };
@@ -14885,7 +14972,7 @@ export function initLegacyApp() {
       <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
         <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
-        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="0.5" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
+        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days${e.daysEdited ? ' is-edited' : ''}" min="1" step="0.5" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
       </div>`).join('') + '</div>';
   }
 
@@ -14966,22 +15053,9 @@ export function initLegacyApp() {
     // there's genuinely no other way to schedule it.
     if(prodRow) prodRow.classList.toggle('phase-blocked', !info.complete);
 
-    // Show Info note + manual-override flags
-    const infoNote = document.getElementById('show-info-note');
-    if(infoNote){
-      if(info.complete){
-        infoNote.style.display = '';
-        let html = '<strong>Production\u2019s Total Shooting Days: ' + info.totalShootDays + '</strong>'
-          + ' \u2014 the sum of the ' + (info.blocks ? 'block' : 'episode') + ' list in the Production phase. Used by the Waterfall'
-          + ' view and the Excel export.';
-        if(info.overrides.length){
-          html += '<div class="show-info-flags">Manually changed: '
-            + info.overrides.map(o=> escHtml(o.name || (info.blocks ? 'Block' : 'Episode')) + ' \u2192 <strong>' + o.days + ' days</strong>').join('; ')
-            + ' (default is ' + (info.blocks ? info.perBlock : info.perEp) + ').</div>';
-        }
-        infoNote.innerHTML = html;
-      } else { infoNote.style.display = 'none'; }
-    }
+    // The Show Info note ("Production's Total Shooting Days: N -- the sum of the episode list ...") and its
+    // "Manually changed" list were written here until 4 Nov 2026, when the owner removed the box ("get rid of
+    // this entire popup"). Nothing replaces it: the total is the readout above.
     return info;
   }
 
@@ -16006,6 +16080,10 @@ export function initLegacyApp() {
     // that cell is the plain date, not the combined "week|phase" key hiatusTexts/hiatusColors/
     // cellSpans all use. Rebuild the combined key here, the one place weekKey is derived for
     // every note/hiatus editor interaction (owner, 1 Sep 2026).
+    // ⛔ Never on a hiatus band that has a card, since 4 Nov 2026: its name and colour are that card's (bandCardOf, beside
+    // openNoteCellEditor). Both openers already send it there; this keeps any future caller from reopening it. A
+    // Production off week has no card and still opens here.
+    if(bandCardOf(td)) return;
     const weekKey = td.dataset.pkey ? (td.dataset.week + '|' + td.dataset.pkey) : td.dataset.week;
     const isHiatus = td.classList.contains('sheet-hiatus-cell');
 
@@ -20822,6 +20900,52 @@ export function initLegacyApp() {
     return activeNoteEditor;
   }
   const NOTE_TD = 'td.sheet-note-cell, td.sheet-hiatus-cell';
+
+  // ⭐ A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY (owner, 4 Nov 2026: "Remove ability to edit the name and
+  // color of all phase hiatuses in the waterfall itself. That should only be possible in the left side bar"; then, by
+  // picker the same day, "Same rule, add colour" for a phase's own hiatus). So a hiatus band opens no editor here any
+  // more. A double-click or Enter on it shows the card that names it instead: the Phases tab, the card unfolded and
+  // scrolled to, its name box focused. That is the month view's double-click on a bar for a phase (showPhaseRow). The
+  // frozen cell's own tooltip still reads "Double-click to rename or recolor this hiatus", which is where that
+  // double-click now takes you.
+  //   - An ALL-PHASE band (no data-pkey): its #hiatus-list row, the first whose span covers the band's week (two rows
+  //     on one week share one band). Name box and colour square on the row's head.
+  //   - A PHASE's own band (data-pkey) inside that phase's hiatus span: the phase card's hiatus block, whose colour
+  //     square came with this change ("A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD").
+  //   - ⚠️ A Production OFF WEEK (OFF-WEEK-PLAN.md: every shoot day of the week marked Off) draws the same per-phase band
+  //     but has no card, so it keeps the waterfall's band editor: bandCardOf() returns null for it.
+  //   - A single click still highlights a band for the text style bar (size, bold, italic, text colour, alignment): that
+  //     is formatting, not its name or its colour (owner's picker: "keep the style bar working for all"). Typing on a
+  //     highlighted band does nothing.
+  //   - ⚠️ A week's own label or colour typed in a band before this change stays in its file and keeps printing. The
+  //     card's colour square paints every week, and its name box takes such a label over the next time the name is
+  //     typed (claimBandNames). "Reset hiatus bands" clears them all.
+  // The span tests are the scheduler's own: from the start's Monday, whole weeks (hiatusRowSpan, phaseHiatusSpan).
+  function bandCardOf(td){
+    if(!td || !td.classList || !td.classList.contains('sheet-hiatus-cell')) return null;
+    const key = td.dataset.pkey;
+    const d = parseDateUTC(td.dataset.week || '');
+    if(!key) return {row: d ? (hiatusRowsNow().find(r=>{ const sp = hiatusRowSpan(r); return !!sp && d >= sp.start && d < sp.end; }) || null) : null};
+    const sp = phaseHiatusSpan(key);
+    return (d && sp && d >= sp.start && d < sp.end) ? {key} : null;
+  }
+  function showBandCard(card){
+    const target = card.row || (card.key ? document.getElementById('phiatus-fields-' + card.key) : null);
+    if(!target || !target.isConnected) return;
+    if(activeNoteEditor) commitActiveNoteEditor();
+    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as showPhaseRow's is.
+    pushUndoSnapshot();
+    revealSidebarTab('phases');
+    pushUndoSnapshot();
+    if(card.row) setHiatusCollapsed(card.row, false); else setPhaseCollapsed(card.key, false);
+    (card.row || target.closest('.phase-hiatus') || target).scrollIntoView({block: 'center', inline: 'nearest'});
+    const name = card.row ? card.row.querySelector('.hiatus-name') : document.getElementById('phiatus-name-' + card.key);
+    if(name){
+      name.focus({preventScroll: true});
+      const n = name.value.length;
+      try { name.setSelectionRange(n, n); } catch(err){ /* not a text input */ }
+    }
+  }
   // Capture, so it runs before frozen dblclick fill-across (a document BUBBLE listener) and can stop it for a
   // band. The batch fill's capture listener (registered earlier) skips bands for the same reason.
   document.addEventListener('dblclick', e=>{
@@ -20832,6 +20956,8 @@ export function initLegacyApp() {
     if(!td) return;
     e.preventDefault();
     e.stopPropagation();
+    const card = bandCardOf(td);
+    if(card){ showBandCard(card); return; }
     openNoteCellEditor(td);
   }, true);
   // Enter and typing, once something is highlighted. Capture, so Enter on a note never also reaches the
@@ -20853,6 +20979,15 @@ export function initLegacyApp() {
     if(e.key === 'Enter' && e.shiftKey) return;
     const td = textCellIndex().get(active);
     if(!td) return;
+    // A hiatus band opens no editor (bandCardOf above): Enter shows its card, and a typed key does nothing.
+    const card = bandCardOf(td);
+    if(card){
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      e.stopPropagation();
+      showBandCard(card);
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     const ed = openNoteCellEditor(td);
@@ -26187,6 +26322,11 @@ export function initLegacyApp() {
           if(f) f.style.display = t.checked ? 'flex' : 'none';
           update();
         } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks') || t.classList.contains('phiatus-name')){
+          // Before update(): a retyped Starts or Weeks carries the hiatus's colour to its new weeks, and a typed name takes
+          // over a week labelled in the band itself (A PHASE'S OWN HIATUS: ITS COLOUR; THE CARD'S NAME REACHES EVERY WEEK).
+          const key = phaseHiatusKeyOf(t);
+          if(key && t.classList.contains('phiatus-name')) claimBandNames(phaseHiatusWeekKeys(key));
+          else if(key) carryPhaseHiatusColour(key);
           update();
         } else if(t.classList.contains('phiatus-wknum-cb')){
           // The store, then update(): its sync writes the numbered labels and markDirty() banks ONE undo step.
@@ -26194,6 +26334,7 @@ export function initLegacyApp() {
           const key = f ? f.id.replace('phiatus-fields-','') : '';
           if(!key) return;
           if(t.checked) phaseHiatusNumbered[key] = true; else delete phaseHiatusNumbered[key];
+          claimBandNames(phaseHiatusWeekKeys(key));   // numbering names every week, as the all-phase box does
           update();
         }
       });

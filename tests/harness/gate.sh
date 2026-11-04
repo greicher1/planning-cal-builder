@@ -1698,8 +1698,9 @@ done
 # labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
 # the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
 # Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
-# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… (from the day menu) and Number
-# weeks (from the row's own box since the day menu's copy was cut, 23 Oct 2026) (C). Twenty
+# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's colour (from the card's square since
+# 4 Nov 2026, when the day menu's Colour… was cut; C2 proves it gone) and Number weeks (from the row's own box since the
+# day menu's copy was cut, 23 Oct 2026) (C). Twenty
 # mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
 # phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
@@ -1768,10 +1769,19 @@ done
 # for phases"): one square after the caret, where a phase card's sits; a hit-tested pick paints every week of the
 # hiatus in the waterfall, the month view, the square and the head, and the file holds it as hiatusColors on exactly
 # those weeks (no new key, no id, fields.byId and a hiatus row's keys unchanged); one undo step; the colour follows
-# a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu's
-# Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
+# a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu offers
+# no Colour… (cut 4 Nov 2026; C8 drove it until then) and the square reaches the month bars; New and Load. Red on main before it (9 of 11) and with the
 # carry removed (C5-C8). D0-D2 (2 Nov 2026) hold New's four default breaks, 2029's on 12/17/29, and that a file saved
 # with the old 12/24/29 Loads with it. Its own line.
+# hiatussidebar (owner, 4 Nov 2026: "Remove ability to edit the name and color of all phase hiatuses in the waterfall
+# itself. That should only be possible in the left side bar"; by picker the same day, "Same rule, add colour" for a
+# phase's own hiatus and "remove month color"): a real double-click on an all-phase band opens NO editor and shows its
+# card (Phases tab, unfolded, on screen, name box focused), one undo step; Enter does the same and a typed key nothing;
+# a phase's own band shows its card's hiatus block too (W5); that block's new colour square paints every week, one undo
+# step, and the colour follows a retyped Starts (P1-P3); the month day menu has no Colour… (M1); an older file's weeks
+# typed and coloured in a band print as saved, and typing either card's name takes them over (L1-L6). A Production off
+# week keeps the band editor (offweek R7). Red: on v1.10.0 in 8 of the first 11; on e8e21fd (the all-phase half, live)
+# exactly W5, P1-P3, M1 and L6. Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;
@@ -1938,6 +1948,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phasefold:-:300 \
               hiatusfold:-:300 \
               hiatuscolour:-:300 \
+              hiatussidebar:-:300 \
               mvbarcard:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \

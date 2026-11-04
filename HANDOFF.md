@@ -5,6 +5,144 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
+- **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,
+  *"Push now"*; `0499373..e8e21fd` at 11:08:47 PST, a fast-forward carrying `origin/main`'s "Show in folder…", merged in
+  first). The commit rebuilds to `d663ce56…`. The live `index.html` still serves `0499373`'s build `3cb08fce…`
+  (identified by rebuilding it), which works.
+  - ⛔ **The deploy failed twice, both on GitHub's side** (run 41894092156; githubstatus.com said all operational at
+    11:21). Build and check passed both times.
+    - Attempt 1: Pages sat in `updating_pages` for 10 min, then "Timeout reached" and the deployment was cancelled.
+    - Attempt 2 (`gh run rerun --failed`, re-deploying the approved commit, no push): "Multiple artifacts named
+      github-pages" in 1 s. ⚠️ **Never re-run only the failed deploy job**: the job uploads its own `github-pages`
+      artifact, so a re-run leaves two on the run, and `deploy-pages` refuses.
+  - The workflow has only a `push` trigger, so a fresh run needs a push (or deleting the run's two `github-pages`
+    artifacts, then re-running the job). Put to the owner.
+- **Part 2: PUSHED with part 1 at `eacd41b`, NOT LIVE** (owner's pickers *"Commit"* and *"try pushing both together"*;
+  `0d23980..eacd41b` at 11:24:28 PST, a fast-forward after merging `0d23980`; the build is `caf3eeb8…`, and
+  `hiatussidebar` 16/16, `hiatuscolour` 14/14, `hdrversion` PASS, check 40/40 on it). The live site still serves
+  `0499373`'s `3cb08fce…`.
+  - Its deploy was refused in 3 s with the same *"in progress deployment. Please cancel e8e21fd… first"*, although
+    every environment deployment record reads `failure` and the Pages endpoint reads `deployment_cancelled`. An
+    explicit `POST /repos/…/pages/deployments/e8e21fd…/cancel` returned 204 at 11:26:04.
+  - ⛔ **It did NOT clear it.** The owner OK'd one more push (*"Push it now"*): `eacd41b..4befff7` (this note, docs
+    only) at 11:27:03. Run 41897046513 was refused at 11:27:37 with the same message. So `origin/main` is at
+    `4befff7` and NOTHING since `0499373` is live, the other session's `9c3286a` included. Every push to `main` will
+    fail to deploy until GitHub drops the lock. Stopped there: no further pushes.
+  - Owner's *"Retry now"*: `4befff7..8a0abea` (the note above, docs only) at 11:35:51. Run 41898476928 was refused at
+    11:36:29, same message, 27 min after the original timeout. `origin/main` is at `8a0abea`.
+  - ⛔ **Don't toggle Settings ▸ Pages ▸ Source to clear it.** "Deploy from a branch" would serve the repo root's
+    `index.html`, the frozen v1.2.0 legacy app, to every user.
+  - What's left: wait for GitHub's lock to expire, then any push deploys everything. If it persists, the owner
+    contacts GitHub Support, quoting run 41894092156 (the original timeout). ⏭ When it clears (a later push's
+    deploy succeeds), check the live `index.html` is `caf3eeb8…` (`eacd41b` = `4befff7`'s build).
+  - ⛔ A re-run of the failed deploy job can't work: the job uploads its own `github-pages` artifact, and a second one
+    on the run makes `deploy-pages` refuse. So the next deploy needs a fresh push. It waits on the owner's OK, e.g.
+    for this note's own commit.
+- (Part 2 as first committed:) A phase's own
+  hiatus loses its band editor too and gets a colour square on its card, and the month menu's Colour… is cut.
+  - ⚠️ The other session's push of `0d23980` (its "Show info: remove the Total Shooting Days note", with `e8e21fd`
+    merged in) ALSO failed to deploy, with "in progress deployment. Please cancel e8e21fd… first". GitHub had not
+    finished cancelling attempt 1. `GET /repos/…/pages/deployments/e8e21fd…` read `deployment_cancelled` at 11:23.
+    ⛔ **Lesson: after a Pages timeout, check that endpoint before any push; a push meanwhile fails to deploy.**
+
+**The asks** (owner, 4 Nov 2026):
+- *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only be
+  possible in the left side bar"*. Read as the ALL-PHASE hiatus: the owner's 28 Oct ask used the same words for that
+  card.
+- Then, by picker, three answers:
+  - *"Same rule, add colour"*: a phase's own hiatus too, with a colour square on its sidebar block.
+  - *"remove month color, but keep the style bar working for all"*: the month day menu's Colour… on a hiatus goes;
+    the text style bar keeps styling every band.
+  - (the third answer, *"Keep both"*, was ticked beside that note and is read through it).
+
+**Built** (`src/legacy/app.js`, `src/styles/legacy.css`, `src/index.html` help; no frozen edit, no save-format change):
+- **`bandCardOf(td)` / `showBandCard(card)`**, beside `openNoteCellEditor`.
+  - The D5 openers (the capture `dblclick`, the Enter/typing `keydown`) and `openNoteEditor` itself send a hiatus band
+    that HAS a card to that card instead of the editor:
+    - an all-phase band (no `data-pkey`) to its `#hiatus-list` row, the first covering the week;
+    - a phase's own band inside `phaseHiatusSpan(key)` to that phase card's hiatus block (`#phiatus-name-<key>`).
+  - Showing the card: the Phases tab (one undo step, as `showPhaseRow`), unfolded, scrolled to, name box focused.
+  - A typed key on a highlighted band does nothing.
+  - ⚠️ **A Production OFF WEEK keeps the band editor**: it draws the same per-phase band but has no card, so
+    `bandCardOf` returns null (offweek R7 renames one, and passes).
+  - The frozen cell's tooltip still reads "Double-click to rename or recolor this hiatus": changing it is a frozen
+    edit, and the double-click now goes where you rename and recolour.
+- **`claimBandNames(keys)`**: typing a card's name, or ticking its Number weeks, first drops a band label typed by hand
+  on that hiatus's weeks (a `hiatusTexts` key `hiatusNameSyncedKeys` doesn't hold), so the name sync takes them in
+  the same `update()`. Both kinds: all-phase rows (`hiatusRowWeeks`) and a phase's block (`phaseHiatusWeekKeys`).
+  - Without it, a week typed in the band before this change ignored every later name, and only "Reset hiatus bands"
+    could change it.
+  - Only on that edit: an older calendar opens and prints as saved. One undo brings the label back.
+- **"A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD"** (after the all-phase carry):
+  - A `.phiatus-swatch` before the name in `phaseHiatusBlockHtml`. Both sit in `.phiatus-name-row`. It's a div with
+    NO id, so `fields.byId` and gate 5's set don't move, and no id's document order changes.
+  - A delegated click opens `openPhaseColorPop` with the band palette. A pick writes `hiatusColors` on every
+    `"<week>|<key>"` week of the hiatus (`setPhaseHiatusColour`); red deletes. Then `update()`, one undo step.
+  - Painted by `reflectPhaseHiatusSwatches()`, called from `reflectHiatusSwatches()` (`update()` + the `#table-wrap`
+    observer).
+  - The colour follows a retyped Starts/Weeks (`carryPhaseHiatusColour`, in the phase hiatus input handler before
+    `update()`).
+  - The Number weeks tooltip lost "A band you retyped keeps what you typed".
+- **Month day menu:** `band-colour-N` and `hiatusColourHere` removed from `bandSections`. `MONTH-CONTEXT-MENU-PLAN.md`
+  marks the cut.
+
+**Proof** (worktree `dist/`; ports 8781–8786):
+- `hiatussidebar` **16/16** (in `gate.sh`, own line after `hiatuscolour`):
+  - red on v1.10.0 in 8 of the first 11;
+  - on `e8e21fd`'s own build (`dist/part1.html`, scratch, ignored) red in exactly the six part-2 cases: W5, P1–P3,
+    M1, L6.
+- `T.reloadWith(mutate, stem, opts)` (lib.js) reaches a state only an older file holds: Save As, edit the JSON, Load.
+- Legs reworked:
+  - through `reloadWith`: `hiatuslabel` (blank weeks), `notewrap` (C and D labels), `mvmenu` N1 (blank band),
+    `phiatusnum` H11 (now: prints as saved, double-click shows the card, the Number weeks box takes it over);
+  - flipped to the new rule: `wfnotecolors` K2, `textstyle` D6, `hdrcontrols` N4 (the name takes CARRY-HIATUS over);
+  - for the cut item: `mvmenu` H4/K1/H5/V1/V9 + `band-colour` in its CUT list, `hiatusfold` H8's wait,
+    `hiatuscolour` C8 (the menu has none; the square used from the month view), `labelsetup` C2 (the card's square).
+- Part-2 build, all green: mvmenu 81, hiatusfold 11, hiatuscolour 14, phiatusnum 18, notewrap 16, labelsetup 41,
+  offweek 42 + 5 (R7: the off-week band still edits in place), wfnotecolors 14, textstyle 51, hdrcontrols 12,
+  hiatuslabel 7, phasefold 11, mvbarcard 7, wfmenu 39, caps 5, winansi 7, wfkeys 84, phasesui (hidewf) 8.
+  - phasesui first came in 7/8: P1's `builtindates` fixture timed out loading (10 s) inside the batch. 8/8 alone.
+- `npm run check` 40/40.
+- In the browser pane, real mouse and keyboard:
+  - part 1: double-click → the card, name focused; typed name → both weeks;
+  - part 2: the Pre-Prep band's double-click → its hiatus Name box, no editor; its new square → green on both
+    weeks.
+
+⏭ **Next:**
+- Get a deploy through (the owner's call, above), then verify the live sha.
+- Ask the owner to commit and push part 2.
+- No full gate was run for either part: nothing frozen was touched and no output's bytes can move. The next full gate
+  runs the new leg.
+- ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
+  pushed). Merge this branch into it when that checkout is free.
+
+### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — ✅ **LIVE** since the `8ed92ca` deploy (19:46:13 UTC). Pushed as `9c3286a`, merged into `0d23980` (owner's picker *"Push once committed"*; `e8e21fd..0d23980` at 11:22:06). Its own deploy, and those of `eacd41b`, `4befff7` and `8a0abea`, were refused on a stale Pages lock left by `e8e21fd`'s re-run deploy (its attempt 2 failed on two `github-pages` artifacts), which the hiatus session cleared. Checked at 19:47 UTC: the live `index.html` is byte-identical (`cmp`) to a local build of `main` (`caf3eeb8…`), has no `show-info-note` and no help sentence, and `version.json` is 1.10.0. Tracker card `remove-show-info-note`
+
+Owner, with a screenshot of the blue box at the bottom of Show info (*"Production's Total Shooting Days: 82 — the sum
+of the episode list in the Production phase. Used by the Waterfall view and the Excel export."* plus *"Manually
+changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
+
+- **What went:**
+  - `#show-info-note` in `Sidebar.jsx`, and its writer in `refreshDerivedInfo()`.
+  - `.show-info-note` / `.show-info-flags` in `legacy.css`.
+  - `showInfoStatus()`'s `overrides` list, which only the note read.
+  - The help page's sentence "Show Info flags any episode you've changed by hand…".
+  - Comments in `app.js` and the doc tables (UI-CONVENTIONS, MANTINE-SEAM) say so.
+- **What stays:** the total is the Production row's Total Shooting Days box (`#prod-total-readout`), unchanged.
+  Nothing saved changes, and nothing in the grid or the writers was touched.
+- ⚠️ **The box was the ONLY cue for an episode typed over the default.** A block's count stays bold (`.blk-days.is-edited`);
+  an episode's day box now carries `is-edited` with NO style, as a test hook. If the owner wants a cue back, bolding
+  `.ep-days.is-edited` matches blocks and prep (one CSS line). The class is written when the list is drawn, not on
+  each keystroke, the same as blocks.
+- **Tests that read the box, rewritten:**
+  - `pilldrag.mjs`'s `edited` read "Manually changed" and now reads `#episode-rows .ep-days.is-edited, .blk-days.is-edited`.
+    30/30 on the new build; E1 sees `true` after the drag and `false` after Ctrl+Z.
+  - `t/hdrversion.js` step 9 read the box's text. With no box it would have passed vacuously, so it now checks
+    Production's row is not `.phase-blocked` and its total is written. All green.
+- **Proof:** `npm run check` 40/40. Browser pane (port 8390, `?state=hdrversion`): no box, total 80 → 83 with an
+  episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
+  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
 ### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), NOT merged into `main`, NOT pushed. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
 

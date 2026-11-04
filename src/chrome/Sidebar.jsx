@@ -149,8 +149,9 @@ export function ShowInfoCard() {
         <TextInput id="show-location" label="Location" placeholder="e.g. Winnipeg" maxLength={40}
                    description="Optional. Shown instead of the region when you compare scenarios." />
       </Stack>
-      {/* Written by showInfoStatus() and shown/hidden by it. */}
-      <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>
+      {/* The blue "Production's Total Shooting Days: N" note (#show-info-note) and its "Manually changed" list sat
+          here until 4 Nov 2026, when the owner removed it ("get rid of this entire popup"). The total is the
+          Production row's Total Shooting Days box. */}
       </div>
     </section>
   )

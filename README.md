@@ -57,6 +57,52 @@ typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) o
 `autonotephases`, `autonoterename`, `wfkeys` and `wfmenu` were rewritten where they held the old one-box card or the
 old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
 
+### Unreleased — a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
+
+The owner's follow-up pickers to the change below: *"Same rule, add colour"* for a phase's own hiatus, and *"remove
+month color, but keep the style bar working for all"*.
+- A phase's own hiatus band in the waterfall no longer opens the label-and-colour editor either. A double-click or
+  Enter brings up that phase's card with its hiatus Name box ready to type in.
+- The hiatus block under each phase's Hiatus switch has a **colour square** before its name, like the all-phase card's.
+  It colours every week of the pause in both views and every export, and the colour follows the pause if its Starts or
+  Weeks change.
+- A Production week with every shoot day marked Off still opens the band editor: it has no card to go to.
+- The month view's right-click menu on a hiatus day no longer offers Colour…: the card's square is the one way.
+- The text style bar still styles every band's text.
+- No frozen code touched, and no saved-file change: the colours use the same `hiatusColors` store as before.
+
+Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red on the build pushed below. The month
+menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
+phase band; `notewrap` gets its Post label from a saved file.
+
+### Unreleased — the note under Show info is gone (4 Nov 2026)
+
+The blue box at the bottom of Show info, *"Production's Total Shooting Days: N — the sum of the episode list in the
+Production phase…"* with its *"Manually changed: Episode 101 → 11 days…"* line, is removed (owner, 4 Nov 2026, with a
+screenshot: *"get rid of this entire popup"*). The total is still the Production row's Total Shooting Days box, and it
+still follows every episode's or block's day count. With it went the CSS, the `overrides` list that only it read, and
+the help page's sentence about it. Nothing saved changes. ⚠️ The box was the only place an episode typed over the
+default was called out; a block's count stays bold, an episode's has no cue. Tests: `pilldrag` read "Manually
+changed" from the box, and now reads an unstyled `is-edited` class on the episode's day box (blocks already had one);
+30/30. `hdrversion`'s "a version never gates Production" case read the box's text (and passed vacuously with no box), and
+now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
+the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
+
+### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
+
+The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
+be possible in the left side bar"*.
+- Double-clicking an all-phase hiatus band in the waterfall, or pressing Enter on it, no longer opens the label-and-colour
+  editor. It brings up that hiatus's card in the sidebar instead, unfolded, with its name box ready to type in.
+- Typing on a highlighted band does nothing. A phase's own hiatus band keeps its editor, since its card has no colour.
+- A week labelled or coloured in the band before this change still prints as it was saved. The card's colour square
+  repaints every week, and typing the card's name now renames that week too (one undo brings it back).
+- No frozen code touched, and no saved-file change.
+
+Verified: a new leg, `hiatussidebar`, 11/11, red on v1.10.0 in 8 of 11. Six legs that used the old editor were
+reworked: `hiatuslabel`, `notewrap`, `mvmenu`, `wfnotecolors`, `textstyle`, `hdrcontrols`. Those six and ten neighbouring
+legs are green. Checked by hand in the browser.
+
 ### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the
