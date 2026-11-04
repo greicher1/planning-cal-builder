@@ -37,9 +37,16 @@
   simpostbeside 19/19, simpostname 14/14, colswapcache 9/9, colswappartial 8/8 on both fixtures, mvnotesize 12/12 on
   both — and gate 13's 22 written month PDFs, ALL byte-identical. So SD1 moved no baseline (the Sim Post session had
   expected `colswap-simpost-refuse`, maybe `mvheaderlegacy` / `mvnotes`, to move); no re-cut, no sign-off needed.
-- **Full gate** on the cut build `494793a8…` (port 8772, 17:37–18:13, ~36 min, nothing else running):
+- **Full gate** on the cut build `494793a8…` (port 8772, 17:37–18:13, ~36 min):
   **3,794 PASS, 4 FAIL, 1 INFO** (monthwriter's usual "reported, not judged"). Waterfall PDF identical, grid signature
   identical, 0 clipped, gate 10's print documents identical, all 25 gate-13 lines byte-identical. The four FAILs:
+  ⚠️ **CORRECTED (22:05): it did NOT run alone.** The note-size branch's own queued full gate (port 8417) started at
+  17:32, after the 17:13 check found no gate running, and ran to 18:22, beside this one the whole time. This one's two
+  timing failures (`sideboxes`, `scenariocompat`) and that one's (`loadcarry`, `retiredplaces`, `mvbarsize B6`) are
+  that overlap; each is green alone. A third queued gate (`swap-partial`'s, port 8523, from another session's
+  `queue-full-run2.sh`) then started at 18:24 and was still crawling at 22:03 (about 2,600 checks, six timeout FAILs).
+  Its branch is already live, so its result changes nothing. ⛔ **Lesson:** before a release gate, look for QUEUE
+  SCRIPTS (`ps -ax | grep queue`), not just running `gate.sh` processes. A queued gate starts the moment the slot clears.
   1. **Gate 3, `sheet1.xml`: a DATE COINCIDENCE, not a change.** The reference calendar's header reads "Wrap: 11.3.26"
      and today is 3 Nov 2026, so `sed "s/$TODAY/DATESTAMP/g"` replaced the wrap date as well as the stamp. With the
      wrap date put back, `sheet1.xml` is byte-identical to the baseline; every other Excel part was identical. ⚠️ It
