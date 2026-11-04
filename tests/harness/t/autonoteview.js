@@ -127,12 +127,28 @@ window.addEventListener('load', function () { (async function () {
     if (q('#table-wrap .mv-daygrid')) await view('sheet');
     for (var tries = 0; ; tries++) {
       try { await T.openSettings('prefs'); break; }
-      catch (e) { if (tries >= 2) throw e; await T.sleep(1500); }
+      catch (e) {
+        if (tries >= 2) {
+          var win = byId('settings-window'), aside = q('.form-panel'), rail = q('.side-tabs');
+          var R = function (el) { if (!el) return null; var r = el.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; };
+          throw new Error(e.message + ' -- window ' + (win && win.className) + ' ' + JSON.stringify(R(win)) + ', sidebar ' + JSON.stringify(R(aside))
+                          + ' scrolled ' + (aside && aside.scrollTop)
+                          + ', rail ' + JSON.stringify(R(rail)) + ', page scroll ' + window.scrollY + ', focus ' + (document.activeElement && (document.activeElement.className || document.activeElement.tagName)));
+        }
+        await T.sleep(1500);
+      }
     }
     await T.sleep(150);
     var b = box(kind, v);
     if (!b) throw new Error('no ' + v + ' box for ' + kind);
-    b.scrollIntoView({ block: 'center' });
+    // Scroll the window's OWN panel, never scrollIntoView: that also scrolls the sidebar the window lies in (508 px,
+    // measured), and the window, placed from the sidebar's scroll when it opened, was left that far down the next time
+    // the sidebar's scroll moved back, so T.openSettings never saw it open (gate of 4 Nov 2026, T2).
+    var panel = b.closest('.sw-panel');
+    if (panel) {
+      var pr = panel.getBoundingClientRect(), br = b.getBoundingClientRect();
+      panel.scrollTop += (br.top + br.height / 2) - (pr.top + pr.height / 2);
+    } else b.scrollIntoView({ block: 'center' });
     await T.sleep(100);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if (hit !== b) throw new Error('the ' + kind + ' ' + v + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');

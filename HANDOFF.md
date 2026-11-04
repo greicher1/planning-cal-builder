@@ -144,7 +144,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
   on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
-### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), NOT merged into `main`, NOT pushed. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed; the merged build's full gate is QUEUED. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
 
 - **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
   [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
@@ -207,7 +207,21 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
      gate. Test-only change, so not re-gated.
   2. `offweek` R14: "the Pause prep switch is covered" by a File-menu item, the menu left open by R13's Load under load
      (that leg's known flake area). 42/42 alone. Nothing here touches the file menu.
-- **Next:** the owner's call on merging into `main` and pushing (mind `note-other-view`, above).
+- **The merge (4 Nov 2026, ~12:40):** `main` (hiatus name/colour on the sidebar cards, the Show info note removed) and
+  `origin/main` (frozen edit SM1, the waterfall PDF's seam strips, LIVE at `9a18b7c`, which local `main` did not have yet)
+  merged into the branch; only the README tops conflicted, both sides kept. Then local `main` fast-forwarded to it.
+  - On the merged build (`1944dd11…`): `npm run check` 40/40; this feature's legs (autonoteview, autonoterename,
+    autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin) and the merged features'
+    (hiatussidebar 16/16, wfnotecolors 14/14, hiatuslabel 7/7, notewrap 16/16, hdrcontrols 12/12, phiatusnum 18/18,
+    hiatuscolour 14/14, labelsetup 41/41, hiatusfold 11/11) all green.
+  - ⚠️ **`autonoteview` T2's flake, found for real:** the Settings window is `position:absolute` inside the sidebar's
+    scroll box, its `top` set from the sidebar's scrollTop when it opens. The leg's `scrollIntoView` on a card box ALSO
+    scrolled the sidebar (508 px, measured), and when that scroll moved back the open window sat 508 px low, so
+    `T.openSettings`' alignment check never passed. The leg now scrolls only the window's `.sw-panel`: 6/6 runs 18/18,
+    beside another session's full gate. Other legs still `scrollIntoView` card boxes; it bites only when the box is far
+    enough down that centring it needs the sidebar to move. (A user's keyboard focus could do the same; not seen.)
+- **Next:** the merged build's full gate (queued), then the owner's call on pushing (mind `note-other-view`, above).
+
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
