@@ -31869,9 +31869,55 @@ export function initLegacyApp() {
     // boundary", which is what a blank row past a shorter block's end gets. Recorded only when
     // there are rules to draw, so the default 'none' export runs exactly the code it always did.
     const vEdges = yearBlocks.map(()=>[]);
+    // ⛔ FROZEN EDIT SM1 (owner sign-off, 4 Nov 2026: "ok build it"; HANDOFF, "A HAIRLINE BETWEEN ROWS IN THE WATERFALL
+    // PDF"). Every cell is its own `re f`, one per week, laid edge to edge. So a viewer that anti-aliases paints the
+    // pixel on a shared edge twice, each time with PARTIAL coverage, and the white page leaks through it: a light
+    // hairline between a phase's weeks in Preview (Quartz) and other viewers. Under Solid gridlines a row rule hides it;
+    // Gridlines None has no rule. Measured on gate 2's base.pdf: 29 of 60 same-colour edges visible at 100% zoom,
+    // worst 61/255 lighter than the fill.
+    // The fix: right after a fill, paint a strip of ITS colour across the edge it shares with a fill painted LATER,
+    // below it (the next row) or to its right (this row). The strip reaches SEAL_PT each side of the edge, over the two
+    // cells' common span. The later fill paints over the strip's far half, so the shared pixel is painted in full and
+    // the edge renders as an ordinary anti-aliased edge, two-colour edges included (measured: 0 visible at 1x, 1.37x
+    // and 2x, `pdfseams` in gate.sh).
+    // ⚠️ The strip goes in RIGHT AFTER THE EARLIER FILL, before that cell's text. Painted just before the later fill,
+    // it would cover the bottom SEAL_PT of the earlier cell's text. So it is queued here and spliced in after the loop.
+    // ⚠️ Only cell fills take part: phase, Sim Post, per-phase hiatus, the all-phase band and notes. The header row,
+    // the date column (no fill), a No-fill note and an empty cell never do, so no strip can reach an unfilled cell.
+    // Every cell rectangle, text, rule and the frame are what they were; the strips are the only new operators. Every
+    // Gridlines setting gets them: under a rule they sit beneath it, and in a dash's gaps they show the cell's colour.
+    const SEAL_PT = 1, SEAL_EPS = 1e-6;
+    const sealAfter = new Map();                 // op index of an earlier fill -> the strips that follow it
+    let sealPrev = [], sealRow = [];             // the fills of the row above, and of this row so far
+    const sealStrip = (P, x, y, w, h)=>{
+      const n = page.ops.length;
+      page.rect(x, y, w, h, P.hex);              // page.rect's own formatting, then moved behind P
+      if(page.ops.length === n) return;
+      if(!sealAfter.has(P.at)) sealAfter.set(P.at, []);
+      sealAfter.get(P.at).push(page.ops.pop());
+    };
+    const cellFill = (x, y, w, h, hex)=>{
+      const n = page.ops.length;
+      page.rect(x, y, w, h, hex);
+      if(page.ops.length === n) return;          // a zero-size cell draws nothing and seals nothing
+      sealPrev.forEach(P=>{                      // P directly above this cell
+        if(Math.abs(P.y + P.h - y) > SEAL_EPS) return;
+        const x0 = Math.max(P.x, x), x1 = Math.min(P.x + P.w, x + w);
+        if(x1 - x0 > SEAL_EPS)
+          sealStrip(P, x0, y - Math.min(SEAL_PT, P.h), x1 - x0, Math.min(SEAL_PT, P.h) + Math.min(SEAL_PT, h));
+      });
+      sealRow.forEach(P=>{                       // P directly left of this cell, in this row
+        if(Math.abs(P.x + P.w - x) > SEAL_EPS) return;
+        const y0 = Math.max(P.y, y), y1 = Math.min(P.y + P.h, y + h);
+        if(y1 - y0 > SEAL_EPS)
+          sealStrip(P, x - Math.min(SEAL_PT, P.w), y0, Math.min(SEAL_PT, P.w) + Math.min(SEAL_PT, w), y1 - y0);
+      });
+      sealRow.push({ x, y, w, h, hex, at: n });
+    };
     let ry = gridTop + hh;
     for(let r=0;r<maxRows;r++){
       const rh = S(rowPt[r]);
+      sealPrev = sealRow; sealRow = [];          // SM1
       yearBlocks.forEach((b, bi)=>{
         const cols = blockCols[bi];
         const bx = originX + S(blockX[bi]);
@@ -31900,7 +31946,7 @@ export function initLegacyApp() {
           const hts = textStyleOf('hiatus', hKey);   // F3
           const fit = cellTextFit(hTxt, av, Object.assign({ basePx: hs||11, manual: hs!==undefined,
                                               rowPx: rowHeights[r] || ROW_DEFAULT_PX }, hts && hts.bold ? { bold: true } : {}));
-          page.rect(bx + dw, ry, bandW, rh, hCol);
+          cellFill(bx + dw, ry, bandW, rh, hCol);    // SM1
           page.clipPush(bx + dw, ry, bandW, rh);
           if(hts) drawStyled(fit.wrap ? wrapLines(hTxt, av, 11*fit.scale, hts.bold) : String(hTxt).split('\n'),
                              bx + dw, bandW, ry, rh, S(11*fit.scale), textColorFor(hCol), hts, false, fit.wrap);
@@ -31942,7 +31988,7 @@ export function initLegacyApp() {
             // A per-phase hiatus is a hiatus: its fill is dark and user-chosen, so it keeps the
             // contrast rule. Phase and Simultaneous Post labels are black like everything else.
             const ink  = cell.kind === 'phaseHiatus' ? textColorFor(cell.color) : GRID_TEXT_COLOR;
-            page.rect(cx, ry, cw, rh, fill);
+            cellFill(cx, ry, cw, rh, fill);            // SM1
             let fit, cts = null;
             const wIsoP = w.date.toISOString().slice(0,10);
             if(cell.kind === 'phaseHiatus'){
@@ -31987,7 +32033,7 @@ export function initLegacyApp() {
                                                 nts && nts.bold ? { bold: true } : {}));
           // ⛔ FROZEN EDIT NF2 (owner sign-off by picker, 28 Oct 2026, with NF1): a No fill note draws no rectangle;
           // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
-          if(!isMvNoFill(nCol)) page.rect(nx, ry, nw, rh, nCol);
+          if(!isMvNoFill(nCol)) cellFill(nx, ry, nw, rh, nCol);   // SM1
           page.clipPush(nx, ry, nw, rh);
           if(nts) drawStyled(fit.wrap ? wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold) : String(nTxt).split('\n'),
                              nx, nw, ry, rh, S(11*fit.scale), textColorFor(nCol), nts, false, fit.wrap);
@@ -32001,6 +32047,15 @@ export function initLegacyApp() {
       if(interior && r < maxRows-1)
         page.line(originX, ry+rh, originX + S(gridW), ry+rh, interior, 0.4, interiorDash);
       ry += rh;
+    }
+    // SM1: each queued strip goes in right behind the fill it belongs to. In place, so `page`'s closures keep the array.
+    if(sealAfter.size){
+      const src = page.ops.splice(0);
+      src.forEach((op, i)=>{
+        page.ops.push(op);
+        const strips = sealAfter.get(i);
+        if(strips) strips.forEach(s=>page.ops.push(s));
+      });
     }
 
     // --- interior column rules -----------------------------------------------------------------
