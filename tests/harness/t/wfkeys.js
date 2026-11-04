@@ -218,10 +218,13 @@ window.addEventListener('load', function () { (async function () {
     await click(noteTd('2026-01-05'));
     await press('Backspace'); await settle();
     var S2 = await snap();
-    // ⭐ Since 2 Nov 2026 (AUTO-NOTE-RENAME-PLAN.md, ruling 6) an emptied automatic note is SWITCHED OFF, and no week
-    // blank is left: the explicit clear ({text:''}) this checked until then stayed on the week after a move.
-    check(noteText('2026-01-05') === '' && !('2026-01-05' in (S2.userNotes || {})) && (S2.autoNotesOff || {}).writersRoomOpens === true,
-          'D4 Backspace empties an AUTOMATIC note: switched off, and no week blank (' + JSON.stringify((S2.userNotes || {})['2026-01-05']) + ', ' + JSON.stringify(S2.autoNotesOff) + ')');
+    // ⭐ Since 2 Nov 2026 (AUTO-NOTE-RENAME-PLAN.md, ruling 6) an emptied automatic note leaves no week blank: the
+    // explicit clear ({text:''}) this checked until then stayed on the week after a move. ⭐ Since 4 Nov 2026
+    // (AUTO-NOTES-PER-VIEW-PLAN.md R4) it is HIDDEN FROM THE WATERFALL, the view it was deleted in, and the month view
+    // keeps it: autoNotesView, not autoNotesOff.
+    check(noteText('2026-01-05') === '' && !('2026-01-05' in (S2.userNotes || {})) && !(S2.autoNotesOff || {}).writersRoomOpens &&
+          JSON.stringify((S2.autoNotesView || {}).writersRoomOpens) === '{"sheet":false}',
+          'D4 Backspace empties an AUTOMATIC note: hidden from the waterfall only, and no week blank (' + JSON.stringify((S2.userNotes || {})['2026-01-05']) + ', ' + JSON.stringify(S2.autoNotesView) + ')');
     await undo();
     check(noteText('2026-01-05') === 'Writer\'s Room Opens 1/5/26', 'D5 undo brings the automatic note back');
     // A sweep over phases, dates, a band and notes: only the notes go.
@@ -267,8 +270,9 @@ window.addEventListener('load', function () { (async function () {
           'C4 Paste fills three weeks down (Q3: the third, an automatic note, emptied by the blank line), with the look (Q2)');
     check(hiIs(['*note:2026-10-05', 'note:2026-10-12', 'note:2026-10-19']), 'C5 the pasted cells end up highlighted (' + hi().join(' ') + ')');
     var S3 = await snap();
-    check((S3.noteFontSize || {})['2026-10-05'] === 9 && !('2026-10-19' in (S3.userNotes || {})) && Object.keys(S3.autoNotesOff || {}).length === 1,
-          'C6 saved: the size travelled, and the emptied automatic note is switched off, with no week blank (ruling 6)');
+    check((S3.noteFontSize || {})['2026-10-05'] === 9 && !('2026-10-19' in (S3.userNotes || {})) && !Object.keys(S3.autoNotesOff || {}).length &&
+          JSON.stringify(S3.autoNotesView) === '{"principalWrap":{"sheet":false}}',
+          'C6 saved: the size travelled, and the emptied automatic note is hidden from the waterfall (R4), with no week blank (ruling 6)');
     await undo();
     check(noteText('2026-10-05') === '' && noteText('2026-10-19') === 'Principal Photography Wraps 10/20/26', 'C7 one undo takes back the whole paste');
     // Text from outside SPTCal: the cell's own look; Excel's trailing line break ignored; quotes; illegal characters.

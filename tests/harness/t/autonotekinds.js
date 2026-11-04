@@ -60,23 +60,36 @@ window.addEventListener('load', function () { (async function () {
   function note(w) { var td = document.querySelector('#table-wrap td.sheet-note-cell[data-week="' + w + '"]'); return td ? txt(td).replace(/^\+$/, '') : null; }
   function notes() { return { '2027-01-04': note('2027-01-04'), '2027-03-01': note('2027-03-01'), '2027-05-03': note('2027-05-03'), '2027-05-24': note('2027-05-24') }; }
   var ALL_ON = { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': START, '2027-05-24': WRAP };
-  function box(kind) { return document.querySelector('input[data-autonote="' + kind + '"]'); }
-  function boxes() { return KINDS.map(function (k) { var b = box(k); return b ? b.checked : null; }); }
+  // Since 4 Nov 2026 every kind has a Waterfall box and a Month box (AUTO-NOTES-PER-VIEW-PLAN.md, R1(a)). This leg
+  // is about switching a KIND off and on, so a "click" is both boxes (two undo steps), and a kind reads true or false
+  // only while its two boxes agree ('split' otherwise). The per-view cases are autonoteview's.
+  function box(kind, view) { return document.querySelector('input[data-autonote="' + kind + '"][data-view="' + (view || 'sheet') + '"]'); }
+  function kindState(k) {
+    var s = box(k, 'sheet'), m = box(k, 'month');
+    if (!s || !m) return null;
+    return s.checked === m.checked ? s.checked : 'split';
+  }
+  function boxes() { return KINDS.map(kindState); }
   // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
-  async function clickBox(kind) {
+  async function clickOne(kind, view) {
     // The card lives in the Settings window's Preferences tab (its Calendar tab, merged into Preferences by
     // the owner on 20 Oct 2026; the sidebar's Settings tab before ruling 12): open it there so the box is
     // laid out and on top.
     await T.openSettings('prefs');
     await T.sleep(150);
-    var b = box(kind);
-    if (!b) throw new Error('no Automatic notes box for ' + kind);
+    var b = box(kind, view);
+    if (!b) throw new Error('no Automatic notes ' + view + ' box for ' + kind);
     b.scrollIntoView({ block: 'center' });
     await T.sleep(150);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    if (hit !== b) throw new Error('the ' + kind + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
+    if (hit !== b) throw new Error('the ' + kind + ' ' + view + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
     hit.click();
     await settle();
+  }
+  async function clickBox(kind, view) {
+    if (view) return clickOne(kind, view);
+    await clickOne(kind, 'sheet');
+    await clickOne(kind, 'month');
   }
   async function pdfRuns(u8) {
     var s = '', runs = [];
@@ -168,19 +181,21 @@ window.addEventListener('load', function () { (async function () {
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
       // Since 27 Oct 2026 the card has one row per phase (its name, then a start box and an end box, autonotephases),
       // so each of these kinds' label is its row's name plus its box's word.
+      // Since 4 Nov 2026 a note's row is its word, then its Waterfall box and its Month box, under its phase's name.
       var labels = KINDS.map(function (k) {
-        var l = box(k) && box(k).closest('label'), n = l && l.previousElementSibling;
+        var c = box(k) && box(k).closest('.autonote-cell'), w = c && c.previousElementSibling, n = w;
         while (n && !n.classList.contains('autonote-name')) n = n.previousElementSibling;
-        return txt(n) + ' ' + txt(l);
+        return txt(n) + ' ' + txt(w);
       });
+      var heads = Array.from(card ? card.querySelectorAll('.autonote-hd') : []).map(txt);
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no
       // form control, as on every card.)
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
-      kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
+      kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", a Waterfall and a Month box per kind, both ticked, and NO id on any control in it',
            !!sec && T.settingsTabOf(sec) === 'prefs' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
-           same(labels, ['Writer’s Room Opens', 'Production Starts', 'Production Wraps']) &&
+           same(labels, ['Writer’s Room Opens', 'Production Starts', 'Production Wraps']) && same(heads, ['', 'Waterfall', 'Month']) &&
            same(boxes(), [true, true, true]) && ids.length === 0 && !sec.closest('.prefs-card'),
-           { labels: labels, boxes: boxes(), ids: ids });
+           { labels: labels, heads: heads, boxes: boxes(), ids: ids });
     });
 
     await step('A2', async function () {
@@ -241,14 +256,16 @@ window.addEventListener('load', function () { (async function () {
 
     await step('A8', async function () {
       // ⚠️ From a clean step: until 22 Oct 2026 the view switches above were undo steps of their own.
-      await clickBox('principalWrap');                 // on
-      await clickBox('principalWrap');                 // off: the step under test
+      // One box, so one step (since 4 Nov 2026 a kind has two): Wraps' Waterfall box, on then off.
+      await clickBox('principalWrap', 'sheet');        // on
+      await clickBox('principalWrap', 'sheet');        // off: the step under test
       $('undo-btn').click(); await settle();
       var undone = { boxes: boxes(), wrap: note('2027-05-24') };
       $('redo-btn').click(); await settle();
       var redone = { boxes: boxes(), wrap: note('2027-05-24') };
-      kase('A8', 'ONE undo puts Wraps back (box ticked, its note in its week); redo takes it out again',
-           same(undone, { boxes: [false, false, true], wrap: WRAP }) && same(redone, { boxes: [false, false, false], wrap: '' }),
+      kase('A8', 'ONE undo puts Wraps back in the waterfall (its Waterfall box ticked, its note in its week); redo takes it out again',
+           same(undone, { boxes: [false, false, 'split'], wrap: WRAP }) &&
+           same(redone, { boxes: [false, false, false], wrap: '' }),
            { undone: undone, redone: redone });
     });
 

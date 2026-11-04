@@ -1,11 +1,24 @@
 # AUTO-NOTES-PER-VIEW-PLAN.md: automatic notes shown per view, and automatic notes for custom phases
 
 **Status: RULED, 2 Nov 2026 (owner, by picker: R1(a), R2(a), R3(a), R4(a), every one the recommendation). STEP 1
-BUILT on branch `custom-autonotes`** (worktree `.claude/worktrees/custom-autonotes`, from `main` at `270687f`; its
-`node_modules` is a symlink, so unlink it before `git worktree remove`). Leg and neighbours green; the full gate's result
-is in HANDOFF. Steps 2-4 not started (§7: after AUTO-NOTE-RENAME-PLAN, which another session is building). Tracker cards `auto-notes-per-view` and
-`custom-phase-auto-notes`. Related, already ruled and not built: [`AUTO-NOTE-RENAME-PLAN.md`](AUTO-NOTE-RENAME-PLAN.md)
-(card `rename-auto-notes`), which this plan has to fit (§2 R4, §7).
+LIVE at `a82506c`** (custom-phase notes), and AUTO-NOTE-RENAME-PLAN.md, which §7 put next, LIVE at `e1ed962`. **STEPS 2-4
+BUILT 4 Nov 2026 on branch `auto-notes-view`** (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`;
+its `node_modules` is a symlink, so unlink it before `git worktree remove`): the store `autoNotesView`, the card grouped
+by phase, frozen edits N1 + N2, the month editor's write-back, and a delete hiding a note from the view it was made in.
+The owner also renamed the month editor's button **"Hide Auto-Note"** (4 Nov 2026: *"The button in the popup for auto
+notes should be "Hide Auto-Note" rather than "Delete Auto-Note""*). Leg `autonoteview` and neighbours green; the full
+gate's result is in HANDOFF. Tracker cards `auto-notes-per-view` and `custom-phase-auto-notes`.
+
+- **As built, where it differs from the text below:**
+  - §6 step 3's "waterfall-only line in a typed week: edited, it shows in both" predates the rename plan. An edited
+    automatic line is now RENAMED and stays automatic (rename ruling 3), so its view ticks keep holding after an edit:
+    renamed, a waterfall-only line stays out of the month view (leg case T3). That is §7's stated reason for the order.
+  - A DRAG is not a delete: dragging an automatic note to another week (waterfall) or day (month view) still switches it
+    off in both views, because the moved copy is your own typed note and shows in both; hidden from one view only, the
+    other would show it twice. Delete, Clear, Cut, a removed line and a paste over it hide per view (R4).
+  - A hide that leaves a note shown in neither view switches it off exactly as a delete always did (`switchOffAutoNote`:
+    its name and colour go with it). A hide from one view keeps them, since the other view still shows the note.
+  - §4.4's "no text left, drop the week's colour" reads BOTH views' text: the colour goes only when neither has any.
 
 - **The asks** (owner, 2 Nov 2026):
   - *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the waterfall and

@@ -1869,7 +1869,15 @@ done
 # autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
-# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank. Since
+# 4 Nov 2026 its deletes HIDE a note from the view they were made in (AUTO-NOTES-PER-VIEW-PLAN.md R4), and the button
+# reads Hide Auto-Note (owner).
+# autonoteview (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md steps 2-4) is an automatic note shown in one view only,
+# on the same fixture: the card's Waterfall and Month boxes, each split reaching its own view's screen and exports only
+# (the Notes column narrowing with it), the save key autoNotesView (absent unsplit, byte-identical when ticked back,
+# hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind, frozen edits N1 and N2 under a
+# typed waterfall note (red on a build without either), a shift over two typed weeks, the month editor's write-back,
+# and a delete in one view switching a note off when the other view already hides it.
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -1946,6 +1954,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               wfnotecolors:wfkeys:400 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
+              autonoteview:autonoterename:500 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \

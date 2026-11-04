@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
+
+Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:
+*"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the waterfall and month
+view"*; AUTO-NOTES-PER-VIEW-PLAN.md steps 2–4, every ruling the recommendation):
+
+- **Settings ▸ Preferences ▸ Automatic notes** is grouped by phase, under a Waterfall | Month heading: each phase's name,
+  then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps"), each with a Waterfall box and a Month
+  box. Custom phases follow. Waterfall covers the Notes column, Excel and the waterfall PDF (its Notes column narrows
+  with it); Month covers the month view and its PDF. A phase hidden in the waterfall dims its Waterfall boxes and keeps
+  their ticks.
+- **A delete hides a note from the view you are in** (ruling R4): the waterfall's Delete key, Clear, a line taken out
+  in its editor and a paste over it hide it from the waterfall; the month view's button, renamed **Hide Auto-Note**
+  (owner, 4 Nov 2026), hides it from the month view. A note the other view already hides is switched off, as before.
+  Dragging one to another week or day still switches it off, since it travels on as your own note in both views.
+- **Two frozen edits, owner-approved with the gate (R2(a)):** in `notesForWaterfallDate`, N1 widens the M-13 holiday
+  rule so a month-only note (and a note of a phase hidden in the waterfall) stays in the month view under a typed
+  waterfall note, once; N2 keeps a waterfall-only line out of the month view when a typed note carries it word for word.
+  The month editor's write-back follows the same rules. Nothing in the renderers, the width model or the writers changed.
+
+Saved as one new key, `autoNotesView` (`{kind: {sheet: false} | {month: false}}`, sorted), written only while a note is
+split, so every other calendar saves byte for byte as before, and an older build shows a split note in both views. New
+leg `autonoteview` (18 cases, in gate.sh): each split in its own view's screen, workbook and PDFs, the save key
+(byte-identical when ticked back, hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind,
+typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) or without N2 (4). `autonotekinds`,
+`autonotephases`, `autonoterename`, `wfkeys` and `wfmenu` were rewritten where they held the old one-box card or the
+old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
+
 ### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the

@@ -327,42 +327,23 @@ export function RegionCard() {
 // "Automatic notes" (owner ruling 9, 20 Oct 2026): which KINDS of automatic note this calendar shows, all on
 // by default. Its own card in the Settings window's Preferences tab (SettingsWindow.jsx), saved with the calendar.
 //
-// ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, captureSnapshot()'s `autoNotesOff`), so this
+// ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, autoNotesOn and autoNotesView, each its own
+// captureSnapshot() key), so this
 // is NOT a .prefs-card -- and therefore NOT ONE `id` ON ANY CONTROL HERE: collectFieldValues() sweeps every
 // input[id] in the document, and an id here would bake a second, disagreeing copy into every saved calendar
 // with a phantom undo step. That is also why these are plain <input type="checkbox">, never Mantine's
 // Checkbox or Switch: both mint an id with useId() when given none (UI-CONVENTIONS §8.3). legacy.css's
 // `.form-panel input[type=checkbox]` gives them the Mantine look.
-// ⛔ UNCONTROLLED, and the engine owns them: `data-autonote` is the kind word the engine's computeSchedule
-// tags each note with (permanent, it is save format), its change listener writes the store, and
-// reflectAutoNoteKinds() writes .checked on every update() -- so undo, Load and New all show through.
-// Holiday notes are deliberately not a row (owner's picker): they keep their per-holiday list above.
-//
-// ONE ROW PER BUILT-IN PHASE, in calendar order (owner, 27 Oct 2026: "do the phase starts and ends. they should
-// be disabled by default"): the phase, then a box for its start and one for its end, each named by the word its
-// note uses ("Post Begins"). The three original kinds keep their boxes, as Writer's Room's Opens and Production's
-// Starts / Wraps. ⛔ `on` is only the FIRST paint: the engine's autoNoteKindShown() is the truth, and the new kinds
-// start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
-// `key` is the phase whose name the row shows: reflectAutoNoteKinds() writes a name typed in the Phases tab into the
-// row's data-autonote-name span, and puts back data-autonote-default (the words below) when the box holds the phase's
-// own label again. EVERY row has one since 2 Nov 2026 (owner: "if we renamed Production to "Shoot" that should reflect
-// in the setting menu"). Writer's Room's and Production's NOTES still keep their own words ("Writer's Room Opens",
-// "Start Principal Photography") whatever the phase is called; only the row's name follows.
-// CUSTOM PHASES' ROWS (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
-// AUTO-NOTES-PER-VIEW-PLAN.md step 1) come and go with the phases, which React does not know, so the engine draws
-// them (syncCustomAutoNoteRows) into `.autonote-custom`: rendered EMPTY here, never given children by React, and
-// display:contents, so its rows sit in this grid's three columns. Off until ticked, like the built-in phases'.
-const AUTO_NOTE_PHASES = [
-  { phase: 'Writer’s Room', key: 'writersRoom', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
-                            end: { kind: 'writersRoomEnd', word: 'Closes' } },
-  { phase: 'Pre-Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
-  { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
-  { phase: 'Production', key: 'production', start: { kind: 'principalStart', word: 'Starts', on: true },
-                         end: { kind: 'principalWrap', word: 'Wraps', on: true } },
-  { phase: 'Post', key: 'post', start: { kind: 'postStart', word: 'Begins' }, end: { kind: 'postEnd', word: 'Ends' } },
-  { phase: 'Localization', key: 'localization', start: { kind: 'localizationStart', word: 'Begins' },
-                                                end: { kind: 'localizationEnd', word: 'Ends' } },
-]
+// ⛔ ENGINE-DRAWN, ALL OF IT, since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"): a
+// Waterfall | Month heading, each phase's name, then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" /
+// "Wraps"), each with a Waterfall box and a Month box, as the Holidays list has. Custom phases' rows come and go with
+// the phases, which React does not know, so the engine draws the whole list (reflectAutoNoteKinds) into
+// `.autonote-list`: rendered EMPTY here and never given children by React (#holiday-vis-list's arrangement). Its boxes
+// are plain checkboxes with no id, named by `data-autonote` (the kind word computeSchedule tags each note with,
+// permanent: it is save format) and `data-view`; the engine's change listener writes the stores and update() ticks
+// them, so undo, Load and New all show through.
+// Each note is off in a view until ticked there, except Writer's Room Opens and Production's Starts / Wraps, which
+// start on in both. Holiday notes are deliberately not rows (owner's picker): they keep their per-holiday list.
 export function AutoNotesCard() {
   return (
     <section className="card">
@@ -370,24 +351,12 @@ export function AutoNotesCard() {
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
           Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
-          one to add it to the Notes column, the month view and every export. Phases you add yourself are listed
-          too. Notes you typed yourself never change. Holiday notes are chosen holiday by holiday under Holidays, in
-          the Region tab.
+          a note under Waterfall to add it to the Notes column, Excel and the waterfall PDF, and under Month to add it
+          to the month view and its PDF. Tick both for both. Phases you add yourself are listed too. Notes you typed
+          yourself never change. Holiday notes are chosen holiday by holiday under Holidays, in the Region tab.
         </InfoHint>
       </h2>
-      <div className="side-block autonote-list">
-        {AUTO_NOTE_PHASES.map((r) => [
-          <span key={r.start.kind + '-name'} className="autonote-name"
-                data-autonote-name={r.key} data-autonote-default={r.phase}>{r.phase}</span>,
-          ...[r.start, r.end].map((b) => (
-            <label key={b.kind} className="autonote-row">
-              <input type="checkbox" data-autonote={b.kind} defaultChecked={!!b.on} aria-label={r.phase + ' ' + b.word} />
-              <span>{b.word}</span>
-            </label>
-          )),
-        ])}
-        <div className="autonote-custom" />
-      </div>
+      <div className="side-block autonote-list" />
     </section>
   )
 }

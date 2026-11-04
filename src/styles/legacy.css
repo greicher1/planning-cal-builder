@@ -4086,20 +4086,29 @@
      same headers as a built-in row's; before, the × was the custom row's only extra child and
      pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
      row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
-  /* The Automatic notes card (owner ruling 9): one row per phase since 27 Oct 2026 -- its name, then its start box
-     and its end box in two columns that line up down the card -- in the holiday list's type scale. The boxes are
-     plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
-  /* The card is ~245 px wide: an 8 px column gap is what leaves "Writer's Room" its 79 px on one line (measured,
-     27 Oct 2026; the 12 px gap cut it to "Writer's Ro…"). A longer name typed in the Phases tab wraps, never clips. */
-  .autonote-list{ display:grid; grid-template-columns:minmax(0, 1fr) auto auto; align-items:center;
-    column-gap:8px; row-gap:var(--mantine-spacing-sm); }
-  .autonote-name{ font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9); min-width:0;
-    line-height:1.25; overflow-wrap:anywhere; }
-  .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
-    color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
-  .autonote-row input{ margin:0; flex:none; }
-  /* A custom phase's rows (engine-drawn, syncCustomAutoNoteRows) take this grid's columns through their host. */
-  .autonote-custom{ display:contents; }
+  /* The Automatic notes card (owner ruling 9), PER VIEW since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, R1(a)): engine-
+     drawn (reflectAutoNoteKinds) as one grid of three columns -- the note's word, its Waterfall box, its Month box --
+     under a heading in the Holidays list's head style (.hv-head's type), each phase's name spanning the row above its
+     two notes. The boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]`
+     styles them. The card is ~245 px wide: the two box columns take 62 px each, which "WATERFALL" fits in the head's
+     tracking, and leaves the words ("Closes", the longest) far more than they need. A long phase name wraps, never
+     clips. */
+  .autonote-list{ display:grid; grid-template-columns:minmax(0, 1fr) 62px 62px; align-items:center;
+    column-gap:4px; row-gap:6px; }
+  .autonote-hd{ font-size:var(--mantine-font-size-xxs); text-transform:uppercase; color:var(--mantine-color-gray-6);
+    text-align:center; line-height:1.3; padding-bottom:var(--mantine-spacing-xs);
+    border-bottom:1px solid var(--mantine-color-gray-3); }
+  .autonote-hd-name{ text-align:left; }
+  .autonote-name{ grid-column:1 / -1; font-size:var(--mantine-font-size-sm); font-weight:600;
+    color:var(--mantine-color-gray-9); min-width:0; line-height:1.25; overflow-wrap:anywhere;
+    margin-top:var(--mantine-spacing-xs); }
+  .autonote-word{ font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9);
+    padding-left:var(--mantine-spacing-sm); }
+  .autonote-cell{ display:flex; justify-content:center; align-items:center; }
+  .autonote-cell input{ margin:0; flex:none; cursor:pointer; }
+  /* A phase hidden in the waterfall: its Waterfall boxes dim and keep their ticks (plan D2). */
+  .autonote-cell.autonote-dim{ opacity:.45; }
+  .autonote-cell.autonote-dim input{ cursor:not-allowed; }
   .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
   #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 

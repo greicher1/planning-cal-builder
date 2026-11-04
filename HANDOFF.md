@@ -6,6 +6,71 @@
 
 
 
+### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), NOT merged into `main`, NOT pushed. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+
+- **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
+  [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
+  build it"*, then, mid-build: *"The button in the popup for auto notes should be "Hide Auto-Note" rather than "Delete
+  Auto-Note""*.
+- **Where it lives (`src/legacy/app.js`):**
+  - The store `autoNotesView` beside `autoNotesOn`, with `cleanAutoNoteView`, `autoNoteShownIn(kind, view)` (asked by
+    `autoNotesForView`, the one filter), `setAutoNoteViews(kind, sheet, month)` (the ONLY writer of the three stores
+    together), `autoNotesViewSnapshot`, `autoNoteMonthOnly` (N1's test), `wfOnlyAutoLines` (N2's lines) and
+    `hideAutoNoteIn(kind, view)` (R4).
+  - Snapshot key `autoNotesView` (PERMANENT), sanitized with `AUTO_NOTE_VIEW_KIND` (SNAP_ID minus `__proto__`,
+    `constructor`, `prototype`: this map's values are objects, so cleanMap's `out[k] = r` with `__proto__` would set a
+    prototype), restored unconditionally, cleared by New, pruned with a custom phase. In the month drag's press copy and
+    `wfNoteStep`'s switch signature.
+  - **Frozen edits N1 + N2** in `notesForWaterfallDate` (owner-approved R2(a), 2 Nov 2026): N1 is M-13's re-add with its
+    test `n.holiday && !holidayVisibleIn(n.hid,'sheet')` replaced by `autoNoteMonthOnly(n)`; N2 is one line in the
+    override loop, `if(wfOnly.has(line.trim())) return;`.
+  - `writeActiveMvNote`'s `'wf'` branch: month-only lines left out by `autoNoteMonthOnly`; waterfall-only lines put back
+    where the waterfall's text had them; the week colour dropped only when NEITHER view has text.
+  - The card: the engine draws all of it into `.autonote-list` (`buildAutoNoteCard`, `reflectAutoNoteKinds`),
+    `Sidebar.jsx`'s `AutoNotesCard` renders that div EMPTY (the old `AUTO_NOTE_PHASES` table and `.autonote-custom`
+    host are gone). Boxes: `input[data-autonote][data-view]`, Waterfall first, no ids, aria-label "Production Wraps,
+    Waterfall". Its two tables are FUNCTIONS (`autoNoteCardPhases`, `autoNoteViewWord`), not consts: `reflectAutoNoteKinds`
+    can run from an update() before their line is evaluated (TDZ).
+  - Help text (`src/index.html`), the card's InfoHint, CSS (`.autonote-hd/-name/-word/-cell/-dim`).
+- **Decided while building (all in the plan's "As built"):**
+  - ⚠️ **A drag is not a delete.** Dragging an automatic note to another week (`wfClearNote(w, true)` from
+    `wfNoteDragEnd`) or day (`moveWfLine`) still switches it off in BOTH views: the moved copy is typed text shown in both,
+    so hiding it in one view only would leave the other showing it twice. ⛔ `wfClearNote` now takes a second argument:
+    never pass it straight to `forEach` (the index would read as `moving`); both callers use arrows.
+  - A hide that leaves a note in neither view switches it off as a delete always did (name and colour cleared); a hide
+    from one view keeps them.
+  - The plan's "edited, it shows in both" predates the rename: an edited automatic line is renamed and stays automatic,
+    so its ticks keep holding (leg T3).
+- **Legs changed on purpose:** `autonotekinds` (16/16) and `autonotephases` (27/27) click both boxes to switch a KIND,
+  and one box for their one-undo cases; `autonoterename` (24/24) A1 reads "Hide Auto-Note", and W2, D0–D2, P1, R1, C1
+  read `autoNotesView` (R1: the month-hidden wrap now stays in its waterfall cell after Reset Notes); `wfkeys` (84/84)
+  D4 and C6, `wfmenu` (39/39) N1 the same. G17 (the waterfall drag) is unchanged: still switched off.
+- **Proof so far:** new leg `autonoteview` 18/18 on the build (in gate.sh after `autonoterename`, on its fixture). Red
+  on a build without N1 (T1, T5, T4, D1, D2) and without N2 (T2, T3, T5, T4); `src/legacy/app.js` restored and checked
+  with `cmp`. Unchanged and green: `holidayrename` 14/14, `mvmenu` 81/81, `monthnotes` 8/8, `hidewf` 19/19,
+  `settingswin` 21/21, `prepreptitle` 7/7. `npm run check` 40/40. Browser pane (port 8613): the card at 247 px, every
+  phase and Colour Grading on one line each; a real click on Wraps' Waterfall box emptied its cell and the month view
+  kept it; Hide Auto-Note on the then month-only wrap unticked both boxes.
+- ⚠️ **Another session is building the TYPED-note twin in `.claude/worktrees/note-other-view`** (uncommitted,
+  4 Nov 2026: a "Show in month view" / "Show in waterfall" switch in both note editors, `userNotes[week].monthHidden`,
+  `dayNotes[day][i].waterfall`, leg `noteviews`). Different stores, but it edits the same paths: `writeActiveMvNote`,
+  the waterfall delete / paste paths and the month view's lines. Whichever lands second needs a careful merge (does
+  `monthHidden` still let N1 re-add a month-only automatic note?) and its own full gate.
+  - ⚠️ Its gate queue (`queue-gate.sh` in that session's scratchpad) waits on `pgrep -f "[g]ate.sh"`, which matches its
+    OWN command line, so it never starts. Not touched from here. This branch's queue matches `zsh ./gate.sh` only.
+- **Full gate** on the build `7c2c61ba…` (port 8615, 11:42-12:17, queued behind another session's gate):
+  **3,872 PASS, 6 FAIL, 1 INFO** (monthwriter's usual "reported, not judged"). Waterfall PDF identical, every Excel
+  part identical, grid signature identical, 0 clipped; gate 10's 11 printed month documents identical; gate 13's 24
+  written month PDFs byte-identical. So N1 + N2 moved no baseline, as the plan predicted (no baseline calendar has a split
+  note, a hidden phase in a typed week, or a waterfall-only holiday in a typed week). The six FAILs:
+  1. `autonoteview` T2 + T3, T5, T4, D2: T2's Settings window missed `T.openSettings`' 2 s REAL-time wait while the
+     month view was up under the gate's load, and the four after it build on T2. A leg problem: `clickBox` now switches
+     to the waterfall first and tries three times. 18/18 three runs running afterwards, under ANOTHER session's full
+     gate. Test-only change, so not re-gated.
+  2. `offweek` R14: "the Pause prep switch is covered" by a File-menu item, the menu left open by R13's Load under load
+     (that leg's known flake area). 42/42 alone. Nothing here touches the file menu.
+- **Next:** the owner's call on merging into `main` and pushing (mind `note-other-view`, above).
+
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
 Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
@@ -947,7 +1012,7 @@ told why that can't be built: *"I want to see where the file is saved"*.
   day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
   when Ends moves the start, as they do today when the end moves.
 
-### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
+### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED. Step 1 (custom-phase notes) ✅ LIVE at `a82506c`, the rename it waited on ✅ LIVE at `e1ed962`; steps 2–4, the per-view ticks, BUILT 4 Nov 2026 on branch `auto-notes-view` (see that entry, at the top) ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
 
 - **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the
   waterfall and month view"*, then *"Can we also add automatic notes for all custom phases too"*, then *"Write the
