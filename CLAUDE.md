@@ -472,8 +472,8 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 
 | Variable | Purpose |
 |---|---|
-| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared" |
-| `dayNotes` / `dayNoteColors` | month-view per-day notes and legacy colors (folded in by `dayNoteList()`) |
+| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared". `monthHidden: true` on an entry (4 Nov 2026, the waterfall editor's "Show in month view" off) keeps the week's TYPED lines out of the month view (`mvWfLinesFor`); holidays and automatic notes stay. Written only as `true`, carried by `saveNoteEdit` across edits |
+| `dayNotes` / `dayNoteColors` | month-view per-day notes and legacy colors (folded in by `dayNoteList()`). `waterfall: true` on an entry (4 Nov 2026, the month editor's "Show in waterfall", off by default) adds it to its week's Notes cell as "text m/d/yy" through `effectiveNoteText`, so the screen, Excel, the waterfall PDF and the widths follow with no frozen edit. ⛔ Code that WRITES a week's own note reads `wfOwnNoteText`, never `effectiveNoteText`, or it bakes these lines into typed text. Both flags PERMANENT |
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
 | `holidayView` | which holidays show in which view (`{sheet, month}`) |
 | `holidayNames`, `holidayColors` | a holiday's own name and its own month colour, keyed by holiday id (owner, 30 Oct 2026: rename one date, "Everywhere it shows", colour "Just that holiday"). PERMANENT keys, each ABSENT while empty. The name is applied once, in `fullHolidayList()` (`name`; `origName` keeps the list's own), so every reader and both writers follow; ⛔ the id is still `holidaySlug()` of the ORIGINAL name. The colour is month view only, drawn by frozen edit H1 (`b.color` from `mvDayNoteBlocks`). Set from the month view's holiday editor and, for a holiday shown in the waterfall, by changing its line in the waterfall's note editor (`wfHolidayRenames`) |

@@ -4247,7 +4247,21 @@ export function initLegacyApp() {
   //  - user has an override for this week -> use its text (may be '' = explicitly cleared)
   //  - otherwise -> the inline auto-notes text
   // Returns the string to display ('' means the cell is empty / no highlight).
+  // ⭐ ...THEN THE MONTH NOTES SWITCHED ON FOR THE WATERFALL (owner, 4 Nov 2026: a "Show in waterfall" switch in the month
+  // view's note editor, off by default; NOTE-VIEWS in HANDOFF). Each is one more line, after the week's own: its text on one
+  // line and its day's date ("Crew party 11/6/26", ruling R1), wfMonthLinesFor(). This is the one function every waterfall
+  // reader takes a Notes cell's text from -- the frozen renderer, exportExcel, buildWaterfallPdf, sheetColumnWidths and
+  // sheetRowCount call it by name -- so all of them follow with no frozen edit, and a calendar with no such note returns
+  // exactly what it always did, byte for byte. ⛔ Code that EDITS the week's own note (what saveNoteEdit stores) must read
+  // wfOwnNoteText() instead, or it would bake the month notes' lines into the waterfall's typed text.
   function effectiveNoteText(weekKey, autoNotes){
+    const own = wfOwnNoteText(weekKey, autoNotes);
+    const ml = wfMonthLinesFor(weekKey);
+    if(!ml.length) return own;
+    return (own ? [own] : []).concat(ml.map(m => m.line)).join('\n');
+  }
+  // The week's own Notes text: its typed note, else its automatic notes. What effectiveNoteText was until 4 Nov 2026.
+  function wfOwnNoteText(weekKey, autoNotes){
     const u = userNotes[weekKey];
     if(u !== undefined) return (u.text || '');   // includes explicit-clear ('' suppresses auto)
     return autoNotesText(autoNotes);
@@ -16042,6 +16056,10 @@ export function initLegacyApp() {
         ${dayOpts}
       </select></label>
     </div>`;
+    // "Show in month view", right below the colours (owner, 4 Nov 2026; see dayNoteWfLine). A note only: a hiatus band
+    // is drawn in the month view from the hiatus itself. On unless this week's typed text was switched off (R3).
+    const viewRow = isHiatus ? '' : noteViewSwitchHtml('Show in month view', !wfNoteMonthHidden(weekKey),
+      'Off: the text you typed here is left out of the month view and its PDF. Automatic notes and holidays keep their own settings.');
     // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
     // exactly the shape it had before the click.
     const pop = document.createElement('div');
@@ -16055,6 +16073,7 @@ export function initLegacyApp() {
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
       ${swatchRows}
+      ${viewRow}
       </div>
       <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
@@ -16123,6 +16142,9 @@ export function initLegacyApp() {
         }
       });
     });
+    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save. Read on commit.
+    const viewSw = pop.querySelector('.note-view-row');
+    if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
   }
 
   // The automatic notes the waterfall shows for a week, which is what decides whether a cleared note is stored
@@ -16153,7 +16175,11 @@ export function initLegacyApp() {
     if(text === autoText && !date){
       delete userNotes[weekKey]; // matches auto -> stay (or return to) auto
     } else if(text){
+      // "Show in month view" off (monthHidden, owner 4 Nov 2026) belongs to the week's typed text, so it outlives an
+      // edit of that text, from any editor. The waterfall editor sets it after this, from its switch.
+      const hidden = wfNoteMonthHidden(weekKey);
       userNotes[weekKey] = date ? {text, date} : {text};
+      if(hidden) userNotes[weekKey].monthHidden = true;
     } else if(autoNotes && autoNotes.length){
       userNotes[weekKey] = {text:''}; // explicit clear of an auto-note
     } else {
@@ -16208,14 +16234,21 @@ export function initLegacyApp() {
       // wfLineEdits), so the cell keeps following them. An emptied cell is Delete's (wfClearNote): each line goes by
       // what it is, and no week blank is left (AUTO-NOTE-RENAME-PLAN.md, rulings 3, 4 and 6).
       let auto = autoNotes;
-      if(!textarea.value.trim()){
-        if(wfClearNote(weekKey)) renamed = true;
+      // ⭐ The month notes this cell shows ("Show in waterfall", R2) go first, by what happened to their lines; what is
+      // left is the week's own text, which takes the path it always did. With none in the week, `own` is the text box.
+      const ownBefore = wfOwnNoteText(weekKey, autoNotes);
+      const own = wfMonthLineEdits(weekKey, ownBefore, textarea.value);
+      if(!own.trim()){
+        // The week's own lines only: a month line still in the box stays, so this is not Delete's wfClearNote.
+        if(wfClearOwnNote(weekKey)) renamed = true;
         auto = sheetAutoNotesFor(weekKey);
       } else {
-        renamed = wfLineEdits(weekKey, effectiveNoteText(weekKey, autoNotes), textarea.value, autoNotes);
+        renamed = wfLineEdits(weekKey, ownBefore, own, autoNotes);
         auto = renamed ? renamed.autoNotes : autoNotes;
-        saveNoteEdit(weekKey, renamed ? renamed.text : textarea.value, auto, chosenDate);
+        saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, chosenDate);
       }
+      const viewCb = pop.querySelector('.note-view-cb');
+      if(viewCb) setWfNoteMonthHidden(weekKey, !viewCb.checked);
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
@@ -16993,7 +17026,7 @@ export function initLegacyApp() {
   function mvWfKeysOn(schedule, iso, memo){
     if(memo && memo.keysOn.has(iso)) return memo.keysOn.get(iso);
     const d = parseDateUTC(iso);
-    const set = new Set(d ? notesForWaterfallDate(schedule, d).map(mvWfNoteKey) : []);
+    const set = new Set(d ? mvWfLinesFor(schedule, d).map(mvWfNoteKey) : []);
     if(memo) memo.keysOn.set(iso, set);
     return set;
   }
@@ -17102,7 +17135,8 @@ export function initLegacyApp() {
     // printingCursor is set -- the print rollback and the month-PDF writer -- so both month PDFs build exactly as before.
     const anyHolColor = Object.keys(holidayColors).length > 0, anyAutoColor = Object.keys(autoNoteColors).length > 0;
     const onScreen = !printingCursor;
-    const wf = notesForWaterfallDate(schedule, d).map(text=>{
+    // mvWfLinesFor: notesForWaterfallDate() less a week's typed lines switched off for the month view (owner, 4 Nov 2026).
+    const wf = mvWfLinesFor(schedule, d).map(text=>{
       const p = legacy ? null : mvWfPlaceFor(schedule, text, iso, memo);
       const b = {kind: 'wf', text, group: mvPlaceGroup(p), bottom: !!p && p.bottom === true,
                  at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
@@ -17365,6 +17399,120 @@ export function initLegacyApp() {
     if(Array.isArray(v)) return v;
     if(v.text) return [{text:v.text, lane:(v.lane!=null?v.lane:null), color:dayNoteColors[iso]||null}];
     return [];
+  }
+
+  // ---------- A note shown in the OTHER view (owner, 4 Nov 2026; HANDOFF "NOTE-VIEWS") ----------
+  // "Add a toggle in the popup when you edit a note (right below the color selector), both in the month view and the
+  // waterfall view popups to hide/show the note in the other calendar." Rulings, by picker the same day:
+  //   R1  a month note shown in the waterfall reads as its text on ONE line plus its day's date, "Crew party 11/6/26";
+  //   R2  edits follow it: its line is in the waterfall's note editor, a change renames the month note, and a line taken
+  //       out (the editor, Delete, Cut, a paste or a drop over it) switches it off for the waterfall. It stays in the
+  //       month view, which is its home. Holiday lines already behave this way;
+  //   R3  "Show in month view" off hides the week's TYPED lines only. Automatic notes and holidays keep their own
+  //       settings (Settings ▸ Automatic notes, the Holidays list);
+  //   R4  typed notes only: the month view's Holiday and Auto Note editors get no switch.
+  // Two flags, both PERMANENT, both written only as `true`, so every calendar saved before this saves byte for byte:
+  //   - dayNotes[iso][i].waterfall: this month note is ALSO in its week's waterfall Notes cell (default off: absent);
+  //   - userNotes[week].monthHidden: this week's typed waterfall text is NOT drawn in the month view (default shown).
+  // An older build keeps both (its sanitizer copies a note's other fields) and ignores them: the note is month-only, or
+  // shown in the month view, as it was before.
+
+  // A month note's line in the waterfall (R1): its lines joined by a space, then its day's date -- unless the text
+  // already ends in a date, which then says the day itself (and a note switched back from the waterfall, which carries
+  // one, comes back unchanged).
+  function dayNoteWfLine(entry, iso){
+    const text = String((entry && entry.text) || '').split('\n').map(l => l.trim()).filter(Boolean).join(' ');
+    if(!text) return '';
+    const d = parseDateUTC(iso);
+    return (/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(text) || !d) ? text : text + ' ' + fmtShort(d);
+  }
+  // The month notes switched on for the waterfall in one week (its Monday's ISO): [{iso, index, line}], by day and
+  // then in each day's own order. A per-phase hiatus key ("week|phase") is not a date, so it has none.
+  function wfMonthLinesFor(weekKey){
+    const w = parseDateUTC(String(weekKey || ''));
+    if(!w) return [];
+    let out = null;
+    for(let i = 0; i < 7; i++){
+      const iso = isoOf(addDays(w, i));
+      if(!dayNotes[iso]) continue;
+      dayNoteList(iso).forEach((e, index)=>{
+        if(!e || e.waterfall !== true) return;
+        const line = dayNoteWfLine(e, iso);
+        if(line) (out = out || []).push({iso, index, line});
+      });
+    }
+    return out || [];
+  }
+  // Switch every month note in this week off for the waterfall (R2: its line taken out of the Notes cell). The notes
+  // stay in the month view. True when one was on.
+  function wfMonthLinesOff(weekKey){
+    const ml = wfMonthLinesFor(weekKey);
+    ml.forEach(m=>{ const e = dayNoteList(m.iso)[m.index]; if(e) delete e.waterfall; });
+    return ml.length > 0;
+  }
+  // The waterfall note editor's text, saved (R2): the month notes' lines go by what happened to each, and what is left
+  // is the week's own text, returned for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the week's own
+  // text as the editor opened on it (wfOwnNoteText); the editor showed it, then the month lines (effectiveNoteText).
+  //  - A month line still in the text, anywhere, is kept as it is.
+  //  - One missing, with the editor holding as many lines as it opened with, where a line now stands that is neither
+  //    the week's own as it was nor another date: a rename. The month note takes that text, its date taken out (it is
+  //    added back on the waterfall's line), on one line.
+  //  - Any other missing one was taken out: switched off for the waterfall. The note stays in the month view.
+  function wfMonthLineEdits(weekKey, ownBefore, after){
+    const ml = wfMonthLinesFor(weekKey);
+    if(!ml.length) return after;
+    const own = String(ownBefore || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const before = own.concat(ml.map(m => m.line));
+    const a = String(after || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const used = new Set(), missing = [];
+    ml.forEach(m=>{
+      const k = a.findIndex((l, i)=> !used.has(i) && l === m.line);
+      if(k >= 0) used.add(k); else missing.push(m);
+    });
+    const gone = [];
+    missing.forEach(m=>{
+      const i = before.indexOf(m.line);
+      const now = (a.length === before.length && i >= 0 && !used.has(i)) ? a[i] : null;
+      const day = parseDateUTC(m.iso);
+      const name = (now && own.indexOf(now) < 0) ? stripHolidayDate(now, day) : '';
+      if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given another date
+      used.add(i);
+      const e = dayNoteList(m.iso)[m.index];
+      // Unchanged but for how the date was written: keep the note's own text, line breaks and all.
+      if(e && name !== String(e.text || '').split('\n').map(l => l.trim()).filter(Boolean).join(' ')) e.text = name;
+    });
+    gone.forEach(m=>{ const e = dayNoteList(m.iso)[m.index]; if(e) delete e.waterfall; });
+    return a.filter((l, i)=> !used.has(i)).join('\n');
+  }
+  // R3: the waterfall's lines a day in the month view draws -- notesForWaterfallDate()'s, less the week's TYPED lines
+  // while its note has "Show in month view" off. A holiday's line and an automatic note's (mvHolidayLineInfo,
+  // mvAutoLineInfo) always stay. Every non-frozen reader of what the month view draws goes through here
+  // (mvDayNotePlan, mvWfKeysOn, monthHoldsSomething); with no week switched off it is notesForWaterfallDate() exactly.
+  function mvWfLinesFor(schedule, d){
+    const lines = notesForWaterfallDate(schedule, d);
+    if(!lines.length) return lines;
+    const u = userNotes[isoOf(mondayOf(d))];
+    if(!(u && typeof u === 'object' && u.monthHidden === true)) return lines;
+    const iso = isoOf(d);
+    return lines.filter(t => mvHolidayLineInfo(schedule, iso, t) || mvAutoLineInfo(schedule, iso, t));
+  }
+  // The waterfall editor's "Show in month view" (R3), stored on the week's typed note. Only a week with typed text has
+  // anything to hide, so a week with none stores nothing and its switch opens on again.
+  function setWfNoteMonthHidden(weekKey, hidden){
+    const u = userNotes[weekKey];
+    if(u === undefined || !userNoteList(weekKey).some(n => String(n.text || '').trim())) return;
+    if(typeof u === 'string'){ if(hidden) userNotes[weekKey] = {text: u, monthHidden: true}; return; }
+    if(hidden) u.monthHidden = true; else delete u.monthHidden;
+  }
+  function wfNoteMonthHidden(weekKey){
+    const u = userNotes[weekKey];
+    return !!(u && typeof u === 'object' && u.monthHidden === true);
+  }
+  // The switch row both note editors carry under their colours (`label`: what it shows the note in). The checkbox has
+  // NO id: collectFieldValues() sweeps input[id], and this is a note's own setting, never a calendar field.
+  function noteViewSwitchHtml(label, on, title){
+    return `<label class="note-view-row" title="${escHtml(title)}"><span class="note-view-label">${escHtml(label)}</span>`
+         + `<input type="checkbox" class="note-view-cb"${on ? ' checked' : ''}></label>`;
   }
 
   // Per-cell highlight customization. All keyed by week 'YYYY-MM-DD'; absent = default.
@@ -20925,10 +21073,19 @@ export function initLegacyApp() {
   // move the note came back in its new week, and the old week hid whatever landed there next. The note's highlight,
   // size and style go with it, the editor's own rule for a note left empty (commitActiveNoteEditor). Returns whether a
   // switch moved, so a caller outside wfNoteStep knows to run update().
+  // ⭐ A month note the cell shows ("Show in waterfall", owner 4 Nov 2026, ruling R2) goes too: switched off for the
+  // waterfall, kept in the month view, which is where it lives.
   function wfClearNote(wk){
+    wfMonthLinesOff(wk);
+    const moved = wfClearOwnNote(wk);
+    delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
+    return moved;
+  }
+  // The week's OWN lines only, emptied: its automatic lines switched off by what they are, its typed text gone. The note
+  // editor's path when its box is left holding only month notes' lines (or nothing).
+  function wfClearOwnNote(wk){
     const moved = wfSwitchOffLines(wk);
     saveNoteEdit(wk, '', sheetAutoNotesFor(wk), '');   // what is left: nothing, unless a line of no kind (none today)
-    delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
     return moved;
   }
   // The automatic lines a week's Notes cell shows, each taken out by what it is: an automatic note switched off (rulings
@@ -20958,6 +21115,8 @@ export function initLegacyApp() {
     if(noteColors[wk]) it.color = noteColors[wk];
     if(noteFontSize[wk] !== undefined) it.size = noteFontSize[wk];
     if(textStyle.note[wk]) it.style = Object.assign({}, textStyle.note[wk]);
+    // "Show in month view" off travels with the typed text, as its look does (owner, 4 Nov 2026).
+    if(wfNoteMonthHidden(wk)) it.monthHidden = true;
     return it;
   }
   // Write one travelling note into a week. `look` (an item copied inside SPTCal) replaces the week's look with
@@ -20968,6 +21127,14 @@ export function initLegacyApp() {
   // out as Delete takes them (wfSwitchOffLines), so none comes back beside it after a move. Not when the note IS the
   // week's automatic text (a copy pasted back where it came from), which stays automatic.
   function wfPutNote(wk, it, look){
+    // ⭐ Month notes the cell shows (R2, owner 4 Nov 2026) are replaced the same way: switched off for the waterfall. A
+    // copy of the cell pasted back onto itself keeps them, and writes only the week's own part as its own.
+    const ml = wfMonthLinesFor(wk);
+    if(ml.length){
+      const a0 = sheetAutoNotesFor(wk);
+      if(String(it.text || '').trim() === effectiveNoteText(wk, a0).trim()) it = Object.assign({}, it, {text: wfOwnNoteText(wk, a0)});
+      else wfMonthLinesOff(wk);
+    }
     let auto = sheetAutoNotesFor(wk);
     if(auto.length && String(it.text || '').trim() !== autoNotesText(auto).trim() && wfSwitchOffLines(wk)) auto = sheetAutoNotesFor(wk);
     let text = it.text, date = '';
@@ -20982,6 +21149,7 @@ export function initLegacyApp() {
       if(it.color && it.color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) noteColors[wk] = it.color; else delete noteColors[wk];
       if(it.size !== undefined && it.size !== 11) noteFontSize[wk] = it.size; else delete noteFontSize[wk];
       if(it.style) textStyle.note[wk] = Object.assign({}, it.style); else delete textStyle.note[wk];
+      setWfNoteMonthHidden(wk, it.monthHidden === true);
     }
     if(!effectiveNoteText(wk, auto)){ delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk]; }
   }
@@ -20992,7 +21160,8 @@ export function initLegacyApp() {
     // The switches a Delete, a paste or a drop can move too (wfSwitchOffLines): when one did, update() draws, so every
     // view and the Settings boxes follow.
     const switches = ()=> JSON.stringify([autoNotesOff, autoNotesOn, autoNoteNames, autoNoteColors, holidayView]);
-    const sig = ()=> JSON.stringify([userNotes, noteColors, noteFontSize, textStyle.note]) + switches();
+    // dayNotes since 4 Nov 2026: a Delete, paste or drop can switch a month note off for the waterfall (wfMonthLinesOff).
+    const sig = ()=> JSON.stringify([userNotes, noteColors, noteFontSize, textStyle.note, dayNotes]) + switches();
     const before = sig(), sw0 = switches();
     pushUndoSnapshot();
     fn();
@@ -28086,7 +28255,12 @@ export function initLegacyApp() {
   function mergeNoteValues(stay, incoming){
     const text = [noteValueText(stay), noteValueText(incoming)].filter(Boolean).join('\n');
     const date = (stay && typeof stay === 'object' && stay.date) ? stay.date : null;
-    return date ? {text, date} : {text};
+    const out = date ? {text, date} : {text};
+    // "Show in month view" off (owner, 4 Nov 2026) survives only if both notes had it: hiding half of a merged note
+    // because of the other half would take text out of the month view nobody asked to hide.
+    const hid = v => !!(v && typeof v === 'object' && v.monthHidden === true);
+    if(hid(stay) && hid(incoming)) out.monthHidden = true;
+    return out;
   }
 
   // The auto-note text a week shows in each view -- what the note editor pre-fills, so it is what an
@@ -30723,7 +30897,7 @@ export function initLegacyApp() {
     const days = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)).getUTCDate();
     for(let i = 0; i < days; i++){
       const d = addDays(monthStart, i);
-      if(notesForWaterfallDate(schedule, d).length) return true;
+      if(mvWfLinesFor(schedule, d).length) return true;
       if(dayNoteList(isoOf(d)).some(function(e){ return e && String(e.text || '').trim(); })) return true;
     }
     return false;
@@ -33988,6 +34162,14 @@ export function initLegacyApp() {
       const monthOnly = new Set(weekAuto.filter(n => n.holiday && holidayVisibleIn(n.hid, 'month') && !holidayVisibleIn(n.hid, 'sheet'))
                                         .concat(monthOnlyNotesForWeek(weekKey))   // no waterfall row prints these at all
                                         .map(n => autoNotesText([n])));
+      // ⭐ "Show in waterfall" switched OFF (owner, 4 Nov 2026): the line leaves the week's waterfall note and stays here
+      // as a note of this day's own -- the only way a note can be in the month view and not the waterfall. An emptied box
+      // is just the delete below.
+      if(activeMvNote.viewCb && !activeMvNote.viewCb.checked && text){
+        wfLineToDayNote(weekKey, dayIso, text, weekAuto, monthOnly);
+        if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+        return true;
+      }
       if(text !== String(activeMvNote.initialText || '').trim()){
         // The editor held one line (openMvNoteEditor): it goes back where it was among the week's lines, and an
         // emptied one leaves. The day pin is the one worked out when it opened (wfLinePin).
@@ -34029,6 +34211,10 @@ export function initLegacyApp() {
           // ...and keeps its text style, which lives on the entry (MONTH-TEXT-STYLE-PLAN.md §3.1).
           if(isPlainObj(list[idx].fmt)) entry.fmt = Object.assign({}, list[idx].fmt);
         }
+        // "Show in waterfall" (owner, 4 Nov 2026): written only as true, so a month-only note is stored as it always was.
+        // With no switch to read (none should reach here so), a note keeps what it had.
+        const vcb = activeMvNote.viewCb;
+        if(vcb ? vcb.checked : (idx >= 0 && list[idx] && list[idx].waterfall === true)) entry.waterfall = true;
         if(idx >= 0) list[idx] = entry; else list.push(entry);
       } else if(idx >= 0){
         list.splice(idx, 1);   // deleting all text removes the note (and its colour with it)
@@ -34047,6 +34233,43 @@ export function initLegacyApp() {
     if(recompute){ update(); return; }
     markDirty();
     render(currentSchedule);
+  }
+  // A waterfall line whose "Show in waterfall" was switched off in the month view's editor (owner, 4 Nov 2026): taken out
+  // of the week's waterfall note the way an emptied box takes it (the same splice and the same writer), then added to its
+  // day as a note of the day's own, the way the editor writes one. It keeps what it looked like: the week's colour (or
+  // the one just picked), the line it was clicked on, its place in the day and its month text style (keyed by its text
+  // without its date, so copied, as carryRenamedLine copies them, never moved: the same text may show elsewhere). A day
+  // note holds 3 lines, so a 4th and later join the 3rd rather than being dropped.
+  function wfLineToDayNote(weekKey, dayIso, text, weekAuto, monthOnly){
+    const am = activeMvNote, ln = am.line;
+    const oldLine = ln ? String(ln.lines[ln.index] || '').trim() : String(am.initialText || '').trim();
+    // 1. Out of the waterfall. With the line not found (the whole week opened), the whole typed text goes.
+    let after = '';
+    if(ln){ const ls = ln.lines.slice(); ls.splice(ln.index, 1); after = ls.join('\n').trim(); }
+    const kept = after.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
+    const sheetAuto = autoNotesForView(weekAuto, 'sheet');
+    // What is left is just the week's automatic text: no pin, so it goes back to following the schedule.
+    const pin = (kept === autoNotesText(sheetAuto).trim()) ? '' : (ln ? ln.pin : '');
+    const colorWas = noteColors[weekKey];
+    saveNoteEdit(weekKey, kept, sheetAuto, pin);
+    // 2. Into the day.
+    let lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
+    if(lines.length > 3) lines = lines.slice(0, 2).concat([lines.slice(2).join(' ')]);
+    let color = am.pendingColor || colorWas || null;
+    if(color && color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) color = null;
+    const entry = {text: lines.join('\n'), lane: (am.lane != null ? am.lane : null), color};
+    const key = mvWfNoteKey(oldLine);
+    const p = Object.prototype.hasOwnProperty.call(mvWfNotePlace, key) ? mvWfNotePlace[key] : null;
+    if(p && (!p.day || p.day === dayIso)){
+      if(p.top === true) entry.top = true;
+      else if(typeof p.under === 'string') entry.under = p.under;
+      else if(p.bottom === true) entry.bottom = true;
+    }
+    const f = mvTextStyle.wfnote && mvTextStyle.wfnote[key];
+    if(isPlainObj(f)){ const c = cleanMvTextStyleEntry('daynote', null, f, {n: 0}); if(c) entry.fmt = c; }
+    const list = dayNoteList(dayIso).slice();
+    list.push(entry);
+    dayNotes[dayIso] = list;
   }
   // A waterfall line's own day: its trailing date when that falls in its week, the rule notesForWaterfallDate()
   // places it by; else null (it sits on the note's pinned day, or the week's Monday).
@@ -34185,7 +34408,7 @@ export function initLegacyApp() {
     let editIdx = null;
     // Prefill: a waterfall note shows its current text (auto or overridden); a day note shows
     // its own, and a blank day starts empty.
-    let curText, curColor, line = null;
+    let curText, curColor, line = null, dayEntry = null;
     if(isHol){
       curText = holiday.name;
       curColor = holidayColors[holiday.hid] || noteColors[weekKey] || MILESTONE_COLOR;
@@ -34203,7 +34426,9 @@ export function initLegacyApp() {
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
         return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
       })() : []).concat(monthOnlyNotesForWeek(weekKey));
-      const full = effectiveNoteText(weekKey, autoNotes);
+      // The week's OWN text (wfOwnNoteText): a month note shown in the waterfall is drawn here as the day's own note, never
+      // as one of these lines, so it must not be among them, or saving the line would write it into the waterfall's text.
+      const full = wfOwnNoteText(weekKey, autoNotes);
       const lines = full.split('\n');
       const at = said ? lines.findIndex(l => l.trim() === said) : -1;
       if(at >= 0){
@@ -34218,6 +34443,7 @@ export function initLegacyApp() {
       const ni = anchor.dataset.noteIndex !== undefined ? parseInt(anchor.dataset.noteIndex, 10) : -1;
       const entry = (ni >= 0 && ni < list.length) ? list[ni] : null;
       curText = entry ? (entry.text || '') : '';
+      dayEntry = entry;
       // A "+" opens on the remembered colour (MONTH-NOTES-PLAN.md §2); an existing note on its own.
       curColor = entry ? (entry.color || MILESTONE_COLOR) : mvNoteStartColor();
       editIdx = entry ? ni : null;
@@ -34227,9 +34453,14 @@ export function initLegacyApp() {
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
     pop.className = 'mv-note-pop';
-    const scopeNote = isWf
-      ? 'Also updates the Waterfall + Excel'
-      : 'Month view only';
+    // ⭐ "Show in waterfall", right below the colours (owner, 4 Nov 2026; see dayNoteWfLine). Typed notes only (R4): a
+    // holiday and an automatic note keep their own settings, so their editors have none. A note typed here starts OFF
+    // (the owner: "hide by default for notes entered into the month view"); a waterfall note's line is ON, and switching
+    // it off moves the line out of the waterfall into a note of this day's own (writeActiveMvNote). The switch says
+    // where the note shows, so the hint's old "Month view only" / "Also updates the Waterfall + Excel" is gone.
+    const viewRow = (isHol || isAuto) ? '' : noteViewSwitchHtml('Show in waterfall', isWf || !!(dayEntry && dayEntry.waterfall === true),
+      isWf ? 'Off: this line leaves the waterfall (and Excel and the waterfall PDF) and stays here as a note of this day.'
+           : 'On: this note is also a line in its week\u2019s Notes cell in the waterfall, Excel and the waterfall PDF, with its date.');
     const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     // A holiday's editor says what it is and what saving does: the NAME, wherever the holiday shows. Its date is in
     // the heading (it is the holiday's, not text to edit), and an empty box says what clearing it brings back.
@@ -34251,7 +34482,8 @@ export function initLegacyApp() {
       : `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
       <textarea rows="3" placeholder="Note text${isWf?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       ${notePaletteRowsHtml(curColor)}
-      <div class="mv-note-pop-hint">${scopeNote} \u00b7 ${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      ${viewRow}
+      <div class="mv-note-pop-hint">${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
@@ -34313,6 +34545,8 @@ export function initLegacyApp() {
                     holiday: isHol ? holiday : null, line,
                     // An automatic note's note (mvAutoLineInfo), read-only.
                     auto: isAuto ? autoNote : null,
+                    // The "Show in waterfall" switch (none for a holiday or an automatic note), read on commit.
+                    viewCb: pop.querySelector('.note-view-cb'),
                     // What the editor opened with, so a waterfall note that was opened and left
                     // unchanged is not frozen into an override on the way out (audit M-13).
                     initialText: curText,
@@ -34330,6 +34564,9 @@ export function initLegacyApp() {
         pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
       });
     });
+    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save.
+    const viewSw = pop.querySelector('.note-view-row');
+    if(viewSw) viewSw.addEventListener('mousedown', e=>e.preventDefault());
     // Delete Auto-Note: what clearing the box does (ruling 4), as one click.
     const delBtn = pop.querySelector('.note-pop-delete');
     if(delBtn){
@@ -34450,7 +34687,8 @@ export function initLegacyApp() {
   function moveWfLine(oldText, fromIso, newText, toIso){
     const wkA = isoOf(mondayOf(parseDateUTC(fromIso))), wkB = isoOf(mondayOf(parseDateUTC(toIso)));
     const pin = wk=>{ const u = userNotes[wk]; return (u && typeof u === 'object' && typeof u.date === 'string') ? u.date : ''; };
-    const lines = wk=> effectiveNoteText(wk, sheetAutoNotesFor(wk)).split('\n').filter(l=> l.trim());
+    // The weeks' OWN lines (wfOwnNoteText): a month note shown in the waterfall is not the waterfall's to rewrite.
+    const lines = wk=> wfOwnNoteText(wk, sheetAutoNotesFor(wk)).split('\n').filter(l=> l.trim());
     const save = (wk, ls)=> saveNoteEdit(wk, ls.join('\n'), sheetAutoNotesFor(wk), pin(wk));
     // A note kept in the older list shape ({notes: [...]}, which userNoteList still reads) is not one text this can
     // rewrite line by line without losing the others: leave both weeks alone.
@@ -35445,7 +35683,13 @@ export function initLegacyApp() {
     }
     // Notes: the TEXT is escaped wherever it is shown, so it keeps whatever the user typed. What is
     // checked is the shape, and the colour and lane that reach style attributes.
-    setMap('userNotes', v => isPlainObj(v) ? (('text' in v) ? Object.assign({}, v, { text: stripXmlIllegal(v.text == null ? '' : v.text, '\n') }) : v) : undefined);
+    setMap('userNotes', v => {
+      if(!isPlainObj(v)) return undefined;
+      const o = ('text' in v) ? Object.assign({}, v, { text: stripXmlIllegal(v.text == null ? '' : v.text, '\n') }) : Object.assign({}, v);
+      // "Show in month view" off (owner, 4 Nov 2026): only `true` is ever written.
+      if('monthHidden' in o && o.monthHidden !== true){ bad.n++; delete o.monthHidden; }
+      return o;
+    });
     setMap('dayNotes', v => {
       const one = e => {
         if(!isPlainObj(e)) return null;
@@ -35460,6 +35704,8 @@ export function initLegacyApp() {
         if('top' in o && o.top !== true){ bad.n++; delete o.top; }
         if('under' in o && (typeof o.under !== 'string' || !SNAP_ID.test(o.under) || o.top === true)){ bad.n++; delete o.under; }
         if('bottom' in o && (o.bottom !== true || o.top === true || 'under' in o)){ bad.n++; delete o.bottom; }
+        // "Show in waterfall" (owner, 4 Nov 2026): only `true` is ever written.
+        if('waterfall' in o && o.waterfall !== true){ bad.n++; delete o.waterfall; }
         // Its text style (MONTH-TEXT-STYLE-PLAN.md §4): a note's sizes, no highlight; written only when set.
         if('fmt' in o){ const f = cleanMvTextStyleEntry('daynote', null, o.fmt, bad); if(f) o.fmt = f; else delete o.fmt; }
         return o;

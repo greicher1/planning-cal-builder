@@ -1944,6 +1944,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
+              noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               simpostname:-:400 \

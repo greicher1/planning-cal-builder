@@ -6,6 +6,77 @@
 
 
 
+### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT committed, NOT merged, NOT pushed; full gate GREEN but for the known `offweek` R14 flake. Tracker card `note-show-in-other-view`
+
+Owner: *"Add a toggle in the popup when you edit a note (right below the color selector), both in the month view and the
+waterfall view popups to hide/show the note in the other calendar. By default it should be set to Show from waterfall to
+month view but hide by default for notes entered into the month view. You would have to enable it to show it in the
+month view."* The last sentence was read as "…to show it in the WATERFALL" (it is the month notes that start hidden).
+
+- ✅ **RULED (owner's picker, 4 Nov 2026):**
+  - R1: a month note in the waterfall reads as its text on ONE line plus its day's date, "Crew party 11/6/26".
+    This was the recommendation. A 2–3 line note joins with spaces. Text already ending in a date gets none added.
+  - R2: edits follow it, the recommendation. Its line is in the waterfall editor's box. A change renames the month note,
+    with its date taken out. A line taken out switches it off for the waterfall and leaves it in the month view: the
+    editor, Delete, Cut, a paste or a drop over it. Holiday lines already behave this way.
+  - R3: **"Show in month view" off hides the week's TYPED lines only**, NOT the recommendation (which was the whole
+    cell). Holiday and automatic-note lines stay (`mvHolidayLineInfo` / `mvAutoLineInfo` decide).
+  - R4: **typed notes only**, NOT the recommendation (holidays now, automatic notes later). The month view's Holiday
+    and Auto Note editors get no switch.
+- **Not ruled, decided here:** a waterfall line opened in the month view (kind `wf`, typed) shows "Show in waterfall"
+  ON. Turned off, it MOVES out of the week's waterfall note into a day note on that day (`wfLineToDayNote`). That is the
+  only way to be in the month view and not the waterfall. The day note keeps the week's colour (or the one picked), the
+  clicked line, its place (`mvWfNotePlace`) and its month text style (copied, as `carryRenamedLine` copies them). The
+  waterfall cell's colour is NOT set from a month note: the cell keeps the week's own colour, purple by default.
+  Mirroring it was considered and dropped. `noteColors[week]` also tints that week's holiday and automatic lines in the
+  month view, so a mirrored colour would recolour lines nobody touched.
+- **How it works. No frozen code:**
+  - `effectiveNoteText` now returns the week's own text (`wfOwnNoteText`, its old body) plus `wfMonthLinesFor(week)`.
+    The frozen renderer, `exportExcel`, `buildWaterfallPdf`, `sheetColumnWidths` and `sheetRowCount` all call it by
+    name, so the screen, workbook, PDF, widths and row count follow. With no flagged note it returns `own` unchanged.
+  - ⛔ **Every writer of a week's own note reads `wfOwnNoteText`:** the waterfall editor's commit, `moveWfLine` (the
+    month drag) and the month editor's `wf` line lookup. Otherwise they bake month lines into typed text, and the month
+    view then draws them twice.
+  - The waterfall editor's commit runs `wfMonthLineEdits` first: exact lines are kept, a same-count positional change
+    is a rename, anything else is switched off. The rest takes the old path (`wfLineEdits`, `saveNoteEdit`).
+    `wfClearNote` (Delete/Cut/drag source) now also runs `wfMonthLinesOff`. `wfClearOwnNote` is the editor's own-lines
+    clear. `wfPutNote` switches a target's month lines off unless the pasted text IS the cell, and then writes only the
+    own part. `wfNoteStep`'s signature includes `dayNotes`, so a step that only flips a month flag still banks an undo.
+  - Month view: `mvWfLinesFor(schedule, d)` = `notesForWaterfallDate` (frozen) less the week's typed lines while
+    `monthHidden`. Read by `mvDayNotePlan`, `mvWfKeysOn` and `monthHoldsSomething`. Both month PDFs follow, because the
+    writer parses `renderMonthView`'s HTML and the print path IS it. `mvHolidayDays` keeps reading the frozen function:
+    holidays are never hidden.
+  - The month editor's hint lost "Month view only" / "Also updates the Waterfall + Excel": the switch says where.
+- **Saved state (both PERMANENT, both written only as `true`, so every older calendar saves byte for byte):**
+  - `userNotes[week].monthHidden`: carried by `saveNoteEdit` across edits, travels with a copy/paste/drag item, and
+    survives a shift merge only if both merged notes had it.
+  - `dayNotes[day][i].waterfall`: rides on the entry, so the month note drag moves it.
+  - The sanitizer drops any other value and counts it. Older builds' sanitizers copy a note's other fields, so they
+    keep both and ignore them.
+  - No new top-level key and no new `fields.byId` id. The switches' checkboxes have no id.
+- **Proof so far (port 8781, build of this branch):**
+  - New leg `noteviews` 15/15 on `wfkeys` (in gate.sh as `noteviews:wfkeys:500`). It covers both switches' place,
+    default and missing id; R3 (Labor Day stays, Wrap party goes); undo/redo; R1 including a two-line note; the workbook
+    cell; the waterfall PDF's `Tj`; R2 rename and remove; Cut plus undo; the `wf` line moved out; Save/Load; and hostile
+    values. ⚠️ Its first run caught `escAttr` (a render-local helper) used at module scope.
+  - Neighbours green: wfkeys 84/84, wfnotecolors 14/14, autonoterename 24/24, holidayrename 14/14, monthnotes 8/8,
+    notewrap 16/16, autonote 9/9, hidewf 19/19, mvnotes 30/30 and 14/14 (`mvnotes` fixture), mvtextstyle 6/6
+    (`mvtextstyle`), wfmenu 39/39 (`halfdays`), notescols 49/49 (`colreuse`), mvorder.mjs 30/30 (the month note drag,
+    `moveWfLine`).
+  - `npm run check` 40/40.
+  - Screenshots of both editors in the browser pane (1024 px).
+- **Full gate (port 8784, 12:17-12:52): 3,896 PASS, 1 FAIL.** Every byte compare held: the waterfall PDF, every
+  Excel part, the restore, gate 10's printed month documents and all 24 of gate 13's written month PDFs. That is as it
+  must be, since no gate fixture sets either flag. `noteviews` 15/15 inside it.
+  - The one FAIL is `offweek (offweek)` R14, "the Pause prep switch is covered" by a `.file-menu-item`: the file menu
+    is open again when the leg hit-tests the switch after its fifth Load. It is the flake ten other gates have hit,
+    and it is timing, not this change. It failed three times alone on this branch. Then, alternating with a build
+    of the base commit `61542f5` in a scratch worktree, the BASE failed it once and this branch passed three of
+    three. An instrumented copy of the leg saw `#file-menu` at `display:none` right after the Load and `block` at the
+    hit-test, with no click on `.file-menu-btn` between them in that run. The leg should wait for `#file-menu` to be
+    `display:none` before it hit-tests, but that fix belongs to the harness, not this branch.
+- **Open:** the owner's commit and push decisions.
+
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
 Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
