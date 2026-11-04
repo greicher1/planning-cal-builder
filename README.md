@@ -49,7 +49,8 @@ No frozen code. Every waterfall writer already takes a Notes cell's text from on
 month view takes its lines through a non-frozen layer. A calendar with neither switch changed writes exactly what it
 did. Saved as two flags written only as `true` (`userNotes[week].monthHidden`, `dayNotes[day][i].waterfall`). No new
 top-level key and no new field id. Older builds open such a file and ignore both. New leg `noteviews` (15 cases, in
-gate.sh), plus 13 neighbouring note legs green on the build.
+gate.sh), plus 13 neighbouring note legs green on the build. Full gate merged with main: every byte comparison held;
+of four FAILs, one was this leg's own outdated check, and three were Load-timing flakes that pass alone.
 
 ### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
 

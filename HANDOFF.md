@@ -144,7 +144,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
   on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran.
 
-### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT committed, NOT merged, NOT pushed; full gate GREEN but for the known `offweek` R14 flake. Tracker card `note-show-in-other-view`
+### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED as `34ef08c` (owner's picker: "Commit on the branch", "Merge and push"), origin/main merged in as `775b8e5`; full gate on the branch GREEN but for the known `offweek` R14 flake, and the full gate on the merge green but for one test-only fix and three Load flakes. Tracker card `note-show-in-other-view`
 
 Owner: *"Add a toggle in the popup when you edit a note (right below the color selector), both in the month view and the
 waterfall view popups to hide/show the note in the other calendar. By default it should be set to Show from waterfall to
@@ -213,7 +213,21 @@ month view."* The last sentence was read as "…to show it in the WATERFALL" (it
     three. An instrumented copy of the leg saw `#file-menu` at `display:none` right after the Load and `block` at the
     hit-test, with no click on `.file-menu-btn` between them in that run. The leg should wait for `#file-menu` to be
     `display:none` before it hit-tests, but that fix belongs to the harness, not this branch.
-- **Open:** the owner's commit and push decisions.
+- **Owner, by picker: "Commit on the branch" and "Merge and push".** Committed `34ef08c`. `origin/main` had moved 12
+  commits (the hiatus card name and colour, the Show info note removal, the waterfall PDF seam fix SM1), so it was merged
+  into the branch (`775b8e5`). Only README's changelog conflicted, and both entries were kept. None of main's engine
+  changes touch the note editors. `npm run check` 40/40 on the merge.
+  - ⚠️ The push goes from this branch to `origin/main` as a fast-forward, NOT from local `main`. Local `main` holds
+    another session's unpushed HANDOFF-only commit `6e2e443`, which the owner did not name, so it is left where it is.
+- **Full gate on the merge `775b8e5` (13:02-13:37): 3,910 PASS, 4 FAIL.** Every byte compare held again.
+  - `noteviews` W1 was a real miss in the TEST, not the app: its side check that "a hiatus band's editor has no
+    switch" found NO editor at all, because main's hiatus work (`3e41352`, `ba514d3`) made a band's double-click open
+    its sidebar card. W1 now accepts either outcome (no editor, or one without the switch). After that `noteviews`
+    passed 15/15 twice alone.
+  - `pwagate` C1 ("Link copied"), `noteviews` F2 and `offweek` R7 (each "the loaded file's name in the file menu",
+    10 s) were Load-timing flakes under a load average of about 8. All three passed alone on the same build:
+    pwagate 13/13, offweek 42/42, noteviews 15/15 twice.
+  - No full re-gate after the W1 fix: it changed only the test file.
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 

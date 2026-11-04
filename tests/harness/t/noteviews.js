@@ -13,7 +13,7 @@
 // Labor Day 9/7/26 is a holiday the month view shows and the waterfall does not.
 //
 //   W1  the waterfall note editor: "Show in month view" right below the colour rows, on, its checkbox with no id; a hiatus
-//       band's editor has none
+//       band never shows it (since 4 Nov 2026 a band's double-click opens its sidebar card, not an editor)
 //   W2  switched off on the 9/7 week: the month view drops "Wrap party 9/10/26" and keeps Labor Day on 9/7 (R3) and every
 //       other week's note; the waterfall cell is unchanged; the editor reopens off
 //   U1  one undo brings Wrap party back to the month view, one redo takes it out again
@@ -222,10 +222,12 @@ window.addEventListener('load', function () { (async function () {
       var band = q('#table-wrap td.sheet-hiatus-cell[data-week="2026-11-23"]'); if (!band) throw new Error('no hiatus band at 11/23/26');
       band.scrollIntoView({ block: 'center' }); await T.sleep(100);
       T.openCell(band); await T.sleep(300);
+      // null = no editor opened (the band's sidebar card instead, main since 4 Nov 2026); false = an editor without
+      // the switch (any build before that). Either way the band never carries it.
       var bp = q('.note-pop'), bandSw = bp ? !!q('.note-view-row', bp) : null;
       escapeWf(bp); await T.sleep(200);
-      kase('W1', 'the waterfall note editor carries "Show in month view" right below its colour rows, on, its checkbox with no id; a hiatus band\'s editor has none',
-           !!s && s.label === 'Show in month view' && s.on && !s.id && s.belowColours && bandSw === false, { sw: s, bandSwitch: bandSw });
+      kase('W1', 'the waterfall note editor carries "Show in month view" right below its colour rows, on, its checkbox with no id; a hiatus band never shows it',
+           !!s && s.label === 'Show in month view' && s.on && !s.id && s.belowColours && bandSw !== true, { sw: s, bandSwitch: bandSw });
     });
 
     // ===== W2, U1: "Show in month view" off (R3) ======================================================================
