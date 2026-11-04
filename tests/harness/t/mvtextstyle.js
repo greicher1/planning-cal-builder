@@ -247,8 +247,10 @@ window.addEventListener('load', function () { (async function () {
       var g3 = {boxes: boxes()};
       key('Escape'); await T.sleep(200);
       var g4 = {armed: armed(), boxes: boxes()};
-      add('G1', 'Cmd-click adds the waterfall note (one more outline: the episode has one per week it crosses; colour back on, sizes 6-10, both kinds allow); Shift-click removes it; Escape clears',
-        g2.boxes === b1.boxes + 1 && !g2.colorOff && g2.sizes === '6,7,8,9,10' && g3.boxes === b1.boxes && !g4.armed && g4.boxes === 0, {b1: b1.boxes, g2: g2, g3: g3, g4: g4}, 'one more, back, none');
+      // Since the note size (MONTH-NOTE-SIZE-PLAN.md R4, 2 Nov 2026) a note offers 6-14, so a bar and a note together
+      // offer what both allow: the bar's 6-11.
+      add('G1', 'Cmd-click adds the waterfall note (one more outline: the episode has one per week it crosses; colour back on, sizes 6-11, both kinds allow); Shift-click removes it; Escape clears',
+        g2.boxes === b1.boxes + 1 && !g2.colorOff && g2.sizes === '6,7,8,9,10,11' && g3.boxes === b1.boxes && !g4.armed && g4.boxes === 0, {b1: b1.boxes, g2: g2, g3: g3, g4: g4}, 'one more, back, none');
       await click(day);
       var d1 = {editor: editorOpen(), boxes: boxes(), sizes: sizes(), bold: lit('.hf-b')};
       await dbl(note('day', /Crew lunch/));
@@ -262,8 +264,8 @@ window.addEventListener('load', function () { (async function () {
       key('x'); await T.sleep(250);
       var d4 = {editor: editorOpen(), text: editorText()};
       await closeEditor();
-      add('D1', 'R1: a click on a day note picks it and opens NOTHING (B unlit: notes are 500, sizes 6-10); a double-click opens it; Enter opens it; typing "x" opens it with "x" ADDED at the end',
-        !d1.editor && d1.boxes === 1 && d1.sizes === '6,7,8,9,10' && !d1.bold && d2.editor && d2.text === 'Crew lunch' && d3.editor
+      add('D1', 'R1: a click on a day note picks it and opens NOTHING (B unlit: notes are 500, sizes 6-14, MONTH-NOTE-SIZE-PLAN.md R4); a double-click opens it; Enter opens it; typing "x" opens it with "x" ADDED at the end',
+        !d1.editor && d1.boxes === 1 && d1.sizes === '6,7,8,9,10,11,12,13,14' && !d1.bold && d2.editor && d2.text === 'Crew lunch' && d3.editor
           && d4.editor && d4.text === 'Crew lunchx', {d1: d1, d2: d2, d3: d3, d4: d4}, 'pick, then open x3');
       await click(note('day', /Crew lunch/));
       key('a', {metaKey: true}); await T.sleep(250);
@@ -493,7 +495,7 @@ window.addEventListener('load', function () { (async function () {
       var h1 = {kinds: Object.keys(hm).sort(), epColour: !!(hm.episode && hm.episode.ep1 && hm.episode.ep1.color),
                 epSize: hm.episode && hm.episode.ep1 && hm.episode.ep1.size, bandHl: !!(hm.band && Object.keys(hm.band).some(function (k) { return 'highlight' in hm.band[k]; })),
                 frameBad: !!(hm.frame && hm.frame.nope), dayFmt: hd.fmt || null, epItalic: !!(hm.episode && hm.episode.ep1 && hm.episode.ep1.italic)};
-      add('R3', 'a hostile file: an unknown kind, a colour on an episode bar (N1), size 12 on a bar, a highlight on a band, a bad frame key and size 11 on a day note are each dropped; everything valid beside them stays',
+      add('R3', 'a hostile file: an unknown kind, a colour on an episode bar (N1), size 12 on a bar, a highlight on a band, a bad frame key and size 15 on a day note (11 was the plant until note sizes reached 14, MONTH-NOTE-SIZE-PLAN.md R4) are each dropped; everything valid beside them stays',
         h1.kinds.indexOf('bogus') < 0 && !h1.epColour && h1.epSize === undefined && h1.epItalic && !h1.bandHl && !h1.frameBad && !!h1.dayFmt && h1.dayFmt.size === undefined && h1.dayFmt.bold === true,
         h1, 'dropped, the rest kept');
       // A calendar with NO mvTextStyles, loaded over the styled one: nothing of the styled one stays (restore unconditionally).

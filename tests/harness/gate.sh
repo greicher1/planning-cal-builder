@@ -1922,6 +1922,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               prepreptitle:-:200 \
               mvhdroff:-:400 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
+              mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
@@ -2123,11 +2124,13 @@ PYMF
 # the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
 # (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
 # passing the size (monthexport X2, the text check).
-# ⚠️ mvnotes at Extra large is NOT run, deliberately: in one week (drawn in April and May 2026) a two-line one-day bar
-# over two lanes leaves Chrome's print 3.4 px short of its row, and the writer, which follows the spec's "maximize
-# tracks", draws that week's two-line bar 1.31 px lower than Chrome does. Recorded in MONTH-BAR-SIZE-PLAN.md step 3.
+# ✅ mvnotes at Extra large IS run since 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md step 3). It was left out because one week's
+# two-line one-day bar came out 1.31 px lower than Chrome's print: the writer followed the spec's "maximize tracks"
+# (re-share what a capped lane leaves), and Chrome does not (grid_track_sizing_algorithm.cc: sets in order of their room,
+# what is left is lost). mvlLaneTracks now does what Chrome does when lanes' rooms differ, and that week matches.
 for BSSPEC in "monthemit:mvbarsize-large:" "monthemit:hiatus-blanklabel:barsize=xl" "monthemit:month-dense60:barsize=xl" \
-              "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" "monthexport:mvbarsize-large:"; do
+              "monthemit:mvnotes:barsize=xl" "monthwriter:mvbarsize-large:" "monthwriter:month-dense60:barsize=xl" \
+              "monthwriter:mvnotes:barsize=xl" "monthexport:mvbarsize-large:"; do
   BSLEG="${BSSPEC%%:*}"; BSREST="${BSSPEC#*:}"; BSSTATE="${BSREST%%:*}"; BSQ="${BSREST#*:}"
   rm -f "$HERE/$BSLEG.json" "$HERE/monthexport.built.pdf"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$BSSTATE" HARNESS_QUERY="$BSQ" "$HERE/run.sh" "$BSLEG" 400 >/dev/null 2>&1
@@ -2159,6 +2162,42 @@ print(('  PASS  ' if ok else '  FAIL  ') + 'mvbarsize-large month PDF: the one-d
 sys.exit(0 if ok else 1)
 PYBW
 
+# ---- NOTE SIZE and the 11 / 13 px bars in the month PDF (MONTH-NOTE-SIZE-PLAN.md step 3, 2 Nov 2026) --------------------
+# The same three legs on sized notes: mvnotesize-14 (the mvnotesize leg's real Save of mvnotes at 14 px) and
+# mvnotesize-mixed (made from it: a 12 px calendar, 13 px bars, one note at 14 px and one at 8), plus existing calendars at
+# a size by ?notesize= / ?barsize= (t/lib.js, through the dropdowns). monthemit holds every box and text to Chrome's print
+# layout (E3 clamps a sized note there), and checks every note's lanes against R2's rule (X4); monthwriter holds the fit,
+# month-dense60's shrunk August included; monthexport holds the built app's file to the slice's.
+# Mutants, each red (2 Nov 2026): a sized note given three lanes (monthemit X4); every size's line at 13 px (monthemit
+# B0/T0, monthwriter A0/A2/A3); no "…" on a cut note (monthemit X4); the old "maximize tracks" (monthwriter A3 on
+# month-dense60 at 12 px and on mvnotes at Extra large); 13 px bars at x1.5 (monthemit B0/T0); E3 removed (monthwriter
+# A2/A3; monthemit skips the weeks whose note lines then differ, so it cannot see it).
+# ⚠️ Recorded, not run: month-dense60 at 14 px in monthemit, whose rows are the print path's MEASURED (fractional) rows,
+# so Chrome's 1/64 px truncation of each lane's share shows, 0.03-0.04 px down one crowded week (tolerance 0.03); and
+# monthwriter A1 on mvnotes at 14 px notes with Extra large bars, 0.021 px against print's own rows (tolerance 0.02).
+for NSSPEC in "monthemit:mvnotesize-14:" "monthemit:mvnotesize-mixed:" "monthemit:month-dense60:notesize=12" \
+              "monthemit:mvnotes:barsize=11" "monthemit:mvnotes:barsize=13" \
+              "monthwriter:mvnotesize-14:" "monthwriter:mvnotesize-mixed:" "monthwriter:month-dense60:notesize=12" \
+              "monthwriter:month-dense60:notesize=13&barsize=11" \
+              "monthexport:mvnotesize-14:" "monthexport:mvnotesize-mixed:"; do
+  NSLEG="${NSSPEC%%:*}"; NSREST="${NSSPEC#*:}"; NSSTATE="${NSREST%%:*}"; NSQ="${NSREST#*:}"
+  rm -f "$HERE/$NSLEG.json" "$HERE/monthexport.built.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$NSSTATE" HARNESS_QUERY="$NSQ" "$HERE/run.sh" "$NSLEG" 400 >/dev/null 2>&1
+  python3 - "$HERE/$NSLEG.json" "$NSLEG ($NSSTATE${NSQ:+, $NSQ})" <<'PYNS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:100])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYNS
+done
+
 # ⭐ mvtextstyle (in the list above, LIVE and RESTORE; 27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §8) was run red on twelve
 # mutants before it was wired in, each on its own case: the writer ignoring a style (P1; and monthemit M0/T0/K0 here,
 # run with HARNESS_QUERY=src= so the leg slices the mutant), a size without its held line box (S1, S4), a note measured
@@ -2166,6 +2205,14 @@ PYBW
 # style object (F1), restore only when the key is present (R5), a click opening a note (D1, G1, G2), typing replacing a
 # note (D1), a month style read by the waterfall (W1), an id on a bar control (B1), and the hiatus drag dropping a
 # month band style (hiatusdrag H13).
+#
+# ⭐ mvnotesize (in the list above, on mvnotes and month-dense60; 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md step 2) was run
+# red on ten mutants before it was wired in, each on its own cases: E2 off, so a sized note is measured at 10 px
+# (N1-11..14); the drawn-width fix undone, so a note is measured 6/7 px too wide (N1-11, N1-14); the two-lane height
+# rule not matching (N1-11..14); the sanitizer keeping a junk value (N4, E0); restore only when the key is present (N2,
+# N3, N4); the setter not redrawing (EX); a calendar size overriding a note's own (N2); the style bar not switching the
+# lane rules (N2); a 21 px bar at 11 px (N5); New keeping the size (N7). Removing markDirty() from the setter was ALSO
+# tried and stays green, because the redraw marks the file dirty by itself.
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
@@ -2292,12 +2339,16 @@ PYMWC
 #                          ⭐ ADDED 5 Oct 2026 (step 6): the rest of tier 1 and tier 2, so that every calendar gate 13
 #                          baselines is exported by the built app and held to the slice (X2) in the same run. About
 #                          7 s each. Their files feed gate 13, below.
+#   n4 / nm                ⭐ ADDED 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md step 4): the sized fixtures, mvnotesize-14 (14 px
+#                          notes) and mvnotesize-mixed (12 px notes, 13 px bars, one note at 14 px and one at 8). Also run
+#                          in the note-size block above, as bl is in the bar-size block; these runs feed gate 13.
 MXA="/tmp/gate${GTAG}-mxa"; rm -rf "$MXA"; mkdir -p "$MXA"
 for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blocks" "ms:-:-:monthscale" \
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large" \
+              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -2381,7 +2432,9 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
               "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
-              "nn:mvnotes:mvnotes" "bl:mvbarsize-large:mvbarsize-large (Large phase bars)"; do
+              "nn:mvnotes:mvnotes" "bl:mvbarsize-large:mvbarsize-large (Large phase bars)" \
+              "n4:mvnotesize-14:mvnotesize-14 (14 px notes)" \
+              "nm:mvnotesize-mixed:mvnotesize-mixed (12 px notes, 13 px bars, one note at 14 and one at 8)"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done

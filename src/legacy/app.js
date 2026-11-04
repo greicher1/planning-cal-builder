@@ -13304,13 +13304,39 @@ export function initLegacyApp() {
   //  - Declared up here, with the month view's other state, so no early render meets it in its TDZ
   //    (mvPillLineCount reads it).
   // ⛔ The key and both values are permanent from the first file saved with them.
-  const MV_BAR_SIZES = { large: { text: 12, tag: 11, bar: 22 }, xl: { text: 14, tag: 12, bar: 25 } };
+  // ⭐ 10-14 px (owner, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md §1a: "do sizes 10, 11, 12, 13, and 14 for the phase bar
+  // sizes"). 12 and 14 ARE Large and Extra large, still saved as 'large' and 'xl' so a v1.9.0 build reads them; 11 and
+  // 13 are new values, '11' and '13', which a v1.9.0 build drops and draws at 10 px. `line` is the bar's line box: x1.5
+  // for 12 and 14 (18, 21, as before), and a WHOLE px just under it for 11 and 13 (16, 19), never 16.5 or 19.5, because a
+  // fractional line is where Chrome's print and the writer drift apart. `bar` is that line plus 4. Names are tested
+  // one by one (mvBarSizeKnown), never by lookup, which 'toString' would pass.
+  const MV_BAR_SIZES = { '11': { text: 11, tag: 10, line: 16, bar: 20 }, large: { text: 12, tag: 11, line: 18, bar: 22 },
+                         '13': { text: 13, tag: 12, line: 19, bar: 23 }, xl: { text: 14, tag: 12, line: 21, bar: 25 } };
+  function mvBarSizeKnown(v){ return v === '11' || v === 'large' || v === '13' || v === 'xl'; }
   let mvBarSize = '';
   // The bar's label size in px: 10 at Standard, what .mv-bar sets.
-  function mvBarTextPx(){ return (mvBarSize === 'large' || mvBarSize === 'xl') ? MV_BAR_SIZES[mvBarSize].text : 10; }
-  // A bar's line box: its type x 1.5, as .mv-bar's line-height:1.5 makes it (15 px at Standard, 18 and 21 px at a size).
+  function mvBarTextPx(){ return mvBarSizeKnown(mvBarSize) ? MV_BAR_SIZES[mvBarSize].text : 10; }
+  // A bar's line box: .mv-bar's line-height:1.5 at Standard (15 px), the size's own line at a size (16, 18, 19, 21 px).
   // A month text style's size on a bar or band is written in it (mvTextCss), so a styled bar keeps the box its size has.
-  function mvBarLinePx(){ return mvBarTextPx() * 1.5; }
+  function mvBarLinePx(){ return mvBarSizeKnown(mvBarSize) ? MV_BAR_SIZES[mvBarSize].line : 15; }
+  // Note size (MONTH-NOTE-SIZE-PLAN.md; owner rulings R0-R9 by picker, 2 Nov 2026): how big the month view's notes
+  // are, 10-14 px (R1), on screen and in the month PDF.
+  //  - ⛔ CALENDAR DATA (R6): captureSnapshot()'s `mvNoteSize`, the strings '11'-'14'. 10 px IS AN ABSENT KEY, held here
+  //    as '', so every calendar saved before the setting, and every 10 px one after it, saves byte for byte as before.
+  //  - A note's EFFECTIVE size is its own month text style size if it has one (R4: any note may take 6-14 px from the
+  //    style bar), else the calendar's (mvNoteEffPx). Above 10 px a note takes that size's row of MV_NOTE_SIZES: `line`
+  //    (a WHOLE px, R1), `h1` / `h2` its one- and two-line box (lines plus 2 px padding and 1 px border, top and
+  //    bottom), and at most TWO lines (R2), the second ending in "…" (R3). At 10 px and below it keeps today's rule
+  //    exactly: a 13 px line, up to three lanes.
+  //  - ⚠️ legacy.css's "Note size" block (E1) reads h1 / h2 from the note's own --mvn-h1 / --mvn-h2 (mvTextCss writes
+  //    them), so these numbers live here once on screen; the writer's copy is plan step 3's.
+  // ⛔ The key and its four values are permanent from the first file saved with them.
+  const MV_NOTE_SIZES = { 11: { line: 14, h1: 20, h2: 34 }, 12: { line: 16, h1: 22, h2: 38 },
+                          13: { line: 17, h1: 23, h2: 40 }, 14: { line: 18, h1: 24, h2: 42 } };
+  function mvNoteSizeKnown(v){ return v === '11' || v === '12' || v === '13' || v === '14'; }
+  let mvNoteSize = '';
+  // A note's effective size in px: its own style's, else the calendar's, else 10.
+  function mvNoteEffPx(fmt){ return (fmt && fmt.size) ? fmt.size : (mvNoteSizeKnown(mvNoteSize) ? +mvNoteSize : 10); }
   // While building the PDF we walk every month in turn. That deliberately ignores the
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
@@ -13585,12 +13611,12 @@ export function initLegacyApp() {
     el.style.fontStyle = f.italic ? 'italic' : 'normal';
     el.style.lineHeight = f.size ? linePx + 'px' : String(lineRel);
   }
-  function mvNoteLineCount(text, boxW, fmt){
-    const t = String(text == null ? '' : text);
-    if(!t.trim()) return 1;
-    const sig = mvMeasureSig(fmt);
-    const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
-    if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
+  // ⛔ FROZEN EDIT E2 (owner sign-off by picker, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md R0, "Yes, this setting only"): a
+  // note whose EFFECTIVE size is above 10 px (its own style's, else the calendar's: mvNoteEffPx) is measured at that size
+  // in its row of MV_NOTE_SIZES, and takes at most TWO lanes (R2). Its key carries the size, so it never meets a 10 px
+  // count. At 10 px and below nothing here runs, and the count, the key and the measurer are exactly what they were.
+  // The hidden element both paths measure in, made once, styled as a note bar is.
+  function mvNoteMeasurer(){
     if(!_mvNoteMeasureEl){
       _mvNoteMeasureEl = document.createElement('div');
       _mvNoteMeasureEl.setAttribute('aria-hidden','true');
@@ -13599,6 +13625,37 @@ export function initLegacyApp() {
         + 'padding:2px 4px; border:1px solid transparent; white-space:pre-wrap; word-break:break-word; hyphens:auto;';
       document.body.appendChild(_mvNoteMeasureEl);
     }
+    return _mvNoteMeasureEl;
+  }
+  // ⚠️ AT THE NOTE'S DRAWN WIDTH, not frozen mvNoteBoxWidth()'s. That helper is a day column less 2 px, but the bar
+  // layer pads 3 px each side and shares the rest out by 7, so the box a note is drawn in is 6/7 px narrower (the month
+  // PDF writer's MVL_GEOMETRY comment found the same). At 10 px that has never shown; at 14 px the probe (plan step 1)
+  // found a note measured as one line at 158 px that wraps to two in its real 157.14 px box, its second line hidden.
+  function mvNoteLineCountSized(t, boxW, fmt, px){
+    const G = MV_NOTE_SIZES[px], f = fmt || {}, w = Math.max(24, boxW - 6 / 7);
+    const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '');
+    if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
+    const el = mvNoteMeasurer();
+    el.style.width = w + 'px';
+    el.style.fontSize = px + 'px';
+    el.style.fontWeight = f.bold === undefined ? '500' : (f.bold ? '700' : '400');
+    el.style.fontStyle = f.italic ? 'italic' : 'normal';
+    el.style.lineHeight = G.line + 'px';
+    el.textContent = t;
+    const lines = Math.min(2, Math.max(1, Math.round((el.offsetHeight - 6) / G.line)));
+    if(_mvNoteLineCache.size > 800) _mvNoteLineCache.clear();
+    _mvNoteLineCache.set(key, lines);
+    return lines;
+  }
+  function mvNoteLineCount(text, boxW, fmt){
+    const t = String(text == null ? '' : text);
+    if(!t.trim()) return 1;
+    const px = mvNoteEffPx(fmt);
+    if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px); }
+    const sig = mvMeasureSig(fmt);
+    const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
+    if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
+    mvNoteMeasurer();
     _mvNoteMeasureEl.style.width = Math.max(24, boxW) + 'px';
     mvMeasureFont(_mvNoteMeasureEl, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
     _mvNoteMeasureEl.textContent = t;
@@ -13624,7 +13681,8 @@ export function initLegacyApp() {
   function mvPillLineCount(text, boxW, fmt){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
-    const px = mvBarTextPx(), lineH = px * 1.5, sig = mvMeasureSig(fmt);
+    // The line is mvBarLinePx(): px x 1.5 at 10, 12 and 14 px, as it always was, and a whole px at 11 and 13 (16, 19).
+    const px = mvBarTextPx(), lineH = mvBarLinePx(), sig = mvMeasureSig(fmt);
     const key = px + '|' + Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
     if(_mvPillLineCache.has(key)) return _mvPillLineCache.get(key);
     if(!_mvPillMeasureEl){
@@ -17087,6 +17145,7 @@ export function initLegacyApp() {
     reflectDateFormat();
     reflectPaperSize();
     reflectMvNumberShootDays();
+    reflectMvSizeSelects();
   }
   // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
   // window first, because it lies over the sidebar's cards (everything below the rail) and would
@@ -17103,6 +17162,7 @@ export function initLegacyApp() {
   reflectDateFormat();
   reflectPaperSize();
   reflectMvNumberShootDays();
+  reflectMvSizeSelects();
   (function(){
     const track = document.querySelector('.side-tabs-track');
     if(!track) return;
@@ -17292,7 +17352,10 @@ export function initLegacyApp() {
   // its text inside the line box it already has, which MV_TEXT_LINE_PX holds, so no bar, band, month bar or weekday row
   // changes height. On screen a bar at 12 px cuts its descenders by 1 px, so bars and bands stop at 11.
   const mvSizeRun = (a, b)=>{ const o = []; for(let n = a; n <= b; n++) o.push(n); return o; };
-  const MV_TEXT_SIZES = { bar: mvSizeRun(6, 11), note: mvSizeRun(6, 10), month: mvSizeRun(6, 17), dow: mvSizeRun(6, 11) };
+  // ⭐ Notes run to 14 px since the note size (MONTH-NOTE-SIZE-PLAN.md R4, the owner's own answer, 2 Nov 2026: "the exact
+  // same px size offerings as the global setting, but allow you to adjust per note", 6-14 by the follow-up picker). A
+  // note above 10 px does NOT keep the 13 px line box: it takes its size's own box and lanes (mvTextCss, mvNoteLineCount).
+  const MV_TEXT_SIZES = { bar: mvSizeRun(6, 11), note: mvSizeRun(6, 14), month: mvSizeRun(6, 17), dow: mvSizeRun(6, 11) };
   // The line box each text already has: a bar's 10 px × 1.5, a note's 13 px line (MVL_GEOMETRY.noteLinePx), the month
   // name's 17 px × 1.5, the weekday row's 11 px × 1.5. A styled size is written WITH it (§3.4).
   const MV_TEXT_LINE_PX = { bar: 15, note: 13, month: 25.5, dow: 16.5 };
@@ -17315,8 +17378,24 @@ export function initLegacyApp() {
   // them). '' for no style, so an unstyled calendar's markup is byte for byte what it was. A size is written with the
   // line box the text already has (§3.4). Bold is the header's rule (mvlLineStyle): on 700, off 400, unset the text's
   // own weight. No colour on a pill (N1), so its text and ring stay in the phase's ink.
+  // ⭐ THE NOTE SIZE RIDES HERE (MONTH-NOTE-SIZE-PLAN.md §4.2), so frozen renderMonthView needs no change: a note whose
+  // EFFECTIVE size (mvNoteEffPx) is above 10 px gets its size, its whole-px line, and its one- and two-line heights as
+  // --mvn-h1 / --mvn-h2, which legacy.css's "Note size" block (E1) reads. That is the same for a note sized on its own
+  // and for every note of a sized calendar. At 10 px and below this adds nothing, so every calendar without a sized note
+  // writes the markup it always did.
   function mvTextCss(kind, key){
     const f = mvTextStyleOf(kind, key);
+    if(mvTextBox(kind, key) === 'note'){
+      const px = mvNoteEffPx(f), G = MV_NOTE_SIZES[px];
+      if(px > 10 && G){
+        let css = ` font-size:${px}px; line-height:${G.line}px; --mvn-h1:${G.h1}px; --mvn-h2:${G.h2}px;`;
+        if(f && f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
+        if(f && f.italic) css += ' font-style:italic;';
+        if(f && f.color) css += ` color:${f.color};`;
+        if(f && f.align) css += ` text-align:${f.align};`;
+        return css;
+      }
+    }
     if(!f) return '';
     let css = '';
     // A bar's or band's line box is the phase bar size's (mvBarLinePx: MV_TEXT_LINE_PX.bar, 15 px, at Standard).
@@ -21609,7 +21688,9 @@ export function initLegacyApp() {
       weight: box === 'note' ? 500 : box === 'bar' ? 600 : 700,
       bold: box !== 'note',
       align: (kind === 'band' || kind === 'frame') ? 'center' : 'left',
-      size: box === 'month' ? 17 : box === 'dow' ? 11 : box === 'bar' ? mvBarTextPx() : 10,   // a bar's: the phase bar size's
+      // a bar's: the phase bar size's; a note's: the calendar's note size (MONTH-NOTE-SIZE-PLAN.md §4.8), so picking it
+      // stores nothing and the note keeps following the calendar
+      size: box === 'month' ? 17 : box === 'dow' ? 11 : box === 'bar' ? mvBarTextPx() : mvNoteEffPx(null),
     };
   }
   // The style a pick carries: a day note's is on its entry.
@@ -21679,6 +21760,9 @@ export function initLegacyApp() {
       Object.keys(cur).forEach(p=>{ if(cur[p] === '' || cur[p] == null) delete cur[p]; });
       write(Object.keys(cur).length ? cur : null);
     });
+    // A note given a size above 10 px here (or cleared back) turns the note size's lane rules on or off
+    // (MONTH-NOTE-SIZE-PLAN.md R4), before the redraw, as update() does it for every other path.
+    reflectMvNoteSize();
     render(currentSchedule);
     if(!live){ pushUndoSnapshot(); }
     markDirty();
@@ -23993,6 +24077,8 @@ export function initLegacyApp() {
     // ⛔ BEFORE render() too: the phase bar size's <body> class, so the bars are drawn at their size and anything that
     // measures them after the render sees it (MONTH-BAR-SIZE-PLAN.md; see reflectMvBarSize).
     reflectMvBarSize();
+    // ...and the note size's (MONTH-NOTE-SIZE-PLAN.md §4.2; see reflectMvNoteSize), for the same reason.
+    reflectMvNoteSize();
     // ⛔ THE PHASE MAP BEFORE render() (MONTH-RAIL-PLAN.md, the full gate of step 6). The map sits above #table-wrap,
     // so its height decides where the calendar starts. Pushed only by the after-render observer, it appeared a task
     // AFTER a switch to the month view and dropped the calendar ~70 px under everything already placed against it:
@@ -25180,31 +25266,67 @@ export function initLegacyApp() {
   // rather than stored; the names are tested one by one, never by MV_BAR_SIZES[next], which 'toString' would pass.
   function setMvBarSize(next){
     const v = (next === 'standard') ? '' : next;
-    if(v !== '' && v !== 'large' && v !== 'xl') return;
+    if(v !== '' && !mvBarSizeKnown(v)) return;
     if(v === mvBarSize) return;
     mvBarSize = v;
     update();
     markDirty();
+  }
+  // ---------- Note size (MONTH-NOTE-SIZE-PLAN.md §4.1) ----------
+  // setMvBarSize's shape: CALENDAR DATA, one undo step, the file dirtied. '' is 10 px (an absent key).
+  function setMvNoteSize(next){
+    const v = (next === '10') ? '' : next;
+    if(v !== '' && !mvNoteSizeKnown(v)) return;
+    if(v === mvNoteSize) return;
+    mvNoteSize = v;
+    update();
+    markDirty();
+  }
+  // Is any note in the month view above 10 px? The calendar's size, or one note's own (a day note's `fmt`, or a
+  // waterfall line's month style). E1's lane rules key on the answer, so a calendar with no sized note never has them.
+  function mvAnyNoteSized(){
+    if(mvNoteSizeKnown(mvNoteSize)) return true;
+    const wf = mvTextStyle.wfnote || {};
+    if(Object.keys(wf).some(k=> wf[k] && wf[k].size > 10)) return true;
+    return Object.keys(dayNotes).some(iso=> Array.isArray(dayNotes[iso])
+      && dayNotes[iso].some(e=> e && isPlainObj(e.fmt) && e.fmt.size > 10));
+  }
+  // The <body> class legacy.css's "Note size" block keys its LANE rules on (the note's own geometry rides in its inline
+  // style), set by update() BEFORE render(), as reflectMvBarSize is and for its reasons.
+  function reflectMvNoteSize(){
+    document.body.classList.toggle('mv-note-sized', mvAnyNoteSized());
+    reflectMvSizeSelects();
   }
   // The <body> class legacy.css's E1 rules key on, and the control's value. Called by update() BEFORE render(), so
   // every path that can change the size (a pick, undo/redo, Load, backup recovery, New) has the class on before the
   // bars are drawn, and whatever measures a bar right after the render (the edge grips, the reorder grip) reads its
   // new height. A <body> class rather than one on #table-wrap because #table-wrap is the frozen render's own
   // container; E1 scopes every rule to #table-wrap, so the class can never reach #print-root.
-  // ⛔ The value is PUSHED to React (bridge.js), never written to a radio's .checked: the mvProdLabel reason.
+  // Since 2 Nov 2026 the control is a dropdown, #pref-mv-barsize (MONTH-NOTE-SIZE-PLAN.md §1a), REFLECTED as #wf-paper
+  // is: its option values are mvBarSize's own ('' for 10 px), so .value is written straight from the store.
   function reflectMvBarSize(){
+    document.body.classList.toggle('mv-bar-11', mvBarSize === '11');
     document.body.classList.toggle('mv-bar-large', mvBarSize === 'large');
+    document.body.classList.toggle('mv-bar-13', mvBarSize === '13');
     document.body.classList.toggle('mv-bar-xl', mvBarSize === 'xl');
-    chrome.mvBarSize({ value: mvBarSize || 'standard' });
+    reflectMvSizeSelects();
   }
-  // The control's radios, caught on document by their `name` (set in Sidebar.jsx, so stable), as "Label Production
-  // by"'s are and for its reasons: 'click', never 'change' (a controlled radio fires none); the value, never
-  // .checked (React has restored it by now); and a click on the segment already shown is not a pick.
-  document.addEventListener('click', e=>{
-    const t = e.target;
-    if(!t || t.name !== 'mv-bar-size' || t.disabled) return;
-    if(t.value === (mvBarSize || 'standard')) return;
-    setMvBarSize(t.value);
+  // Both size dropdowns, written from their stores. Also run when the Settings tab is shown (setSidebarTab), so a
+  // late React commit cannot leave either on its first option.
+  function reflectMvSizeSelects(){
+    const b = document.getElementById('pref-mv-barsize'), n = document.getElementById('pref-mv-notesize');
+    if(b && b.value !== mvBarSize) b.value = mvBarSize;
+    if(n && n.value !== mvNoteSize) n.value = mvNoteSize;
+  }
+  // ⛔ 'change' on document, as #wf-paper's: React renders the selects, so they are reached by delegation, never
+  // captured at evaluation time. Either setter ignores a value it does not know and leaves the store as it was, so
+  // the select is put back to the store whatever happened.
+  document.addEventListener('change', e=>{
+    const id = e.target && e.target.id;
+    if(id !== 'pref-mv-barsize' && id !== 'pref-mv-notesize') return;
+    if(id === 'pref-mv-barsize') setMvBarSize(e.target.value);
+    else setMvNoteSize(e.target.value);
+    reflectMvSizeSelects();
   });
   // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
   // and a keyboard toggle (Space) fires change too.
@@ -26023,6 +26145,7 @@ export function initLegacyApp() {
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     mvNumberShootDays = false; reflectMvNumberShootDays();
     mvBarSize = '';   // Standard; the update() after New puts the class and the control in step
+    mvNoteSize = '';  // 10 px notes, the same way (MONTH-NOTE-SIZE-PLAN.md §4.1)
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -27369,6 +27492,10 @@ export function initLegacyApp() {
       // 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md §4.1): the month view's phase bar size. ⛔ PERMANENT key, whose two values
       // are 'large' and 'xl'. STANDARD IS AN ABSENT KEY, so a Standard calendar's snapshot is the one it was before.
       ...(mvBarSize ? {mvBarSize: mvBarSize} : {}),
+      // 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md): the phase bar size's new values '11' and '13' (§1a), and the month view's
+      // note size. ⛔ PERMANENT key, whose four values are the strings '11' to '14'. 10 px IS AN ABSENT KEY, so a 10 px
+      // calendar's snapshot is the one it was before.
+      ...(mvNoteSize ? {mvNoteSize: mvNoteSize} : {}),
       // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
       // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
       ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
@@ -32024,11 +32151,29 @@ export function initLegacyApp() {
   // this same object, for the emitter.
   // ⚠️ HAND COPIES of legacy.css's E1 (screen) and E3 (print) rules and app.js's MV_BAR_SIZES. The monthemit leg holds
   // them to Chrome's print layout of a sized calendar, so a change to one alone fails there.
-  const MVL_BAR_SIZES = Object.freeze({ large: Object.freeze({ size: 12, tag: 11, radius: 11 }),
+  // ⭐ 11 and 13 px (MONTH-NOTE-SIZE-PLAN.md §1a, 2 Nov 2026) carry a `line`, the WHOLE px legacy.css writes for them
+  // (16, 19), where x1.5 would make 16.5 and 19.5. Large and Extra large carry none, so every number they are drawn with
+  // is the one they always were (size x 1.5).
+  const MVL_BAR_SIZES = Object.freeze({ '11': Object.freeze({ size: 11, tag: 10, radius: 10, line: 16 }),
+                                        large: Object.freeze({ size: 12, tag: 11, radius: 11 }),
+                                        '13': Object.freeze({ size: 13, tag: 12, radius: 12, line: 19 }),
                                         xl: Object.freeze({ size: 14, tag: 12, radius: 13 }) });
   // A phase bar size's entry, or null at Standard (and for anything that is not a size: the names are tested one by
   // one, never by lookup, which 'toString' would pass).
-  function mvlBarSize(size){ return (size === 'large' || size === 'xl') ? MVL_BAR_SIZES[size] : null; }
+  function mvlBarSize(size){ return (size === '11' || size === 'large' || size === '13' || size === 'xl') ? MVL_BAR_SIZES[size] : null; }
+  // Note size (MONTH-NOTE-SIZE-PLAN.md §4.5; owner rulings R1-R4, 2 Nov 2026): a note above 10 px has its size's WHOLE-px
+  // line and at most TWO lines (R2), the second ending in "…" (R3). The writer reads a note's size from the inline
+  // style the renderer wrote (mvTextCss: a note's own style size, or the calendar's), so a note sized on its own and a
+  // note of a sized calendar are one case, and no argument carries the calendar's size. A note at 10 px or less is
+  // modelled exactly as before. ⚠️ HAND COPY of app.js's MV_NOTE_SIZES (and so of legacy.css's E1 / E3).
+  const MVL_NOTE_SIZES = Object.freeze({ 11: Object.freeze({ line: 14 }), 12: Object.freeze({ line: 16 }),
+                                         13: Object.freeze({ line: 17 }), 14: Object.freeze({ line: 18 }) });
+  function mvlNoteSize(it){
+    const z = it.kind === 'note' && it.fmt && it.fmt.size;
+    return (z === 11 || z === 12 || z === 13 || z === 14) ? MVL_NOTE_SIZES[z] : null;
+  }
+  // The lanes a note takes: its lines, at most three at 10 px (as on screen) and at most two above it.
+  function mvlNoteLanes(it){ return Math.min(mvlNoteSize(it) ? 2 : MVL_GEOMETRY.noteMaxLanes, it.lines.length); }
   // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
   // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
   // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
@@ -32072,7 +32217,7 @@ export function initLegacyApp() {
         }
       });
       const packed = mvlPackLanes(w.items, function(it){
-        if(it.kind === 'note') return Math.min(MVL_GEOMETRY.noteMaxLanes, it.lines.length);
+        if(it.kind === 'note') return mvlNoteLanes(it);
         if(pillWidthOf && mvlWrapsPill(it)) return it.lines ? 2 : 1;
         return it.htmlLanes;
       });
@@ -32263,8 +32408,12 @@ export function initLegacyApp() {
     S.big = Z ? { size: Z.size * k, weight: B.weight, padY: B.padY * k, padX: B.padX, marginX: B.marginX,
                   border: B.border, borderAlpha: B.borderAlpha, radius: Z.radius * k, pillRim: B.pillRim } : S.bar;
     S.bigTag = Z ? { size: Z.tag * k, weight: P.tag.weight, ink: P.tag.ink, gap: P.tag.gap } : S.tag;
+    // 11 and 13 px only: the bar's whole-px line (mvlBarLine). Large and Extra large get no `line`, so theirs stays x1.5.
+    if(Z && Z.line) S.big.line = Z.line * k;
     return S;
   }
+  // A bar's line box at the week paint: its size's whole-px line at 11 and 13 px, else its type x 1.5, as ever.
+  function mvlBarLine(B, S){ return B.line != null ? B.line : B.size * S.lineHeight; }
 
   // ---- Colour: what the renderer writes, as 0-1 RGB, and opacity mixed in ----
   // pdfRgb() is not used: it reads six-digit hex only, so '#333' came out navy and rgba() wrote NaN
@@ -32446,10 +32595,13 @@ export function initLegacyApp() {
   function mvlBarHeight(it, S){
     // A note is drawn from S.bar, everything else from S.big: the phase bar size (S.big IS S.bar at Standard).
     const B = it.kind === 'note' ? S.bar : S.big;
+    // A note above 10 px (mvlNoteSize): at most two of its size's lines, -webkit-line-clamp:2 (E3).
+    const Zn = mvlNoteSize(it);
+    if(Zn) return Math.min(2, it.lines.length) * Zn.line * S.k + 2 * (S.note.padY + B.border);
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
     // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
-    if(it.lines) return Math.min(2, it.lines.length) * B.size * S.lineHeight + 2 * (B.padY + B.border);
-    return B.size * S.lineHeight + 2 * (B.padY + B.border);
+    if(it.lines) return Math.min(2, it.lines.length) * mvlBarLine(B, S) + 2 * (B.padY + B.border);
+    return mvlBarLine(B, S) + 2 * (B.padY + B.border);
   }
   function mvlLaneTracks(items, availH, S){
     const P = S;
@@ -32480,19 +32632,53 @@ export function initLegacyApp() {
     });
     const limit = grow.map(function(g, i){ return g === Infinity ? base[i] : g; });
     if(availH === undefined || availH === Infinity) return limit;
-    // Maximize: share the free room equally, freezing each lane at its limit, until the room is gone.
+    // Maximize: share the free room out over the lanes below their limit.
+    // ⭐ WHEN EVERY OPEN LANE HAS THE SAME ROOM (every 10 px calendar: a pill, a band and a one-line note are each a
+    // natural 19 px in a 17 px lane), the original code below: freeze each lane at its limit and share what is left
+    // until the room is gone. Its arithmetic is untouched, so every existing month is drawn byte for byte as before.
+    // ⭐ WHEN THE ROOMS DIFFER (a sized note's lanes beside a pill's: MONTH-NOTE-SIZE-PLAN.md step 3), Chrome's own rule,
+    // which is NOT that (grid_track_sizing_algorithm.cc, MaximizeTracks -> DistributeExtraSpaceToSetsEqually; measured
+    // in Chrome 152 and 156): the lanes are grouped into SETS, the runs between the lines where any bar or note starts
+    // or ends; the sets are taken in order of their room, least first (ties keep lane order: std::sort over so few is an
+    // insertion sort); each takes the free room still left times its lanes over the lanes still to come, at most its own
+    // room, shared evenly over its lanes; and what is left at the end is NOT shared again. So a pill's lane with 2 px of
+    // room ahead of two-lane notes with 1 px each takes only 1.04 px of 26 px over 25 lanes (the monthwriter leg's A3
+    // found the 0.97 px this used to differ by, on month-dense60 at 12 px). ⚠️ Not modelled: Chrome truncates each share
+    // to its 1/64 px grid, a few hundredths of a px down a crowded week, and above about 30 sets its std::sort is no
+    // longer an insertion sort, so equal rooms may be taken in another order.
     const size = base.slice();
     let free = availH - size.reduce(function(a, b){ return a + b; }, 0) - P.laneGap * Math.max(0, n - 1);
     let open = [];
     for(let i = 0; i < n; i++) if(limit[i] > size[i]) open.push(i);
-    while(free > 1e-9 && open.length){
-      const share = free / open.length, next = [];
-      open.forEach(function(i){
-        const room = limit[i] - size[i];
-        if(room <= share){ size[i] = limit[i]; free -= room; } else next.push(i);
+    const room0 = open.length ? limit[open[0]] - size[open[0]] : 0;
+    if(open.every(function(i){ return Math.abs(limit[i] - size[i] - room0) < 1e-9; })){
+      while(free > 1e-9 && open.length){
+        const share = free / open.length, next = [];
+        open.forEach(function(i){
+          const room = limit[i] - size[i];
+          if(room <= share){ size[i] = limit[i]; free -= room; } else next.push(i);
+        });
+        if(next.length === open.length){ next.forEach(function(i){ size[i] += share; }); break; }
+        open = next;
+      }
+    } else if(free > 1e-9){
+      const cuts = [0, n];
+      items.forEach(function(it){ cuts.push(it.lane, it.lane + it.lanes); });
+      const lines = cuts.filter(function(x, q, a){ return x >= 0 && x <= n && a.indexOf(x) === q; }).sort(function(a, b){ return a - b; });
+      const sets = [];
+      for(let q = 0; q + 1 < lines.length; q++){
+        let room = 0;
+        for(let L = lines[q]; L < lines[q + 1]; L++) room += limit[L] - size[L];
+        sets.push({ from: lines[q], to: lines[q + 1], room: room });
+      }
+      sets.sort(function(a, b){ return a.room - b.room; });   // stable: ties keep lane order
+      let lanesLeft = n;
+      sets.forEach(function(st){
+        const count = st.to - st.from;
+        const share = Math.min(count === lanesLeft ? free : free * count / lanesLeft, st.room);
+        for(let L = st.from; L < st.to; L++) size[L] += share / count;
+        free -= share; lanesLeft -= count;
       });
-      if(next.length === open.length){ next.forEach(function(i){ size[i] += share; }); break; }
-      open = next;
     }
     return size;
   }
@@ -32554,7 +32740,28 @@ export function initLegacyApp() {
     // slants with an italic bar, as CSS passes italic down to it. A pill's ring is untouched (N1).
     const F = it.fmt || {}, skew = F.italic ? MVL_PAINT.italicSkew : 0;
     const shift = function(al, room, w){ return al === 'center' ? (room - w) / 2 : al === 'right' ? room - w : 0; };
-    if(it.kind === 'note'){
+    if(it.kind === 'note' && mvlNoteSize(it)){
+      // A note above 10 px (MONTH-NOTE-SIZE-PLAN.md R2, R3): its first two lines at its size's line, and when there are
+      // more, the second cut as -webkit-line-clamp cuts it, exactly as a wrapping one-day pill's: the line as laid out,
+      // then the "…" after it, shortened between characters only if the "…" would not fit (role bar-ell).
+      const N = P.note, wt = F.weight || N.weight, sz = F.size * P.k, nLine = mvlNoteSize(it).line * P.k;
+      const lm = mvlLineMetrics(fonts[wt].font, sz, nLine), nal = F.align || 'left', ncw = pw - 2 * N.padX;
+      const nOf = function(s){ return mvlMeasure(fonts, wt, s, sz); };
+      const put = function(s, li, x, role){
+        if(s === '') return;
+        out.push(tag({ k: 'text', s: s, x: x, y: py + N.padY + li * nLine + lm.base, w: nOf(s), wt: wt, size: sz,
+                       c: ink, ls: 0, skew: skew, role: role, li: li }));
+      };
+      const at = function(s){ return px + N.padX + Math.max(0, shift(nal, ncw, nOf(s))); };
+      put(it.lines[0], 0, at(it.lines[0]), 'bar-text');
+      if(it.lines.length === 2) put(it.lines[1], 1, at(it.lines[1]), 'bar-text');
+      else if(it.lines.length > 2){
+        const s2 = it.lines[1], ellW = nOf('…');
+        const head = (nOf(s2) + ellW <= ncw) ? s2 : mvlLongestStart(s2, ncw - ellW, nOf);
+        put(head, 1, px + N.padX, 'bar-text');
+        put('…', 1, px + N.padX + nOf(head), 'bar-ell');
+      }
+    } else if(it.kind === 'note'){
       const N = P.note, wt = F.weight || N.weight, sz = F.size ? F.size * P.k : N.size;
       const lm = mvlLineMetrics(fonts[wt].font, sz, N.lineH), nal = F.align || 'left', ncw = pw - 2 * N.padX;
       it.lines.forEach(function(s, li){
@@ -32566,7 +32773,7 @@ export function initLegacyApp() {
       });
     } else {
       const bwt = F.weight || B.weight, bsz = F.size ? F.size * P.k : B.size;
-      const lm = mvlLineMetrics(fonts[bwt].font, bsz, B.size * P.lineHeight);
+      const lm = mvlLineMetrics(fonts[bwt].font, bsz, mvlBarLine(B, P));
       const cx = px + B.padX, cw = pw - 2 * B.padX, base = py + B.padY + lm.base;
       const wOf = function(s){ return mvlMeasure(fonts, bwt, s, bsz); };
       const ellW = wOf('…');
@@ -32581,12 +32788,14 @@ export function initLegacyApp() {
       // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line. ⚠️ A bar whose size is
       // styled carries M1's `line-height:15px`, which the tag INHERITS as a length (not as 1.5 x its own 9 px), so then its
       // line box is the bar's 15 px and its baseline sits that much lower (W2; the monthemit leg measured 1 px).
-      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, F.size ? B.size * P.lineHeight : T.size * P.lineHeight).base;
+      // At 11 and 13 px the bar's line-height is a LENGTH too (legacy.css writes 16px / 19px), so the tag inherits it as
+      // it inherits M1's, and its line box is the bar's.
+      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, (F.size || B.line != null) ? mvlBarLine(B, P) : T.size * P.lineHeight).base;
       if(it.lines){
         // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6): its first two lines as the model broke them,
         // and when there are more, the second cut as -webkit-line-clamp cuts it -- the line as laid out, then the
         // "…" after it, shortened between characters only if the "…" would not fit (the bar-ell role, as ever).
-        const lineH = B.size * P.lineHeight;
+        const lineH = mvlBarLine(B, P);
         const lx = function(s){ return cx + Math.max(0, shift(al, cw, wOf(s))); };
         put(it.lines[0], lx(it.lines[0]), base, bwt, bsz, ink, 'bar-text');
         if(it.lines.length === 2) put(it.lines[1], lx(it.lines[1]), base + lineH, bwt, bsz, ink, 'bar-text');
@@ -33015,17 +33224,22 @@ export function initLegacyApp() {
   // first-fit rule at the new spans, exactly as mvlMonthLayout packs it at full size (notes are placed
   // last, so only notes can move). With each week, its height at k and the lanes it reaches.
   function mvlShrinkWeeks(month, fonts, k, F){
-    const G = MVL_GEOMETRY, S = mvlWeekPaint(k, month.barSize), ln = MVL_PAINT.line;
+    const S = mvlWeekPaint(k, month.barSize), ln = MVL_PAINT.line;
     const widthOf = function(s){ return mvlTextWidth(fonts[S.note.weight].font, s, S.note.size); };
     return month.weeks.map(function(wk, wi){
       const items = wk.items.map(function(it){
         const c = {};
         for(const key in it) c[key] = it[key];
-        if(it.kind === 'note') c.lines = mvlNoteLines(it.text, widthOf);
+        // A note above 10 px re-wraps at ITS size times k, in its own weight (MONTH-NOTE-SIZE-PLAN.md §4.5); every other
+        // note as it always did.
+        if(mvlNoteSize(it)){
+          const wt = it.fmt.weight || S.note.weight, sz = it.fmt.size * k;
+          c.lines = mvlNoteLines(it.text, function(s){ return mvlTextWidth(fonts[wt].font, s, sz); });
+        } else if(it.kind === 'note') c.lines = mvlNoteLines(it.text, widthOf);
         return c;
       });
       const packed = mvlPackLanes(items, function(it){
-        return it.kind === 'note' ? Math.min(G.noteMaxLanes, it.lines.length) : it.lanes;
+        return it.kind === 'note' ? mvlNoteLanes(it) : it.lanes;
       });
       items.forEach(function(it, q){ it.lane = packed[q].lane; it.lanes = packed[q].lanes; });
       const need = mvlWeekNeed(items, S), top = wi ? ln : 0;
@@ -35081,7 +35295,10 @@ export function initLegacyApp() {
     if('versionAsTyped' in s && s.versionAsTyped !== true){ bad.n++; delete s.versionAsTyped; }
     // Phase bar size (MONTH-BAR-SIZE-PLAN.md): only the two words a Save writes. Anything else is dropped, so it opens
     // at Standard, as a file with no key does.
-    if('mvBarSize' in s && s.mvBarSize !== 'large' && s.mvBarSize !== 'xl'){ bad.n++; delete s.mvBarSize; }
+    // Since 2 Nov 2026 also '11' and '13' (MONTH-NOTE-SIZE-PLAN.md §1a), which a v1.9.0 build drops here and draws at 10 px.
+    if('mvBarSize' in s && !mvBarSizeKnown(s.mvBarSize)){ bad.n++; delete s.mvBarSize; }
+    // Note size (MONTH-NOTE-SIZE-PLAN.md §4.1): only '11' to '14'. Anything else is dropped and opens at 10 px.
+    if('mvNoteSize' in s && !mvNoteSizeKnown(s.mvNoteSize)){ bad.n++; delete s.mvNoteSize; }
     // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
     // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`,
     // and since §9 `under` (a phase key) or `bottom: true` in place of `top`, and `day`, the ISO date it was set on.
@@ -35568,7 +35785,9 @@ export function initLegacyApp() {
     reflectMvNumberShootDays();
     // ⛔ UNCONDITIONAL (MONTH-BAR-SIZE-PLAN.md §4.1): a file with no key is Standard -- never the previously open
     // file's size. The update() after the restore puts the class and the control in step (reflectMvBarSize).
-    mvBarSize = (snap.mvBarSize === 'large' || snap.mvBarSize === 'xl') ? snap.mvBarSize : '';
+    mvBarSize = mvBarSizeKnown(snap.mvBarSize) ? snap.mvBarSize : '';
+    // ⛔ UNCONDITIONAL too (MONTH-NOTE-SIZE-PLAN.md §4.1): a file with no key has 10 px notes.
+    mvNoteSize = mvNoteSizeKnown(snap.mvNoteSize) ? snap.mvNoteSize : '';
     // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
     // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
     mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];

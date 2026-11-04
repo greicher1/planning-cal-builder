@@ -88,7 +88,7 @@
     "lane": 2,
     "color": null,
     "fmt": {
-     "size": 11,
+     "size": 15,
      "bold": true,
      "italic": true,
      "color": "#00ffff",

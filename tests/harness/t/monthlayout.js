@@ -99,11 +99,17 @@ window.addEventListener('load', function () { (async function () {
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.
-    var mnlSrc = slice('let _mvNoteMeasureEl = null;', 'return lines;\n  }', 'mvNoteLineCount');
+    // ⚠️ Since the note size (MONTH-NOTE-SIZE-PLAN.md, 2 Nov 2026) the measurer is three functions (mvNoteMeasurer and
+    // mvNoteLineCountSized before mvNoteLineCount), so the slice runs to the comment that follows mvNoteLineCount, and it
+    // carries the note size's state, which mvNoteLineCount reads (mvNoteEffPx; '' here, so every count is the 10 px one).
+    var mnlFrom = src.indexOf('let _mvNoteMeasureEl = null;'), mnlTo = src.indexOf('  // \u2b50 ONE-DAY CUSTOM PILLS WRAP', mnlFrom);
+    if(mnlFrom < 0 || mnlTo < 0) throw new Error('could not locate mvNoteLineCount in src/legacy/app.js: re-anchor this leg');
+    var mnlSrc = src.slice(mnlFrom, mnlTo);
+    var nsSrc = slice('const MV_NOTE_SIZES = {', "(mvNoteSizeKnown(mvNoteSize) ? +mvNoteSize : 10); }", 'the note size state (MV_NOTE_SIZES..mvNoteEffPx)');
     // Since frozen edit M1 (27 Oct 2026, MONTH-TEXT-STYLE-PLAN.md §6) the measurer holds a styled note's line box at
     // the store's own constant, so the slice carries it.
     var lineSrc = slice('const MV_TEXT_LINE_PX = {', '};', 'MV_TEXT_LINE_PX');
-    var F = new Function("'use strict';\n" + dayMsSrc + '\n' + isoSrc + '\n' + ttfSrc + '\n' + hiSrc + '\n' + mvlSrc + '\n' + lineSrc + '\n' + mnlSrc +
+    var F = new Function("'use strict';\n" + dayMsSrc + '\n' + isoSrc + '\n' + ttfSrc + '\n' + hiSrc + '\n' + mvlSrc + '\n' + lineSrc + '\n' + nsSrc + '\n' + mnlSrc +
       '\nreturn {G: MVL_GEOMETRY, loadInterPdfFont: loadInterPdfFont, mvlTextWidth: mvlTextWidth, mvlWrapText: mvlWrapText,' +
       ' mvlNoteLines: mvlNoteLines, mvlParseMonth: mvlParseMonth, mvlPackLanes: mvlPackLanes, mvlMonthLayout: mvlMonthLayout,' +
       ' buildMonthLayout: buildMonthLayout, ttfTextWidth: ttfTextWidth, mvNoteLineCount: mvNoteLineCount};')();

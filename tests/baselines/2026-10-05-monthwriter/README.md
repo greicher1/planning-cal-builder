@@ -48,6 +48,32 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ NEW CASES 2 Nov 2026 — `mvnotesize-14` and `mvnotesize-mixed` (MONTH-NOTE-SIZE-PLAN.md step 4); every other case untouched
+
+- **Signed off** on `monthbase.py sheets` contact sheets of all 17 months of each: the `mvnotes` baseline (the same
+  calendar at 10 px) | the new export | difference, so only what the sizes change shows red. The owner was also shown
+  the classification below. The answer was *"Yes, cut both"* (picker, 2 Nov 2026).
+- **What they hold.** Both are `mvnotes`' calendar with the sizes set and nothing else (each fixture's snapshot differs
+  from `mvnotes.sptcal` only by its size keys, plus three empty fields a newer Save writes):
+  - `mvnotesize-14`: `mvNoteSize: "14"`, so every note is at 14 px, in a 24 px box (42 px for two lines), cut at two lines.
+    Bars stay at Standard. 17 pages, 85,669 bytes, sha256 `4e9044e69ccf2c69…`.
+  - `mvnotesize-mixed`: `mvNoteSize: "12"` and `mvBarSize: "13"`. December 2025's two notes on the 10th have sizes of
+    their own (`fmt.size` 14 and 8), so one note is above the calendar's size and one is below 10 px. 17 pages,
+    85,174 bytes, sha256 `87f31bc80a808fb6…`.
+- **What moved against `mvnotes`, classified** (`pdftotext -raw`, word counts page by page, "…" set aside):
+  - **`mvnotesize-14`:** the same 17 months, and the same words except where three notes are cut at two lines with
+    "…": *Start Principal / Photography…* (on June's page and July's spillover row), *Principal / Photography…*
+    (Wraps 10/20/26) and *Day After / Thanksgiving…*. August 2026 and April 2027 hold no note and are pixel-identical.
+  - **`mvnotesize-mixed`:** one note cut, *Day After / Thanksgiving…*. At 13 px bars, two one-day bars are cut at two
+    lines by the bar rule v1.9.0 already has: *Network Table / Read and Studio…* and *Costume and Hair / Camera Tests
+    Wi…* (the second on April's and May's pages). The 10 px baseline's bar reads *…Camera Tests With Th…*.
+- **No other case moved:** every one of the 22 existing cases was byte-identical on the step-3 build, and the full
+  gate on the merged build holds them (MONTH-NOTE-SIZE-PLAN.md §6 step 4).
+- **Deterministic:** two exports of each, from separate runs, were byte-identical.
+- **Cut from** branch `month-note-size` with `main` merged in (`7745a86`), build `dist/index.html` sha256
+  `3c45a1a8deb91…` (1,958,216 bytes): `monthexport`'s X2 file, run case by case on port 8419 (9/9 each), clock pinned to
+  22 Sep 2026, Google Chrome 156.0.8078.74 on macOS 15.7.9. Runs `n4` and `nm` in `gate.sh`.
+
 ## ✅ RE-CUT 30 Oct 2026 — FIFTEEN CASES: a holiday's day takes the weekend's grey (frozen edit HT1)
 
 - **The ruling.** Owner, 30 Oct 2026, by picker: *"Weekend tint"* (over the Off hatch), *"Screen and both PDFs"*, and
@@ -230,6 +256,8 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | `mvheader` | 15 | 93,711 | `3b27269ca9927293…` |
 | `mvheaderlegacy` | 15 | 78,664 | `040e7fa35a7c88b1…` |
 | `mvnotes` | 17 | 85,263 | `548db8b44109b249…` |
+| `mvnotesize-14` | 17 | 85,669 | `4e9044e69ccf2c69…` |
+| `mvnotesize-mixed` | 17 | 85,174 | `87f31bc80a808fb6…` |
 | `notewrap` | 16 | 82,381 | `c6859e3548abb580…` |
 | `reference` | 16 | 81,805 | `bc2f28cdedd335fd…` |
 | `shootorder` | 16 | 81,796 | `57d295b56f8d85e7…` |
@@ -256,6 +284,8 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
 | `notewrap` | four long texts, made through the real UI |
 | `carry-rich` | every store populated |
 | `halfdays` | ⭐ ADDED 15 Oct 2026: 4.5-day episodes (one of 5), so Production splits per episode. Its switch days' two bars stacked; since the 16 Oct re-cut they meet half way through the square in one lane |
+| `mvnotesize-14` | ⭐ ADDED 2 Nov 2026: the month view's Note size at 14 px; notes on two lines at most, cut with "…" |
+| `mvnotesize-mixed` | ⭐ ADDED 2 Nov 2026: 12 px notes, 13 px bars, and notes with sizes of their own (14 and 8 px) |
 
 **Held to another case's file**, with none of their own:
 - the reference under UTC+14, and in a 1280 px window, are held to `reference`;
@@ -369,6 +399,7 @@ Copy each run to its case:
 r→reference  b→blocks  ms→monthscale  sp→colswap-simpost-refuse  sr→stintswap-reshape  do→dayoverrides
 mh→mvheader  ml→mvheaderlegacy  oh→dayoverrides-onhalf  lc→month-lanecap  hb→hiatus-blanklabel
 d6→month-dense60  mn→monthnotes  so→shootorder  nw→notewrap  cr→carry-rich  hd→halfdays  nn→mvnotes  bo→blocksoff
+bl→mvbarsize-large  n4→mvnotesize-14  nm→mvnotesize-mixed
 ```
 
 Then run `python3 tests/harness/monthbase.py table tests/baselines/<dir>` for the table above. A new case needs a run

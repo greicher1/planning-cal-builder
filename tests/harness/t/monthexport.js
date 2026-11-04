@@ -111,6 +111,7 @@ window.addEventListener('load', function () { (async function () {
     // The phase bar size (MONTH-BAR-SIZE-PLAN.md step 3): ?barsize= picks one through the control. The app's export
     // reads the calendar's own; the slice below is handed the size on screen, which is the same.
     if(await T.applyBarSizeQuery()) await settle('the calendar at its bar size');
+    if(await T.applyNoteSizeQuery()) await settle('the calendar at its note size');   // MONTH-NOTE-SIZE-PLAN.md step 3
     info.barSize = T.barSizeShown();
     var title = (document.getElementById('show-title').value || '').trim();
     var wantName = (title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '') + 'Month Calendar.pdf';
@@ -189,7 +190,7 @@ window.addEventListener('load', function () { (async function () {
       // No print document (the switch did not reach the print path) is the case's failure, judged there.
       if(!got) return {layout: {months: []}, bytes: new Uint8Array(0), months: 0, printed: false};
       var dom = new DOMParser().parseFromString('<div id="x">' + printed + '</div>', 'text/html');
-      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW, pillW, null, T.barSizeShown()); });
+      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW, pillW, fonts, T.barSizeShown()); });   // fonts, as buildMonthLayout passes them (W3; a sized note's own size)
       var layout = F.fitMonthLayout({geometry: F.G, months: months}, fonts);
       return {layout: layout, bytes: await F.buildMonthPdf(layout), months: months.length, printed: true};
     }
