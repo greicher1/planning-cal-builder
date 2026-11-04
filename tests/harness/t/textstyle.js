@@ -299,7 +299,12 @@ window.addEventListener('load', function () { (async function () {
     check(/^CARRY-NOTE$/.test((noteTd().textContent || '').trim()), 'D5 Escape leaves the note as it was');
     await click(bandTd());
     T.openCell(bandTd()); await settle();
-    check(!!q('.note-pop'), 'D6 a double-click opens a hiatus band\'s editor');
+    // ⛔ FLIPPED 4 Nov 2026 (owner: an all-phase hiatus's name and colour are set on its sidebar card only). CARRY-HIATUS
+    // is an all-phase band, so its double-click opens no editor now: it shows the card, with the name box focused. A
+    // phase's own band still opens its editor (hiatussidebar W5).
+    var d6focus = !!document.activeElement && document.activeElement.classList.contains('hiatus-name');
+    check(!q('.note-pop') && d6focus, 'D6 a double-click on an all-phase hiatus band opens NO editor: its sidebar card, name box focused');
+    if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
     key('Escape'); await settle();
     await click(phaseIn(qa('#table-wrap tbody tr')[1]));
     key('Enter'); await settle();

@@ -42,6 +42,21 @@ changed" from the box, and now reads an unstyled `is-edited` class on the episod
 now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
 the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
 
+### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
+
+The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
+be possible in the left side bar"*.
+- Double-clicking an all-phase hiatus band in the waterfall, or pressing Enter on it, no longer opens the label-and-colour
+  editor. It brings up that hiatus's card in the sidebar instead, unfolded, with its name box ready to type in.
+- Typing on a highlighted band does nothing. A phase's own hiatus band keeps its editor, since its card has no colour.
+- A week labelled or coloured in the band before this change still prints as it was saved. The card's colour square
+  repaints every week, and typing the card's name now renames that week too (one undo brings it back).
+- No frozen code touched, and no saved-file change.
+
+Verified: a new leg, `hiatussidebar`, 11/11, red on v1.10.0 in 8 of 11. Six legs that used the old editor were
+reworked: `hiatuslabel`, `notewrap`, `mvmenu`, `wfnotecolors`, `textstyle`, `hdrcontrols`. Those six and ten neighbouring
+legs are green. Checked by hand in the browser.
+
 ### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the
