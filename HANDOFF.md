@@ -117,7 +117,7 @@
 - ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
   pushed). Merge this branch into it when that checkout is free.
 
-### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — on local `main`, NOT committed, NOT pushed. Tracker card `remove-show-info-note`
+### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — ✅ **LIVE** since the `8ed92ca` deploy (19:46:13 UTC). Pushed as `9c3286a`, merged into `0d23980` (owner's picker *"Push once committed"*; `e8e21fd..0d23980` at 11:22:06). Its own deploy, and those of `eacd41b`, `4befff7` and `8a0abea`, were refused on a stale Pages lock left by `e8e21fd`'s re-run deploy (its attempt 2 failed on two `github-pages` artifacts), which the hiatus session cleared. Checked at 19:47 UTC: the live `index.html` is byte-identical (`cmp`) to a local build of `main` (`caf3eeb8…`), has no `show-info-note` and no help sentence, and `version.json` is 1.10.0. Tracker card `remove-show-info-note`
 
 Owner, with a screenshot of the blue box at the bottom of Show info (*"Production's Total Shooting Days: 82 — the sum
 of the episode list in the Production phase. Used by the Waterfall view and the Excel export."* plus *"Manually
@@ -142,7 +142,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     Production's row is not `.phase-blocked` and its total is written. All green.
 - **Proof:** `npm run check` 40/40. Browser pane (port 8390, `?state=hdrversion`): no box, total 80 → 83 with an
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
-  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran.
+  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
