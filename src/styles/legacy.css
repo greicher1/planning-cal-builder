@@ -235,6 +235,9 @@
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
      which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  /* The right-click menu on a loaded file (Header.jsx, "Show in folder…", 4 Nov 2026). Its label is the file's name,
+     cut to one line: a long show title must not wrap the 240 px menu into a tall box. */
+  .fm-ctx .fm-ctx-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
   .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-primary-color-filled); cursor:pointer; border-radius:var(--mantine-radius-xs); }
@@ -1252,6 +1255,15 @@
   .phiatus-pair label.phiatus-weeks-lbl{ flex:0 0 64px; }
   .phiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .phase-hiatus-fields > .sw-row:last-child{ border-bottom:none; }
+  /* A phase's own hiatus: the colour square before its name (owner, 4 Nov 2026, app.js "A PHASE'S OWN HIATUS: ITS COLOUR,
+     FROM ITS CARD"). The all-phase card's square: 16 px, the true colour with a faint inset edge, the same hover ring. */
+  .phiatus-name-row{ display:flex; align-items:center; gap:8px; }
+  .phiatus-name-row > .phiatus-name{ flex:1; min-width:0; }
+  .phiatus-name-row > .swatch{
+    flex:none; width:16px; height:16px; background:var(--c-hiatus);
+    border-radius:var(--mantine-radius-xs); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);
+  }
+  .phiatus-name-row > .swatch.clickable:hover{ box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 0 0 2px var(--mantine-color-white), 0 0 0 3px var(--mantine-color-gray-5); }
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
   /* ============================================================================================
@@ -2552,16 +2564,6 @@
     #print-root .cal-header-bar{ page-break-inside:avoid; break-inside:avoid; }
   }
 
-  .show-info-note{
-    margin-top:10px; font-size:10.5px; line-height:1.45;
-    color:#1F4E79; background:#EAF3FB; border:1px solid #C5DDF0;
-    border-radius:6px; padding:6px 8px;
-  }
-  /* Episodes changed by hand, called out separately: this is what explains a total that
-     isn't a round episodes x days multiple. */
-  .show-info-flags{
-    margin-top:5px; padding-top:5px; border-top:1px solid #C5DDF0; color:#8a5a00;
-  }
   /* A Production row that can't build episodes yet is visibly inert. */
   /* ⚠️ The blend moved Snap to Monday out of .phase-fields into .phase-switches and the meta line into the head,
      so the same controls dim: .phase-switches joins the list (UI-CONVENTIONS §3b: the dimming itself is unchanged). */

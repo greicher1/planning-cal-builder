@@ -38,6 +38,8 @@ export function Header() {
   // bridge and never needs to know a filter exists. The input carries NO id -- collectFieldValues
   // sweeps input[id] document-wide, and this box must never enter a saved file or the undo stack.
   const [q, setQ] = useState('')
+  // The right-click menu on a loaded file: { id, name, x, y } or null (owner, 4 Nov 2026, "Show in folder…").
+  const [ctx, setCtx] = useState(null)
 
   const merge = useCallback((set) => (patch) => set((s) => ({ ...s, ...patch })), [])
 
@@ -170,6 +172,7 @@ export function Header() {
                         className={'file-menu-item' + (f.active ? ' active' : '')}
                         data-id={f.id}
                         role="menuitem"
+                        onContextMenu={(e) => { e.preventDefault(); setCtx({ id: f.id, name: f.name, x: e.clientX, y: e.clientY }) }}
                         title={f.name}
                         /* Native title=, deliberately kept: it reveals a file name the 220px button
                            and the 280px dropdown both truncate. UI-CONVENTIONS §6. */
@@ -195,6 +198,33 @@ export function Header() {
               </div>
             </Menu.Dropdown>
           </Box>
+      </Menu>
+
+      {/* The right-click menu on a loaded file (owner, 4 Nov 2026: "I want to see where the file is saved"). One item:
+          the engine's showRecentInFolder() opens the Mac's file window in the folder that holds the file. A web app
+          can't open Finder or learn a file's path, so it says "folder", never "Finder" (app.js has the why).
+          ⛔ The click must reach the engine SYNCHRONOUSLY (dispatchEvent, never after an await or a setTimeout): the
+          file window needs this click's user activation.
+          Its own state, never closed from the file menu's onChange: a press on this menu is OUTSIDE the file menu, so
+          Mantine closes the file menu on that mousedown, and tying the two would unmount this item before its click.
+          Portalled to <body> (the default), so the file menu's 280 px dropdown cannot clip it. .fm-ctx is stripped from a
+          shareable copy (buildSavedHtml) and is in OVER_PANEL, as every body-level panel is. No input, so no id is
+          minted that collectFieldValues could sweep. */}
+      <Menu opened={!!ctx} onChange={(o) => { if (!o) setCtx(null) }} position="bottom-start" offset={2}
+            width={240} closeOnItemClick returnFocus={false}>
+        <Menu.Target>
+          <span aria-hidden="true"
+                style={{ position: 'fixed', left: ctx ? ctx.x : 0, top: ctx ? ctx.y : 0, width: 1, height: 1, pointerEvents: 'none' }} />
+        </Menu.Target>
+        {ctx && (
+          <Menu.Dropdown className="fm-ctx">
+            {/* The file's name on top, as the scenario tabs' menu names its tab. */}
+            <Menu.Label className="fm-ctx-name">{ctx.name}</Menu.Label>
+            <Menu.Item onClick={() => document.dispatchEvent(new CustomEvent('sptcal-file-folder', { detail: { id: ctx.id } }))}>
+              Show in folder…
+            </Menu.Item>
+          </Menu.Dropdown>
+        )}
       </Menu>
 
       {/* One equal size for New / Save / Save As, CLAMPED TO THE LONGEST content (owner, round 6 —

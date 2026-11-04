@@ -5,6 +5,184 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
+- **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,
+  *"Push now"*; `0499373..e8e21fd` at 11:08:47 PST, a fast-forward carrying `origin/main`'s "Show in folder…", merged in
+  first). The commit rebuilds to `d663ce56…`. The live `index.html` still serves `0499373`'s build `3cb08fce…`
+  (identified by rebuilding it), which works.
+  - ⛔ **The deploy failed twice, both on GitHub's side** (run 41894092156; githubstatus.com said all operational at
+    11:21). Build and check passed both times.
+    - Attempt 1: Pages sat in `updating_pages` for 10 min, then "Timeout reached" and the deployment was cancelled.
+    - Attempt 2 (`gh run rerun --failed`, re-deploying the approved commit, no push): "Multiple artifacts named
+      github-pages" in 1 s. ⚠️ **Never re-run only the failed deploy job**: the job uploads its own `github-pages`
+      artifact, so a re-run leaves two on the run, and `deploy-pages` refuses.
+  - The workflow has only a `push` trigger, so a fresh run needs a push (or deleting the run's two `github-pages`
+    artifacts, then re-running the job). Put to the owner.
+- **Part 2: PUSHED with part 1 at `eacd41b`, NOT LIVE** (owner's pickers *"Commit"* and *"try pushing both together"*;
+  `0d23980..eacd41b` at 11:24:28 PST, a fast-forward after merging `0d23980`; the build is `caf3eeb8…`, and
+  `hiatussidebar` 16/16, `hiatuscolour` 14/14, `hdrversion` PASS, check 40/40 on it). The live site still serves
+  `0499373`'s `3cb08fce…`.
+  - Its deploy was refused in 3 s with the same *"in progress deployment. Please cancel e8e21fd… first"*, although
+    every environment deployment record reads `failure` and the Pages endpoint reads `deployment_cancelled`. An
+    explicit `POST /repos/…/pages/deployments/e8e21fd…/cancel` returned 204 at 11:26:04.
+  - ⛔ **It did NOT clear it.** The owner OK'd one more push (*"Push it now"*): `eacd41b..4befff7` (this note, docs
+    only) at 11:27:03. Run 41897046513 was refused at 11:27:37 with the same message. So `origin/main` is at
+    `4befff7` and NOTHING since `0499373` is live, the other session's `9c3286a` included. Every push to `main` will
+    fail to deploy until GitHub drops the lock. Stopped there: no further pushes.
+  - Owner's *"Retry now"*: `4befff7..8a0abea` (the note above, docs only) at 11:35:51. Run 41898476928 was refused at
+    11:36:29, same message, 27 min after the original timeout. `origin/main` is at `8a0abea`.
+  - ⛔ **Don't toggle Settings ▸ Pages ▸ Source to clear it.** "Deploy from a branch" would serve the repo root's
+    `index.html`, the frozen v1.2.0 legacy app, to every user.
+  - What's left: wait for GitHub's lock to expire, then any push deploys everything. If it persists, the owner
+    contacts GitHub Support, quoting run 41894092156 (the original timeout). ⏭ When it clears (a later push's
+    deploy succeeds), check the live `index.html` is `caf3eeb8…` (`eacd41b` = `4befff7`'s build).
+  - ⛔ A re-run of the failed deploy job can't work: the job uploads its own `github-pages` artifact, and a second one
+    on the run makes `deploy-pages` refuse. So the next deploy needs a fresh push. It waits on the owner's OK, e.g.
+    for this note's own commit.
+- (Part 2 as first committed:) A phase's own
+  hiatus loses its band editor too and gets a colour square on its card, and the month menu's Colour… is cut.
+  - ⚠️ The other session's push of `0d23980` (its "Show info: remove the Total Shooting Days note", with `e8e21fd`
+    merged in) ALSO failed to deploy, with "in progress deployment. Please cancel e8e21fd… first". GitHub had not
+    finished cancelling attempt 1. `GET /repos/…/pages/deployments/e8e21fd…` read `deployment_cancelled` at 11:23.
+    ⛔ **Lesson: after a Pages timeout, check that endpoint before any push; a push meanwhile fails to deploy.**
+
+**The asks** (owner, 4 Nov 2026):
+- *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only be
+  possible in the left side bar"*. Read as the ALL-PHASE hiatus: the owner's 28 Oct ask used the same words for that
+  card.
+- Then, by picker, three answers:
+  - *"Same rule, add colour"*: a phase's own hiatus too, with a colour square on its sidebar block.
+  - *"remove month color, but keep the style bar working for all"*: the month day menu's Colour… on a hiatus goes;
+    the text style bar keeps styling every band.
+  - (the third answer, *"Keep both"*, was ticked beside that note and is read through it).
+
+**Built** (`src/legacy/app.js`, `src/styles/legacy.css`, `src/index.html` help; no frozen edit, no save-format change):
+- **`bandCardOf(td)` / `showBandCard(card)`**, beside `openNoteCellEditor`.
+  - The D5 openers (the capture `dblclick`, the Enter/typing `keydown`) and `openNoteEditor` itself send a hiatus band
+    that HAS a card to that card instead of the editor:
+    - an all-phase band (no `data-pkey`) to its `#hiatus-list` row, the first covering the week;
+    - a phase's own band inside `phaseHiatusSpan(key)` to that phase card's hiatus block (`#phiatus-name-<key>`).
+  - Showing the card: the Phases tab (one undo step, as `showPhaseRow`), unfolded, scrolled to, name box focused.
+  - A typed key on a highlighted band does nothing.
+  - ⚠️ **A Production OFF WEEK keeps the band editor**: it draws the same per-phase band but has no card, so
+    `bandCardOf` returns null (offweek R7 renames one, and passes).
+  - The frozen cell's tooltip still reads "Double-click to rename or recolor this hiatus": changing it is a frozen
+    edit, and the double-click now goes where you rename and recolour.
+- **`claimBandNames(keys)`**: typing a card's name, or ticking its Number weeks, first drops a band label typed by hand
+  on that hiatus's weeks (a `hiatusTexts` key `hiatusNameSyncedKeys` doesn't hold), so the name sync takes them in
+  the same `update()`. Both kinds: all-phase rows (`hiatusRowWeeks`) and a phase's block (`phaseHiatusWeekKeys`).
+  - Without it, a week typed in the band before this change ignored every later name, and only "Reset hiatus bands"
+    could change it.
+  - Only on that edit: an older calendar opens and prints as saved. One undo brings the label back.
+- **"A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD"** (after the all-phase carry):
+  - A `.phiatus-swatch` before the name in `phaseHiatusBlockHtml`. Both sit in `.phiatus-name-row`. It's a div with
+    NO id, so `fields.byId` and gate 5's set don't move, and no id's document order changes.
+  - A delegated click opens `openPhaseColorPop` with the band palette. A pick writes `hiatusColors` on every
+    `"<week>|<key>"` week of the hiatus (`setPhaseHiatusColour`); red deletes. Then `update()`, one undo step.
+  - Painted by `reflectPhaseHiatusSwatches()`, called from `reflectHiatusSwatches()` (`update()` + the `#table-wrap`
+    observer).
+  - The colour follows a retyped Starts/Weeks (`carryPhaseHiatusColour`, in the phase hiatus input handler before
+    `update()`).
+  - The Number weeks tooltip lost "A band you retyped keeps what you typed".
+- **Month day menu:** `band-colour-N` and `hiatusColourHere` removed from `bandSections`. `MONTH-CONTEXT-MENU-PLAN.md`
+  marks the cut.
+
+**Proof** (worktree `dist/`; ports 8781–8786):
+- `hiatussidebar` **16/16** (in `gate.sh`, own line after `hiatuscolour`):
+  - red on v1.10.0 in 8 of the first 11;
+  - on `e8e21fd`'s own build (`dist/part1.html`, scratch, ignored) red in exactly the six part-2 cases: W5, P1–P3,
+    M1, L6.
+- `T.reloadWith(mutate, stem, opts)` (lib.js) reaches a state only an older file holds: Save As, edit the JSON, Load.
+- Legs reworked:
+  - through `reloadWith`: `hiatuslabel` (blank weeks), `notewrap` (C and D labels), `mvmenu` N1 (blank band),
+    `phiatusnum` H11 (now: prints as saved, double-click shows the card, the Number weeks box takes it over);
+  - flipped to the new rule: `wfnotecolors` K2, `textstyle` D6, `hdrcontrols` N4 (the name takes CARRY-HIATUS over);
+  - for the cut item: `mvmenu` H4/K1/H5/V1/V9 + `band-colour` in its CUT list, `hiatusfold` H8's wait,
+    `hiatuscolour` C8 (the menu has none; the square used from the month view), `labelsetup` C2 (the card's square).
+- Part-2 build, all green: mvmenu 81, hiatusfold 11, hiatuscolour 14, phiatusnum 18, notewrap 16, labelsetup 41,
+  offweek 42 + 5 (R7: the off-week band still edits in place), wfnotecolors 14, textstyle 51, hdrcontrols 12,
+  hiatuslabel 7, phasefold 11, mvbarcard 7, wfmenu 39, caps 5, winansi 7, wfkeys 84, phasesui (hidewf) 8.
+  - phasesui first came in 7/8: P1's `builtindates` fixture timed out loading (10 s) inside the batch. 8/8 alone.
+- `npm run check` 40/40.
+- In the browser pane, real mouse and keyboard:
+  - part 1: double-click → the card, name focused; typed name → both weeks;
+  - part 2: the Pre-Prep band's double-click → its hiatus Name box, no editor; its new square → green on both
+    weeks.
+
+⏭ **Next:**
+- Get a deploy through (the owner's call, above), then verify the live sha.
+- Ask the owner to commit and push part 2.
+- No full gate was run for either part: nothing frozen was touched and no output's bytes can move. The next full gate
+  runs the new leg.
+- ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
+  pushed). Merge this branch into it when that checkout is free.
+
+### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — on local `main`, NOT committed, NOT pushed. Tracker card `remove-show-info-note`
+
+Owner, with a screenshot of the blue box at the bottom of Show info (*"Production's Total Shooting Days: 82 — the sum
+of the episode list in the Production phase. Used by the Waterfall view and the Excel export."* plus *"Manually
+changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
+
+- **What went:**
+  - `#show-info-note` in `Sidebar.jsx`, and its writer in `refreshDerivedInfo()`.
+  - `.show-info-note` / `.show-info-flags` in `legacy.css`.
+  - `showInfoStatus()`'s `overrides` list, which only the note read.
+  - The help page's sentence "Show Info flags any episode you've changed by hand…".
+  - Comments in `app.js` and the doc tables (UI-CONVENTIONS, MANTINE-SEAM) say so.
+- **What stays:** the total is the Production row's Total Shooting Days box (`#prod-total-readout`), unchanged.
+  Nothing saved changes, and nothing in the grid or the writers was touched.
+- ⚠️ **The box was the ONLY cue for an episode typed over the default.** A block's count stays bold (`.blk-days.is-edited`);
+  an episode's day box now carries `is-edited` with NO style, as a test hook. If the owner wants a cue back, bolding
+  `.ep-days.is-edited` matches blocks and prep (one CSS line). The class is written when the list is drawn, not on
+  each keystroke, the same as blocks.
+- **Tests that read the box, rewritten:**
+  - `pilldrag.mjs`'s `edited` read "Manually changed" and now reads `#episode-rows .ep-days.is-edited, .blk-days.is-edited`.
+    30/30 on the new build; E1 sees `true` after the drag and `false` after Ctrl+Z.
+  - `t/hdrversion.js` step 9 read the box's text. With no box it would have passed vacuously, so it now checks
+    Production's row is not `.phase-blocked` and its total is written. All green.
+- **Proof:** `npm run check` 40/40. Browser pane (port 8390, `?state=hdrversion`): no box, total 80 → 83 with an
+  episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
+  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran.
+
+### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
+
+Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
+told why that can't be built: *"I want to see where the file is saved"*.
+
+- **Why not Finder.** Chrome gives a page a file HANDLE, never the file's path, and never lets a page start Finder.
+  What it allows is opening its file window in the folder that holds a handle's file: `showOpenFilePicker({startIn:
+  handle})` (Chrome 91+; a FILE handle opens its parent folder, and no permission on the handle is needed). The folder
+  bar at the top of that window shows where the file is. So the item says "Show in folder…", never "Finder".
+- **Where:**
+  - `Header.jsx`: the menu (Mantine `Menu`, its own `ctx` state, portalled, `.fm-ctx`).
+  - `app.js`: `showRecentInFolder()` and the `sptcal-file-folder` event.
+  - `.fm-ctx` joins `OVER_PANEL` and `buildSavedHtml()`'s strip list.
+  - `legacy.css`: one rule.
+- **Rules it carries:**
+  - ⛔ The picker call stays SYNCHRONOUS from the click, with no await before it: the window needs the click's user
+    activation.
+  - ⛔ The right-click menu keeps its own state. Never close it from the file menu's `onChange`: a press on it is
+    outside the file menu, Mantine closes the file menu on that press, and tying the two would unmount the item
+    before its click. Leg case P presses first, then clicks.
+  - The unsaved-work question comes AFTER a pick, unlike Load…: looking is the point.
+- **Test traps found on the way (not app bugs):**
+  - Headless leaves a CLOSED keepMounted Mantine dropdown `display:block`. Read a menu's open state from its
+    button's `aria-expanded`.
+  - The browser pane, when hidden, throttles animation frames, so Mantine's transitions stall there (`aria-expanded`
+    true, the dropdown `display:none`) and look like a stuck menu. Don't diagnose menu transitions in a hidden pane.
+  - The harness injects the test script into the page, so a shareable copy carries it: a markup regex for the copy
+    must never be spelled out in the test's own comments.
+- **Proof** (on the main checkout's build):
+  - New leg `showfolder`: 7/7, added to gate.sh's self-judging list.
+  - On a mutant build (no `startIn`, no strip entry), P and S go red.
+  - `npm run check`: 40/40.
+  - Browser pane, real right-click and click: `navigator.userActivation.isActive` is true at the picker call, and
+    `startIn` is that file's own handle.
+  - Related legs, all green: `sharecopy2`, `loadfail` 6/6, `launchopen` 16/16, `nofsa` 7/7, `filekeys` 16/16,
+    `dlgkeys` 16/16. `restore` through the real Load path matches its stage-7 baseline (rows, cells, width, bytes,
+    signature, 0 clipped) with the same saved-field keys.
+- **Not done:** never seen with the real Mac window on the owner's machine (headless can't drive it). No full gate:
+  the change is chrome plus one strip-list entry, with nothing in the grid, the writers or the `.sptcal` path.
 
 ### 🔨 4 Nov 2026: A HAIRLINE BETWEEN ROWS IN THE WATERFALL PDF (Gridlines: None) — FIXED (frozen edit SM1, owner: *"ok build it"*) on branch `wf-pdf-seams` (worktree `.claude/worktrees/wf-pdf-seams`, from `origin/main` at `786a044`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); gate 2's `base.pdf` RE-CUT; FULL GATE 3,871 PASS / 5 FAIL on build `dist/index.html` of 4 Nov 2026 11:01, all 5 green alone (`pilllabel` carry-rich 29/29, `retiredplaces` 8/8, `seasons` 15/15, `scenariocompat` on `releases/v1.2.0.html`, which this branch cannot change); the known Load/Save timeouts under a busy gate; NOT committed, NOT merged, NOT pushed. Tracker card `wf-pdf-row-seams`
 
@@ -83,9 +261,9 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
   - `rtleg --leg monthexport --secs 120 --query realtime=1`: 10/10 in 21 s.
   - The same run with `--deadline 3` exits at 3 s with its EX.
   - No Chrome is left behind by either. `node --check` clean.
-- ⚠️ **Still open:** `swap-partial`'s queued full gate (port 8523, started 18:24 by another session's
-  `queue-full-run2.sh`) was still running at 22:03. Its branch is live, so its result changes nothing. Stopping it
-  from the release session was refused by the permission check, so it was left for the owner.
+- ✅ **Closed (22:16, by `swap-partial`'s session):** that branch's queued full gate (port 8523, 18:24-22:09)
+  finished on its own: 3,513 PASS, 6 FAIL, every one explained and none in the swap code. Detail in the swap-partial
+  entry below. Its branch was already live, so it changed nothing.
 ### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd`** (owner's picker *"Push when green"*; `08bd218..0e2a4fd` plus tag `v1.10.0` at 18:17:11; the live `index.html` matched the gated build `494793a8…` byte for byte at 18:18:24, `version.json` 1.10.0). Tracker cards moved to live
 
 - **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of
@@ -407,7 +585,7 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
   once stall. Expect gate 10/13 to move only on the calendars that draw Sim Post: `colswap-simpost-refuse` (Thanksgiving
   inside a Sim Post week), and possibly `mvheaderlegacy` / `mvnotes`. Re-cut only after the owner sees old | new |
   difference (`monthbase.py sheets`) and says yes, per each baseline README. Nothing committed.
-### 🔨 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). NOT merged into `main` (main merged INTO it, 3 Nov). Tracker card `swap-part-of-column`
+### ✅ 2 Nov 2026: THE SWAP ARROW FOR PART OF A COLUMN — FIXED on branch `swap-partial` (worktree `.claude/worktrees/swap-partial`, from `main` at `270687f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd` in v1.10.0**: the release merged the whole branch (`3dcf88e`, the Reuse Empty Columns fix included) into `release-1103` as `200f609` (see the v1.10.0 entry). Tracker card `swap-part-of-column`
 
 - **The report** (owner): *"for swapping a portion of a collumn (such as 3 cells only while all the others have been
   extended) the little blue arrow only pops up when you drag the cursor across to the cells in the collumn next to it.
@@ -470,9 +648,21 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
     exactly.
 - Swap mini-gate on the FIXED merged build (`dist` `d111a917…`, commit `dde8856`): **191 PASS, 0 FAIL**, the new leg
   8/8 on both fixtures. `npm run check` 40/40.
-- **NOT done:** the full gate on that build. It is queued behind another session's gate (scratchpad
-  `queue-full-run2.sh`, log `full-run2.log`). Only after it may `main` be fast-forwarded to this branch, and the
-  owner decides that merge and, separately, the push.
+- **Owner's picker (3 Nov):** *"Merge when green"* and *"Push after the merge"*. Both were overtaken: while this
+  branch's gate waited in the queue, the v1.10.0 release train merged the branch at `3dcf88e` and pushed it (LIVE at
+  `0e2a4fd`; the live `index.html` = `releases/v1.10.0.html`, `494793a8…`, re-checked 22:12). This session merged and
+  pushed nothing.
+- **Full gate on the branch's own build** (`dist` `d111a917…`, commit `dde8856`; port 8523, 18:24-22:09, load
+  average ~15-20 from other sessions): **3,513 PASS, 6 FAIL**, every swap leg green, `colswappartial` 8/8 on both
+  fixtures:
+  - gate 3 `sheet1.xml`: the 3 Nov date coincidence (the reference calendar's "Wrap: 11.3.26" is today's date, so
+    the stamp normaliser replaced it too). With the wrap date put back, byte-identical to the baseline.
+  - `monthexport (blocks)` no result, `monthexport (reference, real time)` past 120 s, `gate 13 (blocks)` no file
+    (it is monthexport's file), `pilldrag` and `phaseedge` at their 480 s deadlines: timeouts under the load.
+  - **Rerun alone, 22:11-22:16, through gate.sh's own judge blocks** (scratchpad `recheck5.sh`): **74 PASS, 0 FAIL**:
+    monthexport blocks 9/9, real time 11/11 (T0 102 ms), gate 13 blocks byte-identical, pilldrag 30/30,
+    phaseedge 23/23.
+- **Follow-up, not blocking:** remove this worktree (unlink `node_modules` first).
 
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
@@ -626,7 +816,7 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
   reason, untick the box in that leg (the `buildFixture` "Pre Prep" precedent) rather than re-cut a baseline.
   gate.sh's colreuse comment now says the byte-compare runs with the box on.
 - ⏭ **Open:** nothing.
-### ✅ 2 Nov 2026: SIM POST ALWAYS RIGHT OF PRODUCTION, AND SWAPPED WITH IT — ✅ **LIVE at `0e2a4fd` in v1.10.0** (merged as `0616ded` from `cb92c4a` into `release-1103` and gated there; see the v1.10.0 entry above). Built on branch `simpost-beside-prod` (from `main` at `6cc1046`; its worktree is already removed). Tracker cards `simpost-beside-production`, `swap-production-with-simpost`
+### ✅ 2 Nov 2026: SIM POST ALWAYS RIGHT OF PRODUCTION, AND SWAPPED WITH IT — ✅ **LIVE at `0e2a4fd` in v1.10.0** (merged as `0616ded` from `cb92c4a` into `release-1103` and gated there; see the v1.10.0 entry above). Built on branch `simpost-beside-prod` (from `main` at `6cc1046`; worktree and branch both removed). Tracker cards `simpost-beside-production`, `swap-production-with-simpost`
 
 - **The asks** (owner, with two screenshots, reuse on and off): *"Sim post should always be directly to the right of
   production in either reuse column mode on or off"*; *"Its possible its only happening based on the order in which
@@ -696,8 +886,8 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
 - ✅ **Gated in the v1.10.0 release gate**, not on its own branch. Its own full gate (3 Nov, port 8615) passed 2,588
   checks with gates 10 and 13 whole (every month PDF byte-identical) before it hung in `printpaper` and was stopped
   at 17:30. Its four FAILs were gate 3's 11.3.26 date coincidence and three load timeouts. The branch's last commit,
-  `acffef3` (a HANDOFF note on that run), was never merged and is superseded by this entry. The branch can be
-  deleted.
+  `acffef3` (a HANDOFF note on that run), was never merged and is superseded by this entry. The branch was deleted
+  on 4 Nov 2026 (owner's picker, "Delete it"); it was never on origin.
 
 ### ✅ 2 Nov 2026: THE AUTOMATIC NOTES CARD SHOWS EVERY PHASE'S OWN NAME — ✅ **LIVE at `315f7e5`** (owner's picker: "Commit and merge", "Push now"; `a82506c..315f7e5` at 14:48:57; the live `index.html` matched the tested build `8417fafe…` byte for byte at 14:49:48); built on branch `autonote-row-names` (in the `custom-autonotes` worktree, from `main` at `77148f3`). Tracker card `autonote-row-names`
 

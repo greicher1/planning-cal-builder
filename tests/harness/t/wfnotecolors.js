@@ -11,7 +11,8 @@
 //
 //   K1  the waterfall note editor offers the month palette in two rows (the ten, then No fill, the tints, the greys),
 //       each on one line, its current colour selected
-//   K2  a hiatus band's editor keeps one row of the ten standard colours
+//   K2  the all-phase hiatus band opens NO editor (since 4 Nov 2026 a hiatus's name and colour are its sidebar card's,
+//       owner); a double-click shows its card. Only a Production off week keeps the band editor now (offweek R7).
 //   K3  the month view's editor for a WATERFALL note offers the same two rows (it kept the ten until today)
 //   S1  a tint draws as any colour: Pink #F7C1D9 with black ink
 //   S2  No fill draws the note as its text alone: transparent, black ink; its editor reopens on No fill
@@ -229,10 +230,12 @@ window.addEventListener('load', function () { (async function () {
       var band = q('#table-wrap td.sheet-hiatus-cell[data-week="2026-11-23"]'); if (!band) throw new Error('no hiatus band at 11/23/26');
       band.scrollIntoView({ block: 'center' }); await T.sleep(100);
       T.openCell(band); await T.sleep(300);
-      var pop = q('.note-pop'), r = rows(pop);
-      escape(pop); await T.sleep(200);
-      kase('K2', 'a hiatus band\'s editor keeps one row of the ten standard colours (titled by hex), no No fill',
-           !!r && r.length === 1 && r[0].length === 10 && r[0].indexOf('No fill') < 0 && r[0][0] === '#C00000', { rows: r });
+      var pop = q('.note-pop'), tabNow = (q('.side-tab-btn.active') || { dataset: {} }).dataset.tab;
+      var focusName = !!document.activeElement && document.activeElement.classList.contains('hiatus-name');
+      if (pop) { escape(pop); await T.sleep(200); }
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      kase('K2', 'the all-phase hiatus band opens NO editor: a double-click shows its sidebar card (Phases tab, name box focused)',
+           !pop && tabNow === 'phases' && focusName, { editor: !!pop, tab: tabNow, focusName: focusName });
     });
 
     // ===== S1-S2, U1: picking ====================================================================================

@@ -1711,8 +1711,9 @@ done
 # labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
 # the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
 # Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
-# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… (from the day menu) and Number
-# weeks (from the row's own box since the day menu's copy was cut, 23 Oct 2026) (C). Twenty
+# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's colour (from the card's square since
+# 4 Nov 2026, when the day menu's Colour… was cut; C2 proves it gone) and Number weeks (from the row's own box since the
+# day menu's copy was cut, 23 Oct 2026) (C). Twenty
 # mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
 # phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
@@ -1781,10 +1782,19 @@ done
 # for phases"): one square after the caret, where a phase card's sits; a hit-tested pick paints every week of the
 # hiatus in the waterfall, the month view, the square and the head, and the file holds it as hiatusColors on exactly
 # those weeks (no new key, no id, fields.byId and a hiatus row's keys unchanged); one undo step; the colour follows
-# a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu's
-# Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
+# a retyped Weeks and Starts, never writes a week another hiatus shares and comes back whole off it; the day menu offers
+# no Colour… (cut 4 Nov 2026; C8 drove it until then) and the square reaches the month bars; New and Load. Red on main before it (9 of 11) and with the
 # carry removed (C5-C8). D0-D2 (2 Nov 2026) hold New's four default breaks, 2029's on 12/17/29, and that a file saved
 # with the old 12/24/29 Loads with it. Its own line.
+# hiatussidebar (owner, 4 Nov 2026: "Remove ability to edit the name and color of all phase hiatuses in the waterfall
+# itself. That should only be possible in the left side bar"; by picker the same day, "Same rule, add colour" for a
+# phase's own hiatus and "remove month color"): a real double-click on an all-phase band opens NO editor and shows its
+# card (Phases tab, unfolded, on screen, name box focused), one undo step; Enter does the same and a typed key nothing;
+# a phase's own band shows its card's hiatus block too (W5); that block's new colour square paints every week, one undo
+# step, and the colour follows a retyped Starts (P1-P3); the month day menu has no Colour… (M1); an older file's weeks
+# typed and coloured in a band print as saved, and typing either card's name takes them over (L1-L6). A Production off
+# week keeps the band editor (offweek R7). Red: on v1.10.0 in 8 of the first 11; on e8e21fd (the all-phase half, live)
+# exactly W5, P1-P3, M1 and L6. Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;
@@ -1907,6 +1917,12 @@ done
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
 # switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
+# showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
+# folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
+# handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
+# shareable copy exported with the menu open does not carry it. Red without startIn (P) or without .fm-ctx in
+# buildSavedHtml's strip list (S). The real window cannot be driven headless; its user-activation rule was checked once
+# by hand with a real click (HANDOFF).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1937,6 +1953,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phasefold:-:300 \
               hiatusfold:-:300 \
               hiatuscolour:-:300 \
+              hiatussidebar:-:300 \
               mvbarcard:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
@@ -1960,6 +1977,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
+              showfolder:-:300 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

@@ -10,7 +10,11 @@
 // band already used an `in` test and kept a blank blank.)
 //
 // The calendar is the harness's reference calendar, T.buildFixture(), plus a 2-week all-phase
-// hiatus from 8/24/26 whose two week labels are emptied through the real note editor. It is then
+// hiatus from 8/24/26 whose two week labels are emptied. ⚠️ Since 4 Nov 2026 not through the note editor: an
+// all-phase band opens none (its name and colour are its sidebar card's, owner), and a blank card name means
+// "Hiatus". So a blank week is a state only an OLDER file holds, written by that editor, and it is reached the way a
+// user has it: the calendar is saved through the real Save As, its two weeks set to '' as the editor stored them,
+// and loaded back through the real Load (T.reloadWith). It is then
 // saved through the real Save (a recording handle stands in for the OS picker only), and the text
 // is returned as out.mintText -- that is how tests/fixtures/hiatus-blanklabel.sptcal was minted,
 // the calendar the month-PDF A/B for N-1 runs on.
@@ -66,19 +70,6 @@ window.addEventListener('load', function () { (async function () {
     }
     return n;
   }
-  async function blankLabel(week) {
-    var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="' + week + '"]');
-    if (!td) throw new Error('no hiatus cell for ' + week);
-    T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
-    await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the hiatus editor for ' + week, 50, 100);
-    var ta = document.querySelector('.note-editor textarea');
-    ta.value = '';
-    ta.dispatchEvent(new Event('input', { bubbles: true }));
-    // Ctrl+Enter is the explicit commit, as T.typeUserNote uses for notes.
-    ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
-    await T.until(function () { return !document.querySelector('.note-editor textarea'); }, 'the editor to close', 50, 100);
-    await settle('the grid after the commit');
-  }
   try {
     await T.appReady();
     T.buildFixture();
@@ -95,7 +86,12 @@ window.addEventListener('load', function () { (async function () {
     kase('N1-0', 'control: before the edit, both hiatus weeks read "Hiatus" in the waterfall and its PDF',
          pre.sheet.join('|') === 'Hiatus|Hiatus' && pre.pdf >= WEEKS.length, pre);
 
-    for (var i = 0; i < WEEKS.length; i++) await blankLabel(WEEKS[i]);
+    var mintWrites = [];
+    await T.reloadWith(function (snap) {
+      snap.hiatusTexts = Object.assign({}, snap.hiatusTexts);
+      WEEKS.forEach(function (w) { snap.hiatusTexts[w] = ''; });
+    }, 'hiatuslabel-blank', { writes: mintWrites });
+    await settle('the grid after the reload');
     var sheet = sheetLabels(), pdf = await pdfHiatusRuns();
     kase('N1-1', 'the waterfall shows both emptied labels blank', sheet.join('|') === '|', { sheet: sheet });
     kase('N1-2', 'the waterfall PDF stops drawing "Hiatus" on exactly the two emptied weeks',
@@ -137,18 +133,13 @@ window.addEventListener('load', function () { (async function () {
     kase('N1-4', 'the month PDF prints the emptied bands BLANK (it printed "Hiatus")',
          printedBands.length > 0 && printedBands.every(function (t) { return t === ''; }), { bands: printedBands });
 
-    // Mint through the real Save.
-    var written = [];
-    var h = { name: 'hiatus-blanklabel.sptcal', kind: 'file',
-      queryPermission: async function () { return 'granted'; }, requestPermission: async function () { return 'granted'; },
-      isSameEntry: async function (o) { return o === h; },
-      getFile: async function () { return new File([written.length ? written[written.length - 1] : ''], 'hiatus-blanklabel.sptcal', { lastModified: 1 }); },
-      createWritable: async function () { var parts = []; return { write: async function (c) { parts.push(typeof c === 'string' ? c : await c.text()); }, close: async function () { written.push(parts.join('')); } }; } };
-    window.showSaveFilePicker = async function () { return h; };
+    // Mint through the real Save: the reloaded file is linked, so Save writes back to it (openViaFakePicker's
+    // recording handle, mintWrites).
+    var nW = mintWrites.length;
     document.getElementById('save-file-btn').click();
-    await T.until(function () { return written.length > 0; }, 'the Save write', 100, 100);
-    var snap = JSON.parse(written[0]);
-    out.mintText = written[0];
+    await T.until(function () { return mintWrites.length > nW; }, 'the Save write', 100, 100);
+    var snap = JSON.parse(mintWrites[mintWrites.length - 1].text);
+    out.mintText = mintWrites[mintWrites.length - 1].text;
     kase('N1-5', 'the saved calendar keeps both labels as "" (blank, not deleted back to the default)',
          snap.hiatusTexts && snap.hiatusTexts['2026-08-24'] === '' && snap.hiatusTexts['2026-08-31'] === '',
          { hiatusTexts: snap.hiatusTexts });
