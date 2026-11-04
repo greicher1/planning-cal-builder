@@ -96,7 +96,34 @@
 - ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
   pushed). Merge this branch into it when that checkout is free.
 
-### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — built in the main checkout's working tree, NOT committed, NOT pushed. Tracker card `recent-reveal-in-finder`
+### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — on local `main`, NOT committed, NOT pushed. Tracker card `remove-show-info-note`
+
+Owner, with a screenshot of the blue box at the bottom of Show info (*"Production's Total Shooting Days: 82 — the sum
+of the episode list in the Production phase. Used by the Waterfall view and the Excel export."* plus *"Manually
+changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
+
+- **What went:**
+  - `#show-info-note` in `Sidebar.jsx`, and its writer in `refreshDerivedInfo()`.
+  - `.show-info-note` / `.show-info-flags` in `legacy.css`.
+  - `showInfoStatus()`'s `overrides` list, which only the note read.
+  - The help page's sentence "Show Info flags any episode you've changed by hand…".
+  - Comments in `app.js` and the doc tables (UI-CONVENTIONS, MANTINE-SEAM) say so.
+- **What stays:** the total is the Production row's Total Shooting Days box (`#prod-total-readout`), unchanged.
+  Nothing saved changes, and nothing in the grid or the writers was touched.
+- ⚠️ **The box was the ONLY cue for an episode typed over the default.** A block's count stays bold (`.blk-days.is-edited`);
+  an episode's day box now carries `is-edited` with NO style, as a test hook. If the owner wants a cue back, bolding
+  `.ep-days.is-edited` matches blocks and prep (one CSS line). The class is written when the list is drawn, not on
+  each keystroke, the same as blocks.
+- **Tests that read the box, rewritten:**
+  - `pilldrag.mjs`'s `edited` read "Manually changed" and now reads `#episode-rows .ep-days.is-edited, .blk-days.is-edited`.
+    30/30 on the new build; E1 sees `true` after the drag and `false` after Ctrl+Z.
+  - `t/hdrversion.js` step 9 read the box's text. With no box it would have passed vacuously, so it now checks
+    Production's row is not `.phase-blocked` and its total is written. All green.
+- **Proof:** `npm run check` 40/40. Browser pane (port 8390, `?state=hdrversion`): no box, total 80 → 83 with an
+  episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
+  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran.
+
+### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
 Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
 told why that can't be built: *"I want to see where the file is saved"*.

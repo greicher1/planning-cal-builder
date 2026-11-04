@@ -281,7 +281,9 @@ try {
       ep1: eps[0], epN: eps[eps.length - 1],
       blkN: blks.length ? blks[blks.length - 1].value : null,
       blkNEdited: blks.length ? blks[blks.length - 1].classList.contains('is-edited') : null,
-      edited: /Manually changed/.test((document.getElementById('show-info-note') || {}).innerText || ''),
+      // A row typed over the default (daysEdited). Read off its day box's is-edited class: until 4 Nov 2026 this
+      // read "Manually changed" in the Show Info note, which the owner removed.
+      edited: !!document.querySelector('#episode-rows .ep-days.is-edited, #episode-rows .blk-days.is-edited'),
       shield: !!document.querySelector('.phase-edge-shield') }; })()`);
   // Page the month view to e.g. 'June 2026' with its own arrows.
   const gotoMonth = label => ev(`(async () => {

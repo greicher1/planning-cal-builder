@@ -47,6 +47,19 @@ Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red 
 menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
 phase band; `notewrap` gets its Post label from a saved file.
 
+### Unreleased — the note under Show info is gone (4 Nov 2026)
+
+The blue box at the bottom of Show info, *"Production's Total Shooting Days: N — the sum of the episode list in the
+Production phase…"* with its *"Manually changed: Episode 101 → 11 days…"* line, is removed (owner, 4 Nov 2026, with a
+screenshot: *"get rid of this entire popup"*). The total is still the Production row's Total Shooting Days box, and it
+still follows every episode's or block's day count. With it went the CSS, the `overrides` list that only it read, and
+the help page's sentence about it. Nothing saved changes. ⚠️ The box was the only place an episode typed over the
+default was called out; a block's count stays bold, an episode's has no cue. Tests: `pilldrag` read "Manually
+changed" from the box, and now reads an unstyled `is-edited` class on the episode's day box (blocks already had one);
+30/30. `hdrversion`'s "a version never gates Production" case read the box's text (and passed vacuously with no box), and
+now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
+the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
+
 ### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
 
 The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
