@@ -310,6 +310,7 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
   - SNAPSHOT_VERSION itself was NOT bumped.
   - ⛔ PERMANENT KEYS: scenarios, current, counter, tabs, id, name, snapshot.
 - **`holidayLists`** (29 Oct 2026, `CANADA-HOLIDAYS-PLAN.md` §3 step 4) is a PERMANENT top-level snapshot key: the holiday-data version a calendar was saved against, written ONLY on a calendar whose region's list was corrected (`HOLIDAY_LISTS_CHANGED`: Alberta, Manitoba, Nova Scotia at 2), so every other calendar saves byte for byte as before. Absent on one of those regions = saved before the correction, which raises the "holiday list was corrected" strip once (`holidayFixNoticeSeen2`). It is not state and is never restored; SNAPSHOT_VERSION was not bumped.
+- **`versionAsTyped`** (3 Nov 2026, owner: the Version prints exactly as typed, no "v" added) is a PERMANENT top-level snapshot key, `true` only, written ONLY when Show info's Version box holds text the old rule ("v" + the input, one leading v/V stripped) would have printed differently, so every other calendar saves byte for byte as before. Absent on such a box = saved before 3 Nov 2026: `applyStateSnapshot()` rewrites the box to what it printed (`3` opens as `v3`, owner's picker "Keep v3"). Not state, never restored.
 
 ## ⛔ The hosted link boots the app only in the installed app window
 

@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Version prints exactly as typed, with no "v" added (3 Nov 2026)
+
+The owner asked: *"version entered into the 'show info' section should just be exactly what is typed. So no longer
+with a v prefix"*. Typing `3` now prints **3** in the header's bottom-left, `v3` prints **v3**, and `V3` stays **V3**.
+That reaches the screen, Excel, both PDFs, the `{version}` token (any header line that uses it, month view included)
+and Compare's Version row. An empty box, or one of only spaces, still prints nothing. The box's hint now reads "Shows in
+the header's bottom-left, exactly as typed", and its placeholder is "e.g. v3".
+
+**Calendars saved before today keep printing what they printed** (owner's picker, "Keep v3"). One saved with `3`
+opens with its box reading `v3`, so its header and exports are unchanged. A Save from this build writes a new
+permanent key, `versionAsTyped: true`, but only when the box holds text the old rule would have printed differently
+(`3`, `V3`, a bare `v`), so every other calendar saves byte for byte as before. An older build ignores the key and
+prints `v3`.
+
+Verified: `hdrversion` 19/19, rewritten for the new rule (3 → 3 on screen, in the workbook and in the PDF; the key
+written for `3`, not for `v3`; an undo keeps `3`). `hdrverload` on five fixtures: the real pre-change
+`hdrversion.sptcal` (`3`) opens as `v3`, and the new `hdrversion-astyped.sptcal`, minted from the leg's own save,
+opens as `3`. `hdrtemplate` 25, `hdrpreset` 19, `hdrfile` 14, `hdrexcel` 7, `hdreditor` 24, `hdrcut` 7,
+`settingswin` 21, `regionmirror` 9, `scenariofacts` 12, all passing. The `mvheader` month PDF, whose header prints a
+saved `3`, is byte-identical to gate 13's baseline, and gate 10's print document is identical too. `npm run check` 40/40.
+Seen in the browser pane. Not yet run: the full gate.
+
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
 The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an

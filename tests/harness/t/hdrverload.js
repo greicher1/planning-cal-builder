@@ -8,7 +8,9 @@
 // ⭐ SELF-CHECKING, so the same leg proves both directions. It reads the fixture's own snapshot out
 // of #saved-state and asserts the app agrees with it:
 //
-//   * a fixture that CARRIES a version  -> the field holds it and l2 renders "v" + it;
+//   * a fixture that CARRIES a version  -> l2 renders what that file printed when it was saved: the
+//     box as typed with versionAsTyped (3 Nov 2026 on), "v" + it without (before; the box is
+//     rewritten to match);
 //   * a fixture that carries NONE (every fixture written before this feature, which is all of them)
 //     -> the field is EMPTY and the l2 slot is hidden, exactly as that calendar has always rendered.
 //
@@ -48,10 +50,17 @@ window.addEventListener('load', function () { (async function () {
     out.fixtureHasKey = 'show-version' in byId;
     var fixtureValue = out.fixtureHasKey ? String(byId['show-version'].value || '') : '';
     out.fixtureVersion = fixtureValue;
-    // versionLabel()'s rule, restated here on purpose: the leg must not import the app's own answer,
-    // or a broken versionLabel would agree with itself. Owner decision H1 -- "v" plus the input with
-    // a single leading v/V stripped, and an empty field is EMPTY, never a bare "v".
-    var stripped = fixtureValue.trim().replace(/^[vV]/, '').trim();
+    // The rules, restated here on purpose: the leg must not import the app's own answer, or a broken
+    // versionLabel would agree with itself. Since 3 Nov 2026 the header prints the box EXACTLY as
+    // typed (trimmed; empty is empty). But a file saved before then printed "v" plus the input with a
+    // single leading v/V stripped (decision H1), and it must keep printing that (owner's picker, "Keep
+    // v3"): a fixture WITHOUT versionAsTyped whose box the old rule printed differently opens with
+    // its box rewritten to what it printed. hdrversion.sptcal is that file ("3" -> "v3");
+    // hdrversion-astyped.sptcal is the same calendar saved with the marker ("3" stays "3").
+    out.fixtureAsTyped = fixture.versionAsTyped === true;
+    var oldNum = fixtureValue.trim().replace(/^[vV]/, '').trim();
+    var oldLabel = oldNum ? 'v' + oldNum : '';
+    out.expectedField = (!out.fixtureAsTyped && oldLabel !== fixtureValue.trim()) ? oldLabel : fixtureValue;
     // What l2 SHOULD read. Normally the auto default -- "v" plus the version field. But a fixture
     // saved in Manual or Template stores its own l2, and a stored line wins over the default
     // (headerLine checks `id in headerManual` first). In Manual that stored text is literal, which
@@ -64,7 +73,7 @@ window.addEventListener('load', function () { (async function () {
     // template, and the one this leg's fixture carries is exactly `{version}` -- so the expectation
     // is the version label, the same string Auto would have produced. Anything more elaborate
     // belongs in t/hdrtemplate.js, which drives the resolver properly.
-    var versionLabel = stripped ? 'v' + stripped : '';
+    var versionLabel = out.expectedField.trim();
     if (storedL2 === undefined) out.expectedLabel = versionLabel;
     else if (!isTemplateFixture) out.expectedLabel = String(storedL2).trim();
     else out.expectedLabel = (String(storedL2).trim() === '{version}') ? versionLabel : null;
@@ -85,7 +94,7 @@ window.addEventListener('load', function () { (async function () {
     out.fieldFound = !!el;
     if (!el) throw new Error('no #show-version -- is this the BUILD? run.sh defaults to /index.html');
     out.fieldValue = String(el.value || '');
-    out.fieldRestored = out.fieldValue === fixtureValue;
+    out.fieldRestored = out.fieldValue === out.expectedField;
 
     // ---- and the header agrees with it ----------------------------------------------------------
     var line = document.querySelector('#table-wrap .hdr-line[data-hid="l2"]');

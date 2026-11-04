@@ -22670,7 +22670,7 @@ export function initLegacyApp() {
         ['{title}', 'Show title'],
         ['{season}', 'Season, as S2 or S2 & S3'],
         ['{titleSeason}', 'Title and season'],
-        ['{version}', 'Version, as v3'],
+        ['{version}', 'Version, as typed'],
         ['{scenario}', 'The scenario on screen (empty with one)'],
         ['{episodes}', 'Episode count'],
         ['{shootDaysPerEp}', 'Shoot days per episode'],
@@ -22866,27 +22866,35 @@ export function initLegacyApp() {
     return s;
   }
 
-  // The version number as it appears in the header: a lowercase "v" and then whatever was typed.
+  // The version number as it appears in the header: EXACTLY what was typed (owner, 3 Nov 2026: "should
+  // just be exactly what is typed. So no longer with a v prefix"). Typing 3 prints "3", v3 prints "v3".
+  // ANY text is accepted -- owners write 3, 3.1 and 3a -- because it is a LABEL, not arithmetic, which
+  // is why the field is a TextInput and not a NumberInput (decision H1, 1 Sep 2026).
   //
-  // Owner decision H1 (1 Sep 2026): the label is ALWAYS "v" + the input, with a leading v/V
-  // stripped so that typing "3" and typing "v3" both read "v3", and ANY text is accepted -- owners
-  // write 3, 3.1 and 3a. That is a LABEL, not arithmetic, which is why the field is a TextInput and
-  // not a NumberInput.
-  //
-  // ⛔ AN EMPTY FIELD MUST RETURN THE EMPTY STRING, never a bare "v". That single line is the whole
-  // of this feature's inertness. computeHeaderDefaults() puts this value in the l2 slot, and an
-  // EMPTY l2 is filtered out of the workbook by withCodes(), filtered out of the direct PDF by
-  // .filter(x=>x.t), and hidden on screen by .hdr-line.hdr-slot.hdr-empty -- but only while it is
-  // empty. Return "v" for an empty field and every calendar ever saved gains a stray line in all
-  // three outputs, and the gate's byte-identical PDF/Excel compare goes red. What buys that is the
-  // FIRST trim plus the `num ?` ternary: "v" and "v  " both trim to "v", strip to "", and the
-  // ternary returns "". The SECOND trim is a different job -- interior whitespace, so "v  3" reads
-  // "v3" rather than "v  3".
+  // ⛔ AN EMPTY FIELD MUST RETURN THE EMPTY STRING. That single line is the whole of this feature's
+  // inertness. computeHeaderDefaults() puts this value in the l2 slot, and an EMPTY l2 is filtered out
+  // of the workbook by withCodes(), filtered out of the direct PDF by .filter(x=>x.t), and hidden on
+  // screen by .hdr-line.hdr-slot.hdr-empty -- but only while it is empty. The trim is what buys it: a
+  // field of spaces is no version, never a version called "   ".
   function versionLabel(){
     const el = document.getElementById('show-version');
-    const raw = el ? String(el.value || '').trim() : '';
-    const num = raw.replace(/^[vV]/, '').trim();
+    return el ? String(el.value || '').trim() : '';
+  }
+  // ⛔ What the header printed for a typed value from 1 Sep to 3 Nov 2026 (decision H1): "v" + the input
+  // with one leading v/V stripped, so "3", "V3" and "v3" all read "v3", and a bare "v" read nothing. NEVER
+  // a printer now. It exists only so a calendar saved under that rule keeps printing what it printed
+  // (owner's picker, 3 Nov 2026: "Keep v3"): applyStateSnapshot() rewrites such a calendar's box to this.
+  function legacyVersionLabel(raw){
+    const num = String(raw || '').trim().replace(/^[vV]/, '').trim();
     return num ? 'v' + num : '';
+  }
+  // True when the box holds text the old rule would have printed DIFFERENTLY ("3", "V3", "v  3", a bare
+  // "v"). Only then does captureSnapshot() write `versionAsTyped`, so a calendar with no version, or one
+  // that already reads "v3", saves byte for byte as before.
+  function versionNeedsAsTyped(){
+    const el = document.getElementById('show-version');
+    const raw = el ? String(el.value || '') : '';
+    return legacyVersionLabel(raw) !== raw.trim();
   }
 
   // ---------- Header templates (HEADER-PRESETS-PLAN.md Step 2) ----------
@@ -27207,6 +27215,11 @@ export function initLegacyApp() {
       // (HOLIDAY_LISTS_CHANGED), so every other calendar's snapshot is byte for byte what it was. Absent on one
       // of those regions = saved before the correction, which is what raises the strip.
       ...(HOLIDAY_LISTS_CHANGED[effectiveRegionKey()] ? {holidayLists: HOLIDAY_LISTS_VERSION} : {}),
+      // 3 Nov 2026: the Version prints exactly as typed. ⛔ PERMANENT key, whose one value is `true`, written ONLY
+      // when the box holds text the old "v" rule would have printed differently (versionNeedsAsTyped), so every
+      // other calendar's snapshot is byte for byte what it was. Absent on such a box = saved before 3 Nov 2026,
+      // which applyStateSnapshot() opens printing what it printed then ("3" opens as "v3"). Not state; never restored.
+      ...(versionNeedsAsTyped() ? {versionAsTyped: true} : {}),
       // 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md §4.1): the month view's phase bar size. ⛔ PERMANENT key, whose two values
       // are 'large' and 'xl'. STANDARD IS AN ABSENT KEY, so a Standard calendar's snapshot is the one it was before.
       ...(mvBarSize ? {mvBarSize: mvBarSize} : {}),
@@ -34804,6 +34817,7 @@ export function initLegacyApp() {
     if('holidayLists' in s && !(Number.isInteger(s.holidayLists) && s.holidayLists >= 1 && s.holidayLists <= 1000)){
       bad.n++; delete s.holidayLists;
     }
+    if('versionAsTyped' in s && s.versionAsTyped !== true){ bad.n++; delete s.versionAsTyped; }
     // Phase bar size (MONTH-BAR-SIZE-PLAN.md): only the two words a Save writes. Anything else is dropped, so it opens
     // at Standard, as a file with no key does.
     if('mvBarSize' in s && s.mvBarSize !== 'large' && s.mvBarSize !== 'xl'){ bad.n++; delete s.mvBarSize; }
@@ -35054,6 +35068,17 @@ export function initLegacyApp() {
     // the new rule. Undo, the crash backup and a shareable copy come through here too, so each keeps the
     // rule it was taken under.
     blocksEpisodesLegacy = isBlocksMode() && !hasEpisodeCount() && snap.blocksEpisodesOptional !== true;
+
+    // ⛔ UNCONDITIONAL, read off the field just applied (owner's picker, 3 Nov 2026: "Keep v3"). A calendar saved
+    // before the Version printed exactly as typed printed "v" + it, so one WITHOUT `versionAsTyped` has its box
+    // rewritten to what it printed: "3" opens as "v3", and its header, workbook and both PDFs are what they were.
+    // With the key the box is left alone. A box the old rule already printed verbatim ("v3", empty) is never
+    // touched. Undo, the crash backup, a scenario tab and a shareable copy come through here too; their
+    // snapshots are this build's, so each carries the key whenever its box needs it.
+    if(snap.versionAsTyped !== true){
+      const ve = document.getElementById('show-version');
+      if(ve && versionNeedsAsTyped()) ve.value = legacyVersionLabel(ve.value);
+    }
 
     // 4. Restore user notes and view mode. Migrate any old-format entries
     //    ({label, noteDate}) into the new single-text shape ({text}).

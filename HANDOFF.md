@@ -4,6 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔧 3 Nov 2026: THE VERSION PRINTS EXACTLY AS TYPED — BUILT and COMMITTED on local `main` alone (owner's picker, *"Commit this only"*), NOT PUSHED (*"Not yet: full gate first"*) (tracker card `version-as-typed`)
+
+- **The ask** (owner): *"version entered into the 'show info' section should just be exactly what is typed. So no
+  longer with a v prefix"*. This retires decision H1's rule ("v" + the input, one leading v/V stripped). Ruling by
+  picker: **"Keep v3"**, so calendars saved before today print what they printed.
+- **Where it lives (`src/legacy/app.js`):**
+  - `versionLabel()` returns the box trimmed. Empty stays empty, so a calendar with no version is still inert.
+  - `legacyVersionLabel(raw)` is the old rule, kept only to open old files. `versionNeedsAsTyped()` is true when
+    the old rule would print the box differently (`3`, `V3`, `v  3`, a bare `v`).
+  - `captureSnapshot()` writes `versionAsTyped: true` only then: a ⛔ PERMANENT key, never restored as state
+    (the `holidayLists` pattern). Sanitized to `true` or dropped.
+  - `applyStateSnapshot()`, right after the `fields.byId` replay: a snapshot WITHOUT the key has its box rewritten to
+    `legacyVersionLabel()`, so an old `3` opens as `v3`. Undo, crash backup, scenario tabs and shareable copies all
+    come through here, and their snapshots carry the key whenever it is needed.
+  - Chrome: `Sidebar.jsx`'s hint now reads "Shows in the header's bottom-left, exactly as typed", the placeholder is
+    "e.g. v3", and the token menu says "Version, as typed".
+- ⚠️ **Why the migration matters for the gate:** a dozen fixtures carry a bare `3` or `7`. Among them is `mvheader`,
+  whose month header prints `{version}` in gate 10 and gate 13. Without the rewrite those baselines would move. With
+  it, `mvheader`'s written month PDF is byte-identical and its print document identical (checked alone).
+- **Tests:** `hdrversion` rewritten (19 checks: as-typed on screen, Excel and PDF; the key written for `3` and not
+  for `v3`; an undo keeps `3`, which proves the key is honoured). `hdrverload` gains a fifth fixture,
+  `tests/fixtures/hdrversion-astyped.sptcal`, minted from the leg's own share-copy snapshot. The five header legs that
+  typed `3` and expected `v3` now type `v3`.
+- **Not done:** the full gate. It was not run because another gate was running in the `simpost-beside-prod`
+  worktree, and the Sim Post work in this checkout expects its own gate 10/13 moves. Run it before any push. The
+  commit holds only this change: its hunks of `app.js`, `gate.sh`, README and this file were staged alone, and the
+  Sim Post work below is still uncommitted in the working tree.
+- The Copilot import kit in ~/Downloads still works unchanged: it writes a PDF's "v3" as `3` with no key, and that
+  opens as `v3`.
+
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an

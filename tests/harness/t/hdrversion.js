@@ -5,17 +5,24 @@
 // side text box of the header. You should be able to type your version number into the 'Show Info'
 // section and this should autopopulate into the header."
 //
+// Owner, 3 Nov 2026: "version entered into the 'show info' section should just be exactly what is
+// typed. So no longer with a v prefix". Calendars saved before then keep printing "v3" (owner's
+// picker, "Keep v3"): that half is hdrverload's, on the real pre-change hdrversion.sptcal.
+//
 // So there are two claims to prove, and the second one is the expensive one to get wrong:
 //
-//   1. IT ARRIVES. Type 3 (or V3) and the l2 slot reads "v3" -- on screen, in the workbook's &L
-//      section, and drawn in the direct PDF. Three consumers, one source (headerLine), so a leg
-//      that checked only the screen would not notice the exports disagreeing.
+//   1. IT ARRIVES, AS TYPED. Type 3 and the l2 slot reads "3"; V3 reads "V3" -- on screen, in the
+//      workbook's &L section, and drawn in the direct PDF. Three consumers, one source
+//      (headerLine), so a leg that checked only the screen would not notice the exports disagreeing.
 //   2. ⭐ IT IS INERT WHEN EMPTY. l2 was '' before this feature. Every calendar ever saved has no
 //      version, so an empty field must produce byte-for-byte what it produced before: no line on
-//      screen, the &L section a bare date, nothing drawn in the PDF. versionLabel() returning a
-//      bare "v" for an empty field is the failure mode -- it would put a stray line into all three
-//      outputs of every existing calendar, and turn the gate's byte-identical compare red. That is
-//      why "v" alone and "  " are both asserted to produce nothing.
+//      screen, the &L section a bare date, nothing drawn in the PDF. A field of spaces is asserted
+//      to produce nothing too.
+//
+// And the marker that keeps "3" printing "3": captureSnapshot() writes `versionAsTyped: true` when
+// the old rule would have printed the box differently, and only then. Proved in the saved file
+// (section 6) and through undo (section 7), which is applyStateSnapshot -- the path that otherwise
+// rewrites an unmarked "3" to "v3".
 //
 // Also proved here, because both are contract rather than behaviour:
 //   * the value is CAPTURED into a real saved calendar (fields.byId, read out of an actual
@@ -137,8 +144,8 @@ window.addEventListener('load', function () { (async function () {
     var findOp = function (ops, txt) { return ops.filter(function (o) { return o.text === txt; })[0] || null; };
     // Every string drawn at the same x as the date, top down. The direct writer left-aligns the
     // ['left','l2'] column at one x, so this IS the left header column -- and counting it is a
-    // stabler claim than hunting for a pattern: "the column gained exactly one line, and it says
-    // v3". A pattern hunt over every Tj on the page would go red the day a calendar carries a
+    // stabler claim than hunting for a pattern: "the column gained exactly one line, and it is
+    // the version". A pattern hunt over every Tj on the page would go red the day a calendar carries a
     // phase named VFX (HANDOFF §4: do not trust your own measurement harness).
     var leftCol = function (ops, dateOp) {
       if (!dateOp) return null;
@@ -167,34 +174,32 @@ window.addEventListener('load', function () { (async function () {
     out.inertPdf = !!dateOp0 && !!out.beforePdfLeftCol &&
                    out.beforePdfLeftCol.length === 1 && out.beforePdfLeftCol[0] === todayStr;
 
-    // ---- 2. a bare "v" is still no version ----------------------------------------------------
-    // The one input that would break inertness by accident: someone types v, then deletes the digit.
-    T.set('show-version', 'v');
-    await T.sleep(400);
-    out.bareVL2 = l2State();
-    out.bareVInert = out.bareVL2.text === '' && out.bareVL2.empty && !out.bareVL2.visible;
+    // ---- 2. a field of spaces is still no version; a bare "v" is a version called v -----------
     T.set('show-version', '   ');
     await T.sleep(400);
-    out.blankL2Text = l2State().text;
-    out.blankInert = out.blankL2Text === '';
+    out.blankL2 = l2State();
+    out.blankInert = out.blankL2.text === '' && out.blankL2.empty && !out.blankL2.visible;
+    T.set('show-version', 'v');
+    await T.sleep(400);
+    out.bareVText = l2State().text;           // "v": exactly as typed (it read nothing before 3 Nov 2026)
 
-    // ---- 3. it arrives, and a leading V is normalised -----------------------------------------
+    // ---- 3. it arrives exactly as typed: no v added, none taken away, no case changed ---------
     T.set('show-version', 'V3');
     await T.sleep(500);
-    out.upperVText = l2State().text;          // must be v3, not V3 and not vV3
+    out.upperVText = l2State().text;          // must be V3, not v3
     T.set('show-version', '3');
     await T.sleep(500);
     var on = l2State();
     out.afterL2 = on;
-    out.screenShowsVersion = on.text === 'v3' && !on.empty && on.visible;
-    out.caseNormalised = out.upperVText === 'v3';
+    out.screenShowsVersion = on.text === '3' && !on.empty && on.visible;
+    out.asTyped = out.upperVText === 'V3' && out.bareVText === 'v';
 
     // ---- 4. it reaches the workbook, as the second line of &L ---------------------------------
     await T.sleep(900);
     var ex1 = await excelL();
     out.afterExcelL = ex1.L;
     out.afterExcelRaw = ex1.raw.slice(0, 160);
-    out.excelHasVersion = ex1.L === todayStr + '\n' + 'v3';
+    out.excelHasVersion = ex1.L === todayStr + '\n' + '3';
     // No per-line format codes anywhere in &L: nothing has been formatted, so the section must
     // still be the plain two-line string. hdrLineCode() only fires when a line carries a format.
     // ⚠️ Not "does the section contain a font code" -- HSIZE always prefixes it, so that test can
@@ -206,7 +211,10 @@ window.addEventListener('load', function () { (async function () {
     // ---- 5. it reaches the direct PDF, drawn UNDER the date in the same left column -----------
     await T.sleep(900);
     var ops1 = await pdfOps();
-    var dateOp = findOp(ops1, todayStr), verOp = findOp(ops1, 'v3');
+    // ⚠️ The version is looked for IN THE DATE'S COLUMN, never as the first "3" on the page: a bare
+    // "3" is a string the grid could draw too.
+    var dateOp = findOp(ops1, todayStr);
+    var verOp = dateOp ? ops1.filter(function (o) { return o.text === '3' && Math.abs(o.x - dateOp.x) < 0.5; })[0] || null : null;
     out.pdfDate = dateOp && { x: Math.round(dateOp.x), y: Math.round(dateOp.y) };
     out.pdfVersion = verOp && { x: Math.round(verOp.x), y: Math.round(verOp.y) };
     // Two lines in the left column: same x (both left-aligned in the same slot) and the version
@@ -216,7 +224,7 @@ window.addEventListener('load', function () { (async function () {
     // difference against the empty run, so it needs no guess about where the header band ends.
     out.pdfGainedOneLine = !!out.beforePdfLeftCol && !!out.afterPdfLeftCol &&
       out.afterPdfLeftCol.length === out.beforePdfLeftCol.length + 1 &&
-      out.afterPdfLeftCol[0] === todayStr && out.afterPdfLeftCol[1] === 'v3';
+      out.afterPdfLeftCol[0] === todayStr && out.afterPdfLeftCol[1] === '3';
     out.pdfTwoLeftLines = !!dateOp && !!verOp &&
                           Math.abs(dateOp.x - verOp.x) < 0.5 && verOp.y < dateOp.y &&
                           out.pdfGainedOneLine;
@@ -237,6 +245,10 @@ window.addEventListener('load', function () { (async function () {
     out.snapVersion = byId && byId['show-version'] ? byId['show-version'].value : null;
     out.fieldIdCount = byId ? Object.keys(byId).length : -1;
     out.captured = out.snapVersion === '3';
+    // ⭐ The marker: a "3" the old rule would have printed "v3" is saved WITH versionAsTyped, which is
+    // what keeps it "3" when it is opened again.
+    out.snapAsTyped = snap ? snap.versionAsTyped : null;
+    out.markerWritten = out.snapAsTyped === true;
     // The whole snapshot, so the gate step that mints tests/fixtures/hdrversion.sptcal has a REAL
     // captureSnapshot() output to write rather than a hand-built one (CLAUDE.md: test with real
     // files, not synthesised ones).
@@ -259,9 +271,26 @@ window.addEventListener('load', function () { (async function () {
       out.afterRedoField = (document.getElementById('show-version') || {}).value;
       out.afterRedoL2 = l2State().text;
       // The undo took the field back to 3 and the header with it; the redo returned both to 4.
-      out.roundTrips = out.afterUndoField === '3' && out.afterUndoL2 === 'v3' &&
-                       out.afterRedoField === '4' && out.afterRedoL2 === 'v4';
+      // ⭐ "3", not "v3": undo restores through applyStateSnapshot, which rewrites an UNMARKED "3" to
+      // "v3". So this is also the proof that the marker travels and is honoured.
+      out.roundTrips = out.afterUndoField === '3' && out.afterUndoL2 === '3' &&
+                       out.afterRedoField === '4' && out.afterRedoL2 === '4';
     }
+
+    // ---- 7b. a version that already reads as it did ("v3") saves with NO marker ---------------
+    // So a calendar typed the way every one was printed saves byte for byte as before.
+    T.set('show-version', 'v3');
+    await T.sleep(900);
+    var cap3 = T.captureDownload();
+    document.getElementById('share-copy-btn').click();
+    await T.until(cap3.peek, 'the third shareable-copy blob', 200, 100);
+    var html3 = await cap3.stop().text();
+    var m3 = html3.match(/<script id="saved-state" type="application\/json">([\s\S]*?)<\/script>/);
+    var snap3 = null;
+    try { snap3 = JSON.parse((m3 ? m3[1] : '').replace(/\\u003c/g, '<')); } catch (e) { out.snap3ParseErr = String(e.message); }
+    out.vSnapVersion = snap3 && snap3.fields && snap3.fields.byId['show-version'] ? snap3.fields.byId['show-version'].value : null;
+    out.vSnapHasMarker = snap3 ? ('versionAsTyped' in snap3) : null;
+    out.noMarkerWhenSame = out.vSnapVersion === 'v3' && out.vSnapHasMarker === false;
 
     // ---- 8. clearing it hides the line again, everywhere ---------------------------------------
     T.set('show-version', '');
@@ -287,10 +316,10 @@ window.addEventListener('load', function () { (async function () {
     out.clipped = T.clippedCells();
     out.PASS = out.fieldFound && !out.insidePrefsCard && out.insideShowInfo &&
                out.inertScreen && out.inertExcel && out.inertPdf &&
-               out.bareVInert && out.blankInert &&
-               out.screenShowsVersion && out.caseNormalised &&
+               out.blankInert &&
+               out.screenShowsVersion && out.asTyped &&
                out.excelHasVersion && out.excelNoFormatCodes && out.pdfTwoLeftLines &&
-               out.captured && out.roundTrips &&
+               out.captured && out.markerWritten && out.roundTrips && out.noMarkerWhenSame &&
                out.clearedScreen && out.clearedExcel && out.notInCompleteness &&
                out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {

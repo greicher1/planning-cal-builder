@@ -109,8 +109,8 @@ export function ShowInfoCard() {
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
         </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
-            and 3a, so the field is a LABEL and not arithmetic. The engine's versionLabel() strips a
-            leading v/V, so typing either "3" or "v3" prints "v3".
+            and 3a, so the field is a LABEL and not arithmetic. Since 3 Nov 2026 it prints EXACTLY as
+            typed (owner: "no longer with a v prefix"), so the placeholder shows the v being typed.
             ⛔ It is NOT part of showInfoStatus()'s completeness test and must never gate
             Production -- a calendar with no version number is a complete calendar.
             The description answers the one question this field raises that the others do not: where
@@ -122,8 +122,8 @@ export function ShowInfoCard() {
             typed onto a manual header changes nothing. Title has behaved that way since the header
             gained modes; the difference is that Title makes no claim. Step 2's mode popover is where
             Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
-        <TextInput id="show-version" label="Version" placeholder="e.g. 3"
-                   description={'Shows as “v3” in the header’s bottom-left.'} />
+        <TextInput id="show-version" label="Version" placeholder="e.g. v3"
+                   description={'Shows in the header’s bottom-left, exactly as typed.'} />
         {/* The Production Region, a SECOND time (owner, 21 Oct 2026: "below the version number box
             in the Show Info tab ... now it appears in both places"). The Settings window's Region
             tab keeps #union-place, which stays the one real control.

@@ -34,7 +34,7 @@ window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   try {
     T.buildFixture();
-    T.set('show-version', '3');
+    T.set('show-version', 'v3');   // with its v: the Version prints exactly as typed (3 Nov 2026)
     await T.until(function () {
       return document.querySelectorAll('table.sheet-table tbody tr').length > 1;
     }, 'the grid to render', 200, 100);
