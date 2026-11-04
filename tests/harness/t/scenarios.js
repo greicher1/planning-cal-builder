@@ -273,12 +273,13 @@ window.addEventListener('load', function () { (async function () {
       rowsAll.indexOf('Localization') === -1 && rowsAll.indexOf('Post') !== -1 && rowsAll.indexOf('Wrap') !== -1,
       {rows: rowsAll}, 'no Localization row; Post and Wrap still there');
     // S19 -- a date that moved says Pushed or Pulled (owner: "lets use pushed and pulled instead of + and -"), with
-    // the holidays behind it as a count in a second chip, never their names ("lets not name the specific holidays").
-    // Toronto loses Canada Day and Civic Holiday, US loses Independence Day (Observed): one more for Toronto.
-    add('S19', 'Toronto\'s wrap reads "Pushed 1 day" and "+1 holiday", names no holiday; the column on screen and the unmoved first day carry no chip',
-      !!usWrap && usWrap[1] === '8/20/26 Pushed 1 day +1 holiday' && !/Pushed|Pulled|holiday/.test(usWrap[0]) &&
+    // the holidays behind it as a count in a second chip, never their names ("lets not name the specific holidays"),
+    // in words since 4 Nov 2026 ("what does -1 holidays even mean"). Toronto loses Canada Day and Civic Holiday, US
+    // loses Independence Day (Observed): one more for Toronto.
+    add('S19', 'Toronto\'s wrap reads "Pushed 1 day" and "1 more holiday", names no holiday; the column on screen and the unmoved first day carry no chip',
+      !!usWrap && usWrap[1] === '8/20/26 Pushed 1 day 1 more holiday' && !/Pushed|Pulled|holiday/.test(usWrap[0]) &&
       !!usFirst && !/Pushed|Pulled|holiday/.test(usFirst.join(' ')),
-      {wrap: usWrap, first: usFirst}, '8/19/26 | 8/20/26 Pushed 1 day +1 holiday');
+      {wrap: usWrap, first: usFirst}, '8/19/26 | 8/20/26 Pushed 1 day 1 more holiday');
     // S20 -- Only differences keeps the rows that differ, and the exports take the table as shown.
     var seen = null, grab = function(e){ seen = e.detail; e.stopImmediatePropagation(); };
     document.addEventListener('sptcal-compare-export', grab, true);
@@ -291,7 +292,7 @@ window.addEventListener('load', function () { (async function () {
     var mWrap = seen && seen.model ? seen.model.rows.filter(function(r){ return r.label === 'Wrap'; })[0] : null;
     add('S20', 'Only differences leaves the rows that differ, and the export gets exactly those, holidays included',
       rowsDiff.join('|') === 'Location|Wrap' && !!mRows && mRows.join('|') === rowsDiff.join('|') && !!mWrap &&
-      mWrap.cells[1].delta === 'Pushed 1 day' && mWrap.cells[1].holidays === '+1 holiday',
+      mWrap.cells[1].delta === 'Pushed 1 day' && mWrap.cells[1].holidays === '1 more holiday',
       {rows: rowsDiff, exported: mRows, wrap: mWrap && mWrap.cells[1]}, 'Location | Wrap, both on screen and in the export');
     [].slice.call(document.querySelectorAll('.compare-dlg .sc-compare-onlydiff p'))[0].click(); await T.sleep(300);
     await closeCompare();
@@ -301,6 +302,21 @@ window.addEventListener('load', function () { (async function () {
     var loc = compareRow('Localization');
     add('S21', 'a phase only one scenario has keeps its row, a dash in the other',
       !!loc && /^3\/1\/27/.test(loc[0]) && loc[1] === '—', {localization: loc}, '3/1/27 – … | —');
+    await closeCompare();
+    // S22 -- only Wrap counts holidays (owner, 4 Nov 2026: "why would wrap and first shoot have different number of
+    // holidays??"). US, on screen, now starts on Memorial Day (Mon 25 May 2026), so its first shoot day is the 26th
+    // and a holiday held it up; Toronto's start, 29 Jun, had none. The old rule gave Toronto's First shoot day a
+    // "−1 holiday" chip, and Wrap one too. Now First carries its Pushed alone, and Wrap counts only the holidays
+    // from the first shoot day on: US loses Juneteenth and Independence Day (Observed), Toronto Canada Day and Civic
+    // Holiday, two each, so no chip -- and both dates moved the same 34 days, which is what "no chip" should mean.
+    T.set('start-production', '2026-05-25'); await T.sleep(700);
+    await answerAnyModal(); await T.sleep(500);
+    await openCompare();
+    var mdFirst = compareRow('First shoot day'), mdWrap = compareRow('Wrap');
+    add('S22', 'a holiday on the on-screen start date counts nowhere: First shoot day and Wrap both read "Pushed 34 days", no holiday chip',
+      !!mdFirst && mdFirst[0] === '5/26/26' && mdFirst[1] === '6/29/26 Pushed 34 days' &&
+      !!mdWrap && mdWrap[0] === '7/17/26' && mdWrap[1] === '8/20/26 Pushed 34 days',
+      {first: mdFirst, wrap: mdWrap}, '5/26/26 | 6/29/26 Pushed 34 days; 7/17/26 | 8/20/26 Pushed 34 days');
     await closeCompare();
   } catch(e){
     add('ERR', 'the leg threw', false, String(e && e.stack || e), 'no error');

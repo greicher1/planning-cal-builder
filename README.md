@@ -58,6 +58,48 @@ typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) o
 old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
 
 
+### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
+
+Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:
+*"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first shoot have
+different number of holidays??"*.
+
+- **The chip reads in words:** "1 more holiday", "2 fewer holidays", never "+1" / "−1".
+- **Only Wrap carries it.** First shoot day counted only the holidays before it, so the same two shoots showed two
+  different numbers.
+- **It counts the holidays from the first shoot day to wrap.** It used to count from Production's start date, so a
+  start date on a holiday (Victoria Day, say) showed "1 fewer holiday" beside a wrap that moved exactly as far as the
+  first shoot day. Now a wrap that moved one working day further than First shoot day reads "1 fewer/more holiday".
+- The exports and Copy table take the chip as shown, so they follow.
+
+No frozen code, no save-format change (`CompareDialog.jsx`'s `holidayDelta`, and `compareRows` in `app.js` marks Wrap
+alone). Leg `scenarios` 23/23: S19 and S20 reworded, and new S22 (a holiday on the on-screen start date counts
+nowhere), red on the old build with exactly the owner's "−1 holiday" under First shoot day. `scenariofacts` 12/12,
+`npm run check` 40/40, and the browser pane on `scenarios-3`.
+
+### Unreleased — a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
+
+Both note editors now have a switch right below the colours (owner, 4 Nov 2026: *"a toggle in the popup when you edit
+a note … to hide/show the note in the other calendar"*):
+
+- **Waterfall note → "Show in month view"**, on by default. Off leaves the text you typed in that week out of the
+  month view and both month PDFs. Automatic notes and holidays in the same week keep their own settings (owner's
+  picker).
+- **Month view note → "Show in waterfall"**, off by default. On adds it to its week's Notes cell in the waterfall,
+  Excel and the waterfall PDF, on one line with its date, "Crew party 11/6/26" (owner's picker). Edits follow it: change
+  that line in the waterfall's editor and the month note changes; take the line out (the editor, Delete, Cut, a paste
+  or a drop over it) and it leaves the waterfall but stays in the month view.
+- **A waterfall line opened in the month view** shows the switch on. Turn it off and the line moves out of the
+  waterfall into a note of that day.
+- Holidays and automatic notes keep their own editors with no switch (owner's picker).
+
+No frozen code. Every waterfall writer already takes a Notes cell's text from one helper (`effectiveNoteText`), and the
+month view takes its lines through a non-frozen layer. A calendar with neither switch changed writes exactly what it
+did. Saved as two flags written only as `true` (`userNotes[week].monthHidden`, `dayNotes[day][i].waterfall`). No new
+top-level key and no new field id. Older builds open such a file and ignore both. New leg `noteviews` (15 cases, in
+gate.sh), plus 13 neighbouring note legs green on the build. Full gate merged with main: every byte comparison held;
+of four FAILs, one was this leg's own outdated check, and three were Load-timing flakes that pass alone.
+
 ### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid

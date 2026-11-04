@@ -11,7 +11,8 @@
 //   - a phase no column shows has no row ("hide phases that aren't used/empty");
 //   - "Only differences" hides the rows that are the same everywhere;
 //   - a date that moved says "Pushed"/"Pulled", never + or − (counts keep their signs);
-//   - a shoot date that moved counts the holidays behind it, in a second chip ("+1 holiday").
+//   - a wrap that moved counts the holidays behind it, in a second chip ("1 more holiday"; owner, 4 Nov 2026:
+//     Wrap only, in words, never "+1"/"−1").
 // The exports and Copy table take the table as shown, so all three reach them too.
 //
 // The engine works out every value (openCompareScenarios in app.js: the header's own tokens, probing tabs not
@@ -29,7 +30,7 @@ const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); mor
 // larger so we dont have elipses/things cut off"). Nothing in the table wraps or truncates: a long name, a long
 // location or a pair of chips widens its column, and the window grows with the table up to the browser window.
 const LABEL_MIN = 164   // the row labels' column, inside its padding
-const COL_MIN = 168     // a scenario's column, inside its padding: "Pushed 12 days" and "+1 holiday" side by side
+const COL_MIN = 168     // a scenario's column, inside its padding; "Pulled 12 days" and "2 fewer holidays" widen it
 const COL_EST = 184     // a column's whole width, for the first sizing before the table is measured
 
 const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
@@ -72,15 +73,20 @@ function show(row, v) {
   return String(v)
 }
 
-// The holidays behind a moved shoot date, as a COUNT in a second chip beside its "Pushed"/"Pulled" (owner, 23 Oct
-// 2026: "lets not name the specific holidays, lets just say + or - a number of holidays with the same yellow
-// chip"). It is how many more days this scenario's shoot lost to a holiday than the one on screen's, each from its
-// own production walk (values.hols, the days it actually skipped); equal counts make no chip. A count, so it keeps
-// its sign. First shoot day counts only the holidays before it, the ones that held up the start.
-function holidayDelta(which, mine, theirs) {
-  const lost = (v) => (v.hols || []).filter((h) => which !== 'first' || h.d < v.first).length
-  const n = lost(mine) - lost(theirs)
-  return n ? sign(n) + ' holiday' + (Math.abs(n) === 1 ? '' : 's') : ''
+// The holidays behind a moved wrap, as a COUNT in a second chip beside its "Pushed"/"Pulled" (owner, 23 Oct 2026:
+// "lets not name the specific holidays, lets just say + or - a number of holidays with the same yellow chip"). It
+// is how many more or fewer days this scenario's SHOOT lost to a holiday than the one on screen's, each from its own
+// production walk (values.hols, the days it actually skipped); equal counts make no chip.
+// Owner, 4 Nov 2026 ("what does -1 holidays even mean", then "why would wrap and first shoot have different number
+// of holidays"): in WORDS, "1 more holiday" / "2 fewer holidays", and on Wrap ONLY (compareRows marks Wrap alone).
+// ⚠️ Only the holidays AFTER the first shoot day count. A holiday on Production's start date (the walk skips it, so
+// it is in holidaysHit) is before any shooting: counting it said "1 fewer holiday" beside a wrap that moved exactly
+// as far as the first shoot day did. Counted from the first shoot day, a wrap that moved one working day further
+// than First shoot day reads "1 fewer/more holiday", which is the question the chip answers.
+function holidayDelta(mine, theirs) {
+  const inShoot = (v) => (v.hols || []).filter((h) => h.d > v.first).length
+  const n = inShoot(mine) - inShoot(theirs)
+  return n ? Math.abs(n) + (n > 0 ? ' more' : ' fewer') + ' holiday' + (Math.abs(n) === 1 ? '' : 's') : ''
 }
 
 // The yellow chip under a value that differs. Its column grows to fit it, so it never clips.
@@ -144,7 +150,7 @@ export function CompareDialog() {
   const table = rows.map((r) => {
     const cells = cols.map((s) => {
       const c = cell(r, s.values[r.key], ref.values[r.key])
-      c.holidays = r.hols && c.delta ? holidayDelta(r.hols, s.values, ref.values) : ''
+      c.holidays = r.hols && c.delta ? holidayDelta(s.values, ref.values) : ''
       return c
     })
     return { row: r, cells, same: cells.every((c) => !c.diff) }
