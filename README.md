@@ -292,6 +292,45 @@ old columns and still saves no key. LIVE and RESTORE both green, 0 console error
 browser pane: a fresh launch shows Reuse Empty Columns on. Full gate: 3,492 PASS, 5 FAIL, all five timeouts on a busy
 machine and each green run alone (papersize, pdfdialog, autonotephases, monthexport on shootorder, offweek); the
 waterfall PDF, every Excel part, the v1.0.0 restore, the 77 saved ids and the month prints identical to baseline.
+### Unreleased — Simultaneous Post always sits right of Production, and moves with it (2 Nov 2026)
+
+The owner: *"Sim post should always be directly to the right of production in either reuse column mode on or off"*,
+then *"you should be able to use the swap column feature for production with sim post on, but Sim post always stays
+glued to the right side of production so both collumns are swaped together"*.
+
+**The bug.** Sim Post's column was meant to sit right of Production, but whenever any phase used that column during
+a Sim Post week, frozen `computeBlockLayout` sent Sim Post to the far right instead. The order you add phases has
+nothing to do with it (the same dates typed in reverse give the same grid). It depends on dates alone. With Reuse
+Empty Columns on, Production always takes the first column, so whatever runs beside it sits in that spot and this
+happened on nearly every calendar.
+
+**Now** (frozen edit **SP1**, owner sign-off by picker, *"Approve the frozen edit"*):
+
+- In that case Sim Post gets its own column right after Production, and the columns after it move over one. The year
+  has the same number of columns as before; only their order changes. The screen, the workbook and both waterfall
+  PDFs follow, because they share the layout.
+- **Swap Column works on Production with Sim Post on.** Sim Post moves with Production: swapping right trades places
+  with the phase past Sim Post, and a phase right of Sim Post swapping left trades with Production. This retires
+  ruling D5 for the block swap and for Reuse Empty Columns' move. A swap of only SOME of Production's weeks is still
+  refused, because it would leave Sim Post behind, and the message now says to use Swap Column.
+- **Widths and headings stay on their phase** (owner's picker, *"Move them with their columns"*). A dragged column
+  width, a typed heading, a heading split and a heading style are stored by column position (`y2026:s3`). On a
+  calendar saved before this change, Load moves them to their columns' new positions, once. A new permanent key,
+  `simPostBeside: true`, marks a file already in the new order. It is written only with Sim Post on and something
+  stored by position, so every other calendar saves byte for byte as before. Turning Sim Post on or off now moves them
+  as well, since the switch can open or close a column in the middle of a year.
+
+- **A stored per-week swap that moves Production** in a year with Sim Post (one saved in a file, or made while Sim
+  Post was off) is now paused by name, with the notice "Simultaneous Post stays beside Production, which moves only
+  as a whole column". It used to be paused only because the far-right lane made it change the column count; with the
+  lane beside Production it would otherwise have applied and left Sim Post behind for those weeks.
+
+Verified: new leg `simpostbeside` 19/19 (the owner's two screenshots rebuilt, the workbook, the swaps, an old file's
+widths and heading, the switch), red on a build without SP1. `colswapgate` and `colswapcache` now expect Post one
+column further right on their fixture (Sim Post sits between), and `prove-col-permutation` counts SP1's renumbering
+under its existing Production-and-Sim-Post exception (0 anywhere else). Mini-gate 360/0, with the waterfall PDF and
+every Excel part identical to baseline; `npm run check` 40/40; seen in the browser pane, including a real Swap Column
+click.
 
 ### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
 

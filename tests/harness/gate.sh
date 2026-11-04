@@ -1890,6 +1890,10 @@ done
 # It runs twice: colswap-widened-reuse is the same calendar with Reuse Empty Columns ticked, as every new calendar
 # starts since 2 Nov 2026. There a refused "move into the free column" used to return before the per-week fallback,
 # so no knob came up to swap BACK (P3, and P4 after it).
+# simpostbeside (owner, 2 Nov 2026) holds frozen edit SP1: Simultaneous Post's column directly right of Production, reuse
+# on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
+# an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
+# switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1939,6 +1943,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \
+              simpostbeside:-:1500 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \

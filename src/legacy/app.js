@@ -5718,7 +5718,7 @@ export function initLegacyApp() {
     'column-exchange': 'the two phases would not actually trade places',
     'content':         'a cell would be lost',
     'collateral-wide': 'it would re-flow weeks you did not select by more than one column',
-    'simpost':         'Simultaneous Post is anchored to Production’s column',
+    'simpost':         'Simultaneous Post stays beside Production, which moves only as a whole column',
     'collide':         'two phases would need the same column in the same week',
   };
 
@@ -5768,7 +5768,22 @@ export function initLegacyApp() {
       const isos = blockIsosFor(after);
       let worst = null;
 
-      for(let bi = 0; bi < blocks.length; bi++){
+      // ⛔ RULING D5 FOR STORED SWAPS. A per-week swap that moves Production in a year with a Sim Post week would
+      // take Production away from Sim Post for just those weeks (the lane sits beside Production's FIRST week).
+      // Until frozen edit SP1 (2 Nov 2026) that was refused only by accident, because the far-right lane turned
+      // it into a column-count change (G2). With the lane beside Production it no longer is, so it is refused by
+      // name: the gesture already does (swapRunFor), and this catches one stored while Sim Post was off, or in a
+      // file. Swap Column moves Production whole and takes Sim Post along (simLaneOf).
+      blocks.forEach((b, bi)=>{
+        if(worst) return;
+        let sim = false;
+        for(let i = b.startIdx; i < b.startIdx + b.count && !sim; i++) if(after.weeks[i].simPost) sim = true;
+        if(!sim) return;
+        const glued = live.filter(p => (p.a === 'production' || p.b === 'production') && isos[bi].indexOf(p.weekIso) >= 0);
+        if(glued.length) worst = { bi, reason: 'simpost', pairs: glued };
+      });
+
+      for(let bi = 0; bi < blocks.length && !worst; bi++){
         const swappedIsos = new Set(live.filter(p => isos[bi].indexOf(p.weekIso) >= 0).map(p => p.weekIso));
         const reason = blockRejectReason(base.fp[bi], fpAfter[bi], swappedIsos, isos[bi]);
         if(reason){ worst = { bi, reason, isos: swappedIsos }; break; }
@@ -5781,7 +5796,7 @@ export function initLegacyApp() {
       if(!worst) break;
 
       // Suppress every pair implicated by the offending block (or the single bad pair) and recompute.
-      const drop = worst.pair ? [worst.pair]
+      const drop = worst.pairs ? worst.pairs : worst.pair ? [worst.pair]
                               : live.filter(p => worst.isos && worst.isos.has(p.weekIso));
       if(!drop.length) break;
       drop.forEach(p=>{
@@ -5982,6 +5997,38 @@ export function initLegacyApp() {
   const swapBlockHasSimPost = year => ((currentSchedule && currentSchedule.weeks) || [])
     .some(w => w.simPost && w.date.getUTCFullYear() === year);
 
+  // ⭐ SIM POST GLUED TO PRODUCTION (owner, 2 Nov 2026: "you should be able to use the swap column feature for
+  // production with sim post on, but Sim post always stays glued to the right side of production so both
+  // collumns are swaped together"). This retires ruling D5 for the block swap and reuse's move; the per-week
+  // swap keeps it, because moving SOME of Production's weeks would leave Sim Post behind in the others.
+  // Frozen edit SP1 is what does the gluing: the lane is Production's slot + 1 wherever Production sits, so a
+  // block swap that moves Production's column takes the lane with it and nothing here moves the lane itself.
+  // What the swap tools need is where the lane IS, read off the frozen layout: { slot, inserted } for a year
+  // with Sim Post, else null. `inserted` = SP1 gave it a column of its own (no phase ever sits in it), which is
+  // the column a swap steps over to reach the phase beyond, so Production trades places with that phase and
+  // Sim Post moves with it. A lane SHARED with a phase that never meets a Sim Post week is not stepped over:
+  // that phase is the neighbour you see, and it is the one Production trades with.
+  function simLaneOf(year){
+    if(!swapBlockHasSimPost(year)) return null;
+    const blocks = computeYearBlocks(currentSchedule.weeks);   // FROZEN, read-only
+    const bi = blocks.findIndex(b => b.year === year);
+    if(bi < 0) return null;
+    const bl = computeBlockLayout(currentSchedule, blocks);    // FROZEN, read-only
+    const slot = bl.blockSimSlot[bi];
+    if(slot < 0) return null;
+    const used = new Set(bl.blockSlotMaps[bi].values());
+    return { slot, inserted: !used.has(slot) };
+  }
+  // A fingerprint's visual slot -> the phase column's place among the PHASE columns (an inserted lane is not
+  // one). A block swap trades places in that order; reading landings in it is what lets a swap that carries
+  // Sim Post along pass the same "everyone landed where they were promised" test as any other.
+  function phaseRankOf(fp){
+    const used = new Set(String(fp.slots || '').split(',').filter(Boolean).map(x => +x.split('>')[1]));
+    const lane = fp.simSlot;
+    const inserted = lane >= 0 && !used.has(lane) && [...used].some(v => v > lane);
+    return v => (inserted && v > lane) ? v - 1 : v;
+  }
+
   // Given a seed cell and a direction, the contiguous run that can move as one rigid block --
   // or the reason it cannot. Pure DOM reads: cheap enough to call on every repaint.
   function swapRunFor(weekIso, phaseKey, dir){
@@ -5997,7 +6044,14 @@ export function initLegacyApp() {
     // A full-width cell has no partner slot at all, which is exactly why the owner's Prod Prep
     // weeks 1-2 stay put while weeks 3-6 move.
     const p0 = swapPartnerOf(row0, seed, dir);
-    if(!p0) return { ok:false, reason:'no-partner' };
+    if(!p0){
+      // Sim Post's own column beside this phase, in a week it runs: the phase beyond it is Production, which
+      // moves only whole.
+      const lane = simLaneOf(year);
+      const simWeek = lane && lane.inserted && currentSchedule.weeks.some(w => w.simPost && isoOf(w.date) === weekIso);
+      if(simWeek && (dir > 0 ? seed.b + 1 : seed.a - 1) === lane.slot) return { ok:false, reason:'simpost' };
+      return { ok:false, reason:'no-partner' };
+    }
     // ⛔ Equal colspan is not a nicety. Without it a 1-wide hiatus band beside a 2-wide phase reads
     // as eligible, and the swap DOUBLES the band's width and HALVES the phase's.
     if(p0.span !== seed.span) return { ok:false, reason:'width-mismatch' };
@@ -6242,7 +6296,10 @@ export function initLegacyApp() {
     const mine = stintTds(year, phaseKey);
     if(!mine.length) return Object.assign(base, { reason:'no-partner' });
     const own = +mine[0].dataset.own;
-    const other = own + dir;
+    // Sim Post's own column is stepped over (see simLaneOf): beside Production it is Production's.
+    const lane = simLaneOf(year);
+    let other = own + dir;
+    if(lane && lane.inserted && other === lane.slot) other += dir;
     if(other < 0) return Object.assign(base, { reason:'no-partner' });
     const byKey = new Map();
     allPhaseTds().forEach(td=>{
@@ -6284,10 +6341,10 @@ export function initLegacyApp() {
              + joinNames(partners.map(phaseLabelFor))
              + (extras.length ? ' (' + joinNames(extras) + ' moves with it)' : '')
     });
-    // Owner ruling D5, as for the per-week swap: the Simultaneous Post lane is anchored to
-    // Production's column, so Production is refused in any block containing a SimPost week.
-    if(members.indexOf('production') >= 0 && swapBlockHasSimPost(year))
-      return Object.assign(run, { ok:false, reason:'simpost' });
+    // Ruling D5 used to refuse Production here in any year with a Sim Post week. Retired 2 Nov 2026 (owner):
+    // Sim Post now travels with Production (simLaneOf), and canSwapStint checks it landed beside it.
+    // `glue` tells the drag preview and canSwapStint that the lane moves too.
+    if(members.indexOf('production') >= 0 && lane) run.glue = { prodMoves: movers.indexOf('production') >= 0 };
     // Owner ruling D4, tested on the EFFECT and not the store (see swapRunFor): a hand-set cell width
     // is own-slot-relative, so a fill made in one column becomes a different claim in the other.
     for(const k of members){
@@ -6397,7 +6454,9 @@ export function initLegacyApp() {
       if(bi < 0 || !fpNow[bi]) return { ok:false, reason:'no-change' };
       const fpAfter = layoutFingerprint(after, afterBlocks);
       const bNow = fpNow[bi], bAfter = fpAfter[bi];
-      if(bNow.mc !== bAfter.mc || bNow.simSlot !== bAfter.simSlot) return { ok:false, reason:'geometry' };
+      // The SimPost lane stays put -- unless Production moves, when it must land right beside Production again
+      // (checked below, once Production's landing is known).
+      if(bNow.mc !== bAfter.mc || (!run.glue && bNow.simSlot !== bAfter.simSlot)) return { ok:false, reason:'geometry' };
       if(bNow.weeks.length !== bAfter.weeks.length) return { ok:false, reason:'geometry' };
       // kind~key~own~colspan per segment -- the fingerprint's own encoding.
       const segs = w => w === 'HIATUS' ? [] : w.split('|').map(x => x.split('~'))
@@ -6408,9 +6467,16 @@ export function initLegacyApp() {
         if(!landed.has(x[1])) landed.set(x[1], new Set());
         landed.get(x[1]).add(+x[2]);
       }));
-      const at = (k, slot) => { const v = landed.get(k); return !!v && v.size === 1 && v.has(slot); };
+      // Compared as places among the PHASE columns (phaseRankOf), which is the visual slot itself unless Sim
+      // Post has a column of its own, and is exactly what an exchange swaps when Sim Post moves too.
+      const rkNow = phaseRankOf(bNow), rkAfter = phaseRankOf(bAfter);
+      const at = (k, slot) => { const v = landed.get(k); return !!v && v.size === 1 && rkAfter([...v][0]) === rkNow(slot); };
       if(!run.movers.every(k => at(k, run.other)) || !run.partners.every(k => at(k, run.own)))
         return { ok:false, reason:'chained' };
+      if(run.glue){
+        const p = landed.get('production');
+        if(!p || p.size !== 1 || bAfter.simSlot !== [...p][0] + 1) return { ok:false, reason:'geometry' };
+      }
       // ⚠️ A BLOCK SWAP CAN RESHAPE, and the count alone was not enough warning (owner, 2 Sep 2026).
       // Moving a block changes WHICH column is beside it, and the new neighbour may be free for its
       // whole run where the old one was not -- so in a block with three or more phase columns a
@@ -6558,7 +6624,9 @@ export function initLegacyApp() {
     if(!sched || !sched.weeks || !sched.weeks.length) return null;
     const mine = stintTds(year, phaseKey);
     if(!mine.length) return null;
-    const slot = +mine[0].dataset.own + dir;
+    const lane = simLaneOf(year);
+    let slot = +mine[0].dataset.own + dir;
+    if(lane && lane.inserted && slot === lane.slot) slot += dir;   // Sim Post's own column (simLaneOf)
     const blocks = computeYearBlocks(sched.weeks);        // FROZEN, read-only
     const bi = blocks.findIndex(b => b.year === year);
     if(bi < 0) return null;
@@ -6567,8 +6635,8 @@ export function initLegacyApp() {
     for(const [c, s] of bl.blockSlotMaps[bi]) if(s === slot) col = c;
     if(col === undefined) return null;
     const base = { mode:'follow', ok:false, year, phaseKey, dir, weeks: mine.map(td => td.dataset.week) };
-    // Owner ruling D5 holds here too: the Simultaneous Post lane is anchored to Production's column.
-    if(phaseKey === 'production' && swapBlockHasSimPost(year)) return Object.assign(base, { reason:'simpost' });
+    // Ruling D5 refused Production here too until 2 Nov 2026: Sim Post now moves with it (simLaneOf), since frozen
+    // SP1 puts the lane beside Production wherever the trial placement lands it.
     const myRows = new Set();
     sched.weeks.forEach((w, i)=>{ if(w.cells.some(c => c.key === phaseKey && c.col !== undefined)) myRows.add(i); });
     if(!myRows.size) return null;
@@ -6633,7 +6701,8 @@ export function initLegacyApp() {
            + ' would both need the same column in the week of '
            + fmtShort(parseDateUTC(v.collideAt.weekIso)) + '.';
     if(v.reason === 'simpost')
-      return phaseLabelFor('production') + '’s column can’t move while Simultaneous Post is on.';
+      return simPostDisplayName() + ' stays beside ' + phaseLabelFor('production')
+           + ', so ' + phaseLabelFor('production') + ' swaps only as a whole column: use Swap Column.';
     // Column reuse's move into a free column (followRunFor).
     if(v.reason === 'follow-busy' && v.blocker)
       return phaseLabelFor(v.blocker) + ' uses that column while ' + phaseLabelFor(v.phaseKey) + ' runs.';
@@ -6861,10 +6930,21 @@ export function initLegacyApp() {
         // x-range read off the first partner's (or the stint's) cells, the rows read off the member.
         const xr = key => { const bs = swapRunBoxes(run.memberWeeks[key], key, g); return bs.length ? swapUnion(bs) : null; };
         const mineX = xr(run.phaseKey), theirX = xr(run.partners[0]);
+        // With Sim Post glued to Production (simLaneOf), Production's side is two columns wide and the other
+        // side one, so neither lands exactly where the other was: the narrow side lands past the lane, or
+        // Production lands in it. The lane is drawn Production's width, which an automatic year always is.
+        let unitTo = null, gTo = null;
+        if(run.glue && mineX && theirX){
+          const pX = run.glue.prodMoves ? mineX : theirX, gX = run.glue.prodMoves ? theirX : mineX;
+          const pW = pX.r - pX.l, gW = gX.r - gX.l;
+          if(gX.l < pX.l){ unitTo = { l:gX.l, r:gX.l + pW }; gTo = { l:pX.r + pW - gW, r:pX.r + pW }; }
+          else           { unitTo = { l:pX.r, r:gX.l };      gTo = { l:pX.l, r:pX.l + gW }; }
+        }
         if(mineX && theirX) run.members.forEach(key=>{
           const u = xr(key);
           if(!u) return;
-          const to = run.movers.indexOf(key) >= 0 ? theirX : mineX;
+          const moves = run.movers.indexOf(key) >= 0;
+          const to = unitTo ? ((moves === run.glue.prodMoves) ? unitTo : gTo) : (moves ? theirX : mineX);
           selLayer.appendChild(swapRect('grid-swap-ghost' + (key === run.phaseKey ? '' : ' is-partner'),
             { l:to.l, r:to.r, t:u.t, bo:u.bo }));
         });
@@ -19169,7 +19249,7 @@ export function initLegacyApp() {
       }
       let simSlot = prodSlot>=0 ? prodSlot+1 : phaseSlots; // desired column for SimPost
       // Check whether any phase occupies simSlot during a SimPost week; if so, SimPost needs
-      // its own extra lane (we widen the block by one and place SimPost in that new column).
+      // its own extra lane (we widen the block by one and insert SimPost's column there, SP1 below).
       let conflict = false;
       for(let i=b.startIdx; i<b.startIdx+b.count && !conflict; i++){
         const wk = schedule.weeks[i];
@@ -19179,7 +19259,13 @@ export function initLegacyApp() {
         }
       }
       let mc = phaseSlots;
-      if(simSlot >= phaseSlots || conflict){ mc = Math.max(phaseSlots + 1, simSlot + 1); if(conflict) simSlot = mc - 1; }
+      // ⛔ FROZEN EDIT SP1 (owner sign-off, 2 Nov 2026: "Sim post should always be directly to the right of
+      // production in either reuse column mode on or off"). A taken lane used to send Simultaneous Post to the
+      // FAR RIGHT (`simSlot = mc - 1`), which with Reuse Empty Columns on was nearly every calendar: Production
+      // takes the first column there, so whatever runs beside it sits in Production's slot + 1. Now the lane
+      // stays at Production's slot + 1 and every column from there on moves right by one, so the block is just
+      // as wide (mc is unchanged) and only the ORDER differs. Without a conflict this line is what it was.
+      if(simSlot >= phaseSlots || conflict){ mc = Math.max(phaseSlots + 1, simSlot + 1); if(conflict) slotMap.forEach((s, c)=>{ if(s >= simSlot) slotMap.set(c, s + 1); }); }
       blockMaxConcurrent[bi] = Math.max(1, mc);
       blockSimSlot[bi] = Math.min(simSlot, blockMaxConcurrent[bi]-1);
     });
@@ -24062,6 +24148,8 @@ export function initLegacyApp() {
     // ENDS FOR PRODUCTION: start-production takes the start that holds the wrap, before readState() reads it.
     syncProductionEndsStart();
     const state = readState();
+    // The Sim Post switch the column stores are laid out for (followSimLaneSwitch).
+    simLaneSwitchSeen = !!(state.simultaneousPost && state.simultaneousPost.enabled);
     // ENDS: start-<key> takes the start readState() just worked out, BEFORE anything reads it (frozen render()'s meta
     // line does, through readCfgForMeta()). ⚠️ The one field update() writes, which syncCustomUnitFallback()'s comment
     // warns against: safe here because it changes only when an Ends phase's end, week count or a hiatus changed,
@@ -25074,6 +25162,104 @@ export function initLegacyApp() {
     });
     return out;
   }
+
+  // ---------- Sim Post beside Production: position-keyed column stores follow their columns ----------
+  // Frozen edit SP1 (computeBlockLayout, owner 2 Nov 2026) moved Simultaneous Post's lane, in a year where a
+  // phase sat in the column right of Production during a Sim Post week, from the FAR RIGHT to right after
+  // Production, and every column from there on one to the right. Five stores name a column by POSITION
+  // (`y2026:s3`): the dragged widths of both layouts (colWidths, colWidthsAlt), the typed headings and their
+  // splits (headerRowLabels, headerRowSplits) and the headings' text styles (textStyle.heading). So without
+  // this a width or a heading would land one column over (owner's picker: "Move them with their columns").
+  // Two moments need it:
+  //   - LOADING a calendar saved before SP1. `simPostBeside` (captureSnapshot) tells the two apart: every build
+  //     with SP1 writes it on a calendar that could need it (Sim Post on and one of the five stores holding a
+  //     position), so its ABSENCE there means the positions are the old order. refreshAfterRestore() runs it.
+  //   - The Sim Post SWITCH. Before SP1 turning it on added the lane at the far right, so no position moved;
+  //     now it can open a column in the middle. The switch's listener runs it (followSimLaneSwitch).
+  // In SP1's terms a moved year is the conflict branch: the lane has NO column mapped to it and columns are
+  // mapped past it. Its old positions are 0..P-1 for the phases with the lane at P = mc - 1, which is also
+  // what the same year reads with Sim Post off, so one map serves both moments:
+  //   s < sim -> s,   sim <= s < P -> s + 1,   P -> sim   (and its inverse for the switch going off).
+  // Measured by CALLING the frozen layout on the waterfall's own rows (computeSchedule), never re-deriving it.
+  // ⛔ Function declarations and `var` only, from here to followSimLaneSwitch: update() and captureSnapshot() reach
+  // them, and both can run while the engine is still evaluating, long before these lines (PHASE_CHAIN's TDZ lesson).
+  function slotKeyParts(k){ return /^y(\d+):s(\d+)$/.exec(k); }
+  function simLaneMovedYears(alt){
+    const box = document.getElementById('simpost-enabled');
+    const out = {};
+    if(!box) return out;
+    const keepOn = box.checked, keepOne = singleColumn;
+    try {
+      box.checked = true;                       // the layout WITH the lane: the switch going off asks this too
+      if(alt) singleColumn = !singleColumn;     // colWidthsAlt is the other layout's set (setSingleColumn)
+      const sch = computeSchedule(readState());
+      if(!sch || sch.error || !sch.weeks || !sch.weeks.length) return out;
+      const blocks = computeYearBlocks(sch.weeks);     // FROZEN, read-only
+      const bl = computeBlockLayout(sch, blocks);      // FROZEN, read-only
+      const seen = {};
+      blocks.forEach((b, bi)=>{
+        seen[b.year] = (seen[b.year] || 0) + 1;
+        const sim = bl.blockSimSlot[bi];
+        if(sim < 0) return;
+        const used = new Set(bl.blockSlotMaps[bi].values());
+        if(!used.has(sim) && used.has(sim + 1)) out[b.year] = { sim, last: bl.blockMaxConcurrent[bi] - 1 };
+      });
+      Object.keys(seen).forEach(y=>{ if(seen[y] > 1) delete out[y]; });   // a year in two blocks is ambiguous
+    } catch(e){ console.error(e); return {}; }
+    finally { box.checked = keepOn; singleColumn = keepOne; }
+    return out;
+  }
+  // One store's keys moved (back: the inverse). A fresh object when anything moved, so an undo step holding the
+  // old one is untouched; the same object otherwise.
+  function moveSlotKeys(store, years, back){
+    if(!store || !Object.keys(years).length) return store;
+    let moved = false;
+    const out = {};
+    Object.keys(store).forEach(k=>{
+      const m = slotKeyParts(k), y = m && years[m[1]];
+      let s = m ? +m[2] : 0;
+      if(y && s <= y.last){
+        if(!back) s = s < y.sim ? s : s === y.last ? y.sim : s + 1;
+        else      s = s < y.sim ? s : s === y.sim ? y.last : s - 1;
+      }
+      const nk = y ? 'y' + m[1] + ':s' + s : k;
+      if(nk !== k) moved = true;
+      out[nk] = store[k];
+    });
+    return moved ? out : store;
+  }
+  function hasSlotKey(o){ return !!o && Object.keys(o).some(k => !!slotKeyParts(k)); }
+  function slotKeyedStoresUsed(){
+    return hasSlotKey(colWidths) || hasSlotKey(colWidthsAlt) || hasSlotKey(headerRowLabels)
+        || hasSlotKey(headerRowSplits) || hasSlotKey(textStyle.heading);
+  }
+  // captureSnapshot's `simPostBeside`: Sim Post on and a position worth protecting.
+  function simPostBesideNeeded(){
+    const box = document.getElementById('simpost-enabled');
+    return !!(box && box.checked) && slotKeyedStoresUsed();
+  }
+  function moveSimLaneStores(back){
+    if(!slotKeyedStoresUsed()) return;
+    const years = simLaneMovedYears(false), alt = simLaneMovedYears(true);
+    colWidths       = moveSlotKeys(colWidths, years, back);
+    colWidthsAlt    = moveSlotKeys(colWidthsAlt, alt, back);
+    headerRowLabels = moveSlotKeys(headerRowLabels, years, back);
+    headerRowSplits = moveSlotKeys(headerRowSplits, years, back);
+    const h = moveSlotKeys(textStyle.heading, years, back);
+    if(h !== textStyle.heading) textStyle = Object.assign({}, textStyle, { heading: h });
+  }
+  // Session state, never saved. Set by applyStateSnapshot on a snapshot without `simPostBeside`, consumed by
+  // the refreshAfterRestore() every restore path ends in (the headerOverridesNeedDefaults shape).
+  var simLaneNeedsMove = false;
+  // The switch's value the stores were last laid out for; update() keeps it, so a click's 'input' and
+  // 'change' move the stores once, and a restore or New (which set the box without an event) re-baseline it.
+  var simLaneSwitchSeen = null;
+  function followSimLaneSwitch(){
+    const box = document.getElementById('simpost-enabled');
+    if(!box || simLaneSwitchSeen === null || box.checked === simLaneSwitchSeen) return;
+    simLaneSwitchSeen = box.checked;
+    moveSimLaneStores(!box.checked);
+  }
   // ⛔ DELEGATED from document, never bound to the node: the box is React-rendered, and the engine must
   // not capture React nodes at evaluation time (HANDOFF, the #file-menu lesson).
   document.addEventListener('change', e=>{
@@ -25818,6 +26004,9 @@ export function initLegacyApp() {
       if(e.target && (e.target.id === 'simpost-enabled' || e.target.id === 'simpost-offset'
                       || e.target.id === 'simpost-count')){
         refreshSimPostUI();
+        // Since SP1 the lane can open (or close) a column in the middle of a year, so widths and headings stored
+        // by position move with their columns. Before update(), so they land in this switch's undo step.
+        if(e.target.id === 'simpost-enabled') followSimLaneSwitch();
         update();
       }
     });
@@ -27468,6 +27657,11 @@ export function initLegacyApp() {
       // 2 Nov 2026: Simultaneous Post's own name (owner). ⛔ PERMANENT key. The default name is an ABSENT key, so a
       // calendar that never renames it saves byte for byte as before. An older build ignores it and shows the default.
       ...(simPostName ? {simPostName} : {}),
+      // 2 Nov 2026 (frozen edit SP1): "this calendar's column positions are in Sim-Post-beside-Production order".
+      // ⛔ PERMANENT key, whose one value is `true`. Written ONLY where it can matter -- Sim Post on and a width,
+      // heading or heading style stored by position -- so every other snapshot is byte for byte what it was. Its
+      // ABSENCE on such a calendar is what marks a file saved before SP1 (see simLaneMovedYears).
+      ...(simPostBesideNeeded() ? {simPostBeside: true} : {}),
       // 20 Oct 2026 (LABELS-SETUP-PLAN.md item 4): "this Blocks calendar schedules with no episode count".
       // ⛔ PERMANENT key. Written ONLY where it changes something -- Blocks mode, no count, not an old file
       // on the old rule -- so every other snapshot is byte-for-byte what it was. Its ABSENCE on a count-less
@@ -34791,6 +34985,14 @@ export function initLegacyApp() {
       try { headerManual = Object.assign(computeHeaderDefaults(computeSchedule(readState())), headerManual); }
       catch(e){ console.error(e); }   // never block a load over a header: the lines still fall back live
     }
+    // A calendar saved before frozen edit SP1: its widths and headings follow their columns (simLaneMovedYears).
+    // Here, not in applyStateSnapshot, for the reason above: the layout must be THIS file's. A no-op with Sim
+    // Post off or nothing stored by position.
+    if(simLaneNeedsMove){
+      simLaneNeedsMove = false;
+      const sp = document.getElementById('simpost-enabled');
+      if(sp && sp.checked){ try { moveSimLaneStores(false); } catch(e){ console.error(e); } }
+    }
     update();
     // After syncRegionTracking(), so effectiveRegionKey() reflects the file that was just applied
     // rather than the one before it. Gated on the migration flag, so it fires only for files that
@@ -35347,6 +35549,7 @@ export function initLegacyApp() {
     if('mvBarSize' in s && !mvBarSizeKnown(s.mvBarSize)){ bad.n++; delete s.mvBarSize; }
     // Note size (MONTH-NOTE-SIZE-PLAN.md §4.1): only '11' to '14'. Anything else is dropped and opens at 10 px.
     if('mvNoteSize' in s && !mvNoteSizeKnown(s.mvNoteSize)){ bad.n++; delete s.mvNoteSize; }
+    if('simPostBeside' in s && s.simPostBeside !== true){ bad.n++; delete s.simPostBeside; }
     // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
     // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`,
     // and since §9 `under` (a phase key) or `bottom: true` in place of `top`, and `day`, the ISO date it was set on.
@@ -35802,6 +36005,9 @@ export function initLegacyApp() {
     // "Simultaneous Post" -- never the previous file's name.
     simPostName = typeof snap.simPostName === 'string' ? cleanSimPostName(snap.simPostName) : '';
     reflectSimPostName(true);
+    // ⛔ UNCONDITIONAL: assigned on every restore. Without the key this calendar's column positions may be the
+    // pre-SP1 order; refreshAfterRestore() moves them once every store and field is this file's.
+    simLaneNeedsMove = snap.simPostBeside !== true;
     // ⛔ UNCONDITIONAL as well: a file with no key numbers no hiatus -- never the previous file's ticks.
     // Assigned BEFORE 4e below, whose refreshPhaseHiatusUI() reflects it into the rebuilt rows' boxes.
     phaseHiatusNumbered = {};
