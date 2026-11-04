@@ -1900,6 +1900,12 @@ done
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
 # switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
+# showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
+# folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
+# handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
+# shareable copy exported with the menu open does not carry it. Red without startIn (P) or without .fm-ctx in
+# buildSavedHtml's strip list (S). The real window cannot be driven headless; its user-activation rule was checked once
+# by hand with a real click (HANDOFF).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1954,6 +1960,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
+              showfolder:-:300 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
