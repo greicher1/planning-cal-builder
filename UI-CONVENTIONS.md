@@ -65,7 +65,7 @@ the section comment above a rule:
 | Rules | Filed under | Actually |
 |---|---|---|
 | `.simpost-*`, `.ep-panel`, `.ep-panel-warn` | *Month view* | **chrome** — built into the sidebar's Production phase row |
-| `.prod-total-*`, `.show-info-note`, `.show-info-flags`, `.episode-row` | *Calendar PDF export* | **chrome** — sidebar |
+| `.prod-total-*`, ~~`.show-info-note`, `.show-info-flags`~~ (removed 4 Nov 2026, owner), `.episode-row` | *Calendar PDF export* | **chrome** — sidebar |
 | `.note-pop*`, `.mv-note-pop*`, `.note-day-row`, `.note-size-row`, `.note-color-row` | between frozen `.sheet-*` rules | **chrome** — both popovers are appended to `document.body` |
 
 Conversely `#mv-hdr-mode-btn`, `.mv-arrow`, `#hdr-mode-btn` and `#notes-reset-btn` *look* like
@@ -478,7 +478,7 @@ asked in order:
 | Destructive confirm | 10 × `confirm()` | same `Modal`, `kind:'confirm'` | dialog role |
 | Advisory warning | `.gap-banner`, `.ep-panel-warn`, `.show-info-flags` | `Alert variant="light" color="warn"` | `role="status"` |
 | Inline field error | `#custom-hol-err`, `.phase-meta` error branch | `InputWrapper` **error** slot | none — announced on focus |
-| Inline hint / readout | `.snap-note`, `.phase-meta`, `.show-info-note`, `.prod-total-empty` | `InputWrapper` **description** slot | none |
+| Inline hint / readout | `.snap-note`, `.phase-meta`, ~~`.show-info-note`~~ (removed 4 Nov 2026), `.prod-total-empty` | `InputWrapper` **description** slot | none |
 | Explanatory copy | `.placeholder-note` ×3, `.tools-hint`, both popover hints | `Text size="xxs" c="dimmed"`, **roman** | none |
 | Transient confirmation | `.shift-readout`, `.tools-msg`, `flashSaveBtn` | unchanged in shape; unified type + `aria-live="polite"` | **polite — the biggest gap today** |
 | Persistent strip | `#legacy-notice`, `#update-notice` | full-bleed `Alert radius={0}`, ids and aria kept | `role="status"` |

@@ -9995,8 +9995,10 @@ export function initLegacyApp() {
       } else {
         r.days = String(step.c);
         // ⛔ daysEdited, or the next reconcile (syncEpisodesFromShowInfo / syncBlocksFromShowInfo)
-        // resets this row to the default and silently undoes the drag. It is also what lists the row
-        // under "Manually changed" in the Show Info note -- how the user sees what the drag did.
+        // resets this row to the default and silently undoes the drag. (It also listed the row under
+        // "Manually changed" in the Show Info note until the owner removed that note, 4 Nov 2026. The row's
+        // day box carries `is-edited` when the list is next drawn: bold for a block, an unstyled marker for an
+        // episode, which pilldrag's `edited` reads.)
         r.daysEdited = true;
         if(d.kind === 'start'){
           // ⛔ Through setPhaseStart(), THE ONE WRITER of a phase's start for every mover
@@ -14625,15 +14627,12 @@ export function initLegacyApp() {
       if(!hasRows && Number.isFinite(perBlock) && Number.isFinite(numBlocks)) totalShootDays = perBlock * numBlocks;
     } else if(!hasRows && Number.isFinite(perEp) && Number.isFinite(numEp)) totalShootDays = perEp * numEp;
 
-    // Which rows the user has personally overridden, for the Show Info flag.
-    const overrides = rows
-      .filter(e => e.daysEdited && dayCountVal(e.days) > 0)
-      .map(e => ({ name: e.name || '', days: dayCountVal(e.days) }));
-
+    // (An `overrides` list -- the rows typed over the default -- was returned here for the Show Info note's
+    // "Manually changed" line. The note was removed on 4 Nov 2026 and nothing else read it.)
     return { complete, missing, season,
       perEp: Number.isFinite(perEp) ? perEp : 0,
       numEp: Number.isFinite(numEp) ? numEp : 0,
-      totalShootDays, overrides,
+      totalShootDays,
       blocks,
       perBlock: Number.isFinite(perBlock) ? perBlock : 0,
       numBlocks: Number.isFinite(numBlocks) ? numBlocks : 0 };
@@ -14870,7 +14869,7 @@ export function initLegacyApp() {
       <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
         <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
-        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="0.5" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
+        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days${e.daysEdited ? ' is-edited' : ''}" min="1" step="0.5" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
       </div>`).join('') + '</div>';
   }
 
@@ -14951,22 +14950,9 @@ export function initLegacyApp() {
     // there's genuinely no other way to schedule it.
     if(prodRow) prodRow.classList.toggle('phase-blocked', !info.complete);
 
-    // Show Info note + manual-override flags
-    const infoNote = document.getElementById('show-info-note');
-    if(infoNote){
-      if(info.complete){
-        infoNote.style.display = '';
-        let html = '<strong>Production\u2019s Total Shooting Days: ' + info.totalShootDays + '</strong>'
-          + ' \u2014 the sum of the ' + (info.blocks ? 'block' : 'episode') + ' list in the Production phase. Used by the Waterfall'
-          + ' view and the Excel export.';
-        if(info.overrides.length){
-          html += '<div class="show-info-flags">Manually changed: '
-            + info.overrides.map(o=> escHtml(o.name || (info.blocks ? 'Block' : 'Episode')) + ' \u2192 <strong>' + o.days + ' days</strong>').join('; ')
-            + ' (default is ' + (info.blocks ? info.perBlock : info.perEp) + ').</div>';
-        }
-        infoNote.innerHTML = html;
-      } else { infoNote.style.display = 'none'; }
-    }
+    // The Show Info note ("Production's Total Shooting Days: N -- the sum of the episode list ...") and its
+    // "Manually changed" list were written here until 4 Nov 2026, when the owner removed the box ("get rid of
+    // this entire popup"). Nothing replaces it: the total is the readout above.
     return info;
   }
 

@@ -2555,16 +2555,6 @@
     #print-root .cal-header-bar{ page-break-inside:avoid; break-inside:avoid; }
   }
 
-  .show-info-note{
-    margin-top:10px; font-size:10.5px; line-height:1.45;
-    color:#1F4E79; background:#EAF3FB; border:1px solid #C5DDF0;
-    border-radius:6px; padding:6px 8px;
-  }
-  /* Episodes changed by hand, called out separately: this is what explains a total that
-     isn't a round episodes x days multiple. */
-  .show-info-flags{
-    margin-top:5px; padding-top:5px; border-top:1px solid #C5DDF0; color:#8a5a00;
-  }
   /* A Production row that can't build episodes yet is visibly inert. */
   /* ⚠️ The blend moved Snap to Monday out of .phase-fields into .phase-switches and the meta line into the head,
      so the same controls dim: .phase-switches joins the list (UI-CONVENTIONS §3b: the dimming itself is unchanged). */
