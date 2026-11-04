@@ -440,6 +440,12 @@ ON) chooses between:
 `simPostLabel()` centralizes the marker text so the waterfall, Excel export, and month
 view can't drift apart.
 
+**Exactly Production's weeks and days** (owner, 2 Nov 2026). A Sim Post week is a week Production WORKS: the week
+loop's overlap test (so a Wednesday snap-off start keeps its first week), never Production's own hiatus or off weeks,
+and the offset counted from Production's first week row. In the month view its bar sits on exactly the days
+Production's bar does (`simPostCoversDate`, frozen edit SD1 in `renderMonthView`), so a holiday, the days before a
+mid-week start and after a mid-week wrap are blank under both. The month map's band follows. Leg `simpostdays`.
+
 ### "Start after previous phase"
 
 Each built-in phase except Writers Room has a small text button that fills its start date with

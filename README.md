@@ -119,6 +119,49 @@ Three mutants each go red. Gates 2 and 13 still compare the writers' bytes to th
 machine at load 45-132. Every PDF line was green, including gate 2, all 22 of gate 13's month PDFs and gate 10. The
 gate also found `cmdprint` counting the marked page twice with its own counter, now fixed. The other 17 failures were
 timeouts, and all pass alone.
+### Unreleased — the Version prints exactly as typed, with no "v" added (3 Nov 2026)
+
+The owner asked: *"version entered into the 'show info' section should just be exactly what is typed. So no longer
+with a v prefix"*. Typing `3` now prints **3** in the header's bottom-left, `v3` prints **v3**, and `V3` stays **V3**.
+That reaches the screen, Excel, both PDFs, the `{version}` token (any header line that uses it, month view included)
+and Compare's Version row. An empty box, or one of only spaces, still prints nothing. The box's hint now reads "Shows in
+the header's bottom-left, exactly as typed", and its placeholder is "e.g. v3".
+
+**Calendars saved before today keep printing what they printed** (owner's picker, "Keep v3"). One saved with `3`
+opens with its box reading `v3`, so its header and exports are unchanged. A Save from this build writes a new
+permanent key, `versionAsTyped: true`, but only when the box holds text the old rule would have printed differently
+(`3`, `V3`, a bare `v`), so every other calendar saves byte for byte as before. An older build ignores the key and
+prints `v3`.
+
+Verified: `hdrversion` 19/19, rewritten for the new rule (3 → 3 on screen, in the workbook and in the PDF; the key
+written for `3`, not for `v3`; an undo keeps `3`). `hdrverload` on five fixtures: the real pre-change
+`hdrversion.sptcal` (`3`) opens as `v3`, and the new `hdrversion-astyped.sptcal`, minted from the leg's own save,
+opens as `3`. `hdrtemplate` 25, `hdrpreset` 19, `hdrfile` 14, `hdrexcel` 7, `hdreditor` 24, `hdrcut` 7,
+`settingswin` 21, `regionmirror` 9, `scenariofacts` 12, all passing. The `mvheader` month PDF, whose header prints a
+saved `3`, is byte-identical to gate 13's baseline, and gate 10's print document is identical too. `npm run check` 40/40.
+Seen in the browser pane. Not yet run: the full gate.
+
+### Unreleased — Simultaneous Post runs on exactly Production's weeks and days (3 Nov 2026)
+
+The owner reported: *"when production starts (or possibly ends) on a non-monday or non-friday it doesnt add that first
+week or last week of sim post. Sim post weeks (and dates) should always match production weeks (and days) exactly"*.
+Measured on a test calendar, there were three ways they differed:
+
+- **A mid-week start lost Sim Post's first week**, everywhere: the Waterfall, Excel, both PDFs and the Month view. That
+  happens with Snap to Monday off, and always when Production is held by its wrap (Ends), which is never snapped. The
+  week test compared the row's Monday with Production's Wednesday. It now uses the same overlap rule as Production's
+  own cells. The offset now counts from Production's first week row, so a Friday start no longer counted one week short.
+- **Sim Post ran through Production's own hiatus and off weeks**, where Production shows a hiatus band. Those weeks are
+  no longer Sim Post weeks, and "Number these weeks" (and Post's continued count) skips them as Production does.
+- **The Month view drew every Sim Post week Monday to Friday**, over holidays Production skips (7/3, Labor Day), past a
+  Tuesday wrap, and before a Wednesday start. Its bar now sits on exactly Production's days, a weekend shoot day
+  included. The month PDF and the month map follow. This is frozen edit SD1 in `renderMonthView`, owner-approved by
+  picker with its gate.
+
+Verified: new leg `simpostdays` 14/14 (in `gate.sh`). It checks Monday, Wednesday, Thursday and Friday starts, a
+Production hiatus, the numbering, a 2-week offset on a Friday start, and the month map. The same reads, run on the build
+before the fix, showed the first week missing (Wed/Thu/Fri), the hiatus week extra, and Mon–Fri bars on every row.
+`npm run check` 40/40.
 
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 

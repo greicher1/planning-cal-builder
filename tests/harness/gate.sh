@@ -822,12 +822,13 @@ PY
 
 # ---- hdrversion: a version number typed into Show Info reaches the header's bottom-left slot -----
 # Owner request, 1 Sep 2026 -- "a version number (lowercase 'v' then a number you input) ... in the
-# very bottom left side text box of the header". HEADER-PRESETS-PLAN.md Step 1.
+# very bottom left side text box of the header". HEADER-PRESETS-PLAN.md Step 1. Since 3 Nov 2026
+# it prints EXACTLY as typed (owner: "no longer with a v prefix"); a file saved before then keeps
+# printing "v3" (picker, "Keep v3"), which is hdrverload's hdrversion fixture below.
 # ⭐ THE ASSERTION THAT MATTERS MOST IS `inert*`, all three of them. The l2 slot was '' before this
 # feature, and every calendar ever saved has no version -- so an EMPTY field has to produce exactly
 # what it produced before, or the byte-identical PDF/Excel compare above goes red on files nobody
-# has touched. versionLabel() returning a bare "v" for an empty field is the way that happens, which
-# is why "v" alone and "   " are both asserted to come out empty.
+# has touched. A field of spaces is asserted to come out empty too.
 # The other half is that it arrives in all THREE consumers. Screen, Excel and PDF read one source
 # (headerLine), so a leg that checked only the screen would not notice the exports disagreeing.
 HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrversion 140 >/dev/null 2>&1
@@ -850,19 +851,23 @@ chk(a.get('insideShowInfo') and not a.get('insidePrefsCard'),
 chk(a.get('inertScreen'), f"hdrversion: ⭐ empty -> the l2 line is hidden on screen ({a.get('beforeL2')})")
 chk(a.get('inertExcel'), f"hdrversion: ⭐ empty -> the workbook's &L is the bare date ({a.get('beforeExcelL')!r})")
 chk(a.get('inertPdf'), f"hdrversion: ⭐ empty -> nothing under the date in the PDF's left column ({a.get('beforePdfLeftCol')})")
-chk(a.get('bareVInert') and a.get('blankInert'),
-    "hdrversion: ⭐ a bare 'v' and a field of spaces are BOTH still no version, not a version called v")
-chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows v3 on screen, and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
-chk(a.get('caseNormalised'), f"hdrversion: typing V3 also reads v3 -- one leading v/V stripped ({a.get('upperVText')!r})")
-chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then v3 ({a.get('afterExcelL')!r})")
+chk(a.get('blankInert'),
+    f"hdrversion: ⭐ a field of spaces is still no version: the line stays hidden ({a.get('blankL2')})")
+chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows 3 on screen (no v added), and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
+chk(a.get('asTyped'), f"hdrversion: V3 reads V3 and a bare v reads v -- exactly as typed ({a.get('upperVText')!r}, {a.get('bareVText')!r})")
+chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then 3 ({a.get('afterExcelL')!r})")
 chk(a.get('excelNoFormatCodes'),
     f"hdrversion: no per-line format codes appear -- nothing was formatted ({a.get('excelFontCodes')} font code)")
 chk(a.get('pdfTwoLeftLines'),
     f"hdrversion: the PDF's left column gained exactly one line, under the date -- {a.get('beforePdfLeftCol')} -> {a.get('afterPdfLeftCol')}")
 chk(a.get('captured') and a.get('snapVersion')=='3',
     f"hdrversion: ⭐ the value is in a REAL saved calendar's fields.byId ({a.get('snapVersion')!r}, {a.get('fieldIdCount')} field ids)")
+chk(a.get('markerWritten'),
+    f"hdrversion: ⭐ a typed 3 is saved WITH versionAsTyped: true, so it reopens as 3 ({a.get('snapAsTyped')!r})")
 chk(a.get('roundTrips'),
-    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo ({a.get('afterUndoField')!r} -> {a.get('afterRedoField')!r})")
+    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo, still WITHOUT a v ({a.get('afterUndoField')!r}/{a.get('afterUndoL2')!r} -> {a.get('afterRedoField')!r}/{a.get('afterRedoL2')!r})")
+chk(a.get('noMarkerWhenSame'),
+    f"hdrversion: ⭐ a typed v3 saves with NO versionAsTyped key -- byte for byte as before ({a.get('vSnapVersion')!r}, key {'present' if a.get('vSnapHasMarker') else 'absent'})")
 chk(a.get('clearedScreen') and a.get('clearedExcel'),
     f"hdrversion: ⭐ clearing the field hides the line again and restores the bare &L ({a.get('clearedExcelL')!r})")
 chk(a.get('notInCompleteness'),
@@ -875,7 +880,10 @@ PY
 
 # ---- hdrverload: the same version RESTORED from a file, and absent from one saved before it -------
 # Run TWICE, against two real fixtures, because the two directions are different rules:
-#   * hdrversion.sptcal   carries "show-version":"3" -> the field and the header must come back;
+#   * hdrversion.sptcal   carries "show-version":"3" and was saved before 3 Nov 2026 (no
+#     versionAsTyped) -> it opens printing what it printed, "v3", with its box rewritten to "v3";
+#   * hdrversion-astyped.sptcal is the same calendar saved by the 3 Nov 2026 build, WITH the marker
+#     -> it opens printing "3", exactly as typed;
 #   * colswap-2col.sptcal was written before the field existed -> the field must be EMPTY and the
 #     slot hidden.
 #   * hdrmanualbraces.sptcal is saved in MANUAL with {today}/{version}/{episodes} sitting in two
@@ -894,7 +902,7 @@ PY
 # ⚠️ Both go through the INLINE ?state= path, which is the same applyStateSnapshot the picker uses.
 # The two-files-in-sequence case needs the picker, which stalls on IndexedDB here -- see the
 # `restore` leg above, which fails for exactly that reason. Not proved by this harness; said out loud.
-for HVFIX in hdrversion colswap-2col hdrmanualbraces hdrtemplated; do
+for HVFIX in hdrversion hdrversion-astyped colswap-2col hdrmanualbraces hdrtemplated; do
 HARNESS_PAGE="$PAGE" HARNESS_STATE="$HVFIX" "$HERE/run.sh" hdrverload 90 >/dev/null 2>&1
 python3 - "$HERE/hdrverload.json" "$HVFIX" <<'PY' || FAIL=1
 import json,sys
@@ -910,7 +918,7 @@ if 'EX' in a:
     print(f'  FAIL  hdrverload[{fix}] threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('stateApplied'), f"hdrverload[{fix}]: the fixture reached the page ({a.get('stateBytes')} bytes, {a.get('fixtureFieldIds')} field ids)")
 chk(a.get('fieldRestored'),
-    f"hdrverload[{fix}]: the field matches the fixture -- key {'present' if a.get('fixtureHasKey') else 'ABSENT'}, value {a.get('fieldValue')!r}")
+    f"hdrverload[{fix}]: the field is what the fixture printed -- key {'present' if a.get('fixtureHasKey') else 'ABSENT'}, saved {a.get('fixtureVersion')!r}, versionAsTyped {a.get('fixtureAsTyped')}, now {a.get('fieldValue')!r}")
 chk(a.get('headerMatches'), f"hdrverload[{fix}]: l2 reads {a.get('l2Text')!r}, which is what {a.get('fixtureVersion')!r} should render")
 chk(a.get('visibilityMatches'),
     f"hdrverload[{fix}]: the slot is {'visible' if a.get('l2Visible') else 'hidden'}, which is right for that value")
@@ -1866,6 +1874,10 @@ done
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
 # default, restored unconditionally, repaired on Load), undo, clearing it and New.
+# simpostdays (owner, 2 Nov 2026; frozen edit SD1 approved 3 Nov 2026) is Simultaneous Post on exactly Production's
+# weeks and days: a Wednesday, Thursday or Friday start (snap off) keeps Sim Post's first week, Production's own hiatus
+# is no Sim Post week (numbering and Post's continued count skip it), the offset counts from Production's first row,
+# every month row's Sim Post bar covers Production's days (a holiday, a Tuesday wrap), and the month map follows.
 # colswapcache (fixed 2 Nov 2026) is every edit reaching the waterfall on a calendar holding a stored column swap. The
 # column-swap gate's cache used to hand update() the schedule of its last MISS, so a phase renamed, Sim Post's offset,
 # "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
@@ -1916,6 +1928,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               simpostname:-:400 \
+              simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
