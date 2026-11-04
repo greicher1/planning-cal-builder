@@ -235,6 +235,9 @@
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
      which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  /* The right-click menu on a loaded file (Header.jsx, "Show in folder…", 4 Nov 2026). Its label is the file's name,
+     cut to one line: a long show title must not wrap the 240 px menu into a tall box. */
+  .fm-ctx .fm-ctx-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
   .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-primary-color-filled); cursor:pointer; border-radius:var(--mantine-radius-xs); }

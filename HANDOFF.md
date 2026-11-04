@@ -6,6 +6,46 @@
 
 
 
+### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — built in the main checkout's working tree, NOT committed, NOT pushed. Tracker card `recent-reveal-in-finder`
+
+Owner: *"add the ability to right click on a sptcal file in the dropdown menu and click reveal in Mac finder"*, then,
+told why that can't be built: *"I want to see where the file is saved"*.
+
+- **Why not Finder.** Chrome gives a page a file HANDLE, never the file's path, and never lets a page start Finder.
+  What it allows is opening its file window in the folder that holds a handle's file: `showOpenFilePicker({startIn:
+  handle})` (Chrome 91+; a FILE handle opens its parent folder, and no permission on the handle is needed). The folder
+  bar at the top of that window shows where the file is. So the item says "Show in folder…", never "Finder".
+- **Where:**
+  - `Header.jsx`: the menu (Mantine `Menu`, its own `ctx` state, portalled, `.fm-ctx`).
+  - `app.js`: `showRecentInFolder()` and the `sptcal-file-folder` event.
+  - `.fm-ctx` joins `OVER_PANEL` and `buildSavedHtml()`'s strip list.
+  - `legacy.css`: one rule.
+- **Rules it carries:**
+  - ⛔ The picker call stays SYNCHRONOUS from the click, with no await before it: the window needs the click's user
+    activation.
+  - ⛔ The right-click menu keeps its own state. Never close it from the file menu's `onChange`: a press on it is
+    outside the file menu, Mantine closes the file menu on that press, and tying the two would unmount the item
+    before its click. Leg case P presses first, then clicks.
+  - The unsaved-work question comes AFTER a pick, unlike Load…: looking is the point.
+- **Test traps found on the way (not app bugs):**
+  - Headless leaves a CLOSED keepMounted Mantine dropdown `display:block`. Read a menu's open state from its
+    button's `aria-expanded`.
+  - The browser pane, when hidden, throttles animation frames, so Mantine's transitions stall there (`aria-expanded`
+    true, the dropdown `display:none`) and look like a stuck menu. Don't diagnose menu transitions in a hidden pane.
+  - The harness injects the test script into the page, so a shareable copy carries it: a markup regex for the copy
+    must never be spelled out in the test's own comments.
+- **Proof** (on the main checkout's build):
+  - New leg `showfolder`: 7/7, added to gate.sh's self-judging list.
+  - On a mutant build (no `startIn`, no strip entry), P and S go red.
+  - `npm run check`: 40/40.
+  - Browser pane, real right-click and click: `navigator.userActivation.isActive` is true at the picker call, and
+    `startIn` is that file's own handle.
+  - Related legs, all green: `sharecopy2`, `loadfail` 6/6, `launchopen` 16/16, `nofsa` 7/7, `filekeys` 16/16,
+    `dlgkeys` 16/16. `restore` through the real Load path matches its stage-7 baseline (rows, cells, width, bytes,
+    signature, 0 clipped) with the same saved-field keys.
+- **Not done:** never seen with the real Mac window on the owner's machine (headless can't drive it). No full gate:
+  the change is chrome plus one strip-list entry, with nothing in the grid, the writers or the `.sptcal` path.
+
 ### 🔧 3 Nov 2026 (22:10): A STUCK CHROME CAN NO LONGER HANG A WHOLE GATE — `printpaper.mjs` and `rtleg.mjs` get hard deadlines. COMMITTED on local `main`, NOT pushed (harness only; the deployed build is unchanged)
 
 - **Why:** the v1.10.0 release found `simpost-beside-prod`'s full gate stuck for 3 h 20 min in

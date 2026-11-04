@@ -860,7 +860,8 @@ export function initLegacyApp() {
   // or apply a batch to a cell the user cannot even see.
   // .sb-fmt / .sb-menu / .sb-drop (20 Oct 2026, SIDE-BOXES-PLAN.md): a side box's format bar can hang over
   // the grid's edge, and the Side boxes menu over its top.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop';
+  // .fm-ctx (4 Nov 2026): the file menu's right-click menu, which can hang over the grid's top.
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .fm-ctx';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -26608,7 +26609,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx').forEach(el=>el.remove());
+    // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
+    // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
     // over the picked month texts, never hidden while a pick is live, so a copy exported then carried them for good.
     // .wf-notes-ring added 22 Oct 2026 with hidden Notes columns (HIDE-NOTES-PLAN.md): the strip's hover ring,
@@ -29462,6 +29465,38 @@ export function initLegacyApp() {
     renderRecents();
     refreshSaveBtn();
   }
+
+  // "Show in folder…" -- right-click a loaded file in the file menu (owner, 4 Nov 2026: "I want to see where the file is
+  // saved"; the right-click menu is Header.jsx's, which sends 'sptcal-file-folder' with the entry's id).
+  // ⚠️ It was asked for as "Reveal in Finder", and a web app cannot do that: Chrome never tells a page a file's path, and
+  // never lets one start Finder. What Chrome does allow is opening the Mac's file window IN THE FOLDER that holds a
+  // handle's file (showOpenFilePicker's startIn, Chrome 91+: a FILE handle opens its parent folder). Chrome resolves the
+  // folder; the page never learns it. The folder bar at the top of that window shows where the file is saved, which is
+  // what the owner wanted. It says "Show in folder", never "Finder", because the window is the Open window, not Finder.
+  // Picking a file there loads it, as Load… does. The unsaved-work question comes AFTER the pick here, not before as
+  // Load…'s does: looking is the point, most people press Cancel, and they should not be asked about losing work first.
+  // ⛔ The picker call must stay SYNCHRONOUS from the click: showOpenFilePicker needs the menu click's user activation,
+  // and an await before it (a permission check, say) can spend it. startIn needs no permission on the handle.
+  function showRecentInFolder(id){
+    if(!supportsFsAccess) return;
+    const entry = recentFiles.find(f=> f.id === id);
+    if(!entry || !entry.handle) return;
+    closeFileMenu();   // as Load… does; from the mouse it is already shut (a press on this menu is outside it)
+    let pick;
+    try { pick = window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false, startIn: entry.handle }); }
+    catch(e){ pick = Promise.reject(e); }
+    pick.then(async (picked)=>{
+      const handle = picked && picked[0];
+      if(!handle) return;
+      if(isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
+      try { await openHandle(handle); } catch(err){ console.error(err); uiAlert('Could not load that file: '+err.message); }
+    }, err=>{
+      if(err && err.name === 'AbortError') return;   // Cancel: the usual way out, since looking was the point
+      console.error(err);
+      uiAlert('Could not show that file’s folder: '+((err && err.message) || err));
+    });
+  }
+  document.addEventListener('sptcal-file-folder', e=>{ showRecentInFolder(e && e.detail && e.detail.id); });
 
   // Render the file dropdown in the header: current file name on the button, recents +
   // "Load…" inside the menu.

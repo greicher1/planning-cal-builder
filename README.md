@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
+
+Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the
+folder that holds that file, and the bar at its top shows where it is saved (owner, 4 Nov 2026: *"I want to see where
+the file is saved"*). Asked for as "Reveal in Finder", which a web app cannot do: Chrome never tells a page where a file
+is, and never lets one open Finder. What it does allow is opening its file window in a file's folder
+(`showOpenFilePicker`'s `startIn`). Picking a file there loads it, as Load… does, and the unsaved-work question comes
+after the pick, not before, since most people will just look and press Cancel. New leg `showfolder` (7 cases, in
+gate.sh): the menu, `startIn` = that file's own handle, Cancel, the unsaved-work order, a pick loading, and a shareable
+copy exported with the menu open not carrying it. Red on a build without `startIn` or without the strip. Checked by
+hand in the browser pane with a real click: Chrome still counts the click as the user's when the window is asked for.
+Not yet seen on the owner's Mac with the real window.
+
 ### Unreleased — the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
 
 Harness only; the app is unchanged. A full gate sat for 3 h 20 min in `tests/harness/printpaper.mjs` because its
