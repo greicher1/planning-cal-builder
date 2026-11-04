@@ -1921,6 +1921,14 @@ done
 # It runs twice: colswap-widened-reuse is the same calendar with Reuse Empty Columns ticked, as every new calendar
 # starts since 2 Nov 2026. There a refused "move into the free column" used to return before the per-week fallback,
 # so no knob came up to swap BACK (P3, and P4 after it).
+# Since 4 Nov 2026 it also holds the MARK on that fallback: when it would leave a phase in two columns (here Prod
+# Prep), the knob is amber (.is-partial), a dashed box covers exactly the cells that move, and the label says who
+# ends up split and why the whole column can't move (P1, P4); swapping back re-joins it and is not marked (P3); a
+# per-week selection made by hand never is (P5).
+# swapsplitreuse (owner, 4 Nov 2026, "Fix both") is the report behind that mark: with Reuse Empty Columns ticked, a
+# phase starting after every column is free took a column last used in an EARLIER year, gave its year an extra
+# column, and that column blocked Swap Column, so the fallback split Writers. Reuse's rule 3 now prefers a free
+# column already used in the phase's years. Red on the build before it on S1, S2 and S3.
 # simpostbeside (owner, 2 Nov 2026) holds frozen edit SP1: Simultaneous Post's column directly right of Production, reuse
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
@@ -1946,6 +1954,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               colswappartial:colswap-widened:120 colswappartial:colswap-widened-reuse:120 \
+              swapsplitreuse:swapsplit-reuse:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \

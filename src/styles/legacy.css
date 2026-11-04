@@ -2684,6 +2684,14 @@
   }
   .grid-swap-knob:hover, .grid-swap-knob:focus-visible{ background:#0A6675; transform:scale(1.12); }
   .grid-swap-knob.dragging{ background:#0A6675; cursor:grabbing; transform:scale(1.12); }
+  /* A swap of only PART of the selected column, one that leaves a phase in two columns (owner, 4 Nov
+     2026; markPartialSwap). Amber, the swap layer's colour for a consequence, so it cannot be mistaken
+     for the whole-column arrow; the dashed box (.grid-swap-partial) shows the cells that move. */
+  .grid-swap-knob.is-partial{ background:#B9791A; }
+  .grid-swap-knob.is-partial:hover, .grid-swap-knob.is-partial:focus-visible,
+  .grid-swap-knob.is-partial.dragging{ background:#8F5C12; }
+  .grid-swap-partial{ position:absolute; box-sizing:border-box; border:2px dashed #B9791A;
+    background:rgba(232,163,61,.08); border-radius:2px; pointer-events:none; }
   /* Where the two runs land. Solid = the run you are moving, dashed = the partner coming the other
      way. ⛔ Rects only: rewriting colSpan on live cells reflows the whole table on every
      pointermove, which is the documented reason frozen .span-preview is a ghost in the first place. */

@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
+
+The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
+weeks they share, so the long phase sat in two columns. Turning off Reuse Empty Columns "fixed it", *"But how would a
+user know that was what they needed to turn off?"* Reproduced on a copy of the owner's setup (kept out of the repo).
+Ruled "Fix both".
+
+- **Why it happened:** with Reuse Empty Columns ticked, a phase that starts after every column is free took the
+  LOWEST free column, which can be one last used in an earlier year. In its own year that column was otherwise empty,
+  so the year grew a column. That column sat exactly where Simultaneous Post has to land when Production swaps, so
+  the whole-column swap was refused, and since 2 Nov the arrow then falls back, unmarked, to swapping only the shared
+  weeks. With the box clear the default layout happened to need no swap.
+- **Reuse Empty Columns** (`placeSegmentsReusingColumns`, rule 3): a free column already used in the years the
+  phase runs in is preferred; among equals, the lowest, as before. A calendar with the box ticked can lay out with
+  one column fewer in such a year. With the box clear, and in Single Column, nothing changes. No frozen code.
+- **The swap arrow:** after Swap Column, when the only swap it can offer would leave a phase in two columns, the
+  arrow is amber instead of teal, a dashed amber box outlines exactly the cells that will move, and the tooltip says
+  which phase ends up in two columns and why the whole column can't move. Swapping a split phase back is not
+  marked, nor is a part of a column you selected yourself. No new chip (owner ruling, 21 Oct 2026).
+- **Verified:** new leg `swapsplitreuse` 5/5 on the fixture `swapsplit-reuse` (made up, reuse ticked), red on the
+  build before it in S1–S3: a 4th column, the part-column arrow, Writers left in slots 0 and 2. `colswappartial`
+  8/8 on both fixtures, now also checking the amber arrow, the box and the tooltip (P1, P4), the unmarked swap back
+  (P3) and an unmarked hand selection (P5). Seen in the browser pane: the amber arrow and the box on the four shared
+  weeks. `npm run check` 40/40.
+
 ### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
 
 Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:

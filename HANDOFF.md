@@ -4,6 +4,50 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+- **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
+  (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
+  collumns fixed it! But how would a user know that was what they needed to turn off?"*
+- **Reproduced** in the browser pane on a copy of the owner's phase setup, kept in the scratchpad (never in the repo,
+  per the confidentiality rule): Writer's Rm, Pre-Prep, Prod Prep, Production with Sim Post (offset 0), last year's
+  Post, and a second Post that starts after every column is free, with a two-week all-phase hiatus.
+- **Cause, in three steps:**
+  1. Reuse on: `placeSegmentsReusingColumns` step 3 ("the lowest free column") puts the second Post in the column the
+     FIRST Post used the year before. In the new year, that column is otherwise unused, so the year gets a 4th column.
+     The frozen layout then draws two phases 2 wide in the weeks where only two run. Reuse off puts it in a column
+     already in that year: 3 columns.
+  2. The block swap moves Prod Prep + Production (they share a column) to the right, and the glued Sim Post must land
+     at Production + 1, in the 4th column, where the second Post sits. `canSwapStint` refuses.
+  3. `swapEvalDir`'s 2 Nov fallback then offers the per-week swap of the shared weeks. The arrow looks the same; only
+     its tooltip ("Swap Prep with Writers (<the shared weeks>)" vs "Swap the <year> block of…") tells them apart.
+- **Proof** (knob tooltips read in the pane): reuse on → per-week only; reuse on with the second Post removed → the
+  block swap ("…(Production moves with it)"); reuse off → the default layout already has Writer's Rm on the left for
+  the year, so "fixed it" meant no swap was needed. The partial-swap arrow is still there with reuse off.
+- **Owner's answer: "Fix both".** Built (no frozen code, no save-format change):
+  1. **Reuse rule 3** (`placeSegmentsReusingColumns`): every free column is scored by how many of the phase's year
+     blocks it is NOT yet used in (`segYears`, frozen `computeYearBlocks`' rule: a row's Monday, UTC year; one block
+     in Single Column), and the lowest score wins; a tie keeps the old answer, the lowest index. `cols[i].years` is
+     filled on every placement. ⚠️ A reuse-ON calendar can lay out with one column fewer in such a year, so its
+     screen and every export move. Reuse OFF is the untouched old code path. COLUMN-REUSE-PLAN.md §3 rule 5 updated.
+  2. **The marked fallback** (`swapEvalDir` → `splitAfterWeekSwap` + `markPartialSwap`): only in the stint branch's
+     per-week fallback, and only when the run would leave the seed or the partner in two columns of the year (cells
+     outside the run at any slot but where its run lands). Then `run.partial`, the knob gets `.is-partial` (amber
+     `#B9791A`), `drawSwapLayer` draws `.grid-swap-partial` (dashed amber) round exactly the cells that move, and
+     the label gains "Only these weeks move, so X ends up in two columns." plus the block's refusal
+     (`swapWhy`, "Can’t swap: " stripped; nothing for 'no-change'). ⛔ No chip (21 Oct ruling). A swap BACK that
+     re-joins a phase is not marked (the test is where cells end up, not how many move); a hand-made per-week
+     selection never is. Help text: one sentence in the column-swap paragraph.
+- **Proof** (worktree `dist/`; the pre-fix build staged as `dist/pre.html`, ignored):
+  - new leg `swapsplitreuse` **5/5** on new fixture `swapsplit-reuse` (made up: 2033–34, generic names, reuse on);
+    on `pre.html` red in S1 (4 slots), S2 (the part-column arrow) and S3 (Writers left in slots 0 and 2), exactly the
+    owner's screenshots. In `gate.sh`'s generic list after `colswappartial`.
+  - `colswappartial` **8/8** on both fixtures, its labels updated: P1/P4 now expect the amber knob, the box covering
+    the four shared weeks both columns, and the new sentences; P3 the swap back unmarked; P5 a hand selection
+    unmarked.
+  - In the browser pane (pane hidden, viewport emulated, events dispatched as the legs do): amber knob, dashed box
+    on the four shared weeks, tooltip as above.
+  - `npm run check` 40/40. Swap/reuse mini-gate: see below.
+
 
 ### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
 - **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,

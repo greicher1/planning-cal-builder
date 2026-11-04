@@ -4550,8 +4550,21 @@ export function initLegacyApp() {
   //   2. a HANDOFF column -- its last occupant's final week is this phase's week before, or only
   //      all-phase hiatus weeks lie between (ruled Q5); on a tie, the column of the phase this one's
   //      "Start after" button names (PHASE_CHAIN, built-ins only), else the leftmost (ruled Q1);
-  //   3. the lowest free column;
+  //   3. a free column, preferring one ALREADY USED in the years this phase runs in (owner, 4 Nov 2026);
+  //      among equals, the lowest;
   //   4. a new column on the right.
+  //
+  // ⭐ WHY RULE 3 COUNTS YEARS (owner, 4 Nov 2026, "Fix both", SWAP-SPLIT-REUSE in HANDOFF). It used to be
+  // "the lowest free column", which reaches back to a column whose last occupant ended in an EARLIER year.
+  // In this phase's year that column is otherwise unused, so the year grew a column: measured on a copy of
+  // the owner's calendar, a second-season Post starting after every column was free took last season's
+  // Post column and gave its year 4 columns instead of 3. The frozen layout then drew two phases 2 wide,
+  // and the extra column sat exactly where Sim Post must land when Production swaps right, so Swap Column
+  // was refused and the arrow fell back to a part-column swap that split Writer's Rm across two columns.
+  // A year's column count is its number of distinct `col` values (frozen computeBlockLayout), so a column
+  // already used in the year adds none there. Every free column is tried and the one adding the fewest is
+  // taken; a tie keeps the old answer, the lowest. In Single Column there is one block, every placed
+  // column is in it, and this reduces to the lowest free column exactly as before.
   // Then Production's column is numbered 0 (ruled Q2). Frozen computeBlockLayout orders a year's
   // columns by first appearance and breaks ties on `col`, so this only decides which goes left when
   // two columns start a year together -- the shoot's.
@@ -4570,7 +4583,19 @@ export function initLegacyApp() {
       .map((seg, i)=>({seg, i}))
       .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
       .map(o=>o.seg);
-    const cols = [];              // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment }
+    // The year blocks a segment's week rows fall in -- frozen computeYearBlocks' rule (a row's Monday, UTC
+    // year), or the one block of Single Column. Read here, never by calling it: it needs the week list,
+    // which does not exist until after placement.
+    const segYears = s => {
+      if(singleColumn) return [0];
+      const y0 = new Date(firstRow(s)).getUTCFullYear();
+      const y1 = new Date(Math.max(firstRow(s), rowsEnd(s) - WEEK)).getUTCFullYear();
+      const out = [];
+      for(let y = y0; y <= y1; y++) out.push(y);
+      return out;
+    };
+    // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, years: the year blocks it is used in }
+    const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
     byStart.forEach(seg=>{
@@ -4600,12 +4625,20 @@ export function initLegacyApp() {
           const pc = pred ? segCol.get(placed.get(pred)) : -1;
           at = hand.indexOf(pc) >= 0 ? pc : hand[0];
         } else {
-          for(let i = 0; i < cols.length; i++) if(free(i)){ at = i; break; }
+          // Rule 3: the free column that adds the fewest columns to this phase's years; ties to the lowest.
+          const yrs = segYears(seg);
+          let best = Infinity;
+          for(let i = 0; i < cols.length; i++){
+            if(!free(i)) continue;
+            const adds = yrs.reduce((n, y) => n + (cols[i].years.has(y) ? 0 : 1), 0);
+            if(adds < best){ best = adds; at = i; }
+          }
         }
       }
-      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null }); }
+      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null, years:new Set() }); }
       cols[at].freeAt = rowsEnd(seg);
       cols[at].last = seg;
+      segYears(seg).forEach(y => cols[at].years.add(y));
       segCol.set(seg, at);
       placed.set(seg.key, seg);
     });
@@ -6564,9 +6597,46 @@ export function initLegacyApp() {
       const v = run.ok ? Object.assign(run, canSwapStint(run)) : run;
       if(v.ok) return v;
       const w = weekSwapEval(dir);
-      return (w && w.ok) ? w : (moveWhy || v);  // the BLOCK's reason when neither can move
+      if(!(w && w.ok)) return moveWhy || v;     // the BLOCK's reason when neither can move
+      const split = splitAfterWeekSwap(w);
+      if(split.length) markPartialSwap(w, split, moveWhy || v);
+      return w;
     }
     return weekSwapEval(dir);
+  }
+
+  // ⭐ A FALLBACK THAT SPLITS A PHASE IS MARKED BEFORE THE CLICK (owner, 4 Nov 2026: "how would a user know
+  // that was what they needed to turn off?"). After Swap Column, a refused block swap falls back to the
+  // per-week swap above, and the arrow used to look exactly like the whole-column one: only its tooltip
+  // named the weeks. Measured on a copy of the owner's calendar, it swapped Prod Prep's 14 weeks with the
+  // 14 Writer's Rm weeks beside them and left Writer's Rm's other 23 weeks where they were, so Writer's Rm
+  // sat in two columns. Now such a candidate is `partial`: the knob turns amber, the cells that will move
+  // are outlined (drawSwapLayer), and the label says which phase ends up in two columns and why the whole
+  // column can't move. ⛔ No chip (owner, 21 Oct 2026: a chip only for a refusal); the label is the tooltip.
+  // ⛔ Only in this fallback. A per-week selection made by hand is meant to split, and a fallback that
+  // RE-JOINS a phase (swapping a split one back) moves fewer weeks than were selected but is not marked:
+  // the test is where every cell ends up, not how many move.
+  //
+  // The phases a per-week run would leave in two columns of its year: one whose cells outside the run
+  // sit anywhere but where its run lands (the partner's column for the seed, and the other way round).
+  function splitAfterWeekSwap(run){
+    const first = run.weeks && run.weeks[0];
+    const mineTd = first && swapTdFor(first, run.phaseKey), theirTd = first && swapTdFor(first, run.partnerKey);
+    if(!mineTd || !theirTd) return [];
+    const lands = { [run.phaseKey]: +theirTd.dataset.own, [run.partnerKey]: +mineTd.dataset.own };
+    return [run.phaseKey, run.partnerKey].filter(k =>
+      stintTds(run.year, k).some(td => !run.weekSet.has(td.dataset.week) && +td.dataset.own !== lands[k]));
+  }
+  function markPartialSwap(run, split, whole){
+    run.partial = { split };
+    const names = joinNames(split.map(phaseLabelFor));
+    // The whole column's reason, as one more sentence. 'no-change' would read "Nothing would move", which
+    // is false here, so it says nothing.
+    const s = whole && whole.reason !== 'no-change' ? swapWhy(whole) : '';
+    const m = /^Can’t swap: (.*)$/.exec(s);
+    const why = !s ? '' : m ? ' The whole column can’t move: ' + m[1] : ' The whole column can’t move. ' + s;
+    run.label += '. Only these weeks move, so ' + names + (split.length > 1 ? ' end' : ' ends')
+               + ' up in two columns.' + why;
   }
 
   // The per-week candidate for one direction: the run walked from the seed, or, when the seed has none
@@ -6906,7 +6976,9 @@ export function initLegacyApp() {
       k.setAttribute('role', 'button');
       k.setAttribute('tabindex', '0');
       k.setAttribute('aria-label', run.label);
-      k.title = run.label + ' — click, or drag across the boundary';
+      // A partial label is whole sentences already (markPartialSwap), so the hint is one more.
+      k.title = run.label + (run.partial ? ' Click, or drag across the boundary.' : ' — click, or drag across the boundary');
+      if(run.partial) k.classList.add('is-partial');
       k.textContent = run.dir > 0 ? '›' : '‹';
       if(swapDrag && swapDrag.dir === run.dir) k.classList.add('dragging');
       layer.appendChild(k);
@@ -6985,6 +7057,12 @@ export function initLegacyApp() {
         });
         byWeek.forEach(list => selLayer.appendChild(swapRect('grid-swap-collateral', swapUnion(list))));
       }
+      // ⭐ A part-column swap (markPartialSwap) outlines exactly the cells it moves, both sides, on
+      // selection: with the whole column selected, the box shows how much of it stays behind.
+      eligible.filter(c => c.partial && c.weeks).forEach(c=>{
+        const boxes = swapRunBoxes(c.weeks, c.phaseKey, g).concat(swapRunBoxes(c.weeks, c.partnerKey, g));
+        if(boxes.length) selLayer.appendChild(swapRect('grid-swap-partial', swapUnion(boxes)));
+      });
     }
 
     // ONLY why a swap could not happen, after Alt+←/→, a knob click or a drop (owner, 21 Oct 2026:
