@@ -6,6 +6,63 @@
 
 
 
+### 🔨 4 Nov 2026: A HAIRLINE BETWEEN ROWS IN THE WATERFALL PDF (Gridlines: None) — FIXED (frozen edit SM1, owner: *"ok build it"*) on branch `wf-pdf-seams` (worktree `.claude/worktrees/wf-pdf-seams`, from `origin/main` at `786a044`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); gate 2's `base.pdf` RE-CUT; FULL GATE 3,871 PASS / 5 FAIL on build `dist/index.html` of 4 Nov 2026 11:01, all 5 green alone (`pilllabel` carry-rich 29/29, `retiredplaces` 8/8, `seasons` 15/15, `scenariocompat` on `releases/v1.2.0.html`, which this branch cannot change); the known Load/Save timeouts under a busy gate; NOT committed, NOT merged, NOT pushed. Tracker card `wf-pdf-row-seams`
+
+Owner: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid lines turned off"*
+
+- **There is no real gap.** `buildWaterfallPdf` paints each cell as its own `re f`, one per week, edge to edge: row r's
+  bottom is row r+1's top, to the 0.001 pt `pdfNum` rounds to.
+  - A viewer that anti-aliases paints the pixel on the shared edge twice, with partial coverage each time, and the
+    white page leaks through. At 50/50 coverage, a quarter of the pixel is page.
+  - That covers Quartz, which is what Preview uses. pdfium (Chrome's viewer) very likely does the same; not measured.
+  - Under Solid, the row rule paints over the edge. Under None there is no rule.
+  - Not involved: the screen, Excel and the month PDF.
+- **Measured** on gate 2's own `base.pdf` (Gridlines None), rendered through CoreGraphics at 1×, 1.37× and 2×.
+  29, 25 and 25 of the 60 same-colour row edges carry a line at least 8/255 lighter than the fill, worst 61/255.
+- **The fix, tested on a scratch copy of that stream, not in the app.** Right after each fill, paint a strip of ITS
+  colour across the edge it shares with a fill painted LATER, below it or to its right, 1 pt each side of the edge.
+  The later fill covers the strip's far half, so the shared pixel is fully painted. Result: 0 visible lines at all
+  three scales, two-colour edges included.
+  - Rejected: merging a run into one tall rectangle. It cleared the same-colour edges but left a two-colour edge at
+    32/255, and it breaks the one-rectangle-per-cell shape the Copilot import kit reads.
+- ⚠️ **The strip must go in right after the UPPER fill, before that cell's text.** Painted just before the lower fill,
+  it would cover the bottom 1 pt of the upper cell's text. So when the writer paints a row it needs to know the next
+  row's fills: keep a per-op "insert after" list, or run a pre-pass.
+- **Cost:**
+  - the frozen edit in `buildWaterfallPdf`, about 40 lines;
+  - a re-cut of gate 2's `base.pdf`, owner-approved;
+  - a look at `notewrap` and `wfnotecolors`, which parse and count `re f`;
+  - a new leg: every pair of touching body fills has its strip, and no strip reaches an unfilled cell;
+  - the Copilot kit's examples regenerated, plus one line in its spec.
+  - Byte-identical: the screen, the workbook and the month PDF.
+- The renderer and scanner are now in the harness (below). Do not use poppler in their place: it can't reproduce
+  hairline visibility (see the month-grid lines entry).
+
+**As built:**
+- **`buildWaterfallPdf`, frozen edit SM1.** Body fills (phase / Sim Post / per-phase hiatus, the all-phase band, notes)
+  go through `cellFill()` instead of `page.rect()`. It records each fill's op index. Each later fill that touches an
+  earlier one, the row above or the cell to its left, queues a strip (`sealStrip()`, `page.rect`'s own formatting)
+  against the earlier fill's index. After the row loop, the strips are spliced in place right behind their fill.
+  `SEAL_PT = 1`. Every Gridlines setting gets them.
+- **Gate 2's `base.pdf` re-cut** (baseline README, "a strip across every edge two fills share"): 279 → 356 fills,
+  every other operator identical and in order, `base.pdf.txt` identical. ⭐ **The clock pin must RUN, not freeze.**
+  monthexport's frozen `new Date()` stalled the `base` leg (it went "pending" at once). A clock that starts at
+  29 Aug 2026 noon and keeps running worked.
+- **New gate check `pdfseams`**, in gate.sh right after gate 2, on `base.writer.pdf`. `pdfseams.py` plus
+  `pdfseams-render.swift`, a CoreGraphics renderer compiled into the git-ignored `.pdfseams-render`.
+  - S1: every pair of touching cells carries exactly its strip.
+  - S2: Quartz at 1× / 1.37× / 2× shows no edge 8/255 lighter than both fills. The least-light of 5 samples along
+    each edge, so a glyph can't fake or hide a line.
+  - S3: with the strips taken out, a line DOES show, or S2 proves nothing.
+  - Result: 83 cells, 77 shared edges, 77 strips; 29 lines show with the strips removed. It fails S1 on the old PDF.
+- ⛔ **A leg that counts the waterfall PDF's `re f` must count CELLS now:** a fill followed, after its strips, by its
+  own clip to the same box. `wfnotecolors` P1 did a raw count and went 149 → 146 for a No fill note (its fill plus two
+  neighbours' strips). It now uses `cellFills()`. `notewrap` picks the smallest rect around each line and is
+  unaffected (16/16).
+- ⏭ **After the push:** regenerate the Copilot PDF-import kit's two example PDFs (`~/Downloads/SPTCal PDF Import
+  (Copilot)/`) and add one line to its `SPTCAL-PDF-SPEC.txt`: a fill that sits between a cell's fill and that cell's
+  clip is a seam strip, so ignore it.
+
 ### 🔧 3 Nov 2026 (22:10): A STUCK CHROME CAN NO LONGER HANG A WHOLE GATE — `printpaper.mjs` and `rtleg.mjs` get hard deadlines. COMMITTED on local `main`, NOT pushed (harness only; the deployed build is unchanged)
 
 - **Why:** the v1.10.0 release found `simpost-beside-prod`'s full gate stuck for 3 h 20 min in

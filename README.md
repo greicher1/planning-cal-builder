@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid
+lines turned off"*.
+
+**Why it happened.** The writer drew every cell as its own rectangle, one per week, laid edge to edge. A PDF viewer
+that smooths edges (Preview's Quartz, and very likely Chrome's viewer) paints the pixel on a shared edge twice, each
+time partly, so some white page shows through. The result was a light line between a phase's weeks. A Solid grid line
+covers it; Gridlines None has no line.
+
+**The fix.** Frozen edit SM1 in `buildWaterfallPdf`, owner sign-off *"ok build it"*:
+- Right after each cell's fill, the writer paints a thin strip of that colour across the edge it shares with the cell
+  below or to its right, 1 pt each side.
+- That cell paints over the strip's far half, so the edge pixel is fully painted.
+- The strip goes in before the cell's own text, so no text is covered.
+- Only filled cells take part. A strip never reaches an empty cell, a date cell or a No fill note.
+- Every Gridlines setting gets the strips. Under a line they sit beneath it.
+- Unchanged: every cell rectangle, every string, the lines, the frame, the screen, the workbook and the month PDF.
+
+**Verified.**
+- Gate 2's own PDF rendered through Quartz at 100%, 137% and 200%: before, 29 of 60 same-colour edges showed a line
+  at 100% (worst 61/255); after, 0, two-colour edges included.
+- The new stream is the old one plus 77 strips, every old operator kept in order.
+- Gate 2's `base.pdf` was re-cut, owner-approved. It is the `base` leg on the new build with the clock running from
+  29 Aug 2026, and it is identical to today's run apart from that date. Only `rectOps` (279 → 356), `bytes` and
+  `contentLen` moved. Every drawn string is identical.
+- New gate check `pdfseams` (`pdfseams.py` and a small Quartz renderer, `pdfseams-render.swift`):
+  - every pair of touching cells carries its strip, and nothing else is a strip;
+  - no edge renders as a line at 1×, 1.37× or 2×;
+  - with the strips taken out, the line does show, so the scan can see one.
+  - It fails on the old PDF.
+- `wfnotecolors` P1 now counts cell fills rather than every rectangle. A No fill note also takes its neighbours'
+  strips away, so the plain count fell by 3 instead of 1.
+
 ### Unreleased — the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
 
 Harness only; the app is unchanged. A full gate sat for 3 h 20 min in `tests/harness/printpaper.mjs` because its

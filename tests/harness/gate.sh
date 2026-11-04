@@ -117,6 +117,19 @@ elif PDFOUT="$(python3 "$HERE/pdfcmp.py" "$HERE/base.writer.pdf" "$BASE/base.pdf
   ok "waterfall PDF identical to baseline (header date stamp $BASEDATE -> $TODAY)"
 else bad "waterfall PDF differs beyond the date stamp: $(print -r -- "$PDFOUT" | head -4)"; fi
 
+# ---- the waterfall PDF: no hairline between touching fills (frozen edit SM1, owner sign-off 4 Nov 2026) ----------
+# pdfseams.py on the same writer bytes: S1 every pair of touching cells carries its strip and nothing else is one, S2
+# Quartz (Preview's renderer) shows no light line on any shared edge at 1x / 1.37x / 2x, S3 the same PDF with its strips
+# taken out DOES show one (else S2 proves nothing). The renderer is compiled once, and again when its source changes.
+SEAMBIN="$HERE/.pdfseams-render"
+if [[ ! -x "$SEAMBIN" || "$HERE/pdfseams-render.swift" -nt "$SEAMBIN" ]]; then
+  swiftc -O "$HERE/pdfseams-render.swift" -o "$SEAMBIN" >/dev/null 2>&1 || rm -f "$SEAMBIN"
+fi
+if [[ ! -x "$SEAMBIN" ]]; then bad "pdfseams: pdfseams-render.swift did not compile (swiftc)"
+elif SEAMOUT="$(python3 "$HERE/pdfseams.py" "$HERE/base.writer.pdf" --render "$SEAMBIN" 2>&1)"; then
+  ok "waterfall PDF: no seam between touching fills ($SEAMOUT)"
+else bad "waterfall PDF seams: $SEAMOUT"; fi
+
 # ---- the workbook: valid, and unchanged apart from its timestamp -------------------------------
 if "$HERE/check-xlsx.sh" "$HERE/base.xlsx" >/dev/null 2>&1; then ok "Excel passes check-xlsx.sh"
 else bad "Excel fails check-xlsx.sh"; fi

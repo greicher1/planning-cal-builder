@@ -36,7 +36,7 @@ Two year blocks, 52 rows.
 | Column widths | `2026: 53 / 88 / 88 / 179` · `2027: 53 / 86 / 86 / 164` | `base.json` → `cols` |
 | Rows | 52 | |
 | Excel | 10,169 B → **10,542 B since the 29 Sep 2026 re-cut** (the Date column's cached values, see below) · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
-| Waterfall PDF | 76,568 B → **76,567 B since the 5 Oct 2026 re-cut** (the header's clearance, see below) · 612×792 · 204 text ops · 279 rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
+| Waterfall PDF | 76,568 B → 76,567 B at the 5 Oct 2026 re-cut (the header's clearance) → **77,025 B since the 4 Nov 2026 re-cut** (the seam strips, see below) · 612×792 · 204 text ops · 279 → **356** rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
 | `v1.0.0-saved.html` restore | 52 rows / 154 cells / **55 fields** · 0 clipped · grid 324 pt | `restore.json` |
 
 `base.pdf.json` is `pdf-info.js` run over `base.pdf`; `base.pdf.txt` is every string the PDF draws,
@@ -373,6 +373,34 @@ of the Production Region. It is calendar data, so it has an id and `collectField
 `rows`, `cells`, `gridWidthPt`, `bytes` 756473, `hClip` 0 and the restored grid signature all came back identical,
 and every other frozen output in that gate (waterfall PDF, Excel parts, month documents, written month PDFs) was
 byte-identical. The value is `""` -- blank, not the previous calendar's -- which is the point of the default.
+
+## ✅ `base.pdf` RE-CUT — a strip across every edge two fills share (4 Nov 2026)
+
+**A deliberate change to the waterfall PDF.** It is frozen edit SM1 to `buildWaterfallPdf`. The owner saw the
+diagnosis, the measurement and a before/after crop, and signed off with *"ok build it"*.
+- **The complaint.** A light line between a phase's weeks when Gridlines is None. Every cell is its own `re f`, laid
+  edge to edge, and a viewer that anti-aliases paints the pixel on a shared edge twice, partly each time, so white
+  shows through.
+- **The fix.** Right after each fill, a strip of its colour across the edge it shares with a fill painted later,
+  below it or to its right: 1 pt each side, over the cells' common span. The later fill covers the strip's far half.
+
+| what | before → after | why |
+|---|---|---|
+| fill operations | 279 → **356** | 77 strips: 66 across row edges, 11 across column edges |
+| every other operation, in order, and both font streams | **identical** | the strips are spliced in after the fill they belong to; nothing else moves |
+| `base.pdf.txt`, every string drawn | **identical** | |
+| `base.pdf.json` | bytes 76,567 → 77,025, `rectOps` 279 → 356, `contentLen` 28,880 → 32,641 | the strips |
+| Quartz at 1× / 1.37× / 2×, edges at least 8/255 lighter than both fills | 29 / 25 / 25 of 60 → **0 / 0 / 0**, two-colour edges included | `pdfseams` in gate.sh |
+
+**How it was cut.** As on 5 Oct: the `base` leg on the new build, in a throwaway copy with a clock in front that starts
+at local noon on 29 Aug 2026 and keeps running. A frozen clock stalls the leg. So the file carries the baseline's own
+stamp, `8.29.26`. Before writing, three things were proven:
+1. that run equals today's run of the same build, bar the stamp (`pdfcmp.py`);
+2. against the old baseline, the old stream is kept whole and in order, and the 77 additions are all fills;
+3. the new build passes this file, byte for byte from the pinned run. The old baseline, which is exactly the old
+   build's output, fails it (`pdfcmp.py` exit 1, first diff at the first strip).
+
+Unchanged by this: `base.xlsx`, `base.json`, `restore.json`.
 
 ## Reproducing it
 

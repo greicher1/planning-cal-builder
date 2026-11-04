@@ -126,7 +126,17 @@ window.addEventListener('load', function () { (async function () {
     return c.replace(/\(\d{1,2}\.\d{1,2}\.\d{2}\) Tj/g, '(STAMP) Tj');
   }
   function count(s, re) { return (s.match(re) || []).length; }
-  var YELLOW = /1\.0000 1\.0000 0\.0000 rg/g, FILLS = /rg [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ re f/g;
+  var YELLOW = /1\.0000 1\.0000 0\.0000 rg/g;
+  // A cell's fill is followed, after any SM1 seam strips, by its own clip to the same box (pdfseams.py classifies alike).
+  function cellFills(s) {
+    var ops = s.split('\n'), n = 0, F = /^[\d.]+ [\d.]+ [\d.]+ rg ([-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+) re f$/, m, j;
+    for (var i = 0; i < ops.length; i++) {
+      if (!(m = F.exec(ops[i]))) continue;
+      for (j = i + 1; j < ops.length && F.test(ops[j]); j++);
+      if (ops[j] === 'q ' + m[1] + ' re W n') n++;
+    }
+    return n;
+  }
   // The written month PDF: every Flate stream's text, decoded.
   async function monthPdfStreams() {
     T.monthPrintPath(false);
@@ -263,7 +273,9 @@ window.addEventListener('load', function () { (async function () {
       await undo();                                       // the note back to purple
       var b = await wfPdf('the waterfall PDF, purple');
       await redo();
-      var fa = count(a, FILLS), fb = count(b, FILLS), ya = count(a, YELLOW), yb = count(b, YELLOW);
+      // CELL fills, not every `re f`: since frozen edit SM1 (4 Nov 2026) a fill touching another carries seam strips
+      // (fills between it and its own clip), and a No fill note takes its neighbours' strips into it away too.
+      var fa = cellFills(a), fb = cellFills(b), ya = count(a, YELLOW), yb = count(b, YELLOW);
       var txtA = a.indexOf('(Cast fittings) Tj') !== -1 && a.indexOf('(Network call) Tj') !== -1;
       kase('P1', 'the waterfall PDF (NF2): exactly one fill rectangle fewer than with the note purple, no yellow added, and the note\'s two lines drawn',
            fa === fb - 1 && ya === yb && txtA && /background:#FFFFFF00/i.test(noteStyle('2026-08-10')),
