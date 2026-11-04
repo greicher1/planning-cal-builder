@@ -15,7 +15,8 @@
 //   L  item 5, the weekend just before the first shoot day ('lead')
 //   H  item 7, header sizes 10-12 and the fixed-date token in the token list
 //   F  item 8, France
-//   C  item 9, Colour… and Number weeks on a hiatus band
+//   C  item 9, Number weeks on a hiatus band, and its colour (the card's square since 4 Nov 2026: the month day menu's
+//      Colour… was cut by the owner's picker, "remove month color")
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {test: 'labelsetup'}, W = [];
@@ -511,13 +512,20 @@ window.addEventListener('load', function () { (async function () {
       {items: c1m, before: c0, after: c1, month: c1month}, 'Hiatus wk 1, Hiatus wk 2');
     add('C1u', 'One undo (in the month view) puts both bands back to "Hiatus" and unticks the box, keeping the title typed just before; redo ticks it again',
       eq(c1umonth.map(function (b) { return b[0]; }), ['Hiatus', 'Hiatus']) && !c1ubox && c1utitle === 'C Typed 1', {month: c1umonth, box: c1ubox, title: c1utitle}, 'Hiatus, unticked, title kept');
-    // C2: Colour… paints every week of the hiatus, in both views.
+    // C2: the colour paints every week of the hiatus, in both views. ⛔ Since 4 Nov 2026 from the hiatus card's square,
+    // not the 22 Dec day menu's Colour…, which the owner's picker cut ("remove month color"): the menu is read only to
+    // prove the item is gone. The title is typed first and left to bank (the sidebar's 500 ms debounce), so the pick is
+    // a step of its own, as the menu item's explicit step made it.
     await T.sleep(700);
     await toMonth('December 2026');
     await T.sleep(700);
     T.set('show-title', 'C Typed 2');
     await rclick('2026-12-22', 'mid');
-    chooseIf('[data-section="hiatus"] [data-item^="band-colour-"]');
+    var c2m = hiatusItems();
+    closeMenu();
+    await T.sleep(800);
+    var sq0 = document.querySelector('#hiatus-list .hiatus-entry .hiatus-swatch');
+    if(sq0) sq0.click();
     await T.sleep(200);
     var pop = document.querySelector('.phase-color-pop');
     var sw = pop ? [].map.call(pop.querySelectorAll('.pc-sw'), function (s) { return s.title; }) : [];
@@ -532,10 +540,11 @@ window.addEventListener('load', function () { (async function () {
     await redo();
     await toSheet();
     var c2 = [sheetHiatus('2026-12-21'), sheetHiatus('2026-12-28')];
-    add('C2', '⭐ Colour… on 22 Dec opens the waterfall band editor\'s ten colours under the day, with red (the default) selected; picking #0070C0 paints BOTH weeks of the hiatus in the waterfall',
-      eq(sw, ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0']) && sel0 === 1
+    add('C2', '⭐ 22 Dec\'s day menu offers no Colour… (4 Nov 2026); the hiatus card\'s square opens the ten band colours with red (the default) selected, and picking #0070C0 paints BOTH weeks of the hiatus in the waterfall',
+      c2m.length > 0 && !c2m.some(function (x) { return /^band-colour-/.test(x.id); })
+        && eq(sw, ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0']) && sel0 === 1
         && rgbHex(c2[0].bg) === '#0070C0' && rgbHex(c2[1].bg) === '#0070C0' && !document.querySelector('.phase-color-pop'),
-      {swatches: sw, selected: sel0, after: c2}, 'both #0070C0');
+      {menu: c2m, swatches: sw, selected: sel0, after: c2}, 'both #0070C0');
     add('C2m', 'The month view\'s bands, both weeks, are painted the same colour', c2month.length === 2 && c2month.every(function (b) { return b[1] === '#0070C0'; }), c2month, '#0070C0 ×2');
     add('C3u', 'One undo (in the month view) takes the colour off both weeks, keeping the title typed just before; redo puts it back',
       c3umonth.length === 2 && c3umonth.every(function (b) { return b[1] === '#FF0000'; }) && c3utitle === 'C Typed 2', {month: c3umonth, title: c3utitle}, 'red ×2, title kept');

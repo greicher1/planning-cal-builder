@@ -187,7 +187,8 @@ window.addEventListener('load', function () { (async function () {
   // greyed reasons it gave ("A phase can’t be drawn on a weekend / inside a hiatus") are never shown now.
   var ITEMS = ['phase-day', 'phase-week', 'hiatus', 'waterfall'];
   // T1's cut, as item ids: none may appear in any month menu (case T1).
-  var CUT = /^(note|phase-colour|phase-show|band-lock-\d+|band-num-\d+|band-show-\d+)$/;
+  // band-colour-N joined the cut 4 Nov 2026 (owner's picker: "remove month color"; a hiatus is coloured on its card only).
+  var CUT = /^(note|phase-colour|phase-show|band-lock-\d+|band-num-\d+|band-show-\d+|band-colour-\d+)$/;
   // No month menu greys anything out (owner, 28 Oct 2026): T3's two exceptions, the Start / End pair and ruling 1's
   // Work this day inside a hiatus, are left out where they cannot act, as everything else already was.
   // Every month menu (and submenu) the leg opens, as it was built: the waterfall's menu (data-view="sheet") is wfmenu's.
@@ -645,9 +646,10 @@ window.addEventListener('load', function () { (async function () {
     // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): Add note was OFFERED inside a hiatus
     // from then. ⛔ REVISED AGAIN 23 Oct 2026 by the trim: Add note is gone everywhere (T1), and Add 1-day phase here,
     // greyed here until then ("A phase can’t be drawn inside a hiatus"), is LEFT OUT (T3). The hiatus section is
-    // Colour… and Remove hiatus… only (Lock in place, Number weeks and Show in Phases card cut, T1).
-    var ITEMS_22DEC = ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'waterfall'];
-    add('H4', '⭐ Tue 22 Dec, inside the hiatus: EXACTLY Add 1-week phase here, Add hiatus, the hiatus\'s Colour… and Remove hiatus…, and the way out (no Add note, T1; no Add 1-day phase here, T3), none greyed',
+    // Remove hiatus… only (Lock in place, Number weeks and Show in Phases card cut, T1; Colour… cut 4 Nov 2026, the
+    // owner's "remove month color": a hiatus is coloured on its sidebar card only).
+    var ITEMS_22DEC = ['phase-week', 'hiatus', 'band-remove-0', 'waterfall'];
+    add('H4', '⭐ Tue 22 Dec, inside the hiatus: EXACTLY Add 1-week phase here, Add hiatus, the hiatus\'s Remove hiatus…, and the way out (no Add note, T1; no Add 1-day phase here, T3; no Colour…, 4 Nov 2026), none greyed',
       h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && eq(i4.items.map(function (x) { return x.id; }), ITEMS_22DEC)
         && i4.items.every(function (x) { return !x.disabled; }) && /Hiatus/.test(i4.ctx),
       i4, ITEMS_22DEC.join(', '));
@@ -662,14 +664,14 @@ window.addEventListener('load', function () { (async function () {
     key('End'); kf.push(menuInfo().focus);
     key('ArrowDown'); kf.push(menuInfo().focus);
     add('K1', 'Arrow keys, Home and End move focus through the items (into the hiatus section), and ↓ from the last wraps to the first',
-      eq(kf, ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'band-colour-0', 'phase-week', 'waterfall', 'phase-week']), kf,
-      'phase-week, hiatus, band-colour-0, band-remove-0, band-colour-0, phase-week, waterfall, phase-week');
+      eq(kf, ['phase-week', 'hiatus', 'band-remove-0', 'waterfall', 'band-remove-0', 'phase-week', 'waterfall', 'phase-week']), kf,
+      'phase-week, hiatus, band-remove-0, waterfall, band-remove-0, phase-week, waterfall, phase-week');
     var s4 = sig();
     key('Escape');
     var h5 = await rclick('2026-12-25', 'mid');
     var i5 = menuInfo();
-    var ITEMS_25DEC = ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'hol-en-0', 'hol-month-0', 'hol-sheet-0', 'waterfall'];
-    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; EXACTLY 22 Dec\'s items with Christmas Day\'s three (ruling Q6, kept by T2) before the way out: 13 lines before the trim, 8 after',
+    var ITEMS_25DEC = ['phase-week', 'hiatus', 'band-remove-0', 'hol-en-0', 'hol-month-0', 'hol-sheet-0', 'waterfall'];
+    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; EXACTLY 22 Dec\'s items with Christmas Day\'s three (ruling Q6, kept by T2) before the way out: 13 lines before the trim, 8 after it, 7 since Colour… went (4 Nov 2026)',
       h5.inBody && h5.prevented && i5 && i5.day === '2026-12-25' && /Hiatus/.test(i5.ctx) && /Christmas Day/.test(i5.ctx)
         && eq(i5.items.map(function (x) { return x.id; }), ITEMS_25DEC) && i5.items.every(function (x) { return !x.disabled; }),
       i5, ITEMS_25DEC.join(', '));
@@ -1282,14 +1284,14 @@ window.addEventListener('load', function () { (async function () {
     var v1 = {sections: sections(), band: secInfo('hiatus')};
     key('Escape');
     // ⛔ The trim (T1): Lock in place, Number weeks (both the hiatus row's own boxes) and Show in Phases card are
-    // gone. Colour… stays (T2, the owner's "Recolour from day menu"; the labelsetup leg drives it), and so does
-    // Remove hiatus…. V2 (Lock in place) and V3 (Show in Phases card) went with their items.
-    add('V1', '⭐ Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with EXACTLY Colour… and a red Remove hiatus… (no Lock in place, Number weeks or Show in Phases card, T1)',
+    // gone. Colour… stood under T2 (the owner's "Recolour from day menu") until 4 Nov 2026, when the owner's picker removed
+    // it ("remove month color"): the card's colour square is the one way. Remove hiatus… stays. V2 (Lock in place) and V3
+    // (Show in Phases card) went with their items.
+    add('V1', '⭐ Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with EXACTLY a red Remove hiatus… (no Lock in place, Number weeks or Show in Phases card, T1; no Colour…, 4 Nov 2026)',
       eq(v1.sections, ['day', 'hiatus', 'out']) && v1.band.length === 1 && v1.band[0].label === BAND
         && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger, x.disabled]; }),
-              [['band-colour', 'menuitem', null, 'Colour…', '', false, false],
-               ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true, false]]),
-      v1, 'day, hiatus (' + BAND + ': Colour…, Remove hiatus…), out');
+              [['band-remove', 'menuitem', null, 'Remove hiatus…', '', true, false]]),
+      v1, 'day, hiatus (' + BAND + ': Remove hiatus…), out');
 
     // V4: Remove hiatus… asks the sidebar's own question first (ruling Q4); Cancel keeps it; Remove is one step.
     var rowsV = bandRows();
@@ -1494,7 +1496,7 @@ window.addEventListener('load', function () { (async function () {
     var ids9 = [].concat.apply([], v9.bands.map(function (b) { return b[1]; }));
     add('V9', 'Two hiatuses on Tue 22 Dec (halfdays\' 21 Dec – 3 Jan and a new 21 Dec – 27 Dec) get a section each, labelled by their dates, with no item id repeated',
       eq(v9.sections, ['day', 'hiatus', 'hiatus', 'out']) && eq(v9.bands.map(function (b) { return b[0]; }), ['Hiatus · 21 Dec – 3 Jan', 'Hiatus · 21 Dec – 27 Dec'])
-        && ids9.length === 4 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
+        && ids9.length === 2 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
       v9, 'two sections, by dates');
 
     // T1: ⛔ the owner's cut, over EVERY month menu and submenu the leg opened (recorded as each was built). No cut item
@@ -1508,7 +1510,7 @@ window.addEventListener('load', function () { (async function () {
       if(/Shift/.test(m.foot)) t1.shift.push(m.day);
       if(m.foot) t1.foot++;
     });
-    add('T1', '⭐ The owner\'s cut holds in every month menu the leg opened: no Add note, Colour… on a bar, Show in Phases card, Lock in place or Number weeks; no "Shift + right-click" footer line; nothing greyed at all (owner, 28 Oct 2026: left out instead)',
+    add('T1', '⭐ The owner\'s cut holds in every month menu the leg opened: no Add note, Colour… on a bar or a hiatus, Show in Phases card, Lock in place or Number weeks; no "Shift + right-click" footer line; nothing greyed at all (owner, 28 Oct 2026: left out instead)',
       t1.days >= 40 && t1.menus > t1.days && t1.cut.length === 0 && t1.greyed.length === 0 && t1.shift.length === 0 && t1.foot >= 1,
       t1, 'none, over 40+ menus');
 

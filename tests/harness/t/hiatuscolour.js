@@ -232,7 +232,9 @@ window.addEventListener('load', function () { (async function () {
     });
 
     await step('C8', async function () {
-      // The day menu's Colour… shares the picker and the write, and redraws without update(): the square still follows.
+      // ⛔ Since 4 Nov 2026 the month day menu has no Colour… (owner's picker, "remove month color, but keep the style bar
+      // working for all"): the card's square is the one way to colour a hiatus. Until then this case drove that item.
+      // Now: the menu on a hiatus day offers none, and the square, used from the month view, reaches the month bars.
       await toMonth('January 2027');
       var cell = null;
       Array.from(document.querySelectorAll('#table-wrap .mv-body > .mv-week')).forEach(function (wk) {
@@ -248,17 +250,19 @@ window.addEventListener('load', function () { (async function () {
       el.dispatchEvent(new MouseEvent('mousedown', base));
       el.dispatchEvent(new MouseEvent('contextmenu', base));
       el.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, base, { buttons: 0 })));
-      await T.until(function () { return !!document.querySelector('.day-menu [data-item^="band-colour-"]'); }, 'the day menu\'s hiatus section', 40, 100);
-      document.querySelector('.day-menu [data-item^="band-colour-"]').click();
-      await T.until(function () { return !!document.querySelector('.phase-color-pop'); }, 'the day menu\'s colour picker', 40, 100);
-      var marked = Array.from(document.querySelectorAll('.phase-color-pop .pc-sw.selected')).map(function (s) { return s.title; });
+      await T.until(function () { return !!document.querySelector('.day-menu [data-item^="band-remove-"]'); }, 'the day menu\'s hiatus section', 40, 100);
+      var colourItem = !!document.querySelector('.day-menu [data-item^="band-colour-"]');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await T.sleep(200);
+      var pop = await openSquare(0);
+      var marked = Array.from(pop ? pop.querySelectorAll('.pc-sw.selected') : []).map(function (s) { return s.title; });
       await pick(P);
       var sq = squares(), bars = Array.from(document.querySelectorAll('#table-wrap .mv-hiatus-bar')).map(function (b) { return getComputedStyle(b).backgroundColor; });
       await view('sheet');
       var saved = colours(await save());
-      kase('C8', 'the month day menu\'s Colour… opens on the hiatus\'s green and a purple pick reaches the sidebar square (repainted after a render alone), the month bars and every week in the file',
-           eq(marked, [G]) && eq(sq, [PURPLE, RED, RED, RED]) && bars.length > 0 && bars.every(function (c) { return c === PURPLE; }) &&
-           eq(saved, { '2027-01-04': P, '2027-01-11': P, '2027-01-18': P }), { marked: marked, squares: sq, bars: bars, saved: saved });
+      kase('C8', 'the month day menu on a hiatus day offers no Colour… (4 Nov 2026); the card\'s square, used from the month view, opens on the hiatus\'s green and a purple pick reaches the square, the month bars and every week in the file',
+           !colourItem && eq(marked, [G]) && eq(sq, [PURPLE, RED, RED, RED]) && bars.length > 0 && bars.every(function (c) { return c === PURPLE; }) &&
+           eq(saved, { '2027-01-04': P, '2027-01-11': P, '2027-01-18': P }), { colourItem: colourItem, marked: marked, squares: sq, bars: bars, saved: saved });
     });
 
     await step('C9', async function () {

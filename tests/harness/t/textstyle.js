@@ -300,8 +300,8 @@ window.addEventListener('load', function () { (async function () {
     await click(bandTd());
     T.openCell(bandTd()); await settle();
     // ⛔ FLIPPED 4 Nov 2026 (owner: an all-phase hiatus's name and colour are set on its sidebar card only). CARRY-HIATUS
-    // is an all-phase band, so its double-click opens no editor now: it shows the card, with the name box focused. A
-    // phase's own band still opens its editor (hiatussidebar W5).
+    // is an all-phase band, so its double-click opens no editor now: it shows the card, with the name box focused (a
+    // phase's own band too, hiatussidebar W5; only a Production off week keeps the editor, offweek R7).
     var d6focus = !!document.activeElement && document.activeElement.classList.contains('hiatus-name');
     check(!q('.note-pop') && d6focus, 'D6 a double-click on an all-phase hiatus band opens NO editor: its sidebar card, name box focused');
     if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();

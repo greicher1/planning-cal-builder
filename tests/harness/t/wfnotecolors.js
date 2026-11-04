@@ -11,9 +11,8 @@
 //
 //   K1  the waterfall note editor offers the month palette in two rows (the ten, then No fill, the tints, the greys),
 //       each on one line, its current colour selected
-//   K2  the all-phase hiatus band opens NO editor (since 4 Nov 2026 its name and colour are its sidebar card's, owner);
-//       a double-click shows its card. A phase's own band keeps the editor's one row of the ten standard colours,
-//       which hiatussidebar W5 holds now (this fixture has no phase hiatus).
+//   K2  the all-phase hiatus band opens NO editor (since 4 Nov 2026 a hiatus's name and colour are its sidebar card's,
+//       owner); a double-click shows its card. Only a Production off week keeps the band editor now (offweek R7).
 //   K3  the month view's editor for a WATERFALL note offers the same two rows (it kept the ten until today)
 //   S1  a tint draws as any colour: Pink #F7C1D9 with black ink
 //   S2  No fill draws the note as its text alone: transparent, black ink; its editor reopens on No fill

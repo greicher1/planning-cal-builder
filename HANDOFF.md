@@ -5,56 +5,96 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
-### 🔨 4 Nov 2026: AN ALL-PHASE HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`, from local `main` at `7899bbc`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Targeted legs green, no full gate. COMMITTED on the branch (owner's picker, *"Commit"*); push approved by the owner's picker (*"Push now"*, this push only). Tracker card `hiatus-name-colour-sidebar-only`
+### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
+- **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,
+  *"Push now"*; `0499373..e8e21fd` at 11:08:47 PST, a fast-forward carrying `origin/main`'s "Show in folder…", merged in
+  first). The commit rebuilds to `d663ce56…`. The live `index.html` still serves `0499373`'s build `3cb08fce…`
+  (identified by rebuilding it), which works.
+  - ⛔ **The deploy failed twice, both on GitHub's side** (run 41894092156; githubstatus.com said all operational at
+    11:21). Build and check passed both times.
+    - Attempt 1: Pages sat in `updating_pages` for 10 min, then "Timeout reached" and the deployment was cancelled.
+    - Attempt 2 (`gh run rerun --failed`, re-deploying the approved commit, no push): "Multiple artifacts named
+      github-pages" in 1 s. ⚠️ **Never re-run only the failed deploy job**: the job uploads its own `github-pages`
+      artifact, so a re-run leaves two on the run, and `deploy-pages` refuses.
+  - The workflow has only a `push` trigger, so a fresh run needs a push (or deleting the run's two `github-pages`
+    artifacts, then re-running the job). Put to the owner.
+- **Part 2: COMMITTED** (owner's picker, *"Commit"*), push approved as *"try pushing both together"*. A phase's own
+  hiatus loses its band editor too and gets a colour square on its card, and the month menu's Colour… is cut.
+  - ⚠️ The other session's push of `0d23980` (its "Show info: remove the Total Shooting Days note", with `e8e21fd`
+    merged in) ALSO failed to deploy, with "in progress deployment. Please cancel e8e21fd… first". GitHub had not
+    finished cancelling attempt 1. `GET /repos/…/pages/deployments/e8e21fd…` read `deployment_cancelled` at 11:23.
+    ⛔ **Lesson: after a Pages timeout, check that endpoint before any push; a push meanwhile fails to deploy.**
 
-- **Asked** (owner): *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That
-  should only be possible in the left side bar"*.
-  - ⭐ **Read as the ALL-PHASE hiatus** (the card titled "All-phase hiatus"), not every phase's own hiatus. The owner's
-    28 Oct ask used the same words for that card (*"add the color picker menu to the all phase hiatuses in the left
-    side bar"*). A phase's own hiatus has a name box in the sidebar but no colour square, so "only in the sidebar"
-    could not hold for it. Its band keeps the waterfall editor. ⏳ Not asked; put to the owner at the end of the turn.
-- **Built** (`src/legacy/app.js`, no frozen edit, no save-format change):
-  - `isAllPhaseBand(td)` (a `td.sheet-hiatus-cell` with no `data-pkey`) and `showHiatusRowFor(td)`, beside
-    `openNoteCellEditor`. The D5 openers (the capture `dblclick` and the Enter/typing `keydown`) send an all-phase band
-    there instead of to the editor. A double-click or Enter shows the band's card: the Phases tab, the card unfolded
-    and scrolled to, its name box focused, caret at the end. It's the month bar's double-click (`showPhaseRow`), one
-    undo step for the tab. A typed key on a highlighted band does nothing. `openNoteEditor` refuses an all-phase band
-    too, so no future caller reopens it.
-  - The frozen cell's tooltip still reads "Double-click to rename or recolor this hiatus". It was left: changing it is
-    a frozen edit, and the double-click now goes where you rename and recolour.
-  - **`claimHiatusRowNames(row)`**, after `carryHiatusRowColour`. Typing a card's name, or ticking its Number weeks,
-    first drops a band label typed by hand on that hiatus's weeks (a `hiatusTexts` key `hiatusNameSyncedKeys` doesn't
-    match), so `syncHiatusNamesFromSidebar()` takes those weeks in the same `update()`.
-    - Without it, a week typed in the band before this change would ignore every later name on the card, and nothing
-      but "Reset hiatus bands" could change it.
-    - Only on that edit: opening an older calendar changes nothing, so it prints as saved. One undo brings the typed
-      label back (both maps are in the snapshot).
-  - The colour needed no change: the card's square already paints every week (`setHiatusRowColour`).
-  - Still there, deliberately: the text style bar on a highlighted band (size, bold, italic, TEXT colour, alignment),
-    and the MONTH view's day menu Colour… on a hiatus (the owner named the waterfall). ⏳ Both are listed for the owner.
-  - Help (`src/index.html`, All-phase hiatus): the "double-click any hiatus band … to rename it" sentence is replaced.
-- **Proof** (port 8781–8783, the worktree's `dist/`):
-  - New leg **`hiatussidebar` 11/11** (in `gate.sh`, own line after `hiatuscolour`). It covers the real hit-tested
-    double-click, the undo step, Enter, a typed key, a phase's own band still opening its ten-colour editor, and an
-    older file's typed + coloured week (L1–L5: prints as saved, the card's name takes it, undo, Save). Red on
-    `releases/v1.10.0.html` in 8 of 11; W5, L1 and E0 are guards.
-  - Six legs drove the all-phase band editor and were reworked:
-    - `hiatuslabel` 7/7, `notewrap` 16/16 and `mvmenu` 81/81 now get their blank or long one-week label from a
-      saved file, through a new `T.reloadWith(mutate, stem, opts)` in `lib.js` (Save As → edit the JSON → Load).
-    - `wfnotecolors` K2 and `textstyle` D6 are flipped to "opens no editor, shows the card" (14/14, 51/51).
-    - `hdrcontrols` N4 now expects the card's name to take over CARRY-HIATUS (12/12).
-  - Unchanged and green: `hiatuscolour` 14, `hiatusfold` 11, `phiatusnum` 18, `caps` 5, `winansi` 7, `wfkeys` 84,
-    `mvbarcard` 7, `wfmenu` 39, `offweek` 42, `labelsetup` 41.
-  - `npm run check` 40/40.
-  - In the browser pane, real mouse and keyboard: double-click on the 12/21/26 band → Phases tab and that card, name
-    focused, no editor. Typing "Winter Break" → both weeks renamed. No console errors but the harness server's
-    `version.json` 404s.
-- ⏭ **Next:** no full gate was run: nothing frozen was touched and no output's bytes can move. The next full gate runs
-  the new leg. Owner's pickers, same turn: a phase's own hiatus gets the same rule PLUS a colour square on its sidebar
-  block (*"Same rule, add colour"*), and the month view's day-menu Colour… on a hiatus goes (*"remove month color, but
-  keep the style bar working for all"*). Both follow on this branch.
+**The asks** (owner, 4 Nov 2026):
+- *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only be
+  possible in the left side bar"*. Read as the ALL-PHASE hiatus: the owner's 28 Oct ask used the same words for that
+  card.
+- Then, by picker, three answers:
+  - *"Same rule, add colour"*: a phase's own hiatus too, with a colour square on its sidebar block.
+  - *"remove month color, but keep the style bar working for all"*: the month day menu's Colour… on a hiatus goes;
+    the text style bar keeps styling every band.
+  - (the third answer, *"Keep both"*, was ticked beside that note and is read through it).
 
+**Built** (`src/legacy/app.js`, `src/styles/legacy.css`, `src/index.html` help; no frozen edit, no save-format change):
+- **`bandCardOf(td)` / `showBandCard(card)`**, beside `openNoteCellEditor`.
+  - The D5 openers (the capture `dblclick`, the Enter/typing `keydown`) and `openNoteEditor` itself send a hiatus band
+    that HAS a card to that card instead of the editor:
+    - an all-phase band (no `data-pkey`) to its `#hiatus-list` row, the first covering the week;
+    - a phase's own band inside `phaseHiatusSpan(key)` to that phase card's hiatus block (`#phiatus-name-<key>`).
+  - Showing the card: the Phases tab (one undo step, as `showPhaseRow`), unfolded, scrolled to, name box focused.
+  - A typed key on a highlighted band does nothing.
+  - ⚠️ **A Production OFF WEEK keeps the band editor**: it draws the same per-phase band but has no card, so
+    `bandCardOf` returns null (offweek R7 renames one, and passes).
+  - The frozen cell's tooltip still reads "Double-click to rename or recolor this hiatus": changing it is a frozen
+    edit, and the double-click now goes where you rename and recolour.
+- **`claimBandNames(keys)`**: typing a card's name, or ticking its Number weeks, first drops a band label typed by hand
+  on that hiatus's weeks (a `hiatusTexts` key `hiatusNameSyncedKeys` doesn't hold), so the name sync takes them in
+  the same `update()`. Both kinds: all-phase rows (`hiatusRowWeeks`) and a phase's block (`phaseHiatusWeekKeys`).
+  - Without it, a week typed in the band before this change ignored every later name, and only "Reset hiatus bands"
+    could change it.
+  - Only on that edit: an older calendar opens and prints as saved. One undo brings the label back.
+- **"A PHASE'S OWN HIATUS: ITS COLOUR, FROM ITS CARD"** (after the all-phase carry):
+  - A `.phiatus-swatch` before the name in `phaseHiatusBlockHtml`. Both sit in `.phiatus-name-row`. It's a div with
+    NO id, so `fields.byId` and gate 5's set don't move, and no id's document order changes.
+  - A delegated click opens `openPhaseColorPop` with the band palette. A pick writes `hiatusColors` on every
+    `"<week>|<key>"` week of the hiatus (`setPhaseHiatusColour`); red deletes. Then `update()`, one undo step.
+  - Painted by `reflectPhaseHiatusSwatches()`, called from `reflectHiatusSwatches()` (`update()` + the `#table-wrap`
+    observer).
+  - The colour follows a retyped Starts/Weeks (`carryPhaseHiatusColour`, in the phase hiatus input handler before
+    `update()`).
+  - The Number weeks tooltip lost "A band you retyped keeps what you typed".
+- **Month day menu:** `band-colour-N` and `hiatusColourHere` removed from `bandSections`. `MONTH-CONTEXT-MENU-PLAN.md`
+  marks the cut.
 
+**Proof** (worktree `dist/`; ports 8781–8786):
+- `hiatussidebar` **16/16** (in `gate.sh`, own line after `hiatuscolour`):
+  - red on v1.10.0 in 8 of the first 11;
+  - on `e8e21fd`'s own build (`dist/part1.html`, scratch, ignored) red in exactly the six part-2 cases: W5, P1–P3,
+    M1, L6.
+- `T.reloadWith(mutate, stem, opts)` (lib.js) reaches a state only an older file holds: Save As, edit the JSON, Load.
+- Legs reworked:
+  - through `reloadWith`: `hiatuslabel` (blank weeks), `notewrap` (C and D labels), `mvmenu` N1 (blank band),
+    `phiatusnum` H11 (now: prints as saved, double-click shows the card, the Number weeks box takes it over);
+  - flipped to the new rule: `wfnotecolors` K2, `textstyle` D6, `hdrcontrols` N4 (the name takes CARRY-HIATUS over);
+  - for the cut item: `mvmenu` H4/K1/H5/V1/V9 + `band-colour` in its CUT list, `hiatusfold` H8's wait,
+    `hiatuscolour` C8 (the menu has none; the square used from the month view), `labelsetup` C2 (the card's square).
+- Part-2 build, all green: mvmenu 81, hiatusfold 11, hiatuscolour 14, phiatusnum 18, notewrap 16, labelsetup 41,
+  offweek 42 + 5 (R7: the off-week band still edits in place), wfnotecolors 14, textstyle 51, hdrcontrols 12,
+  hiatuslabel 7, phasefold 11, mvbarcard 7, wfmenu 39, caps 5, winansi 7, wfkeys 84, phasesui (hidewf) 8.
+  - phasesui first came in 7/8: P1's `builtindates` fixture timed out loading (10 s) inside the batch. 8/8 alone.
+- `npm run check` 40/40.
+- In the browser pane, real mouse and keyboard:
+  - part 1: double-click → the card, name focused; typed name → both weeks;
+  - part 2: the Pre-Prep band's double-click → its hiatus Name box, no editor; its new square → green on both
+    weeks.
+
+⏭ **Next:**
+- Get a deploy through (the owner's call, above), then verify the live sha.
+- Ask the owner to commit and push part 2.
+- No full gate was run for either part: nothing frozen was touched and no output's bytes can move. The next full gate
+  runs the new leg.
+- ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
+  pushed). Merge this branch into it when that checkout is free.
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — built in the main checkout's working tree, NOT committed, NOT pushed. Tracker card `recent-reveal-in-finder`
 

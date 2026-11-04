@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
+
+The owner's follow-up pickers to the change below: *"Same rule, add colour"* for a phase's own hiatus, and *"remove
+month color, but keep the style bar working for all"*.
+- A phase's own hiatus band in the waterfall no longer opens the label-and-colour editor either. A double-click or
+  Enter brings up that phase's card with its hiatus Name box ready to type in.
+- The hiatus block under each phase's Hiatus switch has a **colour square** before its name, like the all-phase card's.
+  It colours every week of the pause in both views and every export, and the colour follows the pause if its Starts or
+  Weeks change.
+- A Production week with every shoot day marked Off still opens the band editor: it has no card to go to.
+- The month view's right-click menu on a hiatus day no longer offers Colour…: the card's square is the one way.
+- The text style bar still styles every band's text.
+- No frozen code touched, and no saved-file change: the colours use the same `hiatusColors` store as before.
+
+Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red on the build pushed below. The month
+menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
+phase band; `notewrap` gets its Post label from a saved file.
+
 ### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
 
 The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only

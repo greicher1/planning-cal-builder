@@ -1255,6 +1255,15 @@
   .phiatus-pair label.phiatus-weeks-lbl{ flex:0 0 64px; }
   .phiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .phase-hiatus-fields > .sw-row:last-child{ border-bottom:none; }
+  /* A phase's own hiatus: the colour square before its name (owner, 4 Nov 2026, app.js "A PHASE'S OWN HIATUS: ITS COLOUR,
+     FROM ITS CARD"). The all-phase card's square: 16 px, the true colour with a faint inset edge, the same hover ring. */
+  .phiatus-name-row{ display:flex; align-items:center; gap:8px; }
+  .phiatus-name-row > .phiatus-name{ flex:1; min-width:0; }
+  .phiatus-name-row > .swatch{
+    flex:none; width:16px; height:16px; background:var(--c-hiatus);
+    border-radius:var(--mantine-radius-xs); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);
+  }
+  .phiatus-name-row > .swatch.clickable:hover{ box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 0 0 2px var(--mantine-color-white), 0 0 0 3px var(--mantine-color-gray-5); }
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
   /* ============================================================================================
