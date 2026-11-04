@@ -144,7 +144,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
   on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
-### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed; the merged build's full gate is QUEUED. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed. The merged build's full gate: 3,846 PASS / 6 FAIL, all load timeouts green alone, every baseline identical (below). Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
 
 - **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
   [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
@@ -220,7 +220,18 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     `T.openSettings`' alignment check never passed. The leg now scrolls only the window's `.sw-panel`: 6/6 runs 18/18,
     beside another session's full gate. Other legs still `scrollIntoView` card boxes; it bites only when the box is far
     enough down that centring it needs the sidebar to move. (A user's keyboard focus could do the same; not seen.)
-- **Next:** the merged build's full gate (queued), then the owner's call on pushing (mind `note-other-view`, above).
+- **The merged build's full gate** (`1944dd11…`, port 8615, 13:37-14:27; 50 min, not 35: no other gate overlapped it,
+  but about a dozen other sessions were busy): **3,846 PASS, 6 FAIL, 1 INFO**. Waterfall PDF identical, every Excel part
+  identical, grid signature identical, 0 clipped, the new `pdfseams` check PASS, gate 10's 11 printed month documents
+  identical, gate 13's 24 written month PDFs byte-identical. The six FAILs, every one a real-time wait, every leg green
+  alone on the same build:
+  - `pilllabel` (dayoverrides) K0, K1 and its console line: Save's 10 s write wait, after which the leg's stub threw
+    `sv.createWritable`. Alone: K0 `{has: true, value: 'week'}`, K1 `{has: false}`, only the expected warning.
+  - `hdrrow` EX (the leg did not finish): 37/37 alone.
+  - `pilldrag`: its 480 s deadline. 30/30 alone.
+  - `episodeprep` (episodeprep): a Load's 10 s wait. 25/25 alone.
+- **Next:** the owner's call on pushing. The push would carry this feature (`d76867c`, the two merges, `f5268e5`, this
+  note) and another session's HANDOFF-only `6e2e443`; everything else in local `main` is already on `origin/main`.
 
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
