@@ -253,8 +253,26 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   - `hdrrow` EX (the leg did not finish): 37/37 alone.
   - `pilldrag`: its 480 s deadline. 30/30 alone.
   - `episodeprep` (episodeprep): a Load's 10 s wait. 25/25 alone.
-- **Next:** the owner's call on pushing. The push would carry this feature (`d76867c`, the two merges, `f5268e5`, this
-  note) and another session's HANDOFF-only `6e2e443`; everything else in local `main` is already on `origin/main`.
+- ⭐ **Then `origin/main` moved again (13:00-13:45): the typed-note twin went LIVE** (`note-other-view`, `34ef08c`
+  "Show in month view" / "Show in waterfall", plus `75003f1` Compare's holiday chip). So this branch lands second, and was
+  merged again (`15fb624`). Four engine hunks, all both-sides-additive, resolved by hand:
+  - `wfClearNote(wk, moving)` now calls their `wfMonthLinesOff` and `wfClearOwnNote(wk, moving)`, which carries
+    `moving` to `wfSwitchOffLines` (the note editor's own call, `wfClearOwnNote(weekKey)`, is a delete: per view);
+  - `wfNoteStep`'s signature holds both `autoNotesView` (mine) and `dayNotes` (theirs);
+  - `writeActiveMvNote`: their "Show in waterfall" OFF path kept, after `sheetAuto`, with the week colour dropped only
+    when NEITHER view has text (my §4.4 rule);
+  - the editor's comments.
+  - How the two compose: their `mvWfLinesFor` (a week's typed lines hidden from the month view, `monthHidden`) keeps
+    every line `mvAutoLineInfo` recognises, and N1's month-only automatic lines are those, so they stay. Seen in the
+    browser pane: the wrap set to the month view only, "Wrap party" typed in its week with Show in month view off, and
+    the month view shows the wrap on 10/20 and no typed line. Their `wfLineToDayNote` filters with my widened
+    `monthOnly` set.
+  - On that build (`26a9509d…`): `npm run check` 40/40; `noteviews` 15/15, `scenarios` 23/23, and autonoteview,
+    autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin,
+    holidayrename, wfnotecolors all green. Its full gate: QUEUED (port 8615).
+- **Next:** that gate, then fast-forward local `main` to the branch, then the owner's call on pushing. The push would
+  carry this feature (its commits and merges) and another session's HANDOFF-only `6e2e443`; everything else is
+  already on `origin/main`.
 
 
 ### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED as `34ef08c` (owner's picker: "Commit on the branch", "Merge and push"), origin/main merged in as `775b8e5`; full gate on the branch GREEN but for the known `offweek` R14 flake, and the full gate on the merge green but for one test-only fix and three Load flakes. Tracker card `note-show-in-other-view`
