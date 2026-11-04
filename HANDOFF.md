@@ -46,7 +46,15 @@
     unmarked.
   - In the browser pane (pane hidden, viewport emulated, events dispatched as the legs do): amber knob, dashed box
     on the four shared weeks, tooltip as above.
-  - `npm run check` 40/40. Swap/reuse mini-gate: see below.
+  - `npm run check` 40/40.
+  - **Swap/reuse mini-gate, 300 PASS / 0 FAIL** (gate.sh's own sections, port 8798): colswap, colswapgate,
+    colswapmove, colswapmid, colswapstale, the ten stint legs, onecol, colreuse (live and fixture), notescols and
+    hdrfit on `colreuse`, then noswapbtns, colswappartial ×2, swapsplitreuse, colswapcache, simpostbeside,
+    monthmap (colreuse).
+- ⏭ **Not done: the full gate** (CLAUDE.md asks for it before a grid change is called done; another session's gate
+  was running, and two at once stall). Expect movement only where a reuse-ON calendar has a phase with no handoff
+  and a choice of free columns; legs that start from a blank calendar run with reuse on. Then the owner's picker
+  for merging and pushing.
 
 
 ### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`

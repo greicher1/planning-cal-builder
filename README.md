@@ -52,7 +52,8 @@ Ruled "Fix both".
   build before it in S1–S3: a 4th column, the part-column arrow, Writers left in slots 0 and 2. `colswappartial`
   8/8 on both fixtures, now also checking the amber arrow, the box and the tooltip (P1, P4), the unmarked swap back
   (P3) and an unmarked hand selection (P5). Seen in the browser pane: the amber arrow and the box on the four shared
-  weeks. `npm run check` 40/40.
+  weeks. `npm run check` 40/40. A swap/reuse mini-gate (every column-swap, block-swap and reuse section of
+  `gate.sh`): 300 PASS, 0 FAIL. The full gate has not run yet.
 
 ### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
 
