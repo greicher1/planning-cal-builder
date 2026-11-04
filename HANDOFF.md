@@ -28,7 +28,13 @@
   - ⛔ **It did NOT clear it.** The owner OK'd one more push (*"Push it now"*): `eacd41b..4befff7` (this note, docs
     only) at 11:27:03. Run 41897046513 was refused at 11:27:37 with the same message. So `origin/main` is at
     `4befff7` and NOTHING since `0499373` is live, the other session's `9c3286a` included. Every push to `main` will
-    fail to deploy until GitHub drops the lock. Stopped there: no further pushes. ⏭ When it clears (a later push's
+    fail to deploy until GitHub drops the lock. Stopped there: no further pushes.
+  - Owner's *"Retry now"*: `4befff7..8a0abea` (the note above, docs only) at 11:35:51. Run 41898476928 was refused at
+    11:36:29, same message, 27 min after the original timeout. `origin/main` is at `8a0abea`.
+  - ⛔ **Don't toggle Settings ▸ Pages ▸ Source to clear it.** "Deploy from a branch" would serve the repo root's
+    `index.html`, the frozen v1.2.0 legacy app, to every user.
+  - What's left: wait for GitHub's lock to expire, then any push deploys everything. If it persists, the owner
+    contacts GitHub Support, quoting run 41894092156 (the original timeout). ⏭ When it clears (a later push's
     deploy succeeds), check the live `index.html` is `caf3eeb8…` (`eacd41b` = `4befff7`'s build).
   - ⛔ A re-run of the failed deploy job can't work: the job uploads its own `github-pages` artifact, and a second one
     on the run makes `deploy-pages` refuse. So the next deploy needs a fresh push. It waits on the owner's OK, e.g.
