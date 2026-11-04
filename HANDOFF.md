@@ -5,7 +5,7 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
-### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Status: GATE PENDING
+### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). GATED, PUSHED on the owner's *"Push when green"*
 
 - **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of
   them to be pushed live before tommorow. Come up with a plan to make that happen, in the most time efficient way
@@ -33,7 +33,30 @@
 - **The stuck gate:** `simpost-beside-prod`'s own full gate (started ~13:25) had hung for 3 h 20 min in
   `printpaper.mjs --state monthscale` (headless Chrome never returned; `printpaper.mjs` has no deadline of its own).
   Killed at 17:30 with the owner's go-ahead. ⚠️ A hang there stalls the whole gate silently: watch for it.
-- **Proof:** PENDING.
+- **Pre-gate read** (port 8771, ~10 min): every feature's own legs on the combined build — simpostdays 14/14,
+  simpostbeside 19/19, simpostname 14/14, colswapcache 9/9, colswappartial 8/8 on both fixtures, mvnotesize 12/12 on
+  both — and gate 13's 22 written month PDFs, ALL byte-identical. So SD1 moved no baseline (the Sim Post session had
+  expected `colswap-simpost-refuse`, maybe `mvheaderlegacy` / `mvnotes`, to move); no re-cut, no sign-off needed.
+- **Full gate** on the cut build `494793a8…` (port 8772, 17:37–18:13, ~36 min, nothing else running):
+  **3,794 PASS, 4 FAIL, 1 INFO** (monthwriter's usual "reported, not judged"). Waterfall PDF identical, grid signature
+  identical, 0 clipped, gate 10's print documents identical, all 25 gate-13 lines byte-identical. The four FAILs:
+  1. **Gate 3, `sheet1.xml`: a DATE COINCIDENCE, not a change.** The reference calendar's header reads "Wrap: 11.3.26"
+     and today is 3 Nov 2026, so `sed "s/$TODAY/DATESTAMP/g"` replaced the wrap date as well as the stamp. With the
+     wrap date put back, `sheet1.xml` is byte-identical to the baseline; every other Excel part was identical. ⚠️ It
+     will recur on any gate run on 3 Nov 2026 and on no other day; the normaliser could be narrowed to the `&L`
+     token if it matters.
+  2. **`phasesui (hidewf)` P1:** `show-a` and `sideboxes` hold Version "7" with no `versionAsTyped`, so since the
+     Version-as-typed change they open as "v7" (owner's "Keep v3") and save that. `before.json` predates it, and that
+     session ran targeted legs only. `t/phasesui.js` now maps show-version through the old rule (`versionEra`) and
+     nothing else; 8/8 alone, which also proves the Version box was the ONLY fields.byId difference on all 46.
+  3. **`sideboxes` produced no result** under gate load: 78/78 alone, judged by gate.sh's own block. Its page warning
+     "9 value(s) … ignored" is old: `/releases/v1.9.0.html` prints the same on that fixture.
+  4. **`scenariocompat` on `/releases/v1.2.0.html`:** "timed out waiting for: Open... menu item" (6 s real) under
+     load; green twice alone, and its v1.8.0 half passed. That page is not built from this repo's source.
+- `npm run check` 40/40. `check-refs.py`: 4 prose line numbers, all already on `origin/main` (one new one, from the
+  pdf-mark entry, removed); CI runs it with `continue-on-error`.
+- **v1.10.0 fixture:** `tests/fixtures/v1.10.0-saved.sptcal`, a real Save (`t/mintfixture.js`): 44 keys (v1.9.0's 43 +
+  `colReuse`), 77 ids, version 1. `releases/v1.10.0.html` = the gated build, `cmp`-identical (`494793a8…`).
 ### ✅ 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — ✅ **LIVE at `08bd218`** (owner's picker: "Commit", "Push once committed"; pushed from branch `span-counts` `ab566e0..08bd218` at 14:23:10, a fast-forward with nothing new on `origin/main`; the live `index.html` matched the tested build `fca63761…` byte for byte at 14:24:08; ⚠️ local `main` is still at `4c11cdb`, NOT moved, because the main checkout still holds another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh: fast-forward it to the branch once that session commits). Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
 
 - **The asks, in order** (owner, 3 Nov 2026, after the shoot-days-lost sum went live at `ab566e0`):
@@ -145,7 +168,7 @@
 
 - ⛔ **LOCAL `main` IS BEHIND THE LIVE SITE.** The owner picked *"Commit and merge to main"* and *"Push after main
   moves"* (3 Nov). But the fast-forward was REFUSED: another session had an uncommitted 17-line edit to
-  `src/legacy/app.js` in the main checkout (near its line 5100, last saved 2 Nov 18:29, plus an untracked
+  `src/legacy/app.js` in the main checkout (last saved 2 Nov 18:29, plus an untracked
   `tests/harness/t/simpostdays.js`). It was not touched. The owner then picked *"Push the branch to live"*:
   - `git push origin pdf-mark:main`, `e1ed962..b225ecf` at 13:54:15, carrying `4c11cdb` (another session's
     HANDOFF-only note).

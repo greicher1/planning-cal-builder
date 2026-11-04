@@ -93,6 +93,17 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded file\'s name in the file menu', 100, 100);
     await settle();
   }
+  // ⭐ 3 Nov 2026 (the Version prints exactly as typed; owner's picker "Keep v3"): a calendar saved before then
+  // has its Version box rewritten on Load to what the old rule printed ("7" opens as "v7"; app.js's
+  // legacyVersionLabel), so its saved show-version is that, not the value before.json recorded. Every other
+  // id and value must still match, so this maps that one value and nothing else.
+  function versionEra(byId) {
+    return (byId || []).map(function (kv) {
+      if (kv[0] !== 'show-version' || !kv[1] || typeof kv[1].value !== 'string') return kv;
+      var num = kv[1].value.trim().replace(/^[vV]/, '').trim();
+      return [kv[0], Object.assign({}, kv[1], { value: num ? 'v' + num : '' })];
+    });
+  }
   async function record(name) {
     var text = await (await fetch('/tests/fixtures/' + name + '.sptcal')).text();
     await load(text);
@@ -127,7 +138,7 @@ window.addEventListener('load', function () { (async function () {
         var a = rec[n], b = base[n];
         if (!a || a.error || !b) { bad.push(n + ': ' + (a && a.error || 'no record')); return; }
         if (!same(a.controls, b.controls)) bad.push(n + ': controls');
-        if (!same(a.byId, b.byId)) bad.push(n + ': fields.byId');
+        if (!same(a.byId, versionEra(b.byId))) bad.push(n + ': fields.byId');
         if (!same(a.hiatuses, b.hiatuses)) bad.push(n + ': hiatuses');
       });
       kase('P1', 'all ' + FIXTURES.length + ' fixtures: the Phases card\'s id\'d controls (same ids, tags and types, in the same order), the saved fields.byId (keys in order, and values) and the all-phase hiatus rows are those of the build before the redesign',

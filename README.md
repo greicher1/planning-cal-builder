@@ -45,7 +45,14 @@ pushed live before tommorow"*; plan by picker: one release branch, one gate, cut
 
 The rest were already live; this version is how installed copies hear about them, since `version.json` moves with
 `APP_VERSION`.
-**Release gate:** PENDING.
+**Release gate** on the cut build `494793a8…` (17:37–18:13, no other gate running): **3,794 PASS, 4 FAIL, every
+failure explained and green alone.** The waterfall PDF, the grid signature, gate 10's print documents and all 25 of
+gate 13's written month PDFs byte-identical; 0 clipped cells. The four:
+- gate 3's `sheet1.xml`: the reference calendar wraps on 11.3.26, today's date, and the gate's stamp normaliser
+  replaced it too. Byte-identical with the wrap date left alone; it can only trip on 3 Nov 2026.
+- `phasesui (hidewf)` P1: two fixtures saved Version "7" before 3 Nov, which now opens as "v7" (owner's picker,
+  "Keep v3"). The leg now expects exactly that and nothing else: 8/8.
+- `sideboxes` (no result under load) 78/78 alone; `scenariocompat` on v1.2.0 (a timeout under load) green twice alone.
 
 ### Production's span opens its Total Shooting Days box; "Start after" sits under the date (3 Nov 2026)
 
