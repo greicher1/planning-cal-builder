@@ -29,6 +29,14 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
+
+Harness only; the app is unchanged. A full gate sat for 3 h 20 min in `tests/harness/printpaper.mjs` because its
+DevTools calls wait for Chrome's reply with no timeout. `printpaper.mjs` (240 s) and `rtleg.mjs` (`--secs` + 60) now
+have a hard deadline, as `pilldrag.mjs` and five other drivers already did: a stuck run reports a FAIL and exits.
+Verified: both pass on the live build, in 5 s and 21 s, and with `--deadline 3` each stops at 3 s and gate.sh's own
+judge marks the FAIL.
+
 ## v1.10.0 — note and bar sizes in px, Sim Post on Production's exact weeks and beside it, swapping part of a column (3 Nov 2026)
 
 40 changes since v1.9.0, from 28 Oct–3 Nov 2026. New with this push, five features merged onto one release branch

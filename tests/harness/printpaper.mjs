@@ -1,6 +1,6 @@
 // printpaper.mjs -- audit L-3 (FIX-PLAN 3.5): the month PDF's PAPER is pinned to Letter.
 //
-//   node printpaper.mjs [--page /dist/index.html] [--port 8241] [--state monthscale]
+//   node printpaper.mjs [--page /dist/index.html] [--port 8241] [--state monthscale] [--deadline 240]
 //
 // Writes printpaper.json as {test, cases:[{id,title,pass,...}]}, judged by gate.sh the same way as
 // the audit-fix legs. The port defaults to HARNESS_PORT, then 8231, exactly like run.sh, and a
@@ -46,6 +46,22 @@ const OUT = path.join(HERE, 'printpaper.json');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const result = { test: 'printpaper', page: PAGE, state: STATE, cases: [] };
 const kase = (id, title, pass, extra) => result.cases.push(Object.assign({ id, title, pass: pass === true }, extra || {}));
+// A hang must REPORT, not block a gate run (pilldrag's pattern). Every CDP call below awaits Chrome's reply with
+// no timeout of its own, so a Chrome that stops answering used to leave this script waiting for ever: on 3 Nov 2026
+// it held a full gate for 3 h 20 min in --state monthscale. After DEADLINE_S it writes what it has and exits, and
+// gate.sh's judge reads the EX case as a FAIL. --deadline is there so the cut-off itself can be tested.
+const DEADLINE_S = Number(arg('deadline', 240));
+setTimeout(() => {
+  result.EX = `printpaper: hit its ${DEADLINE_S} s deadline`;
+  kase('EX', 'printpaper threw: ' + result.EX, false);
+  try { if (chrome) chrome.kill('SIGKILL'); } catch (e) { /* gone */ }
+  try { execFileSync('pkill', ['-9', '-f', `user-data-dir=${PROFILE}`]); } catch (e) { /* gone */ }
+  try { if (srv) srv.kill('SIGKILL'); } catch (e) { /* gone */ }
+  result.pass = false;
+  fs.writeFileSync(OUT, JSON.stringify(result, null, 1));
+  console.log('  FAIL  printpaper EX: ' + result.EX);
+  process.exit(0);
+}, DEADLINE_S * 1000).unref();
 
 // Sheets and page boxes, counted the way monthcmp.py counts them: page OBJECTS, never /Count
 // (Chrome writes intermediate /Pages nodes).

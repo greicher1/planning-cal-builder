@@ -5,6 +5,30 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+
+### 🔧 3 Nov 2026 (22:10): A STUCK CHROME CAN NO LONGER HANG A WHOLE GATE — `printpaper.mjs` and `rtleg.mjs` get hard deadlines. COMMITTED on local `main`, NOT pushed (harness only; the deployed build is unchanged)
+
+- **Why:** the v1.10.0 release found `simpost-beside-prod`'s full gate stuck for 3 h 20 min in
+  `printpaper.mjs --state monthscale`. Every CDP call there (`Runtime.evaluate`, `Page.printToPDF`) awaits Chrome's
+  reply with no timeout, so a Chrome that stops answering left it waiting for ever. `rtleg.mjs` uses the same
+  plumbing. Its `--secs` budget is checked only BETWEEN calls, so it could hang the same way.
+- **Fix** (pilldrag's pattern, an unref'd wall-clock timer that writes the result, kills Chrome and the server, and exits):
+  - `printpaper.mjs`: `--deadline`, default 240 s (a normal run takes ~5 s). The EX case it writes is a FAIL in
+    gate.sh's judge.
+  - `rtleg.mjs`: `--deadline`, default `--secs` + 60 (gate.sh passes `--secs 120` and `$RTSECS`). The `{test, EX}`
+    result it writes is a FAIL in every rtleg judge.
+  - The other `.mjs` drivers that start Chrome (`cspproof`, `mvorder`, `hiatusdrag`, `phaseedge`, `pilldrag`,
+    `wfkeysreal`) already had one. The provers start no Chrome.
+- **Proof** (port 8773, on `main`'s build `494793a8…`, the live build):
+  - `printpaper` normal: P0–P3 PASS in 5 s.
+  - `printpaper --deadline 3`: exits at 3 s with `printpaper: hit its 3 s deadline`, and gate.sh's own judge block
+    reports `FAIL printpaper (monthscale) EX` (exit 1).
+  - `rtleg --leg monthexport --secs 120 --query realtime=1`: 10/10 in 21 s.
+  - The same run with `--deadline 3` exits at 3 s with its EX.
+  - No Chrome is left behind by either. `node --check` clean.
+- ⚠️ **Still open:** `swap-partial`'s queued full gate (port 8523, started 18:24 by another session's
+  `queue-full-run2.sh`) was still running at 22:03. Its branch is live, so its result changes nothing. Stopping it
+  from the release session was refused by the permission check, so it was left for the owner.
 ### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd`** (owner's picker *"Push when green"*; `08bd218..0e2a4fd` plus tag `v1.10.0` at 18:17:11; the live `index.html` matched the gated build `494793a8…` byte for byte at 18:18:24, `version.json` 1.10.0). Tracker cards moved to live
 
 - **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of

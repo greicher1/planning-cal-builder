@@ -1,6 +1,7 @@
 // rtleg.mjs -- run one t/<leg>.js in REAL time, over CDP, where run.sh cannot.
 //
 //   node rtleg.mjs --leg swscope [--state <fixture>] [--page /dist/index.html] [--secs 90] [--query k=v&...]
+//                  [--deadline <s>]   (default --secs + 60: the hard cut-off, see below)
 //
 // Writes <leg>.json beside this script, in exactly the shape run.sh + parse.js produce (the leg's
 // own T.done() object), so gate.sh judges it with the same block as every other leg.
@@ -40,6 +41,20 @@ const OUT = path.join(HERE, LEG + '.json');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 if (!LEG || !fs.existsSync(path.join(HERE, 't', LEG + '.js'))) { console.error('usage: rtleg.mjs --leg <name>  (no such t/<name>.js)'); process.exit(2); }
+// A hang must REPORT, not block a gate run (pilldrag's pattern). The --secs budget is checked only BETWEEN CDP
+// calls, and each call awaits Chrome's reply with no timeout of its own, so a Chrome that stops answering used to
+// leave this script waiting for ever (printpaper.mjs, the same plumbing, held a full gate for 3 h 20 min on 3 Nov
+// 2026). After --deadline seconds (default the budget + 60) it writes the EX result and exits.
+const DEADLINE_S = Number(arg('deadline', SECS + 60));
+setTimeout(() => {
+  const ex = `rtleg: ${LEG}: hit its ${DEADLINE_S} s deadline`;
+  try { if (chrome) chrome.kill('SIGKILL'); } catch (e) { /* gone */ }
+  try { execFileSync('pkill', ['-9', '-f', `user-data-dir=${PROFILE}`]); } catch (e) { /* gone */ }
+  try { if (srv) srv.kill('SIGKILL'); } catch (e) { /* gone */ }
+  fs.writeFileSync(OUT, JSON.stringify({ test: LEG, EX: ex }, null, 1));
+  console.error(`rtleg: ${LEG}: FAILED: ${ex}`);
+  process.exit(0);
+}, DEADLINE_S * 1000).unref();
 
 let srv = null, chrome = null, out = null;
 try {
