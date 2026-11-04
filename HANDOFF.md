@@ -18,7 +18,18 @@
       artifact, so a re-run leaves two on the run, and `deploy-pages` refuses.
   - The workflow has only a `push` trigger, so a fresh run needs a push (or deleting the run's two `github-pages`
     artifacts, then re-running the job). Put to the owner.
-- **Part 2: COMMITTED** (owner's picker, *"Commit"*), push approved as *"try pushing both together"*. A phase's own
+- **Part 2: PUSHED with part 1 at `eacd41b`, NOT LIVE** (owner's pickers *"Commit"* and *"try pushing both together"*;
+  `0d23980..eacd41b` at 11:24:28 PST, a fast-forward after merging `0d23980`; the build is `caf3eeb8…`, and
+  `hiatussidebar` 16/16, `hiatuscolour` 14/14, `hdrversion` PASS, check 40/40 on it). The live site still serves
+  `0499373`'s `3cb08fce…`.
+  - Its deploy was refused in 3 s with the same *"in progress deployment. Please cancel e8e21fd… first"*, although
+    every environment deployment record reads `failure` and the Pages endpoint reads `deployment_cancelled`. An
+    explicit `POST /repos/…/pages/deployments/e8e21fd…/cancel` returned 204 at 11:26:04. Whether that cleared GitHub's
+    lock is known only from the next deploy.
+  - ⛔ A re-run of the failed deploy job can't work: the job uploads its own `github-pages` artifact, and a second one
+    on the run makes `deploy-pages` refuse. So the next deploy needs a fresh push. It waits on the owner's OK, e.g.
+    for this note's own commit.
+- (Part 2 as first committed:) A phase's own
   hiatus loses its band editor too and gets a colour square on its card, and the month menu's Colour… is cut.
   - ⚠️ The other session's push of `0d23980` (its "Show info: remove the Total Shooting Days note", with `e8e21fd`
     merged in) ALSO failed to deploy, with "in progress deployment. Please cancel e8e21fd… first". GitHub had not
