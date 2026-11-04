@@ -5,7 +5,7 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
-### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). GATED, PUSHED on the owner's *"Push when green"*
+### 🚀 3 Nov 2026: v1.10.0 — FIVE FEATURES ON ONE RELEASE BRANCH, ONE GATE — branch `release-1103` (worktree `.claude/worktrees/release-1103`, from `origin/main` at `08bd218`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). ✅ **LIVE at `0e2a4fd`** (owner's picker *"Push when green"*; `08bd218..0e2a4fd` plus tag `v1.10.0` at 18:17:11; the live `index.html` matched the gated build `494793a8…` byte for byte at 18:18:24, `version.json` 1.10.0). Tracker cards moved to live
 
 - **The ask** (owner, 3 Nov 2026, 17:00): *"we have a lot of features being built and waiting on gates. We need all of
   them to be pushed live before tommorow. Come up with a plan to make that happen, in the most time efficient way
@@ -55,6 +55,13 @@
      load; green twice alone, and its v1.8.0 half passed. That page is not built from this repo's source.
 - `npm run check` 40/40. `check-refs.py`: 4 prose line numbers, all already on `origin/main` (one new one, from the
   pdf-mark entry, removed); CI runs it with `continue-on-error`.
+- **After the push:** local `main` fast-forwarded to `0e2a4fd` (the main checkout's two untracked files,
+  `WATERFALL-PDF-LOOK-PLAN.md` and `tests/fixtures/Reshape Fixture 2026-09-29.sptcal`, left alone: neither is this
+  release's, and the fixture's origin is unknown, so it stays out of the public repo until someone checks it). This
+  LIVE note is a local commit on `main`, NOT pushed (the approval covered one push).
+- **Follow-ups, none blocking:** remove the merged worktrees (`month-note-size`, `swap-partial`,
+  `simpost-beside-prod`, `release-1103`; unlink each `node_modules` symlink first); give `printpaper.mjs` a deadline
+  so one stuck Chrome cannot hang a whole gate for hours again; optionally narrow gate 3's date normaliser.
 - **v1.10.0 fixture:** `tests/fixtures/v1.10.0-saved.sptcal`, a real Save (`t/mintfixture.js`): 44 keys (v1.9.0's 43 +
   `colReuse`), 77 ids, version 1. `releases/v1.10.0.html` = the gated build, `cmp`-identical (`494793a8…`).
 ### ✅ 3 Nov 2026: PRODUCTION'S SPAN OPENS ITS TOTAL SHOOTING DAYS BOX (VERSION F); "START AFTER" SITS UNDER THE DATE — ✅ **LIVE at `08bd218`** (owner's picker: "Commit", "Push once committed"; pushed from branch `span-counts` `ab566e0..08bd218` at 14:23:10, a fast-forward with nothing new on `origin/main`; the live `index.html` matched the tested build `fca63761…` byte for byte at 14:24:08; ⚠️ local `main` is still at `4c11cdb`, NOT moved, because the main checkout still holds another session's uncommitted edits to HANDOFF, README, PROJECT-CONTEXT, app.js and gate.sh: fast-forward it to the branch once that session commits). Mockup [`mockups/production-span-placement.html`](mockups/production-span-placement.html). Tracker cards `production-span-placement`, `prod-start-after-under-date`
