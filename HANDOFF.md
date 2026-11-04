@@ -111,7 +111,19 @@
   This note rides the next push. Whether the
   meta line should drop its "→ N wk" now that the weeks sit on the span is unasked.
 
-### ✅ 2 Nov 2026: THE SPTCal PDF MARK — EVERY SAVED PDF SAYS, INVISIBLY, THAT SPTCal MADE IT — BUILT on branch `pdf-mark` (worktree `.claude/worktrees/pdf-mark`, from `main` at `4c11cdb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`), COMMITTED and fast-forwarded into `main`, then PUSHED (owner's pickers, 3 Nov: *"Commit and merge to main"*, *"Push after main moves"*; the Copilot kit *"Leave it for now"*) (tracker card `pdf-watermark`)
+### ✅ 2 Nov 2026: THE SPTCal PDF MARK — EVERY SAVED PDF SAYS, INVISIBLY, THAT SPTCal MADE IT — ✅ **LIVE at `b225ecf`**, built on branch `pdf-mark` (worktree `.claude/worktrees/pdf-mark`, from `main` at `4c11cdb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`) (tracker card `pdf-watermark`)
+
+- ⛔ **LOCAL `main` IS BEHIND THE LIVE SITE.** The owner picked *"Commit and merge to main"* and *"Push after main
+  moves"* (3 Nov). But the fast-forward was REFUSED: another session had an uncommitted 17-line edit to
+  `src/legacy/app.js` in the main checkout (near its line 5100, last saved 2 Nov 18:29, plus an untracked
+  `tests/harness/t/simpostdays.js`). It was not touched. The owner then picked *"Push the branch to live"*:
+  - `git push origin pdf-mark:main`, `e1ed962..b225ecf` at 13:54:15, carrying `4c11cdb` (another session's
+    HANDOFF-only note).
+  - The live `index.html` served the mark at 13:55:15 and is byte-identical to the local build (`feb31819…`).
+  - **So local `main` is still at `4c11cdb`, one commit behind `origin/main`, and this entry is only on `pdf-mark`.**
+    Whoever next works in the main checkout: commit (or drop) that edit, then `git merge --ff-only pdf-mark`, or
+    merge `origin/main`.
+- The Copilot kit: *"Leave it for now"* (see below).
 
 - **The ask** (owner): *"how could we add a virtually invisible watermark to the pdf writer so i know which calendars
   were made from sptcal"*. Offered two versions, properties only or properties plus hidden text, with the frozen edit
