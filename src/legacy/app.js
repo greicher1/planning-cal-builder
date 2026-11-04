@@ -27535,7 +27535,9 @@ export function initLegacyApp() {
   // phase order with Production as its first shoot day, wrap and span, then the whole calendar's length and Version.
   // A phase only some scenarios have gets its row; the others show a dash. `phase` marks a phase's rows: the window
   // hides them when no column it shows has that phase (owner, 23 Oct 2026: "hide phases that aren't used/empty").
-  // `hols` marks the two shoot dates a holiday can move: their "± days" names the holidays behind it.
+  // `hols` marks Wrap, the one row that counts holidays: its second chip says how many more or fewer the shoot, first
+  // shoot day to wrap, lost to a holiday (owner, 4 Nov 2026: First shoot day's own count, of only the holidays before
+  // it, read as a different number for the same two shoots, so it went).
   function compareRows(all){
     const rows = [{ key: 'eps', label: 'Episodes', type: 'number' }];
     if(all.some(s => s.facts && s.facts.blocks)) rows.push({ key: 'blocks', label: 'Blocks', type: 'number' });
@@ -27545,8 +27547,8 @@ export function initLegacyApp() {
       if(seen.has(p.key)) return;
       seen.add(p.key);
       if(p.key === 'production'){
-        rows.push({ key: 'first', label: 'First shoot day', type: 'date', phase: true, hols: 'first' },
-                  { key: 'wrap', label: 'Wrap', type: 'date', phase: true, hols: 'wrap' },
+        rows.push({ key: 'first', label: 'First shoot day', type: 'date', phase: true },
+                  { key: 'wrap', label: 'Wrap', type: 'date', phase: true, hols: true },
                   { key: 'span', label: 'Production span', type: 'number', unit: ' wks', phase: true });
       } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range', phase: true });
     }));
@@ -27575,7 +27577,7 @@ export function initLegacyApp() {
   }
   // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
   // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
-  // is a moved shoot date's second chip ("+1 holiday", or ''), written beside its delta in both files.
+  // is a moved wrap's second chip ("1 more holiday", or ''), written beside its delta in both files.
   async function exportCompareExcel(model){
     if(typeof ExcelJS === 'undefined'){ uiAlert('Excel export needs the ExcelJS library, which hasn’t loaded. Check the internet connection and try again.'); return; }
     const wb = new ExcelJS.Workbook();

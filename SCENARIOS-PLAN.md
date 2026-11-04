@@ -232,6 +232,10 @@ Each decision has a recommendation, listed first.
       So First shoot day and Wrap carry a second chip beside their Pushed/Pulled, "+1 holiday". It is how many more
       days that scenario's shoot lost to a holiday than the one on screen's, each from its own production walk
       (`holidaysHit`). First shoot day counts only the holidays before it. Equal counts make no chip.
+      - ⚠️ **Superseded 4 Nov 2026** (owner: *"what does -1 holidays … even mean??"*, *"why would wrap and first shoot
+        have different number of holidays??"*): the chip is on **Wrap only**, in words ("1 more holiday", "2 fewer
+        holidays"), and counts only the holidays AFTER the first shoot day, so a holiday on Production's start date
+        counts nowhere.
     - The exports and Copy table follow the table as shown, so all four reach them.
     - *"the window needs to scale larger so we dont have elipses/things cut off"*:
       - every column is as wide as its widest content, and nothing wraps or truncates;
@@ -247,7 +251,7 @@ Each decision has a recommendation, listed first.
     - **Excel:** ExcelJS, which the app already loads (no new resource for the CSP). One sheet, "Compare", with:
       - the title and the file's name;
       - the label column and the header row frozen;
-      - each difference bold, with its "Pushed 2 wks" (and any "+1 holiday") on a second line on the `warn` tint;
+      - each difference bold, with its "Pushed 2 wks" (and, on Wrap, any "1 more holiday") on a second line on the `warn` tint;
       - same rows grey;
       - landscape, one page wide.
     - **PDF:** written directly, as the month PDF is, from that writer's machinery (the embedded Inter, the shared

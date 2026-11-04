@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
+
+Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:
+*"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first shoot have
+different number of holidays??"*.
+
+- **The chip reads in words:** "1 more holiday", "2 fewer holidays", never "+1" / "−1".
+- **Only Wrap carries it.** First shoot day counted only the holidays before it, so the same two shoots showed two
+  different numbers.
+- **It counts the holidays from the first shoot day to wrap.** It used to count from Production's start date, so a
+  start date on a holiday (Victoria Day, say) showed "1 fewer holiday" beside a wrap that moved exactly as far as the
+  first shoot day. Now a wrap that moved one working day further than First shoot day reads "1 fewer/more holiday".
+- The exports and Copy table take the chip as shown, so they follow.
+
+No frozen code, no save-format change (`CompareDialog.jsx`'s `holidayDelta`, and `compareRows` in `app.js` marks Wrap
+alone). Leg `scenarios` 23/23: S19 and S20 reworded, and new S22 (a holiday on the on-screen start date counts
+nowhere), red on the old build with exactly the owner's "−1 holiday" under First shoot day. `scenariofacts` 12/12,
+`npm run check` 40/40, and the browser pane on `scenarios-3`.
+
 ### Unreleased — a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
 
 Both note editors now have a switch right below the colours (owner, 4 Nov 2026: *"a toggle in the popup when you edit

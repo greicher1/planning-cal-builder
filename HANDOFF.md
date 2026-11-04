@@ -5,6 +5,29 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 🔨 4 Nov 2026: COMPARE'S HOLIDAY CHIP ON WRAP ONLY, IN WORDS — branch `compare-holiday-wrap` (worktree `.claude/worktrees/compare-holiday-wrap`, from `origin/main` at `9687ab5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `compare-holiday-chip-wrap`
+- **Asked** (owner, 4 Nov 2026, on a Compare window with "−1 holiday" under First shoot day and "−2 holidays" under
+  Wrap): *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first
+  shoot have different number of holidays??"*. Offered: chip on Wrap only, "1 fewer holiday" wording. Owner: *"yes"*.
+- **Built** (`src/chrome/CompareDialog.jsx` `holidayDelta`; `app.js` `compareRows` marks Wrap alone with `hols: true`):
+  - words, "1 more holiday" / "2 fewer holidays";
+  - Wrap only;
+  - ⚠️ **counts only holidays AFTER the first shoot day** (my call while checking it, not asked for in words). A
+    holiday on Production's START DATE is in `holidaysHit` (the walk starts there and skips it), so counting the
+    whole walk showed "1 fewer holiday" beside a wrap that moved exactly as far as the first shoot day (seen in the
+    pane: Toronto starting on Victoria Day). Counted from the first shoot day, the chip explains the gap between
+    First's move and Wrap's. In the owner's own example it reads "Pulled 44 days · 1 fewer holiday" (was −2).
+  - No frozen code, no save-format change; the exports and Copy table take the chip text as shown.
+- **Verified:** `scenarios` 23/23 (S19, S20 reworded; new S22, a holiday on the on-screen start date counts nowhere,
+  RED on the old build with exactly the owner's "−1 holiday" under First shoot day); `scenariofacts` 12/12;
+  `npm run check` 40/40; the browser pane on `scenarios-3` (as saved: "8/19/26 Pulled 1 day · 1 fewer holiday";
+  Toronto started on Victoria Day: no holiday chip anywhere). No full gate: Compare's writers have no baseline and
+  nothing the calendar saves or prints changed (memory: chrome-only changes take targeted legs).
+- ⏭ **Next:** commit and push only on the owner's per-action OK. Pages' deploy lock (the 4 Nov hiatus entry below)
+  has cleared: the deploys of `8ed92ca`, `9a18b7c`, `8a05e0e` and `9687ab5` all succeeded. Still run
+  `git log origin/main..HEAD` right before a push.
+
+
 ### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
 - **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,
   *"Push now"*; `0499373..e8e21fd` at 11:08:47 PST, a fast-forward carrying `origin/main`'s "Show in folder…", merged in
