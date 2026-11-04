@@ -8825,6 +8825,20 @@ export function initLegacyApp() {
   // A band editor or day menu pick redraws without update(); every redraw replaces #table-wrap's children.
   new MutationObserver(reflectHiatusSwatches).observe(document.getElementById('table-wrap'), { childList: true });
 
+  // ⭐ THE CARD'S NAME REACHES EVERY WEEK OF ITS HIATUS (owner, 4 Nov 2026: an all-phase hiatus's name and colour are
+  // set on its card only; the waterfall's band editor no longer opens on it, see isAllPhaseBand). The name sync
+  // (syncHiatusNamesFromSidebar) never touches a week whose label was typed in the band itself, because
+  // hiatusNameSyncedKeys does not hold it, so such a label used to beat every name typed on the card afterwards. Now
+  // typing the name, or ticking Number weeks, first drops that label on THIS hiatus's weeks, and the sync takes them
+  // in the same update(). Only on that edit: opening an older calendar changes nothing, so it prints as saved until
+  // its name is next typed. hiatusNameSyncedKeys and hiatusTexts are both in the snapshot, so one undo brings the
+  // typed label back. A phase's own hiatus is not a row here and keeps its band editor, so its weeks are untouched.
+  function claimHiatusRowNames(row){
+    hiatusRowWeeks(row).forEach(wk=>{
+      if((wk in hiatusTexts) && hiatusNameSyncedKeys[wk] !== hiatusTexts[wk]) delete hiatusTexts[wk];
+    });
+  }
+
   // ⭐ THE CARET ON EVERY ALL-PHASE HIATUS CARD (owner, 28 Oct 2026: "give collapsing arrows to the all phase
   // hiatuses just like phases"). The phase card's caret ("THE CARET ON EVERY PHASE CARD", above buildPhaseRows) on
   // the hiatus card: folded, only the red head shows, the name still editable, its dates and ×. The same rules:
@@ -8934,7 +8948,11 @@ export function initLegacyApp() {
     // step, as a phase swatch's pick does (setPhaseColor).
     const sw = row.querySelector('.hiatus-swatch');
     sw.addEventListener('click', ()=> openHiatusColourPop(sw, row, c=>{ setHiatusRowColour(row, c); update(); }));
-    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{ carryHiatusRowColour(row); update(); }));
+    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{
+      carryHiatusRowColour(row);
+      if(inp.classList.contains('hiatus-name') || inp.classList.contains('hiatus-num')) claimHiatusRowNames(row);
+      update();
+    }));
     list.appendChild(row);
   }
 
@@ -15990,6 +16008,9 @@ export function initLegacyApp() {
     // that cell is the plain date, not the combined "week|phase" key hiatusTexts/hiatusColors/
     // cellSpans all use. Rebuild the combined key here, the one place weekKey is derived for
     // every note/hiatus editor interaction (owner, 1 Sep 2026).
+    // ⛔ Never on an all-phase hiatus band since 4 Nov 2026: its name and colour are its sidebar card's (isAllPhaseBand,
+    // beside openNoteCellEditor). Both openers already send it there; this keeps any future caller from reopening it.
+    if(isAllPhaseBand(td)) return;
     const weekKey = td.dataset.pkey ? (td.dataset.week + '|' + td.dataset.pkey) : td.dataset.week;
     const isHiatus = td.classList.contains('sheet-hiatus-cell');
 
@@ -20727,6 +20748,40 @@ export function initLegacyApp() {
     return activeNoteEditor;
   }
   const NOTE_TD = 'td.sheet-note-cell, td.sheet-hiatus-cell';
+
+  // ⭐ AN ALL-PHASE HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY (owner, 4 Nov 2026: "Remove ability to edit
+  // the name and color of all phase hiatuses in the waterfall itself. That should only be possible in the left side
+  // bar"). So its band, a td.sheet-hiatus-cell with NO data-pkey, opens no editor any more. A double-click or Enter on
+  // it shows its card instead: the Phases tab, the card unfolded and scrolled to, its name box focused. That is the
+  // month view's double-click on a bar for a phase (showPhaseRow). The frozen cell's own tooltip still reads
+  // "Double-click to rename or recolor this hiatus", which is where that double-click now takes you.
+  //   - A single click still highlights the band for the text style bar (size, bold, italic, text colour, alignment):
+  //     that is formatting, not its name or its colour. Typing on a highlighted band does nothing.
+  //   - ⚠️ A PHASE's own hiatus band (data-pkey) keeps its editor: its card has a name box but no colour square.
+  //   - ⚠️ A week's own label or colour typed in the band before this change stays in its file and keeps printing.
+  //     The card's colour square paints every week, and its name box takes such a label over the next time the name
+  //     is typed (claimHiatusRowNames). "Reset hiatus bands" clears them all.
+  // Found by the band's week, the first #hiatus-list row whose span covers it (two rows on one week share one band).
+  function isAllPhaseBand(td){ return !!td && td.classList.contains('sheet-hiatus-cell') && !td.dataset.pkey; }
+  function showHiatusRowFor(td){
+    const d = parseDateUTC(td.dataset.week || '');
+    if(!d) return;
+    const row = hiatusRowsNow().find(r=>{ const sp = hiatusRowSpan(r); return !!sp && d >= sp.start && d < sp.end; });
+    if(!row) return;
+    if(activeNoteEditor) commitActiveNoteEditor();
+    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as showPhaseRow's is.
+    pushUndoSnapshot();
+    revealSidebarTab('phases');
+    pushUndoSnapshot();
+    setHiatusCollapsed(row, false);
+    row.scrollIntoView({block: 'center', inline: 'nearest'});
+    const name = row.querySelector('.hiatus-name');
+    if(name){
+      name.focus({preventScroll: true});
+      const n = name.value.length;
+      try { name.setSelectionRange(n, n); } catch(err){ /* not a text input */ }
+    }
+  }
   // Capture, so it runs before frozen dblclick fill-across (a document BUBBLE listener) and can stop it for a
   // band. The batch fill's capture listener (registered earlier) skips bands for the same reason.
   document.addEventListener('dblclick', e=>{
@@ -20737,6 +20792,7 @@ export function initLegacyApp() {
     if(!td) return;
     e.preventDefault();
     e.stopPropagation();
+    if(isAllPhaseBand(td)){ showHiatusRowFor(td); return; }
     openNoteCellEditor(td);
   }, true);
   // Enter and typing, once something is highlighted. Capture, so Enter on a note never also reaches the
@@ -20758,6 +20814,14 @@ export function initLegacyApp() {
     if(e.key === 'Enter' && e.shiftKey) return;
     const td = textCellIndex().get(active);
     if(!td) return;
+    // An all-phase band opens no editor (isAllPhaseBand above): Enter shows its card, and a typed key does nothing.
+    if(isAllPhaseBand(td)){
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      e.stopPropagation();
+      showHiatusRowFor(td);
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     const ed = openNoteCellEditor(td);

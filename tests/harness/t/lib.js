@@ -512,6 +512,33 @@ window.__T = (function(){
     rec.restore = function () { window.showSaveFilePicker = real; };
     return rec;
   }
+  // ⭐ A CALENDAR STATE THE UI NO LONGER MAKES, reached the way a user still has it: inside a saved file. Saves the
+  // calendar through the real Save As (fakeSavePicker stands in for the OS picker), hands the snapshot to
+  // `mutate(snap)`, and Loads the result through the real Load (openViaFakePicker), answering the unsaved-work question
+  // if it comes. Resolves to the snapshot it loaded, once the file menu names `stem`. `opts.writes` goes to
+  // openViaFakePicker, so a later plain Save records there ({file, text}).
+  // Added 4 Nov 2026, when the waterfall's all-phase hiatus band stopped opening its editor (its name and colour are
+  // its sidebar card's): a week's own band label, a blank one included, is now only in a file saved before that.
+  // ⚠️ Needs memoryIDB(): Save As stores the new handle in the recents list.
+  async function reloadWith(mutate, stem, opts){
+    opts = opts || {};
+    var rec = fakeSavePicker();
+    try {
+      await sleep(700);   // Save As drops a second click inside 600 ms (reClickGuard)
+      await until(function(){ var b = document.getElementById('save-as-btn'); return !!b && !b.disabled; }, 'Save As', 60, 100);
+      document.getElementById('save-as-btn').click();
+      await until(function(){ return rec.files.length > 0; }, 'the Save As write', 100, 100);
+    } finally { rec.restore(); }
+    var snap = JSON.parse(new TextDecoder().decode(rec.files[rec.files.length - 1].bytes));
+    mutate(snap);
+    var label = function(){ return ((document.getElementById('file-menu-label') || {}).textContent || '').trim(); };
+    var p = openViaFakePicker('/x.sptcal', stem + '.sptcal', {text: JSON.stringify(snap), writes: opts.writes});
+    for(var i = 0; i < 40; i++){ await sleep(100); if(clickModalButton('Load') || label().indexOf(stem) !== -1) break; }
+    await p;
+    await until(function(){ return label().indexOf(stem) !== -1; }, 'the reloaded file in the file menu', 100, 100);
+    await sleep(800);
+    return snap;
+  }
   // A PDF's page count, read off the writer's own page objects (and Chrome's: both say /Type /Page per page).
   // ⚠️ Counted by OBJECT NUMBER since the SPTCal mark (2 Nov 2026): the mark's update redefines every page as
   // itself, so a saved PDF holds each page dictionary twice under one number. Chrome's print PDFs and the
@@ -662,7 +689,7 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,pdfUnmark:pdfUnmark,
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,

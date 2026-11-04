@@ -1459,15 +1459,17 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-sheet-btn').click();
     await settle();
     var band = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="2026-07-20"]');
+    // The emptied label: ⚠️ since 4 Nov 2026 an all-phase band opens no editor (its name and colour are its sidebar
+    // card's, owner), so a blank week is a state only an older file holds. The calendar is saved and loaded back with
+    // that week's label '' as the editor stored it (T.reloadWith); the rest of the leg runs on the loaded file.
     if(band){
-      T.openCell(band);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md): a click highlights the band
-      await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the hiatus band editor', 50, 100);
-      var bta = document.querySelector('.note-editor textarea');
-      bta.value = '';
-      bta.dispatchEvent(new Event('input', {bubbles: true}));
-      bta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));
-      await T.until(function () { return !document.querySelector('.note-editor textarea'); }, 'the band editor to close', 50, 100);
+      await T.reloadWith(function (snap) {
+        snap.hiatusTexts = Object.assign({}, snap.hiatusTexts, {'2026-07-20': ''});
+      }, 'mvmenu-n1-blank');
       await settle();
+      if(!document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="2026-07-20"]')){ document.getElementById('view-sheet-btn').click(); await settle(); }
+      var blankTd = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="2026-07-20"]');
+      if(!blankTd || (blankTd.textContent || '').trim() !== '') throw new Error('N1: the 20 Jul band is not blank after the reload');
     }
     await toMonth('July 2026');
     await lclick('2026-07-22', 'num');

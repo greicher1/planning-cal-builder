@@ -1772,6 +1772,12 @@ done
 # Colour… shares the picker and the square follows it; New and Load. Red on main before it (9 of 11) and with the
 # carry removed (C5-C8). D0-D2 (2 Nov 2026) hold New's four default breaks, 2029's on 12/17/29, and that a file saved
 # with the old 12/24/29 Loads with it. Its own line.
+# hiatussidebar (owner, 4 Nov 2026: "Remove ability to edit the name and color of all phase hiatuses in the waterfall
+# itself. That should only be possible in the left side bar"): a real double-click on an all-phase band opens NO editor
+# and shows its card (Phases tab, unfolded, on screen, name box focused), one undo step; Enter does the same and a typed
+# key nothing; a phase's own band still opens its editor with the ten colours; an older file's week typed and coloured
+# in the band prints as saved, its double-click shows the card too, and typing the card's name takes that week over
+# (one undo brings it back; Save holds it as the name's). Red on v1.10.0 in 8 of 11 (W5, L1, E0 are guards). Its own line.
 # mvbarcard (owner, 28 Oct 2026): a double-click on a month-view bar opens that phase's card, what was the day menu's
 # Show in Phases card before the trim -- the Phases tab, the card unfolded and on screen, one undo step, no date moved -- for Production, a
 # custom phase THROUGH ITS END HANDLE (whose press puts a shield on top, so the dblclick lands on <body>) and Prep;
@@ -1924,6 +1930,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               phasefold:-:300 \
               hiatusfold:-:300 \
               hiatuscolour:-:300 \
+              hiatussidebar:-:300 \
               mvbarcard:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
