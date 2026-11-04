@@ -269,8 +269,12 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     `monthOnly` set.
   - On that build (`26a9509d…`): `npm run check` 40/40; `noteviews` 15/15, `scenarios` 23/23, and autonoteview,
     autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin,
-    holidayrename, wfnotecolors all green. Its full gate: QUEUED (port 8615).
-- **Next:** that gate, then fast-forward local `main` to the branch, then the owner's call on pushing. The push would
+    holidayrename, wfnotecolors all green. **Its full gate** (port 8615, 14:34-15:20): **3,904 PASS, 2 FAIL, 1 INFO**.
+    Waterfall PDF identical, every Excel part identical, grid signature identical, 0 clipped, `pdfseams` PASS, gate
+    10's 11 printed month documents identical, gate 13's 24 written month PDFs byte-identical; `noteviews` and
+    `autonoteview` green inside it. The two FAILs are drivers' wall-clock deadlines (`hiatusdrag` 480 s, `cspproof`
+    240 s), each green alone on the same build: 14/14 and 15/15.
+- Local `main` fast-forwarded to the branch after that gate. **Next:** the owner's call on pushing. The push would
   carry this feature (its commits and merges) and another session's HANDOFF-only `6e2e443`; everything else is
   already on `origin/main`.
 
