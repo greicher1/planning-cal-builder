@@ -29,7 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Production's span opens its Total Shooting Days box; "Start after" sits under the date (3 Nov 2026)
+## v1.10.0 — note and bar sizes in px, Sim Post on Production's exact weeks and beside it, swapping part of a column (3 Nov 2026)
+
+40 changes since v1.9.0, from 28 Oct–3 Nov 2026. New with this push, five features merged onto one release branch
+(`release-1103`, from `origin/main` at `08bd218`) and gated once (owner, 3 Nov 2026: *"We need all of them to be
+pushed live before tommorow"*; plan by picker: one release branch, one gate, cut v1.10.0, push when green):
+
+- **Note size and Phase bar size, 10–14 px** (Settings ▸ Preferences ▸ Month view), on screen and in the month PDF.
+- **Simultaneous Post runs on exactly Production's weeks and days**: a mid-week start keeps its first week,
+  Production's own hiatus is no Sim Post week, and the month view's bar sits on Production's days (frozen edit SD1).
+- **Simultaneous Post always sits right of Production**, reuse on or off, and Swap Column carries it with Production
+  (frozen edit SP1; new saved key `simPostBeside`, written only where it matters).
+- **The swap arrow for part of a column** whose other weeks are widened by hand.
+- **The Version prints exactly as typed**; older calendars keep their "v3" (`versionAsTyped`).
+
+The rest were already live; this version is how installed copies hear about them, since `version.json` moves with
+`APP_VERSION`.
+**Release gate:** PENDING.
+
+### Production's span opens its Total Shooting Days box; "Start after" sits under the date (3 Nov 2026)
 
 The owner, after the weeks and shoot-days-lost sum went live: *"move the "Start after arrow to directly bellow the
 date box"*, then *"what if we consider moving this section around. Show me a mockup with it in various places"*. Six
@@ -52,7 +70,7 @@ total, inside its edges, hairline under it), 10/10 on the build. The legs that r
 (blocks, episodeprep in all three states, labelsetup, wholenum), and so are phasefold, prodends, overrides, endsdate,
 snapbox, mvmenu and phasesui. `npm run check` 40/40. Screenshot in headless Chrome.
 
-### Unreleased — Production's card shows its weeks and the shoot days it lost (2 Nov 2026)
+### Production's card shows its weeks and the shoot days it lost (2 Nov 2026)
 
 The owner: *"can we have three icons: one that says the number of production weeks, one that says the number of
 holidays costing a shoot day, and something that says the number of Off Days costing a shoot day"*. Five layouts were
@@ -90,7 +108,7 @@ mvmenu (the three that read the hidden line), snaptools, halfdays, halfmarks, pr
 offweek live; offweek on its fixture timed out on a Load poll under heavy machine load (42/42 on the round-1 build).
 `npm run check` 40/40. No full gate: no writer, no save path and no frozen code reads the three new lists.
 
-### Unreleased — every saved PDF carries an invisible SPTCal mark (2 Nov 2026)
+### every saved PDF carries an invisible SPTCal mark (2 Nov 2026)
 
 The owner asked for *"a virtually invisible watermark to the pdf writer so i know which calendars were made from
 sptcal"*, and by picker took both layers (*"Add hidden text too"*). Every waterfall PDF and month PDF the app saves now
@@ -119,7 +137,7 @@ Three mutants each go red. Gates 2 and 13 still compare the writers' bytes to th
 machine at load 45-132. Every PDF line was green, including gate 2, all 22 of gate 13's month PDFs and gate 10. The
 gate also found `cmdprint` counting the marked page twice with its own counter, now fixed. The other 17 failures were
 timeouts, and all pass alone.
-### Unreleased — the Version prints exactly as typed, with no "v" added (3 Nov 2026)
+### the Version prints exactly as typed, with no "v" added (3 Nov 2026)
 
 The owner asked: *"version entered into the 'show info' section should just be exactly what is typed. So no longer
 with a v prefix"*. Typing `3` now prints **3** in the header's bottom-left, `v3` prints **v3**, and `V3` stays **V3**.
@@ -141,7 +159,7 @@ opens as `3`. `hdrtemplate` 25, `hdrpreset` 19, `hdrfile` 14, `hdrexcel` 7, `hdr
 saved `3`, is byte-identical to gate 13's baseline, and gate 10's print document is identical too. `npm run check` 40/40.
 Seen in the browser pane. Not yet run: the full gate.
 
-### Unreleased — Simultaneous Post runs on exactly Production's weeks and days (3 Nov 2026)
+### Simultaneous Post runs on exactly Production's weeks and days (3 Nov 2026)
 
 The owner reported: *"when production starts (or possibly ends) on a non-monday or non-friday it doesnt add that first
 week or last week of sim post. Sim post weeks (and dates) should always match production weeks (and days) exactly"*.
@@ -162,7 +180,7 @@ Verified: new leg `simpostdays` 14/14 (in `gate.sh`). It checks Monday, Wednesda
 Production hiatus, the numbering, a 2-week offset on a Friday start, and the month map. The same reads, run on the build
 before the fix, showed the first week missing (Wed/Thu/Fri), the hiatus week extra, and Mon–Fri bars on every row.
 `npm run check` 40/40.
-### Unreleased — swapping part of a column when its other cells are widened (2 Nov 2026)
+### swapping part of a column when its other cells are widened (2 Nov 2026)
 
 The owner: *"for swapping a portion of a column (such as 3 cells only while all the others have been extended) the
 little blue arrow only pops up when you drag the cursor across to the cells in the column next to it. If you just
@@ -194,7 +212,7 @@ the first version of the fix was red in P3 and P4. Every column-swap and block-s
 `npm run check` 40/40. In the browser pane, with real clicks: widen two weeks, select Post's cells only, and the
 arrow appears and swaps; Swap Column on Prod Prep shows the arrow too.
 
-### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
+### a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
 The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an
 auto-note or a holiday"*, so an automatic line no longer looks like one you typed. By picker: **↻** before an automatic
@@ -212,7 +230,7 @@ Verified: gate 13's 22 written month PDFs and gate 10's 11 printed month documen
 baselines. `autonoterename` S1-S4 (23/23): the marks, no text cut off, none in print, and the narrow case (red on a
 mutant without the fit rule). Full gate 3,505 PASS / 2 FAIL, both load timeouts that pass alone.
 
-### Unreleased — rename an automatic note and it stays automatic; deleting one switches it off (2 Nov 2026)
+### rename an automatic note and it stays automatic; deleting one switches it off (2 Nov 2026)
 
 The owner asked for automatic notes to work as holidays now do: *"labelled as "Auto Note" in the popup when you go to
 edit it and allow you to edit the name of it, without affecting its date and ability to move automatically."* Until
@@ -249,7 +267,7 @@ browser pane: the Auto Note editor, a rename, and a drag to another day. Full ga
 Excel, both month PDFs) unchanged; `regionmirror`, `dlgkeys` and `mvmenu` P7 were pointed at a typed note, because
 typing over an automatic note is now a rename (details in HANDOFF).
 
-### Unreleased — 2029's default winter hiatus starts Mon 12/17/29 (2 Nov 2026)
+### 2029's default winter hiatus starts Mon 12/17/29 (2 Nov 2026)
 
 The owner, with a screenshot of the card set the way they want it: *"this should replace the default all phase hiatus
 for 2029"*.
@@ -268,7 +286,7 @@ the breaks from the app), mxholidays (Production from 12/3/29, across the break)
 No full gate: the byte-compared baselines are built on a calendar that ends in 2027, and every fixture carries its own
 rows.
 
-### Unreleased — Reuse Empty Columns is on for new calendars (2 Nov 2026)
+### Reuse Empty Columns is on for new calendars (2 Nov 2026)
 
 The owner asked whether Reuse Empty Columns should be on by default, and to capitalize it, then ruled *"this can just
 be for calendars going forward not old ones"*.
@@ -292,7 +310,7 @@ old columns and still saves no key. LIVE and RESTORE both green, 0 console error
 browser pane: a fresh launch shows Reuse Empty Columns on. Full gate: 3,492 PASS, 5 FAIL, all five timeouts on a busy
 machine and each green run alone (papersize, pdfdialog, autonotephases, monthexport on shootorder, offweek); the
 waterfall PDF, every Excel part, the v1.0.0 restore, the 77 saved ids and the month prints identical to baseline.
-### Unreleased — Simultaneous Post always sits right of Production, and moves with it (2 Nov 2026)
+### Simultaneous Post always sits right of Production, and moves with it (2 Nov 2026)
 
 The owner: *"Sim post should always be directly to the right of production in either reuse column mode on or off"*,
 then *"you should be able to use the swap column feature for production with sim post on, but Sim post always stays
@@ -332,7 +350,7 @@ under its existing Production-and-Sim-Post exception (0 anywhere else). Mini-gat
 every Excel part identical to baseline; `npm run check` 40/40; seen in the browser pane, including a real Swap Column
 click.
 
-### Unreleased — the Automatic notes card shows every phase's own name (2 Nov 2026)
+### the Automatic notes card shows every phase's own name (2 Nov 2026)
 
 The owner: *"if we renamed Production to "Shoot" that should reflect in the setting menu"*. The rows for Pre-Prep,
 Prod Prep, Post, Localization and custom phases already followed a name typed in the Phases tab. Writer's Room and
@@ -353,7 +371,7 @@ Verified: new `autonotephases` case P9b (red on the code before it); `autonoteph
 `settingswin` 21/21, `phasesui` 8/8; `npm run check` 40/40. Seen in the browser pane, with "Shoot" typed into
 Production's name box. No full gate (a Settings label only).
 
-### Unreleased — automatic notes for custom phases (2 Nov 2026)
+### automatic notes for custom phases (2 Nov 2026)
 
 The built-in phases have had Begins and Ends notes since 27 Oct; custom phases had none. The owner asked: *"Can we
 also add automatic notes for all custom phases too"*, and picked *"Off"* by default
@@ -376,7 +394,7 @@ Verified:
   removal and Load. 26/26 on the build; red on two mutants.
 - Neighbours green: `autonotekinds`, `settingswin`, `hidewf`, `monthnotes`, `autonote`, `customunits` (both states),
   `phasesui`. `npm run check` 40/40. Seen in the browser pane with real clicks. The full gate result is in HANDOFF.
-### Unreleased — Month view: Note size, and Phase bar size in px steps (2 Nov 2026, on branch `month-note-size`)
+### Month view: Note size, and Phase bar size in px steps (2 Nov 2026)
 
 Owner: *"Since the phase bar size can be increased to large or extra large, can we also have a setting to increase the
 size of notes?"*, then rulings R0–R9 by picker, then *"Actually do sizes 10,11, 12, 13, and 14 for the phase bar
@@ -417,7 +435,7 @@ sizes. And make sizes for both the phase bars and the notes be dropdown menus"*
   - `npm run check` 40/40;
   - the full gate on the branch with `main` merged in: PENDING.
 
-### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
+### Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
 
 On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something
 moved a column. Found while building the Sim Post rename; it was on `main` before that. Measured on a build of
@@ -449,7 +467,7 @@ Verified:
   fixtures), `noswapbtns`, `wholenum`, `colreuse`. `npm run check` 40/40. The full gate was not run.
 - Checked in the browser pane on the same fixture: "Number these weeks" relabels the cells at once.
 
-### Unreleased — Simultaneous Post can be renamed (2 Nov 2026)
+### Simultaneous Post can be renamed (2 Nov 2026)
 
 The owner asked: *"Allow me to be able to edit the name of Simultaneous Post"*. Every other phase could be renamed;
 Sim Post always read "Simultaneous Post". Now:
@@ -480,7 +498,7 @@ Verified:
   `calrange`, `sideboxes`, `textstyle`. The full gate was not run.
 - `npm run check` 40/40.
 
-### Unreleased — Production can be held by its wrap (Ends), and its card shows the shoot as a span (2 Nov 2026)
+### Production can be held by its wrap (Ends), and its card shows the shoot as a span (2 Nov 2026)
 
 The owner, after Ends went live for the Weeks phases: *"would it be possible we could add the "ends" date option to
 production ... if i know production needs to end on a certain day we could work backwards to calculate"*. Production's
@@ -507,7 +525,7 @@ All; Save, Load, no key, a hostile key; back to Starts; a round trip byte for by
 Production's own select. Full gate 3,508 PASS, 2 FAIL, both load flakes that pass alone (`pwagate` C1 13/13 twice,
 `scenariocompat` on v1.2.0); every waterfall, Excel and month PDF baseline held. `npm run check` 40/40.
 
-### Unreleased — holiday days take the weekend's grey in the month view (30 Oct 2026)
+### holiday days take the weekend's grey in the month view (30 Oct 2026)
 
 A holiday's day square had no background in the month view, only the holiday's name and a gap in the Production bar.
 The owner asked whether it should take the Off day's hatch; the suggestion was the weekend tint instead. The calendar
@@ -532,7 +550,7 @@ Verified:
 - Gate 10: 7 of 11 print documents moved, by the class alone. Fit tables and sheet counts are identical.
 - The owner signed off old/new/difference sheets, then both sets were re-cut (their READMEs record it).
 - `monthlayout` and `softlines` learned the new class and pass. The full gate result is in HANDOFF.
-### Unreleased — Rebuild From lists the phases it will move, and you tick which (30 Oct 2026)
+### Rebuild From lists the phases it will move, and you tick which (30 Oct 2026)
 
 The owner asked how Rebuild From knows which phases to move: *"what if you dont want localization added by rebuild
 From or you do want a custom phase moved by rebuild from"*. Until now it moved every phase on the chosen side that
@@ -560,7 +578,7 @@ legs that drive the tool (`snaptools`, `overrides`, `builtindates`, `customunits
 `hdrcontrols` and `npm run check`. It was also tried in the app. Full gate 3,418 / 6, all six explained: three
 load timeouts green alone, and three from an unrelated test-fixture edit, green with that fixture restored.
 
-### Unreleased — the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
+### the month stepper's arrows are filled with the Export PDF navy (30 Oct 2026)
 
 The owner, with screenshots of the stepper and the header's Export PDF button: *"make the left and right buttons the
 same color/style as the export pdf button"*, then, when a first pass also reshaped them into separate rounded buttons,
@@ -574,7 +592,7 @@ Verified: the arrows' fill equals `#export-wf-pdf-btn`'s (`rgb(44,62,80)`), whit
 with 5 px corners as before; `monthmap` 20/20 on all three of its gate fixtures (part C is the stepper);
 `npm run check` 40/40; seen in the app.
 
-### Unreleased — a snapped start's box shows the Monday it snapped to (30 Oct 2026)
+### a snapped start's box shows the Monday it snapped to (30 Oct 2026)
 
 Typing a Wednesday into a phase's Starts box with Snap to Monday on started the phase that Monday, but the box kept the
 Wednesday, and only the grey "Snapped to Mon 3/23/26" line under the name said so. The owner: *"It should also change
@@ -595,7 +613,7 @@ box's Friday), writing through a real input event; `foldIntoBankedStep()` folds 
 No frozen code, no id, no snapshot key. Verified: new leg `snapbox` 12/12 (red on two mutants: no rewrite, 7 checks;
 no undo fold, U1 and U3); `npm run check` 40/40; seen in the app with real keystrokes (Enter and click-out).
 
-### Unreleased — every Weeks phase's date line ends on its last Friday (30 Oct 2026)
+### every Weeks phase's date line ends on its last Friday (30 Oct 2026)
 
 The grey line under a phase's name (`11/2/26 → 3/7/27 (16 wk)`) ended on the SUNDAY of the phase's last week,
 because a waterfall week is a Monday-to-Sunday row. Beside the new Ends box, which shows the Friday, the card named two
@@ -610,7 +628,7 @@ M1 (on Starts, every Weeks phase's line names a Friday) and M2 (on Ends, the lin
 month-view round trip), 17/17, both red with the rewrite disabled; `builtindates`, `customunits`, `snapoff`,
 `loadcarry`, `phasefold`, `halfdays`, `datepick` green; `npm run check` 40/40; seen in the app.
 
-### Unreleased — a Weeks phase can be held by its END, and its start is worked out backwards (30 Oct 2026)
+### a Weeks phase can be held by its END, and its start is worked out backwards (30 Oct 2026)
 
 The owner: *"what if for phases you could select EITHER starting date OR ending date. So if you selected ending date
 and then 20 weeks, it would calculate backwards"*, then, on snapping, *"Yes, no switch"*, then *"build it"*
@@ -645,7 +663,7 @@ picker), plus `npm run check` (40/40), `customunits`, `builtindates`, `datepick`
 fail, all explained (three load timeouts, each green alone, and three from that fixture); the waterfall PDF, the
 saved field ids and every other month PDF are unchanged.
 
-### Unreleased — rename a holiday, colour one holiday, edit one note line (30 Oct 2026)
+### rename a holiday, colour one holiday, edit one note line (30 Oct 2026)
 
 The owner sent a screenshot of Thanksgiving's note editor in the month view and asked *"do you see the issue?"* A
 click on one holiday opened its WEEK's waterfall note: the editor for 11/26 also held "Day After Thanksgiving
@@ -686,7 +704,7 @@ branch's gate failed the same three that morning. With the fixture as it was bef
 build: `stintreshape` all checks, `phasesui` 8/8, and gate 13's written month PDF for that calendar byte-identical to
 its baseline. So frozen edit H1 moved no baseline.
 
-### Unreleased — with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
+### with Snap to Monday on, the date picker offers only Mondays (30 Oct 2026)
 
 The owner: *"when snap to monday is on wouldn't it make sense that you aren't able to pick any dates except
 mondays?"*, then *"ok do all the changes you suggested"*. The pop-out date picker let you click any day, so a phase
@@ -707,7 +725,7 @@ on or off leaves the date alone. Chrome only: no frozen code, no id, no save-for
 `datepick` (17/17 on the build, red on the old picker), plus `npm run check` (40/40), `snaptools` (14/14), `calrange`
 (18/18), `snapoff` and `builtindates`, and in the app.
 
-### Unreleased — the Region select loses its "Location" label (30 Oct 2026)
+### the Region select loses its "Location" label (30 Oct 2026)
 
 The owner: *"maybe we remove the word "Location" here - its not necessary"*. The Settings window's Region tab
 showed "Location" above `#union-place`, directly under the card's own **Production Region** heading, so it said
@@ -716,7 +734,7 @@ The id, its options and the save format are unchanged. (Show info's free-text **
 and keeps its label.) Verified with `npm run check` (40/40), `regionmirror` (9/9) and `settingswin` (21/21) on the
 build, and seen in the app.
 
-### Unreleased — Newfoundland's notes say 1 July is one day off, not two (29 Oct 2026)
+### Newfoundland's notes say 1 July is one day off, not two (29 Oct 2026)
 
 The owner asked what Newfoundland and Labrador's Holidays line, *"11 per year. 1 July is both Memorial Day and Canada
 Day."*, meant, then picked a clearer one from three: *"11 per year. Memorial Day and Canada Day are both on 1 July, so
@@ -725,7 +743,7 @@ is identical to the engine's, and `validate_holidays.py` is CLEAN (no holiday da
 "Memorial Day / Canada Day", since that name is its id in saved files. Verified with `npm run check` (40/40),
 `regioncaveat` (7/7) and `caholidays` (11/11) on the build.
 
-### Unreleased — U.S. Area Standards' notes say Veterans Day is not included; Manitoba's warning reworded (29 Oct 2026)
+### U.S. Area Standards' notes say Veterans Day is not included; Manitoba's warning reworded (29 Oct 2026)
 
 The owner asked for the U.S. Area Standards Holidays line to read *"11 per year. Juneteenth was added in 2025.
 Veterans Day is not included."* (it ended at "2025."). Changed in `tools/gen_holidays.py`'s `BOX` table and
@@ -734,14 +752,14 @@ off if your crew works it."* and is now *"They’re enabled by default but shoul
 regenerated block differs from the engine's on exactly those two lines, and `validate_holidays.py` is CLEAN (no
 holiday date moved). Verified with `npm run check` (40/40), `regioncaveat` (7/7) and `caholidays` (11/11) on the build.
 
-### Unreleased — Melbourne's notes no longer say the MEAA agreement is members-only (29 Oct 2026)
+### Melbourne's notes no longer say the MEAA agreement is members-only (29 Oct 2026)
 
 The owner asked for *"The MEAA crew agreement is members-only."* to go from the Melbourne notes box. The Source line
 now reads "Victoria’s Public Holidays Act and the Broadcasting award." Changed in `tools/gen_holidays.py`'s `BOX`
 table and regenerated: the generated block matches the engine's line for line, and no holiday date moved. Verified
 with `npm run check` (40/40) and the `regioncaveat` leg (7/7) on the build.
 
-### Unreleased — Canada's holidays on the crew agreements, every province and territory, and an IATSE tag on the days the practical list lacks (29 Oct 2026, branch `canada-holidays`)
+### Canada's holidays on the crew agreements, every province and territory, and an IATSE tag on the days the practical list lacks (29 Oct 2026, branch `canada-holidays`)
 
 The owner ruled a "practical production list" of Canadian union holidays *"a good source of truth"*, with Truth and
 Reconciliation added and the five statutory days it lacked; then *"Yes, all four"* to the recommendations; then
@@ -828,7 +846,7 @@ Reconciliation added and the five statutory days it lacked; then *"Yes, all four
   - Seen in the app: the tag in the Holidays list and Newfoundland's warning.
   - **Full gate 3,415 PASS / 0 FAIL** in 31 minutes, solo, on the build.
 
-### Unreleased — The US is two places, "U.S. Area Standards" and "New York"; New York's holiday sources re-read (29 Oct 2026, branch `us-two-places`)
+### The US is two places, "U.S. Area Standards" and "New York"; New York's holiday sources re-read (29 Oct 2026, branch `us-two-places`)
 
 The owner, after seeing that the fourteen US places used only two holiday lists: *"reduce the US list to just "U.S.
 Area Standards" and "New York""*, and *"update them"* for the New York warning and the docs.
@@ -858,7 +876,7 @@ Area Standards" and "New York""*, and *"update them"* for the New York warning a
   `phasesui` baseline's four Atlanta fixtures were edited in place (eight values, its README says which). Full gate
   3,246 PASS / 13 FAIL in a slow run (2 h 46 min), none in a Region leg; all ten failing legs green alone.
 
-### Unreleased — A colour square on every all-phase hiatus card (28 Oct 2026, `main`)
+### A colour square on every all-phase hiatus card (28 Oct 2026, `main`)
 
 The owner: *"add the color picker menu to the all phase hiatuses in the left side bar just like you can pick color for
 phases"*. Each all-phase hiatus card now has the phase card's colour square on its head, in the same place (after the
@@ -878,7 +896,7 @@ ones the waterfall's band editor and the month day menu's *Colour…* already of
 - **Verified:** new leg `hiatuscolour` 11/11 (in `gate.sh` after `hiatusfold`), red on `main` before it (9 of 11) and
   with the date carry removed (C5–C8); see HANDOFF for the other legs run. No frozen code was edited.
 
-### Unreleased — The month view's day menu, trimmed by the owner, and neither right-click menu greys anything out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
+### The month view's day menu, trimmed by the owner, and neither right-click menu greys anything out (23 + 28 Oct 2026, branch `claude/adoring-chaum-0206c1`)
 
 The owner asked for the waterfall's right-click menu to be cut down (*"we really dont need the swap collumn feature …
 We dont need an add notes button at all. right now the right click menu especially on phases is huge"*), then chose
@@ -934,7 +952,7 @@ there is no one-gesture way to do it already. The owner approved the short list 
   `halfdays` 27/27, `labelsetup` 41/41. Full gate **3,371 PASS, 0 FAIL**. Then `main` at `013b4a8` (Shoot N bars,
   waterfall note colours) merged in, docs-only conflicts: full gate on that build (`e9b86652…`) **3,386 PASS, 0 FAIL**.
   Merged into `main` and pushed (`cc3ea13`); the live page served that build byte for byte.
-### Unreleased — Waterfall notes take every colour a month note can (28 Oct 2026)
+### Waterfall notes take every colour a month note can (28 Oct 2026)
 
 Owner: *"add all the same note bg color options for notes in the waterfall as we currently have for notes in the month
 view"*. A waterfall note's editor now offers the month note palette in the same two rows: the ten standard colours,
@@ -959,7 +977,7 @@ NF1 and NF2 removed fails X1 and P1 exactly. `base` byte-identical to the 29 Aug
 Excel part) and `restore`/gate 5 green; `mvnotes` 30/30 + 14/14 (P5 updated: it held the old ten-colour rule),
 `wfkeys` 84/84, `textstyle` 51/51, `notewrap` 16/16, `monthnotes` 7/7; `npm run check` 40/40.
 
-### Unreleased — episodes are named "Episode 101" again, and their month bars read "Shoot 101" (28 Oct 2026)
+### episodes are named "Episode 101" again, and their month bars read "Shoot 101" (28 Oct 2026)
 
 Asked by the owner: *"I want them titled just Episode 101, Episode 102, etc. BUT by default I want the phases to be
 labelled as Shoot 101 ... if you change the title to anything other than default, it switches to the exact words."*
@@ -986,7 +1004,7 @@ labelled as Shoot 101 ... if you change the title to anything other than default
   Merged with today's `main` and gated again (build `212b2faf`): 3,376 PASS, 3 FAIL, all three timing flakes that are
   green alone (`pilllabel (blocks)` W2, `labelsetup` L4, `weeknum` D1, which also flakes on `main`'s own build under load).
 
-### Unreleased — Month view: double-click a bar to open its phase's card (28 Oct 2026)
+### Month view: double-click a bar to open its phase's card (28 Oct 2026)
 
 Owner: *"When you double click on a phase in the month view, could it reveal that phase menu in the left side
 bar"*.
@@ -1014,7 +1032,7 @@ bar"*.
   - in the pane, with a real mouse: double-clicks on Set Build's bar and on Shoot Ep. 101 each opened their card,
     on screen, with the dates unchanged. No full gate.
 
-### Unreleased — Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`, merged into local `main`)
+### Month view: proper ‹ › month buttons, with Today, above the calendar (28 Oct 2026, branch `claude/month-step`, merged into local `main`)
 
 Owner: *"I think we still need proper left and right buttons to move the month view cal one month
 forward/backwards"*. Four places were mocked up (`mockups/month-arrows.html`), and the owner picked **B: on the
@@ -1041,7 +1059,7 @@ style bar**. Plan: `MONTH-RAIL-PLAN.md` §18.
   - full gate 3,324 PASS, 1 FAIL: `customunits` produced no result at all in the gate, and passed 28/28 alone three
     times on the same build.
 
-### Unreleased — All-phase hiatus cards fold to their head, like phase cards (28 Oct 2026)
+### All-phase hiatus cards fold to their head, like phase cards (28 Oct 2026)
 
 Each all-phase hiatus card in the Phases tab has the phase card's caret now (owner, 28 Oct 2026: *"give collapsing
 arrows to the all phase hiatuses just like phases"*). Folded, the card shows only its red head: the name, still
@@ -1053,7 +1071,7 @@ position for position, or by the row's own values when an undo or redo put back 
 Verified: new leg `hiatusfold` 11/11 (in `gate.sh`), red on `main` before it (9 of 11) and with the carry removed
 (H5–H9); `npm run check`; the neighbouring legs (listed in HANDOFF).
 
-### Unreleased — Pre Prep's default name is "Pre-Prep" (28 Oct 2026)
+### Pre Prep's default name is "Pre-Prep" (28 Oct 2026)
 
 A new calendar names the phase **Pre-Prep** (owner, 28 Oct 2026), so its weeks read "Pre-Prep Wk 1", its automatic
 notes "Pre-Prep Begins", and its hiatus "Pre-Prep Hiatus". The Automatic notes row, the Blue colour's name and the Help
@@ -1067,7 +1085,7 @@ reference calendar now types the old name, and with it `base`'s waterfall PDF, w
 and `base` go red. `autonotephases`, `builtindates`, `phiatusnum` and `phasenum` now expect "Pre-Prep" on the calendars
 they build fresh, and pass, with 14 other legs that touch phase names. `npm run check` 40/40. No full gate yet.
 
-### Unreleased — Show info's Season loses its hint line (28 Oct 2026)
+### Show info's Season loses its hint line (28 Oct 2026)
 
 The line under Season, *"Tick more than one when seasons share this calendar."*, is gone (owner, 28 Oct 2026). The
 dropdown and its checkboxes are unchanged. Chrome only: no id, no saved key, nothing the grid or the exports read.
