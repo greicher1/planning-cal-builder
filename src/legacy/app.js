@@ -5100,10 +5100,23 @@ export function initLegacyApp() {
     // toggle is on and Production is running that week, from `offsetWeeks` after Production begins
     // through its end. (Callers still skip global-hiatus weeks, where the shoot -- and thus post --
     // is paused, so those never count.)
+    // ⛔ EXACTLY PRODUCTION'S WEEKS (owner, 2 Nov 2026: "Sim post weeks (and dates) should always match production
+    // weeks (and days) exactly"). Two ways it used to differ, both measured (leg simpostdays):
+    //  - A snap-off start (Snap to Monday off, or Production held by its wrap, which is always snap-off) that is
+    //    not a Monday lost Sim Post's FIRST week: `ws < prodSeg.start` compared the row's Monday with a Wednesday.
+    //    It is now the week loop's own OVERLAP test (audit H-3), and the offset counts from that first row's
+    //    Monday, so a Friday start no longer rounds its first week to -1. A snapped start is a Monday, where both
+    //    tests are what they were.
+    //  - Production's own hiatus and its off weeks still counted as Sim Post weeks, though Production draws a
+    //    hiatus band there. They are left out with the week loop's own tests, so the numbering and Post's
+    //    continued count skip them as Production's does.
     const isSimPostWeek = (ws) => {
       if(!(state.simultaneousPost.enabled && prodSeg)) return false;
-      if(ws < prodSeg.start || ws >= prodSeg.end) return false;
-      const wip = Math.round((ws - prodSeg.start)/DAY_MS/7);
+      if(!(prodSeg.start < addDays(ws, 7) && prodSeg.end > ws)) return false;
+      const ownHi = prodSeg.phaseHiatus;
+      if(ownHi && ws >= ownHi.start && ws < ownHi.end) return false;
+      if(prodSeg.offWeeks && prodSeg.offWeeks.has(isoOf(ws))) return false;
+      const wip = Math.round((ws - mondayOf(prodSeg.start))/DAY_MS/7);
       return wip >= state.simultaneousPost.offsetWeeks;
     };
     // Numbering mode (the "Number these weeks & continue Post's count" checkbox):
@@ -13225,6 +13238,18 @@ export function initLegacyApp() {
     return (schedule.hiatuses||[]).some(h=> date>=h.start && date<h.end);
   }
 
+  // Does Simultaneous Post's month bar cover this date? Exactly when Production's own bar does (owner, 2 Nov 2026:
+  // "Sim post weeks (and dates) should always match production weeks (and days) exactly"): pillRunsForWeek()'s test
+  // for Production's segment, before productionSplitRuns() cuts it per episode, so a holiday, the days before a
+  // Wednesday start, the days after a Tuesday wrap and Production's own hiatus are blank under both, and a weekend
+  // shoot day is drawn under both. Read by frozen edit SD1 in renderMonthView, which used to draw every Sim Post week
+  // Monday to Friday whatever Production shot, and by the month map (monthMapInput), so the two agree. Which WEEKS
+  // carry Sim Post at all is still computeSchedule's isSimPostWeek (the offset), read off `simPost` by the caller.
+  function simPostCoversDate(schedule, date){
+    const prod = (schedule.segments || []).find(s=> s.key === 'production');
+    return !!prod && segCoversDate(prod, date) && !isHiatusDate(schedule, date) && !isPhaseHiatusDate(prod, date);
+  }
+
   // True when `date` falls inside a phase's OWN hiatus (the per-phase pause), which interrupts
   // just that phase rather than the whole calendar.
   function isPhaseHiatusDate(seg, date){
@@ -14089,8 +14114,12 @@ export function initLegacyApp() {
         const spRuns = [];
         for(let i=0;i<7;i++){
           const d = addDays(weekStart, i);
-          const dow = d.getUTCDay();
-          const working = (dow>=1 && dow<=5) && !isHiatusDate(schedule, d);
+          // ⛔ FROZEN EDIT SD1 (owner-approved 3 Nov 2026 by picker, "Approve the frozen edit", whose option named its
+          // gate: every month PDF and print document byte-identical except the calendars drawing Sim Post, where only
+          // its bars may move). Sim Post's bar sits on exactly Production's days (simPostCoversDate). It was every
+          // weekday of the week outside an all-phase hiatus, so it covered holidays Production skips, ran on past a
+          // Tuesday wrap, and filled Monday and Tuesday before a Wednesday start.
+          const working = simPostCoversDate(schedule, d);
           if(working){ if(!sp) sp = {startCol:i, endCol:i}; else sp.endCol = i; }
           else if(sp){ spRuns.push(sp); sp = null; }
         }
@@ -23512,16 +23541,27 @@ export function initLegacyApp() {
       return { key: s.key, name: s.prep ? (s.name || s.label || 'Prep') : phaseDisplayName(s.key),
                fill, ink: s.textColor || textColorFor(fill), start: isoOf(start), end: isoOf(end) };
     });
-    // Simultaneous Post is no segment: its weeks carry `simPost`. One bar per unbroken run of them, Monday to the
-    // Friday the month view's last Sim Post pill ends on, placed after the phases as renderMonthView places it.
+    // Simultaneous Post is no segment: its weeks carry `simPost`. One bar per unbroken run of them, from the first day
+    // to the last the month view draws Sim Post on in that run (simPostCoversDate, Production's own days since 3 Nov
+    // 2026; it was the run's Monday to its last Friday), placed after the phases as renderMonthView places it. A run
+    // the month view draws no day of is left off.
     let run = null;
     (sch.weeks || []).forEach(w => {
       if(!w.simPost){ run = null; return; }
       if(run && isoOf(addDays(run.last, 7)) === isoOf(w.date)){ run.last = w.date; return; }
       run = { first: w.date, last: w.date };
-      spans.push({ key: 'simPost', name: simPostName || 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: isoOf(w.date), end: '', run });
+      spans.push({ key: 'simPost', name: simPostName || 'Sim Post', fill: SIMPOST_COLOR, ink: SIMPOST_TEXT, start: '', end: '', run });
     });
-    spans.forEach(s => { if(s.run){ s.end = isoOf(addDays(s.run.last, 5)); delete s.run; } });
+    spans.forEach(s => {
+      if(!s.run) return;
+      for(let d = s.run.first; d < addDays(s.run.last, 7); d = addDays(d, 1)){
+        if(!simPostCoversDate(sch, d)) continue;
+        if(!s.start) s.start = isoOf(d);
+        s.end = isoOf(addDays(d, 1));
+      }
+      delete s.run;
+    });
+    for(let i = spans.length - 1; i >= 0; i--) if(spans[i].key === 'simPost' && !spans[i].start) spans.splice(i, 1);
     const now = new Date();
     return {
       first: ymOfDate(range.first), last: ymOfDate(range.last),

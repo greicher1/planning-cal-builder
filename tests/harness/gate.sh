@@ -1856,6 +1856,10 @@ done
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
 # default, restored unconditionally, repaired on Load), undo, clearing it and New.
+# simpostdays (owner, 2 Nov 2026; frozen edit SD1 approved 3 Nov 2026) is Simultaneous Post on exactly Production's
+# weeks and days: a Wednesday, Thursday or Friday start (snap off) keeps Sim Post's first week, Production's own hiatus
+# is no Sim Post week (numbering and Post's continued count skip it), the offset counts from Production's first row,
+# every month row's Sim Post bar covers Production's days (a holiday, a Tuesday wrap), and the month map follows.
 # colswapcache (fixed 2 Nov 2026) is every edit reaching the waterfall on a calendar holding a stored column swap. The
 # column-swap gate's cache used to hand update() the schedule of its last MISS, so a phase renamed, Sim Post's offset,
 # "Number these weeks", an undo and a phase colour stayed off the screen until something moved a column. On
@@ -1905,6 +1909,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               simpostname:-:400 \
+              simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \
               mvtextstyle:-:900 mvtextstyle:mvtextstyle:400 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \

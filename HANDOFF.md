@@ -34,6 +34,47 @@
 - The Copilot import kit in ~/Downloads still works unchanged: it writes a PDF's "v3" as `3` with no key, and that
   opens as `v3`.
 
+### 🔧 3 Nov 2026: SIM POST ON EXACTLY PRODUCTION'S WEEKS AND DAYS — BUILT, UNCOMMITTED in the main checkout (tracker card `simpost-weeks-match-production`)
+
+- **The ask** (owner, 2 Nov 2026): *"when production starts (or possibly ends) on a non-monday or non-friday it doesnt
+  add that first week or last week of sim post. Sim post weeks (and dates) should always match production weeks (and
+  days) exactly"*. Frozen edit approved by picker, 3 Nov: *"Approve the frozen edit (Recommended)"*. The option named its
+  gate: every month PDF and print document byte-identical, except the calendars drawing Sim Post, where only its bars
+  may move.
+- **Three differences, all measured by a probe of the new leg on the build before the fix:**
+  1. **A snap-off start that isn't a Monday lost Sim Post's FIRST week**, in every output. The trigger is Snap to Monday
+     off, or Production held by its wrap (`productionEnds`, always `snap:false`, which is probably how the owner hit it).
+     `isSimPostWeek` tested `ws < prodSeg.start`, a Monday against a Wednesday. The LAST week was never lost in the
+     waterfall: `prodSeg.end` is always the Monday after the wrap's week. In the month view the bar ran on to Friday
+     past a Tuesday wrap, which is the "or possibly ends".
+  2. **Production's own hiatus and off weeks were still Sim Post weeks** (a Production Hiatus band beside a Sim Post
+     cell). The numbering and Post's continued count counted them.
+  3. **The month view drew every Sim Post week Monday to Friday**, so it covered holidays Production skips (7/3/26,
+     Labor Day) and the days before a mid-week start or after a mid-week wrap.
+- **Where it lives (`src/legacy/app.js`):**
+  - `computeSchedule()`'s `isSimPostWeek` uses the week loop's own OVERLAP test (audit H-3). It skips
+    `prodSeg.phaseHiatus` / `prodSeg.offWeeks` with the loop's own tests, and counts the offset from
+    `mondayOf(prodSeg.start)`. A Friday start used to round its first row to -1, so offset 2 began a week late. A
+    snapped start is a Monday, where all three are what they were. Not frozen.
+  - `simPostCoversDate(schedule, date)`, beside `isHiatusDate`: Production's own bar test from `pillRunsForWeek`
+    (`segCoversDate` + not an all-phase hiatus + not its own hiatus), before `productionSplitRuns` cuts it.
+  - ⛔ **Frozen edit SD1** in `renderMonthView`'s Sim Post loop: `working = simPostCoversDate(schedule, d)`. It was
+    `dow 1-5 && !isHiatusDate`. Which WEEKS get a bar is still `wkRec.simPost`, the offset.
+  - `monthMapInput` (chrome): each Sim Post run's band goes from the first day SD1 draws in it to the last (it was the
+    run's Monday to its last Friday). A run with no drawn day is left off.
+- ⚠️ **Named SD1, not SP1:** branch `simpost-beside-prod` (unmerged, worktree `.claude/worktrees/simpost-beside-prod`;
+  Sim Post always right of Production, `computeBlockLayout`) already calls ITS frozen edit SP1. It changes column
+  placement, not which weeks or days carry Sim Post, so the code doesn't overlap. Expect conflicts only in the
+  README/HANDOFF tops and `gate.sh`'s leg list, where both add a leg beside `simpostname`.
+- **Proof so far:** new leg `simpostdays` 14/14 (in `gate.sh` after `simpostname`). It covers Mon/Wed/Thu/Fri starts,
+  Production's own hiatus, numbering + Post wk K+1, offset 2 on a Friday start, and the month map's band. The same
+  reads ran as a probe on the build before the fix: first week missing on Wed/Thu/Fri, the hiatus week extra, Mon–Fri
+  bars on every row. `npm run check` 40/40.
+- **Not done:** the full gate. Another session's gate (from `simpost-beside-prod`) was running at 13:26, and two at
+  once stall. Expect gate 10/13 to move only on the calendars that draw Sim Post: `colswap-simpost-refuse` (Thanksgiving
+  inside a Sim Post week), and possibly `mvheaderlegacy` / `mvnotes`. Re-cut only after the owner sees old | new |
+  difference (`monthbase.py sheets`) and says yes, per each baseline README. Nothing committed.
+
 ### ✅ 2 Nov 2026: THE NOTE SYMBOL — ↻ BEFORE AN AUTOMATIC NOTE, ⚑ BEFORE A HOLIDAY, MONTH VIEW ON SCREEN ONLY — BUILT on branch `auto-note-rename`, on top of the rename's `b9264cc`, COMMITTED on the branch (owner's picker, *"Commit on the branch"*, then *"Merge main in, re-gate, then main"*), ✅ **LIVE at `e1ed962`** with the rename (see its entry below) (tracker card `note-kind-symbol`)
 
 - **The ask** (owner): *"some type of small symbol that sits to the left of the first letter of text in either an

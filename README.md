@@ -51,6 +51,28 @@ opens as `3`. `hdrtemplate` 25, `hdrpreset` 19, `hdrfile` 14, `hdrexcel` 7, `hdr
 saved `3`, is byte-identical to gate 13's baseline, and gate 10's print document is identical too. `npm run check` 40/40.
 Seen in the browser pane. Not yet run: the full gate.
 
+### Unreleased — Simultaneous Post runs on exactly Production's weeks and days (3 Nov 2026)
+
+The owner reported: *"when production starts (or possibly ends) on a non-monday or non-friday it doesnt add that first
+week or last week of sim post. Sim post weeks (and dates) should always match production weeks (and days) exactly"*.
+Measured on a test calendar, there were three ways they differed:
+
+- **A mid-week start lost Sim Post's first week**, everywhere: the Waterfall, Excel, both PDFs and the Month view. That
+  happens with Snap to Monday off, and always when Production is held by its wrap (Ends), which is never snapped. The
+  week test compared the row's Monday with Production's Wednesday. It now uses the same overlap rule as Production's
+  own cells. The offset now counts from Production's first week row, so a Friday start no longer counted one week short.
+- **Sim Post ran through Production's own hiatus and off weeks**, where Production shows a hiatus band. Those weeks are
+  no longer Sim Post weeks, and "Number these weeks" (and Post's continued count) skips them as Production does.
+- **The Month view drew every Sim Post week Monday to Friday**, over holidays Production skips (7/3, Labor Day), past a
+  Tuesday wrap, and before a Wednesday start. Its bar now sits on exactly Production's days, a weekend shoot day
+  included. The month PDF and the month map follow. This is frozen edit SD1 in `renderMonthView`, owner-approved by
+  picker with its gate.
+
+Verified: new leg `simpostdays` 14/14 (in `gate.sh`). It checks Monday, Wednesday, Thursday and Friday starts, a
+Production hiatus, the numbering, a 2-week offset on a Friday start, and the month map. The same reads, run on the build
+before the fix, showed the first week missing (Wed/Thu/Fri), the hiatus week extra, and Mon–Fri bars on every row.
+`npm run check` 40/40.
+
 ### Unreleased — a symbol marks automatic notes and holidays in the Month view (2 Nov 2026)
 
 The owner asked for *"some type of small symbol that sits to the left of the first letter of text in either an
