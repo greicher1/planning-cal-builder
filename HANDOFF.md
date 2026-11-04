@@ -236,7 +236,7 @@
   lands there next. Rule 6 removes this for auto notes; until it is built, it stands.
 
 
-### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–3 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`, which `main` has since moved past; its `node_modules` is a symlink, so unlink it before `git worktree remove`) ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
+### 🔨 2 Nov 2026: NOTE SIZE + PHASE BAR SIZE, BOTH 10–14 px DROPDOWNS — RULED; STEPS 1–4 DONE on branch `month-note-size` (worktree `.claude/worktrees/month-note-size`, from `main` at `8125dd0`, with `main` at `fa6aa4b` merged in as `7745a86`; its `node_modules` is a symlink, so unlink it before `git worktree remove`); full gate PENDING; NOT merged to `main`, NOT pushed ([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)). Tracker cards `month-note-size`, `bar-size-px-steps`
 
 - **The ask** (owner): *"Since the phase bar size can be increased to large or extra large, can we also have a setting
   to increase the size of notes?"*, then *"Maybe theres a 2 line limit when you increase the size of the notes … what if
@@ -317,9 +317,20 @@
   - ⚠️ **Recorded, not run:** `monthemit` on `month-dense60` at 14 px (Chrome's 1/64 px share truncation, 0.03–0.04 px,
     seen only with the print path's fractional rows) and `monthwriter` A1 on `mvnotes` 14 + Extra large (0.021 / 0.02).
   - Step 3 is NOT committed (awaiting the owner's picker). Step 2 is committed `8f2da10`.
-- **Next:** step 4: merge `main` into the branch (`main` moved: the Sim Post rename and others), run the full gate,
-  and cut gate-13 baselines for the two new fixtures only on the owner's sign-off (contact sheets). Ask before
-  starting.
+- ✅ **Step 4 DONE (a session started from the step-3 session), plan §6.**
+  - **`main` merged into the branch** as `7745a86` (from `fa6aa4b`), with no conflicts. It brought Ends for
+    Production, the Sim Post rename (S1), the column-swap cache fix and their legs, plus the step 1–3 docs, which had
+    been committed on `main`, not on the branch. Nearby edits in `app.js` were checked by hand (`update()`'s reflects,
+    New, `captureSnapshot`, `sanitizeSnapshot`, `applyStateSnapshot`): in each, the two sides only add separate lines.
+    Build `3c45a1a8…`, `npm run check` 40/40.
+  - **Two new gate-13 cases, cut on the owner's sign-off** (*"Yes, cut both"*, picker, after contact sheets of all 17
+    months against the `mvnotes` baseline, the same calendar at 10 px): `n4` → `mvnotesize-14` and `nm` →
+    `mvnotesize-mixed`, in MXSPEC and in the gate-13 list.
+    - Classified by words: `mvnotesize-14` loses only three notes' endings (cut at two lines with "…");
+      `mvnotesize-mixed` loses one note's ending, plus two one-day bars cut by v1.9.0's bar rule at 13 px.
+    - Each exported byte-identical twice. Recorded in `tests/baselines/2026-10-05-monthwriter/README.md`.
+  - **The full gate:** PENDING (queued behind two other sessions' gates, port 8417).
+- **Next:** step 5, each on the owner's picker: merge to `main`, cut the version, and push (the push asked separately).
 
 ### 📝 30 Oct 2026: "WHAT IF THERE WERE NO DATE SNAPPING?" — ASKED, NOT RULED, NOTHING BUILT. Tracker card `no-date-snapping`
 

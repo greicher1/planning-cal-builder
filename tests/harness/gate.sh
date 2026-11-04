@@ -2235,12 +2235,16 @@ PYMWC
 #                          ⭐ ADDED 5 Oct 2026 (step 6): the rest of tier 1 and tier 2, so that every calendar gate 13
 #                          baselines is exported by the built app and held to the slice (X2) in the same run. About
 #                          7 s each. Their files feed gate 13, below.
+#   n4 / nm                ⭐ ADDED 2 Nov 2026 (MONTH-NOTE-SIZE-PLAN.md step 4): the sized fixtures, mvnotesize-14 (14 px
+#                          notes) and mvnotesize-mixed (12 px notes, 13 px bars, one note at 14 px and one at 8). Also run
+#                          in the note-size block above, as bl is in the bar-size block; these runs feed gate 13.
 MXA="/tmp/gate${GTAG}-mxa"; rm -rf "$MXA"; mkdir -p "$MXA"
 for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blocks" "ms:-:-:monthscale" \
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large" \
+              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -2321,7 +2325,9 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
               "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
-              "nn:mvnotes:mvnotes" "bl:mvbarsize-large:mvbarsize-large (Large phase bars)"; do
+              "nn:mvnotes:mvnotes" "bl:mvbarsize-large:mvbarsize-large (Large phase bars)" \
+              "n4:mvnotesize-14:mvnotesize-14 (14 px notes)" \
+              "nm:mvnotesize-mixed:mvnotesize-mixed (12 px notes, 13 px bars, one note at 14 and one at 8)"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done

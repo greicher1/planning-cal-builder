@@ -1,14 +1,17 @@
 # MONTH-NOTE-SIZE-PLAN.md: note sizes for the month view, and Phase bar size in the same px steps
 
-**Status: STEPS 1, 2 AND 3 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`,
-from `main` at `8125dd0`; its `node_modules` is a symlink, so unlink it before `git worktree remove`).
+**Status: STEPS 1–4 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`,
+from `main` at `8125dd0`, with `main` at `fa6aa4b` merged in as `7745a86`; its `node_modules` is a symlink, so unlink it
+before `git worktree remove`).
 - Step 1: the screen mechanism holds on three calendars at every note size × bar size, with notes sized one at a time,
   and at 75/150/200% zoom. Three findings were fixed.
 - Step 2: both dropdowns are in, and the `mvnotesize` leg is in `gate.sh`, red on ten mutants.
 - Step 3: the month PDF writer draws sized notes and 11 / 13 px bars, and the print rollback follows (E3). All 22
   existing written month PDFs are byte-identical. It also fixed how the writer shares out a crowded week's lanes, which
   cures Phase bar size's recorded 1.31 px difference. See §6.
-- **Next is step 4** (the full gate, and new baselines cut only on the owner's sign-off).
+- Step 4: `main` merged in, two new gate-13 baselines (`mvnotesize-14`, `mvnotesize-mixed`) cut on the owner's
+  sign-off, and the full gate PENDING. See §6.
+- **Next is step 5** (merge to `main`, version, push: each on the owner's picker, the push asked separately).
 
 **ALL TEN RULINGS ANSWERED (owner, by picker, 2 Nov 2026), plus two later instructions:**
 - **R4 is the owner's own design:** per-note sizes from the same list, which supersedes the recommended ceiling.
@@ -529,6 +532,25 @@ The state, the dropdowns, `mvNoteGeom`, the style bar's list and the writer are 
    - Not run: gate 10 (the print documents) and the full gate. Both are step 4. No new baselines yet.
 4. **The full gate.** Gates 10 and 13 byte-identical on every existing calendar, the v1.9.0 Large baseline included. New
    gate-13 baselines (14 px notes; 11 or 13 px bars) are cut only on your sign-off, after contact sheets of every month.
+
+   ✅ **DONE, 2 Nov 2026, on branch `month-note-size` (a session started from the step-3 session).**
+   - **`main` merged into the branch** as `7745a86` (from `fa6aa4b`), with no conflicts. `main` brought:
+     - Ends for Production, the Sim Post rename (frozen edit S1), the column-swap cache fix, and their legs;
+     - the docs for steps 1–3, which had been committed on `main`, not on the branch.
+
+     Where both sides touched nearby lines of `app.js`, each was checked by hand: `update()`'s reflects, New,
+     `captureSnapshot`, `sanitizeSnapshot` and `applyStateSnapshot`. In all five, the two sides only add separate lines.
+     In `legacy.css` and `gate.sh` the two sides touched different blocks. Build `3c45a1a8…`, `npm run check` 40/40.
+   - **Gate 13 gains two cases**, `n4` → `mvnotesize-14` and `nm` → `mvnotesize-mixed`, in `gate.sh`'s MXSPEC list and in
+     its gate-13 list. They are also still run in the note-size block, as `bl` is in the bar-size block.
+   - **The owner's sign-off came first.** Contact sheets (`monthbase.py sheets`, all 17 months of each) compared each
+     file with the `mvnotes` baseline, which is the same calendar at 10 px. The owner also saw this classification:
+     - `mvnotesize-14`: the same words except three notes cut at two lines with "…". August 2026 and April 2027 are
+       pixel-identical.
+     - `mvnotesize-mixed`: one note cut. Two one-day bars are cut by v1.9.0's bar rule at 13 px.
+
+     Answer: *"Yes, cut both"* (picker). Both files exported byte-identical twice. The baseline README records the cut.
+   - **The full gate:** PENDING (queued behind two other sessions' gates, port 8417).
 5. **Merge, version, push**: each on your picker, the push asked separately.
 
 **Rough size:** L, two to three sessions. Phase bar size took one long day for its five steps; this adds the clamp, the

@@ -29,6 +29,47 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month view: Note size, and Phase bar size in px steps (2 Nov 2026, on branch `month-note-size`)
+
+Owner: *"Since the phase bar size can be increased to large or extra large, can we also have a setting to increase the
+size of notes?"*, then rulings R0–R9 by picker, then *"Actually do sizes 10,11, 12, 13, and 14 for the phase bar
+sizes. And make sizes for both the phase bars and the notes be dropdown menus"*
+([`MONTH-NOTE-SIZE-PLAN.md`](MONTH-NOTE-SIZE-PLAN.md)).
+
+- **New: Settings ▸ Preferences ▸ Month view ▸ *Note size*, a dropdown, 10–14 px.** It covers every note the month
+  view draws: month notes, holiday names, and the waterfall's notes and automatic notes. Above 10 px a note shows at
+  most two lines, and a longer note ends in "…" on screen AND in the month PDF. ⚠️ That is new for the PDF, which
+  printed long notes whole until now. The full text stays in the tooltip and the editor. At 10 px everything is
+  exactly as before.
+- **One note can have its own size**, 6–14 px, from the month text style bar. A note with no size of its own follows
+  the calendar's. A bigger note makes only its own week's rows taller.
+- **Phase bar size is a dropdown too, 10 · 11 · 12 · 13 · 14 px.** 10, 12 and 14 are exactly the old Standard, Large
+  and Extra large; 11 and 13 are new.
+- **Save format:** `mvNoteSize`, a new PERMANENT key whose values are the strings `'11'` to `'14'`. It is ABSENT at
+  10 px, so a 10 px calendar saves byte for byte as before. `mvBarSize` gains `'11'` and `'13'`; 12 and 14 stay
+  `'large'` and `'xl'`, so a v1.9.0 build still reads them. An older build draws 11 / 13 px bars and every note at
+  10 px, a safe misreading, so `SNAPSHOT_VERSION` is unchanged. Both dropdowns are id'd selects inside `.prefs-card`,
+  so neither enters `fields.byId`. A pick is one undo step.
+- **Frozen edits (owner-approved, this setting only), all inert at 10 px with nothing sized:**
+  - E1: CSS for the screen (lanes sized by content while a note is sized, a sized note's fixed height and two-line
+    clamp, bars held at their height, the 11 and 13 px bar rows);
+  - E2: `mvNoteLineCount` measures at the note's own size;
+  - E3: the print rollback clamps sized notes the same way.
+- **The month PDF writer** (not frozen) draws sized notes and 11 / 13 px bars, taking each note's size from its own
+  inline style. It now shares a crowded week's spare room the way Chrome's grid does when lanes have different room.
+  That also cures v1.9.0's recorded 1.31 px difference at Extra large.
+- **Learned:** frozen `mvNoteBoxWidth()` measures 6/7 px wider than the box a note is drawn in. That never showed at
+  10 px, but at 14 px a note measured as one line wrapped to two. Sized notes are measured at the drawn width.
+- **Verified:**
+  - new leg `mvnotesize`, 12/12 on `mvnotes` and on `month-dense60`, red on ten mutants;
+  - a note-size block in `gate.sh` (`monthemit`, `monthwriter`, `monthexport` on the sized fixtures and on existing
+    calendars at a size), red on six writer and CSS mutants;
+  - all 22 existing written month PDFs byte-identical;
+  - two new gate-13 baselines, `mvnotesize-14` and `mvnotesize-mixed`, cut on the owner's sign-off from contact sheets
+    against the 10 px calendar;
+  - `npm run check` 40/40;
+  - the full gate on the branch with `main` merged in: PENDING.
+
 ### Unreleased — Fix: edits show up at once on a calendar with a swapped column (2 Nov 2026)
 
 On a calendar where two phases' columns had been swapped, some edits did not show in the waterfall until something
