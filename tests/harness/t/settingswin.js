@@ -121,15 +121,17 @@ window.addEventListener('load', function () { (async function () {
     // removed and every heading made editable: HEADINGS-EDITABLE-PLAN.md. It was in .prefs-card, so the sweep's id
     // set, gate 5, does not move.)
     prefs: ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off', 'share-copy-btn',
-            'wf-date-format', 'col-reuse-btn', 'pref-mv-shootdays',
+            'wf-date-format', 'pref-mv-shootdays',
             'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
   };
   // The merged cards, by view: what each one holds (W13).
-  var WF_CARD = ['one-col-btn', 'col-reuse-btn', 'wf-date-format', 'pref-gridlines'];
+  // col-reuse-btn (Reuse Empty Columns) left the card on 5 Nov 2026: the layout rules replaced the switch
+  // (LAYOUT-BUILD-PLAN.md §4), and `colReuse` is the file's layout stamp, offered by a strip, never by a control.
+  var WF_CARD = ['one-col-btn', 'wf-date-format', 'pref-gridlines'];
   var MV_CARD = ['mv-prod-label-week', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes', 'prep-pause-off', 'pref-mv-shootdays'];
   var SWEPT = ['union-place', 'custom-hol-name', 'custom-hol-date'];
   var NEVER_IN_BYID = ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off',
-                       'col-reuse-btn', 'pref-mv-shootdays',
+                       'pref-mv-shootdays',
                        'wf-date-format',
                        'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
 

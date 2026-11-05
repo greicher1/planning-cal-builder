@@ -207,9 +207,15 @@ last year. Reported with the numbers in HANDOFF.
 ## 6. Order of work
 
 1. ✅ Commit the study's uncommitted files (owner's picker, 5 Nov 2026).
-2. Piece 1: engine, fixtures, leg, the affected legs re-read, `npm run check`, compare.mjs columns, mini-gate.
-3. Ask the owner for piece 2's sign-off with §3.2 as the measurement.
-4. Piece 2: the edit, `layout-r13` / `layout-r17`, compare.mjs, the `base` leg on the legacy path, gates 2/3/10/13.
-5. Piece 3: the switch out, the strip in, help, legs.
-6. `npm run check`; the full gate (alone on the machine, ~15 min); README changelog; HANDOFF; the tracker card.
-7. Re-score the 15 seeds and report the numbers against §5.
+2. ✅ Piece 1: engine, fixtures, leg, the affected legs re-read, `npm run check`, compare.mjs columns; committed
+   `e7b589c` (owner's picker); full gate 3,977 PASS / 4 FAIL, the four in the old `colreuse` leg, every baseline identical.
+3. ✅ Piece 2 signed off (owner, 5 Nov 2026, by picker) on §3.2's terms.
+4. ✅ Piece 2: frozen edit LR1 + `layoutRestOfRun`, `layout-r13` 12/12 and `layout-r17` 5/5 (8 and 4 cases red on the
+   old build), the `base` leg on the legacy path identical to the stage-7 baseline (`sig`, `cols`, `gridWidthPt`).
+5. ✅ Piece 3: the switch out, the strip in, help, legs (`colreuse` rewritten, `settingswin`, `simpostbeside`); checked
+   in the browser pane; committed as the third commit.
+6. ✅ `npm run check` 40/40; full gate 4,000 PASS / 1 FAIL (a `pilllabel` month capture under contention, 29/29 alone);
+   README changelog; HANDOFF; the tracker card.
+7. ✅ Re-scored: stamped 98.1% of phase-weeks, 0 width misses; the 31 left are §5's four cases plus hand-10's Hard Prep
+   (6 weeks: that picture keeps it narrow beside Writers' freed column where hand-11, 15 and 16 widen) and hand-04's
+   two weeks of transcription drift (its Writers ends two weeks before the picture's). Unstamped 82.3%, unchanged.

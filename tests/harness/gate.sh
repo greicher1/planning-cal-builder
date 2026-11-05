@@ -1316,19 +1316,15 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
-# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
-# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
-# drag to fix a pick, and a row note only when something was moved by hand.
-#
-# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
-# frozen computeBlockLayout derives fewer columns from `col` as data. This leg proves the rules, on a
-# SYNTHETIC calendar (2030-2032) with one phase per rule of the plan's §3.
-# ⭐ Since 2 Nov 2026 a NEW calendar starts ticked (owner: "this can just be for calendars going forward
-# not old ones"), so the byte-compare above runs with it ON. Its calendar (buildFixture) has no handoff week
-# and lays out identically either way (checked when the default changed), which is why its baselines did
-# not move. Every ?state= fixture without the key still opens unticked.
-# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
-# LIVE's own snapshot.
+# ---- colreuse: the layout stamp, the hand move, an unstamped file's "Update layout" strip ------------------
+# (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026; LAYOUT-RULES.md / LAYOUT-BUILD-PLAN.md §4, 5 Nov 2026.)
+# The "Reuse Empty Columns" box is gone: a NEW calendar carries the layout stamp (`colReuse: true`, the box's own
+# PERMANENT key) and lays out by the layout rules (placeSegmentsByRules, not frozen; the widths behind frozen edit
+# LR1); a file WITHOUT it keeps the placement and the widths it was saved with and is offered the rules once per
+# load by the strip above the calendar. The grid's drag still moves a phase by hand (colFollow), with a row note.
+# ⭐ The byte-compare above runs the reference calendar on the LEGACY path (`?layout=legacy`): see its comment.
+# Two runs: LIVE builds a SYNTHETIC calendar (2030-2032) through the DOM; RESTORE opens
+# tests/fixtures/colreuse.sptcal, cut from LIVE's own snapshot.
 for CRSTATE in "" colreuse; do
   rm -f "$HERE/colreuse.json"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
@@ -1346,41 +1342,42 @@ except Exception as e:
 if a.get('EX'):
     print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
 if a.get('mode') == 'live':
-    chk(a.get('boxExists') and a.get('boxStartsOn') and a.get('newSnapSaysOn') and a.get('freshWasOn'),
-        'a NEW calendar starts with the box ticked, lays out with reused columns, and saves colReuse: true (owner, 2 Nov 2026)')
-    chk(a.get('boxUnticks') and a.get('boxSkippedBySweep'),
-        'the box unticks, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
-    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
-        'OFF saves no colReuse/colFollow key and shows no row note: a calendar saved unticked is unchanged')
+    chk(not a.get('boxExists') and a.get('newSnapSaysOn') and a.get('noStripOnNew'),
+        'no Reuse Empty Columns box anywhere; a NEW calendar is stamped (colReuse: true) and shows no strip')
     oc=a.get('onCols') or {}
-    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
-    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
-    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
-    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
-    chk(a.get('newColumn'), 'nothing free: a new column')
-    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
-    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
-    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
-    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
-    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
-        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
-    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
-        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(oc.get('2030')==3 and oc.get('2031')==3 and oc.get('2032')==1, f"the rules: 2030 three columns, 2031 three, 2032 one {oc}")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running (rule 2)')
+    chk(a.get('prodLeft'), "two columns handed off: Production goes LEFT, into Writers' column, not Prep's (rule 3)")
+    chk(a.get('rightOfRunning'), 'no handoff: the leftmost free column right of the running Production (rule 4)')
+    chk(a.get('newColumn'), 'nothing free: a new column (rule 5)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus, at New Year and mid-year (ruled Q5)')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost in 2031 (rule 9: its top phase started first)")
+    chk(a.get('tieByColumnOrder'), "two handoffs whose tops started the same week: the column made first is the left one (rules 3, 9)")
+    chk(a.get('onNoNotes'), 'nothing moved by hand: no row note')
     chk(a.get('selectedMix') and a.get('moved'),
         f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
     chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
-    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and nothing col-reuse is a swept field id')
     chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
     chk(a.get('pdfExported'), 'the waterfall PDF exports')
     chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
         f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
     chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
-    chk(a.get('oldFileOff') and a.get('oldFileLayout') and a.get('oldFileStillNoKey'),
-        'an OLD calendar (no colReuse key) Loads unticked, with its old columns, and still saves no key')
+    chk(a.get('oldFiveColumns') and a.get('oldNoNotes'), f"the same calendar saved WITHOUT the key Loads unstamped: the old start-order layout ({a.get('oldCols2030')} columns in 2030), no notes")
+    chk(a.get('oldStripUp') and (a.get('stripButtons') or [])[:2]==['Update layout','Keep as is'] and 'lay out automatically' in (a.get('stripText') or ''),
+        f"...and raises the strip: {a.get('stripText')!r} with Update layout / Keep as is")
+    chk(a.get('keepHides') and a.get('keepLayout') and a.get('keepStillNoKey'), 'Keep as is hides the strip, changes nothing and writes nothing')
+    chk(a.get('stripAgain'), 'the next load of the unstamped file offers again')
+    chk(a.get('updateHides') and a.get('updatedLayout') and a.get('updatedSaysOn'),
+        "Update layout stamps the calendar: the rules' columns, the strip gone, colReuse: true saved")
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoLayout') and a.get('undoUnstamped') and a.get('redoBack'),
+        'Update layout is ONE undo step: undo restores the old columns, the widths and the absent key; redo stamps again')
 else:
-    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(not a.get('boxExists') and a.get('noStrip') and a.get('restoredRules'), "a stamped file opens with the rules' columns, no box, no strip")
     chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
-    chk(a.get('newTicks'), 'New starts a new calendar with the box ticked and no hand moves')
+    chk(a.get('newStamped'), 'New starts a new calendar stamped, with no hand moves and no strip')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYCR

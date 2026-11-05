@@ -25726,9 +25726,10 @@ export function initLegacyApp() {
     pushHiddenNotesToChrome();
   }).observe(document.getElementById('table-wrap'), { childList: true });
 
-  // ---------- Column reuse: the box, the row notes, Reset (COLUMN-REUSE-PLAN.md §4) ----------
-  // The "Reuse empty columns" box. Shaped like setSingleColumn(): the control reflects the variable and
-  // never holds it, and a change is calendar data -- one undo step, a dirty file.
+  // ---------- The layout stamp's setter, the row notes, Reset (COLUMN-REUSE-PLAN.md §4; LAYOUT-BUILD-PLAN.md §4) ----------
+  // Until 5 Nov 2026 the "Reuse Empty Columns" box; now the strip's "Update layout" (maybeShowLayoutNotice), the
+  // one way an unstamped calendar takes the layout rules. Shaped like setSingleColumn(): a change is calendar
+  // data -- one undo step, a dirty file. reflectColReuse() finds no box on a page without one and does nothing.
   // ⭐ Hand-dragged column widths (ruled Q7): `y2026:s1` names a POSITION, so once a year's columns
   // change, a width would land on a different phase. The years whose columns change get automatic
   // widths again, in the same undo step; every other year keeps its own.
@@ -27308,7 +27309,7 @@ export function initLegacyApp() {
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
-    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice').forEach(el=>{ el.hidden = true; });
+    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -29921,6 +29922,34 @@ export function initLegacyApp() {
     if(el) el.hidden = true;
   }
 
+  // ---------- The "columns can now lay out automatically" strip (LAYOUT-BUILD-PLAN.md §4; owner, 5 Nov 2026) ----------
+  // Raised when a FILE is loaded (Load..., a recent, a launched file, a legacy .html, a shareable copy opening
+  // itself, a recovered backup) and the calendar carries no layout stamp (`colReuse`, LAYOUT-RULES.md §4): it keeps
+  // the placement and the widths it was saved with, forever, until its owner takes "Update layout" here. Never
+  // raised by undo, redo, New or a scenario switch, and never a silent change (owner ruling: "yes that way").
+  // "Update layout" is setColReuse(true): one undo step, with ruled Q7's width clearing, the file dirtied. "Keep as
+  // is" and the x hide it for this load; nothing is written, so the next load of the same file offers again.
+  function maybeShowLayoutNotice(){
+    const el = document.getElementById('layout-notice');
+    if(!el) return;
+    if(colReuse){ el.hidden = true; return; }
+    el.querySelector('.ln-text').innerHTML =
+      '<strong>Columns can now lay out automatically.</strong> This calendar keeps the column layout it was saved ' +
+      'with until you update it.';
+    el.hidden = false;
+  }
+  function hideLayoutNotice(){
+    const el = document.getElementById('layout-notice');
+    if(el) el.hidden = true;
+  }
+  (function wireLayoutNotice(){
+    const el = document.getElementById('layout-notice');
+    if(!el) return;
+    el.querySelector('.ln-x').addEventListener('click', hideLayoutNotice);
+    el.querySelector('.ln-keep').addEventListener('click', hideLayoutNotice);
+    el.querySelector('.ln-go').addEventListener('click', ()=>{ setColReuse(true); hideLayoutNotice(); });
+  })();
+
   // ---------- The "saves and loads in Chrome or Edge" notice (audit L-20, owner ruling R6) ----------
   // Without the File System Access API the file menu -- Load... with it -- is hidden (renderRecents)
   // and Save falls back to downloading the old .html copy, so a calendar can never be loaded back
@@ -30135,6 +30164,7 @@ export function initLegacyApp() {
     // the one moment it is relevant. Offer, not force: Save on this file still writes .html, and
     // the notice is dismissible.
     if(parsed.format === 'html') showLegacyNotice(entry.name); else hideLegacyNotice();
+    maybeShowLayoutNotice();   // an unstamped calendar is offered the layout rules (LAYOUT-BUILD-PLAN.md §4)
     return true;
   }
 
@@ -30174,6 +30204,7 @@ export function initLegacyApp() {
   // "New" — clear the active file link and reset to a blank calendar.
   function newFile(){
     hideLegacyNotice();   // a blank calendar is not the old file any more
+    hideLayoutNotice();   // ...and a new calendar is stamped
     savedFileHandle = null;
     handleNeedsPermission = false;
     savedFileStamp = null; fileConflict = false;
@@ -37161,7 +37192,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice'].forEach(id=>{
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
@@ -37234,6 +37265,7 @@ export function initLegacyApp() {
   colReuse = true; reflectColReuse();
   restoreSavedState();
   refreshAfterRestore();
+  maybeShowLayoutNotice();   // a shareable copy or a recovered backup without the layout stamp is offered it
   pushScenarioChrome();   // the strip under the calendar (one tab, unless a shareable copy or backup brought more)
 
   // Initial load/restore is done -- from here on, changes are real user edits.

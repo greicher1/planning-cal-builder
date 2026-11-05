@@ -8,8 +8,10 @@
 // Prod Prep sits in the column right of Production during Sim Post weeks, which used to send Sim Post to the
 // FAR RIGHT (frozen computeBlockLayout's conflict branch). Frozen edit SP1 puts it beside Production instead.
 //
-//   L1  reuse off: Writer's Rm | Pre-Prep | Production | Sim Post | Prod Prep, five columns as before
-//   L2  reuse on:  Production | Sim Post | Pre-Prep | Prod Prep, four columns as before
+//   L1  reuse off (an UNSTAMPED file, the legacy layout): Writer's Rm | Pre-Prep | Production | Sim Post | Prod Prep,
+//       five columns as before
+//   L2  reuse on (the layout stamp, LAYOUT-RULES.md): Production | Sim Post | Pre-Prep | Prod Prep, four columns --
+//       Production in Writers' column, and SP1 pulling the lane beside it past the running Pre-Prep
 //   L3  Prod Prep starting BEFORE Production: Sim Post beside Production in both modes
 //   L4  the workbook puts Sim Post one column right of Production too (the writers share the layout)
 //   L5  the waterfall PDF still exports
@@ -76,7 +78,19 @@ window.addEventListener('load', function () { (async function () {
   function nCols2026() { return document.querySelectorAll('#table-wrap colgroup col[data-ckey^="y2026:s"]').length; }
   function colPx(key) { var c = document.querySelector('#table-wrap colgroup col[data-ckey="' + key + '"]'); return c ? parseFloat(c.style.width) : null; }
   function heading(key) { return txt(document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + key + '"]')); }
-  async function reuse(on) { var b = $('col-reuse-btn'); if (b && b.checked !== on) { b.click(); await T.sleep(600); await settle('reuse ' + on); } }
+  // "Reuse on / off" was the Reuse Empty Columns box until 5 Nov 2026 (LAYOUT-BUILD-PLAN.md §4). It is the
+  // layout STAMP now (`colReuse`), which no control sets: a new calendar carries it, a file without it keeps the
+  // legacy layout. So the calendar as it stands is saved and loaded back with the key set or removed -- every
+  // edit made so far travels in the snapshot, the undo history starts afresh (no case undoes across this).
+  var reuseSeq = 0;
+  async function reuse(on) {
+    var s = await snapshot();
+    if (!!s.colReuse === on) return;
+    if (on) s.colReuse = true; else delete s.colReuse;
+    reuseSeq++;
+    await T.openViaFakePicker(null, 'simpostbeside-reuse-' + reuseSeq + '.sptcal', {text: JSON.stringify(s), writes: writes});
+    await T.sleep(400); await settle('reuse ' + on);
+  }
   async function simPost(on) { var b = $('simpost-enabled'); if (b.checked !== on) { b.click(); await T.sleep(600); await settle('sim post ' + on); } }
   async function snapshot() {
     var cap = T.captureDownload();
