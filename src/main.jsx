@@ -150,7 +150,8 @@ function Chrome() {
       {portal(
         <InfoHint label="All-phase hiatus" width={300}>
           A production-wide pause (e.g. a winter break) that stops every phase at once and pushes
-          the whole schedule out. For pausing a single phase, use its own hiatus toggle above.
+          the whole schedule out. For pausing a single phase, use its own hiatus toggle above. With
+          Ripple Hiatus Periods on, the phases that start after a hiatus move with it when you change it.
         </InfoHint>,
         '#hiatus-hint-host')}
       {/* "Reset hiatus bands" (owner ruling 5) at the foot of the same static card, the way

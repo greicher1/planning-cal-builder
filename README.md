@@ -79,6 +79,196 @@ ruling R6) draws candidate layouts — and a hand-made calendar's own layout —
 today's. **Verified:** in the browser pane a seed drew the forced columns; the study's `tools/layout-study/` (scrub,
 transcribe, compare, serve, the page) runs against the build. Leg `layouthook` and a full gate are still to run.
 
+### Unreleased — the month view's bar drag carries what the arrows carry (5 Nov 2026)
+
+Dragging a phase's bar in the month view now takes **its own hiatus** and **everything keyed to its weeks** with it:
+its hiatus band's name, colour, size and style, its cell spans, its column swaps and its text styles (Sim Post's with
+Production). Before, only its start date moved, so those stayed behind on the old weeks, while the phase card's ▲ / ▼
+and the Shift tool carried them. Owner's ruling D7 (4 Nov 2026, by picker: *"yes, as its own change, right after the
+arrows"*; PHASE-WEEK-ARROWS-PLAN.md §5).
+
+- **The same mover as ▲ / ▼**, so the two agree: a drag of one row is one ▼, snapshot for snapshot. Typed notes,
+  all-phase hiatuses, the calendar range and every other phase still stay; Production's day marks still move by
+  shoot-day number; edited automatic notes still follow.
+- **By the whole weeks the phase's run moved.** The drag still moves the date day by day; a day inside the same week
+  carries nothing, and an Ends phase carries by the weeks its end moved.
+- **Carried from the press on every step**, never step to step, so dragging out and back puts every store back
+  exactly, and the own hiatus moves live while the button is down. Still ONE undo step.
+
+Engine: `shiftCalendarDates` gains `opts.carryOnly` (with `part`: the phase keeps the date its caller wrote, and only
+what it carries moves); `carryPhaseDrag` beside `nudgePhase`. No frozen code, no writer and no save-format change, no
+new id. New leg `mvdragcarry` (15 cases, in gate.sh) on new fixture `mvdragcarry.sptcal` (`phasearrows.sptcal` plus one
+stale band label): red on `origin/main` on every carry case, and on two mutants (carried step to step; by days instead
+of the run's weeks). Full gate: 4,043 PASS, 1 FAIL (`scenariocompat` on the v1.2.0 release file, the known load flake,
+green alone), every baseline identical.
+
+
+### Unreleased — Shift: tick the phases that move (5 Nov 2026)
+
+Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if
+... you just selected every phase you wanted it to effect kinda like how it works in rebuild from"*, then *"is there
+anyway to have both?"*, then, from four measured layouts, *"ok lets go with A"*; ANCHOR-TO-DIRECTION-PLAN.md §7,
+`mockups/shift-tick-phases.html`):
+
+- **Rebuild From's rows:** a tick, the colour, the name, its date, and what happens to it: Moves or Stays by weeks,
+  the new date and Pushed / Pulled N wks to a date.
+- **The three buttons fill the ticks in.** All phases ticks every phase; Phase & before and Phase & after tick the
+  phase you pick and every phase starting on that side. Change any tick and it is your own set, and then no button
+  is pressed. So "everything except the Writer's Room" is one untick.
+- **Folded under All phases** behind *Choose phases…*, so the box opens as short as before (225 px, 2 px shorter).
+- **To a date** pins the phase that lands on your date; Whole schedule fixes every tick. The ticks are forgotten
+  when the box closes, as Rebuild From's are.
+- **Which notes move with your own set** (owner's picker, T2): a note moves when its week is inside a ticked
+  phase's run, even in a week an unticked phase shares. Unlocked all-phase hiatuses and the calendar range follow
+  the same rule. The shortcuts keep their window as before.
+
+Engine: `shiftCalendarDates`' `opts.part` is now `{phases, windows}`, a list of week windows: a shortcut's one, or one
+per ticked phase. No frozen code, no writer and no save-format change; the ticks carry `data-key` and no id, inside
+`.tools-menu`. The Help's "Adjusting dates" section gains the list. `anchorside` grows to 29 cases (the fold, a
+shortcut's ticks, a hand-picked set, T2 in a shared week and across a gap, nothing ticked, Whole schedule, the reset);
+a one-span build is red on C4.
+
+
+### Unreleased — a hiatus change moves the phases after it (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+adjust all the phases. It should be very clear how to turn it on or off"*. Plan and rulings: `HIATUS-RIPPLE-PLAN.md`.
+
+- **What it does.** A hiatus pauses the phases running through it, as before. Now, when a hiatus is added, removed,
+  lengthened, shortened or moved, every phase that starts on or after it also moves by the same number of weeks, so
+  the gaps between phases stay as they were. A moved hiatus counts as taken out where it was and put back where it
+  is: what it no longer holds up is pulled back, and what it now holds up is pushed. A phase's own hiatus moves every
+  other phase that starts on or after it. It is the Shift tool's move, run for you from the hiatus: notes and unlocked
+  hiatuses after it travel too, and locked hiatuses, holidays and notes with a date stay put.
+- **When.** Once you finish the edit: when you leave the hiatus's Starts and Weeks boxes, press Enter, pick a date in
+  the date popover, click its ×, switch a phase's hiatus on or off, use the right-click Hiatus items, or let go of a
+  month-view drag (its Keep / Undo question now says what was pushed). Never while you type: a year typed digit by
+  digit moves nothing until you leave the box. Opening a file, undo, New and the shift tools never trigger it.
+- **What you see.** A line under the hiatus, e.g. "Pushed 1 wk: Production, Post · Wrap 6/12/26". One ⌘Z takes back
+  the push and keeps your hiatus change; a second takes back the change.
+- **Turning it off.** One switch, **on by default**, kept on this computer (never in a file). It is "Ripple Hiatus
+  Periods" in Settings › Preferences › Hiatus and at the top of the All-phase hiatus card, and "Ripple Hiatus" in each
+  phase's Hiatus block (the owner's names); flipping any of them flips all three. Off, a hiatus only pauses, as before.
+- **Unchanged:** the grid, the exports, the save format (no new key, no new saved id). Every calendar opens and prints
+  as before; a push happens only on an edit.
+- **Verified:** new `hiatusripple.mjs` gate leg, 15 cases on real keyboard and mouse input (CDP), red on the build
+  before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
+  on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
+  `settingswin` W13 lists the new card. Full gate on the build merged with the one Shift tool: 3,898 PASS / 12 FAIL,
+  every FAIL a stalled leg (or a check fed by one) or the rename, all 196 checks of them green on the renamed
+  build, the waterfall PDF and Excel parts identical to the baselines. R0 holds the switch's three names.
+
+### Unreleased — ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
+
+The owner asked for a way to move one phase up or down the waterfall: *"on the phases in the leftside column, above
+and below the date box, little up and down arrows appear allowing you to shift up or down by a week at a time.
+Waterfall only"*. They ruled on six layouts in
+[`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html) (*"lets go with D"*), and on the rest by picker
+([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §7).
+
+- **Two small buttons stacked inside the date box, always shown in the waterfall:** ▲ moves that phase one week
+  earlier, ▼ one week later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no
+  arrows. The layout is **C2** (owner: *"C2, but make sure the buttons aren't actually touching the top or bottom lines
+  of the box"*), chosen after layout D (two buttons beside the box) was built and all six were drawn on the real card
+  at three window widths: D widened the date column and stacked the card below a ~1450 px window.
+- **What moves with the phase:** its own hiatus, and what belongs to its cells: band names and colours, cell spans,
+  column swaps, text styles. Its automatic notes follow, since they're worked out from the dates. An edited automatic
+  note drops its standard line and keeps the lines you added on their week, as the month view's drag does.
+  Production's day marks keep their shoot-day numbers.
+- **What stays:** every other phase, typed notes, holidays, all-phase hiatuses (locked or not), the calendar range,
+  and the month the month view is on. The gaps either side change. To keep gaps, use Shift.
+- Snap-off phases keep their weekday. A phase held by its end moves its end Friday. A Dates phase moves both dates.
+  Production is scheduled again, so its wrap can move by more or less than a week around holidays.
+- **A burst of clicks is one undo step**, with a label on the card's caption line: "Pushed 2 wks", "Pulled 1 wk",
+  "Back where it was". A pause of 1.6 s or any other click or key ends the burst. Production's day marks stay bound
+  for the whole burst, so down then up inside one burst puts everything back exactly. A label can add what the move did
+  to a worked day ("· 1 worked day no longer on a day off").
+- **Keyboard:** Alt+↑ / Alt+↓ in the date box.
+- The Help's "Adjusting dates" section has a paragraph on them, after Shift.
+- While the arrows show, the card's boxes are 37 px tall instead of 30 (2 px clear above ▲ and below ▼), Length's
+  too so the two stay level. The card is 7 px taller and otherwise keeps its shape.
+
+Engine: the move is the Shift tool's own `shiftCalendar(dir, null, {part: {phases: [key], …}})` with an EMPTY week
+window (`fromWeek` after `toWeek`), so nothing week-keyed moves but what the phase owns; `opts.keepView` (the same
+name and line as the hiatus-ripple branch's) leaves the month view's cursor alone. `undo()` and `redo()` end a running
+burst first, so no snapshot is ever restored under a day-mark binding. The arrows, their holder and the label carry
+no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh;
+its L1 / L2 hold the buttons inside the box with 2 px clear at sidebars of 280 to 440 px)
+on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
+"Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
+▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40. Full gate on the branch: 3,981 PASS
+/ 3 FAIL with every baseline identical; the three were 10 s Load waits while another gate ran, each green re-run.
+
+### Unreleased — the waterfall's note editor says what a line is, and hides it (4 Nov 2026)
+
+The waterfall's note editor no longer calls every cell a "Note" (owner, 30 Oct 2026: *"why does this still show as
+Note in the waterfall"*), and it has the month view's Hide (owner, 4 Nov 2026: *"Should there be an equivalent hide
+auto note button in the waterfall view?"*). WATERFALL-NOTE-EDITOR-PLAN.md, ruled by picker:
+- A cell holding one automatic note opens as **Auto Note · 10/20/26** with **Hide Auto-Note**; one holiday, as
+  **Holiday · 9/7/26** with **Hide Holiday**. The box still holds the whole cell, so a line can be added.
+- A cell holding several lines lists its automatic notes and holidays under the box ("In this cell", with the month
+  view's ↻ and ⚑ marks), each with its own **Hide**.
+- Hide takes the note out of the Waterfall, Excel and the waterfall PDF only, at once: the month view keeps it (a
+  holiday stays a day off), anything else typed in the box is saved with it, and one undo brings it all back. On a note
+  the month view already hides, it switches the note off.
+- The Day picker and "Show in month view" appear only while the box holds a typed line (they do nothing for automatic
+  notes and holidays).
+- **Fixed:** renaming an automatic note or a holiday AND adding a line in one save lost the rename; taking a line out
+  while typing another left the note to come back after a schedule move. The editor now works out which line became
+  which by content, so both stick. Typing straight over one line still renames it (rename ruling 3). Where the box also
+  gained or lost lines at that spot, a line counts as renamed only if it keeps the note's date ("Labour Day 9/7/26");
+  lines typed afresh over a holiday's are the user's own text, and the holiday is left alone, as before.
+
+No frozen code (the editor is a body-level panel, outside the grid) and no saved-file change. New leg `wfnoteeditor`
+(13 cases, in gate.sh), red in 4 cases on a build with the old line matching. **The full gate caught a regression in
+the first build:** its base leg types two lines of its own over Labor Day's, and the first content matching read the
+first line as a rename, so Labor Day was called "Studio Cut Due" everywhere (the waterfall PDF, the workbook's strings
+and the grid signature all moved). Hence the date rule above, and case R4. After the fix the base leg is identical to
+its baseline again, and a second full gate on the fixed build is 3,920 PASS / 2 FAIL (two timeouts, each green alone)
+with every baseline identical. Neighbours green: noteviews, notewrap, holidayrename, wfkeys, wfmenu, autonoterename, autonoteview,
+autonotekinds, autonotephases, hdrcontrols, wfnotecolors, dlgkeys, regionmirror, hdrrow, mvmenu, monthnotes, textstyle.
+`npm run check` 40/40.
+
+### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+
+The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
+one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
+are gone. What they did is two choices in the Shift form, under Shift All's old caret, which now reads **Shift ▾**:
+
+- **What moves:** `All phases | Phase & before | Phase & after`. The phase row under it shows only when a phase is
+  needed, and a hint names the phases that stay put.
+- **How far:** `By weeks` (`[n] wks  Earlier  Later`) or `To a date` (`[starts on / ends by]  [date]  Go`).
+- **Where each old tool went:** Shift All's form is All phases, By weeks, which is what the form opens on every time
+  (ruling R2(a)). Shift From is Phase & after, By weeks. Anchor To is All phases, To a date, with Whole schedule in
+  the list only there. The ← 1 wk / 1 wk → arrows are unchanged.
+- **New: Phase & before.** The picked phase and every phase before it move, and the gaps are kept. Before, no tool
+  did this. Example: delivery is fixed but the shoot must start two weeks earlier.
+- **Each phase goes by where it STARTS.** Phase & after Pre-Prep leaves a Writer's Room that runs into Pre-Prep,
+  because it started earlier. Phase & after is exactly the old Shift From. ⚠️ For one deploy (`c52094f`, 5 Nov
+  03:16 UTC) a phase overlapping the picked one moved too (owner's *"Overlaps move too"*). The owner reverted it the
+  same night: *"how would you move everything except for writers room"*.
+- Notes, unlocked all-phase hiatuses and the calendar range go from the picked phase's start week (after) or up to its
+  LAST week (before), so the picked phase takes its own notes and any hiatus inside it along. Holidays, locked hiatuses, dated notes and day notes never
+  move; Production's day marks travel by shoot-day number, as on every mover.
+- The result line for All phases is the old one, word for word. A part-calendar move adds what moved and what stayed
+  (*"Production and everything before it moved (4 phases). 2 stayed where they were."*).
+
+Engine: `shiftCalendarDates(weeks, fromIso, opts)` gains `opts.part = {phases, fromWeek, toWeek}`: exactly those phases
+move, and everything week-keyed inside the window. The form works the set out once (`shiftPlan`) for its hint and the
+move. With no `part`, every existing caller does exactly what it did. `part` with one phase is also the "just this
+phase" mover that the per-card week arrows' plan asks for. The third argument is ONE options object, shared with
+HIATUS-RIPPLE-PLAN.md's `except`. No frozen code, no writer and no save-format change: the choices are id-less buttons
+inside `.tools-menu`, and the ids `tool-shift-*` / `tool-anchor-*` live on in the form (`tool-ripple-*` retired).
+The Help's "Adjusting dates" section is rewritten. New leg `anchorside` (23 cases, in gate.sh) on a new synthetic
+fixture `anchorside.sptcal`, which has two overlaps by days. X2 is the owner's case: Phase & after leaves a phase that
+started earlier and runs in. A build with one bound at the picked phase's start is red on B2 and B3. `builtindates`, `customunits`,
+`datepick` and `snaptools` open Shift instead of Anchor To; `calrange`, `overrides` and `rowheight` pick Phase & after
+instead of Shift From. Full gate: 3,927 PASS, every baseline identical. Its 20 FAILs were in five legs that don't
+touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscolour`, `offweek`, `mvnotes`). The
+gate ran on the start-week rule. That rule was briefly replaced by the overlap rule and is now back; each step was
+re-checked on the targeted legs (HANDOFF).
+
+
 ### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
 
 The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me

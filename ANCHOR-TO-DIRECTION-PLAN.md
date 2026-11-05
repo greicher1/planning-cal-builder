@@ -1,6 +1,6 @@
 # ANCHOR-TO-DIRECTION-PLAN.md: Anchor To, choose what moves
 
-**Status: RULED, NO APP CODE (4 Nov 2026).**
+**Status: RULED (4 Nov 2026); layout C BUILT the same day on branch `shift-tool` (HANDOFF's entry has the as-built record).**
 - **The owner chose layout C, one Shift tool (§6):** *"Ok im going to vote we go with C, one master shift tool"*.
 - **R2(a):** it opens on All phases, By weeks every time, which is today's Shift All form.
 - **The phase row shows only when it is needed (§6.2),** by the owner's picker.
@@ -398,3 +398,99 @@ Those are two settings, not three tools:
    - The README changelog, which says which buttons went and where they went.
    - HANDOFF and the tracker card.
 6. A full gate before any push (§5 step 5).
+
+---
+
+## 7. Tick the phases that move, with the three buttons as shortcuts
+
+**RULED (owner, 5 Nov 2026): layout A** (*"ok lets go with A"*), T2 (a) by picker (a note moves when its week is inside a
+ticked phase's run), T3 the landing phase pinned. **BUILT the same day on branch `shift-tool`** (HANDOFF's entry has
+the as-built record). §7.1–7.4 below are the plan as written before the ruling.
+
+Asked 5 Nov 2026, after the one Shift tool went live:
+- *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected every
+  phase you wanted it to effect kinda like how it works in rebuild from right now?"*
+- then *"is there anyway to have both?"*
+- then *"Yes, mock it up"*.
+
+Mockup: [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html), tabs A and B. Tracker card `shift-tick-phases`.
+
+### 7.1 What it is
+
+- **A list of the phases** sits under the phase row, in Rebuild From's look (`.solve-list` rows): a tick, the colour,
+  the name, the date, and what happens to it.
+  - By weeks it says **Moves** or **Stays**.
+  - To a date it shows the new date and **Pushed / Pulled N wks**.
+  - It replaces the hint line, because the rows say what stays.
+- **The three buttons become shortcuts that fill in the ticks.**
+  - All phases ticks every phase.
+  - Phase & before and Phase & after tick the picked phase and every phase that STARTS before or after it. That is
+    today's rule (§2), so a Writer's Room running into Pre-Prep stays unticked with Phase & after Pre-Prep.
+  - Any tick can then be changed. A set that matches no shortcut leaves none of the three pressed.
+  - Picking another phase re-ticks while a shortcut is pressed, and keeps your own set otherwise.
+- **To a date pins the landing phase** (Rebuild From's `.is-pin` row): it has to move, so it has no tick to clear.
+- **Whole schedule** (All phases, To a date) ticks every phase and locks them.
+- **Nothing changes for someone who ignores it.** It opens on All phases, By weeks (R2(a)), and the ticks are
+  forgotten when the box closes, as Rebuild From's are.
+- **The engine is done.** `shiftCalendarDates`' `part = {phases, fromWeek, toWeek}` (live since 5 Nov 2026) already
+  moves any set. The ticks would be its `phases`.
+
+### 7.2 Rulings needed
+
+- **T1. The list under All phases.**
+  - (a) Folded behind one line, *"Every phase moves · Choose phases"*, opening by itself for Phase & before / after
+    or on a click (tab A). *(Recommended: the box opens at 248 px, as today; the list adds about 30 px a phase, to
+    about 430–470 px.)*
+  - (b) Always shown (tab B).
+- **T2. Which notes move for your own set.** A shortcut keeps today's window (§2). For a hand-picked set:
+  - (a) a note moves when its week is inside a ticked phase's run, even a week an unticked phase shares.
+    *(Recommended: the picked phases win, as they do today.)*
+  - (b) only weeks no unticked phase runs in.
+  - Unlocked all-phase hiatuses and the calendar range follow the same test.
+  - The phase-linked notes plan (tracker card `notes-linked-to-phase`) would settle shared weeks properly.
+- **T3. To a date: the landing phase always ticked and pinned.** *(Recommended: otherwise "Pre-Prep starts on 4/5"
+  could leave Pre-Prep where it is.)*
+
+### 7.3 Build sketch (after the rulings)
+
+- `PreviewToolbar.jsx`: an empty list host and a count in `#pop-shift`. The engine fills them, as it fills Rebuild
+  From's. The ticks carry `data-key` and no id, inside `.tools-menu`.
+- `app.js`: `shiftPlan` gains a ticks set, which the shortcuts fill and the rows edit. The result line names the
+  phases that stayed for your own set.
+- The `anchorside` leg grows cases for a hand-picked set, the fold, the pin and T2's notes.
+
+### 7.4 Four layouts, measured (owner, 5 Nov 2026: *"give me some other slight variations and really consider what is
+the easiest and most intuitive way to build this menu so its easy to understand and use but still retains all
+functionality"*)
+
+The mockup's four tabs. All four keep every function: any set of phases, the three shortcuts, by weeks, to a date,
+Whole schedule. They differ in three choices only:
+
+| | Picks the phase | By weeks / To a date | The shortcuts | List under All phases | Opens at | Phase & after, 7 phases |
+|---|---|---|---|---|---|---|
+| **A** | the dropdown | a switch | three buttons | folded ("Choose phases…") | 232 px | 467 px |
+| **B** | a pin on each row | a switch | three buttons | folded | 232 px | 439 px |
+| **C** | the dropdown (always shown) | both rows, always | three buttons | folded | 282 px | 481 px |
+| **D** | a pin on each row | both rows, always | small links in the list's header | always open | 413 px | 397 px |
+
+- **A, buttons + dropdown + list + switch.** Every step is labelled, in order: what moves, which phase, the list,
+  how far. The parts are Rebuild From's, in Rebuild From's order, so nothing is new to learn. Its only
+  redundancy: the dropdown and the pinned row both name the phase.
+- **B, the list picks the phase.** No dropdown. Every row has a pin at its right end; the pinned row is the one the
+  shortcuts and the date work from. One control fewer, and the phase is named once. Costs: a row has two click
+  targets (the tick, the pin), and Rebuild From would still pick with a dropdown unless changed the same way.
+- **C, no switch.** The weeks row and the date row are both always there, each with its own buttons, so no row ever
+  changes under you. Costs: one more row, and the dropdown must always show (the date row needs it), which goes
+  against the live tool's ruling that the phase row shows only when needed.
+- **D, one surface.** The list is always open, the shortcuts are small links in its header (`All phases · & before ·
+  & after`), the pin picks the phase, both rows show. Fewest controls; nothing hidden. Costs: tallest the moment it
+  opens (413 px against today's 232), and the shortcuts, the owner's chosen words, shrink to links.
+
+**Recommendation: A.** ✅ Ruled A. Not the fewest controls, but every control is labelled, nothing is behind a gesture, and it
+is Rebuild From's parts in Rebuild From's order. B is the one to pick for fewer controls, and then Rebuild From should
+pick its phase the same way. C and D trade the owner's earlier rulings (a short opening, the phase row only when
+needed, the three words as buttons) for fewer modes.
+
+The fold under All phases (A, B, C) is one quiet link, *"Choose phases…"*, right-aligned under the buttons, so the box
+opens as short as it does today (232 px against 248 in the first cut). With both rows (C, D) the landing phase is
+pinned once the date row is the one touched last.

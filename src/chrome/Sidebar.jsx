@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip, CloseButton } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 import { useSeasons, seasonsText } from './SeasonPop.jsx'
@@ -927,6 +927,35 @@ function HeaderPresets() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+// ⭐ "Ripple Hiatus Periods" (HIATUS-RIPPLE-PLAN.md §5; named by the owner 4 Nov 2026, "Ripple Hiatus" in a phase's
+// Hiatus block; owner rulings R1-R3, 4 Nov 2026: one on/off
+// switch, ON by default, kept on this computer, in Preferences and also on the hiatus cards). Both views, so it is no
+// .pref-view-* card. ⛔ A PREFERENCE (prefs.hiatusRipple, absent = on), never calendar data: inside .prefs-card, so
+// collectFieldValues() skips its id and fields.byId does not move. ⛔ UNCONTROLLED: the engine writes .checked in
+// reflectHiatusRipple() (every update()), and takes a flip by delegation on the id, as #pref-mv-week. Its twins on the
+// All-phase hiatus card and in each phase's Hiatus block carry no id at all (they sit outside .prefs-card).
+export function HiatusPrefsCard() {
+  return (
+    <section className="card prefs-card">
+      <h2>
+        <IconPause className="card-ic" /><span>Hiatus</span>
+        <InfoHint label="Ripple Hiatus Periods" width={300}>
+          On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
+          after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
+          hiatuses, holidays and notes with a date stay put. ⌘Z takes back the push and keeps your hiatus change.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
+        <SettingRow htmlFor="pref-hiatus-ripple" label="Ripple Hiatus Periods">
+          <Switch id="pref-hiatus-ripple" size="md" defaultChecked
+                  aria-label="Ripple Hiatus Periods: move the phases after a hiatus when it changes"
+                  title="Kept on this computer. The same switch is on the All-phase hiatus card, and in each phase’s Hiatus block as Ripple Hiatus" />
+        </SettingRow>
+      </div>
+    </section>
   )
 }
 

@@ -15,6 +15,10 @@
 //      without the .prefs-card exclusion the control is baked into every saved calendar and adds a
 //      phantom undo step per change. Proved against a real exported copy.
 //   4. THE EDITOR IS UNTOUCHED in both states.
+// ⭐ "Nothing stored at boot" is this leg's premise (inertAtBoot), and lib.js now stores the hiatus ripple's switch off for
+// every leg (HIATUS-RIPPLE-PLAN.md §8). This runs before the app reads its preferences, as lib.js does, and puts the store
+// back to empty. Nothing here edits a hiatus, so the ripple's default does not matter to it.
+try { localStorage.removeItem('sptcal.prefs'); } catch (e) {}
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   try {

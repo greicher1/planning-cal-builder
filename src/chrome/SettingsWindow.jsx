@@ -47,7 +47,7 @@ import { useState, useLayoutEffect, useEffect, useRef } from 'react'
 import { Tabs } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import {
-  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard,
+  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard, HiatusPrefsCard,
 } from './Sidebar.jsx'
 
 // ⚠️ The VALUES are what a leg or the engine names (chrome.settingsWindow({ open, tab })); the labels
@@ -91,6 +91,8 @@ const PREFS_PANEL = (
     <MonthViewCard />
     {/* Automatic notes (ruling 9) reach both views, so it is no .pref-view-* card. No id in it. */}
     <AutoNotesCard />
+    {/* Ripple Hiatus Periods (HIATUS-RIPPLE-PLAN.md §5): a preference for both views, in a .prefs-card. */}
+    <HiatusPrefsCard />
     <AppCard />
   </>
 )

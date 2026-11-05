@@ -1930,6 +1930,29 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
+# replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
+# date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
+# after is the old Shift From; a phase goes by its START, so one that started earlier and runs into the picked one
+# stays (X2, the owner's "everything except for writers room", which reverted "overlaps move too"); notes, unlocked
+# hiatuses and the range go up to the picked phase's LAST week on Phase & before (red on a one-bound build: B2, B3);
+# by weeks = to a date; one undo; the form's resets; no new key in fields.byId. On anchorside.sptcal. Since 5 Nov 2026
+# (owner's layout A, plan §7) the LIST of phases: folded under All phases, opened by "Choose phases…", a shortcut's
+# ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
+# (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
+# reset on reopening, and no id on any tick.
+# phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
+# week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
+# the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
+# where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
+# undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
+# Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
+# mvdragcarry (owner, 4 Nov 2026, by picker; PHASE-WEEK-ARROWS-PLAN.md §5) is the month view's body drag on the arrows'
+# mover: a dragged phase carries its own hiatus and its "<week>|<key>" stores by the whole weeks its run moved, always
+# from the press (out and back is exact, a stale band label included), live while the button is down, as ONE undo step;
+# a row's drag = one ▼, snapshot for snapshot, for Post, Production (marks by shoot day) and an Ends phase. Red on
+# origin/main on every carry case, and on two mutants (carried step to step: O2/O3; by days, not the run's weeks: K1).
+# On mvdragcarry.sptcal (phasearrows.sptcal + one stale band label, 7/6/26).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1947,6 +1970,11 @@ done
 # hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind, frozen edits N1 and N2 under a
 # typed waterfall note (red on a build without either), a shift over two typed weeks, the month editor's write-back,
 # and a delete in one view switching a note off when the other view already hides it.
+# wfnoteeditor (owner, 30 Oct + 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md) is the waterfall's note editor naming what a
+# cell holds and hiding it: the headings (Auto Note / Holiday / Note), the Hide Auto-Note and Hide Holiday buttons and the
+# "In this cell" list, the Day picker and Show in month view shown only for typed lines, Hide acting at once with one undo
+# step (a typed line saved with it), Hide on a note the month view already hides switching it off, and a rename or a
+# removal sharing a save with an added line (D2; red on a build with the old count-based wfLineEdits).
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -2045,11 +2073,15 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
+              anchorside:anchorside:400 \
+              phasearrows:phasearrows:400 \
+              mvdragcarry:mvdragcarry:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \
+              wfnoteeditor:autonoterename:500 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \
@@ -2746,6 +2778,32 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYHD
+
+# ---- hiatusripple: a hiatus change moves the phases after it (HIATUS-RIPPLE-PLAN.md) ------------------
+# ⭐ ADDED 4 Nov 2026 (owner: "editing a hiatus (either all phase or per phase) can automatically ripple the whole
+# calendar to adjust all the phases"; rulings R1-R5 by picker). A Node script for hiatusdrag's reason: the ripple runs
+# when an edit SETTLES (focus leaves the hiatus's Starts / Weeks, Enter, a pick in the date popover), never per
+# keystroke, and only CDP input is trusted input that moves focus as Tab and a click do. On hiatusripple.sptcal, ON by
+# default: the three copies of the switch, no id, no file key (R0); Weeks by the spinner, one push on Tab, the notes
+# and the locked/unlocked hiatuses (R1, R3); two undo steps (R2, R5); a move typed digit by digit through 0002 /
+# 0020 / 0202 (R4); Enter (R5); the x (R6); a phase starting inside the hiatus (R7); a phase's own hiatus, picked in
+# the popover, and switched off (R8); the switch off, on, and across reloads (R9); code writes (R10); the month drag,
+# Keep and Undo (R11, R12); the waterfall's right-click (R13). Red on origin/main (every case) and on six mutants, each
+# on its own cases. ⚠️ Every other leg runs with the switch OFF (lib.js; hiatusdrag.mjs by its own init script).
+node "$HERE/hiatusripple.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusripple.json" "hiatusripple (hiatusripple)" <<'PYHR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHR
 
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects

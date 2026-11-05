@@ -234,7 +234,8 @@ window.addEventListener('load', function () { (async function () {
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
       // Anchor To: Stage Build's START to 2/24/27, a whole-calendar shift of 2 weeks.
-      $('pop-anchor-btn').click(); await T.sleep(150);
+      // Anchor To is the Shift form's To a date since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6), on All phases.
+      $('pop-shift-btn').click(); await T.sleep(150); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
       T.set('tool-anchor-phase', 'custom3'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-02-24');
       $('tool-anchor-go').click(); await settle();
       out.movers.anchor = dates();

@@ -42,6 +42,32 @@ It holds the R5 rewrite in the month view's drags (owner, 19 Oct 2026: the grip 
 and `pilldrag` E18/E19 hold the two frozen lines in `notesForWaterfallDate` approved the same day (a one-digit day,
 and a line dated outside its note's week). Both cases were red on the grip-fix build `65389d35…`.
 
+## The one Shift tool's two sides (4 Nov 2026)
+
+`anchorside.sptcal` is `dayoverrides.sptcal` with, **added by script** (no real save; every other byte as it was):
+Localization 3/1/27 x 8, a calendar range start of 2/2/26, an UNLOCKED one-week "Fall Break" from 9/21/26 inside the
+shoot, and six week notes: `PREP-NOTE` (4/13), `SHOOT-WK6` (8/3), "Wrap party booked" (7/27, DATED 7/30, so pinned),
+`OVERLAP-WK` (11/2), `POST-WK3` (11/16) and `LOC-WK2` (3/8/27). It holds two overlaps by days. With the Fall Break the
+shoot wraps Tue 11/3, so Post (11/2) starts inside it. Pre Prep (snap-off Wed 4/8 x 6) works to Tue 5/19, inside Prod
+Prep's first week. Prod Prep and Production are back to back. Both overlaps STAY with a part move, because a phase goes
+by its start (ANCHOR-TO-DIRECTION-PLAN.md §2; the owner reverted "overlaps move too" the same night). It keeps dayoverrides' four day marks,
+its locked Summer Break and Christmas hiatuses, and Pre Prep snap-off on Wed 4/8. Read by `anchorside` (in gate.sh).
+
+## The phase card's week arrows (4 Nov 2026)
+
+`phasearrows.sptcal` is `anchorside.sptcal` with, **added by script** (no real save): Post's own one-week hiatus "Post
+Pause" from 1/4/27; four stores keyed `<week>|post` (a cell span and a bold phase text style on 11/23, the Post Pause
+band's colour on 1/4/27, and Post's half of a column swap with Production in the week they share, 11/2); and an EDITED
+automatic note on 6/29/26, Production's own "Start Principal Photography 6/29/26" with `PROD-EXTRA` under it
+(Production Starts is one of the three automatic notes this calendar has on). The title reads "Phase Arrows Test", and
+it opens in the waterfall on the Phases tab. Read by `phasearrows` (in gate.sh; PHASE-WEEK-ARROWS-PLAN.md).
+
+`mvdragcarry.sptcal` (5 Nov 2026) is `phasearrows.sptcal` with ONE key added by script: a stale band label,
+`hiatusTexts["2026-07-06"] = "Old Break Name"`, on a week with no band, one week above the locked Summer Break's
+7/13. A one-phase move re-keys such a label, and one row down lands it on 7/13, where it yields; the label is how the
+leg proves the month drag carries from the PRESS (out and back brings it home). Read by `mvdragcarry` (in gate.sh;
+PHASE-WEEK-ARROWS-PLAN.md §5).
+
 ## From the deployment-readiness audit (24 Sep 2026)
 
 These came out of `AUDIT-REPORT.md`. They were promoted here by `FIX-PLAN.md` step 0.1, so the batch
