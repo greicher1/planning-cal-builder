@@ -398,3 +398,59 @@ Those are two settings, not three tools:
    - The README changelog, which says which buttons went and where they went.
    - HANDOFF and the tracker card.
 6. A full gate before any push (§5 step 5).
+
+---
+
+## 7. Tick the phases that move, with the three buttons as shortcuts (mockup, nothing ruled)
+
+Asked 5 Nov 2026, after the one Shift tool went live:
+- *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected every
+  phase you wanted it to effect kinda like how it works in rebuild from right now?"*
+- then *"is there anyway to have both?"*
+- then *"Yes, mock it up"*.
+
+Mockup: [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html), tabs A and B. Tracker card `shift-tick-phases`.
+
+### 7.1 What it is
+
+- **A list of the phases** sits under the phase row, in Rebuild From's look (`.solve-list` rows): a tick, the colour,
+  the name, the date, and what happens to it.
+  - By weeks it says **Moves** or **Stays**.
+  - To a date it shows the new date and **Pushed / Pulled N wks**.
+  - It replaces the hint line, because the rows say what stays.
+- **The three buttons become shortcuts that fill in the ticks.**
+  - All phases ticks every phase.
+  - Phase & before and Phase & after tick the picked phase and every phase that STARTS before or after it. That is
+    today's rule (§2), so a Writer's Room running into Pre-Prep stays unticked with Phase & after Pre-Prep.
+  - Any tick can then be changed. A set that matches no shortcut leaves none of the three pressed.
+  - Picking another phase re-ticks while a shortcut is pressed, and keeps your own set otherwise.
+- **To a date pins the landing phase** (Rebuild From's `.is-pin` row): it has to move, so it has no tick to clear.
+- **Whole schedule** (All phases, To a date) ticks every phase and locks them.
+- **Nothing changes for someone who ignores it.** It opens on All phases, By weeks (R2(a)), and the ticks are
+  forgotten when the box closes, as Rebuild From's are.
+- **The engine is done.** `shiftCalendarDates`' `part = {phases, fromWeek, toWeek}` (live since 5 Nov 2026) already
+  moves any set. The ticks would be its `phases`.
+
+### 7.2 Rulings needed
+
+- **T1. The list under All phases.**
+  - (a) Folded behind one line, *"Every phase moves · Choose phases"*, opening by itself for Phase & before / after
+    or on a click (tab A). *(Recommended: the box opens at 248 px, as today; the list adds about 30 px a phase, to
+    about 430–470 px.)*
+  - (b) Always shown (tab B).
+- **T2. Which notes move for your own set.** A shortcut keeps today's window (§2). For a hand-picked set:
+  - (a) a note moves when its week is inside a ticked phase's run, even a week an unticked phase shares.
+    *(Recommended: the picked phases win, as they do today.)*
+  - (b) only weeks no unticked phase runs in.
+  - Unlocked all-phase hiatuses and the calendar range follow the same test.
+  - The phase-linked notes plan (tracker card `notes-linked-to-phase`) would settle shared weeks properly.
+- **T3. To a date: the landing phase always ticked and pinned.** *(Recommended: otherwise "Pre-Prep starts on 4/5"
+  could leave Pre-Prep where it is.)*
+
+### 7.3 Build sketch (after the rulings)
+
+- `PreviewToolbar.jsx`: an empty list host and a count in `#pop-shift`. The engine fills them, as it fills Rebuild
+  From's. The ticks carry `data-key` and no id, inside `.tools-menu`.
+- `app.js`: `shiftPlan` gains a ticks set, which the shortcuts fill and the rows edit. The result line names the
+  phases that stayed for your own set.
+- The `anchorside` leg grows cases for a hand-picked set, the fold, the pin and T2's notes.

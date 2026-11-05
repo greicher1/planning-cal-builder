@@ -114,6 +114,22 @@
   run that had not been reported).
 
 
+### 📝 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — MOCKUP, NOTHING RULED, NO APP CODE ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+- **Asked** (owner, after the overlap revert below):
+  - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
+    every phase you wanted it to effect kinda like how it works in rebuild from right now?"*
+  - *"is there anyway to have both?"*
+  - *"Yes, mock it up"*.
+- **The mockup** (tabs A and B, a made-up calendar whose Writer's Room runs into Pre-Prep):
+  - Rebuild From's list under the phase row. Each row has a tick, the name, the date, and Moves / Stays (by weeks) or
+    Pushed / Pulled (to a date).
+  - The three buttons fill in the ticks. Changing a tick makes your own set, and then no button is pressed.
+  - To a date pins the landing phase.
+  - Checked in the pane: 248 px as it opens (A), about 430-470 px with the list.
+- **Waiting on the owner:** T1 (fold the list under All phases: A recommended), T2 (notes for a hand-picked set),
+  T3 (pin the landing phase).
+- The engine needs nothing: `part` already moves any set.
+
 ### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
