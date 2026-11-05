@@ -138,7 +138,8 @@ window.addEventListener('load', function () { (async function () {
     T.set('cal-range-start', ''); await T.sleep(500);
 
     // ---- Anchor To: its start picks a week (whole-week shift), its "ends by" is a day.
-    $('pop-anchor-btn').click(); await T.sleep(300);
+    // (The Shift form's To a date since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
+    $('pop-shift-btn').click(); await T.sleep(300); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(150);
     T.set('tool-anchor-phase', 'prodPrep'); T.set('tool-anchor-edge', 'start'); await T.sleep(300);
     r = await open('tool-anchor-date');
     add('A1', "Anchor To's start: any day picks its week (unchanged)", !!r && r.off === 0 && r.band === 7 && r.hint === WEEK_HINT,

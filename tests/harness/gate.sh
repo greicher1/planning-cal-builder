@@ -1884,6 +1884,12 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
+# replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
+# date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
+# after is the old Shift From; Phase & before moves phases by START and notes, unlocked hiatuses and the range by the
+# picked phase's LAST week (red on a one-bound build: B2, B3); by weeks = to a date; one undo; the form's resets; no
+# new key in fields.byId. On anchorside.sptcal (dayoverrides + notes, a Fall Break, Localization, a range start).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1982,6 +1988,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
+              anchorside:anchorside:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \

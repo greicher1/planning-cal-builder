@@ -277,9 +277,11 @@ window.addEventListener('load', function () { (async function () {
     var afterAll = { s: val('cal-range-start'), e: val('cal-range-end'), first: grid().first };
     await undo(1);
     var afterUndo = { s: val('cal-range-start'), e: val('cal-range-end') };
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'post'); T.set('tool-ripple-weeks', '2');
-    $('tool-ripple-later').click(); await T.sleep(900); await settle();
+    // Shift From is the Shift form's Phase & after since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6).
+    await openPop('pop-shift-btn');
+    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
+    T.set('tool-anchor-phase', 'post'); T.set('tool-shift-weeks', '2');
+    $('tool-shift-later').click(); await T.sleep(900); await settle();
     var afterFrom = { s: val('cal-range-start'), e: val('cal-range-end') };
     await undo(1); closePops(); await T.sleep(200);
     var afterUndo2 = { s: val('cal-range-start'), e: val('cal-range-end') };

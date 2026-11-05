@@ -5,7 +5,72 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
-### 📝 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C, NO APP CODE YET ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### 🔨 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there). NOT merged, NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+
+**As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
+- **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,
+  still inside `asShootDayMove`. `opts.before = {phaseIso, weekIso}`:
+  - phases are judged by START (`phaseInRange`, on or before `phaseIso`);
+  - everything week-keyed by `weekIso`, the picked phase's LAST week (`inRange`, so notes, row heights, note
+    styles, unlocked all-phase hiatuses and the calendar range);
+  - with no `before` both tests are the old one, so every other caller is untouched.
+  - The result gains `stayedPhases`, for the result line.
+  - `opts = opts || {}` heads the function, the same shape `hiatus-ripple` uses for its `except` / `keepView`.
+    ⚠️ That branch had NOT landed on `origin/main` when this was built (its engine edit was uncommitted in its worktree).
+    Whichever lands second merges the two hunks: the same first line, separate `if`s.
+- **Toolbar** (`PreviewToolbar.jsx`): the middle button reads **Shift ▾** (title *"Shift the calendar by a number of
+  weeks or to a date"*). The Shift From and Anchor To buttons and popovers are gone.
+  - `#pop-shift` is 340 px. Top to bottom: caption What moves, `All phases | Phase & before | Phase & after`
+    (`data-move`, no id), the phase row (`#tool-anchor-phase` alone), the hint (`data-shift-hint`), caption How far,
+    `By weeks | To a date` (`data-far`), then `[n] wks Earlier Later` (`tool-shift-*`) or
+    `[starts on/ends by] [date] Go` (`tool-anchor-*`).
+  - The choices wear Rebuild From's `.solve-dir` look (`.tools-seg`). Rows hide through `hidden`, which needed
+    `#pop-shift [hidden]{display:none}`, because `.tools-row`'s own `display:flex` beat the UA rule.
+  - Measured in the pane: 223 px as it opens, 273 px with Phase & before To a date.
+- **Handlers:** Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for itself.
+  All phases is the OLD call (`shiftCalendar(n)`) and the old result line, word for word. Phase & after is Shift
+  From's cutoff exactly.
+  - `openPop` resets the form to All phases, By weeks before refreshing (R2(a)). The edge select (starts on / ends
+    by) and the picked phase persist between openings, as Anchor To's did.
+  - Whole schedule is in the list only for All phases to a date. Leaving that choice falls back to Production
+    (`fillPhaseSelect`'s preferKey), and the date follows only when the pick itself changed.
+  - The part-calendar result line adds *"Production and everything before it moved (4 phases). 2 stayed where they
+    were."*. Shift From's old *"From Post onward — 2 phases moved."* is replaced by the same form.
+- **Help** (`src/index.html`, "Adjusting dates") rewritten for the two tools. Rebuild From's InfoHint now says *"Use
+  Shift if the plan should keep its current spacing"*.
+- **Legs:** new `anchorside` (21 cases, in gate.sh after `rebuildticks`) on the new fixture `anchorside.sptcal`
+  (dayoverrides + five notes, an unlocked Fall Break inside the shoot, Localization, a range start; fixtures README).
+  - Its wrap is Tue 11/3, so Post starts inside the shoot's last week: the plan's overlap edge is exercised (B1, B2).
+  - Mutant with one bound (`weekIso` = the start week): red on B2 and B3 only.
+  - Ported: `builtindates`, `customunits`, `datepick` and `snaptools` open `#pop-shift-btn` and click To a date.
+    `calrange`, `overrides` (O1, O4, O5) and `rowheight` click Phase & after and use
+    `tool-anchor-phase` / `tool-shift-weeks` / `tool-shift-later`.
+  - Green before the gate: snaptools 14, overrides 20, calrange 18, rowheight 7, datepick 17, rebuildticks 19,
+    builtindates 17 + 15, customunits 23 + 28, episodeprep 33 + 25, halfworked 24, hdrcontrols 12, anchorside 21.
+    `npm run check` 40/40.
+- **Full gate** (build `f135c637…`, port 8798): **3,927 PASS / 20 FAIL**, every baseline identical: gate 1 (grid
+  signature, waterfall PDF), every gate-10 month print, every gate-13 month PDF byte for byte. The 20 FAILs are in five
+  legs that never touch the shift tool, and each is green alone on the same build:
+  - `pilllabel (carry-rich)` 29/29;
+  - `hdrrow` 37/37 (its known load timeout);
+  - `hiatuscolour` 14/14 (C2 had hit-tested the app header);
+  - `offweek (offweek)` 42/42 (R12's file-menu wait timed out);
+  - `mvnotes (mvnotes)` 14/14, its month PDF readable by pdftotext.
+  The hiatus-ripple session was running its own headless Chrome legs during the gate. `anchorside` 21/21 inside the
+  gate.
+- ⏭ **Next:** ask the owner (picker) to merge into `main`, then separately to push. CLAUDE.md, PROJECT-CONTEXT §7a,
+  the README changelog and the fixtures README are updated in the same commit.
+- **Asked while it gated (4 Nov 2026):**
+  - *"what about adjacent phases"*. The answer: phases go by start week only. A neighbour starting the same week always
+    moves with the picked phase. One running into it moves with Phase & before and stays with Phase & after. Notes
+    in a week shared with a phase that stays still move with the picked phase. Offered to change it, not ruled.
+  - *"do we need a this phase only…"*: no. The sidebar's start box already moves one phase. Only its notes, own
+    hiatus, styles and (Production) day marks stay behind.
+  - That led to **notes linked to a phase** (owner: *"we do need a way to link certain notes to certain weeks relative
+    to a phase"*). Tracker card `notes-linked-to-phase` (requested); a plan-writing session was proposed as a card.
+    The design: store phase + phase week and derive the week, as automatic notes do.
+
+**The ruling and the plan (written before the build):**
 
 - **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
   *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
@@ -56,7 +121,7 @@
     - The `tool-shift-*` and `tool-anchor-*` ids stay. `tool-ripple-*` retires, and `calrange`, `overrides` and
       `rowheight` move to the new controls.
     - A full gate runs before any push.
-- ⏭ **Next:** build it on a branch from `origin/main`, in a fresh session (this one ran long).
+- ⏭ ~~**Next:** build it on a branch from `origin/main`, in a fresh session (this one ran long).~~ Built, see above.
 - ⚠️ **It shares `shiftCalendarDates`'s third argument with HIATUS-RIPPLE-PLAN.md** (branch `hiatus-ripple`, its
   `opts.except`). Use one
   options object, `{except, before}` (plan §5 step 1).

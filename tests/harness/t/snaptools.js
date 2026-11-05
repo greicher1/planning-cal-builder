@@ -82,7 +82,8 @@ window.addEventListener('load', function () { (async function () {
 
     // L-13 -- Anchor To, Prod Prep "ends by": it works through Fri 6/26 (it ends -- exclusive -- Mon
     // 6/29). The prefill shows the Friday, and a Friday 6/26 deadline is already met.
-    await openPop('pop-anchor-btn');
+    // (The Shift form's To a date since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
+    await openPop('pop-shift-btn'); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
     T.set('tool-anchor-phase', 'prodPrep');
     T.set('tool-anchor-edge', 'end');
     await T.sleep(150);
@@ -91,7 +92,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-anchor-date', '2026-06-26');
     document.getElementById('tool-anchor-go').click();
     await settle();
-    add('L13b', 'a Friday deadline the phase already meets costs no week', val('start-prodPrep') === '2026-05-18', {prodPrep: val('start-prodPrep'), msg: msg('pop-anchor')}, 'unchanged 2026-05-18');
+    add('L13b', 'a Friday deadline the phase already meets costs no week', val('start-prodPrep') === '2026-05-18', {prodPrep: val('start-prodPrep'), msg: msg('pop-shift')}, 'unchanged 2026-05-18');
     closePops(); await T.sleep(150);
     if(val('start-prodPrep') !== '2026-05-18') await undo(1);
 

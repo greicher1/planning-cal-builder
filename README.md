@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+
+The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
+one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
+are gone. What they did is two choices in the Shift form, under Shift All's old caret, which now reads **Shift ▾**:
+
+- **What moves:** `All phases | Phase & before | Phase & after`. The phase row under it shows only when a phase is
+  needed, and a hint names the phases that stay put.
+- **How far:** `By weeks` (`[n] wks  Earlier  Later`) or `To a date` (`[starts on / ends by]  [date]  Go`).
+- **Where each old tool went:** Shift All's form is All phases, By weeks, which is what the form opens on every time
+  (ruling R2(a)). Shift From is Phase & after, By weeks. Anchor To is All phases, To a date, with Whole schedule in
+  the list only there. The ← 1 wk / 1 wk → arrows are unchanged.
+- **New: Phase & before.** The picked phase and every phase before it move, and the gaps are kept. Before, no tool
+  did this. Example: delivery is fixed but the shoot must start two weeks earlier. It needs two bounds (plan §2).
+  Phases go by their START. Notes, unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST
+  week, so the shoot takes its own notes and any hiatus inside it along. Holidays, locked hiatuses, dated notes and
+  day notes never move; Production's day marks travel by shoot-day number, as on every mover.
+- The result line for All phases is the old one, word for word. A part-calendar move adds what moved and what stayed
+  (*"Production and everything before it moved (4 phases). 2 stayed where they were."*).
+
+Engine: `shiftCalendarDates(weeks, fromIso, opts)` gains `opts.before = {phaseIso, weekIso}`. With no `before`, every
+existing caller does exactly what it did. The third argument is ONE options object, shared with
+HIATUS-RIPPLE-PLAN.md's `except`. No frozen code, no writer and no save-format change: the choices are id-less buttons
+inside `.tools-menu`, and the ids `tool-shift-*` / `tool-anchor-*` live on in the form (`tool-ripple-*` retired).
+The Help's "Adjusting dates" section is rewritten. New leg `anchorside` (21 cases, in gate.sh) on a new synthetic
+fixture `anchorside.sptcal`. A build with only one bound is red on B2 and B3. `builtindates`, `customunits`,
+`datepick` and `snaptools` open Shift instead of Anchor To; `calrange`, `overrides` and `rowheight` pick Phase & after
+instead of Shift From. Full gate: 3,927 PASS, every baseline identical. Its 20 FAILs were in five legs that don't
+touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscolour`, `offweek`, `mvnotes`).
+
 ### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
 
 Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:
