@@ -23,9 +23,10 @@
   copy read it. The SPTCal mark's streams (`<< /Length N >>`, no filter) are cut and left uninflated.
 - **Legs moved onto it (16):** the twelve of the finding, plus `notewrap`, `prodspan`, `winansi` (the same unconditional
   trim on `bytes[en - 1]`, which the brief's grep missed), plus `hiatuslabel` (already by length, now one reader).
-  The eleven other PDF readers (`calrange`, `hdrrow`, `hdrtemplate`, `hdrversion`, `onecol`, `papersize`,
-  `pdfdialog`, `prefs`, `stintexport`, `textstyle`, and `lib.js`'s own) already cut at `/Length` first with the
-  trim as fallback: untouched. Folding them onto the helper too would be tidying, not a fix.
+  The ten other PDF readers (`calrange`, `hdrrow`, `hdrtemplate`, `hdrversion`, `onecol`, `papersize`,
+  `pdfdialog`, `prefs`, `stintexport`, `textstyle`) already cut at `/Length` first with the trim as fallback:
+  untouched. Folding them onto the helper too would be tidying, not a fix. ⚠️ A grep for `=== 10 ||` in `t/`
+  now also hits `lib.js`, because the helper keeps the trim as its fallback.
 - **Proof** (build `30bbfc2e…` = live, port 8931, one leg at a time while another session's full gate ran):
   `phiatusnum` 17/18 with H4 `runs: []` on the old reader → 18/18. On the helper: `autonotekinds` 16/16,
   `autonotephases` 27/27, `seasons` 15/15, `phasecolors` 10/10, `mvhdroff` 9/9, `hidewf` 19/19, `wfnotecolors` 14/14,
@@ -38,6 +39,14 @@
   streams ending 0x0A and 0x0D), the helper 3 of 3; an indirect `/Length` falls back; a broken Flate stream throws.
   No `gate.sh` change (same leg names and budgets); its judge was run on each leg's JSON. No full gate: no product
   code changed.
+- ✅ **Re-checked on the MERGED build** (`origin/main` 854dbbe in, dist sha256 `2daa5cde…` = the live build, so a push
+  ships no app change): all sixteen green on their first run, the same counts as above. `gate.sh` parses (`zsh -n`)
+  and is identical to `origin/main`. The diff against `origin/main` is `tests/harness/t/` (17 files), README and
+  HANDOFF only.
+- ⚠️ **Local `main` moved while this was built** (69b6ec6: `ff67571`, a merge of `origin/main`, then a pull-back LIVE
+  note, both unpushed and doc only). This branch is not on it. A push of this branch to `origin/main` is a
+  fast-forward (`git push origin claude/agitated-bhaskara-df2f66:main`, the shape `stale-band-key` used). Merging it
+  into local `main` instead means a HANDOFF conflict in the main checkout, which other sessions are using.
 
 ### 🔨 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`, from `main` at `347a98f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`. COMMITTED on the branch (owner's picker, *"Commit on the branch"*); NOT merged, NOT pushed. Owner asked whether it needs the full gate: answered no (see the gate bullet).
 - **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
