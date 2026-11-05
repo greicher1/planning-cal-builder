@@ -4,6 +4,72 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED twice (4,053 PASS / 0 FAIL; then on the merged v1.11.0 build 4,103 PASS / 2 FAIL, neither this change's; every baseline identical both times) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only; then `cf75104`, New opens Show info, merged in the same way). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
+- **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
+  stays keyed on its week (a plain key, one per week of the band) when the hiatus is retyped to other dates. It is
+  ignored, never destroyed. But `shiftCalendarDates` step 3 (`hiatusKeyStays`) kept a plain key only on a HELD band's
+  week, so every other plain key moved.
+- **Reproduced on `origin/main`** (leg `stalebandkey`, port 8921):
+  - Post ▼ carried "Old Break Name" from 7/6 onto Summer Break's 7/13, where it yielded and was gone. Its colour, size
+    and both styles landed on Summer Break: **nudging Post recoloured Summer Break.**
+  - Production ▲ and the month drag carried it to 6/29 / 7/13.
+  - **Shift From's claim is TRUE:** Phase & after Post carried it from 7/6, before its 11/2 cutoff, onto Summer Break.
+- **Not the proposed one-liner** ("a plain key also stays when `!inRange`"). It judges a band's label by its WEEK while
+  the band is judged by its START, and a band can run past a part move's window. Proved: a Dates phase (a hiatus never
+  lengthens one) with an unlocked two-week band starting in its last week, only that phase ticked. Under the one-liner
+  the band moved and its second week's typed label and colour stayed behind (P1 red on that mutant).
+- **Built** (`src/legacy/app.js`, `shiftCalendarDates` steps 2-3, about 15 lines; no frozen code, no writer or
+  save-format change, no id):
+  - Step 2 records `movingHiatusWeeks` (pre-shift) beside `stayingHiatusWeeks`, through one `recordBandWeeks(row, set)`.
+  - `hiatusKeyStays` for a plain key: held band's week → stays; moving band's week → moves; no band → `!inRange`, as
+    a note.
+  - Whole-calendar shifts unchanged. ▲ / ▼ and the drag (empty window) never move a stale key now.
+  - ⚠️ Unchanged and known: on a whole-calendar shift a stale label one week above a LOCKED band still moves onto it
+    and yields (nothing ruled says otherwise).
+  - The month drag's "from the press" no longer has a store that can collide; the comment above `phaseDragWeeks` says
+    why it stays.
+- **Rulings that settled it** (so no question to the owner):
+  - ANCHOR §2: band labels "follow their band or phase", and a stale key has neither.
+  - Shift From's own "everything earlier stays exactly where it is".
+  - The arrows' §3: all-phase hiatuses (locked or not) stay.
+- **Proof:**
+  - New leg `stalebandkey` (9 cases, gate.sh after `mvdragcarry`) on new fixture `stalebandkey.sptcal`
+    (`phasearrows.sptcal` + the stale stores on 7/6/26, "Late Stale" on 2/8/27, Dates phase Stage Build 5/3-5/14/27,
+    unlocked "Strike Break" 5/10/27 x2 with "Strike wk 2" + colour on 5/17).
+  - Counts: `origin/main` 5/9 (N1 N2 F1 P1 red), one-liner 8/9 (P1), fix 9/9.
+  - `mvdragcarry` W1 now also holds the plain band labels: 14/15 on `origin/main`, 15/15 on the fix.
+  - Neighbours on the build (port 8921): `phasearrows` 26/26, `anchorside` 29/29, `mvdragcarry` 15/15, `calrange`
+    18/18, `datepick` 17/17, `halfworked` 24/24, `rowheight` 7/7, `overrides` 20/20, `snaptools` 14/14, `pilldrag`
+    30/30, `hiatusdrag` 14/14, `hiatusripple` 15/15. `npm run check` 40/40.
+- ✅ **Full gate** on `2e48654` (dist sha256 `ec680743…`), port 8921, 13:18–13:55, no other gate running (load ~11):
+  **4,053 PASS, 0 FAIL, every baseline identical.** That covers the grid signature, 0 clipped, the waterfall PDF (bar
+  the date stamp), the Excel parts, the v1.0.0 restore, `fields.byId` (77 ids) and gate 10's printed months.
+  `stalebandkey` 9/9 inside it.
+- ⚠️ **`origin/main` moved during the gate** (v1.11.0, the layout rules, pushed at 21:11 UTC). Merged in as one
+  commit: `src/legacy/app.js`, `gate.sh` and the legs auto-merged; README's entry now sits above `## v1.11.0`.
+- ✅ **Full gate #2 on the MERGED build** (`cafc42f`, dist sha256 `c30cc0e2…`, port 8921, 13:57–14:35, no other gate
+  running): **4,103 PASS, 2 FAIL, every baseline identical** (grid signature, 0 clipped, the waterfall PDF bar its
+  stamp, Excel parts, the restore, `fields.byId` 77 ids, gate 10's printed months, gate 13's written month PDFs).
+  `stalebandkey` 9/9 inside it. The two FAILs:
+  - `offweek` (offweek fixture) R11: "timed out waiting for: the loaded file's name in the file menu", a load timeout.
+    Alone on the same build: 42/42, 0 errors.
+  - ⚠️ `phiatusnum` H4, **red on `origin/main` itself** (`347a98f`, live v1.11.0), alone, and green on `2e48654`
+    before the merge. **A harness bug the layout rules exposed, not a product bug.** The leg's `pdfRuns` strips
+    trailing CR/LF before inflating each stream ("DecompressionStream rejects the EOL"). The new widths changed the
+    compressed bytes, so page 1's content stream (`/Length 1466`) now ENDS in an EOL byte, the strip truncates it,
+    and no text run is found at all.
+  - The PDF itself is valid: `pdftotext` reads "Pre-Prep Hiatus wk 1-3" and "Set Build Hiatus" x2 exactly as H4
+    expects. Fix: slice each stream by its `/Length`.
+  - Twelve legs carry the same extractor (`autonotekinds`, `autonotephases`, `autonoteview`, `autonoterename`,
+    `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`, `wfnotecolors`),
+    so any of them can go red the same way when a PDF's bytes change. Its own change, not this branch's.
+- ✅ **Owner's picker** (5 Nov 2026): *"Merge"*, and separately *"Push now"*. `origin/main` had moved again by then
+  (`cf75104`, New opens Show info: 6 lines in `newFile()`, a new leg `newtab`), so it was merged in (HANDOFF and
+  README only conflicted) and the build re-checked BEFORE the push. On that build (`30bbfc2e…`): `npm run check`
+  40/40; `stalebandkey` 9/9, `mvdragcarry` 15/15, `phasearrows` 26/26, `anchorside` 29/29, `newtab` 6/6,
+  `hiatusripple` 15/15. Pushed as `git push origin stale-band-key:main`, a fast-forward. Local `main` not moved.
+  This worktree's `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
+
 ### ✅ 5 Nov 2026: NEW ALWAYS OPENS THE SIDEBAR ON SHOW INFO. Built and verified on main; ✅ LIVE at `cf75104` (owner's picker "Commit locally" + "Push to live"; pushed `347a98f..cf75104` at 22:44:52 UTC, the live `index.html` matched the pushed build `6246295f…` byte for byte ~50 s later, `version.json` still 1.11.0: no version cut). Tracker card `new-opens-show-info`.
 - **Ask (owner):** *"when you click New the left bar should always be on the Show Info tab"*. `newFile()` never touched
   `sidebarTab`, so New kept whichever tab was up (Phases, usually).
@@ -185,7 +251,7 @@
   gate. ⚠️ Uncommitted on the branch: LAYOUT-RULES.md, leg `layouthook` + its gate section, the page fixes, this
   entry.
 
-### 🔨 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — BUILT and FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
+### ✅ 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — ✅ **LIVE at `ca794cc`** (owner's picker *"Merge"* + *"Push now"*; pushed from the branch, `c8eac00..ca794cc`; the live index.html matched `dist/` byte for byte, sha256 `448c2c84…`, 60 s after the push). FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
 - **Ruled** (owner, 4 Nov 2026, by picker, D7): *"yes, as its own change, right after the arrows"*. The body drag
   (`installMonthPillDrag`) moved `start-<key>` only, so the phase's own hiatus and its `<week>|<key>` stores (band
   names, colours, sizes and styles, cell spans, column swaps, its text styles; Sim Post's with Production) stayed on the
@@ -216,7 +282,7 @@
   - Neighbours on the build (port 8902): `phasearrows` 26/26, `monthdragundo` one step (`oneStep: true`),
     `anchorside` 29/29, `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14, `hiatusripple` 15/15, `mvorder`
     30/30, `npm run check` 40/40.
-- ⚠️ **Found, NOT fixed (shared with ▲ / ▼ and the Shift tool; its own change):** a one-phase move re-keys a plain-keyed
+- ⚠️ **Found, NOT fixed here (shared with ▲ / ▼ and the Shift tool; its own change, ✅ now built: the stale band key entry above):** a one-phase move re-keys a plain-keyed
   band store that sits on no band, because `hiatusKeyStays` keeps a plain key only on a held all-phase band's week. So
   ▲ / ▼ (and now the drag) move a stale band label a week, or drop it onto a held band's week; by the code, Shift From
   moves one from before its cutoff too. One-line fix: a plain key also stays when `!inRange(iso)`. It changes the Shift
@@ -227,9 +293,12 @@
   `mvdragcarry` 15/15 inside it. The FAIL is `scenariocompat` on `/releases/v1.2.0.html`, the known load case ("timed
   out waiting for: Open... menu item"): alone, red once that same way, then PASS twice (load ~7.8 from other
   sessions' servers). That page is a frozen release file; `releases/` is unchanged on this branch.
-- ⏭ **Next:** the owner's picker: merge, and separately push. The branch sits on `origin/main`'s tip (`c8eac00`), so a
-  push is `git push origin month-drag-carry:main` from the worktree, as the ripple went; local `main` is behind and
-  its checkout holds another session's uncommitted HANDOFF, so fast-forward it later, not now.
+- ✅ **Pushed** (owner, by picker, 5 Nov 2026: *"Merge"*, and separately *"Push now"*): `git push origin
+  month-drag-carry:main`, a fast-forward of `c8eac00`. Deploy run green; live `index.html` = this build.
+  ⚠️ Local `main` was NOT moved: its checkout holds another session's uncommitted HANDOFF and older untracked copies of
+  `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html`, either of which stops a fast-forward there. This
+  "LIVE" note is a local commit on the branch, not pushed.
+- ⏭ **Next:** the stale-band-label fix, as its own change: ✅ built, the stale band key entry at the top.
 
 ### ✅ 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR ("Ripple Hiatus Periods" / "Ripple Hiatus") — ✅ **LIVE at `ad855a7`** (owner's picker *"Push now"*; pushed from the branch, `4a90017..ad855a7`, at 01:42:27 on 5 Nov 2026, a fast-forward; the live `index.html` matched the tested build `9660b34b…` byte for byte at 01:43:54, `version.json` 1.10.0, no version cut). ⚠️ Local `main` was NOT moved: the main checkout holds another session's uncommitted HANDOFF edits, so it fast-forwards to `ad855a7` once that session commits. Built on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` merged in twice: `c52094f` (the one Shift tool) as `ae6b107`, `4a90017` (phase arrows, note editor) as `ad855a7`. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to

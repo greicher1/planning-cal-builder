@@ -24,16 +24,19 @@
 //   T0  truth guard: the calendar as loaded; the month view on November 2026 shows Post's bar
 //   W1  Post dragged one row down (held 1.5 s mid-gesture, past the undo debounce), released: Post 11/9, its own hiatus
 //       1/11/27, its four Post stores a week later, Production's half of the swap still on 11/2, and every other phase,
-//       typed note, all-phase hiatus, the range and the day marks where they were
+//       typed note, all-phase hiatus, the range and the day marks where they were. Since 5 Nov 2026 (stalebandkey) the
+//       band labels too: the stale "Old Break Name" stays on 7/6 (it used to move onto Summer Break's week and yield)
 //   L1  ... the own hiatus read 1/11/27 WHILE the button was still down: the live month view shows it travelling
 //   U1  ONE Undo puts the calendar back as it was, snapshot for snapshot (the drag was one step)
 //   A1  ⭐ the drag = Post ▼: the same calendar, snapshot for snapshot (bar the view it was made in)
 //   O1  out and back in ONE gesture (down 1, down 2, right 3, back up, up 1 more, home): mid-gesture at down 2 the
 //       backup shows Post 11/16, its hiatus 1/18/27 and its stores two weeks on; at up 1, 10/26 and 12/28/26
 //   O2  ... released at home: the calendar exactly as it was, every store included
-//   O3  ... the stale label is back on 7/6. ⭐ The case for carrying FROM THE PRESS: a one-phase move re-keys a plain
-//       band key that sits on no band, and the first row down lands this one on Summer Break's 7/13, where it YIELDS
-//       (shiftKeyedMap) and is gone. Carried step to step it could never come back; red on that mutant
+//   O3  ... the stale label is on 7/6. ⭐ Written as the case for carrying FROM THE PRESS: a one-phase move re-keyed a
+//       plain band key that sits on no band, and the first row down landed this one on Summer Break's 7/13, where it
+//       YIELDED (shiftKeyedMap) and was gone, so carried step to step it never came back (red on that mutant). Since
+//       5 Nov 2026 a stale plain key stays on a one-phase move (stalebandkey), so the label never leaves 7/6 and the
+//       step-to-step mutant passes here too; carrying from the press is now what guards a store added later
 //   K1  by whole weeks of the run: right 3 days (Thu 11/5) carries nothing; a row and 3 days (Thu 11/12) carries one
 //       week; a row and 6 days (Sun 11/15, still the 11/9 week) still one; two rows (11/16) two. Released at Thu 11/12:
 //       Snap to Monday off (the 18 Sep 2026 ruling), Post Pause on Monday 1/11/27 (whole weeks keep its weekday), the
@@ -87,10 +90,13 @@ window.addEventListener('load', function () { (async function () {
             colors: Object.keys(s.hiatusColors || {}).sort(), swaps: Object.keys(s.gridColSwaps || {}).sort()};
   }
   function withStart(st, key, iso){ var o = Object.assign({}, st); o[key] = iso; return o; }
-  // Everything a one-phase move must leave alone.
+  // Everything a one-phase move must leave alone. The all-phase bands' labels included, the PLAIN keys (a "<week>|post"
+  // label is Post's own and moves with it) (stalebandkey, 5 Nov 2026): the stale "Old Break Name" on 7/6 used to move
+  // onto Summer Break's 7/13 and yield there.
+  function plainLabels(s){ var o = {}; Object.keys(s.hiatusTexts || {}).forEach(function (k) { if(k.indexOf('|') < 0) o[k] = s.hiatusTexts[k]; }); return o; }
   function restSame(s, base){
     return same(notesOf(s), notesOf(base)) && same(s.fields.hiatuses, base.fields.hiatuses)
-      && same(s.fields.byId['cal-range-start'], base.fields.byId['cal-range-start']);
+      && same(s.fields.byId['cal-range-start'], base.fields.byId['cal-range-start']) && same(plainLabels(s), plainLabels(base));
   }
 
   // ---- the month view ----
@@ -155,11 +161,11 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(1500);  // held, longer than the 500 ms undo debounce: the drag must still be ONE step
     await release(g);
     var sD = await take();
-    add('W1', 'Post dragged one row down: Post 11/9, its own hiatus 1/11/27, its four stores a week on (Production\'s half of the swap stays on 11/2); every other phase, typed note, all-phase hiatus, the range and the day marks stay',
+    add('W1', 'Post dragged one row down: Post 11/9, its own hiatus 1/11/27, its four stores a week on (Production\'s half of the swap stays on 11/2); every other phase, typed note, all-phase hiatus and its label (the stale one on 7/6 too), the range and the day marks stay',
       same(startsOf(sD), withStart(st0, 'post', '2026-11-09')) && same(phiatusOf(sD), withStart(ph0, 'post', '2027-01-11'))
         && same(postStores(sD), {spans: ['2026-11-30|post'], style: ['2026-11-30|post'], colors: ['2027-01-11|post'], swaps: ['2026-11-02|production', '2026-11-09|post']})
         && restSame(sD, s0) && same(sD.dayOverrides, s0.dayOverrides),
-      {starts: startsOf(sD), phiatus: phiatusOf(sD), stores: postStores(sD), rest: restSame(sD, s0), marks: same(sD.dayOverrides, s0.dayOverrides)},
+      {starts: startsOf(sD), phiatus: phiatusOf(sD), stores: postStores(sD), rest: restSame(sD, s0), labels: plainLabels(sD), marks: same(sD.dayOverrides, s0.dayOverrides)},
       'post 11/9, Post Pause 1/11/27, stores 11/30 / 1/11/27 / 11/9, the rest as loaded');
     add('L1', '... the own hiatus read 1/11/27 while the button was still down (the live month view shows it travelling with the bar)',
       live.start === '2026-11-09' && live.hiatus === '2027-01-11', live, 'start 2026-11-09, hiatus 2027-01-11 mid-gesture');
@@ -207,7 +213,7 @@ window.addEventListener('load', function () { (async function () {
       '11/16 + 1/18/27 + stores 12/7, 1/18/27, 11/16; then 10/26 + 12/28/26 + stores 11/16, 12/28/26, 10/26');
     add('O2', '... released at home: the calendar exactly as it was, every carried store included',
       sameCal(sO, s0), sameCal(sO, s0) ? 'identical' : {starts: startsOf(sO), phiatus: phiatusOf(sO), stores: postStores(sO)}, 'identical to the loaded state');
-    add('O3', '... and the stale band label "Old Break Name" is back on 7/6, though the first row down landed it on Summer Break\'s week, where it yields',
+    add('O3', '... and the stale band label "Old Break Name" is on 7/6 and Summer Break keeps its own name on 7/13',
       sO.hiatusTexts['2026-07-06'] === 'Old Break Name' && sO.hiatusTexts['2026-07-13'] === 'Summer Break', sO.hiatusTexts,
       '7/6 Old Break Name, 7/13 Summer Break');
 
