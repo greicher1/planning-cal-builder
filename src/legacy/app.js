@@ -16192,6 +16192,28 @@ export function initLegacyApp() {
       textVal = effectiveNoteText(weekKey, autoNotes);
       curColor = noteColorFor(weekKey);
     }
+    // ⭐ WHAT THE CELL HOLDS (owner, 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md, rulings R1-R3): its automatic notes and
+    // holidays, in the box's order (cellItems), told apart from month notes shown here (noteviews) and typed text. They
+    // name the heading when the cell is one of them, get Hide, and decide whether the Day picker and "Show in month
+    // view" apply (D4, D5: both are for typed lines). Fixed when the editor opens, as the month view's heading is.
+    const cellItems = [], cellKnown = new Set();
+    let singleItem = null;
+    if(!isHiatus){
+      const boxLines = textVal.split('\n').map(l=> l.trim()).filter(Boolean);
+      const items = autoNotes.filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n)));
+      boxLines.forEach(l=>{
+        const n = items.find(x=> cellItems.indexOf(x) < 0 && autoNoteLine(x) === l);
+        if(n){ cellItems.push(n); cellKnown.add(l); }
+      });
+      wfMonthLinesFor(weekKey).forEach(m=> cellKnown.add(m.line));
+      if(boxLines.length === 1 && cellItems.length === 1) singleItem = cellItems[0];
+    }
+    // A typed line in the box (or an empty box, about to get one): what the Day picker and the switch are for.
+    const typedIn = text => {
+      const ls = String(text || '').split('\n').map(l=> l.trim()).filter(Boolean);
+      return !ls.length || ls.some(l=> !cellKnown.has(l));
+    };
+    const typedShown = isHiatus || typedIn(textVal);
 
     td.classList.add('editing');
     td.style.background = curColor;
@@ -16221,7 +16243,7 @@ export function initLegacyApp() {
     // was 6-16, and 13 and up cut the text in a standard row (plan §4.1); the bar's is 6-12 (owner ruling D1).
     // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
     // in activeNoteEditor below, never touched now, so a commit writes no size.
-    const dayRow = isHiatus ? '' : `<div class="note-day-row">
+    const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
       <label>Day <select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>Mon (default)</option>
         ${dayOpts}
@@ -16231,6 +16253,20 @@ export function initLegacyApp() {
     // is drawn in the month view from the hiatus itself. On unless this week's typed text was switched off (R3).
     const viewRow = isHiatus ? '' : noteViewSwitchHtml('Show in month view', !wfNoteMonthHidden(weekKey),
       'Off: the text you typed here is left out of the month view and its PDF. Automatic notes and holidays keep their own settings.');
+    // Hide (R1-R3): one item's own button, or a list of the cell's automatic notes and holidays, each with Hide. It hides
+    // the note from the waterfall only (hideAutoNoteIn / hideHolidayInWaterfall), at once, saving the rest of the editor
+    // (R2(b), commitActiveNoteEditor). Plain buttons, no ids.
+    const hideTitle = n => n.holiday
+      ? 'Hides this holiday from the Waterfall, Excel and the waterfall PDF. It stays in the month view and stays a day off. Tick its Waterfall box under Holidays to bring it back.'
+      : (autoNoteShownIn(n.kind, 'month')
+          ? 'Hides it from the Waterfall, Excel and the waterfall PDF. It stays in the month view. Tick its Waterfall box in Settings \u25b8 Automatic notes to bring it back.'
+          : 'Hides it from the Waterfall, Excel and the waterfall PDF. The month view does not show it either, so it is switched off. Tick it in Settings \u25b8 Automatic notes to bring it back.');
+    const itemsHtml = isHiatus ? '' : singleItem
+      ? `<button type="button" class="note-pop-delete wf-note-hide" data-i="0" title="${escHtml(hideTitle(singleItem))}">${singleItem.holiday ? 'Hide Holiday' : 'Hide Auto-Note'}</button>`
+      : (cellItems.length ? `<div class="wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
+          `<div class="wf-note-item" title="${escHtml(autoNoteLine(n))}"><span class="wf-note-mark wf-note-mark-${n.holiday ? 'holiday' : 'auto'}" aria-hidden="true"></span>`
+          + `<span class="wf-note-item-name">${escHtml(n.label)}</span>`
+          + `<button type="button" class="wf-note-hide" data-i="${i}" title="${escHtml(hideTitle(n))}" aria-label="Hide ${escHtml(n.label)} from the Waterfall">Hide</button></div>`).join('')}</div>` : '');
     // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
     // exactly the shape it had before the click.
     const pop = document.createElement('div');
@@ -16238,15 +16274,23 @@ export function initLegacyApp() {
     // A per-phase hiatus key is "<week>|<phase>", which is not a date, so take the week part and
     // fall back to the raw key if it still will not parse.
     const popWeek = parseDateUTC(splitWeekKey(weekKey).iso);
-    const popTitle = (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
+    // The heading names a cell holding one automatic note or one holiday, by ITS date (owner, 30 Oct 2026: "why does this
+    // still show as Note in the waterfall"); anything else is the week's Note, by its Monday, as before.
+    const popTitle = singleItem
+      ? (singleItem.holiday ? 'Holiday' : 'Auto Note') + ' \u00b7 ' + fmtShort(singleItem.date)
+      : (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
+    const popHint = (singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows \u00b7 '
+                                                      : 'Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 ') : '')
+                  + 'Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel';
     pop.innerHTML = `<div class="note-pop-title">${escHtml(popTitle)}</div>
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
       ${swatchRows}
       ${viewRow}
+      ${itemsHtml}
       </div>
-      <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      <div class="note-pop-hint">${popHint}</div>`;
     document.body.appendChild(pop);
     // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
     // its own pane, so a popover placed once and left alone slides away from its cell.
@@ -16297,7 +16341,8 @@ export function initLegacyApp() {
     resize();
 
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
-                        pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel};
+                        pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
+                        hide: null};   // the note a Hide button hides (R2(b): set, then committed at once)
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -16316,6 +16361,32 @@ export function initLegacyApp() {
     // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save. Read on commit.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
+    // The Day picker and the switch show as soon as the box holds a typed line (D4, D5), and go again if it stops.
+    const dayRowEl = pop.querySelector('.note-day-row');
+    if(viewSw && !typedShown) viewSw.style.display = 'none';
+    if(dayRowEl || viewSw){
+      textarea.addEventListener('input', ()=>{
+        const on = typedIn(textarea.value);
+        if(dayRowEl) dayRowEl.style.display = on ? '' : 'none';
+        if(viewSw) viewSw.style.display = on ? '' : 'none';
+      });
+    }
+    // Hide (R2(b)): the note's line leaves the box, the note is hidden from the waterfall, and the editor saves what else
+    // is in it, as Tab would, and closes. One gesture, one undo step (the commit's update()).
+    pop.querySelectorAll('.wf-note-hide').forEach(btn=>{
+      btn.addEventListener('mousedown', e=> e.preventDefault());   // keep the box's focus, as the swatches do
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(!activeNoteEditor || activeNoteEditor.pop !== pop) return;
+        const n = cellItems[parseInt(btn.dataset.i, 10)];
+        if(!n) return;
+        const line = autoNoteLine(n), ls = textarea.value.split('\n');
+        const k = ls.findIndex(l=> l.trim() === line);
+        if(k >= 0){ ls.splice(k, 1); textarea.value = ls.join('\n'); }
+        activeNoteEditor.hide = n;
+        commitActiveNoteEditor();
+      });
+    });
   }
 
   // The automatic notes the waterfall shows for a week, which is what decides whether a cleared note is stored
@@ -16404,7 +16475,17 @@ export function initLegacyApp() {
       // A holiday's or an automatic note's line changed here renames it, and one taken out deletes it (see
       // wfLineEdits), so the cell keeps following them. An emptied cell is Delete's (wfClearNote): each line goes by
       // what it is, and no week blank is left (AUTO-NOTE-RENAME-PLAN.md, rulings 3, 4 and 6).
-      let auto = autoNotes;
+      // ⭐ A HIDE BUTTON (WATERFALL-NOTE-EDITOR-PLAN.md, R2(b), D3) hides its note first, whatever else this save does,
+      // and the rest of the save then runs against the week's automatic notes as they are after it, so the hidden line
+      // is no longer automatic text the box is compared with. Its line already left the box (openNoteEditor).
+      let autoIn = autoNotes, switched = false;
+      const hideN = activeNoteEditor.hide;
+      if(hideN){
+        if(hideN.holiday) hideHolidayInWaterfall(hideN.hid); else hideAutoNoteIn(hideN.kind, 'sheet');
+        autoIn = sheetAutoNotesFor(weekKey);
+        switched = true;
+      }
+      let auto = autoIn;
       // ⭐ The month notes this cell shows ("Show in waterfall", R2) go first, by what happened to their lines; what is
       // left is the week's own text, which takes the path it always did. With none in the week, `own` is the text box.
       const ownBefore = wfOwnNoteText(weekKey, autoNotes);
@@ -16414,10 +16495,11 @@ export function initLegacyApp() {
         if(wfClearOwnNote(weekKey)) renamed = true;
         auto = sheetAutoNotesFor(weekKey);
       } else {
-        renamed = wfLineEdits(weekKey, ownBefore, own, autoNotes);
-        auto = renamed ? renamed.autoNotes : autoNotes;
+        renamed = wfLineEdits(weekKey, ownBefore, own, autoIn);
+        auto = renamed ? renamed.autoNotes : autoIn;
         saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, chosenDate);
       }
+      if(switched) renamed = renamed || true;
       const viewCb = pop.querySelector('.note-view-cb');
       if(viewCb) setWfNoteMonthHidden(weekKey, !viewCb.checked);
       if(pendingColor){
@@ -16450,9 +16532,9 @@ export function initLegacyApp() {
   // ⭐ AND AN AUTOMATIC NOTE'S (2 Nov 2026, AUTO-NOTE-RENAME-PLAN.md ruling 3): the same, through setAutoNoteName.
   // ⭐ A LINE TAKEN OUT (ruling 4): when the edit only removes lines, a removed automatic note is switched off and a
   // removed holiday is hidden from the waterfall (Delete's rule, wfClearNote), so neither comes back after a move.
-  // Only when the edit keeps the number of lines (each line is the one it was), or only removes some; anything else
-  // saves as typed, as before. Lines are compared trimmed, blank ones left out. Returns {text, autoNotes} with the
-  // edits applied, or null when nothing was renamed or deleted.
+  // Which line became which is worked out by content (below, since 4 Nov 2026), so a rename, a removal and an added
+  // line can share one save. Lines are compared trimmed, blank ones left out. Returns {text, autoNotes} with the edits
+  // applied, or null when nothing was renamed or deleted.
   function wfLineEdits(weekKey, before, after, autoNotes){
     const b = String(before || '').split('\n').map(l=> l.trim()).filter(Boolean);
     const a = String(after || '').split('\n').map(l=> l.trim()).filter(Boolean);
@@ -16460,31 +16542,60 @@ export function initLegacyApp() {
     const autos = (autoNotes || []).filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n)));
     const noteOf = line => autos.find(n=> autoNoteLine(n) === line);
     const labels = new Map(), gone = new Set();
-    if(a.length === b.length){
-      b.forEach((was, i)=>{
-        const now = a[i];
-        if(was === now) return;
-        const n = noteOf(was);
-        if(!n || labels.has(n)) return;
-        const orig = n.holiday ? (holidayOrigName(n.hid) || n.label) : n.origLabel;
-        const name = stripHolidayDate(now, n.date) || orig;              // just its date: back to its own name
-        if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return;       // given another date: a note, not a rename
-        if(n.holiday) setHolidayName({hid: n.hid, name: n.label, origName: orig, date: n.date}, name === orig ? null : name);
-        else setAutoNoteName(n, name);
-        labels.set(n, name);
-        a[i] = `${name} ${fmtShort(n.date)}`;
-      });
-    } else if(a.length < b.length){
-      let j = 0;
-      b.forEach(l=>{
-        if(j < a.length && a[j] === l){ j++; return; }
-        const n = noteOf(l);
-        if(n) gone.add(n);
-      });
-      if(j !== a.length) return null;                                    // not just lines taken out
-      // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
-      gone.forEach(n=>{ if(n.holiday) hideHolidayInWaterfall(n.hid); else hideAutoNoteIn(n.kind, 'sheet'); });
+    // Rename note `nt` to the box's line `now`, at index `at` in `a`. False when `now` is no rename of it (it ends in
+    // another date: a note), or, with `needDate`, when the line lost the note's own date (typed afresh, not edited).
+    const rename = (nt, now, at, needDate)=>{
+      const orig = nt.holiday ? (holidayOrigName(nt.hid) || nt.label) : nt.origLabel;
+      const bare = stripHolidayDate(now, nt.date);
+      if(needDate && bare === now.replace(/\s+/g, ' ').trim()) return false;
+      const name = bare || orig;                                        // just its date: back to its own name
+      if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return false;     // given another date: a note, not a rename
+      if(nt.holiday) setHolidayName({hid: nt.hid, name: nt.label, origName: orig, date: nt.date}, name === orig ? null : name);
+      else setAutoNoteName(nt, name);
+      labels.set(nt, name);
+      a[at] = `${name} ${fmtShort(nt.date)}`;
+      return true;
+    };
+    // ⭐ ALIGNED BY CONTENT since 4 Nov 2026 (WATERFALL-NOTE-EDITOR-PLAN.md D2), not by count. The lines the box kept are
+    // its longest common run with what the cell held; between two kept lines, the lines that left and the lines that
+    // came are paired in order (a line that only MOVED is neither: it left one place and came in another, unchanged).
+    // An automatic note's or holiday's line that left:
+    //   - with a line in its place is RENAMED to it (not when the new line ends in another date: a note, as before).
+    //     Where the box gained or lost lines at that spot, only a line that KEEPS THE NOTE'S OWN DATE counts ("Labour Day
+    //     9/7/26", an edit); one typed afresh without it is the user's own text, and the note is left alone, neither
+    //     renamed nor hidden. ⛔ That is the full gate's base leg, which types two lines of its own over Labor Day's: an
+    //     early build of this read the first as a rename, and Labor Day was called "Studio Cut Due" everywhere. One line
+    //     typed straight over one line renames it with or without its date, as it always has (rename ruling 3);
+    //   - with nothing in its place is HIDDEN from the waterfall (Delete's rule).
+    // Until then this ran only when the count was the same (renames, line for line) or lines were only taken out
+    // (hides), so a rename and an added line in one save lost the rename, and a line taken out with another typed in
+    // was neither hidden nor kept (it came back after a move).
+    const n = b.length, m = a.length;
+    const had = new Set(b), has = new Set(a);
+    const L = Array.from({length: n + 1}, ()=> new Array(m + 1).fill(0));
+    for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+      L[i][j] = b[i] === a[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const gaps = [];
+    let gb = [], ga = [], i = 0, j = 0;
+    while(i < n && j < m){
+      if(b[i] === a[j]){ gaps.push([gb, ga]); gb = []; ga = []; i++; j++; }
+      else if(L[i + 1][j] >= L[i][j + 1]) gb.push(i++);
+      else ga.push(j++);
     }
+    while(i < n) gb.push(i++);
+    while(j < m) ga.push(j++);
+    gaps.push([gb, ga]);
+    gaps.forEach(([gl, gc])=>{
+      const left = gl.filter(bi=> !has.has(b[bi])), came = gc.filter(aj=> !had.has(a[aj]));
+      left.forEach((bi, t)=>{
+        const nt = noteOf(b[bi]);
+        if(!nt || labels.has(nt) || gone.has(nt)) return;
+        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
+        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+      });
+    });
+    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
+    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
     if(!labels.size && !gone.size) return null;
     return {text: a.join('\n'),
             autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};

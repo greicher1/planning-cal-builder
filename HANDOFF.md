@@ -4,6 +4,64 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: THE WATERFALL'S NOTE EDITOR SAYS WHAT A LINE IS, AND HIDES IT — BUILT, GATED and COMMITTED on branch `wf-note-editor`, NOT merged, NOT pushed ([`WATERFALL-NOTE-EDITOR-PLAN.md`](WATERFALL-NOTE-EDITOR-PLAN.md)). Branch `wf-note-editor` (worktree `.claude/worktrees/wf-note-editor`, from `main` at `c5fd2ce`; its `node_modules` is a symlink). Tracker cards `wf-hide-auto-note`, `wf-holiday-editor-mode`
+
+- **The asks** (owner): *"Should there be an equivalent hide auto note button in the waterfall view?"*, then *"Yes, plan
+  both"*, joining card `wf-holiday-editor-mode` (30 Oct 2026: the waterfall editor reads "Note" on a holiday line).
+- **The design:** one editor. The heading names a cell holding one thing ("Auto Note · 6/29/26", "Holiday · 7/3/26");
+  the box always holds the whole cell, so a line can be added; under it, each automatic note and holiday with its own
+  Hide (the ↻ / ⚑ marks). No frozen code, no save-format change.
+- ✅ **RULED (owner, by picker, 4 Nov 2026):** R1(a) Hide Holiday too, waterfall only; **R2(b) Hide acts at once and
+  closes the editor** (not the recommendation: it saves the rest of the editor as Tab would, then closes); R3(a) a
+  list under the box for a cell with several lines.
+- **Defaults worth knowing before building:** a rename and an added line in one save both stick (`wfLineEdits` aligns
+  lines by content, D2); the Day picker and "Show in month view" are hidden while the cell has no typed line (D4, D5);
+  month notes shown in the waterfall are not listed (D7). New leg `wfnoteeditor`; neighbours in the plan's §5.
+- **As built (`src/legacy/app.js`):** `openNoteEditor` classifies the box's lines once (`cellItems`, `cellKnown`,
+  `singleItem`), names the heading, renders `.note-pop-delete.wf-note-hide` (one item) or `.wf-note-items` (several), and
+  shows `.note-day-row` / `.note-view-row` only while `typedIn(box)`; a Hide removes its line from the box, sets
+  `activeNoteEditor.hide` and commits. `commitActiveNoteEditor` applies the hide first and runs the save against
+  `sheetAutoNotesFor` re-read (`autoIn`), then `update()`. `wfLineEdits` aligns by longest common subsequence (D2).
+  CSS beside `.mv-note-pop .note-pop-delete`, reusing NS1's ↻ / ⚑ masks. Help text in `src/index.html`.
+  - ⛔ **The rename rule, as the full gate forced it.** One line typed straight over one automatic or holiday line
+    renames it, date or not (rename ruling 3, unchanged). Where the box ALSO gained or lost lines at that spot, a line
+    is a rename only if it KEEPS THE NOTE'S OWN DATE ("Labour Day 9/7/26"); lines typed afresh over it are the user's
+    own text and the note is left alone (not renamed, not hidden). A line taken out with nothing in its place is
+    hidden; a line that only moved is neither. The first build paired by place alone, and the gate's `base` leg
+    (`t/base.js` types "Studio Cut Due\nNetwork Cut Due 9/11/26" over Labor Day's line) renamed Labor Day to "Studio Cut
+    Due": sig, noteCells, vClip, the waterfall PDF and the workbook's sharedStrings all moved off the baseline.
+    Line-for-line pairing on equal counts (the old rule) was tried and broke H4 and R3 (a Hide or a taken-out line
+    shifts the positions), so the date is the signal, not the count.
+- **Full gate (4 Nov 2026, 18:55-19:31, the first build):** 3,950 PASS / 8 FAIL. Five were the base leg's regression
+  above (fixed; the base comparison re-run alone on the fixed build is identical to its baseline: sig, noteCells,
+  vClip, the waterfall PDF, every Excel part). The other three: `phiatusnum` H14 (a 10 s file-menu timeout),
+  `monthexport (dayoverrides)` X6, `scenariocompat` on `releases/v1.2.0.html` (an old release, untouched by this
+  branch); re-run alone below. Every month baseline identical (gate 10 print documents, gate 13 written PDFs),
+  0 clipped cells, pdfseams clean.
+- **Proof:** `wfnoteeditor` 13/13 (E1-E3 headings and controls, H1-H5 Hide, R1-R4 mixed saves), red on the old
+  `wfLineEdits` (H4, R1, R2, R3). Neighbours green: noteviews 15/15, notewrap 16/16, holidayrename 14/14, wfkeys 84/84,
+  wfmenu 39/39, autonoterename 24/24, autonoteview 18/18, autonotekinds 16/16, autonotephases 27/27 (on the card's
+  new one-row layout, merged from `e5e4435`), hdrcontrols 12/12, wfnotecolors 14/14, dlgkeys 16/16, regionmirror 9/9,
+  hdrrow 37/37, mvmenu 81/81, monthnotes 8/8, textstyle 51/51. `npm run check` 40/40. Browser pane: every heading, and a
+  real click on Independence Day's Hide in the 6/29 cell (closed, the holiday gone from the cell, the start kept).
+- **Re-run on the fixed build (dist rebuilt after the rule change):** the gate's base comparison identical to its
+  baseline; `wfnoteeditor` 13/13; wfkeys 84/84, wfmenu 39/39, holidayrename 14/14, autonoterename 24/24, autonoteview
+  18/18, noteviews 15/15, wfnotecolors 14/14, notewrap 16/16, autonotekinds 16/16, autonotephases 27/27, hidewf 19/19,
+  mvnotes 14/14, textstyle 51/51 (⚠️ on `carry-rich`, its gate fixture; with no fixture it throws at B4 on an empty
+  grid, which is the runner's mistake, not a failure), mvtextstyle 23/23 + 6/6, phiatusnum 18/18 (H14/H16's
+  file-menu load timeout once first, the recorded flake).
+- ✅ **Second full gate, on the fixed build (4 Nov 2026, 20:58-21:46, port 8618): 3,920 PASS / 2 FAIL, both timeouts,
+  each green alone.** `colreuse (live)` timed out waiting for the shareable copy (27/27 alone, both states);
+  `monthemit (mvtextstyle)` wrote no result (16/16 alone, and v1.8.0 opens its file). Every baseline identical: the
+  base leg (sig, noteCells, vClip, headers, cols), the waterfall PDF, every Excel part, gate 10's print documents
+  (11/11), gate 13's written month PDFs, pdfseams; 0 clipped cells.
+- ✅ **Committed on the branch (owner, by picker), then merged with `origin/main` at `c52094f` (the one Shift tool,
+  live).** README was the one conflict (both changelog entries kept). On the merged build: `npm run check` 40/40, the
+  gate's base comparison identical to its baseline, `wfnoteeditor` 13/13, and the Shift tool's legs (anchorside 23/23,
+  snaptools 14/14, overrides 20/20, calrange 18/18, datepick 17/17, rowheight 7/7) with the note legs (wfkeys 84/84,
+  autonoteview 18/18, holidayrename 14/14, autonoterename 24/24, noteviews 15/15, wfmenu 39/39, textstyle 51/51).
+- **Next:** the owner's call on merging into `main` and pushing.
+
 ### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
