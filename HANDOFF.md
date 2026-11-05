@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED (4,053 PASS / 0 FAIL, every baseline identical) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only). Not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
+### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED twice (4,053 PASS / 0 FAIL; then on the merged v1.11.0 build 4,103 PASS / 2 FAIL, neither this change's; every baseline identical both times) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only). Not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
 - **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
   stays keyed on its week (a plain key, one per week of the band) when the hiatus is retyped to other dates. It is
   ignored, never destroyed. But `shiftCalendarDates` step 3 (`hiatusKeyStays`) kept a plain key only on a HELD band's
@@ -47,9 +47,25 @@
   `stalebandkey` 9/9 inside it.
 - ⚠️ **`origin/main` moved during the gate** (v1.11.0, the layout rules, pushed at 21:11 UTC). Merged in as one
   commit: `src/legacy/app.js`, `gate.sh` and the legs auto-merged; README's entry now sits above `## v1.11.0`.
-- ⏭ **Next:** a full gate on the MERGED build, then the owner's picker: merge, and separately push. The branch then
-  holds `origin/main` (`347a98f`), so a push is `git push origin stale-band-key:main` from the worktree, a
-  fast-forward. This worktree's `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
+- ✅ **Full gate #2 on the MERGED build** (`cafc42f`, dist sha256 `c30cc0e2…`, port 8921, 13:57–14:35, no other gate
+  running): **4,103 PASS, 2 FAIL, every baseline identical** (grid signature, 0 clipped, the waterfall PDF bar its
+  stamp, Excel parts, the restore, `fields.byId` 77 ids, gate 10's printed months, gate 13's written month PDFs).
+  `stalebandkey` 9/9 inside it. The two FAILs:
+  - `offweek` (offweek fixture) R11: "timed out waiting for: the loaded file's name in the file menu", a load timeout.
+    Alone on the same build: 42/42, 0 errors.
+  - ⚠️ `phiatusnum` H4, **red on `origin/main` itself** (`347a98f`, live v1.11.0), alone, and green on `2e48654`
+    before the merge. **A harness bug the layout rules exposed, not a product bug.** The leg's `pdfRuns` strips
+    trailing CR/LF before inflating each stream ("DecompressionStream rejects the EOL"). The new widths changed the
+    compressed bytes, so page 1's content stream (`/Length 1466`) now ENDS in an EOL byte, the strip truncates it,
+    and no text run is found at all.
+  - The PDF itself is valid: `pdftotext` reads "Pre-Prep Hiatus wk 1-3" and "Set Build Hiatus" x2 exactly as H4
+    expects. Fix: slice each stream by its `/Length`.
+  - Twelve legs carry the same extractor (`autonotekinds`, `autonotephases`, `autonoteview`, `autonoterename`,
+    `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`, `wfnotecolors`),
+    so any of them can go red the same way when a PDF's bytes change. Its own change, not this branch's.
+- ⏭ **Next:** the owner's picker: merge, and separately push. The branch holds `origin/main` (`347a98f`), so a push is
+  `git push origin stale-band-key:main` from the worktree, a fast-forward. This worktree's `node_modules` is a real
+  directory, so `git worktree remove` needs no unlink first.
 
 ### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ✅ **MERGED into local `main` as `9ca08ca`** (--no-ff, owner's picker *"Yes, merge into main"*, 5 Nov 2026), then **`origin/main` merged in as `0657ec6`** (39 commits: the phase arrows, hiatus ripple, the one Shift tool, the note editor, the month-drag carry; conflicts in HANDOFF and README only, both sides kept, layout entries first; app.js, Sidebar.jsx, index.html, legacy.css, gate.sh, settingswin.js auto-merged), and **v1.11.0 CUT** (owner's pickers *"Merge, targeted legs, then ask"*, *"Yes, cut v1.11.0"*): `APP_VERSION`, `version.json` AND `package.json` (⚠️ `npm run check` compares version.json with package.json, so a cut is THREE files now, not two), the 20 Unreleased changelog entries under one `## v1.11.0` heading, `tests/fixtures/v1.11.0-saved.sptcal` (a real Save, `t/mintfixture.js`), `releases/v1.11.0.html` = the checked build (`cmp`-identical, `e2960429…`). **On the merged 1.11.0 build: `npm run check` 40/40; a targeted run of gate.sh's sections (base→restore = gates 2 + 3, colreuse, layouthook, 17 generic legs incl. layoutrules ×6, anchorside, phasearrows, mvdragcarry, wfnoteeditor, simpostbeside, swapsplitreuse, colswappartial ×2, spancounts, prodspan, settingswin; hiatusripple; monthwriter = gate 13): 493 PASS / 0 FAIL in 5 min**, waterfall PDF and workbook identical, 0 clipped cells, the written month PDFs byte-identical. No full gate on the merge (the owner's pick). ✅ **LIVE at `7bfb40c` in v1.11.0** (owner's picker *"Push now"*; pushed `ca794cc..7bfb40c` plus tag `v1.11.0` at 21:11:26 UTC on 5 Nov 2026; the Pages deploy succeeded, and the live `index.html` matched the pushed build `e2960429…` byte for byte after ~30 s, `version.json` 1.11.0). Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). ⚠️ Before the merge the main checkout's uncommitted mirror copies of `LAYOUT-RULES.md`, `LAYOUT-STUDY-PLAN.md` and `tools/layout-study/` were removed (the branch's committed copies were newer supersets, diffed), and another session's stale untracked `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html` (4 lines each beyond origin's committed, as-built copies) were set aside in this session's scratchpad, as was its uncommitted HANDOFF hunk (the phase arrows "RULED: LAYOUT D" lines, superseded by origin's as-built entry). Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
 - **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns
