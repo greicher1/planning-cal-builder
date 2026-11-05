@@ -155,7 +155,12 @@
   shoot's note, Fall Break and marks stay); W1 Whole schedule's fixed ticks behind the fold; O2 the reset after a
   custom set; I1 no id on any tick. **Mutant:** one span across the ticked phases instead of a window each is red on
   C4 alone. `npm run check` 40/40 on build `1f722760…`.
-- **Full gate:** GATE2_RESULT_PENDING
+- **Full gate** (build `1f722760…`, port 8798, 06:08-06:44 UTC on 5 Nov): **3,963 PASS / 10 FAIL, every baseline
+  identical**, `anchorside` 29/29 inside it. The 10 FAILs are the load-timeout family (*"timed out waiting for: the
+  loaded file's name in the file menu"*) in three legs, each green alone right after: `seasons` 15/15, `phasenum
+  (phasenumbering)` 31/31, `offweek (offweek)` 42/42. ⚠️ Another session's gate was running for the first ~20 min
+  of this one (stopping mine was refused by the permission classifier), which is the likely cause; a note was left in
+  the shared notes folder for that session.
 - ⏭ **Next:** ask the owner to push (one push carries the overlap revert, §7.4's docs and this).
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
