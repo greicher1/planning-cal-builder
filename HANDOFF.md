@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILT on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` at `c52094f` (the one Shift tool) merged in as `ae6b107`. Not merged into `main`, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
+### ✅ 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR ("Ripple Hiatus Periods" / "Ripple Hiatus") — ✅ **LIVE at `ad855a7`** (owner's picker *"Push now"*; pushed from the branch, `4a90017..ad855a7`, at 01:42:27 on 5 Nov 2026, a fast-forward; the live `index.html` matched the tested build `9660b34b…` byte for byte at 01:43:54, `version.json` 1.10.0, no version cut). ⚠️ Local `main` was NOT moved: the main checkout holds another session's uncommitted HANDOFF edits, so it fast-forwards to `ad855a7` once that session commits. Built on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` merged in twice: `c52094f` (the one Shift tool) as `ae6b107`, `4a90017` (phase arrows, note editor) as `ad855a7`. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
   adjust all the phases. It should be very clear how to turn it on or off"*. Then *"Yes, build it"*. Then the names:
   *"Ripple Hiatus Periods" (all phase hiatus) or "Ripple Hiatus" (for per phase hiatus)*.
@@ -70,7 +70,8 @@
   Excel parts identical, `hiatusripple` 15/15, `hiatusdrag` 14/14, `phasearrows` 26/26, `wfnoteeditor` 13/13,
   `anchorside` 23/23, `settingswin` 21/21, `wfmenu` 39/39, `mvmenu` 81/81, `hiatussidebar` 16/16. The phase arrows
   move a phase's own hiatus by code writes, which never settle a ripple (only a focused hiatus box does).
-- ⏭ **Next:** ask the owner to merge into `main` and push (per action).
+- ⏭ **Next:** nothing for this feature. Clean-up when wanted: fast-forward local `main` once the main checkout is
+  committed; unlink the worktree's `node_modules` symlink before `git worktree remove`.
 
 ### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch (`804edb2`); **FULL GATE 3,981 PASS / 3 FAIL, every baseline identical, the 3 load-timing flakes green alone**; owner's picker *"Merge"* + *"Push after quick checks"*: `origin/main` (`ac55bb7`, the note editor) and local `main` (`8b36c9a`) merged in as `2c5ad0e` + `86b6a2a`, quick checks green on the merged build ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
