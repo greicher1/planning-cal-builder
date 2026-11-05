@@ -218,8 +218,8 @@ input.ctl.num{ width:52px; flex:none; }
     {key:'localization', name:'Localization', weeks:8,  start:'2027-11-01', fill:'#EDEDED', ink:'#525252'},
   ];
   const TABNOTE = {
-    A: 'A: Anchor To gets three buttons under the phase. Shift All and Shift From stay as they are.',
-    B: 'B: Anchor To gets a dropdown that names the phase. Shift All and Shift From stay as they are.',
+    A: 'A: Anchor To keeps today’s phase and date rows, with three buttons added under them. Shift All and Shift From stay as they are.',
+    B: 'B: Anchor To keeps today’s phase and date rows, with a dropdown that names the phase added under them. Shift All and Shift From stay as they are.',
     C: 'C: Shift From and Anchor To become one tool behind Shift’s ▾, and their buttons go. The arrows still move everything one week. The toolbar keeps two tools: Shift keeps the gaps, Rebuild From closes them.',
   };
   const TIP = {
@@ -317,11 +317,14 @@ input.ctl.num{ width:52px; flex:none; }
   const tail = '<p class="hint" id="hint"></p>';
   const msgEl = '<p class="msg" id="msg"></p>';
 
+  // Owner, 4 Nov 2026: the date "directly below" the phase / starts-on line, as in today's popover. The new choice
+  // and its hint go under the date row, so A and B are today's Anchor To with one block added at the bottom.
   function popAB(){
     return head('Anchor to a date', TIP.AB)
       + '<div class="row">' + phaseSelect() + edgeSelect() + '</div>'
+      + dateRow()
       + (pick === ALL ? '' : (opt === 'A' ? moveSeg() : moveSelect()))
-      + tail + dateRow() + msgEl;
+      + tail + msgEl;
   }
   function popC(){
     // Owner, 4 Nov 2026: the phase "right below" What moves. The hint follows it, since it names what that pair leaves

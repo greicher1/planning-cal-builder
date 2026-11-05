@@ -68,7 +68,10 @@ To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
 
 ## 1. What it would look like
 
-One more choice in the Anchor To popover, **what moves**, under the phase:
+One more choice in the Anchor To popover, **what moves**. In A and B it goes under today's two rows, the phase with
+*starts on / ends by* and then the date with Go, so the date stays directly below the phase line (owner, 4 Nov 2026,
+on a screenshot of that line: *"Fix mockup a and b so the date selector is directly below this line"*). A and B are
+today's Anchor To with one block added at the bottom:
 
 - **All phases.** Today's tool, and the default.
 - **Phase & before:** the picked phase and everything before it. New.
