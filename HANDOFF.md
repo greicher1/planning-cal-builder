@@ -302,7 +302,7 @@
   run that had not been reported).
 
 
-### 🔨 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert; NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+### ✅ 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — ✅ **LIVE at `c8eac00`** (owner's picker *"Push now"*; pushed from branch `shift-tool` `51d8fb6..c8eac00` at 09:46:28 UTC, a fast-forward carrying the overlap revert `1edc559`, plan §7 / §7.4, the tick list `f089108` and three merges of `origin/main`; the live `index.html` matched the re-checked build `27e1a018…` byte for byte at 09:48:29). ⚠️ Local `main` NOT moved (the main checkout holds another session's uncommitted edits); it fast-forwards to `shift-tool` once that session commits. RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
 
 **As built (5 Nov 2026):**
 - **Rulings** (owner): T0 *"ok lets go with A"* (from four measured layouts, §7.4; asked *"are you absolutely sure
@@ -359,7 +359,8 @@
   before it starts) still matches nothing under `windows`. Re-check on `27e1a018…`, all green: `npm run check` 40/40,
   `anchorside` 29/29, `phasearrows` 26/26, `hiatusripple` 15/15, `wfnoteeditor` 13/13, `overrides` 20/20, `snaptools`
   14/14. No second full gate.
-- ⏭ **Next:** push (owner's picker, *"Push now"*).
+- Pushed as above: origin/main's `51d8fb6` (a HANDOFF-only commit) merged in first, no code moved, the build still
+  `27e1a018…`.
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
     every phase you wanted it to effect kinda like how it works in rebuild from right now?"*
@@ -380,7 +381,7 @@
 - **Waiting on the owner:** T0 the layout, T1 the fold under All phases, T2 notes for a hand-picked set.
 - The engine needs nothing: `part` already moves any set.
 
-### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; ✅ **the overlap rule REVERTED, LIVE at `c8eac00`** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below; pushed with the tick list, the entry above) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
 - **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,
