@@ -62,6 +62,30 @@ save before reading any PDF; each was green alone. `npm run check` 40/40. A Node
 the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
 stream throws. No gate.sh change: leg names and budgets are the same.
 
+### Unreleased — a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
+
+Owner, trying the entry below once it was live: *"i tried highlighing a bunch of expanced cells and double clicking
+and it only pulled back the cell my cursor was on."* A drag selects phase cells by each cell's **own** column, not
+its whole width. That is deliberate (owner, 1 Sep 2026): a drag down one column must not also pick up another phase's
+full-width cells that straddle it. But an expanded cell's own column can be the far one. Bible wk 13–16 on
+`layout-r13` own the right of their three columns, so a drag down their left part touched no own column and
+selected **nothing**. Meanwhile the text style bar's highlight, built from the same drag, takes any cell it touches,
+and it outlined all four, so it looked selected. With no selection, the double-click acted on the one cell under
+the pointer.
+
+- **What changed** (`src/legacy/app.js`, the selection drag's membership): when a drag touches **no** cell's own
+  column at all, it selects the cells it touches, as the highlight does. When it touches any own column, the own-column
+  rule decides as before, so the 1 Sep ruling holds (a drag from Writer's Rm wk 18 down into the Bible rows still
+  selects only Writer's Rm wk 18–20).
+- **Verified:**
+  - By hand in the built app: the reported drag now shows "Double click to pull back cells", and the double-click
+    pulls all four back. The column-one drag still leaves the Bible cells out.
+  - `centrepullback` gains P9 (the reported drag) and P10 (the 1 Sep rule), 12/12 on the build. P9 is red on the live
+    build (`2daa5cde`, the pushed `854dbbe`), with exactly the reported result: one of four pulled back, no hint.
+  - The same targeted run of `gate.sh`'s sections as the entry below: 463 PASS / 2 FAIL. Both fails are
+    `colreuse (live)`'s "Update layout" strip checks, a timing flake while another session's full gate ran: the live
+    build fails them the same way, 2 of 3 runs, and each build passes 25/25 on other runs. `npm run check` 40/40.
+
 ### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
 
 Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
