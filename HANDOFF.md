@@ -156,7 +156,7 @@
   ⚠️ P1's one-line check runs at a **351 px** card in headless Chrome, so the 247 px fit is proven only by the pane
   measurement above, not by a leg.
 
-### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — LIVE at `e5e4435` (merged into `main` as `c5fd2ce`, owner's picker *"Merge + targeted run"*; pushed with the Automatic notes card from another session's push picker). Branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `swap-column-splits-with-reuse`
 - **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
   (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
   collumns fixed it! But how would a user know that was what they needed to turn off?"*
@@ -208,7 +208,14 @@
   re-run alone on the same build as `gate.sh` runs it: `monthexport (month-lanecap)` X6 (the timed dialog case) 9/9,
   `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
   No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
-- ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
+- ✅ **Post-push check on the live tree** (`e5e4435`, whose fresh build is the live `index.html` byte for byte,
+  sha256 `2e61a28e…`): gate.sh's own sections for main's new legs since `f5268e5` (backuplink, backuplinkstale,
+  noteviews on `wfkeys`, scenarios + scenariofacts) plus the whole swap/reuse set from the mini-gate above, run after
+  the other session's full gate exited: **358 PASS / 0 FAIL.** The owner asked whether the merged build needed a
+  full gate; the answer given was no, because the fix had passed one on its own branch and the new rule could only
+  move legs that start on a reuse-ON calendar, which this run covers. A full gate on whatever ships next still
+  covers the combination.
+- Nothing left on this entry.
 - ✅ **LIVE at `e5e4435`** (4 Nov 2026, 17:39), pushed with the Automatic notes card (see that entry above for the
   run that had not been reported).
 
