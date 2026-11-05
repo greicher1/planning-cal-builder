@@ -151,7 +151,12 @@ export function PreviewToolbar() {
             <div className="tools-row" data-shift-phase-row="">
               {/* ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this
                   element's innerHTML, and the handlers recover the phase name by splitting the
-                  option label on ' — '. Whole schedule is in it only for All phases to a date. */}
+                  option label on ' — '. Whole schedule is in it only for All phases to a date.
+                  Since 5 Nov 2026 this row shows ONLY under Phase & before / after, where the phase
+                  is the pivot; under All phases or a hand-picked set the phase that lands on a date
+                  is picked on the subject row under How far, a mirror of this select (owner: "is
+                  this confusing?", mockups/shift-date-row.html). This one stays the source of truth
+                  every reader asks, shown or hidden. */}
               <select id="tool-anchor-phase" aria-label="Phase"></select>
             </div>
             {/* The list (see the head of this block). No children: the engine owns everything inside. The link
@@ -166,6 +171,17 @@ export function PreviewToolbar() {
               <button type="button" data-far="weeks">By weeks</button>
               <button type="button" data-far="date">To a date</button>
             </div>
+            {/* The SUBJECT of the date row (owner, 5 Nov 2026, mockups/shift-date-row.html): the date row used to
+                read "starts on 3/2/26" with its phase two sections up, past the How far toggle. Under All phases
+                or a hand-picked set, To a date, the phase that lands is picked HERE, directly above "starts on":
+                a mirror of #tool-anchor-phase that the engine fills from it and writes back into it on change,
+                so every reader keeps asking the one select. No id, so it never enters fields.byId. Under Phase &
+                before / after the pivot (the row above) is the phase that lands, and the line repeats its name as
+                text. Which one shows is the engine's, through `hidden`; by weeks neither does. */}
+            <div className="tools-row" data-shift-subject-row="">
+              <select data-shift-subject="" aria-label="Phase that lands on the date"></select>
+            </div>
+            <p className="tools-subject" data-shift-subject-line=""></p>
             <div className="tools-row" data-far-row="weeks">
               <input type="number" id="tool-shift-weeks" min="1" step="1" defaultValue="2" aria-label="Number of weeks to shift" />
               <span className="tools-unit">wks</span>
@@ -174,7 +190,7 @@ export function PreviewToolbar() {
             </div>
             <div className="tools-row" data-far-row="date">
               {/* The option VALUES are read directly ('start' / 'end'); do not reword them. Beside the
-                  date, not the phase, so the phase row holds the phase alone (owner, 4 Nov 2026). */}
+                  date, not the phase (owner, 4 Nov 2026); the phase is the line above since 5 Nov 2026. */}
               <select id="tool-anchor-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
                 <option value="start">starts on</option>
                 <option value="end">ends by</option>

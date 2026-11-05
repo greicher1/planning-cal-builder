@@ -4,6 +4,104 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`, from `main` at `347a98f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`. COMMITTED on the branch (owner's picker, *"Commit on the branch"*); NOT merged, NOT pushed. Owner asked whether it needs the full gate: answered no (see the gate bullet).
+- **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
+  able to drag and select collumns and double click to unexpand them"*.
+- **The cause, reproduced in the pane on `layout-r13`:** the pull-back existed and its hint showed, but the boundary
+  between an expanded cell's columns runs down its centre, and that boundary's `.grid-resize.is-col` handle (7 px,
+  full table height, z above the cell) took the double-click; the batch listener's "a handle owns its own band"
+  return sent it to the frozen autofit, a no-op on an unsized column. Off-centre worked. ⚠️ Since v1.11.0 the layout
+  rules widen many cells on their own, so this hit nearly every expanded cell, not just hand-widened ones.
+- **Built** (`src/legacy/app.js`, the multi-cell selection block beside `batchFill`, not frozen):
+  `cellAcrossBoundary(h, x, y)` returns the phase cell when an is-col handle's centre lies more than
+  max(4, handle width) px inside it; the capture `dblclick` listener then runs `batchFill()` (cell selected) or
+  `batchFill(new Set([key]))` (not selected; the selection is dropped). `batchFill(keys)` takes optional SEL_KEYs.
+  Hiatus bands, span handles, row handles and boundaries on a cell's edge are untouched.
+- ⛔ **The drift guard, and why it exists:** the frozen column drag (`installGridResizers`' pointerdown) sets
+  `moved` on ANY pointermove and then saves `colWidths[ckey]`; a 1 px drift mid-double-click pins the column. The
+  frozen autofit used to delete it on the same double-click, which this change now stops. So a capture
+  `pointerdown` records the column's width at the FIRST press (`boundaryPress`, session UI), and
+  `undoBoundaryDrift()` puts it back when the presses moved the boundary ≤ 6 grid px. Measured: the pull-back stays
+  ONE undo step (the restore lands before `batchFill`'s flush push, which then no-ops).
+- **Verified:** by hand in the pane (batch centre pull-back, expand again, one undo step each; a lone cell with
+  nothing selected; Bible wk 13's two inner boundaries; the drift written then put back; y2031:s0 dragged then
+  autofit on wk 13's real edge, no cell moved). New leg `centrepullback` (generic block, `layout-r13`, 10 checks,
+  pointer events at real coordinates): green on the build; red at P2 on the build before (built from HEAD's
+  `app.js` into `dist/pre.html`, then deleted). ⚠️ `noswapbtns` S4 dispatches its double-click on the td itself,
+  which is why the trap was never caught; a new grid-gesture leg should hit-test with `elementsFromPoint`.
+- ✅ **Targeted gate (port 8835, 14:35–14:46): 465 PASS / 0 FAIL** — gate.sh's own sections, assembled by a throwaway
+  script (deleted): base + gates 2/3 + seams + workbook, colswapmove, colswapstale, stintbtn, stintmulti, stintchain,
+  stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys(+real), and the generic block cut to
+  noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu, layoutrules
+  r13/r17, centrepullback. 0 clipped cells; waterfall PDF and workbook identical. `npm run check` 40/40. No full
+  gate. The main checkout's `.claude/launch.json` has `batch-pullback-8833` (this worktree's harness server).
+
+### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED twice (4,053 PASS / 0 FAIL; then on the merged v1.11.0 build 4,103 PASS / 2 FAIL, neither this change's; every baseline identical both times) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only; then `cf75104`, New opens Show info, merged in the same way). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
+- **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
+  stays keyed on its week (a plain key, one per week of the band) when the hiatus is retyped to other dates. It is
+  ignored, never destroyed. But `shiftCalendarDates` step 3 (`hiatusKeyStays`) kept a plain key only on a HELD band's
+  week, so every other plain key moved.
+- **Reproduced on `origin/main`** (leg `stalebandkey`, port 8921):
+  - Post ▼ carried "Old Break Name" from 7/6 onto Summer Break's 7/13, where it yielded and was gone. Its colour, size
+    and both styles landed on Summer Break: **nudging Post recoloured Summer Break.**
+  - Production ▲ and the month drag carried it to 6/29 / 7/13.
+  - **Shift From's claim is TRUE:** Phase & after Post carried it from 7/6, before its 11/2 cutoff, onto Summer Break.
+- **Not the proposed one-liner** ("a plain key also stays when `!inRange`"). It judges a band's label by its WEEK while
+  the band is judged by its START, and a band can run past a part move's window. Proved: a Dates phase (a hiatus never
+  lengthens one) with an unlocked two-week band starting in its last week, only that phase ticked. Under the one-liner
+  the band moved and its second week's typed label and colour stayed behind (P1 red on that mutant).
+- **Built** (`src/legacy/app.js`, `shiftCalendarDates` steps 2-3, about 15 lines; no frozen code, no writer or
+  save-format change, no id):
+  - Step 2 records `movingHiatusWeeks` (pre-shift) beside `stayingHiatusWeeks`, through one `recordBandWeeks(row, set)`.
+  - `hiatusKeyStays` for a plain key: held band's week → stays; moving band's week → moves; no band → `!inRange`, as
+    a note.
+  - Whole-calendar shifts unchanged. ▲ / ▼ and the drag (empty window) never move a stale key now.
+  - ⚠️ Unchanged and known: on a whole-calendar shift a stale label one week above a LOCKED band still moves onto it
+    and yields (nothing ruled says otherwise).
+  - The month drag's "from the press" no longer has a store that can collide; the comment above `phaseDragWeeks` says
+    why it stays.
+- **Rulings that settled it** (so no question to the owner):
+  - ANCHOR §2: band labels "follow their band or phase", and a stale key has neither.
+  - Shift From's own "everything earlier stays exactly where it is".
+  - The arrows' §3: all-phase hiatuses (locked or not) stay.
+- **Proof:**
+  - New leg `stalebandkey` (9 cases, gate.sh after `mvdragcarry`) on new fixture `stalebandkey.sptcal`
+    (`phasearrows.sptcal` + the stale stores on 7/6/26, "Late Stale" on 2/8/27, Dates phase Stage Build 5/3-5/14/27,
+    unlocked "Strike Break" 5/10/27 x2 with "Strike wk 2" + colour on 5/17).
+  - Counts: `origin/main` 5/9 (N1 N2 F1 P1 red), one-liner 8/9 (P1), fix 9/9.
+  - `mvdragcarry` W1 now also holds the plain band labels: 14/15 on `origin/main`, 15/15 on the fix.
+  - Neighbours on the build (port 8921): `phasearrows` 26/26, `anchorside` 29/29, `mvdragcarry` 15/15, `calrange`
+    18/18, `datepick` 17/17, `halfworked` 24/24, `rowheight` 7/7, `overrides` 20/20, `snaptools` 14/14, `pilldrag`
+    30/30, `hiatusdrag` 14/14, `hiatusripple` 15/15. `npm run check` 40/40.
+- ✅ **Full gate** on `2e48654` (dist sha256 `ec680743…`), port 8921, 13:18–13:55, no other gate running (load ~11):
+  **4,053 PASS, 0 FAIL, every baseline identical.** That covers the grid signature, 0 clipped, the waterfall PDF (bar
+  the date stamp), the Excel parts, the v1.0.0 restore, `fields.byId` (77 ids) and gate 10's printed months.
+  `stalebandkey` 9/9 inside it.
+- ⚠️ **`origin/main` moved during the gate** (v1.11.0, the layout rules, pushed at 21:11 UTC). Merged in as one
+  commit: `src/legacy/app.js`, `gate.sh` and the legs auto-merged; README's entry now sits above `## v1.11.0`.
+- ✅ **Full gate #2 on the MERGED build** (`cafc42f`, dist sha256 `c30cc0e2…`, port 8921, 13:57–14:35, no other gate
+  running): **4,103 PASS, 2 FAIL, every baseline identical** (grid signature, 0 clipped, the waterfall PDF bar its
+  stamp, Excel parts, the restore, `fields.byId` 77 ids, gate 10's printed months, gate 13's written month PDFs).
+  `stalebandkey` 9/9 inside it. The two FAILs:
+  - `offweek` (offweek fixture) R11: "timed out waiting for: the loaded file's name in the file menu", a load timeout.
+    Alone on the same build: 42/42, 0 errors.
+  - ⚠️ `phiatusnum` H4, **red on `origin/main` itself** (`347a98f`, live v1.11.0), alone, and green on `2e48654`
+    before the merge. **A harness bug the layout rules exposed, not a product bug.** The leg's `pdfRuns` strips
+    trailing CR/LF before inflating each stream ("DecompressionStream rejects the EOL"). The new widths changed the
+    compressed bytes, so page 1's content stream (`/Length 1466`) now ENDS in an EOL byte, the strip truncates it,
+    and no text run is found at all.
+  - The PDF itself is valid: `pdftotext` reads "Pre-Prep Hiatus wk 1-3" and "Set Build Hiatus" x2 exactly as H4
+    expects. Fix: slice each stream by its `/Length`.
+  - Twelve legs carry the same extractor (`autonotekinds`, `autonotephases`, `autonoteview`, `autonoterename`,
+    `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`, `wfnotecolors`),
+    so any of them can go red the same way when a PDF's bytes change. Its own change, not this branch's.
+- ✅ **Owner's picker** (5 Nov 2026): *"Merge"*, and separately *"Push now"*. `origin/main` had moved again by then
+  (`cf75104`, New opens Show info: 6 lines in `newFile()`, a new leg `newtab`), so it was merged in (HANDOFF and
+  README only conflicted) and the build re-checked BEFORE the push. On that build (`30bbfc2e…`): `npm run check`
+  40/40; `stalebandkey` 9/9, `mvdragcarry` 15/15, `phasearrows` 26/26, `anchorside` 29/29, `newtab` 6/6,
+  `hiatusripple` 15/15. Pushed as `git push origin stale-band-key:main`, a fast-forward. Local `main` not moved.
+  This worktree's `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
+
 ### ✅ 5 Nov 2026: NEW ALWAYS OPENS THE SIDEBAR ON SHOW INFO. Built and verified on main; ✅ LIVE at `cf75104` (owner's picker "Commit locally" + "Push to live"; pushed `347a98f..cf75104` at 22:44:52 UTC, the live `index.html` matched the pushed build `6246295f…` byte for byte ~50 s later, `version.json` still 1.11.0: no version cut). Tracker card `new-opens-show-info`.
 - **Ask (owner):** *"when you click New the left bar should always be on the Show Info tab"*. `newFile()` never touched
   `sidebarTab`, so New kept whichever tab was up (Phases, usually).
@@ -185,7 +283,7 @@
   gate. ⚠️ Uncommitted on the branch: LAYOUT-RULES.md, leg `layouthook` + its gate section, the page fixes, this
   entry.
 
-### 🔨 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — BUILT and FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
+### ✅ 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — ✅ **LIVE at `ca794cc`** (owner's picker *"Merge"* + *"Push now"*; pushed from the branch, `c8eac00..ca794cc`; the live index.html matched `dist/` byte for byte, sha256 `448c2c84…`, 60 s after the push). FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
 - **Ruled** (owner, 4 Nov 2026, by picker, D7): *"yes, as its own change, right after the arrows"*. The body drag
   (`installMonthPillDrag`) moved `start-<key>` only, so the phase's own hiatus and its `<week>|<key>` stores (band
   names, colours, sizes and styles, cell spans, column swaps, its text styles; Sim Post's with Production) stayed on the
@@ -216,7 +314,7 @@
   - Neighbours on the build (port 8902): `phasearrows` 26/26, `monthdragundo` one step (`oneStep: true`),
     `anchorside` 29/29, `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14, `hiatusripple` 15/15, `mvorder`
     30/30, `npm run check` 40/40.
-- ⚠️ **Found, NOT fixed (shared with ▲ / ▼ and the Shift tool; its own change):** a one-phase move re-keys a plain-keyed
+- ⚠️ **Found, NOT fixed here (shared with ▲ / ▼ and the Shift tool; its own change, ✅ now built: the stale band key entry above):** a one-phase move re-keys a plain-keyed
   band store that sits on no band, because `hiatusKeyStays` keeps a plain key only on a held all-phase band's week. So
   ▲ / ▼ (and now the drag) move a stale band label a week, or drop it onto a held band's week; by the code, Shift From
   moves one from before its cutoff too. One-line fix: a plain key also stays when `!inRange(iso)`. It changes the Shift
@@ -227,9 +325,12 @@
   `mvdragcarry` 15/15 inside it. The FAIL is `scenariocompat` on `/releases/v1.2.0.html`, the known load case ("timed
   out waiting for: Open... menu item"): alone, red once that same way, then PASS twice (load ~7.8 from other
   sessions' servers). That page is a frozen release file; `releases/` is unchanged on this branch.
-- ⏭ **Next:** the owner's picker: merge, and separately push. The branch sits on `origin/main`'s tip (`c8eac00`), so a
-  push is `git push origin month-drag-carry:main` from the worktree, as the ripple went; local `main` is behind and
-  its checkout holds another session's uncommitted HANDOFF, so fast-forward it later, not now.
+- ✅ **Pushed** (owner, by picker, 5 Nov 2026: *"Merge"*, and separately *"Push now"*): `git push origin
+  month-drag-carry:main`, a fast-forward of `c8eac00`. Deploy run green; live `index.html` = this build.
+  ⚠️ Local `main` was NOT moved: its checkout holds another session's uncommitted HANDOFF and older untracked copies of
+  `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html`, either of which stops a fast-forward there. This
+  "LIVE" note is a local commit on the branch, not pushed.
+- ⏭ **Next:** the stale-band-label fix, as its own change: ✅ built, the stale band key entry at the top.
 
 ### ✅ 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR ("Ripple Hiatus Periods" / "Ripple Hiatus") — ✅ **LIVE at `ad855a7`** (owner's picker *"Push now"*; pushed from the branch, `4a90017..ad855a7`, at 01:42:27 on 5 Nov 2026, a fast-forward; the live `index.html` matched the tested build `9660b34b…` byte for byte at 01:43:54, `version.json` 1.10.0, no version cut). ⚠️ Local `main` was NOT moved: the main checkout holds another session's uncommitted HANDOFF edits, so it fast-forwards to `ad855a7` once that session commits. Built on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` merged in twice: `c52094f` (the one Shift tool) as `ae6b107`, `4a90017` (phase arrows, note editor) as `ad855a7`. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
@@ -529,7 +630,40 @@
   run that had not been reported).
 
 
-### 🔨 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert; NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+### ✅ 5 Nov 2026 (evening): SHIFT — THE PHASE BESIDE THE DATE UNDER TO A DATE — ✅ **BUILT on `shift-tool`, targeted legs green, NOT pushed** (owner, on a screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot' starts on **date selected**"*; *"Mock it up first"*; *"I like it but it doesn't need to say 'the phase you picked'"*). Worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`. Mockup [`mockups/shift-date-row.html`](mockups/shift-date-row.html) (today vs proposed, both live and mirrored; three ways to show the pinned phase, D2). Tracker card `shift-date-row-subject`
+
+**As built:**
+- **The rule:** the phase row above the list (`[data-shift-phase-row]`, `#tool-anchor-phase`) shows ONLY as the
+  PIVOT, i.e. for Phase & before / after. Under All phases or a hand-picked set, To a date, the phase that lands is
+  picked on a **subject row** directly under How far (`[data-shift-subject-row]` > `select[data-shift-subject]`, NO
+  id); under Phase & before / after a **subject line** (`p.tools-subject[data-shift-subject-line]`) repeats the
+  pivot's option as text ("Production — 6/29/26"). By weeks neither shows. (Before: the phase row showed for
+  before / after always, and for all / custom to a date, as the landing phase, two sections above the date.)
+- **One source of truth.** `#tool-anchor-phase` stays the select every reader asks (`anchorSelection`,
+  `shiftPlan`, `renderShiftList`, `shiftBy`, the Go handler, the legs' `T.set`). `syncShiftForm()` copies its
+  `innerHTML` and value into the mirror whenever the subject row is shown; the mirror's `change` writes its value
+  back and dispatches `change` on the original, whose own handler runs (`syncAnchorDate`, `syncShiftForm`), so the
+  date follows the phase and the list pins it exactly as a direct pick does. ⛔ Never read the mirror.
+- **Why a mirror and not a moved element.** React renders both rows; moving the one `<select>` between them in the
+  DOM would leave React's record of the tree wrong (a later removal throws), and a CSS `order` swap puts the tab
+  order out of step with the eye. Two elements, static markup, the engine chooses with `hidden`.
+- **`PreviewToolbar.jsx`:** the subject row and line between the How far buttons and the weeks row; the comments on
+  the phase row and the date row say so. **`legacy.css`:** `.tools-subject` (30 px, `font-size-sm`, 600, matching
+  the select it stands in for). **`app.js`:** `syncShiftForm()`'s row rule and the mirror; the subject's `change`
+  listener beside the fold's.
+- **Measured in the pane** (anchorside.sptcal): 261 px for All phases to a date (the select under How far), 471 px
+  for Phase & after to a date (the pivot, the list, the line, the date row).
+- **`anchorside` 30/30** (was 29): O1 both subject parts hidden on opening; W1 the rows in every state (the phase row
+  gone under All phases to a date, the mirror's options = the select's, Whole schedule mirrored, the line = the
+  pivot's option under Phase & before, nothing under by weeks); **J1** picks Post on the subject row: mirrored into
+  `#tool-anchor-phase`, the date prefilled as a direct pick prefills it, "Post On your date" pinned, Go slides every
+  start a week; I1 the mirror has no id. Plus `snaptools`, `overrides`, `calrange`, `rowheight`, `datepick`,
+  `rebuildticks`, `phasearrows`, `builtindates`, `customunits` green; `npm run check` 40/40. No full gate: chrome
+  only, no frozen code, no writer, no save format (the mirror has no id; S1 holds).
+- **Help** ("Adjusting dates") says the phase that lands sits right above the date. CLAUDE.md, PROJECT-CONTEXT
+  §7a, README, plan §7.5 and gate.sh's comment follow.
+
+### ✅ 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — ✅ **LIVE at `c8eac00`** (owner's picker *"Push now"*; pushed from branch `shift-tool` `51d8fb6..c8eac00` at 09:46:28 UTC, a fast-forward carrying the overlap revert `1edc559`, plan §7 / §7.4, the tick list `f089108` and three merges of `origin/main`; the live `index.html` matched the re-checked build `27e1a018…` byte for byte at 09:48:29). ⚠️ Local `main` NOT moved (the main checkout holds another session's uncommitted edits); it fast-forwards to `shift-tool` once that session commits. RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
 
 **As built (5 Nov 2026):**
 - **Rulings** (owner): T0 *"ok lets go with A"* (from four measured layouts, §7.4; asked *"are you absolutely sure
@@ -586,7 +720,8 @@
   before it starts) still matches nothing under `windows`. Re-check on `27e1a018…`, all green: `npm run check` 40/40,
   `anchorside` 29/29, `phasearrows` 26/26, `hiatusripple` 15/15, `wfnoteeditor` 13/13, `overrides` 20/20, `snaptools`
   14/14. No second full gate.
-- ⏭ **Next:** push (owner's picker, *"Push now"*).
+- Pushed as above: origin/main's `51d8fb6` (a HANDOFF-only commit) merged in first, no code moved, the build still
+  `27e1a018…`.
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
     every phase you wanted it to effect kinda like how it works in rebuild from right now?"*
@@ -607,7 +742,7 @@
 - **Waiting on the owner:** T0 the layout, T1 the fold under All phases, T2 notes for a hand-picked set.
 - The engine needs nothing: `part` already moves any set.
 
-### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; ✅ **the overlap rule REVERTED, LIVE at `c8eac00`** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below; pushed with the tick list, the entry above) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
 - **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,

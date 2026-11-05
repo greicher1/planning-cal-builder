@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift Date Row</title>
+<!-- MOCKUP, not the app. The one Shift tool as live (5 Nov 2026, layout A with the tick list) beside a proposed change
+     to where the phase sits under To a date. Owner, 5 Nov 2026, with a screenshot of All phases + To a date: "is this
+     confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase
+     selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot'
+     starts on <date selected>". Then "Mock it up first".
+     The proposal: the date row carries its own subject. Under All phases (or a hand-picked set) the phase select sits
+     UNDER the How far toggle, directly above "starts on"; under Phase & before / after the phase stays in What moves
+     (it is the pivot there) and the date row repeats it as plain text, since it is pinned. The phase row above the
+     list then means one thing only: the pivot. By weeks is unchanged.
+     Both popovers are live and mirror each other: a click in one is a click in the other. The popover copies the live
+     one (legacy.css .tools-menu, 340 px; .tools-seg; Rebuild From's .solve-list rows; src/theme.js tokens). The
+     calendar is synthetic; dates are whole weeks, and holidays, hiatuses and notes are left out. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6; --mark:#E0A800;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:880px; }
+.info{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin:14px 0; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+.cases{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; align-items:center; }
+.cases .lbl{ font-size:12px; color:var(--gray-6); margin-right:4px; }
+.case{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 13px; font-size:12.5px; font-weight:600;
+       cursor:pointer; color:var(--gray-9); }
+.case:hover{ background:var(--gray-0); }
+.case[aria-pressed="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.opts{ margin:12px 0 0; font-size:12.5px; color:var(--gray-7); display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.opts label{ display:inline-flex; align-items:center; gap:5px; cursor:pointer; }
+
+/* ---------- Two popovers on a stand-in for the preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.frame-scroll{ overflow-x:auto; }
+.cols{ display:grid; grid-template-columns:1fr 1fr; gap:40px; min-width:800px; padding:16px 20px 22px; align-items:start; }
+.col h2{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-6); margin:0 0 4px; font-weight:600; }
+.col .why{ font-size:12.5px; color:var(--gray-7); margin:0 0 10px; min-height:40px; }
+.split{ display:inline-flex; height:30px; border:1px solid var(--navy-6); border-radius:var(--r-md); background:#fff; overflow:hidden; }
+.split span{ font-size:12px; font-weight:500; padding:0 12px; display:flex; align-items:center; color:var(--navy-6); }
+.split span + span{ border-left:1px solid var(--navy-2); }
+.split .main{ font-weight:600; background:var(--navy-0); color:var(--navy-7); }
+.wrap{ position:relative; }
+
+/* ---------- The popover (legacy.css .tools-menu: 340 px, lg radius, md shadow). In flow here, so both show whole. ---------- */
+.pop{ position:relative; margin:6px 0 0 30px; width:340px; background:#fff; border:1px solid var(--gray-3);
+      border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:16px; z-index:5; text-align:left; }
+.head{ position:relative; margin:0 0 8px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+       display:flex; align-items:center; gap:6px; }
+.head .i{ display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid var(--gray-5); border-radius:50%;
+          font-size:8.5px; color:var(--gray-6); text-transform:none; letter-spacing:0; cursor:help; }
+.tip{ display:none; position:absolute; left:0; right:0; top:20px; background:var(--gray-9); color:#fff; font-size:11.5px;
+      line-height:1.45; padding:8px 10px; border-radius:var(--r-md); text-transform:none; letter-spacing:0; font-weight:400; z-index:6; }
+.head .i:hover + .tip, .head .i:focus + .tip{ display:block; }
+.cap{ margin:0 0 3px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+      display:flex; align-items:center; }
+.cap .count{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; }
+.row{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.row[hidden]{ display:none; }
+.unit{ font-size:11.5px; color:var(--gray-6); flex:none; }
+.ctl{ height:30px; border:1px solid var(--gray-3); border-radius:var(--r-md); background:#fff; font-size:12.5px; color:var(--gray-9);
+      padding:0 8px; }
+select.ctl{ flex:1; min-width:0; -webkit-appearance:none; appearance:none; padding-right:28px; cursor:pointer;
+  background:#fff url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 8px center/14px 14px; }
+select.ctl.edge{ flex:none; width:92px; }
+select.ctl.edge.named{ width:auto; flex:0 1 auto; max-width:170px; }
+input.ctl[type=date]{ flex:1; min-width:0; }
+input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
+input.ctl.num{ width:52px; flex:none; }
+.gobtn{ height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:600;
+        padding:0 12px; cursor:pointer; color:var(--gray-9); }
+.gobtn:hover:not(:disabled){ background:var(--gray-0); }
+.gobtn:disabled{ color:var(--gray-5); cursor:default; }
+.gobtn.half{ flex:1; min-width:0; padding:0 4px; }
+/* The choices: .tools-seg (Rebuild From's .solve-dir look). */
+.seg{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; margin:2px 0 8px; }
+.seg button{ flex:1; min-width:0; border:0; background:none; height:26px; border-radius:var(--r-sm); font-size:11.5px; font-weight:500;
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.seg button:hover{ color:var(--gray-9); }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+/* The list of phases, Rebuild From's .solve-list / .solve-row. */
+.list{ border:1px solid var(--gray-2); border-radius:var(--r-md); max-height:276px; overflow-y:auto; margin:0 0 8px; }
+.list[hidden]{ display:none; }
+.lrow{ display:grid; grid-template-columns:16px 8px minmax(0,1fr) 54px 84px; align-items:center; gap:7px;
+       padding:5px 9px; font-size:12px; line-height:1.4; border-top:1px solid var(--gray-1); cursor:pointer; margin:0; }
+.lrow:first-child{ border-top:0; }
+.lrow:hover{ background:var(--gray-0); }
+.lrow input{ -webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0; border:1px solid var(--gray-4);
+             border-radius:4px; background:#fff; cursor:pointer; }
+.lrow input:checked{ background:var(--navy-6) url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E") no-repeat center/62% auto;
+                     border-color:var(--navy-6); }
+.lrow input:disabled{ cursor:default; opacity:.55; }
+.dot{ width:8px; height:8px; border-radius:2px; }
+.nm{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dt{ text-align:right; font-variant-numeric:tabular-nums; }
+.ch{ text-align:right; font-size:11px; color:var(--gray-6); white-space:nowrap; }
+.lrow.off .nm, .lrow.off .dt{ color:var(--gray-6); }
+.lrow.moving .ch{ color:var(--navy-6); font-weight:500; }
+.lrow.pin{ background:var(--navy-0); cursor:default; }
+.lrow.pin .nm{ font-weight:600; }
+.lrow.pin .ch{ color:var(--navy-7); font-weight:500; }
+.pin-ic{ width:14px; height:14px; color:var(--navy-6); justify-self:center; }
+.fold{ display:block; margin:-2px 0 8px auto; padding:0; border:0; background:none; font-size:11.5px; font-weight:600;
+       color:var(--navy-6); cursor:pointer; }
+.fold:hover{ text-decoration:underline; }
+.fold[hidden]{ display:none; }
+/* PROPOSED: the subject line under To a date: a select when free, plain text when pinned. */
+.subj{ display:flex; align-items:center; height:30px; margin-bottom:6px; font-size:12.5px; font-weight:600; color:var(--gray-9);
+       padding:0 1px; }
+.subj[hidden]{ display:none; }
+.new{ outline:2px dashed var(--mark); outline-offset:3px; border-radius:var(--r-md); }
+.msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.msg:empty{ display:none; }
+.msg.warn{ color:#C92A2A; }
+.eye{ position:absolute; left:-30px; width:22px; height:22px; border-radius:50%; background:var(--mark); color:#1E1D1B; font-size:11px;
+      font-weight:700; display:grid; place-items:center; box-shadow:var(--shadow-xs); }
+.legend{ display:flex; gap:16px; font-size:11.5px; color:var(--gray-6); margin-top:14px; flex-wrap:wrap; align-items:center; }
+.legend i.dash{ display:inline-block; width:22px; height:10px; border-radius:2px; outline:2px dashed var(--mark); outline-offset:-1px; vertical-align:-1px; margin-right:6px; }
+.legend i.num{ display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; background:var(--mark); color:#1E1D1B; font-size:9.5px; font-weight:700; font-style:normal; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Shift: the phase beside the date</h1>
+    <p>Today, under <b>All phases + To a date</b>, the phase you pick sits between What moves and How far, although it is the subject of the date row: your eye goes up to the phase, back down past the How far toggle, and has to work out that it means "Shoot starts on 3/2/26". <b>Proposed:</b> the date row carries its own subject. Under All phases (or your own ticks) the phase select sits under the How far toggle, directly above "starts on"; under Phase &amp; before / after the phase stays in What moves, where it is the pivot, and the date row repeats it as plain text, since it is pinned anyway. By weeks does not change.</p>
+    <p>Both boxes are live and mirror each other: click in either. The numbered dots mark the reading order for the case you picked.</p>
+  </div>
+
+  <div class="cases" id="cases">
+    <span class="lbl">Try:</span>
+    <button class="case" type="button" data-case="allDate" aria-pressed="true">All phases, to a date</button>
+    <button class="case" type="button" data-case="afterDate" aria-pressed="false">Phase &amp; after, to a date</button>
+    <button class="case" type="button" data-case="ownDate" aria-pressed="false">Your own ticks, to a date</button>
+    <button class="case" type="button" data-case="afterWeeks" aria-pressed="false">Phase &amp; after, by weeks</button>
+    <button class="case" type="button" data-case="allWeeks" aria-pressed="false">All phases, by weeks (unchanged)</button>
+  </div>
+
+  <div class="frame"><div class="frame-scroll"><div class="cols">
+    <div class="col">
+      <h2>Today (live)</h2>
+      <p class="why" id="why-today"></p>
+      <div class="wrap">
+        <div class="split"><span>◀</span><span>▶</span><span class="main">Shift ▾</span></div>
+        <div class="pop" id="pop-today"></div>
+      </div>
+    </div>
+    <div class="col">
+      <h2>Proposed</h2>
+      <p class="why" id="why-new"></p>
+      <div class="wrap">
+        <div class="split"><span>◀</span><span>▶</span><span class="main">Shift ▾</span></div>
+        <div class="pop" id="pop-new"></div>
+      </div>
+    </div>
+  </div></div></div>
+
+  <div class="opts">
+    <span>Under Phase &amp; before / after, the pinned phase shows as:</span>
+    <label><input type="radio" name="pinstyle" value="line" checked> its own line above "starts on"</label>
+    <label><input type="radio" name="pinstyle" value="named"> inside the box: "Shoot starts on"</label>
+    <label><input type="radio" name="pinstyle" value="none"> not repeated (as today)</label>
+  </div>
+  <div class="legend">
+    <span><i class="dash"></i>What changed</span>
+    <span><i class="num">1</i>Reading order: what you set, then what the date row says</span>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>What moves where</h3>
+      <ul>
+        <li><b>The phase row in What moves</b> shows only for Phase &amp; before / after, where it names the pivot. Today it also shows under All phases + To a date, as the landing phase, which is the confusing case.</li>
+        <li><b>The subject line</b> is new: under To a date, directly under the toggle. A select under All phases or your own ticks (Whole schedule in it under All phases, as today); plain text under Phase &amp; before / after.</li>
+        <li>Picking a phase on the subject line ticks it in the list and pins it, exactly as the row above does today.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>What does not change</h3>
+      <ul>
+        <li>By weeks: the box is the one that is live.</li>
+        <li>The engine, the tick list, the start-week rule, Whole schedule, the date following the phase.</li>
+        <li>The three shortcuts and "Choose phases…".</li>
+        <li>The ids: the select keeps <code>tool-anchor-phase</code>, so the harness legs need only the row checks changed.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your calls</h3>
+      <ul>
+        <li><b>D1</b>: the proposal, or keep today's box.</li>
+        <li><b>D2</b>: how the pinned phase shows under Phase &amp; before / after + To a date (the radios above). Its own line recommended: the date row then reads the same way in every case.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // A synthetic calendar: whole weeks from a Monday. Pre-Prep starts inside Writer's Room, so Phase & after on
+  // Pre-Prep leaves Writer's Room unticked (the start-week rule, live today).
+  var PH = [
+    {key:'writers', name:"Writer's Room", start:'2026-01-05', weeks:10, color:'#D7B7E9'},
+    {key:'preprep', name:'Pre-Prep',      start:'2026-02-09', weeks:4,  color:'#F3D9A4'},
+    {key:'prep',    name:'Prep',          start:'2026-03-09', weeks:6,  color:'#BFE3C0'},
+    {key:'production', name:'Shoot',      start:'2026-04-20', weeks:12, color:'#F5B7A8'},
+    {key:'post',    name:'Post',          start:'2026-07-13', weeks:20, color:'#B8D3F0'},
+    {key:'delivery',name:'Delivery',      start:'2026-11-30', weeks:2,  color:'#E9E0B5'}
+  ];
+  var WHOLE = '__whole_schedule__';
+  var S = {move:'all', far:'date', phase:'production', ticks:null, listOpen:false, edge:'start', date:'2026-04-20', pinStyle:'line'};
+
+  function ms(iso){ return Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10)); }
+  function short(iso){ return (+iso.slice(5,7)) + '/' + (+iso.slice(8,10)) + '/' + iso.slice(2,4); }
+  function byKey(k){ for(var i=0;i<PH.length;i++) if(PH[i].key===k) return PH[i]; return null; }
+  function endIso(p){ var d = new Date(ms(p.start) + p.weeks*7*864e5 - 864e5); return d.toISOString().slice(0,10); }
+  function preset(move, key){
+    var set = {}; var pv = byKey(key);
+    PH.forEach(function(p){
+      if(move==='all') set[p.key]=true;
+      else if(pv && move==='before') { if(ms(p.start) <= ms(pv.start)) set[p.key]=true; }
+      else if(pv && move==='after') { if(ms(p.start) >= ms(pv.start)) set[p.key]=true; }
+    });
+    return set;
+  }
+  function same(a,b){ return PH.every(function(p){ return !!a[p.key] === !!b[p.key]; }); }
+  function matchMove(ticks, key){
+    if(same(ticks, preset('all'))) return 'all';
+    if(same(ticks, preset('before', key))) return 'before';
+    if(same(ticks, preset('after', key))) return 'after';
+    return 'custom';
+  }
+  function whole(){ return S.move==='all' && S.far==='date' && S.phase===WHOLE; }
+  function sync(){
+    if(S.move !== 'custom') S.ticks = preset(S.move, S.phase);
+    else { if(S.far==='date' && S.phase !== WHOLE) S.ticks[S.phase] = true; S.move = matchMove(S.ticks, S.phase); }
+    if(S.phase === WHOLE && !(S.move==='all' && S.far==='date')) S.phase = 'production';
+  }
+  function deltaWeeks(){
+    var p = byKey(S.phase); if(!p || !S.date) return 0;
+    var from = S.edge==='start' ? ms(p.start) : ms(endIso(p));
+    return Math.round((ms(S.date) - from) / (7*864e5));
+  }
+  function word(n){ if(!n) return 'No change'; var a=Math.abs(n); return (n>0?'Pushed ':'Pulled ') + a + (a===1?' wk':' wks'); }
+
+  // ---------- markup shared by both boxes ----------
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function phaseSelect(id, withWhole){
+    var h = '<select class="ctl" id="'+id+'" data-phase="" aria-label="Phase">';
+    PH.forEach(function(p){ h += '<option value="'+p.key+'"'+(S.phase===p.key?' selected':'')+'>'+esc(p.name)+' — '+short(p.start)+'</option>'; });
+    if(withWhole) h += '<option value="'+WHOLE+'"'+(S.phase===WHOLE?' selected':'')+'>Whole schedule</option>';
+    return h + '</select>';
+  }
+  function segMove(){
+    return '<p class="cap">What moves</p><div class="seg" role="group" aria-label="What moves">' +
+      ['all','before','after'].map(function(m){ var l = {all:'All phases', before:'Phase &amp; before', after:'Phase &amp; after'}[m];
+        return '<button type="button" data-move="'+m+'" aria-pressed="'+(S.move===m)+'">'+l+'</button>'; }).join('') + '</div>';
+  }
+  function segFar(){
+    return '<p class="cap">How far</p><div class="seg" role="group" aria-label="How far">' +
+      '<button type="button" data-far="weeks" aria-pressed="'+(S.far==='weeks')+'">By weeks</button>' +
+      '<button type="button" data-far="date" aria-pressed="'+(S.far==='date')+'">To a date</button></div>';
+  }
+  function list(){
+    var shown = S.move !== 'all' || S.listOpen;
+    var n = PH.filter(function(p){ return S.ticks[p.key]; }).length;
+    var h = '<button type="button" class="fold" data-fold=""'+(shown?' hidden':'')+'>Choose phases…</button>';
+    h += '<div data-listwrap=""'+(shown?'':' hidden')+'><p class="cap">Phases<span class="count">'+(whole()?'Whole schedule':n+' of '+PH.length+' move')+'</span></p><div class="list">';
+    var d = S.far==='date' ? deltaWeeks() : 0;
+    PH.forEach(function(p){
+      var on = !!S.ticks[p.key];
+      var pinned = S.far==='date' && (S.phase===p.key || whole());
+      var ch = S.far==='date' ? (on ? word(d) : 'Stays') : (on ? 'Moves' : 'Stays');
+      h += '<label class="lrow'+(on?' moving':' off')+(pinned?' pin':'')+'">' +
+        (pinned ? '<svg class="pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l4 4-2 .5-2.5 2.5.5 3.5-1.5-1.5L5 14.5l-3.5-3.5L4.5 8 3 6.5l3.5.5L9 4.5z"/></svg>'
+                : '<input type="checkbox" data-key="'+p.key+'"'+(on?' checked':'')+'>') +
+        '<span class="dot" style="background:'+p.color+'"></span><span class="nm">'+esc(p.name)+'</span>' +
+        '<span class="dt">'+short(p.start)+'</span><span class="ch">'+ch+'</span></label>';
+    });
+    return h + '</div></div>';
+  }
+  function weeksRow(){
+    return '<div class="row" data-farrow="weeks"'+(S.far==='weeks'?'':' hidden')+'><input class="ctl num" type="number" min="1" step="1" value="2" aria-label="Number of weeks">' +
+      '<span class="unit">wks</span><button type="button" class="gobtn half">Earlier</button><button type="button" class="gobtn half">Later</button></div>';
+  }
+  function edgeSelect(named){
+    var p = byKey(S.phase); var nm = whole() ? 'Whole schedule' : (p ? p.name : '');
+    var pre = named ? esc(nm) + ' ' : '';
+    return '<select class="ctl edge'+(named?' named':'')+'" data-edge="" aria-label="Its start or its end">' +
+      '<option value="start"'+(S.edge==='start'?' selected':'')+'>'+pre+'starts on</option>' +
+      '<option value="end"'+(S.edge==='end'?' selected':'')+'>'+pre+'ends by</option></select>';
+  }
+  function dateRow(named){
+    return '<div class="row" data-farrow="date"'+(S.far==='date'?'':' hidden')+'>' + edgeSelect(named) +
+      '<input class="ctl" type="date" value="'+S.date+'" data-date="" aria-label="Date"><button type="button" class="gobtn">Go</button></div>';
+  }
+  function head(){
+    return '<p class="head">Shift <span class="i" tabindex="0">i</span><span class="tip">Moves phases by a number of weeks or to a date. Choose whether all phases move, or one phase and the ones after it or before it, or tick the phases yourself. Gaps are kept; use Rebuild From to close them.</span></p>';
+  }
+
+  // ---------- TODAY: the phase row in What moves, shown for before / after, and for all / custom only To a date ----------
+  function renderToday(){
+    var rowHidden = (S.move==='all' || S.move==='custom') && S.far==='weeks';
+    return head() + segMove() +
+      '<div class="row" data-phaserow=""'+(rowHidden?' hidden':'')+'>'+phaseSelect('t-phase', S.move==='all' && S.far==='date')+'</div>' +
+      list() + segFar() + weeksRow() + dateRow(false) + '<p class="msg"></p>';
+  }
+  // ---------- PROPOSED: the phase row only as the pivot; under To a date the date row carries its own subject ----------
+  function renderNew(){
+    var pivot = S.move==='before' || S.move==='after';
+    var free = S.far==='date' && !pivot;              // All phases or your own ticks: a select
+    var pinned = S.far==='date' && pivot;             // the pivot lands: plain text
+    var named = pinned && S.pinStyle==='named';
+    var p = byKey(S.phase);
+    var h = head() + segMove() +
+      '<div class="row" data-phaserow=""'+(pivot?'':' hidden')+'>'+phaseSelect('n-phase', false)+'</div>' + list() + segFar();
+    if(free) h += '<div class="row new" data-subject="">'+phaseSelect('n-subject', S.move==='all')+'</div>';
+    if(pinned && S.pinStyle==='line') h += '<div class="subj new" data-subject=""><span>'+esc(p.name)+' — '+short(p.start)+'</span></div>';
+    h += weeksRow() + (named ? '<div class="new">' + dateRow(true) + '</div>' : dateRow(false)) + '<p class="msg"></p>';
+    return h;
+  }
+
+  var WHY = {
+    allDate:   ["Pick the phase up here… then read the date row down there, past How far.", "What moves: all. How far: to a date. Then, on one line: which phase, starts on, when."],
+    afterDate: ["The pivot is named up top; the date row below has no subject of its own.", "The pivot stays up top, where Phase & after needs it; the date row repeats it so the line reads whole."],
+    ownDate:   ["Your ticks in the list; the landing phase in the row above the list.", "Your ticks in the list; the landing phase on the date row, where it is used."],
+    afterWeeks:["Unchanged: the phase is the pivot, and that is where it belongs.", "Unchanged."],
+    allWeeks:  ["Unchanged.", "Unchanged."]
+  };
+  var CASES = {
+    allDate:   {move:'all', far:'date', phase:'production', listOpen:false},
+    afterDate: {move:'after', far:'date', phase:'preprep', listOpen:false},
+    ownDate:   {move:'custom', far:'date', phase:'production', listOpen:true, ticks:{writers:true, production:true, delivery:true}},
+    afterWeeks:{move:'after', far:'weeks', phase:'preprep', listOpen:false},
+    allWeeks:  {move:'all', far:'weeks', phase:'production', listOpen:false}
+  };
+  var curCase = 'allDate';
+
+  // Reading-order dots: on Today the phase row, then the date row; on Proposed the subject, then the date row.
+  function dots(pop, sels){
+    pop.querySelectorAll('.eye').forEach(function(e){ e.remove(); });
+    var n = 0;
+    sels.forEach(function(sel){
+      var el = pop.querySelector(sel); if(!el || el.hidden) return;
+      n++;
+      var d = document.createElement('span'); d.className = 'eye'; d.textContent = n;
+      d.style.top = (el.offsetTop + el.offsetHeight/2 - 11) + 'px';
+      pop.appendChild(d);
+    });
+  }
+  function render(){
+    sync();
+    var t = document.getElementById('pop-today'), n = document.getElementById('pop-new');
+    t.innerHTML = renderToday(); n.innerHTML = renderNew();
+    if(S.far==='date'){
+      dots(t, ['[data-phaserow]', '[data-farrow="date"]']);
+      dots(n, [S.move==='before'||S.move==='after' ? '[data-phaserow]' : '[data-subject]', '[data-farrow="date"]']);
+    } else { dots(t, []); dots(n, []); }
+    var w = WHY[curCase] || ['',''];
+    document.getElementById('why-today').textContent = w[0];
+    document.getElementById('why-new').textContent = w[1];
+    document.querySelectorAll('.case').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.case===curCase)); });
+  }
+  function setCase(c){
+    var k = CASES[c]; curCase = c;
+    S.move = k.move; S.far = k.far; S.phase = k.phase; S.listOpen = k.listOpen; S.edge = 'start';
+    S.ticks = k.ticks ? Object.assign({}, k.ticks) : preset(k.move, k.phase);
+    var p = byKey(S.phase); S.date = p ? p.start : S.date;
+    render();
+  }
+
+  document.getElementById('cases').addEventListener('click', function(e){
+    var b = e.target.closest('.case'); if(b) setCase(b.dataset.case);
+  });
+  document.querySelectorAll('input[name=pinstyle]').forEach(function(r){ r.addEventListener('change', function(){ S.pinStyle = r.value; render(); }); });
+
+  // One handler for both boxes: a click in either is a click in both.
+  ['pop-today','pop-new'].forEach(function(id){
+    var pop = document.getElementById(id);
+    pop.addEventListener('click', function(e){
+      var b = e.target.closest('button'); if(!b) return;
+      if(b.dataset.move){ S.move = b.dataset.move; if(S.move==='all') S.listOpen = false; curCase = ''; render(); }
+      else if(b.dataset.far){ S.far = b.dataset.far; curCase = ''; render(); }
+      else if(b.hasAttribute('data-fold')){ S.listOpen = true; render(); }
+    });
+    pop.addEventListener('change', function(e){
+      var el = e.target;
+      if(el.hasAttribute('data-phase')){ S.phase = el.value; var p = byKey(S.phase); if(p && S.edge==='start') S.date = p.start; curCase=''; render(); }
+      else if(el.hasAttribute('data-edge')){ S.edge = el.value; var q = byKey(S.phase); if(q) S.date = S.edge==='start' ? q.start : endIso(q); render(); }
+      else if(el.hasAttribute('data-date')){ S.date = el.value || S.date; render(); }
+      else if(el.dataset.key){ if(S.move !== 'custom') S.ticks = preset(S.move, S.phase); S.ticks[el.dataset.key] = el.checked; S.move = 'custom'; S.listOpen = true; curCase=''; render(); }
+    });
+  });
+
+  setCase('allDate');
+})();
+</script>
+</body>
+</html>
