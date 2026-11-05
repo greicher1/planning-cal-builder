@@ -120,7 +120,7 @@ window.addEventListener('load', function () { (async function () {
     bl.forEach(function (b) { b.rows.forEach(function (r) { r.cells.forEach(function (c) { if (c.own !== null) { var S = out.slots[b.year][c.own] = out.slots[b.year][c.own] || []; if (S.indexOf(c.what) < 0) S.push(c.what); } }); }); });
     out.blockWidths = {}; bl.forEach(function (b) { out.blockWidths[b.year] = b.width; });
     out.lanes = {}; bl.forEach(function (b) { out.lanes[b.year] = laneIn(bl, b.year); });
-    out.stamped = !!(document.getElementById('col-reuse-btn') || {}).checked;
+    out.strip = !!(document.getElementById('layout-notice') || {hidden: true}).hidden === false;   // a stamped fixture raises no strip
 
     if (FX === 'layout-r3') {
       C('R3a', 'Production in Writers’ column, though only Prep’s column was handed off that week (rule 3 as pictured)',
@@ -170,6 +170,12 @@ window.addEventListener('load', function () { (async function () {
         slotOf(bl, 2031, 'writersRoom') === 0 && same(bl, 2031, 'prodPrep', 'production') && slotOf(bl, 2031, 'production') === 1 && slotOf(bl, 2031, 'post') === 2 && same(bl, 2031, 'localization', 'post') && laneIn(bl, 2031) === 2,
         J({ slots: out.slots, lane: out.lanes }));
       C('R17b', 'one block, three columns', bl.length === 1 && slotsIn(bl, 2031) === 3, J(out.blockWidths));
+      // Rule 17: every cell one column wide at its own slot -- Writers alone before its first band included, and
+      // Post and Localization in the lane with two empty columns beside them.
+      var narrow = true, wide = [];
+      bl[0].rows.forEach(function (r) { r.cells.forEach(function (c) { if (c.what !== 'simpost' && (c.width !== 1 || c.pos !== c.own)) { narrow = false; wide.push(r.iso + ':' + c.what + ':' + c.pos + '+' + c.width); } }); });
+      C('R17c', 'Single Column: nothing widens -- every phase cell is one column wide at its own slot (rule 17)', narrow, J(wide.slice(0, 8)));
+      C('R17d', 'Writers is one wide in the weeks before its first band (rule 17; today it fills the width)', J(shape(bl, 2031, 'writersRoom')) === J(['2031-11-10:0+1']), J(shape(bl, 2031, 'writersRoom')));
     }
     if (FX === 'layout-r13') {
       C('R13a', 'columns: Writers | Pilot Cut, Bible, Production left with the lane in Pilot Cut’s column, Reshoots under Production, Post in the lane; 2032 Delivery under Post, Marketing right',
@@ -177,7 +183,24 @@ window.addEventListener('load', function () { (async function () {
           && laneIn(bl, 2031) === 1 && same(bl, 2031, 'custom3', 'production') && slotOf(bl, 2031, 'post') === 1
           && slotOf(bl, 2032, 'custom4') === 0 && slotOf(bl, 2032, 'custom5') === 1 && slotsIn(bl, 2032) === 2,
         J({ slots: out.slots, lane: out.lanes }));
+      // The widths, week by week (rules 11-16, 18): each phase's shape is the rows where its [pos+width] changes.
+      var W = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      W('R13b', 'Writers: one wide beside Pilot Cut and Bible, then TWO wide the week Pilot Cut ends -- the spare column between it and Bible goes to the left phase (rule 12, R-E)',
+        'writersRoom', 2031, ['2031-01-06:0+1', '2031-04-07:0+2']);
+      W('R13c', 'Pilot Cut: one wide for its whole run', 'custom1', 2031, ['2031-02-03:1+1']);
+      W('R13d', 'Bible: one wide in its own column, then fills the width (three wide from the left) the week Writers ends (rules 13, 14)',
+        'custom2', 2031, ['2031-03-03:2+1', '2031-05-26:0+3']);
+      W('R13e', 'Production: one wide beside the active Sim Post lane for the whole shoot (rule 15)', 'production', 2031, ['2031-06-23:0+1']);
+      W('R13f', 'Reshoots: one wide under Production beside Post', 'custom3', 2031, ['2031-09-15:0+1']);
+      W('R13g', 'Post: one wide in the lane beside Reshoots, then fills the width the week Reshoots ends (rule 13: free for the REST of the run)',
+        'post', 2031, ['2031-09-15:1+1', '2031-10-06:0+3']);
+      W('R13h', '2032: Post alone fills the two columns', 'post', 2032, ['2032-01-05:0+2']);
+      W('R13i', 'Delivery: one wide while Marketing’s column is empty but taken before the run ends, across the mid-year hiatus (rules 13, 18), then two wide once Marketing ends',
+        'custom4', 2032, ['2032-02-16:0+1', '2032-08-30:0+2']);
+      W('R13j', 'Marketing: one wide beside Delivery', 'custom5', 2032, ['2032-08-02:1+1']);
+      C('R13k', 'block widths: 2031 three columns, 2032 two', out.blockWidths['2031'] === 3 && out.blockWidths['2032'] === 2, J(out.blockWidths));
     }
+    C('S0', 'a stamped fixture raises no "Update layout" strip', !out.strip, out.strip);
     out.errors = (window.__ERR || []).slice(0, 6);
     C('E0', 'no engine errors', !out.errors.length, J(out.errors));
   } catch (e) {

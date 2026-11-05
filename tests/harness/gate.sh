@@ -84,7 +84,13 @@ bad() { say "  FAIL  $1"; FAIL=1 }
 say "=== gate: $PAGE ==="
 
 # ---- base: grid geometry, clipping, both exports ---------------------------------------------
-HARNESS_PAGE="$PAGE" "$HERE/run.sh" base 45 >/dev/null 2>&1
+# ⛔ ON THE LEGACY LAYOUT PATH (LAYOUT-BUILD-PLAN.md §3.2, owner sign-off 5 Nov 2026). The reference calendar is a
+# NEW calendar, and a new calendar carries the layout stamp (`colReuse`) since 2 Nov 2026; under the layout rules
+# its Localization widens the week Post ends (rule 13), which is by design and would move gates 2 and 3. These two
+# gates exist to prove the FROZEN WRITERS have not moved, so the leg exports the calendar on the legacy path through
+# the localhost-only `?layout=legacy` hook (layoutStamped() false): the placement and the widths every unstamped
+# file gets, byte for byte. The stamped path is proven by the layoutrules legs below.
+HARNESS_PAGE="$PAGE" HARNESS_QUERY="layout=legacy" "$HERE/run.sh" base 45 >/dev/null 2>&1
 if [[ ! -f "$HERE/base.json" ]]; then bad "base test produced no result"; else
 python3 - "$HERE/base.json" "$BASE/base.json" <<'PY' || FAIL=1
 import json,sys

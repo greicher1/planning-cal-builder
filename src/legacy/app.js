@@ -19802,6 +19802,27 @@ export function initLegacyApp() {
     return [start, end];
   }
 
+  // ⭐ THE LAYOUT RULES' RUN (LAYOUT-RULES.md §0 rules 13 and 18; LAYOUT-BUILD-PLAN.md §3). The REST of a phase's run
+  // from `localWeek`: [localWeek, end], where end is the last row the same occupant holds slot s, walking forward
+  // across all-phase hiatus rows -- a row NO slot has an entry for, since a band spans the block and marks no slot
+  // (computeBlockLayout's rule) -- so a band does not split the run. The walk stops at the block's last occupied
+  // row. Not frozen: phaseRunBounds above is what it was, and computePhaseRowLayout asks this only on a stamped
+  // calendar (frozen edit LR1 below).
+  function layoutRestOfRun(occupancy, s, localWeek){
+    const key = occupancy[s].get(localWeek);
+    let last = -1;
+    occupancy.forEach(m => m.forEach((_, r) => { if(r > last) last = r; }));
+    let end = localWeek;
+    for(let r = localWeek + 1; r <= last; r++){
+      const k = occupancy[s].get(r);
+      if(k === key){ end = r; continue; }
+      if(k !== undefined) break;                            // another occupant: the run has ended
+      if(occupancy.some(m => m.has(r))) break;              // an ordinary empty week in this slot: ended
+      // nobody anywhere: an all-phase hiatus row -- look past it (rule 18)
+    }
+    return [localWeek, end];
+  }
+
   // Compute how a single week's phase area (mc phase slots) should be laid out:
   //  - Phases sit in their stable slots.
   //  - A phase spans rightward into a neighbor slot only if that neighbor is empty for the
@@ -19812,6 +19833,13 @@ export function initLegacyApp() {
   // `occupancy` is the block's per-slot Map(local week index -> occupant key); `localWeek` is
   // this row's index within the block; `fixedSimSlot` is the block's SimPost column (or -1).
   function computePhaseRowLayout(week, mc, slotMap, occupancy, localWeek, fixedSimSlot){
+    // ⛔ FROZEN EDIT LR1 (owner sign-off, 5 Nov 2026; LAYOUT-RULES.md §0 rules 11-19, LAYOUT-BUILD-PLAN.md §3). On a
+    // STAMPED calendar (layoutStamped(): `colReuse`, the layout stamp) three things below differ, each behind this
+    // one flag, so an unstamped calendar runs every line exactly as it did: (13 + 18) a neighbour slot is judged
+    // free for the REST of the run, from this week, across hiatus rows (layoutRestOfRun); (17) in Single Column
+    // nothing widens; (12) a spare column between two phases goes to the left one. Gate: fixtures layout-r13 and
+    // layout-r17, the study's seeds, and every unstamped baseline byte-identical.
+    const stamped = layoutStamped();
     const bySlot = new Array(mc).fill(null);
     week.cells.forEach(c=>{
       if(c.col!==undefined && slotMap.has(c.col)){
@@ -19830,7 +19858,7 @@ export function initLegacyApp() {
     const freeForRun = (s, n) => {
       if(!occupancy) return false;
       if(n === simSlot) return false; // don't overrun THIS week's active SimPost marker
-      const [rs, re] = phaseRunBounds(occupancy[s], localWeek);
+      const [rs, re] = stamped ? layoutRestOfRun(occupancy, s, localWeek) : phaseRunBounds(occupancy[s], localWeek);   // LR1
       for(let wk=rs; wk<=re; wk++){ if(occupancy[n].has(wk)) return false; }
       return true;
     };
@@ -19849,7 +19877,7 @@ export function initLegacyApp() {
     // does, rather than being a fixed 1-column reservation like the Simultaneous Post marker.
     const fixedSlots = (simSlot >= 0 ? 1 : 0);
     const nPhases = bySlot.filter(Boolean).length;
-    const spanCap = nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc;
+    const spanCap = (stamped && singleColumn) ? 1 : (nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc);   // LR1: rule 17
 
     const out = [];
     let k = 0;
@@ -19906,6 +19934,21 @@ export function initLegacyApp() {
           out.push({kind:'empty', colspan:span});
           k += span;
         }
+      }
+    }
+    // LR1, rule 12 (R-E): an empty run between a phase (or its band) and the cell to its right goes to the phase on
+    // its left, when those slots are free for the rest of that phase's run -- so there is never a hole between two
+    // phases, and a width still only grows along a run. A hole left of every phase, or right of every phase, stays.
+    if(stamped && !singleColumn){
+      for(let i = 1; i + 1 < out.length; i++){
+        const e = out[i], l = out[i - 1];
+        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined) continue;
+        let at = 0; for(let j = 0; j < i; j++) at += out[j].colspan;
+        let ok = true;
+        for(let n = at; n < at + e.colspan; n++) if(!freeForRun(l.own, n)){ ok = false; break; }
+        if(!ok) continue;
+        l.colspan += e.colspan;
+        out.splice(i, 1); i--;
       }
     }
     out.forEach(sg=>{ if(sg.kind === 'phase' || sg.kind === 'phaseHiatus') sg.nPhases = nPhases; });
