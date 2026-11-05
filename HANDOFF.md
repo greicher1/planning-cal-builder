@@ -126,8 +126,13 @@
   - The three buttons fill in the ticks. Changing a tick makes your own set, and then no button is pressed.
   - To a date pins the landing phase.
   - Checked in the pane: 248 px as it opens (A), about 430-470 px with the list.
-- **Waiting on the owner:** T1 (fold the list under All phases: A recommended), T2 (notes for a hand-picked set),
-  T3 (pin the landing phase).
+- **Then** (owner, on a screenshot: *"I like this but are you absolutely sure this is the simpliest way and best UI
+  layout for this menu ... give me some other slight variations"*): the mockup grew to **four tabs**, plan §7.4, each
+  measured in the pane. A buttons + dropdown + list + switch (232 px open, 467 with the list); B the list picks the
+  phase with a pin per row, no dropdown (232 / 439); C no switch, both rows always (282 / 481); D one surface, the
+  list always open, the shortcuts as header links, a pin, both rows (413 / 397). **Recommended A**; B if Rebuild From
+  changes the same way.
+- **Waiting on the owner:** T0 the layout, T1 the fold under All phases, T2 notes for a hand-picked set.
 - The engine needs nothing: `part` already moves any set.
 
 ### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`

@@ -454,3 +454,39 @@ Mockup: [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html), tabs
 - `app.js`: `shiftPlan` gains a ticks set, which the shortcuts fill and the rows edit. The result line names the
   phases that stayed for your own set.
 - The `anchorside` leg grows cases for a hand-picked set, the fold, the pin and T2's notes.
+
+### 7.4 Four layouts, measured (owner, 5 Nov 2026: *"give me some other slight variations and really consider what is
+the easiest and most intuitive way to build this menu so its easy to understand and use but still retains all
+functionality"*)
+
+The mockup's four tabs. All four keep every function: any set of phases, the three shortcuts, by weeks, to a date,
+Whole schedule. They differ in three choices only:
+
+| | Picks the phase | By weeks / To a date | The shortcuts | List under All phases | Opens at | Phase & after, 7 phases |
+|---|---|---|---|---|---|---|
+| **A** | the dropdown | a switch | three buttons | folded ("Choose phases…") | 232 px | 467 px |
+| **B** | a pin on each row | a switch | three buttons | folded | 232 px | 439 px |
+| **C** | the dropdown (always shown) | both rows, always | three buttons | folded | 282 px | 481 px |
+| **D** | a pin on each row | both rows, always | small links in the list's header | always open | 413 px | 397 px |
+
+- **A, buttons + dropdown + list + switch.** Every step is labelled, in order: what moves, which phase, the list,
+  how far. The parts are Rebuild From's, in Rebuild From's order, so nothing is new to learn. Its only
+  redundancy: the dropdown and the pinned row both name the phase.
+- **B, the list picks the phase.** No dropdown. Every row has a pin at its right end; the pinned row is the one the
+  shortcuts and the date work from. One control fewer, and the phase is named once. Costs: a row has two click
+  targets (the tick, the pin), and Rebuild From would still pick with a dropdown unless changed the same way.
+- **C, no switch.** The weeks row and the date row are both always there, each with its own buttons, so no row ever
+  changes under you. Costs: one more row, and the dropdown must always show (the date row needs it), which goes
+  against the live tool's ruling that the phase row shows only when needed.
+- **D, one surface.** The list is always open, the shortcuts are small links in its header (`All phases · & before ·
+  & after`), the pin picks the phase, both rows show. Fewest controls; nothing hidden. Costs: tallest the moment it
+  opens (413 px against today's 232), and the shortcuts, the owner's chosen words, shrink to links.
+
+**Recommendation: A.** Not the fewest controls, but every control is labelled, nothing is behind a gesture, and it
+is Rebuild From's parts in Rebuild From's order. B is the one to pick for fewer controls, and then Rebuild From should
+pick its phase the same way. C and D trade the owner's earlier rulings (a short opening, the phase row only when
+needed, the three words as buttons) for fewer modes.
+
+The fold under All phases (A, B, C) is one quiet link, *"Choose phases…"*, right-aligned under the buttons, so the box
+opens as short as it does today (232 px against 248 in the first cut). With both rows (C, D) the landing phase is
+pinned once the date row is the one touched last.
