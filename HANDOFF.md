@@ -351,7 +351,14 @@
 - **Merged with `origin/main` (`ac55bb7`, the waterfall note editor) as `92f2a0f`**, README's two top entries both
   kept. Re-check on the merged build `7934956d…`, all green: `npm run check` 40/40, `anchorside` 29/29,
   `wfnoteeditor (autonoterename)` 13/13, `overrides` 20/20, `snaptools` 14/14. No second full gate.
-- ⏭ **Next:** ask the owner to push (one push carries the overlap revert, §7.4's docs and this).
+- **Merged with `origin/main` again (`4a90017`: the phase card's week arrows AND the hiatus ripple) as `80c53f9`**,
+  conflicts in README (both entries kept), the Help (my list paragraph + their ▲/▼ paragraph) and gate.sh's comments
+  (the stale overlap text dropped, their `phasearrows` comment kept). `app.js` merged clean: hiatus-ripple's
+  `except` / `keepView` and this `part` share `opts = opts || {}`, and the arrows' `NUDGE_NO_WEEKS` (a window ending
+  before it starts) still matches nothing under `windows`. Re-check on `27e1a018…`, all green: `npm run check` 40/40,
+  `anchorside` 29/29, `phasearrows` 26/26, `hiatusripple` 15/15, `wfnoteeditor` 13/13, `overrides` 20/20, `snaptools`
+  14/14. No second full gate.
+- ⏭ **Next:** push (owner's picker, *"Push now"*).
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
     every phase you wanted it to effect kinda like how it works in rebuild from right now?"*
