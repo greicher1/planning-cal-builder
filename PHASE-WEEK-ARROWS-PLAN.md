@@ -160,7 +160,8 @@ from the press-time state each increment, or re-key once at the drop. Its legs a
   band label on 7/6/26, a week above the locked Summer Break). Red on `origin/main` on all eight carry cases (7/15); red
   on a "carried step to step" mutant (O2, O3: the stale label lands on 7/13, yields, and never comes back) and a "by
   days" mutant (K1). Neighbours green: `phasearrows`, `monthdragundo`, `anchorside`, `pilldrag`, `phaseedge`,
-  `hiatusdrag`, `hiatusripple`, `mvorder`, `npm run check`. Without the stale label the step-to-step mutant PASSES: a phase's own `<week>|<key>` entries all move
+  `hiatusdrag`, `hiatusripple`, `mvorder`, `npm run check`. Full gate (5 Nov 2026): 4,043 PASS, 1 FAIL (the known
+  `scenariocompat` v1.2.0 load flake, green alone), every baseline identical. Without the stale label the step-to-step mutant PASSES: a phase's own `<week>|<key>` entries all move
   together and cannot collide, so only a plain band key on no band can be dropped.
 - ⚠️ **Found here, NOT fixed (shared with the arrows and the Shift tool):** a one-phase move re-keys a plain-keyed band
   store that sits on no band. `hiatusKeyStays` keeps a plain key only on a held all-phase band's week, and with an empty

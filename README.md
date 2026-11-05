@@ -49,7 +49,8 @@ Engine: `shiftCalendarDates` gains `opts.carryOnly` (with `part`: the phase keep
 what it carries moves); `carryPhaseDrag` beside `nudgePhase`. No frozen code, no writer and no save-format change, no
 new id. New leg `mvdragcarry` (15 cases, in gate.sh) on new fixture `mvdragcarry.sptcal` (`phasearrows.sptcal` plus one
 stale band label): red on `origin/main` on every carry case, and on two mutants (carried step to step; by days instead
-of the run's weeks).
+of the run's weeks). Full gate: 4,043 PASS, 1 FAIL (`scenariocompat` on the v1.2.0 release file, the known load flake,
+green alone), every baseline identical.
 
 
 ### Unreleased — Shift: tick the phases that move (5 Nov 2026)
