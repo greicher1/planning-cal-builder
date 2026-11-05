@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 5 Nov 2026: NEW ALWAYS OPENS THE SIDEBAR ON SHOW INFO. Built and verified on main; committed and pushed on the owner's picker ("Commit locally" + "Push to live"). Tracker card `new-opens-show-info`.
+### ✅ 5 Nov 2026: NEW ALWAYS OPENS THE SIDEBAR ON SHOW INFO. Built and verified on main; ✅ LIVE at `cf75104` (owner's picker "Commit locally" + "Push to live"; pushed `347a98f..cf75104` at 22:44:52 UTC, the live `index.html` matched the pushed build `6246295f…` byte for byte ~50 s later, `version.json` still 1.11.0: no version cut). Tracker card `new-opens-show-info`.
 - **Ask (owner):** *"when you click New the left bar should always be on the Show Info tab"*. `newFile()` never touched
   `sidebarTab`, so New kept whichever tab was up (Phases, usually).
 - **Fix:** `revealSidebarTab('show')` in `newFile()`, after `resetScenarios()` and BEFORE `resetUndoHistory()`:
