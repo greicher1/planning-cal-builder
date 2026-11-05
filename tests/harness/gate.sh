@@ -2034,7 +2034,10 @@ done
 # leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
 # then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
 # the fixed build with writeBackup()'s isDirty guard deleted.
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
+# newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
+# the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
+# info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \

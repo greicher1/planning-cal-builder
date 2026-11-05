@@ -30952,6 +30952,12 @@ export function initLegacyApp() {
     suppressDirty = true;
     resetAll(); // full reset without the button's own confirm (New already prompted)
     resetScenarios();   // a blank calendar is one scenario
+    // A new calendar always opens on Show info (owner, 5 Nov 2026: "when you click New the left bar should always be on
+    // the Show Info tab"). resetAll() never touched the tab, so New kept whichever one was up (Phases, usually). It is
+    // revealSidebarTab, not setSidebarTab: the user is being SENT to Show info, so the Settings window, which lies over
+    // the sidebar's cards, closes too. ⛔ Before resetUndoHistory(): sidebarTab is in the snapshot, and the fresh
+    // history's baseline must hold 'show', or the first undo after New would flip the tab back.
+    revealSidebarTab('show');
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();

@@ -52,6 +52,21 @@ gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in
 this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
 new widths now end a stream with; the PDF is fine).
 
+### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
+
+Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never
+touched the sidebar's tab, so it kept whichever was up, usually Phases, and a blank calendar opened on a list of empty
+phase cards instead of the Show info it starts from. `newFile()` now calls `revealSidebarTab('show')`: the tab switches
+to Show info, and the Settings window, which lies over the sidebar's cards, closes, as it does whenever the app sends
+the user to a tab. It runs before the fresh undo history is taken, so that history's baseline holds Show and the first
+undo after New cannot flip the tab back. Load still opens on the tab the file was saved on (unchanged).
+
+Verified: new leg `newtab` (in `gate.sh`) clicks New from the Phases tab with nothing unsaved, with unsaved work
+("Start new"), and with the Settings window open, and checks Show info each time, the window closed, and Undo disabled
+with the tab still Show: 6/6 on the build, and N1–N4 red on the build without the fix (it stayed on Phases).
+`filekeys` 16/16 (⌘N), `settingswin` 21/21, `npm run check` 40/40. No full gate: no grid, export or save-format code
+changed.
+
 ## v1.11.0 — the waterfall lays itself out (the layout rules; Reuse Empty Columns retires), ▲ / ▼ on each phase card, one Shift tool with a tick list, a hiatus change ripples, the note editor names a line, the month drag carries (5 Nov 2026)
 
 ### the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
