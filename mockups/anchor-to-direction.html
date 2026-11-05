@@ -139,14 +139,14 @@ input.ctl.num{ width:52px; flex:none; }
   <div class="page-head">
     <h1>Anchor To: choose what moves</h1>
     <p>Today Anchor To always moves every phase, so the one you pick lands on your date. A and B give it one more choice: move everything, or only that phase and the ones after it, or only that phase and the ones before it. C goes further and makes Shift From and Anchor To one tool. The gaps between the phases that move are kept in every case.</p>
-    <p>Try it: delivery is fixed and the shoot must start 2 weeks earlier. In A or B, pick <b>Up to a phase</b> and press Go. In C, pick <b>Up to a phase</b> (Production is already chosen under it), then type 2 and press Earlier, or switch to <b>To a date</b>. The calendar is made up.</p>
+    <p>Try it: delivery is fixed and the shoot must start 2 weeks earlier. In A or B, pick <b>Phase &amp; before</b> and press Go. In C, pick <b>Phase &amp; before</b> (Production is already chosen under it), then type 2 and press Earlier, or switch to <b>To a date</b>. The calendar is made up.</p>
   </div>
 
   <div class="info">
     <div>
       <h3>What's new</h3>
       <ul>
-        <li>One choice: <b>All phases</b>, <b>From a phase</b>, <b>Up to a phase</b>.</li>
+        <li>One choice: <b>All phases</b>, <b>Phase &amp; before</b>, <b>Phase &amp; after</b>.</li>
         <li>A line under it naming the phases that <b>stay where they are</b>.</li>
         <li>C only: a second choice, <b>By weeks</b> or <b>To a date</b>, so Shift From and Anchor To become one Shift tool and their buttons go.</li>
       </ul>
@@ -155,7 +155,7 @@ input.ctl.num{ width:52px; flex:none; }
       <h3>As shown</h3>
       <ul>
         <li>A and B open on All phases, so Anchor To works as it does today until you change it. C opens on All phases, By weeks: today's Shift All form.</li>
-        <li>In C the phase sits right under the choice. It shows whenever a phase matters: for From or Up to a phase, and for All phases to a date (the phase that lands on the date).</li>
+        <li>In C the phase sits right under the choice. It shows whenever a phase matters: for Phase &amp; before or Phase &amp; after, and for All phases to a date (the phase that lands on the date).</li>
         <li>Whole schedule only goes with All phases.</li>
         <li>Holidays, locked hiatuses and dated notes still never move. A phase's own notes and hiatuses move with it.</li>
         <li>Nothing goes into the saved file.</li>
@@ -296,15 +296,18 @@ input.ctl.num{ width:52px; flex:none; }
     return '<div class="dir new" role="group" aria-label="' + label + '">' + items.map(([v, t]) =>
       '<button type="button" data-' + attr + '="' + v + '" aria-pressed="' + (v === cur) + '">' + t + '</button>').join('') + '</div>';
   }
-  // Owner, 4 Nov 2026: "reword these options". "All phases", not "Everything": holidays, locked hiatuses and dated
-  // notes never move, so "Everything" overstated it. "From a phase" / "Up to a phase" name the phase picked right
+  // Owner, 4 Nov 2026: "reword these options", then "What about All phases, Before a phase, and after a phase", then
+  // "Phase and Previous, Phase and Before? Or come up with a few other wording ideas"; picked "Phase & before / after"
+  // from four, because it says the picked phase moves too.
+  // "All phases", not "Everything": holidays, locked hiatuses and dated notes never move, so "Everything" overstated
+  // it. Before comes first, so the row reads in calendar order. "Phase & before" / "Phase & after" name the phase picked right
   // under them, and avoid Earlier/Later (C's buttons are directions of travel).
-  const moveSeg = () => seg('move', 'What moves', [['all', 'All phases'], ['after', 'From a phase'], ['before', 'Up to a phase']], move);
+  const moveSeg = () => seg('move', 'What moves', [['all', 'All phases'], ['before', 'Phase &amp; before'], ['after', 'Phase &amp; after']], move);
   const farSeg = () => seg('far', 'How far', [['weeks', 'By weeks'], ['date', 'To a date']], far);
   function moveSelect(){
     const n = esc(name());
     return '<div class="row new"><span class="lbl">Move</span><select class="ctl" data-ctl="movesel" aria-label="What moves">'
-      + [['all', 'All phases'], ['after', n + ' and everything after it'], ['before', n + ' and everything before it']]
+      + [['all', 'All phases'], ['before', n + ' and everything before it'], ['after', n + ' and everything after it']]
         .map(([v, t]) => '<option value="' + v + '"' + (v === move ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>';
   }
   // C puts "starts on / ends by" beside the date, so its phase row (right under What moves) holds the phase alone.

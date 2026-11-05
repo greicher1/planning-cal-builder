@@ -12,9 +12,10 @@
 - **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
   Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
   other side and was tested then.)
-- **Proposed:** one choice under the phase. **All phases** (today, the default) | **From a phase** (Shift From's
-  set, aimed at a date) | **Up to a phase** (new: no tool moves a phase and the phases before it while keeping
-  the gaps). A hint line names what stays. Whole schedule hides the choice.
+- **Proposed:** one choice under the phase. **All phases** (today, the default) | **Phase & before** (new: no tool
+  moves a phase and the phases before it while keeping the gaps) | **Phase & after** (Shift From's set, aimed at a
+  date). The owner picked these words from four options on 4 Nov 2026 (plan §3), because they say the picked phase
+  moves too. A hint line names what stays. Whole schedule hides the choice.
 - ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
   unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
   own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
