@@ -9,11 +9,15 @@
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
 - **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,
-  still inside `asShootDayMove`. `opts.before = {phaseIso, weekIso}`:
-  - phases are judged by START (`phaseInRange`, on or before `phaseIso`);
-  - everything week-keyed by `weekIso`, the picked phase's LAST week (`inRange`, so notes, row heights, note
-    styles, unlocked all-phase hiatuses and the calendar range);
-  - with no `before` both tests are the old one, so every other caller is untouched.
+  still inside `asShootDayMove`. `opts.part = {phases, fromWeek, toWeek}`:
+  - exactly the listed phases move (`phaseMoves`);
+  - everything week-keyed (`inRange`: notes, row heights, note styles, unlocked all-phase hiatuses, the calendar
+    range) moves inside the week window, with null meaning open;
+  - `fromIso` is ignored with `part`. With no `part`, both tests are the old ones, so every other caller is
+    untouched.
+  - ⚠️ First built as `opts.before = {phaseIso, weekIso}`, a start-week bound for phases and the picked phase's last
+    week for notes. It became `part` when the owner ruled **"Overlaps move too"** (below), because an overlapping phase
+    can't be expressed as one date bound.
   - The result gains `stayedPhases`, for the result line.
   - `opts = opts || {}` heads the function, the same shape `hiatus-ripple` uses for its `except` / `keepView`.
     ⚠️ That branch had NOT landed on `origin/main` when this was built (its engine edit was uncommitted in its worktree).
@@ -28,20 +32,36 @@
     `#pop-shift [hidden]{display:none}`, because `.tools-row`'s own `display:flex` beat the UA rule.
   - Measured in the pane: 223 px as it opens, 273 px with Phase & before To a date.
 - **Handlers:** Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for itself.
-  All phases is the OLD call (`shiftCalendar(n)`) and the old result line, word for word. Phase & after is Shift
-  From's cutoff exactly.
+  All phases is the OLD call (`shiftCalendar(n)`) and the old result line, word for word.
+  - ⭐ **`shiftPlan(move, key)` works out a part move ONCE**, for the hint and for `part`:
+    - the picked phase;
+    - every phase whose start week is on the chosen side;
+    - every phase that **overlaps** the picked one by a working day (`phaseStartDate` .. `phaseLastWorkday`;
+      Production to its wrap), whichever side it starts on;
+    - the window, from the moving phases' earliest start week (after) or to their latest last week (before).
+  - **The overlap rule is the owner's** (4 Nov 2026, picker: *"Overlaps move too"*, over *"Keep start-week rule
+    (Recommended)"*). **My calls:** overlap is by DAY, so back-to-back Friday/Monday phases don't count; and it is NOT
+    chained (a phase overlapping only a moving neighbour stays).
+  - With nothing overlapping, Phase & after = the old Shift From (`calrange`, `overrides`, `rowheight` unchanged).
+  - ⚠️ **A consequence worth knowing:** a phase overlapping by two days pulls the whole of it along. On the test
+    calendar, Phase & after Post moves the entire shoot, because it wraps Tue 11/3 and Post starts Mon 11/2. The
+    hint says so before anything moves (*"…and so does Production, which overlaps it"*). Typing Post's start in the
+    sidebar still moves Post alone.
   - `openPop` resets the form to All phases, By weeks before refreshing (R2(a)). The edge select (starts on / ends
     by) and the picked phase persist between openings, as Anchor To's did.
   - Whole schedule is in the list only for All phases to a date. Leaving that choice falls back to Production
     (`fillPhaseSelect`'s preferKey), and the date follows only when the pick itself changed.
-  - The part-calendar result line adds *"Production and everything before it moved (4 phases). 2 stayed where they
-    were."*. Shift From's old *"From Post onward — 2 phases moved."* is replaced by the same form.
+  - The part-calendar result line adds *"Production and everything before it moved (5 phases, including Post, which
+    overlaps it). 1 stayed where it was."*. Shift From's old *"From Post onward — 2 phases moved."* is replaced by
+    the same form.
 - **Help** (`src/index.html`, "Adjusting dates") rewritten for the two tools. Rebuild From's InfoHint now says *"Use
   Shift if the plan should keep its current spacing"*.
-- **Legs:** new `anchorside` (21 cases, in gate.sh after `rebuildticks`) on the new fixture `anchorside.sptcal`
-  (dayoverrides + five notes, an unlocked Fall Break inside the shoot, Localization, a range start; fixtures README).
-  - Its wrap is Tue 11/3, so Post starts inside the shoot's last week: the plan's overlap edge is exercised (B1, B2).
-  - Mutant with one bound (`weekIso` = the start week): red on B2 and B3 only.
+- **Legs:** new `anchorside` (23 cases, in gate.sh after `rebuildticks`) on the new fixture `anchorside.sptcal`
+  (dayoverrides + six notes, an unlocked Fall Break inside the shoot, Localization, a range start; fixtures README).
+  - Two overlaps by days: the shoot (wrap Tue 11/3) and Post (Mon 11/2); Pre Prep (to Tue 5/19) and Prod Prep
+    (Mon 5/18). Prod Prep and Production are back to back (X1).
+  - Mutants: overlap switched off is red on X2, H1, B1, B2, Bm, F2, F1, A1 and B6. Before the ruling, one bound at
+    the start week was red on B2 and B3.
   - Ported: `builtindates`, `customunits`, `datepick` and `snaptools` open `#pop-shift-btn` and click To a date.
     `calrange`, `overrides` (O1, O4, O5) and `rowheight` click Phase & after and use
     `tool-anchor-phase` / `tool-shift-weeks` / `tool-shift-later`.
@@ -57,7 +77,9 @@
   - `offweek (offweek)` 42/42 (R12's file-menu wait timed out);
   - `mvnotes (mvnotes)` 14/14, its month PDF readable by pdftotext.
   The hiatus-ripple session was running its own headless Chrome legs during the gate. `anchorside` 21/21 inside the
-  gate.
+  gate. ⚠️ That gate ran on the start-week rule. The overlap rule came after, as one more commit, and changes only the
+  part-move path. It was re-checked on the targeted legs (the merged build's re-check, below), with no second full
+  gate (owner's picker: *"Merge, re-check, then main"*).
 - ⏭ **Next:** ask the owner (picker) to merge into `main`, then separately to push. CLAUDE.md, PROJECT-CONTEXT §7a,
   the README changelog and the fixtures README are updated in the same commit.
 - **Asked while it gated (4 Nov 2026):**

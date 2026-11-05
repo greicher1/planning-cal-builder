@@ -598,15 +598,25 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
 - **All phases** — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
   (`weeksBetweenMondays` for a start, `weeksToFinishBy` for "ends by", which floors) and shifts by it. It moves
   **dates, not phases**: a phase with a week count but no date is invisible to it.
-- **Phase & after** — `shiftCalendar(weeks, fromIso)`, the old Shift From exactly. `fromIso` is the picked phase's
-  start week; everything on or after it moves. Earlier/Later is the direction of **travel**, not which side moves.
-- **Phase & before** — `shiftCalendar(weeks, null, {before: {phaseIso, weekIso}})`. It needs **two bounds**:
-  - phases go by their START, on or before the picked phase's start week;
-  - everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the calendar range) goes by
-    the picked phase's **LAST** week (`phaseLastWorkday`; for Production, the wrap), read before the shift.
-  - With one bound, a 12-week shoot moved and left weeks 2–12 of its notes, and its Christmas hiatus, behind. A
-    later phase that starts inside the picked one stays, and its notes in the shared weeks move with the picked one:
-    Shift From's edge, mirrored.
+- **Phase & before / Phase & after** — `shiftCalendar(weeks, null, {part: {phases, fromWeek, toWeek}})`. The form
+  works the move out once, before anything moves (`shiftPlan`). Its hint and the move both read it, so they cannot
+  disagree:
+  - **Which phases move:** the picked phase; every phase whose START week is on the chosen side (Phase & after alone
+    is the old Shift From's set); and every phase that **overlaps** the picked one, whichever side it starts on.
+    That last part is the owner's ruling, 4 Nov 2026: *"Overlaps move too"*, over keeping the start-week rule alone.
+  - **What counts as an overlap:** the two phases share a working day (`phaseStartDate` .. `phaseLastWorkday`;
+    Production to its wrap). So back-to-back phases, one ending Friday and the next starting Monday, don't count. It
+    is **not chained**: a phase that overlaps only a moving neighbour stays.
+  - **The week window** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
+    calendar range) spans the moving phases **whole**. It runs from the earliest one's start week (Phase & after) or
+    to the latest one's LAST week (Phase & before), so each moving phase takes its own notes and any hiatus inside
+    it along. With one bound at the picked phase's start, a 12-week shoot moved and left weeks 2–12 of its notes,
+    and its Christmas hiatus, behind.
+  - **Notes go by week, not by phase.** A phase that stays but shares a week with one that moves loses that week's
+    notes to it.
+  - With nothing overlapping, Phase & after is exactly the old Shift From (`calrange`, `overrides` and `rowheight`
+    hold that).
+  - Earlier/Later is the direction of **travel**, not which side moves.
   - ⚠️ `shiftCalendarDates`' third argument is ONE options object. `HIATUS-RIPPLE-PLAN.md` (branch
     `hiatus-ripple`) adds `except` and `keepView` to the same object.
 - The result line is the old one for All phases, word for word. A part-calendar move adds *"Production and
