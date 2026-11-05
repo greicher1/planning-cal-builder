@@ -1,8 +1,13 @@
 # ANCHOR-TO-DIRECTION-PLAN.md: Anchor To, choose what moves
 
-**Status: PLAN + MOCKUP, NOTHING RULED, NO APP CODE (4 Nov 2026).** Three layouts: A and B add the choice to Anchor
-To and to Shift From (§1.1, and A is now the recommendation); **C combines Shift From and Anchor To into one Shift
-tool (§6)**. Mockup:
+**Status: RULED, NO APP CODE (4 Nov 2026).**
+- **The owner chose layout C, one Shift tool (§6):** *"Ok im going to vote we go with C, one master shift tool"*.
+- **R2(a):** it opens on All phases, By weeks every time, which is today's Shift All form.
+- **The phase row shows only when it is needed (§6.2),** by the owner's picker.
+- **What to build from:** §2, §3, §5 step 1 and §6. A and B (§1's two-row Anchor To, §1.1's Shift From) were not
+  chosen. They stay here as the record.
+
+Mockup:
 [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html), one tab per layout. Tracker card
 `anchor-to-direction`.
 
@@ -22,8 +27,10 @@ tool (§6)**. Mockup:
   - then, on a screenshot of A's Anchor To, *"reorder as follows: Prop Prep - 4/19/27 starts on - (date selector on
     same line (expand the window horiztonally) then on the line below - All phases, phase and before, phase and
     after, THEN Go"* (§1). This replaces the ask before it.
-  - then *"Add similar functionality for shift from in the mockup"*. In A and B, Shift From gets `Phase & before |
-    Phase & after` (§1.1).
+  - (Before that reorder: *"Add similar functionality for shift from in the mockup"*. In A and B, Shift From gets
+    `Phase & before | Phase & after` (§1.1).)
+  - then *"Ok im going to vote we go with C, one master shift tool"*. By picker: R2(a), and the phase row shows only
+    when it is needed.
 - **The short answer given in chat:** Anchor To moves everything today. It is Shift All aimed at a date. A choice of
   what moves makes sense, and the "backwards" half is the useful one: no tool today moves a phase and the phases
   before it while keeping the gaps. Call it something other than forward/backward (§3).
@@ -208,7 +215,7 @@ Either way:
 
 ## 4. Rulings needed
 
-- **R1. Layout.**
+- **R1. Layout.** ✅ **Ruled (c), one Shift tool** (owner, 4 Nov 2026), against the recommendation of (a) below.
   - (a) **Three buttons in Anchor To**, `All phases | Phase & before | Phase & after`, and two in Shift From,
     `Phase & before | Phase & after` (§1.1).
     *(Recommended, revised 4 Nov 2026 once Shift From got the choice. A now does everything C does: a phase and the
@@ -219,7 +226,7 @@ Either way:
   - (c) **One Shift tool (§6).** Shift From and Anchor To fold into Shift All's ▾, and the toolbar keeps two tools.
     Its one remaining advantage over (a) is fewer buttons: two tools instead of four. It costs retiring two buttons
     and reworking seven legs (§6.3). It was the recommendation before §1.1 existed.
-- **R2. What it starts on when the popover opens.**
+- **R2. What it starts on when the popover opens.** ✅ **Ruled (a)** (owner's picker, 4 Nov 2026).
   - (a) **Today's behaviour, every time.** Anchor To opens on All phases, Shift From on Phase & after, and C on All
     phases by weeks. *(Recommended: someone who never touches the choice gets exactly today's tools. It matches
     Rebuild From's ticks, which are forgotten between openings.)*
@@ -324,7 +331,7 @@ Those are two settings, not three tools:
   - ⚠️ One case makes a row appear ABOVE the control you clicked: All phases by weeks, then To a date. The phase row
     appears under What moves and pushes How far down by one row. Every other change adds or removes rows below
     the click. If that jump bothers you, the fix is to show the phase row for All phases by weeks too, with the
-    picker disabled.
+    picker disabled. ✅ **Ruled: keep it.** The row shows only when it is needed (owner's picker, 4 Nov 2026).
 - **It opens on All phases, By weeks** (R2): exactly today's Shift All form. Someone who opens it, types 2 and
   presses Later gets what they got before.
 - **The two choices never hide.** Only the phase row and the inputs under How far change.

@@ -5,7 +5,7 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
-### 📝 4 Nov 2026: ANCHOR TO, CHOOSE WHAT MOVES — PLAN + MOCKUP, NOTHING RULED, NO APP CODE ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### 📝 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C, NO APP CODE YET ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 - **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
   *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
@@ -43,13 +43,20 @@
 - **Shift From gets the same choice in A and B** (owner: *"Add similar functionality for shift from in the mockup"*;
   plan §1.1). It is `Phase & before | Phase & after`, under its Earlier / Later row, and opens on Phase & after
   (today's Shift From). There is no All phases option, since that is Shift All. It uses the same engine bound.
-- **Waiting on the owner:**
-  - R1, the layout: A (buttons in Anchor To and Shift From), B (dropdowns) or C (one Shift tool).
-    - **A is now recommended**, revised once Shift From got the choice. It covers every combination C does
-      without retiring a button.
-    - C's remaining advantage is two tools instead of four.
-  - R2, on opening: today's behaviour every time, which is recommended (Anchor To on All phases, Shift From on
-    Phase & after, C on All phases by weeks). Or remember the last choice until the app closes.
+- ✅ **RULED (owner, 4 Nov 2026):** *"Ok im going to vote we go with C, one master shift tool"*. This went against
+  my recommendation of A.
+  - By picker: R2(a), it opens on All phases, By weeks every time (today's Shift All form).
+  - Also by picker: the phase row shows only when needed, so the one-row jump in plan §6.2 stays.
+  - **Build from plan §2, §3, §5 step 1 and §6** (§6.4 is the step list). §1's two-row Anchor To and §1.1's Shift
+    From are A and B only, and are NOT built.
+  - The words are the owner's: `All phases | Phase & before | Phase & after`, then `By weeks | To a date`.
+  - **What gets built:**
+    - Shift All's caret, renamed **Shift**, opens the one form.
+    - The Shift From and Anchor To buttons go.
+    - The `tool-shift-*` and `tool-anchor-*` ids stay. `tool-ripple-*` retires, and `calrange`, `overrides` and
+      `rowheight` move to the new controls.
+    - A full gate runs before any push.
+- ⏭ **Next:** build it on a branch from `origin/main`, in a fresh session (this one ran long).
 - ⚠️ **It shares `shiftCalendarDates`'s third argument with HIATUS-RIPPLE-PLAN.md** (branch `hiatus-ripple`, its
   `opts.except`). Use one
   options object, `{except, before}` (plan §5 step 1).
