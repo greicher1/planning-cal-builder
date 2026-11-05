@@ -1939,6 +1939,12 @@ done
 # shareable copy exported with the menu open does not carry it. Red without startIn (P) or without .fm-ctx in
 # buildSavedHtml's strip list (S). The real window cannot be driven headless; its user-activation rule was checked once
 # by hand with a real click (HANDOFF).
+# backuplink + backuplinkstale (owner, 4 Nov 2026: reopening "loads the last calendar we were on but as an unsaved,
+# untitled duplicate") guard the crash recovery. Recovered work on a saved file goes back INTO that file (the file menu
+# names it, Save writes it with no picker), and a Save inside the backup's 3 s leaves no slot to offer (L4). The stale
+# leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
+# then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
+# the fixed build with writeBackup()'s isDirty guard deleted.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1972,6 +1978,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hiatuscolour:-:300 \
               hiatussidebar:-:300 \
               mvbarcard:-:300 \
+              backuplink:-:120 backuplinkstale:-:120 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
@@ -1985,6 +1992,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               wfnotecolors:wfkeys:400 \
+              noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \

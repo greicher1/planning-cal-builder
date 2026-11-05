@@ -59,6 +59,132 @@
 - ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
 
 
+### 📝 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C, NO APP CODE YET ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+
+- **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
+  *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
+- **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
+  Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
+  other side and was tested then.)
+- **Proposed:** one choice in a wider Anchor To (480 px; owner 4 Nov 2026).
+  - In A and B, row 1 reads phase, *starts on*, date.
+  - Row 2 holds the choice and then Go.
+  - The popover hangs from its button's right edge, as all tool popovers do.
+  - The choice is **All phases** (today, the default) | **Phase & before** (new: no tool
+  moves a phase and the phases before it while keeping the gaps) | **Phase & after** (Shift From's set, aimed at a
+  date). The owner picked these words from four options on 4 Nov 2026 (plan §3), because they say the picked phase
+  moves too. A hint line names what stays. Whole schedule hides the choice.
+- ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
+  unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
+  own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
+- **Words:** not "work forward / backwards" (Rebuild From's words, for closing gaps) and not "earlier / later"
+  (Shift From's travel directions). "Before it / after it" is what Shift From's help already says.
+- **Layout C, added the same day** (owner: *"In theory, could shift from and anchor to be combined into one tool with
+  multiple settings?"*, then *"Yes, add it"*). Plan §6, the mockup's third tab.
+  - Shift From and Anchor To fold into Shift All's ▾, renamed **Shift**, with two choices: What moves (the three
+    above) and How far (By weeks | To a date). The arrows stay. The toolbar keeps two tools: Shift keeps the gaps,
+    Rebuild From closes them.
+  - It opens on All phases by weeks, which is today's Shift All form.
+  - **Reworded and reordered at the owner's ask** (*"reword these options and move the phase selector to right below
+    it"*, on a screenshot of C). The buttons first read Everything | This and after | This and before. "All
+    phases" is used because holidays and locked hiatuses never move. C's phase picker now sits directly under the
+    buttons, and *starts on / ends by* moved beside the date. One case pushes How far down a row (All phases by
+    weeks, then To a date): plan §6.2.
+  - Its popover measured 233 px open, 283 px at its tallest, and 333 px with a result line. The old "Adjustment
+    Tools" menu, removed for its height, was 562 px.
+  - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
+    `calrange`, `overrides` and `rowheight` move to the new controls.
+- **Shift From gets the same choice in A and B** (owner: *"Add similar functionality for shift from in the mockup"*;
+  plan §1.1). It is `Phase & before | Phase & after`, under its Earlier / Later row, and opens on Phase & after
+  (today's Shift From). There is no All phases option, since that is Shift All. It uses the same engine bound.
+- ✅ **RULED (owner, 4 Nov 2026):** *"Ok im going to vote we go with C, one master shift tool"*. This went against
+  my recommendation of A.
+  - By picker: R2(a), it opens on All phases, By weeks every time (today's Shift All form).
+  - Also by picker: the phase row shows only when needed, so the one-row jump in plan §6.2 stays.
+  - **Build from plan §2, §3, §5 step 1 and §6** (§6.4 is the step list). §1's two-row Anchor To and §1.1's Shift
+    From are A and B only, and are NOT built.
+  - The words are the owner's: `All phases | Phase & before | Phase & after`, then `By weeks | To a date`.
+  - **What gets built:**
+    - Shift All's caret, renamed **Shift**, opens the one form.
+    - The Shift From and Anchor To buttons go.
+    - The `tool-shift-*` and `tool-anchor-*` ids stay. `tool-ripple-*` retires, and `calrange`, `overrides` and
+      `rowheight` move to the new controls.
+    - A full gate runs before any push.
+- ⏭ **Next:** build it on a branch from `origin/main`, in a fresh session (this one ran long).
+- ⚠️ **It shares `shiftCalendarDates`'s third argument with HIATUS-RIPPLE-PLAN.md** (branch `hiatus-ripple`, its
+  `opts.except`). Use one
+  options object, `{except, before}` (plan §5 step 1).
+- ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
+  schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
+  `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a
+  full gate before any push.
+
+### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
+**The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
+unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in
+`src/legacy/app.js`, both measured on the live build:
+- **Recovery never re-linked the file.** It restored `b.state` and nothing else, so `savedFileHandle` stayed null: the
+  file menu read Untitled and Save opened the picker, writing a second copy.
+  - Fix: `writeBackup()` now also stores `fileId` (the recents entry, `activeFileId`) and `fileStamp`
+    (`savedFileStamp`, the file as this page last read or wrote it), both null with no linked file.
+  - On Recover, that entry is linked again: handle, `activeFileId`, legacy notice, `handleNeedsPermission` from
+    `queryPermission` (a new window has no gesture, so Save's click asks).
+  - ⛔ The stamp is the BACKUP's, never a fresh read, so a file saved elsewhere since the crash gets audit M-6's
+    "File changed on disk" question instead of being overwritten.
+  - ⛔ Everything that awaits (`recentsReady`, `queryPermission`) runs BEFORE the question, never between the answer and
+    the restore. A double-clicked file waiting on `whenNoDialog()` runs the moment the question closes, and an await
+    there would let it load first and then be overwritten by the recovery.
+  - With no matching entry (an older build's backup, a file dropped from the list) the link is CLEARED, not left as is:
+    it recovers Untitled, as before.
+- **A just-saved calendar left a backup.** `scheduleBackup()` fires 3 s after an edit. A Save inside those 3 s (Cmd+S
+  after typing, or an autosave tick) ran `markClean()` first, which deleted the slot, and then the timer wrote it back.
+  The next launch offered a calendar already in its file. Fix: `writeBackup()` returns while `!isDirty`. Every caller
+  that should write is dirty: `markDirty`, the hiatus-drag hold/release, `beforeunload`, and recovery's own write (it
+  sets `isDirty` first).
+- Help ("Autosave & recovering work") gained one sentence. No frozen code, no save-format change: a backup is
+  IndexedDB session data, never a saved file, and an older build ignores the two new fields.
+
+**Proof** (worktree `dist/`, port 8791):
+- New legs `backuplink` **5/5** and `backuplinkstale` **3/3**, in `gate.sh`'s audit-fix list on their own line after
+  `mvbarcard`. Each seeds `T.memoryIDB()` before boot with a recents entry, a fake handle and a backup naming it.
+  - Red on the live engine (`git show HEAD:`, then restored and checked with `cmp`) in 7 of 8. Only L1 (the offer
+    names the file) passes there. L2 read `"label": "Untitled"`; L3/S3 saw the picker called.
+  - Mutation: the fixed build with only the `isDirty` guard deleted is red on L4 alone (the slot is left after a quick
+    Save).
+- `backupslots` 5/5 (older backups without `fileId` still recover). `npm run check` 40/40.
+- Every other leg that saves, loads or reads the backup, all green: caps 5, monthnotes 8, overrides 20, halfworked 24,
+  halfmarks 5, halfdays 27, mvnotes 14, launchopen 16, undokeys 11, nofsa 7, filekeys 16, showfolder 7, conflict 9,
+  loadfail 6, sideboxes 78, legacyparse 7. `restore` matched its baseline (rows, cells, width, bytes, grid signature).
+- Not driven in a real window: a real close/reopen needs a real file handle in IndexedDB, which only the OS picker
+  makes. The legs fake the handle and the IndexedDB.
+
+⏭ **Next:** ask the owner to commit, then (separately) push. No full gate run: nothing frozen, and no output's bytes
+can move.
+
+
+### 🔨 4 Nov 2026: COMPARE'S HOLIDAY CHIP ON WRAP ONLY, IN WORDS — branch `compare-holiday-wrap` (worktree `.claude/worktrees/compare-holiday-wrap`, from `origin/main` at `9687ab5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `compare-holiday-chip-wrap`
+- **Asked** (owner, 4 Nov 2026, on a Compare window with "−1 holiday" under First shoot day and "−2 holidays" under
+  Wrap): *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first
+  shoot have different number of holidays??"*. Offered: chip on Wrap only, "1 fewer holiday" wording. Owner: *"yes"*.
+- **Built** (`src/chrome/CompareDialog.jsx` `holidayDelta`; `app.js` `compareRows` marks Wrap alone with `hols: true`):
+  - words, "1 more holiday" / "2 fewer holidays";
+  - Wrap only;
+  - ⚠️ **counts only holidays AFTER the first shoot day** (my call while checking it, not asked for in words). A
+    holiday on Production's START DATE is in `holidaysHit` (the walk starts there and skips it), so counting the
+    whole walk showed "1 fewer holiday" beside a wrap that moved exactly as far as the first shoot day (seen in the
+    pane: Toronto starting on Victoria Day). Counted from the first shoot day, the chip explains the gap between
+    First's move and Wrap's. In the owner's own example it reads "Pulled 44 days · 1 fewer holiday" (was −2).
+  - No frozen code, no save-format change; the exports and Copy table take the chip text as shown.
+- **Verified:** `scenarios` 23/23 (S19, S20 reworded; new S22, a holiday on the on-screen start date counts nowhere,
+  RED on the old build with exactly the owner's "−1 holiday" under First shoot day); `scenariofacts` 12/12;
+  `npm run check` 40/40; the browser pane on `scenarios-3` (as saved: "8/19/26 Pulled 1 day · 1 fewer holiday";
+  Toronto started on Victoria Day: no holiday chip anywhere). No full gate: Compare's writers have no baseline and
+  nothing the calendar saves or prints changed (memory: chrome-only changes take targeted legs).
+- ⏭ **Next:** commit and push only on the owner's per-action OK. Pages' deploy lock (the 4 Nov hiatus entry below)
+  has cleared: the deploys of `8ed92ca`, `9a18b7c`, `8a05e0e` and `9687ab5` all succeeded. Still run
+  `git log origin/main..HEAD` right before a push.
+
+
 ### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
 - **Part 1, the all-phase hiatus: PUSHED but NOT LIVE.** On `origin/main` at `e8e21fd` (owner's pickers *"Commit"*,
   *"Push now"*; `0499373..e8e21fd` at 11:08:47 PST, a fast-forward carrying `origin/main`'s "Show in folder…", merged in
@@ -198,7 +324,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
   on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
-### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed; the merged build's full gate is QUEUED. Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+### ✅ 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — ✅ **LIVE at `cd7ce25`** (owner's pickers: "Commit on the branch", "Merge into main", "Push now", then, when origin and local `main` had both moved, "Push branch, skip plan docs"; `ae4125f..cd7ce25` at 16:20:05; the live `index.html` matched the tested build `ac21b464…` byte for byte at 16:20:50). Built on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed. The merged build's full gate: 3,846 PASS / 6 FAIL, all load timeouts green alone, every baseline identical (below). Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
 
 - **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
   [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
@@ -274,8 +400,135 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     `T.openSettings`' alignment check never passed. The leg now scrolls only the window's `.sw-panel`: 6/6 runs 18/18,
     beside another session's full gate. Other legs still `scrollIntoView` card boxes; it bites only when the box is far
     enough down that centring it needs the sidebar to move. (A user's keyboard focus could do the same; not seen.)
-- **Next:** the merged build's full gate (queued), then the owner's call on pushing (mind `note-other-view`, above).
+- **The merged build's full gate** (`1944dd11…`, port 8615, 13:37-14:27; 50 min, not 35: no other gate overlapped it,
+  but about a dozen other sessions were busy): **3,846 PASS, 6 FAIL, 1 INFO**. Waterfall PDF identical, every Excel part
+  identical, grid signature identical, 0 clipped, the new `pdfseams` check PASS, gate 10's 11 printed month documents
+  identical, gate 13's 24 written month PDFs byte-identical. The six FAILs, every one a real-time wait, every leg green
+  alone on the same build:
+  - `pilllabel` (dayoverrides) K0, K1 and its console line: Save's 10 s write wait, after which the leg's stub threw
+    `sv.createWritable`. Alone: K0 `{has: true, value: 'week'}`, K1 `{has: false}`, only the expected warning.
+  - `hdrrow` EX (the leg did not finish): 37/37 alone.
+  - `pilldrag`: its 480 s deadline. 30/30 alone.
+  - `episodeprep` (episodeprep): a Load's 10 s wait. 25/25 alone.
+- ⭐ **Then `origin/main` moved again (13:00-13:45): the typed-note twin went LIVE** (`note-other-view`, `34ef08c`
+  "Show in month view" / "Show in waterfall", plus `75003f1` Compare's holiday chip). So this branch lands second, and was
+  merged again (`15fb624`). Four engine hunks, all both-sides-additive, resolved by hand:
+  - `wfClearNote(wk, moving)` now calls their `wfMonthLinesOff` and `wfClearOwnNote(wk, moving)`, which carries
+    `moving` to `wfSwitchOffLines` (the note editor's own call, `wfClearOwnNote(weekKey)`, is a delete: per view);
+  - `wfNoteStep`'s signature holds both `autoNotesView` (mine) and `dayNotes` (theirs);
+  - `writeActiveMvNote`: their "Show in waterfall" OFF path kept, after `sheetAuto`, with the week colour dropped only
+    when NEITHER view has text (my §4.4 rule);
+  - the editor's comments.
+  - How the two compose: their `mvWfLinesFor` (a week's typed lines hidden from the month view, `monthHidden`) keeps
+    every line `mvAutoLineInfo` recognises, and N1's month-only automatic lines are those, so they stay. Seen in the
+    browser pane: the wrap set to the month view only, "Wrap party" typed in its week with Show in month view off, and
+    the month view shows the wrap on 10/20 and no typed line. Their `wfLineToDayNote` filters with my widened
+    `monthOnly` set.
+  - On that build (`26a9509d…`): `npm run check` 40/40; `noteviews` 15/15, `scenarios` 23/23, and autonoteview,
+    autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin,
+    holidayrename, wfnotecolors all green. **Its full gate** (port 8615, 14:34-15:20): **3,904 PASS, 2 FAIL, 1 INFO**.
+    Waterfall PDF identical, every Excel part identical, grid signature identical, 0 clipped, `pdfseams` PASS, gate
+    10's 11 printed month documents identical, gate 13's 24 written month PDFs byte-identical; `noteviews` and
+    `autonoteview` green inside it. The two FAILs are drivers' wall-clock deadlines (`hiatusdrag` 480 s, `cspproof`
+    240 s), each green alone on the same build: 14/14 and 15/15.
+- Local `main` fast-forwarded to the branch after that gate.
+- **The push (16:20):** by then `origin/main` had `ae4125f` (recovered work reopens into its own file, live) and local `main`
+  had four ANCHOR-TO-DIRECTION-PLAN doc commits from another session (no app code, not approved for this push). So
+  `ae4125f` was merged into the BRANCH (`cd7ce25`; only the README top conflicted; `app.js` merged clean, the recovery
+  code is far from the notes), checked (`npm run check` 40/40; backuplink 5/5, backuplinkstale 3/3, backupslots 5/5,
+  autonoteview 18/18, noteviews 15/15, autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, monthnotes green),
+  and the branch tip pushed as `main` WITHOUT another full gate (owner's picker). Local `main` then merged it, so the
+  four plan commits are still local and unpushed: that session's to push.
+- ⏭ **Open:** nothing for this feature. The worktree `.claude/worktrees/auto-notes-view` can go (unlink its
+  `node_modules` symlink first). The push would
+  carry this feature (its commits and merges) and another session's HANDOFF-only `6e2e443`; everything else is
+  already on `origin/main`.
 
+
+### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED as `34ef08c` (owner's picker: "Commit on the branch", "Merge and push"), origin/main merged in as `775b8e5`; full gate on the branch GREEN but for the known `offweek` R14 flake, and the full gate on the merge green but for one test-only fix and three Load flakes. Tracker card `note-show-in-other-view`
+
+Owner: *"Add a toggle in the popup when you edit a note (right below the color selector), both in the month view and the
+waterfall view popups to hide/show the note in the other calendar. By default it should be set to Show from waterfall to
+month view but hide by default for notes entered into the month view. You would have to enable it to show it in the
+month view."* The last sentence was read as "…to show it in the WATERFALL" (it is the month notes that start hidden).
+
+- ✅ **RULED (owner's picker, 4 Nov 2026):**
+  - R1: a month note in the waterfall reads as its text on ONE line plus its day's date, "Crew party 11/6/26".
+    This was the recommendation. A 2–3 line note joins with spaces. Text already ending in a date gets none added.
+  - R2: edits follow it, the recommendation. Its line is in the waterfall editor's box. A change renames the month note,
+    with its date taken out. A line taken out switches it off for the waterfall and leaves it in the month view: the
+    editor, Delete, Cut, a paste or a drop over it. Holiday lines already behave this way.
+  - R3: **"Show in month view" off hides the week's TYPED lines only**, NOT the recommendation (which was the whole
+    cell). Holiday and automatic-note lines stay (`mvHolidayLineInfo` / `mvAutoLineInfo` decide).
+  - R4: **typed notes only**, NOT the recommendation (holidays now, automatic notes later). The month view's Holiday
+    and Auto Note editors get no switch.
+- **Not ruled, decided here:** a waterfall line opened in the month view (kind `wf`, typed) shows "Show in waterfall"
+  ON. Turned off, it MOVES out of the week's waterfall note into a day note on that day (`wfLineToDayNote`). That is the
+  only way to be in the month view and not the waterfall. The day note keeps the week's colour (or the one picked), the
+  clicked line, its place (`mvWfNotePlace`) and its month text style (copied, as `carryRenamedLine` copies them). The
+  waterfall cell's colour is NOT set from a month note: the cell keeps the week's own colour, purple by default.
+  Mirroring it was considered and dropped. `noteColors[week]` also tints that week's holiday and automatic lines in the
+  month view, so a mirrored colour would recolour lines nobody touched.
+- **How it works. No frozen code:**
+  - `effectiveNoteText` now returns the week's own text (`wfOwnNoteText`, its old body) plus `wfMonthLinesFor(week)`.
+    The frozen renderer, `exportExcel`, `buildWaterfallPdf`, `sheetColumnWidths` and `sheetRowCount` all call it by
+    name, so the screen, workbook, PDF, widths and row count follow. With no flagged note it returns `own` unchanged.
+  - ⛔ **Every writer of a week's own note reads `wfOwnNoteText`:** the waterfall editor's commit, `moveWfLine` (the
+    month drag) and the month editor's `wf` line lookup. Otherwise they bake month lines into typed text, and the month
+    view then draws them twice.
+  - The waterfall editor's commit runs `wfMonthLineEdits` first: exact lines are kept, a same-count positional change
+    is a rename, anything else is switched off. The rest takes the old path (`wfLineEdits`, `saveNoteEdit`).
+    `wfClearNote` (Delete/Cut/drag source) now also runs `wfMonthLinesOff`. `wfClearOwnNote` is the editor's own-lines
+    clear. `wfPutNote` switches a target's month lines off unless the pasted text IS the cell, and then writes only the
+    own part. `wfNoteStep`'s signature includes `dayNotes`, so a step that only flips a month flag still banks an undo.
+  - Month view: `mvWfLinesFor(schedule, d)` = `notesForWaterfallDate` (frozen) less the week's typed lines while
+    `monthHidden`. Read by `mvDayNotePlan`, `mvWfKeysOn` and `monthHoldsSomething`. Both month PDFs follow, because the
+    writer parses `renderMonthView`'s HTML and the print path IS it. `mvHolidayDays` keeps reading the frozen function:
+    holidays are never hidden.
+  - The month editor's hint lost "Month view only" / "Also updates the Waterfall + Excel": the switch says where.
+- **Saved state (both PERMANENT, both written only as `true`, so every older calendar saves byte for byte):**
+  - `userNotes[week].monthHidden`: carried by `saveNoteEdit` across edits, travels with a copy/paste/drag item, and
+    survives a shift merge only if both merged notes had it.
+  - `dayNotes[day][i].waterfall`: rides on the entry, so the month note drag moves it.
+  - The sanitizer drops any other value and counts it. Older builds' sanitizers copy a note's other fields, so they
+    keep both and ignore them.
+  - No new top-level key and no new `fields.byId` id. The switches' checkboxes have no id.
+- **Proof so far (port 8781, build of this branch):**
+  - New leg `noteviews` 15/15 on `wfkeys` (in gate.sh as `noteviews:wfkeys:500`). It covers both switches' place,
+    default and missing id; R3 (Labor Day stays, Wrap party goes); undo/redo; R1 including a two-line note; the workbook
+    cell; the waterfall PDF's `Tj`; R2 rename and remove; Cut plus undo; the `wf` line moved out; Save/Load; and hostile
+    values. ⚠️ Its first run caught `escAttr` (a render-local helper) used at module scope.
+  - Neighbours green: wfkeys 84/84, wfnotecolors 14/14, autonoterename 24/24, holidayrename 14/14, monthnotes 8/8,
+    notewrap 16/16, autonote 9/9, hidewf 19/19, mvnotes 30/30 and 14/14 (`mvnotes` fixture), mvtextstyle 6/6
+    (`mvtextstyle`), wfmenu 39/39 (`halfdays`), notescols 49/49 (`colreuse`), mvorder.mjs 30/30 (the month note drag,
+    `moveWfLine`).
+  - `npm run check` 40/40.
+  - Screenshots of both editors in the browser pane (1024 px).
+- **Full gate (port 8784, 12:17-12:52): 3,896 PASS, 1 FAIL.** Every byte compare held: the waterfall PDF, every
+  Excel part, the restore, gate 10's printed month documents and all 24 of gate 13's written month PDFs. That is as it
+  must be, since no gate fixture sets either flag. `noteviews` 15/15 inside it.
+  - The one FAIL is `offweek (offweek)` R14, "the Pause prep switch is covered" by a `.file-menu-item`: the file menu
+    is open again when the leg hit-tests the switch after its fifth Load. It is the flake ten other gates have hit,
+    and it is timing, not this change. It failed three times alone on this branch. Then, alternating with a build
+    of the base commit `61542f5` in a scratch worktree, the BASE failed it once and this branch passed three of
+    three. An instrumented copy of the leg saw `#file-menu` at `display:none` right after the Load and `block` at the
+    hit-test, with no click on `.file-menu-btn` between them in that run. The leg should wait for `#file-menu` to be
+    `display:none` before it hit-tests, but that fix belongs to the harness, not this branch.
+- **Owner, by picker: "Commit on the branch" and "Merge and push".** Committed `34ef08c`. `origin/main` had moved 12
+  commits (the hiatus card name and colour, the Show info note removal, the waterfall PDF seam fix SM1), so it was merged
+  into the branch (`775b8e5`). Only README's changelog conflicted, and both entries were kept. None of main's engine
+  changes touch the note editors. `npm run check` 40/40 on the merge.
+  - ⚠️ The push goes from this branch to `origin/main` as a fast-forward, NOT from local `main`. Local `main` holds
+    another session's unpushed HANDOFF-only commit `6e2e443`, which the owner did not name, so it is left where it is.
+- **Full gate on the merge `775b8e5` (13:02-13:37): 3,910 PASS, 4 FAIL.** Every byte compare held again.
+  - `noteviews` W1 was a real miss in the TEST, not the app: its side check that "a hiatus band's editor has no
+    switch" found NO editor at all, because main's hiatus work (`3e41352`, `ba514d3`) made a band's double-click open
+    its sidebar card. W1 now accepts either outcome (no editor, or one without the switch). After that `noteviews`
+    passed 15/15 twice alone.
+  - `pwagate` C1 ("Link copied"), `noteviews` F2 and `offweek` R7 (each "the loaded file's name in the file menu",
+    10 s) were Load-timing flakes under a load average of about 8. All three passed alone on the same build:
+    pwagate 13/13, offweek 42/42, noteviews 15/15 twice.
+  - No full re-gate after the W1 fix: it changed only the test file.
 
 ### 🗂️ 4 Nov 2026: RIGHT-CLICK A LOADED FILE → "SHOW IN FOLDER…" — ✅ LIVE at `0499373` (owner's pickers: "Commit", "Push all three"; pushed `786a044..0499373` at 11:01:03, carrying two HANDOFF-only commits from other sessions, `aa5e32e` and `7899bbc`, which the owner approved by name; the live `index.html` matched the pushed build `3cb08fce…` byte for byte at 11:02:11). Tracker card `recent-reveal-in-finder`
 
