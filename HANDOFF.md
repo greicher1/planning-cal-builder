@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: FOLLOW-UP — A DRAG OVER ONLY THE EXPANDED PART OF CELLS NOW SELECTS THEM (the double-click then pulls them ALL back). Branch `batch-pullback`, on top of the live `854dbbe`. COMMITTED and PUSH APPROVED (owner's pickers *"Commit on the branch"*, *"Push live now"*). Tracker card `centre-pullback`.
+### ✅ 5 Nov 2026: FOLLOW-UP — A DRAG OVER ONLY THE EXPANDED PART OF CELLS NOW SELECTS THEM (the double-click then pulls them ALL back). ✅ **LIVE at `3b8306c`**: pushed `854dbbe..3b8306c` at 23:45:36 UTC; the Pages deploy succeeded and the live `index.html` matched the pushed build `c6b60bda…` byte for byte at 23:46:49 UTC. No version cut. Merged into local `main` as `4ce6630` (conflicts in HANDOFF/README only, beside another session's unpushed harness PDF-reader entry, both kept). Branch `batch-pullback`, on top of the live `854dbbe`. COMMITTED and PUSH APPROVED (owner's pickers *"Commit on the branch"*, *"Push live now"*). Tracker card `centre-pullback`.
 - **Report (owner, trying the live fix):** *"i tried highlighing a bunch of expanced cells and double clicking and it
   only pulled back the cell my cursor was on"*.
 - **Cause, reproduced in the pane on `layout-r13`:** the gridSel marquee's membership is the cell's OWN slot
