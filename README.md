@@ -29,6 +29,26 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a leftover band label stays where it is (5 Nov 2026)
+
+A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
+other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
+back. But the movers moved it: **▲ / ▼ on a phase card**, **the month view's bar drag** and **Shift From** (Phase & after)
+carried it a week. If the week it landed on was a band that stayed put, the label was lost, and its colour, size and
+styles were applied to that band instead (pressing ▼ on Post recoloured Summer Break). Found while building the month
+drag carry (PHASE-WEEK-ARROWS-PLAN.md §5a).
+
+- **Now a leftover goes by its week, as a note does.** It moves with All phases and inside the weeks a part move takes;
+  ▲ / ▼, the drag, and everything before Shift From's phase leave it alone.
+- **A band that moves takes every week's label with it**, even a week past the move's window: a band starting in the
+  last week of a Dates phase that runs on past it.
+
+Engine: `shiftCalendarDates` (steps 2 and 3) records the weeks of the bands that move beside those that stay, and
+`hiatusKeyStays` decides a plain band key by them, then by its week. The first idea, "a plain key stays outside the
+window", left a moving band's later weeks behind, so it was not used. No frozen code, no writer and no save-format
+change. New leg `stalebandkey` (9 cases, in gate.sh) on new fixture `stalebandkey.sptcal`: 5/9 on `origin/main`, 8/9 on
+the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`).
+
 ### Unreleased — the month view's bar drag carries what the arrows carry (5 Nov 2026)
 
 Dragging a phase's bar in the month view now takes **its own hiatus** and **everything keyed to its weeks** with it:
