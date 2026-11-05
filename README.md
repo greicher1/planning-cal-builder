@@ -46,15 +46,17 @@ adjust all the phases. It should be very clear how to turn it on or off"*. Plan 
   digit moves nothing until you leave the box. Opening a file, undo, New and the shift tools never trigger it.
 - **What you see.** A line under the hiatus, e.g. "Pushed 1 wk: Production, Post · Wrap 6/12/26". One ⌘Z takes back
   the push and keeps your hiatus change; a second takes back the change.
-- **Turning it off.** One switch, "Push later phases when a hiatus changes", **on by default**, kept on this computer
-  (never in a file). It is in Settings › Preferences › Hiatus, at the top of the All-phase hiatus card, and in each
-  phase's Hiatus block; flipping any of them flips all three. Off, a hiatus only pauses, as before.
+- **Turning it off.** One switch, **on by default**, kept on this computer (never in a file). It is "Ripple Hiatus
+  Periods" in Settings › Preferences › Hiatus and at the top of the All-phase hiatus card, and "Ripple Hiatus" in each
+  phase's Hiatus block (the owner's names); flipping any of them flips all three. Off, a hiatus only pauses, as before.
 - **Unchanged:** the grid, the exports, the save format (no new key, no new saved id). Every calendar opens and prints
   as before; a push happens only on an edit.
 - **Verified:** new `hiatusripple.mjs` gate leg, 15 cases on real keyboard and mouse input (CDP), red on the build
   before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
   on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
-  `settingswin` W13 lists the new card. Full gate: see HANDOFF.
+  `settingswin` W13 lists the new card. Full gate on the build merged with the one Shift tool: 3,898 PASS / 12 FAIL,
+  every FAIL a stalled leg (or a check fed by one) or the rename below, all 196 checks of them green on the renamed
+  build, the waterfall PDF and Excel parts identical to the baselines. R0 holds the switch's three names.
 
 ### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 

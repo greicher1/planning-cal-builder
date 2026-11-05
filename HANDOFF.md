@@ -4,6 +4,67 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILT on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` at `c52094f` (the one Shift tool) merged in as `ae6b107`. Not merged into `main`, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
+- **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+  adjust all the phases. It should be very clear how to turn it on or off"*. Then *"Yes, build it"*. Then the names:
+  *"Ripple Hiatus Periods" (all phase hiatus) or "Ripple Hiatus" (for per phase hiatus)*.
+- **Ruled by picker** (plan §2): R1 one switch, no question, ON by default; R2 shown in Settings ▸ Preferences AND on the
+  hiatus cards; R3 kept on this computer (`prefs.hiatusRipple`, absent = on), never in a file; R4 a phase's own hiatus
+  moves every phase starting on/after it; R5 a moved hiatus is followed (the week-strip example, plan §3.2 C).
+- **Built** (`src/legacy/app.js` "THE HIATUS RIPPLE", beside the shift tools; no frozen code, no save-format change):
+  - `rippleAfterHiatusEdit(h, before, after)`: take the old hiatus out (−w0 from s0), put the new one in (+w1 from s1);
+    a length change is one shift. Through `shiftCalendarDates(weeks, from, {except, keepView})`, whose new `except`
+    holds the edited hiatus (and a phase hiatus's owner), inside one `asShootDayMove()`. A phase starting inside the
+    old all-phase hiatus is first moved to its end (`rippleNormaliseInside`). Two undo steps (`bankStepAt`, new in the
+    undo section). The line under the hiatus: `.ripple-note`, no id, stripped from shareable copies.
+  - ⛔ **Settle tracking:** a "before" is taken on FOCUS into a hiatus's Starts / Weeks; the push runs when focus leaves
+    those two boxes, on Enter, or on the date popover's (untrusted) `change`. Code writes are never focused, so a load,
+    undo, mover or `T.set` cannot ripple. `refreshAfterRestore()` forgets pending edits.
+  - One-shot paths through `rippleAround()`: the row's ×, a phase's Hiatus switch, the day menus' Add hiatus here /
+    Remove hiatus… / phase items. The month-view drag pushes on release before its Keep / Undo question (Undo restores
+    the press snapshot).
+  - The switch: `HiatusPrefsCard` (Sidebar.jsx, `#pref-hiatus-ripple` in a `.prefs-card`), the All-phase card's top
+    (`src/index.html`, `.hiatus-ripple-card`) and each phase's Hiatus block, the last two id-less `.hiatus-ripple-cb`.
+    `reflectHiatusRipple()` from `update()`. ⭐ **Its names are the owner's** (4 Nov 2026): **"Ripple Hiatus Periods"** in
+    Settings and on the All-phase card, **"Ripple Hiatus"** in a phase's Hiatus block; the month drag's question says
+    whichever the dragged hiatus's switch is called ("Ripple Hiatus Periods is on: Pushed 1 wk: …"). R0 holds all three
+    names. The first build said "Push later phases (when a hiatus changes)". The line's own words ("Pushed 1 wk: …")
+    did not change: pushed / pulled is the owner's date wording.
+- **Proof** (port 8791–8812):
+  - New `hiatusripple.mjs` (in `gate.sh` after hiatusdrag), real CDP input, fixture `hiatusripple.sptcal`: **15/15**.
+  - Red on `origin/main` in every case that ran, and on six mutants, each on its own cases (plan §10).
+  - `t/lib.js` stores the switch OFF for every other leg; `hiatusdrag.mjs` by an init script; `t/prefs.js` clears it
+    (its premise is an empty store); `settingswin` W13 lists the new card.
+  - Green: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81, hiatussidebar 16/16, hiatusdrag 14/14, check
+    40/40. `check-refs.py` reports 4 prose line numbers, all already on `origin/main` (not this branch's).
+  - Browser pane, real mouse and keys: Break 2 → 3 weeks, Tab → Production 3/16 → 3/23 and the line under the Break.
+- My calls, not rulings: two undo steps (one ⌘Z = "not this time"); no "N locked hiatuses held" in the line (New's
+  four locked winter breaks would print it on every push); Tab from Weeks onto Lock in place settles.
+- ✅ **The Anchor To overlap is resolved.** The one Shift tool landed first; merging `origin/main` (`c52094f`) as
+  `ae6b107` kept its `opts.part` / `phaseMoves` / `stayedPhases` in `shiftCalendarDates` and added this branch's
+  `except` and `keepView` beside them (the ripple never passes `part`). On the merged build: `hiatusripple` 15/15,
+  `hiatusdrag` 14/14, `anchorside` 23/23, `settingswin` 21/21, `wfmenu` 39/39, `mvmenu` 81/81, `calrange` 18/18,
+  `autonoteview` 18/18, check 40/40.
+- **Full gate** (port 8813, 18:17–18:54, after another session's gate ended), build of `21691b2`: **3,931 PASS, 2 FAIL.**
+  Every frozen output identical: waterfall PDF, Excel parts, grid signature, 0 clipped, gate 10's printed months,
+  every `monthwriter` line byte-identical, `fields.byId` 77 ids. `hiatusripple` 15/15, `hiatusdrag` 14/14. The two FAILs:
+  - `stintexport` produced no result (a driver deadline under load): green alone, judged by gate.sh's own block.
+  - `scenariocompat` on `/releases/v1.2.0.html`: "timed out waiting for: Open... menu item", the known load case (see
+    the 3 Nov entry). It failed the same way alone while ANOTHER session's gate had just started, and with
+    `origin/main`'s own harness too, so it is not this branch's. That page is not built from this repo's source. It
+    PASSED twice once that gate had ended.
+- **Full gate #2** on the merged build (`ae6b107`, port 8813, from 19:37): **3,898 PASS, 12 FAIL**, none real.
+  - Stalled under load (no result): `base`, `stintcollide`, `pwagate`, `notescols`; `offweek` R8 timed out on the file
+    menu. Five more were `base`'s outputs missing (the SPTCal mark, PDF bytes, seams, check-xlsx, Excel parts).
+  - `hiatusripple` R0 and R11: the rename. The gate ran the build from before it while the leg already expected the
+    new names.
+  - Rerun of all of them, by the gate's own blocks, on the RENAMED build (23:21–23:25, queued until no other gate was
+    running): **196 PASS, 0 FAIL**: grid signature, 0 clipped, waterfall PDF identical bar the stamp, seams, Excel
+    parts identical, `hiatusripple` 15/15, `hiatusdrag` 14/14, `settingswin`, `prefs`, `pwagate`, `offweek` both
+    states, `notescols`, `stintcollide`. Every other baseline (gate 10's months, `monthwriter`, `fields.byId` 77 ids)
+    was identical in the gate itself. The rename is labels only (no frozen output reads them); check 40/40.
+- ⏭ **Next:** ask the owner to merge into `main` and push (per action).
+
 ### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
@@ -271,49 +332,6 @@
   `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a
   full gate before any push.
 
-### 🔨 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILT on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
-- **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
-  adjust all the phases. It should be very clear how to turn it on or off"*. Then *"Yes, build it"*.
-- **Ruled by picker** (plan §2): R1 one switch, no question, ON by default; R2 shown in Settings ▸ Preferences AND on the
-  hiatus cards; R3 kept on this computer (`prefs.hiatusRipple`, absent = on), never in a file; R4 a phase's own hiatus
-  moves every phase starting on/after it; R5 a moved hiatus is followed (the week-strip example, plan §3.2 C).
-- **Built** (`src/legacy/app.js` "THE HIATUS RIPPLE", beside the shift tools; no frozen code, no save-format change):
-  - `rippleAfterHiatusEdit(h, before, after)`: take the old hiatus out (−w0 from s0), put the new one in (+w1 from s1);
-    a length change is one shift. Through `shiftCalendarDates(weeks, from, {except, keepView})`, whose new `except`
-    holds the edited hiatus (and a phase hiatus's owner), inside one `asShootDayMove()`. A phase starting inside the
-    old all-phase hiatus is first moved to its end (`rippleNormaliseInside`). Two undo steps (`bankStepAt`, new in the
-    undo section). The line under the hiatus: `.ripple-note`, no id, stripped from shareable copies.
-  - ⛔ **Settle tracking:** a "before" is taken on FOCUS into a hiatus's Starts / Weeks; the push runs when focus leaves
-    those two boxes, on Enter, or on the date popover's (untrusted) `change`. Code writes are never focused, so a load,
-    undo, mover or `T.set` cannot ripple. `refreshAfterRestore()` forgets pending edits.
-  - One-shot paths through `rippleAround()`: the row's ×, a phase's Hiatus switch, the day menus' Add hiatus here /
-    Remove hiatus… / phase items. The month-view drag pushes on release before its Keep / Undo question (Undo restores
-    the press snapshot).
-  - The switch: `HiatusPrefsCard` (Sidebar.jsx, `#pref-hiatus-ripple` in a `.prefs-card`), the All-phase card's top
-    (`src/index.html`, `.hiatus-ripple-card`) and each phase's Hiatus block, the last two id-less `.hiatus-ripple-cb`.
-    `reflectHiatusRipple()` from `update()`.
-- **Proof** (port 8791–8812):
-  - New `hiatusripple.mjs` (in `gate.sh` after hiatusdrag), real CDP input, fixture `hiatusripple.sptcal`: **15/15**.
-  - Red on `origin/main` in every case that ran, and on six mutants, each on its own cases (plan §10).
-  - `t/lib.js` stores the switch OFF for every other leg; `hiatusdrag.mjs` by an init script; `t/prefs.js` clears it
-    (its premise is an empty store); `settingswin` W13 lists the new card.
-  - Green: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81, hiatussidebar 16/16, hiatusdrag 14/14, check
-    40/40. `check-refs.py` reports 4 prose line numbers, all already on `origin/main` (not this branch's).
-  - Browser pane, real mouse and keys: Break 2 → 3 weeks, Tab → Production 3/16 → 3/23 and the line under the Break.
-- My calls, not rulings: two undo steps (one ⌘Z = "not this time"); no "N locked hiatuses held" in the line (New's
-  four locked winter breaks would print it on every push); Tab from Weeks onto Lock in place settles.
-- ⚠️ **Overlaps the Anchor To plan** (`ANCHOR-TO-DIRECTION-PLAN.md`, another session): both touch
-  `shiftCalendarDates`. Whichever lands second rebases onto the other (this one adds `opts`, two `except` lines and
-  `keepView`).
-- **Full gate** (port 8813, 18:17–18:54, after another session's gate ended), build of `21691b2`: **3,931 PASS, 2 FAIL.**
-  Every frozen output identical: waterfall PDF, Excel parts, grid signature, 0 clipped, gate 10's printed months,
-  every `monthwriter` line byte-identical, `fields.byId` 77 ids. `hiatusripple` 15/15, `hiatusdrag` 14/14. The two FAILs:
-  - `stintexport` produced no result (a driver deadline under load): green alone, judged by gate.sh's own block.
-  - `scenariocompat` on `/releases/v1.2.0.html`: "timed out waiting for: Open... menu item", the known load case (see
-    the 3 Nov entry). It failed the same way alone while ANOTHER session's gate had just started, and with
-    `origin/main`'s own harness too, so it is not this branch's. That page is not built from this repo's source. A
-    rerun is queued for when that gate ends.
-- ⏭ **Next:** the queued `scenariocompat` rerun, then ask the owner to merge into `main` and push (per action).
 ### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
 **The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
 unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in

@@ -25,7 +25,7 @@
 //   Wed 6/10 (a note carrying a date: stays)
 //
 //   R0  the switch: ON with no preference stored; its three copies (Settings, the All-phase card, Pre Prep's Hiatus block)
-//       checked; the two sidebar copies carry no id; a Save holds no ripple key and the same fields.byId ids as the fixture
+//       checked, and named as the owner named them (4 Nov 2026): Ripple Hiatus Periods, Ripple Hiatus Periods, Ripple Hiatus; the two sidebar copies carry no id; a Save holds no ripple key and the same fields.byId ids as the fixture
 //   R1  Break's Weeks 2 -> 3 by ArrowUp: nothing moves while focus is in the box; Tab (onto Lock in place) pushes Production,
 //       Post, Summer Break and the undated note 1 wk; Pre Prep, the dated note and the locked breaks stay; the line under
 //       the Break reads "Pushed 1 wk: Production, Post · Wrap 6/12/26"
@@ -48,7 +48,7 @@
 //       writes no line, ONE undo takes back Weeks 3 (the flip banked no step); on again from Settings: the preference gone,
 //       all three on; it survives a reload both ways
 //   R10 code writes never ripple: Weeks set by script (no focus), and the fixture's own load
-//   R11 the month view's drag, START grip up a row, Keep: the question says "Push later phases is on: Pushed 1 wk:
+//   R11 the month view's drag, START grip up a row, Keep: the question says "Ripple Hiatus Periods is on: Pushed 1 wk:
 //       Production, Post"; Production 3/23; ONE undo -> the drag without its push (Break 2/9 x 3, Production 3/16), a
 //       second -> Break 2/16 x 2
 //   R12 the same drag, Undo: every date back as at the press, the undo button as it was
@@ -279,13 +279,17 @@ try {
   {
     const s = await st();
     const ids = await ev(`({ cb: document.querySelectorAll('.hiatus-ripple-cb[id]').length, n: document.querySelectorAll('.hiatus-ripple-cb').length,
-      settings: !!document.getElementById('pref-hiatus-ripple'), inPrefsCard: !!(document.getElementById('pref-hiatus-ripple') || { closest: () => null }).closest('.prefs-card') })`);
+      settings: !!document.getElementById('pref-hiatus-ripple'), inPrefsCard: !!(document.getElementById('pref-hiatus-ripple') || { closest: () => null }).closest('.prefs-card'),
+      names: { settings: ((document.querySelector('label[for="pref-hiatus-ripple"]') || {}).textContent || '').trim(),
+               card: ((document.querySelector('.hiatus-ripple-card .sw-label') || {}).textContent || '').trim(),
+               pp: ((document.getElementById('phiatus-fields-prePrep') || document).querySelector('.hiatus-ripple-sw .sw-label') || {}).textContent || '' } })`);
     const sv = await saved();
     const keys = Object.keys(sv.fields.byId), fkeys = Object.keys(fixture.fields.byId);
     out.R0 = { s, ids, keys: keys.length, fkeys: fkeys.length, json: JSON.stringify(sv).match(/hiatusRipple|ripple-note|hiatus-ripple/g) };
-    kase('R0', 'ON with no preference stored: Settings, the All-phase card and Pre Prep\'s Hiatus block all checked; the sidebar copies carry no id (Settings\' sits in a .prefs-card); a Save holds no ripple key and exactly the fixture\'s fields.byId ids',
+    kase('R0', 'ON with no preference stored: Settings, the All-phase card and Pre Prep\'s Hiatus block all checked, named Ripple Hiatus Periods, Ripple Hiatus Periods and Ripple Hiatus; the sidebar copies carry no id (Settings\' sits in a .prefs-card); a Save holds no ripple key and exactly the fixture\'s fields.byId ids',
          s.pref === 'absent' && s.sw.settings === true && s.sw.card === true && s.sw.pp === true
          && ids.cb === 0 && ids.n >= 2 && ids.settings && ids.inPrefsCard
+         && ids.names.settings === 'Ripple Hiatus Periods' && ids.names.card === 'Ripple Hiatus Periods' && ids.names.pp.trim() === 'Ripple Hiatus'
          && !out.R0.json && JSON.stringify(keys) === JSON.stringify(fkeys)
          && s.prod === '2026-03-16' && s.by.Break === '2026-02-16/2', out.R0);
   }
@@ -544,8 +548,8 @@ try {
     await undoBtn(); const u2 = await st();
     out.R11 = { question: asked.question, asked: [asked.prod, asked.by.Break], kept: [kept.prod, kept.post, kept.by.Break, kept.by['Summer Break']],
                 u1: [u1.prod, u1.by.Break], u2: [u2.prod, u2.by.Break], preUndoOff: pre.undoOff };
-    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Push later phases is on: Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> Break 2/9 x 3 with Production 3/16; a second -> 2/16 x 2',
-         /Push later phases is on: Pushed 1 wk: Production, Post/.test(asked.question) && asked.prod === '2026-03-23'
+    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Ripple Hiatus Periods is on: Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> Break 2/9 x 3 with Production 3/16; a second -> 2/16 x 2',
+         /Ripple Hiatus Periods is on: Pushed 1 wk: Production, Post/.test(asked.question) && asked.prod === '2026-03-23'
          && kept.prod === '2026-03-23' && kept.post === '2026-05-04' && kept.by.Break === '2026-02-09/3' && kept.by['Summer Break'] === '2026-08-24/1'
          && u1.prod === '2026-03-16' && u1.by.Break === '2026-02-09/3' && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2', out.R11);
   }

@@ -184,7 +184,8 @@ With the switch off, every path behaves exactly as it does today. That is a test
   every `input[id]`, so an id there would bake the preference into every saved calendar and add phantom undo
   steps. The zoom control is the precedent. Class plus a delegated listener, painted from `prefs` by a
   `reflectHiatusRippleSwitches()` after each render, the way `reflectPhaseHiatusSwatches()` is.
-- **Label:** "Push later phases when a hiatus changes". Its "i" gets three plain sentences (the owner's
+- **Label:** "Ripple Hiatus Periods" in Settings and on the All-phase hiatus card, "Ripple Hiatus" in a phase's
+  Hiatus block (owner, 4 Nov 2026, replacing the first build's "Push later phases when a hiatus changes"). Its "i" gets three plain sentences (the owner's
   simple-for-anyone rule): what moves, what stays (locked hiatuses, holidays, dated notes), and that ⌘Z takes a
   push back.
 - **Per scenario tab:** one switch for the app; a ripple acts only on the tab on screen.
@@ -269,7 +270,7 @@ Everything in §3-§9 was built as planned, with these differences:
 - **The one-shot paths** go through `rippleAround(h, fn)`, which first settles any edit still pending on that hiatus.
   A phase's own hiatus on a phase with no start date pushes nothing (it delays nothing).
 - **The month-view drag:** the push runs on release, before the question, and the question ends with
-  `Push later phases is on: <the readout>.` Its "also changes when … ends" sentence leaves out the phases the push
+  `Ripple Hiatus Periods is on: <the readout>.` (`Ripple Hiatus is on:` for a phase's own hiatus). Its "also changes when … ends" sentence leaves out the phases the push
   named. Undo applies the snapshot banked at the press (`applySnapshotJSON`), so the push goes too; Keep banks the
   drag and the push as two steps (`bankStepAt`).
 - **The Settings copy** is its own card, `HiatusPrefsCard` ("Hiatus", the pause icon), between Automatic notes and App,

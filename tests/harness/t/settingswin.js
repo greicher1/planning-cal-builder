@@ -403,7 +403,7 @@ window.addEventListener('load', function () { (async function () {
     var scopeText = /travel with it|stays? on this computer/.test(el('settings-window').textContent);
     out.w13.noScope = {nodes: scopeAll, text: scopeText};
     add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines, and no Custom Column Headings switch), Automatic notes and App; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and App; and no tab opens on a "saved in this file / stays on this computer" line',
-      // Hiatus (HIATUS-RIPPLE-PLAN.md §5, 4 Nov 2026): "Push later phases", a preference for both views, before App.
+      // Hiatus (HIATUS-RIPPLE-PLAN.md §5, 4 Nov 2026): "Ripple Hiatus Periods", a preference for both views, before App.
       eq(l13s.heads, ['Waterfall', 'Automatic notes', 'Hiatus', 'App']) && l13s.wf && gridShown && oneShown && out.w13.noHdrSwitch
         && l13s.scope.length === 0
         && eq(l13m.heads, ['Month view', 'Automatic notes', 'Hiatus', 'App']) && l13m.mv

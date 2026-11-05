@@ -91,7 +91,7 @@ const PREFS_PANEL = (
     <MonthViewCard />
     {/* Automatic notes (ruling 9) reach both views, so it is no .pref-view-* card. No id in it. */}
     <AutoNotesCard />
-    {/* Push later phases (HIATUS-RIPPLE-PLAN.md §5): a preference for both views, in a .prefs-card. */}
+    {/* Ripple Hiatus Periods (HIATUS-RIPPLE-PLAN.md §5): a preference for both views, in a .prefs-card. */}
     <HiatusPrefsCard />
     <AppCard />
   </>

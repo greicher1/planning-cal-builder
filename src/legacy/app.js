@@ -8076,7 +8076,7 @@ export function initLegacyApp() {
           ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
           ${/* The hiatus ripple's switch (HIATUS-RIPPLE-PLAN.md §5): the one preference, shown here too. ⛔ NO id (see the
                All-phase hiatus card's copy in index.html). reflectHiatusRipple() writes .checked. */''}
-          ${swRow('hiatus-ripple-sw', 'Push later phases', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Push later phases when a hiatus changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as on the All-phase hiatus card. Kept on this computer.')}
+          ${swRow('hiatus-ripple-sw', 'Ripple Hiatus', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Ripple Hiatus: move the phases after this hiatus when it changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as Ripple Hiatus Periods on the All-phase hiatus card. Kept on this computer.')}
         </div>
       </div>`;
   }
@@ -11338,7 +11338,9 @@ export function initLegacyApp() {
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
              : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
       }
-      if(rip && rip.changed && rip.text) msg += '\n\nPush later phases is on: ' + rip.text + '.';
+      // The switch's own name where the user flipped it (owner, 4 Nov 2026): Ripple Hiatus Periods on the All-phase
+      // hiatus card, Ripple Hiatus in a phase's Hiatus block.
+      if(rip && rip.changed && rip.text) msg += '\n\n' + (d.h.kind === 'all' ? 'Ripple Hiatus Periods' : 'Ripple Hiatus') + ' is on: ' + rip.text + '.';
       return msg;
     }
 
