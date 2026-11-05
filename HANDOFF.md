@@ -210,7 +210,7 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
   on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
 
-### 🔨 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — BUILT on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed. The merged build's full gate: 3,846 PASS / 6 FAIL, all load timeouts green alone, every baseline identical (below). Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+### ✅ 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — ✅ **LIVE at `cd7ce25`** (owner's pickers: "Commit on the branch", "Merge into main", "Push now", then, when origin and local `main` had both moved, "Push branch, skip plan docs"; `ae4125f..cd7ce25` at 16:20:05; the live `index.html` matched the tested build `ac21b464…` byte for byte at 16:20:50). Built on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed. The merged build's full gate: 3,846 PASS / 6 FAIL, all load timeouts green alone, every baseline identical (below). Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
 
 - **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
   [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
@@ -317,7 +317,16 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     10's 11 printed month documents identical, gate 13's 24 written month PDFs byte-identical; `noteviews` and
     `autonoteview` green inside it. The two FAILs are drivers' wall-clock deadlines (`hiatusdrag` 480 s, `cspproof`
     240 s), each green alone on the same build: 14/14 and 15/15.
-- Local `main` fast-forwarded to the branch after that gate. **Next:** the owner's call on pushing. The push would
+- Local `main` fast-forwarded to the branch after that gate.
+- **The push (16:20):** by then `origin/main` had `ae4125f` (recovered work reopens into its own file, live) and local `main`
+  had four ANCHOR-TO-DIRECTION-PLAN doc commits from another session (no app code, not approved for this push). So
+  `ae4125f` was merged into the BRANCH (`cd7ce25`; only the README top conflicted; `app.js` merged clean, the recovery
+  code is far from the notes), checked (`npm run check` 40/40; backuplink 5/5, backuplinkstale 3/3, backupslots 5/5,
+  autonoteview 18/18, noteviews 15/15, autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, monthnotes green),
+  and the branch tip pushed as `main` WITHOUT another full gate (owner's picker). Local `main` then merged it, so the
+  four plan commits are still local and unpushed: that session's to push.
+- ⏭ **Open:** nothing for this feature. The worktree `.claude/worktrees/auto-notes-view` can go (unlink its
+  `node_modules` symlink first). The push would
   carry this feature (its commits and merges) and another session's HANDOFF-only `6e2e443`; everything else is
   already on `origin/main`.
 
