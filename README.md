@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month view's bar drag carries what the arrows carry (5 Nov 2026)
+
+Dragging a phase's bar in the month view now takes **its own hiatus** and **everything keyed to its weeks** with it:
+its hiatus band's name, colour, size and style, its cell spans, its column swaps and its text styles (Sim Post's with
+Production). Before, only its start date moved, so those stayed behind on the old weeks, while the phase card's ▲ / ▼
+and the Shift tool carried them. Owner's ruling D7 (4 Nov 2026, by picker: *"yes, as its own change, right after the
+arrows"*; PHASE-WEEK-ARROWS-PLAN.md §5).
+
+- **The same mover as ▲ / ▼**, so the two agree: a drag of one row is one ▼, snapshot for snapshot. Typed notes,
+  all-phase hiatuses, the calendar range and every other phase still stay; Production's day marks still move by
+  shoot-day number; edited automatic notes still follow.
+- **By the whole weeks the phase's run moved.** The drag still moves the date day by day; a day inside the same week
+  carries nothing, and an Ends phase carries by the weeks its end moved.
+- **Carried from the press on every step**, never step to step, so dragging out and back puts every store back
+  exactly, and the own hiatus moves live while the button is down. Still ONE undo step.
+
+Engine: `shiftCalendarDates` gains `opts.carryOnly` (with `part`: the phase keeps the date its caller wrote, and only
+what it carries moves); `carryPhaseDrag` beside `nudgePhase`. No frozen code, no writer and no save-format change, no
+new id. New leg `mvdragcarry` (15 cases, in gate.sh) on new fixture `mvdragcarry.sptcal` (`phasearrows.sptcal` plus one
+stale band label): red on `origin/main` on every carry case, and on two mutants (carried step to step; by days instead
+of the run's weeks).
+
+
 ### Unreleased — Shift: tick the phases that move (5 Nov 2026)
 
 Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if

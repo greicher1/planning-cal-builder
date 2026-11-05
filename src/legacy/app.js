@@ -9458,6 +9458,9 @@ export function initLegacyApp() {
   // ⭐ The CHEAPEST of the three drag gestures (MONTH-VIEW-PLAN.md §6.1): moving a phase is
   // `start-<key> += n days` -- one stored field, duration untouched. The only frozen change it
   // needed was the `data-ph` attribute on the pill; the behaviour lives entirely out here.
+  // ⭐ Since 5 Nov 2026 (PHASE-WEEK-ARROWS-PLAN.md §5) it also CARRIES what the phase card's ▲ / ▼ carry, its own
+  // hiatus and its "<week>|<key>" stores, by the whole weeks its run moved, through the same mover (carryPhaseDrag).
+  // Typed notes, all-phase hiatuses and every other phase still stay.
   //
   // ⚠️ PHASES MOVE INDEPENDENTLY (owner confirmed 16 Sep 2026). There is no dependency graph, so
   // dragging Production leaves Post exactly where it is, which may open a gap or an overlap. That
@@ -9525,8 +9528,11 @@ export function initLegacyApp() {
       // snapWas: MONTH-9 below -- what Snap to Mon was when the gesture began. notesBase: the week notes
       // at the press, so an edited auto-note's date follows the pill (autoNoteBaseline). The notes
       // themselves stay in their weeks: a body-drag has never carried notes, unlike Shift All.
+      // carry: the phase's own hiatus and "<week>|<key>" stores as they are at the press, so every increment carries
+      // them from here, by the weeks the run has moved (carryPhaseDrag; PHASE-WEEK-ARROWS-PLAN.md §5).
       drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0,
-              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline(), pillEl: pill, ghost: null};
+              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline(), carry: beginPhaseCarry(key, base),
+              pillEl: pill, ghost: null};
       // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
       // NUMBER, live on every increment, because update() re-derives them from these pins. For any
       // other phase the shoot does not move and the binding is the identity. Pinned here, before the
@@ -9587,7 +9593,9 @@ export function initLegacyApp() {
       }
       // update() rebuilds the grid, destroying the pill under the cursor -- which is why every
       // reference held above is either a sidebar element or a plain number, never a grid node.
-      update();
+      // Its own hiatus and its "<week>|<key>" stores follow by whole weeks, from the press (carryPhaseDrag). When the
+      // weeks changed, the mover has already run update() (refreshAfterRestore), so it is not run twice.
+      if(!carryPhaseDrag(drag.carry, days)) update();
       reapplyAutoNoteBaseline(drag.notesBase);
       // ⛔ update() just called markDirty(), which RE-ARMED the 500ms undo debounce. Kill it: this
       // gesture banks its own snapshot in endDrag(), and a timer allowed to fire first would split
@@ -29120,6 +29128,9 @@ export function initLegacyApp() {
   //           the phase arrows move one phase, so the rest of the month the cursor shows did not move.
   //           The hiatus ripple passes it too (HIATUS-RIPPLE-PLAN.md): a ripple is aimed at the hiatus, which did not
   //           move. Its `except` is described just below, above shiftCalendarDates.
+  //   carryOnly -- with `part` only: the phases in `part.phases` keep the dates they have (their caller wrote them), and
+  //           everything they carry moves -- their own hiatus and their "<week>|<key>" stores. The month view's body
+  //           drag (carryPhaseDrag, PHASE-WEEK-ARROWS-PLAN.md §5), which moves its phase by days and carries by weeks.
   //   ONE options object for all of them, never another positional argument.
   function shiftCalendar(weeks, fromIso, opts){
     return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
@@ -29172,8 +29183,13 @@ export function initLegacyApp() {
       }
       if(except && except.kind === 'phase' && except.key === p.key){ stayedPhases++; stayingPhases.add(p.key); return; }
       // Through setPhaseStart(), so a Dates phase's end moves with it (CUSTOM-PHASE-UNITS-PLAN §8).
-      const from = parseDateUTC(startEl.value);
-      if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
+      // carryOnly (the month view's body drag, carryPhaseDrag): the caller has already written this phase's own date,
+      // day by day, so only what the phase carries moves -- its own hiatus here, its "<week>|<key>" stores in step 3.
+      if(opts.carryOnly) movedPhases++;
+      else {
+        const from = parseDateUTC(startEl.value);
+        if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
+      }
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
     });
 
@@ -29721,6 +29737,63 @@ export function initLegacyApp() {
       nudgePhase(phaseRowKey(row), e.key === 'ArrowUp' ? -1 : 1);
     });
   });
+
+  // ---------- ⭐ The month view's body drag carries what the arrows carry (PHASE-WEEK-ARROWS-PLAN.md §5) ----------
+  // Owner, 4 Nov 2026, by picker (D7): "yes, as its own change, right after the arrows". The body drag
+  // (installMonthPillDrag) wrote start-<key> and nothing else, so a dragged phase left its own hiatus on its old dates
+  // and its "<week>|<key>" stores (band names, colours and sizes, cell spans, column swaps, its text styles; Sim Post's
+  // with Production) on its old weeks, where ▲ / ▼ and the Shift tool carry them. Now it carries them with the arrows'
+  // own mover, the part move with one phase and an empty week window (nudgePhase), plus `carryOnly`: the drag still
+  // writes the phase's date itself, day by day, through setPhaseStart and the snap rule, exactly as it always has.
+  // Production's day marks were already bound from press to release (beginShootDayMove), and edited automatic notes
+  // already followed (autoNoteBaseline); neither changed.
+  //
+  // ⛔ CARRIED FROM THE PRESS ON EVERY STEP, NEVER CHAINED. The drag applies a new date on every increment, and the
+  // mover rebuilds each store with shiftKeyedMap, whose arrivals YIELD to an entry already on the week they land on: a
+  // step chained onto the one before could drop an entry for good, and out and back would not come home. So each time
+  // the weeks change, every store the mover can touch and the phase's own hiatus are put back to their copies from
+  // the press, then carried ONCE by the weeks the drag stands at. Out and back is exact, and the own hiatus travels
+  // with the bar while the drag runs (re-keying once at the drop would leave it behind until the release, a preview
+  // that lies).
+  //
+  // THE WEEKS are the waterfall rows the phase's run moved, so every store lands on a row the run now covers. A run
+  // starts on its start's Monday (Production too: productionInfo.startDate is mondayOf(start)), so it is the Monday
+  // difference; a day inside the week carries nothing. An Ends phase is moved by its END, which setPhaseStart moves by
+  // the nearest whole week of the drag, so it is that.
+  function phaseDragWeeks(key, base, days){
+    if(phaseEndsOn(key)) return Math.round(days / 7);
+    return Math.round((mondayOf(addDays(base, days)) - mondayOf(base)) / DAY_MS / 7);
+  }
+  // Exactly the stores shiftCalendarDates re-keys by hiatusKeyStays (step 3), the only ones a one-phase move with an
+  // empty week window can change. ⚠️ A new store added there must be added here too, or a drag out and back loses it.
+  function phaseCarryStores(){
+    return {hiatusTexts, hiatusNameSyncedKeys, hiatusColors, hiatusFontSize, cellSpans, gridColSwaps,
+            tsHiatus: textStyle.hiatus, tsPhase: textStyle.phase, tsSimpost: textStyle.simpost, mvBand: mvTextStyle.band};
+  }
+  // At the press. null for a pill that is not a phase on the calendar (nothing to carry).
+  function beginPhaseCarry(key, base){
+    if(!base || !getAllPhaseDefs().some(p=> p.key === key)) return null;
+    const h = document.getElementById('phiatus-start-' + key);
+    return {key, base, weeks: 0, hiatus: h ? h.value : null, stores: JSON.stringify(phaseCarryStores())};
+  }
+  // On each increment, AFTER the drag has written the phase's date. Returns true when the mover ran, which ends in
+  // refreshAfterRestore() and so in update(); otherwise the caller's own update() draws the step.
+  function carryPhaseDrag(c, days){
+    if(!c) return false;
+    const weeks = phaseDragWeeks(c.key, c.base, days);
+    if(weeks === c.weeks) return false;
+    c.weeks = weeks;
+    const s = JSON.parse(c.stores);
+    hiatusTexts = s.hiatusTexts; hiatusNameSyncedKeys = s.hiatusNameSyncedKeys; hiatusColors = s.hiatusColors;
+    hiatusFontSize = s.hiatusFontSize; cellSpans = s.cellSpans; gridColSwaps = s.gridColSwaps;
+    textStyle.hiatus = s.tsHiatus; textStyle.phase = s.tsPhase; textStyle.simpost = s.tsSimpost; mvTextStyle.band = s.mvBand;
+    const h = document.getElementById('phiatus-start-' + c.key);
+    if(h && c.hiatus !== null) h.value = c.hiatus;
+    if(!weeks){ refreshSnapNotes(); return false; }   // back on the press's weeks: the copies ARE the answer
+    // shiftCalendar, as nudgePhase calls it. Inside the drag's own day-mark binding its asShootDayMove is inert.
+    shiftCalendar(weeks, null, {part: Object.assign({phases: [c.key]}, NUDGE_NO_WEEKS), keepView: true, carryOnly: true});
+    return true;
+  }
 
   // ---------- Anchoring: shift so that some landmark lands on a chosen date ----------
   // Both anchors work by measuring the whole-week gap between where the landmark is now and where

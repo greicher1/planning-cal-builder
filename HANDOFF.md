@@ -4,6 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — BUILT on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
+- **Ruled** (owner, 4 Nov 2026, by picker, D7): *"yes, as its own change, right after the arrows"*. The body drag
+  (`installMonthPillDrag`) moved `start-<key>` only, so the phase's own hiatus and its `<week>|<key>` stores (band
+  names, colours, sizes and styles, cell spans, column swaps, its text styles; Sim Post's with Production) stayed on the
+  old weeks.
+- **How it is built** (`src/legacy/app.js`, beside `nudgePhase`; no frozen code, no save-format change, no id):
+  - The arrows' own call, `shiftCalendar(weeks, null, {part: {phases: [key], …NUDGE_NO_WEEKS}, keepView: true})`, plus a
+    new `opts.carryOnly`: the part's phases keep the date their caller wrote (the drag still moves its date day by
+    day through `setPhaseStart` and the snap rule, unchanged), and their own hiatus and stores move.
+  - ⛔ **From the press on every step, never chained** (`beginPhaseCarry` / `carryPhaseDrag`). At the press, the ten
+    stores step 3 re-keys by `hiatusKeyStays` and `phiatus-start-<key>` are copied; whenever the drag's weeks change,
+    they are put back and carried ONCE by the weeks it stands at. Chosen over re-keying at the drop, which would leave
+    the own hiatus behind in the live month view until release. ⚠️ A store added to step 3 must join
+    `phaseCarryStores()`.
+  - **The weeks** are the run's: the start's Monday difference (Production's `startDate` is `mondayOf(start)` too), or
+    an Ends phase's nearest whole week (what `setPhaseStart` moves its end by). A day inside a week carries nothing.
+  - One `update()` per step still: on a weeks change it is the mover's own (`refreshAfterRestore`). Production's marks
+    (bound press to release), edited automatic notes (`autoNoteBaseline`) and the one undo step at release: unchanged.
+- **Proof:** new leg `mvdragcarry` (15/15, in `gate.sh` after `phasearrows`), synthetic drags as `monthdragundo` drives
+  them, on new fixture `mvdragcarry.sptcal` (= `phasearrows.sptcal` + one stale band label, "Old Break Name" on
+  7/6/26). A row's drag = one ▼, snapshot for snapshot, for Post, Production and an Ends phase; out and back exact;
+  live mid-drag; by whole weeks; one undo. **Red on `origin/main`** (7/15: W1 L1 A1 O1 K1 P1 E1 E2, every carry
+  case), on a step-to-step mutant (10/15: O2, O3, then K1 P1 F1 with the label gone) and a by-days mutant (14/15: K1).
+  - ⭐ **Why the fixture has the stale label:** without it the step-to-step mutant PASSES. A phase's own
+    `<week>|<key>` entries all move together and cannot collide; only a plain band key sitting on no band can, when a
+    step lands it on a held band's week and it yields (shiftKeyedMap).
+  - Trusted CDP drag (scratch script, headless, 1600 px): Post's bar one row down, Post Pause 1/4 → 1/11/27 while
+    the button was down, kept its amber colour, 0 errors. The browser pane was hidden, so not there.
+  - Neighbours on the build (port 8902): `phasearrows` 26/26, `monthdragundo` one step (`oneStep: true`),
+    `anchorside` 29/29, `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 14/14, `hiatusripple` 15/15, `mvorder`
+    30/30, `npm run check` 40/40.
+- ⚠️ **Found, NOT fixed (shared with ▲ / ▼ and the Shift tool; its own change):** a one-phase move re-keys a plain-keyed
+  band store that sits on no band, because `hiatusKeyStays` keeps a plain key only on a held all-phase band's week. So
+  ▲ / ▼ (and now the drag) move a stale band label a week, or drop it onto a held band's week; by the code, Shift From
+  moves one from before its cutoff too. One-line fix: a plain key also stays when `!inRange(iso)`. It changes the Shift
+  tools, so it needs its own gate.
+- ⏭ **Next:** the full gate (serialized), then the owner's picker: merge, and separately push.
+
 ### ✅ 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR ("Ripple Hiatus Periods" / "Ripple Hiatus") — ✅ **LIVE at `ad855a7`** (owner's picker *"Push now"*; pushed from the branch, `4a90017..ad855a7`, at 01:42:27 on 5 Nov 2026, a fast-forward; the live `index.html` matched the tested build `9660b34b…` byte for byte at 01:43:54, `version.json` 1.10.0, no version cut). ⚠️ Local `main` was NOT moved: the main checkout holds another session's uncommitted HANDOFF edits, so it fast-forwards to `ad855a7` once that session commits. Built on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` merged in twice: `c52094f` (the one Shift tool) as `ae6b107`, `4a90017` (phase arrows, note editor) as `ad855a7`. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
   adjust all the phases. It should be very clear how to turn it on or off"*. Then *"Yes, build it"*. Then the names:

@@ -1901,6 +1901,12 @@ done
 # where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
 # undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
 # Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
+# mvdragcarry (owner, 4 Nov 2026, by picker; PHASE-WEEK-ARROWS-PLAN.md §5) is the month view's body drag on the arrows'
+# mover: a dragged phase carries its own hiatus and its "<week>|<key>" stores by the whole weeks its run moved, always
+# from the press (out and back is exact, a stale band label included), live while the button is down, as ONE undo step;
+# a row's drag = one ▼, snapshot for snapshot, for Post, Production (marks by shoot day) and an Ends phase. Red on
+# origin/main on every carry case, and on two mutants (carried step to step: O2/O3; by days, not the run's weeks: K1).
+# On mvdragcarry.sptcal (phasearrows.sptcal + one stale band label, 7/6/26).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2015,6 +2021,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               rebuildticks:-:300 \
               anchorside:anchorside:400 \
               phasearrows:phasearrows:400 \
+              mvdragcarry:mvdragcarry:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
