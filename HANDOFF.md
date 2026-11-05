@@ -12,8 +12,11 @@
 - **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
   Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
   other side and was tested then.)
-- **Proposed:** one choice under today's phase and date rows (in A and B the date stays directly below the phase
-  line, owner 4 Nov 2026). **All phases** (today, the default) | **Phase & before** (new: no tool
+- **Proposed:** one choice in a wider Anchor To (480 px; owner 4 Nov 2026).
+  - In A and B, row 1 reads phase, *starts on*, date.
+  - Row 2 holds the choice and then Go.
+  - The popover hangs from its button's right edge, as all tool popovers do.
+  - The choice is **All phases** (today, the default) | **Phase & before** (new: no tool
   moves a phase and the phases before it while keeping the gaps) | **Phase & after** (Shift From's set, aimed at a
   date). The owner picked these words from four options on 4 Nov 2026 (plan §3), because they say the picked phase
   moves too. A hint line names what stays. Whole schedule hides the choice.

@@ -18,7 +18,10 @@ tool (§6)**. Mockup:
     come up with a few other wording ideas"*. Offered four, the owner picked `All phases | Phase & before | Phase &
     after` (§3).
   - then, on a screenshot of the phase / *starts on* row, *"Fix mockup a and b so the date selector is directly below
-    this line"* (§1).
+    this line"*.
+  - then, on a screenshot of A's Anchor To, *"reorder as follows: Prop Prep - 4/19/27 starts on - (date selector on
+    same line (expand the window horiztonally) then on the line below - All phases, phase and before, phase and
+    after, THEN Go"* (§1). This replaces the ask before it.
   - then *"Add similar functionality for shift from in the mockup"*. In A and B, Shift From gets `Phase & before |
     Phase & after` (§1.1).
 - **The short answer given in chat:** Anchor To moves everything today. It is Shift All aimed at a date. A choice of
@@ -73,10 +76,16 @@ tool (§6)**. Mockup:
 
 ## 1. What it would look like
 
-One more choice in the Anchor To popover, **what moves**. In A and B it goes under today's two rows, the phase with
-*starts on / ends by* and then the date with Go, so the date stays directly below the phase line (owner, 4 Nov 2026,
-on a screenshot of that line: *"Fix mockup a and b so the date selector is directly below this line"*). A and B are
-today's Anchor To with one block added at the bottom:
+One more choice in the Anchor To popover, **what moves**. In A and B the popover is wider (480 px, against 340 px
+today and Rebuild From's 400 px) and has two rows (owner, 4 Nov 2026, quoted above):
+- **Row 1 reads as a sentence:** `[Prod Prep — 4/19/27 ▾] [starts on ▾] [date]`.
+- **Row 2 holds the choice, then Go:** `[All phases | Phase & before | Phase & after] [Go]`. In B the buttons are a
+  dropdown.
+- **The hint line sits under them.** With Whole schedule the choice hides, and Go stays at the end of row 2.
+- It hangs from its button's right edge, as every tool popover does (`.tools-menu{right:0}`), so the wider panel
+  grows to the left.
+
+The three choices:
 
 - **All phases.** Today's tool, and the default.
 - **Phase & before:** the picked phase and everything before it. New.
@@ -237,7 +246,10 @@ These are for A or B. C adds steps of its own (§6).
    - With no `before`, both are today's test, so every existing caller is untouched.
    - About 15 lines.
 2. **The popover.**
-   - `PreviewToolbar.jsx` adds the control inside `#pop-anchor`. Buttons carry `data-move` and no id. A dropdown,
+   - `PreviewToolbar.jsx` regroups `#pop-anchor` into §1's two rows and widens it to 480 px (a `.tools-menu-anchor`
+     width class, as Rebuild From has `.tools-menu-solve`). The date input moves up beside the edge select and Go
+     moves down beside the choice. The ids stay, so the four legs that drive it are untouched.
+   - It adds the control inside `#pop-anchor`. Buttons carry `data-move` and no id. A dropdown,
      under R1(b), may keep an id, since `.tools-menu` already excludes it from the save sweep.
    - The engine handler reads the choice, hides it on `ANCHOR_ALL`, resets it on open (R2), writes the hint line,
      and passes the cutoff ("after") or the two bounds ("before").
@@ -335,7 +347,8 @@ Those are two settings, not three tools:
     - 233 px as it opens (All phases by weeks).
     - 283 px at its tallest before anything moves (a phase row and a two-line hint).
     - 333 px with a two-line result line under it.
-    - For comparison, the mockup's copy of today's Anchor To is 129 px, layout A's is 193 to 226 px, and the old
+    - For comparison, the mockup's copy of today's Anchor To is 129 px, and layout A's two-row Anchor To is 155 px.
+      The old
       menu was 562 px.
 - **People on the live site lose two buttons they know.** Someone looking for "put the shoot on a date" has to know
   it is under Shift ▸ To a date. The Shift button's tooltip can say so: *"Shift the calendar by a number of weeks or

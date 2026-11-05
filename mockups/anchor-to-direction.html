@@ -98,6 +98,13 @@ select.ctl.edge{ flex:none; width:92px; }
 input.ctl[type=date]{ flex:1; min-width:0; }
 input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
 input.ctl.num{ width:52px; flex:none; }
+/* A and B's Anchor To (owner, 4 Nov 2026): one row reads "Prod Prep — 4/19/27 | starts on | date", the next holds the
+   choice and then Go, so the panel is wider than the other tools' 340 px. */
+/* Hung from the button's RIGHT edge, as every live .tools-menu is (right:0), so the wider panel grows leftwards. */
+.pop.wide{ width:480px; left:auto; right:0; }
+input.ctl.date-fixed{ flex:none; width:138px; }
+.row > .dir{ flex:1; margin:0; }
+.row > .grow{ flex:1; }
 .gobtn{ height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:600;
         padding:0 12px; cursor:pointer; color:var(--gray-9); }
 .gobtn:hover{ background:var(--gray-0); }
@@ -220,7 +227,7 @@ input.ctl.num{ width:52px; flex:none; }
     {key:'localization', name:'Localization', weeks:8,  start:'2027-11-01', fill:'#EDEDED', ink:'#525252'},
   ];
   const TABNOTE = {
-    A: 'A: Anchor To keeps today’s phase and date rows, with three buttons added under them. Shift From keeps its rows too and gets the same choice without All phases (that is Shift All). Click Shift From or Anchor To to open either. Shift All stays as it is.',
+    A: 'A: Anchor To is wider and reads as one line, phase, starts on, date, with the three buttons and Go on the line under it. Shift From keeps its rows too and gets the same choice without All phases (that is Shift All). Click Shift From or Anchor To to open either. Shift All stays as it is.',
     B: 'B: as A, but each choice is a dropdown that names the phase. Click Shift From or Anchor To to open either. Shift All stays as it is.',
     C: 'C: Shift From and Anchor To become one tool behind Shift’s ▾, and their buttons go. The arrows still move everything one week. The toolbar keeps two tools: Shift keeps the gaps, Rebuild From closes them.',
   };
@@ -314,11 +321,12 @@ input.ctl.num{ width:52px; flex:none; }
   // under them, and avoid Earlier/Later (C's buttons are directions of travel).
   const moveSeg = () => seg('move', 'What moves', [['all', 'All phases'], ['before', 'Phase &amp; before'], ['after', 'Phase &amp; after']], move);
   const farSeg = () => seg('far', 'How far', [['weeks', 'By weeks'], ['date', 'To a date']], far);
-  function moveSelect(){
+  // B's dropdown, sharing its row with Go.
+  function moveSelectCtl(){
     const n = esc(name());
-    return '<div class="row new"><span class="lbl">Move</span><select class="ctl" data-ctl="movesel" aria-label="What moves">'
+    return '<select class="ctl new" data-ctl="movesel" aria-label="What moves">'
       + [['all', 'All phases'], ['before', n + ' and everything before it'], ['after', n + ' and everything after it']]
-        .map(([v, t]) => '<option value="' + v + '"' + (v === move ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>';
+        .map(([v, t]) => '<option value="' + v + '"' + (v === move ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
   }
   // C puts "starts on / ends by" beside the date, so its phase row (right under What moves) holds the phase alone.
   const dateRow = withEdge => '<div class="row">' + (withEdge ? edgeSelect() : '') + '<input class="ctl" type="date" data-ctl="date" value="' + date + '" aria-label="Date"><button class="gobtn" type="button" data-act="go">Go</button></div>';
@@ -327,13 +335,18 @@ input.ctl.num{ width:52px; flex:none; }
   const tail = '<p class="hint" id="hint"></p>';
   const msgEl = '<p class="msg" id="msg"></p>';
 
-  // Owner, 4 Nov 2026: the date "directly below" the phase / starts-on line, as in today's popover. The new choice
-  // and its hint go under the date row, so A and B are today's Anchor To with one block added at the bottom.
+  // Owner, 4 Nov 2026, on a screenshot of A: "reorder as follows: Prop Prep - 4/19/27 starts on - (date selector on
+  // same line (expand the window horiztonally) then on the line below - All phases, phase and before, phase and
+  // after, THEN Go". So the popover widens (.pop.wide) and reads as a sentence on its first row, "Prod Prep starts on
+  // 4/19/27", with the choice and then Go on the second. Whole schedule hides the choice and leaves Go alone there.
+  // (It replaced an earlier ask the same day, the date row directly under the phase row.)
   function popAB(){
+    const choice = pick === ALL ? '<span class="grow"></span>'
+      : (opt === 'A' ? moveSeg() : '<span class="lbl">Move</span>' + moveSelectCtl());
     return head('Anchor to a date', TIP.AB)
-      + '<div class="row">' + phaseSelect() + edgeSelect() + '</div>'
-      + dateRow()
-      + (pick === ALL ? '' : (opt === 'A' ? moveSeg() : moveSelect()))
+      + '<div class="row">' + phaseSelect() + edgeSelect()
+      + '<input class="ctl date-fixed" type="date" data-ctl="date" value="' + date + '" aria-label="Date"></div>'
+      + '<div class="row">' + choice + '<button class="gobtn" type="button" data-act="go">Go</button></div>'
       + tail + msgEl;
   }
   // Shift From (owner, 4 Nov 2026: "Add similar functionality for shift from in the mockup"). Today's rows stay as
@@ -375,7 +388,7 @@ input.ctl.num{ width:52px; flex:none; }
           + '<div class="wrap"><button type="button" class="tbtn' + (pop === 'from' ? ' open' : '') + '" data-pop="from" aria-expanded="' + (pop === 'from') + '">Shift From <span class="caret">▾</span></button>'
           + (pop === 'from' ? '<div class="pop" id="pop" role="dialog" aria-label="Shift From">' + popFrom() + '</div>' : '') + '</div>'
           + '<div class="wrap"><button type="button" class="tbtn' + (pop === 'anchor' ? ' open' : '') + '" data-pop="anchor" aria-expanded="' + (pop === 'anchor') + '">Anchor To <span class="caret">▾</span></button>'
-          + (pop === 'anchor' ? '<div class="pop" id="pop" role="dialog" aria-label="Anchor to a date">' + popAB() + '</div>' : '') + '</div>' + rest;
+          + (pop === 'anchor' ? '<div class="pop wide" id="pop" role="dialog" aria-label="Anchor to a date">' + popAB() + '</div>' : '') + '</div>' + rest;
     $('tabnote').textContent = TABNOTE[opt];
     renderDyn();
   }
