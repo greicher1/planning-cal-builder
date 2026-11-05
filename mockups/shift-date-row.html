@@ -132,7 +132,6 @@ input.ctl.num{ width:52px; flex:none; }
 .subj{ display:flex; align-items:center; height:30px; margin-bottom:6px; font-size:12.5px; font-weight:600; color:var(--gray-9);
        padding:0 1px; }
 .subj[hidden]{ display:none; }
-.subj .pinword{ margin-left:auto; font-size:10.5px; font-weight:500; color:var(--gray-6); }
 .new{ outline:2px dashed var(--mark); outline-offset:3px; border-radius:var(--r-md); }
 .msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
 .msg:empty{ display:none; }
@@ -339,7 +338,7 @@ input.ctl.num{ width:52px; flex:none; }
     var h = head() + segMove() +
       '<div class="row" data-phaserow=""'+(pivot?'':' hidden')+'>'+phaseSelect('n-phase', false)+'</div>' + list() + segFar();
     if(free) h += '<div class="row new" data-subject="">'+phaseSelect('n-subject', S.move==='all')+'</div>';
-    if(pinned && S.pinStyle==='line') h += '<div class="subj new" data-subject=""><span>'+esc(p.name)+' — '+short(p.start)+'</span><span class="pinword">the phase you picked</span></div>';
+    if(pinned && S.pinStyle==='line') h += '<div class="subj new" data-subject=""><span>'+esc(p.name)+' — '+short(p.start)+'</span></div>';
     h += weeksRow() + (named ? '<div class="new">' + dateRow(true) + '</div>' : dateRow(false)) + '<p class="msg"></p>';
     return h;
   }

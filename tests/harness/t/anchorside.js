@@ -56,9 +56,13 @@
 //   A1      Phase & after to a date (Post starts on 11/16) = Phase & after by 2 weeks, snapshot for snapshot
 //   B6      Phase & before, Production "ends by": lands on or before the date; Post and Localization stay
 //   W1      Whole schedule is offered only for All phases to a date (every tick on and fixed), and leaving that
-//           choice drops it for Production
+//           choice drops it for Production; the phase row shows only as the pivot (Phase & before / after), the
+//           subject row (a mirror of the phase select) only under All phases / own ticks to a date, and the subject
+//           line (the pivot's name as text) only under Phase & before / after to a date (owner, 5 Nov 2026)
+//   J1      the subject row picks the landing phase: it writes into #tool-anchor-phase, the date prefills as a direct
+//           pick would, the list pins it, and Go lands it (All phases: the whole calendar slides a week)
 //   O2      reopened after a hand-picked set: back to All phases, By weeks, the list folded (ruling R2(a))
-//   I1      no choice button or tick carries an id, and every control is inside .tools-menu
+//   I1      no choice button, tick or subject select carries an id, and every control is inside .tools-menu
 //   S1      no new key in fields.byId, in any snapshot taken
 //   E0      0 console errors
 window.__T.memoryIDB();
@@ -89,6 +93,12 @@ window.addEventListener('load', function () { (async function () {
   async function undo(){ $('undo-btn').click(); await T.sleep(900); }
   function hiddenOf(sel){ var e = q(sel); return !e || e.hidden || getComputedStyle(e).display === 'none'; }
   function phaseOpts(){ return Array.prototype.map.call($('tool-anchor-phase').options, function (o) { return o.value; }); }
+  // The subject row's select (no id): its options, its value, and a pick made on it the way a user makes one.
+  function subj(){ return q('[data-shift-subject]'); }
+  function subjOpts(){ return Array.prototype.map.call(subj().options, function (o) { return o.value; }); }
+  function setSubj(v){ var s = subj(); s.value = v; s.dispatchEvent(new Event('change', {bubbles: true})); }
+  function subjLine(){ return ((q('[data-shift-subject-line]') || {}).textContent || '').replace(/\s+/g, ' ').trim(); }
+  function pickedText(){ var o = $('tool-anchor-phase').selectedOptions[0]; return (o ? o.textContent : '').replace(/\s+/g, ' ').trim(); }
   // Key-sorted, so two snapshots that hold the same state compare equal whatever order their maps were built in.
   function canon(o){
     if(Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
@@ -138,12 +148,13 @@ window.addEventListener('load', function () { (async function () {
     await openShift();
     var o1 = {open: MENU().classList.contains('open'), move: q('[data-move="all"]').getAttribute('aria-pressed'), far: q('[data-far="weeks"]').getAttribute('aria-pressed'),
               phaseRow: hiddenOf('[data-shift-phase-row]'), weeksRow: hiddenOf('[data-far-row="weeks"]'), dateRow: hiddenOf('[data-far-row="date"]'),
+              subjRow: hiddenOf('[data-shift-subject-row]'), subjLine: hiddenOf('[data-shift-subject-line]'),
               whole: phaseOpts().indexOf('__whole_schedule__') >= 0, label: txt('pop-shift-btn'), list: listShown(), link: linkShown(), hint: !!q('[data-shift-hint]'),
               width: Math.round(MENU().getBoundingClientRect().width), height: Math.round(MENU().getBoundingClientRect().height)};
-    add('O1', 'it opens on All phases, By weeks: no phase row, no date row, the list folded behind "Choose phases…", no Whole schedule; the button reads "Shift"',
-      o1.open && o1.move === 'true' && o1.far === 'true' && o1.phaseRow && !o1.weeksRow && o1.dateRow && !o1.whole && /^Shift\b/.test(o1.label) && !/All/.test(o1.label)
+    add('O1', 'it opens on All phases, By weeks: no phase row, no subject row or line, no date row, the list folded behind "Choose phases…", no Whole schedule; the button reads "Shift"',
+      o1.open && o1.move === 'true' && o1.far === 'true' && o1.phaseRow && o1.subjRow && o1.subjLine && !o1.weeksRow && o1.dateRow && !o1.whole && /^Shift\b/.test(o1.label) && !/All/.test(o1.label)
         && o1.width === 340 && !o1.list && o1.link && !o1.hint && o1.height < 260,
-      o1, 'all pressed, weeks pressed; phase row, date row and list hidden, the link shown; 340 px, under 260 tall');
+      o1, 'all pressed, weeks pressed; phase row, subject row and line, date row and list hidden, the link shown; 340 px, under 260 tall');
     q('[data-shift-choose]').click(); await T.sleep(150);
     add('L1', '"Choose phases…" opens the list: six rows, every one ticked and "Moves", "6 of 6 move", All phases still pressed, the link gone',
       listShown() && !linkShown() && count() === '6 of 6 move' && pressed() === 'all:true before:false after:false'
@@ -375,8 +386,12 @@ window.addEventListener('load', function () { (async function () {
     w.allWeeks = phaseOpts().indexOf('__whole_schedule__') >= 0;
     await choose('all', 'date');
     w.allDate = phaseOpts().indexOf('__whole_schedule__') >= 0;
+    // All phases to a date: the phase row is gone (no pivot); the subject row under How far holds the same options.
     w.allDateRow = hiddenOf('[data-shift-phase-row]');
+    w.allDateSubj = !hiddenOf('[data-shift-subject-row]') && hiddenOf('[data-shift-subject-line]');
+    w.subjOpts = subjOpts().join() === phaseOpts().join();
     T.set('tool-anchor-phase', '__whole_schedule__'); await T.sleep(150);
+    w.subjMirror = subj().value === '__whole_schedule__';
     // Under All phases the list stays folded (layout A), to a date too: open it to see the fixed ticks.
     w.wholeFolded = !listShown() && linkShown();
     q('[data-shift-choose]').click(); await T.sleep(150);
@@ -385,15 +400,45 @@ window.addEventListener('load', function () { (async function () {
     w.beforeDate = phaseOpts().indexOf('__whole_schedule__') >= 0;
     w.fellBackTo = val('tool-anchor-phase');
     w.prefill = val('tool-anchor-date');
+    // Phase & before to a date: the pivot row is back, the subject row gone, and the line repeats the pivot's option.
+    w.beforeRow = !hiddenOf('[data-shift-phase-row]') && hiddenOf('[data-shift-subject-row]') && !hiddenOf('[data-shift-subject-line]');
+    w.beforeLine = subjLine(); w.beforePicked = pickedText();
     await choose('after', 'weeks');
     w.afterWeeks = phaseOpts().indexOf('__whole_schedule__') >= 0;
+    w.afterWeeksRows = !hiddenOf('[data-shift-phase-row]') && hiddenOf('[data-shift-subject-row]') && hiddenOf('[data-shift-subject-line]');
     await choose('all');
-    w.allWeeksRow = hiddenOf('[data-shift-phase-row]');
+    w.allWeeksRow = hiddenOf('[data-shift-phase-row]') && hiddenOf('[data-shift-subject-row]') && hiddenOf('[data-shift-subject-line]');
     w.dateRowInWeeks = hiddenOf('[data-far-row="date"]');
-    add('W1', 'Whole schedule is in the list only for All phases to a date; leaving it puts Production back, with its own date',
-      !w.allWeeks && w.allDate && !w.allDateRow && w.wholeFolded && w.wholeFixed === 6 && w.wholeCount === '6 of 6 move' && !w.beforeDate && w.fellBackTo === 'production'
-        && w.prefill === '2026-06-29' && !w.afterWeeks && w.allWeeksRow && w.dateRowInWeeks,
-      w, 'only All phases + To a date offers it; Phase & before falls back to Production (6/29)');
+    add('W1', 'Whole schedule is in the list only for All phases to a date; leaving it puts Production back, with its own date; the phase row only as the pivot, the subject row only under All phases to a date, the subject line only under Phase & before / after to a date',
+      !w.allWeeks && w.allDate && w.allDateRow && w.allDateSubj && w.subjOpts && w.subjMirror && w.wholeFolded && w.wholeFixed === 6 && w.wholeCount === '6 of 6 move'
+        && !w.beforeDate && w.fellBackTo === 'production' && w.prefill === '2026-06-29' && w.beforeRow && w.beforeLine && w.beforeLine === w.beforePicked && /^Production — /.test(w.beforeLine)
+        && !w.afterWeeks && w.afterWeeksRows && w.allWeeksRow && w.dateRowInWeeks,
+      w, 'only All phases + To a date offers it; Phase & before falls back to Production (6/29), its line "Production — 6/29/26"; the rows as the owner\'s mockup');
+
+    // ---- J1: the subject row picks the landing phase, and Go through it lands the whole calendar ----
+    await choose('all', 'date');
+    T.set('tool-anchor-phase', 'production'); await T.sleep(150);
+    var j = {};
+    // The known-good path first: what a direct pick of Post prefills.
+    T.set('tool-anchor-phase', 'post'); await T.sleep(150); j.direct = val('tool-anchor-date');
+    T.set('tool-anchor-phase', 'production'); await T.sleep(150); j.back = val('tool-anchor-date');
+    // The subject path: the same pick, made on the row under How far.
+    setSubj('post'); await T.sleep(150);
+    j.mirrored = val('tool-anchor-phase'); j.prefill = val('tool-anchor-date');
+    q('[data-shift-choose]').click(); await T.sleep(150);
+    j.rows = moving(); j.count = count();
+    var jTarget = new Date(Date.UTC(+j.prefill.slice(0, 4), +j.prefill.slice(5, 7) - 1, +j.prefill.slice(8, 10)) + 7 * 864e5).toISOString().slice(0, 10);
+    T.set('tool-anchor-date', jTarget);
+    $('tool-anchor-go').click(); await settle();
+    var mJ = msg(), sJ = await take();
+    var stJ = startsOf(sJ), st0J = startsOf(s0);
+    j.allMovedAWeek = Object.keys(st0J).every(function (k) { return !st0J[k] || !stJ[k] || (Date.parse(stJ[k]) - Date.parse(st0J[k])) === 7 * 864e5; });
+    j.post = stJ.post; j.msg = mJ;
+    add('J1', 'the subject row picks the landing phase: #tool-anchor-phase follows, the date prefills as a direct pick does, the list pins Post, and Go slides the whole calendar a week',
+      j.direct && j.direct !== j.back && j.mirrored === 'post' && j.prefill === j.direct && j.rows.indexOf('Post On your date') >= 0 && j.count === '6 of 6 move'
+        && j.allMovedAWeek && stJ.post !== st0J.post && /Post starts /.test(mJ),
+      j, 'mirrored "post"; prefill = the direct pick\'s; "Post On your date"; every start + 7 days; "Post starts …"');
+    await undo(); await take();
 
     // ---- O2: reopened -> All phases, By weeks, folded, every phase ticked ----
     await choose('before', 'date');
@@ -411,12 +456,12 @@ window.addEventListener('load', function () { (async function () {
     closePops(); await T.sleep(150);
 
     // ---- I1: hygiene ----
-    var choiceIds = Array.prototype.filter.call(MENU().querySelectorAll('[data-move], [data-far], [data-shift-choose], [data-shift-list] *'), function (b) { return !!b.id; }).length;
+    var choiceIds = Array.prototype.filter.call(MENU().querySelectorAll('[data-move], [data-far], [data-shift-choose], [data-shift-subject], [data-shift-subject-line], [data-shift-list] *'), function (b) { return !!b.id; }).length;
     var controls = ['tool-anchor-phase', 'tool-anchor-edge', 'tool-anchor-date', 'tool-shift-weeks'];
     var outside = controls.filter(function (id) { return !$(id) || !$(id).closest('.tools-menu'); });
-    add('I1', 'no choice button, link or tick carries an id; every id\'d control sits inside .tools-menu; the retired popovers are gone',
-      choiceIds === 0 && outside.length === 0 && q('[data-move]') && !$('pop-ripple') && !$('pop-anchor') && !$('pop-ripple-btn') && !$('pop-anchor-btn') && !$('tool-ripple-phase'),
-      {choiceIds: choiceIds, outside: outside, retired: [!!$('pop-ripple'), !!$('pop-anchor'), !!$('tool-ripple-phase')]}, '0 ids; none outside; none retired left');
+    add('I1', 'no choice button, link, tick or subject select carries an id; every id\'d control sits inside .tools-menu; the retired popovers are gone',
+      choiceIds === 0 && outside.length === 0 && q('[data-move]') && !!subj() && !$('pop-ripple') && !$('pop-anchor') && !$('pop-ripple-btn') && !$('pop-anchor-btn') && !$('tool-ripple-phase'),
+      {choiceIds: choiceIds, outside: outside, subject: !!subj(), retired: [!!$('pop-ripple'), !!$('pop-anchor'), !!$('tool-ripple-phase')]}, '0 ids; none outside; the subject select present; none retired left');
 
     // ---- S1: the save format ----
     var keys0 = Object.keys(s0.fields.byId).sort().join();

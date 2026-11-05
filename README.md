@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Shift: the phase sits beside the date (5 Nov 2026)
+
+In the Shift box, **To a date** now names the phase that lands right above the date (owner, 5 Nov 2026, on a
+screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have
+to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then
+understand that it means 'Shoot' starts on <date>"*; mocked first in `mockups/shift-date-row.html`, then *"I like it"*):
+
+- **All phases, or your own ticks, to a date:** the phase select sits directly under *How far*, so the box reads
+  top to bottom, "Shoot — 4/20/26 · starts on 04/20/2026 · Go". The row above the list is gone in this case.
+- **Phase & before / after, to a date:** the phase stays up top, where it says which side moves, and a line under
+  *How far* repeats it as text (*"Production — 6/29/26"*), so the date row has its subject without a look back up.
+- **By weeks:** unchanged.
+
+Chrome only: the new select is a mirror of the one the form has always read (`#tool-anchor-phase`), filled from it and
+written back into it on change, and carries no id, so nothing reaches a saved file. No frozen code, no writer. Verified:
+`npm run check` 40/40; `anchorside` 30/30 (W1 reads the rows; new J1 picks the landing phase on the subject row, sees it
+mirrored, the date prefilled, the row pinned, and Go land it); the nine other Shift legs green.
+
 ### Unreleased — Shift: tick the phases that move (5 Nov 2026)
 
 Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if

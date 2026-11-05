@@ -302,6 +302,39 @@
   run that had not been reported).
 
 
+### ✅ 5 Nov 2026 (evening): SHIFT — THE PHASE BESIDE THE DATE UNDER TO A DATE — ✅ **BUILT on `shift-tool`, targeted legs green, NOT pushed** (owner, on a screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot' starts on **date selected**"*; *"Mock it up first"*; *"I like it but it doesn't need to say 'the phase you picked'"*). Worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`. Mockup [`mockups/shift-date-row.html`](mockups/shift-date-row.html) (today vs proposed, both live and mirrored; three ways to show the pinned phase, D2). Tracker card `shift-date-row-subject`
+
+**As built:**
+- **The rule:** the phase row above the list (`[data-shift-phase-row]`, `#tool-anchor-phase`) shows ONLY as the
+  PIVOT, i.e. for Phase & before / after. Under All phases or a hand-picked set, To a date, the phase that lands is
+  picked on a **subject row** directly under How far (`[data-shift-subject-row]` > `select[data-shift-subject]`, NO
+  id); under Phase & before / after a **subject line** (`p.tools-subject[data-shift-subject-line]`) repeats the
+  pivot's option as text ("Production — 6/29/26"). By weeks neither shows. (Before: the phase row showed for
+  before / after always, and for all / custom to a date, as the landing phase, two sections above the date.)
+- **One source of truth.** `#tool-anchor-phase` stays the select every reader asks (`anchorSelection`,
+  `shiftPlan`, `renderShiftList`, `shiftBy`, the Go handler, the legs' `T.set`). `syncShiftForm()` copies its
+  `innerHTML` and value into the mirror whenever the subject row is shown; the mirror's `change` writes its value
+  back and dispatches `change` on the original, whose own handler runs (`syncAnchorDate`, `syncShiftForm`), so the
+  date follows the phase and the list pins it exactly as a direct pick does. ⛔ Never read the mirror.
+- **Why a mirror and not a moved element.** React renders both rows; moving the one `<select>` between them in the
+  DOM would leave React's record of the tree wrong (a later removal throws), and a CSS `order` swap puts the tab
+  order out of step with the eye. Two elements, static markup, the engine chooses with `hidden`.
+- **`PreviewToolbar.jsx`:** the subject row and line between the How far buttons and the weeks row; the comments on
+  the phase row and the date row say so. **`legacy.css`:** `.tools-subject` (30 px, `font-size-sm`, 600, matching
+  the select it stands in for). **`app.js`:** `syncShiftForm()`'s row rule and the mirror; the subject's `change`
+  listener beside the fold's.
+- **Measured in the pane** (anchorside.sptcal): 261 px for All phases to a date (the select under How far), 471 px
+  for Phase & after to a date (the pivot, the list, the line, the date row).
+- **`anchorside` 30/30** (was 29): O1 both subject parts hidden on opening; W1 the rows in every state (the phase row
+  gone under All phases to a date, the mirror's options = the select's, Whole schedule mirrored, the line = the
+  pivot's option under Phase & before, nothing under by weeks); **J1** picks Post on the subject row: mirrored into
+  `#tool-anchor-phase`, the date prefilled as a direct pick prefills it, "Post On your date" pinned, Go slides every
+  start a week; I1 the mirror has no id. Plus `snaptools`, `overrides`, `calrange`, `rowheight`, `datepick`,
+  `rebuildticks`, `phasearrows`, `builtindates`, `customunits` green; `npm run check` 40/40. No full gate: chrome
+  only, no frozen code, no writer, no save format (the mirror has no id; S1 holds).
+- **Help** ("Adjusting dates") says the phase that lands sits right above the date. CLAUDE.md, PROJECT-CONTEXT
+  §7a, README, plan §7.5 and gate.sh's comment follow.
+
 ### ✅ 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — ✅ **LIVE at `c8eac00`** (owner's picker *"Push now"*; pushed from branch `shift-tool` `51d8fb6..c8eac00` at 09:46:28 UTC, a fast-forward carrying the overlap revert `1edc559`, plan §7 / §7.4, the tick list `f089108` and three merges of `origin/main`; the live `index.html` matched the re-checked build `27e1a018…` byte for byte at 09:48:29). ⚠️ Local `main` NOT moved (the main checkout holds another session's uncommitted edits); it fast-forwards to `shift-tool` once that session commits. RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
 
 **As built (5 Nov 2026):**

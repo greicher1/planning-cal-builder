@@ -31255,10 +31255,24 @@ export function initLegacyApp() {
       }
       shiftMenu.querySelectorAll('[data-move]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === shiftMove)));
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
-      // The phase row only when a phase matters: a shortcut that hinges on one, or the one that lands on the date.
-      // The user's own ticks by weeks need none, and neither does All phases.
+      // The phase row only as the PIVOT: Phase & before / after hinge on it. All phases and the user's own ticks
+      // need none by weeks, and to a date the phase that lands is picked on the SUBJECT row under How far instead
+      // (owner, 5 Nov 2026, mockups/shift-date-row.html: the phase sat two sections above the date it was the
+      // subject of). The subject select mirrors #tool-anchor-phase, which stays the one select every reader asks;
+      // under Phase & before / after the pivot is the phase that lands, and the subject line repeats its name.
+      const pivot = shiftMove === 'before' || shiftMove === 'after';
+      const toDate = shiftFar === 'date';
       const phaseRow = shiftMenu.querySelector('[data-shift-phase-row]');
-      if(phaseRow) phaseRow.hidden = (shiftMove === 'all' || shiftMove === 'custom') && shiftFar === 'weeks';
+      if(phaseRow) phaseRow.hidden = !pivot;
+      const subjRow = shiftMenu.querySelector('[data-shift-subject-row]');
+      const subj = shiftMenu.querySelector('[data-shift-subject]');
+      if(subjRow) subjRow.hidden = !(toDate && !pivot);
+      if(subj && sel && !subjRow.hidden){ subj.innerHTML = sel.innerHTML; subj.value = sel.value; }
+      const subjLine = shiftMenu.querySelector('[data-shift-subject-line]');
+      if(subjLine){
+        subjLine.hidden = !(toDate && pivot);
+        subjLine.textContent = subjLine.hidden ? '' : ((sel && sel.selectedOptions[0]) ? sel.selectedOptions[0].textContent : '');
+      }
       const listShown = shiftMove !== 'all' || shiftListOpen;
       const wrap = shiftMenu.querySelector('[data-shift-list-wrap]');
       if(wrap) wrap.hidden = !listShown;
@@ -31284,6 +31298,15 @@ export function initLegacyApp() {
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(shiftMove, b.dataset.far)));
       const link = shiftMenu.querySelector('[data-shift-choose]');
       if(link) link.addEventListener('click', ()=>{ shiftListOpen = true; syncShiftForm(); });
+      // The subject row's pick is written back into #tool-anchor-phase and goes through its own change handler
+      // (the date follows the phase, the list pins it), so the mirror never becomes a second source of truth.
+      const subj = shiftMenu.querySelector('[data-shift-subject]');
+      if(subj) subj.addEventListener('change', ()=>{
+        const sel = document.getElementById('tool-anchor-phase');
+        if(!sel || sel.value === subj.value) return;
+        sel.value = subj.value;
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+      });
       const listEl = shiftMenu.querySelector('[data-shift-list]');
       if(listEl) listEl.addEventListener('change', e=>{
         const box = e.target.closest('input[data-key]');
