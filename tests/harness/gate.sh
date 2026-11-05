@@ -1380,6 +1380,49 @@ sys.exit(bad)
 PYCR
 done
 
+# ---- layouthook: the layout study's `?layout=` hook (LAYOUT-STUDY-PLAN.md §6; owner ruling R6, 4 Nov 2026) ----
+# On localhost only, `?layout={"<phase>":<col>,…}` forces every waterfall phase's column, read in computeSchedule
+# where `col` is assigned (NOT frozen: the frozen layout takes `col` as data). Honoured only when EVERY waterfall
+# phase is named: a half map is ignored whole. Two runs on the colreuse fixture (Reuse on, four pairs sharing a
+# column, one hand move): a FULL map gives every phase its own slot and bypasses the reuse placement (no hand-move
+# note); a HALF map changes nothing, so the layout is the colreuse RESTORE run's. The inertness with no `?layout=`
+# at all is every other leg of this gate.
+LH_FULL='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12,"custom8":13}'
+LH_HALF='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12}'
+for LHRUN in full half; do
+  LHMAP="$LH_FULL"; [[ "$LHRUN" == half ]] && LHMAP="$LH_HALF"
+  rm -f "$HERE/layouthook.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse HARNESS_QUERY="hook=$LHRUN&layout=$LHMAP" "$HERE/run.sh" layouthook 120 >/dev/null 2>&1
+  python3 - "$HERE/layouthook.json" "layouthook ($LHRUN)" <<'PYLH' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+p=a.get('pairs') or {}
+if a.get('hook') == 'full':
+    chk(len(a.get('mapKeys') or [])==14 and a.get('phasesSeen')==a.get('mapKeys'), 'the full map names all 14 scheduled phases, and all 14 render')
+    chk(not a.get('sharedAnywhere') and not any(p.values()), 'with every phase in its own column, no two phases share a slot in any year')
+    chk(a.get('slotsPerYear')=={'2030':8,'2031':6,'2032':1}, f"slots per year follow the forced columns {a.get('slotsPerYear')}")
+    chk(a.get('noteText') is None, 'the reuse placement did not run: no hand-move note')
+else:
+    chk(len(a.get('mapKeys') or [])==13, 'the half map leaves one phase out')
+    chk(all(p.get(k) for k in ('c1wr','prodPrep','c5loc','c7c6')) and a.get('prodSlot2031')==0,
+        'it is ignored whole: the four pairs share a column and Production is slot 0 in 2031, as the colreuse RESTORE run has it')
+    chk(a.get('slotsPerYear')=={'2030':3,'2031':3,'2032':1}, f"the saved column counts {a.get('slotsPerYear')}")
+    chk(bool(a.get('noteText')) and 'Moved by hand' in a.get('noteText'), 'the hand-move note is there')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYLH
+done
+
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
 # ⛔ THE FORWARD-COMPATIBILITY HALF of moving rowHeights from row-index keys to week keys, and the
 # risky half: every calendar anyone has ever dragged a row in stores `rowHeights: {"<index>": px}`.

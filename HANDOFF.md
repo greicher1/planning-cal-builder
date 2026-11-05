@@ -43,9 +43,54 @@
 - **Verified:** scrub on five fixtures + one opened in the build; each transcription against its picture in the
   pane (hand-06 row by row); the hook in the pane (hand-06 forced to the picture's columns); panel C reproduces
   hand-06's picture including Post widening after Wrap; `npm run build` on the branch.
-- ⏭ **Next:** the owner goes through the page (15 seeds, ~50 questions). Then `LAYOUT-RULES.md` from the picks and
-  the build plan (placement v3 not frozen; F4/F6 are frozen span edits with the rule fixtures as the gate). Before
-  merge: leg `layouthook` (plan §6) and a full gate on the branch.
+- ✅ **Leg `layouthook`** (`tests/harness/t/layouthook.js`, a `gate.sh` section after colreuse): two runs on the
+  colreuse fixture through `HARNESS_QUERY` — a FULL map (all 14 phases, each its own column) gives 8/6/1 slots a
+  year, no sharing, no hand-move note; a HALF map (13) is ignored whole and the layout is the colreuse RESTORE
+  run's (3/3/1 slots, the four pairs sharing, Production slot 0, the note there). Green on the branch build, both
+  runs; `npm run check` 40/40. ⚠️ Uncommitted on the branch with its gate section (the owner was mid-study when
+  asked; ask again before committing).
+- ✅ **The owner went through the page (5 Nov 2026, in their own Chrome): 79 answers — "Yes, as pictured" on all
+  15 seeds and "Picture" on all 64 differences**, one note (hand-06: *"wrap weeks are related to production, so
+  they should go right underneath prod"*). The pictures are the specification. Page fixes along the way: "Yes, as
+  pictured" fills open differences as Picture; the Today button names its panel (A · Reuse off / B · Reuse on);
+  the cells a question is about are outlined orange and each grid scrolls to its first; a banner when all three
+  panels are identical (hand-04); PDF seeds shown; panels sized to the window with visible scrollbars and
+  `overscroll-behavior: contain`.
+- ✅ **[`LAYOUT-RULES.md`](LAYOUT-RULES.md) written from the picks:** R1–R7 placement (not frozen: start order,
+  take the continued column, Production LEFT when two columns hand off together — withdrawing Q2's "Production is
+  column 0" —, a wrap continues Production's column and Post takes the Sim Post lane, year-top order by the top
+  occupant's start date, Sim Post lane unchanged, Localization stacks under Post), R8–R10 width (frozen: a column
+  is taken from the week it is free for the REST of the run; lanes never widen in Single Column or under typed
+  headings; bands don't split a run). Two rulings asked: R-A Localization stacked vs beside (hand-07 is the one
+  picture beside), R-B lanes. §4 projects 100% on 14 seeds with v3 + R8; §5 lists the fixtures to cut.
+- ✅ **R-A and R-B ruled (5 Nov 2026, by picker, as recommended):** Localization stacks under Post; lanes never
+  widen in Single Column mode or under typed column headings. LAYOUT-RULES.md §3.
+- ✅ **The switch's fate RULED (owner, 5 Nov 2026: *"yes that way"*, plan ruling R5):** one rule, the Reuse Empty
+  Columns checkbox retired; `colReuse: true` (unchanged, PERMANENT) becomes the layout STAMP for columns and
+  widths; a file without it keeps the old layout byte for byte forever (the Off path stays as legacy code) and is
+  offered the update once by a strip, never changed silently. LAYOUT-RULES.md §4. Then the owner asked for *every
+  rule, very simply* → LAYOUT-RULES.md **§0**, nineteen rules in plain words (columns 1–10, widths 11–19).
+- ✅ **R-C ruled (5 Nov 2026, "Yes, general"):** rule 6 keys on length, not on a phase named Wrap — Post continues
+  the Sim Post lane; among same-week starters competing for one freed column the shorter takes it. Its fixture
+  must include a short custom phase that is not a wrap. Rule 13 was spelled out at the owner's ask (§0).
+- ✅ **"Anything missing?" (owner, 5 Nov 2026) → three more rulings by picker, as recommended:** R-D a phase sits
+  left of a running phase only when following on; R-E the left phase takes a spare column (no hole between two
+  phases); R-F lanes are Single Column only (typed headings never change widths — amends R-B). Also recorded: a
+  paused phase keeps its column; rule 6 covers any same-week competition for a free column. ⚠️ **Correction to
+  LAYOUT-RULES R5:** hand-03 and hand-08 DO need a column order that differs between years (the same two columns
+  swap sides), which a `col` value cannot express — so R5 is built through `stintOrderFor` (edit E0's seam, not
+  frozen) on stamped calendars, a behaviour change to sign off.
+- 📝 **New ask (owner, 5 Nov 2026): the IDEAL WIDTH of a column relative to its text, phase and Notes columns,
+  built into the algorithm.** Not placement: the frozen width model (Excel autofit + 1.15 chars at MDW 7, shared by
+  screen, workbook and PDF). Tracker card `ideal-column-widths` (requested); LAYOUT-RULES §4a says what today
+  does and that it is a width study of its own after the layout build, gated on the export baselines. Open: what
+  "ideal" means to the owner (tighter / looser / a floor / a Notes cap).
+- ⏭ **Next:** the build plan in three pieces, in order: (1) placement v3 (§0 rules 1–10) on the stamped path, not
+  frozen, gated by the §5 fixtures; (2) widths (rules 11–19) as ONE frozen edit to `computePhaseRowLayout` /
+  `phaseRunBounds` behind the same stamp, asked for with the fixtures as its measurement and every unstamped
+  baseline byte-identical; (3) the checkbox out, the "Update layout" strip in. Before merge of THIS branch: a full
+  gate. ⚠️ Uncommitted on the branch: LAYOUT-RULES.md, leg `layouthook` + its gate section, the page fixes, this
+  entry.
 
 ### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we

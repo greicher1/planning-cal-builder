@@ -138,6 +138,13 @@ http.createServer((q, r) => {
   const json = (o) => send(200, 'application/json', JSON.stringify(o));
   try {
     if (u.pathname === '/seeds') return json(seedIds());
+    if (u.pathname === '/pictures') {
+      const byHand = path.join(dir, 'by-hand');
+      const files = fs.existsSync(byHand) ? fs.readdirSync(byHand) : [];
+      const out = {};
+      for (const id of seedIds()) { const f = files.find(x => x.replace(/\.[^.]+$/, '') === id); if (f) out[id] = f; }
+      return json(out);
+    }
     if (u.pathname === '/specs.json') return send(200, 'application/json', fs.readFileSync(path.join(dir, 'specs.json')));
     if (u.pathname === '/picks') return json(readPicks());
     if (u.pathname === '/pick' && q.method === 'POST') {

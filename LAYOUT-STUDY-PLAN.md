@@ -311,8 +311,8 @@ pictures in **82.3%** of them with Reuse off and **71.6%** with it on; off is 10
 - **F7** — hand-05: Post, then Localization, continue in the Sim Post column with two free columns to their left.
 - Sim Post left of Production in hand-09's first year: not scored (SP1).
 
-Still to do on the branch before merge: leg `layouthook` (§6), a full gate, and the README entry is in. The
-`LAYOUT-RULES.md` of §3 waits for the picks.
+Leg `layouthook` (§6) is in `gate.sh` after colreuse and green on the branch (a full map forces every slot; a half
+map is ignored whole). Still to do before merge: a full gate. The `LAYOUT-RULES.md` of §3 waits for the picks.
 
 ## 11. Owner calls (R2, R3, R5, R6 ruled 4 Nov 2026, by picker, each as recommended)
 

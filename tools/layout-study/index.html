@@ -23,7 +23,7 @@
   .panel { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden }
   .panel .cap { padding:6px 10px; font-weight:600; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
   .panel .cap small { color:var(--mute); font-weight:400 }
-  .panel iframe { width:100%; height:760px; border:0; display:block; background:#fff }
+  .panel iframe { width:100%; height:max(520px, calc(100vh - 150px)); border:0; display:block; background:#fff }
   .pic { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:12px }
   .pic img { max-width:100%; display:block }
   .pic details summary { cursor:pointer; color:var(--mute) }
@@ -62,8 +62,9 @@
   const seeds = await (await fetch('/seeds')).json();
   const specs = await (await fetch('/specs.json')).json();
   let picks = await (await fetch('/picks')).json();
+  const pictures = await (await fetch('/pictures')).json();
   let cur = Math.max(0, seeds.indexOf(location.hash.slice(1)));
-  const picsOf = id => specs[id] && specs[id].image ? specs[id].image : id + '.png';
+  const picsOf = id => pictures[id] || (id + '.png');
 
   async function save(key, data) {
     picks[key] = Object.assign({ key }, data);
@@ -89,19 +90,31 @@
   }
 
   // Grid only: a style injected into the same-origin iframe pins #table-wrap over everything else.
-  // The app's own CSS is untouched; this is the study page's frame, not the product.
-  function gridOnly(iframe) {
+  // The app's own CSS is untouched; this is the study page's frame, not the product. `marks` are the
+  // cells a question is about ({pkey, week}): outlined, and the grid scrolled to the first of them.
+  function gridOnly(iframe, marks) {
+    let injected = false, scrolled = false;
     const tryInject = () => {
       try {
         const d = iframe.contentDocument;
         if (!d || !d.getElementById('table-wrap')) return false;
-        if (d.getElementById('study-style')) return true;
-        const s = d.createElement('style');
-        s.id = 'study-style';
-        s.textContent = '#table-wrap{position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:6px 8px}' +
-          '#table-wrap .sheet-scroll{max-height:none!important;overflow:visible!important}' +
-          '.mantine-Modal-root,[role=dialog]{display:none!important}';
-        d.head.appendChild(s);
+        if (!injected) {
+          const s = d.createElement('style');
+          s.id = 'study-style';
+          s.textContent = '#table-wrap{position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:scroll;overscroll-behavior:contain;padding:6px 8px}' +
+            '#table-wrap::-webkit-scrollbar{width:12px;height:12px}#table-wrap::-webkit-scrollbar-thumb{background:#b8b8c0;border-radius:6px;border:3px solid #fff}#table-wrap::-webkit-scrollbar-track{background:#f1f1f4}' +
+            '#table-wrap .sheet-scroll{max-height:none!important;overflow:visible!important}' +
+            '.mantine-Modal-root,[role=dialog]{display:none!important}' +
+            (marks || []).map(m => '#table-wrap td.sheet-phase-cell[data-pkey="' + m.pkey + '"][data-week="' + m.week + '"]{outline:3px solid #e8590c;outline-offset:-3px}').join('');
+          d.head.appendChild(s);
+          injected = true;
+        }
+        if (marks && marks.length && !scrolled) {
+          const first = marks.map(m => d.querySelector('#table-wrap td.sheet-phase-cell[data-pkey="' + m.pkey + '"][data-week="' + m.week + '"]')).find(Boolean);
+          if (!first) return false;   // the grid may still be drawing
+          first.scrollIntoView({ block: 'center' });
+          scrolled = true;
+        }
         return true;
       } catch (e) { return false; }
     };
@@ -109,14 +122,17 @@
     setTimeout(() => clearInterval(t), 15000);
   }
 
-  function panel(title, sub, url) {
+  const weeksOf = (from, to) => { const out = []; let d = new Date(from + 'T00:00:00Z'); const end = new Date(to + 'T00:00:00Z'); while (d <= end) { out.push(d.toISOString().slice(0, 10)); d = new Date(d.getTime() + 7 * 86400000); } return out; };
+  const marksFor = (qs, mode) => qs.filter(d => !mode || d.modes.includes(mode)).flatMap(d => weeksOf(d.from, d.to).map(week => ({ pkey: d.phase, week })));
+
+  function panel(title, sub, url, marks) {
     const div = document.createElement('div');
     div.className = 'panel';
     div.innerHTML = '<div class="cap">' + title + '<small>' + sub + '</small></div>';
     const f = document.createElement('iframe');
     f.src = url;
     div.appendChild(f);
-    gridOnly(f);
+    gridOnly(f, marks);
     return div;
   }
 
@@ -133,16 +149,20 @@
     const main = document.getElementById('main');
     main.innerHTML = '<h2>' + id + ' <small style="color:var(--mute);font-weight:400">' + (specs[id].source || '') + (specs[id].singleColumn ? ' · Single Column' : '') + '</small></h2>';
     const [cand, qs] = await Promise.all([(await fetch('/candidate?seed=' + id)).json(), (await fetch('/diffs?seed=' + id)).json()]);
+    if (!qs.length) main.insertAdjacentHTML('beforeend', '<div class="qs" style="margin-bottom:10px"><b>All three panels are identical:</b> today\'s layout already matches this picture, Reuse off or on. Nothing to decide here beyond the overall answer.</div>');
+    else main.insertAdjacentHTML('beforeend', '<p class="hint" style="margin:0 0 8px">The cells a question is about are <span style="color:#e8590c;font-weight:600">outlined in orange</span> in each panel, and each grid is scrolled to its first one.</p>');
     const panels = document.createElement('div');
     panels.className = 'panels';
-    panels.appendChild(panel('A · Today, Reuse off', 'the old placement', '/app?seed=' + id + '&reuse=off'));
-    panels.appendChild(panel('B · Today, Reuse on', 'the current rule', '/app?seed=' + id + '&reuse=on'));
-    panels.appendChild(panel('C · The picture', 'its own columns and widths', '/app?seed=' + id + '&reuse=off&layout=' + encodeURIComponent(JSON.stringify(cand.layout)) + '&spans=' + encodeURIComponent(JSON.stringify(cand.spans))));
+    panels.appendChild(panel('A · Today, Reuse off', 'the old placement', '/app?seed=' + id + '&reuse=off', marksFor(qs, 'off')));
+    panels.appendChild(panel('B · Today, Reuse on', 'the current rule', '/app?seed=' + id + '&reuse=on', marksFor(qs, 'on')));
+    panels.appendChild(panel('C · The picture', 'its own columns and widths', '/app?seed=' + id + '&reuse=off&layout=' + encodeURIComponent(JSON.stringify(cand.layout)) + '&spans=' + encodeURIComponent(JSON.stringify(cand.spans)), marksFor(qs)));
     main.appendChild(panels);
 
     const pic = document.createElement('div');
     pic.className = 'pic';
-    pic.innerHTML = '<details><summary>The picture itself (' + picsOf(id) + ')</summary><img src="/by-hand/' + picsOf(id) + '" alt=""></details>';
+    const pf = picsOf(id);
+    pic.innerHTML = '<details><summary>The picture itself (' + pf + ')</summary>' +
+      (/\.pdf$/i.test(pf) ? '<iframe src="/by-hand/' + pf + '" style="width:100%;height:720px;border:0"></iframe>' : '<img src="/by-hand/' + pf + '" alt="">') + '</details>';
     main.appendChild(pic);
 
     const box = document.createElement('div');
@@ -154,10 +174,10 @@
       const cur = picks[key] || {};
       const row = document.createElement('div');
       row.className = 'q';
-      row.innerHTML = '<div class="txt">' + human(d) + '<div class="mode">today = ' + d.modes.map(m => 'Reuse ' + m).join(' and ') + (d.modes.length === 1 ? ' (the other mode matches the picture here)' : '') + '</div></div>' +
+      row.innerHTML = '<div class="txt">' + human(d) + '<div class="mode">this is panel ' + d.modes.map(m => (m === 'on' ? 'B (Reuse on)' : 'A (Reuse off)')).join(' and ') + (d.modes.length === 1 ? ' · the other panel already matches the picture here' : ' · both panels agree') + '</div></div>' +
         '<div class="ans">' +
         '<button data-v="picture" class="' + (cur.pick === 'picture' ? 'sel pic' : '') + '">Picture</button>' +
-        '<button data-v="today" class="' + (cur.pick === 'today' ? 'sel' : '') + '">Today</button>' +
+        '<button data-v="today" class="' + (cur.pick === 'today' ? 'sel' : '') + '">Today (' + d.modes.map(m => (m === 'on' ? 'B' : 'A') + ' · Reuse ' + m).join(' = ') + ')</button>' +
         '<button data-v="either" class="' + (cur.pick === 'either' ? 'sel either' : '') + '">Either</button>' +
         '</div><div class="note"><input placeholder="why, if it helps (optional)" value="' + (cur.note || '').replace(/"/g, '&quot;') + '"></div>';
       row.querySelectorAll('.ans button').forEach(b => b.onclick = async () => {
@@ -171,7 +191,7 @@
     const sq = document.createElement('div');
     sq.className = 'seedq';
     const sp = picks[id + '#seed'] || {};
-    sq.innerHTML = '<span>Overall, is the picture how this calendar should look today?</span>' +
+    sq.innerHTML = '<span>Overall, is the picture how this calendar should look today? <small style="color:var(--mute)">("Yes" answers every open difference above as Picture)</small></span>' +
       '<button data-v="yes" class="' + (sp.pick === 'yes' ? 'sel' : '') + '">Yes, as pictured</button>' +
       '<button data-v="mostly" class="' + (sp.pick === 'mostly' ? 'sel' : '') + '">Mostly (see notes)</button>' +
       '<button data-v="no" class="' + (sp.pick === 'no' ? 'sel' : '') + '">No, I\'d lay it out differently</button>' +
@@ -180,6 +200,8 @@
       sq.querySelectorAll('button').forEach(x => x.className = '');
       b.className = 'sel';
       await save(id + '#seed', { seed: id, pick: b.dataset.v, note: sq.querySelector('input').value });
+      // "Yes, as pictured" answers every difference still open as Picture; the ones already answered stay.
+      if (b.dataset.v === 'yes') for (const row of box.querySelectorAll('.q')) if (!row.querySelector('.ans button.sel')) row.querySelector('.ans button[data-v=picture]').click();
     });
     sq.querySelector('input').onchange = async (e) => { if (picks[id + '#seed']) await save(id + '#seed', Object.assign({}, picks[id + '#seed'], { note: e.target.value })); };
     box.appendChild(sq);
