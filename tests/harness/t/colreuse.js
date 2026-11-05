@@ -106,6 +106,13 @@ window.addEventListener('load', function () { (async function () {
     async function loadText(text, name) {
       answer = setInterval(function () { T.clickModalButton(/^(Load|Discard|Don.t save)/); }, 50);
       await T.openViaFakePicker('/tests/fixtures/colreuse.sptcal', name, {text: text, writes: writes});
+      // ⚠️ Wait for the FILE MENU to name the file (5 Nov 2026). The cell count below is already true of the calendar
+      // on screen before the load, and settle() then saw that calendar sit still, so the strip was read before the
+      // Load path raised it (maybeShowLayoutNotice runs after an IndexedDB await, in the same block that names the
+      // file): `oldStripUp` false and `stripText` '' in 3 runs of 4 on the build-around branch's build (main's passed
+      // its 2). A race in the leg, whatever the build: nothing told it the new calendar had arrived.
+      var stem = name.replace(/\.sptcal$/, '');
+      await T.until(function () { return ((document.getElementById('file-menu-label') || {}).textContent || '').indexOf(stem) !== -1; }, name + ' in the file menu', 100, 100);
       await T.until(function () { return document.querySelectorAll('#table-wrap td.sheet-phase-cell').length > 20; }, name + ' to load', 100, 100);
       clearInterval(answer); answer = null;
       await settle(name);

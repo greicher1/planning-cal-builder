@@ -16,6 +16,51 @@
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
 
+### 🔨 5 Nov 2026: REBUILD FROM IS NOW **BUILD AROUND** — LENGTHS IN THE BOX, BOTH SIDES IN ONE RUN. BUILT on branch `build-around` (worktree `.claude/worktrees/build-around`, from `main` at `cf75104`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Gated; UNCOMMITTED, not merged, not pushed. Plan [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) (every ruling), mockup [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), tracker card `rebuild-from-lengths`.
+- **Why:** the owner asked whether Rebuild From is useful at all. Measured on the layout study's 15 seeds (plan §0): 46
+  of the 47 handoffs that don't involve Writer's Rm are back to back, no seed has a gap, and the room overlaps the next
+  phase in all 15 (3–45 wks, median 11). Checked in the built app on hand-16 (launch.json `seeds-main-8979` serves
+  main's `dist/` with any seed): the old defaults pulled the room 11 wks earlier on an untouched calendar, and **Close
+  all gaps pushed the whole shoot 11 wks**, because it chained Pre-Prep after the room.
+- **Rulings (owner, 5 Nov 2026):** keep it, Writer's Rm unticked by default; Close all gaps goes (*"plan it"*); layout
+  B (*"I like B"*); renamed **Build Around** (picker, from Build Around / Line Up / Back to Back / Chain Phases); R4
+  Production's length read-only in the box (*"production should be the one phase you aren't allow[ed] to edit/change
+  duration from the build around menu"*); the nothing-to-do button reads **No changes** (the first wording was
+  "clunky"); R2(a) typed lengths saved on Build, R3 "ends by" added (*"Yes, build it"*).
+- **As built (`src/legacy/app.js`, `src/chrome/PreviewToolbar.jsx`, `src/styles/legacy.css`):**
+  - `buildAround(key, iso, {edge, before, after, leaveBefore, leaveAfter, trial})` runs `workBackwardsFrom` then
+    `workForwardsFrom` from one pin under ONE `asShootDayMove` (nested, they defer). A side with nothing ticked is not
+    run. `afterBlocked` = the pin has no length to end it with (Production, Show info unset).
+  - `pinStartEndingBy` ("ends by"): Production by `solveProductionEndsStart` (to the day), Days/Dates by
+    `customStartEndingBy(day after)`, Weeks by `startForWeeksEndingAt(mondayOf(date + 3 days))` (the Monday after the
+    last Friday on or before the date; snap off: the day after). The same landmark as Shift's ends by.
+  - `trialBuild` (was `trialRebuild`) also writes the staged lengths into the fields for the trial and puts back
+    `weeks-` / `days-` with `start-` / `end-`. `saveTypedLengths` writes them for real with an `input` event (every
+    phase row binds that to `update()`), inside the tool's `asOneUndoStep`, before `buildAround`. `lengthFieldFor()`
+    never returns Production's (R4) or a Dates phase's field.
+  - The box: `solveDir` -1 / 0 / 1 (Before / Both / After, reset to Both on every opening), `solveTicks` the hand
+    overrides, `solveLens` the staged lengths; `solvePressed()` finds the shortcut the ticks match (none for your own
+    set). `solveDefaultOn()` excludes `writersRoom` and every custom phase. `solvablePhases()` lists every phase.
+    `fillPhaseSelect(…, bare)` drops the date suffix for this list. New id `tool-solve-edge` (inside `.tools-menu`).
+  - ⛔ `solveRow()` is SHARED with Shift's list (`renderShiftList`): the length cell is its 7th argument, passed only by
+    Build Around. The first cut put length boxes in Shift's rows too (5 `anchorside` reds); and the CSS grid with the
+    length column is scoped to `#pop-solve`.
+  - Removed: `closeAllGaps()`, `#tool-close-gaps`, the hint line, `trialRebuild`. Kept: `workBackwardsFrom` /
+    `workForwardsFrom` / `rebuildBackwards` / `rebuildForwards` unchanged; ids `pop-solve-btn`, `tool-solve-phase` /
+    `-date` / `-go` / `-back` (Before) / `-fwd` (After); new `tool-solve-both`.
+- **Proof:** new leg **`buildaround` 33/33** (gate.sh generic block, `buildaround:-:600`): a new calendar built in one
+  run from typed lengths (staged until Build, Post's length saved though it can't be placed, one undo takes back dates
+  and lengths), the fixture's defaults (WR unticked, Both, Production "80 days" read-only, no Close all gaps), both
+  sides in one run, the shortcuts, a typed length with the caret kept, "Save 1 length", closing forgets, ends by (Wed →
+  the Friday before), Show info unset ("Not set", the line, Can't place, "Production needs Show info"), no id in the
+  list, and **no box control in the saved state's `fields.byId`** (77 keys, none leaked). Updated: `rebuildticks` 19/19
+  (new defaults and words), `overrides` 20/20 (O4 now drives Build Around from the room, After, what Close all gaps
+  did: the same dates and marks), `snaptools` 14/14 (L15 reads "Tick a phase to build"), `lib.js` `rebuildAll()` ticks
+  one side only. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28,
+  `builtindates` 17 + 15. `npm run check` 40/40. A headless screenshot of the open box looked right (the pane could not
+  be used: five preview servers in this folder belong to other chats). **Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work:** `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; ⚠️ `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
+- `python3 tools/check-refs.py` reports 5 prose line numbers — the same 5 on `main`, not from this work.
+
 ### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ✅ **MERGED into local `main` as `9ca08ca`** (--no-ff, owner's picker *"Yes, merge into main"*, 5 Nov 2026), then **`origin/main` merged in as `0657ec6`** (39 commits: the phase arrows, hiatus ripple, the one Shift tool, the note editor, the month-drag carry; conflicts in HANDOFF and README only, both sides kept, layout entries first; app.js, Sidebar.jsx, index.html, legacy.css, gate.sh, settingswin.js auto-merged), and **v1.11.0 CUT** (owner's pickers *"Merge, targeted legs, then ask"*, *"Yes, cut v1.11.0"*): `APP_VERSION`, `version.json` AND `package.json` (⚠️ `npm run check` compares version.json with package.json, so a cut is THREE files now, not two), the 20 Unreleased changelog entries under one `## v1.11.0` heading, `tests/fixtures/v1.11.0-saved.sptcal` (a real Save, `t/mintfixture.js`), `releases/v1.11.0.html` = the checked build (`cmp`-identical, `e2960429…`). **On the merged 1.11.0 build: `npm run check` 40/40; a targeted run of gate.sh's sections (base→restore = gates 2 + 3, colreuse, layouthook, 17 generic legs incl. layoutrules ×6, anchorside, phasearrows, mvdragcarry, wfnoteeditor, simpostbeside, swapsplitreuse, colswappartial ×2, spancounts, prodspan, settingswin; hiatusripple; monthwriter = gate 13): 493 PASS / 0 FAIL in 5 min**, waterfall PDF and workbook identical, 0 clipped cells, the written month PDFs byte-identical. No full gate on the merge (the owner's pick). ✅ **LIVE at `7bfb40c` in v1.11.0** (owner's picker *"Push now"*; pushed `ca794cc..7bfb40c` plus tag `v1.11.0` at 21:11:26 UTC on 5 Nov 2026; the Pages deploy succeeded, and the live `index.html` matched the pushed build `e2960429…` byte for byte after ~30 s, `version.json` 1.11.0). Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). ⚠️ Before the merge the main checkout's uncommitted mirror copies of `LAYOUT-RULES.md`, `LAYOUT-STUDY-PLAN.md` and `tools/layout-study/` were removed (the branch's committed copies were newer supersets, diffed), and another session's stale untracked `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html` (4 lines each beyond origin's committed, as-built copies) were set aside in this session's scratchpad, as was its uncommitted HANDOFF hunk (the phase arrows "RULED: LAYOUT D" lines, superseded by origin's as-built entry). Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
 - **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns
   AND widths"; read only through `layoutStamped()`. A file without it keeps the placement and the widths it has today

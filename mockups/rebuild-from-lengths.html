@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Around Mockup</title>
+<!-- MOCKUP, not the app. Rebuild From redesigned (REBUILD-FROM-LENGTHS-PLAN.md). Owner, 5 Nov 2026: "plan it but keep
+     writers room, just maybe have it unchecked by default? Also similar to how we did with the shift tool, i want you to
+     really think hard about the optimal way to build the menu. How its laid out, what the buttons say/do. What if you
+     could enter number of weeks within the menu? ... make mockups".
+     Four tabs: Today (the live box, for comparison), A (today's layout plus lengths), B (one list, both sides:
+     recommended), C (the list is the whole form). Two made-up calendars: one in progress, shaped like the owner's own
+     (Writer's Rm runs into Pre-Prep, the rest back to back, a Wrap beside Post), and a new one with nothing entered.
+     The popover copies the live one (legacy.css .tools-menu-solve, 400 px; .solve-dir; .solve-list rows; src/theme.js
+     tokens). Dates are whole weeks; holidays, hiatuses and Production's day-by-day shoot are left out, so a shoot is
+     its days / 5 rounded up, and the arithmetic is simpler than the app's. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6; --amber:#B07800; --amber-bg:#FFF6DD;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 6px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 6px; align-items:center; }
+.tab{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-9); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--gray-0);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.cals{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 8px; font-size:12.5px; color:var(--gray-7); }
+.cals b{ font-weight:600; margin-right:4px; }
+.cal{ border:1px solid var(--gray-4); background:#fff; border-radius:var(--r-md); padding:3px 10px; font-size:12.5px; cursor:pointer; }
+.cal[aria-pressed="true"]{ border-color:var(--navy-6); background:var(--navy-0); font-weight:600; }
+.reset{ margin-left:auto; border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; }
+.tabnote{ margin:0 0 12px; font-size:12.5px; color:var(--gray-7); max-width:900px; }
+.info{ display:grid; grid-template-columns:1.1fr 1fr 1.2fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+
+/* ---------- A stand-in for the app's preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.frame-scroll{ overflow-x:auto; }
+.frame-inner{ min-width:900px; min-height:680px; padding:12px 14px 16px; position:relative; }
+.tb{ display:flex; align-items:center; gap:8px; }
+.seg-view{ display:inline-flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; height:32px; }
+.seg-view span{ font-size:12px; font-weight:500; padding:0 12px; display:inline-flex; align-items:center; border-radius:var(--r-sm); color:var(--gray-7); }
+.seg-view span.on{ background:#fff; box-shadow:var(--shadow-xs); color:var(--gray-9); }
+.split{ display:inline-flex; height:30px; border:1px solid var(--navy-6); border-radius:var(--r-md); background:#fff; overflow:hidden; }
+.split span{ font-size:12px; font-weight:500; padding:0 12px; display:flex; align-items:center; color:var(--navy-6); }
+.split span + span{ border-left:1px solid var(--navy-2); }
+.split .main{ font-weight:600; background:var(--navy-0); color:var(--navy-7); }
+.tbtn{ height:30px; display:inline-flex; align-items:center; gap:5px; padding:0 10px; border:1px solid var(--navy-6);
+       border-radius:var(--r-md); background:#fff; font-size:12px; font-weight:600; color:var(--navy-6); white-space:nowrap; }
+.tbtn.open{ background:var(--navy-0); }
+.tbtn .caret{ font-size:9px; }
+.tbtn.plain{ border-color:var(--gray-4); color:var(--gray-9); }
+.wrap{ position:relative; }
+.sheet{ margin-top:10px; height:640px; border:1px solid var(--gray-3); border-radius:6px; background:
+        repeating-linear-gradient(to bottom, #fff 0 19px, var(--gray-2) 19px 20px); opacity:.7; }
+
+/* ---------- The popover (legacy.css .tools-menu-solve: 400 px, lg radius, md shadow) ---------- */
+.pop{ position:absolute; top:calc(100% + 6px); left:0; width:400px; background:#fff; border:1px solid var(--gray-3);
+      border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:16px; z-index:5; text-align:left; }
+.head{ position:relative; margin:0 0 8px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+       display:flex; align-items:center; gap:6px; }
+.head .i{ display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid var(--gray-5); border-radius:50%;
+          font-size:8.5px; color:var(--gray-6); text-transform:none; letter-spacing:0; cursor:help; }
+.tip{ display:none; position:absolute; left:0; right:0; top:20px; background:var(--gray-9); color:#fff; font-size:11.5px;
+      line-height:1.45; padding:8px 10px; border-radius:var(--r-md); text-transform:none; letter-spacing:0; font-weight:400; z-index:6; }
+.head .i:hover + .tip, .head .i:focus + .tip{ display:block; }
+.cap{ margin:0 0 3px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+      display:flex; align-items:center; }
+.cap .count{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; }
+.row{ display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.unit{ font-size:11.5px; color:var(--gray-6); flex:none; }
+.ctl{ height:30px; border:1px solid var(--gray-3); border-radius:var(--r-md); background:#fff; font-size:12.5px; color:var(--gray-9);
+      padding:0 8px; }
+select.ctl{ flex:1; min-width:0; -webkit-appearance:none; appearance:none; padding-right:26px; cursor:pointer;
+  background:#fff url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 7px center/14px 14px; }
+select.ctl.edge{ flex:none; width:84px; }
+input.ctl[type=date]{ flex:none; width:128px; }
+input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
+/* The direction / side choice: .solve-dir. */
+.seg{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; margin:2px 0 10px; }
+.seg button{ flex:1; min-width:0; border:0; background:none; height:26px; border-radius:var(--r-sm); font-size:11.5px; font-weight:500;
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.seg button:hover{ color:var(--gray-9); }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+
+/* The list: .solve-list / .solve-row, plus a LENGTH column. */
+.list{ border:1px solid var(--gray-2); border-radius:var(--r-md); max-height:330px; overflow-y:auto; margin:0 0 10px; }
+.lrow{ display:grid; grid-template-columns:16px 8px minmax(0,1fr) 64px 52px 80px; align-items:center; column-gap:6px;
+       padding:4px 9px; min-height:31px; font-size:12px; line-height:1.4; border-top:1px solid var(--gray-1); margin:0; cursor:pointer; }
+.list.nolen .lrow{ grid-template-columns:16px 8px minmax(0,1fr) 52px 84px; }
+.list.haspin .lrow{ grid-template-columns:16px 8px minmax(0,1fr) 60px 50px 74px 18px; }
+.lrow:first-child{ border-top:0; }
+.lrow:hover{ background:var(--gray-0); }
+.lrow.colhead{ min-height:0; padding-top:5px; padding-bottom:3px; font-size:9.5px; letter-spacing:.05em; text-transform:uppercase;
+               font-weight:600; color:var(--gray-5); cursor:default; background:var(--gray-0); }
+.lrow.colhead:hover{ background:var(--gray-0); }
+.lrow input[type=checkbox]{ -webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0; border:1px solid var(--gray-4);
+             border-radius:4px; background:#fff; cursor:pointer; }
+.lrow input[type=checkbox]:checked{ background:var(--navy-6) url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E") no-repeat center/62% auto;
+                     border-color:var(--navy-6); }
+.lrow input[type=checkbox]:disabled{ cursor:default; opacity:.45; }
+.dot{ width:8px; height:8px; border-radius:2px; }
+.nm{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nm small{ color:var(--gray-5); font-size:10.5px; margin-left:3px; }
+.dt{ text-align:right; font-variant-numeric:tabular-nums; }
+.ch{ text-align:right; font-size:11px; color:var(--gray-6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lrow.off .nm, .lrow.off .dt{ color:var(--gray-6); }
+.lrow.moving .ch{ color:var(--navy-6); font-weight:500; }
+.lrow.nolen .ch{ color:var(--amber); }
+.lrow.pin{ background:var(--navy-0); cursor:default; }
+.lrow.pin .nm{ font-weight:600; }
+.lrow.pin .ch{ color:var(--navy-7); font-weight:500; }
+.pin-ic{ width:14px; height:14px; color:var(--navy-6); justify-self:center; display:grid; place-items:center; }
+.pin-ic svg{ width:13px; height:13px; }
+/* NEW: the length cell. A box you can type in, and its unit. */
+.len{ display:flex; align-items:center; gap:4px; justify-content:flex-end; }
+.len input{ width:34px; height:22px; border:1px solid var(--gray-3); border-radius:4px; background:#fff; text-align:right;
+            padding:0 5px; font-size:12px; font-variant-numeric:tabular-nums; color:var(--gray-9); }
+.len input:hover{ border-color:var(--gray-5); }
+.len input:focus{ outline:2px solid var(--navy-2); outline-offset:0; border-color:var(--navy-6); }
+.len input:placeholder-shown{ border-style:dashed; border-color:var(--amber); background:var(--amber-bg); }
+.len input.typed{ border-color:var(--navy-6); background:var(--navy-0); }
+.len span{ font-size:10.5px; color:var(--gray-6); width:20px; }
+.len .ro{ font-size:11.5px; color:var(--gray-7); white-space:nowrap; width:auto; }
+.len .ro.typed{ color:var(--navy-6); font-weight:600; }
+/* Production's length is READ-ONLY here (owner, 5 Nov 2026): it comes from Show info. */
+.len .ro.unset{ color:var(--amber); font-weight:600; }
+/* The line under the list when Production has no length yet. */
+.note{ margin:-2px 0 10px; font-size:11px; line-height:1.4; color:var(--amber); background:var(--amber-bg); border-radius:var(--r-md); padding:6px 9px; }
+/* C: the pinned row's own date line, inside the list. */
+.pinline{ display:flex; align-items:center; gap:6px; padding:0 9px 7px 39px; background:var(--navy-0); }
+.pinline select.ctl, .pinline input.ctl{ height:26px; font-size:12px; }
+.pinline .unit{ font-size:11px; }
+/* B and C: the pin that picks the phase, at the right end of every row (C only). */
+.pinbtn{ width:18px; height:18px; border:0; background:none; padding:0; cursor:pointer; color:var(--gray-4); display:grid; place-items:center; border-radius:4px; }
+.pinbtn svg{ width:13px; height:13px; }
+.pinbtn:hover{ color:var(--navy-6); background:var(--navy-0); }
+.lrow.pin .pinbtn{ color:var(--navy-6); }
+/* C: the side shortcuts as links in the list's header. */
+.cap .links{ margin-left:10px; display:inline-flex; gap:7px; text-transform:none; letter-spacing:0; font-weight:500; }
+.cap .links button{ border:0; background:none; padding:0; font-size:11px; color:var(--navy-6); cursor:pointer; }
+.cap .links button[aria-pressed="true"]{ font-weight:700; text-decoration:underline; text-underline-offset:2px; }
+.cap .links button:hover{ text-decoration:underline; }
+.cap .links i{ color:var(--gray-4); font-style:normal; }
+.hint{ margin:-2px 0 10px; font-size:10.5px; line-height:1.4; color:var(--gray-6); }
+.go{ width:100%; height:30px; border:0; border-radius:var(--r-md); background:var(--navy-6); color:#fff; font-size:12px; font-weight:600; cursor:pointer; }
+.go:hover:not(:disabled){ background:var(--navy-7); }
+.go:disabled{ background:var(--gray-2); color:var(--gray-6); cursor:default; }
+.div{ height:1px; background:var(--gray-2); margin:12px 0; }
+.wide{ width:100%; height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:600; cursor:pointer; }
+.wide:hover{ background:var(--gray-0); }
+.msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+.msg:empty{ display:none; }
+.msg.warn{ color:#C92A2A; }
+
+/* ---------- The explainer under the frame ---------- */
+.explain{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:14px; }
+.explain h2{ font-size:14px; margin:0 0 2px; }
+.explain .sub{ font-size:12.5px; color:var(--gray-6); margin:0 0 12px; }
+.tl-scroll{ overflow-x:auto; }
+.tl{ position:relative; min-width:760px; }
+.tl-months{ display:grid; margin-left:110px; font-size:10px; color:var(--gray-6); border-bottom:1px solid var(--gray-2); padding-bottom:3px; }
+.tl-row{ display:grid; grid-template-columns:110px 1fr; align-items:center; height:24px; }
+.tl-row .lbl2{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+.tl-row.pick .lbl2{ font-weight:600; }
+.tl-track{ position:relative; height:100%; }
+.bar{ position:absolute; top:5px; height:14px; border-radius:3px; font-size:9.5px; line-height:14px; padding:0 5px; white-space:nowrap; overflow:hidden; }
+.bar.was{ border:1.5px dashed var(--gray-5); background:transparent; }
+.legend{ display:flex; gap:16px; font-size:11.5px; color:var(--gray-6); margin-top:10px; flex-wrap:wrap; }
+.legend i{ display:inline-block; width:22px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Build Around (was Rebuild From): lengths in the box, both sides at once</h1>
+    <p><b>Ruled 5 Nov 2026: layout B, and the tool is renamed Build Around.</b> Production's length is read-only in the box. R2 (a) and R3 (yes) ruled too, and Build Around is built.</p>
+    <p>Rebuild From pins one phase to a date and lines the other phases up end to end around it, from their lengths. Today it can't place a phase until a length has been typed for it in the sidebar, and on a new calendar the box offers nothing at all. In A, B and C every row has a <b>length box</b>: type a number and the row ticks itself and shows where that phase would land. Nothing changes until you press <b>Build</b>, and one undo takes it all back, lengths included. (A and C carry the new name too, for comparison.)</p>
+    <p><b>Things to try:</b> on <i>New, Show info filled in</i>, pick a shoot date, then type a length for Pre-Prep, Prod Prep and Post. On <i>New, nothing entered</i>, see what the box says while Production has no length. On <i>In progress</i>, change Prod Prep from 9 to 11: with the shoot pinned, the prep starts two weeks earlier; pin Prod Prep instead and the shoot and Post are pushed two weeks. On <b>Today</b>, see what the live box does to Writer's Rm, and what <b>Close all gaps</b> does to the shoot. The calendars are made up.</p>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>The layouts</h3>
+      <ul>
+        <li><b>Today</b>: the live box, for comparison.</li>
+        <li><b>A</b>: today's layout plus the lengths. Still one side at a time: Work backwards, or Work forwards.</li>
+        <li><b>B</b>: <b>one list for both sides</b>, with the pinned phase in its place. <i>Before · Both · After</i> are shortcuts that tick a side, like Shift's. Opens on Both. Adds <i>ends by</i>.</li>
+        <li><b>C</b>: as B with no dropdown. The list is the whole form: a pin on each row picks the phase, and the pinned row carries its own date.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>In A, B and C</h3>
+      <ul>
+        <li><b>Writer's Rm starts unticked</b> (your call). Tick it and it is rebuilt like any other phase.</li>
+        <li><b>Close all gaps is gone.</b> It pushed the whole shoot on every one of your calendars.</li>
+        <li>Any phase can be pinned, with or without a length.</li>
+        <li>Typing a length ticks a row that had none.</li>
+        <li>Custom phases start unticked, as today.</li>
+        <li><b>Production's length can't be changed here</b> (your call): it shows Show info's shoot days, read-only.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your calls</h3>
+      <ul>
+        <li><b>R1, the layout</b>: <b>B</b> ✓ (ruled). <b>The name</b>: <b>Build Around</b> ✓ (ruled).</li>
+        <li><b>R2, typed lengths</b>: ✓ ruled: saved when you press Build.</li>
+        <li><b>R3, <i>ends by</i></b>: ✓ ruled: added.</li>
+        <li><b>R4, Production</b>: ✓ ruled. Its length is read-only here; set it in Show info.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="false" data-opt="T"><span class="n">Now</span>Today</button>
+    <button class="tab" role="tab" aria-selected="false" data-opt="A"><span class="n">A</span>Today's layout, plus lengths</button>
+    <button class="tab" role="tab" aria-selected="true" data-opt="B"><span class="n">B</span>One list, both sides ✓</button>
+    <button class="tab" role="tab" aria-selected="false" data-opt="C"><span class="n">C</span>The list is the form</button>
+  </div>
+  <div class="cals">
+    <b>Calendar:</b>
+    <button class="cal" type="button" data-cal="progress" aria-pressed="true">In progress</button>
+    <button class="cal" type="button" data-cal="new" aria-pressed="false">New, Show info filled in</button>
+    <button class="cal" type="button" data-cal="bare" aria-pressed="false">New, nothing entered</button>
+    <button class="reset" id="reset" type="button">Reset the calendar</button>
+  </div>
+  <p class="tabnote" id="tabnote"></p>
+
+  <div class="frame"><div class="frame-scroll"><div class="frame-inner">
+    <div class="tb" id="tb"></div>
+    <div class="sheet" aria-hidden="true"></div>
+  </div></div></div>
+
+  <div class="explain">
+    <h2 id="tlhead">What pressing the button would do</h2>
+    <p class="sub" id="tlsub">Explanation only, not part of the design. It updates as you change the box.</p>
+    <div class="tl-scroll"><div class="tl" id="tl"></div></div>
+    <div class="legend">
+      <span><i style="border:1.5px dashed #A5A197"></i>Where it is now</span>
+      <span><i style="background:#2C3E50;opacity:.25"></i>Where it would go</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DAY = 86400000, WEEK = 7 * DAY;
+  const d = s => new Date(s + 'T00:00:00Z');
+  const fmt = t => (t.getUTCMonth() + 1) + '/' + t.getUTCDate() + '/' + String(t.getUTCFullYear()).slice(2);
+  const iso = t => t.toISOString().slice(0, 10);
+  const addW = (t, w) => new Date(t.getTime() + w * WEEK);
+  const addD = (t, n) => new Date(t.getTime() + n * DAY);
+  const monday = t => addD(t, -((t.getUTCDay() + 6) % 7));
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const $ = id => document.getElementById(id);
+  const CHAIN = ['writersRoom', 'prePrep', 'prodPrep', 'production', 'post', 'localization'];
+  const LOOK = {
+    writersRoom:  ["Writer's Rm",  '#FFF2CC', '#7A6215'],
+    prePrep:      ['Pre-Prep',     '#DAE3F3', '#203864'],
+    prodPrep:     ['Prod Prep',    '#D6DCE5', '#222A35'],
+    production:   ['Production',   '#E2F0D9', '#375623'],
+    post:         ['Post',         '#FBE5D6', '#8A4A1F'],
+    localization: ['Localization', '#EDEDED', '#525252'],
+    custom1:      ['Wrap',         '#E4DFEC', '#4B3B6B'],
+  };
+  // Three made-up calendars. IN PROGRESS has the shape of the owner's own: Writer's Rm runs ten weeks into Pre-Prep,
+  // the rest of the chain is back to back, a Wrap runs beside the first weeks of Post, and Localization has no length
+  // yet. NEW has Show info filled in (so Production has its length) and nothing else. BARE has nothing at all, to show
+  // what the box says while Production's length is missing: it can't be typed here (owner, 5 Nov 2026).
+  const CALS = {
+    progress: {
+      show: {season: '1', eps: '15', per: '5'},
+      phases: [
+        ['writersRoom', 20, '2027-01-11'], ['prePrep', 3, '2027-03-22'], ['prodPrep', 9, '2027-04-12'],
+        ['production', null, '2027-06-14'], ['post', 22, '2027-09-27'], ['localization', null, null],
+        ['custom1', 3, '2027-09-27'],
+      ],
+    },
+    new: {
+      show: {season: '1', eps: '15', per: '5'},
+      phases: [
+        ['writersRoom', null, null], ['prePrep', null, null], ['prodPrep', null, null],
+        ['production', null, null], ['post', null, null], ['localization', null, null],
+      ],
+    },
+    bare: {
+      show: {season: '', eps: '', per: ''},
+      phases: [
+        ['writersRoom', null, null], ['prePrep', null, null], ['prodPrep', null, null],
+        ['production', null, null], ['post', null, null], ['localization', null, null],
+      ],
+    },
+  };
+  const TABNOTE = {
+    T: 'Today, as live. The phase list offers only phases that already have a length, so a new calendar offers nothing. Writer’s Rm is ticked, so working back from the shoot pulls the room to end where Pre-Prep starts. Close all gaps chains every phase after the one before it, so it pushes Pre-Prep past the room, and the shoot with it.',
+    A: 'A: today’s layout, with a length box on every row, Writer’s Rm unticked, every phase in the dropdown and Close all gaps gone. Still one side at a time: building a new calendar around the shoot is two runs, Work backwards then Work forwards.',
+    B: 'B (chosen, 5 Nov 2026): one list for both sides, in the order the phases run, with the pinned phase in its place. Before · Both · After tick a side in one click, as Shift’s shortcuts do. It opens on Both, so a new calendar is one run. The first row reads as a sentence: Production starts 6/14/27, or ends by a date.',
+    C: 'C: as B with no dropdown. Every row has a pin at its right end; the pinned row carries its own date line. One control fewer and the phase is named once. Costs: two click targets on a row (the tick, the pin), a seventh column that squeezes the names, and Shift picks its phase with a dropdown.',
+  };
+  const TIP = {
+    T: 'Doesn’t move the calendar — rebuilds it. Your date stays put, and the ticked phases on one side are recalculated from their lengths to run with no gaps — including any that aren’t dated yet. Unticked phases stay where they are. Use Shift if the plan should keep its current spacing.',
+    X: 'Pin one phase to a date and build the others around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the spacing between them.',
+  };
+  const PIN = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.8 1.5 14.5 6.2l-1.4 1.4-.7-.7-2.5 2.5.4 3.1-1.4 1.4L6.1 11 2.9 14.2 1.8 13.1 5 9.9 2.1 7.1l1.4-1.4 3.1.4 2.5-2.5-.7-.7z"/></svg>';
+
+  // ---- State. The calendar (phases, show) changes only when Rebuild or Close all gaps is pressed. Everything else is
+  //      the box's own and is forgotten when it reopens (a tab or calendar switch reopens it). ----
+  let cal = 'progress', opt = 'B', phases, show;
+  let pick, edge, date, dir, side, ticks, typed, lastMsg, lastWarn, handTicked;
+  function loadCal(){
+    const c = CALS[cal];
+    show = {...c.show};
+    phases = c.phases.map(([key, weeks, start]) => ({key, name: LOOK[key][0], fill: LOOK[key][1], ink: LOOK[key][2],
+      custom: CHAIN.indexOf(key) < 0, weeks, start: start ? d(start) : null}));
+    reopen();
+  }
+  function reopen(){
+    edge = 'start'; dir = -1; side = 'both'; typed = {}; lastMsg = ''; lastWarn = false;
+    handTicked = false;
+    const offered = pickable();
+    pick = offered.some(p => p.key === 'production') ? 'production' : (offered[0] ? offered[0].key : '');
+    date = pick && byKey(pick).start ? iso(byKey(pick).start) : '';
+    ticks = defaultTicks();
+  }
+  const T = () => opt === 'T';
+  const byKey = k => phases.find(p => p.key === k);
+
+  // ---- Lengths. A typed length (staged) wins over the calendar's own until Rebuild saves it. ----
+  const showDone = s => !!(s.season && +s.eps > 0 && +s.per > 0);
+  // Production's length is Show info's, never typed in the box (owner, 5 Nov 2026).
+  function prodDays(){ return showDone(show) ? (+show.eps) * (+show.per) : null; }
+  function len(p, useTyped){
+    if(useTyped === undefined) useTyped = !T();
+    if(p.key === 'production'){ const n = prodDays(); return n ? Math.ceil(n / 5) : null; }
+    const v = useTyped && (p.key in typed) ? typed[p.key] : p.weeks;
+    return v > 0 ? v : null;
+  }
+
+  // ---- The run order (phaseSequence): the built-ins in chain order, a custom phase slotted in before the first
+  //      phase that starts later than it, an undated custom phase last. ----
+  function seq(){
+    const s = CHAIN.map(byKey).filter(Boolean);
+    phases.filter(p => p.custom).forEach(p => {
+      if(!p.start){ s.push(p); return; }
+      let at = s.length;
+      for(let i = 0; i < s.length; i++){ if(s[i].start && s[i].start > p.start){ at = i; break; } }
+      s.splice(at, 0, p);
+    });
+    return s;
+  }
+  const pickable = () => T() ? seq().filter(p => len(p, false)) : seq();
+  function sideOf(k){
+    const s = seq(), a = s.findIndex(p => p.key === pick), b = s.findIndex(p => p.key === k);
+    return b === a ? 'pin' : (b < a ? 'before' : 'after');
+  }
+  // The side the box is working on: one side in Today and A (the direction), the chosen side in B and C.
+  const curSide = () => (T() || opt === 'A') ? (dir < 0 ? 'before' : 'after') : side;
+  const inSide = (k, s) => s === 'both' ? sideOf(k) !== 'pin' : sideOf(k) === s;
+  // The starting ticks: every built-in phase with a length; never a custom phase. Writer's Rm too, Today; not in the
+  // new layouts (owner, 5 Nov 2026).
+  function defaultTicks(s){
+    s = s || curSide();
+    return new Set(seq().filter(p => p.key !== pick && !p.custom && len(p) && (T() || p.key !== 'writersRoom') && inSide(p.key, s)).map(p => p.key));
+  }
+  const sameSet = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+  function matchSide(){
+    // The side last chosen wins a tie (on an empty calendar every shortcut ticks the same empty set).
+    if(side !== 'custom' && sameSet(ticks, defaultTicks(side))) return side;
+    for(const s of ['before', 'both', 'after']) if(sameSet(ticks, defaultTicks(s))) return s;
+    return 'custom';
+  }
+  const ticked = p => ticks.has(p.key) && !!len(p) && inSide(p.key, (T() || opt === 'A') ? curSide() : 'both');
+
+  // ---- The rebuild, worked out (the app runs its real solvers: trialRebuild). ----
+  function plan(){
+    const out = {starts: {}, cant: new Set(), pinStart: null, err: ''};
+    const pin = byKey(pick); if(!pin) return out;
+    const target = date ? d(date) : null;
+    if(!target) return out;
+    const pinLen = len(pin);
+    if(edge === 'end' && !pinLen){ out.err = pin.name + (pin.key === 'production' ? '\u2019s length is set in Show info.' : ' needs a length to end by a date.'); return out; }
+    out.pinStart = edge === 'start' ? monday(target) : addW(monday(target), -(pinLen - 1));
+    const s = seq(), at = s.findIndex(p => p.key === pick);
+    let cursor = out.pinStart;
+    s.slice(0, at).reverse().forEach(p => {
+      if(!ticked(p)) return;
+      const st = addW(cursor, -len(p)); out.starts[p.key] = st; cursor = st;
+    });
+    cursor = pinLen ? addW(out.pinStart, pinLen) : null;
+    s.slice(at + 1).forEach(p => {
+      if(!ticked(p)) return;
+      if(!cursor){ out.cant.add(p.key); return; }
+      out.starts[p.key] = cursor; cursor = addW(cursor, len(p));
+    });
+    return out;
+  }
+  function words(from, to){
+    if(!to) return '';
+    if(!from) return 'New';
+    const w = Math.round((monday(to) - monday(from)) / WEEK);
+    if(!w) return 'No change';
+    return (w > 0 ? 'Pushed ' : 'Pulled ') + Math.abs(w) + (Math.abs(w) === 1 ? ' wk' : ' wks');
+  }
+
+  // ---- The box ----
+  function head(){
+    return '<p class="head">' + (T() ? 'Rebuild from a date' : 'Build around a phase') + ' <span class="i" tabindex="0">i</span><span class="tip">' + (T() ? TIP.T : TIP.X) + '</span></p>';
+  }
+  function phaseSelect(){
+    const list = pickable();
+    if(!list.length) return '<select class="ctl" data-ctl="phase" aria-label="Phase"><option>No phases scheduled yet</option></select>';
+    return '<select class="ctl" data-ctl="phase" aria-label="Phase">' + list.map(p =>
+      // B names the phase alone: its date is in the date box beside it, and in the list.
+      '<option value="' + p.key + '"' + (p.key === pick ? ' selected' : '') + '>' + esc(p.name) + (p.start && opt !== 'B' ? ' — ' + fmt(p.start) : '') + '</option>').join('') + '</select>';
+  }
+  const dateInput = cls => '<input class="ctl' + (cls || '') + '" type="date" data-ctl="date" data-f="date" value="' + date + '" aria-label="Date">';
+  const edgeSelect = () => '<select class="ctl edge" data-ctl="edge" aria-label="Its start or its end"><option value="start"' + (edge === 'start' ? ' selected' : '') + '>starts</option><option value="end"' + (edge === 'end' ? ' selected' : '') + '>ends by</option></select>';
+  function seg(attr, label, items, cur){
+    return '<div class="seg" role="group" aria-label="' + label + '">' + items.map(([v, t]) =>
+      '<button type="button" data-' + attr + '="' + v + '" aria-pressed="' + (String(v) === String(cur)) + '">' + t + '</button>').join('') + '</div>';
+  }
+  function lenCell(p){
+    if(T()) return '';
+    if(p.key === 'production'){
+      const n = prodDays();
+      // Read-only (owner, 5 Nov 2026: "production should be the one phase you aren't allow[ed] to edit/change duration
+      // from the build around menu"). Its length is Show info's episodes x days; change it there.
+      return n ? '<span class="len"><span class="ro" title="From Show info: ' + show.eps + ' episodes \u00d7 ' + show.per + ' days. Change it in Show info.">' + n + ' days</span></span>'
+        : '<span class="len"><span class="ro unset" title="Production\u2019s length comes from Show info: episodes \u00d7 shooting days.">Not set</span></span>';
+    }
+    const v = (p.key in typed) ? typed[p.key] : (p.weeks || '');
+    return '<span class="len"><input type="text" inputmode="numeric" data-len="' + p.key + '" data-f="len-' + p.key + '" value="' + (v || '') + '" placeholder=" "' + ((p.key in typed) ? ' class="typed"' : '') + ' aria-label="' + esc(p.name) + ' length in weeks"><span>wks</span></span>';
+  }
+  function rowsHtml(){
+    const pl = plan(), s = seq(), hasPin = opt === 'C';
+    const one = T() || opt === 'A';
+    const show1 = p => !one || sideOf(p.key) === 'pin' || sideOf(p.key) === curSide();
+    let h = '';
+    if(!T()) h += '<div class="lrow colhead"><span></span><span></span><span>Phase</span><span style="text-align:right">Length</span><span style="text-align:right">Starts</span><span></span>' + (hasPin ? '<span></span>' : '') + '</div>';
+    if(!pick){ return h + '<div class="lrow" style="cursor:default"><span></span><span></span><span class="nm" style="color:var(--gray-6)">Pick a phase to work from.</span></div>'; }
+    s.forEach(p => {
+      if(!show1(p)) return;
+      const now = p.start, L = len(p);
+      const pinBtn = hasPin ? '<button type="button" class="pinbtn" data-pin="' + p.key + '" title="' + (p.key === pick ? 'The phase you pinned. It starts on your date.' : 'Pin ' + esc(p.name) + ' to a date') + '" aria-pressed="' + (p.key === pick) + '">' + PIN + '</button>' : '';
+      let cls, lead, dt, ch;
+      if(p.key === pick){
+        cls = ' pin'; lead = '<span class="pin-ic" title="The phase you pinned">' + PIN + '</span>';
+        dt = pl.pinStart || now; ch = pl.err ? 'Needs a length' : (pl.pinStart ? words(now, pl.pinStart) : '');
+      } else if(!L){
+        cls = ' off nolen'; lead = '<input type="checkbox" disabled aria-label="' + esc(p.name) + ' has no length">';
+        dt = now; ch = 'No length';
+      } else {
+        const on = ticked(p);
+        lead = '<input type="checkbox" data-tick="' + p.key + '"' + (on ? ' checked' : '') + ' aria-label="' + (T() ? 'Rebuild ' : 'Build ') + esc(p.name) + '">';
+        if(!on){ cls = ' off'; dt = now; ch = now ? 'Stays' : 'Not dated'; }
+        else if(pl.cant.has(p.key)){ cls = ''; dt = now; ch = 'Can’t place'; }
+        else if(pl.starts[p.key]){ dt = pl.starts[p.key]; ch = words(now, dt); cls = ch === 'No change' ? '' : ' moving'; }
+        else { cls = ''; dt = now; ch = ''; }
+      }
+      const title = p.key === pick ? 'The phase you pinned. It ' + (edge === 'end' ? 'ends by' : 'starts on') + ' your date.'
+        : (!L ? (T() ? 'Give it a length first, and Rebuild can place it.' : 'Type a length to place it.') :(pl.cant.has(p.key) ? (pick === 'production' ? 'Production\u2019s length is set in Show info. Set it there, and the phases after it can be placed.' : byKey(pick).name + ' needs a length before the phases after it can be placed.') : ''));
+      // A ticked row is a <label>, so a click on its name toggles the tick. The pinned row has no tick, and as a label
+      // it would hand a click on its name to its first labelable child (the length box, or Production's Set button).
+      const tag = p.key === pick ? 'div' : 'label';
+      h += '<' + tag + ' class="lrow' + cls + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + lead
+        + '<span class="dot" style="background:' + p.fill + ';box-shadow:inset 0 0 0 1px ' + p.ink + '55"></span>'
+        + '<span class="nm">' + esc(p.name) + '</span>'
+        + (T() ? '' : lenCell(p))
+        + '<span class="dt">' + (dt ? fmt(dt) : '—') + '</span>'
+        + '<span class="ch">' + esc(ch) + '</span>' + pinBtn + '</' + tag + '>';
+      if(p.key === pick && opt === 'C') h += '<div class="pinline">' + edgeSelect() + dateInput() + '</div>';
+    });
+    return h;
+  }
+  function counts(){
+    const s = seq().filter(p => p.key !== pick && (T() || opt === 'A' ? sideOf(p.key) === curSide() : true));
+    const can = s.filter(p => len(p)).length, n = s.filter(ticked).length;
+    return {n, can, text: can ? n + ' of ' + can + ' ticked' : ''};
+  }
+  function goState(){
+    const pl = plan(), c = counts(), nTyped = Object.keys(typed).length;
+    const verb = T() ? 'rebuild' : 'build';
+    if(!pick) return {label: 'Nothing to ' + verb, off: true};
+    if(!date) return {label: 'Pick a date', off: true};
+    if(pl.err) return {label: pick === 'production' ? 'Production needs Show info' : 'Give ' + byKey(pick).name + ' a length', off: true};
+    const placed = Object.keys(pl.starts).length;
+    if(!c.n && !nTyped) return {label: c.can ? 'Tick a phase to ' + verb : 'Nothing to ' + verb, off: true};
+    const pin = byKey(pick);
+    const moves = Object.entries(pl.starts).some(([k, st]) => !byKey(k).start || monday(byKey(k).start).getTime() !== st.getTime())
+      || !pin.start || monday(pin.start).getTime() !== pl.pinStart.getTime();
+    // The live box has no such state: it offers "Rebuild N phases" either way.
+    // Every row already says "No change"; the button just sums it up (owner, 5 Nov 2026: the long wording was clunky).
+    if(!moves && !nTyped && !T()) return {label: 'No changes', off: true};
+    if(!placed && nTyped) return {label: 'Save ' + nTyped + (nTyped === 1 ? ' length' : ' lengths'), off: false};
+    return {label: (T() ? 'Rebuild ' : 'Build ') + placed + ' phase' + (placed === 1 ? '' : 's'), off: !placed};
+  }
+  function popHtml(){
+    let h = head();
+    const c = counts(), g = goState();
+    if(opt === 'T' || opt === 'A'){
+      h += '<div class="row">' + phaseSelect() + '<span class="unit">starts</span>' + dateInput() + '</div>';
+      h += seg('dir', 'Which side to rebuild', [[-1, '← Work backwards'], [1, 'Work forwards →']], dir);
+      h += '<p class="cap">' + (T() ? 'Phases to rebuild' : 'Phases to build') + '<span class="count" id="count">' + c.text + '</span></p>';
+      h += '<div class="list' + (T() ? ' nolen' : '') + '" id="list">' + rowsHtml() + '</div>';
+      h += '<p class="hint">Ticked phases are rebuilt end to end ' + (dir < 0 ? 'back from' : 'on from') + ' your date. Unticked phases stay where they are.</p>';
+    } else if(opt === 'B'){
+      h += '<div class="row">' + phaseSelect() + edgeSelect() + dateInput() + '</div>';
+      h += '<p class="cap">Phases to build<span class="count" id="count">' + c.text + '</span></p>';
+      h += seg('side', 'Which phases to build', [['before', '← Before'], ['both', 'Both'], ['after', 'After →']], matchSide());
+      h += '<div class="list" id="list">' + rowsHtml() + '</div>';
+    } else {
+      const m = matchSide();
+      h += '<p class="cap">Build<span class="links">' + [['before', 'Before'], ['both', 'Both'], ['after', 'After']].map(([v, t], i) => (i ? '<i>·</i>' : '')
+        + '<button type="button" data-side="' + v + '" aria-pressed="' + (v === m) + '">' + t + '</button>').join('') + '</span><span class="count" id="count">' + c.text + '</span></p>';
+      h += '<div class="list haspin" id="list">' + rowsHtml() + '</div>';
+    }
+    // Production's length can't be typed here, so while it is missing the box says where it is set.
+    if(!T() && byKey('production') && !prodDays()) h += '<p class="note">Production\u2019s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>';
+    h += '<button type="button" class="go" data-act="go" id="go"' + (g.off ? ' disabled' : '') + '>' + esc(g.label) + '</button>';
+    h += '<p class="msg' + (lastWarn ? ' warn' : '') + '" id="msg">' + esc(lastMsg) + '</p>';
+    if(T()) h += '<div class="div"></div><button type="button" class="wide" data-act="gaps">Close all gaps between phases</button>';
+    return h;
+  }
+  // Re-draw the box, keeping the caret where it was (a length box, a Show info box or the date).
+  function renderAll(){
+    const a = document.activeElement, f = a && a.dataset ? a.dataset.f : null;
+    const caret = f && a.type === 'text' ? a.selectionStart : null;
+    const segView = '<div class="seg-view"><span class="on">Waterfall</span><span>Month</span></div>';
+    $('tb').innerHTML = segView + '<div class="split"><span>← 1 wk</span><span class="main">Shift ▾</span><span>1 wk →</span></div>'
+      + '<div class="wrap"><span class="tbtn open">' + (T() ? 'Rebuild From' : 'Build Around') + ' <span class="caret">▾</span></span>'
+      + '<div class="pop" id="pop" role="dialog" aria-label="' + (T() ? 'Rebuild from a date' : 'Build around a phase') + '">' + popHtml() + '</div></div>'
+      + '<span class="tbtn plain">Side Boxes <span class="caret">▾</span></span>';
+    if(f){
+      const el = $('tb').querySelector('[data-f="' + f + '"]');
+      if(el){ el.focus(); if(caret !== null && el.setSelectionRange) el.setSelectionRange(caret, caret); }
+    }
+    $('tabnote').textContent = TABNOTE[opt] + '  (This box: ' + Math.round($('pop').getBoundingClientRect().height) + ' px tall.)';
+    timeline();
+  }
+
+  function timeline(){
+    const pl = plan(), s = seq();
+    const spans = [];
+    s.forEach(p => {
+      const L = len(p), Lnow = len(p, false);
+      const to = p.key === pick ? pl.pinStart : (ticked(p) ? pl.starts[p.key] : null);
+      if(p.start && Lnow) spans.push(p.start, addW(p.start, Lnow));
+      if(to && L) spans.push(to, addW(to, L));
+    });
+    if(!spans.length){ $('tl').innerHTML = '<p class="sub" style="margin:0">Nothing is dated yet. Pick a date and give the phases lengths.</p>'; return; }
+    const lo = new Date(Math.min(...spans.map(Number))), hi = new Date(Math.max(...spans.map(Number)));
+    const t0 = new Date(Date.UTC(lo.getUTCFullYear(), lo.getUTCMonth(), 1));
+    const t1 = new Date(Date.UTC(hi.getUTCFullYear(), hi.getUTCMonth() + 1, 1));
+    const span = t1 - t0, pct = t => (t - t0) / span * 100;
+    const months = [];
+    for(let m = t0; m < t1; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1)))
+      months.push(m.toLocaleString('en-US', {month: 'short', timeZone: 'UTC'}) + (m.getUTCMonth() === 0 || !months.length ? ' ' + String(m.getUTCFullYear()).slice(2) : ''));
+    let h = '<div class="tl-months" style="grid-template-columns:repeat(' + months.length + ',1fr)">' + months.map(x => '<span>' + x + '</span>').join('') + '</div>';
+    s.forEach(p => {
+      const L = len(p), Lnow = len(p, false);
+      const to = p.key === pick ? pl.pinStart : (ticked(p) ? pl.starts[p.key] : null);
+      const moving = to && (!p.start || to.getTime() !== monday(p.start).getTime() || L !== Lnow);
+      let bars = '';
+      if(moving && p.start && Lnow) bars += '<span class="bar was" style="left:' + pct(p.start) + '%;width:' + (pct(addW(p.start, Lnow)) - pct(p.start)) + '%"></span>';
+      const at = moving ? to : p.start, w = moving ? L : Lnow;
+      if(at && w) bars += '<span class="bar" style="left:' + pct(at) + '%;width:' + (pct(addW(at, w)) - pct(at)) + '%;background:' + p.fill +
+        ';color:' + p.ink + ';box-shadow:inset 0 0 0 1px ' + p.ink + '55">' + (moving ? esc(words(p.start, to) || 'New') : '') + '</span>';
+      h += '<div class="tl-row' + (p.key === pick ? ' pick' : '') + '"><span class="lbl2">' + esc(p.name) + '</span><div class="tl-track">' + bars + '</div></div>';
+    });
+    $('tl').innerHTML = h;
+  }
+
+  // ---- The actions ----
+  function rebuild(){
+    const pl = plan();
+    if(!pl.pinStart) return;
+    const pin = byKey(pick);
+    Object.keys(typed).forEach(k => { byKey(k).weeks = typed[k]; });
+    const nLen = Object.keys(typed).length;
+    const placed = Object.entries(pl.starts), fresh = placed.filter(([k]) => !byKey(k).start).length;
+    let far = null;
+    placed.forEach(([k, st]) => { const p = byKey(k); if(!far || st > far.st) far = {p, st}; p.start = st; });
+    const pinWasBlank = !pin.start;
+    pin.start = pl.pinStart;
+    typed = {};
+    lastMsg = pin.name + (edge === 'end' ? ' ends by ' + fmt(d(date)) : ' starts ' + fmt(pl.pinStart)) + '. '
+      + placed.length + ' phase' + (placed.length === 1 ? '' : 's') + ' built around it'
+      + (nLen ? ', ' + nLen + ' length' + (nLen === 1 ? '' : 's') + ' saved' : '') + '.'
+      + (far ? ' ' + far.p.name + ' starts ' + fmt(far.st) + '.' : '') + ' One undo takes it all back.';
+    if(T()) lastMsg = (dir < 0 ? 'Worked back from ' : 'Worked forward from ') + pin.name + ' — ' + (far ? far.p.name + ' starts ' + fmt(far.st) + '. ' : '') + placed.length + ' phases placed.';
+    lastWarn = false;
+    ticks = new Set([...ticks].filter(k => len(byKey(k))));
+  }
+  // Today only: closeAllGaps(), as live. Every DATED built-in after the first starts the day the one before it ends.
+  function closeGaps(){
+    let prev = null, moved = 0;
+    CHAIN.map(byKey).forEach(p => {
+      if(!p || !p.start) return;
+      const L = len(p, false);
+      if(prev){ const st = addW(prev.start, len(prev, false)); if(st.getTime() !== p.start.getTime()){ p.start = st; moved++; } }
+      if(L) prev = p;
+    });
+    lastMsg = moved ? 'Chained ' + moved + ' phases back to back.' : 'No gaps to close.';
+    lastWarn = false;
+    date = pick && byKey(pick).start ? iso(byKey(pick).start) : date;
+  }
+
+  // ---- Wiring (delegated: the box is redrawn on every change) ----
+  const tb = $('tb');
+  tb.addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b || !tb.contains(b)) return;
+    if(b.dataset.pin){
+      e.preventDefault();
+      pick = b.dataset.pin; date = byKey(pick).start ? iso(byKey(pick).start) : date;
+      if(!handTicked) ticks = defaultTicks(side === 'custom' ? 'both' : side);
+      lastMsg = ''; return renderAll();
+    }
+    if(b.dataset.dir){ dir = +b.dataset.dir; ticks = defaultTicks(); lastMsg = ''; return renderAll(); }
+    if(b.dataset.side){ e.preventDefault(); side = b.dataset.side; ticks = defaultTicks(side); handTicked = false; lastMsg = ''; return renderAll(); }
+    if(b.dataset.act === 'go'){ rebuild(); return renderAll(); }
+    if(b.dataset.act === 'gaps'){ closeGaps(); return renderAll(); }
+  });
+  tb.addEventListener('change', e => {
+    const c = e.target.dataset;
+    if(c.tick){
+      if(e.target.checked) ticks.add(c.tick); else ticks.delete(c.tick);
+      handTicked = true; lastMsg = ''; return renderAll();
+    }
+    if(c.ctl === 'phase'){
+      pick = e.target.value; date = byKey(pick).start ? iso(byKey(pick).start) : date;
+      ticks = defaultTicks((T() || opt === 'A') ? curSide() : (matchSide() === 'custom' ? 'both' : side));
+      lastMsg = ''; return renderAll();
+    }
+    if(c.ctl === 'edge'){ edge = e.target.value; lastMsg = ''; return renderAll(); }
+  });
+  tb.addEventListener('input', e => {
+    const c = e.target.dataset;
+    if(c.ctl === 'date'){ date = e.target.value; lastMsg = ''; return renderAll(); }
+    if(c.len){
+      const p = byKey(c.len), raw = e.target.value.replace(/[^0-9]/g, '');
+      const had = !!len(p);
+      const v = raw === '' ? null : Math.min(99, +raw);
+      if(v === p.weeks || (v === null && p.weeks === null)) delete typed[c.len]; else typed[c.len] = v;
+      // Typing a length into a row that had none ticks it: you are clearly placing that phase.
+      if(!had && len(p) && p.key !== pick) ticks.add(p.key);
+      lastMsg = ''; return renderAll();
+    }
+  });
+
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', String(x === t)));
+    opt = t.dataset.opt; reopen(); renderAll();
+  }));
+  document.querySelectorAll('.cal').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.cal').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    cal = b.dataset.cal; loadCal(); renderAll();
+  }));
+  $('reset').addEventListener('click', () => { loadCal(); renderAll(); });
+
+  loadCal();
+  renderAll();
+})();
+</script>
+</body>
+</html>

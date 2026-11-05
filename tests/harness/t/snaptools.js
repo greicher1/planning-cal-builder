@@ -110,9 +110,11 @@ window.addEventListener('load', function () { (async function () {
     var rows15 = Array.prototype.map.call(document.querySelectorAll('#pop-solve .solve-row'), function (r) { return (r.textContent || '').replace(/\s+/g, ' ').trim(); });
     go15.click();
     await settle();
-    add('L15', 'Rebuild with nothing to place can\'t be pressed, says why, and moves nothing',
-      val('start-post') === '2026-11-02' && go15.disabled && /nothing to rebuild/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
-      {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Nothing to rebuild" disabled, a "No length" row');
+    // ⚠️ Build Around (5 Nov 2026): one list holds both sides, so with After pressed the phases BEFORE Post could still be
+    // ticked, and the button says "Tick a phase to build" rather than "Nothing to rebuild". It still can't be pressed.
+    add('L15', 'Build Around with nothing to place can\'t be pressed, says why, and moves nothing',
+      val('start-post') === '2026-11-02' && go15.disabled && /tick a phase to build/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
+      {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Tick a phase to build" disabled, a "No length" row');
 
     // L-14 -- a note on the week of 7/6, Shift All +1 wk: it lands on the Summer Break week.
     closePops(); await T.sleep(150);

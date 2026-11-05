@@ -1,5 +1,6 @@
 // The preview toolbar: the view toggle, the Shift split control, the two adjustment popovers (Shift
-// and Rebuild From; Shift From and Anchor To folded into Shift on 4 Nov 2026) and undo/redo.
+// and Build Around, which was Rebuild From until 5 Nov 2026; Shift From and Anchor To folded into Shift on 4 Nov
+// 2026) and undo/redo.
 //
 // ⚠️ READ THIS BEFORE REACHING FOR A MANTINE COMPONENT HERE. This surface is different in kind from
 // the header, and the difference decides the whole design.
@@ -139,7 +140,7 @@ export function PreviewToolbar() {
             <p className="tools-head">
               Shift
               <InfoHint label="Shift" width={300}>
-                Moves phases by a number of weeks or to a date. Choose whether all phases move, or one phase and the ones after it or before it, or tick the phases yourself. Gaps are kept; use Rebuild From to close them.
+                Moves phases by a number of weeks or to a date. Choose whether all phases move, or one phase and the ones after it or before it, or tick the phases yourself. Gaps are kept; use Build Around to close them.
               </InfoHint>
             </p>
             <p className="tools-cap">What moves</p>
@@ -189,47 +190,54 @@ export function PreviewToolbar() {
         </div>
 
         <div className="tools-wrap">
+          {/* BUILD AROUND (Rebuild From until 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B, the name by the
+              owner's picker). ⛔ The ids keep the old names (pop-solve-*, tool-solve-*), as Load kept
+              data-action="open": the engine and the legs reach these controls by id, and only what a user reads
+              changed. Twelve characters, as "Rebuild From" was, so the toolbar wraps no sooner. */}
           <Button className="tools-btn" id="pop-solve-btn" type="button" size="xs" variant="default"
-                  title="Rebuild the phases on one side of a fixed date" aria-haspopup="true" aria-expanded="false"
-                  rightSection={<span className="caret" aria-hidden="true">▾</span>}>Rebuild From</Button>
-          {/* The widest panel (400px, the owner's mockup): the phase list gives each row a tick, a
-              colour, the name, a date and "Pushed 3 wks", and the name column is what gives way. */}
-          <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Rebuild from a date">
+                  title="Pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
+                  rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
+          {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
+              3 wks", and only the name gives way. */}
+          <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Build around a phase">
             <p className="tools-head">
-              Rebuild from a date
-              <InfoHint label="Rebuild from a date" width={300}>
-                Doesn’t move the calendar — rebuilds it. Your date stays put, and the ticked phases on one side are recalculated from their lengths to run with no gaps — including any that aren’t dated yet. Unticked phases stay where they are. Use Shift if the plan should keep its current spacing.
+              Build around a phase
+              <InfoHint label="Build around a phase" width={300}>
+                Pin one phase to a date and build the others around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the spacing between them.
               </InfoHint>
             </p>
+            {/* The first row reads as a sentence: [Production ▾] [starts ▾] [6/14/2027]. The phase list names the
+                phase alone (its date is in the box beside it). "ends by" is ruling R3: the pin's last workday on
+                or before the date. ⛔ No children on the phase select: fillPhaseSelect() owns its innerHTML. The
+                edge's option VALUES are read directly ('start' / 'end'). */}
             <div className="tools-row">
-              <select id="tool-solve-phase" aria-label="Phase to work from"></select>
-              <span className="tools-unit">starts</span>
-              <input type="date" id="tool-solve-date" className="tools-date-fixed" aria-label="Date that phase should start on" />
+              <select id="tool-solve-phase" aria-label="Phase to build around"></select>
+              <select id="tool-solve-edge" className="tools-edge tools-edge-solve" aria-label="Its start or its end" defaultValue="start">
+                <option value="start">starts</option>
+                <option value="end">ends by</option>
+              </select>
+              <input type="date" id="tool-solve-date" className="tools-date-fixed" aria-label="Date" />
             </div>
-            {/* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html).
-                The two directions used to ACT on one click; now they CHOOSE the side, and the list
-                under them says which phases will move and where each one lands before anything does.
-                Plain <button>s with aria-pressed, which the engine sets: Mantine's SegmentedControl
-                is a set of radio inputs with generated ids (see the head of this file). The list, its
-                count, its hint and the Go button's label are all written by the engine, so none of
-                them has children here. The ticks it writes carry no id, and they sit inside
-                .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
-            <div className="solve-dir" role="group" aria-label="Which side to rebuild">
-              <button type="button" id="tool-solve-back" data-dir="-1">← Work backwards</button>
-              <button type="button" id="tool-solve-fwd" data-dir="1">Work forwards →</button>
-            </div>
+            {/* Shortcuts that fill in the ticks, as Shift's three buttons do: Before ticks the default set on the
+                pin's earlier side, After its later side, Both both. A tick changed by hand leaves none pressed.
+                tool-solve-back / tool-solve-fwd are the old direction buttons' ids, kept so the legs that click
+                them still pick one side. Plain <button>s with aria-pressed, which the engine sets. The list, its
+                count, the note and the button's label are all written by the engine, so none has children here;
+                the ticks and the length boxes it writes carry no id, inside .tools-menu besides, so
+                collectFieldValues() can never sweep them into a saved file. */}
             <p className="tools-head">
-              Phases to rebuild<span className="solve-count" data-solve-count=""></span>
+              Phases to build<span className="solve-count" data-solve-count=""></span>
             </p>
+            <div className="solve-dir" role="group" aria-label="Which phases to build">
+              <button type="button" id="tool-solve-back" data-dir="-1">← Before</button>
+              <button type="button" id="tool-solve-both" data-dir="0">Both</button>
+              <button type="button" id="tool-solve-fwd" data-dir="1">After →</button>
+            </div>
             <div className="solve-list" data-solve-list=""></div>
-            <p className="tools-hint solve-hint" data-solve-hint=""></p>
+            {/* Production's length is read-only here (ruling R4); while Show info leaves it unset, this says where. */}
+            <p className="solve-note" data-solve-note="" hidden>Production’s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>
             <button type="button" className="solve-go" id="tool-solve-go"></button>
             <p className="tools-msg" data-tools-msg=""></p>
-            {/* Folded in here rather than given its own button: it IS Work-forwards from the first
-                phase at whatever date it already sits on. It does not read the ticks (owner's mockup:
-                left as it was). */}
-            <div className="tools-div"></div>
-            <Button className="tools-wide" id="tool-close-gaps" type="button" size="xs" variant="default" fullWidth>Close all gaps between phases</Button>
           </div>
         </div>
 

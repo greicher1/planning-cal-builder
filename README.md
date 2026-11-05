@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
+
+The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured
+on the layout study's 15 real calendars: 46 of the 47 handoffs that don't involve the Writer's Room are back to back,
+none has a gap, and the room overlaps the next phase on every one. So the tool stays, redesigned
+([`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md), layout B of
+[`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), every ruling the owner's):
+
+- **Renamed Build Around** (owner's picker). The toolbar button reads `Build Around ▾`, the box "Build around a phase".
+- **Type a length in the box.** Every row has a length box; type a number and the row ticks itself and shows where
+  the phase would land. Nothing changes until you press Build, which saves the lengths with the dates as one undo
+  step (ruling R2). This was the owner's ask: until now a phase couldn't be placed until its weeks were typed in the
+  sidebar, and on a new calendar the box offered nothing at all ("No phases scheduled yet").
+- **Production's length can't be changed here** (owner): it shows Show info's shoot days, or "Not set" with a line
+  saying to set it in Show info. The phases before the shoot still build; the ones after it wait.
+- **One list for both sides.** Every phase in the order it runs, the pinned phase in its place. `← Before · Both ·
+  After →` tick a side in one click, as Shift's buttons do, and it opens on Both, so building a calendar around the
+  shoot is one run instead of two.
+- **Pin a phase by its end** ("ends by", ruling R3): its last workday on or before the date, as Shift's "ends by".
+- **Writer's Rm starts unticked** (owner). Tick it and it is built like any other phase.
+- **Close all gaps is gone.** It started Pre-Prep when the room ended, so it pushed the whole shoot 3 to 45 weeks on
+  every one of those 15 calendars while closing no gap. Build Around from the first phase, After, does its job.
+- When nothing would move, the button reads **No changes**.
+
+Nothing new is saved in a calendar file: the ticks, the side and the typed lengths are the box's own, and a saved
+length is the phase's own field. The ids stay `pop-solve-*` / `tool-solve-*` (the legs and the engine reach them).
+
+Verified: new leg `buildaround` 33/33 (a new calendar built in one run from typed lengths, staged until Build and taken back by one undo; both sides in one run; the shortcuts; ends by; Production unset; "Save 1 length"; no box control in the saved state). Updated and green: `rebuildticks` 19/19, `overrides` 20/20 (its Close all gaps case now drives Build Around and lands on the same dates and day marks), `snaptools` 14/14. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15. `npm run check` 40/40. Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work: `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
+
 ### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
 
 Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never

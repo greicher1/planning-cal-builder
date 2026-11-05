@@ -1845,6 +1845,35 @@
   .solve-go:hover:not(:disabled){background:var(--mantine-color-navy-7);}
   .solve-go:disabled{background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-6); cursor:default;}
   .solve-go:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;}
+  /* BUILD AROUND (REBUILD-FROM-LENGTHS-PLAN.md, layout B, 5 Nov 2026). Its rows gain a LENGTH column, so they get their
+     own grid; Shift's list (renderShiftList) shares .solve-row and keeps the five columns above. The phase select gives
+     way to the "starts / ends by" picker beside it, which is narrower than Shift's. */
+  #pop-solve .solve-row{grid-template-columns:16px 8px minmax(0,1fr) 62px 52px 78px; gap:6px; padding:4px 9px; min-height:31px;}
+  #pop-solve [hidden]{display:none;}
+  .tools-menu .tools-edge-solve{width:84px;}
+  /* The column heading row: says the boxes are lengths. */
+  #pop-solve .solve-row.solve-colhead{min-height:0; padding-top:5px; padding-bottom:3px; cursor:default;
+    background:var(--mantine-color-gray-0); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase;
+    font-weight:600; color:var(--mantine-color-gray-5);}
+  .solve-colr{text-align:right;}
+  /* A length: a small box and its unit. An empty box is dashed amber, so the rows that still need a length stand out;
+     a typed one not saved yet is tinted navy until Build saves it. Out-specifies the app's input[type=text] look. */
+  .solve-len{display:flex; align-items:center; justify-content:flex-end; gap:4px;}
+  #pop-solve input.solve-len-in{width:34px; height:22px; padding:0 5px; text-align:right; font-size:12px;
+    font-variant-numeric:tabular-nums; border:1px solid var(--mantine-color-gray-3); border-radius:4px; flex:none;}
+  #pop-solve input.solve-len-in:hover{border-color:var(--mantine-color-gray-5);}
+  #pop-solve input.solve-len-in:focus{border-color:var(--mantine-primary-color-filled); outline:2px solid var(--mantine-color-navy-1); outline-offset:0;}
+  #pop-solve input.solve-len-in:placeholder-shown{border-style:dashed; border-color:var(--mantine-color-warn-5); background:var(--mantine-color-warn-0);}
+  #pop-solve input.solve-len-in.is-staged{border-color:var(--mantine-color-navy-6); background:var(--mantine-color-navy-0);}
+  .solve-len-u{font-size:10.5px; color:var(--mantine-color-gray-6); width:22px;}
+  /* Production's length, read-only here (ruling R4): Show info's shoot days, or "Not set". A Dates phase's too. */
+  .solve-len-ro{font-size:11.5px; color:var(--mantine-color-gray-7); white-space:nowrap;}
+  .solve-len-ro.is-unset{color:var(--mantine-color-warn-9); font-weight:600;}
+  .solve-row.is-nolen .solve-ch{color:var(--mantine-color-warn-9);}
+  .solve-ch{overflow:hidden; text-overflow:ellipsis;}
+  .solve-note{margin:-2px 0 var(--mantine-spacing-md); padding:6px 9px; border-radius:var(--mantine-radius-md);
+    font-size:11px; line-height:1.4; color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
+    border:1px solid var(--mantine-color-warn-2);}
 
   /* The tool popovers' pop-out picker (SelectPop.jsx, round 5): the loader dropdown's look over
      the native selects. It is portaled INSIDE .tools-menu — the component says why — and

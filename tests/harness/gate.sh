@@ -1929,7 +1929,12 @@ done
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
-# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id. Updated 5 Nov 2026
+# for Build Around (one list for both sides, Writer's Rm unticked, "Build N phases", opens on Both).
+# buildaround (owner, 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B) is Rebuild From renamed Build Around: a new
+# calendar built in one run from lengths typed in the box (staged, saved on Build, one undo with the dates); both sides
+# in one run; the Before / After shortcuts; "ends by"; Production's length read-only ("Not set" + the Show info line);
+# "Save 1 length"; closing forgets; no Close all gaps; no id in the list.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
 # replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
 # date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
@@ -2076,6 +2081,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
+              buildaround:-:600 \
               anchorside:anchorside:400 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \

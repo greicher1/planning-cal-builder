@@ -75,9 +75,20 @@ window.__T = (function(){
   // ticks, so a leg written against the old buttons keeps asserting the same dates. The popover must be
   // open with its phase and date set. ** RE-QUERY each tick: the list is redrawn on every change. The
   // rebuildticks leg is the one that holds what unticked phases do.
+  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list now holds BOTH sides with the pin in its
+  // place, Before / After are shortcuts, and Writer's Rm starts unticked. So this ticks every phase on the chosen
+  // side only (rows before the pin for -1, after it for 1) and unticks the other side: still exactly the old one-sided,
+  // every-phase rebuild. The buildaround leg holds the new defaults.
   function rebuildAll(dir){
     document.getElementById(dir < 0 ? 'tool-solve-back' : 'tool-solve-fwd').click();
-    for(var guard = 0, box; guard < 60 && (box = document.querySelector('#pop-solve .solve-list input[data-key]:not(:checked)')); guard++) box.click();
+    function sideBoxes(want){
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
+      var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); });
+      return rows.filter(function (r, i) { return at >= 0 && (dir < 0 ? i < at : i > at) === want; })
+        .map(function (r) { return r.querySelector('input[type=checkbox][data-key]'); }).filter(Boolean);
+    }
+    for(var guard = 0, box; guard < 60 && (box = sideBoxes(true).filter(function (b) { return !b.checked; })[0]); guard++) box.click();
+    for(guard = 0; guard < 60 && (box = sideBoxes(false).filter(function (b) { return b.checked; })[0]); guard++) box.click();
     document.getElementById('tool-solve-go').click();
   }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated

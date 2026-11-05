@@ -30336,9 +30336,82 @@ export function initLegacyApp() {
     if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
     currentSchedule = computeSchedule(readState());
   }
-  function trialRebuild(key, targetIso, direction, leave){
+  // ---------- Build Around (was Rebuild From): both sides of the pinned phase in one run ----------
+  // REBUILD-FROM-LENGTHS-PLAN.md, layout B (owner, 5 Nov 2026: "I like B"; the name by picker). The phases before the
+  // pin are placed backwards from its start (rebuildBackwards) and the phases after it forwards from its end
+  // (rebuildForwards), in ONE run under one asShootDayMove binding: both workBackwardsFrom and workForwardsFrom are
+  // movers too, and nested they defer to this one, so Production's day marks are pinned once and Post chains off the
+  // wrap they produce. A side with nothing ticked is not run at all, so its own early returns ("Nothing runs before
+  // that phase") never reach the user.
+  //   opts: {edge: 'start'|'end', before: bool, after: bool, leaveBefore: Set, leaveAfter: Set, trial: bool}
+  // Returns {written, skipped, anchor, afterBlocked} or {error}. `afterBlocked` = the after side was wanted but the
+  // pin has no length to end it with (Production with Show info incomplete), so it was not run.
+  function buildAround(key, targetIso, opts){
+    return asShootDayMove(()=>{
+      let startIso = targetIso;
+      if(opts.edge === 'end'){
+        const s = pinStartEndingBy(key, targetIso);
+        if(s && s.error) return s;
+        startIso = isoOf(s);
+      }
+      const out = {written: [], skipped: [], anchor: null, afterBlocked: false};
+      const pin = getAllPhaseDefs().find(p => p.key === key);
+      if(opts.before){
+        const r = workBackwardsFrom(key, startIso, {leave: opts.leaveBefore, trial: opts.trial});
+        if(r.error) return r;
+        out.written.push(...r.written); out.skipped.push(...r.skipped);
+        if(r.anchor) out.anchor = r.anchor;
+      }
+      if(opts.after){
+        if(!pin || !phaseHasSpan(pin)) out.afterBlocked = true;
+        else {
+          const r = workForwardsFrom(key, startIso, {leave: opts.leaveAfter, trial: opts.trial});
+          if(r.error) return r;
+          out.written.push(...r.written); out.skipped.push(...r.skipped);
+          if(r.anchor) out.anchor = r.anchor;
+        }
+      }
+      // Neither side ran (nothing placeable on it): the pin still lands where it was asked to, so the preview and the
+      // result line can quote it. Only in a trial: a real run with nothing to place never comes here (the button is
+      // disabled, or it only saves lengths).
+      if(!out.anchor) out.anchor = parseDateUTC(startIso) && (phaseSnapped(key) ? mondayOf(parseDateUTC(startIso)) : parseDateUTC(startIso));
+      return out;
+    });
+  }
+  // "Ends by" (plan D5, ruling R3): the start that puts the pinned phase's LAST WORKDAY on or before `endIso`, the same
+  // landmark Shift's "ends by" reads (landmarkDate: phaseLastWorkday, Production's last shoot day). The solvers are the
+  // backward pass's own, so the two can't disagree:
+  //   Production   solveProductionEndsStart -- the real scheduler, searched, to the day (Production's own Ends).
+  //   Days / Dates customStartEndingBy, from the day after the date.
+  //   Weeks        startForWeeksEndingAt. Snapped, its exclusive end is the Monday after the last Friday on or before
+  //                the date (mondayOf(date + 3 days)); snap off, the day after the date.
+  function pinStartEndingBy(key, endIso){
+    const end = parseDateUTC(endIso || '');
+    if(!end) return {error: 'Pick a date first.'};
+    const p = getAllPhaseDefs().find(x => x.key === key);
+    if(!p || !phaseHasSpan(p)){
+      return {error: key === 'production' ? 'Production’s length comes from Show info. Set it there first.'
+                                          : (p ? p.label || 'That phase' : 'That phase') + ' needs a length to end by a date.'};
+    }
+    const fail = {error: 'Couldn’t fit ' + (p.label || 'that phase') + ' before that date.'};
+    if(key === 'production'){
+      const warm = prodEndsWarm(endIso);
+      const r = warm ? solveProductionEndsStart(endIso, warm) : null;
+      return r ? parseDateUTC(r.start) : fail;
+    }
+    const ranges = hiatusRangesForSolve();
+    if(customPhaseUnit(key) !== 'weeks') return customStartEndingBy(key, addDays(end, 1), ranges) || fail;
+    const weeks = phaseWeeksFor(p);
+    if(!weeks) return fail;
+    const endEx = phaseSnapped(key) ? mondayOf(addDays(end, 3)) : addDays(end, 1);
+    return startForWeeksEndingAt(endEx, weeks, key, ranges);
+  }
+  // The preview's run (trialRebuild until 5 Nov 2026), now with LENGTHS: `lens` maps a phase key to a length typed in
+  // the box and not yet saved (plan D2, ruling R2(a)). They are written into the phase's own field for the trial and
+  // put back with everything else, so the solvers read them exactly as they will after Build saves them.
+  function trialBuild(key, targetIso, opts, lens){
     const fields = [];
-    getAllPhaseDefs().forEach(p=> ['start-', 'end-'].forEach(pre=>{
+    getAllPhaseDefs().forEach(p=> ['start-', 'end-', 'weeks-', 'days-'].forEach(pre=>{
       const el = document.getElementById(pre + p.key);
       if(el) fields.push([el, el.value]);
     }));
@@ -30346,9 +30419,12 @@ export function initLegacyApp() {
     // Ends for Production: a trial that moves Production goes through setPhaseStart(), which marks the held wrap to be
     // taken from the next update(). The trial is put back, so is that mark (and the wrap, to be safe).
     const ends = productionEnds, endsForward = prodEndsForward;
-    const opts = {leave, trial: true};
     try {
-      return direction < 0 ? workBackwardsFrom(key, targetIso, opts) : workForwardsFrom(key, targetIso, opts);
+      if(lens && Object.keys(lens).length){
+        writeLensRaw(lens);
+        trialSchedule();   // so the solvers' first reads of currentSchedule see the typed lengths
+      }
+      return buildAround(key, targetIso, Object.assign({}, opts, {trial: true}));
     } catch(e){
       return {error: 'Couldn’t work out the new dates.'};
     } finally {
@@ -30358,29 +30434,40 @@ export function initLegacyApp() {
       productionEnds = ends; prodEndsForward = endsForward;
     }
   }
-
-  // ---------- Close all gaps ----------
-  // Re-chain the built-in phases back to back, which is the per-phase "Start after previous phase"
-  // button applied down the whole chain. Only phases that are ALREADY scheduled are touched --
-  // this tidies an existing plan, it doesn't invent start dates for phases left blank. Custom
-  // phases stay out of it, matching autostartPhase()'s own rule.
-  // The day overrides are bound for the WHOLE chain (asShootDayMove): each autostartPhase() below
-  // is a mover too, but nested it defers to this one, so the marks are pinned once, before anything
-  // moves, and every later phase chains off the wrap they actually produce.
-  function closeAllGaps(){
-    return asShootDayMove(()=>{
-      let moved = 0, seenFirst = false;
-      PHASE_CHAIN.forEach(key=>{
-        const before = phaseStartDate(key);
-        if(!before) return;              // not scheduled -> leave it alone
-        if(!seenFirst){ seenFirst = true; return; }  // the chain's first phase is the anchor
-        autostartPhase(key);             // runs its own update(), so currentSchedule stays fresh
-        const after = phaseStartDate(key);
-        if(after && before && after.getTime() !== before.getTime()) moved++;
-      });
-      return moved;
+  // The field a phase's length lives in, for the box: Weeks -> weeks-<key>, Days -> days-<key>. Production (Show
+  // info, ruling R4) and a Dates phase (its two dates) have none the box may write. ⛔ Never Production's.
+  function lengthFieldFor(key){
+    if(key === 'production') return null;
+    const unit = customPhaseUnit(key);
+    if(unit === 'dates') return null;
+    return document.getElementById((unit === 'days' ? 'days-' : 'weeks-') + key);
+  }
+  function writeLensRaw(lens){
+    Object.keys(lens).forEach(k=>{
+      const el = lengthFieldFor(k);
+      if(el && lens[k] > 0) el.value = String(lens[k]);
     });
   }
+  // Build's own write: each typed length through the path typing in the sidebar takes (an `input` event, which every
+  // phase row binds to update()), so whatever follows a length follows it here too. Called inside the tool's
+  // asOneUndoStep, so the lengths and the dates are ONE undo step. Returns how many it wrote.
+  function saveTypedLengths(lens){
+    let n = 0;
+    Object.keys(lens || {}).forEach(k=>{
+      const el = lengthFieldFor(k);
+      if(!el || !(lens[k] > 0) || el.value === String(lens[k])) return;
+      el.value = String(lens[k]);
+      el.dispatchEvent(new Event('input', {bubbles: true}));
+      n++;
+    });
+    return n;
+  }
+
+  // ---------- Close all gaps: REMOVED (5 Nov 2026) ----------
+  // It chained every dated built-in phase after the one before it, Pre-Prep after the Writer's Room included. On every
+  // one of the owner's calendars the room overlaps the next phase, so it pushed the whole shoot 3 to 45 weeks while
+  // closing no gap (REBUILD-FROM-LENGTHS-PLAN.md §0, measured on 15). Build Around does its job safely: pin the first
+  // phase at its own date and press After.
 
   // Autosave: only meaningful when a file is already linked (we can't create one silently).
   function startAutosave(){
@@ -31141,7 +31228,8 @@ export function initLegacyApp() {
   // ANCHOR-TO-DIRECTION-PLAN.md §6). Shift All's form, Shift From and Anchor To all ended in the same
   // shiftCalendar() call and differed in two things only -- where the number of weeks comes from, and which
   // phases move -- so they became ONE form, Shift, with two choices: What moves (All phases | Phase & before |
-  // Phase & after) and How far (By weeks | To a date). Shift keeps the gaps; Rebuild From closes them.
+  // Phase & after) and How far (By weeks | To a date). Shift keeps the gaps; Build Around (Rebuild From until 5 Nov
+  // 2026) closes them.
   // `pop-ripple` / `pop-anchor` and Shift From's `tool-ripple-*` ids are gone; `tool-anchor-*` live on in the form.
   (function(){
     // Each entry pairs a trigger button with the popover it owns.
@@ -31151,11 +31239,13 @@ export function initLegacyApp() {
     ].map(p=>({btn:document.getElementById(p.btn), menu:document.getElementById(p.menu)}))
      .filter(p=>p.btn && p.menu);
     if(!POPS.length) return;
-    // Rebuild From's tick list (see runSolve). Declared up here because refreshMenuFromCalendar() and
-    // openPop() reach it. The direction lasts the session; the ticks only one opening of the popover.
+    // Build Around's box (see runSolve). Declared up here because refreshMenuFromCalendar() and openPop() reach it.
+    // All three are forgotten on every opening: the side shortcut (-1 Before, 0 Both, 1 After; it opens on Both), the
+    // ticks changed by hand, and the lengths typed in the list and not saved yet (REBUILD-FROM-LENGTHS-PLAN.md D2).
     const solveMenu = document.getElementById('pop-solve');
-    let solveDir = -1;
+    let solveDir = 0;
     let solveTicks = {};
+    let solveLens = {};
     // The Shift form's two choices. Session UI, never saved (no id, inside .tools-menu), and both reset to All
     // phases, By weeks on EVERY opening (ruling R2(a)), so someone who never touches them gets exactly the old
     // Shift All form. Declared up here because refreshMenuFromCalendar() and openPop() reach them.
@@ -31224,13 +31314,14 @@ export function initLegacyApp() {
     }
     // `withAll` adds the whole-schedule entry, which only the anchor offers -- rippling "from the
     // whole schedule" would just be the plain shift that already has its own row.
-    function fillPhaseSelect(id, list, preferKey, withAll){
+    function fillPhaseSelect(id, list, preferKey, withAll, bare){
       const sel = document.getElementById(id);
       const prev = sel.value;
       // Work-from lists phases that have no start date yet (placing them is the point), so the
       // date suffix is omitted rather than assumed -- mondayOf(null) would throw.
       // A snap-off phase is listed on its REAL start (audit M-11), a snapped one on its Monday.
-      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')}${x.start ? ' — ' + fmtShort(phaseSnapped(x.p.key) ? mondayOf(x.start) : x.start) : ' — no date yet'}</option>`);
+      // `bare`: the name alone (Build Around, plan D4): its date is in the date box beside it and in the list.
+      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')}${bare ? '' : (x.start ? ' — ' + fmtShort(phaseSnapped(x.p.key) ? mondayOf(x.start) : x.start) : ' — no date yet')}</option>`);
       if(withAll && list.length) opts.push(`<option value="${ANCHOR_ALL}">Whole schedule (all phases)</option>`);
       sel.innerHTML = opts.length ? opts.join('') : '<option value="">No phases scheduled yet</option>';
       // Keep whatever was chosen last if it still exists, else fall back to the caller's preference.
@@ -31283,15 +31374,19 @@ export function initLegacyApp() {
     // Re-read the calendar into the menu's own controls. Called on open AND after every tool runs:
     // each dropdown entry carries the phase's current start date, so leaving them alone after a
     // shift would leave the menu quoting dates the calendar no longer has.
-    // Work-from can target a phase that has no start date yet -- placing undated phases is the
-    // point of it -- so its dropdown lists every phase with a usable span, not just scheduled ones.
+    // Build Around can pin ANY phase, with or without a length or a date (plan D4). Until 5 Nov 2026 this listed only
+    // phases with a length, so on a new calendar the box offered nothing at all ("No phases scheduled yet").
     function solvablePhases(){
-      return phaseSequence()
-        .filter(phaseHasSpan)
-        .map(p => ({p, start: phaseStartDate(p.key)}));
+      return phaseSequence().map(p => ({p, start: phaseStartDate(p.key)}));
     }
     function syncSolveDate(){
       const key = (document.getElementById('tool-solve-phase')||{}).value;
+      // "Ends by" (ruling R3) starts from where the phase ends now: its last workday, Shift's own landmark.
+      if((document.getElementById('tool-solve-edge') || {}).value === 'end'){
+        const last = key ? landmarkDate(key, 'end') : null;
+        document.getElementById('tool-solve-date').value = last ? isoOf(last) : '';
+        return;
+      }
       const start = key ? phaseStartDate(key) : null;
       // The phase's REAL start when its Snap to Mon is off (audit M-11): pinning the prefilled date
       // must not move the phase.
@@ -31302,7 +31397,7 @@ export function initLegacyApp() {
       // The Shift form's one phase list (Anchor To's, by id). The shoot is the usual pick. Whole schedule is
       // in it only for All phases to a date: it has nothing before or after it, and By weeks needs no phase.
       fillPhaseSelect('tool-anchor-phase', list, 'production', shiftOffersWhole());
-      fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production');
+      fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production', false, true);
       syncAnchorDate();
       syncSolveDate();
       syncShiftForm();
@@ -31347,8 +31442,14 @@ export function initLegacyApp() {
       // Before the refresh, which fills the phase list for the choice in force.
       if(target.menu === shiftMenu){ shiftMove = 'all'; shiftFar = 'weeks'; shiftListOpen = false; }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
-      // Ticks are forgotten between openings, so each one starts from the same defaults.
-      if(target.menu === solveMenu){ solveTicks = {}; renderSolve(); }
+      // Build Around forgets everything between openings, so each one starts on Both, its default ticks, its starts
+      // date and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
+      if(target.menu === solveMenu){
+        solveTicks = {}; solveDir = 0; solveLens = {};
+        const edgeEl = document.getElementById('tool-solve-edge');
+        if(edgeEl && edgeEl.value !== 'start'){ edgeEl.value = 'start'; syncSolveDate(); }
+        renderSolve();
+      }
       target.menu.classList.add('open');
       keepPopInPanel(target.menu);
       target.btn.setAttribute('aria-expanded','true');
@@ -31611,36 +31712,68 @@ export function initLegacyApp() {
       say(out, overshot);
     });
 
-    // --- Rebuild From: pin one phase's start, rebuild the TICKED phases on one side of it back to back.
+    // --- Build Around (Rebuild From until 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B).
     //
-    //     The ticks are the owner's (30 Oct 2026, "Build A": layout A of mockups/rebuild-from-ticks.html).
-    //     Before them the tool moved every phase on the chosen side that had a length, and said which
-    //     only afterwards: "what if you dont want localization added by rebuild From or you do want a
-    //     custom phase moved by rebuild from. How does it know which phases to affect?" Now the
-    //     direction CHOOSES the side, the list names its phases in the order they run, each with the
-    //     start it would get, and Go moves only the ticked ones. An unticked phase keeps its dates and
-    //     the chain carries on from the last phase placed (opts.leave, workBackwardsFrom).
-    //
-    //     The starting ticks: every built-in phase that has a length, no custom phase. A custom phase
-    //     often runs ALONGSIDE the chain (a Casting beside Prod Prep), and chained end to end it pushed
-    //     the phases before it earlier by its whole length; one that should follow is one tick away.
-    //     ⭐ Localization (owner, 30 Oct 2026): "localization should also be unticked by default (unless
-    //     someone entered a number of weeks or a starting date for it)". That is what solveMoves()
-    //     already gives: a new calendar leaves its weeks blank, a phase with no length is never ticked,
-    //     and a start date alone is no length. The rebuildticks leg holds it (U1, U2).
+    //     Pin one phase to a date (its start, or its end: "ends by", ruling R3) and build the TICKED phases around it,
+    //     end to end, from their lengths: the ones before it backwards, the ones after it forwards, in one run.
+    //     * ONE LIST, BOTH SIDES. Every phase in the order it runs (phaseSequence), the pinned one in its place.
+    //       `← Before · Both · After →` are SHORTCUTS that fill in the ticks, as Shift's three buttons do: solveDir
+    //       (-1 / 0 / 1) picks the default set and a tick changed by hand overrides it (solveTicks). It opens on Both.
+    //     * THE STARTING TICKS: every built-in phase on the chosen side that has a length, EXCEPT Writer's Rm (owner,
+    //       5 Nov 2026: the room overlaps the next phase on every one of the owner's calendars, plan §0); never a
+    //       custom phase (30 Oct 2026: a Casting beside Prod Prep chained end to end pushed everything before it).
+    //       Localization's rule (owner, 30 Oct 2026) still holds because a phase with no length can't be ticked.
+    //     * LENGTHS IN THE LIST (plan D1, the owner's ask: "What if you could enter number of weeks within the
+    //       menu?"). A box per row, staged in `solveLens` until Build (ruling R2(a)) and then written through the
+    //       phase's own field, in the same undo step as the dates. Typing one into a row that had none ticks it.
+    //       ⛔ Production's length is READ-ONLY here (ruling R4): Show info's shoot days, or "Not set".
+    //     * Ticks, side, edge and staged lengths are session UI: forgotten on every opening, carried by no id.
+    //     The old direction buttons' ids live on: tool-solve-back is Before, tool-solve-fwd is After.
     const solveList = solveMenu && solveMenu.querySelector('[data-solve-list]');
     const solveDirBtns = solveMenu ? Array.from(solveMenu.querySelectorAll('.solve-dir [data-dir]')) : [];
     const SOLVE_PIN_SVG = '<svg class="solve-pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
-    function solveTicked(p){
-      return (p.key in solveTicks) ? solveTicks[p.key] : PHASE_CHAIN.indexOf(p.key) !== -1;
+    // The pin and the phases in run order, read once per draw.
+    function solveFrame(){
+      const key = (document.getElementById('tool-solve-phase') || {}).value || '';
+      const seq = phaseSequence();
+      return {key, seq, at: seq.findIndex(p => p.key === key)};
     }
-    // A phase with no length cannot be placed, so it is never ticked: its row says why instead.
-    function solveMoves(p){ return phaseHasSpan(p) && solveTicked(p); }
-    // The side of the pinned phase the chosen direction rebuilds, in the order the phases run.
-    function solveSide(seq, at){ return solveDir < 0 ? seq.slice(0, at) : seq.slice(at + 1); }
-    // What the solvers leave alone: every phase on the side that will not move. A phase with no length
-    // is in it too, so the result line does not repeat the "No length" its row already shows.
-    function solveLeave(side){ return new Set(side.filter(p => !solveMoves(p)).map(p => p.key)); }
+    function solveSideOf(f, p){ const i = f.seq.indexOf(p); return i === f.at ? 0 : (i < f.at ? -1 : 1); }
+    // The default tick for a phase under a shortcut (dir -1 Before, 0 Both, 1 After).
+    function solveDefaultOn(f, p, dir){
+      if(PHASE_CHAIN.indexOf(p.key) === -1 || p.key === 'writersRoom') return false;
+      const side = solveSideOf(f, p);
+      return side !== 0 && (dir === 0 || side === dir);
+    }
+    // A length, counting one typed in the box and not saved yet.
+    function solveHasLen(p){
+      if(p.key in solveLens) return solveLens[p.key] > 0;
+      return phaseHasSpan(p);
+    }
+    function solveTicked(f, p){
+      return (p.key in solveTicks) ? solveTicks[p.key] : solveDefaultOn(f, p, solveDir);
+    }
+    function solveMoves(f, p){ return solveSideOf(f, p) !== 0 && solveHasLen(p) && solveTicked(f, p); }
+    // Which shortcut the ticks match, or null (the user's own set: none pressed). The one last pressed wins a tie.
+    function solvePressed(f){
+      const others = f.seq.filter(p => solveSideOf(f, p) !== 0 && solveHasLen(p));
+      for(const dir of [solveDir, -1, 0, 1]){
+        if(others.every(p => solveMoves(f, p) === solveDefaultOn(f, p, dir))) return dir;
+      }
+      return null;
+    }
+    // What the solvers leave alone on each side: the phases there that will not move.
+    function solveLeaves(f){
+      const before = new Set(), after = new Set();
+      f.seq.forEach(p=>{
+        const side = solveSideOf(f, p);
+        if(side === 0 || solveMoves(f, p)) return;
+        (side < 0 ? before : after).add(p.key);
+      });
+      const has = side => f.seq.some(p => solveSideOf(f, p) === side && solveMoves(f, p));
+      return {before: has(-1), after: has(1), leaveBefore: before, leaveAfter: after};
+    }
+    function solveEdge(){ return (document.getElementById('tool-solve-edge') || {}).value === 'end' ? 'end' : 'start'; }
     // A start as the calendar shows it: a snapped phase on its Monday, as the phase dropdowns quote it.
     function solveShown(key, d){ return d ? (phaseSnapped(key) ? mondayOf(d) : d) : null; }
     // The owner's words for a moved date (23 Oct 2026): "Pushed 2 wks", "Pulled 1 day", never + or −.
@@ -31654,124 +31787,223 @@ export function initLegacyApp() {
       return (n > 0 ? 'Pushed ' : 'Pulled ')
         + (a % 7 === 0 ? (a / 7) + (a === 7 ? ' wk' : ' wks') : a + (a === 1 ? ' day' : ' days'));
     }
-    function solveRow(p, cls, lead, date, words, title){
-      return '<' + (lead.indexOf('<input') === 0 ? 'label' : 'div') + ' class="solve-row' + cls + '"' + (title ? ' title="' + escHtml(title) + '"' : '') + '>'
+    // A phase's length cell (plan D1). ⛔ No id on anything here: it sits inside .tools-menu besides.
+    function solveLenCell(p){
+      if(p.key === 'production'){
+        const info = showInfoStatus();
+        return info.complete && info.totalShootDays > 0
+          ? '<span class="solve-len"><span class="solve-len-ro" title="From Show info. Change it there.">' + escHtml(String(info.totalShootDays)) + ' days</span></span>'
+          : '<span class="solve-len"><span class="solve-len-ro is-unset" title="Production’s length comes from Show info: episodes × shooting days.">Not set</span></span>';
+      }
+      const unit = customPhaseUnit(p.key);
+      if(unit === 'dates'){
+        const s = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
+        const e = parseDateUTC((document.getElementById('end-' + p.key) || {}).value || '');
+        const n = (s && e && e >= s) ? Math.round((e - s) / DAY_MS) + 1 : 0;
+        return '<span class="solve-len"><span class="solve-len-ro" title="Set by its dates">' + (n ? n + (n === 1 ? ' day' : ' days') : '—') + '</span></span>';
+      }
+      const el = lengthFieldFor(p.key);
+      const staged = p.key in solveLens;
+      const v = staged ? solveLens[p.key] : (el ? el.value : '');
+      const days = unit === 'days';
+      return '<span class="solve-len"><input type="text" inputmode="numeric" maxlength="3" class="solve-len-in' + (staged ? ' is-staged' : '') + '"'
+        + ' data-len="' + escHtml(p.key) + '" value="' + escHtml(String(v || '')) + '" placeholder=" "'
+        + ' aria-label="' + escHtml((p.label || 'Phase') + (days ? ' length in working days' : ' length in weeks')) + '">'
+        + '<span class="solve-len-u">' + (days ? 'days' : 'wks') + '</span></span>';
+    }
+    // ⚠️ SHARED with Shift's list (renderShiftList), which has no length column: only Build Around passes `lenHtml`.
+    function solveRow(p, cls, lead, date, words, title, lenHtml){
+      const tag = lead.indexOf('<input') === 0 ? 'label' : 'div';
+      return '<' + tag + ' class="solve-row' + cls + '"' + (title ? ' title="' + escHtml(title) + '"' : '') + '>'
         + lead
         + '<span class="solve-dot" style="background:' + escHtml(p.color || '#fff') + ';box-shadow:inset 0 0 0 1px ' + escHtml(p.textColor || '#000') + '33"></span>'
         + '<span class="solve-nm">' + escHtml(p.label || 'Phase') + '</span>'
+        + (lenHtml || '')
         + '<span class="solve-dt">' + (date ? fmtShort(date) : '—') + '</span>'
         + '<span class="solve-ch">' + escHtml(words) + '</span>'
-        + '</' + (lead.indexOf('<input') === 0 ? 'label' : 'div') + '>';
+        + '</' + tag + '>';
     }
-    // Draw the list. Every ticked phase's new start comes from trialRebuild(): the real solver, run
-    // and put back, so the list cannot promise a date the rebuild will not deliver.
+    // Draw the list. Every ticked phase's new start comes from trialBuild(): the real solvers, run with the typed
+    // lengths and put back, so the list cannot promise a date Build will not deliver.
     function renderSolve(){
       if(!solveList) return;
-      solveDirBtns.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.dir) === solveDir)));
-      const back = solveDir < 0;
-      const key = (document.getElementById('tool-solve-phase') || {}).value;
+      // Build Around's rows carry the length column.
+      const row = (p, cls, lead, date, words, title) => solveRow(p, cls, lead, date, words, title, solveLenCell(p));
+      const f = solveFrame();
+      const pressed = solvePressed(f);
+      solveDirBtns.forEach(b => b.setAttribute('aria-pressed', String(pressed !== null && Number(b.dataset.dir) === pressed)));
       const dateIso = (document.getElementById('tool-solve-date') || {}).value;
       const target = parseDateUTC(dateIso || '');
-      const seq = phaseSequence();
-      const at = seq.findIndex(p => p.key === key);
-      const side = at < 0 ? [] : solveSide(seq, at);
-      const n = side.filter(solveMoves).length;
-      const res = (n && target) ? trialRebuild(key, dateIso, solveDir, solveLeave(side)) : null;
+      const edge = solveEdge();
+      const lv = f.at < 0 ? null : solveLeaves(f);
+      const nStaged = Object.keys(solveLens).length;
+      const pinP = f.at < 0 ? null : f.seq[f.at];
+      const res = (pinP && target) ? trialBuild(f.key, dateIso, {edge, before: lv.before, after: lv.after,
+        leaveBefore: lv.leaveBefore, leaveAfter: lv.leaveAfter}, solveLens) : null;
       const placed = {};
       if(res && !res.error) res.written.forEach(w => { placed[w.key] = w.start; });
 
-      const rows = side.map(p => {
+      let moving = false;
+      const rows = ['<div class="solve-row solve-colhead" aria-hidden="true"><span></span><span></span><span>Phase</span>'
+        + '<span class="solve-colr">Length</span><span class="solve-colr">Starts</span><span></span></div>'];
+      f.seq.forEach(p => {
         const now = solveShown(p.key, phaseStartDate(p.key));
-        if(!phaseHasSpan(p)){
-          return solveRow(p, ' is-off is-nolen', '<input type="checkbox" disabled aria-label="' + escHtml((p.label || 'Phase') + ' has no length') + '">',
-            now, 'No length', 'Give it a length first, and Rebuild can place it.');
+        if(p === pinP){
+          const to = res && !res.error && res.anchor ? solveShown(p.key, res.anchor) : (edge === 'start' && target ? solveShown(p.key, target) : now);
+          const words = (res && res.error) ? 'Can’t place' : (to && target ? solveMovedWords(now, to) : '');
+          if(words && words !== 'No change') moving = true;
+          rows.push(row(p, ' is-pin', SOLVE_PIN_SVG, to, words,
+            'The phase you pinned. It ' + (edge === 'end' ? 'ends by' : 'starts on') + ' your date.'));
+          return;
         }
-        const on = solveTicked(p);
-        const box = '<input type="checkbox" data-key="' + escHtml(p.key) + '"' + (on ? ' checked' : '') + ' aria-label="' + escHtml('Rebuild ' + (p.label || 'Phase')) + '">';
-        if(!on) return solveRow(p, ' is-off', box, now, now ? 'Stays' : 'Not dated');
+        if(!solveHasLen(p)){
+          rows.push(row(p, ' is-off is-nolen', '<input type="checkbox" disabled aria-label="' + escHtml((p.label || 'Phase') + ' has no length') + '">',
+            now, 'No length', p.key === 'production' ? 'Production’s length comes from Show info.' : 'Type a length to place it.'));
+          return;
+        }
+        const on = solveMoves(f, p);
+        const box = '<input type="checkbox" data-key="' + escHtml(p.key) + '"' + (on ? ' checked' : '') + ' aria-label="' + escHtml('Build ' + (p.label || 'Phase')) + '">';
+        if(!on){ rows.push(row(p, ' is-off', box, now, now ? 'Stays' : 'Not dated')); return; }
         const to = placed[p.key] ? solveShown(p.key, placed[p.key]) : null;
-        // No date picked: show where it is now. A ticked phase the trial could not place (a shoot
-        // that fits nowhere before the date) says so rather than quoting a date it will not get.
-        if(!to) return solveRow(p, '', box, now, res && !res.error ? 'Can’t place' : '');
+        // No date picked: show where it is now. A ticked phase the trial could not place says so rather than quoting a
+        // date it will not get -- after a Production with no length, say, or a shoot that fits nowhere before the date.
+        if(!to){
+          const blocked = res && !res.error && (res.afterBlocked || res.skipped.indexOf(p.label || p.key) !== -1);
+          rows.push(row(p, '', box, now, res && !res.error ? 'Can’t place' : '',
+            blocked && pinP && pinP.key === 'production' ? 'Production’s length comes from Show info. Set it there, and the phases after it can be placed.' : ''));
+          return;
+        }
         const words = solveMovedWords(now, to);
-        return solveRow(p, words === 'No change' ? '' : ' is-moving', box, to, words);
+        if(words !== 'No change') moving = true;
+        rows.push(row(p, words === 'No change' ? '' : ' is-moving', box, to, words));
       });
-      if(at >= 0){
-        const pin = seq[at];
-        const now = solveShown(key, phaseStartDate(key));
-        const to = target ? solveShown(key, target) : now;
-        const pinRow = solveRow(pin, ' is-pin', SOLVE_PIN_SVG, to, to ? solveMovedWords(now, to) : '', 'The phase you picked. It starts on your date.');
-        if(back) rows.push(pinRow); else rows.unshift(pinRow);
-      }
-      if(!side.length){
-        const msg = at < 0 ? 'Pick a phase to work from.'
-          : 'Nothing runs ' + (back ? 'before ' : 'after ') + (seq[at].label || 'that phase') + '.';
-        rows.splice(back ? 0 : rows.length, 0, '<div class="solve-row solve-empty">' + escHtml(msg) + '</div>');
-      }
+      if(f.at < 0) rows.push('<div class="solve-row solve-empty">Pick a phase to build around.</div>');
+      // Keep the caret in a length box across the redraw (the list is rebuilt from markup).
+      const act = document.activeElement;
+      const focusKey = act && solveList.contains(act) && act.dataset ? act.dataset.len : null;
+      const caret = focusKey ? act.selectionStart : null;
       solveList.innerHTML = rows.join('');
+      if(focusKey){
+        const el = solveList.querySelector('input[data-len="' + focusKey + '"]');
+        if(el){ el.focus(); if(caret !== null) el.setSelectionRange(caret, caret); }
+      }
 
-      const can = side.filter(phaseHasSpan).length;
+      const others = f.seq.filter(p => p !== pinP && solveHasLen(p));
+      const n = others.filter(p => solveMoves(f, p)).length;
       const count = solveMenu.querySelector('[data-solve-count]');
-      if(count) count.textContent = can ? n + ' of ' + can + ' ticked' : '';
-      const hint = solveMenu.querySelector('[data-solve-hint]');
-      if(hint) hint.textContent = 'Ticked phases are rebuilt end to end ' + (back ? 'back from' : 'on from')
-        + ' your date. Unticked phases stay where they are.';
+      if(count) count.textContent = others.length ? n + ' of ' + others.length + ' ticked' : '';
+      // Production's length can't be typed here (R4), so while it is missing the box says where it is set.
+      const note = solveMenu.querySelector('[data-solve-note]');
+      if(note) note.hidden = showInfoStatus().complete;
       const go = document.getElementById('tool-solve-go');
       if(go){
-        go.textContent = n ? 'Rebuild ' + n + ' phase' + (n === 1 ? '' : 's') : (can ? 'Tick a phase to rebuild' : 'Nothing to rebuild');
-        go.disabled = !n;
+        const nPlaced = res && !res.error ? res.written.length : 0;
+        let label, off = true;
+        if(!pinP) label = 'Nothing to build';
+        // Ends by needs the pin's length before any date can help, so it says so first.
+        else if(edge === 'end' && !solveHasLen(pinP)) label = pinP.key === 'production' ? 'Production needs Show info' : 'Give ' + (pinP.label || 'it') + ' a length';
+        else if(!target) label = 'Pick a date';
+        else if(!n && !nStaged) label = others.length ? 'Tick a phase to build' : 'Nothing to build';
+        else if(!moving && !nStaged) label = 'No changes';
+        else if(!nPlaced && nStaged){ label = 'Save ' + nStaged + (nStaged === 1 ? ' length' : ' lengths'); off = false; }
+        else { label = 'Build ' + nPlaced + ' phase' + (nPlaced === 1 ? '' : 's'); off = !nPlaced; }
+        go.textContent = label;
+        go.disabled = off;
       }
     }
 
-    function runSolve(direction, leave){
+    function runSolve(){
       const sel = document.getElementById('tool-solve-phase');
-      const key = sel.value;
-      if(!key) return say('No phase selected.', true);
-      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'that phase';
+      const f = solveFrame();
+      if(f.at < 0) return say('No phase selected.', true);
+      const pin = f.seq[f.at];
+      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || pin.label || 'that phase';
       const dateIso = (document.getElementById('tool-solve-date')||{}).value;
+      const edge = solveEdge();
+      const lv = solveLeaves(f);
+      const lens = Object.assign({}, solveLens);
       const res = asOneUndoStep(()=>{
-        const out = direction < 0 ? workBackwardsFrom(key, dateIso, {leave}) : workForwardsFrom(key, dateIso, {leave});
+        // The lengths first, so the solvers place each phase by the length it is saved with (ruling R2(a): saved on
+        // Build, in the same undo step as the dates, and every one of them, even for a phase that can't be placed yet).
+        const saved = saveTypedLengths(lens);
+        solveLens = {};
+        if(!lv.before && !lv.after) return {written: [], skipped: [], anchor: null, saved, lengthsOnly: true};
+        const out = buildAround(f.key, dateIso, {edge, before: lv.before, after: lv.after, leaveBefore: lv.leaveBefore, leaveAfter: lv.leaveAfter});
         if(!out.error){ refreshAfterRestore(); syncAllCustomUnitFallbacks(); }   // the date fields were written directly
+        out.saved = saved;
         return out;
       });
-      if(res.error) return say(res.error, true);
-      if(!res.written.length){
-        return say('Nothing to place — the phases ' + (direction < 0 ? 'before' : 'after') + ' ' + label + ' have no week counts.', true);
+      const lenWords = n => n + (n === 1 ? ' length' : ' lengths') + ' saved';
+      if(res.error) return say((res.saved ? lenWords(res.saved) + '. ' : '') + res.error, true);
+      if(res.lengthsOnly || !res.written.length){
+        let out = res.saved ? lenWords(res.saved).replace(/^./, c => c.toUpperCase()) + '. Nothing moved.' : 'Nothing to place.';
+        if(res.afterBlocked) out += ' The phases after Production wait for its length in Show info.';
+        return say(out, !res.saved);
       }
-      // Lead with the phase the user actually wants to know about: the far end of the rebuild.
-      const far = res.written[res.written.length - 1];
-      const filled = res.written.filter(w=>w.wasBlank).length;
-      let out = (direction < 0 ? 'Worked back from ' : 'Worked forward from ') + label + ' — '
-        + far.label + ' starts ' + fmtShort(far.start);
-      // How far the outermost phase travelled. On an already-dated calendar this tool overwrites
-      // and absorbs whatever slack was between the phases, which is easy to miss when all you did
-      // was pin one date -- so if the far end moved, the message says by how much.
-      if(far.prevIso){
-        const prev = parseDateUTC(far.prevIso);
-        const moved = prev ? Math.round((mondayOf(far.start) - mondayOf(prev)) / DAY_MS / 7) : 0;
-        if(moved) out += ' (' + Math.abs(moved) + (Math.abs(moved) === 1 ? ' week ' : ' weeks ')
-          + (moved > 0 ? 'later' : 'earlier') + ' than before)';
-      }
-      out += '. ' + res.written.length + ' phase' + (res.written.length === 1 ? '' : 's') + ' placed';
-      out += filled ? (', ' + filled + ' newly dated.') : '.';
-      if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no week count).';
+      // Lead with the pin, then the far end of what was built: the last phase after it, else the first before it.
+      const fwd = res.written.filter(w => w.start > res.anchor), back = res.written.filter(w => w.start < res.anchor);
+      const far = fwd.length ? fwd[fwd.length - 1] : (back.length ? back[back.length - 1] : null);
+      const pinDay = res.anchor ? solveShown(f.key, res.anchor) : null;
+      let out = label + (edge === 'end' ? ' ends by ' + fmtShort(parseDateUTC(dateIso)) : (pinDay ? ' starts ' + fmtShort(pinDay) : '')) + '. '
+        + res.written.length + ' phase' + (res.written.length === 1 ? '' : 's') + ' built around it'
+        + (res.saved ? ', ' + lenWords(res.saved) : '') + '.';
+      if(far) out += ' ' + far.label + ' starts ' + fmtShort(far.start) + '.';
+      if(res.afterBlocked) out += ' The phases after Production wait for its length in Show info.';
+      if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no length).';
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       say(out);
     }
+    // A shortcut fills the ticks: forget any hand-ticked ones and take that side's defaults.
     solveDirBtns.forEach(b => b.addEventListener('click', ()=>{
-      solveDir = Number(b.dataset.dir) < 0 ? -1 : 1;
-      say('');   // the last result was about the other side
+      solveDir = Math.max(-1, Math.min(1, Number(b.dataset.dir) || 0));
+      solveTicks = {};
+      say('');
       renderSolve();
     }));
     if(solveList) solveList.addEventListener('change', e=>{
-      const box = e.target.closest('input[data-key]');
+      const box = e.target.closest('input[type="checkbox"][data-key]');
       if(!box) return;
       solveTicks[box.dataset.key] = box.checked;
       renderSolve();
     });
-    // syncSolveDate() is bound first (above), so the list is drawn from the phase's own date.
-    document.getElementById('tool-solve-phase').addEventListener('change', renderSolve);
+    // A typed length: staged, and drawn once the typing settles (each draw runs the solvers).
+    let solveLenTimer = null;
+    if(solveList) solveList.addEventListener('input', e=>{
+      const box = e.target.closest('input[data-len]');
+      if(!box) return;
+      const key = box.dataset.len;
+      const p = getAllPhaseDefs().find(x => x.key === key);
+      if(!p) return;
+      const digits = box.value.replace(/[^0-9]/g, '');
+      if(digits !== box.value) box.value = digits;
+      const had = solveHasLen(p);
+      const el = lengthFieldFor(key);
+      const n = digits ? parseInt(digits, 10) : 0;
+      // An emptied box, or the length the phase already has, is not a change: nothing is staged, nothing is erased.
+      if(!(n > 0) || (el && String(n) === el.value)) delete solveLens[key];
+      else solveLens[key] = n;
+      // Typing a length into a row that had none ticks it: you are clearly placing that phase.
+      if(!had && solveHasLen(p)) solveTicks[key] = true;
+      clearTimeout(solveLenTimer);
+      solveLenTimer = setTimeout(renderSolve, 150);
+    });
+    // Enter in a length box presses the button, as it would in a form.
+    if(solveList) solveList.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' || !e.target.closest('input[data-len]')) return;
+      e.preventDefault();
+      clearTimeout(solveLenTimer);
+      renderSolve();
+      const go = document.getElementById('tool-solve-go');
+      if(go && !go.disabled) go.click();
+    });
+    // syncSolveDate() is bound first (above), so the list is drawn from the phase's own date. A new pin re-ticks while
+    // a shortcut is pressed, and keeps the user's own set otherwise (Shift's rule).
+    document.getElementById('tool-solve-phase').addEventListener('change', ()=>{
+      if(solvePressed(solveFrame()) !== null) solveTicks = {};
+      renderSolve();
+    });
+    document.getElementById('tool-solve-edge').addEventListener('change', ()=>{ syncSolveDate(); renderSolve(); });
     // A typed date fires `input` per keystroke: draw once it settles, not once per digit.
     let solveDateTimer = null;
     ['input', 'change'].forEach(t => document.getElementById('tool-solve-date').addEventListener(t, ()=>{
@@ -31779,21 +32011,11 @@ export function initLegacyApp() {
       solveDateTimer = setTimeout(renderSolve, 120);
     }));
     document.getElementById('tool-solve-go').addEventListener('click', ()=>{
-      const key = (document.getElementById('tool-solve-phase') || {}).value;
-      const seq = phaseSequence(), at = seq.findIndex(p => p.key === key);
-      runSolve(solveDir, at < 0 ? null : solveLeave(solveSide(seq, at)));
+      clearTimeout(solveLenTimer);
+      runSolve();
     });
     // ⚠️ Not drawn here, at evaluation time: the preview runs the scheduler, and parts of the engine it
     // reads are declared further down the file. openPop() draws it each time the panel opens.
-
-    // --- Close all gaps
-    document.getElementById('tool-close-gaps').addEventListener('click', ()=>{
-      const moved = asOneUndoStep(closeAllGaps);
-      const ov = takeShootDayMoveNote();
-      say((moved
-        ? 'Chained ' + moved + ' phase' + (moved === 1 ? '' : 's') + ' back to back.'
-        : 'No gaps to close.') + (ov ? ' ' + ov : ''));
-    });
   })();
 
   // ⚠️ The platform's own command key: ⌘ on a Mac, Ctrl elsewhere. The shortcuts below that predate

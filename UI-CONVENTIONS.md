@@ -533,7 +533,7 @@ explained after it. `firstDayOfWeek={1}` makes Monday column one so the band rea
 > aren't able to pick any dates except mondays?"*). "Every day stays clickable" let a snapped phase's Starts
 > box show a Wednesday the phase does not start on. The built picker (`DatePop.jsx`, `fieldKind()`) now picks
 > each field the way the engine reads it:
-> - **Only Mondays** for a snapped phase start, every hiatus start, and Rebuild From on a snapped phase.
+> - **Only Mondays** for a snapped phase start, every hiatus start, and Build Around (was Rebuild From) on a snapped phase.
 >   Other days are greyed out (`aria-disabled`) and do nothing.
 > - **The exact day, with no band**, for Snap off, Days/Dates phases, a Dates end, a custom holiday, and
 >   Anchor To's "ends by".

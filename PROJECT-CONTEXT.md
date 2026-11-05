@@ -562,7 +562,7 @@ else's file.
 ## 7a. The calendar adjustment tools (toolbar above the preview)
 
 ```
-[Waterfall | Month]  [← 1 wk | Shift ▾ | 1 wk →] [Rebuild From ▾]  [↶ ↷]
+[Waterfall | Month]  [← 1 wk | Shift ▾ | 1 wk →] [Build Around ▾]  [↶ ↷]
 ```
 
 Two tools since 4 Nov 2026 (owner: *"Ok im going to vote we go with C, one master shift tool"*;
@@ -572,7 +572,8 @@ Rebuild From. Shift All's form, Shift From and Anchor To all ended in the same `
 container menu**: an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to 562 px tall.
 Shift is a **split control**. The arrows act on one click (one week, all phases), and the caret opens the form.
 
-**One difference tells the two tools apart: Shift keeps the gaps, Rebuild From closes them.** Anything true of both
+**One difference tells the two tools apart: Shift keeps the gaps, Build Around (Rebuild From until 5 Nov 2026)
+closes them.** Anything true of both
 (durations are never changed by either) must **not** appear in a description. It reads as a distinction while
 distinguishing nothing.
 
@@ -637,14 +638,19 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
   - **Production's day marks are bound for the whole burst** (`beginShootDayMove()` at the first click, ended by
     `endNudgeBurst()`), as the month drag binds them press to release. Bound per click, ▼ ▲ lost a worked holiday.
     `undo()` and `redo()` therefore end a running burst first.
-- **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
-  recomputes one side to run consecutively, **writing** start dates including into empty fields.
-  Since 30 Oct 2026 (owner, "Build A") the direction only chooses the side: the panel lists that
-  side's phases with the start each would get (`trialRebuild`, the real solver run and put back),
-  and moves only the **ticked** ones (`opts.leave`). Built-ins start ticked, custom phases not.
-- **Close all gaps** — `closeAllGaps()`, folded into the Rebuild From popover. It is
-  Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
-  From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
+- **Build Around** (Rebuild From until 5 Nov 2026; `REBUILD-FROM-LENGTHS-PLAN.md`, layout B) —
+  `buildAround()`, which runs `workBackwardsFrom` then `workForwardsFrom` from one pin under one
+  `asShootDayMove` binding. Pins one phase by its start or its END (`ends by`, `pinStartEndingBy`: the
+  backward pass's own solvers) and builds the ticked phases on both sides end to end, **writing** start
+  dates including into empty fields. One list, every phase in run order, the pin in its place; the
+  preview is the real solvers run and put back (`trialBuild`, which also applies the typed lengths).
+  `← Before · Both · After →` fill the ticks; it opens on Both. Built-ins start ticked **except Writer's
+  Rm**; custom phases not. **Lengths are typed in the list** (`solveLens`, saved on Build through the
+  phase's own field, one undo step); Production's is read-only (Show info).
+- **Close all gaps — REMOVED 5 Nov 2026.** `closeAllGaps()` chained every dated built-in after the one
+  before it, Pre-Prep after the Writer's Room included, so on every one of the owner's 15 real calendars
+  (which all overlap the room with the next phase) it **moved the shoot** 3 to 45 weeks while closing no
+  gap (plan §0). Its job is Build Around from the first phase at its own date, After.
 
 ### What a shift moves — and what deliberately doesn't
 
@@ -655,9 +661,9 @@ Since v1.3.1 (audit M-12) **`rowHeightsByWeek` travels with its week's note** �
 predicate as `noteFontSize` — so a row dragged tall for a long note is not left behind on the old week.
 
 **`dayOverrides` travel BY SHOOT-DAY NUMBER, on every mover** (v1.3.1, owner ruling R2, audit M-4):
-the Shift tool and its arrows (`shiftCalendar`), the month-view pill drag, Rebuild From
-(`workBackwardsFrom` / `workForwardsFrom`), Close all gaps and "Start after previous phase"
-(`autostartPhase`). Each runs inside `asShootDayMove()`, which pins every mark to Production's
+the Shift tool and its arrows (`shiftCalendar`), the month-view pill drag, Build Around
+(`buildAround`: `workBackwardsFrom` / `workForwardsFrom`) and "Start after previous phase"
+(`autostartPhase`). (Close all gaps was one until it was removed, 5 Nov 2026.) Each runs inside `asShootDayMove()`, which pins every mark to Production's
 **natural** shoot days (the simulation with no overrides — `naturalShootDays()`, extended one day per
 mark) and, while the move runs, re-derives the marks from those pins in `update()` and in
 `productionEndFor()`. A half/off lands on the same-numbered natural day; a worked weekend/holiday keeps
@@ -669,7 +675,7 @@ holiday worked as a half day, 29 Sep 2026) pins and travels exactly as a worked 
 **An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
 that still opens with the auto text of the week it left has that text swapped for the new week's
 (`weekAutoTexts` → `rewriteMovedAutoNotes`), keeping the user's own lines. Only a shift re-keys notes
-at all; Rebuild From, Close all gaps and the month drag leave every note on its week, as before.
+at all; Build Around and the month drag leave every note on its week, as before.
 
 | Stays put | Why |
 |---|---|
@@ -1406,9 +1412,9 @@ separate Calendar tab until the owner merged the two, the same night).
   between ~848 px and ~1018 px depending on the file name and save-status string. `HANDOFF.md` §6
   had attributed this note's wrap to the header toolbar; that has been corrected. Full table in
   `UI-CONVENTIONS.md` §2.
-- **`Close all gaps` is redundant** — it is Rebuild-forwards from the first phase at its current
-  date. Kept anyway as the zero-input, one-click case, the same justification as the toolbar arrows
-  next to Shift All.
+- ~~**`Close all gaps` is redundant**~~ — **removed 5 Nov 2026**. It was kept as the zero-input,
+  one-click case, but measured on the owner's real calendars it moved the shoot on every one of them
+  (`REBUILD-FROM-LENGTHS-PLAN.md` §0). Build Around from the first phase, After, does its job.
 - **Result-message verbosity is intentionally uneven.** The toolbar arrows show a terse chip
   (`1 wk later · wrap 05/01/26`); the popovers give the full sentence including the locked-hiatus
   count. The arrows are a quick nudge and that count is almost always "all of them".
