@@ -52,6 +52,7 @@ Waterfall only"*. They ruled on six layouts in
   for the whole burst, so down then up inside one burst puts everything back exactly. A label can add what the move did
   to a worked day ("· 1 worked day no longer on a day off").
 - **Keyboard:** Alt+↑ / Alt+↓ in the date box.
+- The Help's "Adjusting dates" section has a paragraph on them, after Shift.
 - While the arrows show, the date column is wider, so every date box keeps its 112 px. Below a sidebar of about
   348 px, Starts stacks over Length, as in the mockup.
 
