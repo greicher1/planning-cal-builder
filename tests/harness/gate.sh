@@ -1884,6 +1884,13 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
+# replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
+# date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
+# after is the old Shift From when nothing overlaps; a phase sharing a working day with the picked one moves too, on
+# either side (owner, "Overlaps move too"; red on 9 cases without it), and notes, unlocked hiatuses and the range go by
+# a week window spanning the moving phases; by weeks = to a date; one undo; the form's resets; no new key in
+# fields.byId. On anchorside.sptcal (dayoverrides + notes, a Fall Break, Localization, a range start, two overlaps).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1892,7 +1899,15 @@ done
 # autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
-# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank. Since
+# 4 Nov 2026 its deletes HIDE a note from the view they were made in (AUTO-NOTES-PER-VIEW-PLAN.md R4), and the button
+# reads Hide Auto-Note (owner).
+# autonoteview (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md steps 2-4) is an automatic note shown in one view only,
+# on the same fixture: the card's Waterfall and Month boxes, each split reaching its own view's screen and exports only
+# (the Notes column narrowing with it), the save key autoNotesView (absent unsplit, byte-identical when ticked back,
+# hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind, frozen edits N1 and N2 under a
+# typed waterfall note (red on a build without either), a shift over two typed weeks, the month editor's write-back,
+# and a delete in one view switching a note off when the other view already hides it.
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -1913,6 +1928,14 @@ done
 # It runs twice: colswap-widened-reuse is the same calendar with Reuse Empty Columns ticked, as every new calendar
 # starts since 2 Nov 2026. There a refused "move into the free column" used to return before the per-week fallback,
 # so no knob came up to swap BACK (P3, and P4 after it).
+# Since 4 Nov 2026 it also holds the MARK on that fallback: when it would leave a phase in two columns (here Prod
+# Prep), the knob is amber (.is-partial), a dashed box covers exactly the cells that move, and the label says who
+# ends up split and why the whole column can't move (P1, P4); swapping back re-joins it and is not marked (P3); a
+# per-week selection made by hand never is (P5).
+# swapsplitreuse (owner, 4 Nov 2026, "Fix both") is the report behind that mark: with Reuse Empty Columns ticked, a
+# phase starting after every column is free took a column last used in an EARLIER year, gave its year an extra
+# column, and that column blocked Swap Column, so the fallback split Writers. Reuse's rule 3 now prefers a free
+# column already used in the phase's years. Red on the build before it on S1, S2 and S3.
 # simpostbeside (owner, 2 Nov 2026) holds frozen edit SP1: Simultaneous Post's column directly right of Production, reuse
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
@@ -1944,6 +1967,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               colswappartial:colswap-widened:120 colswappartial:colswap-widened-reuse:120 \
+              swapsplitreuse:swapsplit-reuse:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
@@ -1974,10 +1998,12 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
+              anchorside:anchorside:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
+              autonoteview:autonoterename:500 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \

@@ -87,20 +87,33 @@ window.addEventListener('load', function () { (async function () {
   }
   // The month view's notes on one day.
   function dayNotes(iso) { return Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="' + iso + '"]')).map(txt); }
-  function box(kind) { return document.querySelector('input[data-autonote="' + kind + '"]'); }
-  function boxes(kinds) { return kinds.map(function (k) { var b = box(k); return b ? b.checked : null; }); }
+  // Since 4 Nov 2026 every kind has a Waterfall box and a Month box (AUTO-NOTES-PER-VIEW-PLAN.md, R1(a)). This leg
+  // switches KINDS on and off, so a "click" is both boxes (two undo steps), and a kind reads true or false only while
+  // its two boxes agree ('split' otherwise). The per-view cases are autonoteview's.
+  function box(kind, view) { return document.querySelector('input[data-autonote="' + kind + '"][data-view="' + (view || 'sheet') + '"]'); }
+  function boxes(kinds) {
+    return kinds.map(function (k) {
+      var s = box(k, 'sheet'), m = box(k, 'month');
+      return (s && m) ? (s.checked === m.checked ? s.checked : 'split') : null;
+    });
+  }
   // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
-  async function clickBox(kind) {
+  async function clickOne(kind, view) {
     await T.openSettings('prefs');
     await T.sleep(150);
-    var b = box(kind);
-    if (!b) throw new Error('no Automatic notes box for ' + kind);
+    var b = box(kind, view);
+    if (!b) throw new Error('no Automatic notes ' + view + ' box for ' + kind);
     b.scrollIntoView({ block: 'center' });
     await T.sleep(100);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    if (hit !== b) throw new Error('the ' + kind + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
+    if (hit !== b) throw new Error('the ' + kind + ' ' + view + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
     hit.click();
     await settle();
+  }
+  async function clickBox(kind, view) {
+    if (view) return clickOne(kind, view);
+    await clickOne(kind, 'sheet');
+    await clickOne(kind, 'month');
   }
   async function pdfRuns(u8) {
     var s = '', runs = [];
@@ -193,17 +206,32 @@ window.addEventListener('load', function () { (async function () {
       await T.openSettings('prefs');
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
       var names = card ? Array.from(card.querySelectorAll('.autonote-name')).map(txt) : [];
-      var words = card ? Array.from(card.querySelectorAll('label.autonote-row')).map(txt) : [];
+      // Since 4 Nov 2026 each phase is ONE row (owner's pick B, mockups/autonote-card.html): its name, then Start | End
+      // under Waterfall and Start | End under Month. The note's word is its box's data-autonote-word, not printed.
+      var rowEls = card ? Array.from(card.querySelectorAll('.autonote-row')) : [];
+      var words = [];
+      rowEls.forEach(function (r) {
+        Array.from(r.querySelectorAll('input[data-view="sheet"]')).forEach(function (i) { words.push(i.getAttribute('data-autonote-word')); });
+      });
+      var heads = card ? Array.from(card.querySelectorAll('.autonote-hd')).map(txt) : [];
+      var subs = card ? Array.from(card.querySelectorAll('.autonote-sub')).map(txt) : [];
+      // Each row: its name, then four boxes, Waterfall start / end then Month start / end, the two views on the same kinds.
+      var perNote = rowEls.length === names.length && rowEls.length > 0 && rowEls.every(function (r) {
+        var ins = Array.from(r.querySelectorAll('input')), v = ins.map(function (i) { return i.getAttribute('data-view'); });
+        var k = ins.map(function (i) { return i.getAttribute('data-autonote'); });
+        return !!r.querySelector('.autonote-name') && same(v, ['sheet', 'sheet', 'month', 'month']) && k[0] === k[2] && k[1] === k[3] && k[0] !== k[1];
+      });
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
       // Every phase name on ONE line, uncut: the 12 px gap first shipped cut "Writer's Room" to "Writer's Ro...".
       var oneLine = card ? Array.from(card.querySelectorAll('.autonote-name')).every(function (n) {
         var lh = parseFloat(getComputedStyle(n).lineHeight) || 20; return n.scrollWidth <= n.clientWidth + 1 && n.getBoundingClientRect().height < lh * 1.5;
       }) : false;
-      kase('P1', 'the card: one row per phase in calendar order, a start box and an end box each, every name on one line, NO id on any control, not a .prefs-card',
+      kase('P1', 'the card: one row per phase in calendar order, its start and its end each with a Waterfall box and a Month box under a Waterfall | Month heading and Start | End, every name on one line, NO id on any control, not a .prefs-card',
            same(names, ['Writer’s Room', 'Pre-Prep', 'Prod Prep', 'Production', 'Post', 'Localization']) &&
            same(words, ['Opens', 'Closes', 'Begins', 'Ends', 'Begins', 'Ends', 'Starts', 'Wraps', 'Begins', 'Ends', 'Begins', 'Ends']) &&
+           same(heads, ['', 'Waterfall', 'Month']) && same(subs, ['Start', 'End', 'Start', 'End']) && perNote &&
            oneLine && ids.length === 0 && !!sec && !sec.closest('.prefs-card') && T.settingsTabOf(sec) === 'prefs',
-           { names: names, words: words, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
+           { names: names, words: words, heads: heads, subs: subs, perNote: perNote, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
     });
 
     await step('P2', async function () {
@@ -264,14 +292,14 @@ window.addEventListener('load', function () { (async function () {
     });
 
     await step('P8', async function () {
-      await clickBox('postEnd');                         // off: the step under test
+      await clickBox('postEnd', 'sheet');                // off in the waterfall, one box, one step: the step under test
       var off = { box: box('postEnd').checked, cell: notes()['2027-09-20'] || '' };
       $('undo-btn').click(); await settle();
       var undone = { box: box('postEnd').checked, cell: notes()['2027-09-20'] || '' };
       $('redo-btn').click(); await settle();
       var redone = { box: box('postEnd').checked, cell: notes()['2027-09-20'] || '' };
       $('undo-btn').click(); await settle();             // leave it on for the cases below
-      kase('P8', 'unticking Post Ends empties its week; ONE undo puts it back (box ticked), redo takes it out again',
+      kase('P8', 'unticking Post Ends\' Waterfall box empties its week; ONE undo puts it back (box ticked), redo takes it out again',
            same(off, { box: false, cell: '' }) && same(undone, { box: true, cell: 'Post Ends 9/24/27' }) &&
            same(redone, { box: false, cell: '' }) && same(notes(), sorted(ALL)), { off: off, undone: undone, redone: redone });
     });
@@ -301,9 +329,9 @@ window.addEventListener('load', function () { (async function () {
       var blank = row('writersRoom');
       T.set('name-writersRoom', "Writer's Rm"); await settle();
       kase('P9b', 'Production renamed "Shoot" and Writer\'s Room renamed: their card rows (and box labels) follow, their notes keep their own words; back on the phase\'s own label, or blank, the rows read "Production" and "Writer’s Room"',
-           same(renamed, { prod: 'Shoot', wr: 'Writers', aria: 'Shoot Wraps', start: 'Start Principal Photography 5/3/27',
+           same(renamed, { prod: 'Shoot', wr: 'Writers', aria: 'Shoot Wraps, Waterfall', start: 'Start Principal Photography 5/3/27',
                            opens: "Writer's Room Opens 1/4/27" }) &&
-           same(own, { prod: 'Production', wr: 'Writer’s Room', aria: 'Production Wraps' }) && blank === 'Writer’s Room' &&
+           same(own, { prod: 'Production', wr: 'Writer’s Room', aria: 'Production Wraps, Waterfall' }) && blank === 'Writer’s Room' &&
            same(notes(), sorted(ALL)), { renamed: renamed, own: own, blank: blank });
     });
 
@@ -357,25 +385,29 @@ window.addEventListener('load', function () { (async function () {
       T.set('name-custom1', 'Color Grading'); T.set('start-custom1', '2027-08-02'); T.set('weeks-custom1', '3');
       await settle();
       await T.openSettings('prefs');
-      var host = document.querySelector('.autonote-list .autonote-custom');
-      var kids = host ? Array.from(host.children).map(function (e) { return e.tagName + ':' + txt(e); }) : null;
+      // Its row, after the built-in rows: its name, then its two notes' Waterfall boxes' words (one row per phase since
+      // 4 Nov 2026, the word on the box rather than printed).
+      var nm = document.querySelector('.autonote-list [data-autonote-custom="custom1"]'), kids = nm ? [txt(nm)] : null;
+      var crow = nm && nm.closest('.autonote-row');
+      if (crow) Array.from(crow.querySelectorAll('input[data-view="sheet"]')).forEach(function (i) { kids.push(i.getAttribute('data-autonote-word')); });
       var a = box('custom1Start'), b = box('localizationStart'), c = box('custom1End'), d = box('localizationEnd');
       var lined = !!(a && b && c && d) && Math.abs(a.getBoundingClientRect().left - b.getBoundingClientRect().left) < 1 &&
                   Math.abs(c.getBoundingClientRect().left - d.getBoundingClientRect().left) < 1;
       kase('C0', 'a custom phase gets its own card row (name, Begins, Ends) lined up under the built-in rows, both boxes UNticked, no id; and no note of its own until ticked',
-           same(kids, ['SPAN:Color Grading', 'LABEL:Begins', 'LABEL:Ends']) && same(boxes(CK), [false, false]) && lined &&
-           cardIds().length === 0 && same(notes(), sorted(ALL)) && (a && a.getAttribute('aria-label')) === 'Color Grading Begins',
+           same(kids, ['Color Grading', 'Begins', 'Ends']) && same(boxes(CK), [false, false]) && lined &&
+           cardIds().length === 0 && same(notes(), sorted(ALL)) && (a && a.getAttribute('aria-label')) === 'Color Grading Begins, Waterfall',
            { kids: kids, boxes: boxes(CK), lined: lined, ids: cardIds(), notes: notes() });
     });
 
     await step('C1', async function () {
-      await clickBox('custom1Start'); await clickBox('custom1End');
+      // Ends' Month box first, so its Waterfall box is the last step, the one the undo takes back.
+      await clickBox('custom1Start'); await clickBox('custom1End', 'month'); await clickBox('custom1End', 'sheet');
       var on = notes();
       $('undo-btn').click(); await settle();
       var undone = { boxes: boxes(CK), end: notes()['2027-08-16'] || '' };
       $('redo-btn').click(); await settle();
-      kase('C1', 'ticking both (hit-tested): "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" land in their weeks; one undo takes back only the Ends tick, redo restores it',
-           same(on, ALL_CG) && same(undone, { boxes: [true, false], end: '' }) && same(notes(), ALL_CG) && same(boxes(CK), [true, true]),
+      kase('C1', 'ticking both (hit-tested): "Color Grading Begins 8/2/27" and "Color Grading Ends 8/20/27" land in their weeks; one undo takes back only the Ends\' Waterfall tick, redo restores it',
+           same(on, ALL_CG) && same(undone, { boxes: [true, 'split'], end: '' }) && same(notes(), ALL_CG) && same(boxes(CK), [true, true]),
            { on: on, undone: undone, after: notes() });
     });
 
@@ -423,7 +455,7 @@ window.addEventListener('load', function () { (async function () {
       var blank = { row: txt(document.querySelector('[data-autonote-custom="custom1"]')), start: notes()['2027-08-02'] };
       T.set('name-custom1', 'Color Grading'); await settle();
       kase('C4', 'renamed in the Phases tab, its notes, card row and box labels follow ("Online Begins"); a blank name reads "Custom phase", as its bars do',
-           same(r, { row: 'Online', start: 'Online Begins 8/2/27', end: 'Online Ends 8/20/27', aria: 'Online Ends' }) &&
+           same(r, { row: 'Online', start: 'Online Begins 8/2/27', end: 'Online Ends 8/20/27', aria: 'Online Ends, Waterfall' }) &&
            same(blank, { row: 'Custom phase', start: 'Custom phase Begins 8/2/27' }) && same(notes(), ALL_CG), { renamed: r, blank: blank });
     });
 
@@ -461,7 +493,7 @@ window.addEventListener('load', function () { (async function () {
       customRow('custom1').querySelector('.remove-custom-phase').click();
       for (var i = 0; i < 30; i++) { await T.sleep(100); if (T.clickModalButton('Remove')) break; }
       await settle();
-      var gone = { notes: notes(), rows: document.querySelectorAll('.autonote-custom > *').length, boxes: boxes(CK) };
+      var gone = { notes: notes(), rows: document.querySelectorAll('.autonote-list [data-autonote-custom], .autonote-list input[data-autonote^="custom"]').length, boxes: boxes(CK) };
       var s = JSON.parse(await save());
       var pruned = Object.keys(s.autoNotesOn || {}).filter(function (k) { return /^custom/.test(k); });
       $('undo-btn').click(); await settle();
@@ -481,11 +513,13 @@ window.addEventListener('load', function () { (async function () {
 
     await step('C8', async function () {
       await load(saveC);
-      var rt = { boxes: boxes(CK), notes: notes(), rows: document.querySelectorAll('.autonote-custom > *').length };
+      // Its card boxes: a Waterfall and a Month box for each of its two notes (since 4 Nov 2026).
+      function customBoxes() { return document.querySelectorAll('.autonote-list input[data-autonote^="custom"]').length; }
+      var rt = { boxes: boxes(CK), notes: notes(), rows: customBoxes() };
       await load(saveB);
-      var none = { rows: document.querySelectorAll('.autonote-custom > *').length, notes: notes() };
+      var none = { rows: customBoxes(), notes: notes() };
       kase('C8', 'Load round trip: the file with the custom phase ticked opens with its row and both notes; a file without it loaded after leaves no custom row behind',
-           same(rt, { boxes: [true, true], notes: ALL_CG, rows: 3 }) && same(none, { rows: 0, notes: sorted(ALL) }), { roundTrip: rt, none: none });
+           same(rt, { boxes: [true, true], notes: ALL_CG, rows: 4 }) && same(none, { rows: 0, notes: sorted(ALL) }), { roundTrip: rt, none: none });
     });
 
     await step('P12', async function () {

@@ -38,8 +38,8 @@ adjust all the phases. It should be very clear how to turn it on or off"*. Plan 
   lengthened, shortened or moved, every phase that starts on or after it also moves by the same number of weeks, so
   the gaps between phases stay as they were. A moved hiatus counts as taken out where it was and put back where it
   is: what it no longer holds up is pulled back, and what it now holds up is pushed. A phase's own hiatus moves every
-  other phase that starts on or after it. It is Shift From, run for you from the hiatus: notes and unlocked hiatuses
-  after it travel too, and locked hiatuses, holidays and notes with a date stay put.
+  other phase that starts on or after it. It is the Shift tool's move, run for you from the hiatus: notes and unlocked
+  hiatuses after it travel too, and locked hiatuses, holidays and notes with a date stay put.
 - **When.** Once you finish the edit: when you leave the hiatus's Starts and Weeks boxes, press Enter, pick a date in
   the date popover, click its ×, switch a phase's hiatus on or off, use the right-click Hiatus items, or let go of a
   month-view drag (its Keep / Undo question now says what was pushed). Never while you type: a year typed digit by
@@ -55,6 +55,124 @@ adjust all the phases. It should be very clear how to turn it on or off"*. Plan 
   before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
   on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
   `settingswin` W13 lists the new card. Full gate: see HANDOFF.
+
+### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+
+The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
+one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
+are gone. What they did is two choices in the Shift form, under Shift All's old caret, which now reads **Shift ▾**:
+
+- **What moves:** `All phases | Phase & before | Phase & after`. The phase row under it shows only when a phase is
+  needed, and a hint names the phases that stay put.
+- **How far:** `By weeks` (`[n] wks  Earlier  Later`) or `To a date` (`[starts on / ends by]  [date]  Go`).
+- **Where each old tool went:** Shift All's form is All phases, By weeks, which is what the form opens on every time
+  (ruling R2(a)). Shift From is Phase & after, By weeks. Anchor To is All phases, To a date, with Whole schedule in
+  the list only there. The ← 1 wk / 1 wk → arrows are unchanged.
+- **New: Phase & before.** The picked phase and every phase before it move, and the gaps are kept. Before, no tool
+  did this. Example: delivery is fixed but the shoot must start two weeks earlier.
+- **A phase that overlaps the picked one moves too, on either side** (owner, 4 Nov 2026, *"Overlaps move too"*).
+  Overlap means sharing a working day: back-to-back phases don't count, and it isn't chained through a neighbour.
+  So Phase & before Production takes a Post that starts before the wrap. With nothing overlapping, Phase & after is
+  exactly the old Shift From. The hint says which phases come along only because they overlap.
+- Notes, unlocked all-phase hiatuses and the calendar range go by a week window spanning the moving phases whole, so
+  each takes its own notes and any hiatus inside it along. Holidays, locked hiatuses, dated notes and day notes never
+  move; Production's day marks travel by shoot-day number, as on every mover.
+- The result line for All phases is the old one, word for word. A part-calendar move adds what moved and what stayed
+  (*"Production and everything before it moved (5 phases, including Post, which overlaps it). 1 stayed where it
+  was."*).
+
+Engine: `shiftCalendarDates(weeks, fromIso, opts)` gains `opts.part = {phases, fromWeek, toWeek}`: exactly those phases
+move, and everything week-keyed inside the window. The form works the set out once (`shiftPlan`) for its hint and the
+move. With no `part`, every existing caller does exactly what it did. The third argument is ONE options object, shared with
+HIATUS-RIPPLE-PLAN.md's `except`. No frozen code, no writer and no save-format change: the choices are id-less buttons
+inside `.tools-menu`, and the ids `tool-shift-*` / `tool-anchor-*` live on in the form (`tool-ripple-*` retired).
+The Help's "Adjusting dates" section is rewritten. New leg `anchorside` (23 cases, in gate.sh) on a new synthetic
+fixture `anchorside.sptcal`, which has two overlaps by days. A build without the overlap rule is red on 9 cases;
+before that rule, a build with one bound at the picked phase's start was red on B2 and B3. `builtindates`, `customunits`,
+`datepick` and `snaptools` open Shift instead of Anchor To; `calrange`, `overrides` and `rowheight` pick Phase & after
+instead of Shift From. Full gate: 3,927 PASS, every baseline identical. Its 20 FAILs were in five legs that don't
+touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscolour`, `offweek`, `mvnotes`). The
+overlap rule came after that gate. It changes only the Phase & before / after path, and the merged build was
+re-checked on the targeted legs (HANDOFF).
+
+
+### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
+
+The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me
+3 differnt mockups"* ([`mockups/autonote-card.html`](mockups/autonote-card.html): A, the same list tidied; B, one row
+per phase; C, labelled toggle pills), then *"go with b"*. Chrome only: the same ticks, the same saved data, nothing
+in the grid or the exports.
+
+- **One row per phase:** its name, then a Start and an End box under WATERFALL, then the same under MONTH. The card
+  is 231 px tall in a narrow window, down from 482. The note's own word ("Opens", "Wraps"…) is no longer printed;
+  it is each box's tooltip, and still each box's spoken label.
+- **The phase's colour** is a small chip before its name: its fill, edged in its month-bar ink so a pale fill still
+  shows. A recoloured or custom phase shows its own.
+- **The heading** has one rule under each view's name (it was three broken pieces, the first under nothing), a thin
+  rule runs above each phase's row, and the whole row shades on hover.
+- **Fit:** in the narrowest window (a 247 px card) the default names stay on one line; a longer typed name wraps,
+  never clips.
+- **Verified:** in the browser pane (narrow and full width, row hover, a tick taking and surviving the redraw).
+  `npm run check` 40/40. The legs that read the card's layout (`autonotekinds` A1, `autonotephases` P1 and C0) now
+  read B's rows. Every leg that reads the card, on the build: `autonotekinds` 16/16, `autonotephases` 27/27,
+  `prepreptitle` 7/7, `autonote` 9/9, `autonoterename` 24/24, `autonoteview` 18/18, `settingswin` 21/21,
+  `phasesui` 8/8. No full gate: nothing in the grid, the exports or the save path changed.
+
+### Unreleased — Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
+
+The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
+weeks they share, so the long phase sat in two columns. Turning off Reuse Empty Columns "fixed it", *"But how would a
+user know that was what they needed to turn off?"* Reproduced on a copy of the owner's setup (kept out of the repo).
+Ruled "Fix both".
+
+- **Why it happened:** with Reuse Empty Columns ticked, a phase that starts after every column is free took the
+  LOWEST free column, which can be one last used in an earlier year. In its own year that column was otherwise empty,
+  so the year grew a column. That column sat exactly where Simultaneous Post has to land when Production swaps, so
+  the whole-column swap was refused, and since 2 Nov the arrow then falls back, unmarked, to swapping only the shared
+  weeks. With the box clear the default layout happened to need no swap.
+- **Reuse Empty Columns** (`placeSegmentsReusingColumns`, rule 3): a free column already used in the years the
+  phase runs in is preferred; among equals, the lowest, as before. A calendar with the box ticked can lay out with
+  one column fewer in such a year. With the box clear, and in Single Column, nothing changes. No frozen code.
+- **The swap arrow:** after Swap Column, when the only swap it can offer would leave a phase in two columns, the
+  arrow is amber instead of teal, a dashed amber box outlines exactly the cells that will move, and the tooltip says
+  which phase ends up in two columns and why the whole column can't move. Swapping a split phase back is not
+  marked, nor is a part of a column you selected yourself. No new chip (owner ruling, 21 Oct 2026).
+- **Verified:** new leg `swapsplitreuse` 5/5 on the fixture `swapsplit-reuse` (made up, reuse ticked), red on the
+  build before it in S1–S3: a 4th column, the part-column arrow, Writers left in slots 0 and 2. `colswappartial`
+  8/8 on both fixtures, now also checking the amber arrow, the box and the tooltip (P1, P4), the unmarked swap back
+  (P3) and an unmarked hand selection (P5). Seen in the browser pane: the amber arrow and the box on the four shared
+  weeks. `npm run check` 40/40. A swap/reuse mini-gate (every column-swap, block-swap and reuse section of
+  `gate.sh`): 300 PASS, 0 FAIL. Full gate: 3,896 PASS, 3 FAIL, every baseline identical; the three are known
+  timing flakes (`monthexport` X6, `phaseedge`'s deadline, `offweek` R9), each green re-run alone.
+
+### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
+
+Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:
+*"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the waterfall and month
+view"*; AUTO-NOTES-PER-VIEW-PLAN.md steps 2–4, every ruling the recommendation):
+
+- **Settings ▸ Preferences ▸ Automatic notes** is grouped by phase, under a Waterfall | Month heading: each phase's name,
+  then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps"), each with a Waterfall box and a Month
+  box. Custom phases follow. Waterfall covers the Notes column, Excel and the waterfall PDF (its Notes column narrows
+  with it); Month covers the month view and its PDF. A phase hidden in the waterfall dims its Waterfall boxes and keeps
+  their ticks.
+- **A delete hides a note from the view you are in** (ruling R4): the waterfall's Delete key, Clear, a line taken out
+  in its editor and a paste over it hide it from the waterfall; the month view's button, renamed **Hide Auto-Note**
+  (owner, 4 Nov 2026), hides it from the month view. A note the other view already hides is switched off, as before.
+  Dragging one to another week or day still switches it off, since it travels on as your own note in both views.
+- **Two frozen edits, owner-approved with the gate (R2(a)):** in `notesForWaterfallDate`, N1 widens the M-13 holiday
+  rule so a month-only note (and a note of a phase hidden in the waterfall) stays in the month view under a typed
+  waterfall note, once; N2 keeps a waterfall-only line out of the month view when a typed note carries it word for word.
+  The month editor's write-back follows the same rules. Nothing in the renderers, the width model or the writers changed.
+
+Saved as one new key, `autoNotesView` (`{kind: {sheet: false} | {month: false}}`, sorted), written only while a note is
+split, so every other calendar saves byte for byte as before, and an older build shows a split note in both views. New
+leg `autonoteview` (18 cases, in gate.sh): each split in its own view's screen, workbook and PDFs, the save key
+(byte-identical when ticked back, hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind,
+typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) or without N2 (4). `autonotekinds`,
+`autonotephases`, `autonoterename`, `wfkeys` and `wfmenu` were rewritten where they held the old one-box card or the
+old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
+
 
 ### Unreleased — recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
 

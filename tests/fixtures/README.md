@@ -42,6 +42,16 @@ It holds the R5 rewrite in the month view's drags (owner, 19 Oct 2026: the grip 
 and `pilldrag` E18/E19 hold the two frozen lines in `notesForWaterfallDate` approved the same day (a one-digit day,
 and a line dated outside its note's week). Both cases were red on the grip-fix build `65389d35…`.
 
+## The one Shift tool's two sides (4 Nov 2026)
+
+`anchorside.sptcal` is `dayoverrides.sptcal` with, **added by script** (no real save; every other byte as it was):
+Localization 3/1/27 x 8, a calendar range start of 2/2/26, an UNLOCKED one-week "Fall Break" from 9/21/26 inside the
+shoot, and six week notes: `PREP-NOTE` (4/13), `SHOOT-WK6` (8/3), "Wrap party booked" (7/27, DATED 7/30, so pinned),
+`OVERLAP-WK` (11/2), `POST-WK3` (11/16) and `LOC-WK2` (3/8/27). It holds two overlaps by days. With the Fall Break the
+shoot wraps Tue 11/3, so Post (11/2) starts inside it. Pre Prep (snap-off Wed 4/8 x 6) works to Tue 5/19, inside Prod
+Prep's first week. Prod Prep and Production are back to back (ANCHOR-TO-DIRECTION-PLAN.md §2, the overlap ruling). It keeps dayoverrides' four day marks,
+its locked Summer Break and Christmas hiatuses, and Pre Prep snap-off on Wed 4/8. Read by `anchorside` (in gate.sh).
+
 ## From the deployment-readiness audit (24 Sep 2026)
 
 These came out of `AUDIT-REPORT.md`. They were promoted here by `FIX-PLAN.md` step 0.1, so the batch

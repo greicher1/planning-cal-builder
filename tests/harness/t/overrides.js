@@ -77,9 +77,11 @@ window.addEventListener('load', function () { (async function () {
       {dayOverrides: s0.dayOverrides, note: r0.note, meta: r0.meta}, ORIGINAL);
 
     // O1 -- Shift From Post +1 wk: Production does not move, so no mark may move.
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'post'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    // Shift From is the Shift form's Phase & after since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6).
+    await openPop('pop-shift-btn');
+    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
+    T.set('tool-anchor-phase', 'post'); T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     var s1 = await snap(), r1 = reading();
     add('O1', 'Shift From Post +1 wk leaves every mark, the Production row and the override note alone',
@@ -132,9 +134,10 @@ window.addEventListener('load', function () { (async function () {
     add('O3u', 'one undo of the drag restores the calendar and its marks', isOriginal(reading()), reading(), r0);
 
     // O4 -- Shift From Production +1 wk, then Close all gaps (which also closes Pre Prep's gap).
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'production'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    await openPop('pop-shift-btn');
+    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
+    T.set('tool-anchor-phase', 'production'); T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     var s4a = await snap();
     add('O4a', 'Shift From Production +1 wk: the marks travel with the shoot', same(s4a.dayOverrides, PLUS_ONE), {dayOverrides: s4a.dayOverrides}, PLUS_ONE);
@@ -155,9 +158,10 @@ window.addEventListener('load', function () { (async function () {
     // 7/25 once the shoot is back. No rule can do better: a worked day off must land on a real weekend
     // or holiday, and the moved shoot need not have one where the original did.
     var BACK = {'2026-07-06': 'half', '2026-07-07': 'off', '2026-07-25': 'on'};
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'production'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    await openPop('pop-shift-btn');
+    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
+    T.set('tool-anchor-phase', 'production'); T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     closePops(); await T.sleep(150);
     await snap();

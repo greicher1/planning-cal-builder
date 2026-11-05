@@ -69,14 +69,16 @@ window.addEventListener('load', function () { (async function () {
       r4.h0803 === 60 && NOTE.test(r4.n0803 || '') && r4.h0810 <= 22 && r4.h0907 === 45, r4, 'the R0 state');
 
     // R5: Shift From Post (11/2/26) +1 wk -- both tall rows are before the cutoff and must not move.
-    document.getElementById('pop-ripple-btn').click();
+    // (The Shift form's Phase & after since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
+    document.getElementById('pop-shift-btn').click();
     await T.sleep(300);
-    T.set('tool-ripple-phase', 'post');
-    T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
+    T.set('tool-anchor-phase', 'post');
+    T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await T.sleep(600); await settle(); await T.sleep(400);
     var r5 = state();
-    var msg = ((document.querySelector('#pop-ripple [data-tools-msg]') || {}).textContent || '').trim();
+    var msg = ((document.querySelector('#pop-shift [data-tools-msg]') || {}).textContent || '').trim();
     add('R5', 'Shift From Post +1 wk: rows before the cutoff keep their heights',
       /Shifted 1 week later/.test(msg) && r5.h0803 === 60 && NOTE.test(r5.n0803 || '') && r5.h0907 === 45 && r5.h0810 <= 22,
       {msg: msg, h0803: r5.h0803, h0810: r5.h0810, h0907: r5.h0907}, '8/3 60px, 9/7 45px, unchanged');

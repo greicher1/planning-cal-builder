@@ -4351,9 +4351,11 @@ export function initLegacyApp() {
   // all of them at once, and none can disagree. A user's own note (userNotes) never passes through here.
   // A phase hidden in the waterfall (phaseHidden, PHASES-TAB-PLAN.md R4) takes its own notes with it there: a
   // note tagged with its `phase` is dropped for 'sheet' and kept for 'month'.
+  // Since 4 Nov 2026 a kind is asked about THIS view (autoNoteShownIn, AUTO-NOTES-PER-VIEW-PLAN.md): a note can be
+  // shown in the waterfall only, or in the month view only, as a holiday can.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !(n.kind && !autoNoteKindShown(n.kind)) && (!n.holiday || holidayVisibleIn(n.hid, view))
+    return list.filter(n => !(n.kind && !autoNoteShownIn(n.kind, view)) && (!n.holiday || holidayVisibleIn(n.hid, view))
                             && !(n.phase && phaseHiddenIn(n.phase, view)));
   }
   function colLetter(n){
@@ -4562,8 +4564,21 @@ export function initLegacyApp() {
   //   2. a HANDOFF column -- its last occupant's final week is this phase's week before, or only
   //      all-phase hiatus weeks lie between (ruled Q5); on a tie, the column of the phase this one's
   //      "Start after" button names (PHASE_CHAIN, built-ins only), else the leftmost (ruled Q1);
-  //   3. the lowest free column;
+  //   3. a free column, preferring one ALREADY USED in the years this phase runs in (owner, 4 Nov 2026);
+  //      among equals, the lowest;
   //   4. a new column on the right.
+  //
+  // ⭐ WHY RULE 3 COUNTS YEARS (owner, 4 Nov 2026, "Fix both", SWAP-SPLIT-REUSE in HANDOFF). It used to be
+  // "the lowest free column", which reaches back to a column whose last occupant ended in an EARLIER year.
+  // In this phase's year that column is otherwise unused, so the year grew a column: measured on a copy of
+  // the owner's calendar, a second-season Post starting after every column was free took last season's
+  // Post column and gave its year 4 columns instead of 3. The frozen layout then drew two phases 2 wide,
+  // and the extra column sat exactly where Sim Post must land when Production swaps right, so Swap Column
+  // was refused and the arrow fell back to a part-column swap that split Writer's Rm across two columns.
+  // A year's column count is its number of distinct `col` values (frozen computeBlockLayout), so a column
+  // already used in the year adds none there. Every free column is tried and the one adding the fewest is
+  // taken; a tie keeps the old answer, the lowest. In Single Column there is one block, every placed
+  // column is in it, and this reduces to the lowest free column exactly as before.
   // Then Production's column is numbered 0 (ruled Q2). Frozen computeBlockLayout orders a year's
   // columns by first appearance and breaks ties on `col`, so this only decides which goes left when
   // two columns start a year together -- the shoot's.
@@ -4582,7 +4597,19 @@ export function initLegacyApp() {
       .map((seg, i)=>({seg, i}))
       .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
       .map(o=>o.seg);
-    const cols = [];              // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment }
+    // The year blocks a segment's week rows fall in -- frozen computeYearBlocks' rule (a row's Monday, UTC
+    // year), or the one block of Single Column. Read here, never by calling it: it needs the week list,
+    // which does not exist until after placement.
+    const segYears = s => {
+      if(singleColumn) return [0];
+      const y0 = new Date(firstRow(s)).getUTCFullYear();
+      const y1 = new Date(Math.max(firstRow(s), rowsEnd(s) - WEEK)).getUTCFullYear();
+      const out = [];
+      for(let y = y0; y <= y1; y++) out.push(y);
+      return out;
+    };
+    // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, years: the year blocks it is used in }
+    const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
     byStart.forEach(seg=>{
@@ -4612,12 +4639,20 @@ export function initLegacyApp() {
           const pc = pred ? segCol.get(placed.get(pred)) : -1;
           at = hand.indexOf(pc) >= 0 ? pc : hand[0];
         } else {
-          for(let i = 0; i < cols.length; i++) if(free(i)){ at = i; break; }
+          // Rule 3: the free column that adds the fewest columns to this phase's years; ties to the lowest.
+          const yrs = segYears(seg);
+          let best = Infinity;
+          for(let i = 0; i < cols.length; i++){
+            if(!free(i)) continue;
+            const adds = yrs.reduce((n, y) => n + (cols[i].years.has(y) ? 0 : 1), 0);
+            if(adds < best){ best = adds; at = i; }
+          }
         }
       }
-      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null }); }
+      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null, years:new Set() }); }
       cols[at].freeAt = rowsEnd(seg);
       cols[at].last = seg;
+      segYears(seg).forEach(y => cols[at].years.add(y));
       segCol.set(seg, at);
       placed.set(seg.key, seg);
     });
@@ -6576,9 +6611,46 @@ export function initLegacyApp() {
       const v = run.ok ? Object.assign(run, canSwapStint(run)) : run;
       if(v.ok) return v;
       const w = weekSwapEval(dir);
-      return (w && w.ok) ? w : (moveWhy || v);  // the BLOCK's reason when neither can move
+      if(!(w && w.ok)) return moveWhy || v;     // the BLOCK's reason when neither can move
+      const split = splitAfterWeekSwap(w);
+      if(split.length) markPartialSwap(w, split, moveWhy || v);
+      return w;
     }
     return weekSwapEval(dir);
+  }
+
+  // ⭐ A FALLBACK THAT SPLITS A PHASE IS MARKED BEFORE THE CLICK (owner, 4 Nov 2026: "how would a user know
+  // that was what they needed to turn off?"). After Swap Column, a refused block swap falls back to the
+  // per-week swap above, and the arrow used to look exactly like the whole-column one: only its tooltip
+  // named the weeks. Measured on a copy of the owner's calendar, it swapped Prod Prep's 14 weeks with the
+  // 14 Writer's Rm weeks beside them and left Writer's Rm's other 23 weeks where they were, so Writer's Rm
+  // sat in two columns. Now such a candidate is `partial`: the knob turns amber, the cells that will move
+  // are outlined (drawSwapLayer), and the label says which phase ends up in two columns and why the whole
+  // column can't move. ⛔ No chip (owner, 21 Oct 2026: a chip only for a refusal); the label is the tooltip.
+  // ⛔ Only in this fallback. A per-week selection made by hand is meant to split, and a fallback that
+  // RE-JOINS a phase (swapping a split one back) moves fewer weeks than were selected but is not marked:
+  // the test is where every cell ends up, not how many move.
+  //
+  // The phases a per-week run would leave in two columns of its year: one whose cells outside the run
+  // sit anywhere but where its run lands (the partner's column for the seed, and the other way round).
+  function splitAfterWeekSwap(run){
+    const first = run.weeks && run.weeks[0];
+    const mineTd = first && swapTdFor(first, run.phaseKey), theirTd = first && swapTdFor(first, run.partnerKey);
+    if(!mineTd || !theirTd) return [];
+    const lands = { [run.phaseKey]: +theirTd.dataset.own, [run.partnerKey]: +mineTd.dataset.own };
+    return [run.phaseKey, run.partnerKey].filter(k =>
+      stintTds(run.year, k).some(td => !run.weekSet.has(td.dataset.week) && +td.dataset.own !== lands[k]));
+  }
+  function markPartialSwap(run, split, whole){
+    run.partial = { split };
+    const names = joinNames(split.map(phaseLabelFor));
+    // The whole column's reason, as one more sentence. 'no-change' would read "Nothing would move", which
+    // is false here, so it says nothing.
+    const s = whole && whole.reason !== 'no-change' ? swapWhy(whole) : '';
+    const m = /^Can’t swap: (.*)$/.exec(s);
+    const why = !s ? '' : m ? ' The whole column can’t move: ' + m[1] : ' The whole column can’t move. ' + s;
+    run.label += '. Only these weeks move, so ' + names + (split.length > 1 ? ' end' : ' ends')
+               + ' up in two columns.' + why;
   }
 
   // The per-week candidate for one direction: the run walked from the seed, or, when the seed has none
@@ -6918,7 +6990,9 @@ export function initLegacyApp() {
       k.setAttribute('role', 'button');
       k.setAttribute('tabindex', '0');
       k.setAttribute('aria-label', run.label);
-      k.title = run.label + ' — click, or drag across the boundary';
+      // A partial label is whole sentences already (markPartialSwap), so the hint is one more.
+      k.title = run.label + (run.partial ? ' Click, or drag across the boundary.' : ' — click, or drag across the boundary');
+      if(run.partial) k.classList.add('is-partial');
       k.textContent = run.dir > 0 ? '›' : '‹';
       if(swapDrag && swapDrag.dir === run.dir) k.classList.add('dragging');
       layer.appendChild(k);
@@ -6997,6 +7071,12 @@ export function initLegacyApp() {
         });
         byWeek.forEach(list => selLayer.appendChild(swapRect('grid-swap-collateral', swapUnion(list))));
       }
+      // ⭐ A part-column swap (markPartialSwap) outlines exactly the cells it moves, both sides, on
+      // selection: with the whole column selected, the box shows how much of it stays behind.
+      eligible.filter(c => c.partial && c.weeks).forEach(c=>{
+        const boxes = swapRunBoxes(c.weeks, c.phaseKey, g).concat(swapRunBoxes(c.weeks, c.partnerKey, g));
+        if(boxes.length) selLayer.appendChild(swapRect('grid-swap-partial', swapUnion(boxes)));
+      });
     }
 
     // ONLY why a swap could not happen, after Alt+←/→, a knob click or a drop (owner, 21 Oct 2026:
@@ -8250,6 +8330,7 @@ export function initLegacyApp() {
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
     delete phaseEnds[k];     // ...and its Ends
     delete autoNotesOn[k + 'Start']; delete autoNotesOn[k + 'End'];   // ...and its automatic notes' ticks
+    delete autoNotesView[k + 'Start']; delete autoNotesView[k + 'End'];   // ...in either view (plan D3)
     ['Start', 'End'].forEach(e=>{ delete autoNoteNames[k + e]; delete autoNoteColors[k + e]; });   // ...names and colours
     // ⚠️ Custom keys are not renumbered when one is removed (a restore re-keys rows to the saved keys instead), so
     // no other phase's entry needs to move.
@@ -13765,12 +13846,23 @@ export function initLegacyApp() {
       // byte for byte -- which is every calendar in the monthprint gate.
       const overrideLines = new Set();
       list.forEach(n=> String(n.text || '').split('\n').forEach(l=>{ if(l.trim()) overrideLines.add(l.trim()); }));
+      // ⛔ FROZEN EDIT N1, owner-approved (picker, 2 Nov 2026, AUTO-NOTES-PER-VIEW-PLAN.md R2(a): "approve N1 and N2
+      // with the gate, hidden phases included"). M-13's rule above, widened from holidays to EVERY note the month view
+      // shows and the waterfall does not (autoNoteMonthOnly): an automatic note ticked for the month view only, and a
+      // phase hidden in the waterfall's notes. The waterfall editor opened on the waterfall's text, so a typed note
+      // never meant to remove these. For a holiday the test is exactly the one it replaces. Once, never twice.
       autoNotes
-        .filter(n => n.holiday && !holidayVisibleIn(n.hid, 'sheet'))
+        .filter(n => autoNoteMonthOnly(n))
         .filter(n => n.date ? isoOf(n.date) === iso : date.getUTCDay() === 1)
         .map(n => n.date ? `${n.label} ${fmtShort(n.date)}` : n.label)
         .filter(t => !overrideLines.has(t))
         .forEach(t => out.push(t));
+      // ⛔ FROZEN EDIT N2, owner-approved with N1: the typed note carries the waterfall's text word for word, so a line
+      // that IS one of the week's waterfall-only automatic lines (an automatic note unticked for the month view, or a
+      // holiday ticked for the waterfall and not the month) is left out here. A line the user changed no longer
+      // matches, so it is their note and shows in both views, as an edited note always has. With no waterfall-only
+      // note in the week the set is empty and nothing changes.
+      const wfOnly = wfOnlyAutoLines(schedule, weekIso);
       list.forEach(n=>{
         // A note's text may carry its own trailing date (the day picker stamps one in, and the
         // auto-notes are written that way too). That date is the truth about where the line
@@ -13787,6 +13879,7 @@ export function initLegacyApp() {
         // placed like an undated one, below. The \d{1,2} fix above would otherwise have made every such
         // line dated the 1st-9th vanish too (measured: "Delivery 7/7/26" sat on Mon 6/29 before it).
         String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
+          if(wfOnly.has(line.trim())) return;   // ⛔ FROZEN EDIT N2 (above)
           const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
           if(m){
             const yr = 2000 + parseInt(m[3],10);
@@ -16422,7 +16515,8 @@ export function initLegacyApp() {
         if(n) gone.add(n);
       });
       if(j !== a.length) return null;                                    // not just lines taken out
-      gone.forEach(n=>{ if(n.holiday) hideHolidayInWaterfall(n.hid); else switchOffAutoNote(n.kind); });
+      // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
+      gone.forEach(n=>{ if(n.holiday) hideHolidayInWaterfall(n.hid); else hideAutoNoteIn(n.kind, 'sheet'); });
     }
     if(!labels.size && !gone.size) return null;
     return {text: a.join('\n'),
@@ -17903,10 +17997,70 @@ export function initLegacyApp() {
     return AUTO_NOTE_PHASE_EDGES.concat(custom);
   }
   let autoNotesOn = {};
-  // Does this calendar show automatic notes of this kind? The one question both stores answer, asked by
-  // autoNotesForView() and by the card's boxes (reflectAutoNoteKinds), so the two cannot disagree.
+  // Does this calendar show automatic notes of this kind ANYWHERE? The question both stores answer. Since 4 Nov 2026
+  // the view is asked as well (autoNoteShownIn below), and this stays its first half.
   function autoNoteKindShown(kind){
     return autoNoteOptIn(kind) ? autoNotesOn[kind] === true : !autoNotesOff[kind];
+  }
+  // ⭐ AN AUTOMATIC NOTE SHOWN IN ONE VIEW ONLY (owner, 2 Nov 2026: "Can automatic notes be seperated like holidays so
+  // you can indepentenly show/hide them in the waterfall and month view"; AUTO-NOTES-PER-VIEW-PLAN.md, rulings R1-R4,
+  // defaults D1-D8). kind -> {sheet: false} or {month: false}: the ONE view that kind is not shown in, shaped like
+  // holidayView. On and off stay in autoNotesOff / autoNotesOn, so this holds only the split:
+  //   - both views ticked: "on" there, and no entry here;
+  //   - both unticked: "off" there, and no entry here;
+  //   - one ticked: "on" there, plus the entry naming the other view.
+  // So an older build, which never reads this, shows a split note in BOTH views rather than in neither (D1).
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesView`, a PERMANENT key (and its two view words), written only
+  // while some kind is split, sorted, so a calendar that never splits a note saves byte for byte as before. A kind
+  // word this build does not know is kept, as the other two stores keep theirs. Read only through autoNoteShownIn().
+  // Kind-keyed, not week-keyed, so the shift tools and grips have nothing to move.
+  let autoNotesView = {};
+  const AUTO_NOTE_VIEW_KIND = /^(?!(?:__proto__|constructor|prototype)$)[\w-]{1,64}$/;
+  // A stored entry as the app writes it, or null: a plain object holding exactly ONE of sheet / month, set to false.
+  // Anything else (both, neither, a true, an extra key) is dropped, and the note shows in both views (D1).
+  function cleanAutoNoteView(v){
+    if(!isPlainObj(v)) return null;
+    const keys = Object.keys(v);
+    if(keys.length !== 1 || (keys[0] !== 'sheet' && keys[0] !== 'month') || v[keys[0]] !== false) return null;
+    return {[keys[0]]: false};
+  }
+  // Does this calendar show automatic notes of this kind in this view ('sheet' | 'month')? Asked by
+  // autoNotesForView(), the one filter, so every reader in both views follows, and by the card's boxes
+  // (reflectAutoNoteKinds), so the two cannot disagree.
+  function autoNoteShownIn(kind, view){
+    if(!autoNoteKindShown(kind)) return false;
+    const v = Object.prototype.hasOwnProperty.call(autoNotesView, kind) ? autoNotesView[kind] : null;
+    return !(v && v[view] === false);
+  }
+  // Show a kind in exactly these views: the three stores written together, by D1's rule. The card's boxes, a hide
+  // (hideAutoNoteIn) and New all go through here, so no caller can leave the stores disagreeing.
+  function setAutoNoteViews(kind, sheet, month){
+    const any = !!(sheet || month);
+    if(autoNoteOptIn(kind)){ if(any) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
+    else if(any) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    if(sheet && !month) autoNotesView[kind] = {month: false};
+    else if(month && !sheet) autoNotesView[kind] = {sheet: false};
+    else delete autoNotesView[kind];
+  }
+  function autoNotesViewSnapshot(){
+    const o = {};
+    Object.keys(autoNotesView).sort().forEach(k=>{ o[k] = Object.assign({}, autoNotesView[k]); });
+    return o;
+  }
+  // N1's question (frozen notesForWaterfallDate, the override branch): is this note, from a list already filtered for
+  // the MONTH view, one the waterfall does not show? A holiday unticked for the waterfall (exactly M-13's old test, since
+  // a holiday has no kind and no phase), an automatic note shown in the month view only, or a note of a phase hidden in
+  // the waterfall (ruling R2(a): hidden phases included).
+  function autoNoteMonthOnly(n){ return autoNotesForView([n], 'sheet').length === 0; }
+  // N2's lines: a week's automatic notes the waterfall shows and the month view does not, as the lines every view
+  // writes. A waterfall note typed over the week opened on the waterfall's text, so it carries these word for word, and
+  // the month view must not draw them.
+  function wfOnlyAutoLines(schedule, weekIso){
+    const idx = ((schedule && schedule.weeks) || []).findIndex(w=> isoOf(w.date) === weekIso);
+    const list = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
+    if(!list.length) return new Set();
+    const month = new Set(autoNotesForView(list, 'month'));
+    return new Set(autoNotesForView(list, 'sheet').filter(n=> !month.has(n)).map(autoNoteLine));
   }
   // ⭐ AN AUTOMATIC NOTE'S OWN NAME AND COLOUR (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md, seven rulings
   // by picker). The holiday rename's twin: an automatic note is RENAMED and stays automatic -- on its own date, moving
@@ -17933,9 +18087,23 @@ export function initLegacyApp() {
   // with it, so a box ticked back on brings the standard wording. The card's box is put in step at once: the Settings
   // window may be open, and a stale box would write the wrong state on its next click.
   function switchOffAutoNote(kind){
-    if(autoNoteOptIn(kind)) delete autoNotesOn[kind]; else autoNotesOff[kind] = true;   // a custom phase's pair too
+    setAutoNoteViews(kind, false, false);   // off in both views: autoNotesOff / autoNotesOn, and no split left over
     delete autoNoteNames[kind]; delete autoNoteColors[kind];
     reflectAutoNoteKinds();
+  }
+  // ⭐ A DELETE HIDES AN AUTOMATIC NOTE FROM THE VIEW IT WAS DELETED IN (owner, 2 Nov 2026, ruling R4(a) of
+  // AUTO-NOTES-PER-VIEW-PLAN.md, which amends AUTO-NOTE-RENAME-PLAN.md rulings 4-6 for automatic notes): the
+  // waterfall's Delete key, a line taken out in its editor, a paste or drop over it, and the month view's Hide
+  // Auto-Note button (owner, 4 Nov 2026: "Hide Auto-Note" rather than "Delete Auto-Note"). Its other view keeps it,
+  // under its name and colour; ticking the box brings it back. A note the other view already hides is switched off,
+  // exactly as a delete always did (switchOffAutoNote: name and colour go with it). The holidays' twin is
+  // hideHolidayInWaterfall. Returns whether it was switched off altogether.
+  function hideAutoNoteIn(kind, view){
+    const other = view === 'sheet' ? 'month' : 'sheet';
+    if(!autoNoteShownIn(kind, other)){ switchOffAutoNote(kind); return true; }
+    setAutoNoteViews(kind, view === 'month', view === 'sheet');
+    reflectAutoNoteKinds();
+    return false;
   }
   // ...and a holiday's line deleted in the waterfall is HIDDEN THERE (ruling 6): the Holidays list's Waterfall box. It
   // stays in the month view and stays a day off, so no date moves.
@@ -17950,11 +18118,15 @@ export function initLegacyApp() {
     if(name) autoNoteNames[n.kind] = name; else delete autoNoteNames[n.kind];
     carryRenamedLine(n.date, oldLine, autoNoteLine({label: name || n.origLabel, date: n.date}));
   }
-  // Delete one automatic note (`n`, its note): switched off, and its line taken out of a waterfall note that carries it
-  // word for word (an edit that froze the week's lines), so it leaves the screen now. What is left of that note goes
-  // back to automatic when it is only the week's automatic text (saveNoteEdit's rule); its picked day stays.
+  // Delete one automatic note (`n`, its note) from the MONTH view, the only caller (its Auto Note editor's Hide
+  // Auto-Note button, or its name cleared): hidden there (ruling R4, hideAutoNoteIn). While the waterfall still shows it,
+  // that is all: a waterfall note carrying its line word for word keeps it, and frozen edit N2 keeps such a line out of
+  // the month view. Switched off altogether (the waterfall already hid it), its line is also taken out of a waterfall
+  // note that carries it word for word (an edit that froze the week's lines), so it leaves the screen now. What is left
+  // of that note goes back to automatic when it is only the week's automatic text (saveNoteEdit's rule); its picked
+  // day stays.
   function deleteAutoNote(n){
-    switchOffAutoNote(n.kind);
+    if(!hideAutoNoteIn(n.kind, 'month')) return;
     const wk = isoOf(mondayOf(n.date)), line = autoNoteLine(n), v = userNotes[wk];
     if(v === undefined) return;
     const drop = t => String(t || '').split('\n').filter(l => l.trim() !== line).join('\n').trim();
@@ -21243,26 +21415,34 @@ export function initLegacyApp() {
   // switch moved, so a caller outside wfNoteStep knows to run update().
   // ⭐ A month note the cell shows ("Show in waterfall", owner 4 Nov 2026, ruling R2) goes too: switched off for the
   // waterfall, kept in the month view, which is where it lives.
-  function wfClearNote(wk){
+  // `moving` (the note drag, wfNoteDragEnd): the note travels on as the user's own typed text, shown in BOTH views, so
+  // an automatic note it carried is switched off altogether rather than hidden from the waterfall: hidden only, the
+  // month view would show it twice, on its own day and as the moved copy (moveWfLine's rule, the month view's drag).
+  function wfClearNote(wk, moving){
     wfMonthLinesOff(wk);
-    const moved = wfClearOwnNote(wk);
+    const moved = wfClearOwnNote(wk, moving);
     delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
     return moved;
   }
   // The week's OWN lines only, emptied: its automatic lines switched off by what they are, its typed text gone. The note
   // editor's path when its box is left holding only month notes' lines (or nothing).
-  function wfClearOwnNote(wk){
-    const moved = wfSwitchOffLines(wk);
+  function wfClearOwnNote(wk, moving){
+    const moved = wfSwitchOffLines(wk, moving);
     saveNoteEdit(wk, '', sheetAutoNotesFor(wk), '');   // what is left: nothing, unless a line of no kind (none today)
     return moved;
   }
-  // The automatic lines a week's Notes cell shows, each taken out by what it is: an automatic note switched off (rulings
-  // 4-6), a holiday hidden from the waterfall only (it stays in the month view and stays a day off). True when one was.
-  function wfSwitchOffLines(wk){
+  // The automatic lines a week's Notes cell shows, each taken out by what it is: an automatic note hidden from the
+  // waterfall (rulings 4-6 as amended by AUTO-NOTES-PER-VIEW-PLAN.md R4: it stays in the month view while that view
+  // shows it, and is switched off when it does not), a holiday hidden from the waterfall only (it stays in the month
+  // view and stays a day off). True when one was.
+  function wfSwitchOffLines(wk, moving){
     let moved = false;
     sheetAutoNotesFor(wk).forEach(n=>{
       if(n.holiday && n.hid){ hideHolidayInWaterfall(n.hid); moved = true; }
-      else if(isKindNote(n)){ switchOffAutoNote(n.kind); moved = true; }
+      else if(isKindNote(n)){
+        if(moving) switchOffAutoNote(n.kind); else hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
+        moved = true;
+      }
     });
     return moved;
   }
@@ -21327,7 +21507,7 @@ export function initLegacyApp() {
   function wfNoteStep(fn){
     // The switches a Delete, a paste or a drop can move too (wfSwitchOffLines): when one did, update() draws, so every
     // view and the Settings boxes follow.
-    const switches = ()=> JSON.stringify([autoNotesOff, autoNotesOn, autoNoteNames, autoNoteColors, holidayView]);
+    const switches = ()=> JSON.stringify([autoNotesOff, autoNotesOn, autoNotesView, autoNoteNames, autoNoteColors, holidayView]);
     // dayNotes since 4 Nov 2026: a Delete, paste or drop can switch a month note off for the waterfall (wfMonthLinesOff).
     const sig = ()=> JSON.stringify([userNotes, noteColors, noteFontSize, textStyle.note, dayNotes]) + switches();
     const before = sig(), sw0 = switches();
@@ -21353,7 +21533,7 @@ export function initLegacyApp() {
   // ---- Clear, copy, cut, paste (the right-click menu's entry points too) ----
   function wfNotesClear(keys){
     const weeks = wfSelNoteWeeks(keys);
-    return weeks.length ? wfNoteStep(()=> weeks.forEach(wfClearNote)) : false;
+    return weeks.length ? wfNoteStep(()=> weeks.forEach(w => wfClearNote(w))) : false;
   }
   // The last copy, so pasting the same text back carries the look (Q2) even through navigator.clipboard, which
   // only reads plain text. Session UI: never saved.
@@ -21586,7 +21766,7 @@ export function initLegacyApp() {
       if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== items[i].text)) return;
     }
     wfNoteStep(()=>{
-      from.forEach(wfClearNote);
+      from.forEach(w => wfClearNote(w, true));
       to.forEach((w, i) => wfPutNote(w, items[i], true));
     });
     wfHighlightWeeks(to, to[from.indexOf(d.grab)]);
@@ -25713,89 +25893,148 @@ export function initLegacyApp() {
     setMvProdLabel(t.value);
   });
 
-  // The Automatic notes card (owner ruling 9; Sidebar.jsx's AutoNotesCard). Its boxes are plain, UNCONTROLLED
-  // checkboxes with NO id, named by data-autonote: React renders them once and the engine owns their state.
-  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry) -- or, for a kind that starts off
-  // (AUTO_NOTE_OPT_IN), autoNotesOn (absent = hidden, so unticking deletes it) -- then update() re-renders every
-  // view and banks ONE undo step through markDirty().
-  // A row's phase name (data-autonote-name) follows a name typed in the Phases tab, every phase's since 2 Nov 2026
-  // (owner: "if we renamed Production to "Shoot" that should reflect in the setting menu"). A name box holds the
-  // phase's own label until it is renamed, so that label, or an empty box, shows the card's own words
-  // (data-autonote-default): "Writer’s Room", never the grid's "Writer's Rm". The boxes' aria-labels follow too.
-  // Writer's Room's and Production's NOTES keep their own words ("Start Principal Photography"); only the row moves.
-  function reflectAutoNoteKinds(){
-    syncCustomAutoNoteRows();
-    document.querySelectorAll('input[data-autonote]').forEach(cb=>{
-      const on = autoNoteKindShown(cb.getAttribute('data-autonote'));
-      if(cb.checked !== on) cb.checked = on;
-    });
-    document.querySelectorAll('[data-autonote-name]').forEach(el=>{
-      const key = el.getAttribute('data-autonote-name');
-      const def = PHASES.find(p=> p.key === key);
-      const nameEl = document.getElementById('name-'+key);
-      const typed = nameEl ? nameEl.value.trim() : '';
-      const want = (typed && !(def && typed === def.label)) ? typed
-                 : (el.getAttribute('data-autonote-default') || (def && def.label) || '');
-      if(want && el.textContent !== want) el.textContent = want;
-      // The row's two boxes are the next two cells of the card's grid.
-      for(let cell = el.nextElementSibling, n = 0; cell && n < 2; cell = cell.nextElementSibling, n++){
-        const cb = cell.querySelector('input[data-autonote]');
-        const label = want + ' ' + ((cell.textContent || '').trim());
-        if(cb && cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
-      }
-    });
+  // ⭐ THE AUTOMATIC NOTES CARD (owner ruling 9, 20 Oct 2026; Sidebar.jsx's AutoNotesCard), PER VIEW since 4 Nov 2026
+  // (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"). Each phase's two notes ("Opens" / "Closes",
+  // "Begins" / "Ends", "Starts" / "Wraps") have a Waterfall box and a Month box, as the Holidays list has. Since
+  // 4 Nov 2026 the phase is ONE ROW (buildAutoNoteCard says how). Custom phases follow, in the Phases tab's order.
+  //   - ENGINE-DRAWN, all of it, into `.autonote-list`, which React renders EMPTY and never gives children: a custom
+  //     phase's rows come and go with the phases, which React does not know (#holiday-vis-list's arrangement).
+  //   - Plain, uncontrolled checkboxes with NO id (collectFieldValues() must never sweep them), named by
+  //     data-autonote (the kind word, permanent save format) and data-view ('sheet' | 'month'). Sheet first, so the
+  //     first box of a kind is its Waterfall box.
+  //   - REBUILT only when the custom phases come or go (an undo or a Load included), never under a click. Every
+  //     update() (reflectAutoNoteKinds) writes the ticks, the names and the aria-labels in place.
+  //   - A phase hidden in the waterfall (Phases tab) dims its Waterfall boxes and keeps their ticks (D2): hiding the
+  //     phase takes its notes out of the waterfall anyway, and unhiding brings the ticks back as they were.
+  //   - A phase's name follows a name typed in the Phases tab, every phase's since 2 Nov 2026 (owner: "if we renamed
+  //     Production to "Shoot" that should reflect in the setting menu"). A built-in's box holds its own label until it
+  //     is renamed, so that label, or an empty box, shows the card's words (data-autonote-default): "Writer’s Room",
+  //     never the grid's "Writer's Rm". Writer's Room's and Production's NOTES keep their own words ("Start Principal
+  //     Photography"); only the row moves. A custom phase with no name reads "Custom phase" (getAllPhaseDefs()'s own).
+  // ⛔ Function declarations, not consts: reflectAutoNoteKinds() can run from an update() before this line has been
+  // evaluated, and a const read then throws from the temporal dead zone (see isPlainObj's note).
+  function autoNoteCardPhases(){ return [
+    {key:'writersRoom',  name:'Writer’s Room', notes:[['writersRoomOpens', 'Opens'], ['writersRoomEnd', 'Closes']]},
+    {key:'prePrep',      name:'Pre-Prep',           notes:[['prePrepStart', 'Begins'], ['prePrepEnd', 'Ends']]},
+    {key:'prodPrep',     name:'Prod Prep',          notes:[['prodPrepStart', 'Begins'], ['prodPrepEnd', 'Ends']]},
+    {key:'production',   name:'Production',         notes:[['principalStart', 'Starts'], ['principalWrap', 'Wraps']]},
+    {key:'post',         name:'Post',               notes:[['postStart', 'Begins'], ['postEnd', 'Ends']]},
+    {key:'localization', name:'Localization',       notes:[['localizationStart', 'Begins'], ['localizationEnd', 'Ends']]},
+  ]; }
+  function autoNoteViewWord(view){ return view === 'sheet' ? 'Waterfall' : 'Month view'; }
+  function autoNoteCardRows(){
+    return autoNoteCardPhases().map(p=> Object.assign({custom: false}, p)).concat(customPhaseDefs.map(cp=> ({
+      key: cp.key, custom: true, name: 'Custom phase', notes: [[cp.key + 'Start', 'Begins'], [cp.key + 'End', 'Ends']]})));
   }
-  // A custom phase's rows (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md step 1): its name, then a Begins box and an
-  // Ends box, in the built-in rows' three columns. React renders `.autonote-custom` EMPTY at the end of the card's grid
-  // and never touches its children; it is display:contents, so these line up with the rows above. Rebuilt only when
-  // custom phases come or go (an undo or a Load included), never under a click; a rename only rewrites the name.
-  // Plain checkboxes with NO id, as the built-in rows' are, so collectFieldValues() never sweeps them; the delegated
-  // change listener below writes autoNotesOn for them like the nine.
-  function syncCustomAutoNoteRows(){
-    const host = document.querySelector('.autonote-custom');
-    if(!host) return;
-    const keys = customPhaseDefs.map(cp=> cp.key).join(',');
-    if(host.getAttribute('data-keys') !== keys){
-      host.textContent = '';
-      customPhaseDefs.forEach(cp=>{
-        const name = document.createElement('span');
-        name.className = 'autonote-name';
-        name.setAttribute('data-autonote-custom', cp.key);
-        host.appendChild(name);
-        [['Start', 'Begins'], ['End', 'Ends']].forEach(([end, word])=>{
-          const row = document.createElement('label');
-          row.className = 'autonote-row';
+  // A row's phase name as the card shows it.
+  function autoNoteRowName(r){
+    const nameEl = document.getElementById('name-' + r.key);
+    const typed = nameEl ? nameEl.value.trim() : '';
+    if(r.custom) return typed || 'Custom phase';
+    const def = PHASES.find(p=> p.key === r.key);
+    return (typed && !(def && typed === def.label)) ? typed : r.name;
+  }
+  // ⭐ ONE ROW PER PHASE since 4 Nov 2026 (owner, "go with b", option B of mockups/autonote-card.html, after "make
+  // this menu less ugly"): the grid is the phase's name, then Start | End under Waterfall, a gap, Start | End under
+  // Month. A third of the height of the grouped list it replaced. The note's own word ("Opens", "Wraps") is no longer
+  // printed: it is each box's tooltip and aria-label, and its data-autonote-word.
+  //   - Heading: three `.autonote-hd` (the name column's empty one, "Waterfall", "Month"; each view's spans its two
+  //     columns), then a row of `.autonote-sub` "Start" / "End". Gaps are `.autonote-gap`.
+  //   - Each phase is a `.autonote-row` (display:contents, so its cells sit in the card's grid and the row can still
+  //     shade on hover): `.autonote-namecell` holding `.autonote-name`, then the four `.autonote-cell`s in DOM order
+  //     sheet start, sheet end, month start, month end, so a kind's first box is still its Waterfall box.
+  //   - ⛔ `.autonote-name` itself stays one line box tall (the cell carries the padding and the rule):
+  //     autonotephases P1 fails a default name taller than 1.5 line-heights.
+  function buildAutoNoteCard(host){
+    const rows = autoNoteCardRows();
+    host.textContent = '';
+    const el = (tag, cls, text)=>{
+      const e = document.createElement(tag);
+      if(cls) e.className = cls;
+      if(text) e.textContent = text;
+      return e;
+    };
+    host.appendChild(el('span', 'autonote-hd autonote-hd-name'));
+    host.appendChild(el('span', 'autonote-hd', 'Waterfall'));
+    host.appendChild(el('span', 'autonote-gap'));
+    host.appendChild(el('span', 'autonote-hd', 'Month'));
+    host.appendChild(el('span'));
+    ['Start', 'End', '', 'Start', 'End'].forEach(w=> host.appendChild(w ? el('span', 'autonote-sub', w) : el('span', 'autonote-gap')));
+    rows.forEach(r=>{
+      const row = el('div', 'autonote-row');
+      const nameCell = el('span', 'autonote-namecell');
+      const name = el('span', 'autonote-name');
+      // Built-ins keep data-autonote-name (and the words to fall back to), custom phases data-autonote-custom, the
+      // hooks every view of this card has carried.
+      if(r.custom) name.setAttribute('data-autonote-custom', r.key);
+      else { name.setAttribute('data-autonote-name', r.key); name.setAttribute('data-autonote-default', r.name); }
+      nameCell.appendChild(name);
+      row.appendChild(nameCell);
+      ['sheet', 'month'].forEach((view, vi)=>{
+        if(vi) row.appendChild(el('span', 'autonote-gap'));
+        r.notes.forEach(([kind, word])=>{
+          const cell = el('span', 'autonote-cell');
           const cb = document.createElement('input');
           cb.type = 'checkbox';
-          cb.setAttribute('data-autonote', cp.key + end);
+          cb.setAttribute('data-autonote', kind);
+          cb.setAttribute('data-view', view);
+          cb.setAttribute('data-autonote-phase', r.key);
           cb.setAttribute('data-autonote-word', word);
-          const w = document.createElement('span');
-          w.textContent = word;
-          row.append(cb, w);
-          host.appendChild(row);
+          cell.appendChild(cb);
+          row.appendChild(cell);
         });
       });
-      host.setAttribute('data-keys', keys);
-    }
-    host.querySelectorAll('[data-autonote-custom]').forEach(el=>{
-      const key = el.getAttribute('data-autonote-custom');
-      const nameEl = document.getElementById('name-'+key);
-      const want = (nameEl && nameEl.value.trim()) || 'Custom phase';   // getAllPhaseDefs()'s own fallback
-      if(el.textContent !== want) el.textContent = want;
-      [key + 'Start', key + 'End'].forEach(kind=>{   // exact kinds: a prefix match would take custom10's for custom1's
-        const cb = host.querySelector('input[data-autonote="' + kind + '"]');
-        if(!cb) return;
-        const label = want + ' ' + cb.getAttribute('data-autonote-word');
-        if(cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
-      });
+      host.appendChild(row);
+    });
+    host.setAttribute('data-keys', customPhaseDefs.map(cp=> cp.key).join(','));
+  }
+  function reflectAutoNoteKinds(){
+    const host = document.querySelector('.autonote-list');
+    if(!host) return;
+    if(host.getAttribute('data-keys') !== customPhaseDefs.map(cp=> cp.key).join(',') || !host.querySelector('input[data-autonote]'))
+      buildAutoNoteCard(host);
+    const names = {}, colors = {};
+    autoNoteCardRows().forEach(r=>{ names[r.key] = autoNoteRowName(r); });
+    // Each phase's colour for the chip before its name (legacy.css, "THE LOOK", owner 4 Nov 2026), from
+    // getAllPhaseDefs(), so a recoloured or custom phase shows its own: the fill as --phase-color (.phase-row's
+    // variable) and the month bar's ink as --phase-ink, the chip's edge, because the fills alone are too pale to see.
+    const inks = {};
+    getAllPhaseDefs().forEach(d=>{ colors[d.key] = d.color || ''; inks[d.key] = d.textColor || ''; });
+    const setVar = (el, name, v)=>{
+      if(el.style.getPropertyValue(name) === v) return;
+      if(v) el.style.setProperty(name, v); else el.style.removeProperty(name);
+    };
+    host.querySelectorAll('[data-autonote-name], [data-autonote-custom]').forEach(el=>{
+      const key = el.getAttribute('data-autonote-name') || el.getAttribute('data-autonote-custom');
+      const want = names[key];
+      if(want && el.textContent !== want) el.textContent = want;
+      setVar(el, '--phase-color', colors[key] || '');
+      setVar(el, '--phase-ink', inks[key] || '');
+    });
+    host.querySelectorAll('input[data-autonote]').forEach(cb=>{
+      const kind = cb.getAttribute('data-autonote'), view = cb.getAttribute('data-view'), key = cb.getAttribute('data-autonote-phase');
+      const on = autoNoteShownIn(kind, view);
+      if(cb.checked !== on) cb.checked = on;
+      const hidden = view === 'sheet' && phaseHiddenIn(key, 'sheet');
+      if(cb.disabled !== hidden) cb.disabled = hidden;
+      if(cb.parentNode) cb.parentNode.classList.toggle('autonote-dim', hidden);
+      const label = names[key] + ' ' + cb.getAttribute('data-autonote-word') + ', ' + autoNoteViewWord(view);
+      if(cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      // The tooltip is the note itself, since the card prints only Start / End (one row per phase, 4 Nov 2026).
+      const title = hidden ? names[key] + ' is hidden in the waterfall (Phases tab), so its notes are too' : label;
+      if(cb.getAttribute('title') !== title) cb.setAttribute('title', title);
     });
   }
+  // A tick: that kind in that view, the other view as it stands (setAutoNoteViews, D1's rule: both unticked is off,
+  // both ticked is on with no split), then update() re-renders every view and banks ONE undo step through markDirty().
   document.addEventListener('change', e=>{
     const t = e.target;
     const kind = t && t.getAttribute && t.getAttribute('data-autonote');
     if(!kind || !SNAP_ID.test(kind)) return;
-    if(autoNoteOptIn(kind)){ if(t.checked) autoNotesOn[kind] = true; else delete autoNotesOn[kind]; }
-    else if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    const view = t.getAttribute('data-view');
+    if(view !== 'sheet' && view !== 'month') return;
+    setAutoNoteViews(kind, view === 'sheet' ? t.checked : autoNoteShownIn(kind, 'sheet'),
+                           view === 'month' ? t.checked : autoNoteShownIn(kind, 'month'));
     update();
   });
 
@@ -26718,6 +26957,7 @@ export function initLegacyApp() {
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
     autoNotesOn = {};           // ...except the phase starts and ends, which start off (27 Oct 2026)
+    autoNotesView = {};         // ...and every kind in both views or neither, none split (4 Nov 2026)
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -28033,6 +28273,10 @@ export function initLegacyApp() {
       // 27 Oct 2026: the automatic-note kinds that start off and are switched ON (the phase starts and ends).
       // ⛔ PERMANENT key and kind words. None ticked, the default, is an ABSENT key.
       ...(Object.keys(autoNotesOn).length ? {autoNotesOn: Object.assign({}, autoNotesOn)} : {}),
+      // 4 Nov 2026: an automatic note shown in ONE view only (AUTO-NOTES-PER-VIEW-PLAN.md D1): kind -> {sheet: false} or
+      // {month: false}, sorted. ⛔ PERMANENT key, kind words and view words. No note split, the default, is an ABSENT
+      // key, so such a calendar saves byte for byte as before.
+      ...(Object.keys(autoNotesView).length ? {autoNotesView: autoNotesViewSnapshot()} : {}),
       // 27 Oct 2026: every season ticked in Show info, ascending, when two or more are. ⛔ PERMANENT key. One season
       // lives in fields.byId['season-num'] alone, as it always did, so such a calendar saves byte for byte as before.
       ...(seasonsShown().length >= 2 ? {seasons: seasonsShown()} : {}),
@@ -28717,33 +28961,61 @@ export function initLegacyApp() {
   // after it"); everything earlier stays exactly where it is. Returns a short summary for the
   // caller to show, or null if there was nothing to shift. The day overrides travel by shoot-day
   // number -- see asShootDayMove above.
-  function shiftCalendar(weeks, fromIso){
-    return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso));
+  //
+  // `opts` (optional; every caller before 4 Nov 2026 passes none, and with none nothing below differs):
+  //   part -- {phases, fromWeek, toWeek}: the Shift tool's "Phase & before" / "Phase & after"
+  //           (ANCHOR-TO-DIRECTION-PLAN.md §2, owner's layout C, 4 Nov 2026). The CALLER decides, and the
+  //           engine obeys exactly:
+  //             * `phases` -- the keys of the phases that move. Every other phase stays, its own hiatus with it.
+  //               The Shift form works the set out once (shiftPlan), for its hint and for this, so the two
+  //               cannot disagree: the picked phase, every phase on the chosen side, and (owner, 4 Nov 2026:
+  //               "Overlaps move too") every phase that overlaps the picked one by a day.
+  //             * `fromWeek` / `toWeek` -- the window for everything WEEK-keyed (notes and what rides on them,
+  //               unlocked all-phase hiatuses, the calendar range); null = open on that side. It spans the
+  //               moving phases whole, so each takes its own notes and a hiatus inside it along: with one bound
+  //               at the picked phase's START, a 12-week shoot moved and left weeks 2-12 of its notes, and its
+  //               Christmas hiatus, on the old dates. A phase that stays but shares a week with one that moves
+  //               loses that week's notes to it: notes are keyed by week, not by phase (Shift From's old edge).
+  //           `fromIso` is ignored with `part`.
+  //   (`except` and `keepView`, the hiatus ripple's, are described just below, above shiftCalendarDates.)
+  //   ONE options object for all of them, never another positional argument.
+  function shiftCalendar(weeks, fromIso, opts){
+    return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
   }
-  // `opts` is the hiatus ripple's (HIATUS-RIPPLE-PLAN.md §3.3), and every other caller passes none:
-  //   except   -- the hiatus being edited, {kind:'all', row} or {kind:'phase', key}. It is held where the user put it,
-  //               as a locked row is: without this, the edited hiatus, which starts exactly on the cutoff, would be
-  //               moved by its own ripple. For a phase's own hiatus the phase that OWNS it is held too (the hiatus
-  //               pauses it, which is the point), and with it its own hiatus fields.
-  //   keepView -- leave the month view's cursor where it is. A shift moves it so the same content stays on screen;
-  //               a ripple is aimed at the hiatus, which did not move.
+  //   except   -- the hiatus ripple's (HIATUS-RIPPLE-PLAN.md §3.3): the hiatus being edited, {kind:'all', row} or
+  //               {kind:'phase', key}. It is held where the user put it, as a locked row is: without this, the edited
+  //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
+  //               the phase that OWNS it is held too (the hiatus pauses it, which is the point), and with it its own
+  //               hiatus fields. The ripple never passes `part`.
+  //   keepView -- the ripple's too: leave the month view's cursor where it is. A shift moves it so the same content
+  //               stays on screen; a ripple is aimed at the hiatus, which did not move.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
     const n = Math.round(Number(weeks) || 0);
     if(!n || Math.abs(n) > MAX_SHIFT_WEEKS) return null;
     const days = n * 7;
-    const fromDate = fromIso ? mondayOf(parseDateUTC(fromIso)) : null;
+    const part = opts.part || null;
+    const partPhases = part ? new Set(part.phases || []) : null;
+    const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
+    const fromDate = part ? weekOf(part.fromWeek) : (fromIso ? mondayOf(parseDateUTC(fromIso)) : null);
+    const toDate = part ? weekOf(part.toWeek) : null;
     // Whole-calendar shift -> everything is in range. Takes a cell key, which may carry a
     // "|<phase key>" suffix, so it compares on the week part only.
     const inRange = key => {
-      if(!fromDate) return true;
+      if(!fromDate && !toDate) return true;
       const d = parseDateUTC(splitWeekKey(key).iso);
-      return !!d && mondayOf(d) >= fromDate;
+      if(!d) return false;
+      const m = mondayOf(d);
+      return (!fromDate || m >= fromDate) && (!toDate || m <= toDate);
     };
+    // Step 1's test: with `part`, exactly its list; otherwise the phase's start against the cutoff, as always.
+    const phaseMoves = (key, startIso) => partPhases ? partPhases.has(key) : inRange(startIso);
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
+    // Phases with a start that stayed put (a Shift form part move, or a cutoff), for the result line.
+    let stayedPhases = 0;
     // Phases that stayed put. Their per-phase hiatus band stayed with them, so its label and
     // colour -- keyed "<week ISO>|<phase key>" -- must stay too. See step 3.
     const stayingPhases = new Set();
@@ -28751,8 +29023,11 @@ export function initLegacyApp() {
       const startEl = document.getElementById('start-' + p.key);
       // A phase moves as a unit: its own hiatus is part of its work, so it travels with the phase
       // rather than being judged against the cutoff separately.
-      if(!startEl || !startEl.value || !inRange(startEl.value)){ stayingPhases.add(p.key); return; }
-      if(except && except.kind === 'phase' && except.key === p.key){ stayingPhases.add(p.key); return; }
+      if(!startEl || !startEl.value || !phaseMoves(p.key, startEl.value)){
+        if(startEl && startEl.value) stayedPhases++;
+        stayingPhases.add(p.key); return;
+      }
+      if(except && except.kind === 'phase' && except.key === p.key){ stayedPhases++; stayingPhases.add(p.key); return; }
       // Through setPhaseStart(), so a Dates phase's end moves with it (CUSTOM-PHASE-UNITS-PLAN §8).
       const from = parseDateUTC(startEl.value);
       if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
@@ -28783,7 +29058,8 @@ export function initLegacyApp() {
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
     //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
-    //     is on or after the cutoff. Rebuild From never comes here, so it leaves them, as ruled.
+    //     is on or after the cutoff (on a Shift form part move, inside its week window).
+    //     Rebuild From never comes here, so it leaves them, as ruled.
     ['cal-range-start', 'cal-range-end'].forEach(id=>{
       const el = document.getElementById(id);
       if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, days);
@@ -28890,7 +29166,7 @@ export function initLegacyApp() {
     }).length;
 
     return {
-      weeks: n, movedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus,
+      weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus,
       productionWrap: productionWrapText()
     };
   }
@@ -30336,12 +30612,17 @@ export function initLegacyApp() {
   // The calendar tools: one button per tool on the preview toolbar, each opening its own small
   // popover. Replaces a single "Adjustment Tools" menu that stacked all of them -- which hid every
   // capability behind one unlabelled click and grew to 562px tall.
+  //
+  // ⭐ TWO TOOLS SINCE 4 Nov 2026 (owner: "Ok im going to vote we go with C, one master shift tool";
+  // ANCHOR-TO-DIRECTION-PLAN.md §6). Shift All's form, Shift From and Anchor To all ended in the same
+  // shiftCalendar() call and differed in two things only -- where the number of weeks comes from, and which
+  // phases move -- so they became ONE form, Shift, with two choices: What moves (All phases | Phase & before |
+  // Phase & after) and How far (By weeks | To a date). Shift keeps the gaps; Rebuild From closes them.
+  // `pop-ripple` / `pop-anchor` and Shift From's `tool-ripple-*` ids are gone; `tool-anchor-*` live on in the form.
   (function(){
     // Each entry pairs a trigger button with the popover it owns.
     const POPS = [
       {btn:'pop-shift-btn',  menu:'pop-shift'},
-      {btn:'pop-ripple-btn', menu:'pop-ripple'},
-      {btn:'pop-anchor-btn', menu:'pop-anchor'},
       {btn:'pop-solve-btn',  menu:'pop-solve'}
     ].map(p=>({btn:document.getElementById(p.btn), menu:document.getElementById(p.menu)}))
      .filter(p=>p.btn && p.menu);
@@ -30351,6 +30632,12 @@ export function initLegacyApp() {
     const solveMenu = document.getElementById('pop-solve');
     let solveDir = -1;
     let solveTicks = {};
+    // The Shift form's two choices. Session UI, never saved (no id, inside .tools-menu), and both reset to All
+    // phases, By weeks on EVERY opening (ruling R2(a)), so someone who never touches them gets exactly the old
+    // Shift All form. Declared up here because refreshMenuFromCalendar() and openPop() reach them.
+    const shiftMenu = document.getElementById('pop-shift');
+    let shiftMove = 'all';    // 'all' | 'before' | 'after'
+    let shiftFar = 'weeks';   // 'weeks' | 'date'
 
     // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
@@ -30483,11 +30770,13 @@ export function initLegacyApp() {
     }
     function refreshMenuFromCalendar(){
       const list = scheduledPhases();
-      fillPhaseSelect('tool-ripple-phase', list);
-      fillPhaseSelect('tool-anchor-phase', list, 'production', true); // the shoot is the usual anchor
+      // The Shift form's one phase list (Anchor To's, by id). The shoot is the usual pick. Whole schedule is
+      // in it only for All phases to a date: it has nothing before or after it, and By weeks needs no phase.
+      fillPhaseSelect('tool-anchor-phase', list, 'production', shiftOffersWhole());
       fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production');
       syncAnchorDate();
       syncSolveDate();
+      syncShiftForm();
       // The tick list quotes live dates too. Only while its popover is up: the preview runs the real
       // solvers, which is too much to spend on every other tool's refresh.
       if(solveMenu && solveMenu.classList.contains('open')) renderSolve();
@@ -30525,6 +30814,9 @@ export function initLegacyApp() {
       const wasOpen = target.menu.classList.contains('open');
       closeAllPops();
       if(wasOpen) return;
+      // R2(a): the Shift form opens on All phases, By weeks every time. Before the refresh, which fills the
+      // phase list for the choice in force.
+      if(target.menu === shiftMenu){ shiftMove = 'all'; shiftFar = 'weeks'; }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       // Ticks are forgotten between openings, so each one starts from the same defaults.
       if(target.menu === solveMenu){ solveTicks = {}; renderSolve(); }
@@ -30548,23 +30840,141 @@ export function initLegacyApp() {
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
 
-    document.getElementById('tool-anchor-phase').addEventListener('change', syncAnchorDate);
+    // The phase names the hint, so a new pick rewrites it.
+    document.getElementById('tool-anchor-phase').addEventListener('change', ()=>{ syncAnchorDate(); syncShiftForm(); });
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
 
-    // --- Shift All by N weeks (the toolbar arrows are the one-click 1-week case of this)
+    // ---------- The Shift form (ANCHOR-TO-DIRECTION-PLAN.md §6) ----------
+    const shiftOffersWhole = () => shiftMove === 'all' && shiftFar === 'date';
+    // What moves, as the action buttons read it. Whole schedule has nothing before or after it, so it is All
+    // phases whatever the buttons say (and it is only offered with All phases anyway).
+    const shiftMoveFor = key => (shiftMove === 'all' || key === ANCHOR_ALL) ? 'all' : shiftMove;
+    const phaseLabelOf = (sel, fallback) =>
+      ((sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0]) || fallback;
+    // "A", "A and B", "A, B and C".
+    const andList = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    // ⭐ WHAT A PART-CALENDAR MOVE TAKES, worked out ONCE, before anything moves, for the hint and for the move
+    //    (shiftCalendarDates' `part`), so the two can never disagree (plan §2):
+    //   * the picked phase;
+    //   * every phase on the chosen side, judged by its START week (Phase & after is the old Shift From's set);
+    //   * every phase that OVERLAPS the picked one, whichever side it starts on (owner, 4 Nov 2026, "Overlaps move
+    //     too", over keeping the start-week rule alone). Overlap is by DAY: the two share a working day
+    //     (phaseStartDate .. phaseLastWorkday, Production to its wrap), so back-to-back phases -- one ends Friday,
+    //     the next starts Monday -- do not count. NOT chained: a phase that overlaps only a moving neighbour stays.
+    //   * The week window for notes, unlocked hiatuses and the range spans the moving phases WHOLE: from the
+    //     earliest one's start week (Phase & after) or to the latest one's last week (Phase & before). So each
+    //     moving phase takes its own notes and a hiatus inside it along.
+    // Null when the picked phase has no start to judge from.
+    function shiftPlan(move, key){
+      const pStart = key && key !== ANCHOR_ALL ? phaseStartDate(key) : null;
+      if(!pStart) return null;
+      const segs = (currentSchedule && currentSchedule.segments) || [];
+      const lastOf = (k, start) => phaseLastWorkday(segs.find(s => s.key === k)) || start;
+      const pLast = lastOf(key, pStart);
+      const pWeek = mondayOf(pStart);
+      const rows = scheduledPhases().map(x => {
+        const last = lastOf(x.p.key, x.start);
+        const side = move === 'after' ? mondayOf(x.start) >= pWeek : mondayOf(x.start) <= pWeek;
+        const overlaps = x.start <= pLast && last >= pStart;
+        return {key: x.p.key, label: x.p.label || 'Phase', start: x.start, last,
+                moves: x.p.key === key || side || overlaps, overlap: x.p.key !== key && !side && overlaps};
+      });
+      const moving = rows.filter(r => r.moves);
+      if(!moving.length) moving.push({key, label: 'Phase', start: pStart, last: pLast});
+      const weeks = moving.map(r => (move === 'after' ? mondayOf(r.start) : mondayOf(r.last)).getTime());
+      const edge = isoOf(new Date(move === 'after' ? Math.min.apply(null, weeks) : Math.max.apply(null, weeks)));
+      return {
+        moving, staying: rows.filter(r => !r.moves), overlapping: rows.filter(r => r.overlap),
+        part: {phases: moving.map(r => r.key), fromWeek: move === 'after' ? edge : null, toWeek: move === 'before' ? edge : null}
+      };
+    }
+    // The hint under the phase: what stays put, the one fact that tells the three choices apart before anything
+    // moves, and which phases come along only because they overlap the picked one.
+    function shiftHintHtml(){
+      const sel = document.getElementById('tool-anchor-phase');
+      const key = sel ? sel.value : '';
+      const move = shiftMoveFor(key);
+      if(move === 'all') return 'Every phase moves by the same number of weeks.';
+      const plan = shiftPlan(move, key);
+      if(!plan) return '';
+      const name = escHtml(phaseLabelOf(sel, 'That phase'));
+      const over = plan.overlapping.map(r => escHtml(r.label));
+      const stay = plan.staying.map(r => escHtml(r.label));
+      let out = name + ' and the phases ' + move + ' it move';
+      if(over.length) out += ', and so ' + (over.length === 1 ? 'does ' : 'do ') + andList(over) + ', which overlap'
+        + (over.length === 1 ? 's' : '') + ' it';
+      out += '.';
+      if(!stay.length) return out + ' Every phase moves.';
+      return out + ' <b>' + andList(stay) + '</b> ' + (stay.length === 1 ? 'stays where it is.' : 'stay where they are.');
+    }
+    // The result line's tail for a part-calendar move (plan §1). All phases adds nothing, so its line is the old
+    // Shift All / Anchor To line word for word.
+    function moveTail(res, move, label, plan){
+      if(move === 'all' || !res) return '';
+      const over = (plan && plan.overlapping || []).map(r => r.label);
+      let out = ' ' + label + ' and everything ' + move + ' it moved (' + res.movedPhases
+        + ' phase' + (res.movedPhases === 1 ? '' : 's')
+        + (over.length ? ', including ' + andList(over) + ', which overlap' + (over.length === 1 ? 's' : '') + ' it' : '') + ').';
+      if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
+      return out;
+    }
+    // Reflect the two choices: which button is on, which rows show, and the hint. The phase row shows only when
+    // it is needed (owner's picker): All phases by weeks is the old Shift All form and needs none. That is the
+    // one case where switching (to To a date) makes a row appear ABOVE the control clicked -- ruled: keep it.
+    function syncShiftForm(){
+      if(!shiftMenu) return;
+      shiftMenu.querySelectorAll('[data-move]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === shiftMove)));
+      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
+      const phaseRow = shiftMenu.querySelector('[data-shift-phase-row]');
+      if(phaseRow) phaseRow.hidden = shiftMove === 'all' && shiftFar === 'weeks';
+      shiftMenu.querySelectorAll('[data-far-row]').forEach(r => { r.hidden = r.dataset.farRow !== shiftFar; });
+      const hint = shiftMenu.querySelector('[data-shift-hint]');
+      if(hint) hint.innerHTML = shiftHintHtml();
+    }
+    // A choice changed. Whole schedule comes and goes with All phases to a date, so the list is refilled; the date
+    // follows the phase only when the pick itself changed, so a date already typed survives a change of choice.
+    function setShiftChoice(move, far){
+      shiftMove = move; shiftFar = far;
+      const sel = document.getElementById('tool-anchor-phase');
+      const was = sel.value;
+      fillPhaseSelect('tool-anchor-phase', scheduledPhases(), 'production', shiftOffersWhole());
+      if(sel.value !== was) syncAnchorDate();
+      syncShiftForm();
+      say('');
+    }
+    if(shiftMenu){
+      shiftMenu.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(b.dataset.move, shiftFar)));
+      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(shiftMove, b.dataset.far)));
+    }
+    syncShiftForm();
+
+    // --- By weeks: Earlier / Later (the toolbar arrows are the one-click 1-week, All phases case of this).
+    //     Earlier and Later are directions of travel, not which side moves; What moves says that.
     function shiftBy(sign){
       const n = readWeeks('tool-shift-weeks');
       if(!n) return say('Enter a number of weeks.', true);
-      say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
+      const sel = document.getElementById('tool-anchor-phase');
+      const move = shiftMoveFor(sel.value);
+      // All phases: the old Shift All form -- the same call, the same result line.
+      if(move === 'all') return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
+      // Phase & after is the old Shift From; Phase & before its mirror.
+      if(!sel.value) return say('No phase selected.', true);
+      const label = phaseLabelOf(sel, 'That phase');
+      const plan = shiftPlan(move, sel.value);
+      if(!plan) return say(label + ' has no start date.', true);
+      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part}));
+      if(!res) return say('Nothing to shift.', true);
+      say(describeShift(res, moveTail(res, move, label, plan)));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
 
-    // --- Anchor: put one landmark -- the start or the end of any phase, or of the whole schedule
-    //     -- on a chosen date. Unlike the ripple below, this slides the WHOLE calendar so that
-    //     landmark lands there: the plan keeps its shape and every phase keeps its lead time, it
-    //     just sits somewhere else on the calendar.
+    // --- To a date: Go (Anchor To's, by id). Put one landmark -- the start or the end of any phase, or of
+    //     the whole schedule -- on a chosen date. With All phases this slides the WHOLE calendar so that
+    //     landmark lands there: the plan keeps its shape and every phase keeps its lead time, it just sits
+    //     somewhere else on the calendar. With Phase & before / Phase & after only that side moves, and the
+    //     gap on the other side of the picked phase opens or closes (plan §2).
     //
     //     The two edges round differently, and deliberately. A START is Monday-snapped like every
     //     start in this tool, so aligning it to the target's week lands it exactly. An END falls on
@@ -30590,39 +31000,21 @@ export function initLegacyApp() {
           ? label + ' already starts that week.'
           : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
       }
-      const res = asOneUndoStep(()=> shiftCalendar(delta));
+      const move = shiftMoveFor(key);
+      const plan = move === 'all' ? null : shiftPlan(move, key);
+      if(move !== 'all' && !plan) return say(label + ' has no start date to move.', true);
+      // All phases: the old Anchor To call, unchanged.
+      const res = asOneUndoStep(()=> move === 'all' ? shiftCalendar(delta) : shiftCalendar(delta, null, {part: plan.part}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
       // can even grow over one it now overlaps and finish past the date.
       const landed = landmarkDate(key, edge);
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
-        + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : ''));
+        + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
+        + moveTail(res, move, label, plan));
       say(out, overshot);
     });
-
-    // --- "Shift From": move one phase and everything after it, leaving earlier phases put.
-    //     Both directions move the same SET -- Earlier/Later is the direction of travel, not which
-    //     side of the calendar is affected -- so the gap in front of the chosen phase is what
-    //     stretches or shrinks.
-    function ripple(sign){
-      const sel = document.getElementById('tool-ripple-phase');
-      const key = sel.value;
-      if(!key) return say('No phase selected.', true);
-      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'that phase';
-      const n = readWeeks('tool-ripple-weeks');
-      if(!n) return say('Enter a number of weeks.', true);
-      const from = phaseStartDate(key);
-      if(!from) return say(label + ' has no start date.', true);
-      const res = asOneUndoStep(()=> shiftCalendar(sign * n, isoOf(mondayOf(from))));
-      if(!res) return say('Nothing to shift.', true);
-      // Name the phase it started from: the section header is deliberately terse, so the result
-      // line is where "from where?" gets answered.
-      say(describeShift(res, ' From ' + label + ' onward — '
-        + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'));
-    }
-    document.getElementById('tool-ripple-earlier').addEventListener('click', ()=> ripple(-1));
-    document.getElementById('tool-ripple-later').addEventListener('click', ()=> ripple(1));
 
     // --- Rebuild From: pin one phase's start, rebuild the TICKED phases on one side of it back to back.
     //
@@ -34697,8 +35089,8 @@ export function initLegacyApp() {
       return true;
     }
     if(kind === 'auto'){
-      // An automatic note's name and its month colour (see openMvNoteEditor). Cleared, or its Delete Auto-Note button,
-      // switches it off (deleteAutoNote). A rename or a delete changes the lines every view builds from
+      // An automatic note's name and its month colour (see openMvNoteEditor). Cleared, or its Hide Auto-Note button,
+      // hides it from the month view (deleteAutoNote, ruling R4). A rename or a hide changes the lines every view builds from
       // schedule.notesByIdx, so the commit recomputes (activeMvNote.renamed), as a holiday's rename does.
       const n = activeMvNote.auto;
       if(activeMvNote.deleteAuto || !text){ deleteAutoNote(n); activeMvNote.renamed = true; return true; }
@@ -34729,15 +35121,21 @@ export function initLegacyApp() {
       // any override), so nothing the user sees is lost. A holiday line the user CHANGED no longer
       // matches, and is kept as their own text. And a note opened and left unchanged is not written
       // at all: the day pin below would otherwise freeze an untouched auto-note into an override.
-      const monthOnly = new Set(weekAuto.filter(n => n.holiday && holidayVisibleIn(n.hid, 'month') && !holidayVisibleIn(n.hid, 'sheet'))
+      // ⭐ Since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md §4.4) every note the month view shows and the waterfall does
+      // not is left out the same way, not just a holiday: an automatic note ticked for the month view only, and a
+      // phase hidden in the waterfall's notes (autoNoteMonthOnly, frozen edit N1's own test).
+      const monthOnly = new Set(autoNotes.filter(n => autoNoteMonthOnly(n))
                                         .concat(monthOnlyNotesForWeek(weekKey))   // no waterfall row prints these at all
                                         .map(n => autoNotesText([n])));
+      const sheetAuto = autoNotesForView(weekAuto, 'sheet');
       // ⭐ "Show in waterfall" switched OFF (owner, 4 Nov 2026): the line leaves the week's waterfall note and stays here
       // as a note of this day's own -- the only way a note can be in the month view and not the waterfall. An emptied box
       // is just the delete below.
       if(activeMvNote.viewCb && !activeMvNote.viewCb.checked && text){
         wfLineToDayNote(weekKey, dayIso, text, weekAuto, monthOnly);
-        if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+        // The week's colour is the waterfall cell's fill too: it goes only when NEITHER view has text left (§4.4 of
+        // AUTO-NOTES-PER-VIEW-PLAN.md; a waterfall-only automatic line may still show in the waterfall).
+        if(!effectiveNoteText(weekKey, autoNotes) && !effectiveNoteText(weekKey, sheetAuto)) delete noteColors[weekKey];
         return true;
       }
       if(text !== String(activeMvNote.initialText || '').trim()){
@@ -34751,15 +35149,33 @@ export function initLegacyApp() {
           ls.splice(ln.index, 1, ...(text ? text.split('\n') : []));
           after = ls.join('\n').trim();
         }
-        const kept = after.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
-        saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), ln ? ln.pin : dayIso);
+        const kept = after.split('\n').filter(l => !monthOnly.has(l.trim()));
+        // ...and the reverse (§4.4): a week the waterfall shows a line in that the month view does not (an automatic
+        // note ticked for the waterfall only) opened here WITHOUT that line, when no note was typed over the week, so
+        // saving would take it out of the waterfall. Each is put back where the waterfall's text had it. Only a line
+        // the waterfall's text still shows, so one a typed note deliberately dropped stays dropped.
+        const wfOnly = wfOnlyAutoLines(currentSchedule, weekKey);
+        if(wfOnly.size){
+          const sheetLines = effectiveNoteText(weekKey, sheetAuto).split('\n').map(l => l.trim()).filter(Boolean);
+          const has = l => kept.some(k => k.trim() === l);
+          sheetLines.forEach((l, i)=>{
+            if(!wfOnly.has(l) || has(l)) return;
+            // After the nearest line above it in the waterfall's text that the saved text keeps, else first.
+            let at = 0;
+            for(let j = i - 1; j >= 0; j--){ const k = kept.findIndex(x => x.trim() === sheetLines[j]); if(k >= 0){ at = k + 1; break; } }
+            kept.splice(at, 0, l);
+          });
+        }
+        saveNoteEdit(weekKey, kept.join('\n').trim(), sheetAuto, ln ? ln.pin : dayIso);
         carryWfLineStyles(before, after);
       }
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
       }
-      if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+      // The week's colour is the waterfall cell's fill as well, so it goes only when NEITHER view has text left: a week
+      // whose month lines are gone may still show a waterfall-only line in the waterfall (§4.4).
+      if(!effectiveNoteText(weekKey, autoNotes) && !effectiveNoteText(weekKey, sheetAuto)) delete noteColors[weekKey];
     } else {
       // Day notes are a LIST: editing one note touches only that note, adding creates a new
       // entry, and committing empty text removes the note -- and with it its highlight.
@@ -34968,8 +35384,9 @@ export function initLegacyApp() {
     // ⭐ ...AND SO DOES AN AUTOMATIC NOTE (owner, 30 Oct 2026: "Auto notes are labelled as "Auto Note" in the popup
     // when you go to edit it and allow you to edit the name of it, without affecting its date and ability to move
     // automatically"; AUTO-NOTE-RENAME-PLAN.md). It edits the note's NAME (autoNoteNames) and its own month colour
-    // (autoNoteColors), and it stays automatic. Clearing it, or its Delete Auto-Note button, switches it off
-    // (rulings 4 and 5). It used to open as a waterfall line, and any edit froze it into typed text on its week.
+    // (autoNoteColors), and it stays automatic. Clearing it, or its Hide Auto-Note button, hides it from the month view
+    // (rulings 4 and 5, as amended by AUTO-NOTES-PER-VIEW-PLAN.md R4; the button read "Delete Auto-Note" until the owner
+    // renamed it, 4 Nov 2026). It used to open as a waterfall line, and any edit froze it into typed text on its week.
     const autoNote = (kind === 'wf' && !holiday && currentSchedule) ? mvAutoLineInfo(currentSchedule, dayIso, said) : null;
     if(autoNote) kind = 'auto';
     const isWf = (kind === 'wf'), isHol = (kind === 'holiday'), isAuto = (kind === 'auto');
@@ -35034,15 +35451,16 @@ export function initLegacyApp() {
     const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     // A holiday's editor says what it is and what saving does: the NAME, wherever the holiday shows. Its date is in
     // the heading (it is the holiday's, not text to edit), and an empty box says what clearing it brings back.
-    // An automatic note's says the same of its name, and offers its delete as a button, because deleting one switches
-    // it off for the whole calendar and the button says where it comes back (ruling 5). Its date is the note's own.
+    // An automatic note's says the same of its name, and offers its hide as a button, which says where it comes back
+    // (ruling 5). Since 4 Nov 2026 it hides the note from the month view only (R4); the waterfall keeps it while its
+    // Waterfall box is ticked. Its date is the note's own.
     const autoStd = (isAuto && autoNote.label !== autoNote.origLabel)
       ? ` \u00b7 Standard name: \u201c${escHtml(autoNote.origLabel)}\u201d` : '';
     pop.innerHTML = isAuto
       ? `<div class="mv-note-pop-day">${fmtShort(autoNote.date)} \u00b7 Auto Note</div>
-      <textarea rows="2" placeholder="Clear to delete this auto note">${curText.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="2" placeholder="Clear to hide this auto note">${curText.replace(/</g,'&lt;')}</textarea>
       ${notePaletteRowsHtml(curColor)}
-      <button type="button" class="note-pop-delete" title="Removes it from every view and export. Tick it in Settings \u25b8 Automatic notes to bring it back.">Delete Auto-Note</button>
+      <button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings \u25b8 Automatic notes to bring it back.">Hide Auto-Note</button>
       <div class="mv-note-pop-hint">Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 Colour is for the month view${autoStd} \u00b7 Enter to save \u00b7 Esc to cancel</div>`
       : isHol
       ? `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))} \u00b7 Holiday</div>
@@ -35137,7 +35555,7 @@ export function initLegacyApp() {
     // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>e.preventDefault());
-    // Delete Auto-Note: what clearing the box does (ruling 4), as one click.
+    // Hide Auto-Note: what clearing the box does (ruling 4, R4), as one click. Its class keeps the old word.
     const delBtn = pop.querySelector('.note-pop-delete');
     if(delBtn){
       delBtn.addEventListener('mousedown', e=>e.preventDefault());
@@ -35410,7 +35828,7 @@ export function initLegacyApp() {
               noteColors0: Object.assign({}, noteColors),
               // ...and the automatic notes' switches, names and colours: an automatic note dragged to another day is
               // switched off (moveWfLine), and every redraw starts from the press.
-              autoOff0: deep(autoNotesOff), autoOn0: deep(autoNotesOn), autoNames0: deep(autoNoteNames), autoColors0: deep(autoNoteColors),
+              autoOff0: deep(autoNotesOff), autoOn0: deep(autoNotesOn), autoView0: deep(autoNotesView), autoNames0: deep(autoNoteNames), autoColors0: deep(autoNoteColors),
               // The current redraw's own notes per day, by where each stood at the press ('me' = the dragged one).
               perm: {}, key: null, redrawn: false, sig0: gridSig()};
       const t0 = target(p.x0, p.y0, r.top + r.height / 2);
@@ -35424,7 +35842,7 @@ export function initLegacyApp() {
       refill(userNotes, d.userNotes0);
       mvWfNotePlace = deep(d.place0);
       noteColors = Object.assign({}, d.noteColors0);
-      autoNotesOff = deep(d.autoOff0); autoNotesOn = deep(d.autoOn0); autoNoteNames = deep(d.autoNames0); autoNoteColors = deep(d.autoColors0);
+      autoNotesOff = deep(d.autoOff0); autoNotesOn = deep(d.autoOn0); autoNotesView = deep(d.autoView0); autoNoteNames = deep(d.autoNames0); autoNoteColors = deep(d.autoColors0);
       reflectAutoNoteKinds();
       d.perm = {};
       d.at = Object.assign({}, d.base);
@@ -36338,6 +36756,10 @@ export function initLegacyApp() {
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     // ...and the kinds that start off, switched on (27 Oct 2026): the same rule, unknown kind words kept.
     setMap('autoNotesOn', v => v === true ? true : undefined, SNAP_ID);
+    // ...and the kinds shown in one view only (4 Nov 2026): an entry is exactly {sheet: false} or {month: false}, and
+    // anything else is dropped (the note then shows in both views, D1). Unknown kind words kept; a key that names an
+    // object's own machinery (__proto__) is dropped, since this map's values are objects.
+    setMap('autoNotesView', v => cleanAutoNoteView(v) || undefined, AUTO_NOTE_VIEW_KIND);
     // The seasons ticked in Show info (27 Oct 2026): whole numbers 1-10, once each, ascending, at least two. The app
     // never writes anything else, so anything else is dropped and counted, and a list left with one is dropped
     // whole (fields.byId's season-num already says that one).
@@ -36877,6 +37299,14 @@ export function initLegacyApp() {
     autoNotesOn = {};
     if(isPlainObj(snap.autoNotesOn))
       Object.keys(snap.autoNotesOn).forEach(k=>{ if(snap.autoNotesOn[k] === true) autoNotesOn[k] = true; });
+    // ⛔ UNCONDITIONAL as well: a file with no key splits no note, every kind shown in both views or neither -- never
+    // the previous file's choices.
+    autoNotesView = {};
+    if(isPlainObj(snap.autoNotesView))
+      Object.keys(snap.autoNotesView).forEach(k=>{
+        const v = AUTO_NOTE_VIEW_KIND.test(k) ? cleanAutoNoteView(snap.autoNotesView[k]) : null;
+        if(v) autoNotesView[k] = v;
+      });
     // ⛔ UNCONDITIONAL: a file with no `seasons` key has the one season in its Season field (or none) -- never the
     // previous file's ticks. Runs after step 3 replayed fields.byId. A list that does not start with that field's
     // season (a file edited by hand) wins, and the field takes its first, so the two cannot disagree.

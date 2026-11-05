@@ -181,7 +181,8 @@ window.addEventListener('load', function () { (async function () {
             && out.movers.shift.post === '2027-04-08' && out.movers.shift.postEnd === '2027-05-19', 'Shift All +1 wk moves BOTH ends of each built-in Dates phase');
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
-      $('pop-anchor-btn').click(); await T.sleep(150);
+      // Anchor To is the Shift form's To a date since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6), on All phases.
+      $('pop-shift-btn').click(); await T.sleep(150); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
       T.set('tool-anchor-phase', 'post'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-04-15');
       $('tool-anchor-go').click(); await settle();
       out.movers.anchor = dates();

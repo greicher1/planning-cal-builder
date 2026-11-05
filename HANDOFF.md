@@ -4,6 +4,272 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
+- **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
+  even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
+  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, and
+  *"mockup a few version of this idea with the arrows in differnt places"*.
+- **Answer given:** yes, modestly, built on a "just this phase" mover. The month view already moves one phase (body
+  drag); the waterfall has nothing like it.
+- **The mockup:** six layouts, A to F (centred above and below the box: the owner's; above and below at the right;
+  inside the box; beside it; on the Starts line; on the coloured header, which still works on a folded card). Checked
+  in the pane: one click moves one phase a week, a burst shows "Pulled 3 wks", Alt+↑/↓ works, Month hides every arrow.
+- **Waiting on the owner:** D1–D7 (plan §7). Recommended: ▲ = earlier, layout A, shown on pointing at the card, a
+  burst = one undo, keep the label, waterfall only, and make the month drag carry the same things.
+- ⚠️ **Found while reading (not run):** the month body drag (`installMonthPillDrag`) writes `setPhaseStart` only. The
+  phase's own hiatus and its `<week>|<key>` stores (`cellSpans`, `gridColSwaps`, `textStyle.phase`, band names and
+  colours) stay behind, though every Shift tool carries them. Plan §5.
+- ⚠️ **No "just this phase" mode exists in `shiftCalendarDates`** (its `inRange` is a date cutoff). The plan adds
+  `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
+  so whichever is built first should shape it for both.
+
+### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
+- **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
+  (app.js), the card's block in `legacy.css`, a comment in `Sidebar.jsx`, and three leg checks.
+- **The mockups:** [`mockups/autonote-card.html`](mockups/autonote-card.html), today's card plus A (the same list
+  tidied: one heading rule, hairlines, colour chips; built first, then replaced), B (one row per phase) and C (two
+  labelled pills per note). Live shared ticks and a 303 / 247 px width switch. **The owner picked B.**
+- **B as built:** a six-column grid, name | Start End (Waterfall) | 8 px gap | Start End (Month).
+  - Heading: three `.autonote-hd` ('', Waterfall, Month; each view spans two columns with its own rule), then four
+    `.autonote-sub` (Start, End, Start, End).
+  - Each phase is a `.autonote-row` (display:contents, so the row still takes :hover and shades gray-0): a
+    `.autonote-namecell` holding `.autonote-name`, then four `.autonote-cell`s in DOM order sheet start, sheet end,
+    month start, month end (a kind's first box is still its Waterfall box).
+  - The phase's colour is a chip (`::before`) from `--phase-color` / `--phase-ink`, which `reflectAutoNoteKinds`
+    writes from `getAllPhaseDefs()` (fill, and the month bar's ink for the edge, because the pastels alone barely show).
+  - The note's word is no longer printed: it is each box's `title` (the aria-label's text, "Writer’s Room Opens,
+    Waterfall"; the hidden-phase message replaces it while the phase is hidden) and still its `data-autonote-word`.
+- ⛔ **Widths are measured, keep them:** a narrow window's card leaves the grid 221 px. At 27 px box columns the
+  name column is 105 px, and 85 of that is text room; "Writer’s Room" is 81.4 px. At 28 px it wrapped, and
+  autonotephases P1 fails a wrapped default name. The padding and rule live on `.autonote-namecell`, never on
+  `.autonote-name`, for the same check.
+- **Legs updated for the new markup:** autonotekinds A1 (label = the row's name + the box's word), autonotephases
+  P1 (rows, words from the Waterfall boxes, the Start/End sub-heading, four boxes per row in order) and C0 (the custom
+  row's words from its boxes).
+- ⚠️ **That push carried the 14 commits waiting on `main`** (owner's push picker named them): the swap-split-reuse
+  merge `c5fd2ce` and the Anchor To plan. So **the Swap Column fix is LIVE too**, at `e5e4435`. Its own entry below
+  listed a targeted swap/reuse run on the merged build as the step before pushing; that run had not been reported
+  when it went out, so it is now a post-push check. Its session was told; its tracker card is at live with that note.
+- **Verified:** browser pane at 247 and 303 px (names on one line, row hover, a tick taking and surviving the
+  redraw); `npm run check` 40/40; on `dist/` (port 8517) every leg that reads the card: autonotekinds 16/16,
+  autonotephases 27/27, prepreptitle 7/7, autonote (v1.3.0-saved) 9/9, autonoterename 24/24, autonoteview 18/18,
+  settingswin 21/21, phasesui (hidewf) 8/8. No full gate (chrome only; the owner's rule for chrome CSS).
+  ⚠️ P1's one-line check runs at a **351 px** card in headless Chrome, so the 247 px fit is proven only by the pane
+  measurement above, not by a leg.
+
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+- **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
+  (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
+  collumns fixed it! But how would a user know that was what they needed to turn off?"*
+- **Reproduced** in the browser pane on a copy of the owner's phase setup, kept in the scratchpad (never in the repo,
+  per the confidentiality rule): Writer's Rm, Pre-Prep, Prod Prep, Production with Sim Post (offset 0), last year's
+  Post, and a second Post that starts after every column is free, with a two-week all-phase hiatus.
+- **Cause, in three steps:**
+  1. Reuse on: `placeSegmentsReusingColumns` step 3 ("the lowest free column") puts the second Post in the column the
+     FIRST Post used the year before. In the new year, that column is otherwise unused, so the year gets a 4th column.
+     The frozen layout then draws two phases 2 wide in the weeks where only two run. Reuse off puts it in a column
+     already in that year: 3 columns.
+  2. The block swap moves Prod Prep + Production (they share a column) to the right, and the glued Sim Post must land
+     at Production + 1, in the 4th column, where the second Post sits. `canSwapStint` refuses.
+  3. `swapEvalDir`'s 2 Nov fallback then offers the per-week swap of the shared weeks. The arrow looks the same; only
+     its tooltip ("Swap Prep with Writers (<the shared weeks>)" vs "Swap the <year> block of…") tells them apart.
+- **Proof** (knob tooltips read in the pane): reuse on → per-week only; reuse on with the second Post removed → the
+  block swap ("…(Production moves with it)"); reuse off → the default layout already has Writer's Rm on the left for
+  the year, so "fixed it" meant no swap was needed. The partial-swap arrow is still there with reuse off.
+- **Owner's answer: "Fix both".** Built (no frozen code, no save-format change):
+  1. **Reuse rule 3** (`placeSegmentsReusingColumns`): every free column is scored by how many of the phase's year
+     blocks it is NOT yet used in (`segYears`, frozen `computeYearBlocks`' rule: a row's Monday, UTC year; one block
+     in Single Column), and the lowest score wins; a tie keeps the old answer, the lowest index. `cols[i].years` is
+     filled on every placement. ⚠️ A reuse-ON calendar can lay out with one column fewer in such a year, so its
+     screen and every export move. Reuse OFF is the untouched old code path. COLUMN-REUSE-PLAN.md §3 rule 5 updated.
+  2. **The marked fallback** (`swapEvalDir` → `splitAfterWeekSwap` + `markPartialSwap`): only in the stint branch's
+     per-week fallback, and only when the run would leave the seed or the partner in two columns of the year (cells
+     outside the run at any slot but where its run lands). Then `run.partial`, the knob gets `.is-partial` (amber
+     `#B9791A`), `drawSwapLayer` draws `.grid-swap-partial` (dashed amber) round exactly the cells that move, and
+     the label gains "Only these weeks move, so X ends up in two columns." plus the block's refusal
+     (`swapWhy`, "Can’t swap: " stripped; nothing for 'no-change'). ⛔ No chip (21 Oct ruling). A swap BACK that
+     re-joins a phase is not marked (the test is where cells end up, not how many move); a hand-made per-week
+     selection never is. Help text: one sentence in the column-swap paragraph.
+- **Proof** (worktree `dist/`; the pre-fix build staged as `dist/pre.html`, ignored):
+  - new leg `swapsplitreuse` **5/5** on new fixture `swapsplit-reuse` (made up: 2033–34, generic names, reuse on);
+    on `pre.html` red in S1 (4 slots), S2 (the part-column arrow) and S3 (Writers left in slots 0 and 2), exactly the
+    owner's screenshots. In `gate.sh`'s generic list after `colswappartial`.
+  - `colswappartial` **8/8** on both fixtures, its labels updated: P1/P4 now expect the amber knob, the box covering
+    the four shared weeks both columns, and the new sentences; P3 the swap back unmarked; P5 a hand selection
+    unmarked.
+  - In the browser pane (pane hidden, viewport emulated, events dispatched as the legs do): amber knob, dashed box
+    on the four shared weeks, tooltip as above.
+  - `npm run check` 40/40.
+  - **Swap/reuse mini-gate, 300 PASS / 0 FAIL** (gate.sh's own sections, port 8798): colswap, colswapgate,
+    colswapmove, colswapmid, colswapstale, the ten stint legs, onecol, colreuse (live and fixture), notescols and
+    hdrfit on `colreuse`, then noswapbtns, colswappartial ×2, swapsplitreuse, colswapcache, simpostbeside,
+    monthmap (colreuse).
+- ✅ **Full gate (owner, *"Run the gate"*), port 8253, alone on the machine: 3,896 PASS / 3 FAIL, every baseline
+  identical** (gates 2, 10 and 13 included). The three are contention flakes already on record, and each is green
+  re-run alone on the same build as `gate.sh` runs it: `monthexport (month-lanecap)` X6 (the timed dialog case) 9/9,
+  `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
+  No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
+- ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
+- ✅ **LIVE at `e5e4435`** (4 Nov 2026, 17:39), pushed with the Automatic notes card (see that entry above for the
+  run that had not been reported).
+
+
+### 🔨 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there). NOT merged, NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+
+**As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
+- **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,
+  still inside `asShootDayMove`. `opts.part = {phases, fromWeek, toWeek}`:
+  - exactly the listed phases move (`phaseMoves`);
+  - everything week-keyed (`inRange`: notes, row heights, note styles, unlocked all-phase hiatuses, the calendar
+    range) moves inside the week window, with null meaning open;
+  - `fromIso` is ignored with `part`. With no `part`, both tests are the old ones, so every other caller is
+    untouched.
+  - ⚠️ First built as `opts.before = {phaseIso, weekIso}`, a start-week bound for phases and the picked phase's last
+    week for notes. It became `part` when the owner ruled **"Overlaps move too"** (below), because an overlapping phase
+    can't be expressed as one date bound.
+  - ⭐ **`part` already IS the "just this phase" mover** that `PHASE-WEEK-ARROWS-PLAN.md` (the entry at the top) planned
+    as `{onlyPhase}`: pass `{phases: [key]}` with whatever week window that plan rules. Week bounds of the phase's own
+    start and last week carry its notes; null bounds on both sides carry every note; a window that matches nothing
+    carries none. Its plan says whichever is built first shapes the option for both. Build the arrows on `part`, not
+    a second option.
+  - The result gains `stayedPhases`, for the result line.
+  - `opts = opts || {}` heads the function, the same shape `hiatus-ripple` uses for its `except` / `keepView`.
+    ⚠️ That branch had NOT landed on `origin/main` when this was built (its engine edit was uncommitted in its worktree).
+    Whichever lands second merges the two hunks: the same first line, separate `if`s.
+- **Toolbar** (`PreviewToolbar.jsx`): the middle button reads **Shift ▾** (title *"Shift the calendar by a number of
+  weeks or to a date"*). The Shift From and Anchor To buttons and popovers are gone.
+  - `#pop-shift` is 340 px. Top to bottom: caption What moves, `All phases | Phase & before | Phase & after`
+    (`data-move`, no id), the phase row (`#tool-anchor-phase` alone), the hint (`data-shift-hint`), caption How far,
+    `By weeks | To a date` (`data-far`), then `[n] wks Earlier Later` (`tool-shift-*`) or
+    `[starts on/ends by] [date] Go` (`tool-anchor-*`).
+  - The choices wear Rebuild From's `.solve-dir` look (`.tools-seg`). Rows hide through `hidden`, which needed
+    `#pop-shift [hidden]{display:none}`, because `.tools-row`'s own `display:flex` beat the UA rule.
+  - Measured in the pane: 223 px as it opens, 273 px with Phase & before To a date.
+- **Handlers:** Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for itself.
+  All phases is the OLD call (`shiftCalendar(n)`) and the old result line, word for word.
+  - ⭐ **`shiftPlan(move, key)` works out a part move ONCE**, for the hint and for `part`:
+    - the picked phase;
+    - every phase whose start week is on the chosen side;
+    - every phase that **overlaps** the picked one by a working day (`phaseStartDate` .. `phaseLastWorkday`;
+      Production to its wrap), whichever side it starts on;
+    - the window, from the moving phases' earliest start week (after) or to their latest last week (before).
+  - **The overlap rule is the owner's** (4 Nov 2026, picker: *"Overlaps move too"*, over *"Keep start-week rule
+    (Recommended)"*). **My calls:** overlap is by DAY, so back-to-back Friday/Monday phases don't count; and it is NOT
+    chained (a phase overlapping only a moving neighbour stays).
+  - With nothing overlapping, Phase & after = the old Shift From (`calrange`, `overrides`, `rowheight` unchanged).
+  - ⚠️ **A consequence worth knowing:** a phase overlapping by two days pulls the whole of it along. On the test
+    calendar, Phase & after Post moves the entire shoot, because it wraps Tue 11/3 and Post starts Mon 11/2. The
+    hint says so before anything moves (*"…and so does Production, which overlaps it"*). Typing Post's start in the
+    sidebar still moves Post alone.
+  - `openPop` resets the form to All phases, By weeks before refreshing (R2(a)). The edge select (starts on / ends
+    by) and the picked phase persist between openings, as Anchor To's did.
+  - Whole schedule is in the list only for All phases to a date. Leaving that choice falls back to Production
+    (`fillPhaseSelect`'s preferKey), and the date follows only when the pick itself changed.
+  - The part-calendar result line adds *"Production and everything before it moved (5 phases, including Post, which
+    overlaps it). 1 stayed where it was."*. Shift From's old *"From Post onward — 2 phases moved."* is replaced by
+    the same form.
+- **Help** (`src/index.html`, "Adjusting dates") rewritten for the two tools. Rebuild From's InfoHint now says *"Use
+  Shift if the plan should keep its current spacing"*.
+- **Legs:** new `anchorside` (23 cases, in gate.sh after `rebuildticks`) on the new fixture `anchorside.sptcal`
+  (dayoverrides + six notes, an unlocked Fall Break inside the shoot, Localization, a range start; fixtures README).
+  - Two overlaps by days: the shoot (wrap Tue 11/3) and Post (Mon 11/2); Pre Prep (to Tue 5/19) and Prod Prep
+    (Mon 5/18). Prod Prep and Production are back to back (X1).
+  - Mutants: overlap switched off is red on X2, H1, B1, B2, Bm, F2, F1, A1 and B6. Before the ruling, one bound at
+    the start week was red on B2 and B3.
+  - Ported: `builtindates`, `customunits`, `datepick` and `snaptools` open `#pop-shift-btn` and click To a date.
+    `calrange`, `overrides` (O1, O4, O5) and `rowheight` click Phase & after and use
+    `tool-anchor-phase` / `tool-shift-weeks` / `tool-shift-later`.
+  - Green before the gate: snaptools 14, overrides 20, calrange 18, rowheight 7, datepick 17, rebuildticks 19,
+    builtindates 17 + 15, customunits 23 + 28, episodeprep 33 + 25, halfworked 24, hdrcontrols 12, anchorside 21.
+    `npm run check` 40/40.
+- **Full gate** (build `f135c637…`, port 8798): **3,927 PASS / 20 FAIL**, every baseline identical: gate 1 (grid
+  signature, waterfall PDF), every gate-10 month print, every gate-13 month PDF byte for byte. The 20 FAILs are in five
+  legs that never touch the shift tool, and each is green alone on the same build:
+  - `pilllabel (carry-rich)` 29/29;
+  - `hdrrow` 37/37 (its known load timeout);
+  - `hiatuscolour` 14/14 (C2 had hit-tested the app header);
+  - `offweek (offweek)` 42/42 (R12's file-menu wait timed out);
+  - `mvnotes (mvnotes)` 14/14, its month PDF readable by pdftotext.
+  The hiatus-ripple session was running its own headless Chrome legs during the gate. `anchorside` 21/21 inside the
+  gate. ⚠️ That gate ran on the start-week rule. The overlap rule came after, as one more commit, and changes only the
+  part-move path. It was re-checked on the targeted legs (the merged build's re-check, below), with no second full
+  gate (owner's picker: *"Merge, re-check, then main"*).
+- **Merged with `main` (`003b4bf`) as `ede8f0a`**, with one README conflict where both entries were kept. That brought in
+  swap-split-reuse and the Automatic notes card. **Re-check on the merged build `805d7285…`, all green:**
+  - `npm run check` 40/40; anchorside 23/23; snaptools 14; overrides 20; calrange 18; rowheight 7; datepick 17;
+  - rebuildticks 19; builtindates 17 + 15; customunits 23 + 28; episodeprep 25; halfworked 24; hdrcontrols 12;
+  - main's legs: swapsplitreuse 5, colswappartial 8 + 8, autonotekinds 16, autonotephases 27.
+- ⏭ **Next:** ask the owner (picker) to merge into `main`, then separately to push. CLAUDE.md, PROJECT-CONTEXT §7a,
+  the README changelog and the fixtures README are updated in the same commit.
+- **Asked while it gated (4 Nov 2026):**
+  - *"what about adjacent phases"*. The answer: phases go by start week only. A neighbour starting the same week always
+    moves with the picked phase. One running into it moves with Phase & before and stays with Phase & after. Notes
+    in a week shared with a phase that stays still move with the picked phase. Offered to change it, not ruled.
+  - *"do we need a this phase only…"*: no. The sidebar's start box already moves one phase. Only its notes, own
+    hiatus, styles and (Production) day marks stay behind.
+  - That led to **notes linked to a phase** (owner: *"we do need a way to link certain notes to certain weeks relative
+    to a phase"*). Tracker card `notes-linked-to-phase` (requested); a plan-writing session was proposed as a card.
+    The design: store phase + phase week and derive the week, as automatic notes do.
+
+**The ruling and the plan (written before the build):**
+
+- **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
+  *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
+- **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
+  Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
+  other side and was tested then.)
+- **Proposed:** one choice in a wider Anchor To (480 px; owner 4 Nov 2026).
+  - In A and B, row 1 reads phase, *starts on*, date.
+  - Row 2 holds the choice and then Go.
+  - The popover hangs from its button's right edge, as all tool popovers do.
+  - The choice is **All phases** (today, the default) | **Phase & before** (new: no tool
+  moves a phase and the phases before it while keeping the gaps) | **Phase & after** (Shift From's set, aimed at a
+  date). The owner picked these words from four options on 4 Nov 2026 (plan §3), because they say the picked phase
+  moves too. A hint line names what stays. Whole schedule hides the choice.
+- ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
+  unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
+  own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
+- **Words:** not "work forward / backwards" (Rebuild From's words, for closing gaps) and not "earlier / later"
+  (Shift From's travel directions). "Before it / after it" is what Shift From's help already says.
+- **Layout C, added the same day** (owner: *"In theory, could shift from and anchor to be combined into one tool with
+  multiple settings?"*, then *"Yes, add it"*). Plan §6, the mockup's third tab.
+  - Shift From and Anchor To fold into Shift All's ▾, renamed **Shift**, with two choices: What moves (the three
+    above) and How far (By weeks | To a date). The arrows stay. The toolbar keeps two tools: Shift keeps the gaps,
+    Rebuild From closes them.
+  - It opens on All phases by weeks, which is today's Shift All form.
+  - **Reworded and reordered at the owner's ask** (*"reword these options and move the phase selector to right below
+    it"*, on a screenshot of C). The buttons first read Everything | This and after | This and before. "All
+    phases" is used because holidays and locked hiatuses never move. C's phase picker now sits directly under the
+    buttons, and *starts on / ends by* moved beside the date. One case pushes How far down a row (All phases by
+    weeks, then To a date): plan §6.2.
+  - Its popover measured 233 px open, 283 px at its tallest, and 333 px with a result line. The old "Adjustment
+    Tools" menu, removed for its height, was 562 px.
+  - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
+    `calrange`, `overrides` and `rowheight` move to the new controls.
+- **Shift From gets the same choice in A and B** (owner: *"Add similar functionality for shift from in the mockup"*;
+  plan §1.1). It is `Phase & before | Phase & after`, under its Earlier / Later row, and opens on Phase & after
+  (today's Shift From). There is no All phases option, since that is Shift All. It uses the same engine bound.
+- ✅ **RULED (owner, 4 Nov 2026):** *"Ok im going to vote we go with C, one master shift tool"*. This went against
+  my recommendation of A.
+  - By picker: R2(a), it opens on All phases, By weeks every time (today's Shift All form).
+  - Also by picker: the phase row shows only when needed, so the one-row jump in plan §6.2 stays.
+  - **Build from plan §2, §3, §5 step 1 and §6** (§6.4 is the step list). §1's two-row Anchor To and §1.1's Shift
+    From are A and B only, and are NOT built.
+  - The words are the owner's: `All phases | Phase & before | Phase & after`, then `By weeks | To a date`.
+  - **What gets built:**
+    - Shift All's caret, renamed **Shift**, opens the one form.
+    - The Shift From and Anchor To buttons go.
+    - The `tool-shift-*` and `tool-anchor-*` ids stay. `tool-ripple-*` retires, and `calrange`, `overrides` and
+      `rowheight` move to the new controls.
+    - A full gate runs before any push.
+- ⏭ ~~**Next:** build it on a branch from `origin/main`, in a fresh session (this one ran long).~~ Built, see above.
+- ⚠️ **It shares `shiftCalendarDates`'s third argument with HIATUS-RIPPLE-PLAN.md** (branch `hiatus-ripple`, its
+  `opts.except`). Use one
+  options object, `{except, before}` (plan §5 step 1).
+- ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
+  schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
+  `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a
+  full gate before any push.
 
 ### 🔨 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILT on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
@@ -226,7 +492,7 @@ can move.
 - ⚠️ Local `main` in the main checkout is at `61542f5` (the other session's LIVE note for "Show in folder…", not
   pushed). Merge this branch into it when that checkout is free.
 
-### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — on local `main`, NOT committed, NOT pushed. Tracker card `remove-show-info-note`
+### 🧹 4 Nov 2026: THE NOTE UNDER SHOW INFO IS REMOVED — ✅ **LIVE** since the `8ed92ca` deploy (19:46:13 UTC). Pushed as `9c3286a`, merged into `0d23980` (owner's picker *"Push once committed"*; `e8e21fd..0d23980` at 11:22:06). Its own deploy, and those of `eacd41b`, `4befff7` and `8a0abea`, were refused on a stale Pages lock left by `e8e21fd`'s re-run deploy (its attempt 2 failed on two `github-pages` artifacts), which the hiatus session cleared. Checked at 19:47 UTC: the live `index.html` is byte-identical (`cmp`) to a local build of `main` (`caf3eeb8…`), has no `show-info-note` and no help sentence, and `version.json` is 1.10.0. Tracker card `remove-show-info-note`
 
 Owner, with a screenshot of the blue box at the bottom of Show info (*"Production's Total Shooting Days: 82 — the sum
 of the episode list in the Production phase. Used by the Waterfall view and the Excel export."* plus *"Manually
@@ -251,7 +517,128 @@ changed: Episode 101 → 11 days; …"*): *"get rid of this entire popup"*.
     Production's row is not `.phase-blocked` and its total is written. All green.
 - **Proof:** `npm run check` 40/40. Browser pane (port 8390, `?state=hdrversion`): no box, total 80 → 83 with an
   episode set to 11, the episode box's weight unchanged, 0 console errors. No full gate: chrome plus an unstyled class
-  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran.
+  on an id-less input. Another session's full gate (`wf-pdf-seams` worktree, port 8247) was running, so only the two legs ran. Re-run on the build merged with `origin/main` (`e8e21fd`, the all-phase hiatus change), `1f153d50…`: check 40/40, hdrversion green, pilldrag 30/30, the hiatus session's `hiatussidebar` 11/11.
+
+### ✅ 4 Nov 2026: AUTOMATIC NOTES PER VIEW + "HIDE AUTO-NOTE" — ✅ **LIVE at `cd7ce25`** (owner's pickers: "Commit on the branch", "Merge into main", "Push now", then, when origin and local `main` had both moved, "Push branch, skip plan docs"; `ae4125f..cd7ce25` at 16:20:05; the live `index.html` matched the tested build `ac21b464…` byte for byte at 16:20:50). Built on branch `auto-notes-view` (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED on the branch (owner's picker, *"Commit on the branch"*), then MERGED into local `main` (owner, *"Merge into main"*) together with `origin/main` (the live waterfall-PDF seam fix, SM1), NOT pushed. The merged build's full gate: 3,846 PASS / 6 FAIL, all load timeouts green alone, every baseline identical (below). Full gate 3,872 PASS / 6 FAIL, every one explained, every baseline identical (below). Tracker card `auto-notes-per-view`
+
+- **The asks** (owner): *"did we ever finish the hide/show per view for auto notes"* (no: steps 2–4 of
+  [`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md) had never been built; every ruling was in), then *"Yes,
+  build it"*, then, mid-build: *"The button in the popup for auto notes should be "Hide Auto-Note" rather than "Delete
+  Auto-Note""*.
+- **Where it lives (`src/legacy/app.js`):**
+  - The store `autoNotesView` beside `autoNotesOn`, with `cleanAutoNoteView`, `autoNoteShownIn(kind, view)` (asked by
+    `autoNotesForView`, the one filter), `setAutoNoteViews(kind, sheet, month)` (the ONLY writer of the three stores
+    together), `autoNotesViewSnapshot`, `autoNoteMonthOnly` (N1's test), `wfOnlyAutoLines` (N2's lines) and
+    `hideAutoNoteIn(kind, view)` (R4).
+  - Snapshot key `autoNotesView` (PERMANENT), sanitized with `AUTO_NOTE_VIEW_KIND` (SNAP_ID minus `__proto__`,
+    `constructor`, `prototype`: this map's values are objects, so cleanMap's `out[k] = r` with `__proto__` would set a
+    prototype), restored unconditionally, cleared by New, pruned with a custom phase. In the month drag's press copy and
+    `wfNoteStep`'s switch signature.
+  - **Frozen edits N1 + N2** in `notesForWaterfallDate` (owner-approved R2(a), 2 Nov 2026): N1 is M-13's re-add with its
+    test `n.holiday && !holidayVisibleIn(n.hid,'sheet')` replaced by `autoNoteMonthOnly(n)`; N2 is one line in the
+    override loop, `if(wfOnly.has(line.trim())) return;`.
+  - `writeActiveMvNote`'s `'wf'` branch: month-only lines left out by `autoNoteMonthOnly`; waterfall-only lines put back
+    where the waterfall's text had them; the week colour dropped only when NEITHER view has text.
+  - The card: the engine draws all of it into `.autonote-list` (`buildAutoNoteCard`, `reflectAutoNoteKinds`),
+    `Sidebar.jsx`'s `AutoNotesCard` renders that div EMPTY (the old `AUTO_NOTE_PHASES` table and `.autonote-custom`
+    host are gone). Boxes: `input[data-autonote][data-view]`, Waterfall first, no ids, aria-label "Production Wraps,
+    Waterfall". Its two tables are FUNCTIONS (`autoNoteCardPhases`, `autoNoteViewWord`), not consts: `reflectAutoNoteKinds`
+    can run from an update() before their line is evaluated (TDZ).
+  - Help text (`src/index.html`), the card's InfoHint, CSS (`.autonote-hd/-name/-word/-cell/-dim`).
+- **Decided while building (all in the plan's "As built"):**
+  - ⚠️ **A drag is not a delete.** Dragging an automatic note to another week (`wfClearNote(w, true)` from
+    `wfNoteDragEnd`) or day (`moveWfLine`) still switches it off in BOTH views: the moved copy is typed text shown in both,
+    so hiding it in one view only would leave the other showing it twice. ⛔ `wfClearNote` now takes a second argument:
+    never pass it straight to `forEach` (the index would read as `moving`); both callers use arrows.
+  - A hide that leaves a note in neither view switches it off as a delete always did (name and colour cleared); a hide
+    from one view keeps them.
+  - The plan's "edited, it shows in both" predates the rename: an edited automatic line is renamed and stays automatic,
+    so its ticks keep holding (leg T3).
+- **Legs changed on purpose:** `autonotekinds` (16/16) and `autonotephases` (27/27) click both boxes to switch a KIND,
+  and one box for their one-undo cases; `autonoterename` (24/24) A1 reads "Hide Auto-Note", and W2, D0–D2, P1, R1, C1
+  read `autoNotesView` (R1: the month-hidden wrap now stays in its waterfall cell after Reset Notes); `wfkeys` (84/84)
+  D4 and C6, `wfmenu` (39/39) N1 the same. G17 (the waterfall drag) is unchanged: still switched off.
+- **Proof so far:** new leg `autonoteview` 18/18 on the build (in gate.sh after `autonoterename`, on its fixture). Red
+  on a build without N1 (T1, T5, T4, D1, D2) and without N2 (T2, T3, T5, T4); `src/legacy/app.js` restored and checked
+  with `cmp`. Unchanged and green: `holidayrename` 14/14, `mvmenu` 81/81, `monthnotes` 8/8, `hidewf` 19/19,
+  `settingswin` 21/21, `prepreptitle` 7/7. `npm run check` 40/40. Browser pane (port 8613): the card at 247 px, every
+  phase and Colour Grading on one line each; a real click on Wraps' Waterfall box emptied its cell and the month view
+  kept it; Hide Auto-Note on the then month-only wrap unticked both boxes.
+- ⚠️ **Another session is building the TYPED-note twin in `.claude/worktrees/note-other-view`** (uncommitted,
+  4 Nov 2026: a "Show in month view" / "Show in waterfall" switch in both note editors, `userNotes[week].monthHidden`,
+  `dayNotes[day][i].waterfall`, leg `noteviews`). Different stores, but it edits the same paths: `writeActiveMvNote`,
+  the waterfall delete / paste paths and the month view's lines. Whichever lands second needs a careful merge (does
+  `monthHidden` still let N1 re-add a month-only automatic note?) and its own full gate.
+  - ⚠️ Its gate queue (`queue-gate.sh` in that session's scratchpad) waits on `pgrep -f "[g]ate.sh"`, which matches its
+    OWN command line, so it never starts. Not touched from here. This branch's queue matches `zsh ./gate.sh` only.
+- **Full gate** on the build `7c2c61ba…` (port 8615, 11:42-12:17, queued behind another session's gate):
+  **3,872 PASS, 6 FAIL, 1 INFO** (monthwriter's usual "reported, not judged"). Waterfall PDF identical, every Excel
+  part identical, grid signature identical, 0 clipped; gate 10's 11 printed month documents identical; gate 13's 24
+  written month PDFs byte-identical. So N1 + N2 moved no baseline, as the plan predicted (no baseline calendar has a split
+  note, a hidden phase in a typed week, or a waterfall-only holiday in a typed week). The six FAILs:
+  1. `autonoteview` T2 + T3, T5, T4, D2: T2's Settings window missed `T.openSettings`' 2 s REAL-time wait while the
+     month view was up under the gate's load, and the four after it build on T2. A leg problem: `clickBox` now switches
+     to the waterfall first and tries three times. 18/18 three runs running afterwards, under ANOTHER session's full
+     gate. Test-only change, so not re-gated.
+  2. `offweek` R14: "the Pause prep switch is covered" by a File-menu item, the menu left open by R13's Load under load
+     (that leg's known flake area). 42/42 alone. Nothing here touches the file menu.
+- **The merge (4 Nov 2026, ~12:40):** `main` (hiatus name/colour on the sidebar cards, the Show info note removed) and
+  `origin/main` (frozen edit SM1, the waterfall PDF's seam strips, LIVE at `9a18b7c`, which local `main` did not have yet)
+  merged into the branch; only the README tops conflicted, both sides kept. Then local `main` fast-forwarded to it.
+  - On the merged build (`1944dd11…`): `npm run check` 40/40; this feature's legs (autonoteview, autonoterename,
+    autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin) and the merged features'
+    (hiatussidebar 16/16, wfnotecolors 14/14, hiatuslabel 7/7, notewrap 16/16, hdrcontrols 12/12, phiatusnum 18/18,
+    hiatuscolour 14/14, labelsetup 41/41, hiatusfold 11/11) all green.
+  - ⚠️ **`autonoteview` T2's flake, found for real:** the Settings window is `position:absolute` inside the sidebar's
+    scroll box, its `top` set from the sidebar's scrollTop when it opens. The leg's `scrollIntoView` on a card box ALSO
+    scrolled the sidebar (508 px, measured), and when that scroll moved back the open window sat 508 px low, so
+    `T.openSettings`' alignment check never passed. The leg now scrolls only the window's `.sw-panel`: 6/6 runs 18/18,
+    beside another session's full gate. Other legs still `scrollIntoView` card boxes; it bites only when the box is far
+    enough down that centring it needs the sidebar to move. (A user's keyboard focus could do the same; not seen.)
+- **The merged build's full gate** (`1944dd11…`, port 8615, 13:37-14:27; 50 min, not 35: no other gate overlapped it,
+  but about a dozen other sessions were busy): **3,846 PASS, 6 FAIL, 1 INFO**. Waterfall PDF identical, every Excel part
+  identical, grid signature identical, 0 clipped, the new `pdfseams` check PASS, gate 10's 11 printed month documents
+  identical, gate 13's 24 written month PDFs byte-identical. The six FAILs, every one a real-time wait, every leg green
+  alone on the same build:
+  - `pilllabel` (dayoverrides) K0, K1 and its console line: Save's 10 s write wait, after which the leg's stub threw
+    `sv.createWritable`. Alone: K0 `{has: true, value: 'week'}`, K1 `{has: false}`, only the expected warning.
+  - `hdrrow` EX (the leg did not finish): 37/37 alone.
+  - `pilldrag`: its 480 s deadline. 30/30 alone.
+  - `episodeprep` (episodeprep): a Load's 10 s wait. 25/25 alone.
+- ⭐ **Then `origin/main` moved again (13:00-13:45): the typed-note twin went LIVE** (`note-other-view`, `34ef08c`
+  "Show in month view" / "Show in waterfall", plus `75003f1` Compare's holiday chip). So this branch lands second, and was
+  merged again (`15fb624`). Four engine hunks, all both-sides-additive, resolved by hand:
+  - `wfClearNote(wk, moving)` now calls their `wfMonthLinesOff` and `wfClearOwnNote(wk, moving)`, which carries
+    `moving` to `wfSwitchOffLines` (the note editor's own call, `wfClearOwnNote(weekKey)`, is a delete: per view);
+  - `wfNoteStep`'s signature holds both `autoNotesView` (mine) and `dayNotes` (theirs);
+  - `writeActiveMvNote`: their "Show in waterfall" OFF path kept, after `sheetAuto`, with the week colour dropped only
+    when NEITHER view has text (my §4.4 rule);
+  - the editor's comments.
+  - How the two compose: their `mvWfLinesFor` (a week's typed lines hidden from the month view, `monthHidden`) keeps
+    every line `mvAutoLineInfo` recognises, and N1's month-only automatic lines are those, so they stay. Seen in the
+    browser pane: the wrap set to the month view only, "Wrap party" typed in its week with Show in month view off, and
+    the month view shows the wrap on 10/20 and no typed line. Their `wfLineToDayNote` filters with my widened
+    `monthOnly` set.
+  - On that build (`26a9509d…`): `npm run check` 40/40; `noteviews` 15/15, `scenarios` 23/23, and autonoteview,
+    autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, mvmenu, monthnotes, hidewf, settingswin,
+    holidayrename, wfnotecolors all green. **Its full gate** (port 8615, 14:34-15:20): **3,904 PASS, 2 FAIL, 1 INFO**.
+    Waterfall PDF identical, every Excel part identical, grid signature identical, 0 clipped, `pdfseams` PASS, gate
+    10's 11 printed month documents identical, gate 13's 24 written month PDFs byte-identical; `noteviews` and
+    `autonoteview` green inside it. The two FAILs are drivers' wall-clock deadlines (`hiatusdrag` 480 s, `cspproof`
+    240 s), each green alone on the same build: 14/14 and 15/15.
+- Local `main` fast-forwarded to the branch after that gate.
+- **The push (16:20):** by then `origin/main` had `ae4125f` (recovered work reopens into its own file, live) and local `main`
+  had four ANCHOR-TO-DIRECTION-PLAN doc commits from another session (no app code, not approved for this push). So
+  `ae4125f` was merged into the BRANCH (`cd7ce25`; only the README top conflicted; `app.js` merged clean, the recovery
+  code is far from the notes), checked (`npm run check` 40/40; backuplink 5/5, backuplinkstale 3/3, backupslots 5/5,
+  autonoteview 18/18, noteviews 15/15, autonoterename, autonotekinds, autonotephases, wfkeys, wfmenu, monthnotes green),
+  and the branch tip pushed as `main` WITHOUT another full gate (owner's picker). Local `main` then merged it, so the
+  four plan commits are still local and unpushed: that session's to push.
+- ⏭ **Open:** nothing for this feature. The worktree `.claude/worktrees/auto-notes-view` can go (unlink its
+  `node_modules` symlink first). The push would
+  carry this feature (its commits and merges) and another session's HANDOFF-only `6e2e443`; everything else is
+  already on `origin/main`.
+
 
 ### 🔀 4 Nov 2026: NOTE-VIEWS — "SHOW IN MONTH VIEW" / "SHOW IN WATERFALL" IN BOTH NOTE EDITORS — BUILT on branch `note-other-view` (worktree `.claude/worktrees/note-other-view`, from `main` at `61542f5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). COMMITTED as `34ef08c` (owner's picker: "Commit on the branch", "Merge and push"), origin/main merged in as `775b8e5`; full gate on the branch GREEN but for the known `offweek` R14 flake, and the full gate on the merge green but for one test-only fix and three Load flakes. Tracker card `note-show-in-other-view`
 
@@ -1336,7 +1723,7 @@ Owner: *"there appears to be a pixel wide gap between rows when you export water
   day-level refine is needed for an exact wrap (the existing search steps whole weeks). Day marks stay on their dates
   when Ends moves the start, as they do today when the end moves.
 
-### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED, NOTHING BUILT ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
+### 📝 2 Nov 2026: AUTOMATIC NOTES PER VIEW + AUTOMATIC NOTES FOR CUSTOM PHASES — RULED. Step 1 (custom-phase notes) ✅ LIVE at `a82506c`, the rename it waited on ✅ LIVE at `e1ed962`; steps 2–4, the per-view ticks, BUILT 4 Nov 2026 on branch `auto-notes-view` (see that entry, at the top) ([`AUTO-NOTES-PER-VIEW-PLAN.md`](AUTO-NOTES-PER-VIEW-PLAN.md)). Tracker cards `auto-notes-per-view`, `custom-phase-auto-notes`
 
 - **The asks** (owner): *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the
   waterfall and month view"*, then *"Can we also add automatic notes for all custom phases too"*, then *"Write the

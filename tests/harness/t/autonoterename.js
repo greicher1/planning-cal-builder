@@ -1,6 +1,6 @@
 // autonoterename -- an automatic note is RENAMED and stays automatic (owner, 30 Oct 2026: "Auto notes are labelled as
 // "Auto Note" in the popup when you go to edit it and allow you to edit the name of it, without affecting its date and
-// ability to move automatically"), and DELETING one switches it off instead of blanking its week
+// ability to move automatically"), and DELETING one switches it off (since 4 Nov 2026: hides it from that view) instead of blanking its week
 // (AUTO-NOTE-RENAME-PLAN.md, seven rulings by picker, 30 Oct - 2 Nov 2026). A gate.sh AFSPEC leg.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=autonoterename ./run.sh autonoterename 500
@@ -16,7 +16,7 @@
 //   S3  the print rollback renders no symbol (the month-PDF writer is held byte for byte by gate 13)
 //   S4  narrowed, a holiday the symbol would push past three lines goes without it, and no text is cut off
 //   A1  Start Principal Photography opens the AUTO NOTE editor: "6/29/26 · Auto Note", its name alone, a placeholder
-//       saying clearing deletes it, a Delete Auto-Note button, the week's purple selected
+//       saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week's purple selected
 //   A2  renamed "First Day of Shoot": the month view, the waterfall cell (beside the holiday) and the file follow, and
 //       no waterfall note is written (it stays automatic)
 //   A3  it moves with the schedule: Production from 7/6/26 puts "First Day of Shoot 7/6/26" in that week, and back
@@ -28,15 +28,20 @@
 //       back, and a file without them shows neither
 //   F2  a bad name or colour in a file is dropped on Load, and the repair is reported
 //   W1  renaming Writer's Room Opens in the WATERFALL's editor renames the note and the cell stays automatic
-//   W2  taking "Post Starts" out of its waterfall cell deletes the note (Post Begins switched off), the typed line stays
-//   D0  Delete Auto-Note on the wrap: gone from both views, switched off, and no week blank
-//   D1  clearing an Auto Note's text deletes it the same way, its name with it
-//   D2  Delete on the waterfall cell holding the start AND the holiday: the cell empties, the note is switched off,
-//       the holiday is hidden from the waterfall only (still in the month view, still a day off), no week blank
+//   ⭐ Since 4 Nov 2026 a delete HIDES the note from the view it was made in (AUTO-NOTES-PER-VIEW-PLAN.md R4, which
+//   amends rulings 4-6), so W2-C1 below read autoNotesView where they read autoNotesOff / autoNotesOn:
+//   W2  taking "Post Starts" out of its waterfall cell hides the note from the waterfall; the month view keeps it under
+//       the typed line (frozen edit N1), and the typed line stays
+//   D0  Hide Auto-Note on the wrap: gone from the month view, still in the waterfall, and no week blank
+//   D1  clearing an Auto Note's text hides it the same way; its name stays, since the waterfall still shows it
+//   D2  Delete on the waterfall cell holding the start AND the holiday: the cell empties, the note and the holiday are
+//       hidden from the waterfall only (both still in the month view, the holiday still a day off), no week blank
 //   U1  one undo puts the whole cell back; redo empties it again
 //   P1  a note pasted over that cell replaces both lines the same way, and is the week's typed note
-//   R1  Reset Notes clears the typed notes and leaves the Automatic notes switches alone
-//   C1  a custom phase's automatic note (ticked on in the fixture) renames, and Delete takes its tick out of autoNotesOn
+//   R1  Reset Notes clears the typed notes and leaves the Automatic notes switches alone (the wrap, hidden in the month
+//       view only, stays in its waterfall cell)
+//   C1  a custom phase's automatic note (ticked on in the fixture) renames, and Delete hides it from the waterfall,
+//       its tick kept in autoNotesOn
 //   G1  a month-view drag out and back changes nothing; one to another day makes the note typed text there and
 //       switches it off, so moving Production brings no second copy
 //   E0  no console errors, apart from the one warning F2's values are meant to raise
@@ -276,9 +281,9 @@ window.addEventListener('load', function () { (async function () {
       await toMonth('June 2026');
       var pop = await openMv('2026-06-29', /^Start Principal Photography/);
       var ta = q('textarea', pop), sel = q('.color-swatch.selected', pop), del = q('.note-pop-delete', pop);
-      kase('A1', 'Start Principal Photography opens the Auto Note editor: "6/29/26 · Auto Note", its name alone, a placeholder saying clearing deletes it, a Delete Auto-Note button, the week\'s purple selected',
+      kase('A1', 'Start Principal Photography opens the Auto Note editor: "6/29/26 · Auto Note", its name alone, a placeholder saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week\'s purple selected',
            txt(q('.mv-note-pop-day', pop)) === '6/29/26 · Auto Note' && ta.value === 'Start Principal Photography'
-             && /delete/i.test(ta.placeholder) && !!del && txt(del) === 'Delete Auto-Note' && !!sel && sel.title === 'Purple',
+             && /hide/i.test(ta.placeholder) && !!del && txt(del) === 'Hide Auto-Note' && !!sel && sel.title === 'Purple',
            { heading: txt(q('.mv-note-pop-day', pop)), text: ta.value, placeholder: ta.placeholder, button: del && txt(del), selected: sel && sel.title });
       await commitMv(pop, 'First Day of Shoot');
     });
@@ -392,10 +397,14 @@ window.addEventListener('load', function () { (async function () {
     await step('W2', async function () {
       await wfEdit('2026-11-02', function (v) { return v.split('\n').filter(function (l) { return !/^Post Starts/.test(l.trim()); }).join('\n'); });
       var c = cellText('2026-11-02'), s = JSON.parse(await save());
-      kase('W2', 'taking "Post Starts" out of its waterfall cell deletes the note (Post Begins switched off, its name gone), and the typed line stays',
-           c === 'Post kickoff 11/3/26' && !(s.autoNotesOn || {}).postStart && !('postStart' in (s.autoNoteNames || {}))
-             && s.userNotes['2026-11-02'].text === 'Post kickoff 11/3/26',
-           { cell: c, autoNotesOn: s.autoNotesOn, names: s.autoNoteNames, userNote: s.userNotes['2026-11-02'] });
+      await toMonth('November 2026');
+      var m = { nov2: lines('2026-11-02'), nov3: lines('2026-11-03') };
+      await view('sheet');
+      kase('W2', 'taking "Post Starts" out of its waterfall cell hides the note from the waterfall only (R4: its tick and its name kept, autoNotesView), the month view still draws it under the typed note (N1), and the typed line stays',
+           c === 'Post kickoff 11/3/26' && (s.autoNotesOn || {}).postStart === true && same((s.autoNotesView || {}).postStart, { sheet: false })
+             && (s.autoNoteNames || {}).postStart === 'Post Starts' && s.userNotes['2026-11-02'].text === 'Post kickoff 11/3/26'
+             && same(m.nov2, ['Post Starts 11/2/26']) && same(m.nov3, ['Post kickoff 11/3/26']),
+           { cell: c, autoNotesOn: s.autoNotesOn, view: s.autoNotesView, names: s.autoNoteNames, userNote: s.userNotes['2026-11-02'], month: m });
     });
 
     // ===== D0-D2: deleting ==========================================================================================
@@ -407,18 +416,20 @@ window.addEventListener('load', function () { (async function () {
       var m = lines('2026-10-20'), s = JSON.parse(await save());
       await view('sheet');
       var c = cellText('2026-10-19');
-      kase('D0', 'Delete Auto-Note on the wrap: gone from both views, switched off, and no week blank',
-           !byId('mv-note-pop') && same(m, []) && (c === '' || c === '+') && s.autoNotesOff && s.autoNotesOff.principalWrap === true && !un(s, '2026-10-19'),
-           { month: m, cell: c, autoNotesOff: s.autoNotesOff, userNote: s.userNotes && s.userNotes['2026-10-19'] });
+      kase('D0', 'Hide Auto-Note on the wrap: gone from the month view, still in the waterfall (R4), and no week blank',
+           !byId('mv-note-pop') && same(m, []) && c === 'Principal Photography Wraps 10/20/26' && !(s.autoNotesOff || {}).principalWrap
+             && same((s.autoNotesView || {}).principalWrap, { month: false }) && !un(s, '2026-10-19'),
+           { month: m, cell: c, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, userNote: s.userNotes && s.userNotes['2026-10-19'] });
     });
     await step('D1', async function () {
       await toMonth('January 2026');
       var pop = await openMv('2026-01-05', /^Room Opens/);
       await commitMv(pop, '');
       var m = lines('2026-01-05'), s = JSON.parse(await save());
-      kase('D1', 'clearing an Auto Note\'s text deletes it the same way, its name with it',
-           same(m, []) && s.autoNotesOff.writersRoomOpens === true && !('writersRoomOpens' in (s.autoNoteNames || {})) && !un(s, '2026-01-05'),
-           { month: m, autoNotesOff: s.autoNotesOff, names: s.autoNoteNames, userNote: s.userNotes && s.userNotes['2026-01-05'] });
+      kase('D1', 'clearing an Auto Note\'s text hides it from the month view the same way; its name stays, since the waterfall still shows it',
+           same(m, []) && !(s.autoNotesOff || {}).writersRoomOpens && same((s.autoNotesView || {}).writersRoomOpens, { month: false })
+             && ('writersRoomOpens' in (s.autoNoteNames || {})) && !un(s, '2026-01-05'),
+           { month: m, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, names: s.autoNoteNames, userNote: s.userNotes && s.userNotes['2026-01-05'] });
     });
     var wrapBefore = null;
     await step('D2', async function () {
@@ -429,11 +440,12 @@ window.addEventListener('load', function () { (async function () {
       var c = cellText('2026-06-29'), s = JSON.parse(await save());
       await toMonth('July 2026');
       var m = { jun29: lines('2026-06-29'), jul3: lines('2026-07-03') };
-      kase('D2', 'Delete on the cell holding the start AND a holiday: it empties, the note is switched off, the holiday is hidden from the waterfall only (still in the month view, still a day off), no week blank',
-           (c === '' || c === '+') && s.autoNotesOff.principalStart === true && !('principalStart' in (s.autoNoteNames || {})) && !('autoNoteColors' in s)
+      kase('D2', 'Delete on the cell holding the start AND a holiday: it empties, the note and the holiday are hidden from the waterfall only (R4: both still in the month view, the note under its name and colour, the holiday still a day off), no week blank',
+           (c === '' || c === '+') && !(s.autoNotesOff || {}).principalStart && same((s.autoNotesView || {}).principalStart, { sheet: false })
+             && (s.autoNoteNames || {}).principalStart === 'First Day of Shoot' && !!(s.autoNoteColors || {}).principalStart
              && s.holidayView[IND] && s.holidayView[IND].sheet === false && !un(s, '2026-06-29') && !Object.keys(s.holidayOff || {}).length
-             && same(m.jun29, []) && same(m.jul3, ['Independence Day (Observed) 7/3/26']),
-           { cell: c, autoNotesOff: s.autoNotesOff, names: s.autoNoteNames, colors: s.autoNoteColors, holiday: s.holidayView[IND], userNote: s.userNotes && s.userNotes['2026-06-29'], holidayOff: s.holidayOff, month: m });
+             && same(m.jun29, ['First Day of Shoot 6/29/26']) && same(m.jul3, ['Independence Day (Observed) 7/3/26']),
+           { cell: c, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, names: s.autoNoteNames, colors: s.autoNoteColors, holiday: s.holidayView[IND], userNote: s.userNotes && s.userNotes['2026-06-29'], holidayOff: s.holidayOff, month: m });
     });
     await step('U1', async function () {
       await view('sheet');
@@ -451,19 +463,20 @@ window.addEventListener('load', function () { (async function () {
       pasteText('Shoot day one'); await settle();
       var c = cellText('2026-06-29'), s = JSON.parse(await save());
       kase('P1', 'a note pasted over the cell replaces both lines the same way, and is the week\'s typed note',
-           c === 'Shoot day one' && s.autoNotesOff.principalStart === true && s.holidayView[IND].sheet === false
-             && JSON.stringify(s.userNotes['2026-06-29']) === JSON.stringify({ text: 'Shoot day one' }),
-           { cell: c, autoNotesOff: s.autoNotesOff, holiday: s.holidayView[IND], userNote: s.userNotes['2026-06-29'] });
+           c === 'Shoot day one' && same((s.autoNotesView || {}).principalStart, { sheet: false }) && !(s.autoNotesOff || {}).principalStart
+             && s.holidayView[IND].sheet === false && JSON.stringify(s.userNotes['2026-06-29']) === JSON.stringify({ text: 'Shoot day one' }),
+           { cell: c, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, holiday: s.holidayView[IND], userNote: s.userNotes['2026-06-29'] });
     });
     await step('R1', async function () {
       byId('tb-notes-reset-btn').click();
       await settle();
       var s = JSON.parse(await save());
       var c = { jun29: cellText('2026-06-29'), oct19: cellText('2026-10-19'), nov2: cellText('2026-11-02') };
-      kase('R1', 'Reset Notes clears the typed notes and leaves the Automatic notes switches alone',
-           !Object.keys(s.userNotes || {}).length && s.autoNotesOff.principalStart === true && s.autoNotesOff.principalWrap === true
-             && (c.jun29 === '' || c.jun29 === '+') && (c.oct19 === '' || c.oct19 === '+') && (c.nov2 === '' || c.nov2 === '+'),
-           { userNotes: s.userNotes, autoNotesOff: s.autoNotesOff, cells: c });
+      kase('R1', 'Reset Notes clears the typed notes and leaves the Automatic notes switches alone (the wrap, hidden in the month view only, stays in its waterfall cell)',
+           !Object.keys(s.userNotes || {}).length && same((s.autoNotesView || {}).principalStart, { sheet: false })
+             && same((s.autoNotesView || {}).principalWrap, { month: false })
+             && (c.jun29 === '' || c.jun29 === '+') && c.oct19 === 'Principal Photography Wraps 10/20/26' && (c.nov2 === '' || c.nov2 === '+'),
+           { userNotes: s.userNotes, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, cells: c });
     });
 
     // ===== G1-G2: the month view's note drag =======================================================================
@@ -517,11 +530,12 @@ window.addEventListener('load', function () { (async function () {
       await pick(noteTd('2027-01-11'));
       press('Delete'); await settle();
       var after = cellText('2027-01-11'), s2 = JSON.parse(await save());
-      kase('C1', 'a custom phase\'s automatic note renames and deletes like the others: its name keyed by its kind, and Delete takes its tick out of autoNotesOn, never into autoNotesOff',
+      kase('C1', 'a custom phase\'s automatic note renames and deletes like the others: its name keyed by its kind, and Delete hides it from the waterfall (R4), its tick kept in autoNotesOn and never written to autoNotesOff',
            before === 'Colour Grading Begins 1/11/27' && renamed === 'Grade starts 1/11/27' && (s1.autoNoteNames || {}).custom1Start === 'Grade starts'
-             && !un(s1, '2027-01-11') && (after === '' || after === '+') && !(s2.autoNotesOn || {}).custom1Start
-             && !(s2.autoNotesOff || {}).custom1Start && !(s2.autoNoteNames || {}).custom1Start && !un(s2, '2027-01-11'),
-           { before: before, renamed: renamed, names1: s1.autoNoteNames, after: after, on: s2.autoNotesOn, off: s2.autoNotesOff, names2: s2.autoNoteNames });
+             && !un(s1, '2027-01-11') && (after === '' || after === '+') && (s2.autoNotesOn || {}).custom1Start === true
+             && same((s2.autoNotesView || {}).custom1Start, { sheet: false })
+             && !(s2.autoNotesOff || {}).custom1Start && (s2.autoNoteNames || {}).custom1Start === 'Grade starts' && !un(s2, '2027-01-11'),
+           { before: before, renamed: renamed, names1: s1.autoNoteNames, after: after, on: s2.autoNotesOn, off: s2.autoNotesOff, view: s2.autoNotesView, names2: s2.autoNoteNames });
     });
 
     var errs = (T.appHealth().errors || []).filter(function (e) { return !/were not in a form the app writes/.test(String(e)); });
