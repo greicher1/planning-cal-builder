@@ -589,6 +589,75 @@ window.__T = (function(){
     return {writer: u8.subarray(0, end), mark: {prev: +prev[1], trailer: tr[1].trim(), info: infoDict,
             creator: str(infoDict, 'Creator'), producer: str(infoDict, 'Producer'), pages: pages, bytes: u8.length - end}};
   }
+  // ⭐ EVERY STREAM OF A PDF, CUT AT ITS OWN /Length (5 Nov 2026). The one stream reader for the legs that read a
+  // PDF's text: pdfStreams(u8) -> [{at, dict, bytes, byLength, flate, text}], `text` the stream inflated (UTF-8,
+  // as every leg's copy read it) or null when it is not Flate or did not inflate; pdfInflated(u8) -> the texts
+  // that did inflate, in file order; pdfRuns(u8) -> every "(text) Tj" literal in them, escapes undone ("\(" -> "(").
+  // ⛔ NEVER TRIM THE EOL BEFORE `endstream` INSTEAD. Chrome's DecompressionStream rejects any byte after the
+  // compressed data, so the copies these replaced found `endstream` and stripped trailing 0x0A / 0x0D bytes. But
+  // compressed data can END in 0x0A or 0x0D itself, and stripping that byte truncates it: inflation throws (as
+  // "TypeError: Failed to fetch" from Response.text()), the copy's catch swallowed it, and the leg saw no text at
+  // all. Found twice: hiatuslabel N1-2 (23 Oct 2026, a header date of 10.23.26), then phiatusnum H4 (5 Nov 2026,
+  // red on v1.11.0 because the layout rules' widths made page 1's content stream /Length 1466 end in an EOL byte;
+  // the PDF was valid, pdftotext read every run). Twelve legs carried the trimming copy, so any of them could go
+  // red the same way whenever a PDF's bytes moved.
+  // The cut: `/Length N`, a DIRECT integer in the stream's own dictionary (the text from its "<n> <g> obj" to the
+  // `stream` keyword; never /Length1, a font program's raw length, and never "/Length 12 0 R", an indirect one),
+  // then N bytes after the keyword's EOL, accepted only when `endstream` follows them (after an optional EOL).
+  // Anything else (no direct length, or a length that does not land on `endstream`) falls back to the old trim,
+  // which is right whenever the data does not end in an EOL byte. Reading by length also STEPS OVER the data, so a
+  // binary stream can no longer be mistaken for a `stream` keyword, and `endstream` is no longer one either.
+  // ⚠️ A /FlateDecode stream cut at a verified length that still fails to inflate THROWS, never skips: a reader
+  // that silently returns nothing is how this bug read as "no such text" for a day. A trimmed fallback that fails
+  // is skipped, as before, since the trim itself may be what broke it.
+  // The SPTCal mark (pdfUnmark above) adds its own streams after the writer's %%EOF: `<< /Length N >>`, no filter,
+  // so they are cut by length and left uninflated (`text` null), exactly as the copies left them.
+  async function pdfStreams(u8){
+    var s = '';
+    for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    var out = [], re = /stream(\r\n|\n)/g, m;
+    while((m = re.exec(s))){
+      if(s.slice(m.index - 3, m.index) === 'end') continue;          // the `endstream` keyword, not a stream
+      var st = m.index + m[0].length;
+      var objAt = s.lastIndexOf(' obj', m.index), dict = objAt >= 0 ? s.slice(objAt + 4, m.index) : '';
+      // (?![\d.]) first, or the digits would backtrack out of the indirect test ("12 0 R" read as 1).
+      var lm = /\/Length\s+(\d+)(?![\d.])(?!\s+\d+\s+R)/.exec(dict), en = -1, byLength = false;
+      if(lm){
+        var cut = st + parseInt(lm[1], 10), k = cut;
+        if(s.charCodeAt(k) === 13) k++;
+        if(s.charCodeAt(k) === 10) k++;
+        if(cut <= u8.length && s.startsWith('endstream', k)){ en = cut; byLength = true; }
+      }
+      if(!byLength){
+        en = s.indexOf('endstream', st);
+        if(en < 0) continue;
+        while(en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
+      }
+      var bytes = u8.subarray(st, en), flate = /\/FlateDecode\b/.test(dict) || !lm, text = null;
+      if(flate){
+        try {
+          text = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'))).text();
+        } catch(e){
+          if(byLength && /\/FlateDecode\b/.test(dict))
+            throw new Error('pdfStreams: the /FlateDecode stream at byte ' + st + ' (/Length ' + lm[1] + ') did not inflate: ' + (e && e.message || e));
+        }
+      }
+      out.push({at: st, dict: dict.trim(), bytes: bytes, byLength: byLength, flate: flate, text: text});
+      re.lastIndex = en;                                             // step over the data
+    }
+    return out;
+  }
+  async function pdfInflated(u8){
+    return (await pdfStreams(u8)).filter(function(x){ return x.text !== null; }).map(function(x){ return x.text; });
+  }
+  async function pdfRuns(u8){
+    var runs = [];
+    (await pdfInflated(u8)).forEach(function(t){
+      var tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
+      while((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, '$1'));
+    });
+    return runs;
+  }
   // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
   // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
   // 'prefs' | 'region' | 'presets' (Mantine derives the tab ids from #settings-tabs). 'calendar' is still
@@ -701,7 +770,7 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,pdfStreams:pdfStreams,pdfInflated:pdfInflated,pdfRuns:pdfRuns,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,

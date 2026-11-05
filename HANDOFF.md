@@ -4,6 +4,50 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync twice: at 5f99223, then at 854dbbe (the Shift date row and the centre pull-back), HANDOFF and README the only conflicts). Committed on the branch only: NOT merged into `main`, NOT pushed (both wait on the owner's picker).
+- **The fault** (recorded under "Full gate #2" in the stale band key entry below): sixteen legs read PDF text with a
+  copied reader that found `stream`…`endstream` and stripped trailing 0x0A / 0x0D before `DecompressionStream`. Data
+  that legitimately ends in an EOL byte was truncated, inflation threw (`TypeError: Failed to fetch` from
+  `Response.text()`), the catch swallowed it, and the leg saw no text. v1.11.0's widths made the waterfall PDF's
+  page 1 content stream (`/Length 1466`) end in one, so `phiatusnum` H4 read `runs: []` on `origin/main` from
+  `347a98f`. It is the SAME trap `hiatuslabel` hit on 23 Oct (a header date), fixed there alone. The lessons table
+  row of 2 Sep 2026 still said "trim trailing whitespace bytes", and that was the advice the copies followed. It is
+  corrected in place, and so is the 3.1 leg-trap bullet.
+- **Built:** `T.pdfStreams(u8)` → `[{at, dict, bytes, byLength, flate, text}]`, plus `T.pdfInflated(u8)` (the texts) and
+  `T.pdfRuns(u8)` (`(text) Tj` runs, escapes undone as the copies did). It cuts at a DIRECT `/Length N` from the
+  object's own dictionary, accepted only if `endstream` follows (after an optional EOL). `/Length1` and
+  `/Length 12 0 R` are refused. ⚠️ `(?![\d.])` sits before the indirect test, or the digits backtrack ("12 0 R" read
+  as 1). Otherwise it falls back to the old trim. It steps over the data (`re.lastIndex = en`) and skips the
+  `endstream` keyword, which the copies' `/stream\r?\n/` also matched. A `/FlateDecode` stream that fails at a
+  verified length THROWS (a silent empty read is how this hid). Text is still UTF-8 via `Response.text()`, as every
+  copy read it. The SPTCal mark's streams (`<< /Length N >>`, no filter) are cut and left uninflated.
+- **Legs moved onto it (16):** the twelve of the finding, plus `notewrap`, `prodspan`, `winansi` (the same unconditional
+  trim on `bytes[en - 1]`, which the brief's grep missed), plus `hiatuslabel` (already by length, now one reader).
+  The ten other PDF readers (`calrange`, `hdrrow`, `hdrtemplate`, `hdrversion`, `onecol`, `papersize`,
+  `pdfdialog`, `prefs`, `stintexport`, `textstyle`) already cut at `/Length` first with the trim as fallback:
+  untouched. Folding them onto the helper too would be tidying, not a fix. ⚠️ A grep for `=== 10 ||` in `t/`
+  now also hits `lib.js`, because the helper keeps the trim as its fallback.
+- **Proof** (build `30bbfc2e…` = live, port 8931, one leg at a time while another session's full gate ran):
+  `phiatusnum` 17/18 with H4 `runs: []` on the old reader → 18/18. On the helper: `autonotekinds` 16/16,
+  `autonotephases` 27/27, `seasons` 15/15, `phasecolors` 10/10, `mvhdroff` 9/9, `hidewf` 19/19, `wfnotecolors` 14/14,
+  `holidayrename` 14/14, `autonoterename` 24/24 ×2, `autonoteview` 18/18, `simpostname` 14/14, `notewrap` 16/16,
+  `prodspan` 8/8, `winansi` 7/7, `hiatuslabel` 7/7. ⚠️ First pass, under the other gate (load 11): `mvhdroff` E0
+  (a load timeout), `wfnotecolors` dumped while still "pending", `autonoterename` M1 then F2 (a PDF write, then a
+  load, timing out). None of them had reached a PDF read, and each was green alone. `npm run check` 40/40.
+  A Node check lifted
+  `pdfStreams` out of `lib.js` and ran it on synthetic streams: the old reader finds 1 of 3 runs (it loses the
+  streams ending 0x0A and 0x0D), the helper 3 of 3; an indirect `/Length` falls back; a broken Flate stream throws.
+  No `gate.sh` change (same leg names and budgets); its judge was run on each leg's JSON. No full gate: no product
+  code changed.
+- ✅ **Re-checked on the MERGED build** (`origin/main` 854dbbe in, dist sha256 `2daa5cde…` = the live build, so a push
+  ships no app change): all sixteen green on their first run, the same counts as above. `gate.sh` parses (`zsh -n`)
+  and is identical to `origin/main`. The diff against `origin/main` is `tests/harness/t/` (17 files), README and
+  HANDOFF only.
+- ⚠️ **Local `main` moved while this was built** (69b6ec6: `ff67571`, a merge of `origin/main`, then a pull-back LIVE
+  note, both unpushed and doc only). This branch is not on it. A push of this branch to `origin/main` is a
+  fast-forward (`git push origin claude/agitated-bhaskara-df2f66:main`, the shape `stale-band-key` used). Merging it
+  into local `main` instead means a HANDOFF conflict in the main checkout, which other sessions are using.
+
 ### ✅ 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — ✅ **LIVE at `854dbbe`** (owner's picker *"Merge and push"*, after asking whether it needed the full gate: answered no, nothing frozen, exported or saved changed). Pushed `383b1f8..854dbbe` at 23:01:14 UTC (the branch with origin/main merged in twice, other sessions pushing meanwhile; src delta vs origin = the reviewed fix exactly; `centrepullback`, `noswapbtns`, `anchorside`, `stalebandkey`, `newtab`, `spancounts` green on the merged build, `npm run check` 40/40); the Pages deploy succeeded and the live `index.html` matched the pushed build `2daa5cde…` byte for byte at 23:02:32 UTC. No version cut (README entry under Unreleased). Local `main` merged origin as `ff67571`, keeping another session's unpushed `69c8bc0`. Branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`.
 - **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
   able to drag and select collumns and double click to unexpand them"*.
@@ -95,6 +139,7 @@
   - Twelve legs carry the same extractor (`autonotekinds`, `autonotephases`, `autonoteview`, `autonoterename`,
     `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`, `wfnotecolors`),
     so any of them can go red the same way when a PDF's bytes change. Its own change, not this branch's.
+    ➡️ Fixed by the entry above (`T.pdfStreams`, 5 Nov 2026).
 - ✅ **Owner's picker** (5 Nov 2026): *"Merge"*, and separately *"Push now"*. `origin/main` had moved again by then
   (`cf75104`, New opens Show info: 6 lines in `newFile()`, a new leg `newtab`), so it was merged in (HANDOFF and
   README only conflicted) and the build re-checked BEFORE the push. On that build (`30bbfc2e…`): `npm run check`
@@ -11606,7 +11651,9 @@ reaches them with the next cut, and the README entry stays `Unreleased` until th
   - ⚠️ Leg traps found writing these:
     - `#R` ships holding the word "pending", so a CDP poll must wait for JSON.
     - Chrome's `DecompressionStream` REJECTS the EOL before `endstream`, where Python's zlib
-      ignores it. Trim it, or a swallowed rejection reads as "no text".
+      ignores it. Trim it, or a swallowed rejection reads as "no text". ⛔ (Corrected 5 Nov 2026: never trim, cut
+      at `/Length`, because the data can end in an EOL byte itself. Use `T.pdfStreams` / `T.pdfInflated` /
+      `T.pdfRuns` in `t/lib.js`.)
     - The reference calendar also carries `DEFAULT_HIATUSES`' 12/21/26 hiatus, so count its
       "Hiatus" runs relatively.
 
@@ -14198,7 +14245,7 @@ the Inter embed, the per-component CSS and the §2h fix are all done.
 | ⚠️ **THE SWAP COLUMN BUTTON (was "Swap Block") OWNS ITS BOX, and that box is most of the block's FIRST cell** (2 Sep 2026) | `hitCell` returns null over `.grid-stint-btn` exactly as it does over a knob, so a click or double-click on the button is never also a click on the cell beneath it. The cost: while the pointer is anywhere over a block, most of that block's first-week cell IS the button (≈48 px wide when written; measured 15 Oct 2026 at 62.6 px as "Swap Block" and **72 px as "Swap Column"**, which on a 77 px column now also covers the first week's RIGHT span handle; 16 of 20 px tall — on a narrow phase column, e.g. the `colswap-gesture` fixture, that is the whole cell). Selecting or double-click-filling that one cell means moving the pointer off the block first. Accepted — it is the position the owner asked for — but it is the first thing to revisit if the owner finds the first week hard to hit; an icon-only pill that grows its label on hover would be the fix. `stintbtn` deselects the SECOND week for this reason. |
 | ⛔ **NO `requestAnimationFrame` ON A HOVER PATH THE HARNESS MUST REACH** (2 Sep 2026) | The Swap Block hover was first throttled with rAF; headless Chrome starves rAF the way a hidden pane does (§3), so the button never appeared under the harness while looking fine by hand — a "feature works, test broken" that was really "test right, feature untestable". It runs synchronously now: one `elementsFromPoint` per pointermove, a draw only when the stint under the pointer changes. Rule: rAF is fine for cosmetics (the settle), never for anything a gate has to observe. |
 | ⚠️ **CLEAR CACHED SWAP VERDICTS THE MOMENT THEIR KEY CHANGES, not when the debounce lands** (2 Sep 2026) | `ensureSwapCandidates` used to leave the previous verdicts standing for the 140 ms debounce, so after a selection change the chip narrated the *previous* selection's swap for a beat — seen as "5 of 6 weeks selected — Swap moves the 6-week run" (the stint candidate describing the per-week mode). The knob and the toolbar labels were equally stale. `_swapCand` is now reset on key change; the knob vanishes for 140 ms and comes back honest. |
-| ⚠️ **`DecompressionStream` REFUSES THE NEWLINE BEFORE `endstream`** (2 Sep 2026) | `stintexport` reads the waterfall PDF back in the page. Unlike `zlib.inflateSync`, `DecompressionStream('deflate')` throws on trailing bytes after the deflate end, and every stream the writer emits ends with `\n` before `endstream` — so the content stream silently read as absent. Trim trailing whitespace bytes from the slice first. Also learned there: the PDF fits the grid to the page with a single scale (0.9 for this fixture), so column widths compare to the screen only *at that scale*, and the leg asserts exactly that. |
+| ⚠️ **`DecompressionStream` REFUSES THE NEWLINE BEFORE `endstream`** (2 Sep 2026) | `stintexport` reads the waterfall PDF back in the page. Unlike `zlib.inflateSync`, `DecompressionStream('deflate')` throws on trailing bytes after the deflate end, and every stream the writer emits ends with `\n` before `endstream` — so the content stream silently read as absent. ⛔ **CORRECTED 5 Nov 2026: do NOT trim** (this row once said "trim trailing whitespace bytes from the slice first", and that advice was copied into sixteen legs). Compressed data can itself END in 0x0A or 0x0D, so trimming truncates it, and the same silent "absent" comes back whenever a PDF's bytes move (hiatuslabel 23 Oct, phiatusnum H4 on v1.11.0). Cut each stream at its own `/Length`: read PDF text through `T.pdfStreams` / `T.pdfInflated` / `T.pdfRuns` in `t/lib.js`. Also learned there: the PDF fits the grid to the page with a single scale (0.9 for this fixture), so column widths compare to the screen only *at that scale*, and the leg asserts exactly that. |
 | ✅ **E1's closure is derivable from segCol, and the code does not rely on the derivation** (2 Sep 2026) | Adjacent columns cA < cB. A new stint in cB can start while cA is busy; a new stint in cA cannot start while cB is busy (`minCol` is one past the highest busy column). So from the lower stint the group is one level — it plus every cB stint overlapping it — and from an upper stint the unique lower stint overlapping it is found first and the same one level taken from there. `stintRunFor` walks to a fixpoint anyway, so a schedule that broke the rule (stored `cellSpans`, a hiatus split) would still get a cell-preserving group or an honest refusal. |
 | ⛔ **THE HOOK PRESERVES SLOT ORDER — it does not reorder. Two halves, only one frozen** | The most counter-intuitive thing in the new design, and building only half of it produces a feature that visibly does nothing. The MOVE is a `col`-value exchange over two stints in **non-frozen** `computeSchedule` (the same mutation the per-week reconciler already does, just over a stint). On its own that is invisible: `blockSlotMaps` re-derives slot order from **first appearance**, so a phase present in week 1 keeps slot 0 whatever col it now carries — the documented `seat` trap. The frozen hook's only job is to **pin the order the block had before the exchange**, so the exchange shows through. The reconciler stashes that pre-exchange order per block on the schedule (like `appliedColSwaps`) and the hook reads it — no baseline recompute inside frozen code. |
 | ⚠️ **`segCol` only reuses a column to the RIGHT of everything still running — and that is what makes a per-stint swap correct** | Its own comment states the rule; `minCol` is one past the highest currently-busy column. So two phases share a column only when separated by a clean break in the WHOLE schedule, which means the column beside your stint **during your stint's life** holds exactly one other stint. A second occupant of that column is adjacent to something else, later. ⛔ This is why exchanging whole COLUMNS is wrong and exchanging two STINTS is right — an earlier draft of the plan recommended wholesale and the owner correctly rejected it. |

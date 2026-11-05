@@ -141,20 +141,9 @@ window.addEventListener('load', function () { (async function () {
       byId('export-btn').click();
       await T.until(function () { return rec.files.some(function (f) { return f.closed; }); }, 'the month PDF write', 300, 100);
     } finally { rec.restore(); }
-    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes, s = '', runs = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text(), tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
-        while ((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, function (m0, ch) { return ch; }));
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return runs;
+    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes;
+    // Every "(text) Tj" run, each stream cut at its own /Length (T.pdfRuns, lib.js: never by trimming the EOL).
+    return T.pdfRuns(u8);
   }
 
   // ---- Save and Load through the real controls ----------------------------------------------------------------

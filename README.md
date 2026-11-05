@@ -29,6 +29,39 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the test harness reads PDF text by each stream's length (5 Nov 2026)
+
+Test harness only: the app and both PDF writers are unchanged. Since v1.11.0 the `phiatusnum` leg's check H4 ("one
+text run each for Pre-Prep Hiatus wk 1-3 in the waterfall PDF") was red on the live build, and it found no text at
+all. The PDF was fine (`pdftotext` reads every run). The leg's own reader was wrong. Chrome's `DecompressionStream`
+refuses any byte after the compressed data, so the reader trimmed the line ending before `endstream`. But compressed
+data can itself end in a 0x0A or 0x0D byte, and the trim cut that byte off. The layout rules' new widths changed the
+waterfall PDF's bytes so that page 1's content stream (`/Length 1466`) ends in one. Inflation then threw, the reader
+swallowed the error, and the leg saw an empty PDF. `hiatuslabel` hit the same trap on 23 Oct 2026, through a header
+date, and was fixed alone. Sixteen legs carried a copy of the trimming reader, so any of them could go red the same
+way whenever a PDF's bytes moved.
+
+- **One reader now, in `tests/harness/t/lib.js`:** `T.pdfStreams(u8)` cuts each stream at its dictionary's own direct
+  `/Length` (never `/Length1`, never an indirect `12 0 R`), and only when `endstream` follows. It falls back to the
+  trim when there is no such length, steps over each stream's data, and skips the `endstream` keyword itself.
+  `T.pdfInflated(u8)` returns the inflated texts, and `T.pdfRuns(u8)` the `(text) Tj` runs. A `/FlateDecode` stream
+  that fails to inflate at a verified length now **throws** instead of reading as empty. The SPTCal mark's
+  uncompressed streams are cut and left alone, as before.
+- **Moved onto it:** the twelve legs named in the finding (`autonotekinds`, `autonotephases`, `autonoteview`,
+  `autonoterename`, `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`,
+  `wfnotecolors`), the three with the same trim under another variable name (`notewrap`, `prodspan`, `winansi`), and
+  `hiatuslabel`, which already cut by length. The other legs that read PDFs (`calrange`, `hdrrow`, `pdfdialog` and the
+  like) already cut at `/Length` first and are untouched.
+
+Verified on the build (`30bbfc2e…`, the live one): `phiatusnum` 17/18 with H4 red on the old reader and 18/18 on the
+new one. The other fifteen are green on the new one: `autonotekinds` 16/16, `autonotephases` 27/27, `seasons`
+15/15, `phasecolors` 10/10, `mvhdroff` 9/9, `hidewf` 19/19, `wfnotecolors` 14/14, `holidayrename` 14/14,
+`autonoterename` 24/24 (twice), `autonoteview` 18/18, `simpostname` 14/14, `notewrap` 16/16, `prodspan` 8/8, `winansi`
+7/7 and `hiatuslabel` 7/7. On their first pass, while another session's full gate ran, three timed out on a load or a
+save before reading any PDF; each was green alone. `npm run check` 40/40. A Node check of the helper on synthetic streams: the old reader finds 1 of 3 runs (it loses
+the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
+stream throws. No gate.sh change: leg names and budgets are the same.
+
 ### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
 
 Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag

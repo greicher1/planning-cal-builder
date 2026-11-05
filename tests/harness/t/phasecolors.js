@@ -73,19 +73,8 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
   function cellOf(key, w) { return document.querySelector('#table-wrap td.sheet-phase-cell[data-pkey="' + key + '"][data-week="' + w + '"]'); }
-  async function inflated(u8) {
-    var s = '', all = '';
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
-      try { all += await new Response(new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'))).text() + '\n'; }
-      catch (e) { /* not a Flate stream */ }
-    }
-    return all;
-  }
+  // Every Flate stream of a PDF, inflated, each cut at its own /Length (T.pdfInflated, lib.js: never by trimming).
+  async function inflated(u8) { return (await T.pdfInflated(u8)).map(function (t) { return t + '\n'; }).join(''); }
   // A fill as each writer spells it: the waterfall's pdfRgb (four fixed decimals), the month writer's rgb()
   // (four decimals, trailing zeros dropped).
   function wfRg(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) { return (v / 255).toFixed(4); }).join(' ') + ' rg'; }

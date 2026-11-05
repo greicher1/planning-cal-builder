@@ -147,19 +147,9 @@ window.addEventListener('load', function () { (async function () {
       byId('export-btn').click();
       await T.until(function () { return rec.files.some(function (f) { return f.closed; }); }, 'the month PDF write', 300, 100);
     } finally { rec.restore(); }
-    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes, s = '', all = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        all.push(await new Response(ds).text());
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return all.join('\n');
+    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes;
+    // Every Flate stream, inflated and cut at its own /Length (T.pdfInflated, lib.js: never by trimming the EOL).
+    return (await T.pdfInflated(u8)).join('\n');
   }
 
   // ---- Save and Load through the real controls ----------------------------------------------------------------
