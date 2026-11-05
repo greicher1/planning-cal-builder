@@ -23,7 +23,7 @@
   `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
   so whichever is built first should shape it for both.
 
-### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — in the main checkout's working tree, NOT committed. Tracker card `autonote-card-look`
+### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
 - **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
   (app.js), the card's block in `legacy.css`, a comment in `Sidebar.jsx`, and three leg checks.
 - **The mockups:** [`mockups/autonote-card.html`](mockups/autonote-card.html), today's card plus A (the same list
@@ -46,8 +46,10 @@
 - **Legs updated for the new markup:** autonotekinds A1 (label = the row's name + the box's word), autonotephases
   P1 (rows, words from the Waterfall boxes, the Start/End sub-heading, four boxes per row in order) and C0 (the custom
   row's words from its boxes).
-- ⚠️ **Local `main` is 14 commits ahead of origin** (the swap-split-reuse merge and the Anchor To plan). A commit of
-  this on `main` rides with them on the next push.
+- ⚠️ **That push carried the 14 commits waiting on `main`** (owner's push picker named them): the swap-split-reuse
+  merge `c5fd2ce` and the Anchor To plan. So **the Swap Column fix is LIVE too**, at `e5e4435`. Its own entry below
+  listed a targeted swap/reuse run on the merged build as the step before pushing; that run had not been reported
+  when it went out, so it is now a post-push check. Its session was told; its tracker card is at live with that note.
 - **Verified:** browser pane at 247 and 303 px (names on one line, row hover, a tick taking and surviving the
   redraw); `npm run check` 40/40; on `dist/` (port 8517) every leg that reads the card: autonotekinds 16/16,
   autonotephases 27/27, prepreptitle 7/7, autonote (v1.3.0-saved) 9/9, autonoterename 24/24, autonoteview 18/18,
@@ -108,6 +110,8 @@
   `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
   No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
 - ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
+- ✅ **LIVE at `e5e4435`** (4 Nov 2026, 17:39), pushed with the Automatic notes card (see that entry above for the
+  run that had not been reported).
 
 
 ### 📝 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C, NO APP CODE YET ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
