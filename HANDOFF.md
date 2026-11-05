@@ -5,6 +5,48 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 📝 4 Nov 2026: ANCHOR TO, CHOOSE WHAT MOVES — PLAN + MOCKUP, NOTHING RULED, NO APP CODE ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+
+- **The asks** (owner): *"Does anchor to only move phases after the selected phase or also phases before?"*, then
+  *"would it make sense to have a work forward and work backwards function for anchor to"*, then *"Yes, write it up"*.
+- **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
+  Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
+  other side and was tested then.)
+- **Proposed:** one choice under today's phase and date rows (in A and B the date stays directly below the phase
+  line, owner 4 Nov 2026). **All phases** (today, the default) | **Phase & before** (new: no tool
+  moves a phase and the phases before it while keeping the gaps) | **Phase & after** (Shift From's set, aimed at a
+  date). The owner picked these words from four options on 4 Nov 2026 (plan §3), because they say the picked phase
+  moves too. A hint line names what stays. Whole schedule hides the choice.
+- ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
+  unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
+  own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
+- **Words:** not "work forward / backwards" (Rebuild From's words, for closing gaps) and not "earlier / later"
+  (Shift From's travel directions). "Before it / after it" is what Shift From's help already says.
+- **Layout C, added the same day** (owner: *"In theory, could shift from and anchor to be combined into one tool with
+  multiple settings?"*, then *"Yes, add it"*). Plan §6, the mockup's third tab.
+  - Shift From and Anchor To fold into Shift All's ▾, renamed **Shift**, with two choices: What moves (the three
+    above) and How far (By weeks | To a date). The arrows stay. The toolbar keeps two tools: Shift keeps the gaps,
+    Rebuild From closes them.
+  - It opens on All phases by weeks, which is today's Shift All form.
+  - **Reworded and reordered at the owner's ask** (*"reword these options and move the phase selector to right below
+    it"*, on a screenshot of C). The buttons first read Everything | This and after | This and before. "All
+    phases" is used because holidays and locked hiatuses never move. C's phase picker now sits directly under the
+    buttons, and *starts on / ends by* moved beside the date. One case pushes How far down a row (All phases by
+    weeks, then To a date): plan §6.2.
+  - Its popover measured 233 px open, 283 px at its tallest, and 333 px with a result line. The old "Adjustment
+    Tools" menu, removed for its height, was 562 px.
+  - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
+    `calrange`, `overrides` and `rowheight` move to the new controls.
+- **Waiting on the owner:**
+  - R1, the layout: A (three buttons in Anchor To), B (a dropdown) or C (one Shift tool). C is recommended if
+    retiring two buttons is acceptable, and A otherwise.
+  - R2, on opening: back to All phases (and By weeks in C) every time, which is recommended, or remember the last
+    choice until the app closes.
+- ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
+  schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
+  `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a
+  full gate before any push.
+
 ### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
 **The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
 unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in
