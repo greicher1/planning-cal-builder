@@ -158,6 +158,50 @@ window.addEventListener('load', function () { (async function () {
     if (inner.length > 1) await dblAt(inner[1], yb);
     add('P8', 'a three-column cell (Bible wk 13): a double-click on its second inner boundary pulls it back',
       cs0 === 3 && inner.length === 2 && cell('Bible wk 13').colSpan === 1, {before: cs0, inner: inner.length, after: cell('Bible wk 13').colSpan}, '3 -> 1');
+    await undo();
+
+    // P9 (owner, 5 Nov 2026, after P0-P8 shipped: "i tried highlighing a bunch of expanced cells and double clicking
+    // and it only pulled back the cell my cursor was on"). Bible wk 13-16 own the RIGHT of their three columns; a
+    // sweep down their left third touched no own column, so it selected nothing (the text highlight still outlined
+    // all four) and the double-click pulled back one. Now it selects the cells it touches.
+    function bibles() { var o = []; for (var n = 13; n <= 16; n++) { var c = cell('Bible wk ' + n); o.push(c ? c.colSpan : '?'); } return o.join(''); }
+    async function sweep(x, ya, yb2) {
+      ptr(top(x, ya), 'pointerdown', x, ya);
+      for (var s = 1; s <= 6; s++) ptr(document, 'pointermove', x, ya + (yb2 - ya) * s / 6);
+      ptr(document, 'pointerup', x, yb2);
+      await T.sleep(200);
+    }
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await T.sleep(150);
+    await show(cell('Bible wk 14'));
+    var b13 = cell('Bible wk 13').getBoundingClientRect(), b16 = cell('Bible wk 16').getBoundingClientRect();
+    var xl = b13.left + b13.width / 6, before9 = bibles();
+    await sweep(xl, b13.top + b13.height / 2, b16.top + b16.height / 2);
+    var chip9 = chipText();
+    var b14 = cell('Bible wk 14').getBoundingClientRect(), y14 = b14.top + b14.height / 2;
+    var in14 = Array.prototype.map.call(document.querySelectorAll('#table-wrap .grid-resize.is-col'), function (e) { var q = e.getBoundingClientRect(); return (q.left + q.right) / 2; })
+      .filter(function (x) { return x > b14.left + 7 && x < b14.right - 7; });
+    if (in14.length) await dblAt(in14[0], y14);
+    await T.until(function () { return bibles() !== before9; }, 'the sweep pull-back', 30, 100).catch(function () {});
+    add('P9', "a sweep down the expanded part of Bible wk 13-16 (no own column touched) selects all four; a double-click pulls all four back",
+      before9 === '3333' && chip9 === 'Double click to pull back cells' && bibles() === '1111',
+      {before: before9, chip: chip9, after: bibles()}, '3333, the pull-back hint, then 1111');
+    await undo();
+
+    // P10: the owner's 1 Sep 2026 rule holds: a sweep down column one that DOES touch own columns (Writer's Rm wk
+    // 18-20) selects only those, never the full-width Bible cells straddling the same column below them.
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await T.sleep(150);
+    await show(wr(20));
+    var w18 = wr(18).getBoundingClientRect(), b16b = cell('Bible wk 16').getBoundingClientRect();
+    await sweep(w18.left + w18.width / 6, w18.top + w18.height / 2, b16b.top + b16b.height / 2);
+    var chip10 = chipText();
+    var c19 = centre(wr(19));
+    await dblAt(c19.x, c19.y);
+    await T.sleep(200);
+    add('P10', "a sweep down column one from Writer's Rm wk 18 into the Bible rows selects only Writer's Rm wk 18-20 (the own-column rule)",
+      chip10 === 'Double click to pull back cells' && spans(18, 20) === '18:1 19:1 20:1' && bibles() === '3333',
+      {chip: chip10, writers: spans(18, 20), bible: bibles()}, "Writer's 18-20 pulled back, Bible 13-16 untouched");
 
     var errs = T.appHealth().errors;
     add('E0', '0 console errors', errs.length === 0, {errors: errs.slice(0, 5)}, 'none');

@@ -2035,7 +2035,9 @@ done
 # to take the double-click (the frozen autofit, a no-op), so pull-back worked only off the centre. Real pointer events
 # at real coordinates, on layout-r13's automatically widened cells: a marquee batch, one cell with nothing selected,
 # a three-column cell, one undo step each, a 1.4px drift that saved a width being put back, and the autofit kept on a
-# boundary that is a real cell edge. Red on the build before it at P2.
+# boundary that is a real cell edge. Red on the build before it at P2. P9 + P10 (owner, the same night: "it only pulled
+# back the cell my cursor was on"): a drag over only the expanded part of cells (no own column touched) selects them,
+# and a drag that does touch own columns keeps the 1 Sep own-column rule. P9 red on the live 854dbbe build.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a

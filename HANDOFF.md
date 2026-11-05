@@ -4,7 +4,9 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync twice: at 5f99223, then at 854dbbe (the Shift date row and the centre pull-back), HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*; `--no-ff`, made on a temporary branch in this worktree and fast-forwarded onto `main`, so the shared main checkout never held a conflicted merge). ⛔ **NOT LIVE: GitHub REJECTED the push** (owner's picker *"Push now"*). `git push origin 4bd345c:refs/heads/main`, a fast-forward of `854dbbe`, came back `! [remote rejected] … (fatal error in commit_refs_rules)` four times, 23:22–23:24 UTC, by sha and by branch name. The repo has no rulesets and no branch protection, the token has `repo` + `workflow`, GitHub's status page was green, the commit headers are ordinary, `git fsck` is clean, and the last push that worked was at 23:01 UTC. Nothing reached origin. **To retry:** `git push origin 4bd345c:refs/heads/main` sends this work plus `69c8bc0` (local main's doc-only "New opens Show info LIVE" note, already in this branch). Pushing `main` would also send `ff67571`, `69b6ec6` and the merge.
+### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync three times: at 5f99223, at 854dbbe (the Shift date row and the centre pull-back), then at 3b8306c (the pull-back's drag-select follow-up); HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*). Pushed on the owner's *"Push now"*, then *"Retry the push"*:
+  - ⚠️ GitHub REJECTED the first four tries (23:22–23:24 UTC, `! [remote rejected] … (fatal error in commit_refs_rules)`), by sha and by branch name. That is a server-side error and no cause was found on our side: no rulesets, no branch protection, token scopes `repo` + `workflow`, the status page green, `git fsck` clean.
+  - The fifth try (23:45) got past those checks but lost a race. `origin/main` had just moved to `3b8306c` ("cannot lock ref … expected 854dbbe"). That commit was merged in and the build re-checked before the next push.
 - **The fault** (recorded under "Full gate #2" in the stale band key entry below): sixteen legs read PDF text with a
   copied reader that found `stream`…`endstream` and stripped trailing 0x0A / 0x0D before `DecompressionStream`. Data
   that legitimately ends in an EOL byte was truncated, inflation threw (`TypeError: Failed to fetch` from
@@ -47,6 +49,27 @@
   note, both unpushed and doc only). This branch is not on it. A push of this branch to `origin/main` is a
   fast-forward (`git push origin claude/agitated-bhaskara-df2f66:main`, the shape `stale-band-key` used). Merging it
   into local `main` instead means a HANDOFF conflict in the main checkout, which other sessions are using.
+
+### 🔨 5 Nov 2026: FOLLOW-UP — A DRAG OVER ONLY THE EXPANDED PART OF CELLS NOW SELECTS THEM (the double-click then pulls them ALL back). Branch `batch-pullback`, on top of the live `854dbbe`. COMMITTED and PUSH APPROVED (owner's pickers *"Commit on the branch"*, *"Push live now"*). Tracker card `centre-pullback`.
+- **Report (owner, trying the live fix):** *"i tried highlighing a bunch of expanced cells and double clicking and it
+  only pulled back the cell my cursor was on"*.
+- **Cause, reproduced in the pane on `layout-r13`:** the gridSel marquee's membership is the cell's OWN slot
+  (`ownSlotBox`, the owner's 1 Sep 2026 rule: a sweep down one column must not grab another phase's full-width
+  cells straddling it). Bible wk 13-16 own the RIGHT of their three columns, so a sweep down their left part met no
+  own slot and gridSel stayed EMPTY, while the text style bar's highlight (its own marquee, whole-box membership,
+  Excel's merged-cell rule) outlined all four. No chip appeared; the double-click took the no-selection path (one
+  cell). ⚠️ The two selections are built from the same drag with different membership, and the user cannot tell
+  which one is on screen: the chip is the only tell.
+- **Fix** (the marquee's `onMove`): when the rectangle touches NO cell's own slot, gridSel takes every phase cell
+  whose WHOLE box it touches. Any own slot touched → the own-slot rule alone, as before (P10 holds the 1 Sep case:
+  Writer's Rm wk 18 down into the Bible rows selects Writer's 18-20 only).
+- **Proof:** `centrepullback` P9 + P10, 12/12 on the build; P9 RED on the live build (built from `854dbbe`'s
+  `app.js`, shasum `2daa5cde…` = the live file), with the owner's exact result (`3133`, no chip).
+- **Targeted gate (same sections as before): 463 PASS / 2 FAIL**, both `colreuse (live)`: "...and raises the strip"
+  and "Keep as is hides the strip", with another session's full gate (`build-around`) running at the same time.
+  ⚠️ **Not this change, and worth knowing:** colreuse live on the LIVE build fails the same strip checks 2 of 3 runs
+  under that contention, and both builds go 25/25 on other runs. `stripUp()` is read straight after `loadText()`
+  settles, so the strip check is timing-sensitive whenever the machine is loaded.
 
 ### ✅ 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — ✅ **LIVE at `854dbbe`** (owner's picker *"Merge and push"*, after asking whether it needed the full gate: answered no, nothing frozen, exported or saved changed). Pushed `383b1f8..854dbbe` at 23:01:14 UTC (the branch with origin/main merged in twice, other sessions pushing meanwhile; src delta vs origin = the reviewed fix exactly; `centrepullback`, `noswapbtns`, `anchorside`, `stalebandkey`, `newtab`, `spancounts` green on the merged build, `npm run check` 40/40); the Pages deploy succeeded and the live `index.html` matched the pushed build `2daa5cde…` byte for byte at 23:02:32 UTC. No version cut (README entry under Unreleased). Local `main` merged origin as `ff67571`, keeping another session's unpushed `69c8bc0`. Branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`.
 - **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
