@@ -1519,6 +1519,14 @@
   .hiatus-pair label.hiatus-weeks-lbl{ flex:0 0 64px; }
   .hiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .hiatus-body > .snap-note{ margin-top:4px; }
+  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §5-6): the switch at the top of the All-phase hiatus card, and the line
+     that says what a ripple moved, under the hiatus that was edited. */
+  .hiatus-ripple-card{ padding:0 12px 6px; }
+  .hiatus-ripple-card > .sw-row{ border-bottom:none; }
+  .ripple-note{ margin-top:4px; padding:4px 6px; border-radius:4px; font-size:var(--mantine-font-size-xs); line-height:1.4;
+    color:var(--mantine-color-black); background:color-mix(in srgb, var(--mantine-primary-color-filled) 9%, transparent); }
+  .ripple-note[hidden], .ripple-note:empty{ display:none; }
+  .phase-hiatus > .ripple-note{ margin:0 0 8px 2px; }
   .hiatus-body > .sw-row:first-of-type{ margin-top:6px; }
   .hiatus-body > .sw-row:last-child{ border-bottom:none; }
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
@@ -4250,6 +4258,47 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
+  /* THE WEEK ARROWS (PHASE-WEEK-ARROWS-PLAN.md, layout C2; owner, 4 Nov 2026: "C2, but make sure the buttons aren't
+     actually touching the top or bottom lines of the box", after D was built and every layout was shown on the real
+     card at three window widths). ▲ ▼ stacked INSIDE the date box at its right end, on every card whose `nudge-on`
+     class is set (reflectPhaseNudges: the waterfall is on screen and the phase has a date). Keyed on that class, never
+     on a :has() (see the ⛔ further down).
+     - The geometry, top to bottom inside the box: its 1 px border, 2 px clear, ▲ 15 px, 1 px gap, ▼ 15 px, 2 px clear,
+       its border. So while the arrows show, the card's boxes are 37 px tall (30 everywhere else), the Length box too,
+       so the two stay level. The card is 7 px taller and keeps its shape: Starts and Length side by side as before.
+     - `top` is the caption line (14) + its gap (3) + the border (1) + the clearance (2); the phasearrows leg holds the
+       clearance on every card, so a change to the caption's height shows up there.
+     - The date text keeps the box's left padding and stops 32 px from the right (24 px of button, 4 px either side),
+       which leaves "mm/dd/yyyy" its ~73 px in the narrowest side-by-side box (118 px).
+     The month view has no arrows, and its card is as it was. */
+  .ph-nudge, .ph-nudge-chip{ display:none; }
+  .phase-row.nudge-on .ph-starts{ position:relative; }
+  .phase-row.nudge-on .phase-fields input[type=date],
+  .phase-row.nudge-on .phase-fields input[type=number]{ height:37px; }
+  .phase-row.nudge-on .ph-start-box input,
+  .phase-row.nudge-on .ph-ends-box input{ padding-right:32px; }
+  .phase-row.nudge-on .ph-nudge{
+    display:flex; flex-direction:column; gap:1px; position:absolute; z-index:1; right:4px; top:20px;
+  }
+  .ph-nudge-btn{
+    display:grid; place-items:center; flex:none; width:24px; height:15px; padding:0; cursor:pointer;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px;
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
+    transition:background-color 100ms ease, border-color 100ms ease;
+  }
+  .ph-nudge-btn svg{ width:9px; height:9px; }
+  .ph-nudge-btn:hover{ background:var(--mantine-color-navy-0); border-color:var(--mantine-color-navy-5); }
+  .ph-nudge-btn:active{ background:var(--mantine-color-navy-1); }
+  .ph-nudge-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* A burst's running total, "Pulled 2 wks", at the right end of the caption line (ruling D5). Empty between bursts. */
+  .phase-row.nudge-on .ph-nudge-chip{
+    display:block; margin-left:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    padding:0 6px; border-radius:7px; font-size:10.5px; font-weight:600; line-height:14px;
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6);
+    opacity:0; transition:opacity 150ms ease;
+  }
+  .phase-row.nudge-on .ph-nudge-chip.on{ opacity:1; }
+  .phase-row.nudge-on .ph-nudge-chip:empty{ padding:0; }
   /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): in both modes, the shoot as a span (option B of
      mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed line. The end
      that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the one worked out

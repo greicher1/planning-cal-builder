@@ -168,6 +168,15 @@ export function IconCalendarRange(props) {
   )
 }
 
+// The Hiatus preferences card (HIATUS-RIPPLE-PLAN.md §5): the pause bars the All-phase hiatus card's own header draws.
+export function IconPause(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 4v8M10 4v8" />
+    </svg>
+  )
+}
+
 export function IconCalendarPlain(props) {
   return (
     <svg {...base} {...props}>

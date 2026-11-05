@@ -7666,15 +7666,28 @@ export function initLegacyApp() {
     };
   })();
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
+  // ⭐ THE WEEK ARROWS (owner, 4 Nov 2026, PHASE-WEEK-ARROWS-PLAN.md, layout C2: "C2, but make sure the buttons aren't
+  // actually touching the top or bottom lines of the box"; D was built first): ▲ and ▼ stacked inside the date box, each
+  // moving THIS phase one week (▲ earlier, ruling D1), in the waterfall only (D6). `.ph-nudge` sits after the two boxes
+  // and the CSS lays it over whichever one shows (Starts or Ends). `.ph-nudge` and the
+  // label on the caption line, `.ph-nudge-chip`, carry NO id and no input, so neither can enter fields.byId. Which
+  // cards show them is reflectPhaseNudges() (the row's `nudge-on` class); a click is nudgePhase().
+  const NUDGE_UP_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 2.2 8.6 7H1.4z"/></svg>';
+  const NUDGE_DOWN_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 7.8 1.4 3h7.2z"/></svg>';
+  const NUDGE_HTML = `<div class="ph-nudge">
+          <button type="button" class="ph-nudge-btn" data-nudge="-1">${NUDGE_UP_SVG}</button>
+          <button type="button" class="ph-nudge-btn" data-nudge="1">${NUDGE_DOWN_SVG}</button>
+        </div>`;
   function startsFieldHtml(key){
     const prod = key === 'production';
     const endsBox = prod
       ? '<input type="date" class="prod-wrapdate" aria-label="Wrap date" title="The last shoot day. The start is worked out back from the shoot days.">'
       : '<input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked">';
     return `<div class="ph-starts">
-        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
+        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select><span class="ph-nudge-chip" aria-live="polite"></span></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
         <label class="ph-ends-box">${endsBox}</label>
+        ${NUDGE_HTML}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -8074,6 +8087,9 @@ export function initLegacyApp() {
           </div>
           <div class="snap-note"></div>
           ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
+          ${/* The hiatus ripple's switch (HIATUS-RIPPLE-PLAN.md §5): the one preference, shown here too. ⛔ NO id (see the
+               All-phase hiatus card's copy in index.html). reflectHiatusRipple() writes .checked. */''}
+          ${swRow('hiatus-ripple-sw', 'Ripple Hiatus', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Ripple Hiatus: move the phases after this hiatus when it changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as Ripple Hiatus Periods on the All-phase hiatus card. Kept on this computer.')}
         </div>
       </div>`;
   }
@@ -9125,9 +9141,10 @@ export function initLegacyApp() {
     `;
     // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
     // removeHiatusRow, just above this function), so the two ask the same question.
+    // The hiatus ripple (HIATUS-RIPPLE-PLAN.md §4): taking a hiatus away pulls the phases after it back by its length.
     row.querySelector('.remove-hiatus').addEventListener('click', async ()=>{
       if(!(await confirmRemoveHiatus(row))) return;
-      removeHiatusRow(row);
+      rippleAround({kind: 'all', row}, ()=> removeHiatusRow(row));
     });
     // The colour square (reflectHiatusSwatches paints it). update() ends in markDirty(), which banks the one undo
     // step, as a phase swatch's pick does (setPhaseColor).
@@ -9139,6 +9156,7 @@ export function initLegacyApp() {
       update();
     }));
     list.appendChild(row);
+    return row;
   }
 
   // A new calendar's winter breaks (the boot and New), all-phase and locked. Only NEW calendars read this list: a
@@ -11311,7 +11329,9 @@ export function initLegacyApp() {
     }
     // The question (ruling 3): what moved, in the user's terms. The hiatus's own weekdays (its bands run
     // Monday to Friday), Production's wrap, and any other phase whose end moved.
-    function question(d){
+    // `rip` is the hiatus ripple's result for this drag (HIATUS-RIPPLE-PLAN.md §6), or null: the phases it moved are
+    // named in its own sentence, so the "also changes when … ends" line leaves them out.
+    function question(d, rip){
       const c = d.cur, was = original(d);
       const lastFri = p=> addDays(endOf(p), -3);
       const weeks = n=> n + ' week' + (n === 1 ? '' : 's');
@@ -11323,13 +11343,17 @@ export function initLegacyApp() {
         msg += '\n\nProduction now wraps ' + fmtDay(parseDateUTC(wrapNow)) + '. It wrapped ' + fmtDay(parseDateUTC(d.wrap0)) + '.';
       }
       const ends = phaseEnds();
+      const rippled = new Set(((rip && rip.moves) || []).map(m=> m.key));
       const moved = ((currentSchedule && currentSchedule.segments) || [])
-        .filter(s=> s.key !== 'production' && d.ends0[s.key] !== undefined && ends[s.key] !== d.ends0[s.key])
+        .filter(s=> s.key !== 'production' && !rippled.has(s.key) && d.ends0[s.key] !== undefined && ends[s.key] !== d.ends0[s.key])
         .map(s=> s.name || s.label || s.key);
       if(moved.length){
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
              : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
       }
+      // The switch's own name where the user flipped it (owner, 4 Nov 2026): Ripple Hiatus Periods on the All-phase
+      // hiatus card, Ripple Hiatus in a phase's Hiatus block.
+      if(rip && rip.changed && rip.text) msg += '\n\n' + (d.h.kind === 'all' ? 'Ripple Hiatus Periods' : 'Ripple Hiatus') + ' is on: ' + rip.text + '.';
       return msg;
     }
 
@@ -11377,23 +11401,41 @@ export function initLegacyApp() {
       hide();
       if(!d) return;
       const changed = !samePos(d.cur, original(d));
+      // ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §6): applied on release, BEFORE the question, so Keep is asked about
+      // what the user will actually get. Nothing is banked yet: the press banked the state before the drag
+      // (lastPushedSnapshotJSON, the drag cancels every push in between), which is what Undo goes back to. Keep then
+      // banks the drag and its push as two steps, as every other hiatus edit does.
+      let rip = null, preJSON = null, editJSON = null;
+      if(changed && hiatusRippleOn()){
+        cancelPendingUndoPush();
+        preJSON = lastPushedSnapshotJSON;
+        editJSON = undoStateJSON();
+        const h = d.h.kind === 'all' ? {kind: 'all', row: d.h.sEl.closest('.hiatus-entry')} : {kind: 'phase', key: d.h.key};
+        clearRippleNotes();
+        try { rip = rippleAfterHiatusEdit(h, original(d), {start: d.cur.start, weeks: d.cur.weeks}, {noUndo: true}); }
+        catch(err){ console.error(err); rip = null; }
+        cancelPendingUndoPush();
+        if(!(rip && rip.changed)) rip = null;
+      }
       if(changed && d.h.kind === 'all'){
         asking = true;
         let keep = false;
         try {
-          keep = await uiConfirm(question(d), {title: 'Move hiatus', confirmLabel: 'Keep', cancelLabel: 'Undo'});
+          keep = await uiConfirm(question(d, rip), {title: 'Move hiatus', confirmLabel: 'Keep', cancelLabel: 'Undo'});
         } catch(err){ keep = false; }
         asking = false;
         if(!keep){
-          // Undo: exactly what was there, the look included, and NO step banked.
-          writeTo(d, original(d));
+          // Undo: exactly what was there, the look included, and NO step banked. After a ripple that is the whole
+          // calendar as it was at the press, through the undo stack's own restore (no step, the baseline kept).
+          if(rip && preJSON) applySnapshotJSON(preJSON);
+          else writeTo(d, original(d));
           releasePersistence();
           return;
         }
       }
       releasePersistence();
       // ⛔ THE TRAILING PUSH IS THE STEP, as the phase handles'. A drag that ends where it began banks none.
-      if(changed){ pushUndoSnapshot(); markDirty(); }
+      if(changed){ if(rip) bankStepAt(editJSON); pushUndoSnapshot(); markDirty(); }
     }
 
     window.addEventListener('mousemove', e=>{
@@ -12134,11 +12176,14 @@ export function initLegacyApp() {
 
     // Exactly what the sidebar's "+ Add hiatus" does, with the start filled in: a row two weeks long,
     // locked in place (addHiatusRow's default), then update(). One undo step, bracketed.
+    // With the hiatus ripple on, the phases after it are then pushed two weeks: a second undo step (HIATUS-RIPPLE-PLAN.md).
     function addHiatusHere(ctx){
       pushUndoSnapshot();
-      addHiatusRow(isoOf(mondayOf(ctx.date)), 2);
+      const row = addHiatusRow(isoOf(mondayOf(ctx.date)), 2);
       update();
       pushUndoSnapshot();
+      clearRippleNotes();
+      try { rippleAfterHiatusEdit({kind: 'all', row}, null, rippleSpan({kind: 'all', row})); } catch(e){ console.error(e); }
     }
 
     // The phase row's own hiatus: its toggle, start and weeks, then the same refresh a restore runs
@@ -12149,12 +12194,14 @@ export function initLegacyApp() {
       const weeks = document.getElementById('phiatus-weeks-' + key);
       if(!en || !start || !weeks) return;
       pushUndoSnapshot();
-      en.checked = true;
-      start.value = isoOf(mondayOf(ctx.date));
-      if(!move) weeks.value = '2';
-      refreshPhaseHiatusUI();
-      update();
-      pushUndoSnapshot();
+      rippleAround({kind: 'phase', key}, ()=>{
+        en.checked = true;
+        start.value = isoOf(mondayOf(ctx.date));
+        if(!move) weeks.value = '2';
+        refreshPhaseHiatusUI();
+        update();
+        pushUndoSnapshot();
+      });
     }
 
     // ---- Step 5: the hiatus and holiday sections (plan §3.10, §3.11) ----
@@ -12203,18 +12250,19 @@ export function initLegacyApp() {
       if(!row.isConnected || !(await confirmRemoveHiatus(row))) return;
       if(!row.isConnected) return;
       pushUndoSnapshot();
-      removeHiatusRow(row);
-      pushUndoSnapshot();
+      rippleAround({kind: 'all', row}, ()=>{ removeHiatusRow(row); pushUndoSnapshot(); });
     }
     // A phase's own hiatus: its toggle off, then the refresh and update() its sidebar toggle runs.
     function removePhaseHiatusHere(key){
       const en = document.getElementById('phiatus-en-' + key);
       if(!en || !en.checked) return;
       pushUndoSnapshot();
-      en.checked = false;
-      refreshPhaseHiatusUI();
-      update();
-      pushUndoSnapshot();
+      rippleAround({kind: 'phase', key}, ()=>{
+        en.checked = false;
+        refreshPhaseHiatusUI();
+        update();
+        pushUndoSnapshot();
+      });
     }
 
     // Each holiday on the day, enabled or not, gets a section (plan §3.11, ruling Q6). Holidays have no
@@ -24826,8 +24874,10 @@ export function initLegacyApp() {
     reflectColMoveNotes();
     reflectHiatusRanges();
     reflectHiatusSwatches();
+    reflectHiatusRipple();   // the switch's copies, phase blocks built since included (HIATUS-RIPPLE-PLAN.md §5)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
+    reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
@@ -26711,6 +26761,14 @@ export function initLegacyApp() {
           const f = document.getElementById('phiatus-fields-'+key);
           if(f) f.style.display = t.checked ? 'flex' : 'none';
           update();
+          // The hiatus ripple (HIATUS-RIPPLE-PLAN.md §4), once per click: switching a phase's hiatus on puts it in,
+          // switching it off takes it out. The switch has already flipped, so the "before" is read with it flipped back.
+          if(evt === 'change'){
+            const h = {kind: 'phase', key};
+            const span = rippleSpan(h, true);
+            clearRippleNotes();
+            try { rippleAfterHiatusEdit(h, t.checked ? null : span, t.checked ? span : null); } catch(err){ console.error(err); }
+          }
         } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks') || t.classList.contains('phiatus-name')){
           // Before update(): a retyped Starts or Weeks carries the hiatus's colour to its new weeks, and a typed name takes
           // over a week labelled in the band itself (A PHASE'S OWN HIATUS: ITS COLOUR; THE CARD'S NAME REACHES EVERY WEEK).
@@ -27270,7 +27328,7 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx, .ripple-note').forEach(el=>el.remove());
     // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
     // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
@@ -28616,10 +28674,27 @@ export function initLegacyApp() {
     if(undoStack.length && undoStack[undoStack.length - 1] === now){ undoStack.pop(); refreshUndoRedoUI(); }
     lastPushedSnapshotJSON = now;
   }
+  // ⭐ MAKE `json` A STEP OF ITS OWN between the baseline and the present (the hiatus ripple, HIATUS-RIPPLE-PLAN.md §6).
+  // `json` is undoStateJSON() of the user's own edit, taken just before the ripple that follows it; the caller pushes
+  // the rippled state next, so one Cmd+Z takes back the push and keeps the edit ("not this time"), and a second takes
+  // back the edit. Equal to the baseline, the edit was already banked (a pause past UNDO_DEBOUNCE_MS, or a caller that
+  // brackets with pushUndoSnapshot()), and nothing is added.
+  function bankStepAt(json){
+    if(applyingUndoRedo || suppressDirty || !json || json === lastPushedSnapshotJSON) return;
+    cancelPendingUndoPush();
+    if(lastPushedSnapshotJSON !== null){
+      undoStack.push(lastPushedSnapshotJSON);
+      if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+    }
+    lastPushedSnapshotJSON = json;
+    redoStack = [];
+    refreshUndoRedoUI();
+  }
   // Discards all undo/redo history and re-baselines on the current state. Called whenever a
   // different document replaces what's on screen (New, Open, a recent file, backup recovery, or
   // the initial page load) -- undoing "past" the start of a different calendar makes no sense.
   function resetUndoHistory(){
+    clearRippleNotes();   // a different calendar: the last ripple's line under a hiatus is not about it
     undoStack = [];
     redoStack = [];
     clearTimeout(undoPushTimer);
@@ -28669,6 +28744,7 @@ export function initLegacyApp() {
     refreshUndoRedoUI();
   }
   function undo(){
+    endNudgeBurst();    // a running burst of the phase arrows is banked first, and its day-mark binding closed
     clearTimeout(undoPushTimer);
     pushUndoSnapshot(); // flush any pending (debounced) edit as its own step before undoing it
     if(!undoStack.length) return;
@@ -28676,6 +28752,7 @@ export function initLegacyApp() {
     applySnapshotJSON(undoStack.pop());
   }
   function redo(){
+    endNudgeBurst();    // as undo(): a running burst must never stay bound under a restored snapshot
     if(!redoStack.length) return;
     undoStack.push(lastPushedSnapshotJSON);
     applySnapshotJSON(redoStack.pop());
@@ -29034,13 +29111,27 @@ export function initLegacyApp() {
   //           It is also the "just this phase" mover PHASE-WEEK-ARROWS-PLAN.md asked for as `{onlyPhase}`:
   //           `{phases: [key], windows: [{from: its start week, to: its last week}]}`.
   //           `fromIso` is ignored with `part`.
-  //   ⚠️ HIATUS-RIPPLE-PLAN.md (branch hiatus-ripple) gives this function `opts.except` and `opts.keepView`.
+  //           ⭐ An EMPTY window -- `fromWeek` after `toWeek` -- carries nothing week-keyed: no note, no all-phase
+  //           hiatus, not the calendar range. That is the phase card's ▲ / ▼ (PHASE-WEEK-ARROWS-PLAN.md, nudgePhase):
+  //           `{phases: [key]}` moves that one phase with only what it owns, its own hiatus and every
+  //           "<week>|<key>" store (hiatusKeyStays below). ⛔ Null bounds are NOT empty: they are open, and carry
+  //           every note.
+  //   keepView -- leave the month view's cursor where it is. A shift moves it so the same content stays on screen;
+  //           the phase arrows move one phase, so the rest of the month the cursor shows did not move.
+  //           The hiatus ripple passes it too (HIATUS-RIPPLE-PLAN.md): a ripple is aimed at the hiatus, which did not
+  //           move. Its `except` is described just below, above shiftCalendarDates.
   //   ONE options object for all of them, never another positional argument.
   function shiftCalendar(weeks, fromIso, opts){
     return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
   }
+  //   except   -- the hiatus ripple's (HIATUS-RIPPLE-PLAN.md §3.3): the hiatus being edited, {kind:'all', row} or
+  //               {kind:'phase', key}. It is held where the user put it, as a locked row is: without this, the edited
+  //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
+  //               the phase that OWNS it is held too (the hiatus pauses it, which is the point), and with it its own
+  //               hiatus fields. The ripple never passes `part`, and passes `keepView` (above).
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
+    const except = opts.except || null;
     const n = Math.round(Number(weeks) || 0);
     if(!n || Math.abs(n) > MAX_SHIFT_WEEKS) return null;
     const days = n * 7;
@@ -29079,6 +29170,7 @@ export function initLegacyApp() {
         if(startEl && startEl.value) stayedPhases++;
         stayingPhases.add(p.key); return;
       }
+      if(except && except.kind === 'phase' && except.key === p.key){ stayedPhases++; stayingPhases.add(p.key); return; }
       // Through setPhaseStart(), so a Dates phase's end moves with it (CUSTOM-PHASE-UNITS-PLAN §8).
       const from = parseDateUTC(startEl.value);
       if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
@@ -29102,6 +29194,7 @@ export function initLegacyApp() {
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
       const startEl = row.querySelector('.hiatus-start');
       if(!startEl || !startEl.value || !inRange(startEl.value)){ recordStayingWeeks(row); return; }
+      if(except && except.kind === 'all' && except.row === row){ recordStayingWeeks(row); return; }
       const lock = row.querySelector('.hiatus-locked');
       if(lock && lock.checked){ lockedHiatuses++; recordStayingWeeks(row); return; }
       if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
@@ -29198,7 +29291,7 @@ export function initLegacyApp() {
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
     // month view has been opened once, in which case it picks its own start and needs no nudge.
-    if(monthCursor) monthCursor = addDays(monthCursor, days);
+    if(monthCursor && !opts.keepView) monthCursor = addDays(monthCursor, days);
     refreshAfterRestore();
     syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
@@ -29226,6 +29319,408 @@ export function initLegacyApp() {
     const info = currentSchedule && currentSchedule.productionInfo;
     return (info && info.lastShootDay) ? fmtShort(info.lastShootDay) : null;
   }
+
+  // ---------- ⭐ THE HIATUS RIPPLE: a hiatus change moves the phases after it ----------
+  // HIATUS-RIPPLE-PLAN.md. Owner, 4 Nov 2026: "editing a hiatus (either all phase or per phase) can automatically
+  // ripple the whole calendar to adjust all the phases. It should be very clear how to turn it on or off". Rulings by
+  // picker the same day: R1 one on/off switch, no question, ON by default; R2 shown in Settings > Preferences and on
+  // the hiatus cards; R3 kept on this computer; R4 a phase's own hiatus moves every phase that starts on or after it;
+  // R5 a MOVED hiatus is followed too.
+  //
+  // A hiatus PAUSES the phases running through it (computeSchedule's extendEndForHiatus), and nothing else: the
+  // phases after it keep their typed starts, so a longer hiatus leaves a lengthened phase overlapping the next one.
+  // The correction is Shift From, run from the hiatus, by the weeks it changed. So THE RULE (plan §3.1):
+  //
+  //   A hiatus change takes the old hiatus OUT and puts the new one IN. Out pulls every phase that starts on or after
+  //   its first week back by its length; in pushes every phase that starts on or after its (new) first week later by
+  //   its length. The edited hiatus never moves itself (shiftCalendarDates' `except`).
+  //
+  // A length change (same first week) collapses to ONE shift of the difference, which re-keys every store once.
+  // Everything Shift From holds, this holds (holidays, locked hiatuses, notes carrying a date, day notes), and
+  // everything it moves, this moves; Production's day marks travel by shoot day (one asShootDayMove bracket).
+  //
+  // ⛔ STARTED ONLY BY A NAMED USER EDIT, never by watching fields: load, undo, New, a scenario switch, recovery and
+  // every mover write hiatus fields too. And never per keystroke: see the settle tracking below.
+  function hiatusRippleOn(){ return prefs.hiatusRipple !== false; }
+  // A hiatus as readState() reads it: {start (its Monday), weeks} while it is in force, null while it is not (no
+  // start, no weeks, or a phase hiatus switched off), 'invalid' while its date is one the calendar cannot read (a
+  // year being typed digit by digit), which never settles.
+  // `asIfOn`: a phase hiatus read as though its switch were on (the switch's own change, which has already flipped it).
+  function rippleSpan(h, asIfOn){
+    let sEl, wEl, on = true;
+    if(h.kind === 'all'){
+      if(!h.row || !h.row.isConnected) return null;
+      sEl = h.row.querySelector('.hiatus-start'); wEl = h.row.querySelector('.hiatus-weeks');
+    } else {
+      const en = document.getElementById('phiatus-en-' + h.key);
+      on = asIfOn || !!(en && en.checked);
+      sEl = document.getElementById('phiatus-start-' + h.key); wEl = document.getElementById('phiatus-weeks-' + h.key);
+    }
+    const sv = sEl ? sEl.value : '';
+    if(sv && parseDateUTC(sv) === null) return 'invalid';
+    const w = wEl ? parseInt(wEl.value, 10) : NaN;
+    if(!on || !sv || !(w > 0)) return null;
+    return {start: mondayOf(parseDateUTC(sv)), weeks: Math.min(w, MAX_WEEKS)};
+  }
+  function phaseStartsNow(){
+    const out = {};
+    getAllPhaseDefs().forEach(p=>{
+      const el = document.getElementById('start-' + p.key);
+      if(el && el.value) out[p.key] = el.value;
+    });
+    return out;
+  }
+  // §3.3: a phase that STARTS INSIDE the old hiatus really starts the week it ends (the walk skips the hiatus weeks),
+  // so it is moved there first, keeping its weekday. Without this, taking the hiatus out pulls it too far: a break in
+  // weeks 10-11 and a phase typed into week 11 (working from week 12) would land in week 9 instead of week 10. An
+  // all-phase hiatus only: a phase's own hiatus pauses nothing but its owner, which is held. Not an Ends phase (its
+  // start is solved from its end), Production held by its wrap, or a Dates phase (its end is typed).
+  function rippleNormaliseInside(old){
+    const end = addDays(old.start, old.weeks * 7);
+    getAllPhaseDefs().forEach(p=>{
+      const el = document.getElementById('start-' + p.key);
+      const d = el && el.value ? parseDateUTC(el.value) : null;
+      if(!d || mondayOf(d) < old.start || mondayOf(d) >= end) return;
+      if(phaseEndsOn(p.key) || customPhaseUnit(p.key) === 'dates') return;
+      if(p.key === 'production' && productionEnds !== null) return;
+      let to = d;
+      while(to < end) to = addDays(to, 7);
+      setPhaseStart(p.key, isoOf(to));
+    });
+  }
+  const rippleWks = n=> n + (n === 1 ? ' wk' : ' wks');
+  function rippleName(key){
+    const n = phaseDisplayName(key);
+    return n === 'A phase' ? phaseLabelFor(key) : n;
+  }
+  // The line under the edited hiatus, in the owner's Pushed / Pulled wording (never + or -).
+  function rippleReadout(moves, results){
+    const groups = {};
+    moves.forEach(m=>{ (groups[m.weeks] = groups[m.weeks] || []).push(rippleName(m.key)); });
+    const ks = Object.keys(groups).map(Number).sort((a, b)=> b - a);
+    const bits = ks.map(k=> (k > 0 ? 'Pushed ' : 'Pulled ') + rippleWks(Math.abs(k)) + ': ' + groups[k].join(', '));
+    // No phase starts after it: say so, since its later notes and unlocked hiatuses still moved.
+    if(!bits.length) bits.push('No phase starts after it to push');
+    if(moves.some(m=> m.key === 'production')){ const w = productionWrapText(); if(w) bits.push('Wrap ' + w); }
+    // ⚠️ No "N locked hiatuses held" (Shift All's readout has it): New's four winter breaks are locked and after almost
+    // every cutoff, so it would show on every push and say nothing about this one.
+    const last = results[results.length - 1];
+    if(last && last.notesOnHiatus) bits.push(last.notesOnHiatus + ' note' + (last.notesOnHiatus === 1 ? '' : 's') + ' now under a hiatus');
+    const marks = takeShootDayMoveNote(true);
+    if(marks) bits.push(marks);
+    return bits.join(' · ');
+  }
+  // THE ENTRY POINT. `before` and `after` are rippleSpan() results taken before and after the user's edit. Returns
+  // null when nothing ran (the switch off, no change, an unreadable date), {refused: true} when a step is past
+  // MAX_SHIFT_WEEKS (nothing moves), else {changed, moves, text}. opts.noUndo: the caller banks the steps itself (the
+  // month-view drag, which can still be answered Undo). Otherwise the edit and its push are TWO undo steps (plan §6).
+  function rippleAfterHiatusEdit(h, before, after, opts){
+    opts = opts || {};
+    if(!hiatusRippleOn() || applyingUndoRedo || suppressDirty) return null;
+    if(before === 'invalid' || after === 'invalid' || (!before && !after)) return null;
+    const same = !!before && !!after && before.start.getTime() === after.start.getTime();
+    if(same && before.weeks === after.weeks) return null;
+    // A phase's own hiatus on a phase that is not on the calendar delays nothing.
+    if(h.kind === 'phase'){ const own = document.getElementById('start-' + h.key); if(!own || !own.value) return null; }
+    const steps = same ? [{weeks: after.weeks - before.weeks, from: before.start}]
+                       : [].concat(before ? [{weeks: -before.weeks, from: before.start}] : [],
+                                   after ? [{weeks: after.weeks, from: after.start}] : []);
+    if(steps.some(st=> Math.abs(st.weeks) > MAX_SHIFT_WEEKS)){
+      showRippleNote(h, 'Not pushed: more than ' + MAX_SHIFT_WEEKS + ' weeks.');
+      return {refused: true};
+    }
+    const editJSON = undoStateJSON();
+    const startsWas = phaseStartsNow();
+    const results = [];
+    takeShootDayMoveNote();   // a stale note from an earlier move must not be read as this one's
+    asShootDayMove(()=>{
+      if(before && h.kind === 'all') rippleNormaliseInside(before);
+      steps.forEach(st=>{
+        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true});
+        if(r) results.push(r);
+      });
+    });
+    // shiftCalendarDates ran update() inside the bracket, before the day marks were re-derived from their pins.
+    update();
+    const startsNow = phaseStartsNow(), moves = [];
+    Object.keys(startsNow).forEach(k=>{
+      const a = parseDateUTC(startsWas[k] || ''), b = parseDateUTC(startsNow[k]);
+      if(!a || !b) return;
+      const wk = Math.round((b - a) / DAY_MS / 7);
+      if(wk) moves.push({key: k, weeks: wk});
+    });
+    const changed = undoStateJSON() !== editJSON;
+    const text = changed ? rippleReadout(moves, results) : '';
+    if(text) showRippleNote(h, text);
+    if(changed && !opts.noUndo){ bankStepAt(editJSON); pushUndoSnapshot(); }
+    return {changed, moves, text};
+  }
+  // The result line lives in the hiatus's own card: the row's body, or the phase's hiatus block. A div with NO id
+  // (collectFieldValues sweeps input/select/textarea ids only), cleared on the next hiatus edit, an undo, a Load and New.
+  function showRippleNote(h, text){
+    // A removed row has no body left, so its line goes under the card's switch; a phase's goes under its whole hiatus
+    // block, which stays on screen when its switch is turned off.
+    // In a row it goes right under the dates (after .snap-note), so the switch rows' :last-child hairline rules still
+    // find the last switch.
+    const f = h.kind === 'phase' ? document.getElementById('phiatus-fields-' + h.key) : null;
+    const host = h.kind === 'all' ? (h.row && h.row.isConnected ? h.row.querySelector('.hiatus-body') : document.querySelector('.hiatus-ripple-card'))
+                                  : (f ? f.parentElement : null);
+    if(!host) return;
+    let el = host.querySelector(':scope > .ripple-note');
+    if(!el){
+      el = document.createElement('div'); el.className = 'ripple-note'; el.setAttribute('role', 'status');
+      const after = host.querySelector(':scope > .snap-note');
+      if(after) after.after(el); else host.appendChild(el);
+    }
+    el.textContent = text;
+    el.hidden = !text;
+  }
+  function clearRippleNotes(){
+    document.querySelectorAll('.ripple-note').forEach(el=>{ el.textContent = ''; el.hidden = true; });
+  }
+
+  // ---- WHEN A RIPPLE RUNS: the settle tracking (plan §4) ----
+  // ⛔ NEVER PER KEYSTROKE. A date box fires 'input' for each digit of a year (2, 20, 202, 2027), and a Weeks spinner
+  // on every click. So the hiatus as it was is taken when an edit to it BEGINS (focus enters its Starts or Weeks box),
+  // and the ripple runs when the edit SETTLES, measured against that: focus leaves the row (or the phase's hiatus
+  // block), Enter, or a pick in the date popover. 2 -> 3 -> 4 on the spinner is ONE push of 2 weeks.
+  // ⛔ Begun only on focus. A field written by code (a Load, an undo, a mover, a test's T.set) is never focused, so it
+  // has no "before" and cannot ripple. refreshAfterRestore() forgets every pending edit: a restore or a shift has
+  // rewritten the fields, so a "before" taken earlier no longer describes them.
+  const RIPPLE_FIELDS = '.hiatus-start, .hiatus-weeks, .phiatus-start, .phiatus-weeks';
+  const rippleEdits = new Map();   // host element -> {h, before}
+  function rippleHostOf(el){
+    if(!el || !el.closest) return null;
+    const row = el.closest('#hiatus-list .hiatus-entry');
+    if(row) return {host: row, h: {kind: 'all', row}};
+    const f = el.closest('.phase-hiatus-fields');
+    if(f && f.id && f.id.indexOf('phiatus-fields-') === 0) return {host: f, h: {kind: 'phase', key: f.id.slice('phiatus-fields-'.length)}};
+    return null;
+  }
+  function rippleBegin(el){
+    if(!el || !el.matches || !el.matches(RIPPLE_FIELDS)) return;
+    const r = rippleHostOf(el);
+    if(!r || rippleEdits.has(r.host)) return;
+    const st = rippleSpan(r.h);
+    if(st === 'invalid') return;
+    rippleEdits.set(r.host, {h: r.h, before: st});
+  }
+  function rippleSettle(host){
+    const ed = rippleEdits.get(host);
+    if(!ed) return;
+    if(!host.isConnected){ rippleEdits.delete(host); return; }
+    const now = rippleSpan(ed.h);
+    if(now === 'invalid') return;           // keep waiting for a date the calendar can read
+    rippleEdits.delete(host);
+    clearRippleNotes();
+    try { rippleAfterHiatusEdit(ed.h, ed.before, now); } catch(e){ console.error(e); }
+  }
+  function forgetRippleEdits(){ rippleEdits.clear(); }
+  document.addEventListener('focusin', e=> rippleBegin(e.target), true);
+  document.addEventListener('focusout', e=>{
+    const r = rippleHostOf(e.target);
+    if(!r || !rippleEdits.has(r.host)) return;
+    const to = e.relatedTarget;
+    // Starts to Weeks of the same hiatus is still the same edit. Anywhere else settles it, its own Lock and name included:
+    // Tab from Weeks lands on Lock in place, and that must not leave the push waiting.
+    if(to && r.host.contains(to) && to.matches && to.matches(RIPPLE_FIELDS)) return;
+    if(!to && !document.hasFocus()) return;        // the window lost focus (another app): still editing
+    rippleSettle(r.host);
+  }, true);
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Enter' || !e.target || !e.target.matches || !e.target.matches(RIPPLE_FIELDS)) return;
+    const r = rippleHostOf(e.target);
+    if(!r) return;
+    rippleSettle(r.host);
+    rippleBegin(e.target);                          // focus stays: the next change is a new edit
+  }, true);
+  // A pick in the date popover (DatePop.jsx) is a whole date: it writes the field and dispatches 'input' and 'change',
+  // untrusted, with focus kept in the field. A typed date's events are trusted and wait for focus to leave.
+  document.addEventListener('change', e=>{
+    const t = e.target;
+    if(e.isTrusted || !t || !t.matches || !t.matches('.hiatus-start, .phiatus-start') || document.activeElement !== t) return;
+    const r = rippleHostOf(t);
+    if(!r || !rippleEdits.has(r.host)) return;
+    rippleSettle(r.host);
+    rippleBegin(t);
+  });
+  // The paths that change a hiatus in one go, with no box to leave (plan §4): the row's ×, a phase's Hiatus switch, and
+  // the day menus' Add hiatus here / Remove hiatus… / the phase-hiatus items. `fn` makes the change; its "before" is
+  // read first. Any edit still pending on the same hiatus settles first, so its own change is not counted twice.
+  function rippleAround(h, fn){
+    const host = h.kind === 'all' ? h.row : document.getElementById('phiatus-fields-' + h.key);
+    if(host && rippleEdits.has(host)) rippleSettle(host);
+    const before = rippleSpan(h);
+    const out = fn();
+    clearRippleNotes();
+    try { rippleAfterHiatusEdit(h, before, rippleSpan(h)); } catch(e){ console.error(e); }
+    return out;
+  }
+
+  // ---- THE SWITCH (R1-R3): one preference, shown in three kinds of place ----
+  // prefs.hiatusRipple, absent = ON, written only as false. ⛔ Never in captureSnapshot(): it is how this person edits,
+  // not calendar data. Settings > Preferences holds #pref-hiatus-ripple (inside .prefs-card, so the sweep skips its
+  // id); the All-phase hiatus card's top and each phase's Hiatus block hold an id-less .hiatus-ripple-cb (⛔ an id
+  // there would bake the preference into every saved calendar). Flipping any copy flips them all. Not an undo step
+  // and not an edit: nothing about the calendar changed.
+  function reflectHiatusRipple(){
+    const on = hiatusRippleOn();
+    const p = document.getElementById('pref-hiatus-ripple');
+    if(p && p.checked !== on) p.checked = on;
+    document.querySelectorAll('.hiatus-ripple-cb').forEach(cb=>{ if(cb.checked !== on) cb.checked = on; });
+  }
+  function setHiatusRipple(on){
+    if(on) delete prefs.hiatusRipple; else prefs.hiatusRipple = false;
+    savePrefs();
+    reflectHiatusRipple();
+  }
+  document.addEventListener('change', e=>{
+    const t = e.target;
+    if(!t || !(t.id === 'pref-hiatus-ripple' || (t.classList && t.classList.contains('hiatus-ripple-cb')))) return;
+    setHiatusRipple(!!t.checked);
+  });
+
+  // ---------- The phase card's week arrows (PHASE-WEEK-ARROWS-PLAN.md; owner, 4 Nov 2026) ----------
+  // ▲ / ▼ inside a phase's date box (layout C2) move THAT phase one week, ▲ earlier (ruling D1), in the waterfall only
+  // (D6, the owner's "Waterfall only": the month view's bar has its own body drag). The move is the Shift tool's part
+  // move, {part: {phases: [key]}}, with an EMPTY week window (see shiftCalendar's ⭐), so:
+  //   - moving with it: its own hiatus, every "<week>|<key>" store (band names, colours and sizes, cell spans, column
+  //     swaps, its text styles; Sim Post's with Production), its automatic notes (they are computed), and
+  //     Production's day marks by shoot-day number (asShootDayMove, inside shiftCalendar);
+  //   - staying: every other phase, every typed note, holidays, all-phase hiatuses (locked or not), the calendar
+  //     range, and the month view's place (keepView).
+  // A Dates phase's end, an Ends phase's held end and Production's held wrap move through setPhaseStart, as for every
+  // mover. A snap-off phase keeps its weekday: a click is seven days.
+  // An EDITED automatic note follows as it does on the month drag (autoNoteBaseline): its standard line is swapped
+  // for the one its week shows now, and the lines the user added stay on their week. Always worked out from the
+  // burst's FIRST click, so out and back inside one burst puts the notes back exactly.
+  // ⭐ A BURST IS ONE UNDO STEP (ruling D4). Its first click banks whatever came before. Each click cancels the
+  // debounced push its own update() armed. The burst is banked once: NUDGE_BURST_MS after its last click, or the moment
+  // anything else is pressed or typed (a click elsewhere, a key, Cmd+Z, another phase's arrows), so "a pause or any
+  // other edit ends it". The label on the card's caption line, "Pulled 2 wks" / "Pushed 1 wk" (D5; owner wording,
+  // 23 Oct 2026: a moved date is pushed or pulled, never + or -), lives exactly as long as the burst.
+  const NUDGE_BURST_MS = 1600;
+  // An empty week window: from a week that comes AFTER the week it runs to, so it holds no week at all.
+  const NUDGE_NO_WEEKS = {fromWeek: '2000-01-10', toWeek: '2000-01-03'};
+  let nudgeBurst = null;   // {key, weeks, notesBase, note, timer} while a burst runs
+  // The date the card's box shows: the start, or with Ends the end it is held by. No date, no arrows.
+  function phaseNudgeHasDate(key){
+    const startEl = document.getElementById('start-' + key);
+    if(!startEl || !startEl.value) return false;
+    if(key === 'production') return productionEnds === null || !!productionEnds;
+    if(!phaseEndsOn(key)) return true;
+    const endEl = document.getElementById('end-' + key);
+    return !!(endEl && endEl.value);
+  }
+  // Run by update(), so a view switch, an undo, a Load or a cleared date can never leave a card disagreeing.
+  // `nudge-on` is the one switch the CSS reads. Written only when it changes: the card's observers watch the rows.
+  function reflectPhaseNudges(){
+    const sheet = viewMode === 'sheet';
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const key = phaseRowKey(row);
+      const on = sheet && !!key && phaseNudgeHasDate(key);
+      if(row.classList.contains('nudge-on') !== on) row.classList.toggle('nudge-on', on);
+      if(!on) return;
+      const typed = ((document.getElementById('name-' + key) || {}).value || '').trim();
+      const name = typed || (PHASES.find(p=> p.key === key) || {}).label || 'this phase';
+      row.querySelectorAll('.ph-nudge-btn').forEach(b=>{
+        const label = 'Move ' + name + ' 1 week ' + (b.dataset.nudge === '-1' ? 'earlier' : 'later');
+        if(b.getAttribute('aria-label') !== label){ b.setAttribute('aria-label', label); b.title = label; }
+      });
+    });
+  }
+  function nudgeChip(key){
+    const sw = document.getElementById('swatch-' + key);
+    return sw && sw.parentElement ? sw.parentElement.querySelector('.ph-nudge-chip') : null;
+  }
+  // ⛔ PRODUCTION'S DAY MARKS ARE BOUND FOR THE WHOLE BURST (beginShootDayMove at its first click, endShootDayMove
+  // when it ends), as the month drag binds them from press to release. Each click's shiftCalendar is then a nested
+  // mover (inert), and every update() puts the marks back on their shoot days from the ORIGINAL pins. Bound per
+  // click instead, ▼ ▲ inside one burst lost a worked holiday: the first click left it on an ordinary shoot day
+  // (inert, so dropped), and the second had nothing to bring back. Bound per burst, the burst lands exactly where one
+  // move of its total would, and out and back is exact. So the burst must END before anything else can run against
+  // the binding: undo() and redo() end it first, and so does any press or key (the capture listeners below).
+  function nudgePhase(key, dir){
+    if(viewMode !== 'sheet' || (dir !== 1 && dir !== -1) || !phaseNudgeHasDate(key)) return null;
+    if(!nudgeBurst || nudgeBurst.key !== key){
+      endNudgeBurst();
+      pushUndoSnapshot();   // close off whatever came before, so the burst stands alone
+      nudgeBurst = {key, weeks: 0, notesBase: autoNoteBaseline(), bound: beginShootDayMove(), note: '', timer: null};
+    }
+    const b = nudgeBurst;
+    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true});
+    reapplyAutoNoteBaseline(b.notesBase);
+    cancelPendingUndoPush();   // banked once, by endNudgeBurst
+    if(res && res.movedPhases) b.weeks += dir;
+    // What the burst so far does to Production's day marks (a worked holiday no longer on a holiday, a mark with no
+    // shoot day left), worked out from the original pins as endShootDayMove will, and said in the result line's short
+    // words. Through takeShootDayMoveNote, the one formatter, which also leaves nothing for a later result line.
+    if(b.bound && overrideMove){
+      const r = overridesForMove(overrideMove);
+      lastShootDayMove = (r && (r.inert || r.dropped)) ? {inert: r.inert, dropped: r.dropped} : null;
+    }
+    b.note = takeShootDayMoveNote(true);
+    const chip = nudgeChip(key);
+    if(chip){
+      const n = Math.abs(b.weeks);
+      const head = !n ? 'Back where it was' : (b.weeks < 0 ? 'Pulled ' : 'Pushed ') + n + (n === 1 ? ' wk' : ' wks');
+      chip.textContent = b.note ? head + ' · ' + b.note : head;
+      chip.title = chip.textContent;
+      chip.classList.add('on');
+    }
+    clearTimeout(b.timer);
+    b.timer = setTimeout(endNudgeBurst, NUDGE_BURST_MS);
+    return res;
+  }
+  function endNudgeBurst(){
+    const b = nudgeBurst;
+    if(!b) return;
+    nudgeBurst = null;
+    clearTimeout(b.timer);
+    // Settle the marks BEFORE the step is banked, so the step holds the final ones (the month drag's endDrag).
+    if(b.bound){ endShootDayMove(); takeShootDayMoveNote(); }
+    pushUndoSnapshot();   // the whole burst, as one step
+    const chip = nudgeChip(b.key);
+    if(chip){ chip.classList.remove('on'); chip.textContent = ''; chip.removeAttribute('title'); }
+  }
+  // Is this event part of the running burst: its own phase's arrows, or Alt+Up / Alt+Down in its own date box?
+  function partOfNudgeBurst(e){
+    const t = e.target, row = t && t.closest ? t.closest('.phase-row') : null;
+    if(!nudgeBurst || !row || phaseRowKey(row) !== nudgeBurst.key) return false;
+    if(t.closest('.ph-nudge')) return true;
+    return e.type === 'keydown' && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+      && !!t.closest('.ph-start-box, .ph-ends-box');
+  }
+  // Anything else pressed or typed ends the burst FIRST (capture), so it is banked before that edit runs.
+  // A modifier on its own (the Alt of Alt+Up) is not an edit.
+  ['pointerdown', 'keydown'].forEach(type=> document.addEventListener(type, e=>{
+    if(!nudgeBurst || partOfNudgeBurst(e)) return;
+    if(e.type === 'keydown' && (e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta' || e.key === 'Control')) return;
+    endNudgeBurst();
+  }, true));
+  // Delegated on the two row containers, as the Starts / Ends select is, so a custom row added, rebuilt by undo or
+  // brought in by a Load needs no binding.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('click', e=>{
+      const btn = e.target && e.target.closest ? e.target.closest('.ph-nudge-btn') : null;
+      if(!btn) return;
+      const key = phaseRowKey(btn.closest('.phase-row'));
+      if(key) nudgePhase(key, Number(btn.dataset.nudge));
+    });
+    // The keyboard's twin (plan §3): Alt+Up / Alt+Down in the date box. Alt, as the grid's Alt+Left / Alt+Right
+    // swap: a bare arrow already steps the box's own day, month or year.
+    host.addEventListener('keydown', e=>{
+      if(!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      const t = e.target;
+      if(!t || !t.closest || !t.closest('.ph-start-box, .ph-ends-box')) return;
+      const row = t.closest('.phase-row');
+      if(!row || !row.classList.contains('nudge-on')) return;
+      e.preventDefault();
+      nudgePhase(phaseRowKey(row), e.key === 'ArrowUp' ? -1 : 1);
+    });
+  });
 
   // ---------- Anchoring: shift so that some landmark lands on a chosen date ----------
   // Both anchors work by measuring the whole-week gap between where the landmark is now and where
@@ -36093,6 +36588,10 @@ export function initLegacyApp() {
     // the selection would be nicer; clearing is the safe direction, and the selection is cheap to
     // re-make.
     if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; }
+    // The hiatus ripple's pending edits and its last line (HIATUS-RIPPLE-PLAN.md §4): the fields were just rewritten, so
+    // a "before" taken earlier no longer describes them, and the line is about a calendar that is no longer on screen.
+    forgetRippleEdits();
+    clearRippleNotes();
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load

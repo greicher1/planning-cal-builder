@@ -626,6 +626,17 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
     `hiatus-ripple`) adds `except` and `keepView` to the same object.
 - The result line is the old one for All phases, word for word. A part-calendar move adds *"Production and
   everything before it moved (4 phases). 2 stayed where they were."*
+- **The phase card's ▲ / ▼** (owner, 4 Nov 2026, layout C2; `PHASE-WEEK-ARROWS-PLAN.md`) are not on the toolbar: two
+  small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
+  the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be
+  open, and carry every note). So the phase's own hiatus and every `<week>|<key>` store travel; typed notes, all-phase
+  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. An edited automatic note sheds its standard
+  line, as on the month drag (`autoNoteBaseline`, from the burst's first click). The gaps either side change.
+  - **A burst is one undo step**, ended by a 1.6 s pause or any other press or key (capture listeners), and its
+    label reads "Pushed 2 wks" / "Pulled 1 wk" / "Back where it was".
+  - **Production's day marks are bound for the whole burst** (`beginShootDayMove()` at the first click, ended by
+    `endNudgeBurst()`), as the month drag binds them press to release. Bound per click, ▼ ▲ lost a worked holiday.
+    `undo()` and `redo()` therefore end a running burst first.
 - **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
   recomputes one side to run consecutively, **writing** start dates including into empty fields.
   Since 30 Oct 2026 (owner, "Build A") the direction only chooses the side: the panel lists that

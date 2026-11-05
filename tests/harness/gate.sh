@@ -1895,6 +1895,12 @@ done
 # ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
 # (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
 # reset on reopening, and no id on any tick.
+# phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
+# week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
+# the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
+# where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
+# undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
+# Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2008,6 +2014,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               anchorside:anchorside:400 \
+              phasearrows:phasearrows:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
@@ -2708,6 +2715,32 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYHD
+
+# ---- hiatusripple: a hiatus change moves the phases after it (HIATUS-RIPPLE-PLAN.md) ------------------
+# ⭐ ADDED 4 Nov 2026 (owner: "editing a hiatus (either all phase or per phase) can automatically ripple the whole
+# calendar to adjust all the phases"; rulings R1-R5 by picker). A Node script for hiatusdrag's reason: the ripple runs
+# when an edit SETTLES (focus leaves the hiatus's Starts / Weeks, Enter, a pick in the date popover), never per
+# keystroke, and only CDP input is trusted input that moves focus as Tab and a click do. On hiatusripple.sptcal, ON by
+# default: the three copies of the switch, no id, no file key (R0); Weeks by the spinner, one push on Tab, the notes
+# and the locked/unlocked hiatuses (R1, R3); two undo steps (R2, R5); a move typed digit by digit through 0002 /
+# 0020 / 0202 (R4); Enter (R5); the x (R6); a phase starting inside the hiatus (R7); a phase's own hiatus, picked in
+# the popover, and switched off (R8); the switch off, on, and across reloads (R9); code writes (R10); the month drag,
+# Keep and Undo (R11, R12); the waterfall's right-click (R13). Red on origin/main (every case) and on six mutants, each
+# on its own cases. ⚠️ Every other leg runs with the switch OFF (lib.js; hiatusdrag.mjs by its own init script).
+node "$HERE/hiatusripple.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusripple.json" "hiatusripple (hiatusripple)" <<'PYHR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHR
 
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects

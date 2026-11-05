@@ -4,6 +4,145 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILT on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` at `c52094f` (the one Shift tool) merged in as `ae6b107`. Not merged into `main`, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
+- **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+  adjust all the phases. It should be very clear how to turn it on or off"*. Then *"Yes, build it"*. Then the names:
+  *"Ripple Hiatus Periods" (all phase hiatus) or "Ripple Hiatus" (for per phase hiatus)*.
+- **Ruled by picker** (plan §2): R1 one switch, no question, ON by default; R2 shown in Settings ▸ Preferences AND on the
+  hiatus cards; R3 kept on this computer (`prefs.hiatusRipple`, absent = on), never in a file; R4 a phase's own hiatus
+  moves every phase starting on/after it; R5 a moved hiatus is followed (the week-strip example, plan §3.2 C).
+- **Built** (`src/legacy/app.js` "THE HIATUS RIPPLE", beside the shift tools; no frozen code, no save-format change):
+  - `rippleAfterHiatusEdit(h, before, after)`: take the old hiatus out (−w0 from s0), put the new one in (+w1 from s1);
+    a length change is one shift. Through `shiftCalendarDates(weeks, from, {except, keepView})`, whose new `except`
+    holds the edited hiatus (and a phase hiatus's owner), inside one `asShootDayMove()`. A phase starting inside the
+    old all-phase hiatus is first moved to its end (`rippleNormaliseInside`). Two undo steps (`bankStepAt`, new in the
+    undo section). The line under the hiatus: `.ripple-note`, no id, stripped from shareable copies.
+  - ⛔ **Settle tracking:** a "before" is taken on FOCUS into a hiatus's Starts / Weeks; the push runs when focus leaves
+    those two boxes, on Enter, or on the date popover's (untrusted) `change`. Code writes are never focused, so a load,
+    undo, mover or `T.set` cannot ripple. `refreshAfterRestore()` forgets pending edits.
+  - One-shot paths through `rippleAround()`: the row's ×, a phase's Hiatus switch, the day menus' Add hiatus here /
+    Remove hiatus… / phase items. The month-view drag pushes on release before its Keep / Undo question (Undo restores
+    the press snapshot).
+  - The switch: `HiatusPrefsCard` (Sidebar.jsx, `#pref-hiatus-ripple` in a `.prefs-card`), the All-phase card's top
+    (`src/index.html`, `.hiatus-ripple-card`) and each phase's Hiatus block, the last two id-less `.hiatus-ripple-cb`.
+    `reflectHiatusRipple()` from `update()`. ⭐ **Its names are the owner's** (4 Nov 2026): **"Ripple Hiatus Periods"** in
+    Settings and on the All-phase card, **"Ripple Hiatus"** in a phase's Hiatus block; the month drag's question says
+    whichever the dragged hiatus's switch is called ("Ripple Hiatus Periods is on: Pushed 1 wk: …"). R0 holds all three
+    names. The first build said "Push later phases (when a hiatus changes)". The line's own words ("Pushed 1 wk: …")
+    did not change: pushed / pulled is the owner's date wording.
+- **Proof** (port 8791–8812):
+  - New `hiatusripple.mjs` (in `gate.sh` after hiatusdrag), real CDP input, fixture `hiatusripple.sptcal`: **15/15**.
+  - Red on `origin/main` in every case that ran, and on six mutants, each on its own cases (plan §10).
+  - `t/lib.js` stores the switch OFF for every other leg; `hiatusdrag.mjs` by an init script; `t/prefs.js` clears it
+    (its premise is an empty store); `settingswin` W13 lists the new card.
+  - Green: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81, hiatussidebar 16/16, hiatusdrag 14/14, check
+    40/40. `check-refs.py` reports 4 prose line numbers, all already on `origin/main` (not this branch's).
+  - Browser pane, real mouse and keys: Break 2 → 3 weeks, Tab → Production 3/16 → 3/23 and the line under the Break.
+- My calls, not rulings: two undo steps (one ⌘Z = "not this time"); no "N locked hiatuses held" in the line (New's
+  four locked winter breaks would print it on every push); Tab from Weeks onto Lock in place settles.
+- ✅ **The Anchor To overlap is resolved.** The one Shift tool landed first; merging `origin/main` (`c52094f`) as
+  `ae6b107` kept its `opts.part` / `phaseMoves` / `stayedPhases` in `shiftCalendarDates` and added this branch's
+  `except` and `keepView` beside them (the ripple never passes `part`). On the merged build: `hiatusripple` 15/15,
+  `hiatusdrag` 14/14, `anchorside` 23/23, `settingswin` 21/21, `wfmenu` 39/39, `mvmenu` 81/81, `calrange` 18/18,
+  `autonoteview` 18/18, check 40/40.
+- **Full gate** (port 8813, 18:17–18:54, after another session's gate ended), build of `21691b2`: **3,931 PASS, 2 FAIL.**
+  Every frozen output identical: waterfall PDF, Excel parts, grid signature, 0 clipped, gate 10's printed months,
+  every `monthwriter` line byte-identical, `fields.byId` 77 ids. `hiatusripple` 15/15, `hiatusdrag` 14/14. The two FAILs:
+  - `stintexport` produced no result (a driver deadline under load): green alone, judged by gate.sh's own block.
+  - `scenariocompat` on `/releases/v1.2.0.html`: "timed out waiting for: Open... menu item", the known load case (see
+    the 3 Nov entry). It failed the same way alone while ANOTHER session's gate had just started, and with
+    `origin/main`'s own harness too, so it is not this branch's. That page is not built from this repo's source. It
+    PASSED twice once that gate had ended.
+- **Full gate #2** on the merged build (`ae6b107`, port 8813, from 19:37): **3,898 PASS, 12 FAIL**, none real.
+  - Stalled under load (no result): `base`, `stintcollide`, `pwagate`, `notescols`; `offweek` R8 timed out on the file
+    menu. Five more were `base`'s outputs missing (the SPTCal mark, PDF bytes, seams, check-xlsx, Excel parts).
+  - `hiatusripple` R0 and R11: the rename. The gate ran the build from before it while the leg already expected the
+    new names.
+  - Rerun of all of them, by the gate's own blocks, on the RENAMED build (23:21–23:25, queued until no other gate was
+    running): **196 PASS, 0 FAIL**: grid signature, 0 clipped, waterfall PDF identical bar the stamp, seams, Excel
+    parts identical, `hiatusripple` 15/15, `hiatusdrag` 14/14, `settingswin`, `prefs`, `pwagate`, `offweek` both
+    states, `notescols`, `stintcollide`. Every other baseline (gate 10's months, `monthwriter`, `fields.byId` 77 ids)
+    was identical in the gate itself. The rename is labels only (no frozen output reads them); check 40/40.
+- **Merged `origin/main` again** (`4a90017`: the phase card's ▲ / ▼ and the waterfall note editor, both live): two
+  engine conflicts, each two features added at one spot. `keepView` had been added by the phase arrows with the same
+  meaning; one comment now covers it. On the merged build (23:27-23:31, no other gate
+  running): check 40/40 and **265 PASS / 0 FAIL**: `base` with the waterfall PDF (identical bar the stamp), seams and
+  Excel parts identical, `hiatusripple` 15/15, `hiatusdrag` 14/14, `phasearrows` 26/26, `wfnoteeditor` 13/13,
+  `anchorside` 23/23, `settingswin` 21/21, `wfmenu` 39/39, `mvmenu` 81/81, `hiatussidebar` 16/16. The phase arrows
+  move a phase's own hiatus by code writes, which never settle a ripple (only a focused hiatus box does).
+- ⏭ **Next:** ask the owner to merge into `main` and push (per action).
+
+### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch (`804edb2`); **FULL GATE 3,981 PASS / 3 FAIL, every baseline identical, the 3 load-timing flakes green alone**; owner's picker *"Merge"* + *"Push after quick checks"*: `origin/main` (`ac55bb7`, the note editor) and local `main` (`8b36c9a`) merged in as `2c5ad0e` + `86b6a2a`, quick checks green on the merged build ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
+- **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
+  even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
+  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, *"mockup a
+  few version of this idea with the arrows in differnt places"* (layouts A to F), *"lets go with D"*, then *"Build it"*.
+  With D built: *"wait show me the mockup of d in this view"* (on a screenshot of the real card), *"give me all the
+  mockups again in all 3 window widths for each"*, *"show me a version of C where you make the up and down button
+  slightly taller and wider"*, then *"C2, but make sure the buttons aren't actually touching the top or bottom lines of
+  the box"*.
+- **Ruled (plan §7, §2a):** C2, two 24 x 15 buttons stacked INSIDE the date box, 2 px clear of its lines (so the box,
+  and Length's beside it, are 37 px tall while the arrows show), always shown; ▲ = earlier; a burst = one undo step;
+  keep the "Pulled 2 wks" label; waterfall only; and the month drag gets the same mover **as its own change, after
+  this** (D7, card `month-drag-carries-phase`, plan §5: not started).
+- **How it is built** (`nudgePhase`, beside `shiftCalendarDates`; CSS beside the card's Starts rules):
+  - It is the Shift tool's `part` with ONE phase and an EMPTY week window (`NUDGE_NO_WEEKS`: `fromWeek` after
+    `toWeek`). The Shift session had already said to build on `part` rather than a second option, and this needed no
+    engine change but `opts.keepView`, one line, the same name and line as the `hiatus-ripple` branch (a trivial
+    merge). ⛔ Null bounds are OPEN, not empty: they carry every note.
+  - Which cards show them: `reflectPhaseNudges()` from `update()` sets the card's `nudge-on` (waterfall on screen, and
+    the box the card shows has a date). The CSS keys on that class, never a `:has()`.
+  - ⛔ **Production's day marks are bound for the WHOLE BURST** (`beginShootDayMove()` at its first click,
+    `endShootDayMove()` in `endNudgeBurst()`), as the month drag binds them from press to release. Bound per click
+    (each `shiftCalendar` binding its own), ▼ ▲ inside one burst LOST the worked holiday 7/3: the first click left it
+    on an ordinary shoot day (inert, dropped), the second had nothing to bring back. Leg case N1 caught it. So
+    `undo()` and `redo()` call `endNudgeBurst()` first: a snapshot restored under a live binding would be overwritten
+    by the next `update()`. A new restore path must do the same.
+  - The burst ends 1.6 s after its last click, or at once on any other press or key (capture `pointerdown` /
+    `keydown`; a bare modifier and the burst's own Alt+arrow don't count). The label lives exactly as long.
+  - Layout C2 is CSS over the same markup: `.ph-nudge` (after both boxes) is laid absolutely over whichever box shows,
+    `right:4px; top:20px` (caption 14 + gap 3 + border 1 + 2 clear). ⚠️ So the `top` assumes the caption line's
+    height; the leg's L1 / L2 measure the 2 px clearance on every card, so a caption change shows up there.
+  - D (beside the box) was built first and replaced the same evening: on the real card it narrowed the date box and,
+    to keep `phasesui` P6's 112 px floor, stacked Starts over Length below a ~1450 px window (plan §2a). The six
+    layouts were drawn on the real card at 1728 / 1440 / 1280 by a scratch headless-Chrome CDP script (CSS injected,
+    clip screenshots at 2x); that is a quick, faithful way to show the owner a chrome variant without touching code.
+- **Proof:** new leg `phasearrows` (26/26, in `gate.sh`) on new fixture `phasearrows.sptcal`; `phasesui` 8/8;
+  `npm run check` 40/40.
+- ✅ **Full gate on `804edb2` (dist `2464bbb7…`), port 8658, 21:47-22:39: 3,981 PASS / 3 FAIL, every baseline
+  identical** (gates 2, 10 and 13 included; the restored grid's `fields.byId` key set the same 77 ids). Another
+  session's full gate overlapped its last 30 minutes. All three fails are a 10 s wait for a Load, each green re-run on
+  the same build as `gate.sh` runs it: `retiredplaces` R4 (8/8 twice), `epnames (halfdays)` "no result" (11/11
+  twice), `phasesui (hidewf)` P1 (`dayoverrides` timed out loading; re-run 5 times, red once more on a DIFFERENT
+  fixture, `hiatusdrag`, while the other gate still ran, then 8/8 three times, 12 s each). A fixture that really hung
+  would fail the same one every time.
+- ⚠️ **A harness trap, found here, worth knowing for any leg that keeps backups:** `captureSnapshot()` puts the LIVE
+  `userNotes` object in the snapshot, and the harness's in-memory IndexedDB (`T.memoryIDB`) stores what it is given
+  by reference, where a real one clones. So a backup read with `T.latestBackup()` and compared LATER shows the notes
+  as they are at compare time. `phasearrows`' `take()` deep-copies on read; `anchorside` is safe because it reads its
+  notes at once. Not a product bug: a real IndexedDB clones on `put`.
+- **Known limit, shared with the month drag:** an edited automatic note sheds its standard line when its phase
+  leaves the week, and gets it back only inside the same burst (or by undo). Across two bursts, ▼ then ▲ leaves
+  "PROD-EXTRA" alone on 6/29 with the standard line hidden under it.
+- ⚠️ **`origin/main` moved after the cut:** the waterfall note editor went live (`ac55bb7`). `git merge-tree` on
+  `804edb2` + `ac55bb7`: the code (`app.js`, `legacy.css`, `src/index.html`, `gate.sh`) merges clean; only HANDOFF.md
+  and README.md conflict, both new top entries (keep both). Local `main` (`8b36c9a`) is behind `origin/main` and one
+  HANDOFF-only commit ahead of it.
+- ✅ **Merged (owner's picker, 4 Nov 2026: *"Merge"*, and separately *"Push after quick checks"*).** In the worktree, not
+  the main checkout: that checkout's `HANDOFF.md` holds the layout-study session's uncommitted entry, and it has older
+  untracked copies of `PHASE-WEEK-ARROWS-PLAN.md` and `mockups/phase-week-arrows.html` (byte-identical to `9e83eb2`,
+  so safe to delete), either of which stops a fast-forward there. So the branch took in `origin/main` (`2c5ad0e`;
+  HANDOFF and README conflicted, both new top entries, both kept, and the note editor's entry got a line saying it is
+  live) and local `main`'s one HANDOFF-only commit (`86b6a2a`), so local `main` can fast-forward to it later.
+- ✅ **Quick checks on the merged build** (dist `f82ec6f1…`, port 8659, beside another session's gate at load ~7.5):
+  `npm run check` 40/40; `phasearrows` 26/26, `wfnoteeditor (autonoterename)` 13/13, `anchorside` 23/23,
+  `rebuildticks` 19/19, `snaptools (dayoverrides)` 14/14, `overrides (dayoverrides)` 20/20, `halfworked
+  (dayoverrides-onhalf)` 24/24, `rowheight (shift-stores)` 7/7, `undokeys` 11/11, `noteviews (wfkeys)` 15/15,
+  `wfnotecolors (wfkeys)` 14/14, `autonoterename` 24/24, `autonoteview (autonoterename)` 18/18, `wfkeys` 84/84,
+  `phasesui (hidewf)` 8/8. The arrows and the note editor share no code but `update()`; each had its own full or
+  targeted run. A full gate on whatever ships next covers the combination.
+- ⏭ **Next:** the push (approved), then verify the live URL. Then plan §5, the month drag on the same mover.
+
 ### 🔨 4 Nov 2026: THE WATERFALL'S NOTE EDITOR SAYS WHAT A LINE IS, AND HIDES IT — BUILT, GATED and COMMITTED on branch `wf-note-editor`, NOT merged, NOT pushed ([`WATERFALL-NOTE-EDITOR-PLAN.md`](WATERFALL-NOTE-EDITOR-PLAN.md)). Branch `wf-note-editor` (worktree `.claude/worktrees/wf-note-editor`, from `main` at `c5fd2ce`; its `node_modules` is a symlink). Tracker cards `wf-hide-auto-note`, `wf-holiday-editor-mode`
 
 - **The asks** (owner): *"Should there be an equivalent hide auto note button in the waterfall view?"*, then *"Yes, plan
@@ -61,25 +200,8 @@
   snaptools 14/14, overrides 20/20, calrange 18/18, datepick 17/17, rowheight 7/7) with the note legs (wfkeys 84/84,
   autonoteview 18/18, holidayrename 14/14, autonoterename 24/24, noteviews 15/15, wfmenu 39/39, textstyle 51/51).
 - **Next:** the owner's call on merging into `main` and pushing.
-
-### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
-- **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
-  even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
-  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, and
-  *"mockup a few version of this idea with the arrows in differnt places"*.
-- **Answer given:** yes, modestly, built on a "just this phase" mover. The month view already moves one phase (body
-  drag); the waterfall has nothing like it.
-- **The mockup:** six layouts, A to F (centred above and below the box: the owner's; above and below at the right;
-  inside the box; beside it; on the Starts line; on the coloured header, which still works on a folded card). Checked
-  in the pane: one click moves one phase a week, a burst shows "Pulled 3 wks", Alt+↑/↓ works, Month hides every arrow.
-- **Waiting on the owner:** D1–D7 (plan §7). Recommended: ▲ = earlier, layout A, shown on pointing at the card, a
-  burst = one undo, keep the label, waterfall only, and make the month drag carry the same things.
-- ⚠️ **Found while reading (not run):** the month body drag (`installMonthPillDrag`) writes `setPhaseStart` only. The
-  phase's own hiatus and its `<week>|<key>` stores (`cellSpans`, `gridColSwaps`, `textStyle.phase`, band names and
-  colours) stay behind, though every Shift tool carries them. Plan §5.
-- ⚠️ **No "just this phase" mode exists in `shiftCalendarDates`** (its `inRange` is a date cutoff). The plan adds
-  `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
-  so whichever is built first should shape it for both.
+- ⚠️ **(Added by the phase-arrows merge, 4 Nov 2026, 22:50.)** This is on `origin/main` since `ac55bb7`, so it is
+  LIVE; the line above predates the push. Its post-push check is not recorded here.
 
 ### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
 - **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
@@ -115,7 +237,7 @@
   ⚠️ P1's one-line check runs at a **351 px** card in headless Chrome, so the 247 px fit is proven only by the pane
   measurement above, not by a leg.
 
-### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — LIVE at `e5e4435` (merged into `main` as `c5fd2ce`, owner's picker *"Merge + targeted run"*; pushed with the Automatic notes card from another session's push picker). Branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `swap-column-splits-with-reuse`
 - **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
   (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
   collumns fixed it! But how would a user know that was what they needed to turn off?"*
@@ -167,7 +289,14 @@
   re-run alone on the same build as `gate.sh` runs it: `monthexport (month-lanecap)` X6 (the timed dialog case) 9/9,
   `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
   No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
-- ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
+- ✅ **Post-push check on the live tree** (`e5e4435`, whose fresh build is the live `index.html` byte for byte,
+  sha256 `2e61a28e…`): gate.sh's own sections for main's new legs since `f5268e5` (backuplink, backuplinkstale,
+  noteviews on `wfkeys`, scenarios + scenariofacts) plus the whole swap/reuse set from the mini-gate above, run after
+  the other session's full gate exited: **358 PASS / 0 FAIL.** The owner asked whether the merged build needed a
+  full gate; the answer given was no, because the fix had passed one on its own branch and the new rule could only
+  move legs that start on a reuse-ON calendar, which this run covers. A full gate on whatever ships next still
+  covers the combination.
+- Nothing left on this entry.
 - ✅ **LIVE at `e5e4435`** (4 Nov 2026, 17:39), pushed with the Automatic notes card (see that entry above for the
   run that had not been reported).
 
