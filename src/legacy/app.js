@@ -7517,6 +7517,65 @@ export function initLegacyApp() {
     host.addEventListener('keydown', e=>{ if(e.key === 'Enter') showSnappedMonday(e.target); });
   });
 
+  // ⭐ A TWO-DIGIT YEAR IS THIS CENTURY'S (owner, 4 Nov 2026: "you can type 26 instead of 2026", and the box "should
+  // read 01/04/26"). Chrome's date box takes a typed "26" as the year 0026, which parseDateUTC() refuses (MIN_YEAR):
+  // the box was ringed "Check that year" and the preview blanked. Now a year under 100 becomes 2000 + it once you
+  // finish typing it, through real input and change events, exactly as if 2026 had been typed. The box SHOWS two
+  // digits by CSS alone (legacy.css, "Two-digit years"), so the value, fields.byId and every saved file keep the full
+  // ISO date, and nothing reads a two-digit year anywhere.
+  //   - A YEAR STILL BEING TYPED IS HELD BACK. While the year is under 1000 (0026, or 0002 / 0020 / 0202 on the way
+  //     to 2026), the box's input and change events stop here, so the engine keeps the date it had: no "Check that
+  //     year" ring and no blank preview mid-typing. (Before, typing 2026 flashed both three times; with "26" it would
+  //     have stayed until the box was left.) A four-digit year, a cleared box and the picker's writes pass at once.
+  //   - FINISHED on leaving the box, or on any key but a digit or a delete (Enter, Tab, an arrow, a shortcut such as
+  //     ⌘S, so a save never catches a held year). A digit keeps typing, so 2, 0, 2, 6 still makes 2026. Under 100
+  //     becomes 20xx; 100-999 (a typo) is handed over as typed, so readState() refuses and rings it as before.
+  //   - Which boxes: every date box the pop-out picker serves (DatePop's pickerTarget): the sidebar (.form-panel) and
+  //     the tool popovers (.tools-menu). Never the grid.
+  //   - CAPTURE on the document, so it runs before showSnappedMonday(), the Ends boxes' own handlers, React and a
+  //     tool's Enter: they all see 2026 and treat it as a typed 2026 (a snapped start still shows its Monday).
+  //   - Only a year TYPED in this visit is held, so a 0026 loaded from an older file is left alone (and refused).
+  //   - One undo step: the engine first hears of the edit at 2026, and foldIntoBankedStep() covers the rare case of a
+  //     step banked while a year was held.
+  const yearHeld = new WeakSet();   // date boxes whose typed year is not finished, so the engine has not heard of it
+  let yearReleasing = false;        // our own events, handing a held year over
+  function twoDigitYearBox(t){
+    return t && t.tagName === 'INPUT' && t.type === 'date' && t.closest && (t.closest('.form-panel') || t.closest('.tools-menu')) ? t : null;
+  }
+  function typedYearParts(v){
+    const m = /^(\d{4,})-(\d{2})-(\d{2})$/.exec(v || '');
+    return m ? {y: +m[1], m: m[2], d: m[3]} : null;
+  }
+  function holdUnfinishedYear(e){
+    const el = twoDigitYearBox(e.target);
+    if(!el || yearReleasing) return;
+    const p = typedYearParts(el.value);
+    if(!p || p.y >= 1000){ yearHeld.delete(el); return; }
+    yearHeld.add(el);
+    e.stopImmediatePropagation();
+  }
+  function finishTypedYear(el){
+    if(!el || !yearHeld.has(el)) return;
+    yearHeld.delete(el);
+    const p = typedYearParts(el.value);
+    const before = undoStateJSON();
+    if(p && p.y < 100) el.value = (2000 + p.y) + '-' + p.m + '-' + p.d;
+    yearReleasing = true;
+    try {
+      el.dispatchEvent(new Event('input', {bubbles: true}));
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+    } finally { yearReleasing = false; }
+    foldIntoBankedStep(before);
+  }
+  document.addEventListener('input', holdUnfinishedYear, true);
+  document.addEventListener('change', holdUnfinishedYear, true);
+  document.addEventListener('focusout', e=>{ finishTypedYear(twoDigitYearBox(e.target)); }, true);
+  document.addEventListener('keydown', e=>{
+    const el = twoDigitYearBox(e.target);
+    if(!el || /^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') return;
+    finishTypedYear(el);
+  }, true);
+
   // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
   // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
   // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates

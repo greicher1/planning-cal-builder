@@ -69,6 +69,20 @@
      and two competing calendars off one field read as a bug. Typing is untouched. */
   .form-panel input[type=date]::-webkit-calendar-picker-indicator,
   .tools-menu input[type=date]::-webkit-calendar-picker-indicator{ display:none; }
+  /* Two-digit years (owner, 4 Nov 2026: the box "should read 01/04/26"). Chrome draws a date box's year as four digits
+     whatever the language, so the year field is clipped to its last two: a flex row packed to its END, in a box two
+     digits wide, overflows off its start, where overflow:hidden drops it. No left padding, or the padding would show
+     a sliver of the third digit. Tabular figures on the WHOLE box, so two digits fill 2ch exactly: set on the year
+     field alone, Chrome ignores it, and 2011 read "011" (its narrow 1s let a third digit in). PAINT ONLY: the value stays
+     2026-01-04, so fields.byId and every saved file are unchanged. Typing "26" for 2026 is app.js's
+     finishTypedYear(). Same boxes as the rule above (the ones the pop-out picker serves); never the grid. */
+  .form-panel input[type=date]::-webkit-datetime-edit-year-field,
+  .tools-menu input[type=date]::-webkit-datetime-edit-year-field{
+    display:inline-flex; justify-content:flex-end; overflow:hidden;
+    width:2ch; padding-left:0;
+  }
+  .form-panel input[type=date],
+  .tools-menu input[type=date]{ font-variant-numeric:tabular-nums; }
   .date-pop{
     position:fixed; z-index:300;              /* the popover tier of the Mantine ladder */
     width:252px; box-sizing:border-box;

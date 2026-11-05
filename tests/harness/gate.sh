@@ -1824,6 +1824,13 @@ done
 # the waterfall does not move; one undo step either way (paused or not), none for a Wednesday over its own Monday;
 # tabbing through, Snap off and a Dates phase leave the typed day. Red on two mutants (no rewrite: T2/U1-U3/K1/P1/H1;
 # no undo fold: U1/U3). Own line.
+# twodigityear (owner, 4 Nov 2026: "you can type 26 instead of 2026", and the box "should read 01/04/26") holds the
+# sidebar's and the tool popovers' date boxes: a year under 1000 typed in the box is held back from the engine until it
+# is finished (no "Check that year" refusal mid-typing, so 0002 / 0020 / 0202 on the way to 2026 never show it), then
+# leaving the box, Enter, Tab make a year under 100 into 20xx through real events (a snapped start then shows its
+# Monday; one undo step); a digit keeps typing; a 0026 nobody typed, 0202 and 20266 are left as typed; the hiatus, own
+# hiatus, Ends, calendar range, custom holiday and Rebuild From boxes; a box elsewhere is never touched; the stylesheet
+# clips the year to two digits with tabular figures. Red on a no-expansion mutant (Y2, K1, K2, B1, B2). Own line.
 # endsdate (owner, 30 Oct 2026: "what if for phases you could select EITHER starting date OR ending date", "Yes, no
 # switch", "build it") holds a Weeks phase held by its END (phaseEnds): the Starts / Ends select on every Weeks card
 # but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
@@ -1942,6 +1949,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               regionmirror:-:150 \
               datepick:-:150 \
               snapbox:-:300 \
+              twodigityear:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
               spancounts:-:300 \

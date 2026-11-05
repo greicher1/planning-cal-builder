@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — date boxes take and show a two-digit year: 01/04/26 (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should read 01/04/26"*.
+
+- **Every date box in the sidebar, and the toolbar's two (Anchor To, Rebuild From), shows the year as two digits:**
+  01/04/26, and an empty box reads mm/dd/yy.
+- **Typing 26 means 2026.** Any year under 100 becomes 20xx once you finish it: when you leave the box, press Enter or
+  Tab, or press any key but a digit. Four digits still work, and 2, 0, 2, 6 still types 2026.
+- **No "Check that year" while you type.** A half-typed year (0026, or 0002 / 0020 / 0202 on the way to 2026) no longer
+  reaches the calendar until it is finished, so the red message and the blank preview don't flash mid-typing. A
+  three-digit year left in the box (a typo) is still refused and ringed, as before.
+- A snapped start still shows its Monday, and an Ends box its Friday, exactly as for a typed 2026; one undo takes the
+  edit back.
+
+The box still holds the full date (2026-01-04), so saved files, the grid and every export are unchanged; the two
+digits are paint only (`legacy.css` clips Chrome's year field to its last two digits, with tabular figures so 2011
+reads 11, not 011). The typing half is `holdUnfinishedYear` / `finishTypedYear` in `app.js`, capture-phase on the
+document so the Monday snap, the Ends boxes and the tools all see 2026. No frozen code. New leg `twodigityear` 13/13
+(red on a no-expansion mutant: Y2, K1, K2, B1, B2); `snapbox`, `datepick`, `endsdate`, `prodends`, `calrange`,
+`snaptools`, `builtindates`, `badyear`, `snapoff`, `undokeys` green; `npm run check` 40/40; real keystrokes in the
+browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing).
+
 ### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
 
 Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:

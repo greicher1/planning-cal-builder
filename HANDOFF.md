@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: DATE BOXES TAKE AND SHOW A TWO-DIGIT YEAR (01/04/26) — branch `two-digit-year` (worktree `.claude/worktrees/two-digit-year`, from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `two-digit-year-dates`
+- **Asked** (owner, 4 Nov 2026): *"Would it be a small enough change so that all phases, hiatuses, etc use a date box
+  in the left side panel that has the year as 25 or 26"*, then *"you can type 26 instead of 2026"* and *"it should
+  read 01/04/26"*. Owner: *"Yes, build it"*. Toolbar's Anchor To / Rebuild From boxes included for consistency.
+- **Built:**
+  - `legacy.css`, under the pop-out picker's block: `::-webkit-datetime-edit-year-field` clipped to its last two digits
+    (inline-flex packed to the end, `width:2ch`, `overflow:hidden`, no left padding), on `.form-panel` and
+    `.tools-menu` date boxes only. ⚠️ `font-variant-numeric:tabular-nums` must sit on the INPUT: on the year field
+    Chrome ignores it, and 2011 read "011".
+  - `app.js`, right after `showSnappedMonday`'s listeners: `holdUnfinishedYear` (document capture, `input` + `change`)
+    stops the events of a date box whose year is under 1000, so the engine never hears a half-typed year;
+    `finishTypedYear` (document capture, `focusout` + any `keydown` but a digit / Backspace / Delete) turns a year under
+    100 into 20xx and hands the box over with real `input` + `change` events, then `foldIntoBankedStep`. 100–999 is
+    handed over as typed, so readState still refuses and rings it.
+- ⚠️ **Learned:** the browser pane's `type` action does NOT drive a native date box (the value stays empty); its
+  `key` action with digits does (`0 1 0 5 2 6` → `0026-01-05`). Use `key` to test real date typing.
+- ⚠️ **Behaviour change beyond the ask:** typing 2026 no longer flashes "Check that year" three times (0002, 0020,
+  0202 are held). Only the box's own events are held: anything else that runs `update()` meanwhile reads the DOM,
+  so it still sees the half-typed year and refuses it, as before.
+- **Verified:** leg `twodigityear` 13/13 (wired into `gate.sh` after `snapbox`), red on a no-expansion mutant
+  (Y2, K1, K2, B1, B2); `snapbox` 12/12, `datepick` 17/17, `endsdate` 17/17, `prodends` 14/14, `calrange` 18/18,
+  `snaptools` 14/14, `builtindates`, `badyear` 6/6, `snapoff`, `undokeys` 11/11; `npm run check` 40/40; browser pane
+  on the build: real keystrokes, 01/05/26 with no refusal mid-typing, Enter → 2026-01-05, waterfall from 1/5/26;
+  11/14/11, 01/04/10, 12/30/19 and the toolbar's mm/dd/yy checked by eye. **Full gate not run** (chrome + sidebar
+  input only: no grid cell, writer or save code touched).
+
 
 ### 🔨 4 Nov 2026: COMPARE'S HOLIDAY CHIP ON WRAP ONLY, IN WORDS — branch `compare-holiday-wrap` (worktree `.claude/worktrees/compare-holiday-wrap`, from `origin/main` at `9687ab5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `compare-holiday-chip-wrap`
 - **Asked** (owner, 4 Nov 2026, on a Compare window with "−1 holiday" under First shoot day and "−2 holidays" under
