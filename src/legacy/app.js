@@ -1220,10 +1220,23 @@ export function initLegacyApp() {
       // Membership is GEOMETRIC but identity is data-week + data-pkey, never row/column index
       // ranges: one <tr> holds every year block side by side, so an index range can straddle two
       // unrelated blocks and two unrelated week ranges.
+      // ⭐ ...unless the sweep touches NO cell's own column (owner, 5 Nov 2026: "i tried highlighing a bunch of
+      // expanced cells and double clicking and it only pulled back the cell my cursor was on"). A sweep down the
+      // part of expanded cells they spread INTO (the left of layout-r13's Bible wk 13-16, whose own column is the
+      // right of three) met no own slot, so it selected nothing, while the text style bar's highlight, which
+      // takes any cell it touches, outlined all four; the double-click then fell to the one cell under it. Such
+      // a sweep now takes the cells it touches, as that highlight does. The own-slot rule above still decides
+      // whenever any own column is touched, so a sweep down one column never picks up the full-width cells of
+      // another phase straddling it (the owner's 1 Sep 2026 screenshot).
+      const across = [];
+      let ownHit = false;
       allPhaseTds().forEach(c=>{
         const b = ownSlotBox(c, g);
-        if(b && b.right > rect.l && b.left < rect.r && b.bottom > rect.t && b.top < rect.b) gridSel.add(SEL_KEY(c));
+        if(b && b.right > rect.l && b.left < rect.r && b.bottom > rect.t && b.top < rect.b){ gridSel.add(SEL_KEY(c)); ownHit = true; return; }
+        const r = c.getBoundingClientRect();
+        if(r.right > rect.l && r.left < rect.r && r.bottom > rect.t && r.top < rect.b) across.push(c);
       });
+      if(!ownHit) across.forEach(c => gridSel.add(SEL_KEY(c)));
       gridSelAnchor = SEL_KEY(td);
       redrawGridOverlay(rect);
     };
