@@ -29,6 +29,56 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
+
+The layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), 4–5 Nov 2026) scored fifteen of the owner's own
+calendars against today's column rules; the owner answered every difference "as pictured", and
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 wrote the pictures down as nineteen plain-words rules. This builds them
+([`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)), in three pieces.
+
+- **Where a phase goes (rules 1–10, not frozen).** A phase that starts the week another ends follows it into that
+  column (across a hiatus too); when two columns are handed off it takes the left one; Production takes the
+  left-hand free column, Simultaneous Post's lane is reserved directly right of it and Post continues that lane
+  afterwards; anything else goes to the right of whatever is still running, into the leftmost free column, so a
+  year never grows a column it does not need; a hidden phase takes no column; a drag into a free column still
+  wins. Within a year, columns run left to right by when the phase at the top of each started, so the same two
+  columns can sit on opposite sides in consecutive years (rule 9, through `stintOrderFor`, the one sanctioned seam
+  into frozen `computeBlockLayout`). Two things the pictures settled beyond the plain words: Production goes left
+  even when Writers' column had been free for weeks and only Prep's was handed off, and a same-week tie keeps the
+  columns' existing order.
+- **How wide a cell draws (rules 11–19, ONE frozen edit, LR1, owner sign-off 5 Nov 2026).** A phase widens into
+  the column beside it from the week that column is free for the *rest* of its run — not the whole run — so Post
+  fills the width the week a three-week phase beside it ends, and a width only ever grows along a run; a hiatus
+  week no longer splits a run; a spare column between two phases goes to the left one; in Single Column Mode
+  nothing widens. The even share, a lone phase filling the width, the Sim Post lane, bands and hand-dragged widths
+  are as they were.
+- **The switch retires.** The Reuse Empty Columns switch leaves Settings. Every new calendar lays out by the
+  rules; its saved key `colReuse: true` (unchanged, permanent) is now the layout **stamp**. **A calendar saved
+  without it keeps the columns and the widths it was saved with, byte for byte, forever**, and each time it is
+  loaded a strip above the calendar offers **Update layout** (one undo step; hand-dragged widths of the years whose
+  columns change are cleared, as the switch did) or **Keep as is**. Nothing moves on its own.
+- **Why:** the rules reproduce the owner's calendars where today's did not — 82.3% of phase-weeks with the
+  switch off and 71.6% with it on, against the figures below — and the switch asked users to know a mechanism
+  that the rules now carry.
+- **Verified:** fixtures `layout-r3`, `r6`, `r9`, `r7`, `r13`, `r17` (synthetic) and leg `layoutrules`, green and
+  each red on the build before; the fifteen study calendars re-scored with the stamp on: **98.1%** of phase-weeks
+  as pictured, no width misses, the rest ruled or explained (HANDOFF); the unstamped path unchanged on every seed
+  (82.3%); the reference calendar's waterfall PDF and Excel parts
+  byte-identical on the legacy path (the gate's `base` leg runs it there through the localhost-only
+  `?layout=legacy`, because a new calendar is stamped and rule 13 widens its Localization — by design); both month
+  PDFs byte-identical; `npm run check` 40/40; a full gate, 4,000 PASS / 1 FAIL (a month-PDF capture under contention,
+  green re-run alone).
+
+### Unreleased — the layout study's `?layout=` hook, localhost only (4 Nov 2026)
+
+**What:** on `localhost` / `127.0.0.1` only, `?layout={"production":0,…}` on the page URL forces every waterfall
+phase's column (phase key → column index). Read in `computeSchedule` where `col` is assigned, so the frozen layout
+takes it as data; ignored unless every waterfall phase is named; never saved. Off localhost, or absent, both
+placements run exactly as before. **Why:** the layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), owner
+ruling R6) draws candidate layouts — and a hand-made calendar's own layout — through the real grid, side by side with
+today's. **Verified:** in the browser pane a seed drew the forced columns; the study's `tools/layout-study/` (scrub,
+transcribe, compare, serve, the page) runs against the build. Leg `layouthook` and a full gate are still to run.
+
 ### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
 
 The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me

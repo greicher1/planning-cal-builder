@@ -84,7 +84,13 @@ bad() { say "  FAIL  $1"; FAIL=1 }
 say "=== gate: $PAGE ==="
 
 # ---- base: grid geometry, clipping, both exports ---------------------------------------------
-HARNESS_PAGE="$PAGE" "$HERE/run.sh" base 45 >/dev/null 2>&1
+# ⛔ ON THE LEGACY LAYOUT PATH (LAYOUT-BUILD-PLAN.md §3.2, owner sign-off 5 Nov 2026). The reference calendar is a
+# NEW calendar, and a new calendar carries the layout stamp (`colReuse`) since 2 Nov 2026; under the layout rules
+# its Localization widens the week Post ends (rule 13), which is by design and would move gates 2 and 3. These two
+# gates exist to prove the FROZEN WRITERS have not moved, so the leg exports the calendar on the legacy path through
+# the localhost-only `?layout=legacy` hook (layoutStamped() false): the placement and the widths every unstamped
+# file gets, byte for byte. The stamped path is proven by the layoutrules legs below.
+HARNESS_PAGE="$PAGE" HARNESS_QUERY="layout=legacy" "$HERE/run.sh" base 45 >/dev/null 2>&1
 if [[ ! -f "$HERE/base.json" ]]; then bad "base test produced no result"; else
 python3 - "$HERE/base.json" "$BASE/base.json" <<'PY' || FAIL=1
 import json,sys
@@ -1310,19 +1316,15 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
-# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
-# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
-# drag to fix a pick, and a row note only when something was moved by hand.
-#
-# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
-# frozen computeBlockLayout derives fewer columns from `col` as data. This leg proves the rules, on a
-# SYNTHETIC calendar (2030-2032) with one phase per rule of the plan's §3.
-# ⭐ Since 2 Nov 2026 a NEW calendar starts ticked (owner: "this can just be for calendars going forward
-# not old ones"), so the byte-compare above runs with it ON. Its calendar (buildFixture) has no handoff week
-# and lays out identically either way (checked when the default changed), which is why its baselines did
-# not move. Every ?state= fixture without the key still opens unticked.
-# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
-# LIVE's own snapshot.
+# ---- colreuse: the layout stamp, the hand move, an unstamped file's "Update layout" strip ------------------
+# (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026; LAYOUT-RULES.md / LAYOUT-BUILD-PLAN.md §4, 5 Nov 2026.)
+# The "Reuse Empty Columns" box is gone: a NEW calendar carries the layout stamp (`colReuse: true`, the box's own
+# PERMANENT key) and lays out by the layout rules (placeSegmentsByRules, not frozen; the widths behind frozen edit
+# LR1); a file WITHOUT it keeps the placement and the widths it was saved with and is offered the rules once per
+# load by the strip above the calendar. The grid's drag still moves a phase by hand (colFollow), with a row note.
+# ⭐ The byte-compare above runs the reference calendar on the LEGACY path (`?layout=legacy`): see its comment.
+# Two runs: LIVE builds a SYNTHETIC calendar (2030-2032) through the DOM; RESTORE opens
+# tests/fixtures/colreuse.sptcal, cut from LIVE's own snapshot.
 for CRSTATE in "" colreuse; do
   rm -f "$HERE/colreuse.json"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
@@ -1340,44 +1342,88 @@ except Exception as e:
 if a.get('EX'):
     print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
 if a.get('mode') == 'live':
-    chk(a.get('boxExists') and a.get('boxStartsOn') and a.get('newSnapSaysOn') and a.get('freshWasOn'),
-        'a NEW calendar starts with the box ticked, lays out with reused columns, and saves colReuse: true (owner, 2 Nov 2026)')
-    chk(a.get('boxUnticks') and a.get('boxSkippedBySweep'),
-        'the box unticks, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
-    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
-        'OFF saves no colReuse/colFollow key and shows no row note: a calendar saved unticked is unchanged')
+    chk(not a.get('boxExists') and a.get('newSnapSaysOn') and a.get('noStripOnNew'),
+        'no Reuse Empty Columns box anywhere; a NEW calendar is stamped (colReuse: true) and shows no strip')
     oc=a.get('onCols') or {}
-    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
-    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
-    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
-    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
-    chk(a.get('newColumn'), 'nothing free: a new column')
-    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
-    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
-    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
-    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
-    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
-        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
-    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
-        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(oc.get('2030')==3 and oc.get('2031')==3 and oc.get('2032')==1, f"the rules: 2030 three columns, 2031 three, 2032 one {oc}")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running (rule 2)')
+    chk(a.get('prodLeft'), "two columns handed off: Production goes LEFT, into Writers' column, not Prep's (rule 3)")
+    chk(a.get('rightOfRunning'), 'no handoff: the leftmost free column right of the running Production (rule 4)')
+    chk(a.get('newColumn'), 'nothing free: a new column (rule 5)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus, at New Year and mid-year (ruled Q5)')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost in 2031 (rule 9: its top phase started first)")
+    chk(a.get('tieByColumnOrder'), "two handoffs whose tops started the same week: the column made first is the left one (rules 3, 9)")
+    chk(a.get('onNoNotes'), 'nothing moved by hand: no row note')
     chk(a.get('selectedMix') and a.get('moved'),
         f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
     chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
-    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and nothing col-reuse is a swept field id')
     chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
     chk(a.get('pdfExported'), 'the waterfall PDF exports')
     chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
         f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
     chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
-    chk(a.get('oldFileOff') and a.get('oldFileLayout') and a.get('oldFileStillNoKey'),
-        'an OLD calendar (no colReuse key) Loads unticked, with its old columns, and still saves no key')
+    chk(a.get('oldFiveColumns') and a.get('oldNoNotes'), f"the same calendar saved WITHOUT the key Loads unstamped: the old start-order layout ({a.get('oldCols2030')} columns in 2030), no notes")
+    chk(a.get('oldStripUp') and (a.get('stripButtons') or [])[:2]==['Update layout','Keep as is'] and 'lay out automatically' in (a.get('stripText') or ''),
+        f"...and raises the strip: {a.get('stripText')!r} with Update layout / Keep as is")
+    chk(a.get('keepHides') and a.get('keepLayout') and a.get('keepStillNoKey'), 'Keep as is hides the strip, changes nothing and writes nothing')
+    chk(a.get('stripAgain'), 'the next load of the unstamped file offers again')
+    chk(a.get('updateHides') and a.get('updatedLayout') and a.get('updatedSaysOn'),
+        "Update layout stamps the calendar: the rules' columns, the strip gone, colReuse: true saved")
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoLayout') and a.get('undoUnstamped') and a.get('redoBack'),
+        'Update layout is ONE undo step: undo restores the old columns, the widths and the absent key; redo stamps again')
 else:
-    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(not a.get('boxExists') and a.get('noStrip') and a.get('restoredRules'), "a stamped file opens with the rules' columns, no box, no strip")
     chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
-    chk(a.get('newTicks'), 'New starts a new calendar with the box ticked and no hand moves')
+    chk(a.get('newStamped'), 'New starts a new calendar stamped, with no hand moves and no strip')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYCR
+done
+
+# ---- layouthook: the layout study's `?layout=` hook (LAYOUT-STUDY-PLAN.md §6; owner ruling R6, 4 Nov 2026) ----
+# On localhost only, `?layout={"<phase>":<col>,…}` forces every waterfall phase's column, read in computeSchedule
+# where `col` is assigned (NOT frozen: the frozen layout takes `col` as data). Honoured only when EVERY waterfall
+# phase is named: a half map is ignored whole. Two runs on the colreuse fixture (Reuse on, four pairs sharing a
+# column, one hand move): a FULL map gives every phase its own slot and bypasses the reuse placement (no hand-move
+# note); a HALF map changes nothing, so the layout is the colreuse RESTORE run's (the layout rules' since 5 Nov 2026:
+# Production in Writers' column). The inertness with no `?layout=` at all is every other leg of this gate.
+LH_FULL='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12,"custom8":13}'
+LH_HALF='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12}'
+for LHRUN in full half; do
+  LHMAP="$LH_FULL"; [[ "$LHRUN" == half ]] && LHMAP="$LH_HALF"
+  rm -f "$HERE/layouthook.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse HARNESS_QUERY="hook=$LHRUN&layout=$LHMAP" "$HERE/run.sh" layouthook 120 >/dev/null 2>&1
+  python3 - "$HERE/layouthook.json" "layouthook ($LHRUN)" <<'PYLH' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+p=a.get('pairs') or {}
+if a.get('hook') == 'full':
+    chk(len(a.get('mapKeys') or [])==14 and a.get('phasesSeen')==a.get('mapKeys'), 'the full map names all 14 scheduled phases, and all 14 render')
+    chk(not a.get('sharedAnywhere') and not any(p.values()), 'with every phase in its own column, no two phases share a slot in any year')
+    chk(a.get('slotsPerYear')=={'2030':8,'2031':6,'2032':1}, f"slots per year follow the forced columns {a.get('slotsPerYear')}")
+    chk(a.get('noteText') is None, 'the reuse placement did not run: no hand-move note')
+else:
+    chk(len(a.get('mapKeys') or [])==13, 'the half map leaves one phase out')
+    chk(all(p.get(k) for k in ('c1wr','prodWr','c5loc','c7c6')) and a.get('prodSlot2031')==0,
+        'it is ignored whole: the four pairs share a column (Production in Writers\' column, rule 3) and Production is slot 0 in 2031, as the colreuse RESTORE run has it')
+    chk(a.get('slotsPerYear')=={'2030':3,'2031':3,'2032':1}, f"the saved column counts {a.get('slotsPerYear')}")
+    chk(bool(a.get('noteText')) and 'Moved by hand' in a.get('noteText'), 'the hand-move note is there')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYLH
 done
 
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
@@ -1933,6 +1979,14 @@ done
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
 # switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
+# layoutrules (LAYOUT-RULES.md §0, LAYOUT-BUILD-PLAN.md; owner's rulings 5 Nov 2026) holds the waterfall layout rules on
+# six STAMPED synthetic fixtures (tools/layout-study/fixtures.mjs): r3 Production goes left and the Sim Post lane takes
+# the freed column beside it; r6 the same-week competition for one free column (the shorter takes it, Post continues the
+# lane); r9 the same two columns on opposite sides in consecutive years (rule 9 through stintOrderFor); r7 a handoff left
+# of a running phase, a phase not following on placed right of everything running, a paused phase keeping its column,
+# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2). Each red on the build
+# before the rules where its rule differs. An UNSTAMPED calendar is every other leg of this gate: its placement and its
+# widths are byte for byte what they were.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2004,6 +2058,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
+              layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
