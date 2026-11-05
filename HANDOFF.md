@@ -63,9 +63,12 @@
   - Twelve legs carry the same extractor (`autonotekinds`, `autonotephases`, `autonoteview`, `autonoterename`,
     `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`, `wfnotecolors`),
     so any of them can go red the same way when a PDF's bytes change. Its own change, not this branch's.
-- ⏭ **Next:** the owner's picker: merge, and separately push. The branch holds `origin/main` (`347a98f`), so a push is
-  `git push origin stale-band-key:main` from the worktree, a fast-forward. This worktree's `node_modules` is a real
-  directory, so `git worktree remove` needs no unlink first.
+- ✅ **Owner's picker** (5 Nov 2026): *"Merge"*, and separately *"Push now"*. `origin/main` had moved again by then
+  (`cf75104`, New opens Show info: 6 lines in `newFile()`, a new leg `newtab`), so it was merged in (HANDOFF and
+  README only conflicted) and the build re-checked BEFORE the push. On that build (`30bbfc2e…`): `npm run check`
+  40/40; `stalebandkey` 9/9, `mvdragcarry` 15/15, `phasearrows` 26/26, `anchorside` 29/29, `newtab` 6/6,
+  `hiatusripple` 15/15. Pushed as `git push origin stale-band-key:main`, a fast-forward. Local `main` not moved.
+  This worktree's `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
 
 ### ✅ 5 Nov 2026: NEW ALWAYS OPENS THE SIDEBAR ON SHOW INFO. Built and verified on main; committed and pushed on the owner's picker ("Commit locally" + "Push to live"). Tracker card `new-opens-show-info`.
 - **Ask (owner):** *"when you click New the left bar should always be on the Show Info tab"*. `newFile()` never touched
