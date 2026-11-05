@@ -1940,7 +1940,10 @@ done
 # (owner's layout A, plan §7) the LIST of phases: folded under All phases, opened by "Choose phases…", a shortcut's
 # ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
 # (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
-# reset on reopening, and no id on any tick.
+# reset on reopening, and no id on any tick. Since the evening of 5 Nov 2026 (owner: "is this confusing?",
+# mockups/shift-date-row.html) the date row's SUBJECT: the phase row only as the pivot, a mirror select (no id) under
+# How far for All phases / own ticks to a date, the pivot's name as text for Phase & before / after to a date (W1),
+# and a pick on the mirror written back into #tool-anchor-phase, prefilling the date, pinning the row, landing on Go (J1).
 # phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
 # week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
 # the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
@@ -2022,6 +2025,12 @@ done
 # Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2). Each red on the build
 # before the rules where its rule differs. An UNSTAMPED calendar is every other leg of this gate: its placement and its
 # widths are byte for byte what they were.
+# centrepullback (owner, 5 Nov 2026: "drag and select collumns and double click to unexpand them") holds the double-click
+# on the MIDDLE of an expanded cell, where the boundary between its columns runs and that boundary's column handle used
+# to take the double-click (the frozen autofit, a no-op), so pull-back worked only off the centre. Real pointer events
+# at real coordinates, on layout-r13's automatically widened cells: a marquee batch, one cell with nothing selected,
+# a three-column cell, one undo step each, a 1.4px drift that saved a width being put back, and the autofit kept on a
+# boundary that is a real cell edge. Red on the build before it at P2.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2103,6 +2112,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
               layoutrules:layout-r13:240 layoutrules:layout-r17:240 \
+              centrepullback:layout-r13:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` at 5f99223 merged in through the app's sync, HANDOFF the only conflict). Committed on the branch only: NOT merged into `main`, NOT pushed (both wait on the owner's picker).
+### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync twice: at 5f99223, then at 854dbbe (the Shift date row and the centre pull-back), HANDOFF and README the only conflicts). Committed on the branch only: NOT merged into `main`, NOT pushed (both wait on the owner's picker).
 - **The fault** (recorded under "Full gate #2" in the stale band key entry below): sixteen legs read PDF text with a
   copied reader that found `stream`…`endstream` and stripped trailing 0x0A / 0x0D before `DecompressionStream`. Data
   that legitimately ends in an EOL byte was truncated, inflation threw (`TypeError: Failed to fetch` from
@@ -38,6 +38,38 @@
   streams ending 0x0A and 0x0D), the helper 3 of 3; an indirect `/Length` falls back; a broken Flate stream throws.
   No `gate.sh` change (same leg names and budgets); its judge was run on each leg's JSON. No full gate: no product
   code changed.
+
+### 🔨 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`, from `main` at `347a98f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`. COMMITTED on the branch (owner's picker, *"Commit on the branch"*); NOT merged, NOT pushed. Owner asked whether it needs the full gate: answered no (see the gate bullet).
+- **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
+  able to drag and select collumns and double click to unexpand them"*.
+- **The cause, reproduced in the pane on `layout-r13`:** the pull-back existed and its hint showed, but the boundary
+  between an expanded cell's columns runs down its centre, and that boundary's `.grid-resize.is-col` handle (7 px,
+  full table height, z above the cell) took the double-click; the batch listener's "a handle owns its own band"
+  return sent it to the frozen autofit, a no-op on an unsized column. Off-centre worked. ⚠️ Since v1.11.0 the layout
+  rules widen many cells on their own, so this hit nearly every expanded cell, not just hand-widened ones.
+- **Built** (`src/legacy/app.js`, the multi-cell selection block beside `batchFill`, not frozen):
+  `cellAcrossBoundary(h, x, y)` returns the phase cell when an is-col handle's centre lies more than
+  max(4, handle width) px inside it; the capture `dblclick` listener then runs `batchFill()` (cell selected) or
+  `batchFill(new Set([key]))` (not selected; the selection is dropped). `batchFill(keys)` takes optional SEL_KEYs.
+  Hiatus bands, span handles, row handles and boundaries on a cell's edge are untouched.
+- ⛔ **The drift guard, and why it exists:** the frozen column drag (`installGridResizers`' pointerdown) sets
+  `moved` on ANY pointermove and then saves `colWidths[ckey]`; a 1 px drift mid-double-click pins the column. The
+  frozen autofit used to delete it on the same double-click, which this change now stops. So a capture
+  `pointerdown` records the column's width at the FIRST press (`boundaryPress`, session UI), and
+  `undoBoundaryDrift()` puts it back when the presses moved the boundary ≤ 6 grid px. Measured: the pull-back stays
+  ONE undo step (the restore lands before `batchFill`'s flush push, which then no-ops).
+- **Verified:** by hand in the pane (batch centre pull-back, expand again, one undo step each; a lone cell with
+  nothing selected; Bible wk 13's two inner boundaries; the drift written then put back; y2031:s0 dragged then
+  autofit on wk 13's real edge, no cell moved). New leg `centrepullback` (generic block, `layout-r13`, 10 checks,
+  pointer events at real coordinates): green on the build; red at P2 on the build before (built from HEAD's
+  `app.js` into `dist/pre.html`, then deleted). ⚠️ `noswapbtns` S4 dispatches its double-click on the td itself,
+  which is why the trap was never caught; a new grid-gesture leg should hit-test with `elementsFromPoint`.
+- ✅ **Targeted gate (port 8835, 14:35–14:46): 465 PASS / 0 FAIL** — gate.sh's own sections, assembled by a throwaway
+  script (deleted): base + gates 2/3 + seams + workbook, colswapmove, colswapstale, stintbtn, stintmulti, stintchain,
+  stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys(+real), and the generic block cut to
+  noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu, layoutrules
+  r13/r17, centrepullback. 0 clipped cells; waterfall PDF and workbook identical. `npm run check` 40/40. No full
+  gate. The main checkout's `.claude/launch.json` has `batch-pullback-8833` (this worktree's harness server).
 
 ### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED twice (4,053 PASS / 0 FAIL; then on the merged v1.11.0 build 4,103 PASS / 2 FAIL, neither this change's; every baseline identical both times) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only; then `cf75104`, New opens Show info, merged in the same way). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
 - **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
@@ -634,7 +666,40 @@
   run that had not been reported).
 
 
-### 🔨 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert; NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+### ✅ 5 Nov 2026 (evening): SHIFT — THE PHASE BESIDE THE DATE UNDER TO A DATE — ✅ **BUILT on `shift-tool`, targeted legs green, NOT pushed** (owner, on a screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot' starts on **date selected**"*; *"Mock it up first"*; *"I like it but it doesn't need to say 'the phase you picked'"*). Worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`. Mockup [`mockups/shift-date-row.html`](mockups/shift-date-row.html) (today vs proposed, both live and mirrored; three ways to show the pinned phase, D2). Tracker card `shift-date-row-subject`
+
+**As built:**
+- **The rule:** the phase row above the list (`[data-shift-phase-row]`, `#tool-anchor-phase`) shows ONLY as the
+  PIVOT, i.e. for Phase & before / after. Under All phases or a hand-picked set, To a date, the phase that lands is
+  picked on a **subject row** directly under How far (`[data-shift-subject-row]` > `select[data-shift-subject]`, NO
+  id); under Phase & before / after a **subject line** (`p.tools-subject[data-shift-subject-line]`) repeats the
+  pivot's option as text ("Production — 6/29/26"). By weeks neither shows. (Before: the phase row showed for
+  before / after always, and for all / custom to a date, as the landing phase, two sections above the date.)
+- **One source of truth.** `#tool-anchor-phase` stays the select every reader asks (`anchorSelection`,
+  `shiftPlan`, `renderShiftList`, `shiftBy`, the Go handler, the legs' `T.set`). `syncShiftForm()` copies its
+  `innerHTML` and value into the mirror whenever the subject row is shown; the mirror's `change` writes its value
+  back and dispatches `change` on the original, whose own handler runs (`syncAnchorDate`, `syncShiftForm`), so the
+  date follows the phase and the list pins it exactly as a direct pick does. ⛔ Never read the mirror.
+- **Why a mirror and not a moved element.** React renders both rows; moving the one `<select>` between them in the
+  DOM would leave React's record of the tree wrong (a later removal throws), and a CSS `order` swap puts the tab
+  order out of step with the eye. Two elements, static markup, the engine chooses with `hidden`.
+- **`PreviewToolbar.jsx`:** the subject row and line between the How far buttons and the weeks row; the comments on
+  the phase row and the date row say so. **`legacy.css`:** `.tools-subject` (30 px, `font-size-sm`, 600, matching
+  the select it stands in for). **`app.js`:** `syncShiftForm()`'s row rule and the mirror; the subject's `change`
+  listener beside the fold's.
+- **Measured in the pane** (anchorside.sptcal): 261 px for All phases to a date (the select under How far), 471 px
+  for Phase & after to a date (the pivot, the list, the line, the date row).
+- **`anchorside` 30/30** (was 29): O1 both subject parts hidden on opening; W1 the rows in every state (the phase row
+  gone under All phases to a date, the mirror's options = the select's, Whole schedule mirrored, the line = the
+  pivot's option under Phase & before, nothing under by weeks); **J1** picks Post on the subject row: mirrored into
+  `#tool-anchor-phase`, the date prefilled as a direct pick prefills it, "Post On your date" pinned, Go slides every
+  start a week; I1 the mirror has no id. Plus `snaptools`, `overrides`, `calrange`, `rowheight`, `datepick`,
+  `rebuildticks`, `phasearrows`, `builtindates`, `customunits` green; `npm run check` 40/40. No full gate: chrome
+  only, no frozen code, no writer, no save format (the mirror has no id; S1 holds).
+- **Help** ("Adjusting dates") says the phase that lands sits right above the date. CLAUDE.md, PROJECT-CONTEXT
+  §7a, README, plan §7.5 and gate.sh's comment follow.
+
+### ✅ 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — ✅ **LIVE at `c8eac00`** (owner's picker *"Push now"*; pushed from branch `shift-tool` `51d8fb6..c8eac00` at 09:46:28 UTC, a fast-forward carrying the overlap revert `1edc559`, plan §7 / §7.4, the tick list `f089108` and three merges of `origin/main`; the live `index.html` matched the re-checked build `27e1a018…` byte for byte at 09:48:29). ⚠️ Local `main` NOT moved (the main checkout holds another session's uncommitted edits); it fast-forwards to `shift-tool` once that session commits. RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
 
 **As built (5 Nov 2026):**
 - **Rulings** (owner): T0 *"ok lets go with A"* (from four measured layouts, §7.4; asked *"are you absolutely sure
@@ -691,7 +756,8 @@
   before it starts) still matches nothing under `windows`. Re-check on `27e1a018…`, all green: `npm run check` 40/40,
   `anchorside` 29/29, `phasearrows` 26/26, `hiatusripple` 15/15, `wfnoteeditor` 13/13, `overrides` 20/20, `snaptools`
   14/14. No second full gate.
-- ⏭ **Next:** push (owner's picker, *"Push now"*).
+- Pushed as above: origin/main's `51d8fb6` (a HANDOFF-only commit) merged in first, no code moved, the build still
+  `27e1a018…`.
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
     every phase you wanted it to effect kinda like how it works in rebuild from right now?"*
@@ -712,7 +778,7 @@
 - **Waiting on the owner:** T0 the layout, T1 the fold under All phases, T2 notes for a hand-picked set.
 - The engine needs nothing: `part` already moves any set.
 
-### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; ✅ **the overlap rule REVERTED, LIVE at `c8eac00`** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below; pushed with the tick list, the entry above) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
 - **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,

@@ -1327,7 +1327,10 @@ export function initLegacyApp() {
   // half filled / half not. Fill semantics with differing room: each row reaches ITS OWN maximum,
   // never a shared minimum -- "expand the rows to fill across the column" means every selected row
   // becomes as wide as its own row allows.
-  function batchFill(){
+  // `keys` (optional, a Set of SEL_KEYs) applies the same batch to cells that are not the selection:
+  // the one cell under a double-click that landed on a column boundary inside it (below). Keys, not
+  // tds, because the commit on the next line detaches every td.
+  function batchFill(keys){
     if(viewMode !== 'sheet') return false;
     // ⛔ FIRST statement, before selCells(). Any apply path can be reached with a note or hiatus
     // editor still open -- the toolbar button's click listener is registered ahead of the editor's
@@ -1335,7 +1338,8 @@ export function initLegacyApp() {
     // orphaned editor without committing it: the user's typed text vanishes with no error. Committing
     // here re-renders and detaches every td, which is exactly why this cannot go after selCells().
     if(activeNoteEditor) commitActiveNoteEditor();
-    const rows = resolveRowContention(selCells().map(spanRoom).filter(canExpand));
+    const cells = keys ? allPhaseTds().filter(td => keys.has(SEL_KEY(td))) : selCells();
+    const rows = resolveRowContention(cells.map(spanRoom).filter(canExpand));
     // Re-tested AFTER contention clamping: a cell whose only free slot was awarded to a neighbour in
     // the same week has nothing left to do, and must not have {0,0} written over an inert override.
     const live = rows.filter(canExpand);
@@ -1365,17 +1369,89 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⭐ A COLUMN BOUNDARY INSIDE A PHASE CELL BELONGS TO THE CELL, for a double-click (owner, 5 Nov 2026:
+  // "just like how i can drag and select collumns then double click to expand them, i should be able to
+  // drag and select collumns and double click to unexpand them").
+  // Pull-back never worked from the middle of an expanded cell. A cell two columns wide has the boundary
+  // between its columns down its CENTRE, where its label sits, and that boundary's `.grid-resize.is-col`
+  // handle (7px, the full table's height) takes the double-click. The rule below ("a handle owns its own
+  // band") then sent it to the frozen column autofit, which does nothing to a column nobody sized. Measured
+  // on layout-r13, Writer's Rm wk 15 (184px, two columns): handles at 0-6, 7-13, 87-93 (the centre),
+  // 172-178 and 179-185 px across it. Only a double-click off the centre pulled back; one on the
+  // words did nothing, with "Double click to pull back cells" on screen.
+  // So a double-click on an is-col handle whose boundary runs THROUGH a phase cell (not along its edge)
+  // acts on that cell: the batch when the cell is selected, else that one cell, as the frozen single-cell
+  // double-click does on the rest of the cell. Every other handle keeps its band: the boundaries a cell's
+  // edges sit on, the span handles (is-span, a cell's own edge) and the row handles. The column autofit is
+  // still on the same boundary wherever it is a real edge, the heading row included.
+  function cellAcrossBoundary(h, x, y){
+    if(!h.classList.contains('is-col')) return null;
+    const td = hitCell(x, y);
+    if(!td || td.classList.contains('sheet-hiatus-cell')) return null;   // a band's double-click edits it
+    const hb = h.getBoundingClientRect(), tb = td.getBoundingClientRect();
+    const cx = (hb.left + hb.right) / 2, m = Math.max(4, hb.width);
+    return (cx > tb.left + m && cx < tb.right - m) ? td : null;
+  }
+  // ⚠️ Each press of that double-click also starts the frozen column drag, which saves a width on ANY
+  // pointer move (no threshold): a hand drifting a pixel mid-click pins the column. Until now the
+  // handle's own double-click deleted the width again (autofit); taking the double-click away from it
+  // would leave the column pinned. So the width the column had at the FIRST press is kept, and the
+  // double-click puts it back when a press moved the boundary by no more than a drift.
+  let boundaryPress = null;        // {ckey, t, had, val, px} -- session UI, never saved
+  const BOUNDARY_DRIFT_PX = 6;     // grid px; a real drag that ends in a double-click is not a drift
+  function boundaryColPx(ckey){
+    const col = document.querySelector('#table-wrap table.sheet-table colgroup col[data-ckey="' + CSS.escape(ckey) + '"]');
+    return col ? (parseFloat(col.style.width) || 0) : NaN;
+  }
+  // Capture, so it runs before the frozen drag's pointerdown (a document BUBBLE listener) can write.
+  document.addEventListener('pointerdown', e=>{
+    const h = e.target.closest && e.target.closest('.grid-resize.is-col');
+    if(!h) return;
+    const ckey = h.dataset.ckey || '', t = performance.now();
+    if(boundaryPress && boundaryPress.ckey === ckey && t - boundaryPress.t < 800) return;   // a double-click's 2nd press
+    boundaryPress = { ckey, t, had: Object.prototype.hasOwnProperty.call(colWidths, ckey), val: colWidths[ckey],
+                      px: boundaryColPx(ckey) };
+  }, true);
+  function undoBoundaryDrift(h){
+    const p = boundaryPress;
+    boundaryPress = null;
+    if(!p || p.ckey !== (h.dataset.ckey || '') || performance.now() - p.t > 1500) return false;
+    const now = colWidths[p.ckey];
+    if(p.had ? now === p.val : now === undefined) return false;          // the presses wrote nothing
+    if(!(Math.abs(boundaryColPx(p.ckey) - p.px) <= BOUNDARY_DRIFT_PX)) return false;
+    if(p.had) colWidths[p.ckey] = p.val; else delete colWidths[p.ckey];
+    return true;
+  }
+
   // Double-click any SELECTED cell applies the batch. Extends the one gesture the code itself calls
   // "the only one of the two that is discoverable without knowing the handles are there".
   document.addEventListener('dblclick', e=>{
     if(viewMode !== 'sheet') return;
-    // ⛔ A handle owns its own band -- the same rule the marquee's pointerdown follows. Without this
-    // the batch STEALS the frozen autofit gesture: this listener is capture-phase, hitCell walks
-    // straight past the handle to the cell beneath it, and preventDefault + stopPropagation then
-    // stop the frozen `.grid-resize` dblclick from ever running. Double-clicking a column boundary
-    // to refit it -- advertised in that handle's own title text -- would silently batch-expand
-    // instead, whenever a selection happened to be live.
-    if(e.target.closest && e.target.closest('.grid-resize')) return;
+    const h = e.target.closest && e.target.closest('.grid-resize');
+    if(h){
+      // ⭐ A boundary running through a phase cell: the cell's double-click (cellAcrossBoundary, above).
+      const td = cellAcrossBoundary(h, e.clientX, e.clientY);
+      // ⛔ Any other handle owns its own band -- the same rule the marquee's pointerdown follows. Without
+      // this the batch STEALS the frozen autofit gesture: this listener is capture-phase, hitCell walks
+      // straight past the handle to the cell beneath it, and preventDefault + stopPropagation then
+      // stop the frozen `.grid-resize` dblclick from ever running. Double-clicking a column boundary
+      // to refit it -- advertised in that handle's own title text -- would silently batch-expand
+      // instead, whenever a selection happened to be live.
+      if(!td) return;
+      e.preventDefault();
+      e.stopPropagation();                   // the frozen autofit must not run as well
+      const drifted = undoBoundaryDrift(h);
+      const key = SEL_KEY(td);
+      let did;
+      if(gridSel.has(key)) did = batchFill();
+      else {
+        // Outside the selection: the selection goes, as a double-click on the rest of the cell drops it.
+        if(gridSel.size){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); }
+        did = batchFill(new Set([key]));
+      }
+      if(drifted && !did) render(currentSchedule);   // the put-back width; the drift's write already marked dirty
+      return;
+    }
     // hitCell, NOT e.target.closest: the handles cover ~29% of a 77px cell and ALL of a narrow one,
     // so e.target misses the cell for much of its width.
     const td = hitCell(e.clientX, e.clientY);
@@ -31513,10 +31589,24 @@ export function initLegacyApp() {
       }
       shiftMenu.querySelectorAll('[data-move]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === shiftMove)));
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
-      // The phase row only when a phase matters: a shortcut that hinges on one, or the one that lands on the date.
-      // The user's own ticks by weeks need none, and neither does All phases.
+      // The phase row only as the PIVOT: Phase & before / after hinge on it. All phases and the user's own ticks
+      // need none by weeks, and to a date the phase that lands is picked on the SUBJECT row under How far instead
+      // (owner, 5 Nov 2026, mockups/shift-date-row.html: the phase sat two sections above the date it was the
+      // subject of). The subject select mirrors #tool-anchor-phase, which stays the one select every reader asks;
+      // under Phase & before / after the pivot is the phase that lands, and the subject line repeats its name.
+      const pivot = shiftMove === 'before' || shiftMove === 'after';
+      const toDate = shiftFar === 'date';
       const phaseRow = shiftMenu.querySelector('[data-shift-phase-row]');
-      if(phaseRow) phaseRow.hidden = (shiftMove === 'all' || shiftMove === 'custom') && shiftFar === 'weeks';
+      if(phaseRow) phaseRow.hidden = !pivot;
+      const subjRow = shiftMenu.querySelector('[data-shift-subject-row]');
+      const subj = shiftMenu.querySelector('[data-shift-subject]');
+      if(subjRow) subjRow.hidden = !(toDate && !pivot);
+      if(subj && sel && !subjRow.hidden){ subj.innerHTML = sel.innerHTML; subj.value = sel.value; }
+      const subjLine = shiftMenu.querySelector('[data-shift-subject-line]');
+      if(subjLine){
+        subjLine.hidden = !(toDate && pivot);
+        subjLine.textContent = subjLine.hidden ? '' : ((sel && sel.selectedOptions[0]) ? sel.selectedOptions[0].textContent : '');
+      }
       const listShown = shiftMove !== 'all' || shiftListOpen;
       const wrap = shiftMenu.querySelector('[data-shift-list-wrap]');
       if(wrap) wrap.hidden = !listShown;
@@ -31542,6 +31632,15 @@ export function initLegacyApp() {
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(shiftMove, b.dataset.far)));
       const link = shiftMenu.querySelector('[data-shift-choose]');
       if(link) link.addEventListener('click', ()=>{ shiftListOpen = true; syncShiftForm(); });
+      // The subject row's pick is written back into #tool-anchor-phase and goes through its own change handler
+      // (the date follows the phase, the list pins it), so the mirror never becomes a second source of truth.
+      const subj = shiftMenu.querySelector('[data-shift-subject]');
+      if(subj) subj.addEventListener('change', ()=>{
+        const sel = document.getElementById('tool-anchor-phase');
+        if(!sel || sel.value === subj.value) return;
+        sel.value = subj.value;
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+      });
       const listEl = shiftMenu.querySelector('[data-shift-list]');
       if(listEl) listEl.addEventListener('change', e=>{
         const box = e.target.closest('input[data-key]');
