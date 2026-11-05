@@ -29405,20 +29405,26 @@ export function initLegacyApp() {
     // ripple) starts before the cutoff. Collected from the pre-shift dates, which is automatic:
     // a row is recorded on exactly the paths that return before touching its start field.
     const stayingHiatusWeeks = new Set();
-    const recordStayingWeeks = row=>{
+    // ...and every week of a band that DID move, also from its pre-shift dates (recorded just before its start field
+    // is written). Step 3 needs both: a plain key on a moving band goes with the band, EVERY week of it, even a week
+    // outside the move's week windows -- a band starting in a Dates phase's last week runs past that phase's run (a
+    // hiatus does not lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
+    const movingHiatusWeeks = new Set();
+    const recordBandWeeks = (row, into)=>{
       const startEl = row.querySelector('.hiatus-start');
       const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
       if(!d) return;
       // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
       const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
-      for(let i=0;i<wks;i++) stayingHiatusWeeks.add(isoOf(addDays(d, i*7)));
+      for(let i=0;i<wks;i++) into.add(isoOf(addDays(d, i*7)));
     };
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
       const startEl = row.querySelector('.hiatus-start');
-      if(!startEl || !startEl.value || !inRange(startEl.value)){ recordStayingWeeks(row); return; }
-      if(except && except.kind === 'all' && except.row === row){ recordStayingWeeks(row); return; }
+      if(!startEl || !startEl.value || !inRange(startEl.value)){ recordBandWeeks(row, stayingHiatusWeeks); return; }
+      if(except && except.kind === 'all' && except.row === row){ recordBandWeeks(row, stayingHiatusWeeks); return; }
       const lock = row.querySelector('.hiatus-locked');
-      if(lock && lock.checked){ lockedHiatuses++; recordStayingWeeks(row); return; }
+      if(lock && lock.checked){ lockedHiatuses++; recordBandWeeks(row, stayingHiatusWeeks); return; }
+      recordBandWeeks(row, movingHiatusWeeks);
       if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
@@ -29459,9 +29465,20 @@ export function initLegacyApp() {
     // made in steps 1-2, or they walk off it: a locked band would revert to the default red
     // "Holiday Hiatus" while "Christmas Break" ended up on a week with no band at all. Note this
     // is deliberately not isPinnedWeek -- that guard is about date-pinned notes, a different rule.
+    // A PLAIN key (an all-phase band's, one per week of the band) stays on a held band's week and moves on a moving
+    // band's week. ⭐ On NO band it is a stale override -- a label typed on a band whose hiatus was later retyped to
+    // other dates -- which is ignored, and never destroyed (applyCellSpanOverrides' rule), so a retype or an Undo brings
+    // it back. It goes by its WEEK, as a note does (`inRange`): carried by a whole-calendar shift and inside a part
+    // move's windows, left where it is outside them. Until 5 Nov 2026 every plain key off a held band moved, so the
+    // phase card's ▲ / ▼ and the month drag (an EMPTY window) carried a stale label a week, and Shift From carried one
+    // from before its cutoff; landing on a held band's week it yielded and was gone, while its colour, size and styles
+    // landed on that band (Post ▼ recoloured Summer Break). PHASE-WEEK-ARROWS-PLAN.md §5b; leg stalebandkey.
     const hiatusKeyStays = k => {
       const { iso, suffix } = splitWeekKey(k);
-      return suffix ? stayingPhases.has(suffix.slice(1)) : stayingHiatusWeeks.has(iso);
+      if(suffix) return stayingPhases.has(suffix.slice(1));
+      if(stayingHiatusWeeks.has(iso)) return true;
+      if(movingHiatusWeeks.has(iso)) return false;
+      return !inRange(iso);
     };
     hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
     // Carries sync ownership along with the text it applies to -- otherwise a moved band would
@@ -29960,7 +29977,9 @@ export function initLegacyApp() {
   // the weeks change, every store the mover can touch and the phase's own hiatus are put back to their copies from
   // the press, then carried ONCE by the weeks the drag stands at. Out and back is exact, and the own hiatus travels
   // with the bar while the drag runs (re-keying once at the drop would leave it behind until the release, a preview
-  // that lies).
+  // that lies). ⚠️ The one entry that could be dropped when this was built, a plain band key on no band, no longer
+  // moves on a one-phase move (shiftCalendarDates' hiatusKeyStays, 5 Nov 2026), so today chaining would lose nothing
+  // either. Keep carrying from the press anyway: it is what keeps a store added to step 3 later from being dropped.
   //
   // THE WEEKS are the waterfall rows the phase's run moved, so every store lands on a row the run now covers. A run
   // starts on its start's Monday (Production too: productionInfo.startDate is mondayOf(start)), so it is the Monday
@@ -31009,6 +31028,12 @@ export function initLegacyApp() {
     suppressDirty = true;
     resetAll(); // full reset without the button's own confirm (New already prompted)
     resetScenarios();   // a blank calendar is one scenario
+    // A new calendar always opens on Show info (owner, 5 Nov 2026: "when you click New the left bar should always be on
+    // the Show Info tab"). resetAll() never touched the tab, so New kept whichever one was up (Phases, usually). It is
+    // revealSidebarTab, not setSidebarTab: the user is being SENT to Show info, so the Settings window, which lies over
+    // the sidebar's cards, closes too. ⛔ Before resetUndoHistory(): sidebarTab is in the snapshot, and the fresh
+    // history's baseline must hold 'show', or the first undo after New would flip the tab back.
+    revealSidebarTab('show');
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();

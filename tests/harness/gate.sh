@@ -1953,6 +1953,13 @@ done
 # a row's drag = one ▼, snapshot for snapshot, for Post, Production (marks by shoot day) and an Ends phase. Red on
 # origin/main on every carry case, and on two mutants (carried step to step: O2/O3; by days, not the run's weeks: K1).
 # On mvdragcarry.sptcal (phasearrows.sptcal + one stale band label, 7/6/26).
+# stalebandkey (5 Nov 2026; PHASE-WEEK-ARROWS-PLAN.md §5b) is a plain-keyed band override on NO band (a label typed on a
+# band whose hiatus was later retyped): it stays on a one-phase move (Post ▼, Production ▲) and outside a part move's
+# windows (Shift From's cutoff, a ticked phase's run), moves on a whole-calendar shift and inside a window, and a
+# moving band's labels go with it every week, even one outside the window (a Dates phase's band). Red on origin/main
+# (N1 N2 F1 P1: the label yielded on Summer Break's week, its colour, size and styles landed on that band) and on the
+# "plain key stays outside the window" one-liner (P1). On stalebandkey.sptcal (phasearrows.sptcal + the stale stores,
+# a Dates phase and an unlocked two-week band).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2033,7 +2040,10 @@ done
 # leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
 # then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
 # the fixed build with writeBackup()'s isDirty guard deleted.
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
+# newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
+# the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
+# info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
@@ -2082,6 +2092,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               anchorside:anchorside:400 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
+              stalebandkey:stalebandkey:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \

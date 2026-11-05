@@ -29,9 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
-
-### a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
 
 Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
 and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
@@ -70,6 +68,44 @@ Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0�
     stintchain, stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys + wfkeysreal, and the
     generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
     layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
+
+### Unreleased — a leftover band label stays where it is (5 Nov 2026)
+
+A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
+other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
+back. But the movers moved it: **▲ / ▼ on a phase card**, **the month view's bar drag** and **Shift From** (Phase & after)
+carried it a week. If the week it landed on was a band that stayed put, the label was lost, and its colour, size and
+styles were applied to that band instead (pressing ▼ on Post recoloured Summer Break). Found while building the month
+drag carry (PHASE-WEEK-ARROWS-PLAN.md §5a).
+
+- **Now a leftover goes by its week, as a note does.** It moves with All phases and inside the weeks a part move takes;
+  ▲ / ▼, the drag, and everything before Shift From's phase leave it alone.
+- **A band that moves takes every week's label with it**, even a week past the move's window: a band starting in the
+  last week of a Dates phase that runs on past it.
+
+Engine: `shiftCalendarDates` (steps 2 and 3) records the weeks of the bands that move beside those that stay, and
+`hiatusKeyStays` decides a plain band key by them, then by its week. The first idea, "a plain key stays outside the
+window", left a moving band's later weeks behind, so it was not used. No frozen code, no writer and no save-format
+change. New leg `stalebandkey` (9 cases, in gate.sh) on new fixture `stalebandkey.sptcal`: 5/9 on `origin/main`, 8/9 on
+the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`). Full
+gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in, 4,103 PASS and 2 FAIL, neither from
+this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
+new widths now end a stream with; the PDF is fine).
+
+### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
+
+Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never
+touched the sidebar's tab, so it kept whichever was up, usually Phases, and a blank calendar opened on a list of empty
+phase cards instead of the Show info it starts from. `newFile()` now calls `revealSidebarTab('show')`: the tab switches
+to Show info, and the Settings window, which lies over the sidebar's cards, closes, as it does whenever the app sends
+the user to a tab. It runs before the fresh undo history is taken, so that history's baseline holds Show and the first
+undo after New cannot flip the tab back. Load still opens on the tab the file was saved on (unchanged).
+
+Verified: new leg `newtab` (in `gate.sh`) clicks New from the Phases tab with nothing unsaved, with unsaved work
+("Start new"), and with the Settings window open, and checks Show info each time, the window closed, and Undo disabled
+with the tab still Show: 6/6 on the build, and N1–N4 red on the build without the fix (it stayed on Phases).
+`filekeys` 16/16 (⌘N), `settingswin` 21/21, `npm run check` 40/40. No full gate: no grid, export or save-format code
+changed.
 
 ## v1.11.0 — the waterfall lays itself out (the layout rules; Reuse Empty Columns retires), ▲ / ▼ on each phase card, one Shift tool with a tick list, a hiatus change ripples, the note editor names a line, the month drag carries (5 Nov 2026)
 

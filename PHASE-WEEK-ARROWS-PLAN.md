@@ -167,7 +167,55 @@ from the press-time state each increment, or re-key once at the drop. Its legs a
   store that sits on no band. `hiatusKeyStays` keeps a plain key only on a held all-phase band's week, and with an empty
   window every other plain key moves. So ▲ / ▼ (and now the drag) move a stale band label a week, or drop it onto a held
   band. Likewise Shift From moves one from before its cutoff. A one-line fix (a plain key also stays when `!inRange`)
-  changes the Shift tools' behaviour, so it is its own change.
+  changes the Shift tools' behaviour, so it is its own change. ✅ **Fixed in §5b**, but not by that one line.
+
+### 5b. A stale band key stays put (5 Nov 2026, branch `stale-band-key`)
+
+- **The bug, reproduced on `origin/main`** (`ca794cc`, leg `stalebandkey`). A label typed on an all-phase band whose
+  hiatus is later retyped to other dates is left keyed on a week with no band. That key is ignored, never destroyed (the
+  rule `applyCellSpanOverrides` and the stint swaps follow). But step 3's `hiatusKeyStays` kept a PLAIN key only on a
+  held band's week, so every other plain key moved:
+  - **Post ▼** carried "Old Break Name" from 7/6 onto Summer Break's 7/13, where it YIELDED (`shiftKeyedMap`) and was
+    gone. Its colour, size 9 and both styles landed on Summer Break, so **nudging Post recoloured Summer Break.**
+  - **Production ▲** carried it to 6/29. The month drag did the same (`mvdragcarry` W1 now checks).
+  - **Shift From** (Phase & after Post) carried it from 7/6, three months BEFORE its 11/2 cutoff, onto Summer Break.
+    That is the claim the month-drag session read off the code, confirmed in the running build. A hand-picked set did
+    the same outside its windows.
+- **Rulings that settle it** (no new question for the owner):
+  - ANCHOR-TO-DIRECTION-PLAN.md §2: band labels *"follow their band or phase"*. A stale key has neither.
+  - Shift From's own definition: *"everything earlier stays exactly where it is"*.
+  - §3 here: the arrows leave *"all-phase hiatuses (locked or not)"* alone.
+  - A stale key that moves can only end up dropped, or drawn on a band it never belonged to.
+- **Why not the one line.** "A plain key also stays when `!inRange`" judges a band's label by its WEEK, but a band is
+  judged by its START, and band labels are keyed on EVERY week of the band (`syncHiatusNamesFromSidebar`). A band that
+  moves can run past the move's window.
+  - The case: a Dates phase (a hiatus never lengthens one, CUSTOM-PHASE-UNITS ruling 4) with an unlocked band starting
+    in its last week. Tick only that phase and the band moves, but under the one-liner its second week's typed label and
+    colour stay behind on a week with no band, and the band's moved second week shows the synced name.
+  - The leg proves it: P1 is red on that mutant.
+- **The rule as built** (`shiftCalendarDates`, steps 2 and 3; about 15 lines, no frozen code, no save-format change):
+  - Step 2 records the weeks of every band that MOVES (`movingHiatusWeeks`), from its pre-shift dates, beside the held
+    bands' `stayingHiatusWeeks`. Both go through one `recordBandWeeks(row, set)`.
+  - A plain key on a held band's week stays.
+  - A plain key on a moving band's week moves, every week of the band.
+  - A plain key on NO band goes by its week, as a note does: carried by a whole-calendar shift and inside a part move's
+    windows, left where it is outside them.
+  - ▲ / ▼ and the month drag pass an EMPTY window, so a stale key never moves on them.
+- **Unchanged:** a whole-calendar shift (everything is in range); every `<week>|<key>` store; every band that exists.
+  ⚠️ Known and NOT changed: on a whole-calendar shift a stale label one week above a LOCKED band still moves onto it
+  and yields, exactly as on `origin/main`. Nothing ruled says a stale key should be held while everything moves.
+- **The month drag's "from the press":** with this fix no store a one-phase move touches can collide, so carrying step
+  to step would lose nothing either, and `mvdragcarry`'s step-to-step mutant now passes. From the press stays: it is what
+  protects a store added to step 3 later.
+- **Proof:** new leg `stalebandkey` (9 cases, in gate.sh after `mvdragcarry`) on new fixture `stalebandkey.sptcal`.
+  - Fixture = `phasearrows.sptcal`, plus the stale label's five stores on 7/6/26, a second stale label "Late Stale" on
+    2/8/27, the Dates phase Stage Build 5/3-5/14/27, and the unlocked two-week "Strike Break" from 5/10/27 with a typed
+    "Strike wk 2" and a colour on 5/17.
+  - `origin/main`: 5/9 (N1 N2 F1 P1 red). The one-liner mutant: 8/9 (P1 red). The fix: 9/9.
+  - `mvdragcarry` W1 now also holds the plain band labels: red on `origin/main`, 15/15 on the fix.
+  - Neighbours green (`phasearrows`, `anchorside`, `calrange`, `datepick`, `halfworked`, `rowheight`, `overrides`,
+    `snaptools`, `pilldrag`, `hiatusdrag`, `hiatusripple`). Full gate (5 Nov 2026): 4,053 PASS, 0 FAIL, every baseline
+    identical.
 
 ## 6. The other ways considered (the first answer, kept as the record)
 
