@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync three times: at 5f99223, at 854dbbe (the Shift date row and the centre pull-back), then at 3b8306c (the pull-back's drag-select follow-up); HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*). Pushed on the owner's *"Push now"*, then *"Retry the push"*:
+### ✅ 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. ✅ **LIVE at `5867661`** (pushed `3b8306c..5867661` at 23:47:37 UTC on the owner's *"Retry the push"*; the Pages deploy succeeded at 23:48:33; the live `index.html` is the pushed build `c6b60bda…` byte for byte, which this push did not change; `version.json` 1.11.0, no version cut). Tracker card `harness-pdf-length-reader`. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync three times: at 5f99223, at 854dbbe (the Shift date row and the centre pull-back), then at 3b8306c (the pull-back's drag-select follow-up); HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*). Pushed on the owner's *"Push now"*, then *"Retry the push"*:
   - ⚠️ GitHub REJECTED the first four tries (23:22–23:24 UTC, `! [remote rejected] … (fatal error in commit_refs_rules)`), by sha and by branch name. That is a server-side error and no cause was found on our side: no rulesets, no branch protection, token scopes `repo` + `workflow`, the status page green, `git fsck` clean.
   - The fifth try (23:45) got past those checks but lost a race. `origin/main` had just moved to `3b8306c` ("cannot lock ref … expected 854dbbe"). That commit was merged in and the build re-checked before the next push.
 - **The fault** (recorded under "Full gate #2" in the stale band key entry below): sixteen legs read PDF text with a
@@ -49,6 +49,14 @@
   note, both unpushed and doc only). This branch is not on it. A push of this branch to `origin/main` is a
   fast-forward (`git push origin claude/agitated-bhaskara-df2f66:main`, the shape `stale-band-key` used). Merging it
   into local `main` instead means a HANDOFF conflict in the main checkout, which other sessions are using.
+  Done both ways in the end. Local `main` got the merge as `9006552` + a HANDOFF note (`c27c7d9`), made on a
+  temporary branch here and fast-forwarded. The push went from this branch after `3b8306c` was merged in.
+  ⚠️ **So local `main` (`c27c7d9`) holds this work but NOT `3b8306c` / `5867661`**, and its HANDOFF copy of this
+  entry still says "NOT LIVE: GitHub REJECTED the push". That is stale until local `main` merges `origin/main` and this
+  branch's LIVE note.
+- ✅ **Re-checked on the build pushed** (`3b8306c` merged in, dist `c6b60bda…` = the live file before and after the
+  push): `phiatusnum` 18/18, `hiatuslabel` 7/7, `mvhdroff` 9/9, `wfnotecolors` 14/14, `notewrap` 16/16,
+  `autonoteview` 18/18 (its first run was dumped while "pending", green alone).
 
 ### 🔨 5 Nov 2026: FOLLOW-UP — A DRAG OVER ONLY THE EXPANDED PART OF CELLS NOW SELECTS THEM (the double-click then pulls them ALL back). Branch `batch-pullback`, on top of the live `854dbbe`. COMMITTED and PUSH APPROVED (owner's pickers *"Commit on the branch"*, *"Push live now"*). Tracker card `centre-pullback`.
 - **Report (owner, trying the live fix):** *"i tried highlighing a bunch of expanced cells and double clicking and it
