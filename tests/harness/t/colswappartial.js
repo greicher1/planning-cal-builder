@@ -43,6 +43,24 @@ window.addEventListener('load', function () { (async function () {
     var NATURAL = 'post@1/cs1 prodPrep@0/cs1', SWAPPED = 'post@0/cs1 prodPrep@1/cs1', WIDE = 'prodPrep@0/cs2';
     var LABEL_POST = 'Swap Post with Prod Prep (11/16/26–12/7/26)';
     var LABEL_PP = 'Swap Prod Prep with Post (11/16/26–12/7/26)';
+    // ⭐ (owner, 4 Nov 2026) After Swap Column, a fallback that leaves a phase in two columns is marked:
+    // an amber knob (.is-partial), a dashed box round the cells that move, and these sentences on the
+    // label. Here Prod Prep's widened weeks stay behind, so it is Prod Prep that ends up split.
+    var SPLIT = '. Only these weeks move, so Prod Prep ends up in two columns. The whole column can’t move. '
+      + 'Prod Prep 11/2/26 has a width you widened by hand. Double-click that cell to pull it back, then swap.';
+    var isPartial = function (k) { return !!(k && k.classList.contains('is-partial')); };
+    var partialBox = function () { return document.querySelector('.grid-sel-layer .grid-swap-partial'); };
+    // The dashed box must cover exactly the four shared weeks, both columns.
+    function boxCoversOverlap() {
+      var b = partialBox();
+      if (!b) return false;
+      var r = b.getBoundingClientRect(), tds = [];
+      OVERLAP.forEach(function (w) { tds.push(cell(w, 'post'), cell(w, 'prodPrep')); });
+      var u = tds.reduce(function (a, td) { var q = td.getBoundingClientRect();
+        return { l: Math.min(a.l, q.left), t: Math.min(a.t, q.top), r: Math.max(a.r, q.right), b: Math.max(a.b, q.bottom) }; },
+        { l: 1e9, t: 1e9, r: -1e9, b: -1e9 });
+      return Math.abs(r.left - u.l) < 1.5 && Math.abs(r.top - u.t) < 1.5 && Math.abs(r.right - u.r) < 1.5 && Math.abs(r.bottom - u.b) < 1.5;
+    }
     function cell(wk, pkey) {
       return Array.prototype.find.call(document.querySelectorAll('#table-wrap td.sheet-phase-cell'),
         function (td) { return td.dataset.week === wk && td.dataset.pkey === pkey; }) || null;
@@ -96,6 +114,8 @@ window.addEventListener('load', function () { (async function () {
     out.postSelected = document.querySelectorAll('.grid-sel-layer .grid-sel-cell').length;
     await T.until(function () { return !!knob(-1); }, 'a left knob on Post\'s block', 120, 100).catch(function () {});
     out.postKnob = knob(-1) ? knob(-1).getAttribute('aria-label') : null;
+    out.postKnobPartial = isPartial(knob(-1));
+    out.postBox = boxCoversOverlap();
     out.postNoRightKnob = !knob(1);
     // 2. Commit it: those four weeks trade columns, and the two widened weeks are untouched.
     T.altSwap(-1);
@@ -107,6 +127,8 @@ window.addEventListener('load', function () { (async function () {
     // 3. The selection survives; the knob turns round and swapping back restores the fixture exactly.
     await T.until(function () { return !!knob(1); }, 'the knob to follow the move', 120, 100).catch(function () {});
     out.postKnobBack = knob(1) ? knob(1).getAttribute('aria-label') : null;
+    // Swapping BACK re-joins Prod Prep, so it is not marked, though it too moves fewer weeks than selected.
+    out.postBackPartial = isPartial(knob(1)) || !!partialBox();
     T.altSwap(1);
     await T.until(function () { return rowOf('2026-11-16') === NATURAL; }, 'the reverse to land', 120, 100).catch(function () {});
     await T.sleep(200);
@@ -120,6 +142,8 @@ window.addEventListener('load', function () { (async function () {
     await clickStintBtn('2026-11-30', 'prodPrep');
     await T.until(function () { return !!knob(1); }, 'a right knob on Prod Prep\'s block', 120, 100).catch(function () {});
     out.ppKnob = knob(1) ? knob(1).getAttribute('aria-label') : null;
+    out.ppKnobPartial = isPartial(knob(1));
+    out.ppBox = boxCoversOverlap();
     out.ppNoLeftKnob = !knob(-1);
     T.altSwap(1);
     await T.until(function () { return rowOf('2026-11-16') === SWAPPED; }, 'the Prod Prep swap to land', 120, 100).catch(function () {});
@@ -141,6 +165,8 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return !!knob(1); }, 'a right knob from a widened seed', 120, 100).catch(function () {});
     out.seedKnob = knob(1) ? knob(1).getAttribute('aria-label') : null;
     out.seedKnobs = knobs();
+    // A per-week selection made by hand is meant to split: never marked.
+    out.seedPartial = isPartial(knob(1)) || !!partialBox();
 
     // 6. Guard: the drag across both columns (the path that always worked) still gets exactly ONE knob. The
     //    walk covers only the seed's phase, so the partner cannot add a second knob on the same seam.
@@ -161,15 +187,17 @@ window.addEventListener('load', function () { (async function () {
     var C = function (id, title, pass) { return { id: id, title: title, pass: !!pass }; };
     out.cases = [
       C('P0', 'the fixture: Prod Prep 11/2 and 11/9 widened by hand, then the natural overlap', out.widenedBefore),
-      C('P1', 'Swap Column on Post (its whole block, refused as a block): the left knob offers the 4 shared weeks -- ' + out.postKnob,
-        out.postSelected === 1 && out.postKnob === LABEL_POST && out.postNoRightKnob),
+      C('P1', 'Swap Column on Post (its whole block, refused as a block): the left knob offers the 4 shared weeks, amber, '
+        + 'boxed, saying Prod Prep ends up split and why -- ' + out.postKnob,
+        out.postSelected === 1 && out.postKnob === LABEL_POST + SPLIT && out.postKnobPartial && out.postBox && out.postNoRightKnob),
       C('P2', 'committing it swaps those 4 weeks, leaves the widened weeks as they were, and says nothing',
         out.postSwapped && out.postSilent),
-      C('P3', 'the knob turns round and swapping back restores the fixture exactly', out.postKnobBack === LABEL_POST && out.postRestored),
+      C('P3', 'the knob turns round (not marked: it re-joins Prod Prep) and swapping back restores the fixture exactly',
+        out.postKnobBack === LABEL_POST && !out.postBackPartial && out.postRestored),
       C('P4', 'Swap Column on Prod Prep (anchor on a widened week): the right knob offers the 4 shared weeks; swap and back -- ' + out.ppKnob,
-        out.ppKnob === LABEL_PP && out.ppNoLeftKnob && out.ppSwapped && out.ppRestored),
+        out.ppKnob === LABEL_PP + SPLIT && out.ppKnobPartial && out.ppBox && out.ppNoLeftKnob && out.ppSwapped && out.ppRestored),
       C('P5', 'a per-week selection begun on a widened cell gets ONE knob for the weeks below it -- ' + out.seedKnobs.join(','),
-        out.seedKnob === LABEL_PP && out.seedKnobs.join(',') === '1'),
+        out.seedKnob === LABEL_PP && out.seedKnobs.join(',') === '1' && !out.seedPartial),
       C('P6', 'guard: the drag across both columns still gets exactly one knob -- ' + out.bothKnobs.join(','),
         out.bothKnobs.join(',') === '-1' && out.bothKnob === LABEL_POST && shape(out.final, NATURAL)),
       C('P7', '0 console errors, 0 clipped cells', out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length))

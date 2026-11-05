@@ -4564,8 +4564,21 @@ export function initLegacyApp() {
   //   2. a HANDOFF column -- its last occupant's final week is this phase's week before, or only
   //      all-phase hiatus weeks lie between (ruled Q5); on a tie, the column of the phase this one's
   //      "Start after" button names (PHASE_CHAIN, built-ins only), else the leftmost (ruled Q1);
-  //   3. the lowest free column;
+  //   3. a free column, preferring one ALREADY USED in the years this phase runs in (owner, 4 Nov 2026);
+  //      among equals, the lowest;
   //   4. a new column on the right.
+  //
+  // ⭐ WHY RULE 3 COUNTS YEARS (owner, 4 Nov 2026, "Fix both", SWAP-SPLIT-REUSE in HANDOFF). It used to be
+  // "the lowest free column", which reaches back to a column whose last occupant ended in an EARLIER year.
+  // In this phase's year that column is otherwise unused, so the year grew a column: measured on a copy of
+  // the owner's calendar, a second-season Post starting after every column was free took last season's
+  // Post column and gave its year 4 columns instead of 3. The frozen layout then drew two phases 2 wide,
+  // and the extra column sat exactly where Sim Post must land when Production swaps right, so Swap Column
+  // was refused and the arrow fell back to a part-column swap that split Writer's Rm across two columns.
+  // A year's column count is its number of distinct `col` values (frozen computeBlockLayout), so a column
+  // already used in the year adds none there. Every free column is tried and the one adding the fewest is
+  // taken; a tie keeps the old answer, the lowest. In Single Column there is one block, every placed
+  // column is in it, and this reduces to the lowest free column exactly as before.
   // Then Production's column is numbered 0 (ruled Q2). Frozen computeBlockLayout orders a year's
   // columns by first appearance and breaks ties on `col`, so this only decides which goes left when
   // two columns start a year together -- the shoot's.
@@ -4584,7 +4597,19 @@ export function initLegacyApp() {
       .map((seg, i)=>({seg, i}))
       .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
       .map(o=>o.seg);
-    const cols = [];              // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment }
+    // The year blocks a segment's week rows fall in -- frozen computeYearBlocks' rule (a row's Monday, UTC
+    // year), or the one block of Single Column. Read here, never by calling it: it needs the week list,
+    // which does not exist until after placement.
+    const segYears = s => {
+      if(singleColumn) return [0];
+      const y0 = new Date(firstRow(s)).getUTCFullYear();
+      const y1 = new Date(Math.max(firstRow(s), rowsEnd(s) - WEEK)).getUTCFullYear();
+      const out = [];
+      for(let y = y0; y <= y1; y++) out.push(y);
+      return out;
+    };
+    // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, years: the year blocks it is used in }
+    const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
     byStart.forEach(seg=>{
@@ -4614,12 +4639,20 @@ export function initLegacyApp() {
           const pc = pred ? segCol.get(placed.get(pred)) : -1;
           at = hand.indexOf(pc) >= 0 ? pc : hand[0];
         } else {
-          for(let i = 0; i < cols.length; i++) if(free(i)){ at = i; break; }
+          // Rule 3: the free column that adds the fewest columns to this phase's years; ties to the lowest.
+          const yrs = segYears(seg);
+          let best = Infinity;
+          for(let i = 0; i < cols.length; i++){
+            if(!free(i)) continue;
+            const adds = yrs.reduce((n, y) => n + (cols[i].years.has(y) ? 0 : 1), 0);
+            if(adds < best){ best = adds; at = i; }
+          }
         }
       }
-      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null }); }
+      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null, years:new Set() }); }
       cols[at].freeAt = rowsEnd(seg);
       cols[at].last = seg;
+      segYears(seg).forEach(y => cols[at].years.add(y));
       segCol.set(seg, at);
       placed.set(seg.key, seg);
     });
@@ -6578,9 +6611,46 @@ export function initLegacyApp() {
       const v = run.ok ? Object.assign(run, canSwapStint(run)) : run;
       if(v.ok) return v;
       const w = weekSwapEval(dir);
-      return (w && w.ok) ? w : (moveWhy || v);  // the BLOCK's reason when neither can move
+      if(!(w && w.ok)) return moveWhy || v;     // the BLOCK's reason when neither can move
+      const split = splitAfterWeekSwap(w);
+      if(split.length) markPartialSwap(w, split, moveWhy || v);
+      return w;
     }
     return weekSwapEval(dir);
+  }
+
+  // ⭐ A FALLBACK THAT SPLITS A PHASE IS MARKED BEFORE THE CLICK (owner, 4 Nov 2026: "how would a user know
+  // that was what they needed to turn off?"). After Swap Column, a refused block swap falls back to the
+  // per-week swap above, and the arrow used to look exactly like the whole-column one: only its tooltip
+  // named the weeks. Measured on a copy of the owner's calendar, it swapped Prod Prep's 14 weeks with the
+  // 14 Writer's Rm weeks beside them and left Writer's Rm's other 23 weeks where they were, so Writer's Rm
+  // sat in two columns. Now such a candidate is `partial`: the knob turns amber, the cells that will move
+  // are outlined (drawSwapLayer), and the label says which phase ends up in two columns and why the whole
+  // column can't move. ⛔ No chip (owner, 21 Oct 2026: a chip only for a refusal); the label is the tooltip.
+  // ⛔ Only in this fallback. A per-week selection made by hand is meant to split, and a fallback that
+  // RE-JOINS a phase (swapping a split one back) moves fewer weeks than were selected but is not marked:
+  // the test is where every cell ends up, not how many move.
+  //
+  // The phases a per-week run would leave in two columns of its year: one whose cells outside the run
+  // sit anywhere but where its run lands (the partner's column for the seed, and the other way round).
+  function splitAfterWeekSwap(run){
+    const first = run.weeks && run.weeks[0];
+    const mineTd = first && swapTdFor(first, run.phaseKey), theirTd = first && swapTdFor(first, run.partnerKey);
+    if(!mineTd || !theirTd) return [];
+    const lands = { [run.phaseKey]: +theirTd.dataset.own, [run.partnerKey]: +mineTd.dataset.own };
+    return [run.phaseKey, run.partnerKey].filter(k =>
+      stintTds(run.year, k).some(td => !run.weekSet.has(td.dataset.week) && +td.dataset.own !== lands[k]));
+  }
+  function markPartialSwap(run, split, whole){
+    run.partial = { split };
+    const names = joinNames(split.map(phaseLabelFor));
+    // The whole column's reason, as one more sentence. 'no-change' would read "Nothing would move", which
+    // is false here, so it says nothing.
+    const s = whole && whole.reason !== 'no-change' ? swapWhy(whole) : '';
+    const m = /^Can’t swap: (.*)$/.exec(s);
+    const why = !s ? '' : m ? ' The whole column can’t move: ' + m[1] : ' The whole column can’t move. ' + s;
+    run.label += '. Only these weeks move, so ' + names + (split.length > 1 ? ' end' : ' ends')
+               + ' up in two columns.' + why;
   }
 
   // The per-week candidate for one direction: the run walked from the seed, or, when the seed has none
@@ -6920,7 +6990,9 @@ export function initLegacyApp() {
       k.setAttribute('role', 'button');
       k.setAttribute('tabindex', '0');
       k.setAttribute('aria-label', run.label);
-      k.title = run.label + ' — click, or drag across the boundary';
+      // A partial label is whole sentences already (markPartialSwap), so the hint is one more.
+      k.title = run.label + (run.partial ? ' Click, or drag across the boundary.' : ' — click, or drag across the boundary');
+      if(run.partial) k.classList.add('is-partial');
       k.textContent = run.dir > 0 ? '›' : '‹';
       if(swapDrag && swapDrag.dir === run.dir) k.classList.add('dragging');
       layer.appendChild(k);
@@ -6999,6 +7071,12 @@ export function initLegacyApp() {
         });
         byWeek.forEach(list => selLayer.appendChild(swapRect('grid-swap-collateral', swapUnion(list))));
       }
+      // ⭐ A part-column swap (markPartialSwap) outlines exactly the cells it moves, both sides, on
+      // selection: with the whole column selected, the box shows how much of it stays behind.
+      eligible.filter(c => c.partial && c.weeks).forEach(c=>{
+        const boxes = swapRunBoxes(c.weeks, c.phaseKey, g).concat(swapRunBoxes(c.weeks, c.partnerKey, g));
+        if(boxes.length) selLayer.appendChild(swapRect('grid-swap-partial', swapUnion(boxes)));
+      });
     }
 
     // ONLY why a swap could not happen, after Alt+←/→, a knob click or a drop (owner, 21 Oct 2026:
@@ -25782,10 +25860,9 @@ export function initLegacyApp() {
   });
 
   // ⭐ THE AUTOMATIC NOTES CARD (owner ruling 9, 20 Oct 2026; Sidebar.jsx's AutoNotesCard), PER VIEW since 4 Nov 2026
-  // (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"). A Waterfall | Month heading, then each phase's
-  // name, then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps"), each with a Waterfall box and
-  // a Month box, as the Holidays list has. Short words, so nothing wraps at the card's ~245 px. Custom phases follow,
-  // in the Phases tab's order.
+  // (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"). Each phase's two notes ("Opens" / "Closes",
+  // "Begins" / "Ends", "Starts" / "Wraps") have a Waterfall box and a Month box, as the Holidays list has. Since
+  // 4 Nov 2026 the phase is ONE ROW (buildAutoNoteCard says how). Custom phases follow, in the Phases tab's order.
   //   - ENGINE-DRAWN, all of it, into `.autonote-list`, which React renders EMPTY and never gives children: a custom
   //     phase's rows come and go with the phases, which React does not know (#holiday-vis-list's arrangement).
   //   - Plain, uncontrolled checkboxes with NO id (collectFieldValues() must never sweep them), named by
@@ -25823,27 +25900,46 @@ export function initLegacyApp() {
     const def = PHASES.find(p=> p.key === r.key);
     return (typed && !(def && typed === def.label)) ? typed : r.name;
   }
+  // ⭐ ONE ROW PER PHASE since 4 Nov 2026 (owner, "go with b", option B of mockups/autonote-card.html, after "make
+  // this menu less ugly"): the grid is the phase's name, then Start | End under Waterfall, a gap, Start | End under
+  // Month. A third of the height of the grouped list it replaced. The note's own word ("Opens", "Wraps") is no longer
+  // printed: it is each box's tooltip and aria-label, and its data-autonote-word.
+  //   - Heading: three `.autonote-hd` (the name column's empty one, "Waterfall", "Month"; each view's spans its two
+  //     columns), then a row of `.autonote-sub` "Start" / "End". Gaps are `.autonote-gap`.
+  //   - Each phase is a `.autonote-row` (display:contents, so its cells sit in the card's grid and the row can still
+  //     shade on hover): `.autonote-namecell` holding `.autonote-name`, then the four `.autonote-cell`s in DOM order
+  //     sheet start, sheet end, month start, month end, so a kind's first box is still its Waterfall box.
+  //   - ⛔ `.autonote-name` itself stays one line box tall (the cell carries the padding and the rule):
+  //     autonotephases P1 fails a default name taller than 1.5 line-heights.
   function buildAutoNoteCard(host){
     const rows = autoNoteCardRows();
     host.textContent = '';
-    const head = (text, cls)=>{ const s = document.createElement('span'); s.className = 'autonote-hd' + (cls ? ' ' + cls : ''); s.textContent = text; host.appendChild(s); };
-    head('', 'autonote-hd-name'); head('Waterfall'); head('Month');
+    const el = (tag, cls, text)=>{
+      const e = document.createElement(tag);
+      if(cls) e.className = cls;
+      if(text) e.textContent = text;
+      return e;
+    };
+    host.appendChild(el('span', 'autonote-hd autonote-hd-name'));
+    host.appendChild(el('span', 'autonote-hd', 'Waterfall'));
+    host.appendChild(el('span', 'autonote-gap'));
+    host.appendChild(el('span', 'autonote-hd', 'Month'));
+    host.appendChild(el('span'));
+    ['Start', 'End', '', 'Start', 'End'].forEach(w=> host.appendChild(w ? el('span', 'autonote-sub', w) : el('span', 'autonote-gap')));
     rows.forEach(r=>{
-      const name = document.createElement('span');
-      name.className = 'autonote-name';
+      const row = el('div', 'autonote-row');
+      const nameCell = el('span', 'autonote-namecell');
+      const name = el('span', 'autonote-name');
       // Built-ins keep data-autonote-name (and the words to fall back to), custom phases data-autonote-custom, the
       // hooks every view of this card has carried.
       if(r.custom) name.setAttribute('data-autonote-custom', r.key);
       else { name.setAttribute('data-autonote-name', r.key); name.setAttribute('data-autonote-default', r.name); }
-      host.appendChild(name);
-      r.notes.forEach(([kind, word])=>{
-        const w = document.createElement('span');
-        w.className = 'autonote-word';
-        w.textContent = word;
-        host.appendChild(w);
-        ['sheet', 'month'].forEach(view=>{
-          const cell = document.createElement('span');
-          cell.className = 'autonote-cell';
+      nameCell.appendChild(name);
+      row.appendChild(nameCell);
+      ['sheet', 'month'].forEach((view, vi)=>{
+        if(vi) row.appendChild(el('span', 'autonote-gap'));
+        r.notes.forEach(([kind, word])=>{
+          const cell = el('span', 'autonote-cell');
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.setAttribute('data-autonote', kind);
@@ -25851,9 +25947,10 @@ export function initLegacyApp() {
           cb.setAttribute('data-autonote-phase', r.key);
           cb.setAttribute('data-autonote-word', word);
           cell.appendChild(cb);
-          host.appendChild(cell);
+          row.appendChild(cell);
         });
       });
+      host.appendChild(row);
     });
     host.setAttribute('data-keys', customPhaseDefs.map(cp=> cp.key).join(','));
   }
@@ -25862,11 +25959,23 @@ export function initLegacyApp() {
     if(!host) return;
     if(host.getAttribute('data-keys') !== customPhaseDefs.map(cp=> cp.key).join(',') || !host.querySelector('input[data-autonote]'))
       buildAutoNoteCard(host);
-    const names = {};
+    const names = {}, colors = {};
     autoNoteCardRows().forEach(r=>{ names[r.key] = autoNoteRowName(r); });
+    // Each phase's colour for the chip before its name (legacy.css, "THE LOOK", owner 4 Nov 2026), from
+    // getAllPhaseDefs(), so a recoloured or custom phase shows its own: the fill as --phase-color (.phase-row's
+    // variable) and the month bar's ink as --phase-ink, the chip's edge, because the fills alone are too pale to see.
+    const inks = {};
+    getAllPhaseDefs().forEach(d=>{ colors[d.key] = d.color || ''; inks[d.key] = d.textColor || ''; });
+    const setVar = (el, name, v)=>{
+      if(el.style.getPropertyValue(name) === v) return;
+      if(v) el.style.setProperty(name, v); else el.style.removeProperty(name);
+    };
     host.querySelectorAll('[data-autonote-name], [data-autonote-custom]').forEach(el=>{
-      const want = names[el.getAttribute('data-autonote-name') || el.getAttribute('data-autonote-custom')];
+      const key = el.getAttribute('data-autonote-name') || el.getAttribute('data-autonote-custom');
+      const want = names[key];
       if(want && el.textContent !== want) el.textContent = want;
+      setVar(el, '--phase-color', colors[key] || '');
+      setVar(el, '--phase-ink', inks[key] || '');
     });
     host.querySelectorAll('input[data-autonote]').forEach(cb=>{
       const kind = cb.getAttribute('data-autonote'), view = cb.getAttribute('data-view'), key = cb.getAttribute('data-autonote-phase');
@@ -25875,10 +25984,11 @@ export function initLegacyApp() {
       const hidden = view === 'sheet' && phaseHiddenIn(key, 'sheet');
       if(cb.disabled !== hidden) cb.disabled = hidden;
       if(cb.parentNode) cb.parentNode.classList.toggle('autonote-dim', hidden);
-      const title = hidden ? names[key] + ' is hidden in the waterfall (Phases tab), so its notes are too' : '';
-      if((cb.getAttribute('title') || '') !== title){ if(title) cb.setAttribute('title', title); else cb.removeAttribute('title'); }
       const label = names[key] + ' ' + cb.getAttribute('data-autonote-word') + ', ' + autoNoteViewWord(view);
       if(cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      // The tooltip is the note itself, since the card prints only Start / End (one row per phase, 4 Nov 2026).
+      const title = hidden ? names[key] + ' is hidden in the waterfall (Phases tab), so its notes are too' : label;
+      if(cb.getAttribute('title') !== title) cb.setAttribute('title', title);
     });
   }
   // A tick: that kind in that view, the other view as it stands (setAutoNoteViews, D1's rule: both unticked is off,

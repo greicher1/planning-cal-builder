@@ -206,23 +206,32 @@ window.addEventListener('load', function () { (async function () {
       await T.openSettings('prefs');
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
       var names = card ? Array.from(card.querySelectorAll('.autonote-name')).map(txt) : [];
-      var words = card ? Array.from(card.querySelectorAll('.autonote-word')).map(txt) : [];
+      // Since 4 Nov 2026 each phase is ONE row (owner's pick B, mockups/autonote-card.html): its name, then Start | End
+      // under Waterfall and Start | End under Month. The note's word is its box's data-autonote-word, not printed.
+      var rowEls = card ? Array.from(card.querySelectorAll('.autonote-row')) : [];
+      var words = [];
+      rowEls.forEach(function (r) {
+        Array.from(r.querySelectorAll('input[data-view="sheet"]')).forEach(function (i) { words.push(i.getAttribute('data-autonote-word')); });
+      });
       var heads = card ? Array.from(card.querySelectorAll('.autonote-hd')).map(txt) : [];
-      var perNote = card ? Array.from(card.querySelectorAll('.autonote-word')).every(function (w) {
-        var a = w.nextElementSibling, b = a && a.nextElementSibling;
-        return !!(a && b && a.querySelector('input[data-view="sheet"]') && b.querySelector('input[data-view="month"]'));
-      }) : false;
+      var subs = card ? Array.from(card.querySelectorAll('.autonote-sub')).map(txt) : [];
+      // Each row: its name, then four boxes, Waterfall start / end then Month start / end, the two views on the same kinds.
+      var perNote = rowEls.length === names.length && rowEls.length > 0 && rowEls.every(function (r) {
+        var ins = Array.from(r.querySelectorAll('input')), v = ins.map(function (i) { return i.getAttribute('data-view'); });
+        var k = ins.map(function (i) { return i.getAttribute('data-autonote'); });
+        return !!r.querySelector('.autonote-name') && same(v, ['sheet', 'sheet', 'month', 'month']) && k[0] === k[2] && k[1] === k[3] && k[0] !== k[1];
+      });
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
       // Every phase name on ONE line, uncut: the 12 px gap first shipped cut "Writer's Room" to "Writer's Ro...".
       var oneLine = card ? Array.from(card.querySelectorAll('.autonote-name')).every(function (n) {
         var lh = parseFloat(getComputedStyle(n).lineHeight) || 20; return n.scrollWidth <= n.clientWidth + 1 && n.getBoundingClientRect().height < lh * 1.5;
       }) : false;
-      kase('P1', 'the card: each phase in calendar order, then its start and its end, each with a Waterfall box and a Month box under a Waterfall | Month heading, every name on one line, NO id on any control, not a .prefs-card',
+      kase('P1', 'the card: one row per phase in calendar order, its start and its end each with a Waterfall box and a Month box under a Waterfall | Month heading and Start | End, every name on one line, NO id on any control, not a .prefs-card',
            same(names, ['Writer’s Room', 'Pre-Prep', 'Prod Prep', 'Production', 'Post', 'Localization']) &&
            same(words, ['Opens', 'Closes', 'Begins', 'Ends', 'Begins', 'Ends', 'Starts', 'Wraps', 'Begins', 'Ends', 'Begins', 'Ends']) &&
-           same(heads, ['', 'Waterfall', 'Month']) && perNote &&
+           same(heads, ['', 'Waterfall', 'Month']) && same(subs, ['Start', 'End', 'Start', 'End']) && perNote &&
            oneLine && ids.length === 0 && !!sec && !sec.closest('.prefs-card') && T.settingsTabOf(sec) === 'prefs',
-           { names: names, words: words, heads: heads, perNote: perNote, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
+           { names: names, words: words, heads: heads, subs: subs, perNote: perNote, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
     });
 
     await step('P2', async function () {
@@ -376,10 +385,11 @@ window.addEventListener('load', function () { (async function () {
       T.set('name-custom1', 'Color Grading'); T.set('start-custom1', '2027-08-02'); T.set('weeks-custom1', '3');
       await settle();
       await T.openSettings('prefs');
-      // Its name, then its two notes' words (each followed by its two boxes), after the built-in rows.
+      // Its row, after the built-in rows: its name, then its two notes' Waterfall boxes' words (one row per phase since
+      // 4 Nov 2026, the word on the box rather than printed).
       var nm = document.querySelector('.autonote-list [data-autonote-custom="custom1"]'), kids = nm ? [txt(nm)] : null;
-      for (var e = nm && nm.nextElementSibling; e && !e.classList.contains('autonote-name'); e = e.nextElementSibling)
-        if (e.classList.contains('autonote-word')) kids.push(txt(e));
+      var crow = nm && nm.closest('.autonote-row');
+      if (crow) Array.from(crow.querySelectorAll('input[data-view="sheet"]')).forEach(function (i) { kids.push(i.getAttribute('data-autonote-word')); });
       var a = box('custom1Start'), b = box('localizationStart'), c = box('custom1End'), d = box('localizationEnd');
       var lined = !!(a && b && c && d) && Math.abs(a.getBoundingClientRect().left - b.getBoundingClientRect().left) < 1 &&
                   Math.abs(c.getBoundingClientRect().left - d.getBoundingClientRect().left) < 1;

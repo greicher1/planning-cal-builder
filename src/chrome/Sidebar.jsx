@@ -335,9 +335,10 @@ export function RegionCard() {
 // with a phantom undo step. That is also why these are plain <input type="checkbox">, never Mantine's
 // Checkbox or Switch: both mint an id with useId() when given none (UI-CONVENTIONS §8.3). legacy.css's
 // `.form-panel input[type=checkbox]` gives them the Mantine look.
-// ⛔ ENGINE-DRAWN, ALL OF IT, since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"): a
-// Waterfall | Month heading, each phase's name, then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" /
-// "Wraps"), each with a Waterfall box and a Month box, as the Holidays list has. Custom phases' rows come and go with
+// ⛔ ENGINE-DRAWN, ALL OF IT, since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"): each
+// phase's two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps") have a Waterfall box and a Month
+// box, as the Holidays list has. Since the same evening (owner's pick B) a phase is ONE row: its name, then Start | End
+// under Waterfall and under Month, the note's own word on each box's tooltip. Custom phases' rows come and go with
 // the phases, which React does not know, so the engine draws the whole list (reflectAutoNoteKinds) into
 // `.autonote-list`: rendered EMPTY here and never given children by React (#holiday-vis-list's arrangement). Its boxes
 // are plain checkboxes with no id, named by `data-autonote` (the kind word computeSchedule tags each note with,

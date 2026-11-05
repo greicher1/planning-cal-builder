@@ -68,6 +68,56 @@ touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscol
 overlap rule came after that gate. It changes only the Phase & before / after path, and the merged build was
 re-checked on the targeted legs (HANDOFF).
 
+
+### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
+
+The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me
+3 differnt mockups"* ([`mockups/autonote-card.html`](mockups/autonote-card.html): A, the same list tidied; B, one row
+per phase; C, labelled toggle pills), then *"go with b"*. Chrome only: the same ticks, the same saved data, nothing
+in the grid or the exports.
+
+- **One row per phase:** its name, then a Start and an End box under WATERFALL, then the same under MONTH. The card
+  is 231 px tall in a narrow window, down from 482. The note's own word ("Opens", "Wraps"…) is no longer printed;
+  it is each box's tooltip, and still each box's spoken label.
+- **The phase's colour** is a small chip before its name: its fill, edged in its month-bar ink so a pale fill still
+  shows. A recoloured or custom phase shows its own.
+- **The heading** has one rule under each view's name (it was three broken pieces, the first under nothing), a thin
+  rule runs above each phase's row, and the whole row shades on hover.
+- **Fit:** in the narrowest window (a 247 px card) the default names stay on one line; a longer typed name wraps,
+  never clips.
+- **Verified:** in the browser pane (narrow and full width, row hover, a tick taking and surviving the redraw).
+  `npm run check` 40/40. The legs that read the card's layout (`autonotekinds` A1, `autonotephases` P1 and C0) now
+  read B's rows. Every leg that reads the card, on the build: `autonotekinds` 16/16, `autonotephases` 27/27,
+  `prepreptitle` 7/7, `autonote` 9/9, `autonoterename` 24/24, `autonoteview` 18/18, `settingswin` 21/21,
+  `phasesui` 8/8. No full gate: nothing in the grid, the exports or the save path changed.
+
+### Unreleased — Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
+
+The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
+weeks they share, so the long phase sat in two columns. Turning off Reuse Empty Columns "fixed it", *"But how would a
+user know that was what they needed to turn off?"* Reproduced on a copy of the owner's setup (kept out of the repo).
+Ruled "Fix both".
+
+- **Why it happened:** with Reuse Empty Columns ticked, a phase that starts after every column is free took the
+  LOWEST free column, which can be one last used in an earlier year. In its own year that column was otherwise empty,
+  so the year grew a column. That column sat exactly where Simultaneous Post has to land when Production swaps, so
+  the whole-column swap was refused, and since 2 Nov the arrow then falls back, unmarked, to swapping only the shared
+  weeks. With the box clear the default layout happened to need no swap.
+- **Reuse Empty Columns** (`placeSegmentsReusingColumns`, rule 3): a free column already used in the years the
+  phase runs in is preferred; among equals, the lowest, as before. A calendar with the box ticked can lay out with
+  one column fewer in such a year. With the box clear, and in Single Column, nothing changes. No frozen code.
+- **The swap arrow:** after Swap Column, when the only swap it can offer would leave a phase in two columns, the
+  arrow is amber instead of teal, a dashed amber box outlines exactly the cells that will move, and the tooltip says
+  which phase ends up in two columns and why the whole column can't move. Swapping a split phase back is not
+  marked, nor is a part of a column you selected yourself. No new chip (owner ruling, 21 Oct 2026).
+- **Verified:** new leg `swapsplitreuse` 5/5 on the fixture `swapsplit-reuse` (made up, reuse ticked), red on the
+  build before it in S1–S3: a 4th column, the part-column arrow, Writers left in slots 0 and 2. `colswappartial`
+  8/8 on both fixtures, now also checking the amber arrow, the box and the tooltip (P1, P4), the unmarked swap back
+  (P3) and an unmarked hand selection (P5). Seen in the browser pane: the amber arrow and the box on the four shared
+  weeks. `npm run check` 40/40. A swap/reuse mini-gate (every column-swap, block-swap and reuse section of
+  `gate.sh`): 300 PASS, 0 FAIL. Full gate: 3,896 PASS, 3 FAIL, every baseline identical; the three are known
+  timing flakes (`monthexport` X6, `phaseedge`'s deadline, `offweek` R9), each green re-run alone.
+
 ### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
 
 Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:

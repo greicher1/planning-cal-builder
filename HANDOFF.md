@@ -4,6 +4,115 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
+- **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
+  even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
+  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, and
+  *"mockup a few version of this idea with the arrows in differnt places"*.
+- **Answer given:** yes, modestly, built on a "just this phase" mover. The month view already moves one phase (body
+  drag); the waterfall has nothing like it.
+- **The mockup:** six layouts, A to F (centred above and below the box: the owner's; above and below at the right;
+  inside the box; beside it; on the Starts line; on the coloured header, which still works on a folded card). Checked
+  in the pane: one click moves one phase a week, a burst shows "Pulled 3 wks", Alt+↑/↓ works, Month hides every arrow.
+- **Waiting on the owner:** D1–D7 (plan §7). Recommended: ▲ = earlier, layout A, shown on pointing at the card, a
+  burst = one undo, keep the label, waterfall only, and make the month drag carry the same things.
+- ⚠️ **Found while reading (not run):** the month body drag (`installMonthPillDrag`) writes `setPhaseStart` only. The
+  phase's own hiatus and its `<week>|<key>` stores (`cellSpans`, `gridColSwaps`, `textStyle.phase`, band names and
+  colours) stay behind, though every Shift tool carries them. Plan §5.
+- ⚠️ **No "just this phase" mode exists in `shiftCalendarDates`** (its `inRange` is a date cutoff). The plan adds
+  `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
+  so whichever is built first should shape it for both.
+
+### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
+- **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
+  (app.js), the card's block in `legacy.css`, a comment in `Sidebar.jsx`, and three leg checks.
+- **The mockups:** [`mockups/autonote-card.html`](mockups/autonote-card.html), today's card plus A (the same list
+  tidied: one heading rule, hairlines, colour chips; built first, then replaced), B (one row per phase) and C (two
+  labelled pills per note). Live shared ticks and a 303 / 247 px width switch. **The owner picked B.**
+- **B as built:** a six-column grid, name | Start End (Waterfall) | 8 px gap | Start End (Month).
+  - Heading: three `.autonote-hd` ('', Waterfall, Month; each view spans two columns with its own rule), then four
+    `.autonote-sub` (Start, End, Start, End).
+  - Each phase is a `.autonote-row` (display:contents, so the row still takes :hover and shades gray-0): a
+    `.autonote-namecell` holding `.autonote-name`, then four `.autonote-cell`s in DOM order sheet start, sheet end,
+    month start, month end (a kind's first box is still its Waterfall box).
+  - The phase's colour is a chip (`::before`) from `--phase-color` / `--phase-ink`, which `reflectAutoNoteKinds`
+    writes from `getAllPhaseDefs()` (fill, and the month bar's ink for the edge, because the pastels alone barely show).
+  - The note's word is no longer printed: it is each box's `title` (the aria-label's text, "Writer’s Room Opens,
+    Waterfall"; the hidden-phase message replaces it while the phase is hidden) and still its `data-autonote-word`.
+- ⛔ **Widths are measured, keep them:** a narrow window's card leaves the grid 221 px. At 27 px box columns the
+  name column is 105 px, and 85 of that is text room; "Writer’s Room" is 81.4 px. At 28 px it wrapped, and
+  autonotephases P1 fails a wrapped default name. The padding and rule live on `.autonote-namecell`, never on
+  `.autonote-name`, for the same check.
+- **Legs updated for the new markup:** autonotekinds A1 (label = the row's name + the box's word), autonotephases
+  P1 (rows, words from the Waterfall boxes, the Start/End sub-heading, four boxes per row in order) and C0 (the custom
+  row's words from its boxes).
+- ⚠️ **That push carried the 14 commits waiting on `main`** (owner's push picker named them): the swap-split-reuse
+  merge `c5fd2ce` and the Anchor To plan. So **the Swap Column fix is LIVE too**, at `e5e4435`. Its own entry below
+  listed a targeted swap/reuse run on the merged build as the step before pushing; that run had not been reported
+  when it went out, so it is now a post-push check. Its session was told; its tracker card is at live with that note.
+- **Verified:** browser pane at 247 and 303 px (names on one line, row hover, a tick taking and surviving the
+  redraw); `npm run check` 40/40; on `dist/` (port 8517) every leg that reads the card: autonotekinds 16/16,
+  autonotephases 27/27, prepreptitle 7/7, autonote (v1.3.0-saved) 9/9, autonoterename 24/24, autonoteview 18/18,
+  settingswin 21/21, phasesui (hidewf) 8/8. No full gate (chrome only; the owner's rule for chrome CSS).
+  ⚠️ P1's one-line check runs at a **351 px** card in headless Chrome, so the 247 px fit is proven only by the pane
+  measurement above, not by a leg.
+
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+- **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
+  (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
+  collumns fixed it! But how would a user know that was what they needed to turn off?"*
+- **Reproduced** in the browser pane on a copy of the owner's phase setup, kept in the scratchpad (never in the repo,
+  per the confidentiality rule): Writer's Rm, Pre-Prep, Prod Prep, Production with Sim Post (offset 0), last year's
+  Post, and a second Post that starts after every column is free, with a two-week all-phase hiatus.
+- **Cause, in three steps:**
+  1. Reuse on: `placeSegmentsReusingColumns` step 3 ("the lowest free column") puts the second Post in the column the
+     FIRST Post used the year before. In the new year, that column is otherwise unused, so the year gets a 4th column.
+     The frozen layout then draws two phases 2 wide in the weeks where only two run. Reuse off puts it in a column
+     already in that year: 3 columns.
+  2. The block swap moves Prod Prep + Production (they share a column) to the right, and the glued Sim Post must land
+     at Production + 1, in the 4th column, where the second Post sits. `canSwapStint` refuses.
+  3. `swapEvalDir`'s 2 Nov fallback then offers the per-week swap of the shared weeks. The arrow looks the same; only
+     its tooltip ("Swap Prep with Writers (<the shared weeks>)" vs "Swap the <year> block of…") tells them apart.
+- **Proof** (knob tooltips read in the pane): reuse on → per-week only; reuse on with the second Post removed → the
+  block swap ("…(Production moves with it)"); reuse off → the default layout already has Writer's Rm on the left for
+  the year, so "fixed it" meant no swap was needed. The partial-swap arrow is still there with reuse off.
+- **Owner's answer: "Fix both".** Built (no frozen code, no save-format change):
+  1. **Reuse rule 3** (`placeSegmentsReusingColumns`): every free column is scored by how many of the phase's year
+     blocks it is NOT yet used in (`segYears`, frozen `computeYearBlocks`' rule: a row's Monday, UTC year; one block
+     in Single Column), and the lowest score wins; a tie keeps the old answer, the lowest index. `cols[i].years` is
+     filled on every placement. ⚠️ A reuse-ON calendar can lay out with one column fewer in such a year, so its
+     screen and every export move. Reuse OFF is the untouched old code path. COLUMN-REUSE-PLAN.md §3 rule 5 updated.
+  2. **The marked fallback** (`swapEvalDir` → `splitAfterWeekSwap` + `markPartialSwap`): only in the stint branch's
+     per-week fallback, and only when the run would leave the seed or the partner in two columns of the year (cells
+     outside the run at any slot but where its run lands). Then `run.partial`, the knob gets `.is-partial` (amber
+     `#B9791A`), `drawSwapLayer` draws `.grid-swap-partial` (dashed amber) round exactly the cells that move, and
+     the label gains "Only these weeks move, so X ends up in two columns." plus the block's refusal
+     (`swapWhy`, "Can’t swap: " stripped; nothing for 'no-change'). ⛔ No chip (21 Oct ruling). A swap BACK that
+     re-joins a phase is not marked (the test is where cells end up, not how many move); a hand-made per-week
+     selection never is. Help text: one sentence in the column-swap paragraph.
+- **Proof** (worktree `dist/`; the pre-fix build staged as `dist/pre.html`, ignored):
+  - new leg `swapsplitreuse` **5/5** on new fixture `swapsplit-reuse` (made up: 2033–34, generic names, reuse on);
+    on `pre.html` red in S1 (4 slots), S2 (the part-column arrow) and S3 (Writers left in slots 0 and 2), exactly the
+    owner's screenshots. In `gate.sh`'s generic list after `colswappartial`.
+  - `colswappartial` **8/8** on both fixtures, its labels updated: P1/P4 now expect the amber knob, the box covering
+    the four shared weeks both columns, and the new sentences; P3 the swap back unmarked; P5 a hand selection
+    unmarked.
+  - In the browser pane (pane hidden, viewport emulated, events dispatched as the legs do): amber knob, dashed box
+    on the four shared weeks, tooltip as above.
+  - `npm run check` 40/40.
+  - **Swap/reuse mini-gate, 300 PASS / 0 FAIL** (gate.sh's own sections, port 8798): colswap, colswapgate,
+    colswapmove, colswapmid, colswapstale, the ten stint legs, onecol, colreuse (live and fixture), notescols and
+    hdrfit on `colreuse`, then noswapbtns, colswappartial ×2, swapsplitreuse, colswapcache, simpostbeside,
+    monthmap (colreuse).
+- ✅ **Full gate (owner, *"Run the gate"*), port 8253, alone on the machine: 3,896 PASS / 3 FAIL, every baseline
+  identical** (gates 2, 10 and 13 included). The three are contention flakes already on record, and each is green
+  re-run alone on the same build as `gate.sh` runs it: `monthexport (month-lanecap)` X6 (the timed dialog case) 9/9,
+  `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
+  No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
+- ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
+- ✅ **LIVE at `e5e4435`** (4 Nov 2026, 17:39), pushed with the Automatic notes card (see that entry above for the
+  run that had not been reported).
+
 
 ### 🔨 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there). NOT merged, NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 

@@ -86,7 +86,9 @@ built-in phases' are. Its card rows appear and disappear with the phase, and a r
 ## 2. Rulings (all RULED, owner, by picker, 2 Nov 2026)
 
 - ✅ **Answered:**
-  - **R1(a)** grouped by phase;
+  - **R1(a)** grouped by phase; ⚠️ **the card's LOOK changed 4 Nov 2026** (owner: "make this menu less ugly", then
+    "go with b", option B of `mockups/autonote-card.html`): one row per phase, Start | End under Waterfall and under
+    Month, the note's word on each box's tooltip. Still grouped by phase, still a box per note per view;
   - **R2(a)** approve N1 and N2 with the gate, hidden phases included;
   - **R3(a)** custom-phase notes start off;
   - **R4(a)** a delete hides the note from the view you are in. That amends AUTO-NOTE-RENAME-PLAN rulings 4–6 for
