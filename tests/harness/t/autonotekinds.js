@@ -91,22 +91,9 @@ window.addEventListener('load', function () { (async function () {
     await clickOne(kind, 'sheet');
     await clickOne(kind, 'month');
   }
-  async function pdfRuns(u8) {
-    var s = '', runs = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;   // DecompressionStream rejects the EOL
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text(), tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
-        while ((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, '$1'));
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return runs;
-  }
+  // Every "(text) Tj" run in the PDF's Flate streams, each cut at its own /Length (T.pdfRuns, lib.js: never by
+  // trimming the EOL, which truncated a stream whose data ended in 0x0A / 0x0D and read as no text at all).
+  async function pdfRuns(u8) { return T.pdfRuns(u8); }
   function has(list, re) { return list.some(function (x) { return re.test(x); }); }
   // The month PDF's runs for May 2027, through its real Save dialog (the direct writer).
   // ⚠️ The writer WRAPS a note into short runs in a day cell ("Start Principal", "Principal Photography"), so

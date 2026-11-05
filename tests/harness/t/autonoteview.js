@@ -187,21 +187,8 @@ window.addEventListener('load', function () { (async function () {
   function idSet(snap) { return Object.keys(snap.fields.byId).sort(); }
 
   // ---- the exports --------------------------------------------------------------------------------------------
-  async function inflate(u8) {
-    var s = '', all = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;   // DecompressionStream rejects the EOL
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        all.push(await new Response(ds).text());
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return all.join('\n');
-  }
+  // Every Flate stream of a PDF, inflated, each cut at its own /Length (T.pdfInflated, lib.js: never by trimming).
+  async function inflate(u8) { return (await T.pdfInflated(u8)).join('\n'); }
   async function monthPdfText() {
     await view('month');
     T.monthPrintPath(false);

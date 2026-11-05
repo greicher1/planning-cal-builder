@@ -66,19 +66,10 @@ window.addEventListener('load', function () { (async function () {
   }
   // Text runs and fill rects from the PDF's content streams, in draw order.
   async function pdfContent(blob) {
-    var bytes = new Uint8Array(await blob.arrayBuffer()), s = '';
-    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m, txt = '';
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13)) en--;   // DecompressionStream rejects trailing bytes
-      try {
-        var ds = new Blob([bytes.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text();
-        if (t.indexOf(' Tj') >= 0) txt += t + '\n';
-      } catch (e) { /* not a Flate stream */ }
-    }
+    var bytes = new Uint8Array(await blob.arrayBuffer());
+    // The streams that set text, inflated and cut at their own /Length (T.pdfInflated, lib.js: never by trimming).
+    var txt = (await T.pdfInflated(bytes)).filter(function (t) { return t.indexOf(' Tj') >= 0; })
+                                          .map(function (t) { return t + '\n'; }).join('');
     var runs = [], rects = [], mm;
     var reRun = /BT \/(F\d+) ([\d.]+) Tf [\d. ]+ rg 1 0 [-\d.]+ 1 ([-\d.]+) ([-\d.]+) Tm \(((?:\\.|[^\\)])*)\) Tj ET/g;
     while ((mm = reRun.exec(txt))) runs.push({ font: mm[1], size: +mm[2], x: +mm[3], y: +mm[4], text: mm[5].replace(/\\(.)/g, function (all, ch) { return ch; }) });
