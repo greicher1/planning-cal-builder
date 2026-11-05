@@ -4,6 +4,20 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 4 Nov 2026: THE WATERFALL'S NOTE EDITOR SAYS WHAT A LINE IS, AND HIDES IT — RULED, NOTHING BUILT ([`WATERFALL-NOTE-EDITOR-PLAN.md`](WATERFALL-NOTE-EDITOR-PLAN.md)). Branch `wf-note-editor` (worktree `.claude/worktrees/wf-note-editor`, from `main` at `c5fd2ce`; its `node_modules` is a symlink). Tracker cards `wf-hide-auto-note`, `wf-holiday-editor-mode`
+
+- **The asks** (owner): *"Should there be an equivalent hide auto note button in the waterfall view?"*, then *"Yes, plan
+  both"*, joining card `wf-holiday-editor-mode` (30 Oct 2026: the waterfall editor reads "Note" on a holiday line).
+- **The design:** one editor. The heading names a cell holding one thing ("Auto Note · 6/29/26", "Holiday · 7/3/26");
+  the box always holds the whole cell, so a line can be added; under it, each automatic note and holiday with its own
+  Hide (the ↻ / ⚑ marks). No frozen code, no save-format change.
+- ✅ **RULED (owner, by picker, 4 Nov 2026):** R1(a) Hide Holiday too, waterfall only; **R2(b) Hide acts at once and
+  closes the editor** (not the recommendation: it saves the rest of the editor as Tab would, then closes); R3(a) a
+  list under the box for a cell with several lines.
+- **Defaults worth knowing before building:** a rename and an added line in one save both stick (`wfLineEdits` aligns
+  lines by content, D2); the Day picker and "Show in month view" are hidden while the cell has no typed line (D4, D5);
+  month notes shown in the waterfall are not listed (D7). New leg `wfnoteeditor`; neighbours in the plan's §5.
+
 ### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
 - **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
   (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
