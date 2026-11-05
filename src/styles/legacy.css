@@ -3383,6 +3383,33 @@
     cursor:pointer;
   }
   .mv-note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
+  /* The waterfall's note editor says what a line is, and hides it (owner, 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md):
+     one item's Hide Auto-Note / Hide Holiday button (the month view's quiet danger-text button above), or the list "In
+     this cell" with a Hide per automatic note and holiday, marked with the month view's ↻ / ⚑ (frozen edit NS1's icons,
+     reused here; .note-pop is a body-level panel, outside #table-wrap). */
+  .note-pop .note-pop-delete{
+    display:block; margin:var(--mantine-spacing-sm) 0 0 -8px; padding:4px 8px;
+    font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    cursor:pointer;
+  }
+  .note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
+  .wf-note-items{ margin-top:var(--mantine-spacing-sm); }
+  .wf-note-items-head{
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--mantine-color-gray-6); margin-bottom:2px;
+  }
+  .wf-note-item{ display:flex; align-items:center; gap:6px; min-height:26px; font-size:var(--mantine-font-size-xs);
+    color:var(--mantine-color-gray-9); }
+  .wf-note-mark{ flex:none; width:10px; height:10px; background:var(--mantine-color-gray-6); }
+  .wf-note-mark-auto{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.5 7.4A4.8 4.8 0 1 1 9.6 4.5'/%3E%3Cpath d='M7 5.45 9.6 4.5 8.2 2.1'/%3E%3C/svg%3E") center / contain no-repeat; mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.5 7.4A4.8 4.8 0 1 1 9.6 4.5'/%3E%3Cpath d='M7 5.45 9.6 4.5 8.2 2.1'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .wf-note-mark-holiday{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='black' stroke='black' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 15V1.6' fill='none' stroke-width='2'/%3E%3Cpath d='M4.5 2.4h8.2l-2.3 3.3 2.3 3.3H4.5z' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='black' stroke='black' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 15V1.6' fill='none' stroke-width='2'/%3E%3Cpath d='M4.5 2.4h8.2l-2.3 3.3 2.3 3.3H4.5z' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .wf-note-item-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wf-note-hide{
+    flex:none; padding:2px 8px; font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm); cursor:pointer;
+  }
+  .wf-note-hide:hover{ background:var(--mantine-color-red-0); }
   /* "Show in month view" / "Show in waterfall", right below the colours in both note editors (owner, 4 Nov 2026;
      noteViewSwitchHtml in app.js). The sidebar's switch row (.sw-row): the label left, Mantine's Switch size="xs" on the
      right, drawn on the engine's own native checkbox (UI-CONVENTIONS §8.9). A hairline ABOVE it, not under: it is the
