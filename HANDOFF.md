@@ -20,8 +20,21 @@
   own notes and its Christmas hiatus behind. Shift From never meets this, because everything after its bound moves.
 - **Words:** not "work forward / backwards" (Rebuild From's words, for closing gaps) and not "earlier / later"
   (Shift From's travel directions). "Before it / after it" is what Shift From's help already says.
-- **Waiting on the owner:** R1 layout (three buttons, recommended, or a dropdown naming the phase); R2 on opening
-  (back to Everything every time, recommended, or remember until the app closes).
+- **Layout C, added the same day** (owner: *"In theory, could shift from and anchor to be combined into one tool with
+  multiple settings?"*, then *"Yes, add it"*). Plan §6, the mockup's third tab.
+  - Shift From and Anchor To fold into Shift All's ▾, renamed **Shift**, with two choices: What moves (the three
+    above) and How far (By weeks | To a date). The arrows stay. The toolbar keeps two tools: Shift keeps the gaps,
+    Rebuild From closes them.
+  - It opens on Everything by weeks, which is today's Shift All form.
+  - Its popover measured 233 px open, 283 px at its tallest, and 333 px with a result line. The old "Adjustment
+    Tools" menu, removed for its height, was 562 px.
+  - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
+    `calrange`, `overrides` and `rowheight` move to the new controls.
+- **Waiting on the owner:**
+  - R1, the layout: A (three buttons in Anchor To), B (a dropdown) or C (one Shift tool). C is recommended if
+    retiring two buttons is acceptable, and A otherwise.
+  - R2, on opening: back to Everything (and By weeks in C) every time, which is recommended, or remember the last
+    choice until the app closes.
 - ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
   schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
   `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a

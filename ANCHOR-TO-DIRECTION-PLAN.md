@@ -1,12 +1,16 @@
 # ANCHOR-TO-DIRECTION-PLAN.md: Anchor To, choose what moves
 
-**Status: PLAN + MOCKUP, NOTHING RULED, NO APP CODE (4 Nov 2026).** Mockup:
-[`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html). Tracker card `anchor-to-direction`.
+**Status: PLAN + MOCKUP, NOTHING RULED, NO APP CODE (4 Nov 2026).** Three layouts: A and B add the choice to Anchor
+To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
+[`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html), one tab per layout. Tracker card
+`anchor-to-direction`.
 
 - **The asks** (owner, 4 Nov 2026):
   - *"Does anchor to only move phases after the selected phase or also phases before?"*
   - then *"would it make sense to have a work forward and work backwards function for anchor to"*
   - then *"Yes, write it up"*.
+  - then *"In theory, could shift from and anchor to be combined into one tool with multiple settings?"*
+  - then *"Yes, add it"* (to add layout C to this plan and the mockup).
 - **The short answer given in chat:** Anchor To moves everything today. It is Shift All aimed at a date. A choice of
   what moves makes sense, and the "backwards" half is the useful one: no tool today moves a phase and the phases
   before it while keeping the gaps. Call it something other than forward/backward (§3).
@@ -65,10 +69,12 @@ One more choice in the Anchor To popover, **what moves**, under the phase:
 - **Production and everything after it.** Exactly Shift From's set, aimed at a date instead of a number of weeks.
 - **Production and everything before it.** New.
 
-The mockup draws two layouts (R1):
+The mockup draws three layouts (R1):
 - **A, three buttons.** The look of Rebuild From's direction control (`.solve-dir`): `Everything | This and after |
   This and before`.
 - **B, a dropdown** whose options name the phase: `Production and everything after it`.
+- **C, one Shift tool.** Shift From and Anchor To are folded into Shift All's ▾, with the same three buttons plus "By
+  weeks | To a date". See §6. Everything below in this section holds for C too.
 
 Either way:
 - **A hint line under the choice names what stays put.** For example, "Post and Localization stay where they are."
@@ -139,20 +145,28 @@ Either way:
 ## 4. Rulings needed
 
 - **R1. Layout.**
-  - (a) **Three buttons**, `Everything | This and after | This and before`. *(Recommended: all three are visible at
-    once, it is one click, and it matches Rebuild From's direction control in the next popover.)*
-  - (b) A dropdown naming the phase.
+  - (a) **Three buttons in Anchor To**, `Everything | This and after | This and before`. Shift From stays as it is.
+  - (b) A dropdown in Anchor To naming the phase. Shift From stays as it is.
+  - (c) **One Shift tool (§6).** Shift From and Anchor To fold into Shift All's ▾, and the toolbar keeps two tools.
+    *(Recommended, if you are happy to retire two buttons people know. It follows "simplify rather than add options":
+    A and B add a choice to Anchor To and leave its "This and after" doing what Shift From already does, while C
+    removes that overlap, and "This and before" then works by weeks too at no extra cost. If retiring the buttons is
+    too big a change for the people on the live site, (a) is the low-change choice: its buttons are visible at once,
+    and they match Rebuild From's direction control in the next popover.)*
 - **R2. What it starts on when the popover opens.**
-  - (a) **Everything, every time.** *(Recommended: someone who never touches the choice gets exactly today's tool.
-    It matches Rebuild From's ticks, which are forgotten between openings.)*
+  - (a) **Everything, every time** (and, in C, By weeks). *(Recommended: someone who never touches the choice gets
+    exactly today's tool: Anchor To under A and B, Shift All's form under C. It matches Rebuild From's ticks, which
+    are forgotten between openings.)*
   - (b) The last choice, until the app is closed.
   - Neither is ever saved in a calendar: it is session UI inside `.tools-menu`, which `collectFieldValues()` skips.
 
-Not proposed: changing Shift From, Shift All, Rebuild From or Close all gaps.
+Not proposed: changing Rebuild From or Close all gaps. Under A and B, Shift All and Shift From are not changed either.
 
 ---
 
 ## 5. Build steps (after the rulings)
+
+These are for A or B. C adds steps of its own (§6).
 
 1. **Engine, `shiftCalendarDates`.**
    - An optional third argument, `before = {phaseIso, weekIso}`, passed through `shiftCalendar` (still inside
@@ -188,3 +202,106 @@ Not proposed: changing Shift From, Shift All, Rebuild From or Close all gaps.
 
 **Save format:** nothing changes. The choice is never saved, no snapshot key is added, and no DOM id enters
 `fields.byId`.
+
+---
+
+## 6. Layout C: one Shift tool
+
+Asked 4 Nov 2026: *"In theory, could shift from and anchor to be combined into one tool with multiple settings?"*, then
+*"Yes, add it"*.
+
+### 6.1 Why it can be one tool
+
+Shift All's form, Shift From and Anchor To all end in the same call, `shiftCalendar(delta, cutoff)` (§0). They differ
+in only two things:
+- **Where the number of weeks comes from:** typed (Shift All, Shift From), or measured to a date (Anchor To).
+- **Which phases move:** all of them (Shift All, Anchor To), or the picked one and the ones after it (Shift From).
+  With §2, also the picked one and the ones before it.
+
+Those are two settings, not three tools:
+
+| | **By weeks** | **To a date** |
+|---|---|---|
+| **Everything** | today's Shift All form (no phase to pick) | today's Anchor To |
+| **This and after** | today's Shift From | new (A and B's "after") |
+| **This and before** | new | new (A and B's "before") |
+
+### 6.2 What it looks like
+
+- **The toolbar:** `[← 1 wk | Shift ▾ | 1 wk →]  [Rebuild From ▾]`.
+  - The Shift From and Anchor To buttons go.
+  - The arrows stay as they are: one click, one week, everything. They are the most-used thing in the row and still
+    sit outside any popover.
+  - The middle reads **Shift** instead of "Shift All", because its form can now move part of the calendar.
+- **The popover** (340 px, the width of the other tools; Shift All's is 280 px today), top to bottom:
+  1. **What moves:** `Everything | This and after | This and before`.
+  2. **How far:** `By weeks | To a date`.
+  3. **The phase**, shown only when it matters. It is hidden for Everything by weeks, which is Shift All and needs
+     none. To a date puts *starts on / ends by* beside it. With Everything, the list also offers Whole schedule.
+  4. **By weeks:** `[2] wks  [Earlier] [Later]`. **To a date:** `[date]  [Go]`.
+  5. **The hint line** naming what stays put (§1).
+- **It opens on Everything, By weeks** (R2): exactly today's Shift All form. Someone who opens it, types 2 and
+  presses Later gets what they got before.
+- **The two choices never hide.** Only the phase row and the inputs under How far change.
+- **Each action button reads What moves for itself.** Earlier and Later always shift by weeks, and Go always goes
+  to the date. How far only chooses which of them is shown.
+- **The result line** is the same as in §1. With Everything by weeks, it is today's Shift All line word for word.
+- **The help text:** *"Moves phases by a number of weeks or to a date. Choose whether everything moves, or only one
+  phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them."*
+- **What tells the two tools apart:** Shift keeps the gaps, and Rebuild From closes them. That one difference
+  replaces CLAUDE.md's "two questions" for the toolbar.
+
+### 6.3 What it costs
+
+- ⚠️ **It has been tried once in another form.** PROJECT-CONTEXT §7a records an "Adjustment Tools" menu that hid all
+  four tools behind one unlabelled click and grew to 562 px tall. It was removed, and "there is deliberately no
+  container menu".
+  - C is different. It is one form with two settings, not four forms stacked. Rebuild From keeps its own button, and
+    the arrows keep their one click.
+  - It must stay short all the same. Measured in the mockup (its own CSS, the app's sizes):
+    - 233 px as it opens (Everything by weeks).
+    - 283 px at its tallest before anything moves (a phase row and a two-line hint).
+    - 333 px with a two-line result line under it.
+    - For comparison, the mockup's copy of today's Anchor To is 129 px, layout A's is 193 to 226 px, and the old
+      menu was 562 px.
+- **People on the live site lose two buttons they know.** Someone looking for "put the shoot on a date" has to know
+  it is under Shift ▸ To a date. The Shift button's tooltip can say so: *"Shift the calendar by a number of weeks or
+  to a date"*.
+- **Controls that show and hide** (the phase row, the inputs under How far). This is the main thing to judge in the
+  mockup.
+- **The docs.** CLAUDE.md's "Calendar adjustment tools" paragraph and PROJECT-CONTEXT §7a describe four tools and two
+  questions. Both are rewritten.
+- **The legs.** Seven drive these popovers today, plus one that has to be written:
+  - `#pop-shift` / `tool-shift-*` (`builtindates`, `calrange`, `customunits`, `episodeprep`, `halfworked`,
+    `overrides`, `snaptools`). They keep working unchanged if the form opens on Everything by weeks and keeps those
+    ids.
+  - `#pop-anchor` / `tool-anchor-*` (`builtindates`, `customunits`, `datepick`, `snaptools`). Keep the
+    `tool-anchor-phase` / `-edge` / `-date` / `-go` ids on the merged controls. Only the step that opens the popover
+    changes, from `#pop-anchor-btn` to `#pop-shift-btn`.
+  - `#pop-ripple` / `tool-ripple-*` (`calrange`, `overrides`, `rowheight`). These retire. The three legs pick This and
+    after plus a phase instead.
+  - The new leg (§5 step 3) adds before-by-weeks and after-to-a-date cases.
+  - Every id stays inside `.tools-menu`, so the save sweep still skips them, and no saved file changes.
+- **The engine is the same as for A and B:** the before bound (§5 step 1), plus the three handlers merged into one
+  that computes the delta from weeks or from a date. Nothing new in what moves.
+
+### 6.4 Build steps for C (after the rulings)
+
+1. §5 step 1, the engine's before bound, unchanged.
+2. **`PreviewToolbar.jsx`:**
+   - Shift From's and Anchor To's buttons and popovers go.
+   - `#pop-shift` gets the form in §6.2 and widens to 340 px.
+   - The middle button's label becomes Shift, and its title changes.
+3. **`app.js`:**
+   - One handler set: Earlier/Later reads the weeks, Go reads the date, and both read What moves and the phase.
+   - The phase list (one select, `tool-anchor-phase`) offers Whole schedule only for Everything to a date.
+   - The form resets on open (R2) and writes the hint line.
+   - `POPS` and `refreshMenuFromCalendar` lose the two retired popovers.
+4. The legs (§6.3), the new leg, and the neighbours in §5 step 3.
+5. **Docs, in the same commit:**
+   - CLAUDE.md's "Calendar adjustment tools" paragraph.
+   - PROJECT-CONTEXT §7a: the toolbar sketch and the table, which becomes "Shift keeps the gaps, Rebuild From closes
+     them".
+   - The README changelog, which says which buttons went and where they went.
+   - HANDOFF and the tracker card.
+6. A full gate before any push (§5 step 5).
