@@ -553,6 +553,11 @@
       HiatusHint). This card's ROWS are engine-generated HTML, so the card cannot be a React
       component -- but its header is static, so a portal host in it works fine and keeps the hint
       identical to the three React cards' hints. --><span id="hiatus-hint-host"></span></h2>
+      <!-- ⭐ THE HIATUS RIPPLE'S SWITCH (HIATUS-RIPPLE-PLAN.md §5; owner rulings R1-R3, 4 Nov 2026): the same preference as
+      Settings > Preferences > Hiatus, shown where a hiatus is edited. ⛔ NO id: it sits outside .prefs-card, and
+      collectFieldValues() sweeps every input[id], so an id would bake this computer's preference into every saved
+      calendar. reflectHiatusRipple() writes .checked; a delegated 'change' on the class writes the preference. A removed
+      hiatus's result line lands in this div (showRippleNote). --><div class="hiatus-ripple-card"><label class="hiatus-ripple-sw sw-row" title="On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or after it moves by the same weeks. Off: a hiatus only pauses the phases running through it. Kept on this computer."><span class="sw-label">Push later phases when a hiatus changes</span><input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Push later phases when a hiatus changes"></label></div>
       <div id="hiatus-list"></div>
       <button class="secondary add-hiatus-btn" id="add-hiatus">+ Add hiatus period</button>
       <!-- "Reset hiatus bands" is portalled in here by React (main.jsx -> HiatusResetButton; owner

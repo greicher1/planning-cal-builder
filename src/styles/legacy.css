@@ -1519,6 +1519,14 @@
   .hiatus-pair label.hiatus-weeks-lbl{ flex:0 0 64px; }
   .hiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .hiatus-body > .snap-note{ margin-top:4px; }
+  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §5-6): the switch at the top of the All-phase hiatus card, and the line
+     that says what a ripple moved, under the hiatus that was edited. */
+  .hiatus-ripple-card{ padding:0 12px 6px; }
+  .hiatus-ripple-card > .sw-row{ border-bottom:none; }
+  .ripple-note{ margin-top:4px; padding:4px 6px; border-radius:4px; font-size:var(--mantine-font-size-xs); line-height:1.4;
+    color:var(--mantine-color-black); background:color-mix(in srgb, var(--mantine-primary-color-filled) 9%, transparent); }
+  .ripple-note[hidden], .ripple-note:empty{ display:none; }
+  .phase-hiatus > .ripple-note{ margin:0 0 8px 2px; }
   .hiatus-body > .sw-row:first-of-type{ margin-top:6px; }
   .hiatus-body > .sw-row:last-child{ border-bottom:none; }
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */

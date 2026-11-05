@@ -8,6 +8,18 @@
 // ⚠️ If the chrome is ever migrated to React/Mantine, `el.value = v` + a dispatched event stops
 // working -- React ignores it -- and every test here would quietly assert against a blank
 // calendar. Fix this file (native value setter) BEFORE porting anything, not after.
+// ⭐ THE HIATUS RIPPLE IS OFF IN EVERY LEG BUT ITS OWN (HIATUS-RIPPLE-PLAN.md §8). It is ON by default for users (owner
+// ruling R1, 4 Nov 2026), and with it on a hiatus edit that settles moves the phases after it. The legs that edit a
+// hiatus through the UI were written for a hiatus that only pauses, so they keep testing that. Written before the app
+// reads its preferences: this script is inline at the end of <body>, the build's app a deferred module. t/hiatusripple.js
+// deletes the key again at its top, which also runs before the app, so it tests the users' default.
+(function(){
+  try {
+    var o = JSON.parse(localStorage.getItem('sptcal.prefs') || '{}') || {};
+    o.hiatusRipple = false;
+    localStorage.setItem('sptcal.prefs', JSON.stringify(o));
+  } catch(e){}
+})();
 window.__T = (function(){
   // ⚠️ NATIVE SETTER, not `e.value = v`.
   // React installs its own `value` setter on the input prototype and tracks the last value it
