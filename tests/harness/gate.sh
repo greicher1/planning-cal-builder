@@ -1385,8 +1385,8 @@ done
 # where `col` is assigned (NOT frozen: the frozen layout takes `col` as data). Honoured only when EVERY waterfall
 # phase is named: a half map is ignored whole. Two runs on the colreuse fixture (Reuse on, four pairs sharing a
 # column, one hand move): a FULL map gives every phase its own slot and bypasses the reuse placement (no hand-move
-# note); a HALF map changes nothing, so the layout is the colreuse RESTORE run's. The inertness with no `?layout=`
-# at all is every other leg of this gate.
+# note); a HALF map changes nothing, so the layout is the colreuse RESTORE run's (the layout rules' since 5 Nov 2026:
+# Production in Writers' column). The inertness with no `?layout=` at all is every other leg of this gate.
 LH_FULL='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12,"custom8":13}'
 LH_HALF='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12}'
 for LHRUN in full half; do
@@ -1414,8 +1414,8 @@ if a.get('hook') == 'full':
     chk(a.get('noteText') is None, 'the reuse placement did not run: no hand-move note')
 else:
     chk(len(a.get('mapKeys') or [])==13, 'the half map leaves one phase out')
-    chk(all(p.get(k) for k in ('c1wr','prodPrep','c5loc','c7c6')) and a.get('prodSlot2031')==0,
-        'it is ignored whole: the four pairs share a column and Production is slot 0 in 2031, as the colreuse RESTORE run has it')
+    chk(all(p.get(k) for k in ('c1wr','prodWr','c5loc','c7c6')) and a.get('prodSlot2031')==0,
+        'it is ignored whole: the four pairs share a column (Production in Writers\' column, rule 3) and Production is slot 0 in 2031, as the colreuse RESTORE run has it')
     chk(a.get('slotsPerYear')=={'2030':3,'2031':3,'2032':1}, f"the saved column counts {a.get('slotsPerYear')}")
     chk(bool(a.get('noteText')) and 'Moved by hand' in a.get('noteText'), 'the hand-move note is there')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
@@ -1976,6 +1976,14 @@ done
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
 # switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
+# layoutrules (LAYOUT-RULES.md §0, LAYOUT-BUILD-PLAN.md; owner's rulings 5 Nov 2026) holds the waterfall layout rules on
+# six STAMPED synthetic fixtures (tools/layout-study/fixtures.mjs): r3 Production goes left and the Sim Post lane takes
+# the freed column beside it; r6 the same-week competition for one free column (the shorter takes it, Post continues the
+# lane); r9 the same two columns on opposite sides in consecutive years (rule 9 through stintOrderFor); r7 a handoff left
+# of a running phase, a phase not following on placed right of everything running, a paused phase keeping its column,
+# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2). Each red on the build
+# before the rules where its rule differs. An UNSTAMPED calendar is every other leg of this gate: its placement and its
+# widths are byte for byte what they were.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2047,6 +2055,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
+              layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

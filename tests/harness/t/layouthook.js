@@ -8,8 +8,9 @@
 //   HARNESS_QUERY="hook=full&layout=<every phase, each its own column>"
 //     -> no two phases share a slot in any year; the hand-move note is absent (the reuse placement did not run).
 //   HARNESS_QUERY="hook=half&layout=<the same map minus one phase>"
-//     -> the saved layout exactly as the colreuse RESTORE run sees it: the four pairs share, Production is slot 0
-//        in 2031, and the hand-move note is there.
+//     -> the saved layout exactly as the colreuse RESTORE run sees it: the four pairs share (Writers + Stage,
+//        Writers + Production -- rule 3 of LAYOUT-RULES.md, Production goes left --, Loc + Mix, Grade + Ship),
+//        Production is slot 0 in 2031, and the hand-move note is there.
 // The inertness without any `?layout=` is the whole rest of the gate.
 //
 // ⚠️ Run against the BUILD: HARNESS_PAGE=/dist/index.html.
@@ -44,8 +45,9 @@ window.addEventListener('load', function () { (async function () {
     var same = function (cols, year, a, b) { var x = slotOf(cols, year, a); return x !== null && x === slotOf(cols, year, b); };
     var rc = out.cols = columns();
     out.phasesSeen = (function () { var set = {}; Object.keys(rc).forEach(function (y) { Object.keys(rc[y]).forEach(function (s) { rc[y][s].forEach(function (k) { set[k] = 1; }); }); }); return Object.keys(set).sort(); })();
-    // The four pairs the colreuse fixture shares a column between, and the hand move.
-    out.pairs = { c1wr: same(rc, '2030', 'custom1', 'writersRoom'), prodPrep: same(rc, '2030', 'production', 'prodPrep'),
+    // The four pairs the colreuse fixture shares a column between under the layout rules (5 Nov 2026: Production
+    // goes LEFT, into Writers' column, where the reuse placement's chain tie-break gave it Prep's), and the hand move.
+    out.pairs = { c1wr: same(rc, '2030', 'custom1', 'writersRoom'), prodWr: same(rc, '2030', 'production', 'writersRoom'),
                   c5loc: same(rc, '2031', 'custom5', 'localization'), c7c6: same(rc, '2031', 'custom7', 'custom6') };
     out.prodSlot2031 = slotOf(rc, '2031', 'production');
     out.sharedAnywhere = Object.keys(rc).some(function (y) { return Object.keys(rc[y]).some(function (s) { return rc[y][s].length > 1; }); });

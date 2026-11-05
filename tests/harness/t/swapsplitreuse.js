@@ -31,6 +31,7 @@ window.addEventListener('load', function () { (async function () {
     }, 'the row count to settle', 100, 100);
 
     var BLOCK = 'Swap the 2034 block of Prep with Writers (Production moves with it)';
+    var DIR = -1;   // towards Writers, which the layout rules put LEFT of Prep (see step 2)
     function cells(pkey, year) {
       return Array.prototype.filter.call(document.querySelectorAll('#table-wrap td.sheet-phase-cell'), function (td) {
         return td.dataset.pkey === pkey && td.dataset.week.slice(0, 4) === String(year);
@@ -73,22 +74,27 @@ window.addEventListener('load', function () { (async function () {
     out.latePost = cells('custom1', 2034).length;
     out.reuseOn = !!(document.querySelector('#col-reuse') || {}).checked;
 
-    // 1. 2034 has 3 column slots (Production, Sim Post's lane, Writers), not 4: Late Post shares a column
-    //    already used in 2034.
+    // 1. 2034 has 3 column slots (Writers, Production, Sim Post's lane), not 4: Late Post shares a column
+    //    already used in 2034 (rule 4: an unused column sorts after every used one).
     out.cols2034 = phaseCols(2034);
     out.lateOwn = owns('custom1', 2034);
     out.writersOwn = owns('writersRoom', 2034);
     out.prodOwn = owns('production', 2034);
 
-    // 2. Swap Column on Prep's 2034 block: the right knob is the WHOLE-column swap, teal, no dashed box.
+    // 2. Swap Column on Prep's 2034 block: the knob towards Writers is the WHOLE-column swap, teal, no dashed box.
+    // ⭐ Since the layout rules (5 Nov 2026, LAYOUT-RULES.md) Writers' column is already LEFT of Prep's in 2034 --
+    // rule 9 orders a year's columns by their top phase's start, and Writers started before Design -- so the
+    // partner is on the left and the swap goes that way; before, with Production renumbered column 0, Writers sat
+    // right of the lane and the swap stepped over it.
     await clickStintBtn('2034-01-16', 'prodPrep');
-    await T.until(function () { return !!knob(1); }, 'a right knob on Prep\'s block', 120, 100).catch(function () {});
-    out.knob = knob(1) ? knob(1).getAttribute('aria-label') : null;
-    out.knobPartial = !!(knob(1) && knob(1).classList.contains('is-partial'));
+    await T.until(function () { return !!knob(DIR); }, 'a knob towards Writers on Prep\'s block', 120, 100).catch(function () {});
+    out.knobLabels = { left: knob(-1) ? knob(-1).getAttribute('aria-label') : null, right: knob(1) ? knob(1).getAttribute('aria-label') : null };
+    out.knob = knob(DIR) ? knob(DIR).getAttribute('aria-label') : null;
+    out.knobPartial = !!(knob(DIR) && knob(DIR).classList.contains('is-partial'));
     out.partialBox = !!document.querySelector('.grid-sel-layer .grid-swap-partial');
 
-    // 3. Commit: Writers ends up in ONE column for all of 2034, left of Production.
-    T.altSwap(1);
+    // 3. Commit: Writers ends up in ONE column for all of 2034, on the other side of Production.
+    T.altSwap(DIR);
     await T.until(function () { return owns('writersRoom', 2034).join() !== out.writersOwn.join(); },
       'the swap to land', 120, 100).catch(function () {});
     await T.sleep(200);
@@ -107,10 +113,10 @@ window.addEventListener('load', function () { (async function () {
         && (out.lateOwn[0] === out.writersOwn[0] || out.lateOwn[0] === out.prodOwn[0])),
       C('S2', 'Swap Column on Prep offers the whole-column swap, teal, with no dashed box -- ' + out.knob,
         out.knob === BLOCK && !out.knobPartial && !out.partialBox),
-      C('S3', 'after the swap Writers sits in ONE column for all of 2034, left of Production -- Writers '
+      C('S3', 'after the swap Writers sits in ONE column for all of 2034, right of Production and its lane -- Writers '
         + out.writersAfter + ', Production ' + out.prodAfter + ', Prep ' + out.prepAfter,
         out.writersAfter.length === 1 && out.prodAfter.length === 1 && out.prepAfter.length === 1
-        && out.writersAfter[0] < out.prodAfter[0] && out.prepAfter[0] === out.prodAfter[0]),
+        && out.writersAfter[0] > out.prodAfter[0] && out.prepAfter[0] === out.prodAfter[0]),
       C('S4', '0 console errors, 0 clipped cells', out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length))
     ];
     out.pass = out.cases.every(function (c) { return c.pass; });

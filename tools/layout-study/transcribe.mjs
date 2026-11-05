@@ -17,10 +17,6 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '..', '..');
-const [dir] = process.argv.slice(2);
-if (!dir) { console.error('usage: node tools/layout-study/transcribe.mjs "<scrubbed folder>"'); process.exit(2); }
-
-const specs = JSON.parse(fs.readFileSync(path.join(dir, 'specs.json'), 'utf8'));
 const template = JSON.parse(fs.readFileSync(path.join(repo, 'tests', 'fixtures', 'autonoterename.sptcal'), 'utf8'));
 
 const BUILTIN = ['writersRoom', 'prePrep', 'prodPrep', 'production', 'post', 'localization'];
@@ -64,10 +60,9 @@ function customFields(by, key, name) {
   by['phiatus-start-' + key] = { value: '' }; by['phiatus-weeks-' + key] = { value: '2' };
 }
 
-let n = 0;
-for (const id of Object.keys(specs)) {
-  if (id.startsWith('_')) continue;
-  const spec = specs[id];
+// One spec -> one snapshot. Exported for tools/layout-study/fixtures.mjs, which writes the synthetic rule fixtures
+// (tests/fixtures/layout-*.sptcal) from the same shape of spec, plus `colReuse` (the layout stamp) when asked.
+export function buildSnapshot(spec, id) {
   const s = blank();
   const by = s.fields.byId;
   const customs = spec.phases.filter(p => /^custom\d+$/.test(p.key)).map(p => p.key).sort((a, b) => +a.slice(6) - +b.slice(6));
@@ -104,7 +99,19 @@ for (const id of Object.keys(specs)) {
     by['simpost-count'].checked = !!spec.simpost.count;
   }
   if (spec.singleColumn) s.singleColumn = true;
-  fs.writeFileSync(path.join(dir, id + '.sptcal'), JSON.stringify(s, null, 2) + '\n');
-  n++;
+  if (spec.stamped) s.colReuse = true;
+  return s;
 }
-console.log(n + ' .sptcal file(s) written to ' + dir);
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [dir] = process.argv.slice(2);
+  if (!dir) { console.error('usage: node tools/layout-study/transcribe.mjs "<scrubbed folder>"'); process.exit(2); }
+  const specs = JSON.parse(fs.readFileSync(path.join(dir, 'specs.json'), 'utf8'));
+  let n = 0;
+  for (const id of Object.keys(specs)) {
+    if (id.startsWith('_')) continue;
+    fs.writeFileSync(path.join(dir, id + '.sptcal'), JSON.stringify(buildSnapshot(specs[id], id), null, 2) + '\n');
+    n++;
+  }
+  console.log(n + ' .sptcal file(s) written to ' + dir);
+}

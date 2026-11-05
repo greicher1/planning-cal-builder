@@ -25,6 +25,11 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
    don't matter). If a column's phase ended the week before, take that column. **A paused phase has not ended:**
    a phase on its own hiatus keeps its column.
 3. **Two just freed: take the left one.** That is what puts Production in Writers' column, not Prep's.
+   *(As built, 5 Nov 2026 — LAYOUT-BUILD-PLAN.md §2.2: **Production goes left whether or not both columns were freed
+   that week.** In hand-10, 12, 15 and 16 Writers' column had been free for one to six weeks and only Prod Prep's was
+   handed off, and the pictures still put Production in Writers' column; the study's own scoring agrees, since Reuse
+   OFF, which takes the lowest free column, got those seeds right. Every other phase takes its handoff column first,
+   as rule 2 says — hand-05's and hand-08's Localization over a free column further left.)*
 4. **Nothing just freed: the lowest free column** — preferring one already used this year, so the year does not
    grow a column — **but never left of a phase still running** unless following on (rule 2): a phase that is not
    continuing a column goes right of everything running. *(Ruled R-D, 5 Nov 2026.)*
@@ -63,6 +68,10 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
 18. **A hiatus week does not split a phase's run** for these rules: the weeks before a band do not widen on their
     own.
 19. **A width dragged by hand wins.**
+
+**Built** (LAYOUT-BUILD-PLAN.md, 5 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
+`layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; the fixtures are
+`tests/fixtures/layout-r*.sptcal` (made by `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
 
 **Old files.** A calendar saved without the layout stamp (`colReuse`) keeps its old columns and widths exactly,
 forever, and is offered the update once, by a strip — never changed on its own (owner ruling, 5 Nov 2026: *"yes
