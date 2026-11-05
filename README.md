@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
+## v1.11.0 — the waterfall lays itself out (the layout rules; Reuse Empty Columns retires), ▲ / ▼ on each phase card, one Shift tool with a tick list, a hiatus change ripples, the note editor names a line, the month drag carries (5 Nov 2026)
+
+### the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
 
 The layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), 4–5 Nov 2026) scored fifteen of the owner's own
 calendars against today's column rules; the owner answered every difference "as pictured", and
@@ -69,7 +71,7 @@ calendars against today's column rules; the owner answered every difference "as 
   PDFs byte-identical; `npm run check` 40/40; a full gate, 4,000 PASS / 1 FAIL (a month-PDF capture under contention,
   green re-run alone).
 
-### Unreleased — the layout study's `?layout=` hook, localhost only (4 Nov 2026)
+### the layout study's `?layout=` hook, localhost only (4 Nov 2026)
 
 **What:** on `localhost` / `127.0.0.1` only, `?layout={"production":0,…}` on the page URL forces every waterfall
 phase's column (phase key → column index). Read in `computeSchedule` where `col` is assigned, so the frozen layout
@@ -79,7 +81,7 @@ ruling R6) draws candidate layouts — and a hand-made calendar's own layout —
 today's. **Verified:** in the browser pane a seed drew the forced columns; the study's `tools/layout-study/` (scrub,
 transcribe, compare, serve, the page) runs against the build. Leg `layouthook` and a full gate are still to run.
 
-### Unreleased — the month view's bar drag carries what the arrows carry (5 Nov 2026)
+### the month view's bar drag carries what the arrows carry (5 Nov 2026)
 
 Dragging a phase's bar in the month view now takes **its own hiatus** and **everything keyed to its weeks** with it:
 its hiatus band's name, colour, size and style, its cell spans, its column swaps and its text styles (Sim Post's with
@@ -103,7 +105,7 @@ of the run's weeks). Full gate: 4,043 PASS, 1 FAIL (`scenariocompat` on the v1.2
 green alone), every baseline identical.
 
 
-### Unreleased — Shift: tick the phases that move (5 Nov 2026)
+### Shift: tick the phases that move (5 Nov 2026)
 
 Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if
 ... you just selected every phase you wanted it to effect kinda like how it works in rebuild from"*, then *"is there
@@ -129,7 +131,7 @@ shortcut's ticks, a hand-picked set, T2 in a shared week and across a gap, nothi
 a one-span build is red on C4.
 
 
-### Unreleased — a hiatus change moves the phases after it (4 Nov 2026)
+### a hiatus change moves the phases after it (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
 adjust all the phases. It should be very clear how to turn it on or off"*. Plan and rulings: `HIATUS-RIPPLE-PLAN.md`.
@@ -158,7 +160,7 @@ adjust all the phases. It should be very clear how to turn it on or off"*. Plan 
   every FAIL a stalled leg (or a check fed by one) or the rename, all 196 checks of them green on the renamed
   build, the waterfall PDF and Excel parts identical to the baselines. R0 holds the switch's three names.
 
-### Unreleased — ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
+### ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
 
 The owner asked for a way to move one phase up or down the waterfall: *"on the phases in the leftside column, above
 and below the date box, little up and down arrows appear allowing you to shift up or down by a week at a time.
@@ -199,7 +201,7 @@ on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiat
 ▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40. Full gate on the branch: 3,981 PASS
 / 3 FAIL with every baseline identical; the three were 10 s Load waits while another gate ran, each green re-run.
 
-### Unreleased — the waterfall's note editor says what a line is, and hides it (4 Nov 2026)
+### the waterfall's note editor says what a line is, and hides it (4 Nov 2026)
 
 The waterfall's note editor no longer calls every cell a "Note" (owner, 30 Oct 2026: *"why does this still show as
 Note in the waterfall"*), and it has the month view's Hide (owner, 4 Nov 2026: *"Should there be an equivalent hide
@@ -229,7 +231,7 @@ with every baseline identical. Neighbours green: noteviews, notewrap, holidayren
 autonotekinds, autonotephases, hdrcontrols, wfnotecolors, dlgkeys, regionmirror, hdrrow, mvmenu, monthnotes, textstyle.
 `npm run check` 40/40.
 
-### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+### one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 
 The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
 one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
@@ -269,7 +271,7 @@ gate ran on the start-week rule. That rule was briefly replaced by the overlap r
 re-checked on the targeted legs (HANDOFF).
 
 
-### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
+### the Automatic notes card, one row per phase (4 Nov 2026)
 
 The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me
 3 differnt mockups"* ([`mockups/autonote-card.html`](mockups/autonote-card.html): A, the same list tidied; B, one row
@@ -291,7 +293,7 @@ in the grid or the exports.
   `prepreptitle` 7/7, `autonote` 9/9, `autonoterename` 24/24, `autonoteview` 18/18, `settingswin` 21/21,
   `phasesui` 8/8. No full gate: nothing in the grid, the exports or the save path changed.
 
-### Unreleased — Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
+### Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
 
 The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
 weeks they share, so the long phase sat in two columns. Turning off Reuse Empty Columns "fixed it", *"But how would a
@@ -318,7 +320,7 @@ Ruled "Fix both".
   `gate.sh`): 300 PASS, 0 FAIL. Full gate: 3,896 PASS, 3 FAIL, every baseline identical; the three are known
   timing flakes (`monthexport` X6, `phaseedge`'s deadline, `offweek` R9), each green re-run alone.
 
-### Unreleased — automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
+### automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
 
 Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:
 *"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the waterfall and month
@@ -347,7 +349,7 @@ typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) o
 old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
 
 
-### Unreleased — recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
+### recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"sometimes when we reopen the app, it loads the last calendar we were on but as an unsaved,
 untitled duplicate."* That was the "Recover unsaved work" question at launch. Two causes:
@@ -367,7 +369,7 @@ save-format change (a backup is never a saved file). New legs `backuplink` (5 ca
 the gate beside `backupslots`: red on the live build except L1, and L4 red with only the new guard deleted. Also
 green: `backupslots`, and the other legs that save, load or read the backup (listed in HANDOFF). `npm run check` 40/40.
 
-### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
+### Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
 
 Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:
 *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first shoot have
@@ -386,7 +388,7 @@ alone). Leg `scenarios` 23/23: S19 and S20 reworded, and new S22 (a holiday on t
 nowhere), red on the old build with exactly the owner's "−1 holiday" under First shoot day. `scenariofacts` 12/12,
 `npm run check` 40/40, and the browser pane on `scenarios-3`.
 
-### Unreleased — a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
+### a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
 
 Both note editors now have a switch right below the colours (owner, 4 Nov 2026: *"a toggle in the popup when you edit
 a note … to hide/show the note in the other calendar"*):
@@ -409,7 +411,7 @@ top-level key and no new field id. Older builds open such a file and ignore both
 gate.sh), plus 13 neighbouring note legs green on the build. Full gate merged with main: every byte comparison held;
 of four FAILs, one was this leg's own outdated check, and three were Load-timing flakes that pass alone.
 
-### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
+### no hairline between rows in the waterfall PDF (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid
 lines turned off"*.
@@ -442,7 +444,7 @@ covers it; Gridlines None has no line.
   - It fails on the old PDF.
 - `wfnotecolors` P1 now counts cell fills rather than every rectangle. A No fill note also takes its neighbours'
   strips away, so the plain count fell by 3 instead of 1.
-### Unreleased — a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
+### a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
 
 The owner's follow-up pickers to the change below: *"Same rule, add colour"* for a phase's own hiatus, and *"remove
 month color, but keep the style bar working for all"*.
@@ -460,7 +462,7 @@ Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red 
 menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
 phase band; `notewrap` gets its Post label from a saved file.
 
-### Unreleased — the note under Show info is gone (4 Nov 2026)
+### the note under Show info is gone (4 Nov 2026)
 
 The blue box at the bottom of Show info, *"Production's Total Shooting Days: N — the sum of the episode list in the
 Production phase…"* with its *"Manually changed: Episode 101 → 11 days…"* line, is removed (owner, 4 Nov 2026, with a
@@ -473,7 +475,7 @@ changed" from the box, and now reads an unstyled `is-edited` class on the episod
 now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
 the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
 
-### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
+### an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
 
 The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
 be possible in the left side bar"*.
@@ -488,7 +490,7 @@ Verified: a new leg, `hiatussidebar`, 11/11, red on v1.10.0 in 8 of 11. Six legs
 reworked: `hiatuslabel`, `notewrap`, `mvmenu`, `wfnotecolors`, `textstyle`, `hdrcontrols`. Those six and ten neighbouring
 legs are green. Checked by hand in the browser.
 
-### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
+### right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the
 folder that holds that file, and the bar at its top shows where it is saved (owner, 4 Nov 2026: *"I want to see where
@@ -501,7 +503,7 @@ copy exported with the menu open not carrying it. Red on a build without `startI
 hand in the browser pane with a real click: Chrome still counts the click as the user's when the window is asked for.
 Not yet seen on the owner's Mac with the real window.
 
-### Unreleased — the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
+### the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
 
 Harness only; the app is unchanged. A full gate sat for 3 h 20 min in `tests/harness/printpaper.mjs` because its
 DevTools calls wait for Chrome's reply with no timeout. `printpaper.mjs` (240 s) and `rtleg.mjs` (`--secs` + 60) now
