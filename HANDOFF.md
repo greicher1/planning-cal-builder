@@ -37,11 +37,19 @@
     Tools" menu, removed for its height, was 562 px.
   - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
     `calrange`, `overrides` and `rowheight` move to the new controls.
+- **Shift From gets the same choice in A and B** (owner: *"Add similar functionality for shift from in the mockup"*;
+  plan §1.1). It is `Phase & before | Phase & after`, under its Earlier / Later row, and opens on Phase & after
+  (today's Shift From). There is no All phases option, since that is Shift All. It uses the same engine bound.
 - **Waiting on the owner:**
-  - R1, the layout: A (three buttons in Anchor To), B (a dropdown) or C (one Shift tool). C is recommended if
-    retiring two buttons is acceptable, and A otherwise.
-  - R2, on opening: back to All phases (and By weeks in C) every time, which is recommended, or remember the last
-    choice until the app closes.
+  - R1, the layout: A (buttons in Anchor To and Shift From), B (dropdowns) or C (one Shift tool).
+    - **A is now recommended**, revised once Shift From got the choice. It covers every combination C does
+      without retiring a button.
+    - C's remaining advantage is two tools instead of four.
+  - R2, on opening: today's behaviour every time, which is recommended (Anchor To on All phases, Shift From on
+    Phase & after, C on All phases by weeks). Or remember the last choice until the app closes.
+- ⚠️ **It shares `shiftCalendarDates`'s third argument with HIATUS-RIPPLE-PLAN.md** (branch `hiatus-ripple`, its
+  `opts.except`). Use one
+  options object, `{except, before}` (plan §5 step 1).
 - ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
   schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,
   `d4d8d40`, `e123aa5`). The change touches no cell look and no writer, but it IS the path every mover shares, so a

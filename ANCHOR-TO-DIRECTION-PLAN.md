@@ -1,7 +1,8 @@
 # ANCHOR-TO-DIRECTION-PLAN.md: Anchor To, choose what moves
 
 **Status: PLAN + MOCKUP, NOTHING RULED, NO APP CODE (4 Nov 2026).** Three layouts: A and B add the choice to Anchor
-To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
+To and to Shift From (§1.1, and A is now the recommendation); **C combines Shift From and Anchor To into one Shift
+tool (§6)**. Mockup:
 [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html), one tab per layout. Tracker card
 `anchor-to-direction`.
 
@@ -16,6 +17,10 @@ To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
   - then *"What about All phases, Before a phase, and after a phase"*, then *"Phase and Previous, Phase and Before? Or
     come up with a few other wording ideas"*. Offered four, the owner picked `All phases | Phase & before | Phase &
     after` (§3).
+  - then, on a screenshot of the phase / *starts on* row, *"Fix mockup a and b so the date selector is directly below
+    this line"* (§1).
+  - then *"Add similar functionality for shift from in the mockup"*. In A and B, Shift From gets `Phase & before |
+    Phase & after` (§1.1).
 - **The short answer given in chat:** Anchor To moves everything today. It is Shift All aimed at a date. A choice of
   what moves makes sense, and the "backwards" half is the useful one: no tool today moves a phase and the phases
   before it while keeping the gaps. Call it something other than forward/backward (§3).
@@ -84,6 +89,31 @@ The mockup draws three layouts (R1):
 - **B, a dropdown** whose options name the phase: `Production and everything after it`.
 - **C, one Shift tool.** Shift From and Anchor To are folded into Shift All's ▾, with the same three buttons plus "By
   weeks | To a date". See §6. Everything below in this section holds for C too.
+
+### 1.1 Shift From gets the same choice (A and B)
+
+Asked 4 Nov 2026: *"Add similar functionality for shift from in the mockup"*. C needs nothing here, because Shift From
+is already inside its Shift tool.
+
+- **Today's rows stay as they are**, the phase with the weeks and then Earlier / Later, and the choice goes under
+  them, as in Anchor To.
+- **Two options, not three: `Phase & before | Phase & after`.** All phases by weeks is Shift All, which already has
+  its own button.
+- **It opens on Phase & after**, today's Shift From (R2). The three legs that drive it today (`calrange`,
+  `overrides`, `rowheight`) keep working unchanged.
+- **B's version is a dropdown** naming the phase, as in its Anchor To.
+- **The hint line and the result line are Anchor To's.** For example: "Production and the phases before it move.
+  Post and Localization stay where they are."
+- **Its help gains "before":** *"The phase you pick moves, with the phases before it or after it. The other phases
+  stay put, so the gap beside it opens or closes. Earlier and Later are directions of travel, not which side
+  moves."*
+- **The engine is the same `before` bound (§2, §5 step 1),** so nothing new is needed. Phase & after is Shift From's
+  call exactly as it is today.
+- **What it gives you:** A and B now cover every combination §6.1 lists. All phases by weeks is Shift All, a phase
+  and the ones before or after it by weeks is Shift From, and all three to a date are Anchor To. No button is
+  retired. That changes R1's recommendation (§4).
+- **The name stays Shift From.** With Phase & before it moves the other way. "Shift From Production" still reads
+  well, and renaming a button people know is not proposed.
 
 Either way:
 - **A hint line under the choice names what stays put.** For example, "Post and Localization stay where they are."
@@ -170,22 +200,25 @@ Either way:
 ## 4. Rulings needed
 
 - **R1. Layout.**
-  - (a) **Three buttons in Anchor To**, `All phases | Phase & before | Phase & after`. Shift From stays as it is.
-  - (b) A dropdown in Anchor To naming the phase. Shift From stays as it is.
+  - (a) **Three buttons in Anchor To**, `All phases | Phase & before | Phase & after`, and two in Shift From,
+    `Phase & before | Phase & after` (§1.1).
+    *(Recommended, revised 4 Nov 2026 once Shift From got the choice. A now does everything C does: a phase and the
+    ones before or after it, by weeks or to a date. It does so without retiring a button the people on the live site
+    already use, and every tool keeps the rows it has today. Its buttons are visible at once, and they match Rebuild
+    From's direction control in the next popover.)*
+  - (b) The same, as dropdowns that name the phase.
   - (c) **One Shift tool (§6).** Shift From and Anchor To fold into Shift All's ▾, and the toolbar keeps two tools.
-    *(Recommended, if you are happy to retire two buttons people know. It follows "simplify rather than add options":
-    A and B add a choice to Anchor To and leave its "Phase & after" doing what Shift From already does, while C
-    removes that overlap, and "Phase & before" then works by weeks too at no extra cost. If retiring the buttons is
-    too big a change for the people on the live site, (a) is the low-change choice: its buttons are visible at once,
-    and they match Rebuild From's direction control in the next popover.)*
+    Its one remaining advantage over (a) is fewer buttons: two tools instead of four. It costs retiring two buttons
+    and reworking seven legs (§6.3). It was the recommendation before §1.1 existed.
 - **R2. What it starts on when the popover opens.**
-  - (a) **All phases, every time** (and, in C, By weeks). *(Recommended: someone who never touches the choice gets
-    exactly today's tool: Anchor To under A and B, Shift All's form under C. It matches Rebuild From's ticks, which
-    are forgotten between openings.)*
+  - (a) **Today's behaviour, every time.** Anchor To opens on All phases, Shift From on Phase & after, and C on All
+    phases by weeks. *(Recommended: someone who never touches the choice gets exactly today's tools. It matches
+    Rebuild From's ticks, which are forgotten between openings.)*
   - (b) The last choice, until the app is closed.
   - Neither is ever saved in a calendar: it is session UI inside `.tools-menu`, which `collectFieldValues()` skips.
 
-Not proposed: changing Rebuild From or Close all gaps. Under A and B, Shift All and Shift From are not changed either.
+Not proposed: changing Rebuild From or Close all gaps. Under A and B, Shift All is not changed either, and Shift From
+only gains its choice (§1.1).
 
 ---
 
@@ -194,8 +227,12 @@ Not proposed: changing Rebuild From or Close all gaps. Under A and B, Shift All 
 These are for A or B. C adds steps of its own (§6).
 
 1. **Engine, `shiftCalendarDates`.**
-   - An optional third argument, `before = {phaseIso, weekIso}`, passed through `shiftCalendar` (still inside
-     `asShootDayMove`).
+   - An optional third argument, an options object, with `opts.before = {phaseIso, weekIso}`, passed through
+     `shiftCalendar` (still inside `asShootDayMove`).
+   - ⚠️ **Shared with `HIATUS-RIPPLE-PLAN.md`** (another session, 4 Nov 2026, on branch `hiatus-ripple`). It gives the
+     same function a third argument too, `opts.except` (the hiatus being edited, held in place). Use ONE options
+     object, `{except, before}`, never two positional arguments. Whichever plan builds second rebases onto the
+     other's change to `shiftCalendarDates`.
    - `inRange` gains the week bound (`<= weekIso`). A new `phaseInRange` is used in step 1 only (`<= phaseIso`).
    - With no `before`, both are today's test, so every existing caller is untouched.
    - About 15 lines.
@@ -205,6 +242,9 @@ These are for A or B. C adds steps of its own (§6).
    - The engine handler reads the choice, hides it on `ANCHOR_ALL`, resets it on open (R2), writes the hint line,
      and passes the cutoff ("after") or the two bounds ("before").
    - The result line uses `describeShift`'s `tail`, as Shift From's does. The help text is the one in §1.
+   - **Shift From (§1.1):** the same control inside `#pop-ripple`, two buttons (`data-move`, no id) under
+     Earlier / Later. `ripple()` passes the cutoff for Phase & after, as today, or the two bounds for Phase &
+     before. It resets to Phase & after on open, and its help text is the one in §1.1.
 3. **A new leg, `anchorside`.** Each case runs on a synthetic calendar and checks the snapshot afterwards:
    - E1: All phases leaves today's result unchanged (the snapshot equals a run of today's code path).
    - A1: "after" equals Shift From by the same number of weeks.
@@ -216,6 +256,8 @@ These are for A or B. C adds steps of its own (§6).
    - B6: "ends by" lands on or before the date.
    - U1: one Undo restores everything.
    - W1: Whole schedule hides the choice.
+   - F1: Shift From on Phase & after equals today's Shift From. F2: Shift From on Phase & before by 2 weeks equals
+     Anchor To's Phase & before to the date 2 weeks away.
    - S1: no new key in `fields.byId`.
    - Neighbours to re-run: `snaptools`, `builtindates`, `customunits`, `datepick`, `overrides`, `rebuildticks`.
 4. **Docs, in the same commit as the code:**
