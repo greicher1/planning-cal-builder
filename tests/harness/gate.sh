@@ -1887,10 +1887,10 @@ done
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
 # replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
 # date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
-# after is the old Shift From when nothing overlaps; a phase sharing a working day with the picked one moves too, on
-# either side (owner, "Overlaps move too"; red on 9 cases without it), and notes, unlocked hiatuses and the range go by
-# a week window spanning the moving phases; by weeks = to a date; one undo; the form's resets; no new key in
-# fields.byId. On anchorside.sptcal (dayoverrides + notes, a Fall Break, Localization, a range start, two overlaps).
+# after is the old Shift From; a phase goes by its START, so one that started earlier and runs into the picked one
+# stays (X2, the owner's "everything except for writers room", which reverted "overlaps move too"); notes, unlocked
+# hiatuses and the range go up to the picked phase's LAST week on Phase & before (red on a one-bound build: B2, B3);
+# by weeks = to a date; one undo; the form's resets; no new key in fields.byId. On anchorside.sptcal.
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written

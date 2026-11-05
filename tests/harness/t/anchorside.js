@@ -11,9 +11,10 @@
 // TWO OVERLAPS, both by days: with the Fall Break the shoot wraps Tue 11/3, so Post (Mon 11/2) starts inside it; and
 // Pre Prep (snap-off Wed 4/8 x 6) works to Tue 5/19, inside Prod Prep's first week (Mon 5/18). Prod Prep (to Fri 6/26)
 // and Production (Mon 6/29) are back to back, which is NOT an overlap.
-// THE RULE (owner, 4 Nov 2026, "Overlaps move too", over keeping the start-week rule alone): a part move takes the
-// picked phase, every phase starting on its side, and every phase sharing a working day with the picked one (not
-// chained); notes, unlocked hiatuses and the range go by a week window spanning the moving phases whole.
+// THE RULE: a part move takes the picked phase and every phase STARTING on its side; an overlap does not count.
+// Notes, unlocked hiatuses and the range go by the picked phase's start week (after) or LAST week (before).
+// ⛔ For one deploy (c52094f) overlapping phases moved too (owner's "Overlaps move too"); the owner reverted it the
+// same night: "how would you move everything except for writers room", whose room ran into Pre-Prep. X2 holds that.
 // From dayoverrides it keeps: Writer's Rm 1/5/26 x 12, Pre Prep snap-off Wed 4/8 x 6, Prod Prep 5/18 x 6, Production
 // Mon 6/29/26 (80 days, US General) with four day marks (7/3 on, 7/6 half, 7/7 off, 7/11 on), the LOCKED "Summer
 // Break" 7/13 x 1, Post 11/2 x 16, and the locked Christmas hiatuses.
@@ -22,12 +23,14 @@
 //
 //   T0      truth guard: the calendar as loaded, and the wrap before Post
 //   O1      the form opens on All phases, By weeks: the phase row and the date row hidden, no Whole schedule
-//   X1      Phase & after + Production: back-to-back Prod Prep does not count as overlapping, and Pre Prep (which
-//           overlaps only Prod Prep) is not chained in
-//   X2      Phase & after + Prod Prep: Pre Prep, which overlaps it by two days, comes along and the hint says so
-//   H1      Phase & before + Production: the hint names Post as coming along (it overlaps) and Localization as staying
-//   B1      Phase & before Production, 2 wks Earlier: the four phases up to Production and Post move; Localization keeps
-//   B2      ... notes in Pre Prep, the shoot and Post move (the window runs to Post's last week); Localization's stays
+//   X1      Phase & after + Production: the hint names the three earlier phases as staying
+//   X2      Phase & after + Prod Prep moves Prod Prep onward and LEAVES Pre Prep, which started earlier and runs into
+//           it (the owner's "everything except for writers room"); its notes stay too
+//   H1      Phase & before + Production: the hint names Post (it starts inside the shoot's last week) and
+//           Localization as staying
+//   B1      Phase & before Production, 2 wks Earlier: the four phases up to Production move; Post and Localization keep
+//   B2      ... notes in Pre Prep, the shoot's week 6 and its LAST week (11/2, which Post shares) move; Post's week 3
+//           and Localization's stay (the last-week bound)
 //   B3      ... the unlocked hiatus inside the shoot moves; the locked Summer Break and Christmas stay
 //   B5      ... the dated note stays, and nothing keyed by a holiday moved
 //   Bm      ... the result line: what moved and what stayed
@@ -36,10 +39,10 @@
 //   F2      Phase & before to a date (Production starts on 6/15) = Phase & before by 2 weeks, snapshot for snapshot
 //   B4      Production's marks keep their shoot-day numbers: Phase & before -2 wks = All phases -2 wks, mark for mark
 //   E1      All phases is today's call: the arrow, the form by weeks and the form to a date give one snapshot
-//   F1      Phase & after Post by 1 wk: Post, Localization AND Production (it overlaps Post) a week later, with the
-//           shoot's notes, marks and Fall Break; Writer's Rm, Pre Prep, Prod Prep and their notes stay
+//   F1      Phase & after Post by 1 wk = the old Shift From: Post and Localization a week later, the shoot (which
+//           runs into Post) and everything before stays
 //   A1      Phase & after to a date (Post starts on 11/16) = Phase & after by 2 weeks, snapshot for snapshot
-//   B6      Phase & before, Production "ends by": lands on or before the date; Post comes along, Localization stays
+//   B6      Phase & before, Production "ends by": lands on or before the date; Post and Localization stay
 //   W1      Whole schedule is offered only for All phases to a date, and leaving that choice drops it for Production
 //   O2      reopened: back to All phases, By weeks (ruling R2(a))
 //   I1      no choice button carries an id, and every control is inside .tools-menu
@@ -126,33 +129,41 @@ window.addEventListener('load', function () { (async function () {
     await choose('after');
     T.set('tool-anchor-phase', 'production'); await T.sleep(150);
     var x1 = hint();
-    add('X1', 'Phase & after + Production: back-to-back Prod Prep (to Fri 6/26) is not an overlap, and Pre Prep is not chained in',
+    add('X1', 'Phase & after + Production: Writer\'s Rm, Pre Prep and Prod Prep stay',
       x1 === "Production and the phases after it move. Writer's Rm, Pre Prep and Prod Prep stay where they are.", {hint: x1},
       '"Production and the phases after it move. Writer\'s Rm, Pre Prep and Prod Prep stay where they are."');
     T.set('tool-anchor-phase', 'prodPrep'); await T.sleep(150);
     var x2 = hint();
-    add('X2', 'Phase & after + Prod Prep: Pre Prep, which works into Prod Prep\'s first two days, comes along',
-      x2 === "Prod Prep and the phases after it move, and so does Pre Prep, which overlaps it. Writer's Rm stays where it is.", {hint: x2},
-      '"Prod Prep and the phases after it move, and so does Pre Prep, which overlaps it. Writer\'s Rm stays where it is."');
+    T.set('tool-shift-weeks', '1');
+    $('tool-shift-later').click(); await settle();
+    var mX2 = msg(), sX2 = await take(), stX2 = startsOf(sX2), nX2 = notesOf(sX2);
+    add('X2', 'Phase & after Prod Prep +1 wk leaves Pre Prep, which started earlier and works into Prod Prep\'s first week (the owner\'s case: everything but the Writer\'s Room)',
+      x2 === "Prod Prep and the phases after it move. Writer's Rm and Pre Prep stay where they are."
+        && same(stX2, {writersRoom: '2026-01-05', prePrep: '2026-04-08', prodPrep: '2026-05-25', production: '2026-07-06', post: '2026-11-09', localization: '2027-03-08'})
+        && nX2['2026-04-13'] === 'PREP-NOTE' && nX2['2026-08-10'] === 'SHOOT-WK6'
+        && /Prod Prep and everything after it moved \(4 phases\)\. 2 stayed where they were\./.test(mX2),
+      {hint: x2, starts: stX2, notes: nX2, msg: mX2}, 'Pre Prep and Writer\'s Rm unmoved; Prod Prep 5/25 and every later phase a week on');
+    await undo(); await take();
+    await openShift();
 
     // ---- H1 + B: Phase & before, Production, 2 weeks Earlier ----
     await choose('before');
     T.set('tool-anchor-phase', 'production'); await T.sleep(150);
     var h1 = {hint: hint(), phaseRow: hiddenOf('[data-shift-phase-row]'), whole: phaseOpts().indexOf('__whole_schedule__') >= 0};
-    add('H1', 'Phase & before + Production: the phase row shows, and the hint names Post (it overlaps) and what stays',
-      !h1.phaseRow && !h1.whole && h1.hint === 'Production and the phases before it move, and so does Post, which overlaps it. Localization stays where it is.', h1,
-      '"Production and the phases before it move, and so does Post, which overlaps it. Localization stays where it is."');
+    add('H1', 'Phase & before + Production: the phase row shows, and the hint names what stays (Post too: it STARTS after the shoot does)',
+      !h1.phaseRow && !h1.whole && h1.hint === 'Production and the phases before it move. Post and Localization stay where they are.', h1,
+      '"Production and the phases before it move. Post and Localization stay where they are."');
     T.set('tool-shift-weeks', '2');
     $('tool-shift-earlier').click(); await settle();
     var mB = msg();
     var sB = await take(), stB = startsOf(sB), nB = notesOf(sB);
-    add('B1', 'Phase & before Production -2 wks: Writer\'s Rm, Pre Prep, Prod Prep, Production and Post (it overlaps the shoot) move; Localization keeps its date',
-      same(stB, {writersRoom: '2025-12-22', prePrep: '2026-03-25', prodPrep: '2026-05-04', production: '2026-06-15', post: '2026-10-19', localization: '2027-03-01'}),
-      stB, 'WR 12/22/25, Pre Prep 3/25, Prod Prep 5/4, Production 6/15, Post 10/19, Localization 3/1/27');
-    add('B2', 'notes: Pre Prep\'s, the shoot\'s and Post\'s move 2 weeks (the window runs to Post\'s last week); Localization\'s stays',
-      nB['2026-07-20'] === 'SHOOT-WK6' && nB['2026-03-30'] === 'PREP-NOTE' && nB['2026-10-19'] === 'OVERLAP-WK' && nB['2026-11-02'] === 'POST-WK3'
-        && nB['2027-03-08'] === 'LOC-WK2' && !nB['2026-08-03'] && !nB['2026-04-13'] && !nB['2026-11-16'],
-      nB, 'SHOOT-WK6 7/20, PREP-NOTE 3/30, OVERLAP-WK 10/19, POST-WK3 11/2, LOC-WK2 still 3/8/27');
+    add('B1', 'Phase & before Production -2 wks: Writer\'s Rm, Pre Prep, Prod Prep and Production move; Post and Localization keep their dates',
+      same(stB, {writersRoom: '2025-12-22', prePrep: '2026-03-25', prodPrep: '2026-05-04', production: '2026-06-15', post: '2026-11-02', localization: '2027-03-01'}),
+      stB, 'WR 12/22/25, Pre Prep 3/25, Prod Prep 5/4, Production 6/15, Post 11/2, Localization 3/1/27');
+    add('B2', 'notes: Pre Prep\'s, the shoot\'s week 6 and its LAST week\'s (11/2, shared with Post) move 2 weeks; Post\'s week 3 and Localization\'s stay',
+      nB['2026-07-20'] === 'SHOOT-WK6' && nB['2026-03-30'] === 'PREP-NOTE' && nB['2026-10-19'] === 'OVERLAP-WK' && nB['2026-11-16'] === 'POST-WK3'
+        && nB['2027-03-08'] === 'LOC-WK2' && !nB['2026-08-03'] && !nB['2026-04-13'] && !nB['2026-11-02'],
+      nB, 'SHOOT-WK6 on 7/20, PREP-NOTE on 3/30, OVERLAP-WK on 10/19, POST-WK3 still on 11/16, LOC-WK2 still on 3/8/27');
     var hB = hiatusOf(sB);
     add('B3', 'the unlocked Fall Break inside the shoot moves with it (9/21 -> 9/7); the locked Summer Break and Christmas stay',
       hB.indexOf('2026-09-07 Fall Break') >= 0 && hB.indexOf('2026-09-21 Fall Break') < 0 && hB.indexOf('2026-07-13 locked Summer Break') >= 0
@@ -163,8 +174,8 @@ window.addEventListener('load', function () { (async function () {
         && same(sB.holidayView, s0.holidayView) && same(sB.holidayOff, s0.holidayOff) && same(sB.customHolidays, s0.customHolidays),
       {note: sB.userNotes['2026-07-27'], holidayView: sB.holidayView, holidayOff: sB.holidayOff}, '"Wrap party booked" (7/30) on 7/27; holiday stores as loaded');
     add('Bm', 'the result line says what moved and what stayed',
-      /^Shifted 2 weeks earlier\./.test(mB) && /Production and everything before it moved \(5 phases, including Post, which overlaps it\)\. 1 stayed where it was\./.test(mB),
-      {msg: mB}, '"Shifted 2 weeks earlier. … Production and everything before it moved (5 phases, including Post, which overlaps it). 1 stayed where it was."');
+      /^Shifted 2 weeks earlier\./.test(mB) && /Production and everything before it moved \(4 phases\)\. 2 stayed where they were\./.test(mB),
+      {msg: mB}, '"Shifted 2 weeks earlier. … Production and everything before it moved (4 phases). 2 stayed where they were."');
     add('Br', 'the calendar range\'s start, before the bound, moved with it (2/2 -> 1/19)',
       ((sB.fields.byId['cal-range-start']) || {}).value === '2026-01-19', {range: sB.fields.byId['cal-range-start']}, '2026-01-19');
     await undo();
@@ -179,7 +190,7 @@ window.addEventListener('load', function () { (async function () {
     $('tool-anchor-go').click(); await settle();
     var mF2 = msg(), sF2 = await take();
     add('F2', 'Phase & before to a date (Production starts on 6/15) = Phase & before by 2 weeks, snapshot for snapshot',
-      canon(sF2) === canon(sB) && f2Prefill === '2026-06-29' && /Production starts 6\/15\/26\./.test(mF2) && /Production and everything before it moved \(5 phases/.test(mF2),
+      canon(sF2) === canon(sB) && f2Prefill === '2026-06-29' && /Production starts 6\/15\/26\./.test(mF2) && /Production and everything before it moved \(4 phases\)/.test(mF2),
       {starts: startsOf(sF2), notes: notesOf(sF2), prefill: f2Prefill, msg: mF2}, 'the B snapshot; prefill 6/29; "Production starts 6/15/26."');
     await undo(); await take();
 
@@ -214,21 +225,20 @@ window.addEventListener('load', function () { (async function () {
         && /^Shifted 1 week later\./.test(mE) && !/moved \(/.test(mE) && !/moved \(/.test(mE2) && /Production starts 7\/6\/26\./.test(mE2),
       {arrow: startsOf(sArrow), form: startsOf(sForm), date: startsOf(sDate), msg: mE, msg2: mE2}, 'three equal snapshots, every phase a week later');
 
-    // ---- F1: Phase & after Post by 1 week: Production overlaps Post, so it comes along ----
+    // ---- F1: Phase & after Post by 1 week = the old Shift From (the shoot runs into Post and stays) ----
     await openShift(); await choose('after');
     T.set('tool-anchor-phase', 'post'); await T.sleep(150);
     var f1Hint = hint();
     T.set('tool-shift-weeks', '1');
     $('tool-shift-later').click(); await settle();
     var mF1 = msg(), sF1 = await take(), stF1 = startsOf(sF1), nF1 = notesOf(sF1);
-    add('F1', 'Phase & after Post +1 wk: Post, Localization and Production (it overlaps Post) a week later, with the shoot\'s notes, marks and Fall Break; the earlier phases, their notes and the range start stay',
-      same(stF1, {writersRoom: '2026-01-05', prePrep: '2026-04-08', prodPrep: '2026-05-18', production: '2026-07-06', post: '2026-11-09', localization: '2027-03-08'})
-        && same(nF1, {'2026-04-13': 'PREP-NOTE', '2026-07-27': 'Wrap party booked', '2026-08-10': 'SHOOT-WK6', '2026-11-09': 'OVERLAP-WK', '2026-11-23': 'POST-WK3', '2027-03-15': 'LOC-WK2'})
-        && same(sF1.dayOverrides, sArrow.dayOverrides) && !same(sF1.dayOverrides, ov0)
-        && hiatusOf(sF1).indexOf('2026-09-28 Fall Break') >= 0 && ((sF1.fields.byId['cal-range-start']) || {}).value === '2026-02-02'
-        && /Post and everything after it moved \(3 phases, including Production, which overlaps it\)\. 3 stayed where they were\./.test(mF1)
-        && f1Hint === "Post and the phases after it move, and so does Production, which overlaps it. Writer's Rm, Pre Prep and Prod Prep stay where they are.",
-      {starts: stF1, notes: nF1, marks: sF1.dayOverrides, msg: mF1, hint: f1Hint}, 'Production 7/6, Post 11/9, Localization 3/8/27, the shoot\'s notes a week on, the marks as All phases +1');
+    add('F1', 'Phase & after Post +1 wk (the old Shift From): Post and Localization a week later; the shoot, every earlier phase, its notes, marks, hiatus and the range start stay',
+      same(stF1, {writersRoom: '2026-01-05', prePrep: '2026-04-08', prodPrep: '2026-05-18', production: '2026-06-29', post: '2026-11-09', localization: '2027-03-08'})
+        && same(nF1, {'2026-04-13': 'PREP-NOTE', '2026-07-27': 'Wrap party booked', '2026-08-03': 'SHOOT-WK6', '2026-11-09': 'OVERLAP-WK', '2026-11-23': 'POST-WK3', '2027-03-15': 'LOC-WK2'})
+        && same(sF1.dayOverrides, ov0) && hiatusOf(sF1).indexOf('2026-09-21 Fall Break') >= 0 && ((sF1.fields.byId['cal-range-start']) || {}).value === '2026-02-02'
+        && /Post and everything after it moved \(2 phases\)\. 4 stayed where they were\./.test(mF1)
+        && f1Hint === "Post and the phases after it move. Writer's Rm, Pre Prep, Prod Prep and Production stay where they are.",
+      {starts: stF1, notes: nF1, marks: sF1.dayOverrides, msg: mF1, hint: f1Hint}, 'Post 11/9, Localization 3/8/27, OVERLAP-WK 11/9, POST-WK3 11/23, LOC-WK2 3/15/27, the rest as loaded');
     await undo(); await take();
 
     // ---- A1: Phase & after TO A DATE (Post starts on 11/16) = Phase & after by 2 weeks ----
@@ -245,9 +255,9 @@ window.addEventListener('load', function () { (async function () {
     var mA1 = msg(), sA1d = await take();
     await undo(); await take();
     add('A1', 'Phase & after to a date (Post starts on 11/16) = Phase & after by 2 weeks, snapshot for snapshot',
-      canon(sA1d) === canon(sA1w) && startsOf(sA1d).post === '2026-11-16' && startsOf(sA1d).production === '2026-07-13' && startsOf(sA1d).prodPrep === '2026-05-18'
+      canon(sA1d) === canon(sA1w) && startsOf(sA1d).post === '2026-11-16' && startsOf(sA1d).production === '2026-06-29' && startsOf(sA1d).prodPrep === '2026-05-18'
         && /Post starts 11\/16\/26\./.test(mA1),
-      {weeks: startsOf(sA1w), date: startsOf(sA1d), msg: mA1}, 'equal; Post 11/16, Production 7/13 (it overlaps Post), Prod Prep unmoved');
+      {weeks: startsOf(sA1w), date: startsOf(sA1d), msg: mA1}, 'equal; Post 11/16, Production and Prod Prep unmoved');
 
     // ---- B6: Phase & before, Production "ends by" a date 10 days before its wrap ----
     var target = addDaysIso(w0, -10);
@@ -257,10 +267,10 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-anchor-date', target);
     $('tool-anchor-go').click(); await settle();
     var mB6 = msg(), w6 = wrapIso(), sB6 = await take();
-    add('B6', 'Phase & before, Production ends by ' + target + ': it lands on or before the date; Post (it overlaps) comes along, Localization stays',
-      b6Prefill === w0 && !!w6 && w6 <= target && w6 < w0 && startsOf(sB6).post === '2026-10-19' && startsOf(sB6).localization === '2027-03-01'
-        && /Production ends /.test(mB6) && /Production and everything before it moved \(5 phases/.test(mB6) && !MENU().querySelector('[data-tools-msg]').classList.contains('warn'),
-      {prefill: b6Prefill, wrapBefore: w0, wrapAfter: w6, target: target, starts: startsOf(sB6), msg: mB6}, 'wrap <= ' + target + '; Post 10/19');
+    add('B6', 'Phase & before, Production ends by ' + target + ': it lands on or before the date, and Post and Localization stay',
+      b6Prefill === w0 && !!w6 && w6 <= target && w6 < w0 && startsOf(sB6).post === '2026-11-02' && startsOf(sB6).localization === '2027-03-01'
+        && /Production ends /.test(mB6) && /Production and everything before it moved \(4 phases\)/.test(mB6) && !MENU().querySelector('[data-tools-msg]').classList.contains('warn'),
+      {prefill: b6Prefill, wrapBefore: w0, wrapAfter: w6, target: target, starts: startsOf(sB6), msg: mB6}, 'wrap <= ' + target + '; Post 11/2');
     await undo(); await take();
 
     // ---- W1: Whole schedule only for All phases to a date ----

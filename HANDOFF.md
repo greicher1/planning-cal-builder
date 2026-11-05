@@ -114,7 +114,7 @@
   run that had not been reported).
 
 
-### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
+### ✅ 4 Nov 2026: ONE SHIFT TOOL (SHIFT FROM + ANCHOR TO MERGED) — ✅ **LIVE at `c52094f`** WITH THE OVERLAP RULE; 🔨 **the overlap rule REVERTED on `shift-tool`, NOT pushed** (owner, 5 Nov 2026, on a screenshot: *"hmm maybe it cant be overlapping phases too...cuz how would you move everything except for writers room"*; see "Overlap rule reverted" below) (owner's pickers: *"Merge, re-check, then main"*, *"Push once re-checked"*, *"Overlaps move too"*; pushed FROM THE BRANCH, `e5e4435..c52094f` at 03:15:39 UTC on 5 Nov, carrying another session's HANDOFF-only `003b4bf`; the live `index.html` matched the re-checked build `805d7285…` byte for byte at 03:16:48). ⚠️ **Local `main` was NOT moved:** the main checkout holds another session's uncommitted HANDOFF edit, so `git merge --ff-only shift-tool` there waits until that session commits. RULED: LAYOUT C; BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, cut from local `main` at `77554e6`, which is `origin/main` `cd7ce25` plus docs-only commits: the plan, the mockup and this entry; `node_modules` is a real directory there) ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md), [`mockups/anchor-to-direction.html`](mockups/anchor-to-direction.html)). Tracker card `anchor-to-direction`
 
 **As built (4 Nov 2026), from plan §2, §3, §5 step 1 and §6:**
 - **Engine** (`src/legacy/app.js`): `shiftCalendar(weeks, fromIso, opts)` → `shiftCalendarDates(weeks, fromIso, opts)`,
@@ -147,12 +147,12 @@
   - Measured in the pane: 223 px as it opens, 273 px with Phase & before To a date.
 - **Handlers:** Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for itself.
   All phases is the OLD call (`shiftCalendar(n)`) and the old result line, word for word.
-  - ⭐ **`shiftPlan(move, key)` works out a part move ONCE**, for the hint and for `part`:
-    - the picked phase;
-    - every phase whose start week is on the chosen side;
-    - every phase that **overlaps** the picked one by a working day (`phaseStartDate` .. `phaseLastWorkday`;
-      Production to its wrap), whichever side it starts on;
-    - the window, from the moving phases' earliest start week (after) or to their latest last week (before).
+  - ⭐ **`shiftPlan(move, key)` works out a part move ONCE**, for the hint and for `part`. As it stands on `shift-tool`
+    after the revert:
+    - the picked phase and every phase whose START week is on the chosen side;
+    - the window from the picked phase's start week (after) or to its LAST week (before).
+  - *(Live at `c52094f`, now reverted:)* it also took every phase overlapping the picked one by a working day,
+    and the window spanned the moving phases whole.
   - **The overlap rule is the owner's** (4 Nov 2026, picker: *"Overlaps move too"*, over *"Keep start-week rule
     (Recommended)"*). **My calls:** overlap is by DAY, so back-to-back Friday/Monday phases don't count; and it is NOT
     chained (a phase overlapping only a moving neighbour stays).
@@ -161,6 +161,20 @@
     calendar, Phase & after Post moves the entire shoot, because it wraps Tue 11/3 and Post starts Mon 11/2. The
     hint says so before anything moves (*"…and so does Production, which overlaps it"*). Typing Post's start in the
     sidebar still moves Post alone.
+  - 🔁 **Overlap rule reverted** (owner, 5 Nov 2026, on a screenshot of the live tool, where Phase & after Pre-Prep
+    said *"…and so does Writer's Rm, which overlaps it. Every phase moves."*): *"hmm maybe it cant be overlapping
+    phases too...cuz how would you move everything except for writers room"*. Their Writer's Room ran three weeks
+    into Pre-Prep, so no move could leave it behind.
+    - Back to the start-week rule the full gate ran on: a phase goes by where it STARTS.
+    - The engine keeps `part`. Only `shiftPlan`, the hint and the result line changed.
+    - The cost, accepted: a Post starting before the wrap stays with Phase & before Production; move it with a
+      second move or its start box.
+    - `anchorside` 23/23. X2 is now the owner's case (Phase & after Prod Prep leaves Pre Prep, which runs into it).
+      The one-bound mutant is red on B2 and B3.
+    - Re-check on build `e2d347b8…`, all green: `npm run check` 40/40; snaptools 14; overrides 20; calrange 18;
+      rowheight 7; datepick 17; rebuildticks 19; builtindates 17 + 15; customunits 23 + 28; episodeprep 25;
+      halfworked 24; hdrcontrols 12.
+    - ⏭ Ask the owner to push.
   - `openPop` resets the form to All phases, By weeks before refreshing (R2(a)). The edge select (starts on / ends
     by) and the picked phase persist between openings, as Anchor To's did.
   - Whole schedule is in the list only for All phases to a date. Leaving that choice falls back to Production

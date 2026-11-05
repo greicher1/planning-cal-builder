@@ -28909,14 +28909,15 @@ export function initLegacyApp() {
   //           engine obeys exactly:
   //             * `phases` -- the keys of the phases that move. Every other phase stays, its own hiatus with it.
   //               The Shift form works the set out once (shiftPlan), for its hint and for this, so the two
-  //               cannot disagree: the picked phase, every phase on the chosen side, and (owner, 4 Nov 2026:
-  //               "Overlaps move too") every phase that overlaps the picked one by a day.
+  //               cannot disagree: the picked phase and every phase STARTING on the chosen side.
   //             * `fromWeek` / `toWeek` -- the window for everything WEEK-keyed (notes and what rides on them,
-  //               unlocked all-phase hiatuses, the calendar range); null = open on that side. It spans the
-  //               moving phases whole, so each takes its own notes and a hiatus inside it along: with one bound
-  //               at the picked phase's START, a 12-week shoot moved and left weeks 2-12 of its notes, and its
-  //               Christmas hiatus, on the old dates. A phase that stays but shares a week with one that moves
-  //               loses that week's notes to it: notes are keyed by week, not by phase (Shift From's old edge).
+  //               unlocked all-phase hiatuses, the calendar range); null = open on that side. The form passes the
+  //               picked phase's start week (after) or its LAST week (before), so it takes its own notes and a
+  //               hiatus inside it along: with one bound at its START, a 12-week shoot moved and left weeks 2-12
+  //               of its notes, and its Christmas hiatus, on the old dates. A phase that stays but shares a week
+  //               with the picked one loses that week's notes to it: notes are keyed by week, not by phase.
+  //           It is also the "just this phase" mover PHASE-WEEK-ARROWS-PLAN.md asked for as `{onlyPhase}`:
+  //           `{phases: [key], ...}`.
   //           `fromIso` is ignored with `part`.
   //   ⚠️ HIATUS-RIPPLE-PLAN.md (branch hiatus-ripple) gives this function `opts.except` and `opts.keepView`.
   //   ONE options object for all of them, never another positional argument.
@@ -30527,41 +30528,37 @@ export function initLegacyApp() {
     const andList = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
     // ⭐ WHAT A PART-CALENDAR MOVE TAKES, worked out ONCE, before anything moves, for the hint and for the move
     //    (shiftCalendarDates' `part`), so the two can never disagree (plan §2):
-    //   * the picked phase;
-    //   * every phase on the chosen side, judged by its START week (Phase & after is the old Shift From's set);
-    //   * every phase that OVERLAPS the picked one, whichever side it starts on (owner, 4 Nov 2026, "Overlaps move
-    //     too", over keeping the start-week rule alone). Overlap is by DAY: the two share a working day
-    //     (phaseStartDate .. phaseLastWorkday, Production to its wrap), so back-to-back phases -- one ends Friday,
-    //     the next starts Monday -- do not count. NOT chained: a phase that overlaps only a moving neighbour stays.
-    //   * The week window for notes, unlocked hiatuses and the range spans the moving phases WHOLE: from the
-    //     earliest one's start week (Phase & after) or to the latest one's last week (Phase & before). So each
-    //     moving phase takes its own notes and a hiatus inside it along.
+    //   * the picked phase, and every phase whose START week is on the chosen side. Phase & after is the old Shift
+    //     From's set exactly; Phase & before its mirror.
+    //   * The week window for notes, unlocked hiatuses and the range runs from the picked phase's start week (Phase &
+    //     after) or to its LAST week (Phase & before), so the picked phase takes its own notes and a hiatus inside it
+    //     along. With one bound at its start, a 12-week shoot moved and left weeks 2-12 of its notes behind.
+    // ⛔ ONLY THE START COUNTS, NOT AN OVERLAP. For one deploy (c52094f, 5 Nov 2026) a phase that overlapped the picked
+    //    one by a working day moved too (owner's picker, "Overlaps move too"). The owner reverted it the same night on a
+    //    real calendar: "how would you move everything except for writers room" -- the Writer's Room ran three weeks
+    //    into Pre-Prep, so Phase & after Pre-Prep took every phase and nothing could leave it behind. A phase that
+    //    started earlier stays with Phase & after; one that starts later stays with Phase & before. Notes are keyed by
+    //    week, so in weeks the two share they go with the picked phase. To move a later, overlapping phase too, use a
+    //    second move, or its start date in the sidebar.
     // Null when the picked phase has no start to judge from.
     function shiftPlan(move, key){
       const pStart = key && key !== ANCHOR_ALL ? phaseStartDate(key) : null;
       if(!pStart) return null;
       const segs = (currentSchedule && currentSchedule.segments) || [];
-      const lastOf = (k, start) => phaseLastWorkday(segs.find(s => s.key === k)) || start;
-      const pLast = lastOf(key, pStart);
+      const pLast = phaseLastWorkday(segs.find(s => s.key === key)) || pStart;
       const pWeek = mondayOf(pStart);
-      const rows = scheduledPhases().map(x => {
-        const last = lastOf(x.p.key, x.start);
-        const side = move === 'after' ? mondayOf(x.start) >= pWeek : mondayOf(x.start) <= pWeek;
-        const overlaps = x.start <= pLast && last >= pStart;
-        return {key: x.p.key, label: x.p.label || 'Phase', start: x.start, last,
-                moves: x.p.key === key || side || overlaps, overlap: x.p.key !== key && !side && overlaps};
-      });
+      const rows = scheduledPhases().map(x => ({key: x.p.key, label: x.p.label || 'Phase',
+        moves: x.p.key === key || (move === 'after' ? mondayOf(x.start) >= pWeek : mondayOf(x.start) <= pWeek)}));
       const moving = rows.filter(r => r.moves);
-      if(!moving.length) moving.push({key, label: 'Phase', start: pStart, last: pLast});
-      const weeks = moving.map(r => (move === 'after' ? mondayOf(r.start) : mondayOf(r.last)).getTime());
-      const edge = isoOf(new Date(move === 'after' ? Math.min.apply(null, weeks) : Math.max.apply(null, weeks)));
+      if(!moving.length) moving.push({key, label: 'Phase', moves: true});
       return {
-        moving, staying: rows.filter(r => !r.moves), overlapping: rows.filter(r => r.overlap),
-        part: {phases: moving.map(r => r.key), fromWeek: move === 'after' ? edge : null, toWeek: move === 'before' ? edge : null}
+        moving, staying: rows.filter(r => !r.moves),
+        part: {phases: moving.map(r => r.key),
+               fromWeek: move === 'after' ? isoOf(pWeek) : null, toWeek: move === 'before' ? isoOf(mondayOf(pLast)) : null}
       };
     }
     // The hint under the phase: what stays put, the one fact that tells the three choices apart before anything
-    // moves, and which phases come along only because they overlap the picked one.
+    // moves.
     function shiftHintHtml(){
       const sel = document.getElementById('tool-anchor-phase');
       const key = sel ? sel.value : '';
@@ -30570,23 +30567,17 @@ export function initLegacyApp() {
       const plan = shiftPlan(move, key);
       if(!plan) return '';
       const name = escHtml(phaseLabelOf(sel, 'That phase'));
-      const over = plan.overlapping.map(r => escHtml(r.label));
       const stay = plan.staying.map(r => escHtml(r.label));
-      let out = name + ' and the phases ' + move + ' it move';
-      if(over.length) out += ', and so ' + (over.length === 1 ? 'does ' : 'do ') + andList(over) + ', which overlap'
-        + (over.length === 1 ? 's' : '') + ' it';
-      out += '.';
-      if(!stay.length) return out + ' Every phase moves.';
-      return out + ' <b>' + andList(stay) + '</b> ' + (stay.length === 1 ? 'stays where it is.' : 'stay where they are.');
+      if(!stay.length) return 'Nothing starts ' + (move === 'after' ? 'before ' : 'after ') + name + ', so every phase moves.';
+      return name + ' and the phases ' + move + ' it move. <b>' + andList(stay) + '</b> '
+        + (stay.length === 1 ? 'stays where it is.' : 'stay where they are.');
     }
     // The result line's tail for a part-calendar move (plan §1). All phases adds nothing, so its line is the old
     // Shift All / Anchor To line word for word.
-    function moveTail(res, move, label, plan){
+    function moveTail(res, move, label){
       if(move === 'all' || !res) return '';
-      const over = (plan && plan.overlapping || []).map(r => r.label);
       let out = ' ' + label + ' and everything ' + move + ' it moved (' + res.movedPhases
-        + ' phase' + (res.movedPhases === 1 ? '' : 's')
-        + (over.length ? ', including ' + andList(over) + ', which overlap' + (over.length === 1 ? 's' : '') + ' it' : '') + ').';
+        + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
       if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
       return out;
     }
@@ -30636,7 +30627,7 @@ export function initLegacyApp() {
       if(!plan) return say(label + ' has no start date.', true);
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, move, label, plan)));
+      say(describeShift(res, moveTail(res, move, label)));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
@@ -30683,7 +30674,7 @@ export function initLegacyApp() {
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, move, label, plan));
+        + moveTail(res, move, label));
       say(out, overshot);
     });
 

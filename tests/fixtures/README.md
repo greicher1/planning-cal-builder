@@ -49,7 +49,8 @@ Localization 3/1/27 x 8, a calendar range start of 2/2/26, an UNLOCKED one-week 
 shoot, and six week notes: `PREP-NOTE` (4/13), `SHOOT-WK6` (8/3), "Wrap party booked" (7/27, DATED 7/30, so pinned),
 `OVERLAP-WK` (11/2), `POST-WK3` (11/16) and `LOC-WK2` (3/8/27). It holds two overlaps by days. With the Fall Break the
 shoot wraps Tue 11/3, so Post (11/2) starts inside it. Pre Prep (snap-off Wed 4/8 x 6) works to Tue 5/19, inside Prod
-Prep's first week. Prod Prep and Production are back to back (ANCHOR-TO-DIRECTION-PLAN.md §2, the overlap ruling). It keeps dayoverrides' four day marks,
+Prep's first week. Prod Prep and Production are back to back. Both overlaps STAY with a part move, because a phase goes
+by its start (ANCHOR-TO-DIRECTION-PLAN.md §2; the owner reverted "overlaps move too" the same night). It keeps dayoverrides' four day marks,
 its locked Summer Break and Christmas hiatuses, and Pre Prep snap-off on Wed 4/8. Read by `anchorside` (in gate.sh).
 
 ## From the deployment-readiness audit (24 Sep 2026)
