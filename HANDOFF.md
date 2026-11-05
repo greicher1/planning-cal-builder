@@ -39,7 +39,15 @@
 - ⚠️ **Overlaps the Anchor To plan** (`ANCHOR-TO-DIRECTION-PLAN.md`, another session): both touch
   `shiftCalendarDates`. Whichever lands second rebases onto the other (this one adds `opts`, two `except` lines and
   `keepView`).
-- ⏭ **Next:** the full gate (it waited on another session's), then ask the owner to commit/merge and push.
+- **Full gate** (port 8813, 18:17–18:54, after another session's gate ended), build of `21691b2`: **3,931 PASS, 2 FAIL.**
+  Every frozen output identical: waterfall PDF, Excel parts, grid signature, 0 clipped, gate 10's printed months,
+  every `monthwriter` line byte-identical, `fields.byId` 77 ids. `hiatusripple` 15/15, `hiatusdrag` 14/14. The two FAILs:
+  - `stintexport` produced no result (a driver deadline under load): green alone, judged by gate.sh's own block.
+  - `scenariocompat` on `/releases/v1.2.0.html`: "timed out waiting for: Open... menu item", the known load case (see
+    the 3 Nov entry). It failed the same way alone while ANOTHER session's gate had just started, and with
+    `origin/main`'s own harness too, so it is not this branch's. That page is not built from this repo's source. A
+    rerun is queued for when that gate ends.
+- ⏭ **Next:** the queued `scenariocompat` rerun, then ask the owner to merge into `main` and push (per action).
 ### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
 **The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
 unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in
