@@ -1,7 +1,12 @@
 # PHASE-WEEK-ARROWS-PLAN.md: move one phase a week at a time from its card
 
 **Status: RULED, BUILT on branch `phase-arrows` (4 Nov 2026); not merged, not pushed. §5 (the month drag) not started.**
-- **Layout D** (owner: *"lets go with D"*): two buttons beside the Starts box, always shown.
+- **Layout C2** (owner, 4 Nov 2026, after D was built and every layout was drawn on the real card at three window
+  widths: *"show me a version of C where you make the up and down button slightly taller and wider (expand the box
+  every so slighly if necessary"*, then *"C2, but make sure the buttons aren't actually touching the top or bottom lines
+  of the box"*): two 24 x 15 buttons stacked inside the date box, 2 px clear of its lines, the box 37 px tall. §2a.
+- ~~**Layout D** (owner: *"lets go with D"*): two buttons beside the Starts box, always shown.~~ Built first, then
+  replaced by C2: on the real card it narrowed the date box and stacked Starts over Length below a ~1450 px window.
 - The rest by picker, each as recommended (§7): ▲ = earlier; a burst of clicks = one undo step; keep the "Pulled 2 wks"
   label; and the month drag gets the same mover **as its own change, after the arrows** (§5).
 - "Waterfall only" stands as the owner said it (D6), so the arrows show only while the waterfall is on screen.
@@ -59,6 +64,21 @@ Recommended was A, as first asked. ✅ **Ruled: D** (owner, 4 Nov 2026). So the 
 space: the Starts box (and the Ends box, when a phase is held by its end) narrows by 68 px on every card, and the two
 buttons are 30 × 30, the box's own height. D3 (when they show) is settled by the layout.
 
+### 2a. On the real card: why D became C2 (4 Nov 2026)
+
+The mockup's cards were simplified: Starts and Length stacked, in a narrower sidebar. The real card puts them side by
+side in a sidebar of 24% of the window (320 to 440 px; 415 on a 1728 window, 346 on 1440, 333 on 1280). Drawn there
+(each layout as CSS over the built markup, captured at 2x by a headless-Chrome script; nothing in the app changed):
+- **D** was the only layout that changed the card's shape: its 68 px narrowed the date box, and keeping every box at
+  the 112 px floor (`phasesui` P6) stacked Starts over Length below a ~1450 px window (55 px taller).
+- **B** and **E** crowd the Starts line (B cut "Starts" and the label to "Star…" and "Pushe…" at 1440 and 1280); **A**'s
+  ▲ runs into the label.
+- **C, C2, C3** (buttons 20 x 13, 24 x 15, 28 x 17; boxes 30, 34, 38 px) keep the card's shape at every width.
+- **Ruled: C2, with the buttons clear of the box's lines.** Inside the box, top to bottom: its 1 px border, 2 px clear,
+  ▲ 15, 1 px gap, ▼ 15, 2 px clear, its border, so the box is 37 px (not C2's 34). Length's box grows with it, so the
+  two stay level, and only while the arrows show (the month view's card is unchanged). 3 px clear at the right, and the
+  date text stops 32 px from the right edge, which leaves "mm/dd/yyyy" its ~73 px in the narrowest side-by-side box.
+
 ## 3. Behaviour (as ruled; §7 lists the calls)
 
 - **One click = one week, this phase only.** The gaps either side change; the Shift tool keeps gaps.
@@ -82,8 +102,8 @@ buttons are 30 × 30, the box's own height. D3 (when they show) is settled by th
 > ✅ **As built (4 Nov 2026, branch `phase-arrows`):** on the merged Shift tool's `part` with one phase and an EMPTY
 > week window, not a new `{onlyPhase}` (the Shift session's advice, and the same result), plus `opts.keepView`. Two
 > things the plan did not foresee: Production's day marks had to be bound for the whole BURST, not per click (▼ ▲
-> lost a worked holiday otherwise), so `undo()` / `redo()` end a running burst first; and the arrows' 68 px needed
-> the date column widened to keep the cards' 112 px date floor, so below a ~348 px sidebar Starts stacks over Length.
+> lost a worked holiday otherwise), so `undo()` / `redo()` end a running burst first; and on the real card D's 68 px
+> stacked Starts over Length below a ~1450 px window, which is why the layout became C2 (§2a).
 > The leg is `phasearrows` (26 cases). HANDOFF has the rest.
 
 1. **Engine:** give `shiftCalendarDates` a third argument, `{onlyPhase: key}`. Phases: only that key moves. All-phase
@@ -132,7 +152,7 @@ from the press-time state each increment, or re-key once at the drop. Its legs a
 | | Call | ✅ Ruled | How | Not chosen |
 |---|---|---|---|---|
 | D1 | Which way ▲ goes | **Earlier** (up the waterfall) | Picker, as recommended | Later, like a number box |
-| D2 | Where the arrows sit | **D, beside the box** | *"lets go with D"* (A was recommended) | A, B, C, E, F |
+| D2 | Where the arrows sit | **C2, inside the box** (first D, beside it) | *"lets go with D"*, then, on the real card at three widths, *"C2, but make sure the buttons aren't actually touching the top or bottom lines of the box"* | A, B, C, D, E, F |
 | D3 | When they show | **Always** | Follows from D | On pointing at the card |
 | D4 | A burst of clicks | **One undo step** | Picker, as recommended | One per click |
 | D5 | The "Pulled 2 wks" label | **Keep** | Picker, as recommended | Drop |

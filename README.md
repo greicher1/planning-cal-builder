@@ -37,8 +37,11 @@ Waterfall only"*. They ruled on six layouts in
 [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html) (*"lets go with D"*), and on the rest by picker
 ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §7).
 
-- **Two buttons beside the date box, always shown in the waterfall:** ▲ moves that phase one week earlier, ▼ one week
-  later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no arrows.
+- **Two small buttons stacked inside the date box, always shown in the waterfall:** ▲ moves that phase one week
+  earlier, ▼ one week later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no
+  arrows. The layout is **C2** (owner: *"C2, but make sure the buttons aren't actually touching the top or bottom lines
+  of the box"*), chosen after layout D (two buttons beside the box) was built and all six were drawn on the real card
+  at three window widths: D widened the date column and stacked the card below a ~1450 px window.
 - **What moves with the phase:** its own hiatus, and what belongs to its cells: band names and colours, cell spans,
   column swaps, text styles. Its automatic notes follow, since they're worked out from the dates. An edited automatic
   note drops its standard line and keeps the lines you added on their week, as the month view's drag does.
@@ -53,14 +56,15 @@ Waterfall only"*. They ruled on six layouts in
   to a worked day ("· 1 worked day no longer on a day off").
 - **Keyboard:** Alt+↑ / Alt+↓ in the date box.
 - The Help's "Adjusting dates" section has a paragraph on them, after Shift.
-- While the arrows show, the date column is wider, so every date box keeps its 112 px. Below a sidebar of about
-  348 px, Starts stacks over Length, as in the mockup.
+- While the arrows show, the card's boxes are 37 px tall instead of 30 (2 px clear above ▲ and below ▼), Length's
+  too so the two stay level. The card is 7 px taller and otherwise keeps its shape.
 
 Engine: the move is the Shift tool's own `shiftCalendar(dir, null, {part: {phases: [key], …}})` with an EMPTY week
 window (`fromWeek` after `toWeek`), so nothing week-keyed moves but what the phase owns; `opts.keepView` (the same
 name and line as the hiatus-ripple branch's) leaves the month view's cursor alone. `undo()` and `redo()` end a running
 burst first, so no snapshot is ever restored under a day-mark binding. The arrows, their holder and the label carry
-no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh)
+no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh;
+its L1 / L2 hold the buttons inside the box with 2 px clear at sidebars of 280 to 440 px)
 on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
 "Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
 ▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40.

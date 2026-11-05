@@ -621,8 +621,8 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
     `hiatus-ripple`) adds `except` and `keepView` to the same object.
 - The result line is the old one for All phases, word for word. A part-calendar move adds *"Production and
   everything before it moved (4 phases). 2 stayed where they were."*
-- **The phase card's ▲ / ▼** (owner, 4 Nov 2026, layout D; `PHASE-WEEK-ARROWS-PLAN.md`) are not on the toolbar: two
-  buttons beside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
+- **The phase card's ▲ / ▼** (owner, 4 Nov 2026, layout C2; `PHASE-WEEK-ARROWS-PLAN.md`) are not on the toolbar: two
+  small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
   the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be
   open, and carry every note). So the phase's own hiatus and every `<week>|<key>` store travel; typed notes, all-phase
   hiatuses, the range and (`opts.keepView`) the month view's cursor stay. An edited automatic note sheds its standard

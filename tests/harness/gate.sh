@@ -1891,7 +1891,7 @@ done
 # either side (owner, "Overlaps move too"; red on 9 cases without it), and notes, unlocked hiatuses and the range go by
 # a week window spanning the moving phases; by weeks = to a date; one undo; the form's resets; no new key in
 # fields.byId. On anchorside.sptcal (dayoverrides + notes, a Fall Break, Localization, a range start, two overlaps).
-# phasearrows (owner, 4 Nov 2026: "lets go with D"; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
+# phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
 # week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
 # the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
 # where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one

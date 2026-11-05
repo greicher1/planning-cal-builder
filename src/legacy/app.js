@@ -7666,8 +7666,10 @@ export function initLegacyApp() {
     };
   })();
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
-  // ⭐ THE WEEK ARROWS (owner, 4 Nov 2026, PHASE-WEEK-ARROWS-PLAN.md, layout D: "lets go with D"): ▲ and ▼ beside the
-  // date box, each moving THIS phase one week (▲ earlier, ruling D1), in the waterfall only (D6). `.ph-nudge` and the
+  // ⭐ THE WEEK ARROWS (owner, 4 Nov 2026, PHASE-WEEK-ARROWS-PLAN.md, layout C2: "C2, but make sure the buttons aren't
+  // actually touching the top or bottom lines of the box"; D was built first): ▲ and ▼ stacked inside the date box, each
+  // moving THIS phase one week (▲ earlier, ruling D1), in the waterfall only (D6). `.ph-nudge` sits after the two boxes
+  // and the CSS lays it over whichever one shows (Starts or Ends). `.ph-nudge` and the
   // label on the caption line, `.ph-nudge-chip`, carry NO id and no input, so neither can enter fields.byId. Which
   // cards show them is reflectPhaseNudges() (the row's `nudge-on` class); a click is nudgePhase().
   const NUDGE_UP_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 2.2 8.6 7H1.4z"/></svg>';
@@ -29130,7 +29132,7 @@ export function initLegacyApp() {
   }
 
   // ---------- The phase card's week arrows (PHASE-WEEK-ARROWS-PLAN.md; owner, 4 Nov 2026) ----------
-  // ▲ / ▼ beside a phase's date box (layout D) move THAT phase one week, ▲ earlier (ruling D1), in the waterfall only
+  // ▲ / ▼ inside a phase's date box (layout C2) move THAT phase one week, ▲ earlier (ruling D1), in the waterfall only
   // (D6, the owner's "Waterfall only": the month view's bar has its own body drag). The move is the Shift tool's part
   // move, {part: {phases: [key]}}, with an EMPTY week window (see shiftCalendar's ⭐), so:
   //   - moving with it: its own hiatus, every "<week>|<key>" store (band names, colours and sizes, cell spans, column

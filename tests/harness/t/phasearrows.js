@@ -1,5 +1,6 @@
-// phasearrows -- the phase card's week arrows (owner, 4 Nov 2026; PHASE-WEEK-ARROWS-PLAN.md, layout D: "lets go
-// with D"). ▲ / ▼ beside a phase's date box move THAT phase one week (▲ earlier, D1), in the waterfall only (D6).
+// phasearrows -- the phase card's week arrows (owner, 4 Nov 2026; PHASE-WEEK-ARROWS-PLAN.md, layout C2: "C2, but make
+// sure the buttons aren't actually touching the top or bottom lines of the box"). ▲ / ▼ stacked inside a phase's date
+// box move THAT phase one week (▲ earlier, D1), in the waterfall only (D6).
 // A burst of clicks is one undo step (D4) and carries a "Pulled 2 wks" label (D5).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=phasearrows ./run.sh phasearrows 400
@@ -17,7 +18,9 @@
 // Every state is read back from the crash backup, which IS captureSnapshot(), and compared key-sorted.
 //
 //   T0  truth guard: the calendar as loaded, and the Post stores where the fixture put them
-//   L1  every dated card shows the arrows: 30 x 30 on the date box's line, the box at least 112 px (the cards' floor, phasesui P6)
+//   L1  every dated card shows the arrows INSIDE its date box: 24 x 15, at least 2 px clear of the box's top and bottom
+//       lines and its right edge; the box 37 px tall, level with Length, at least 112 px wide (phasesui P6's floor), and
+//       a whole date's room (73 px) left of the buttons
 //   I1  no id on the arrows, the label or their holder, and no input inside them; each arrow names its phase
 //   P1  Post ▼ once: Post's start a week later, every other phase where it was
 //   P2  ... its own hiatus a week later, and no other phase's
@@ -36,9 +39,10 @@
 //   M1  Production ▲: only Production moves, the unlocked Fall Break inside it stays, and its day marks land where
 //       the toolbar's ← 1 wk puts them (both bind them by shoot-day number)
 //   K1  Pre Prep (Snap to Monday off, Wed 4/8): ▼ = Wed 4/15
-//   E1  Localization held by its END: ▼ moves the end Friday a week, and the start follows
+//   E1  Localization held by its END: the arrows sit inside the Ends box (L1's geometry); ▼ moves the end Friday a
+//       week, and the start follows
 //   L2  at sidebars of 280 to 440 px with a Dates phase on screen: every date box at least 112 px, nothing outside
-//       its card, the arrows level with the box
+//       its card, and L1's geometry on every card
 //   D1  Writer's Rm by Dates: ▼ moves both dates a week, so its length is unchanged
 //   A1  Alt+Down / Alt+Up in Post's date box: one burst, "Pushed 2 wks" then "Back where it was"
 //   V1  the month view keeps its month: five ▼ on Post (35 days) leave it on January 2026 (keepView)
@@ -115,19 +119,32 @@ window.addEventListener('load', function () { (async function () {
       {starts: st0, phiatus: ph0, stores: ps0, notes: n0, view: s0.viewMode}, 'the fixture as written');
 
     // ---- L1 / I1: the arrows on the cards ----
-    var cards = KEYS.map(function (k) {
+    var L1_TITLE = 'every dated card shows ▲ ▼ INSIDE its date box: 24 x 15, at least 2 px clear of the box\'s top and bottom lines and its right edge; the box 37 px tall, level with Length, at least 112 px wide, with a whole date\'s room left of the buttons';
+    // The arrows in the box the card shows (Starts, or Ends when held by its end). Clearances are measured inside the
+    // box's 1 px border, so 2 means two clear pixels between its line and the button's.
+    function geom(k){
       var r = row(k), on = r.classList.contains('nudge-on');
       var box = r.classList.contains('ends-mode') ? r.querySelector('.ph-ends-box input') : $('start-' + k);
       var b = box.getBoundingClientRect(), u = btn(k, -1).getBoundingClientRect(), d = btn(k, 1).getBoundingClientRect();
-      return {key: k, on: on, boxW: Math.round(b.width), up: [Math.round(u.width), Math.round(u.height)], down: [Math.round(d.width), Math.round(d.height)],
-              level: Math.abs(u.top - b.top) < 1 && Math.abs(d.top - b.top) < 1, after: u.left >= b.right && d.left >= u.right,
-              inCard: d.right <= r.getBoundingClientRect().right};
-    });
-    var badCards = cards.filter(function (c) {
-      return !c.on || c.boxW < 112 || c.up.join() !== '30,30' || c.down.join() !== '30,30' || !c.level || !c.after || !c.inCard;
-    });
-    add('L1', 'every dated card shows ▲ ▼: 30 x 30, level with the date box and right of it, the box at least 112 px wide (the floor every card holds, phasesui P6)',
-      badCards.length === 0, {bad: badCards, boxWidths: cards.map(function (c) { return c.key + ' ' + c.boxW; })}, 'none bad');
+      var cs = getComputedStyle(box), padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
+      var len = Array.prototype.filter.call(r.querySelectorAll('.pu-by input'), function (e) { return e.offsetParent !== null; })[0];
+      var lb = len ? len.getBoundingClientRect() : null;
+      return {key: k, on: on, ends: r.classList.contains('ends-mode'), boxW: Math.round(b.width), boxH: Math.round(b.height),
+              up: [Math.round(u.width), Math.round(u.height)], down: [Math.round(d.width), Math.round(d.height)],
+              clear: [+(u.top - b.top - 1).toFixed(2), +(b.bottom - 1 - d.bottom).toFixed(2), +(b.right - 1 - Math.max(u.right, d.right)).toFixed(2)],
+              textRoom: Math.round(box.clientWidth - padL - padR), clearOfText: u.left >= b.right - 1 - padR - 0.5 && d.left >= b.right - 1 - padR - 0.5,
+              // Level: the same height, and the same top when the two share a line (a narrow sidebar stacks Length under it, as today).
+              lenLevel: !lb || (Math.abs(lb.height - b.height) < 0.5 && (Math.abs(lb.top - b.top) < 0.5 || lb.top >= b.bottom)),
+              inCard: Math.max(u.right, d.right) <= r.getBoundingClientRect().right};
+    }
+    function geomBad(g){
+      return !g.on || g.boxW < 112 || g.boxH !== 37 || g.up.join() !== '24,15' || g.down.join() !== '24,15'
+        || g.clear.some(function (c) { return c < 1.99; }) || g.textRoom < 73 || !g.clearOfText || !g.lenLevel || !g.inCard;
+    }
+    var cards = KEYS.map(geom);
+    var badCards = cards.filter(geomBad);
+    add('L1', L1_TITLE, badCards.length === 0,
+      {bad: badCards, sample: cards.filter(function (c) { return c.key === 'prePrep' || c.key === 'production'; })}, 'none bad');
     var withId = document.querySelectorAll('.ph-nudge[id], .ph-nudge-btn[id], .ph-nudge-chip[id], .ph-nudge [id]').length;
     var inputs = document.querySelectorAll('.ph-nudge input, .ph-nudge select, .ph-nudge textarea, .ph-nudge-chip input').length;
     var labels = [btn('prodPrep', -1).getAttribute('aria-label'), btn('prodPrep', 1).getAttribute('aria-label'), btn('prodPrep', -1).title];
@@ -247,15 +264,16 @@ window.addEventListener('load', function () { (async function () {
     anchorSel.dispatchEvent(new Event('change', {bubbles: true}));
     await T.sleep(900);
     var e0 = {end: val('end-localization'), start: val('start-localization'), on: row('localization').classList.contains('nudge-on')};
+    var eGeo = geom('localization');
     await nudge('localization', 1, 150);
     var e1 = {end: val('end-localization'), start: val('start-localization')};
     await undo();
     var e2 = {end: val('end-localization'), start: val('start-localization')};
     await undo();
     add('E1', 'Localization held by its end (Fri 4/23/27): ▼ moves it to Fri 4/30/27 and the start follows to 3/8/27',
-      e0.on && e0.end === '2027-04-23' && e1.end === '2027-04-30' && e1.start === '2027-03-08' && e2.end === '2027-04-23' && e2.start === '2027-03-01'
+      e0.on && eGeo.ends && !geomBad(eGeo) && e0.end === '2027-04-23' && e1.end === '2027-04-30' && e1.start === '2027-03-08' && e2.end === '2027-04-23' && e2.start === '2027-03-01'
         && anchorSel.value === 'starts',
-      {before: e0, after: e1, undone: e2, back: anchorSel.value}, 'end 4/23 -> 4/30, start 3/1 -> 3/8, both undone');
+      {before: e0, geometry: eGeo, after: e1, undone: e2, back: anchorSel.value}, 'arrows inside the Ends box; end 4/23 -> 4/30, start 3/1 -> 3/8, both undone');
 
     T.set('unit-writersRoom', 'dates');
     await T.sleep(900);
@@ -276,14 +294,14 @@ window.addEventListener('load', function () { (async function () {
           var b = e.getBoundingClientRect();
           if(b.width && (b.left < cr.left - 0.5 || b.right > cr.right + 0.5)) spill.push(k + ' ' + e.className);
         });
-        var box = r.querySelector('.ph-start-box input'), up = btn(k, -1);
-        if(Math.abs(up.getBoundingClientRect().top - box.getBoundingClientRect().top) >= 1) loose.push(k);
+        var g = geom(k);
+        if(geomBad(g) && !(g.boxW < 112)) loose.push(g);   // a narrow box is reported once, under `narrow`
       });
       l2[w] = {narrow: narrow, spill: spill, loose: loose, sideways: fp.scrollWidth - fp.clientWidth};
     }
     fp.setAttribute('style', fpStyle);
     await T.sleep(250);
-    add('L2', 'at sidebars of 280 to 440 px, with a Dates phase on screen: every date box at least 112 px, no arrow or label outside its card, the arrows level with the box, no sideways scroll',
+    add('L2', 'at sidebars of 280 to 440 px, with a Dates phase on screen: every date box at least 112 px, no arrow or label outside its card, L1\'s geometry on every card, no sideways scroll',
       Object.keys(l2).every(function (w) { var r = l2[w]; return !r.narrow.length && !r.spill.length && !r.loose.length && r.sideways <= 0; }),
       l2, 'nothing narrow, spilled or loose at any width');
     var d0 = {start: val('start-writersRoom'), end: val('end-writersRoom')};

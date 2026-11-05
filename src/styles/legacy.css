@@ -4217,28 +4217,35 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
-  /* THE WEEK ARROWS (PHASE-WEEK-ARROWS-PLAN.md, layout D; owner, 4 Nov 2026: "lets go with D"). ▲ ▼ beside the date
-     box, 30 × 30 (the box's own height), on every card whose `nudge-on` class is set (reflectPhaseNudges: the waterfall
-     is on screen and the phase has a date). Keyed on that class, never on a :has() (see the ⛔ further down).
-     They take 68 px from the date column, so while they show, the date column's basis grows from 118 to 180: every date
-     box keeps the 112 px the cards hold everywhere (phasesui P6), the Starts box and, in Length, a Dates phase's end
-     box (basis 112). The two share a line from 300 px inside the card (a sidebar of about 348); narrower, Starts
-     stacks over Length, as in the mockup the owner picked. The month view has no arrows, and its card is as it was. */
+  /* THE WEEK ARROWS (PHASE-WEEK-ARROWS-PLAN.md, layout C2; owner, 4 Nov 2026: "C2, but make sure the buttons aren't
+     actually touching the top or bottom lines of the box", after D was built and every layout was shown on the real
+     card at three window widths). ▲ ▼ stacked INSIDE the date box at its right end, on every card whose `nudge-on`
+     class is set (reflectPhaseNudges: the waterfall is on screen and the phase has a date). Keyed on that class, never
+     on a :has() (see the ⛔ further down).
+     - The geometry, top to bottom inside the box: its 1 px border, 2 px clear, ▲ 15 px, 1 px gap, ▼ 15 px, 2 px clear,
+       its border. So while the arrows show, the card's boxes are 37 px tall (30 everywhere else), the Length box too,
+       so the two stay level. The card is 7 px taller and keeps its shape: Starts and Length side by side as before.
+     - `top` is the caption line (14) + its gap (3) + the border (1) + the clearance (2); the phasearrows leg holds the
+       clearance on every card, so a change to the caption's height shows up there.
+     - The date text keeps the box's left padding and stops 32 px from the right (24 px of button, 4 px either side),
+       which leaves "mm/dd/yyyy" its ~73 px in the narrowest side-by-side box (118 px).
+     The month view has no arrows, and its card is as it was. */
   .ph-nudge, .ph-nudge-chip{ display:none; }
-  .phase-row.nudge-on .ph-starts{
-    display:grid; grid-template-columns:minmax(0, 1fr) auto; column-gap:4px; row-gap:3px; flex-basis:180px;
+  .phase-row.nudge-on .ph-starts{ position:relative; }
+  .phase-row.nudge-on .phase-fields input[type=date],
+  .phase-row.nudge-on .phase-fields input[type=number]{ height:37px; }
+  .phase-row.nudge-on .ph-start-box input,
+  .phase-row.nudge-on .ph-ends-box input{ padding-right:32px; }
+  .phase-row.nudge-on .ph-nudge{
+    display:flex; flex-direction:column; gap:1px; position:absolute; z-index:1; right:4px; top:20px;
   }
-  .phase-row.nudge-on .ph-starts-cap{ grid-column:1 / -1; min-width:0; }
-  .phase-row.nudge-on .ph-starts > label{ grid-column:1; }
-  .phase-row.nudge-on .ph-nudge{ display:flex; gap:4px; grid-column:2; grid-row:2; }
-  .phase-row.nudge-on .pu-by{ flex-basis:112px; }
   .ph-nudge-btn{
-    display:grid; place-items:center; flex:none; width:30px; height:30px; padding:0; cursor:pointer;
-    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    display:grid; place-items:center; flex:none; width:24px; height:15px; padding:0; cursor:pointer;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px;
     background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
     transition:background-color 100ms ease, border-color 100ms ease;
   }
-  .ph-nudge-btn svg{ width:10px; height:10px; }
+  .ph-nudge-btn svg{ width:9px; height:9px; }
   .ph-nudge-btn:hover{ background:var(--mantine-color-navy-0); border-color:var(--mantine-color-navy-5); }
   .ph-nudge-btn:active{ background:var(--mantine-color-navy-1); }
   .ph-nudge-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }

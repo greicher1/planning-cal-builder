@@ -4,12 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch, NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
+### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch, NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
   down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, *"mockup a
   few version of this idea with the arrows in differnt places"* (layouts A to F), *"lets go with D"*, then *"Build it"*.
-- **Ruled (plan §7):** D, two 30 x 30 buttons beside the date box, always shown; ▲ = earlier; a burst = one undo step;
+  With D built: *"wait show me the mockup of d in this view"* (on a screenshot of the real card), *"give me all the
+  mockups again in all 3 window widths for each"*, *"show me a version of C where you make the up and down button
+  slightly taller and wider"*, then *"C2, but make sure the buttons aren't actually touching the top or bottom lines of
+  the box"*.
+- **Ruled (plan §7, §2a):** C2, two 24 x 15 buttons stacked INSIDE the date box, 2 px clear of its lines (so the box,
+  and Length's beside it, are 37 px tall while the arrows show), always shown; ▲ = earlier; a burst = one undo step;
   keep the "Pulled 2 wks" label; waterfall only; and the month drag gets the same mover **as its own change, after
   this** (D7, card `month-drag-carries-phase`, plan §5: not started).
 - **How it is built** (`nudgePhase`, beside `shiftCalendarDates`; CSS beside the card's Starts rules):
@@ -27,9 +32,13 @@
     by the next `update()`. A new restore path must do the same.
   - The burst ends 1.6 s after its last click, or at once on any other press or key (capture `pointerdown` /
     `keydown`; a bare modifier and the burst's own Alt+arrow don't count). The label lives exactly as long.
-  - Layout: while the arrows show, the Starts column's basis is 180 px and Length's 112, so every date box keeps the
-    112 px floor `phasesui` P6 holds. The two share a line from ~348 px of sidebar; below, Starts stacks over Length
-    (the default 1440 window is 346 px, so most people see the stacked card, which is what the mockup showed).
+  - Layout C2 is CSS over the same markup: `.ph-nudge` (after both boxes) is laid absolutely over whichever box shows,
+    `right:4px; top:20px` (caption 14 + gap 3 + border 1 + 2 clear). ⚠️ So the `top` assumes the caption line's
+    height; the leg's L1 / L2 measure the 2 px clearance on every card, so a caption change shows up there.
+  - D (beside the box) was built first and replaced the same evening: on the real card it narrowed the date box and,
+    to keep `phasesui` P6's 112 px floor, stacked Starts over Length below a ~1450 px window (plan §2a). The six
+    layouts were drawn on the real card at 1728 / 1440 / 1280 by a scratch headless-Chrome CDP script (CSS injected,
+    clip screenshots at 2x); that is a quick, faithful way to show the owner a chrome variant without touching code.
 - **Proof:** new leg `phasearrows` (26/26, in `gate.sh`) on new fixture `phasearrows.sptcal`; `phasesui` 8/8;
   `npm run check` 40/40. ⏳ **Full gate: not run yet** (the `hiatus-ripple` session's gate was running; two at once
   stall each other).
