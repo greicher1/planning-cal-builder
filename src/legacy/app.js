@@ -28300,8 +28300,19 @@ export function initLegacyApp() {
   function writeBackup(){
     if(persistHold){ backupHeld = true; return; }
     backupPending = false;
+    // ⛔ ONLY UNSAVED WORK IS BACKED UP (owner, 4 Nov 2026: "sometimes when we reopen the app, it loads the last
+    // calendar we were on but as an unsaved, untitled duplicate"). This runs 3 s after an edit, and a Save inside
+    // those 3 s (Cmd+S straight after typing, or an autosave tick) ran markClean() FIRST: the slot was deleted, then
+    // this timer wrote it back. A calendar already in its file was then offered as "Recover unsaved work" at the next
+    // launch. Saved means nothing to recover, so a clean page writes nothing (markClean() has already emptied its slot).
+    if(!isDirty) return;
     try {
-      idbSet(BACKUP_SLOT, { state: captureFileObject(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+      idbSet(BACKUP_SLOT, { state: captureFileObject(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null,
+        // Which recents entry the work belongs to, and the file as this page last read or wrote it, so a recovery can
+        // put the work back in its file (offerBackupRecovery). Both null with no linked file. Not state: a backup is
+        // never a saved file, and a build without these fields reads the backup as it always did.
+        fileId: (savedFileHandle && activeFileId) || null,
+        fileStamp: (savedFileHandle && savedFileStamp) || null });
     } catch(e){ /* non-fatal */ }
   }
   // Every key in the handles store (the backup slots are found by prefix). [] when unsupported.
@@ -29481,6 +29492,25 @@ export function initLegacyApp() {
       if(v && v.state && (!b || (v.at || 0) > (b.at || 0))){ b = v; bKey = k; }
     }
     if(!b || !b.state) return;
+    // ⛔ THE FILE THE WORK CAME FROM (owner, 4 Nov 2026: the recovered calendar came back "as an unsaved, untitled
+    // duplicate"). Recovery used to restore the state and nothing else, so work done on a saved file reopened as
+    // Untitled, and the next Save asked for a NEW file: a second copy of the calendar beside the real one. A backup
+    // now names its recents entry (writeBackup), and recovering it links that file again, exactly as if the window
+    // had never closed: the file menu names it, Save and autosave write to it.
+    // - Looked up BEFORE the question, never after it: a file double-clicked while the question is up runs the
+    //   moment it closes (openLaunchedFiles), so nothing may await between the answer and the restore below.
+    // - recentsReady first: its then() unlinks whatever is linked, so it must have run before this links anything.
+    // - The stamp is the file as the crashed page last saw it, NOT a fresh read: if the file was saved somewhere else
+    //   since, Save asks (fileChangedOnDisk, audit M-6) rather than overwrite it with the recovered work.
+    // - No entry (an older backup, a file dropped from the list, or none) recovers as before, Untitled.
+    await recentsReady;
+    const entry = (b.fileId && recentFiles.find(f => f.id === b.fileId && f.handle)) || null;
+    let needsWrite = false;
+    if(entry){
+      // A new window has no gesture, so it can only ASK whether it may write; Save asks the user (one click).
+      try { needsWrite = (await entry.handle.queryPermission({ mode: 'readwrite' })) !== 'granted'; }
+      catch(e){ needsWrite = true; }
+    }
     // The app was started by a double-clicked .sptcal: the user asked for THAT calendar, so it is not
     // buried under this question. The backup is kept -- exactly as a Cancel keeps it -- and offered
     // on the next ordinary launch. Checked HERE, after the IndexedDB reads, because the launch
@@ -29506,6 +29536,18 @@ export function initLegacyApp() {
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
+    // What is on screen is the recovered calendar, so the link follows it: its own file, or none. (Without a file,
+    // a link to something loaded in the moments before the question came up would send the work into THAT file.)
+    const own = entry && recentFiles.indexOf(entry) !== -1;
+    savedFileHandle = own ? entry.handle : null;
+    handleNeedsPermission = own && needsWrite;   // true: the status line says so, and autosave waits for Save's click
+    savedFileStamp = (own && b.fileStamp) || null;
+    fileConflict = false;
+    activeFileId = own ? entry.id : null;
+    if(own) persistRecents();
+    if(own && handleIsLegacyHtml(entry.handle)) showLegacyNotice(entry.name); else hideLegacyNotice();
+    refreshSaveBtn();
+    renderRecents();
     isDirty = true;          // recovered work still isn't in a file
     refreshSaveStatus();
     // The recovered work now lives in THIS page: back it up under this page's slot at once (not 3 s

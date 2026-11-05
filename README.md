@@ -58,6 +58,26 @@ typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) o
 old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
 
 
+### Unreleased — recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"sometimes when we reopen the app, it loads the last calendar we were on but as an unsaved,
+untitled duplicate."* That was the "Recover unsaved work" question at launch. Two causes:
+
+- **Recovery never linked the file back.** It restored the calendar and nothing else, so work on `show.sptcal` came
+  back as Untitled, and the next Save asked for a new file, leaving a second copy beside the real one. A backup now
+  records which file it belongs to (its recents entry and the file's stamp as last read or written), and Recover
+  links that file again. The file menu names it and Save writes to it, asking permission first when Chrome wants
+  that. If the file was saved somewhere else since, Save asks before overwriting, as it always does for a linked
+  file.
+- **A calendar you had just saved could be offered for recovery.** The backup is written 3 s after an edit. A Save
+  (or an autosave) inside those 3 s deleted it, and then the timer wrote it back, so the next launch offered to
+  "recover" a calendar already in its file. A saved calendar now writes no backup.
+
+A backup left by an older build has no file named, so it still recovers as Untitled, once. No frozen code, no
+save-format change (a backup is never a saved file). New legs `backuplink` (5 cases) and `backuplinkstale` (3), in
+the gate beside `backupslots`: red on the live build except L1, and L4 red with only the new guard deleted. Also
+green: `backupslots`, and the other legs that save, load or read the backup (listed in HANDOFF). `npm run check` 40/40.
+
 ### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
 
 Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:

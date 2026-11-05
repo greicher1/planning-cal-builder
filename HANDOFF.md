@@ -5,6 +5,49 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
+**The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
+unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in
+`src/legacy/app.js`, both measured on the live build:
+- **Recovery never re-linked the file.** It restored `b.state` and nothing else, so `savedFileHandle` stayed null: the
+  file menu read Untitled and Save opened the picker, writing a second copy.
+  - Fix: `writeBackup()` now also stores `fileId` (the recents entry, `activeFileId`) and `fileStamp`
+    (`savedFileStamp`, the file as this page last read or wrote it), both null with no linked file.
+  - On Recover, that entry is linked again: handle, `activeFileId`, legacy notice, `handleNeedsPermission` from
+    `queryPermission` (a new window has no gesture, so Save's click asks).
+  - ⛔ The stamp is the BACKUP's, never a fresh read, so a file saved elsewhere since the crash gets audit M-6's
+    "File changed on disk" question instead of being overwritten.
+  - ⛔ Everything that awaits (`recentsReady`, `queryPermission`) runs BEFORE the question, never between the answer and
+    the restore. A double-clicked file waiting on `whenNoDialog()` runs the moment the question closes, and an await
+    there would let it load first and then be overwritten by the recovery.
+  - With no matching entry (an older build's backup, a file dropped from the list) the link is CLEARED, not left as is:
+    it recovers Untitled, as before.
+- **A just-saved calendar left a backup.** `scheduleBackup()` fires 3 s after an edit. A Save inside those 3 s (Cmd+S
+  after typing, or an autosave tick) ran `markClean()` first, which deleted the slot, and then the timer wrote it back.
+  The next launch offered a calendar already in its file. Fix: `writeBackup()` returns while `!isDirty`. Every caller
+  that should write is dirty: `markDirty`, the hiatus-drag hold/release, `beforeunload`, and recovery's own write (it
+  sets `isDirty` first).
+- Help ("Autosave & recovering work") gained one sentence. No frozen code, no save-format change: a backup is
+  IndexedDB session data, never a saved file, and an older build ignores the two new fields.
+
+**Proof** (worktree `dist/`, port 8791):
+- New legs `backuplink` **5/5** and `backuplinkstale` **3/3**, in `gate.sh`'s audit-fix list on their own line after
+  `mvbarcard`. Each seeds `T.memoryIDB()` before boot with a recents entry, a fake handle and a backup naming it.
+  - Red on the live engine (`git show HEAD:`, then restored and checked with `cmp`) in 7 of 8. Only L1 (the offer
+    names the file) passes there. L2 read `"label": "Untitled"`; L3/S3 saw the picker called.
+  - Mutation: the fixed build with only the `isDirty` guard deleted is red on L4 alone (the slot is left after a quick
+    Save).
+- `backupslots` 5/5 (older backups without `fileId` still recover). `npm run check` 40/40.
+- Every other leg that saves, loads or reads the backup, all green: caps 5, monthnotes 8, overrides 20, halfworked 24,
+  halfmarks 5, halfdays 27, mvnotes 14, launchopen 16, undokeys 11, nofsa 7, filekeys 16, showfolder 7, conflict 9,
+  loadfail 6, sideboxes 78, legacyparse 7. `restore` matched its baseline (rows, cells, width, bytes, grid signature).
+- Not driven in a real window: a real close/reopen needs a real file handle in IndexedDB, which only the OS picker
+  makes. The legs fake the handle and the IndexedDB.
+
+⏭ **Next:** ask the owner to commit, then (separately) push. No full gate run: nothing frozen, and no output's bytes
+can move.
+
+
 ### 🔨 4 Nov 2026: COMPARE'S HOLIDAY CHIP ON WRAP ONLY, IN WORDS — branch `compare-holiday-wrap` (worktree `.claude/worktrees/compare-holiday-wrap`, from `origin/main` at `9687ab5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `compare-holiday-chip-wrap`
 - **Asked** (owner, 4 Nov 2026, on a Compare window with "−1 holiday" under First shoot day and "−2 holidays" under
   Wrap): *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first
