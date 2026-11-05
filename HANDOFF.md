@@ -55,7 +55,12 @@
   `monthemit (mvtextstyle)` wrote no result (16/16 alone, and v1.8.0 opens its file). Every baseline identical: the
   base leg (sig, noteCells, vClip, headers, cols), the waterfall PDF, every Excel part, gate 10's print documents
   (11/11), gate 13's written month PDFs, pdfseams; 0 clipped cells.
-- **Next:** the owner's call on committing, merging and pushing.
+- ✅ **Committed on the branch (owner, by picker), then merged with `origin/main` at `c52094f` (the one Shift tool,
+  live).** README was the one conflict (both changelog entries kept). On the merged build: `npm run check` 40/40, the
+  gate's base comparison identical to its baseline, `wfnoteeditor` 13/13, and the Shift tool's legs (anchorside 23/23,
+  snaptools 14/14, overrides 20/20, calrange 18/18, datepick 17/17, rowheight 7/7) with the note legs (wfkeys 84/84,
+  autonoteview 18/18, holidayrename 14/14, autonoterename 24/24, noteviews 15/15, wfmenu 39/39, textstyle 51/51).
+- **Next:** the owner's call on merging into `main` and pushing.
 
 ### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
