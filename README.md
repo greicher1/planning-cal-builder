@@ -47,7 +47,8 @@ Engine: `shiftCalendarDates` (steps 2 and 3) records the weeks of the bands that
 `hiatusKeyStays` decides a plain band key by them, then by its week. The first idea, "a plain key stays outside the
 window", left a moving band's later weeks behind, so it was not used. No frozen code, no writer and no save-format
 change. New leg `stalebandkey` (9 cases, in gate.sh) on new fixture `stalebandkey.sptcal`: 5/9 on `origin/main`, 8/9 on
-the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`).
+the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`). Full
+gate: 4,053 PASS, 0 FAIL, every baseline identical.
 
 ### Unreleased — the month view's bar drag carries what the arrows carry (5 Nov 2026)
 

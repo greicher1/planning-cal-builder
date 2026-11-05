@@ -213,6 +213,9 @@ from the press-time state each increment, or re-key once at the drop. Its legs a
     "Strike wk 2" and a colour on 5/17.
   - `origin/main`: 5/9 (N1 N2 F1 P1 red). The one-liner mutant: 8/9 (P1 red). The fix: 9/9.
   - `mvdragcarry` W1 now also holds the plain band labels: red on `origin/main`, 15/15 on the fix.
+  - Neighbours green (`phasearrows`, `anchorside`, `calrange`, `datepick`, `halfworked`, `rowheight`, `overrides`,
+    `snaptools`, `pilldrag`, `hiatusdrag`, `hiatusripple`). Full gate (5 Nov 2026): 4,053 PASS, 0 FAIL, every baseline
+    identical.
 
 ## 6. The other ways considered (the first answer, kept as the record)
 

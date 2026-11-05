@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
+### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED (4,053 PASS / 0 FAIL, every baseline identical) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
 - **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
   stays keyed on its week (a plain key, one per week of the band) when the hiatus is retyped to other dates. It is
   ignored, never destroyed. But `shiftCalendarDates` step 3 (`hiatusKeyStays`) kept a plain key only on a HELD band's
@@ -38,7 +38,16 @@
     unlocked "Strike Break" 5/10/27 x2 with "Strike wk 2" + colour on 5/17).
   - Counts: `origin/main` 5/9 (N1 N2 F1 P1 red), one-liner 8/9 (P1), fix 9/9.
   - `mvdragcarry` W1 now also holds the plain band labels: 14/15 on `origin/main`, 15/15 on the fix.
-- ⏭ **Next:** neighbour legs, then a full gate, then the owner's picker: merge, and separately push.
+  - Neighbours on the build (port 8921): `phasearrows` 26/26, `anchorside` 29/29, `mvdragcarry` 15/15, `calrange`
+    18/18, `datepick` 17/17, `halfworked` 24/24, `rowheight` 7/7, `overrides` 20/20, `snaptools` 14/14, `pilldrag`
+    30/30, `hiatusdrag` 14/14, `hiatusripple` 15/15. `npm run check` 40/40.
+- ✅ **Full gate** on `2e48654` (dist sha256 `ec680743…`), port 8921, 13:18–13:55, no other gate running (load ~11):
+  **4,053 PASS, 0 FAIL, every baseline identical.** That covers the grid signature, 0 clipped, the waterfall PDF (bar
+  the date stamp), the Excel parts, the v1.0.0 restore, `fields.byId` (77 ids) and gate 10's printed months.
+  `stalebandkey` 9/9 inside it.
+- ⏭ **Next:** the owner's picker: merge, and separately push. The branch is `origin/main` (`ca794cc`) + `33dde99` +
+  this, a fast-forward, so a push is `git push origin stale-band-key:main` from the worktree. This worktree's
+  `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
 
 ### ✅ 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — ✅ **LIVE at `ca794cc`** (owner's picker *"Merge"* + *"Push now"*; pushed from the branch, `c8eac00..ca794cc`; the live index.html matched `dist/` byte for byte, sha256 `448c2c84…`, 60 s after the push). FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
 - **Ruled** (owner, 4 Nov 2026, by picker, D7): *"yes, as its own change, right after the arrows"*. The body drag
