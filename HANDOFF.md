@@ -219,6 +219,9 @@
   (phasenumbering)` 31/31, `offweek (offweek)` 42/42. ⚠️ Another session's gate was running for the first ~20 min
   of this one (stopping mine was refused by the permission classifier), which is the likely cause; a note was left in
   the shared notes folder for that session.
+- **Merged with `origin/main` (`ac55bb7`, the waterfall note editor) as `92f2a0f`**, README's two top entries both
+  kept. Re-check on the merged build `7934956d…`, all green: `npm run check` 40/40, `anchorside` 29/29,
+  `wfnoteeditor (autonoterename)` 13/13, `overrides` 20/20, `snaptools` 14/14. No second full gate.
 - ⏭ **Next:** ask the owner to push (one push carries the overlap revert, §7.4's docs and this).
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
