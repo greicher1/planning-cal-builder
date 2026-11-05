@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch, NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
+### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch (`804edb2`); **FULL GATE 3,981 PASS / 3 FAIL, every baseline identical, the 3 load-timing flakes green alone**; NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
   down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, *"mockup a
@@ -40,8 +40,14 @@
     layouts were drawn on the real card at 1728 / 1440 / 1280 by a scratch headless-Chrome CDP script (CSS injected,
     clip screenshots at 2x); that is a quick, faithful way to show the owner a chrome variant without touching code.
 - **Proof:** new leg `phasearrows` (26/26, in `gate.sh`) on new fixture `phasearrows.sptcal`; `phasesui` 8/8;
-  `npm run check` 40/40. ⏳ **Full gate: not run yet** (the `hiatus-ripple` session's gate was running; two at once
-  stall each other).
+  `npm run check` 40/40.
+- ✅ **Full gate on `804edb2` (dist `2464bbb7…`), port 8658, 21:47-22:39: 3,981 PASS / 3 FAIL, every baseline
+  identical** (gates 2, 10 and 13 included; the restored grid's `fields.byId` key set the same 77 ids). Another
+  session's full gate overlapped its last 30 minutes. All three fails are a 10 s wait for a Load, each green re-run on
+  the same build as `gate.sh` runs it: `retiredplaces` R4 (8/8 twice), `epnames (halfdays)` "no result" (11/11
+  twice), `phasesui (hidewf)` P1 (`dayoverrides` timed out loading; re-run 5 times, red once more on a DIFFERENT
+  fixture, `hiatusdrag`, while the other gate still ran, then 8/8 three times, 12 s each). A fixture that really hung
+  would fail the same one every time.
 - ⚠️ **A harness trap, found here, worth knowing for any leg that keeps backups:** `captureSnapshot()` puts the LIVE
   `userNotes` object in the snapshot, and the harness's in-memory IndexedDB (`T.memoryIDB`) stores what it is given
   by reference, where a real one clones. So a backup read with `T.latestBackup()` and compared LATER shows the notes
@@ -50,8 +56,11 @@
 - **Known limit, shared with the month drag:** an edited automatic note sheds its standard line when its phase
   leaves the week, and gets it back only inside the same burst (or by undo). Across two bursts, ▼ then ▲ leaves
   "PROD-EXTRA" alone on 6/29 with the standard line hidden under it.
-- ⏭ **Next:** the full gate on the branch (serialized), then ask the owner (picker) to merge, and separately to push.
-  Then plan §5, the month drag on the same mover.
+- ⚠️ **`origin/main` moved after the cut:** the waterfall note editor went live (`ac55bb7`). `git merge-tree` on
+  `804edb2` + `ac55bb7`: the code (`app.js`, `legacy.css`, `src/index.html`, `gate.sh`) merges clean; only HANDOFF.md
+  and README.md conflict, both new top entries (keep both). Local `main` (`8b36c9a`) is behind `origin/main` and one
+  HANDOFF-only commit ahead of it.
+- ⏭ **Next:** ask the owner (picker) to merge, and separately to push. Then plan §5, the month drag on the same mover.
 
 ### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
 - **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`

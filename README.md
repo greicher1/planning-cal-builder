@@ -67,7 +67,8 @@ no id and no input. No frozen code, no writer and no save-format change. New leg
 its L1 / L2 hold the buttons inside the box with 2 px clear at sidebars of 280 to 440 px)
 on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
 "Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
-▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40.
+▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40. Full gate on the branch: 3,981 PASS
+/ 3 FAIL with every baseline identical; the three were 10 s Load waits while another gate ran, each green re-run.
 
 ### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 
