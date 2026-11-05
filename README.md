@@ -59,6 +59,46 @@ with every baseline identical. Neighbours green: noteviews, notewrap, holidayren
 autonotekinds, autonotephases, hdrcontrols, wfnotecolors, dlgkeys, regionmirror, hdrrow, mvmenu, monthnotes, textstyle.
 `npm run check` 40/40.
 
+### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+
+The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
+one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
+are gone. What they did is two choices in the Shift form, under Shift All's old caret, which now reads **Shift ▾**:
+
+- **What moves:** `All phases | Phase & before | Phase & after`. The phase row under it shows only when a phase is
+  needed, and a hint names the phases that stay put.
+- **How far:** `By weeks` (`[n] wks  Earlier  Later`) or `To a date` (`[starts on / ends by]  [date]  Go`).
+- **Where each old tool went:** Shift All's form is All phases, By weeks, which is what the form opens on every time
+  (ruling R2(a)). Shift From is Phase & after, By weeks. Anchor To is All phases, To a date, with Whole schedule in
+  the list only there. The ← 1 wk / 1 wk → arrows are unchanged.
+- **New: Phase & before.** The picked phase and every phase before it move, and the gaps are kept. Before, no tool
+  did this. Example: delivery is fixed but the shoot must start two weeks earlier.
+- **A phase that overlaps the picked one moves too, on either side** (owner, 4 Nov 2026, *"Overlaps move too"*).
+  Overlap means sharing a working day: back-to-back phases don't count, and it isn't chained through a neighbour.
+  So Phase & before Production takes a Post that starts before the wrap. With nothing overlapping, Phase & after is
+  exactly the old Shift From. The hint says which phases come along only because they overlap.
+- Notes, unlocked all-phase hiatuses and the calendar range go by a week window spanning the moving phases whole, so
+  each takes its own notes and any hiatus inside it along. Holidays, locked hiatuses, dated notes and day notes never
+  move; Production's day marks travel by shoot-day number, as on every mover.
+- The result line for All phases is the old one, word for word. A part-calendar move adds what moved and what stayed
+  (*"Production and everything before it moved (5 phases, including Post, which overlaps it). 1 stayed where it
+  was."*).
+
+Engine: `shiftCalendarDates(weeks, fromIso, opts)` gains `opts.part = {phases, fromWeek, toWeek}`: exactly those phases
+move, and everything week-keyed inside the window. The form works the set out once (`shiftPlan`) for its hint and the
+move. With no `part`, every existing caller does exactly what it did. The third argument is ONE options object, shared with
+HIATUS-RIPPLE-PLAN.md's `except`. No frozen code, no writer and no save-format change: the choices are id-less buttons
+inside `.tools-menu`, and the ids `tool-shift-*` / `tool-anchor-*` live on in the form (`tool-ripple-*` retired).
+The Help's "Adjusting dates" section is rewritten. New leg `anchorside` (23 cases, in gate.sh) on a new synthetic
+fixture `anchorside.sptcal`, which has two overlaps by days. A build without the overlap rule is red on 9 cases;
+before that rule, a build with one bound at the picked phase's start was red on B2 and B3. `builtindates`, `customunits`,
+`datepick` and `snaptools` open Shift instead of Anchor To; `calrange`, `overrides` and `rowheight` pick Phase & after
+instead of Shift From. Full gate: 3,927 PASS, every baseline identical. Its 20 FAILs were in five legs that don't
+touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscolour`, `offweek`, `mvnotes`). The
+overlap rule came after that gate. It changes only the Phase & before / after path, and the merged build was
+re-checked on the targeted legs (HANDOFF).
+
+
 ### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
 
 The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me

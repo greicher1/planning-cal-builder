@@ -562,29 +562,65 @@ else's file.
 ## 7a. The calendar adjustment tools (toolbar above the preview)
 
 ```
-[Waterfall | Month]  [← 1 wk  Shift All  1 wk → ▾] [Shift From ▾] [Anchor To ▾] [Rebuild From ▾]  [↶ ↷]
+[Waterfall | Month]  [← 1 wk | Shift ▾ | 1 wk →] [Rebuild From ▾]  [↶ ↷]
 ```
 
-One button per tool, each opening its own small popover. There is deliberately **no container
-menu** — an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to
-562 px tall. Shift All is a **split control**: the arrows act on one click, the caret opens the
-multi-week form.
+Two tools since 4 Nov 2026 (owner: *"Ok im going to vote we go with C, one master shift tool"*;
+`ANCHOR-TO-DIRECTION-PLAN.md` §6). Before that there were four buttons: Shift All, Shift From, Anchor To and
+Rebuild From. Shift All's form, Shift From and Anchor To all ended in the same `shiftCalendar()` call, so they became
+**one Shift form with two choices**, and the Shift From and Anchor To buttons went. There is still deliberately **no
+container menu**: an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to 562 px tall.
+Shift is a **split control**. The arrows act on one click (one week, all phases), and the caret opens the form.
 
-Only **two questions** distinguish these tools, and the popover descriptions are written to answer
-them. Anything true of all four (durations are never changed by any of them) must **not** appear in
-a description — it reads as a distinction while distinguishing nothing.
+**One difference tells the two tools apart: Shift keeps the gaps, Rebuild From closes them.** Anything true of both
+(durations are never changed by either) must **not** appear in a description. It reads as a distinction while
+distinguishing nothing.
 
-| | Everything moves | Part moves |
+The Shift form (`#pop-shift`, 340 px), top to bottom:
+1. **What moves:** `All phases | Phase & before | Phase & after` (the owner's words, picked from four options).
+2. **The phase** (`#tool-anchor-phase`), shown only when it is needed: hidden for All phases by weeks, which needs
+   none. For All phases to a date it is the landmark, and only then does the list offer *Whole schedule*.
+3. **A hint** naming the phases that stay put.
+4. **How far:** `By weeks | To a date`.
+5. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: `[starts on / ends by] [date] [Go]`
+   (`tool-anchor-*`).
+
+It opens on **All phases, By weeks every time** (ruling R2(a)), which is exactly the old Shift All form. Earlier/Later
+always shift by weeks and Go always goes to the date, each reading What moves for itself. How far only chooses which
+row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`, never saved.
+
+| | **By weeks** | **To a date** |
 |---|---|---|
-| **Gaps preserved** | Shift All (by amount) · Anchor To (by date) | Shift From |
-| **Gaps rebuilt** | — | Rebuild From |
+| **All phases** | the old Shift All form; the arrows | the old Anchor To |
+| **Phase & before** | new | new |
+| **Phase & after** | the old Shift From | new |
 
-- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)`. `fromIso` limits the
-  move to weeks on or after a cutoff; that is Shift From. Earlier/Later is the direction of
-  **travel**, not which side moves — both directions move the same set.
-- **Anchor To** — measures the gap between a landmark and a target date, then calls
-  `shiftCalendar` with that delta. It moves **dates, not phases**: a phase with a week count but
-  no date is invisible to it. It never reads week counts to position anything.
+- **All phases** — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
+  (`weeksBetweenMondays` for a start, `weeksToFinishBy` for "ends by", which floors) and shifts by it. It moves
+  **dates, not phases**: a phase with a week count but no date is invisible to it.
+- **Phase & before / Phase & after** — `shiftCalendar(weeks, null, {part: {phases, fromWeek, toWeek}})`. The form
+  works the move out once, before anything moves (`shiftPlan`). Its hint and the move both read it, so they cannot
+  disagree:
+  - **Which phases move:** the picked phase; every phase whose START week is on the chosen side (Phase & after alone
+    is the old Shift From's set); and every phase that **overlaps** the picked one, whichever side it starts on.
+    That last part is the owner's ruling, 4 Nov 2026: *"Overlaps move too"*, over keeping the start-week rule alone.
+  - **What counts as an overlap:** the two phases share a working day (`phaseStartDate` .. `phaseLastWorkday`;
+    Production to its wrap). So back-to-back phases, one ending Friday and the next starting Monday, don't count. It
+    is **not chained**: a phase that overlaps only a moving neighbour stays.
+  - **The week window** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
+    calendar range) spans the moving phases **whole**. It runs from the earliest one's start week (Phase & after) or
+    to the latest one's LAST week (Phase & before), so each moving phase takes its own notes and any hiatus inside
+    it along. With one bound at the picked phase's start, a 12-week shoot moved and left weeks 2–12 of its notes,
+    and its Christmas hiatus, behind.
+  - **Notes go by week, not by phase.** A phase that stays but shares a week with one that moves loses that week's
+    notes to it.
+  - With nothing overlapping, Phase & after is exactly the old Shift From (`calrange`, `overrides` and `rowheight`
+    hold that).
+  - Earlier/Later is the direction of **travel**, not which side moves.
+  - ⚠️ `shiftCalendarDates`' third argument is ONE options object. `HIATUS-RIPPLE-PLAN.md` (branch
+    `hiatus-ripple`) adds `except` and `keepView` to the same object.
+- The result line is the old one for All phases, word for word. A part-calendar move adds *"Production and
+  everything before it moved (4 phases). 2 stayed where they were."*
 - **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
   recomputes one side to run consecutively, **writing** start dates including into empty fields.
   Since 30 Oct 2026 (owner, "Build A") the direction only chooses the side: the panel lists that
@@ -603,7 +639,7 @@ Since v1.3.1 (audit M-12) **`rowHeightsByWeek` travels with its week's note** �
 predicate as `noteFontSize` — so a row dragged tall for a long note is not left behind on the old week.
 
 **`dayOverrides` travel BY SHOOT-DAY NUMBER, on every mover** (v1.3.1, owner ruling R2, audit M-4):
-Shift All / Shift From / Anchor To (`shiftCalendar`), the month-view pill drag, Rebuild From
+the Shift tool and its arrows (`shiftCalendar`), the month-view pill drag, Rebuild From
 (`workBackwardsFrom` / `workForwardsFrom`), Close all gaps and "Start after previous phase"
 (`autostartPhase`). Each runs inside `asShootDayMove()`, which pins every mark to Production's
 **natural** shoot days (the simulation with no overrides — `naturalShootDays()`, extended one day per
