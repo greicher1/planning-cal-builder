@@ -487,20 +487,10 @@ export function WaterfallCard() {
                   aria-label="Single Column Mode"
                   title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
         </SettingRow>
-        {/* ✅ COLUMN-REUSE-PLAN.md (owner, 20 Oct 2026): ONE box and one line under it -- the owner's
-            ruling is that this stays simple. Same arrangement as #one-col-btn above: calendar data
-            carried by captureSnapshot()'s own `colReuse` key, inside .prefs-card so
-            collectFieldValues() never sweeps it into fields.byId, and UNCONTROLLED -- the engine writes
-            .checked in reflectColReuse() and listens for 'change' on the document. It was built beside
-            Single Column Mode in the old Preferences card, and stays beside it here, in the Settings
-            window's Preferences tab, since it is this calendar's. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="col-reuse-btn" label="Reuse Empty Columns">
-          <Switch id="col-reuse-btn" size="md" aria-label="Reuse Empty Columns" />
-        </SettingRow>
-        <Text size="xs" c="dimmed" mt={4}>
-          When one phase ends and the next begins, the next one moves into the freed column.
-        </Text>
+        {/* ⛔ The "Reuse Empty Columns" switch (#col-reuse-btn, COLUMN-REUSE-PLAN.md, 20 Oct 2026) sat here until
+            5 Nov 2026, when the owner retired it (LAYOUT-RULES.md §4, LAYOUT-BUILD-PLAN.md §4): every new calendar
+            lays out by the layout rules, and its saved key `colReuse: true` is now the layout STAMP, which a file
+            without it is offered by the strip above the calendar ("Update layout"), never by a switch. */}
         {/* The waterfall's dates (owner ruling 4, 20 Oct 2026; HEADER-ROW-PLAN.md), folded into this card
             when the Settings window merged: it was a "Waterfall Layout" card of its own in the old Settings
             tab. The same .prefs-card rule as the switch above: the id is skipped by the sweep and travels as

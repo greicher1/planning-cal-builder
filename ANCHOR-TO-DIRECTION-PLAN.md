@@ -163,6 +163,9 @@ Either way:
 | **Production's day marks** | by shoot-day number | by shoot-day number | by shoot-day number |
 | **Holidays, locked hiatuses, dated notes, day notes** | stay | stay | stay |
 
+- **A band label on NO band** (typed on a band whose hiatus was later retyped) has no band to follow. Since 5 Nov 2026
+  it goes by its week, as a note does: it moves with All phases and inside the move's weeks, and stays outside them. It
+  used to move on every part move, onto a held band (PHASE-WEEK-ARROWS-PLAN.md §5b).
 - **"Phase & after" is Shift From exactly.** The handler passes the cutoff Shift From passes, and the engine needs
   no change.
 - ⚠️ **"Phase & before" needs two bounds, and the second one is the reason.**

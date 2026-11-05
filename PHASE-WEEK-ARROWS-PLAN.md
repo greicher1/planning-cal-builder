@@ -1,6 +1,6 @@
 # PHASE-WEEK-ARROWS-PLAN.md: move one phase a week at a time from its card
 
-**Status: RULED, BUILT on branch `phase-arrows` (4 Nov 2026); not merged, not pushed. §5 (the month drag) not started.**
+**Status: RULED. The arrows LIVE since `4a90017` (4 Nov 2026). §5 (the month drag) BUILT on branch `month-drag-carry` (5 Nov 2026), not merged, not pushed; §5a is the as-built record.**
 - **Layout C2** (owner, 4 Nov 2026, after D was built and every layout was drawn on the real card at three window
   widths: *"show me a version of C where you make the up and down button slightly taller and wider (expand the box
   every so slighly if necessary"*, then *"C2, but make sure the buttons aren't actually touching the top or bottom lines
@@ -44,7 +44,7 @@ on D. Tracker cards `waterfall-phase-drag` (the arrows) and `month-drag-carries-
   so Production's `dayOverrides` keep their shoot-day numbers. There is no "just this phase" mode.
 - **The month view's body drag (`installMonthPillDrag`) is the only single-phase mover today.** It writes
   `setPhaseStart` only, binds the day overrides (`beginShootDayMove`), and lets edited automatic notes follow
-  (`autoNoteBaseline`). ⚠️ It does NOT move the phase's own hiatus or its `<week>|<key>` stores (§5).
+  (`autoNoteBaseline`). ⚠️ It does NOT move the phase's own hiatus or its `<week>|<key>` stores (§5; built 5 Nov 2026, §5a).
 - **The toolbar's ← 1 wk / 1 wk →** is Shift All by one week: everything moves.
 - **No class says which view is on screen.** `setViewMode()` only toggles the view buttons' `active`. The arrows need
   one (`body.view-sheet`, say).
@@ -136,6 +136,86 @@ date on EVERY increment, so it cannot simply call the mover each time: an out-an
 store exactly, and `shiftKeyedMap`'s last-writer-yields would drop a store entry that a mid-drag step lands on. Move
 from the press-time state each increment, or re-key once at the drop. Its legs are `pilldrag`, `monthdragundo`,
 `phaseedge` and `hiatusdrag`.
+
+### 5a. As built (5 Nov 2026, branch `month-drag-carry`)
+
+- **From the press, every step** (not at the drop). Re-keying once at the drop would leave the own hiatus on its old
+  dates in the live month view until the release. So `beginPhaseCarry` copies, at the press, the ten stores
+  `shiftCalendarDates` re-keys by `hiatusKeyStays` (`hiatusTexts`, `hiatusNameSyncedKeys`, `hiatusColors`,
+  `hiatusFontSize`, `cellSpans`, `gridColSwaps`, `textStyle.hiatus` / `.phase` / `.simpost`, `mvTextStyle.band`) and
+  the phase's `phiatus-start-<key>`. Each time the drag's weeks change, `carryPhaseDrag` puts them back to those
+  copies and, unless the weeks are 0, runs the arrows' call once: `shiftCalendar(weeks, null, {part: {phases: [key],
+  …NUDGE_NO_WEEKS}, keepView: true, carryOnly: true})`. ⚠️ A store added to that step 3 must be added to
+  `phaseCarryStores()` too.
+- **`carryOnly`** (new, with `part` only): the part's phases keep the date their caller wrote; their own hiatus and
+  stores move. The drag still writes its date day by day through `setPhaseStart` and the snap rule, unchanged.
+- **The weeks** are the waterfall rows the run moved: the Monday difference of the start (Production too; its
+  `startDate` is `mondayOf(start)`), or for an Ends phase the nearest whole week of the drag (what `setPhaseStart`
+  moves its end by). So a drag inside a week carries nothing, and a Thursday drop a week on carries one week, keeping
+  the own hiatus on its Monday.
+- **Unchanged:** Production's day marks bound from press to release, edited automatic notes (`autoNoteBaseline`), one
+  undo step at the release, typed notes staying. One `update()` per step: on a weeks change it is the mover's own
+  (`refreshAfterRestore`).
+- **Proof:** new leg `mvdragcarry` (15 cases) on `mvdragcarry.sptcal` (this plan's `phasearrows.sptcal` plus one stale
+  band label on 7/6/26, a week above the locked Summer Break). Red on `origin/main` on all eight carry cases (7/15); red
+  on a "carried step to step" mutant (O2, O3: the stale label lands on 7/13, yields, and never comes back) and a "by
+  days" mutant (K1). Neighbours green: `phasearrows`, `monthdragundo`, `anchorside`, `pilldrag`, `phaseedge`,
+  `hiatusdrag`, `hiatusripple`, `mvorder`, `npm run check`. Full gate (5 Nov 2026): 4,043 PASS, 1 FAIL (the known
+  `scenariocompat` v1.2.0 load flake, green alone), every baseline identical. Without the stale label the step-to-step mutant PASSES: a phase's own `<week>|<key>` entries all move
+  together and cannot collide, so only a plain band key on no band can be dropped.
+- ⚠️ **Found here, NOT fixed (shared with the arrows and the Shift tool):** a one-phase move re-keys a plain-keyed band
+  store that sits on no band. `hiatusKeyStays` keeps a plain key only on a held all-phase band's week, and with an empty
+  window every other plain key moves. So ▲ / ▼ (and now the drag) move a stale band label a week, or drop it onto a held
+  band. Likewise Shift From moves one from before its cutoff. A one-line fix (a plain key also stays when `!inRange`)
+  changes the Shift tools' behaviour, so it is its own change. ✅ **Fixed in §5b**, but not by that one line.
+
+### 5b. A stale band key stays put (5 Nov 2026, branch `stale-band-key`)
+
+- **The bug, reproduced on `origin/main`** (`ca794cc`, leg `stalebandkey`). A label typed on an all-phase band whose
+  hiatus is later retyped to other dates is left keyed on a week with no band. That key is ignored, never destroyed (the
+  rule `applyCellSpanOverrides` and the stint swaps follow). But step 3's `hiatusKeyStays` kept a PLAIN key only on a
+  held band's week, so every other plain key moved:
+  - **Post ▼** carried "Old Break Name" from 7/6 onto Summer Break's 7/13, where it YIELDED (`shiftKeyedMap`) and was
+    gone. Its colour, size 9 and both styles landed on Summer Break, so **nudging Post recoloured Summer Break.**
+  - **Production ▲** carried it to 6/29. The month drag did the same (`mvdragcarry` W1 now checks).
+  - **Shift From** (Phase & after Post) carried it from 7/6, three months BEFORE its 11/2 cutoff, onto Summer Break.
+    That is the claim the month-drag session read off the code, confirmed in the running build. A hand-picked set did
+    the same outside its windows.
+- **Rulings that settle it** (no new question for the owner):
+  - ANCHOR-TO-DIRECTION-PLAN.md §2: band labels *"follow their band or phase"*. A stale key has neither.
+  - Shift From's own definition: *"everything earlier stays exactly where it is"*.
+  - §3 here: the arrows leave *"all-phase hiatuses (locked or not)"* alone.
+  - A stale key that moves can only end up dropped, or drawn on a band it never belonged to.
+- **Why not the one line.** "A plain key also stays when `!inRange`" judges a band's label by its WEEK, but a band is
+  judged by its START, and band labels are keyed on EVERY week of the band (`syncHiatusNamesFromSidebar`). A band that
+  moves can run past the move's window.
+  - The case: a Dates phase (a hiatus never lengthens one, CUSTOM-PHASE-UNITS ruling 4) with an unlocked band starting
+    in its last week. Tick only that phase and the band moves, but under the one-liner its second week's typed label and
+    colour stay behind on a week with no band, and the band's moved second week shows the synced name.
+  - The leg proves it: P1 is red on that mutant.
+- **The rule as built** (`shiftCalendarDates`, steps 2 and 3; about 15 lines, no frozen code, no save-format change):
+  - Step 2 records the weeks of every band that MOVES (`movingHiatusWeeks`), from its pre-shift dates, beside the held
+    bands' `stayingHiatusWeeks`. Both go through one `recordBandWeeks(row, set)`.
+  - A plain key on a held band's week stays.
+  - A plain key on a moving band's week moves, every week of the band.
+  - A plain key on NO band goes by its week, as a note does: carried by a whole-calendar shift and inside a part move's
+    windows, left where it is outside them.
+  - ▲ / ▼ and the month drag pass an EMPTY window, so a stale key never moves on them.
+- **Unchanged:** a whole-calendar shift (everything is in range); every `<week>|<key>` store; every band that exists.
+  ⚠️ Known and NOT changed: on a whole-calendar shift a stale label one week above a LOCKED band still moves onto it
+  and yields, exactly as on `origin/main`. Nothing ruled says a stale key should be held while everything moves.
+- **The month drag's "from the press":** with this fix no store a one-phase move touches can collide, so carrying step
+  to step would lose nothing either, and `mvdragcarry`'s step-to-step mutant now passes. From the press stays: it is what
+  protects a store added to step 3 later.
+- **Proof:** new leg `stalebandkey` (9 cases, in gate.sh after `mvdragcarry`) on new fixture `stalebandkey.sptcal`.
+  - Fixture = `phasearrows.sptcal`, plus the stale label's five stores on 7/6/26, a second stale label "Late Stale" on
+    2/8/27, the Dates phase Stage Build 5/3-5/14/27, and the unlocked two-week "Strike Break" from 5/10/27 with a typed
+    "Strike wk 2" and a colour on 5/17.
+  - `origin/main`: 5/9 (N1 N2 F1 P1 red). The one-liner mutant: 8/9 (P1 red). The fix: 9/9.
+  - `mvdragcarry` W1 now also holds the plain band labels: red on `origin/main`, 15/15 on the fix.
+  - Neighbours green (`phasearrows`, `anchorside`, `calrange`, `datepick`, `halfworked`, `rowheight`, `overrides`,
+    `snaptools`, `pilldrag`, `hiatusdrag`, `hiatusripple`). Full gate (5 Nov 2026): 4,053 PASS, 0 FAIL, every baseline
+    identical.
 
 ## 6. The other ways considered (the first answer, kept as the record)
 
