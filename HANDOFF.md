@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
+### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
 - **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
   (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty
   collumns fixed it! But how would a user know that was what they needed to turn off?"*
@@ -51,10 +51,12 @@
     colswapmove, colswapmid, colswapstale, the ten stint legs, onecol, colreuse (live and fixture), notescols and
     hdrfit on `colreuse`, then noswapbtns, colswappartial ×2, swapsplitreuse, colswapcache, simpostbeside,
     monthmap (colreuse).
-- ⏭ **Not done: the full gate** (CLAUDE.md asks for it before a grid change is called done; another session's gate
-  was running, and two at once stall). Expect movement only where a reuse-ON calendar has a phase with no handoff
-  and a choice of free columns; legs that start from a blank calendar run with reuse on. Then the owner's picker
-  for merging and pushing.
+- ✅ **Full gate (owner, *"Run the gate"*), port 8253, alone on the machine: 3,896 PASS / 3 FAIL, every baseline
+  identical** (gates 2, 10 and 13 included). The three are contention flakes already on record, and each is green
+  re-run alone on the same build as `gate.sh` runs it: `monthexport (month-lanecap)` X6 (the timed dialog case) 9/9,
+  `phaseedge`'s 480 s deadline 23/23, `offweek (offweek)` R9 (a 10 s wait for the loaded file's name) 42/42.
+  No leg outside the swap/reuse set moved, so no other calendar's layout changed under the new rule 3.
+- ⏭ **Next:** the owner's picker for merging into `main` and, separately, pushing.
 
 
 ### 🔨 4 Nov 2026: A HIATUS IS NAMED AND COLOURED ON ITS SIDEBAR CARD ONLY — branch `hiatus-sidebar-only` (worktree `.claude/worktrees/hiatus-sidebar-only`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `hiatus-name-colour-sidebar-only`
