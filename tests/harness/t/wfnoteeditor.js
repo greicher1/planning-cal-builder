@@ -21,6 +21,7 @@
 //   R1  a holiday renamed AND a line added in one save: both stick (D2)
 //   R2  an automatic note renamed AND a line added in one save: both stick
 //   R3  a line taken out and another typed in one save: the taken-out holiday is hidden from the waterfall
+//   R4  two lines typed over a holiday's without its date: typed text, the holiday neither renamed nor hidden
 //   E0  no console errors
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
@@ -290,14 +291,28 @@ window.addEventListener('load', function () { (async function () {
 
     await step('R3', async function () {
       var p = await openEditor('2026-06-29');
-      // The new line goes ABOVE the start, not in the holiday's place: typed in its place, it would be typing over the
-      // holiday's line, which renames it (rename ruling 3; D2 pairs a line that left with the line that came in its place).
+      // The new line goes ABOVE the start, not in the holiday's place (R4 is that case).
       setBox(p, 'Table read\n' + START);
       await saveBox(p);
       var c = cellText('2026-06-29'), s = await save();
       kase('R3', 'a line taken out and another typed elsewhere in one save: the taken-out holiday is hidden from the waterfall (it used to come back after a move); not renamed',
            c === 'Table read\n' + START && s.holidayView[INDID].sheet === false && !((s.holidayNames || {})[INDID]),
            { cell: c, holiday: s.holidayView[INDID], names: s.holidayNames });
+      await load(S0);
+    });
+
+    await step('R4', async function () {
+      // The full gate's base leg does exactly this (t/base.js): two lines of its own typed over Labor Day's. An early
+      // build of D2 read the first as a rename, and Labor Day was called "Studio Cut Due" everywhere.
+      var p = await openEditor('2026-09-07');
+      setBox(p, 'Studio Cut Due\nNetwork Cut Due 9/11/26');
+      await saveBox(p);
+      var c = cellText('2026-09-07'), s = await save();
+      kase('R4', 'two lines typed over a holiday\'s, its date not kept: typed text, the holiday neither renamed nor hidden (as before D2)',
+           c === 'Studio Cut Due\nNetwork Cut Due 9/11/26' && !((s.holidayNames || {})[LABORID])
+             && !(s.holidayView[LABORID] && s.holidayView[LABORID].sheet === false)
+             && s.userNotes['2026-09-07'].text === 'Studio Cut Due\nNetwork Cut Due 9/11/26',
+           { cell: c, names: s.holidayNames, holiday: s.holidayView[LABORID], userNote: s.userNotes['2026-09-07'] });
       await load(S0);
     });
 

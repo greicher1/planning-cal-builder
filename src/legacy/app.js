@@ -16542,14 +16542,36 @@ export function initLegacyApp() {
     const autos = (autoNotes || []).filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n)));
     const noteOf = line => autos.find(n=> autoNoteLine(n) === line);
     const labels = new Map(), gone = new Set();
-    // ⭐ ALIGNED BY CONTENT since 4 Nov 2026 (WATERFALL-NOTE-EDITOR-PLAN.md D2), not by count: the lines the box kept are
-    // its longest common run with what the cell held, and between two kept lines, the lines that left and the lines that
-    // came are paired in order. An automatic note's or holiday's line that left with a new line in its place is RENAMED
-    // to it (not when the new line ends in another date: a note, as before); one that left with nothing in its place is
-    // HIDDEN from the waterfall; every other new line is typed text. Until then this ran only when the count was the
-    // same (renames) or lines were only taken out (hides), so a rename and an added line in one save lost the rename,
-    // and a line taken out with another typed in was neither hidden nor kept (it came back after a move).
+    // Rename note `nt` to the box's line `now`, at index `at` in `a`. False when `now` is no rename of it (it ends in
+    // another date: a note), or, with `needDate`, when the line lost the note's own date (typed afresh, not edited).
+    const rename = (nt, now, at, needDate)=>{
+      const orig = nt.holiday ? (holidayOrigName(nt.hid) || nt.label) : nt.origLabel;
+      const bare = stripHolidayDate(now, nt.date);
+      if(needDate && bare === now.replace(/\s+/g, ' ').trim()) return false;
+      const name = bare || orig;                                        // just its date: back to its own name
+      if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return false;     // given another date: a note, not a rename
+      if(nt.holiday) setHolidayName({hid: nt.hid, name: nt.label, origName: orig, date: nt.date}, name === orig ? null : name);
+      else setAutoNoteName(nt, name);
+      labels.set(nt, name);
+      a[at] = `${name} ${fmtShort(nt.date)}`;
+      return true;
+    };
+    // ⭐ ALIGNED BY CONTENT since 4 Nov 2026 (WATERFALL-NOTE-EDITOR-PLAN.md D2), not by count. The lines the box kept are
+    // its longest common run with what the cell held; between two kept lines, the lines that left and the lines that
+    // came are paired in order (a line that only MOVED is neither: it left one place and came in another, unchanged).
+    // An automatic note's or holiday's line that left:
+    //   - with a line in its place is RENAMED to it (not when the new line ends in another date: a note, as before).
+    //     Where the box gained or lost lines at that spot, only a line that KEEPS THE NOTE'S OWN DATE counts ("Labour Day
+    //     9/7/26", an edit); one typed afresh without it is the user's own text, and the note is left alone, neither
+    //     renamed nor hidden. ⛔ That is the full gate's base leg, which types two lines of its own over Labor Day's: an
+    //     early build of this read the first as a rename, and Labor Day was called "Studio Cut Due" everywhere. One line
+    //     typed straight over one line renames it with or without its date, as it always has (rename ruling 3);
+    //   - with nothing in its place is HIDDEN from the waterfall (Delete's rule).
+    // Until then this ran only when the count was the same (renames, line for line) or lines were only taken out
+    // (hides), so a rename and an added line in one save lost the rename, and a line taken out with another typed in
+    // was neither hidden nor kept (it came back after a move).
     const n = b.length, m = a.length;
+    const had = new Set(b), has = new Set(a);
     const L = Array.from({length: n + 1}, ()=> new Array(m + 1).fill(0));
     for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
       L[i][j] = b[i] === a[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
@@ -16563,19 +16585,13 @@ export function initLegacyApp() {
     while(i < n) gb.push(i++);
     while(j < m) ga.push(j++);
     gaps.push([gb, ga]);
-    gaps.forEach(([left, came])=>{
+    gaps.forEach(([gl, gc])=>{
+      const left = gl.filter(bi=> !has.has(b[bi])), came = gc.filter(aj=> !had.has(a[aj]));
       left.forEach((bi, t)=>{
         const nt = noteOf(b[bi]);
         if(!nt || labels.has(nt) || gone.has(nt)) return;
-        if(t >= came.length){ gone.add(nt); return; }                  // nothing in its place: hidden
-        const aj = came[t];
-        const orig = nt.holiday ? (holidayOrigName(nt.hid) || nt.label) : nt.origLabel;
-        const name = stripHolidayDate(a[aj], nt.date) || orig;          // just its date: back to its own name
-        if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return;         // given another date: a note, not a rename
-        if(nt.holiday) setHolidayName({hid: nt.hid, name: nt.label, origName: orig, date: nt.date}, name === orig ? null : name);
-        else setAutoNoteName(nt, name);
-        labels.set(nt, name);
-        a[aj] = `${name} ${fmtShort(nt.date)}`;
+        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
+        else rename(nt, a[came[t]], came[t], left.length !== came.length);
       });
     });
     // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.

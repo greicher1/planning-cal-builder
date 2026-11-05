@@ -1,6 +1,18 @@
 # WATERFALL-NOTE-EDITOR-PLAN.md: the waterfall's note editor says what a line is, and hides it
 
-**Status: RULED, 4 Nov 2026 (owner, by picker: R1(a), R2(b), R3(a)). Nothing built.** Branch `wf-note-editor` (worktree
+**Status: RULED, 4 Nov 2026 (owner, by picker: R1(a), R2(b), R3(a)). BUILT the same day on this branch** (steps 1-4; the
+full gate's result is in HANDOFF).
+
+- **As built, where it differs from the text below:**
+  - D2's pairing: one line typed straight over an automatic or holiday line renames it, with or without its date (rename
+    ruling 3, as before). ⛔ Where the box also gained or lost lines at that spot, a line counts as a rename only if it
+    KEEPS THE NOTE'S OWN DATE ("Labour Day 9/7/26", an edit, leg cases R1/R2); lines typed afresh over it are the
+    user's own text and the note is left alone, neither renamed nor hidden (case R4). The full gate's base leg is that
+    case (two lines typed over Labor Day's): the first build read its first line as a rename, and the gate's waterfall
+    PDF, workbook strings and grid signature moved. A line taken out with nothing in its place is hidden (R3); a line
+    that only moved is neither.
+  - Hide's tooltip says what happens: it stays in the month view, or (when the month view already hides it) it is
+    switched off. Branch `wf-note-editor` (worktree
 `.claude/worktrees/wf-note-editor`, from `main` at `c5fd2ce`; its `node_modules` is a symlink, so unlink it before
 `git worktree remove`). Tracker cards `wf-hide-auto-note` and `wf-holiday-editor-mode`.
 
