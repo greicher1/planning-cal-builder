@@ -139,14 +139,14 @@ input.ctl.num{ width:52px; flex:none; }
   <div class="page-head">
     <h1>Anchor To: choose what moves</h1>
     <p>Today Anchor To always moves every phase, so the one you pick lands on your date. A and B give it one more choice: move everything, or only that phase and the ones after it, or only that phase and the ones before it. C goes further and makes Shift From and Anchor To one tool. The gaps between the phases that move are kept in every case.</p>
-    <p>Try it: delivery is fixed and the shoot must start 2 weeks earlier. In A or B, pick <b>This and before</b> and press Go. In C, pick <b>This and before</b>, then type 2 and press Earlier, or switch to <b>To a date</b>. The calendar is made up.</p>
+    <p>Try it: delivery is fixed and the shoot must start 2 weeks earlier. In A or B, pick <b>Up to a phase</b> and press Go. In C, pick <b>Up to a phase</b> (Production is already chosen under it), then type 2 and press Earlier, or switch to <b>To a date</b>. The calendar is made up.</p>
   </div>
 
   <div class="info">
     <div>
       <h3>What's new</h3>
       <ul>
-        <li>One choice: <b>Everything</b>, <b>This and after</b>, <b>This and before</b>.</li>
+        <li>One choice: <b>All phases</b>, <b>From a phase</b>, <b>Up to a phase</b>.</li>
         <li>A line under it naming the phases that <b>stay where they are</b>.</li>
         <li>C only: a second choice, <b>By weeks</b> or <b>To a date</b>, so Shift From and Anchor To become one Shift tool and their buttons go.</li>
       </ul>
@@ -154,8 +154,9 @@ input.ctl.num{ width:52px; flex:none; }
     <div>
       <h3>As shown</h3>
       <ul>
-        <li>A and B open on Everything, so Anchor To works as it does today until you change it. C opens on Everything, By weeks: today's Shift All form.</li>
-        <li>Whole schedule only goes with Everything.</li>
+        <li>A and B open on All phases, so Anchor To works as it does today until you change it. C opens on All phases, By weeks: today's Shift All form.</li>
+        <li>In C the phase sits right under the choice. It shows whenever a phase matters: for From or Up to a phase, and for All phases to a date (the phase that lands on the date).</li>
+        <li>Whole schedule only goes with All phases.</li>
         <li>Holidays, locked hiatuses and dated notes still never move. A phase's own notes and hiatuses move with it.</li>
         <li>Nothing goes into the saved file.</li>
       </ul>
@@ -164,7 +165,7 @@ input.ctl.num{ width:52px; flex:none; }
       <h3>Your calls</h3>
       <ul>
         <li><b>R1, layout</b>: three buttons in Anchor To (A), a dropdown in Anchor To (B), or one Shift tool (C)?</li>
-        <li><b>R2, on opening</b>: back to Everything (and, in C, By weeks) every time, or remember your last choice until the app closes?</li>
+        <li><b>R2, on opening</b>: back to All phases (and, in C, By weeks) every time, or remember your last choice until the app closes?</li>
       </ul>
     </div>
   </div>
@@ -222,8 +223,8 @@ input.ctl.num{ width:52px; flex:none; }
     C: 'C: Shift From and Anchor To become one tool behind Shift’s ▾, and their buttons go. The arrows still move everything one week. The toolbar keeps two tools: Shift keeps the gaps, Rebuild From closes them.',
   };
   const TIP = {
-    AB: 'Moves phases so the one you pick lands on your date. Choose whether everything moves, or only that phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.',
-    C: 'Moves phases by a number of weeks or to a date. Choose whether everything moves, or only one phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.',
+    AB: 'Moves phases so the one you pick lands on your date. Choose whether all phases move, or only that phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.',
+    C: 'Moves phases by a number of weeks or to a date. Choose whether all phases move, or only one phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.',
   };
 
   let phases, opt = 'A', pick, edge, move, far, weeks, dir, date, lastMsg;
@@ -231,7 +232,7 @@ input.ctl.num{ width:52px; flex:none; }
     phases = START.map(p => ({...p, start: d(p.start)}));
     pick = 'production'; edge = 'start'; move = 'all'; far = 'weeks'; weeks = 2; dir = 1; date = '2027-05-24'; lastMsg = '';
   }
-  // Switching tabs stands in for opening the popover: R2(a), it starts on Everything (and, in C, By weeks).
+  // Switching tabs stands in for opening the popover: R2(a), it starts on All phases (and, in C, By weeks).
   function reopen(){ move = 'all'; far = 'weeks'; lastMsg = ''; fixPick(); }
 
   const sorted = () => phases.slice().sort((a, b) => a.start - b.start);
@@ -240,9 +241,9 @@ input.ctl.num{ width:52px; flex:none; }
   const list = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
 
   const effFar = () => opt === 'C' ? far : 'date';
-  // C's phase row is hidden only for Everything by weeks: that is Shift All, which needs no phase.
+  // C's phase row is hidden only for All phases by weeks: that is Shift All, which needs no phase.
   const needsPhase = () => !(opt === 'C' && far === 'weeks' && move === 'all');
-  // Whole schedule only goes with Everything (in A and B picking it hides the choice; in C it is offered only then).
+  // Whole schedule only goes with All phases (in A and B picking it hides the choice; in C it is offered only then).
   const allowWhole = () => opt !== 'C' || (far === 'date' && move === 'all');
   // When the phase changes under you, the date follows it, as syncAnchorDate does in the app.
   function fixPick(){ if(pick === ALL && !allowWhole()){ pick = 'production'; date = iso(landmark()); } }
@@ -295,15 +296,19 @@ input.ctl.num{ width:52px; flex:none; }
     return '<div class="dir new" role="group" aria-label="' + label + '">' + items.map(([v, t]) =>
       '<button type="button" data-' + attr + '="' + v + '" aria-pressed="' + (v === cur) + '">' + t + '</button>').join('') + '</div>';
   }
-  const moveSeg = () => seg('move', 'What moves', [['all', 'Everything'], ['after', 'This and after'], ['before', 'This and before']], move);
+  // Owner, 4 Nov 2026: "reword these options". "All phases", not "Everything": holidays, locked hiatuses and dated
+  // notes never move, so "Everything" overstated it. "From a phase" / "Up to a phase" name the phase picked right
+  // under them, and avoid Earlier/Later (C's buttons are directions of travel).
+  const moveSeg = () => seg('move', 'What moves', [['all', 'All phases'], ['after', 'From a phase'], ['before', 'Up to a phase']], move);
   const farSeg = () => seg('far', 'How far', [['weeks', 'By weeks'], ['date', 'To a date']], far);
   function moveSelect(){
     const n = esc(name());
     return '<div class="row new"><span class="lbl">Move</span><select class="ctl" data-ctl="movesel" aria-label="What moves">'
-      + [['all', 'Everything'], ['after', n + ' and everything after it'], ['before', n + ' and everything before it']]
+      + [['all', 'All phases'], ['after', n + ' and everything after it'], ['before', n + ' and everything before it']]
         .map(([v, t]) => '<option value="' + v + '"' + (v === move ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>';
   }
-  const dateRow = () => '<div class="row"><input class="ctl" type="date" data-ctl="date" value="' + date + '" aria-label="Date"><button class="gobtn" type="button" data-act="go">Go</button></div>';
+  // C puts "starts on / ends by" beside the date, so its phase row (right under What moves) holds the phase alone.
+  const dateRow = withEdge => '<div class="row">' + (withEdge ? edgeSelect() : '') + '<input class="ctl" type="date" data-ctl="date" value="' + date + '" aria-label="Date"><button class="gobtn" type="button" data-act="go">Go</button></div>';
   const weeksRow = () => '<div class="row"><input class="ctl num" type="number" min="1" step="1" data-ctl="weeks" value="' + weeks + '" aria-label="Number of weeks"><span class="unit">wks</span>'
     + '<button class="gobtn half" type="button" data-act="earlier">Earlier</button><button class="gobtn half" type="button" data-act="later">Later</button></div>';
   const tail = '<p class="hint" id="hint"></p>';
@@ -316,11 +321,14 @@ input.ctl.num{ width:52px; flex:none; }
       + tail + dateRow() + msgEl;
   }
   function popC(){
+    // Owner, 4 Nov 2026: the phase "right below" What moves. The hint follows it, since it names what that pair leaves
+    // put; How far and its inputs come after.
     return head('Shift', TIP.C)
       + '<p class="cap">What moves</p>' + moveSeg()
+      + (needsPhase() ? '<div class="row">' + phaseSelect() + '</div>' : '')
+      + tail
       + '<p class="cap">How far</p>' + farSeg()
-      + (needsPhase() ? '<div class="row">' + phaseSelect() + (far === 'date' ? edgeSelect() : '') + '</div>' : '')
-      + tail + (far === 'weeks' ? weeksRow() : dateRow()) + msgEl;
+      + (far === 'weeks' ? weeksRow() : dateRow(true)) + msgEl;
   }
   function renderAll(){
     const segView = '<div class="seg"><span class="on">Waterfall</span><span>Month</span></div>';

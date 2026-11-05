@@ -12,8 +12,8 @@
 - **Answered from the code:** Anchor To moves everything. Its Go calls `shiftCalendar(delta)` with no cutoff, so it is
   Shift All aimed at a date. (The older card `anchor-to-earlier-phases`, 30 Oct 2026, asked the same question from the
   other side and was tested then.)
-- **Proposed:** one choice under the phase. **Everything** (today, the default) | **This and after** (Shift From's
-  set, aimed at a date) | **This and before** (new: no tool moves a phase and the phases before it while keeping
+- **Proposed:** one choice under the phase. **All phases** (today, the default) | **From a phase** (Shift From's
+  set, aimed at a date) | **Up to a phase** (new: no tool moves a phase and the phases before it while keeping
   the gaps). A hint line names what stays. Whole schedule hides the choice.
 - ⚠️ **"Before" needs TWO bounds** (plan §2). Phases go by start (on or before the picked phase's start week). Notes,
   unlocked all-phase hiatuses and the calendar range go by the picked phase's LAST week, or a moved shoot leaves its
@@ -25,7 +25,12 @@
   - Shift From and Anchor To fold into Shift All's ▾, renamed **Shift**, with two choices: What moves (the three
     above) and How far (By weeks | To a date). The arrows stay. The toolbar keeps two tools: Shift keeps the gaps,
     Rebuild From closes them.
-  - It opens on Everything by weeks, which is today's Shift All form.
+  - It opens on All phases by weeks, which is today's Shift All form.
+  - **Reworded and reordered at the owner's ask** (*"reword these options and move the phase selector to right below
+    it"*, on a screenshot of C). The buttons first read Everything | This and after | This and before. "All
+    phases" is used because holidays and locked hiatuses never move. C's phase picker now sits directly under the
+    buttons, and *starts on / ends by* moved beside the date. One case pushes How far down a row (All phases by
+    weeks, then To a date): plan §6.2.
   - Its popover measured 233 px open, 283 px at its tallest, and 333 px with a result line. The old "Adjustment
     Tools" menu, removed for its height, was 562 px.
   - Seven legs drive these popovers. Keep the `tool-shift-*` and `tool-anchor-*` ids; `tool-ripple-*` retires, and
@@ -33,7 +38,7 @@
 - **Waiting on the owner:**
   - R1, the layout: A (three buttons in Anchor To), B (a dropdown) or C (one Shift tool). C is recommended if
     retiring two buttons is acceptable, and A otherwise.
-  - R2, on opening: back to Everything (and By weeks in C) every time, which is recommended, or remember the last
+  - R2, on opening: back to All phases (and By weeks in C) every time, which is recommended, or remember the last
     choice until the app closes.
 - ⚠️ **The freeze, checked:** `shiftCalendar` is not on CLAUDE.md's list, but MANTINE-SEAM.md §4.9 names it among the
   schedule inputs the Mantine work may not touch. Features have changed what it moves before (`705a1d8`, `53e8dd9`,

@@ -11,6 +11,8 @@ To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
   - then *"Yes, write it up"*.
   - then *"In theory, could shift from and anchor to be combined into one tool with multiple settings?"*
   - then *"Yes, add it"* (to add layout C to this plan and the mockup).
+  - then, on a screenshot of C's What moves row, *"reword these options and move the phase selector to right below
+    it"*. Now `All phases | From a phase | Up to a phase` (§3), with C's phase picker directly under them (§6.2).
 - **The short answer given in chat:** Anchor To moves everything today. It is Shift All aimed at a date. A choice of
   what moves makes sense, and the "backwards" half is the useful one: no tool today moves a phase and the phases
   before it while keeping the gaps. Call it something other than forward/backward (§3).
@@ -65,13 +67,14 @@ To; **C combines Shift From and Anchor To into one Shift tool (§6)**. Mockup:
 
 One more choice in the Anchor To popover, **what moves**, under the phase:
 
-- **Everything.** Today's tool, and the default.
-- **Production and everything after it.** Exactly Shift From's set, aimed at a date instead of a number of weeks.
-- **Production and everything before it.** New.
+- **All phases.** Today's tool, and the default.
+- **From a phase:** the picked phase and everything after it. Exactly Shift From's set, aimed at a date
+  instead of a number of weeks.
+- **Up to a phase:** the picked phase and everything before it. New.
 
 The mockup draws three layouts (R1):
-- **A, three buttons.** The look of Rebuild From's direction control (`.solve-dir`): `Everything | This and after |
-  This and before`.
+- **A, three buttons.** The look of Rebuild From's direction control (`.solve-dir`): `All phases | From a phase |
+  Up to a phase`.
 - **B, a dropdown** whose options name the phase: `Production and everything after it`.
 - **C, one Shift tool.** Shift From and Anchor To are folded into Shift All's ▾, with the same three buttons plus "By
   weeks | To a date". See §6. Everything below in this section holds for C too.
@@ -79,26 +82,26 @@ The mockup draws three layouts (R1):
 Either way:
 - **A hint line under the choice names what stays put.** For example, "Post and Localization stay where they are."
   It reads nothing but the phase list. It is the one fact that tells the three apart before you press Go.
-- **Whole schedule hides the choice.** The whole schedule has nothing before or after it, so only Everything makes
+- **Whole schedule hides the choice.** The whole schedule has nothing before or after it, so only All phases makes
   sense.
 - **The result line says what moved and what stayed.** For example: "Shifted 2 weeks earlier. Wrap 8/13/27.
   Production starts 5/24/27. Production and everything before it moved (5 phases). 2 stayed where they were."
-  Everything keeps today's line word for word.
+  All phases keeps today's line word for word.
 - **The help text** (the `InfoHint`) becomes: *"Moves phases so the one you pick lands on your date. Choose whether
-  everything moves, or only that phase and the ones after it or before it. Gaps are kept; use Rebuild From to close
+  all phases move, or only that phase and the ones after it or before it. Gaps are kept; use Rebuild From to close
   them."* CLAUDE.md's rule still holds: nothing true of all four tools goes in it.
 
 **A worked example (the mockup's synthetic calendar).** Delivery is fixed, and the shoot must start 2 weeks earlier.
-- Pick Production, starts on 5/24/27, **This and before**.
+- Pick Production, starts on 5/24/27, **Up to a phase**.
 - Writer's Room, Pre-Prep, Casting, Prod Prep and Production are pulled 2 weeks.
 - Post and Localization stay, and a 2-week gap opens between the wrap and Post.
-- With **Everything**, Post and Localization would be pulled too, and delivery would move.
+- With **All phases**, Post and Localization would be pulled too, and delivery would move.
 
 ---
 
 ## 2. Exactly what moves
 
-| | Everything | This and after | This and before |
+| | All phases | From a phase | Up to a phase |
 |---|---|---|---|
 | **Phases** (and each one's own hiatus) | all | start on or after the picked phase's start week | start on or before the picked phase's start week |
 | **Unlocked all-phase hiatuses** | all | start on or after that week | start on or before the picked phase's **last** week |
@@ -108,9 +111,9 @@ Either way:
 | **Production's day marks** | by shoot-day number | by shoot-day number | by shoot-day number |
 | **Holidays, locked hiatuses, dated notes, day notes** | stay | stay | stay |
 
-- **"This and after" is Shift From exactly.** The handler passes the cutoff Shift From passes, and the engine needs
+- **"From a phase" is Shift From exactly.** The handler passes the cutoff Shift From passes, and the engine needs
   no change.
-- ⚠️ **"This and before" needs two bounds, and the second one is the reason.**
+- ⚠️ **"Up to a phase" needs two bounds, and the second one is the reason.**
   - Phases are judged by their **start**: on or before the picked phase's start week. This is the mirror of Shift
     From.
   - Everything week-keyed is judged against the picked phase's **last** week. The picked phase moves whole, so its
@@ -139,22 +142,31 @@ Either way:
   would collide.
 - **"Before it / after it"** is what Shift From's help text already says ("The phase you pick and everything after
   it move").
+- **The buttons read `All phases | From a phase | Up to a phase`** (owner, 4 Nov 2026: *"reword these options"*;
+  they first read `Everything | This and after | This and before`).
+  - **"All phases", not "Everything":** holidays, locked hiatuses and dated notes never move, so "Everything"
+    overstated it.
+  - **"From a phase" / "Up to a phase"** name the phase picked right under them, and they still avoid
+    "earlier / later".
+  - The phase itself moves in both. The hint line says so ("Production and the phases before it move").
+  - **Layout B's dropdown keeps phase-named options** ("Production and everything after it"), and its first option
+    is All phases too.
 
 ---
 
 ## 4. Rulings needed
 
 - **R1. Layout.**
-  - (a) **Three buttons in Anchor To**, `Everything | This and after | This and before`. Shift From stays as it is.
+  - (a) **Three buttons in Anchor To**, `All phases | From a phase | Up to a phase`. Shift From stays as it is.
   - (b) A dropdown in Anchor To naming the phase. Shift From stays as it is.
   - (c) **One Shift tool (§6).** Shift From and Anchor To fold into Shift All's ▾, and the toolbar keeps two tools.
     *(Recommended, if you are happy to retire two buttons people know. It follows "simplify rather than add options":
-    A and B add a choice to Anchor To and leave its "This and after" doing what Shift From already does, while C
-    removes that overlap, and "This and before" then works by weeks too at no extra cost. If retiring the buttons is
+    A and B add a choice to Anchor To and leave its "From a phase" doing what Shift From already does, while C
+    removes that overlap, and "Up to a phase" then works by weeks too at no extra cost. If retiring the buttons is
     too big a change for the people on the live site, (a) is the low-change choice: its buttons are visible at once,
     and they match Rebuild From's direction control in the next popover.)*
 - **R2. What it starts on when the popover opens.**
-  - (a) **Everything, every time** (and, in C, By weeks). *(Recommended: someone who never touches the choice gets
+  - (a) **All phases, every time** (and, in C, By weeks). *(Recommended: someone who never touches the choice gets
     exactly today's tool: Anchor To under A and B, Shift All's form under C. It matches Rebuild From's ticks, which
     are forgotten between openings.)*
   - (b) The last choice, until the app is closed.
@@ -181,7 +193,7 @@ These are for A or B. C adds steps of its own (§6).
      and passes the cutoff ("after") or the two bounds ("before").
    - The result line uses `describeShift`'s `tail`, as Shift From's does. The help text is the one in §1.
 3. **A new leg, `anchorside`.** Each case runs on a synthetic calendar and checks the snapshot afterwards:
-   - E1: Everything leaves today's result unchanged (the snapshot equals a run of today's code path).
+   - E1: All phases leaves today's result unchanged (the snapshot equals a run of today's code path).
    - A1: "after" equals Shift From by the same number of weeks.
    - B1: "before" moves the earlier phases, and the later ones keep their dates.
    - B2: a note in the picked phase's week 5 moves, and one in a later phase's week stays.
@@ -222,9 +234,9 @@ Those are two settings, not three tools:
 
 | | **By weeks** | **To a date** |
 |---|---|---|
-| **Everything** | today's Shift All form (no phase to pick) | today's Anchor To |
-| **This and after** | today's Shift From | new (A and B's "after") |
-| **This and before** | new | new (A and B's "before") |
+| **All phases** | today's Shift All form (no phase to pick) | today's Anchor To |
+| **From a phase** | today's Shift From | new (A and B's "From a phase") |
+| **Up to a phase** | new | new (A and B's "Up to a phase") |
 
 ### 6.2 What it looks like
 
@@ -234,19 +246,25 @@ Those are two settings, not three tools:
     sit outside any popover.
   - The middle reads **Shift** instead of "Shift All", because its form can now move part of the calendar.
 - **The popover** (340 px, the width of the other tools; Shift All's is 280 px today), top to bottom:
-  1. **What moves:** `Everything | This and after | This and before`.
-  2. **How far:** `By weeks | To a date`.
-  3. **The phase**, shown only when it matters. It is hidden for Everything by weeks, which is Shift All and needs
-     none. To a date puts *starts on / ends by* beside it. With Everything, the list also offers Whole schedule.
-  4. **By weeks:** `[2] wks  [Earlier] [Later]`. **To a date:** `[date]  [Go]`.
-  5. **The hint line** naming what stays put (§1).
-- **It opens on Everything, By weeks** (R2): exactly today's Shift All form. Someone who opens it, types 2 and
+  1. **What moves:** `All phases | From a phase | Up to a phase`.
+  2. **The phase, directly under it** (owner, 4 Nov 2026), alone on its row, shown only when it matters. It is
+     hidden for All phases by weeks, which is Shift All and needs none. For All phases to a date it is the phase that
+     lands on the date, and the list also offers Whole schedule.
+  3. **The hint line** naming what stays put (§1). It sits under the pair it describes.
+  4. **How far:** `By weeks | To a date`.
+  5. **By weeks:** `[2] wks  [Earlier] [Later]`. **To a date:** `[starts on ▾]  [date]  [Go]`. *Starts on / ends
+     by* moved down beside the date so the phase row holds the phase alone.
+  - ⚠️ One case makes a row appear ABOVE the control you clicked: All phases by weeks, then To a date. The phase row
+    appears under What moves and pushes How far down by one row. Every other change adds or removes rows below
+    the click. If that jump bothers you, the fix is to show the phase row for All phases by weeks too, with the
+    picker disabled.
+- **It opens on All phases, By weeks** (R2): exactly today's Shift All form. Someone who opens it, types 2 and
   presses Later gets what they got before.
 - **The two choices never hide.** Only the phase row and the inputs under How far change.
 - **Each action button reads What moves for itself.** Earlier and Later always shift by weeks, and Go always goes
   to the date. How far only chooses which of them is shown.
-- **The result line** is the same as in §1. With Everything by weeks, it is today's Shift All line word for word.
-- **The help text:** *"Moves phases by a number of weeks or to a date. Choose whether everything moves, or only one
+- **The result line** is the same as in §1. With All phases by weeks, it is today's Shift All line word for word.
+- **The help text:** *"Moves phases by a number of weeks or to a date. Choose whether all phases move, or only one
   phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them."*
 - **What tells the two tools apart:** Shift keeps the gaps, and Rebuild From closes them. That one difference
   replaces CLAUDE.md's "two questions" for the toolbar.
@@ -259,7 +277,7 @@ Those are two settings, not three tools:
   - C is different. It is one form with two settings, not four forms stacked. Rebuild From keeps its own button, and
     the arrows keep their one click.
   - It must stay short all the same. Measured in the mockup (its own CSS, the app's sizes):
-    - 233 px as it opens (Everything by weeks).
+    - 233 px as it opens (All phases by weeks).
     - 283 px at its tallest before anything moves (a phase row and a two-line hint).
     - 333 px with a two-line result line under it.
     - For comparison, the mockup's copy of today's Anchor To is 129 px, layout A's is 193 to 226 px, and the old
@@ -273,7 +291,7 @@ Those are two settings, not three tools:
   questions. Both are rewritten.
 - **The legs.** Seven drive these popovers today, plus one that has to be written:
   - `#pop-shift` / `tool-shift-*` (`builtindates`, `calrange`, `customunits`, `episodeprep`, `halfworked`,
-    `overrides`, `snaptools`). They keep working unchanged if the form opens on Everything by weeks and keeps those
+    `overrides`, `snaptools`). They keep working unchanged if the form opens on All phases by weeks and keeps those
     ids.
   - `#pop-anchor` / `tool-anchor-*` (`builtindates`, `customunits`, `datepick`, `snaptools`). Keep the
     `tool-anchor-phase` / `-edge` / `-date` / `-go` ids on the merged controls. Only the step that opens the popover
@@ -294,7 +312,7 @@ Those are two settings, not three tools:
    - The middle button's label becomes Shift, and its title changes.
 3. **`app.js`:**
    - One handler set: Earlier/Later reads the weeks, Go reads the date, and both read What moves and the phase.
-   - The phase list (one select, `tool-anchor-phase`) offers Whole schedule only for Everything to a date.
+   - The phase list (one select, `tool-anchor-phase`) offers Whole schedule only for All phases to a date.
    - The form resets on open (R2) and writes the hint line.
    - `POPS` and `refreshMenuFromCalendar` lose the two retired popovers.
 4. The legs (§6.3), the new leg, and the neighbours in §5 step 3.
