@@ -1796,6 +1796,11 @@
   .tools-link:hover{text-decoration:underline;}
   .tools-link:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; border-radius:2px;}
   #pop-shift .solve-list{margin-bottom:8px;}
+  /* The date row's subject under Phase & before / after (owner, 5 Nov 2026, mockups/shift-date-row.html): the pivot's
+     name as a line of text where the subject select stands in the other cases, the select's height, so
+     "Production — 6/29/26" over "starts on 06/29/2026" reads top to bottom whichever way the phase was picked. */
+  .tools-subject{margin:0 0 6px; min-height:30px; display:flex; align-items:center; padding:0 1px;
+    font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-text);}
 
   /* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html). The
      panel is the widest of the four because each row holds a tick, a colour, the name, a date and

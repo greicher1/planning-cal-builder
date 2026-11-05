@@ -1940,7 +1940,10 @@ done
 # (owner's layout A, plan §7) the LIST of phases: folded under All phases, opened by "Choose phases…", a shortcut's
 # ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
 # (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
-# reset on reopening, and no id on any tick.
+# reset on reopening, and no id on any tick. Since the evening of 5 Nov 2026 (owner: "is this confusing?",
+# mockups/shift-date-row.html) the date row's SUBJECT: the phase row only as the pivot, a mirror select (no id) under
+# How far for All phases / own ticks to a date, the pivot's name as text for Phase & before / after to a date (W1),
+# and a pick on the mirror written back into #tool-anchor-phase, prefilling the date, pinning the row, landing on Go (J1).
 # phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
 # week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
 # the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
