@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch (`804edb2`); **FULL GATE 3,981 PASS / 3 FAIL, every baseline identical, the 3 load-timing flakes green alone**; NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
+### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT C2, after D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch (`804edb2`); **FULL GATE 3,981 PASS / 3 FAIL, every baseline identical, the 3 load-timing flakes green alone**; owner's picker *"Merge"* + *"Push after quick checks"*: `origin/main` (`ac55bb7`, the note editor) and local `main` (`8b36c9a`) merged in as `2c5ad0e` + `86b6a2a`, quick checks green on the merged build ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
   down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, *"mockup a
@@ -60,7 +60,20 @@
   `804edb2` + `ac55bb7`: the code (`app.js`, `legacy.css`, `src/index.html`, `gate.sh`) merges clean; only HANDOFF.md
   and README.md conflict, both new top entries (keep both). Local `main` (`8b36c9a`) is behind `origin/main` and one
   HANDOFF-only commit ahead of it.
-- ⏭ **Next:** ask the owner (picker) to merge, and separately to push. Then plan §5, the month drag on the same mover.
+- ✅ **Merged (owner's picker, 4 Nov 2026: *"Merge"*, and separately *"Push after quick checks"*).** In the worktree, not
+  the main checkout: that checkout's `HANDOFF.md` holds the layout-study session's uncommitted entry, and it has older
+  untracked copies of `PHASE-WEEK-ARROWS-PLAN.md` and `mockups/phase-week-arrows.html` (byte-identical to `9e83eb2`,
+  so safe to delete), either of which stops a fast-forward there. So the branch took in `origin/main` (`2c5ad0e`;
+  HANDOFF and README conflicted, both new top entries, both kept, and the note editor's entry got a line saying it is
+  live) and local `main`'s one HANDOFF-only commit (`86b6a2a`), so local `main` can fast-forward to it later.
+- ✅ **Quick checks on the merged build** (dist `f82ec6f1…`, port 8659, beside another session's gate at load ~7.5):
+  `npm run check` 40/40; `phasearrows` 26/26, `wfnoteeditor (autonoterename)` 13/13, `anchorside` 23/23,
+  `rebuildticks` 19/19, `snaptools (dayoverrides)` 14/14, `overrides (dayoverrides)` 20/20, `halfworked
+  (dayoverrides-onhalf)` 24/24, `rowheight (shift-stores)` 7/7, `undokeys` 11/11, `noteviews (wfkeys)` 15/15,
+  `wfnotecolors (wfkeys)` 14/14, `autonoterename` 24/24, `autonoteview (autonoterename)` 18/18, `wfkeys` 84/84,
+  `phasesui (hidewf)` 8/8. The arrows and the note editor share no code but `update()`; each had its own full or
+  targeted run. A full gate on whatever ships next covers the combination.
+- ⏭ **Next:** the push (approved), then verify the live URL. Then plan §5, the month drag on the same mover.
 
 ### 🔨 4 Nov 2026: THE WATERFALL'S NOTE EDITOR SAYS WHAT A LINE IS, AND HIDES IT — BUILT, GATED and COMMITTED on branch `wf-note-editor`, NOT merged, NOT pushed ([`WATERFALL-NOTE-EDITOR-PLAN.md`](WATERFALL-NOTE-EDITOR-PLAN.md)). Branch `wf-note-editor` (worktree `.claude/worktrees/wf-note-editor`, from `main` at `c5fd2ce`; its `node_modules` is a symlink). Tracker cards `wf-hide-auto-note`, `wf-holiday-editor-mode`
 
