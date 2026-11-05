@@ -579,17 +579,21 @@ distinguishing nothing.
 
 The Shift form (`#pop-shift`, 340 px), top to bottom:
 1. **What moves:** `All phases | Phase & before | Phase & after` (the owner's words, picked from four options).
-2. **The phase** (`#tool-anchor-phase`), shown only when it is needed: hidden for All phases (and for the user's
-   own ticks) by weeks. For All phases to a date it is the landmark, and only then does the list offer *Whole
-   schedule*.
+2. **The phase** (`#tool-anchor-phase`), the PIVOT, shown only for Phase & before / after (since the evening of
+   5 Nov 2026; before that it also showed for All phases and the user's own ticks to a date, as the landmark, two
+   sections above the date, which the owner found confusing). Its list offers *Whole schedule* only for All
+   phases to a date. Shown or hidden, it is the one select every reader asks.
 3. **The list of phases** (since 5 Nov 2026, owner's layout A, plan §7): Rebuild From's rows (`solveRow`), one
    per scheduled phase, a tick (`data-key`, no id), the colour, the name, its date, and Moves / Stays by weeks or
    the new date and Pushed / Pulled to a date. The three buttons fill the ticks in; a tick changed by hand makes
    the user's own set, and then no button is pressed. Folded behind *Choose phases…* under All phases. To a date
    the landing phase is pinned (it must move); Whole schedule fixes every tick. Drawn by `renderShiftList`.
 4. **How far:** `By weeks | To a date`.
-5. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: `[starts on / ends by] [date] [Go]`
-   (`tool-anchor-*`).
+5. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: first the SUBJECT, the phase that lands
+   (`mockups/shift-date-row.html`): under All phases or the user's own ticks a select, `[data-shift-subject]`, a
+   mirror of the phase select with no id, filled from it and written back into it on change; under Phase &
+   before / after the pivot's option as a line of text (`.tools-subject`). Then `[starts on / ends by] [date]
+   [Go]` (`tool-anchor-*`).
 
 It opens on **All phases, By weeks every time** (ruling R2(a)), which is exactly the old Shift All form. Earlier/Later
 always shift by weeks and Go always goes to the date, each reading What moves for itself. How far only chooses which

@@ -58,6 +58,120 @@ length is the phase's own field. The ids stay `pop-solve-*` / `tool-solve-*` (th
 
 Verified: new leg `buildaround` 33/33 (a new calendar built in one run from typed lengths, staged until Build and taken back by one undo; both sides in one run; the shortcuts; ends by; Production unset; "Save 1 length"; no box control in the saved state). Updated and green: `rebuildticks` 19/19, `overrides` 20/20 (its Close all gaps case now drives Build Around and lands on the same dates and day marks), `snaptools` 14/14. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15. `npm run check` 40/40. Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work: `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
 
+### Unreleased — the test harness reads PDF text by each stream's length (5 Nov 2026)
+
+Test harness only: the app and both PDF writers are unchanged. Since v1.11.0 the `phiatusnum` leg's check H4 ("one
+text run each for Pre-Prep Hiatus wk 1-3 in the waterfall PDF") was red on the live build, and it found no text at
+all. The PDF was fine (`pdftotext` reads every run). The leg's own reader was wrong. Chrome's `DecompressionStream`
+refuses any byte after the compressed data, so the reader trimmed the line ending before `endstream`. But compressed
+data can itself end in a 0x0A or 0x0D byte, and the trim cut that byte off. The layout rules' new widths changed the
+waterfall PDF's bytes so that page 1's content stream (`/Length 1466`) ends in one. Inflation then threw, the reader
+swallowed the error, and the leg saw an empty PDF. `hiatuslabel` hit the same trap on 23 Oct 2026, through a header
+date, and was fixed alone. Sixteen legs carried a copy of the trimming reader, so any of them could go red the same
+way whenever a PDF's bytes moved.
+
+- **One reader now, in `tests/harness/t/lib.js`:** `T.pdfStreams(u8)` cuts each stream at its dictionary's own direct
+  `/Length` (never `/Length1`, never an indirect `12 0 R`), and only when `endstream` follows. It falls back to the
+  trim when there is no such length, steps over each stream's data, and skips the `endstream` keyword itself.
+  `T.pdfInflated(u8)` returns the inflated texts, and `T.pdfRuns(u8)` the `(text) Tj` runs. A `/FlateDecode` stream
+  that fails to inflate at a verified length now **throws** instead of reading as empty. The SPTCal mark's
+  uncompressed streams are cut and left alone, as before.
+- **Moved onto it:** the twelve legs named in the finding (`autonotekinds`, `autonotephases`, `autonoteview`,
+  `autonoterename`, `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`,
+  `wfnotecolors`), the three with the same trim under another variable name (`notewrap`, `prodspan`, `winansi`), and
+  `hiatuslabel`, which already cut by length. The other legs that read PDFs (`calrange`, `hdrrow`, `pdfdialog` and the
+  like) already cut at `/Length` first and are untouched.
+
+Verified on the build (`30bbfc2e…`, the live one): `phiatusnum` 17/18 with H4 red on the old reader and 18/18 on the
+new one. The other fifteen are green on the new one: `autonotekinds` 16/16, `autonotephases` 27/27, `seasons`
+15/15, `phasecolors` 10/10, `mvhdroff` 9/9, `hidewf` 19/19, `wfnotecolors` 14/14, `holidayrename` 14/14,
+`autonoterename` 24/24 (twice), `autonoteview` 18/18, `simpostname` 14/14, `notewrap` 16/16, `prodspan` 8/8, `winansi`
+7/7 and `hiatuslabel` 7/7. On their first pass, while another session's full gate ran, three timed out on a load or a
+save before reading any PDF; each was green alone. `npm run check` 40/40. A Node check of the helper on synthetic streams: the old reader finds 1 of 3 runs (it loses
+the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
+stream throws. No gate.sh change: leg names and budgets are the same.
+
+### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+
+Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
+and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
+pull back cells"), but it never worked from the **middle** of an expanded cell. A cell two columns wide has the
+boundary between its columns down its centre, right under its label, and that boundary's column-resize handle
+(7 px, the table's full height) took the double-click. The rule "a handle owns its own band" then sent it to the
+column autofit, which does nothing to a column nobody sized. Only a double-click off the centre pulled back.
+Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0–6, 7–13, **87–93**, 172–178 and
+179–185 px across it.
+
+- **What changed** (`src/legacy/app.js`, the multi-cell selection's double-click, not frozen code):
+  - A double-click on a column handle whose boundary runs **through** a phase cell, not along its edge, now acts on
+    the cell (`cellAcrossBoundary`). If the cell is selected, the whole selection expands or pulls back. If not, just
+    that cell does, as a double-click anywhere else on it always has.
+  - Every other handle keeps its band: a boundary that is a real cell edge (the column autofit, the heading row
+    included), a cell's own span handles, the row handles. Hiatus bands are left alone; their double-click edits.
+  - `batchFill(keys)` takes an optional set of cells, so one cell runs the same code as the selection.
+- **The catch it had to close:** each press also starts the frozen column drag, which saves a width on **any**
+  pointer move. A hand drifting a pixel mid-double-click would pin the column. Until now the handle's own
+  double-click (autofit) deleted that width again; taking the double-click away would have left it. So the
+  column's width at the first press is remembered, and the double-click puts it back when the presses moved the
+  boundary by 6 px or less. The pull-back stays one undo step.
+- **Verified:**
+  - By hand in the built app on `layout-r13`, with real double-clicks:
+    - the marquee batch pulls back from the centre, then expands again;
+    - each gesture is one undo step;
+    - a lone widened cell pulls back with nothing selected;
+    - a three-column cell pulls back from either inner boundary;
+    - a drifted press's width is put back;
+    - a real edge's autofit still refits a dragged column.
+  - New leg `centrepullback` (in `gate.sh`'s generic block, on `layout-r13`), 10 checks with pointer events at real
+    coordinates. It is red on the build before this change at P2, the reported bug. `noswapbtns` never caught it
+    because it dispatches its double-click on the cell itself.
+  - A targeted run of `gate.sh`'s own sections: **465 PASS / 0 FAIL** in about 10 min. It covered base (0 clipped
+    cells) + gates 2 and 3 (identical to baseline) + seam strips, colswapmove, colswapstale, stintbtn, stintmulti,
+    stintchain, stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys + wfkeysreal, and the
+    generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
+    layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
+
+### Unreleased — Shift: the phase sits beside the date (5 Nov 2026)
+
+In the Shift box, **To a date** now names the phase that lands right above the date (owner, 5 Nov 2026, on a
+screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have
+to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then
+understand that it means 'Shoot' starts on <date>"*; mocked first in `mockups/shift-date-row.html`, then *"I like it"*):
+
+- **All phases, or your own ticks, to a date:** the phase select sits directly under *How far*, so the box reads
+  top to bottom, "Shoot — 4/20/26 · starts on 04/20/2026 · Go". The row above the list is gone in this case.
+- **Phase & before / after, to a date:** the phase stays up top, where it says which side moves, and a line under
+  *How far* repeats it as text (*"Production — 6/29/26"*), so the date row has its subject without a look back up.
+- **By weeks:** unchanged.
+
+Chrome only: the new select is a mirror of the one the form has always read (`#tool-anchor-phase`), filled from it and
+written back into it on change, and carries no id, so nothing reaches a saved file. No frozen code, no writer. Verified:
+`npm run check` 40/40; `anchorside` 30/30 (W1 reads the rows; new J1 picks the landing phase on the subject row, sees it
+mirrored, the date prefilled, the row pinned, and Go land it); the nine other Shift legs green.
+
+### Unreleased — a leftover band label stays where it is (5 Nov 2026)
+
+A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
+other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
+back. But the movers moved it: **▲ / ▼ on a phase card**, **the month view's bar drag** and **Shift From** (Phase & after)
+carried it a week. If the week it landed on was a band that stayed put, the label was lost, and its colour, size and
+styles were applied to that band instead (pressing ▼ on Post recoloured Summer Break). Found while building the month
+drag carry (PHASE-WEEK-ARROWS-PLAN.md §5a).
+
+- **Now a leftover goes by its week, as a note does.** It moves with All phases and inside the weeks a part move takes;
+  ▲ / ▼, the drag, and everything before Shift From's phase leave it alone.
+- **A band that moves takes every week's label with it**, even a week past the move's window: a band starting in the
+  last week of a Dates phase that runs on past it.
+
+Engine: `shiftCalendarDates` (steps 2 and 3) records the weeks of the bands that move beside those that stay, and
+`hiatusKeyStays` decides a plain band key by them, then by its week. The first idea, "a plain key stays outside the
+window", left a moving band's later weeks behind, so it was not used. No frozen code, no writer and no save-format
+change. New leg `stalebandkey` (9 cases, in gate.sh) on new fixture `stalebandkey.sptcal`: 5/9 on `origin/main`, 8/9 on
+the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`). Full
+gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in, 4,103 PASS and 2 FAIL, neither from
+this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
+new widths now end a stream with; the PDF is fine).
+
 ### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
 
 Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never

@@ -163,6 +163,9 @@ Either way:
 | **Production's day marks** | by shoot-day number | by shoot-day number | by shoot-day number |
 | **Holidays, locked hiatuses, dated notes, day notes** | stay | stay | stay |
 
+- **A band label on NO band** (typed on a band whose hiatus was later retyped) has no band to follow. Since 5 Nov 2026
+  it goes by its week, as a note does: it moves with All phases and inside the move's weeks, and stays outside them. It
+  used to move on every part move, onto a held band (PHASE-WEEK-ARROWS-PLAN.md §5b).
 - **"Phase & after" is Shift From exactly.** The handler passes the cutoff Shift From passes, and the engine needs
   no change.
 - ⚠️ **"Phase & before" needs two bounds, and the second one is the reason.**
@@ -494,3 +497,27 @@ needed, the three words as buttons) for fewer modes.
 The fold under All phases (A, B, C) is one quiet link, *"Choose phases…"*, right-aligned under the buttons, so the box
 opens as short as it does today (232 px against 248 in the first cut). With both rows (C, D) the landing phase is
 pinned once the date row is the one touched last.
+
+### 7.5 The phase beside the date (owner, 5 Nov 2026, evening: *"is this confusing?"*) — ✅ RULED, ✅ BUILT
+
+On a screenshot of All phases + To a date: *"when you switch from 'by weeks' to 'to a date' you then have to move your
+eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that
+it means 'Shoot' starts on **date selected**"*. Layout A's one weak case: the phase select does two jobs, the pivot
+under Phase & before / after (where What moves is its home) and the landing phase under All phases to a date (where
+it is the subject of the date row), and in the second it sat two sections above the row it belongs to.
+
+**Ruled** (*"Mock it up first"*, then *"I like it but it doesn't need to say 'the phase you picked'"*;
+[`mockups/shift-date-row.html`](mockups/shift-date-row.html), today vs proposed side by side, both live): the date
+row carries its own subject.
+
+- Under All phases, or the user's own ticks, To a date: the phase select sits directly under the How far buttons,
+  above *starts on*. The phase row above the list is gone in this case.
+- Under Phase & before / after, To a date: the pivot stays in What moves, and a line under How far repeats its
+  option as text (*"Production — 6/29/26"*), with no tag after it (D2: its own line, not "inside the box", which
+  runs out of room at 340 px, and not "not repeated").
+- By weeks: unchanged.
+
+**Built** the same evening: a second `<select>` (`[data-shift-subject]`, no id) that mirrors `#tool-anchor-phase`,
+filled from it by `syncShiftForm` and written back into it on change, so every reader keeps asking the one select;
+the phase row shows only as the pivot. `anchorside` 30/30 (W1 the rows, J1 the mirror end to end). HANDOFF has the
+as-built record.
