@@ -1891,6 +1891,12 @@ done
 # either side (owner, "Overlaps move too"; red on 9 cases without it), and notes, unlocked hiatuses and the range go by
 # a week window spanning the moving phases; by weeks = to a date; one undo; the form's resets; no new key in
 # fields.byId. On anchorside.sptcal (dayoverrides + notes, a Fall Break, Localization, a range start, two overlaps).
+# phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
+# week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
+# the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
+# where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
+# undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
+# Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1908,6 +1914,11 @@ done
 # hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind, frozen edits N1 and N2 under a
 # typed waterfall note (red on a build without either), a shift over two typed weeks, the month editor's write-back,
 # and a delete in one view switching a note off when the other view already hides it.
+# wfnoteeditor (owner, 30 Oct + 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md) is the waterfall's note editor naming what a
+# cell holds and hiding it: the headings (Auto Note / Holiday / Note), the Hide Auto-Note and Hide Holiday buttons and the
+# "In this cell" list, the Day picker and Show in month view shown only for typed lines, Hide acting at once with one undo
+# step (a typed line saved with it), Hide on a note the month view already hides switching it off, and a rename or a
+# removal sharing a save with an added line (D2; red on a build with the old count-based wfLineEdits).
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -1999,11 +2010,13 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               hidewf:hidewf:400 \
               rebuildticks:-:300 \
               anchorside:anchorside:400 \
+              phasearrows:phasearrows:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \
+              wfnoteeditor:autonoterename:500 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \

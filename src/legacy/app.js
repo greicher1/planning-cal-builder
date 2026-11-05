@@ -7666,15 +7666,28 @@ export function initLegacyApp() {
     };
   })();
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
+  // ⭐ THE WEEK ARROWS (owner, 4 Nov 2026, PHASE-WEEK-ARROWS-PLAN.md, layout C2: "C2, but make sure the buttons aren't
+  // actually touching the top or bottom lines of the box"; D was built first): ▲ and ▼ stacked inside the date box, each
+  // moving THIS phase one week (▲ earlier, ruling D1), in the waterfall only (D6). `.ph-nudge` sits after the two boxes
+  // and the CSS lays it over whichever one shows (Starts or Ends). `.ph-nudge` and the
+  // label on the caption line, `.ph-nudge-chip`, carry NO id and no input, so neither can enter fields.byId. Which
+  // cards show them is reflectPhaseNudges() (the row's `nudge-on` class); a click is nudgePhase().
+  const NUDGE_UP_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 2.2 8.6 7H1.4z"/></svg>';
+  const NUDGE_DOWN_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 7.8 1.4 3h7.2z"/></svg>';
+  const NUDGE_HTML = `<div class="ph-nudge">
+          <button type="button" class="ph-nudge-btn" data-nudge="-1">${NUDGE_UP_SVG}</button>
+          <button type="button" class="ph-nudge-btn" data-nudge="1">${NUDGE_DOWN_SVG}</button>
+        </div>`;
   function startsFieldHtml(key){
     const prod = key === 'production';
     const endsBox = prod
       ? '<input type="date" class="prod-wrapdate" aria-label="Wrap date" title="The last shoot day. The start is worked out back from the shoot days.">'
       : '<input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked">';
     return `<div class="ph-starts">
-        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
+        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select><span class="ph-nudge-chip" aria-live="polite"></span></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
         <label class="ph-ends-box">${endsBox}</label>
+        ${NUDGE_HTML}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -16227,6 +16240,28 @@ export function initLegacyApp() {
       textVal = effectiveNoteText(weekKey, autoNotes);
       curColor = noteColorFor(weekKey);
     }
+    // ⭐ WHAT THE CELL HOLDS (owner, 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md, rulings R1-R3): its automatic notes and
+    // holidays, in the box's order (cellItems), told apart from month notes shown here (noteviews) and typed text. They
+    // name the heading when the cell is one of them, get Hide, and decide whether the Day picker and "Show in month
+    // view" apply (D4, D5: both are for typed lines). Fixed when the editor opens, as the month view's heading is.
+    const cellItems = [], cellKnown = new Set();
+    let singleItem = null;
+    if(!isHiatus){
+      const boxLines = textVal.split('\n').map(l=> l.trim()).filter(Boolean);
+      const items = autoNotes.filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n)));
+      boxLines.forEach(l=>{
+        const n = items.find(x=> cellItems.indexOf(x) < 0 && autoNoteLine(x) === l);
+        if(n){ cellItems.push(n); cellKnown.add(l); }
+      });
+      wfMonthLinesFor(weekKey).forEach(m=> cellKnown.add(m.line));
+      if(boxLines.length === 1 && cellItems.length === 1) singleItem = cellItems[0];
+    }
+    // A typed line in the box (or an empty box, about to get one): what the Day picker and the switch are for.
+    const typedIn = text => {
+      const ls = String(text || '').split('\n').map(l=> l.trim()).filter(Boolean);
+      return !ls.length || ls.some(l=> !cellKnown.has(l));
+    };
+    const typedShown = isHiatus || typedIn(textVal);
 
     td.classList.add('editing');
     td.style.background = curColor;
@@ -16256,7 +16291,7 @@ export function initLegacyApp() {
     // was 6-16, and 13 and up cut the text in a standard row (plan §4.1); the bar's is 6-12 (owner ruling D1).
     // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
     // in activeNoteEditor below, never touched now, so a commit writes no size.
-    const dayRow = isHiatus ? '' : `<div class="note-day-row">
+    const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
       <label>Day <select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>Mon (default)</option>
         ${dayOpts}
@@ -16266,6 +16301,20 @@ export function initLegacyApp() {
     // is drawn in the month view from the hiatus itself. On unless this week's typed text was switched off (R3).
     const viewRow = isHiatus ? '' : noteViewSwitchHtml('Show in month view', !wfNoteMonthHidden(weekKey),
       'Off: the text you typed here is left out of the month view and its PDF. Automatic notes and holidays keep their own settings.');
+    // Hide (R1-R3): one item's own button, or a list of the cell's automatic notes and holidays, each with Hide. It hides
+    // the note from the waterfall only (hideAutoNoteIn / hideHolidayInWaterfall), at once, saving the rest of the editor
+    // (R2(b), commitActiveNoteEditor). Plain buttons, no ids.
+    const hideTitle = n => n.holiday
+      ? 'Hides this holiday from the Waterfall, Excel and the waterfall PDF. It stays in the month view and stays a day off. Tick its Waterfall box under Holidays to bring it back.'
+      : (autoNoteShownIn(n.kind, 'month')
+          ? 'Hides it from the Waterfall, Excel and the waterfall PDF. It stays in the month view. Tick its Waterfall box in Settings \u25b8 Automatic notes to bring it back.'
+          : 'Hides it from the Waterfall, Excel and the waterfall PDF. The month view does not show it either, so it is switched off. Tick it in Settings \u25b8 Automatic notes to bring it back.');
+    const itemsHtml = isHiatus ? '' : singleItem
+      ? `<button type="button" class="note-pop-delete wf-note-hide" data-i="0" title="${escHtml(hideTitle(singleItem))}">${singleItem.holiday ? 'Hide Holiday' : 'Hide Auto-Note'}</button>`
+      : (cellItems.length ? `<div class="wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
+          `<div class="wf-note-item" title="${escHtml(autoNoteLine(n))}"><span class="wf-note-mark wf-note-mark-${n.holiday ? 'holiday' : 'auto'}" aria-hidden="true"></span>`
+          + `<span class="wf-note-item-name">${escHtml(n.label)}</span>`
+          + `<button type="button" class="wf-note-hide" data-i="${i}" title="${escHtml(hideTitle(n))}" aria-label="Hide ${escHtml(n.label)} from the Waterfall">Hide</button></div>`).join('')}</div>` : '');
     // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
     // exactly the shape it had before the click.
     const pop = document.createElement('div');
@@ -16273,15 +16322,23 @@ export function initLegacyApp() {
     // A per-phase hiatus key is "<week>|<phase>", which is not a date, so take the week part and
     // fall back to the raw key if it still will not parse.
     const popWeek = parseDateUTC(splitWeekKey(weekKey).iso);
-    const popTitle = (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
+    // The heading names a cell holding one automatic note or one holiday, by ITS date (owner, 30 Oct 2026: "why does this
+    // still show as Note in the waterfall"); anything else is the week's Note, by its Monday, as before.
+    const popTitle = singleItem
+      ? (singleItem.holiday ? 'Holiday' : 'Auto Note') + ' \u00b7 ' + fmtShort(singleItem.date)
+      : (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
+    const popHint = (singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows \u00b7 '
+                                                      : 'Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 ') : '')
+                  + 'Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel';
     pop.innerHTML = `<div class="note-pop-title">${escHtml(popTitle)}</div>
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
       ${swatchRows}
       ${viewRow}
+      ${itemsHtml}
       </div>
-      <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      <div class="note-pop-hint">${popHint}</div>`;
     document.body.appendChild(pop);
     // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
     // its own pane, so a popover placed once and left alone slides away from its cell.
@@ -16332,7 +16389,8 @@ export function initLegacyApp() {
     resize();
 
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
-                        pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel};
+                        pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
+                        hide: null};   // the note a Hide button hides (R2(b): set, then committed at once)
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -16351,6 +16409,32 @@ export function initLegacyApp() {
     // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save. Read on commit.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
+    // The Day picker and the switch show as soon as the box holds a typed line (D4, D5), and go again if it stops.
+    const dayRowEl = pop.querySelector('.note-day-row');
+    if(viewSw && !typedShown) viewSw.style.display = 'none';
+    if(dayRowEl || viewSw){
+      textarea.addEventListener('input', ()=>{
+        const on = typedIn(textarea.value);
+        if(dayRowEl) dayRowEl.style.display = on ? '' : 'none';
+        if(viewSw) viewSw.style.display = on ? '' : 'none';
+      });
+    }
+    // Hide (R2(b)): the note's line leaves the box, the note is hidden from the waterfall, and the editor saves what else
+    // is in it, as Tab would, and closes. One gesture, one undo step (the commit's update()).
+    pop.querySelectorAll('.wf-note-hide').forEach(btn=>{
+      btn.addEventListener('mousedown', e=> e.preventDefault());   // keep the box's focus, as the swatches do
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(!activeNoteEditor || activeNoteEditor.pop !== pop) return;
+        const n = cellItems[parseInt(btn.dataset.i, 10)];
+        if(!n) return;
+        const line = autoNoteLine(n), ls = textarea.value.split('\n');
+        const k = ls.findIndex(l=> l.trim() === line);
+        if(k >= 0){ ls.splice(k, 1); textarea.value = ls.join('\n'); }
+        activeNoteEditor.hide = n;
+        commitActiveNoteEditor();
+      });
+    });
   }
 
   // The automatic notes the waterfall shows for a week, which is what decides whether a cleared note is stored
@@ -16439,7 +16523,17 @@ export function initLegacyApp() {
       // A holiday's or an automatic note's line changed here renames it, and one taken out deletes it (see
       // wfLineEdits), so the cell keeps following them. An emptied cell is Delete's (wfClearNote): each line goes by
       // what it is, and no week blank is left (AUTO-NOTE-RENAME-PLAN.md, rulings 3, 4 and 6).
-      let auto = autoNotes;
+      // ⭐ A HIDE BUTTON (WATERFALL-NOTE-EDITOR-PLAN.md, R2(b), D3) hides its note first, whatever else this save does,
+      // and the rest of the save then runs against the week's automatic notes as they are after it, so the hidden line
+      // is no longer automatic text the box is compared with. Its line already left the box (openNoteEditor).
+      let autoIn = autoNotes, switched = false;
+      const hideN = activeNoteEditor.hide;
+      if(hideN){
+        if(hideN.holiday) hideHolidayInWaterfall(hideN.hid); else hideAutoNoteIn(hideN.kind, 'sheet');
+        autoIn = sheetAutoNotesFor(weekKey);
+        switched = true;
+      }
+      let auto = autoIn;
       // ⭐ The month notes this cell shows ("Show in waterfall", R2) go first, by what happened to their lines; what is
       // left is the week's own text, which takes the path it always did. With none in the week, `own` is the text box.
       const ownBefore = wfOwnNoteText(weekKey, autoNotes);
@@ -16449,10 +16543,11 @@ export function initLegacyApp() {
         if(wfClearOwnNote(weekKey)) renamed = true;
         auto = sheetAutoNotesFor(weekKey);
       } else {
-        renamed = wfLineEdits(weekKey, ownBefore, own, autoNotes);
-        auto = renamed ? renamed.autoNotes : autoNotes;
+        renamed = wfLineEdits(weekKey, ownBefore, own, autoIn);
+        auto = renamed ? renamed.autoNotes : autoIn;
         saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, chosenDate);
       }
+      if(switched) renamed = renamed || true;
       const viewCb = pop.querySelector('.note-view-cb');
       if(viewCb) setWfNoteMonthHidden(weekKey, !viewCb.checked);
       if(pendingColor){
@@ -16485,9 +16580,9 @@ export function initLegacyApp() {
   // ⭐ AND AN AUTOMATIC NOTE'S (2 Nov 2026, AUTO-NOTE-RENAME-PLAN.md ruling 3): the same, through setAutoNoteName.
   // ⭐ A LINE TAKEN OUT (ruling 4): when the edit only removes lines, a removed automatic note is switched off and a
   // removed holiday is hidden from the waterfall (Delete's rule, wfClearNote), so neither comes back after a move.
-  // Only when the edit keeps the number of lines (each line is the one it was), or only removes some; anything else
-  // saves as typed, as before. Lines are compared trimmed, blank ones left out. Returns {text, autoNotes} with the
-  // edits applied, or null when nothing was renamed or deleted.
+  // Which line became which is worked out by content (below, since 4 Nov 2026), so a rename, a removal and an added
+  // line can share one save. Lines are compared trimmed, blank ones left out. Returns {text, autoNotes} with the edits
+  // applied, or null when nothing was renamed or deleted.
   function wfLineEdits(weekKey, before, after, autoNotes){
     const b = String(before || '').split('\n').map(l=> l.trim()).filter(Boolean);
     const a = String(after || '').split('\n').map(l=> l.trim()).filter(Boolean);
@@ -16495,31 +16590,60 @@ export function initLegacyApp() {
     const autos = (autoNotes || []).filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n)));
     const noteOf = line => autos.find(n=> autoNoteLine(n) === line);
     const labels = new Map(), gone = new Set();
-    if(a.length === b.length){
-      b.forEach((was, i)=>{
-        const now = a[i];
-        if(was === now) return;
-        const n = noteOf(was);
-        if(!n || labels.has(n)) return;
-        const orig = n.holiday ? (holidayOrigName(n.hid) || n.label) : n.origLabel;
-        const name = stripHolidayDate(now, n.date) || orig;              // just its date: back to its own name
-        if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return;       // given another date: a note, not a rename
-        if(n.holiday) setHolidayName({hid: n.hid, name: n.label, origName: orig, date: n.date}, name === orig ? null : name);
-        else setAutoNoteName(n, name);
-        labels.set(n, name);
-        a[i] = `${name} ${fmtShort(n.date)}`;
-      });
-    } else if(a.length < b.length){
-      let j = 0;
-      b.forEach(l=>{
-        if(j < a.length && a[j] === l){ j++; return; }
-        const n = noteOf(l);
-        if(n) gone.add(n);
-      });
-      if(j !== a.length) return null;                                    // not just lines taken out
-      // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
-      gone.forEach(n=>{ if(n.holiday) hideHolidayInWaterfall(n.hid); else hideAutoNoteIn(n.kind, 'sheet'); });
+    // Rename note `nt` to the box's line `now`, at index `at` in `a`. False when `now` is no rename of it (it ends in
+    // another date: a note), or, with `needDate`, when the line lost the note's own date (typed afresh, not edited).
+    const rename = (nt, now, at, needDate)=>{
+      const orig = nt.holiday ? (holidayOrigName(nt.hid) || nt.label) : nt.origLabel;
+      const bare = stripHolidayDate(now, nt.date);
+      if(needDate && bare === now.replace(/\s+/g, ' ').trim()) return false;
+      const name = bare || orig;                                        // just its date: back to its own name
+      if(/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)) return false;     // given another date: a note, not a rename
+      if(nt.holiday) setHolidayName({hid: nt.hid, name: nt.label, origName: orig, date: nt.date}, name === orig ? null : name);
+      else setAutoNoteName(nt, name);
+      labels.set(nt, name);
+      a[at] = `${name} ${fmtShort(nt.date)}`;
+      return true;
+    };
+    // ⭐ ALIGNED BY CONTENT since 4 Nov 2026 (WATERFALL-NOTE-EDITOR-PLAN.md D2), not by count. The lines the box kept are
+    // its longest common run with what the cell held; between two kept lines, the lines that left and the lines that
+    // came are paired in order (a line that only MOVED is neither: it left one place and came in another, unchanged).
+    // An automatic note's or holiday's line that left:
+    //   - with a line in its place is RENAMED to it (not when the new line ends in another date: a note, as before).
+    //     Where the box gained or lost lines at that spot, only a line that KEEPS THE NOTE'S OWN DATE counts ("Labour Day
+    //     9/7/26", an edit); one typed afresh without it is the user's own text, and the note is left alone, neither
+    //     renamed nor hidden. ⛔ That is the full gate's base leg, which types two lines of its own over Labor Day's: an
+    //     early build of this read the first as a rename, and Labor Day was called "Studio Cut Due" everywhere. One line
+    //     typed straight over one line renames it with or without its date, as it always has (rename ruling 3);
+    //   - with nothing in its place is HIDDEN from the waterfall (Delete's rule).
+    // Until then this ran only when the count was the same (renames, line for line) or lines were only taken out
+    // (hides), so a rename and an added line in one save lost the rename, and a line taken out with another typed in
+    // was neither hidden nor kept (it came back after a move).
+    const n = b.length, m = a.length;
+    const had = new Set(b), has = new Set(a);
+    const L = Array.from({length: n + 1}, ()=> new Array(m + 1).fill(0));
+    for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+      L[i][j] = b[i] === a[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const gaps = [];
+    let gb = [], ga = [], i = 0, j = 0;
+    while(i < n && j < m){
+      if(b[i] === a[j]){ gaps.push([gb, ga]); gb = []; ga = []; i++; j++; }
+      else if(L[i + 1][j] >= L[i][j + 1]) gb.push(i++);
+      else ga.push(j++);
     }
+    while(i < n) gb.push(i++);
+    while(j < m) ga.push(j++);
+    gaps.push([gb, ga]);
+    gaps.forEach(([gl, gc])=>{
+      const left = gl.filter(bi=> !has.has(b[bi])), came = gc.filter(aj=> !had.has(a[aj]));
+      left.forEach((bi, t)=>{
+        const nt = noteOf(b[bi]);
+        if(!nt || labels.has(nt) || gone.has(nt)) return;
+        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
+        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+      });
+    });
+    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
+    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
     if(!labels.size && !gone.size) return null;
     return {text: a.join('\n'),
             autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};
@@ -24753,6 +24877,7 @@ export function initLegacyApp() {
     reflectHiatusRipple();   // the switch's copies, phase blocks built since included (HIATUS-RIPPLE-PLAN.md §5)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
+    reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
@@ -28619,6 +28744,7 @@ export function initLegacyApp() {
     refreshUndoRedoUI();
   }
   function undo(){
+    endNudgeBurst();    // a running burst of the phase arrows is banked first, and its day-mark binding closed
     clearTimeout(undoPushTimer);
     pushUndoSnapshot(); // flush any pending (debounced) edit as its own step before undoing it
     if(!undoStack.length) return;
@@ -28626,6 +28752,7 @@ export function initLegacyApp() {
     applySnapshotJSON(undoStack.pop());
   }
   function redo(){
+    endNudgeBurst();    // as undo(): a running burst must never stay bound under a restored snapshot
     if(!redoStack.length) return;
     undoStack.push(lastPushedSnapshotJSON);
     applySnapshotJSON(redoStack.pop());
@@ -28979,7 +29106,15 @@ export function initLegacyApp() {
   //               Christmas hiatus, on the old dates. A phase that stays but shares a week with one that moves
   //               loses that week's notes to it: notes are keyed by week, not by phase (Shift From's old edge).
   //           `fromIso` is ignored with `part`.
-  //   (`except` and `keepView`, the hiatus ripple's, are described just below, above shiftCalendarDates.)
+  //           ⭐ An EMPTY window -- `fromWeek` after `toWeek` -- carries nothing week-keyed: no note, no all-phase
+  //           hiatus, not the calendar range. That is the phase card's ▲ / ▼ (PHASE-WEEK-ARROWS-PLAN.md, nudgePhase):
+  //           `{phases: [key]}` moves that one phase with only what it owns, its own hiatus and every
+  //           "<week>|<key>" store (hiatusKeyStays below). ⛔ Null bounds are NOT empty: they are open, and carry
+  //           every note.
+  //   keepView -- leave the month view's cursor where it is. A shift moves it so the same content stays on screen;
+  //           the phase arrows move one phase, so the rest of the month the cursor shows did not move.
+  //           The hiatus ripple passes it too (HIATUS-RIPPLE-PLAN.md): a ripple is aimed at the hiatus, which did not
+  //           move. Its `except` is described just below, above shiftCalendarDates.
   //   ONE options object for all of them, never another positional argument.
   function shiftCalendar(weeks, fromIso, opts){
     return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
@@ -28988,9 +29123,7 @@ export function initLegacyApp() {
   //               {kind:'phase', key}. It is held where the user put it, as a locked row is: without this, the edited
   //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
   //               the phase that OWNS it is held too (the hiatus pauses it, which is the point), and with it its own
-  //               hiatus fields. The ripple never passes `part`.
-  //   keepView -- the ripple's too: leave the month view's cursor where it is. A shift moves it so the same content
-  //               stays on screen; a ripple is aimed at the hiatus, which did not move.
+  //               hiatus fields. The ripple never passes `part`, and passes `keepView` (above).
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -29437,6 +29570,148 @@ export function initLegacyApp() {
     const t = e.target;
     if(!t || !(t.id === 'pref-hiatus-ripple' || (t.classList && t.classList.contains('hiatus-ripple-cb')))) return;
     setHiatusRipple(!!t.checked);
+  });
+
+  // ---------- The phase card's week arrows (PHASE-WEEK-ARROWS-PLAN.md; owner, 4 Nov 2026) ----------
+  // ▲ / ▼ inside a phase's date box (layout C2) move THAT phase one week, ▲ earlier (ruling D1), in the waterfall only
+  // (D6, the owner's "Waterfall only": the month view's bar has its own body drag). The move is the Shift tool's part
+  // move, {part: {phases: [key]}}, with an EMPTY week window (see shiftCalendar's ⭐), so:
+  //   - moving with it: its own hiatus, every "<week>|<key>" store (band names, colours and sizes, cell spans, column
+  //     swaps, its text styles; Sim Post's with Production), its automatic notes (they are computed), and
+  //     Production's day marks by shoot-day number (asShootDayMove, inside shiftCalendar);
+  //   - staying: every other phase, every typed note, holidays, all-phase hiatuses (locked or not), the calendar
+  //     range, and the month view's place (keepView).
+  // A Dates phase's end, an Ends phase's held end and Production's held wrap move through setPhaseStart, as for every
+  // mover. A snap-off phase keeps its weekday: a click is seven days.
+  // An EDITED automatic note follows as it does on the month drag (autoNoteBaseline): its standard line is swapped
+  // for the one its week shows now, and the lines the user added stay on their week. Always worked out from the
+  // burst's FIRST click, so out and back inside one burst puts the notes back exactly.
+  // ⭐ A BURST IS ONE UNDO STEP (ruling D4). Its first click banks whatever came before. Each click cancels the
+  // debounced push its own update() armed. The burst is banked once: NUDGE_BURST_MS after its last click, or the moment
+  // anything else is pressed or typed (a click elsewhere, a key, Cmd+Z, another phase's arrows), so "a pause or any
+  // other edit ends it". The label on the card's caption line, "Pulled 2 wks" / "Pushed 1 wk" (D5; owner wording,
+  // 23 Oct 2026: a moved date is pushed or pulled, never + or -), lives exactly as long as the burst.
+  const NUDGE_BURST_MS = 1600;
+  // An empty week window: from a week that comes AFTER the week it runs to, so it holds no week at all.
+  const NUDGE_NO_WEEKS = {fromWeek: '2000-01-10', toWeek: '2000-01-03'};
+  let nudgeBurst = null;   // {key, weeks, notesBase, note, timer} while a burst runs
+  // The date the card's box shows: the start, or with Ends the end it is held by. No date, no arrows.
+  function phaseNudgeHasDate(key){
+    const startEl = document.getElementById('start-' + key);
+    if(!startEl || !startEl.value) return false;
+    if(key === 'production') return productionEnds === null || !!productionEnds;
+    if(!phaseEndsOn(key)) return true;
+    const endEl = document.getElementById('end-' + key);
+    return !!(endEl && endEl.value);
+  }
+  // Run by update(), so a view switch, an undo, a Load or a cleared date can never leave a card disagreeing.
+  // `nudge-on` is the one switch the CSS reads. Written only when it changes: the card's observers watch the rows.
+  function reflectPhaseNudges(){
+    const sheet = viewMode === 'sheet';
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const key = phaseRowKey(row);
+      const on = sheet && !!key && phaseNudgeHasDate(key);
+      if(row.classList.contains('nudge-on') !== on) row.classList.toggle('nudge-on', on);
+      if(!on) return;
+      const typed = ((document.getElementById('name-' + key) || {}).value || '').trim();
+      const name = typed || (PHASES.find(p=> p.key === key) || {}).label || 'this phase';
+      row.querySelectorAll('.ph-nudge-btn').forEach(b=>{
+        const label = 'Move ' + name + ' 1 week ' + (b.dataset.nudge === '-1' ? 'earlier' : 'later');
+        if(b.getAttribute('aria-label') !== label){ b.setAttribute('aria-label', label); b.title = label; }
+      });
+    });
+  }
+  function nudgeChip(key){
+    const sw = document.getElementById('swatch-' + key);
+    return sw && sw.parentElement ? sw.parentElement.querySelector('.ph-nudge-chip') : null;
+  }
+  // ⛔ PRODUCTION'S DAY MARKS ARE BOUND FOR THE WHOLE BURST (beginShootDayMove at its first click, endShootDayMove
+  // when it ends), as the month drag binds them from press to release. Each click's shiftCalendar is then a nested
+  // mover (inert), and every update() puts the marks back on their shoot days from the ORIGINAL pins. Bound per
+  // click instead, ▼ ▲ inside one burst lost a worked holiday: the first click left it on an ordinary shoot day
+  // (inert, so dropped), and the second had nothing to bring back. Bound per burst, the burst lands exactly where one
+  // move of its total would, and out and back is exact. So the burst must END before anything else can run against
+  // the binding: undo() and redo() end it first, and so does any press or key (the capture listeners below).
+  function nudgePhase(key, dir){
+    if(viewMode !== 'sheet' || (dir !== 1 && dir !== -1) || !phaseNudgeHasDate(key)) return null;
+    if(!nudgeBurst || nudgeBurst.key !== key){
+      endNudgeBurst();
+      pushUndoSnapshot();   // close off whatever came before, so the burst stands alone
+      nudgeBurst = {key, weeks: 0, notesBase: autoNoteBaseline(), bound: beginShootDayMove(), note: '', timer: null};
+    }
+    const b = nudgeBurst;
+    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true});
+    reapplyAutoNoteBaseline(b.notesBase);
+    cancelPendingUndoPush();   // banked once, by endNudgeBurst
+    if(res && res.movedPhases) b.weeks += dir;
+    // What the burst so far does to Production's day marks (a worked holiday no longer on a holiday, a mark with no
+    // shoot day left), worked out from the original pins as endShootDayMove will, and said in the result line's short
+    // words. Through takeShootDayMoveNote, the one formatter, which also leaves nothing for a later result line.
+    if(b.bound && overrideMove){
+      const r = overridesForMove(overrideMove);
+      lastShootDayMove = (r && (r.inert || r.dropped)) ? {inert: r.inert, dropped: r.dropped} : null;
+    }
+    b.note = takeShootDayMoveNote(true);
+    const chip = nudgeChip(key);
+    if(chip){
+      const n = Math.abs(b.weeks);
+      const head = !n ? 'Back where it was' : (b.weeks < 0 ? 'Pulled ' : 'Pushed ') + n + (n === 1 ? ' wk' : ' wks');
+      chip.textContent = b.note ? head + ' · ' + b.note : head;
+      chip.title = chip.textContent;
+      chip.classList.add('on');
+    }
+    clearTimeout(b.timer);
+    b.timer = setTimeout(endNudgeBurst, NUDGE_BURST_MS);
+    return res;
+  }
+  function endNudgeBurst(){
+    const b = nudgeBurst;
+    if(!b) return;
+    nudgeBurst = null;
+    clearTimeout(b.timer);
+    // Settle the marks BEFORE the step is banked, so the step holds the final ones (the month drag's endDrag).
+    if(b.bound){ endShootDayMove(); takeShootDayMoveNote(); }
+    pushUndoSnapshot();   // the whole burst, as one step
+    const chip = nudgeChip(b.key);
+    if(chip){ chip.classList.remove('on'); chip.textContent = ''; chip.removeAttribute('title'); }
+  }
+  // Is this event part of the running burst: its own phase's arrows, or Alt+Up / Alt+Down in its own date box?
+  function partOfNudgeBurst(e){
+    const t = e.target, row = t && t.closest ? t.closest('.phase-row') : null;
+    if(!nudgeBurst || !row || phaseRowKey(row) !== nudgeBurst.key) return false;
+    if(t.closest('.ph-nudge')) return true;
+    return e.type === 'keydown' && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+      && !!t.closest('.ph-start-box, .ph-ends-box');
+  }
+  // Anything else pressed or typed ends the burst FIRST (capture), so it is banked before that edit runs.
+  // A modifier on its own (the Alt of Alt+Up) is not an edit.
+  ['pointerdown', 'keydown'].forEach(type=> document.addEventListener(type, e=>{
+    if(!nudgeBurst || partOfNudgeBurst(e)) return;
+    if(e.type === 'keydown' && (e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta' || e.key === 'Control')) return;
+    endNudgeBurst();
+  }, true));
+  // Delegated on the two row containers, as the Starts / Ends select is, so a custom row added, rebuilt by undo or
+  // brought in by a Load needs no binding.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('click', e=>{
+      const btn = e.target && e.target.closest ? e.target.closest('.ph-nudge-btn') : null;
+      if(!btn) return;
+      const key = phaseRowKey(btn.closest('.phase-row'));
+      if(key) nudgePhase(key, Number(btn.dataset.nudge));
+    });
+    // The keyboard's twin (plan §3): Alt+Up / Alt+Down in the date box. Alt, as the grid's Alt+Left / Alt+Right
+    // swap: a bare arrow already steps the box's own day, month or year.
+    host.addEventListener('keydown', e=>{
+      if(!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      const t = e.target;
+      if(!t || !t.closest || !t.closest('.ph-start-box, .ph-ends-box')) return;
+      const row = t.closest('.phase-row');
+      if(!row || !row.classList.contains('nudge-on')) return;
+      e.preventDefault();
+      nudgePhase(phaseRowKey(row), e.key === 'ArrowUp' ? -1 : 1);
+    });
   });
 
   // ---------- Anchoring: shift so that some landmark lands on a chosen date ----------

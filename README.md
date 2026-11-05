@@ -55,8 +55,79 @@ adjust all the phases. It should be very clear how to turn it on or off"*. Plan 
   before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
   on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
   `settingswin` W13 lists the new card. Full gate on the build merged with the one Shift tool: 3,898 PASS / 12 FAIL,
-  every FAIL a stalled leg (or a check fed by one) or the rename below, all 196 checks of them green on the renamed
+  every FAIL a stalled leg (or a check fed by one) or the rename, all 196 checks of them green on the renamed
   build, the waterfall PDF and Excel parts identical to the baselines. R0 holds the switch's three names.
+
+### Unreleased — ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
+
+The owner asked for a way to move one phase up or down the waterfall: *"on the phases in the leftside column, above
+and below the date box, little up and down arrows appear allowing you to shift up or down by a week at a time.
+Waterfall only"*. They ruled on six layouts in
+[`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html) (*"lets go with D"*), and on the rest by picker
+([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §7).
+
+- **Two small buttons stacked inside the date box, always shown in the waterfall:** ▲ moves that phase one week
+  earlier, ▼ one week later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no
+  arrows. The layout is **C2** (owner: *"C2, but make sure the buttons aren't actually touching the top or bottom lines
+  of the box"*), chosen after layout D (two buttons beside the box) was built and all six were drawn on the real card
+  at three window widths: D widened the date column and stacked the card below a ~1450 px window.
+- **What moves with the phase:** its own hiatus, and what belongs to its cells: band names and colours, cell spans,
+  column swaps, text styles. Its automatic notes follow, since they're worked out from the dates. An edited automatic
+  note drops its standard line and keeps the lines you added on their week, as the month view's drag does.
+  Production's day marks keep their shoot-day numbers.
+- **What stays:** every other phase, typed notes, holidays, all-phase hiatuses (locked or not), the calendar range,
+  and the month the month view is on. The gaps either side change. To keep gaps, use Shift.
+- Snap-off phases keep their weekday. A phase held by its end moves its end Friday. A Dates phase moves both dates.
+  Production is scheduled again, so its wrap can move by more or less than a week around holidays.
+- **A burst of clicks is one undo step**, with a label on the card's caption line: "Pushed 2 wks", "Pulled 1 wk",
+  "Back where it was". A pause of 1.6 s or any other click or key ends the burst. Production's day marks stay bound
+  for the whole burst, so down then up inside one burst puts everything back exactly. A label can add what the move did
+  to a worked day ("· 1 worked day no longer on a day off").
+- **Keyboard:** Alt+↑ / Alt+↓ in the date box.
+- The Help's "Adjusting dates" section has a paragraph on them, after Shift.
+- While the arrows show, the card's boxes are 37 px tall instead of 30 (2 px clear above ▲ and below ▼), Length's
+  too so the two stay level. The card is 7 px taller and otherwise keeps its shape.
+
+Engine: the move is the Shift tool's own `shiftCalendar(dir, null, {part: {phases: [key], …}})` with an EMPTY week
+window (`fromWeek` after `toWeek`), so nothing week-keyed moves but what the phase owns; `opts.keepView` (the same
+name and line as the hiatus-ripple branch's) leaves the month view's cursor alone. `undo()` and `redo()` end a running
+burst first, so no snapshot is ever restored under a day-mark binding. The arrows, their holder and the label carry
+no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh;
+its L1 / L2 hold the buttons inside the box with 2 px clear at sidebars of 280 to 440 px)
+on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
+"Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
+▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40. Full gate on the branch: 3,981 PASS
+/ 3 FAIL with every baseline identical; the three were 10 s Load waits while another gate ran, each green re-run.
+
+### Unreleased — the waterfall's note editor says what a line is, and hides it (4 Nov 2026)
+
+The waterfall's note editor no longer calls every cell a "Note" (owner, 30 Oct 2026: *"why does this still show as
+Note in the waterfall"*), and it has the month view's Hide (owner, 4 Nov 2026: *"Should there be an equivalent hide
+auto note button in the waterfall view?"*). WATERFALL-NOTE-EDITOR-PLAN.md, ruled by picker:
+- A cell holding one automatic note opens as **Auto Note · 10/20/26** with **Hide Auto-Note**; one holiday, as
+  **Holiday · 9/7/26** with **Hide Holiday**. The box still holds the whole cell, so a line can be added.
+- A cell holding several lines lists its automatic notes and holidays under the box ("In this cell", with the month
+  view's ↻ and ⚑ marks), each with its own **Hide**.
+- Hide takes the note out of the Waterfall, Excel and the waterfall PDF only, at once: the month view keeps it (a
+  holiday stays a day off), anything else typed in the box is saved with it, and one undo brings it all back. On a note
+  the month view already hides, it switches the note off.
+- The Day picker and "Show in month view" appear only while the box holds a typed line (they do nothing for automatic
+  notes and holidays).
+- **Fixed:** renaming an automatic note or a holiday AND adding a line in one save lost the rename; taking a line out
+  while typing another left the note to come back after a schedule move. The editor now works out which line became
+  which by content, so both stick. Typing straight over one line still renames it (rename ruling 3). Where the box also
+  gained or lost lines at that spot, a line counts as renamed only if it keeps the note's date ("Labour Day 9/7/26");
+  lines typed afresh over a holiday's are the user's own text, and the holiday is left alone, as before.
+
+No frozen code (the editor is a body-level panel, outside the grid) and no saved-file change. New leg `wfnoteeditor`
+(13 cases, in gate.sh), red in 4 cases on a build with the old line matching. **The full gate caught a regression in
+the first build:** its base leg types two lines of its own over Labor Day's, and the first content matching read the
+first line as a rename, so Labor Day was called "Studio Cut Due" everywhere (the waterfall PDF, the workbook's strings
+and the grid signature all moved). Hence the date rule above, and case R4. After the fix the base leg is identical to
+its baseline again, and a second full gate on the fixed build is 3,920 PASS / 2 FAIL (two timeouts, each green alone)
+with every baseline identical. Neighbours green: noteviews, notewrap, holidayrename, wfkeys, wfmenu, autonoterename, autonoteview,
+autonotekinds, autonotephases, hdrcontrols, wfnotecolors, dlgkeys, regionmirror, hdrrow, mvmenu, monthnotes, textstyle.
+`npm run check` 40/40.
 
 ### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 
