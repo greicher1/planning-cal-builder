@@ -1,7 +1,8 @@
 # HIATUS-RIPPLE-PLAN.md — a hiatus change moves the phases after it
 
-**Status (4 Nov 2026): PLANNED and RULED. No code yet.** The owner ruled on every open decision (§2) by picker
-in the planning session. Building waits on the owner's go-ahead. Tracker card `hiatus-ripple`.
+**Status (4 Nov 2026): BUILT on branch `hiatus-ripple`** (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main`
+at `ae4125f`), after the owner's *"Yes, build it"*. Not merged, not pushed. §10 is the as-built record: where it differs
+from the plan above, §10 is right. Tracker card `hiatus-ripple`.
 
 Read with: `shiftCalendar` / `shiftCalendarDates` in `src/legacy/app.js` (the Shift From tool, which this
 reuses), [`HIATUS-DRAG-PLAN.md`](HIATUS-DRAG-PLAN.md) (the month-view drag and its Keep / Undo question), and
@@ -253,3 +254,32 @@ With the switch off, every path behaves exactly as it does today. That is a test
    text, and `src/index.html`'s help.
 6. `hiatusripple`, lib.js's default off, the mutants, the full gate.
 7. README changelog entry, HANDOFF, UI-CONVENTIONS (the switch's places), the tracker card.
+
+## 10. As built (4 Nov 2026)
+
+Everything in §3-§9 was built as planned, with these differences:
+
+- **The readout** says `Pushed 1 wk: Production, Post · Wrap 6/12/26` (one group per distance, in Pushed / Pulled
+  wording; the wrap only when Production moved). ⚠️ **No "N locked hiatuses held"**, which §6 proposed: New's four
+  winter breaks are locked and after almost every cutoff, so it would show on every push. When no phase starts after
+  the hiatus, the line says `No phase starts after it to push` (its later notes and unlocked hiatuses still moved).
+- **What settles an edit** (§4): focus leaving the hiatus's two DATE boxes, not the whole row. Starts to Weeks of the
+  same hiatus keeps the edit open; Tab from Weeks lands on Lock in place, and that settles it. An unreadable date (a
+  year mid-typing) never settles; the edit waits for a readable one.
+- **The one-shot paths** go through `rippleAround(h, fn)`, which first settles any edit still pending on that hiatus.
+  A phase's own hiatus on a phase with no start date pushes nothing (it delays nothing).
+- **The month-view drag:** the push runs on release, before the question, and the question ends with
+  `Push later phases is on: <the readout>.` Its "also changes when … ends" sentence leaves out the phases the push
+  named. Undo applies the snapshot banked at the press (`applySnapshotJSON`), so the push goes too; Keep banks the
+  drag and the push as two steps (`bankStepAt`).
+- **The Settings copy** is its own card, `HiatusPrefsCard` ("Hiatus", the pause icon), between Automatic notes and App,
+  in both views.
+- **Harness:** `t/lib.js` stores the switch OFF before the app boots, and `hiatusdrag.mjs` does the same by a CDP init
+  script, so every existing leg tests the pause alone. `t/prefs.js` clears the store at its top, because "nothing stored
+  at boot" is its premise. `settingswin` W13 lists the new card.
+- **Proof:** `hiatusripple.mjs` (trusted CDP input, fixture `hiatusripple.sptcal`, synthetic), 15/15. Red on `origin/main`
+  (every case that ran) and on six mutants, each red on its own cases: no `except` (R1, R2, R4, R5, R11); no inside-start
+  rule (R7); settle per keystroke (R1, R3, R4, R8); moves not followed (R4, R11); an id on the card's switch (R0); one
+  undo step (R5). Also green on the branch: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81,
+  hiatussidebar 16/16, hiatusdrag 14/14, `npm run check` 40/40. The browser pane, real mouse and keys: Break 2 -> 3 weeks,
+  Tab, Production 3/16 -> 3/23 with the line under the Break; the three switches drawn.

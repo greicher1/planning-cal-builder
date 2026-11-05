@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a hiatus change moves the phases after it (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+adjust all the phases. It should be very clear how to turn it on or off"*. Plan and rulings: `HIATUS-RIPPLE-PLAN.md`.
+
+- **What it does.** A hiatus pauses the phases running through it, as before. Now, when a hiatus is added, removed,
+  lengthened, shortened or moved, every phase that starts on or after it also moves by the same number of weeks, so
+  the gaps between phases stay as they were. A moved hiatus counts as taken out where it was and put back where it
+  is: what it no longer holds up is pulled back, and what it now holds up is pushed. A phase's own hiatus moves every
+  other phase that starts on or after it. It is Shift From, run for you from the hiatus: notes and unlocked hiatuses
+  after it travel too, and locked hiatuses, holidays and notes with a date stay put.
+- **When.** Once you finish the edit: when you leave the hiatus's Starts and Weeks boxes, press Enter, pick a date in
+  the date popover, click its ×, switch a phase's hiatus on or off, use the right-click Hiatus items, or let go of a
+  month-view drag (its Keep / Undo question now says what was pushed). Never while you type: a year typed digit by
+  digit moves nothing until you leave the box. Opening a file, undo, New and the shift tools never trigger it.
+- **What you see.** A line under the hiatus, e.g. "Pushed 1 wk: Production, Post · Wrap 6/12/26". One ⌘Z takes back
+  the push and keeps your hiatus change; a second takes back the change.
+- **Turning it off.** One switch, "Push later phases when a hiatus changes", **on by default**, kept on this computer
+  (never in a file). It is in Settings › Preferences › Hiatus, at the top of the All-phase hiatus card, and in each
+  phase's Hiatus block; flipping any of them flips all three. Off, a hiatus only pauses, as before.
+- **Unchanged:** the grid, the exports, the save format (no new key, no new saved id). Every calendar opens and prints
+  as before; a push happens only on an edit.
+- **Verified:** new `hiatusripple.mjs` gate leg, 15 cases on real keyboard and mouse input (CDP), red on the build
+  before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
+  on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
+  `settingswin` W13 lists the new card. Full gate: see HANDOFF.
+
 ### Unreleased — recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"sometimes when we reopen the app, it loads the last calendar we were on but as an unsaved,

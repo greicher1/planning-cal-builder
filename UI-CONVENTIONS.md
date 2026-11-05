@@ -578,6 +578,13 @@ records a property of the hiatus that only matters later, when a shift tool runs
 >   format and every listener are untouched (leg `phasesui` holds 46 fixtures' `fields.byId` to the build before);
 > - the reasoning above still holds **outside these cards**: anywhere else, a property that only matters later stays a
 >   Checkbox unless the owner rules otherwise.
+> - ⭐ **ONE PREFERENCE SHOWN IN SEVERAL PLACES (4 Nov 2026, HIATUS-RIPPLE-PLAN.md §5, owner rulings R1-R3):** "Push later
+>   phases when a hiatus changes" is a switch row at the top of the All-phase hiatus card and in each phase's Hiatus block,
+>   and a Mantine `Switch` in Settings › Preferences › Hiatus. All three are ONE store (`prefs.hiatusRipple`, kept on this
+>   computer), painted by `reflectHiatusRipple()`, and a flip in any of them flips them all. ⛔ The two sidebar copies carry
+>   **no id**: they sit outside `.prefs-card`, and an id there would bake the preference into every saved calendar. Only
+>   the Settings copy has an id (`#pref-hiatus-ripple`), safe inside its `.prefs-card`. A future preference shown where it
+>   acts follows the same shape.
 
 **The inline-style duplication ends.** Of the seven repeated field recipes, six need no replacement
 at all — the component supplies the styling — and only `#show-title` needs one.
