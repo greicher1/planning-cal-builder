@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout Study</title>
+<style>
+  :root { --ink:#1c1c1e; --mute:#6b6b70; --line:#e2e2e6; --bg:#f6f6f8; --card:#fff; --acc:#3b5bdb; --ok:#2f9e44; --warn:#e8590c; }
+  * { box-sizing:border-box }
+  body { margin:0; font:14px/1.45 Inter, system-ui, -apple-system, sans-serif; color:var(--ink); background:var(--bg); }
+  header { display:flex; align-items:center; gap:16px; padding:10px 16px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5 }
+  header h1 { font-size:16px; margin:0 }
+  header .prog { color:var(--mute) }
+  .wrap { display:grid; grid-template-columns:150px 1fr; min-height:calc(100vh - 49px) }
+  nav { border-right:1px solid var(--line); background:var(--card); padding:8px }
+  nav button { display:block; width:100%; text-align:left; padding:6px 8px; margin:2px 0; border:1px solid transparent; border-radius:6px; background:none; font:inherit; cursor:pointer }
+  nav button.cur { border-color:var(--acc); background:#eef1fc }
+  nav button .n { float:right; color:var(--mute); font-size:12px }
+  nav button.done .n { color:var(--ok) }
+  main { padding:12px 16px 40px; overflow:auto }
+  h2 { font-size:15px; margin:4px 0 8px }
+  .panels { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden }
+  .panel .cap { padding:6px 10px; font-weight:600; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
+  .panel .cap small { color:var(--mute); font-weight:400 }
+  .panel iframe { width:100%; height:760px; border:0; display:block; background:#fff }
+  .pic { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:12px }
+  .pic img { max-width:100%; display:block }
+  .pic details summary { cursor:pointer; color:var(--mute) }
+  .qs { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px }
+  .q { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; padding:8px 0; border-top:1px solid var(--line) }
+  .q:first-of-type { border-top:0 }
+  .q .txt b { color:var(--acc) }
+  .q .mode { color:var(--mute); font-size:12px }
+  .q .ans button { font:inherit; padding:5px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; margin-left:4px }
+  .q .ans button.sel { border-color:var(--acc); background:#eef1fc; font-weight:600 }
+  .q .ans button.sel.pic { border-color:var(--ok); background:#ebfbee }
+  .q .ans button.sel.either { border-color:var(--mute); background:#f1f3f5 }
+  .q .note { grid-column:1 / -1 }
+  .q .note input { width:100%; font:inherit; padding:5px 8px; border:1px solid var(--line); border-radius:6px }
+  .none { color:var(--mute); padding:6px 0 }
+  .seedq { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .seedq button { font:inherit; padding:5px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer }
+  .seedq button.sel { border-color:var(--acc); background:#eef1fc; font-weight:600 }
+  .seedq input { flex:1; min-width:240px; font:inherit; padding:5px 8px; border:1px solid var(--line); border-radius:6px }
+  .hint { color:var(--mute); font-size:12px; margin:6px 0 0 }
+  .warn { color:var(--warn) }
+</style>
+</head>
+<body>
+<header>
+  <h1>Layout Study</h1>
+  <span class="prog" id="prog"></span>
+  <span class="hint" style="margin:0">Keys: ← → seeds · for each question, <b>P</b> picture · <b>T</b> today · <b>E</b> either</span>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<script>
+(async () => {
+  const seeds = await (await fetch('/seeds')).json();
+  const specs = await (await fetch('/specs.json')).json();
+  let picks = await (await fetch('/picks')).json();
+  let cur = Math.max(0, seeds.indexOf(location.hash.slice(1)));
+  const picsOf = id => specs[id] && specs[id].image ? specs[id].image : id + '.png';
+
+  async function save(key, data) {
+    picks[key] = Object.assign({ key }, data);
+    await fetch('/pick', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ key }, data)) });
+    drawNav();
+  }
+  const qKeys = (id, qs) => qs.map(q => id + '#' + q.id).concat([id + '#seed']);
+
+  function drawNav() {
+    const nav = document.getElementById('nav');
+    nav.innerHTML = '';
+    let done = 0;
+    seeds.forEach((id, i) => {
+      const b = document.createElement('button');
+      const answered = picks[id + '#seed'] ? 1 : 0;
+      done += answered;
+      b.className = (i === cur ? 'cur ' : '') + (answered ? 'done' : '');
+      b.innerHTML = id + '<span class="n">' + (answered ? '✓' : '') + '</span>';
+      b.onclick = () => { cur = i; show(); };
+      nav.appendChild(b);
+    });
+    document.getElementById('prog').textContent = done + ' of ' + seeds.length + ' seeds answered';
+  }
+
+  // Grid only: a style injected into the same-origin iframe pins #table-wrap over everything else.
+  // The app's own CSS is untouched; this is the study page's frame, not the product.
+  function gridOnly(iframe) {
+    const tryInject = () => {
+      try {
+        const d = iframe.contentDocument;
+        if (!d || !d.getElementById('table-wrap')) return false;
+        if (d.getElementById('study-style')) return true;
+        const s = d.createElement('style');
+        s.id = 'study-style';
+        s.textContent = '#table-wrap{position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:6px 8px}' +
+          '#table-wrap .sheet-scroll{max-height:none!important;overflow:visible!important}' +
+          '.mantine-Modal-root,[role=dialog]{display:none!important}';
+        d.head.appendChild(s);
+        return true;
+      } catch (e) { return false; }
+    };
+    const t = setInterval(() => { if (tryInject()) clearInterval(t); }, 150);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  function panel(title, sub, url) {
+    const div = document.createElement('div');
+    div.className = 'panel';
+    div.innerHTML = '<div class="cap">' + title + '<small>' + sub + '</small></div>';
+    const f = document.createElement('iframe');
+    f.src = url;
+    div.appendChild(f);
+    gridOnly(f);
+    return div;
+  }
+
+  const human = (d) => {
+    const when = d.from === d.to ? 'the week of ' + d.from : 'from ' + d.from + ' to ' + d.to;
+    const where = (c, w) => (w > 1 ? w + ' columns wide from column ' + (c + 1) : 'in column ' + (c + 1));
+    return '<b>' + d.phase + '</b> (' + d.block + ' block, ' + when + '): today ' + where(d.engine.col, d.engine.width) + ' · the picture has it ' + where(d.key.col, d.key.width);
+  };
+
+  async function show() {
+    const id = seeds[cur];
+    location.hash = id;
+    drawNav();
+    const main = document.getElementById('main');
+    main.innerHTML = '<h2>' + id + ' <small style="color:var(--mute);font-weight:400">' + (specs[id].source || '') + (specs[id].singleColumn ? ' · Single Column' : '') + '</small></h2>';
+    const [cand, qs] = await Promise.all([(await fetch('/candidate?seed=' + id)).json(), (await fetch('/diffs?seed=' + id)).json()]);
+    const panels = document.createElement('div');
+    panels.className = 'panels';
+    panels.appendChild(panel('A · Today, Reuse off', 'the old placement', '/app?seed=' + id + '&reuse=off'));
+    panels.appendChild(panel('B · Today, Reuse on', 'the current rule', '/app?seed=' + id + '&reuse=on'));
+    panels.appendChild(panel('C · The picture', 'its own columns and widths', '/app?seed=' + id + '&reuse=off&layout=' + encodeURIComponent(JSON.stringify(cand.layout)) + '&spans=' + encodeURIComponent(JSON.stringify(cand.spans))));
+    main.appendChild(panels);
+
+    const pic = document.createElement('div');
+    pic.className = 'pic';
+    pic.innerHTML = '<details><summary>The picture itself (' + picsOf(id) + ')</summary><img src="/by-hand/' + picsOf(id) + '" alt=""></details>';
+    main.appendChild(pic);
+
+    const box = document.createElement('div');
+    box.className = 'qs';
+    box.innerHTML = '<div><b>Where today differs from the picture.</b> For each, which is right?</div>';
+    if (!qs.length) box.innerHTML += '<div class="none">Today\'s layout matches the picture in both modes.</div>';
+    qs.forEach(d => {
+      const key = id + '#' + d.id;
+      const cur = picks[key] || {};
+      const row = document.createElement('div');
+      row.className = 'q';
+      row.innerHTML = '<div class="txt">' + human(d) + '<div class="mode">today = ' + d.modes.map(m => 'Reuse ' + m).join(' and ') + (d.modes.length === 1 ? ' (the other mode matches the picture here)' : '') + '</div></div>' +
+        '<div class="ans">' +
+        '<button data-v="picture" class="' + (cur.pick === 'picture' ? 'sel pic' : '') + '">Picture</button>' +
+        '<button data-v="today" class="' + (cur.pick === 'today' ? 'sel' : '') + '">Today</button>' +
+        '<button data-v="either" class="' + (cur.pick === 'either' ? 'sel either' : '') + '">Either</button>' +
+        '</div><div class="note"><input placeholder="why, if it helps (optional)" value="' + (cur.note || '').replace(/"/g, '&quot;') + '"></div>';
+      row.querySelectorAll('.ans button').forEach(b => b.onclick = async () => {
+        row.querySelectorAll('.ans button').forEach(x => x.className = '');
+        b.className = 'sel ' + (b.dataset.v === 'picture' ? 'pic' : b.dataset.v === 'either' ? 'either' : '');
+        await save(key, { seed: id, question: d, pick: b.dataset.v, note: row.querySelector('input').value });
+      });
+      row.querySelector('input').onchange = async (e) => { if (picks[key]) await save(key, Object.assign({}, picks[key], { note: e.target.value })); };
+      box.appendChild(row);
+    });
+    const sq = document.createElement('div');
+    sq.className = 'seedq';
+    const sp = picks[id + '#seed'] || {};
+    sq.innerHTML = '<span>Overall, is the picture how this calendar should look today?</span>' +
+      '<button data-v="yes" class="' + (sp.pick === 'yes' ? 'sel' : '') + '">Yes, as pictured</button>' +
+      '<button data-v="mostly" class="' + (sp.pick === 'mostly' ? 'sel' : '') + '">Mostly (see notes)</button>' +
+      '<button data-v="no" class="' + (sp.pick === 'no' ? 'sel' : '') + '">No, I\'d lay it out differently</button>' +
+      '<input placeholder="anything else about this one (optional)" value="' + (sp.note || '').replace(/"/g, '&quot;') + '">';
+    sq.querySelectorAll('button').forEach(b => b.onclick = async () => {
+      sq.querySelectorAll('button').forEach(x => x.className = '');
+      b.className = 'sel';
+      await save(id + '#seed', { seed: id, pick: b.dataset.v, note: sq.querySelector('input').value });
+    });
+    sq.querySelector('input').onchange = async (e) => { if (picks[id + '#seed']) await save(id + '#seed', Object.assign({}, picks[id + '#seed'], { note: e.target.value })); };
+    box.appendChild(sq);
+    box.insertAdjacentHTML('beforeend', '<p class="hint">Sim Post\'s own column is not asked: it always sits right of Production (ruled 2 Nov 2026). A, B and C are the real grid; C is forced to the picture\'s columns and widths, so if C does not look like the picture, say so in the note.</p>');
+    main.appendChild(box);
+    main.scrollTop = 0;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') { cur = Math.min(seeds.length - 1, cur + 1); show(); }
+    if (e.key === 'ArrowLeft') { cur = Math.max(0, cur - 1); show(); }
+    const map = { p: 'picture', t: 'today', e: 'either' };
+    if (map[e.key]) {
+      const next = [...document.querySelectorAll('.q')].find(q => !q.querySelector('.ans button.sel'));
+      if (next) next.querySelector('.ans button[data-v=' + map[e.key] + ']').click();
+    }
+  });
+  window.addEventListener('hashchange', () => { const i = seeds.indexOf(location.hash.slice(1)); if (i >= 0 && i !== cur) { cur = i; show(); } });
+  show();
+})();
+</script>
+</body>
+</html>

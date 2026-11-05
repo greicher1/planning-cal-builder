@@ -29,6 +29,16 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the layout study's `?layout=` hook, localhost only (4 Nov 2026)
+
+**What:** on `localhost` / `127.0.0.1` only, `?layout={"production":0,…}` on the page URL forces every waterfall
+phase's column (phase key → column index). Read in `computeSchedule` where `col` is assigned, so the frozen layout
+takes it as data; ignored unless every waterfall phase is named; never saved. Off localhost, or absent, both
+placements run exactly as before. **Why:** the layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), owner
+ruling R6) draws candidate layouts — and a hand-made calendar's own layout — through the real grid, side by side with
+today's. **Verified:** in the browser pane a seed drew the forced columns; the study's `tools/layout-study/` (scrub,
+transcribe, compare, serve, the page) runs against the build. Leg `layouthook` and a full gate are still to run.
+
 ### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
 
 The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me

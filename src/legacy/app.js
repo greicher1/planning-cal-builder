@@ -5124,13 +5124,30 @@ export function initLegacyApp() {
     //     than the highest column occupied by any phase still running at this seg's start.
     //   - Ties on start date keep their original phase order (stable sort by index).
     const segCol = new Map();
+    // ⭐ LAYOUT STUDY HOOK (LAYOUT-STUDY-PLAN.md §6; owner ruling R6, 4 Nov 2026). On localhost only, `?layout=<json>`
+    // on the page URL forces every waterfall phase's column (phase key -> column index), so the study can draw a
+    // candidate layout, or a picture's own, through the real grid. Read here, where `col` is assigned, so frozen
+    // computeBlockLayout / computePhaseRowLayout take it as data. Honoured only when EVERY phase in wfSegments is
+    // named: a half map could draw a layout nobody asked for. Absent, or off localhost, both placements below run
+    // byte for byte as before. Not state; never saved. The same hostname test as monthPdfMode().
+    const forcedCols = (()=>{
+      try {
+        if(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return null;
+        const raw = new URLSearchParams(location.search).get('layout');
+        if(!raw) return null;
+        const m = JSON.parse(raw);
+        if(!m || typeof m !== 'object' || Array.isArray(m)) return null;
+        return wfSegments.every(s => Number.isInteger(m[s.key]) && m[s.key] >= 0) ? m : null;
+      } catch(e){ return null; }
+    })();
+    if(forcedCols) wfSegments.forEach(s => segCol.set(s, forcedCols[s.key]));
     // ⭐ COLUMN REUSE (COLUMN-REUSE-PLAN.md §3). With the calendar's "Reuse empty columns" box ticked, a
     // different placement runs INSTEAD of the block below. Clear -- the default, and every file saved
     // before the box existed -- the block below runs exactly as it always has. That is the whole
     // inertness argument, so never fold the two together.
     // Over wfSegments (PHASES-TAB-PLAN.md §2.2): a phase hidden in the waterfall takes no column.
-    const colMoves = colReuse ? placeSegmentsReusingColumns(wfSegments, hiatuses, segCol) : null;
-    if(!colReuse){
+    const colMoves = (!forcedCols && colReuse) ? placeSegmentsReusingColumns(wfSegments, hiatuses, segCol) : null;
+    if(!forcedCols && !colReuse){
       const byStart = wfSegments
         .map((seg, i)=>({seg, i}))
         .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))

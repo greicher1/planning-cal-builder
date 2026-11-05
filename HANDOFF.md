@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 4 Nov 2026: LAYOUT STUDY — THE OWNER'S CALENDARS SCORED AGAINST TODAY'S COLUMN RULES; THE STUDY PAGE BUILT. Branch `layout-study` (worktree `.claude/worktrees/layout-study`, from `origin/main` at `e5e4435`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not gated, not merged. Tracker card `learned-column-layout`. Plan: [`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), §12 is the as-built record and the findings.
+- **The ask** (owner, by picker, all as recommended): learn how columns should sort, reuse and span from their own
+  calendars rather than one incident at a time; every legal candidate per screen; placement first, spans second;
+  Reuse Empty Columns' fate decided after, on the measured hit rate; the hook ships in the product build.
+- **What came:** 17 screenshots and one PDF of real calendars, most hand-built in Excel, no `.sptcal`; one (several
+  shows in one calendar) set aside by the owner. ⛔ They live in `~/SPTCal Layout Study/seeds/`, OUTSIDE the repo,
+  with `scrub-index.txt` (the only place their names are). `tools/layout-study/scrub.mjs` copies pictures to
+  `scrubbed/by-hand/hand-NN` under neutral names and blanks every text field of a `.sptcal`; its report prints
+  every surviving string and never a file name, so it is safe to paste. The study and Claude read `scrubbed/` only.
+- **Built (all under `tools/layout-study/`, plus one app change):**
+  - `transcribe.mjs`: `scrubbed/specs.json` (outside the repo: each picture's phases, Mondays, week counts, hiatuses,
+    Sim Post, and its layout as the ANSWER KEY) → `hand-NN.sptcal` on a blank snapshot. ⚠️ Production's length is
+    the episode list's total, so each seed carries one 5-day episode per pictured shoot week with region None;
+    the bare `weeks-production` field schedules nothing (found the hard way: the first run had no Production).
+  - `compare.mjs`: every seed, Reuse off and on, in headless Chrome (run.sh's dump-and-poll), the grid read row by
+    row (`td.sheet-date` / `.sheet-phase-cell[data-pkey]` / a Sim Post cell by its text / colspan), scored per
+    phase-week against the key. Output `scrubbed/engine/*.json` and `compare-report.txt`.
+  - **The hook** (plan §6): `src/legacy/app.js`, the `segCol` block of `computeSchedule`: `?layout=<json>` on
+    localhost forces `col` per phase; ignored unless every `wfSegments` phase is named; both placements untouched
+    otherwise. Not frozen (it decides `col`, which the frozen code reads as data). README entry written.
+  - `serve.mjs` + `index.html`: the study page on `http://localhost:8978/` (launch.json `layout-study-8978`, serving
+    this worktree's `dist/`). Per seed: A today off, B today on, C the picture's own layout (hook + `cellSpans`,
+    solved by `/candidate`), each the real grid in an iframe with `#table-wrap` pinned over the chrome by an injected
+    style (the study's frame, not app CSS); the picture under them; ONE QUESTION PER DIFFERENCE (`/diffs`: runs of
+    weeks where today's column or width differs from the picture) — Picture / Today / Either + a note — and an
+    overall "is the picture how it should look today?". Picks → `~/SPTCal Layout Study/picks.json`. Keys: ← → P T E.
+- **Findings before any pick** (1,645 phase-weeks, 15 seeds): today reproduces the pictures **82.3%** with Reuse
+  OFF, **71.6%** with it ON. Plan §12 has F1–F7 in full. The short list: (F1) Reuse ON seats Production in Prod
+  Prep's column (chain tie-break) and renumbers it 0, so it spans Writers' freed column and Sim Post opens a THIRD
+  column — every picture has Production in the left free column, Sim Post in Prod Prep's; (F2) a Wrap custom and
+  Post starting together: Wrap takes Production's column, Post the Sim Post column — today Post takes the handoff;
+  (F3) year-top order follows each column's top phase's start date, not "Production first" (Q2 hurts 02/03/07,
+  and hand-08, the one seed Q2 serves, fits the start-date rule too); (F4, FROZEN) a phase widens the week its
+  neighbour frees — the largest miss, 7 seeds; two pictures never widen; (F5) Localization beside Post (07) vs
+  stacked (05, 08) — a conflict; (F6, FROZEN) a phase alone before a hiatus band stays 1 wide; (F7) Post then
+  Localization stay in the Sim Post column (05). Sim Post left of Production in hand-09's first year: not scored.
+- **Verified:** scrub on five fixtures + one opened in the build; each transcription against its picture in the
+  pane (hand-06 row by row); the hook in the pane (hand-06 forced to the picture's columns); panel C reproduces
+  hand-06's picture including Post widening after Wrap; `npm run build` on the branch.
+- ⏭ **Next:** the owner goes through the page (15 seeds, ~50 questions). Then `LAYOUT-RULES.md` from the picks and
+  the build plan (placement v3 not frozen; F4/F6 are frozen span edits with the rule fixtures as the gate). Before
+  merge: leg `layouthook` (plan §6) and a full gate on the branch.
+
 ### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
