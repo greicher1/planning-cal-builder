@@ -5,6 +5,29 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 
+### 📐 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR — BUILDING on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md). Tracker card `hiatus-ripple`
+- **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+  adjust all the phases. It should be very clear how to turn it on or off"*.
+- **Design:** an automatic Shift From (`shiftCalendar`, already called "ripple" in the code), run from the hiatus by
+  the weeks it changed, with the edited hiatus held. A change = take the old hiatus out (−w0 from s0), put the new
+  one in (+w1 from s1); a length change collapses to one shift.
+- **Ruled by picker** (plan §2):
+  - R1: one switch, no question, ON by default.
+  - R2: shown in Settings ▸ Preferences AND on the hiatus cards (the All-phase card's top, each phase's Hiatus block).
+  - R3: kept on this computer (`prefs.hiatusRipple`, absent = on), never in a file.
+  - R4: a phase's own hiatus moves every phase starting on/after it.
+  - R5: a moved hiatus is followed (the week-strip example is in the plan, §3.2 C).
+- ⛔ Two traps the plan calls out:
+  - Ripple only from named user-edit paths on SETTLE (focus-out / Enter / release), never per keystroke or from a
+    field observer. A year typed digit by digit, or load / undo, would otherwise fling the calendar.
+  - The sidebar copies of the switch carry NO id, or the preference is baked into every saved calendar.
+- My calls, not rulings (flag at build): two undo steps (edit, then push), so one ⌘Z means "not this time"; a phase
+  that starts inside the hiatus is treated as starting the week it ends.
+- ⚠️ **Overlaps the Anchor To plan below** (same day, another session): both build on `shiftCalendarDates`. Whichever
+  builds second rebases onto the other's change to it (this one adds an `except` option).
+- ⏭ **Next:** the owner said *"Yes, build it"* (4 Nov 2026); building now. Existing hiatus legs get the switch OFF
+  from `lib.js`; the new `hiatusripple` leg turns it on.
+
 ### 🔨 4 Nov 2026: RECOVERED WORK GOES BACK INTO ITS OWN FILE — branch `backup-relink` (worktree `.claude/worktrees/backup-relink`, cut from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `recover-into-own-file`
 **The ask** (owner, 4 Nov 2026): *"sometimes when we reopen the app, it loads the last calendar we were on but as an
 unsaved, untitled duplicate."* That is `offerBackupRecovery()`'s "Recover unsaved work" at launch. Two causes, both in
