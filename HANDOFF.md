@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED (4,053 PASS / 0 FAIL, every baseline identical) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded). Not merged, not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
+### 🔨 5 Nov 2026: A STALE BAND LABEL STAYS PUT ON A PART MOVE — BUILT and FULL-GATED (4,053 PASS / 0 FAIL, every baseline identical) on branch `stale-band-key` (worktree `.claude/worktrees/sharp-einstein-11b8f7`, from `origin/main` at `ca794cc` + the month drag's unpushed LIVE note `33dde99`, fast-forwarded; then `origin/main` at `347a98f`, v1.11.0 with the layout rules, merged in through the app's sync, conflicts in HANDOFF and README only). Not pushed. [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5b (the as-built record). Tracker card `stale-band-key`
 - **Found** by the month drag carry (§5a, the entry below). A label, colour, size or style typed on an all-phase band
   stays keyed on its week (a plain key, one per week of the band) when the hiatus is retyped to other dates. It is
   ignored, never destroyed. But `shiftCalendarDates` step 3 (`hiatusKeyStays`) kept a plain key only on a HELD band's
@@ -45,9 +45,180 @@
   **4,053 PASS, 0 FAIL, every baseline identical.** That covers the grid signature, 0 clipped, the waterfall PDF (bar
   the date stamp), the Excel parts, the v1.0.0 restore, `fields.byId` (77 ids) and gate 10's printed months.
   `stalebandkey` 9/9 inside it.
-- ⏭ **Next:** the owner's picker: merge, and separately push. The branch is `origin/main` (`ca794cc`) + `33dde99` +
-  this, a fast-forward, so a push is `git push origin stale-band-key:main` from the worktree. This worktree's
-  `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
+- ⚠️ **`origin/main` moved during the gate** (v1.11.0, the layout rules, pushed at 21:11 UTC). Merged in as one
+  commit: `src/legacy/app.js`, `gate.sh` and the legs auto-merged; README's entry now sits above `## v1.11.0`.
+- ⏭ **Next:** a full gate on the MERGED build, then the owner's picker: merge, and separately push. The branch then
+  holds `origin/main` (`347a98f`), so a push is `git push origin stale-band-key:main` from the worktree, a
+  fast-forward. This worktree's `node_modules` is a real directory, so `git worktree remove` needs no unlink first.
+
+### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ✅ **MERGED into local `main` as `9ca08ca`** (--no-ff, owner's picker *"Yes, merge into main"*, 5 Nov 2026), then **`origin/main` merged in as `0657ec6`** (39 commits: the phase arrows, hiatus ripple, the one Shift tool, the note editor, the month-drag carry; conflicts in HANDOFF and README only, both sides kept, layout entries first; app.js, Sidebar.jsx, index.html, legacy.css, gate.sh, settingswin.js auto-merged), and **v1.11.0 CUT** (owner's pickers *"Merge, targeted legs, then ask"*, *"Yes, cut v1.11.0"*): `APP_VERSION`, `version.json` AND `package.json` (⚠️ `npm run check` compares version.json with package.json, so a cut is THREE files now, not two), the 20 Unreleased changelog entries under one `## v1.11.0` heading, `tests/fixtures/v1.11.0-saved.sptcal` (a real Save, `t/mintfixture.js`), `releases/v1.11.0.html` = the checked build (`cmp`-identical, `e2960429…`). **On the merged 1.11.0 build: `npm run check` 40/40; a targeted run of gate.sh's sections (base→restore = gates 2 + 3, colreuse, layouthook, 17 generic legs incl. layoutrules ×6, anchorside, phasearrows, mvdragcarry, wfnoteeditor, simpostbeside, swapsplitreuse, colswappartial ×2, spancounts, prodspan, settingswin; hiatusripple; monthwriter = gate 13): 493 PASS / 0 FAIL in 5 min**, waterfall PDF and workbook identical, 0 clipped cells, the written month PDFs byte-identical. No full gate on the merge (the owner's pick). ✅ **LIVE at `7bfb40c` in v1.11.0** (owner's picker *"Push now"*; pushed `ca794cc..7bfb40c` plus tag `v1.11.0` at 21:11:26 UTC on 5 Nov 2026; the Pages deploy succeeded, and the live `index.html` matched the pushed build `e2960429…` byte for byte after ~30 s, `version.json` 1.11.0). Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). ⚠️ Before the merge the main checkout's uncommitted mirror copies of `LAYOUT-RULES.md`, `LAYOUT-STUDY-PLAN.md` and `tools/layout-study/` were removed (the branch's committed copies were newer supersets, diffed), and another session's stale untracked `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html` (4 lines each beyond origin's committed, as-built copies) were set aside in this session's scratchpad, as was its uncommitted HANDOFF hunk (the phase arrows "RULED: LAYOUT D" lines, superseded by origin's as-built entry). Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
+- **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns
+  AND widths"; read only through `layoutStamped()`. A file without it keeps the placement and the widths it has today
+  (`computeSchedule`'s start-order block, `computePhaseRowLayout` as frozen), byte for byte. `?layout=legacy`
+  (localhost only, the study hook's one word) makes a page run the legacy path: the gate's `base` leg uses it from
+  piece 2, because the reference calendar is a NEW calendar and so stamped.
+- **Piece 1, committed `e7b589c` (owner's picker):** `placeSegmentsByRules()` replaces `placeSegmentsReusingColumns()`
+  on the stamped path (not frozen: it decides `col`, which the frozen layout reads as data), and `layoutBlockOrders()`
+  derives each year block's column order (rule 9) which `stintOrderFor` (edit E0's seam) pins into frozen
+  `computeBlockLayout`. PHASE_CHAIN's tie-break and "Production is column 0" are gone.
+  - ⚠️ **Two refinements the pictures forced, both in the plan (§2.2, §5):** (1) **Production goes LEFT whether or
+    not both columns were freed that week** — in hand-10/12/15/16 Writers' column had been free for one to six
+    weeks, only Prod Prep's was handed off, and the pictures still put Production in Writers' column (Reuse OFF,
+    which takes the lowest free column, scored 100% on them). Every other phase takes its handoff column first.
+    (2) **Rule 9's same-week tie goes by column order**, not phase order: the column made first stays left, as the
+    frozen first-appearance order and last year's block had it (the colreuse fixture's 2031 would otherwise swap
+    Loc's and Score's columns).
+  - **The lane** is reserved by placement for the whole shoot (the leftmost free column that sorts right of
+    Production's, else a new one) so frozen SP1 finds Production's slot + 1 empty; Post continues it (rule 6).
+  - **Proof:** fixtures `tests/fixtures/layout-r3/r6/r9/r7/r13/r17.sptcal` (synthetic, 2031–2032, made by
+    `tools/layout-study/fixtures.mjs` through `transcribe.mjs`'s exported `buildSnapshot`) and leg `layoutrules`
+    (in `gate.sh`'s generic block): green on the build, each red on the pre-change build where its rule differs
+    (r3 4 cases, r6 2, r9 2, r7 3, r17 2, r13 1). ⚠️ The pre-change build has to be rebuilt from `9a4d0e7`'s
+    `app.js` and copied to `dist/pre.html` AFTER every `npm run build`, because Vite empties `dist/`.
+    The 15 seeds through `compare.mjs`: stamped **92.8%**, every column right — the 113 "column misses" left are
+    widened cells the scorer reads by their left edge (piece 2) and hand-07's ruled Localization; unstamped
+    **82.3%**, identical per seed to the study's first run. `npm run check` 40/40. Legs on stamped fixtures:
+    `layouthook` (HALF-map expectations now Production in Writers' column), `swapsplitreuse` (Writers is already
+    left of Prep in 2034 under rule 9, so the whole-column swap is offered LEFTWARD; S3 reads the result the other
+    way round), `colswappartial` ×2, `simpostbeside` 19/19, `notescols`, `hdrfit`, `monthmap` on colreuse,
+    `phasesui` — all green. ⚠️ `colreuse` (both runs) is RED on purpose until piece 3 rewrites it: it ticks the
+    box off and on and encodes the old reuse rules (chain tie, lowest free, Production slot 0).
+  - ✅ **Full gate for piece 1 (port 8811, queued behind two other sessions' gates, 22:44–23:20): 3,977 PASS /
+    4 FAIL — all four in `colreuse` (the old-rules leg, red on purpose until piece 3), every byte-compared baseline
+    identical (gates 2, 3, 10, 13), 0 clipped cells.**
+- **Piece 2, BUILT (owner's sign-off 5 Nov 2026, by picker): ONE frozen edit, LR1,** inside `computePhaseRowLayout`
+  behind `layoutStamped()`, so an unstamped calendar runs every line as it did: the neighbour slot is judged free
+  for the REST of the run from this week, across all-phase hiatus rows (`layoutRestOfRun`, a new helper beside the
+  untouched `phaseRunBounds`; rules 13 + 18); Single Column caps every span at 1 (rule 17); an empty run between a
+  phase and the cell to its right goes to the phase on its left when free for the rest of its run (rule 12, R-E; a
+  hole left or right of every phase stays, which hand-08's 2027 needs). `computeBlockLayout` and the writers are
+  not edited.
+  - **The measurement:** `layout-r13` 12/12 and `layout-r17` 5/5 (8 and 4 of them red on the old build). The 15
+    seeds, stamped: **98.1%** of phase-weeks, **0 width misses**; the 31 left are all explained — hand-07's
+    Localization beside Post, 14 (ruled R-A, stacked); hand-08's Post S2 alone for its last 7 weeks of 2027 (fills
+    the width; R-F dropped the typed-headings lane); **hand-10's Hard Prep, 6 weeks: that picture keeps it one wide
+    beside Writers' freed column, while hand-11, 15 and 16 widen Prod Prep in exactly that shape — the rule follows
+    three pictures against one** (the study's §4 projection had missed it); hand-09's first year, 2 weeks (SP1 keeps
+    the lane right of Production, the picture had it left, so Production alone fills the width there); hand-04, 2
+    weeks (the transcription's Writers ends two weeks before the picture's, its 8-week own hiatus over the holiday).
+    Unstamped: 82.3%, identical per seed. ⛔ **The gate's reference calendar is a NEW calendar, stamped, and rule 13
+    widens its Localization after Post ends** (`sig` differs, columns and width the same): so `base` runs on the
+    legacy path, `HARNESS_QUERY="layout=legacy"`, where `sig`, `cols` and `gridWidthPt` equal the stage-7 baseline
+    exactly — gates 2 and 3 keep proving the frozen writers, and the stamped path is proven by the fixtures.
+  - Width-sensitive legs on the stamped build: `onecol`, `spancounts`, `prodspan`, `colswappartial` ×2,
+    `swapsplitreuse`, `notescols` + `hdrfit` on colreuse, `zoomresize`, `stintreshape`, `wfkeys` green;
+    `textstyle` threw once (a null cell on a click) — re-run with piece 3, see below.
+- **Piece 3, BUILT:** the Reuse Empty Columns row is gone from `Sidebar.jsx` (a comment marks the spot);
+  `#layout-notice` (`src/index.html`, the update strip's blue in `legacy.css`): *"Columns can now lay out
+  automatically. This calendar keeps the column layout it was saved with until you update it."* · **Update
+  layout** (`setColReuse(true)`: one undo step, Q7's width clearing, the file dirtied) · **Keep as is** · ×.
+  `maybeShowLayoutNotice()` runs after `openRecentFile`'s restore and after the boot's `restoreSavedState` (a
+  shareable copy, a recovered backup, every `?state=` fixture), never on undo, redo, New (`hideLayoutNotice`) or a
+  scenario switch; nothing is written, so the next load offers again. The clone and the boot hide list carry it.
+  `setColReuse` stays as the strip's action; the dead `col-reuse-btn` change listener is harmless. Help: a "Where
+  a phase goes" paragraph and the rewritten "How far a cell reaches". Checked in the browser pane on an unstamped
+  fixture: the strip, Update layout hiding it with "Unsaved changes" and undo live, undo leaving the strip down.
+  Legs: `colreuse` rewritten (no box; the rules; the drag; an unstamped load's old five-column layout, the strip,
+  Keep as is, the offer again, Update layout + Q7 + one undo step), `settingswin` (no `col-reuse-btn`),
+  `simpostbeside` ("reuse on/off" = the calendar saved and loaded back with the key set or removed), `layoutrules`
+  S0 (a stamped fixture raises no strip). `npm run check` 40/40.
+- ✅ **Full gate for pieces 2 + 3 (port 8811, 23:31–00:07): 4,000 PASS / 1 FAIL** — `pilllabel (shootorder)` W1, a
+  month-PDF capture that caught 1 month of 18 (contention; the leg is 29/29 re-run alone, as the flakes on record
+  are); gates 2, 3, 10 and 13 byte-identical, 0 clipped cells. ⚠️ Two other sessions' gates ran on the machine
+  around then; mine queued behind them (`pgrep -f "^/bin/zsh ./gate.sh"`), as theirs do.
+- **For the next session:** `dist/pre.html` (the pre-rules build, for proving a fixture red) is NOT in git and Vite
+  empties `dist/` on every build — rebuild it from `9a4d0e7`'s `app.js` when needed. The main checkout's `.claude/
+  launch.json` has `layout-harness-8821` (this worktree's harness server, for the browser pane). The study server
+  for re-scoring: `node tools/layout-study/serve.mjs 8979 "~/SPTCal Layout Study/scrubbed" <worktree>/dist/index.html`
+  then `node tools/layout-study/compare.mjs 8979 "~/SPTCal Layout Study/scrubbed"` (`reuse=on` = stamped).
+
+### 🔨 4 Nov 2026: LAYOUT STUDY — THE OWNER'S CALENDARS SCORED AGAINST TODAY'S COLUMN RULES; THE STUDY PAGE BUILT. Branch `layout-study` (worktree `.claude/worktrees/layout-study`, from `origin/main` at `e5e4435`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not gated, not merged. Tracker card `learned-column-layout`. Plan: [`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), §12 is the as-built record and the findings.
+- **The ask** (owner, by picker, all as recommended): learn how columns should sort, reuse and span from their own
+  calendars rather than one incident at a time; every legal candidate per screen; placement first, spans second;
+  Reuse Empty Columns' fate decided after, on the measured hit rate; the hook ships in the product build.
+- **What came:** 17 screenshots and one PDF of real calendars, most hand-built in Excel, no `.sptcal`; one (several
+  shows in one calendar) set aside by the owner. ⛔ They live in `~/SPTCal Layout Study/seeds/`, OUTSIDE the repo,
+  with `scrub-index.txt` (the only place their names are). `tools/layout-study/scrub.mjs` copies pictures to
+  `scrubbed/by-hand/hand-NN` under neutral names and blanks every text field of a `.sptcal`; its report prints
+  every surviving string and never a file name, so it is safe to paste. The study and Claude read `scrubbed/` only.
+- **Built (all under `tools/layout-study/`, plus one app change):**
+  - `transcribe.mjs`: `scrubbed/specs.json` (outside the repo: each picture's phases, Mondays, week counts, hiatuses,
+    Sim Post, and its layout as the ANSWER KEY) → `hand-NN.sptcal` on a blank snapshot. ⚠️ Production's length is
+    the episode list's total, so each seed carries one 5-day episode per pictured shoot week with region None;
+    the bare `weeks-production` field schedules nothing (found the hard way: the first run had no Production).
+  - `compare.mjs`: every seed, Reuse off and on, in headless Chrome (run.sh's dump-and-poll), the grid read row by
+    row (`td.sheet-date` / `.sheet-phase-cell[data-pkey]` / a Sim Post cell by its text / colspan), scored per
+    phase-week against the key. Output `scrubbed/engine/*.json` and `compare-report.txt`.
+  - **The hook** (plan §6): `src/legacy/app.js`, the `segCol` block of `computeSchedule`: `?layout=<json>` on
+    localhost forces `col` per phase; ignored unless every `wfSegments` phase is named; both placements untouched
+    otherwise. Not frozen (it decides `col`, which the frozen code reads as data). README entry written.
+  - `serve.mjs` + `index.html`: the study page on `http://localhost:8978/` (launch.json `layout-study-8978`, serving
+    this worktree's `dist/`). Per seed: A today off, B today on, C the picture's own layout (hook + `cellSpans`,
+    solved by `/candidate`), each the real grid in an iframe with `#table-wrap` pinned over the chrome by an injected
+    style (the study's frame, not app CSS); the picture under them; ONE QUESTION PER DIFFERENCE (`/diffs`: runs of
+    weeks where today's column or width differs from the picture) — Picture / Today / Either + a note — and an
+    overall "is the picture how it should look today?". Picks → `~/SPTCal Layout Study/picks.json`. Keys: ← → P T E.
+- **Findings before any pick** (1,645 phase-weeks, 15 seeds): today reproduces the pictures **82.3%** with Reuse
+  OFF, **71.6%** with it ON. Plan §12 has F1–F7 in full. The short list: (F1) Reuse ON seats Production in Prod
+  Prep's column (chain tie-break) and renumbers it 0, so it spans Writers' freed column and Sim Post opens a THIRD
+  column — every picture has Production in the left free column, Sim Post in Prod Prep's; (F2) a Wrap custom and
+  Post starting together: Wrap takes Production's column, Post the Sim Post column — today Post takes the handoff;
+  (F3) year-top order follows each column's top phase's start date, not "Production first" (Q2 hurts 02/03/07,
+  and hand-08, the one seed Q2 serves, fits the start-date rule too); (F4, FROZEN) a phase widens the week its
+  neighbour frees — the largest miss, 7 seeds; two pictures never widen; (F5) Localization beside Post (07) vs
+  stacked (05, 08) — a conflict; (F6, FROZEN) a phase alone before a hiatus band stays 1 wide; (F7) Post then
+  Localization stay in the Sim Post column (05). Sim Post left of Production in hand-09's first year: not scored.
+- **Verified:** scrub on five fixtures + one opened in the build; each transcription against its picture in the
+  pane (hand-06 row by row); the hook in the pane (hand-06 forced to the picture's columns); panel C reproduces
+  hand-06's picture including Post widening after Wrap; `npm run build` on the branch.
+- ✅ **Leg `layouthook`** (`tests/harness/t/layouthook.js`, a `gate.sh` section after colreuse): two runs on the
+  colreuse fixture through `HARNESS_QUERY` — a FULL map (all 14 phases, each its own column) gives 8/6/1 slots a
+  year, no sharing, no hand-move note; a HALF map (13) is ignored whole and the layout is the colreuse RESTORE
+  run's (3/3/1 slots, the four pairs sharing, Production slot 0, the note there). Green on the branch build, both
+  runs; `npm run check` 40/40. ⚠️ Uncommitted on the branch with its gate section (the owner was mid-study when
+  asked; ask again before committing).
+- ✅ **The owner went through the page (5 Nov 2026, in their own Chrome): 79 answers — "Yes, as pictured" on all
+  15 seeds and "Picture" on all 64 differences**, one note (hand-06: *"wrap weeks are related to production, so
+  they should go right underneath prod"*). The pictures are the specification. Page fixes along the way: "Yes, as
+  pictured" fills open differences as Picture; the Today button names its panel (A · Reuse off / B · Reuse on);
+  the cells a question is about are outlined orange and each grid scrolls to its first; a banner when all three
+  panels are identical (hand-04); PDF seeds shown; panels sized to the window with visible scrollbars and
+  `overscroll-behavior: contain`.
+- ✅ **[`LAYOUT-RULES.md`](LAYOUT-RULES.md) written from the picks:** R1–R7 placement (not frozen: start order,
+  take the continued column, Production LEFT when two columns hand off together — withdrawing Q2's "Production is
+  column 0" —, a wrap continues Production's column and Post takes the Sim Post lane, year-top order by the top
+  occupant's start date, Sim Post lane unchanged, Localization stacks under Post), R8–R10 width (frozen: a column
+  is taken from the week it is free for the REST of the run; lanes never widen in Single Column or under typed
+  headings; bands don't split a run). Two rulings asked: R-A Localization stacked vs beside (hand-07 is the one
+  picture beside), R-B lanes. §4 projects 100% on 14 seeds with v3 + R8; §5 lists the fixtures to cut.
+- ✅ **R-A and R-B ruled (5 Nov 2026, by picker, as recommended):** Localization stacks under Post; lanes never
+  widen in Single Column mode or under typed column headings. LAYOUT-RULES.md §3.
+- ✅ **The switch's fate RULED (owner, 5 Nov 2026: *"yes that way"*, plan ruling R5):** one rule, the Reuse Empty
+  Columns checkbox retired; `colReuse: true` (unchanged, PERMANENT) becomes the layout STAMP for columns and
+  widths; a file without it keeps the old layout byte for byte forever (the Off path stays as legacy code) and is
+  offered the update once by a strip, never changed silently. LAYOUT-RULES.md §4. Then the owner asked for *every
+  rule, very simply* → LAYOUT-RULES.md **§0**, nineteen rules in plain words (columns 1–10, widths 11–19).
+- ✅ **R-C ruled (5 Nov 2026, "Yes, general"):** rule 6 keys on length, not on a phase named Wrap — Post continues
+  the Sim Post lane; among same-week starters competing for one freed column the shorter takes it. Its fixture
+  must include a short custom phase that is not a wrap. Rule 13 was spelled out at the owner's ask (§0).
+- ✅ **"Anything missing?" (owner, 5 Nov 2026) → three more rulings by picker, as recommended:** R-D a phase sits
+  left of a running phase only when following on; R-E the left phase takes a spare column (no hole between two
+  phases); R-F lanes are Single Column only (typed headings never change widths — amends R-B). Also recorded: a
+  paused phase keeps its column; rule 6 covers any same-week competition for a free column. ⚠️ **Correction to
+  LAYOUT-RULES R5:** hand-03 and hand-08 DO need a column order that differs between years (the same two columns
+  swap sides), which a `col` value cannot express — so R5 is built through `stintOrderFor` (edit E0's seam, not
+  frozen) on stamped calendars, a behaviour change to sign off.
+- 📝 **New ask (owner, 5 Nov 2026): the IDEAL WIDTH of a column relative to its text, phase and Notes columns,
+  built into the algorithm.** Not placement: the frozen width model (Excel autofit + 1.15 chars at MDW 7, shared by
+  screen, workbook and PDF). Tracker card `ideal-column-widths` (requested); LAYOUT-RULES §4a says what today
+  does and that it is a width study of its own after the layout build, gated on the export baselines. Open: what
+  "ideal" means to the owner (tighter / looser / a floor / a Notes cap).
+- ⏭ **Next:** the build plan in three pieces, in order: (1) placement v3 (§0 rules 1–10) on the stamped path, not
+  frozen, gated by the §5 fixtures; (2) widths (rules 11–19) as ONE frozen edit to `computePhaseRowLayout` /
+  `phaseRunBounds` behind the same stamp, asked for with the fixtures as its measurement and every unstamped
+  baseline byte-identical; (3) the checkbox out, the "Update layout" strip in. Before merge of THIS branch: a full
+  gate. ⚠️ Uncommitted on the branch: LAYOUT-RULES.md, leg `layouthook` + its gate section, the page fixes, this
+  entry.
 
 ### ✅ 5 Nov 2026: THE MONTH VIEW'S BAR DRAG CARRIES WHAT ▲ / ▼ CARRY — ✅ **LIVE at `ca794cc`** (owner's picker *"Merge"* + *"Push now"*; pushed from the branch, `c8eac00..ca794cc`; the live index.html matched `dist/` byte for byte, sha256 `448c2c84…`, 60 s after the push). FULL-GATED (4,043 PASS / 1 known flake, every baseline identical) on branch `month-drag-carry` (worktree `.claude/worktrees/month-drag-carry`, from `origin/main` at `c8eac00`, the Shift tool's tick list; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §5, §5a (the as-built record). Tracker card `month-drag-carries-phase`
 - **Ruled** (owner, 4 Nov 2026, by picker, D7): *"yes, as its own change, right after the arrows"*. The body drag
@@ -96,7 +267,7 @@
   ⚠️ Local `main` was NOT moved: its checkout holds another session's uncommitted HANDOFF and older untracked copies of
   `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html`, either of which stops a fast-forward there. This
   "LIVE" note is a local commit on the branch, not pushed.
-- ⏭ **Next:** the stale-band-label fix, as its own change: ✅ built, the entry above.
+- ⏭ **Next:** the stale-band-label fix, as its own change: ✅ built, the stale band key entry at the top.
 
 ### ✅ 4 Nov 2026: A HIATUS CHANGE RIPPLES THE CALENDAR ("Ripple Hiatus Periods" / "Ripple Hiatus") — ✅ **LIVE at `ad855a7`** (owner's picker *"Push now"*; pushed from the branch, `4a90017..ad855a7`, at 01:42:27 on 5 Nov 2026, a fast-forward; the live `index.html` matched the tested build `9660b34b…` byte for byte at 01:43:54, `version.json` 1.10.0, no version cut). ⚠️ Local `main` was NOT moved: the main checkout holds another session's uncommitted HANDOFF edits, so it fast-forwards to `ad855a7` once that session commits. Built on branch `hiatus-ripple` (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main` at `ae4125f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). `origin/main` merged in twice: `c52094f` (the one Shift tool) as `ae6b107`, `4a90017` (phase arrows, note editor) as `ad855a7`. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) (§10 is the as-built record). Tracker card `hiatus-ripple`
 - **Asked** (owner): *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
