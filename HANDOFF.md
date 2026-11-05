@@ -18,6 +18,57 @@
   lines by content, D2); the Day picker and "Show in month view" are hidden while the cell has no typed line (D4, D5);
   month notes shown in the waterfall are not listed (D7). New leg `wfnoteeditor`; neighbours in the plan's §5.
 
+### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
+- **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
+  even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
+  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, and
+  *"mockup a few version of this idea with the arrows in differnt places"*.
+- **Answer given:** yes, modestly, built on a "just this phase" mover. The month view already moves one phase (body
+  drag); the waterfall has nothing like it.
+- **The mockup:** six layouts, A to F (centred above and below the box: the owner's; above and below at the right;
+  inside the box; beside it; on the Starts line; on the coloured header, which still works on a folded card). Checked
+  in the pane: one click moves one phase a week, a burst shows "Pulled 3 wks", Alt+↑/↓ works, Month hides every arrow.
+- **Waiting on the owner:** D1–D7 (plan §7). Recommended: ▲ = earlier, layout A, shown on pointing at the card, a
+  burst = one undo, keep the label, waterfall only, and make the month drag carry the same things.
+- ⚠️ **Found while reading (not run):** the month body drag (`installMonthPillDrag`) writes `setPhaseStart` only. The
+  phase's own hiatus and its `<week>|<key>` stores (`cellSpans`, `gridColSwaps`, `textStyle.phase`, band names and
+  colours) stay behind, though every Shift tool carries them. Plan §5.
+- ⚠️ **No "just this phase" mode exists in `shiftCalendarDates`** (its `inRange` is a date cutoff). The plan adds
+  `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
+  so whichever is built first should shape it for both.
+
+### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — in the main checkout's working tree, NOT committed. Tracker card `autonote-card-look`
+- **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
+  (app.js), the card's block in `legacy.css`, a comment in `Sidebar.jsx`, and three leg checks.
+- **The mockups:** [`mockups/autonote-card.html`](mockups/autonote-card.html), today's card plus A (the same list
+  tidied: one heading rule, hairlines, colour chips; built first, then replaced), B (one row per phase) and C (two
+  labelled pills per note). Live shared ticks and a 303 / 247 px width switch. **The owner picked B.**
+- **B as built:** a six-column grid, name | Start End (Waterfall) | 8 px gap | Start End (Month).
+  - Heading: three `.autonote-hd` ('', Waterfall, Month; each view spans two columns with its own rule), then four
+    `.autonote-sub` (Start, End, Start, End).
+  - Each phase is a `.autonote-row` (display:contents, so the row still takes :hover and shades gray-0): a
+    `.autonote-namecell` holding `.autonote-name`, then four `.autonote-cell`s in DOM order sheet start, sheet end,
+    month start, month end (a kind's first box is still its Waterfall box).
+  - The phase's colour is a chip (`::before`) from `--phase-color` / `--phase-ink`, which `reflectAutoNoteKinds`
+    writes from `getAllPhaseDefs()` (fill, and the month bar's ink for the edge, because the pastels alone barely show).
+  - The note's word is no longer printed: it is each box's `title` (the aria-label's text, "Writer’s Room Opens,
+    Waterfall"; the hidden-phase message replaces it while the phase is hidden) and still its `data-autonote-word`.
+- ⛔ **Widths are measured, keep them:** a narrow window's card leaves the grid 221 px. At 27 px box columns the
+  name column is 105 px, and 85 of that is text room; "Writer’s Room" is 81.4 px. At 28 px it wrapped, and
+  autonotephases P1 fails a wrapped default name. The padding and rule live on `.autonote-namecell`, never on
+  `.autonote-name`, for the same check.
+- **Legs updated for the new markup:** autonotekinds A1 (label = the row's name + the box's word), autonotephases
+  P1 (rows, words from the Waterfall boxes, the Start/End sub-heading, four boxes per row in order) and C0 (the custom
+  row's words from its boxes).
+- ⚠️ **Local `main` is 14 commits ahead of origin** (the swap-split-reuse merge and the Anchor To plan). A commit of
+  this on `main` rides with them on the next push.
+- **Verified:** browser pane at 247 and 303 px (names on one line, row hover, a tick taking and surviving the
+  redraw); `npm run check` 40/40; on `dist/` (port 8517) every leg that reads the card: autonotekinds 16/16,
+  autonotephases 27/27, prepreptitle 7/7, autonote (v1.3.0-saved) 9/9, autonoterename 24/24, autonoteview 18/18,
+  settingswin 21/21, phasesui (hidewf) 8/8. No full gate (chrome only; the owner's rule for chrome CSS).
+  ⚠️ P1's one-line check runs at a **351 px** card in headless Chrome, so the 247 px fit is proven only by the pane
+  measurement above, not by a leg.
+
 ### 🔨 4 Nov 2026: SWAP COLUMN SPLIT A PHASE ACROSS TWO COLUMNS (REUSE EMPTY COLUMNS ON) — BOTH FIXES BUILT AND GATED on branch `swap-split-reuse` (worktree `.claude/worktrees/swap-split-reuse`, from `main` at `f5268e5`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `swap-column-splits-with-reuse`
 - **The report** (owner, before/after screenshots): Swap Column on a short phase (Prod Prep, 14 wk) beside a long one
   (Writer's Rm) moved only the weeks they share, so Writer's Rm sat in two columns. Then: *"turning off reuse empty

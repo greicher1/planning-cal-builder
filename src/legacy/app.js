@@ -25955,10 +25955,9 @@ export function initLegacyApp() {
   });
 
   // ⭐ THE AUTOMATIC NOTES CARD (owner ruling 9, 20 Oct 2026; Sidebar.jsx's AutoNotesCard), PER VIEW since 4 Nov 2026
-  // (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"). A Waterfall | Month heading, then each phase's
-  // name, then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps"), each with a Waterfall box and
-  // a Month box, as the Holidays list has. Short words, so nothing wraps at the card's ~245 px. Custom phases follow,
-  // in the Phases tab's order.
+  // (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"). Each phase's two notes ("Opens" / "Closes",
+  // "Begins" / "Ends", "Starts" / "Wraps") have a Waterfall box and a Month box, as the Holidays list has. Since
+  // 4 Nov 2026 the phase is ONE ROW (buildAutoNoteCard says how). Custom phases follow, in the Phases tab's order.
   //   - ENGINE-DRAWN, all of it, into `.autonote-list`, which React renders EMPTY and never gives children: a custom
   //     phase's rows come and go with the phases, which React does not know (#holiday-vis-list's arrangement).
   //   - Plain, uncontrolled checkboxes with NO id (collectFieldValues() must never sweep them), named by
@@ -25996,27 +25995,46 @@ export function initLegacyApp() {
     const def = PHASES.find(p=> p.key === r.key);
     return (typed && !(def && typed === def.label)) ? typed : r.name;
   }
+  // ⭐ ONE ROW PER PHASE since 4 Nov 2026 (owner, "go with b", option B of mockups/autonote-card.html, after "make
+  // this menu less ugly"): the grid is the phase's name, then Start | End under Waterfall, a gap, Start | End under
+  // Month. A third of the height of the grouped list it replaced. The note's own word ("Opens", "Wraps") is no longer
+  // printed: it is each box's tooltip and aria-label, and its data-autonote-word.
+  //   - Heading: three `.autonote-hd` (the name column's empty one, "Waterfall", "Month"; each view's spans its two
+  //     columns), then a row of `.autonote-sub` "Start" / "End". Gaps are `.autonote-gap`.
+  //   - Each phase is a `.autonote-row` (display:contents, so its cells sit in the card's grid and the row can still
+  //     shade on hover): `.autonote-namecell` holding `.autonote-name`, then the four `.autonote-cell`s in DOM order
+  //     sheet start, sheet end, month start, month end, so a kind's first box is still its Waterfall box.
+  //   - ⛔ `.autonote-name` itself stays one line box tall (the cell carries the padding and the rule):
+  //     autonotephases P1 fails a default name taller than 1.5 line-heights.
   function buildAutoNoteCard(host){
     const rows = autoNoteCardRows();
     host.textContent = '';
-    const head = (text, cls)=>{ const s = document.createElement('span'); s.className = 'autonote-hd' + (cls ? ' ' + cls : ''); s.textContent = text; host.appendChild(s); };
-    head('', 'autonote-hd-name'); head('Waterfall'); head('Month');
+    const el = (tag, cls, text)=>{
+      const e = document.createElement(tag);
+      if(cls) e.className = cls;
+      if(text) e.textContent = text;
+      return e;
+    };
+    host.appendChild(el('span', 'autonote-hd autonote-hd-name'));
+    host.appendChild(el('span', 'autonote-hd', 'Waterfall'));
+    host.appendChild(el('span', 'autonote-gap'));
+    host.appendChild(el('span', 'autonote-hd', 'Month'));
+    host.appendChild(el('span'));
+    ['Start', 'End', '', 'Start', 'End'].forEach(w=> host.appendChild(w ? el('span', 'autonote-sub', w) : el('span', 'autonote-gap')));
     rows.forEach(r=>{
-      const name = document.createElement('span');
-      name.className = 'autonote-name';
+      const row = el('div', 'autonote-row');
+      const nameCell = el('span', 'autonote-namecell');
+      const name = el('span', 'autonote-name');
       // Built-ins keep data-autonote-name (and the words to fall back to), custom phases data-autonote-custom, the
       // hooks every view of this card has carried.
       if(r.custom) name.setAttribute('data-autonote-custom', r.key);
       else { name.setAttribute('data-autonote-name', r.key); name.setAttribute('data-autonote-default', r.name); }
-      host.appendChild(name);
-      r.notes.forEach(([kind, word])=>{
-        const w = document.createElement('span');
-        w.className = 'autonote-word';
-        w.textContent = word;
-        host.appendChild(w);
-        ['sheet', 'month'].forEach(view=>{
-          const cell = document.createElement('span');
-          cell.className = 'autonote-cell';
+      nameCell.appendChild(name);
+      row.appendChild(nameCell);
+      ['sheet', 'month'].forEach((view, vi)=>{
+        if(vi) row.appendChild(el('span', 'autonote-gap'));
+        r.notes.forEach(([kind, word])=>{
+          const cell = el('span', 'autonote-cell');
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.setAttribute('data-autonote', kind);
@@ -26024,9 +26042,10 @@ export function initLegacyApp() {
           cb.setAttribute('data-autonote-phase', r.key);
           cb.setAttribute('data-autonote-word', word);
           cell.appendChild(cb);
-          host.appendChild(cell);
+          row.appendChild(cell);
         });
       });
+      host.appendChild(row);
     });
     host.setAttribute('data-keys', customPhaseDefs.map(cp=> cp.key).join(','));
   }
@@ -26035,11 +26054,23 @@ export function initLegacyApp() {
     if(!host) return;
     if(host.getAttribute('data-keys') !== customPhaseDefs.map(cp=> cp.key).join(',') || !host.querySelector('input[data-autonote]'))
       buildAutoNoteCard(host);
-    const names = {};
+    const names = {}, colors = {};
     autoNoteCardRows().forEach(r=>{ names[r.key] = autoNoteRowName(r); });
+    // Each phase's colour for the chip before its name (legacy.css, "THE LOOK", owner 4 Nov 2026), from
+    // getAllPhaseDefs(), so a recoloured or custom phase shows its own: the fill as --phase-color (.phase-row's
+    // variable) and the month bar's ink as --phase-ink, the chip's edge, because the fills alone are too pale to see.
+    const inks = {};
+    getAllPhaseDefs().forEach(d=>{ colors[d.key] = d.color || ''; inks[d.key] = d.textColor || ''; });
+    const setVar = (el, name, v)=>{
+      if(el.style.getPropertyValue(name) === v) return;
+      if(v) el.style.setProperty(name, v); else el.style.removeProperty(name);
+    };
     host.querySelectorAll('[data-autonote-name], [data-autonote-custom]').forEach(el=>{
-      const want = names[el.getAttribute('data-autonote-name') || el.getAttribute('data-autonote-custom')];
+      const key = el.getAttribute('data-autonote-name') || el.getAttribute('data-autonote-custom');
+      const want = names[key];
       if(want && el.textContent !== want) el.textContent = want;
+      setVar(el, '--phase-color', colors[key] || '');
+      setVar(el, '--phase-ink', inks[key] || '');
     });
     host.querySelectorAll('input[data-autonote]').forEach(cb=>{
       const kind = cb.getAttribute('data-autonote'), view = cb.getAttribute('data-view'), key = cb.getAttribute('data-autonote-phase');
@@ -26048,10 +26079,11 @@ export function initLegacyApp() {
       const hidden = view === 'sheet' && phaseHiddenIn(key, 'sheet');
       if(cb.disabled !== hidden) cb.disabled = hidden;
       if(cb.parentNode) cb.parentNode.classList.toggle('autonote-dim', hidden);
-      const title = hidden ? names[key] + ' is hidden in the waterfall (Phases tab), so its notes are too' : '';
-      if((cb.getAttribute('title') || '') !== title){ if(title) cb.setAttribute('title', title); else cb.removeAttribute('title'); }
       const label = names[key] + ' ' + cb.getAttribute('data-autonote-word') + ', ' + autoNoteViewWord(view);
       if(cb.getAttribute('aria-label') !== label) cb.setAttribute('aria-label', label);
+      // The tooltip is the note itself, since the card prints only Start / End (one row per phase, 4 Nov 2026).
+      const title = hidden ? names[key] + ' is hidden in the waterfall (Phases tab), so its notes are too' : label;
+      if(cb.getAttribute('title') !== title) cb.setAttribute('title', title);
     });
   }
   // A tick: that kind in that view, the other view as it stands (setAutoNoteViews, D1's rule: both unticked is off,

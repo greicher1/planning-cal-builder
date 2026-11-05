@@ -181,11 +181,11 @@ window.addEventListener('load', function () { (async function () {
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
       // Since 27 Oct 2026 the card has one row per phase (its name, then a start box and an end box, autonotephases),
       // so each of these kinds' label is its row's name plus its box's word.
-      // Since 4 Nov 2026 a note's row is its word, then its Waterfall box and its Month box, under its phase's name.
+      // Since 4 Nov 2026 a phase is ONE row again (owner's pick B): its name, then Start | End under Waterfall and under
+      // Month. The note's word is no longer printed; it is its box's data-autonote-word (and tooltip).
       var labels = KINDS.map(function (k) {
-        var c = box(k) && box(k).closest('.autonote-cell'), w = c && c.previousElementSibling, n = w;
-        while (n && !n.classList.contains('autonote-name')) n = n.previousElementSibling;
-        return txt(n) + ' ' + txt(w);
+        var b = box(k), row = b && b.closest('.autonote-row');
+        return txt(row && row.querySelector('.autonote-name')) + ' ' + (b ? b.getAttribute('data-autonote-word') : '');
       });
       var heads = Array.from(card ? card.querySelectorAll('.autonote-hd') : []).map(txt);
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no

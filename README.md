@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Automatic notes card, one row per phase (4 Nov 2026)
+
+The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me
+3 differnt mockups"* ([`mockups/autonote-card.html`](mockups/autonote-card.html): A, the same list tidied; B, one row
+per phase; C, labelled toggle pills), then *"go with b"*. Chrome only: the same ticks, the same saved data, nothing
+in the grid or the exports.
+
+- **One row per phase:** its name, then a Start and an End box under WATERFALL, then the same under MONTH. The card
+  is 231 px tall in a narrow window, down from 482. The note's own word ("Opens", "Wraps"…) is no longer printed;
+  it is each box's tooltip, and still each box's spoken label.
+- **The phase's colour** is a small chip before its name: its fill, edged in its month-bar ink so a pale fill still
+  shows. A recoloured or custom phase shows its own.
+- **The heading** has one rule under each view's name (it was three broken pieces, the first under nothing), a thin
+  rule runs above each phase's row, and the whole row shades on hover.
+- **Fit:** in the narrowest window (a 247 px card) the default names stay on one line; a longer typed name wraps,
+  never clips.
+- **Verified:** in the browser pane (narrow and full width, row hover, a tick taking and surviving the redraw).
+  `npm run check` 40/40. The legs that read the card's layout (`autonotekinds` A1, `autonotephases` P1 and C0) now
+  read B's rows. Every leg that reads the card, on the build: `autonotekinds` 16/16, `autonotephases` 27/27,
+  `prepreptitle` 7/7, `autonote` 9/9, `autonoterename` 24/24, `autonoteview` 18/18, `settingswin` 21/21,
+  `phasesui` 8/8. No full gate: nothing in the grid, the exports or the save path changed.
+
 ### Unreleased — Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
 
 The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
