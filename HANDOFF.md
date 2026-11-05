@@ -127,6 +127,11 @@
   - ⚠️ First built as `opts.before = {phaseIso, weekIso}`, a start-week bound for phases and the picked phase's last
     week for notes. It became `part` when the owner ruled **"Overlaps move too"** (below), because an overlapping phase
     can't be expressed as one date bound.
+  - ⭐ **`part` already IS the "just this phase" mover** that `PHASE-WEEK-ARROWS-PLAN.md` (the entry at the top) planned
+    as `{onlyPhase}`: pass `{phases: [key]}` with whatever week window that plan rules. Week bounds of the phase's own
+    start and last week carry its notes; null bounds on both sides carry every note; a window that matches nothing
+    carries none. Its plan says whichever is built first shapes the option for both. Build the arrows on `part`, not
+    a second option.
   - The result gains `stayedPhases`, for the result line.
   - `opts = opts || {}` heads the function, the same shape `hiatus-ripple` uses for its `except` / `keepView`.
     ⚠️ That branch had NOT landed on `origin/main` when this was built (its engine edit was uncommitted in its worktree).
@@ -189,6 +194,11 @@
   gate. ⚠️ That gate ran on the start-week rule. The overlap rule came after, as one more commit, and changes only the
   part-move path. It was re-checked on the targeted legs (the merged build's re-check, below), with no second full
   gate (owner's picker: *"Merge, re-check, then main"*).
+- **Merged with `main` (`003b4bf`) as `ede8f0a`**, with one README conflict where both entries were kept. That brought in
+  swap-split-reuse and the Automatic notes card. **Re-check on the merged build `805d7285…`, all green:**
+  - `npm run check` 40/40; anchorside 23/23; snaptools 14; overrides 20; calrange 18; rowheight 7; datepick 17;
+  - rebuildticks 19; builtindates 17 + 15; customunits 23 + 28; episodeprep 25; halfworked 24; hdrcontrols 12;
+  - main's legs: swapsplitreuse 5, colswappartial 8 + 8, autonotekinds 16, autonotephases 27.
 - ⏭ **Next:** ask the owner (picker) to merge into `main`, then separately to push. CLAUDE.md, PROJECT-CONTEXT §7a,
   the README changelog and the fixtures README are updated in the same commit.
 - **Asked while it gated (4 Nov 2026):**
