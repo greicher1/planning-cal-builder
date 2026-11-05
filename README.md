@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Shift: tick the phases that move (5 Nov 2026)
+
+Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if
+... you just selected every phase you wanted it to effect kinda like how it works in rebuild from"*, then *"is there
+anyway to have both?"*, then, from four measured layouts, *"ok lets go with A"*; ANCHOR-TO-DIRECTION-PLAN.md §7,
+`mockups/shift-tick-phases.html`):
+
+- **Rebuild From's rows:** a tick, the colour, the name, its date, and what happens to it: Moves or Stays by weeks,
+  the new date and Pushed / Pulled N wks to a date.
+- **The three buttons fill the ticks in.** All phases ticks every phase; Phase & before and Phase & after tick the
+  phase you pick and every phase starting on that side. Change any tick and it is your own set, and then no button
+  is pressed. So "everything except the Writer's Room" is one untick.
+- **Folded under All phases** behind *Choose phases…*, so the box opens as short as before (225 px, 2 px shorter).
+- **To a date** pins the phase that lands on your date; Whole schedule fixes every tick. The ticks are forgotten
+  when the box closes, as Rebuild From's are.
+- **Which notes move with your own set** (owner's picker, T2): a note moves when its week is inside a ticked
+  phase's run, even in a week an unticked phase shares. Unlocked all-phase hiatuses and the calendar range follow
+  the same rule. The shortcuts keep their window as before.
+
+Engine: `shiftCalendarDates`' `opts.part` is now `{phases, windows}`, a list of week windows: a shortcut's one, or one
+per ticked phase. No frozen code, no writer and no save-format change; the ticks carry `data-key` and no id, inside
+`.tools-menu`. The Help's "Adjusting dates" section gains the list. `anchorside` grows to 29 cases (the fold, a
+shortcut's ticks, a hand-picked set, T2 in a shared week and across a gap, nothing ticked, Whole schedule, the reset);
+a one-span build is red on C4.
+
 ### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 
 The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,

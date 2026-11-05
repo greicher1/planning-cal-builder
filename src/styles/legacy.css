@@ -1772,7 +1772,13 @@
   .tools-cap{margin:0 0 3px; font-size:var(--mantine-font-size-xxs); letter-spacing:.05em; text-transform:uppercase;
     font-weight:600; color:var(--mantine-color-gray-6);}
   #pop-shift [hidden]{display:none;}
-  .tools-hint b{font-weight:600; color:var(--mantine-color-gray-7);}
+  /* The Shift form's list of phases (owner's layout A, 5 Nov 2026) is Rebuild From's .solve-list, drawn by the engine.
+     Under All phases it is folded behind one quiet link, right-aligned under the buttons. */
+  .tools-link{display:block; margin:-2px 0 8px auto; padding:0; border:0; background:none; font:inherit;
+    font-size:11.5px; font-weight:600; color:var(--mantine-color-navy-6); cursor:pointer;}
+  .tools-link:hover{text-decoration:underline;}
+  .tools-link:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; border-radius:2px;}
+  #pop-shift .solve-list{margin-bottom:8px;}
 
   /* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html). The
      panel is the widest of the four because each row holds a tick, a colour, the name, a date and

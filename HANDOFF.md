@@ -114,7 +114,49 @@
   run that had not been reported).
 
 
-### 📝 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — MOCKUP, NOTHING RULED, NO APP CODE ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+### 🔨 5 Nov 2026: SHIFT — TICK THE PHASES THAT MOVE, THE THREE BUTTONS AS SHORTCUTS — RULED (layout A, T2 (a)) and BUILT on branch `shift-tool` (worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`), on top of the overlap revert; NOT pushed ([`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7, [`mockups/shift-tick-phases.html`](mockups/shift-tick-phases.html)). Tracker card `shift-tick-phases`
+
+**As built (5 Nov 2026):**
+- **Rulings** (owner): T0 *"ok lets go with A"* (from four measured layouts, §7.4; asked *"are you absolutely sure
+  this is the simpliest way ... give me some other slight variations"* first); T2 by picker, *"Inside a ticked phase's
+  weeks (Recommended)"*; T3 the landing phase pinned (as recommended, not asked separately).
+- **`PreviewToolbar.jsx`:** in `#pop-shift`, where the hint line was: a `.tools-link` *"Choose phases…"*
+  (`data-shift-choose`) and a `data-shift-list-wrap` holding a `.tools-head` "Phases" with a `.solve-count`
+  (`data-shift-count`) and an empty `.solve-list` (`data-shift-list`). The hint line (`data-shift-hint`) is GONE:
+  the rows say what stays. CSS: `.tools-link`, `#pop-shift .solve-list{margin-bottom:8px}`.
+- **`app.js`, the form:** `shiftTicks` (a Set) and `shiftListOpen`, both forgotten on every opening (R2(a)).
+  - `shiftRows()`: every scheduled phase with its first and last WEEK (`phaseLastWorkday`; Production to its wrap).
+  - `presetTicks(move, key)`: a shortcut's set by START week (the live rule). `matchShiftMove(key)`: which shortcut the
+    ticks match, All first, else `'custom'`.
+  - `shiftPlan(move, key)` → `{moving, staying, part: {phases, windows}}`. A shortcut's window is the old one (from
+    the picked phase's start week, or to its last week); a hand-picked set gets **one window per ticked phase**,
+    its start week to its last week (T2).
+  - `renderShiftList()`: Rebuild From's `solveRow`s. By weeks: Moves / Stays. To a date: the new start and
+    `solveMovedWords` once a date is typed (`anchorDeltaNow`, the Go handler's own arithmetic); the landing phase is
+    an `is-pin` row with `SOLVE_PIN_SVG` (no tick); Whole schedule draws every tick checked and disabled.
+  - `syncShiftForm()`: a shortcut re-derives its ticks on every sync (so the calendar and the picked phase are
+    followed); a custom set is pruned to scheduled phases, gains the landing phase to a date, and is re-matched. The
+    phase row hides for All phases AND for the user's own ticks by weeks (the leg found the first cut showed it).
+    The list shows when a shortcut other than All is pressed or the fold is open; the link shows otherwise.
+  - A tick change → `shiftMove = 'custom'`, the fold stays open, `syncShiftForm()` (which lights a shortcut again if
+    the ticks match one). All phases pressed → folds again. The date input redraws the list (250 ms after typing).
+  - The result line for a custom set: *"3 ticked phases moved. Writer's Rm, Pre Prep and Localization stayed where
+    they were."* Nothing ticked: *"Tick a phase to move."* (a warning, nothing moves).
+- **`app.js`, the engine:** `opts.part = {phases, windows: [{from, to}]}` (ISO Mondays, null = open); a key moves
+  when ANY window holds its week. `fromWeek` / `toWeek` on `part` are still read as one window.
+- **Measured in the pane** (anchorside.sptcal, 6 phases): 225 px as it opens (folded; it was 232 with the hint),
+  399 with the list under All phases, 435 with a shortcut (the phase row too).
+- **Help** ("Adjusting dates") gains the list. CLAUDE.md, PROJECT-CONTEXT §7a, README, plan §7 (RULED/BUILT) and
+  gate.sh's comment follow.
+- **`anchorside` 29/29** (was 23): O1 the fold; L1 the list opened; X1/X2/H1/F1 read the rows instead of the hint;
+  C1 a hand-picked set by weeks (no button pressed, Localization's note stays); C2 T2's shared week (only Production
+  ticked: the 11/2 note it shares with Post goes with the shoot, Post's own note stays, the marks travel, the Fall
+  Break moves, the range stays); C3 nothing ticked; C4 T2 across a gap (Pre Prep + Post ticked, not the shoot: the
+  shoot's note, Fall Break and marks stay); W1 Whole schedule's fixed ticks behind the fold; O2 the reset after a
+  custom set; I1 no id on any tick. **Mutant:** one span across the ticked phases instead of a window each is red on
+  C4 alone. `npm run check` 40/40 on build `1f722760…`.
+- **Full gate:** GATE2_RESULT_PENDING
+- ⏭ **Next:** ask the owner to push (one push carries the overlap revert, §7.4's docs and this).
 - **Asked** (owner, after the overlap revert below):
   - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected
     every phase you wanted it to effect kinda like how it works in rebuild from right now?"*

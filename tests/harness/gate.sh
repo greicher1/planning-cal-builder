@@ -1890,7 +1890,11 @@ done
 # after is the old Shift From; a phase goes by its START, so one that started earlier and runs into the picked one
 # stays (X2, the owner's "everything except for writers room", which reverted "overlaps move too"); notes, unlocked
 # hiatuses and the range go up to the picked phase's LAST week on Phase & before (red on a one-bound build: B2, B3);
-# by weeks = to a date; one undo; the form's resets; no new key in fields.byId. On anchorside.sptcal.
+# by weeks = to a date; one undo; the form's resets; no new key in fields.byId. On anchorside.sptcal. Since 5 Nov 2026
+# (owner's layout A, plan §7) the LIST of phases: folded under All phases, opened by "Choose phases…", a shortcut's
+# ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
+# (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
+# reset on reopening, and no id on any tick.
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written

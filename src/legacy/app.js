@@ -28904,20 +28904,24 @@ export function initLegacyApp() {
   // number -- see asShootDayMove above.
   //
   // `opts` (optional; every caller before 4 Nov 2026 passes none, and with none nothing below differs):
-  //   part -- {phases, fromWeek, toWeek}: the Shift tool's "Phase & before" / "Phase & after"
-  //           (ANCHOR-TO-DIRECTION-PLAN.md §2, owner's layout C, 4 Nov 2026). The CALLER decides, and the
-  //           engine obeys exactly:
+  //   part -- {phases, windows}: the Shift form's part-calendar moves (ANCHOR-TO-DIRECTION-PLAN.md §2 and §7,
+  //           owner's layouts C and A, 4-5 Nov 2026). The CALLER decides, and the engine obeys exactly:
   //             * `phases` -- the keys of the phases that move. Every other phase stays, its own hiatus with it.
-  //               The Shift form works the set out once (shiftPlan), for its hint and for this, so the two
-  //               cannot disagree: the picked phase and every phase STARTING on the chosen side.
-  //             * `fromWeek` / `toWeek` -- the window for everything WEEK-keyed (notes and what rides on them,
-  //               unlocked all-phase hiatuses, the calendar range); null = open on that side. The form passes the
-  //               picked phase's start week (after) or its LAST week (before), so it takes its own notes and a
-  //               hiatus inside it along: with one bound at its START, a 12-week shoot moved and left weeks 2-12
-  //               of its notes, and its Christmas hiatus, on the old dates. A phase that stays but shares a week
-  //               with the picked one loses that week's notes to it: notes are keyed by week, not by phase.
+  //               The Shift form works the set out once (shiftPlan), for its list and for this, so the two
+  //               cannot disagree: a shortcut's set (the picked phase and every phase STARTING on the chosen
+  //               side), or the phases the user ticked.
+  //             * `windows` -- [{from, to}] week windows (ISO Mondays; null = open on that side) for everything
+  //               WEEK-keyed: notes and what rides on them, unlocked all-phase hiatuses, the calendar range. A key
+  //               moves when ANY window holds its week. A shortcut passes one window: from the picked phase's
+  //               start week (Phase & after) or to its LAST week (Phase & before), so it takes its own notes and a
+  //               hiatus inside it along -- with one bound at its START, a 12-week shoot moved and left weeks 2-12
+  //               of its notes, and its Christmas hiatus, on the old dates. A hand-picked set passes one window
+  //               per ticked phase, its start week to its last week (owner's T2, 5 Nov 2026: a note moves when
+  //               its week is inside a ticked phase's run, even a week an unticked phase shares). A phase that
+  //               stays but shares a week with one that moves loses that week's notes to it: notes are keyed by
+  //               week, not by phase. `fromWeek` / `toWeek` on `part` are read as one window (the first cut).
   //           It is also the "just this phase" mover PHASE-WEEK-ARROWS-PLAN.md asked for as `{onlyPhase}`:
-  //           `{phases: [key], ...}`.
+  //           `{phases: [key], windows: [{from: its start week, to: its last week}]}`.
   //           `fromIso` is ignored with `part`.
   //   ⚠️ HIATUS-RIPPLE-PLAN.md (branch hiatus-ripple) gives this function `opts.except` and `opts.keepView`.
   //   ONE options object for all of them, never another positional argument.
@@ -28932,16 +28936,19 @@ export function initLegacyApp() {
     const part = opts.part || null;
     const partPhases = part ? new Set(part.phases || []) : null;
     const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
-    const fromDate = part ? weekOf(part.fromWeek) : (fromIso ? mondayOf(parseDateUTC(fromIso)) : null);
-    const toDate = part ? weekOf(part.toWeek) : null;
+    // The week windows: a part move's own (one per ticked phase, or a shortcut's single window), else the cutoff's
+    // open-ended one, else none (a whole-calendar shift).
+    const windows = part
+      ? (part.windows || [{from: part.fromWeek || null, to: part.toWeek || null}]).map(w => ({from: weekOf(w.from), to: weekOf(w.to)}))
+      : (fromIso ? [{from: mondayOf(parseDateUTC(fromIso)), to: null}] : null);
     // Whole-calendar shift -> everything is in range. Takes a cell key, which may carry a
     // "|<phase key>" suffix, so it compares on the week part only.
     const inRange = key => {
-      if(!fromDate && !toDate) return true;
+      if(!windows) return true;
       const d = parseDateUTC(splitWeekKey(key).iso);
       if(!d) return false;
       const m = mondayOf(d);
-      return (!fromDate || m >= fromDate) && (!toDate || m <= toDate);
+      return windows.some(w => (!w.from || m >= w.from) && (!w.to || m <= w.to));
     };
     // Step 1's test: with `part`, exactly its list; otherwise the phase's start against the cutoff, as always.
     const phaseMoves = (key, startIso) => partPhases ? partPhases.has(key) : inRange(startIso);
@@ -30308,8 +30315,13 @@ export function initLegacyApp() {
     // phases, By weeks on EVERY opening (ruling R2(a)), so someone who never touches them gets exactly the old
     // Shift All form. Declared up here because refreshMenuFromCalendar() and openPop() reach them.
     const shiftMenu = document.getElementById('pop-shift');
-    let shiftMove = 'all';    // 'all' | 'before' | 'after'
+    let shiftMove = 'all';    // 'all' | 'before' | 'after' | 'custom' (the user's own ticks: no button pressed)
     let shiftFar = 'weeks';   // 'weeks' | 'date'
+    // The list of phases (owner's layout A, 5 Nov 2026; plan §7). `shiftTicks` holds the keys that move: a shortcut
+    // fills it (presetTicks) and a tick changed by hand makes it the user's own set. `shiftListOpen` is the fold under
+    // All phases. Both are forgotten on every opening, as Rebuild From's ticks are.
+    let shiftTicks = new Set();
+    let shiftListOpen = false;
 
     // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
@@ -30486,9 +30498,9 @@ export function initLegacyApp() {
       const wasOpen = target.menu.classList.contains('open');
       closeAllPops();
       if(wasOpen) return;
-      // R2(a): the Shift form opens on All phases, By weeks every time. Before the refresh, which fills the
-      // phase list for the choice in force.
-      if(target.menu === shiftMenu){ shiftMove = 'all'; shiftFar = 'weeks'; }
+      // R2(a): the Shift form opens on All phases, By weeks every time, every phase ticked and the list folded.
+      // Before the refresh, which fills the phase list for the choice in force.
+      if(target.menu === shiftMenu){ shiftMove = 'all'; shiftFar = 'weeks'; shiftListOpen = false; }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       // Ticks are forgotten between openings, so each one starts from the same defaults.
       if(target.menu === solveMenu){ solveTicks = {}; renderSolve(); }
@@ -30512,7 +30524,7 @@ export function initLegacyApp() {
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
 
-    // The phase names the hint, so a new pick rewrites it.
+    // The phase names the list's shortcut set and its pinned row, so a new pick redraws it.
     document.getElementById('tool-anchor-phase').addEventListener('change', ()=>{ syncAnchorDate(); syncShiftForm(); });
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
@@ -30526,78 +30538,134 @@ export function initLegacyApp() {
       ((sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0]) || fallback;
     // "A", "A and B", "A, B and C".
     const andList = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
-    // ⭐ WHAT A PART-CALENDAR MOVE TAKES, worked out ONCE, before anything moves, for the hint and for the move
-    //    (shiftCalendarDates' `part`), so the two can never disagree (plan §2):
-    //   * the picked phase, and every phase whose START week is on the chosen side. Phase & after is the old Shift
-    //     From's set exactly; Phase & before its mirror.
-    //   * The week window for notes, unlocked hiatuses and the range runs from the picked phase's start week (Phase &
-    //     after) or to its LAST week (Phase & before), so the picked phase takes its own notes and a hiatus inside it
-    //     along. With one bound at its start, a 12-week shoot moved and left weeks 2-12 of its notes behind.
-    // ⛔ ONLY THE START COUNTS, NOT AN OVERLAP. For one deploy (c52094f, 5 Nov 2026) a phase that overlapped the picked
-    //    one by a working day moved too (owner's picker, "Overlaps move too"). The owner reverted it the same night on a
-    //    real calendar: "how would you move everything except for writers room" -- the Writer's Room ran three weeks
-    //    into Pre-Prep, so Phase & after Pre-Prep took every phase and nothing could leave it behind. A phase that
-    //    started earlier stays with Phase & after; one that starts later stays with Phase & before. Notes are keyed by
-    //    week, so in weeks the two share they go with the picked phase. To move a later, overlapping phase too, use a
-    //    second move, or its start date in the sidebar.
-    // Null when the picked phase has no start to judge from.
-    function shiftPlan(move, key){
-      const pStart = key && key !== ANCHOR_ALL ? phaseStartDate(key) : null;
-      if(!pStart) return null;
+    // Every scheduled phase with its first and last WEEK (phaseLastWorkday; Production to its wrap), in the order
+    // they run. The list draws these, and a part move's windows are cut from them.
+    function shiftRows(){
       const segs = (currentSchedule && currentSchedule.segments) || [];
-      const pLast = phaseLastWorkday(segs.find(s => s.key === key)) || pStart;
-      const pWeek = mondayOf(pStart);
-      const rows = scheduledPhases().map(x => ({key: x.p.key, label: x.p.label || 'Phase',
-        moves: x.p.key === key || (move === 'after' ? mondayOf(x.start) >= pWeek : mondayOf(x.start) <= pWeek)}));
-      const moving = rows.filter(r => r.moves);
-      if(!moving.length) moving.push({key, label: 'Phase', moves: true});
-      return {
-        moving, staying: rows.filter(r => !r.moves),
-        part: {phases: moving.map(r => r.key),
-               fromWeek: move === 'after' ? isoOf(pWeek) : null, toWeek: move === 'before' ? isoOf(mondayOf(pLast)) : null}
-      };
+      return scheduledPhases().map(x => {
+        const last = phaseLastWorkday(segs.find(s => s.key === x.p.key)) || x.start;
+        return {key: x.p.key, p: x.p, label: x.p.label || 'Phase', start: x.start, week: mondayOf(x.start), lastWeek: mondayOf(last)};
+      });
     }
-    // The hint under the phase: what stays put, the one fact that tells the three choices apart before anything
-    // moves.
-    function shiftHintHtml(){
-      const sel = document.getElementById('tool-anchor-phase');
-      const key = sel ? sel.value : '';
-      const move = shiftMoveFor(key);
-      if(move === 'all') return 'Every phase moves by the same number of weeks.';
-      const plan = shiftPlan(move, key);
-      if(!plan) return '';
-      const name = escHtml(phaseLabelOf(sel, 'That phase'));
-      const stay = plan.staying.map(r => escHtml(r.label));
-      if(!stay.length) return 'Nothing starts ' + (move === 'after' ? 'before ' : 'after ') + name + ', so every phase moves.';
-      return name + ' and the phases ' + move + ' it move. <b>' + andList(stay) + '</b> '
-        + (stay.length === 1 ? 'stays where it is.' : 'stay where they are.');
+    // A shortcut's set: the picked phase and every phase whose START week is on the chosen side (the rule live
+    // since 4 Nov 2026; an overlap does not count: owner, 5 Nov 2026, "how would you move everything except for
+    // writers room"). All phases, or Whole schedule, is every phase.
+    function presetTicks(move, key){
+      const rows = shiftRows();
+      if(move === 'all' || !key || key === ANCHOR_ALL) return new Set(rows.map(r => r.key));
+      const p = rows.find(r => r.key === key);
+      if(!p) return new Set(rows.map(r => r.key));
+      return new Set(rows.filter(r => r.key === key || (move === 'after' ? r.week >= p.week : r.week <= p.week)).map(r => r.key));
     }
-    // The result line's tail for a part-calendar move (plan §1). All phases adds nothing, so its line is the old
+    // Which shortcut the ticks match now, if any. All first: with one phase scheduled all three would match.
+    function matchShiftMove(key){
+      const same = set => set.size === shiftTicks.size && [...set].every(k => shiftTicks.has(k));
+      for(const m of ['all', 'before', 'after']) if(same(presetTicks(m, key))) return m;
+      return 'custom';
+    }
+    // ⭐ WHAT A PART-CALENDAR MOVE TAKES, worked out ONCE for the list and for the move (shiftCalendarDates' `part`),
+    //    so the two can never disagree (plan §2, §7):
+    //   * the ticked phases, which a shortcut has just set or the user has edited;
+    //   * the week window for notes, unlocked hiatuses and the range: a shortcut's runs from the picked phase's start
+    //     week (after) or to its LAST week (before); a hand-picked set gets one window per ticked phase, its start
+    //     week to its last week (T2, owner's picker, 5 Nov 2026: a note inside a ticked phase's run moves, even in a
+    //     week an unticked phase shares).
+    // Null when nothing is ticked.
+    function shiftPlan(move, key){
+      const rows = shiftRows();
+      const moving = rows.filter(r => shiftTicks.has(r.key));
+      if(!moving.length) return null;
+      const p = rows.find(r => r.key === key);
+      let windows;
+      if(move === 'after' && p) windows = [{from: isoOf(p.week), to: null}];
+      else if(move === 'before' && p) windows = [{from: null, to: isoOf(p.lastWeek)}];
+      else windows = moving.map(r => ({from: isoOf(r.week), to: isoOf(r.lastWeek)}));
+      return {moving, staying: rows.filter(r => !shiftTicks.has(r.key)), part: {phases: moving.map(r => r.key), windows}};
+    }
+    // The result line's tail for a part-calendar move (plan §1, §7). All phases adds nothing, so its line is the old
     // Shift All / Anchor To line word for word.
-    function moveTail(res, move, label){
+    function moveTail(res, move, label, plan){
       if(move === 'all' || !res) return '';
+      if(move === 'custom'){
+        const stay = (plan ? plan.staying : []).map(r => r.label);
+        return ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
+          + (stay.length ? ' ' + andList(stay) + (stay.length === 1 ? ' stayed where it was.' : ' stayed where they were.') : '');
+      }
       let out = ' ' + label + ' and everything ' + move + ' it moved (' + res.movedPhases
         + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
       if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
       return out;
     }
-    // Reflect the two choices: which button is on, which rows show, and the hint. The phase row shows only when
-    // it is needed (owner's picker): All phases by weeks is the old Shift All form and needs none. That is the
-    // one case where switching (to To a date) makes a row appear ABOVE the control clicked -- ruled: keep it.
+    // How far To a date would move the landmark right now (the Go handler's own arithmetic), or 0.
+    function anchorDeltaNow(){
+      const {key, edge, current} = anchorSelection();
+      const target = parseDateUTC((document.getElementById('tool-anchor-date') || {}).value);
+      if(!key || !current || !target) return 0;
+      return edge === 'start' ? weeksBetweenMondays(current, target) : weeksToFinishBy(current, target);
+    }
+    // Draw the list: Rebuild From's rows (solveRow). By weeks a row says Moves or Stays; to a date it shows the new
+    // start and Pushed / Pulled N wks once a date is typed. The landing phase is PINNED to a date (it has to move,
+    // so it has no tick to clear), and Whole schedule fixes every tick.
+    function renderShiftList(){
+      const listEl = shiftMenu && shiftMenu.querySelector('[data-shift-list]');
+      if(!listEl) return;
+      const key = (document.getElementById('tool-anchor-phase') || {}).value;
+      const toDate = shiftFar === 'date';
+      const whole = toDate && key === ANCHOR_ALL;
+      const n = toDate ? anchorDeltaNow() : 0;
+      const rows = shiftRows();
+      const html = rows.map(r => {
+        const pin = toDate && !whole && r.key === key;
+        const on = shiftTicks.has(r.key) || pin;
+        const shown = phaseSnapped(r.key) ? r.week : r.start;
+        const to = (on && n) ? addDays(shown, n * 7) : shown;
+        const words = (!toDate || !n) ? (pin ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
+        const cls = (pin ? ' is-pin' : '') + (on ? (n ? ' is-moving' : '') : ' is-off');
+        const lead = pin ? SOLVE_PIN_SVG
+          : '<input type="checkbox" data-key="' + escHtml(r.key) + '"' + (on ? ' checked' : '') + (whole ? ' disabled' : '')
+            + ' aria-label="' + escHtml('Move ' + r.label) + '">';
+        return solveRow(r.p, cls, lead, to, words, pin ? 'The phase you picked. It lands on your date.' : '');
+      });
+      listEl.innerHTML = html.length ? html.join('') : '<div class="solve-row solve-empty">No phases scheduled yet.</div>';
+      const count = shiftMenu.querySelector('[data-shift-count]');
+      if(count) count.textContent = rows.length ? rows.filter(r => shiftTicks.has(r.key) || (toDate && !whole && r.key === key)).length + ' of ' + rows.length + ' move' : '';
+    }
+    // Reflect the choices: which buttons are on, which rows show, the ticks a shortcut sets, and the list. The phase
+    // row shows only when it is needed (owner's picker): All phases by weeks is the old Shift All form and needs
+    // none. The list is folded under All phases until opened (layout A): that is the one case where a click makes
+    // a row appear ABOVE the control clicked -- ruled: keep it.
     function syncShiftForm(){
       if(!shiftMenu) return;
+      const sel = document.getElementById('tool-anchor-phase');
+      const key = sel ? sel.value : '';
+      // A shortcut's ticks follow the calendar and the picked phase; the user's own set is kept, less any phase
+      // that is no longer scheduled. To a date, the landing phase is always in.
+      if(shiftMove !== 'custom') shiftTicks = presetTicks(shiftMove, key);
+      else {
+        const have = new Set(shiftRows().map(r => r.key));
+        shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+        if(shiftFar === 'date' && key && key !== ANCHOR_ALL) shiftTicks.add(key);
+        shiftMove = matchShiftMove(key);
+      }
       shiftMenu.querySelectorAll('[data-move]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === shiftMove)));
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
+      // The phase row only when a phase matters: a shortcut that hinges on one, or the one that lands on the date.
+      // The user's own ticks by weeks need none, and neither does All phases.
       const phaseRow = shiftMenu.querySelector('[data-shift-phase-row]');
-      if(phaseRow) phaseRow.hidden = shiftMove === 'all' && shiftFar === 'weeks';
+      if(phaseRow) phaseRow.hidden = (shiftMove === 'all' || shiftMove === 'custom') && shiftFar === 'weeks';
+      const listShown = shiftMove !== 'all' || shiftListOpen;
+      const wrap = shiftMenu.querySelector('[data-shift-list-wrap]');
+      if(wrap) wrap.hidden = !listShown;
+      const link = shiftMenu.querySelector('[data-shift-choose]');
+      if(link) link.hidden = listShown;
       shiftMenu.querySelectorAll('[data-far-row]').forEach(r => { r.hidden = r.dataset.farRow !== shiftFar; });
-      const hint = shiftMenu.querySelector('[data-shift-hint]');
-      if(hint) hint.innerHTML = shiftHintHtml();
+      if(listShown) renderShiftList();
     }
     // A choice changed. Whole schedule comes and goes with All phases to a date, so the list is refilled; the date
     // follows the phase only when the pick itself changed, so a date already typed survives a change of choice.
     function setShiftChoice(move, far){
-      shiftMove = move; shiftFar = far;
+      if(move !== shiftMove){ shiftMove = move; if(move === 'all') shiftListOpen = false; }
+      shiftFar = far;
       const sel = document.getElementById('tool-anchor-phase');
       const was = sel.value;
       fillPhaseSelect('tool-anchor-phase', scheduledPhases(), 'production', shiftOffersWhole());
@@ -30608,6 +30676,26 @@ export function initLegacyApp() {
     if(shiftMenu){
       shiftMenu.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(b.dataset.move, shiftFar)));
       shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(shiftMove, b.dataset.far)));
+      const link = shiftMenu.querySelector('[data-shift-choose]');
+      if(link) link.addEventListener('click', ()=>{ shiftListOpen = true; syncShiftForm(); });
+      const listEl = shiftMenu.querySelector('[data-shift-list]');
+      if(listEl) listEl.addEventListener('change', e=>{
+        const box = e.target.closest('input[data-key]');
+        if(!box) return;
+        if(box.checked) shiftTicks.add(box.dataset.key); else shiftTicks.delete(box.dataset.key);
+        shiftMove = 'custom';    // syncShiftForm() lights a shortcut again if the ticks match one
+        shiftListOpen = true;
+        syncShiftForm();
+        say('');
+      });
+      // A typed date fires `input` per keystroke: redraw once it settles, not once per digit.
+      let shiftDateTimer = null;
+      const dateEl = document.getElementById('tool-anchor-date');
+      if(dateEl){
+        dateEl.addEventListener('input', ()=>{ clearTimeout(shiftDateTimer); shiftDateTimer = setTimeout(renderShiftList, 250); });
+        dateEl.addEventListener('change', ()=>{ clearTimeout(shiftDateTimer); renderShiftList(); });
+      }
+      document.getElementById('tool-anchor-edge').addEventListener('change', renderShiftList);
     }
     syncShiftForm();
 
@@ -30620,14 +30708,14 @@ export function initLegacyApp() {
       const move = shiftMoveFor(sel.value);
       // All phases: the old Shift All form -- the same call, the same result line.
       if(move === 'all') return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
-      // Phase & after is the old Shift From; Phase & before its mirror.
-      if(!sel.value) return say('No phase selected.', true);
+      // Phase & after is the old Shift From; Phase & before its mirror; the user's own ticks their own set.
+      if(!sel.value && move !== 'custom') return say('No phase selected.', true);
       const label = phaseLabelOf(sel, 'That phase');
       const plan = shiftPlan(move, sel.value);
-      if(!plan) return say(label + ' has no start date.', true);
+      if(!plan) return say(move === 'custom' ? 'Tick a phase to move.' : label + ' has no start date.', true);
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, move, label)));
+      say(describeShift(res, moveTail(res, move, label, plan)));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
@@ -30674,7 +30762,7 @@ export function initLegacyApp() {
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, move, label));
+        + moveTail(res, move, label, plan));
       say(out, overshot);
     });
 

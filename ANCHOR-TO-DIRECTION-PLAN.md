@@ -401,7 +401,11 @@ Those are two settings, not three tools:
 
 ---
 
-## 7. Tick the phases that move, with the three buttons as shortcuts (mockup, nothing ruled)
+## 7. Tick the phases that move, with the three buttons as shortcuts
+
+**RULED (owner, 5 Nov 2026): layout A** (*"ok lets go with A"*), T2 (a) by picker (a note moves when its week is inside a
+ticked phase's run), T3 the landing phase pinned. **BUILT the same day on branch `shift-tool`** (HANDOFF's entry has
+the as-built record). §7.1–7.4 below are the plan as written before the ruling.
 
 Asked 5 Nov 2026, after the one Shift tool went live:
 - *"would it make more sense(or be too cumbersome/ugly) if rather than all, before, and after, you just selected every
@@ -482,7 +486,7 @@ Whole schedule. They differ in three choices only:
   & after`), the pin picks the phase, both rows show. Fewest controls; nothing hidden. Costs: tallest the moment it
   opens (413 px against today's 232), and the shortcuts, the owner's chosen words, shrink to links.
 
-**Recommendation: A.** Not the fewest controls, but every control is labelled, nothing is behind a gesture, and it
+**Recommendation: A.** ✅ Ruled A. Not the fewest controls, but every control is labelled, nothing is behind a gesture, and it
 is Rebuild From's parts in Rebuild From's order. B is the one to pick for fewer controls, and then Rebuild From should
 pick its phase the same way. C and D trade the owner's earlier rulings (a short opening, the phase row only when
 needed, the three words as buttons) for fewer modes.

@@ -127,12 +127,19 @@ export function PreviewToolbar() {
               * ⛔ The ids are the ones the legs and the engine know: tool-shift-* (weeks, Earlier, Later) and
                 tool-anchor-* (phase, edge, date, Go). Shift From's tool-ripple-* retired. Every control stays
                 inside .tools-menu, which is what keeps them out of collectFieldValues() and every saved file;
-                the choice buttons carry no id at all. */}
+                the choice buttons carry no id at all.
+              * THE LIST OF PHASES (owner, 5 Nov 2026: "lets go with A", mockups/shift-tick-phases.html tab A;
+                plan §7): Rebuild From's list, filled by the engine (renderShiftList) with a row per scheduled phase:
+                a tick, the colour, the name, its date, and Moves / Stays (by weeks) or the new date and Pushed /
+                Pulled (to a date). The three buttons are SHORTCUTS that fill the ticks in; a tick changed by hand
+                makes the user's own set, and then no button is pressed. Under All phases the list is folded behind
+                "Choose phases…" until opened, so the box opens as short as it did. The ticks carry data-key and no
+                id, inside .tools-menu, so collectFieldValues() never sees them. */}
           <div className="tools-menu" id="pop-shift" role="dialog" aria-label="Shift">
             <p className="tools-head">
               Shift
               <InfoHint label="Shift" width={300}>
-                Moves phases by a number of weeks or to a date. Choose whether all phases move, or only one phase and the ones after it or before it. Gaps are kept; use Rebuild From to close them.
+                Moves phases by a number of weeks or to a date. Choose whether all phases move, or one phase and the ones after it or before it, or tick the phases yourself. Gaps are kept; use Rebuild From to close them.
               </InfoHint>
             </p>
             <p className="tools-cap">What moves</p>
@@ -147,8 +154,13 @@ export function PreviewToolbar() {
                   option label on ' — '. Whole schedule is in it only for All phases to a date. */}
               <select id="tool-anchor-phase" aria-label="Phase"></select>
             </div>
-            {/* What stays put: the one fact that tells the three choices apart before anything moves. */}
-            <p className="tools-hint" data-shift-hint=""></p>
+            {/* The list (see the head of this block). No children: the engine owns everything inside. The link
+                and the list wrap are shown or hidden by the engine through `hidden`. */}
+            <button type="button" className="tools-link" data-shift-choose="">Choose phases…</button>
+            <div data-shift-list-wrap="">
+              <p className="tools-head">Phases<span className="solve-count" data-shift-count=""></span></p>
+              <div className="solve-list" data-shift-list=""></div>
+            </div>
             <p className="tools-cap">How far</p>
             <div className="tools-seg" role="group" aria-label="How far" data-shift-far="">
               <button type="button" data-far="weeks">By weeks</button>

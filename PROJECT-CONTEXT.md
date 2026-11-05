@@ -578,9 +578,14 @@ distinguishing nothing.
 
 The Shift form (`#pop-shift`, 340 px), top to bottom:
 1. **What moves:** `All phases | Phase & before | Phase & after` (the owner's words, picked from four options).
-2. **The phase** (`#tool-anchor-phase`), shown only when it is needed: hidden for All phases by weeks, which needs
-   none. For All phases to a date it is the landmark, and only then does the list offer *Whole schedule*.
-3. **A hint** naming the phases that stay put.
+2. **The phase** (`#tool-anchor-phase`), shown only when it is needed: hidden for All phases (and for the user's
+   own ticks) by weeks. For All phases to a date it is the landmark, and only then does the list offer *Whole
+   schedule*.
+3. **The list of phases** (since 5 Nov 2026, owner's layout A, plan §7): Rebuild From's rows (`solveRow`), one
+   per scheduled phase, a tick (`data-key`, no id), the colour, the name, its date, and Moves / Stays by weeks or
+   the new date and Pushed / Pulled to a date. The three buttons fill the ticks in; a tick changed by hand makes
+   the user's own set, and then no button is pressed. Folded behind *Choose phases…* under All phases. To a date
+   the landing phase is pinned (it must move); Whole schedule fixes every tick. Drawn by `renderShiftList`.
 4. **How far:** `By weeks | To a date`.
 5. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: `[starts on / ends by] [date] [Go]`
    (`tool-anchor-*`).
@@ -598,19 +603,21 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
 - **All phases** — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
   (`weeksBetweenMondays` for a start, `weeksToFinishBy` for "ends by", which floors) and shifts by it. It moves
   **dates, not phases**: a phase with a week count but no date is invisible to it.
-- **Phase & before / Phase & after** — `shiftCalendar(weeks, null, {part: {phases, fromWeek, toWeek}})`. The form
-  works the move out once, before anything moves (`shiftPlan`). Its hint and the move both read it, so they cannot
-  disagree:
+- **Phase & before / Phase & after, and the user's own ticks** — `shiftCalendar(weeks, null, {part: {phases,
+  windows}})`. The form works the move out once, before anything moves (`shiftPlan`). Its list and the move both
+  read it, so they cannot disagree:
   - **Which phases move:** the picked phase and every phase whose START week is on the chosen side. Phase & after is
     exactly the old Shift From's set; Phase & before is its mirror. **An overlap does not count.** ⛔ For one deploy
     (`c52094f`, 5 Nov 2026) a phase sharing a working day with the picked one moved too (owner's picker, *"Overlaps
     move too"*). The owner reverted it the same night on a real calendar: *"how would you move everything except for
     writers room"*. A Writer's Room running three weeks into Pre-Prep made Phase & after Pre-Prep take every phase.
-  - **The week window** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
-    calendar range) runs from the picked phase's start week (Phase & after) or to its **LAST** week (Phase & before;
-    `phaseLastWorkday`, for Production the wrap). So the picked phase takes its own notes and any hiatus inside it
-    along. With one bound at its start, a 12-week shoot moved and left weeks 2–12 of its notes, and its Christmas
-    hiatus, behind.
+  - **The week windows** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
+    calendar range); a key moves when any window holds its week. A shortcut passes one: from the picked phase's
+    start week (Phase & after) or to its **LAST** week (Phase & before; `phaseLastWorkday`, for Production the
+    wrap). So the picked phase takes its own notes and any hiatus inside it along. With one bound at its start, a
+    12-week shoot moved and left weeks 2–12 of its notes, and its Christmas hiatus, behind. **A hand-picked set
+    passes one window per ticked phase**, its start week to its last week (owner's T2, 5 Nov 2026), so a note in
+    the gap between two ticked phases, or in an unticked phase between them, stays.
   - **Notes go by week, not by phase.** A phase that stays but shares a week with the picked one loses that week's
     notes to it.
   - `part` is also the "just this phase" mover: `{phases: [key]}` (PHASE-WEEK-ARROWS-PLAN.md's `{onlyPhase}`).
