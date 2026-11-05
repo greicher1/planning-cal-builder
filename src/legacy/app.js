@@ -7666,15 +7666,26 @@ export function initLegacyApp() {
     };
   })();
   const PROD_ANCHOR_TITLE = 'Starts: the shoot begins on this date. Ends: the shoot wraps on this day, and its start is worked out back from its shoot days.';
+  // ⭐ THE WEEK ARROWS (owner, 4 Nov 2026, PHASE-WEEK-ARROWS-PLAN.md, layout D: "lets go with D"): ▲ and ▼ beside the
+  // date box, each moving THIS phase one week (▲ earlier, ruling D1), in the waterfall only (D6). `.ph-nudge` and the
+  // label on the caption line, `.ph-nudge-chip`, carry NO id and no input, so neither can enter fields.byId. Which
+  // cards show them is reflectPhaseNudges() (the row's `nudge-on` class); a click is nudgePhase().
+  const NUDGE_UP_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 2.2 8.6 7H1.4z"/></svg>';
+  const NUDGE_DOWN_SVG = '<svg viewBox="0 0 10 10" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 7.8 1.4 3h7.2z"/></svg>';
+  const NUDGE_HTML = `<div class="ph-nudge">
+          <button type="button" class="ph-nudge-btn" data-nudge="-1">${NUDGE_UP_SVG}</button>
+          <button type="button" class="ph-nudge-btn" data-nudge="1">${NUDGE_DOWN_SVG}</button>
+        </div>`;
   function startsFieldHtml(key){
     const prod = key === 'production';
     const endsBox = prod
       ? '<input type="date" class="prod-wrapdate" aria-label="Wrap date" title="The last shoot day. The start is worked out back from the shoot days.">'
       : '<input type="date" class="phase-endsdate" aria-label="End date" title="Ends on the Friday of the week picked">';
     return `<div class="ph-starts">
-        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select></div>
+        <div class="ph-starts-cap"><span class="ph-cap-word">Starts</span><select class="phase-anchor" title="${prod ? PROD_ANCHOR_TITLE : ANCHOR_TITLE}" aria-label="This date is when the ${prod ? 'shoot' : 'phase'}"><option value="starts">Starts</option><option value="ends">Ends</option></select><span class="ph-nudge-chip" aria-live="polite"></span></div>
         <label class="ph-start-box"><input type="date" id="start-${key}" aria-label="Start date"></label>
         <label class="ph-ends-box">${endsBox}</label>
+        ${NUDGE_HTML}
       </div>`;
   }
   // Hide in waterfall (PHASES-TAB-PLAN.md §2.3): NO id, class phase-hidewf-cb, delegated (reflectPhaseHidden).
@@ -24717,6 +24728,7 @@ export function initLegacyApp() {
     reflectHiatusSwatches();
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
+    reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
@@ -28558,6 +28570,7 @@ export function initLegacyApp() {
     refreshUndoRedoUI();
   }
   function undo(){
+    endNudgeBurst();    // a running burst of the phase arrows is banked first, and its day-mark binding closed
     clearTimeout(undoPushTimer);
     pushUndoSnapshot(); // flush any pending (debounced) edit as its own step before undoing it
     if(!undoStack.length) return;
@@ -28565,6 +28578,7 @@ export function initLegacyApp() {
     applySnapshotJSON(undoStack.pop());
   }
   function redo(){
+    endNudgeBurst();    // as undo(): a running burst must never stay bound under a restored snapshot
     if(!redoStack.length) return;
     undoStack.push(lastPushedSnapshotJSON);
     applySnapshotJSON(redoStack.pop());
@@ -28918,8 +28932,15 @@ export function initLegacyApp() {
   //               Christmas hiatus, on the old dates. A phase that stays but shares a week with one that moves
   //               loses that week's notes to it: notes are keyed by week, not by phase (Shift From's old edge).
   //           `fromIso` is ignored with `part`.
-  //   ⚠️ HIATUS-RIPPLE-PLAN.md (branch hiatus-ripple) gives this function `opts.except` and `opts.keepView`.
-  //   ONE options object for all of them, never another positional argument.
+  //           ⭐ An EMPTY window -- `fromWeek` after `toWeek` -- carries nothing week-keyed: no note, no all-phase
+  //           hiatus, not the calendar range. That is the phase card's ▲ / ▼ (PHASE-WEEK-ARROWS-PLAN.md, nudgePhase):
+  //           `{phases: [key]}` moves that one phase with only what it owns, its own hiatus and every
+  //           "<week>|<key>" store (hiatusKeyStays below). ⛔ Null bounds are NOT empty: they are open, and carry
+  //           every note.
+  //   keepView -- leave the month view's cursor where it is. A shift moves it so the same content stays on screen;
+  //           the phase arrows move one phase, so the rest of the month the cursor shows did not move.
+  //           ⚠️ HIATUS-RIPPLE-PLAN.md (branch hiatus-ripple) adds the same `keepView`, same meaning, same line, and
+  //           `opts.except`. ONE options object for all of them, never another positional argument.
   function shiftCalendar(weeks, fromIso, opts){
     return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
   }
@@ -29079,7 +29100,7 @@ export function initLegacyApp() {
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
     // month view has been opened once, in which case it picks its own start and needs no nudge.
-    if(monthCursor) monthCursor = addDays(monthCursor, days);
+    if(monthCursor && !opts.keepView) monthCursor = addDays(monthCursor, days);
     refreshAfterRestore();
     syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
@@ -29107,6 +29128,148 @@ export function initLegacyApp() {
     const info = currentSchedule && currentSchedule.productionInfo;
     return (info && info.lastShootDay) ? fmtShort(info.lastShootDay) : null;
   }
+
+  // ---------- The phase card's week arrows (PHASE-WEEK-ARROWS-PLAN.md; owner, 4 Nov 2026) ----------
+  // ▲ / ▼ beside a phase's date box (layout D) move THAT phase one week, ▲ earlier (ruling D1), in the waterfall only
+  // (D6, the owner's "Waterfall only": the month view's bar has its own body drag). The move is the Shift tool's part
+  // move, {part: {phases: [key]}}, with an EMPTY week window (see shiftCalendar's ⭐), so:
+  //   - moving with it: its own hiatus, every "<week>|<key>" store (band names, colours and sizes, cell spans, column
+  //     swaps, its text styles; Sim Post's with Production), its automatic notes (they are computed), and
+  //     Production's day marks by shoot-day number (asShootDayMove, inside shiftCalendar);
+  //   - staying: every other phase, every typed note, holidays, all-phase hiatuses (locked or not), the calendar
+  //     range, and the month view's place (keepView).
+  // A Dates phase's end, an Ends phase's held end and Production's held wrap move through setPhaseStart, as for every
+  // mover. A snap-off phase keeps its weekday: a click is seven days.
+  // An EDITED automatic note follows as it does on the month drag (autoNoteBaseline): its standard line is swapped
+  // for the one its week shows now, and the lines the user added stay on their week. Always worked out from the
+  // burst's FIRST click, so out and back inside one burst puts the notes back exactly.
+  // ⭐ A BURST IS ONE UNDO STEP (ruling D4). Its first click banks whatever came before. Each click cancels the
+  // debounced push its own update() armed. The burst is banked once: NUDGE_BURST_MS after its last click, or the moment
+  // anything else is pressed or typed (a click elsewhere, a key, Cmd+Z, another phase's arrows), so "a pause or any
+  // other edit ends it". The label on the card's caption line, "Pulled 2 wks" / "Pushed 1 wk" (D5; owner wording,
+  // 23 Oct 2026: a moved date is pushed or pulled, never + or -), lives exactly as long as the burst.
+  const NUDGE_BURST_MS = 1600;
+  // An empty week window: from a week that comes AFTER the week it runs to, so it holds no week at all.
+  const NUDGE_NO_WEEKS = {fromWeek: '2000-01-10', toWeek: '2000-01-03'};
+  let nudgeBurst = null;   // {key, weeks, notesBase, note, timer} while a burst runs
+  // The date the card's box shows: the start, or with Ends the end it is held by. No date, no arrows.
+  function phaseNudgeHasDate(key){
+    const startEl = document.getElementById('start-' + key);
+    if(!startEl || !startEl.value) return false;
+    if(key === 'production') return productionEnds === null || !!productionEnds;
+    if(!phaseEndsOn(key)) return true;
+    const endEl = document.getElementById('end-' + key);
+    return !!(endEl && endEl.value);
+  }
+  // Run by update(), so a view switch, an undo, a Load or a cleared date can never leave a card disagreeing.
+  // `nudge-on` is the one switch the CSS reads. Written only when it changes: the card's observers watch the rows.
+  function reflectPhaseNudges(){
+    const sheet = viewMode === 'sheet';
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const key = phaseRowKey(row);
+      const on = sheet && !!key && phaseNudgeHasDate(key);
+      if(row.classList.contains('nudge-on') !== on) row.classList.toggle('nudge-on', on);
+      if(!on) return;
+      const typed = ((document.getElementById('name-' + key) || {}).value || '').trim();
+      const name = typed || (PHASES.find(p=> p.key === key) || {}).label || 'this phase';
+      row.querySelectorAll('.ph-nudge-btn').forEach(b=>{
+        const label = 'Move ' + name + ' 1 week ' + (b.dataset.nudge === '-1' ? 'earlier' : 'later');
+        if(b.getAttribute('aria-label') !== label){ b.setAttribute('aria-label', label); b.title = label; }
+      });
+    });
+  }
+  function nudgeChip(key){
+    const sw = document.getElementById('swatch-' + key);
+    return sw && sw.parentElement ? sw.parentElement.querySelector('.ph-nudge-chip') : null;
+  }
+  // ⛔ PRODUCTION'S DAY MARKS ARE BOUND FOR THE WHOLE BURST (beginShootDayMove at its first click, endShootDayMove
+  // when it ends), as the month drag binds them from press to release. Each click's shiftCalendar is then a nested
+  // mover (inert), and every update() puts the marks back on their shoot days from the ORIGINAL pins. Bound per
+  // click instead, ▼ ▲ inside one burst lost a worked holiday: the first click left it on an ordinary shoot day
+  // (inert, so dropped), and the second had nothing to bring back. Bound per burst, the burst lands exactly where one
+  // move of its total would, and out and back is exact. So the burst must END before anything else can run against
+  // the binding: undo() and redo() end it first, and so does any press or key (the capture listeners below).
+  function nudgePhase(key, dir){
+    if(viewMode !== 'sheet' || (dir !== 1 && dir !== -1) || !phaseNudgeHasDate(key)) return null;
+    if(!nudgeBurst || nudgeBurst.key !== key){
+      endNudgeBurst();
+      pushUndoSnapshot();   // close off whatever came before, so the burst stands alone
+      nudgeBurst = {key, weeks: 0, notesBase: autoNoteBaseline(), bound: beginShootDayMove(), note: '', timer: null};
+    }
+    const b = nudgeBurst;
+    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true});
+    reapplyAutoNoteBaseline(b.notesBase);
+    cancelPendingUndoPush();   // banked once, by endNudgeBurst
+    if(res && res.movedPhases) b.weeks += dir;
+    // What the burst so far does to Production's day marks (a worked holiday no longer on a holiday, a mark with no
+    // shoot day left), worked out from the original pins as endShootDayMove will, and said in the result line's short
+    // words. Through takeShootDayMoveNote, the one formatter, which also leaves nothing for a later result line.
+    if(b.bound && overrideMove){
+      const r = overridesForMove(overrideMove);
+      lastShootDayMove = (r && (r.inert || r.dropped)) ? {inert: r.inert, dropped: r.dropped} : null;
+    }
+    b.note = takeShootDayMoveNote(true);
+    const chip = nudgeChip(key);
+    if(chip){
+      const n = Math.abs(b.weeks);
+      const head = !n ? 'Back where it was' : (b.weeks < 0 ? 'Pulled ' : 'Pushed ') + n + (n === 1 ? ' wk' : ' wks');
+      chip.textContent = b.note ? head + ' · ' + b.note : head;
+      chip.title = chip.textContent;
+      chip.classList.add('on');
+    }
+    clearTimeout(b.timer);
+    b.timer = setTimeout(endNudgeBurst, NUDGE_BURST_MS);
+    return res;
+  }
+  function endNudgeBurst(){
+    const b = nudgeBurst;
+    if(!b) return;
+    nudgeBurst = null;
+    clearTimeout(b.timer);
+    // Settle the marks BEFORE the step is banked, so the step holds the final ones (the month drag's endDrag).
+    if(b.bound){ endShootDayMove(); takeShootDayMoveNote(); }
+    pushUndoSnapshot();   // the whole burst, as one step
+    const chip = nudgeChip(b.key);
+    if(chip){ chip.classList.remove('on'); chip.textContent = ''; chip.removeAttribute('title'); }
+  }
+  // Is this event part of the running burst: its own phase's arrows, or Alt+Up / Alt+Down in its own date box?
+  function partOfNudgeBurst(e){
+    const t = e.target, row = t && t.closest ? t.closest('.phase-row') : null;
+    if(!nudgeBurst || !row || phaseRowKey(row) !== nudgeBurst.key) return false;
+    if(t.closest('.ph-nudge')) return true;
+    return e.type === 'keydown' && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+      && !!t.closest('.ph-start-box, .ph-ends-box');
+  }
+  // Anything else pressed or typed ends the burst FIRST (capture), so it is banked before that edit runs.
+  // A modifier on its own (the Alt of Alt+Up) is not an edit.
+  ['pointerdown', 'keydown'].forEach(type=> document.addEventListener(type, e=>{
+    if(!nudgeBurst || partOfNudgeBurst(e)) return;
+    if(e.type === 'keydown' && (e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta' || e.key === 'Control')) return;
+    endNudgeBurst();
+  }, true));
+  // Delegated on the two row containers, as the Starts / Ends select is, so a custom row added, rebuilt by undo or
+  // brought in by a Load needs no binding.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('click', e=>{
+      const btn = e.target && e.target.closest ? e.target.closest('.ph-nudge-btn') : null;
+      if(!btn) return;
+      const key = phaseRowKey(btn.closest('.phase-row'));
+      if(key) nudgePhase(key, Number(btn.dataset.nudge));
+    });
+    // The keyboard's twin (plan §3): Alt+Up / Alt+Down in the date box. Alt, as the grid's Alt+Left / Alt+Right
+    // swap: a bare arrow already steps the box's own day, month or year.
+    host.addEventListener('keydown', e=>{
+      if(!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      const t = e.target;
+      if(!t || !t.closest || !t.closest('.ph-start-box, .ph-ends-box')) return;
+      const row = t.closest('.phase-row');
+      if(!row || !row.classList.contains('nudge-on')) return;
+      e.preventDefault();
+      nudgePhase(phaseRowKey(row), e.key === 'ArrowUp' ? -1 : 1);
+    });
+  });
 
   // ---------- Anchoring: shift so that some landmark lands on a chosen date ----------
   // Both anchors work by measuring the whole-week gap between where the landmark is now and where

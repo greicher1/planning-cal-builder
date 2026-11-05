@@ -4217,6 +4217,40 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
+  /* THE WEEK ARROWS (PHASE-WEEK-ARROWS-PLAN.md, layout D; owner, 4 Nov 2026: "lets go with D"). ▲ ▼ beside the date
+     box, 30 × 30 (the box's own height), on every card whose `nudge-on` class is set (reflectPhaseNudges: the waterfall
+     is on screen and the phase has a date). Keyed on that class, never on a :has() (see the ⛔ further down).
+     They take 68 px from the date column, so while they show, the date column's basis grows from 118 to 180: every date
+     box keeps the 112 px the cards hold everywhere (phasesui P6), the Starts box and, in Length, a Dates phase's end
+     box (basis 112). The two share a line from 300 px inside the card (a sidebar of about 348); narrower, Starts
+     stacks over Length, as in the mockup the owner picked. The month view has no arrows, and its card is as it was. */
+  .ph-nudge, .ph-nudge-chip{ display:none; }
+  .phase-row.nudge-on .ph-starts{
+    display:grid; grid-template-columns:minmax(0, 1fr) auto; column-gap:4px; row-gap:3px; flex-basis:180px;
+  }
+  .phase-row.nudge-on .ph-starts-cap{ grid-column:1 / -1; min-width:0; }
+  .phase-row.nudge-on .ph-starts > label{ grid-column:1; }
+  .phase-row.nudge-on .ph-nudge{ display:flex; gap:4px; grid-column:2; grid-row:2; }
+  .phase-row.nudge-on .pu-by{ flex-basis:112px; }
+  .ph-nudge-btn{
+    display:grid; place-items:center; flex:none; width:30px; height:30px; padding:0; cursor:pointer;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
+    transition:background-color 100ms ease, border-color 100ms ease;
+  }
+  .ph-nudge-btn svg{ width:10px; height:10px; }
+  .ph-nudge-btn:hover{ background:var(--mantine-color-navy-0); border-color:var(--mantine-color-navy-5); }
+  .ph-nudge-btn:active{ background:var(--mantine-color-navy-1); }
+  .ph-nudge-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* A burst's running total, "Pulled 2 wks", at the right end of the caption line (ruling D5). Empty between bursts. */
+  .phase-row.nudge-on .ph-nudge-chip{
+    display:block; margin-left:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    padding:0 6px; border-radius:7px; font-size:10.5px; font-weight:600; line-height:14px;
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6);
+    opacity:0; transition:opacity 150ms ease;
+  }
+  .phase-row.nudge-on .ph-nudge-chip.on{ opacity:1; }
+  .phase-row.nudge-on .ph-nudge-chip:empty{ padding:0; }
   /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): in both modes, the shoot as a span (option B of
      mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed line. The end
      that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the one worked out
