@@ -1,6 +1,6 @@
 # PHASE-WEEK-ARROWS-PLAN.md: move one phase a week at a time from its card
 
-**Status: RULED, NO APP CODE (4 Nov 2026).**
+**Status: RULED, BUILT on branch `phase-arrows` (4 Nov 2026); not merged, not pushed. §5 (the month drag) not started.**
 - **Layout D** (owner: *"lets go with D"*): two buttons beside the Starts box, always shown.
 - The rest by picker, each as recommended (§7): ▲ = earlier; a burst of clicks = one undo step; keep the "Pulled 2 wks"
   label; and the month drag gets the same mover **as its own change, after the arrows** (§5).
@@ -78,6 +78,13 @@ buttons are 30 × 30, the box's own height. D3 (when they show) is settled by th
 - **Undo:** a burst of clicks is one step; a pause or any other edit ends it.
 
 ## 4. How it would be built (no frozen edit)
+
+> ✅ **As built (4 Nov 2026, branch `phase-arrows`):** on the merged Shift tool's `part` with one phase and an EMPTY
+> week window, not a new `{onlyPhase}` (the Shift session's advice, and the same result), plus `opts.keepView`. Two
+> things the plan did not foresee: Production's day marks had to be bound for the whole BURST, not per click (▼ ▲
+> lost a worked holiday otherwise), so `undo()` / `redo()` end a running burst first; and the arrows' 68 px needed
+> the date column widened to keep the cards' 112 px date floor, so below a ~348 px sidebar Starts stacks over Length.
+> The leg is `phasearrows` (26 cases). HANDOFF has the rest.
 
 1. **Engine:** give `shiftCalendarDates` a third argument, `{onlyPhase: key}`. Phases: only that key moves. All-phase
    hiatuses and the calendar range: stay. Notes: stay (`isPinnedWeek` true for every week). `<week>|<key>` stores:

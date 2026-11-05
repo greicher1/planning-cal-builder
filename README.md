@@ -29,6 +29,41 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
+
+The owner asked for a way to move one phase up or down the waterfall: *"on the phases in the leftside column, above
+and below the date box, little up and down arrows appear allowing you to shift up or down by a week at a time.
+Waterfall only"*. They ruled on six layouts in
+[`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html) (*"lets go with D"*), and on the rest by picker
+([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §7).
+
+- **Two buttons beside the date box, always shown in the waterfall:** ▲ moves that phase one week earlier, ▼ one week
+  later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no arrows.
+- **What moves with the phase:** its own hiatus, and what belongs to its cells: band names and colours, cell spans,
+  column swaps, text styles. Its automatic notes follow, since they're worked out from the dates. An edited automatic
+  note drops its standard line and keeps the lines you added on their week, as the month view's drag does.
+  Production's day marks keep their shoot-day numbers.
+- **What stays:** every other phase, typed notes, holidays, all-phase hiatuses (locked or not), the calendar range,
+  and the month the month view is on. The gaps either side change. To keep gaps, use Shift.
+- Snap-off phases keep their weekday. A phase held by its end moves its end Friday. A Dates phase moves both dates.
+  Production is scheduled again, so its wrap can move by more or less than a week around holidays.
+- **A burst of clicks is one undo step**, with a label on the card's caption line: "Pushed 2 wks", "Pulled 1 wk",
+  "Back where it was". A pause of 1.6 s or any other click or key ends the burst. Production's day marks stay bound
+  for the whole burst, so down then up inside one burst puts everything back exactly. A label can add what the move did
+  to a worked day ("· 1 worked day no longer on a day off").
+- **Keyboard:** Alt+↑ / Alt+↓ in the date box.
+- While the arrows show, the date column is wider, so every date box keeps its 112 px. Below a sidebar of about
+  348 px, Starts stacks over Length, as in the mockup.
+
+Engine: the move is the Shift tool's own `shiftCalendar(dir, null, {part: {phases: [key], …}})` with an EMPTY week
+window (`fromWeek` after `toWeek`), so nothing week-keyed moves but what the phase owns; `opts.keepView` (the same
+name and line as the hiatus-ripple branch's) leaves the month view's cursor alone. `undo()` and `redo()` end a running
+burst first, so no snapshot is ever restored under a day-mark binding. The arrows, their holder and the label carry
+no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh)
+on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
+"Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
+▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40.
+
 ### Unreleased — one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
 
 The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,

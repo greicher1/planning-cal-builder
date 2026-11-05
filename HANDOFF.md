@@ -4,24 +4,45 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 4 Nov 2026: MOVE ONE PHASE A WEEK FROM ITS CARD — MOCKUP + PLAN, NOTHING RULED, NO APP CODE ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker card `waterfall-phase-drag`
+### 🔨 4 Nov 2026: ▲ / ▼ ON EACH PHASE CARD MOVE THAT PHASE A WEEK — RULED (LAYOUT D), BUILT on branch `phase-arrows` (worktree `.claude/worktrees/phase-arrows`, from `origin/main` at `c52094f`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Committed on the branch, NOT merged, NOT pushed ([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md), [`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html)). Tracker cards `waterfall-phase-drag`, `month-drag-carries-phase`
 - **Asked:** *"come with ways that it could be theoretically possible to drag individual phases up or down. Should we
   even do this?"*, then *"Or maybe on the phases in the leftside column, above and below the date box, little up and
-  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, and
-  *"mockup a few version of this idea with the arrows in differnt places"*.
-- **Answer given:** yes, modestly, built on a "just this phase" mover. The month view already moves one phase (body
-  drag); the waterfall has nothing like it.
-- **The mockup:** six layouts, A to F (centred above and below the box: the owner's; above and below at the right;
-  inside the box; beside it; on the Starts line; on the coloured header, which still works on a folded card). Checked
-  in the pane: one click moves one phase a week, a burst shows "Pulled 3 wks", Alt+↑/↓ works, Month hides every arrow.
-- **Waiting on the owner:** D1–D7 (plan §7). Recommended: ▲ = earlier, layout A, shown on pointing at the card, a
-  burst = one undo, keep the label, waterfall only, and make the month drag carry the same things.
-- ⚠️ **Found while reading (not run):** the month body drag (`installMonthPillDrag`) writes `setPhaseStart` only. The
-  phase's own hiatus and its `<week>|<key>` stores (`cellSpans`, `gridColSwaps`, `textStyle.phase`, band names and
-  colours) stay behind, though every Shift tool carries them. Plan §5.
-- ⚠️ **No "just this phase" mode exists in `shiftCalendarDates`** (its `inRange` is a date cutoff). The plan adds
-  `{onlyPhase}`. The ruled, unbuilt Shift tool merge (ANCHOR-TO-DIRECTION-PLAN layout C) widens the same predicate,
-  so whichever is built first should shape it for both.
+  down arrows appear allowing you to shift up or down by a week at a time. Waterfall only"*, *"mock it up"*, *"mockup a
+  few version of this idea with the arrows in differnt places"* (layouts A to F), *"lets go with D"*, then *"Build it"*.
+- **Ruled (plan §7):** D, two 30 x 30 buttons beside the date box, always shown; ▲ = earlier; a burst = one undo step;
+  keep the "Pulled 2 wks" label; waterfall only; and the month drag gets the same mover **as its own change, after
+  this** (D7, card `month-drag-carries-phase`, plan §5: not started).
+- **How it is built** (`nudgePhase`, beside `shiftCalendarDates`; CSS beside the card's Starts rules):
+  - It is the Shift tool's `part` with ONE phase and an EMPTY week window (`NUDGE_NO_WEEKS`: `fromWeek` after
+    `toWeek`). The Shift session had already said to build on `part` rather than a second option, and this needed no
+    engine change but `opts.keepView`, one line, the same name and line as the `hiatus-ripple` branch (a trivial
+    merge). ⛔ Null bounds are OPEN, not empty: they carry every note.
+  - Which cards show them: `reflectPhaseNudges()` from `update()` sets the card's `nudge-on` (waterfall on screen, and
+    the box the card shows has a date). The CSS keys on that class, never a `:has()`.
+  - ⛔ **Production's day marks are bound for the WHOLE BURST** (`beginShootDayMove()` at its first click,
+    `endShootDayMove()` in `endNudgeBurst()`), as the month drag binds them from press to release. Bound per click
+    (each `shiftCalendar` binding its own), ▼ ▲ inside one burst LOST the worked holiday 7/3: the first click left it
+    on an ordinary shoot day (inert, dropped), the second had nothing to bring back. Leg case N1 caught it. So
+    `undo()` and `redo()` call `endNudgeBurst()` first: a snapshot restored under a live binding would be overwritten
+    by the next `update()`. A new restore path must do the same.
+  - The burst ends 1.6 s after its last click, or at once on any other press or key (capture `pointerdown` /
+    `keydown`; a bare modifier and the burst's own Alt+arrow don't count). The label lives exactly as long.
+  - Layout: while the arrows show, the Starts column's basis is 180 px and Length's 112, so every date box keeps the
+    112 px floor `phasesui` P6 holds. The two share a line from ~348 px of sidebar; below, Starts stacks over Length
+    (the default 1440 window is 346 px, so most people see the stacked card, which is what the mockup showed).
+- **Proof:** new leg `phasearrows` (26/26, in `gate.sh`) on new fixture `phasearrows.sptcal`; `phasesui` 8/8;
+  `npm run check` 40/40. ⏳ **Full gate: not run yet** (the `hiatus-ripple` session's gate was running; two at once
+  stall each other).
+- ⚠️ **A harness trap, found here, worth knowing for any leg that keeps backups:** `captureSnapshot()` puts the LIVE
+  `userNotes` object in the snapshot, and the harness's in-memory IndexedDB (`T.memoryIDB`) stores what it is given
+  by reference, where a real one clones. So a backup read with `T.latestBackup()` and compared LATER shows the notes
+  as they are at compare time. `phasearrows`' `take()` deep-copies on read; `anchorside` is safe because it reads its
+  notes at once. Not a product bug: a real IndexedDB clones on `put`.
+- **Known limit, shared with the month drag:** an edited automatic note sheds its standard line when its phase
+  leaves the week, and gets it back only inside the same burst (or by undo). Across two bursts, ▼ then ▲ leaves
+  "PROD-EXTRA" alone on 6/29 with the standard line hidden under it.
+- ⏭ **Next:** the full gate on the branch (serialized), then ask the owner (picker) to merge, and separately to push.
+  Then plan §5, the month drag on the same mover.
 
 ### 🎨 4 Nov 2026: THE AUTOMATIC NOTES CARD, ONE ROW PER PHASE (owner: *"make this menu less ugly"*, then *"show me 3 differnt mockups"*, then *"go with b"*) — ✅ LIVE at `e5e4435` (17:39; the live index.html matched `dist/` byte for byte, sha256 2e61a28e…). Tracker card `autonote-card-look`
 - **Chrome only.** No id, no save-format change, nothing frozen. `buildAutoNoteCard` / `reflectAutoNoteKinds`
