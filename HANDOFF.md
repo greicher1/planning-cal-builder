@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: A DOUBLE-CLICK ON THE MIDDLE OF AN EXPANDED CELL PULLS IT BACK — branch `batch-pullback` (worktree `.claude/worktrees/batch-pullback`, from `main` at `347a98f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `centre-pullback`. COMMITTED on the branch (owner's picker, *"Commit on the branch"*); NOT merged, NOT pushed. Owner asked whether it needs the full gate: answered no (see the gate bullet).
+- **The ask** (owner): *"just like how i can drag and select collumns then double click to expand them, i should be
+  able to drag and select collumns and double click to unexpand them"*.
+- **The cause, reproduced in the pane on `layout-r13`:** the pull-back existed and its hint showed, but the boundary
+  between an expanded cell's columns runs down its centre, and that boundary's `.grid-resize.is-col` handle (7 px,
+  full table height, z above the cell) took the double-click; the batch listener's "a handle owns its own band"
+  return sent it to the frozen autofit, a no-op on an unsized column. Off-centre worked. ⚠️ Since v1.11.0 the layout
+  rules widen many cells on their own, so this hit nearly every expanded cell, not just hand-widened ones.
+- **Built** (`src/legacy/app.js`, the multi-cell selection block beside `batchFill`, not frozen):
+  `cellAcrossBoundary(h, x, y)` returns the phase cell when an is-col handle's centre lies more than
+  max(4, handle width) px inside it; the capture `dblclick` listener then runs `batchFill()` (cell selected) or
+  `batchFill(new Set([key]))` (not selected; the selection is dropped). `batchFill(keys)` takes optional SEL_KEYs.
+  Hiatus bands, span handles, row handles and boundaries on a cell's edge are untouched.
+- ⛔ **The drift guard, and why it exists:** the frozen column drag (`installGridResizers`' pointerdown) sets
+  `moved` on ANY pointermove and then saves `colWidths[ckey]`; a 1 px drift mid-double-click pins the column. The
+  frozen autofit used to delete it on the same double-click, which this change now stops. So a capture
+  `pointerdown` records the column's width at the FIRST press (`boundaryPress`, session UI), and
+  `undoBoundaryDrift()` puts it back when the presses moved the boundary ≤ 6 grid px. Measured: the pull-back stays
+  ONE undo step (the restore lands before `batchFill`'s flush push, which then no-ops).
+- **Verified:** by hand in the pane (batch centre pull-back, expand again, one undo step each; a lone cell with
+  nothing selected; Bible wk 13's two inner boundaries; the drift written then put back; y2031:s0 dragged then
+  autofit on wk 13's real edge, no cell moved). New leg `centrepullback` (generic block, `layout-r13`, 10 checks,
+  pointer events at real coordinates): green on the build; red at P2 on the build before (built from HEAD's
+  `app.js` into `dist/pre.html`, then deleted). ⚠️ `noswapbtns` S4 dispatches its double-click on the td itself,
+  which is why the trap was never caught; a new grid-gesture leg should hit-test with `elementsFromPoint`.
+- ✅ **Targeted gate (port 8835, 14:35–14:46): 465 PASS / 0 FAIL** — gate.sh's own sections, assembled by a throwaway
+  script (deleted): base + gates 2/3 + seams + workbook, colswapmove, colswapstale, stintbtn, stintmulti, stintchain,
+  stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys(+real), and the generic block cut to
+  noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu, layoutrules
+  r13/r17, centrepullback. 0 clipped cells; waterfall PDF and workbook identical. `npm run check` 40/40. No full
+  gate. The main checkout's `.claude/launch.json` has `batch-pullback-8833` (this worktree's harness server).
+
 ### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ✅ **MERGED into local `main` as `9ca08ca`** (--no-ff, owner's picker *"Yes, merge into main"*, 5 Nov 2026), then **`origin/main` merged in as `0657ec6`** (39 commits: the phase arrows, hiatus ripple, the one Shift tool, the note editor, the month-drag carry; conflicts in HANDOFF and README only, both sides kept, layout entries first; app.js, Sidebar.jsx, index.html, legacy.css, gate.sh, settingswin.js auto-merged), and **v1.11.0 CUT** (owner's pickers *"Merge, targeted legs, then ask"*, *"Yes, cut v1.11.0"*): `APP_VERSION`, `version.json` AND `package.json` (⚠️ `npm run check` compares version.json with package.json, so a cut is THREE files now, not two), the 20 Unreleased changelog entries under one `## v1.11.0` heading, `tests/fixtures/v1.11.0-saved.sptcal` (a real Save, `t/mintfixture.js`), `releases/v1.11.0.html` = the checked build (`cmp`-identical, `e2960429…`). **On the merged 1.11.0 build: `npm run check` 40/40; a targeted run of gate.sh's sections (base→restore = gates 2 + 3, colreuse, layouthook, 17 generic legs incl. layoutrules ×6, anchorside, phasearrows, mvdragcarry, wfnoteeditor, simpostbeside, swapsplitreuse, colswappartial ×2, spancounts, prodspan, settingswin; hiatusripple; monthwriter = gate 13): 493 PASS / 0 FAIL in 5 min**, waterfall PDF and workbook identical, 0 clipped cells, the written month PDFs byte-identical. No full gate on the merge (the owner's pick). ✅ **LIVE at `7bfb40c` in v1.11.0** (owner's picker *"Push now"*; pushed `ca794cc..7bfb40c` plus tag `v1.11.0` at 21:11:26 UTC on 5 Nov 2026; the Pages deploy succeeded, and the live `index.html` matched the pushed build `e2960429…` byte for byte after ~30 s, `version.json` 1.11.0). Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). ⚠️ Before the merge the main checkout's uncommitted mirror copies of `LAYOUT-RULES.md`, `LAYOUT-STUDY-PLAN.md` and `tools/layout-study/` were removed (the branch's committed copies were newer supersets, diffed), and another session's stale untracked `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html` (4 lines each beyond origin's committed, as-built copies) were set aside in this session's scratchpad, as was its uncommitted HANDOFF hunk (the phase arrows "RULED: LAYOUT D" lines, superseded by origin's as-built entry). Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
 - **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns
   AND widths"; read only through `layoutStamped()`. A file without it keeps the placement and the widths it has today

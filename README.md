@@ -29,6 +29,48 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+
+Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
+and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
+pull back cells"), but it never worked from the **middle** of an expanded cell. A cell two columns wide has the
+boundary between its columns down its centre, right under its label, and that boundary's column-resize handle
+(7 px, the table's full height) took the double-click. The rule "a handle owns its own band" then sent it to the
+column autofit, which does nothing to a column nobody sized. Only a double-click off the centre pulled back.
+Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0–6, 7–13, **87–93**, 172–178 and
+179–185 px across it.
+
+- **What changed** (`src/legacy/app.js`, the multi-cell selection's double-click, not frozen code):
+  - A double-click on a column handle whose boundary runs **through** a phase cell, not along its edge, now acts on
+    the cell (`cellAcrossBoundary`). If the cell is selected, the whole selection expands or pulls back. If not, just
+    that cell does, as a double-click anywhere else on it always has.
+  - Every other handle keeps its band: a boundary that is a real cell edge (the column autofit, the heading row
+    included), a cell's own span handles, the row handles. Hiatus bands are left alone; their double-click edits.
+  - `batchFill(keys)` takes an optional set of cells, so one cell runs the same code as the selection.
+- **The catch it had to close:** each press also starts the frozen column drag, which saves a width on **any**
+  pointer move. A hand drifting a pixel mid-double-click would pin the column. Until now the handle's own
+  double-click (autofit) deleted that width again; taking the double-click away would have left it. So the
+  column's width at the first press is remembered, and the double-click puts it back when the presses moved the
+  boundary by 6 px or less. The pull-back stays one undo step.
+- **Verified:**
+  - By hand in the built app on `layout-r13`, with real double-clicks:
+    - the marquee batch pulls back from the centre, then expands again;
+    - each gesture is one undo step;
+    - a lone widened cell pulls back with nothing selected;
+    - a three-column cell pulls back from either inner boundary;
+    - a drifted press's width is put back;
+    - a real edge's autofit still refits a dragged column.
+  - New leg `centrepullback` (in `gate.sh`'s generic block, on `layout-r13`), 10 checks with pointer events at real
+    coordinates. It is red on the build before this change at P2, the reported bug. `noswapbtns` never caught it
+    because it dispatches its double-click on the cell itself.
+  - A targeted run of `gate.sh`'s own sections: **465 PASS / 0 FAIL** in about 10 min. It covered base (0 clipped
+    cells) + gates 2 and 3 (identical to baseline) + seam strips, colswapmove, colswapstale, stintbtn, stintmulti,
+    stintchain, stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys + wfkeysreal, and the
+    generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
+    layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
+
 ## v1.11.0 — the waterfall lays itself out (the layout rules; Reuse Empty Columns retires), ▲ / ▼ on each phase card, one Shift tool with a tick list, a hiatus change ripples, the note editor names a line, the month drag carries (5 Nov 2026)
 
 ### the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
