@@ -15,7 +15,17 @@
   result line when nothing changed since the edit began (`rippleSameSpan`), or leaving the box wiped it. Starts is
   unchanged: typed dates wait, picked dates are at once. Help text reworded.
 - **Proof:** `hiatusripple.mjs` R1 / R3 / R5 rewritten, R8 extended with the owner's case (Pre Prep's own hiatus, Weeks
-  2 -> 3 by ArrowUp). 15/15 on the build; red on the live code in R1, R3, R5, R8 exactly. NEIGHBOURS_RESULT
+  2 -> 3 by ArrowUp). 15/15 on the build; red on the live code in R1, R3, R5, R8 exactly; R1 and R5 red on a build without the result-line fix.
+  `origin/main` v1.12.0 (`4c057a9`: the phase hiatus picker window, Shift's step-over, rule 20) merged in (`a4eb575`,
+  README / HANDOFF only). On the merged build (6 Nov, no other gate running): check 40/40 and **212 PASS / 0 FAIL**:
+  `base` with the waterfall PDF, seams and Excel parts identical to the baselines, `hiatusripple` 15/15, `hiatusdrag`
+  14/14, `hiatussidebar` 16, `hiatuscolour` 14, `hiatusfold` 11, `phiatusnum` 18, `hiatuslabel` 7, `hiatusblank` 4,
+  `undokeys` 11, `dlgkeys` 16, `shiftheld` 13, `anchorside` 30, `phasearrows` 26. ⚠️ Before that merge, on the branch cut
+  from `3964bfb`, `base` once differed from its baseline (Localization one column left in row 9); pure v1.12.0 and the
+  merged build both match it, and the change cannot move a column (one listener on the Weeks boxes, ripple off in
+  `base`). Cause not pinned down.
+- ⚠️ **Still open, NOT in this change:** the ripple pushes by CALENDAR weeks, so it can carry a phase across a locked
+  break and open the gap Shift's step-over fixed (that session's open follow-up; tracker `shift-held-hiatus-gap`).
 - ⏭ **Next:** ask the owner to push (per action).
 
 ### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.

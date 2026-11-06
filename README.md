@@ -43,7 +43,9 @@ one-second pause; the owner: *"it should do it immediately not after a second"*.
   typed digit by digit passes through real dates (0002, 0020, 0202); a date picked in the calendar pushes at once.
 - **Also fixed:** leaving the box right after a push no longer wipes the "Pushed 1 wk: …" line under the hiatus.
 - **Verified:** `hiatusripple.mjs` R1, R3, R5 rewritten and R8 extended with the owner's case (a phase's own hiatus,
-  Weeks 2 → 3 by arrow): 15/15 on the build, R1 / R3 / R5 / R8 red on the live code. Help page reworded.
+  Weeks 2 → 3 by arrow): 15/15 on the build, R1 / R3 / R5 / R8 red on the live code. Help page reworded. On the build
+  merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
+  baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
 
 ## v1.12.0 — the twentieth layout rule (a column must earn its place), Shift steps over a locked hiatus, a phase's own hiatus picked inside the phase, Rebuild From is Build Around, a drag over expanded cells selects them and the double-click pulls them back, Shift's phase beside its date, a leftover band label stays, New opens on Show info (6 Nov 2026)
 
