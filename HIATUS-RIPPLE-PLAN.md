@@ -309,7 +309,7 @@ Everything in §3-§9 was built as planned, with these differences:
   box that waits, a typed 3, Enter keeping the line, one undo taking back only the last push).
 
 
-## 12. PLANNED 6 Nov 2026: the ripple steps over locked breaks, as Shift does
+## 12. RULED 6 Nov 2026 ("Build it"): the ripple steps over locked breaks, as Shift does
 
 - **Asked** (owner's picker, 6 Nov 2026, *"Yes, plan it"*, to: "Shift now steps over locked breaks, but Ripple Hiatus still
   pushes by plain calendar weeks… Should Ripple Hiatus step over locked breaks too?"; option text: *"Make it count only
@@ -333,7 +333,8 @@ A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A
   B and C** (2/1). The break moved from B into A: A runs 2 weeks longer, B 2 weeks shorter on the calendar.
 - **Stepping over:** A 11/16 (crosses nothing held) → ends 1/8. B counts 2 working weeks from 12/14: 12/21 and 12/28 are
   held, so 1/4, 1/11 → starts **1/11**, ends **2/5**. C counts 1/25 → 2/1, 2/8 → **2/8**. A ends 1/8, B starts 1/11; B
-  ends 2/5, C starts 2/8: every gap and overlap is what it was. B and C moved 4 calendar weeks, A moved 2.
+  ends 2/5, C starts 2/8: every gap and overlap is what it was. B moved 4 calendar weeks (its start crossed the
+  break), A and C moved 2.
 
 ### 12.2 The change
 
@@ -350,9 +351,9 @@ A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A
   range, so they stay), which a pull can cross. Unlocked rows after it move with the phases and are not held.
   Holidays never count (Shift's rule).
 - `rippleNormaliseInside` (a phase starting inside the old all-phase hiatus) is unchanged and runs first.
-- **The line** already groups phases by how far each really went ("Pushed 2 wks: A · Pushed 4 wks: B, C"); add Shift's
-  own sentence for the ones that went further (`steppedText`, the same words): *"B and C were pushed 4 wks to step over a
-  held hiatus."* The month drag's question carries the same line.
+- **The line: distances only** (owner's picker, 6 Nov 2026, *"Distances only"*, over adding Shift's sentence). It
+  already groups phases by how far each really went ("Pushed 4 wks: B · Pushed 2 wks: A, C"); nothing is added. The
+  month drag's question carries the same line.
 - **Unchanged:** the switch, when a ripple runs (Weeks at once, typed dates on finishing), the two undo steps, the edited
   hiatus held, the one-shot paths. With no held band crossed, every date moves exactly as it does today (stepOverHeld's
   own no-held path is `addDays(n * 7)`).
@@ -364,3 +365,12 @@ A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A
   a moved hiatus; and Break 2 → 3 with a phase starting the week after the old break (moves 1, not 2: the trap above).
 - Red on today's build in the crossing cases, green in the rest (today is right whenever nothing held is crossed).
 - `hiatusripple` R0–R13 unchanged and green (the fixture's locked December breaks sit after every phase it moves).
+
+### 12.4 As built (6 Nov 2026)
+
+- As planned, with one name: the set the step-over reads is `obstacles` (`hiatusFatesFor`), `held` without the ripple's
+  edited row; `hiatusKeyStays` still reads `held`. The line lists pulls smallest first (its order since 4 Nov), so a pull
+  over the break reads "Pulled 2 wks: Pre-Prep, Post · Pulled 4 wks: Prod Prep".
+- Proof: `hiatusripple.mjs` S1–S4 on `ripplestep.sptcal`, 19/19; live code red in S1, S3, S4; edited-as-obstacle build red
+  in R4, R5, S4; 215 neighbouring checks green.
+

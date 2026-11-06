@@ -57,6 +57,10 @@
 //   R12 the same drag, Undo: every date back as at the press, the undo button as it was
 //   R13 the waterfall's right-click Hiatus > All phases on the week of 5/4/26: no phase starts after it, so the line says so;
 //       Summer Break 8/31, the undated note 6/1, Production and Post (running) only paused
+//   S1-S4 the ripple steps over locked breaks (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026), on ripplestep.sptcal: S1 Writer's
+//       Rm's own hiatus 9/7 x2 pushes Pre Prep and Post 2 wks and Prod Prep 4 (its start crosses the locked 12/21 break);
+//       S2 one undo takes the push back; S3 redo, then the switch off pulls Prod Prep back over the break to 12/14; S4 the
+//       trap: the all-phase Break 2 -> 3 moves the phase that starts the week after it 1 wk, not 2
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
@@ -617,6 +621,82 @@ try {
          opened === 'ok' && !!added && added.weeks === '2' && after.prod === '2026-03-16' && after.post === '2026-04-27'
          && after.by['Summer Break'] === '2026-08-31/1' && added.note === 'No phase starts after it to push'
          && out.R13.notes.join('|') === '2026-06-01:Undated note|2026-06-08:Wrap party 6/10/26', out.R13);
+  }
+
+  // ---- S1-S4: the ripple steps over locked breaks (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it") -------------
+  // ripplestep.sptcal (synthetic): Writer's Rm 8/3/26 x12, Pre Prep 11/2 x6 (A), Prod Prep 12/14 x4 (B, the locked 12/21 x2
+  // break inside it), Post 1/25/27 x10 (C); an unlocked all-phase Break 9/28/26 x2; the locked December breaks.
+  const loadStep = async () => { await fresh(`http://localhost:${PORT}${PAGE}?state=ripplestep`); await toPhases(); };
+  const stepState = () => ev(`(() => {
+    const $ = id => document.getElementById(id), v = id => ($(id) || {}).value;
+    const rows = Array.from(document.querySelectorAll('#hiatus-list .hiatus-entry'));
+    const br = rows.find(r => r.querySelector('.hiatus-name').value === 'Break');
+    const wrBlock = (($('phiatus-fields-writersRoom') || {}).parentElement) || null;
+    return { wr: v('start-writersRoom'), a: v('start-prePrep'), b: v('start-prodPrep'), c: v('start-post'),
+      wrHi: v('phiatus-start-writersRoom') + '/' + v('phiatus-weeks-writersRoom') + '/' + !!($('phiatus-en-writersRoom') || {}).checked,
+      brk: br ? br.querySelector('.hiatus-start').value + '/' + br.querySelector('.hiatus-weeks').value : '',
+      locked: rows.filter(r => r.querySelector('.hiatus-locked').checked).map(r => r.querySelector('.hiatus-start').value).join(','),
+      wrLine: wrBlock ? ((wrBlock.querySelector(':scope > .ripple-note:not([hidden])') || {}).textContent || '') : '',
+      brLine: br ? ((br.querySelector('.ripple-note:not([hidden])') || {}).textContent || '') : '',
+      active: (document.activeElement && (document.activeElement.className || document.activeElement.tagName)) || '' }; })()`);
+  const LOCKED = '2026-12-21,2027-12-20,2028-12-18,2029-12-17';
+  await loadStep();
+  {
+    const s0 = await stepState();
+    await click(`(document.getElementById('phiatus-en-writersRoom').closest('label'))`);
+    await sleep(500);
+    await click('#phiatus-start-writersRoom');
+    await until(`!!document.querySelector('.date-pop')`, 'the date popover', 5000);
+    for (let i = 0; i < 30; i++) {
+      const t = await ev(`(document.querySelector('.date-pop .dp-title') || {}).textContent`);
+      if (t === 'September 2026') break;
+      const later = Date.parse('1 ' + t) > Date.parse('1 September 2026');
+      await click(`(document.querySelector('.date-pop [aria-label="${later ? 'Previous' : 'Next'} month"]'))`);
+    }
+    await click(`(Array.from(document.querySelectorAll('.date-pop .dp-day:not(.dp-out)')).find(b => b.textContent.trim() === '7'))`);
+    await sleep(900);
+    const s1 = await stepState();
+    out.S1 = { s0, s1 };
+    kase('S1', 'Writer\'s Rm\'s own hiatus, Mon 9/7/26 x2 picked: Pre Prep 11/2 -> 11/16 and Post 1/25 -> 2/8 (2 wks), Prod Prep 12/14 -> 1/11/27 (4 wks: its start crosses the locked 12/21 break, so it steps over it); the unlocked Break 9/28 -> 10/12; Writer\'s Rm and every locked break stay; the line "Pushed 4 wks: Prod Prep · Pushed 2 wks: Pre Prep, Post"',
+         s0.a === '2026-11-02' && s0.b === '2026-12-14' && s0.c === '2027-01-25'
+         && s1.wrHi === '2026-09-07/2/true' && s1.wr === '2026-08-03'
+         && s1.a === '2026-11-16' && s1.b === '2027-01-11' && s1.c === '2027-02-08'
+         && s1.brk === '2026-10-12/2' && s1.locked === LOCKED
+         && /^Pushed 4 wks: Prod.?Prep · Pushed 2 wks: Pre.?Prep, Post$/.test(s1.wrLine), out.S1);
+
+    await undoBtn();
+    const s2 = await stepState();
+    out.S2 = s2;
+    kase('S2', 'ONE undo takes back the push and keeps the hiatus (9/7 x2): Pre Prep 11/2, Prod Prep 12/14, Post 1/25, Break 9/28',
+         s2.wrHi === '2026-09-07/2/true' && s2.a === '2026-11-02' && s2.b === '2026-12-14' && s2.c === '2027-01-25' && s2.brk === '2026-09-28/2', out.S2);
+
+    await redoBtn();
+    const r = await stepState();
+    await click(`(document.getElementById('phiatus-en-writersRoom').closest('label'))`);
+    await sleep(900);
+    const s3 = await stepState();
+    out.S3 = { redo: r, off: s3 };
+    kase('S3', 'redo brings the stepped push back (Prod Prep 1/11/27); the hiatus switched off pulls everything back, Prod Prep stepping back over the break to 12/14 (not 12/28), Pre Prep 11/2, Post 1/25, Break 9/28; "Pulled 2 wks: Pre Prep, Post · Pulled 4 wks: Prod Prep" (the line lists pushes largest first, pulls smallest first, as it always has)',
+         r.b === '2027-01-11' && r.a === '2026-11-16'
+         && s3.a === '2026-11-02' && s3.b === '2026-12-14' && s3.c === '2027-01-25' && s3.brk === '2026-09-28/2' && s3.locked === LOCKED
+         && /^Pulled 2 wks: Pre.?Prep, Post · Pulled 4 wks: Prod.?Prep$/.test(s3.wrLine), out.S3);
+  }
+  // S4: the trap (§12.2). Pre Prep set (by code: no ripple) to start 10/12, the week after the Break (9/28 x2). Break 2 -> 3
+  // by ArrowUp: the Break's own new third week (10/12) is NOT an obstacle, so Pre Prep goes 1 week (10/19), not 2 (10/26);
+  // Prod Prep 12/14 crosses the locked break (1/4/27, 3 calendar weeks); Post 1/25 -> 2/1.
+  await loadStep();
+  {
+    await ev(`__rp.set(document.getElementById('start-prePrep'), '2026-10-12'), true`);
+    await sleep(600);
+    const s0 = await stepState();
+    await click(inRow('Break', '.hiatus-weeks'));
+    await press('ArrowUp'); await sleep(900);
+    const s4 = await stepState();
+    out.S4 = { s0, s4 };
+    kase('S4', 'the all-phase Break 2 -> 3 with Pre Prep starting the week after it (10/12): Pre Prep 10/19 (1 wk, not 2: the edited hiatus is not stepped over), Prod Prep 12/14 -> 1/4/27 (over the locked break), Post 2/1; the Break stays on 9/28; "Pushed 3 wks: Prod Prep · Pushed 1 wk: Pre Prep, Post"',
+         s0.a === '2026-10-12' && s0.b === '2026-12-14'
+         && s4.brk === '2026-09-28/3' && s4.a === '2026-10-19' && s4.b === '2027-01-04' && s4.c === '2027-02-01' && s4.locked === LOCKED
+         && /^Pushed 3 wks: Prod.?Prep · Pushed 1 wk: Pre.?Prep, Post$/.test(s4.brLine) && /hiatus-weeks/.test(s4.active), out.S4);
   }
 
   kase('E0', 'no page errors', pageErrors.length === 0, { errors: pageErrors.slice(0, 5) });

@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
+
+Shift learned to step over a locked hiatus on 5 Nov (owner's ruling: count only working weeks, so the gaps between
+phases are kept). Ripple Hiatus still pushed by calendar weeks, so a push could carry a phase's start across a locked
+break, moving the break from one phase into the one before it: a week of overlap there and a week's gap after.
+Owner, by picker: *"Yes, plan it"*, then *"Build it"* and *"Distances only"* for the line (HIATUS-RIPPLE-PLAN.md §12).
+
+- **Now:** a hiatus change moves every later phase by the same number of WORKING weeks: a phase whose start crosses a
+  locked break moves the break's length further, and every gap and overlap is kept. The line under the hiatus already
+  shows each phase's real distance ("Pushed 4 wks: Prod Prep · Pushed 2 wks: Pre Prep, Post"); nothing is added to it.
+- **The hiatus being edited is not stepped over.** It stays where you put it, but it is the reason for the push, not an
+  obstacle to it: counted as one, lengthening a break 2 → 3 weeks would push the phase that started right after it 2
+  weeks. Notes in its weeks move with the work, as before.
+- **Unchanged:** when a ripple runs, the switch, the two undo steps, and every push that crosses no locked break.
+- **Verified:** new `ripplestep.sptcal` (synthetic) and `hiatusripple.mjs` S1–S4 (Writer's Rm's own hiatus pushing Prod
+  Prep over the locked Christmas break; undo; redo and the pull back over it; the edited-hiatus trap). `hiatusripple` **19/19** on the build; on the live code (`850d930`) S1, S3, S4 red (the crossing cases); on a build that
+  counts the edited hiatus as an obstacle (`stepOverHeld(n, hf.held)`) R4, R5, S4 red. The neighbouring set (base with
+  the waterfall PDF and Excel identical to the baselines, the hiatus legs, undo / dialog keys, `shiftheld`, `anchorside`,
+  `phasearrows`): 215 PASS, its only FAIL S3's expected line order, corrected in the test (pulls are listed smallest
+  first, as the line always has). `npm run check` 40/40. Help page: one sentence (Ripple counts working weeks, like Shift).
+
 ### Unreleased — Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
 
 The owner gave Writer's Rm a 2-week hiatus (which pushed everything after it), then changed it to 3 weeks and saw

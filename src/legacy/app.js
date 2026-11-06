@@ -29279,8 +29279,9 @@ export function initLegacyApp() {
   //   * A date INSIDE a held break counts from the week the break ends -- where a phase typed there really works
   //     from (the walk skips the break's weeks; rippleNormaliseInside's rule).
   //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
-  //   * Not for every mover: the Shift form and the toolbar arrows opt in (`stepHeld`). The hiatus ripple sizes its
-  //     own steps from the edited hiatus, and the phase card's ▲ / ▼ move one phase one week by design.
+  //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
+  //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
+  //     The phase card's ▲ / ▼ move one phase one week by design.
   function stepOverHeld(n, held){
     if(!held || !held.size) return d => addDays(d, n * 7);
     const isHeld = w => held.has(isoOf(w));
@@ -29677,8 +29678,13 @@ export function initLegacyApp() {
   // What a shift does with each all-phase hiatus row, decided from the pre-shift dates BEFORE anything moves: 'stay'
   // (outside the week windows, or the ripple's own `except`), 'locked', or 'move'. With every week of the bands that
   // stay (`held`: the step-over's obstacles, and step 3's plain band keys that stay) and of the ones that move.
+  // `obstacles` is `held` without the hiatus being EDITED (`except`, the ripple's): what the step-over steps over. The
+  // edited hiatus stays put like any held band (its name, colour and size keep to its weeks), but it is the reason for
+  // the push, not something in its way (HIATUS-RIPPLE-PLAN.md §12.2): counted as an obstacle, Break 2 -> 3 wks would push
+  // the phase that started the week after the old break 2 weeks, and adding a hiatus would push a phase starting on its
+  // first week twice its length. With no `except` (every Shift form move) it is exactly `held`.
   function hiatusFatesFor(inRange, except){
-    const fates = [], held = new Set(), moving = new Set();
+    const fates = [], held = new Set(), moving = new Set(), obstacles = new Set();
     const recordBandWeeks = (row, into)=>{
       const startEl = row.querySelector('.hiatus-start');
       const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
@@ -29694,17 +29700,18 @@ export function initLegacyApp() {
       else if(except && except.kind === 'all' && except.row === row) fate = 'stay';
       else { const lock = row.querySelector('.hiatus-locked'); fate = (lock && lock.checked) ? 'locked' : 'move'; }
       recordBandWeeks(row, fate === 'move' ? moving : held);
+      if(fate !== 'move' && !(except && except.kind === 'all' && except.row === row)) recordBandWeeks(row, obstacles);
       fates.push({row, startEl, fate});
     });
-    return {fates, held, moving};
+    return {fates, held, moving, obstacles};
   }
   // The weeks a Shift form move (or an All phases one: `part` null) would hold, for the step-over's arithmetic.
   function shiftHeldWeeks(part){
     return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
   }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
-  //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form and the toolbar
-  //           arrows pass it; the ripple, the phase arrows and the month drag (carryOnly) do not.
+  //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
+  //           arrows and the hiatus ripple pass it; the phase arrows and the month drag (carryOnly) do not.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -29721,7 +29728,7 @@ export function initLegacyApp() {
     const hf = hiatusFatesFor(inRange, except);
     const stepHeld = !!opts.stepHeld && !opts.carryOnly;
     // Where a date goes: `days` (a number) as always, or the step-over's mapping.
-    const move = stepHeld ? stepOverHeld(n, hf.held) : days;
+    const move = stepHeld ? stepOverHeld(n, hf.obstacles) : days;
     // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
     const startsBefore = {};
 
@@ -29783,7 +29790,9 @@ export function initLegacyApp() {
     // Under the step-over, a note on a HELD hiatus's week stays with the hiatus: the band covers it, it is about the
     // break, and the step-over has no working week to count it from. (Before 5 Nov 2026 it moved by calendar weeks,
     // out from under the band.)
-    const onHeldBand = k => { const d = parseDateUTC(splitWeekKey(k).iso); return !!d && stayingHiatusWeeks.has(isoOf(mondayOf(d))); };
+    // The obstacles, not every held week: a note in the weeks of the hiatus a ripple is pushing for belongs to the work
+    // that is pushed (a hiatus added over it), so it moves with the phases, as it always has.
+    const onHeldBand = k => { const d = parseDateUTC(splitWeekKey(k).iso); return !!d && hf.obstacles.has(isoOf(mondayOf(d))); };
     // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff, OR (the step-over) under a held band.
     const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k) || (stepHeld && onHeldBand(k));
     // R5 / audit M-10: the auto text each MOVING note's week shows right now, so it can be swapped for
@@ -30044,7 +30053,9 @@ export function initLegacyApp() {
     asShootDayMove(()=>{
       if(before && h.kind === 'all') rippleNormaliseInside(before);
       steps.forEach(st=>{
-        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true});
+        // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
+        // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
+        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
         if(r) results.push(r);
       });
     });
