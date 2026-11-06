@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); NOT merged, NOT pushed. ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); NOT merged, NOT pushed. NEXT: step 4 or step 5, in a fresh session (this one ran long). ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
   R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
@@ -75,6 +75,23 @@
       - The one FAIL is `phasesui` (hidewf) P1, a Load timeout on `v1.7.0-saved`, one of 46 fixtures. Rerun alone
         it is 8/8 with all 46 matching.
       - `phasenotes` and `phaselink` are both in the gate (generic block) and green there.
+- 🔨 **STEP 3 BUILT** (owner, 6 Nov 2026: *"Start step 3"*). Plan §11 is the as-built record.
+  - **The rule:** every writer of a Notes cell's look asks `wfLinkedLookKey` (the cell's first linked note, when the
+    week has no typed text). It writes on that note and drops the week's own copy of the field.
+  - **The style bar:** `applyLinkedTextStyle`.
+  - **The editor's colour:** now also drops `noteColors[week]`.
+  - ⭐ **The FROZEN row drag and the handle's double-click are OBSERVED, not edited** (sanctioned pattern 3):
+    - a capture `pointerdown` on a row handle copies `rowHeightsByWeek`;
+    - a task after `pointerup` moves a changed height onto the linked note;
+    - a task after the handle's `dblclick`, and `wfResetSize` directly, clear the note's height through
+      `clearLinkedRowHeights` (`rowHeightsLinked` says which rows a note lent).
+  - **Proof:**
+    - new leg `phaselook` 10/10;
+    - `phasenotes` 21, `phaselink` 14, `rowheight` 7, `rowmigrate` PASS, `wfmenu` 39, `zoomresize` 40, `calzoom`
+      26, `notewrap` 16 and `textstyle` 51, all green on the build (sha256 `62a190f2…`);
+    - ✅ **FULL GATE PASSED on the step-3 build** (sha256 `62a190f2…`, port 8951, 13:25–14:04 on 6 Nov, alone):
+      **4,217 PASS / 0 FAIL**, every baseline identical. `phasenotes`, `phaselink` and `phaselook` were all in it.
+      An earlier run was lost when the session restarted.
   - ⛔ **NOT SHIPPABLE BEFORE STEP 5.** The month view takes a week's typed lines from `userNotes` through
     frozen `notesForWaterfallDate`, so a note linked here leaves the Month view until step 5 draws
     `phaseNotePlace` through `mvWfLinesFor`.

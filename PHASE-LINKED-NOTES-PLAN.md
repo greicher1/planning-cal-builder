@@ -1,8 +1,8 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: RULED; STEPS 1 AND 2 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, 5 Nov 2026; step 2 on
-6 Nov 2026, owner: *"can we start step 2"*), steps 3–6 not started. R1–R9 all ruled 5 Nov 2026 by picker, every one
-the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9 and §10 are the as-built records.**
+**Status: RULED; STEPS 1–3 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`; step 3 on
+6 Nov 2026, owner: *"Start step 3"*), steps 4–6 not started. R1–R9 all ruled 5 Nov 2026 by picker, every one
+the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9–§11 are the as-built records.**
 - ⛔ **Do not ship steps 2–4 without step 5.** Linking a typed note takes it out of `userNotes`, and the month view
   reads a week's typed lines from `userNotes` through frozen `notesForWaterfallDate`; until step 5 draws linked notes
   there (through `mvWfLinesFor`), a note leaves the Month view the moment it is linked.
@@ -584,3 +584,42 @@ chrome plus the editor's save. No frozen edit and no save-format change: the row
   - Delete / Cut / Paste / drag (step 4);
   - the month view's drawing and editor (step 5, which steps 2–4 must not ship without, see the status);
   - picking a shoot day (step 6).
+
+---
+
+## 11. Step 3 as built (6 Nov 2026, branch `phase-notes`)
+
+Owner: *"Start step 3"*. The look travels (R7(a), D10). Step 1 made the READS linked-aware; step 3 makes every WRITER
+of a Notes cell's look write on the linked note when the cell takes its look from one. It also drops the week's own
+copy of that field, which would otherwise win.
+
+- **The rule, `wfLinkedLookKey(weekKey)`:** the cell's first linked note, when the week holds no typed text of its own;
+  else null, and the week's stores are written as ever.
+- **The text style bar:** `applyGridTextStyle` hands a note key with a linked look to `applyLinkedTextStyle`.
+  - It follows the bar's own rules: a size of 11 is stored as nothing, and a bold that is not bold, an italic that is
+    not and a centred alignment are no override.
+  - It merges over what the cell shows now (`textStyleOf`) and writes `style` / `size` on the note.
+  - It deletes `textStyle.note[week]` / `noteFontSize[week]`. Clear removes both.
+- **The row drag**, inside frozen `installGridResizers`, is observed, never edited (sanctioned pattern 3):
+  - A capture-phase `pointerdown` on a row handle copies `rowHeightsByWeek`.
+  - A task after `pointerup` / `pointercancel`, so after the frozen release in either listener order, moves any height
+    that changed on a week with a linked look onto that note, deletes the by-week entry, and runs `syncRowHeights` and
+    `markDirty`.
+  - The row looks the same, and the drag's undo step (its `markDirty`'s debounced push) holds the moved height.
+- **Resetting a row's height:**
+  - The handle's double-click (autofit, also frozen) is observed the same way: a task after it runs
+    `clearLinkedRowHeights([row])`.
+  - The right-click menu's Reset row height (`wfResetSize`, not frozen) calls it directly.
+  - Either way, a row whose height a linked note lent it (`rowHeightsLinked`, from the last sync) takes it off the
+    note. Without this the next schedule would draw it straight back.
+- **The note editor's colour (step 2's) now also drops the week's own colour**, which would otherwise have won over the
+  pick.
+- **Proof:**
+  - New leg `phaselook` 10/10 (S1–S4, H1–H3, U1, C1, E0).
+  - On the same build: `phasenotes` 21/21, `phaselink` 14/14, `rowheight` 7/7, `rowmigrate` PASS (the pre-10-Sep
+    migration), `wfmenu` 39/39, `zoomresize` 40/40, `calzoom` 26/26, `notewrap` 16/16, `textstyle` 51/51.
+  - **Full gate on the step-3 build: 4,217 PASS / 0 FAIL, GATE PASSED, every baseline identical.**
+- **Not yet:**
+  - Delete / Cut / Copy / Paste / drag (step 4: `wfNoteItem` still reads and writes the week's look);
+  - the month view (step 5; its text style, `mvTextStyle.wfnote`, is keyed by a line's text and needs no change);
+  - shoot days (step 6).

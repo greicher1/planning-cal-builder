@@ -12832,6 +12832,8 @@ export function initLegacyApp() {
     }
     function wfResetSize(rows, ckeys){
       pushUndoSnapshot();
+      // A row whose height a linked note lent it: the note loses it (step 3), or the next schedule would draw it back.
+      if(clearLinkedRowHeights(rows)) syncRowHeights(currentSchedule);
       rows.forEach(r=>{
         delete rowHeights[r];
         // ⛔ And from the persisted store, or syncRowHeights() puts it straight back (the handle's own reason).
@@ -16910,7 +16912,7 @@ export function initLegacyApp() {
       if(pendingColor){
         const toNote = lookNote && phaseNotes[lookNote] && !wfOwnTyped(weekKey) ? phaseNotes[lookNote] : null;
         const plain = pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase();
-        if(toNote){ if(plain) delete toNote.color; else toNote.color = pendingColor; renamed = renamed || true; }
+        if(toNote){ if(plain) delete toNote.color; else toNote.color = pendingColor; delete noteColors[weekKey]; renamed = renamed || true; }
         else if(plain) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
       }
@@ -18178,6 +18180,70 @@ export function initLegacyApp() {
     const v = phaseNotes[ll[0].key];
     return v ? v[field] : undefined;
   }
+  // ⭐ WHERE A NOTES CELL'S LOOK IS WRITTEN (R7(a), PHASE-LINKED-NOTES-PLAN.md step 3): the key of the linked note the cell
+  // takes its look from -- its first, when the week holds no typed text of its own -- else null (the week's stores, as
+  // ever). Every writer of a note's look asks this, so a colour, a style, a size or a row height set on a cell that shows
+  // a linked note goes ON the note and travels with it; and the week's own value for that field is dropped, so the
+  // note's is the one drawn.
+  function wfLinkedLookKey(weekKey, schedule){
+    if(wfOwnTyped(weekKey)) return null;
+    const ll = wfLinkedLinesFor(weekKey, schedule);
+    return ll.length && phaseNotes[ll[0].key] ? ll[0].key : null;
+  }
+  // ⭐ THE ROW DRAG on a linked note's cell (R7(a), step 3). The drag is frozen installGridResizers: on release it writes the
+  // height to rowHeightsByWeek[week], renders and marks dirty. Observed, not edited (sanctioned pattern 3): a capture-phase
+  // pointerdown on a row handle keeps the by-week store as it was, and once the release has run (a task later, whichever
+  // order the listeners fire in), a height that changed on a week whose cell takes its look from a linked note moves onto
+  // that note. The row looks the same (syncRowHeights draws the note's), and the drag's own undo step, banked by its
+  // markDirty's debounced push, holds the moved height.
+  let rowDragFrom = null;
+  document.addEventListener('pointerdown', e=>{
+    const h = e.target && e.target.closest && e.target.closest('.grid-resize');
+    rowDragFrom = (h && !h.classList.contains('is-col') && !h.classList.contains('is-span') && phaseNotesHasAny())
+      ? Object.assign({}, rowHeightsByWeek) : null;
+  }, true);
+  const rowDragEnd = ()=>{
+    const from = rowDragFrom;
+    if(!from) return;
+    rowDragFrom = null;
+    setTimeout(()=>{
+      let moved = false;
+      Object.keys(rowHeightsByWeek).forEach(wk=>{
+        if(from[wk] === rowHeightsByWeek[wk]) return;
+        const lk = wfLinkedLookKey(wk);
+        if(!lk) return;
+        phaseNotes[lk].height = rowHeightsByWeek[wk];
+        delete rowHeightsByWeek[wk];
+        moved = true;
+      });
+      if(moved){ syncRowHeights(currentSchedule); markDirty(); }
+    }, 0);
+  };
+  document.addEventListener('pointerup', rowDragEnd);
+  document.addEventListener('pointercancel', rowDragEnd);
+  // ...and the handle's double-click (autofit, also frozen) or the menu's Reset row height on such a row: the height is the
+  // note's, so the note loses it -- or the next schedule would draw it straight back. rowHeightsLinked, from the last
+  // sync, says which rows took a linked note's height.
+  function clearLinkedRowHeights(rows){
+    let cleared = false;
+    rows.forEach(r=>{
+      if(!rowHeightsLinked || !rowHeightsLinked.has(String(r))) return;
+      const wk = currentSchedule && currentSchedule.weeks && currentSchedule.weeks[r];
+      const lk = wk && wfLinkedLookKey(isoOf(wk.date));
+      if(lk && phaseNotes[lk].height !== undefined){ delete phaseNotes[lk].height; cleared = true; }
+    });
+    return cleared;
+  }
+  document.addEventListener('dblclick', e=>{
+    const h = e.target && e.target.closest && e.target.closest('.grid-resize');
+    if(!h || h.classList.contains('is-col') || h.classList.contains('is-span') || !phaseNotesHasAny()) return;
+    const r = +h.dataset.row;
+    if(!Number.isInteger(r)) return;
+    setTimeout(()=>{
+      if(!clearLinkedRowHeights([r])) return;
+      syncRowHeights(currentSchedule); render(currentSchedule); markDirty();
+    }, 0);
+  });
   // A linked note's home as the grid would name it: "Production wk 12" -- the phase's own cell label for its n-th working
   // week (seg.template, so "Number weeks" off and Post's continued count read as the grid reads them) -- or, for a note
   // that is waiting on a phase's last week (R3(a)), the number it will go back to. A shoot-day note reads "Production day 10".
@@ -22867,6 +22933,10 @@ export function initLegacyApp() {
     else pushUndoSnapshot();
     keys.forEach(k=>{
       const [kind, key] = splitTextKey(k);
+      // ⭐ A Notes cell showing a linked note: its style and size are the note's (R7(a), D10; step 3), and the week keeps
+      // none, so the note's are drawn and travel with it.
+      const lk = kind === 'note' ? wfLinkedLookKey(key) : null;
+      if(lk){ applyLinkedTextStyle(lk, key, patch); return; }
       const sizeStore = kind === 'note' ? noteFontSize : kind === 'hiatus' ? hiatusFontSize : null;
       if(patch === null){
         delete textStyle[kind][key];
@@ -22894,6 +22964,29 @@ export function initLegacyApp() {
     markDirty();
     if(!live) cancelPendingUndoPush();
     syncStyleBar();
+  }
+  // The bar's patch on a linked note (step 3): the same rules as a week's note -- the size by itself (11, the default,
+  // stored as nothing), a bold that is not bold, an italic that is not, a centred alignment all no override -- merged over
+  // what the cell shows now (textStyleOf, the week's own if it had one), written on the note, and the week's own copy of
+  // either dropped. `patch === null` clears both.
+  function applyLinkedTextStyle(lk, weekKey, patch){
+    const n = phaseNotes[lk];
+    if(!n) return;
+    if(patch === null){ delete n.style; delete n.size; delete textStyle.note[weekKey]; delete noteFontSize[weekKey]; return; }
+    const rest = Object.assign({}, patch);
+    if('size' in rest){
+      if(rest.size === '' || rest.size == null || rest.size === 11) delete n.size; else n.size = rest.size;
+      delete noteFontSize[weekKey];
+      delete rest.size;
+    }
+    if('bold' in rest && rest.bold === false) rest.bold = '';
+    if('italic' in rest && rest.italic === false) rest.italic = '';
+    if('align' in rest && rest.align === 'center') rest.align = '';
+    if(!Object.keys(rest).length) return;
+    const cur = Object.assign({}, textStyleOf('note', weekKey) || {}, rest);
+    Object.keys(cur).forEach(p=>{ if(cur[p] === '' || cur[p] == null) delete cur[p]; });
+    if(Object.keys(cur).length) n.style = cur; else delete n.style;
+    delete textStyle.note[weekKey];
   }
   if(document.querySelector('.style-bar-host')){
     styleBar = buildStyleBar();

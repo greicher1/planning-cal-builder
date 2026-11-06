@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — notes linked to a phase, step 3: a linked note's look travels with it (6 Nov 2026)
+
+Owner: *"Start step 3"*. Ruling R7(a) (`PHASE-LINKED-NOTES-PLAN.md` §11).
+
+- **What changed:** on a Notes cell that shows a linked note and no typed text of its own, styling now goes on the
+  note. That covers the text style bar (bold, italic, colour, alignment, size), dragging the row taller, and the note
+  editor's colour. Whenever the phase moves, the note arrives styled and in its tall row, and the old week keeps none of
+  it. Resetting the row height undoes it for good: a double-click on the row's handle or the right-click menu's Reset
+  row height.
+- **What didn't:** a cell with typed text of its own keeps its look on the week, as before.
+- **How:** the row drag and its double-click are frozen code (`installGridResizers`), so they are watched from outside
+  and the height moved onto the note afterwards. Nothing frozen was edited.
+- **Proof:**
+  - A new leg, `phaselook`, 10/10.
+  - Green on the same build: `phasenotes`, `phaselink`, `rowheight`, `rowmigrate`, `wfmenu`, `zoomresize`, `calzoom`,
+    `notewrap` and `textstyle`.
+  - **Full gate: 4,217 PASS / 0 FAIL**, every baseline identical.
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+
 ### Unreleased — notes linked to a phase, step 2: "Stays with" in the waterfall note editor (6 Nov 2026)
 
 Owner: *"can we start step 2"*. Rulings R1 ("Stays with"), R2(a) (one cell, one home), R3(a), R6(a) and R7(a), in
