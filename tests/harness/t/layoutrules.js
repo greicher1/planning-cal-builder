@@ -16,6 +16,10 @@
 //               right of everything running, and a paused phase keeps its column; Post -> Localization stacked.
 //   layout-r13  rules 11-16 + 18 (piece 2, frozen widths): widths week by week.
 //   layout-r17  rule 17 (piece 2): Single Column, nothing widens; Post in the lane.
+//   layout-r20  rule 20, giving way: Post starting in Production's last week takes the lane, the marker steps aside
+//               that week, two columns (before: a third column for one week, empty for the rest of the year).
+//   layout-r20b rule 20, absorbing: a one-week Table Read's column does not count toward the even share; Prep
+//               spreads into it once it is free for the rest of Prep's run.
 //
 // ⚠️ Run against the BUILD: HARNESS_PAGE=/dist/index.html.
 window.addEventListener('load', function () { (async function () {
@@ -199,6 +203,30 @@ window.addEventListener('load', function () { (async function () {
         'custom4', 2032, ['2032-02-16:0+1', '2032-08-30:0+2']);
       W('R13j', 'Marketing: one wide beside Delivery', 'custom5', 2032, ['2032-08-02:1+1']);
       C('R13k', 'block widths: 2031 three columns, 2032 two', out.blockWidths['2031'] === 3 && out.blockWidths['2032'] === 2, J(out.blockWidths));
+    }
+    if (FX === 'layout-r20') {
+      var W20 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R20a', '2031 is TWO columns: no column for the one week Post overlaps the shoot (rule 20; today a third)', slotsIn(bl, 2031) === 2 && blockOf(bl, 2031).width === 2, J(out.blockWidths));
+      C('R20b', 'Post takes the Sim Post lane from its first week, Production’s last (rules 6, 20)',
+        slotOf(bl, 2031, 'post') === 1 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'production') === 0, J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      C('R20c', 'that week reads Production | Post with no Sim Post marker; the week before, Production | Simultaneous Post',
+        J(cellAt(bl, '2031-11-24', 'production')) === '[0,1]' && J(cellAt(bl, '2031-11-24', 'post')) === '[1,1]' && cellAt(bl, '2031-11-24', 'simpost') === null
+          && J(cellAt(bl, '2031-11-17', 'simpost')) === '[1,1]' && cellAt(bl, '2031-11-17', 'post') === null,
+        J({ nov24: [cellAt(bl, '2031-11-24', 'production'), cellAt(bl, '2031-11-24', 'post'), cellAt(bl, '2031-11-24', 'simpost')], nov17: [cellAt(bl, '2031-11-17', 'simpost'), cellAt(bl, '2031-11-17', 'post')] }));
+      W20('R20d', 'Post: one wide in the lane that week, then fills the two columns (rule 14)', 'post', 2031, ['2031-11-24:1+1', '2031-12-01:0+2']);
+      W20('R20e', 'Design: one wide beside Writers (even share of two), then fills the width when Writers ends', 'prePrep', 2031, ['2031-05-12:1+1', '2031-05-26:0+2']);
+      W20('R20f', 'Production: one wide beside the lane for the whole shoot (rule 15)', 'production', 2031, ['2031-08-25:0+1']);
+      C('R20g', '2032: Post alone, one column', slotsIn(bl, 2032) === 1 && slotOf(bl, 2032, 'post') === 0, J(out.slots['2032']));
+    }
+    if (FX === 'layout-r20b') {
+      var W20b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R20Ba', 'columns: Writers | Prep | Table Read (one week, a phantom), Production and Post left; three columns',
+        slotOf(bl, 2031, 'writersRoom') === 0 && slotOf(bl, 2031, 'prodPrep') === 1 && slotOf(bl, 2031, 'custom1') === 2 && slotOf(bl, 2031, 'production') === 0 && slotOf(bl, 2031, 'post') === 0 && slotsIn(bl, 2031) === 3,
+        J(out.slots['2031']));
+      W20b('R20Bb', 'Prep: one wide until Table Read’s week, TWO wide from the week after (the phantom column does not count toward the share; rule 13’s rest of the run), then fills the width when Writers ends',
+        'prodPrep', 2031, ['2031-04-07:1+1', '2031-04-28:1+2', '2031-05-26:0+3']);
+      W20b('R20Bc', 'Writers: one wide throughout -- Prep takes the next column before Writers’ run ends (rule 13), and Writers is not beside the phantom', 'writersRoom', 2031, ['2031-01-06:0+1']);
+      W20b('R20Bd', 'Table Read: its one cell, one wide', 'custom1', 2031, ['2031-04-21:2+1']);
     }
     C('S0', 'a stamped fixture raises no "Update layout" strip', !out.strip, out.strip);
     out.errors = (window.__ERR || []).slice(0, 6);

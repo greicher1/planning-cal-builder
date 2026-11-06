@@ -219,3 +219,54 @@ last year. Reported with the numbers in HANDOFF.
 7. ✅ Re-scored: stamped 98.1% of phase-weeks, 0 width misses; the 31 left are §5's four cases plus hand-10's Hard Prep
    (6 weeks: that picture keeps it narrow beside Writers' freed column where hand-11, 15 and 16 widen) and hand-04's
    two weeks of transcription drift (its Writers ends two weeks before the picture's). Unstamped 82.3%, unchanged.
+
+## 7. Rule 20 — a column must earn its place (owner, 5 Nov 2026, after the three pieces)
+
+**The ask.** On a Test Show (synthetic, in chat) Post started in Production's last week while Sim Post still held its
+lane. Rule 5 opened a third 2027 column for that one week, which then stood empty beside Writers + Pre-Prep and beside
+Production + Sim Post for the rest of the year. The owner: *"its less about phase specific changes like that and more
+about the algorithm understanding better what looks right and what doesnt with any phases"*. The rules place phases one
+at a time and never look back at what the year came out like; that was the gap.
+
+**What "looks right", measured on the 15 calendars** (`scan-coluse` / `scan-shared`, scratch): every pictured column is
+used, beside another column's cell, for at least 5 rows (hand-07 2025, Pre-Prep beside Writers); hand-02's 2026 third
+column holds Pre-Prep for 6 rows and then stands EMPTY beside two one-wide phases for 14 — so an empty column is not the
+fault, an unearned one is; rule 6's Wrap column is 3 rows; hand-12 2028 is exactly 3 and 3. The floor is 3
+(`LAYOUT_EARNED_WEEKS`): under the pictures' minimum, at the Wrap.
+
+**The measure, one definition, two readers.** A column's use in a year block is, summed over what it holds there, the
+non-hiatus rows each occupant holds BESIDE another column's cell over its WHOLE run (the marker counts as the lane's
+occupant). Whole run, not the year's slice: the first cut counted the year's rows and read hand-09's lane — three marker
+rows in December, twelve in January — as a phantom, and Prep absorbed it (8 width misses, 97.6%). A lone row counts for
+nothing (a lone phase fills the row, rule 14): the Test Show's third column holds Post for one shared row and then three
+lone ones, and earned one. A column used less than the floor while another in the block is used more is a phantom.
+
+- **Giving way** (`placeSegmentsByRules`, not frozen): the placement runs as a pass; a scan between passes finds, per
+  year, a phantom column's occupant that started while the marker ran, is not Production, is not moved by hand, and
+  whose run fits the lane's column beside its non-marker occupants; the pass runs again with that phase sent to the lane
+  (step 20, before rule 6), its rows recorded in `yields`, and the lane kept reserved past a short yielder so the marker
+  resumes. `computeSchedule`'s `isSimPostWeek` is false on a yielded row, so the week carries the phase's cell in the
+  lane and no marker, and the numbering and Post's continued count skip it as they skip a hiatus. Frozen SP1 sees no
+  conflict (the phase's cell sits in the lane only on non-marker rows).
+- **Absorbing** (frozen edit LR2 in `computePhaseRowLayout`, stamped only): `markLayoutPhantoms` (after the week loop,
+  on the drawn rows, per frozen `computeYearBlocks` block) stamps each week row of a block with the block's phantom
+  columns (`layoutPhantom`, absent on an unstamped calendar); LR2 maps them through the slotMap and leaves a phantom slot
+  out of the even share — `spanCap` over the earned slots, the rightward walk and the left-extend counting earned slots
+  only — so a phase beside it spreads into it on rule 13's rest-of-run terms. Unstamped, no row carries the key and the
+  three counts are exactly the old `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))` and
+  `(left + span) < spanCap`.
+
+**What it does not do.** A phantom beside the lane (Production | lane | a real one-week phase) stays empty: the lane
+never widens (15) and Production cannot cross it. No picture shows the shape; it waits for one.
+
+**Gate.** Full gate 4,012 PASS / 4 FAIL, baselines byte-identical: `simpostdays` E1–E3 met rule 20 (its scenario E has
+Post starting in Production's pushed last week, so the marker now steps aside there — a deliberate exception to the
+2 Nov "exactly Production's weeks" ruling, in the owner's accepted wording; the leg follows), and `phiatusnum` H4 is the
+leg's own PDF reader trimming a Flate stream that ends in a newline today (the HEAD build fails identically; `main`'s
+by-`/Length` reader is the fix). Seeds 98.1% / 31 / 0, unchanged. `npm run check` 40/40.
+
+**Fixtures** (`layout-r20`, `layout-r20b`; `fixtures.mjs`), leg `layoutrules`, both red on `dist/pre.html` and on the
+build before rule 20: r20 the Test Show shape (two columns; the 24 Nov row reads Production | Post with no marker; Post
+then fills two); r20b a one-week Table Read beside Writers + Prep (its column stays, Prep is two wide from the week
+after, Writers one wide throughout — Prep's column is taken before Writers' run ends, rule 13).
+

@@ -17,8 +17,11 @@
 //   B1/B2  from Wed 7/1/26 (snap off): the first week (6/29) is a Sim Post week; its bar is Wed-Thu, as Production's
 //   C1/C2  from Thu 7/2/26
 //   D1/D2  from Fri 7/10/26
-//   E1/E2  plus Production's own one-week hiatus 8/3/26: no Sim Post that week, in either view
-//   E3     numbered ("Number these weeks"): Sim Post wk 1..K over Production's working weeks, skipping the hiatus, and
+//   E1/E2  plus Production's own one-week hiatus 8/3/26: no Sim Post that week, in either view. ⚠️ The hiatus pushes
+//          Production's last week onto Post's first (11/2/26), and under rule 20 (LAYOUT-RULES.md §0, 5 Nov 2026: a
+//          column must earn its place) Post, whose own column would be a phantom, takes the lane there -- so that
+//          one working week carries Post's cell and no marker, in both views. Every other working week has Sim Post.
+//   E3     numbered ("Number these weeks"): Sim Post wk 1..K over Production's working weeks but that last one, skipping the hiatus, and
 //          Post carries on at wk K+1
 //   F1     offset 2 on the Friday start: Sim Post from 7/20/26, two calendar weeks after Production's first row (7/6);
 //          the old rounding counted from the Friday and gave 7/27/26
@@ -165,12 +168,20 @@ window.addEventListener('load', function () { (async function () {
     T.set('phiatus-start-production', '2026-08-03');
     cnt = byId('simpost-count'); if(!cnt.checked) cnt.click();
     var E = await scenario('E-prodhiatus');
-    weeksCase('E1', 'Production\'s own hiatus (8/3/26): no Sim Post that week', E);
+    // Rule 20: the one working week without Sim Post is Post's first, 11/2/26, where Post sits in the lane.
+    add('E1', 'Production\'s own hiatus (8/3/26): no Sim Post that week; Sim Post on every other working week but the last, where Post takes the lane (rule 20)',
+        same(E.missing, ['2026-11-02']) && !E.extra.length && E.wf.sim.length > 0,
+        {missing: E.missing, extra: E.extra, prod: [E.wf.prod[0], E.wf.prod[E.wf.prod.length - 1], E.wf.prod.length],
+         sim: [E.wf.sim[0], E.wf.sim[E.wf.sim.length - 1], E.wf.sim.length]},
+        {missing: ['2026-11-02'], extra: []});
     add('E1b', 'the hiatus week is Production\'s hiatus band, without Sim Post', same(E.wf.prodHi, ['2026-08-03']) && E.wf.sim.indexOf('2026-08-03') < 0,
         {prodHi: E.wf.prodHi, simHas: E.wf.sim.indexOf('2026-08-03') >= 0}, {prodHi: ['2026-08-03'], simHas: false});
-    daysCase('E2', 'and no Sim Post bar in the month view that week', E, '2026-08-02', '');
-    var K = E.wf.prod.length;
-    var wantLabels = E.wf.prod.map(function (_, i) { return 'Simultaneous Post wk ' + (i + 1); });
+    var e2 = E.mv.rows['2026-08-02'] || {prod: '', sim: ''};
+    add('E2', 'and no Sim Post bar in the month view that week; the one row where the bars differ is Post\'s first week, 11/1 (rule 20)',
+        same(E.badRows, ['2026-11-01 prod[12345] sim[]']) && e2.sim === '',
+        {badRows: E.badRows.slice(0, 6), row: '2026-08-02', at: e2}, {badRows: ['2026-11-01 prod[12345] sim[]'], rowSimDays: ''});
+    var K = E.wf.prod.length - 1;   // rule 20: the last working week is Post's, in the lane, so the marker stops at K
+    var wantLabels = []; for (var ki = 0; ki < K; ki++) wantLabels.push('Simultaneous Post wk ' + (ki + 1));
     add('E3', 'numbered: Sim Post wk 1..K over Production\'s working weeks, and Post carries on at wk K+1',
         same(E.wf.simLabels, wantLabels) && E.wf.firstPost === 'Post wk ' + (K + 1),
         {first: E.wf.simLabels[0], last: E.wf.simLabels[E.wf.simLabels.length - 1], n: E.wf.simLabels.length, firstPost: E.wf.firstPost},

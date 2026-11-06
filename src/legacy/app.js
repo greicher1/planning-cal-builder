@@ -260,6 +260,16 @@ export function initLegacyApp() {
     catch(e){ return false; }
   })();
   function layoutStamped(){ return colReuse && !LAYOUT_LEGACY_HOOK; }
+  // ⭐ RULE 20 (LAYOUT-RULES.md §0; owner, 5 Nov 2026, on a screenshot where a one-week overlap had opened a third
+  // column that stood empty beside running phases for the rest of the year: "less about phase specific changes ...
+  // more about the algorithm understanding better what looks right and what doesnt with any phases"). A column must
+  // EARN its place in a year block: one used for fewer weeks than this, while another column in the block is used
+  // more, is a PHANTOM. placeSegmentsByRules avoids it where something can give way (the Sim Post marker, the only
+  // thing on the grid that is not a phase: a phase never loses a cell and a date never moves), and frozen edit LR2 in
+  // computePhaseRowLayout lets the phase beside it absorb it (a phantom does not count toward the even share). The
+  // floor is measured from the owner's calendars: the shortest column they ever drew by hand is used 5 weeks, and
+  // rule 6's Wrap column is 3. Stamped calendars only, through layoutStamped().
+  const LAYOUT_EARNED_WEEKS = 3;
 
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
@@ -4682,13 +4692,19 @@ export function initLegacyApp() {
   //      frozen function through stintOrderFor, edit E0's seam. The lane counts as an occupant keyed a half step
   //      after Production.
   //  10. A hand move (colFollow) wins; a hidden phase is not in wfSegments and takes no column.
+  //  20. A column must earn its place (LAYOUT_EARNED_WEEKS). After a pass, a column used fewer weeks than that in a
+  //      year block, while another is used more, is a phantom; a phase in it that started while the Sim Post marker
+  //      ran, and whose run fits the lane's column, GIVES the marker up: the pass runs again with that phase sent to
+  //      the lane, and the marker steps aside for the rows the phase holds (`yields`, read by computeSchedule's
+  //      isSimPostWeek), resuming after a short one. Any phase but Production, a hand move first. A phantom nothing
+  //      can remove stays (both phases need their cells), and LR2 lets its neighbour absorb it.
   //
   // ⚠️ FREE MEANS WEEK ROWS, not raw dates, as the reuse placement had it: two snap-off phases meeting mid-week
   // must never land in one column on the same row. For an all-snapped calendar the two tests are identical.
   //
-  // Returns { moves, lane } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
+  // Returns { moves, lane, yields } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
   // blocker?} } for every phase moved by hand, read by reflectColMoveNotes and followRunFor), lane = the lane's
-  // column and ordering key, or null.
+  // column and ordering key, or null, yields = [{key, start, end}], the rows the marker steps aside for (rule 20).
   function placeSegmentsByRules(segments, hiatuses, segCol, simPostOn){
     const WEEK = 7*DAY_MS;
     const firstRow = s => mondayOf(s.start).getTime();
@@ -4699,15 +4715,19 @@ export function initLegacyApp() {
     const yearOf = t => singleColumn ? 0 : new Date(t).getUTCFullYear();
     const idxOf = new Map(segments.map((s, i) => [s, i]));
     const cmpKey = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
+    // Rule 20: the phases sent to the lane, found by the scan below; one pass places with them known.
+    const yieldKeys = new Set();
+    const pass = () => {
     // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, occ: its occupants
-    //             [{t: first row, y0, y1}] }
+    //             [{t: first row, y0, y1, first, end, seg, marker}] }
     const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
+    const yields = [];
     let lane = null;
-    const occupy = (i, seg, first, end, t) => {
+    const occupy = (i, seg, first, end, t, marker) => {
       cols[i].freeAt = end; cols[i].last = seg;
-      cols[i].occ.push({ t, y0: yearOf(first), y1: yearOf(Math.max(first, end - WEEK)) });
+      cols[i].occ.push({ t, y0: yearOf(first), y1: yearOf(Math.max(first, end - WEEK)), first, end, seg, marker: !!marker });
     };
     const newCol = () => { cols.push({ freeAt: 0, last: null, occ: [] }); return cols.length - 1; };
     // Rule 9's metric. The top of column i in year y: the earliest first row among its occupants with rows in
@@ -4764,6 +4784,8 @@ export function initLegacyApp() {
             reason: x ? 'busy' : (segments.some(s => s.key === want) ? 'later' : 'unscheduled'),
             blocker: x ? cols[xc].last.key : null };
         }
+        // 20. Giving way: this phase's own column would be a phantom, so the Sim Post marker steps aside for it.
+        if(at < 0 && lane && yieldKeys.has(seg.key)) at = lane.col;
         // 6. Post continues the Sim Post lane, once the shoot has ended.
         if(at < 0 && seg.key === 'post' && lane && free(lane.col) && lane.end <= first) at = lane.col;
         if(at < 0){
@@ -4782,6 +4804,10 @@ export function initLegacyApp() {
         occupy(at, seg, first, rowsEnd(seg), first);
         segCol.set(seg, at);
         placed.set(seg.key, seg);
+        if(lane && at === lane.col && yieldKeys.has(seg.key)){
+          yields.push({ key: seg.key, start: first, end: rowsEnd(seg) });
+          cols[at].freeAt = Math.max(cols[at].freeAt, lane.end);   // the marker resumes after a short one: the lane stays reserved
+        }
         // 8. Production's lane, reserved for the whole shoot: the leftmost free column that sorts right of
         // Production's in its first year block, else a new one. Keyed by Production's first row, so the year
         // order puts it beside Production (a column that sorts left of Production's is never taken for it) and
@@ -4791,12 +4817,59 @@ export function initLegacyApp() {
           const cands = [];
           for(let i = 0; i < cols.length; i++) if(i !== at && free(i) && cmpKey(orderKey(i, y, first), pk) > 0) cands.push(i);
           const lc = cands.length ? leftmost(cands, y, first) : newCol();
-          occupy(lc, seg, first, rowsEnd(seg), first);
+          occupy(lc, seg, first, rowsEnd(seg), first, true);
           lane = { col: lc, t: first, end: rowsEnd(seg) };
         }
       });
     });
-    return { moves, lane };
+    return { moves, lane, yields, cols };
+    };
+    // Rule 20's scan: the phases whose column is a phantom in the year they start and that the marker can step
+    // aside for. The measure is markLayoutPhantoms' (below computeSchedule), on the columns as placed: a column's
+    // USE in a year is, summed over what it holds there, the non-hiatus rows each occupant holds BESIDE another
+    // column's cell over its WHOLE run (the marker's included). A phase alone in its row fills the width (rule
+    // 14), so a lone row needs no column of its own: a column shared for one row and then holding a lone phase for
+    // twenty earned one. And a run is not cut at New Year: hand-09's lane holds three marker rows in December and
+    // twelve in January, and is earned in both years.
+    const rowsOf = c => { const out = new Set(); c.occ.forEach(o => { for(let t = o.first; t < o.end; t += WEEK) if(!inHiatus(t)) out.add(t); }); return out; };
+    const yielders = r => {
+      const out = [];
+      if(!r.lane) return out;
+      const rowsAll = r.cols.map(rowsOf);
+      r.cols.forEach((c, i) => c.occ.forEach(o => {
+        let n = 0;
+        for(let t = o.first; t < o.end; t += WEEK) if(!inHiatus(t) && rowsAll.some((rs, j) => j !== i && rs.has(t))) n++;
+        o.shared = n;
+      }));
+      const years = new Set();
+      r.cols.forEach(c => c.occ.forEach(o => { for(let y = o.y0; y <= o.y1; y++) years.add(y); }));
+      years.forEach(y => {
+        const used = r.cols.map(c => c.occ.reduce((n, o) => n + ((o.y0 <= y && y <= o.y1) ? o.shared : 0), 0));
+        const maxUsed = Math.max(...used);
+        r.cols.forEach((c, i) => {
+          if(i === r.lane.col || !(used[i] < LAYOUT_EARNED_WEEKS && used[i] < maxUsed)) return;
+          c.occ.forEach(o => {
+            const seg = o.seg;
+            if(o.marker || seg.key === 'production' || yieldKeys.has(seg.key) || out.includes(seg.key)) return;
+            if(colFollow[seg.key] && colFollow[seg.key] !== seg.key) return;        // a hand move wins (rule 10)
+            if(yearOf(o.first) !== y) return;                                        // judged in the year it starts
+            if(!(o.first >= r.lane.t && o.first < r.lane.end)) return;               // started while the marker ran
+            const clash = r.cols[r.lane.col].occ.some(p => !p.marker && p.seg !== seg && p.first < o.end && p.end > o.first);
+            if(!clash) out.push(seg.key);
+          });
+        });
+      });
+      return out;
+    };
+    let r = pass();
+    for(let n = 0; n < 4; n++){
+      const more = yielders(r);
+      if(!more.length) break;
+      more.forEach(k => yieldKeys.add(k));
+      segCol.clear();
+      r = pass();
+    }
+    return { moves: r.moves, lane: r.lane, yields: r.yields };
   }
   // Rule 9's order for every year block of a placed, stamped calendar, derived from the drawn cells: per block,
   // the columns with cells in it sorted by their top occupant's first row (the lane's, Production's first row,
@@ -4819,6 +4892,44 @@ export function initLegacyApp() {
       }
       if(lane && simHere && top.has(lane.col) && lane.t < top.get(lane.col)) top.set(lane.col, lane.t);
       return Array.from(top.keys()).sort((a, c) => (top.get(a) - top.get(c)) || (a - c));
+    });
+  }
+
+  // Rule 20's measure on the DRAWN rows, for frozen edit LR2: a column EARNS its place in a year block when what it
+  // holds there runs beside another column's cell for LAYOUT_EARNED_WEEKS rows or more over its whole run (a run
+  // crossing New Year counts its rows on both sides; the Sim Post marker counts as the lane's occupant). A column
+  // used less than that, while another column in the block is used more, is a phantom, and every week row of the
+  // block carries the block's phantom columns as `layoutPhantom` -- data frozen computePhaseRowLayout reads through
+  // the block's slotMap, as it reads `col`. Set only on a stamped calendar (the caller), so an unstamped week row
+  // never carries the key and the frozen branch sees no phantom. Same measure as placeSegmentsByRules' scan, on the
+  // rows the renderer draws (a hidden phase has no cell, and a calendar range has cut its rows).
+  function markLayoutPhantoms(weeks, lane){
+    const LANE = ' lane';
+    const occ = weeks.map(w => {
+      if(w.cells.length && w.cells[0].type === 'hiatus') return null;
+      const s = new Set();
+      w.cells.forEach(c => { if(c.col !== undefined) s.add(c.col); });
+      if(w.simPost && lane) s.add(lane.col);
+      return s;
+    });
+    const shared = {};
+    weeks.forEach((w, i) => {
+      const s = occ[i]; if(!s || s.size < 2) return;
+      w.cells.forEach(c => { if(c.col !== undefined && c.key) shared[c.key] = (shared[c.key] || 0) + 1; });
+      if(w.simPost && lane) shared[LANE] = (shared[LANE] || 0) + 1;
+    });
+    computeYearBlocks(weeks).forEach(b => {      // FROZEN, read-only: the renderer's own blocks
+      const used = new Map(), seen = new Set();
+      const add = (key, col) => { const id = key + '@' + col; if(seen.has(id)) return; seen.add(id); used.set(col, (used.get(col) || 0) + (shared[key] || 0)); };
+      for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+        const w = weeks[i];
+        if(!occ[i]) continue;
+        w.cells.forEach(c => { if(c.col !== undefined && c.key) add(c.key, c.col); });
+        if(w.simPost && lane) add(LANE, lane.col);
+      }
+      let max = 0; used.forEach(n => { if(n > max) max = n; });
+      const phantoms = []; used.forEach((n, col) => { if(n < LAYOUT_EARNED_WEEKS && n < max) phantoms.push(col); });
+      if(phantoms.length) for(let i = b.startIdx; i < b.startIdx + b.count; i++) weeks[i].layoutPhantom = phantoms;
     });
   }
 
@@ -5344,8 +5455,14 @@ export function initLegacyApp() {
     //  - Production's own hiatus and its off weeks still counted as Sim Post weeks, though Production draws a
     //    hiatus band there. They are left out with the week loop's own tests, so the numbering and Post's
     //    continued count skip them as Production's does.
+    // Rule 20 (LAYOUT-RULES.md §0): on a stamped calendar the Sim Post marker steps aside for the rows a phase holds in
+    // its lane (placeSegmentsByRules' yields), so the week carries that phase's cell there and no marker -- the
+    // numbering and Post's continued count skip those rows as they skip a hiatus. Empty unless something yielded.
+    const laneYields = (layout && layout.yields) || [];
+    const laneGiven = ws => laneYields.some(y => ws.getTime() >= y.start && ws.getTime() < y.end);
     const isSimPostWeek = (ws) => {
       if(!(state.simultaneousPost.enabled && prodSeg)) return false;
+      if(laneGiven(ws)) return false;
       if(!(prodSeg.start < addDays(ws, 7) && prodSeg.end > ws)) return false;
       const ownHi = prodSeg.phaseHiatus;
       if(ownHi && ws >= ownHi.start && ws < ownHi.end) return false;
@@ -5526,6 +5643,7 @@ export function initLegacyApp() {
     // cells and pinned through stintOrderFor, edit E0's seam into frozen computeBlockLayout. A block swap stored on
     // top exchanges two columns' `col` values as it always did, with this as the order it preserves. Unstamped, or
     // under the `?layout=` hook, nothing is pinned and the frozen first-appearance order stands, as before.
+    if(layout) markLayoutPhantoms(wf.weeks, layout.lane);          // rule 20's phantom columns, for frozen edit LR2
     const ruleOrders = layout ? layoutBlockOrders(wf.weeks, wfSegments, layout.lane) : null;
     const stintOrder = applyStintSwaps(wf.weeks, ruleOrders);
     const appliedColSwaps = applyColSwaps(wf.weeks);
@@ -20133,7 +20251,19 @@ export function initLegacyApp() {
     // does, rather than being a fixed 1-column reservation like the Simultaneous Post marker.
     const fixedSlots = (simSlot >= 0 ? 1 : 0);
     const nPhases = bySlot.filter(Boolean).length;
-    const spanCap = (stamped && singleColumn) ? 1 : (nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc);   // LR1: rule 17
+    // ⛔ FROZEN EDIT LR2 (owner, 5 Nov 2026, "build it"; LAYOUT-RULES.md §0 rule 20). On a STAMPED calendar the week
+    // row carries the block's PHANTOM columns (`layoutPhantom`, computeSchedule's markLayoutPhantoms: a column whose
+    // occupants run beside another column for fewer than LAYOUT_EARNED_WEEKS rows while another column is used
+    // more), read here through the slotMap as `col` is. A phantom slot does not count toward the even share (12),
+    // so the phase beside it spreads into it on rule 13's terms, and the share is divided over the earned slots.
+    // Unstamped, no row carries the key, no slot is a phantom, and the three counts below are exactly what
+    // `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))` and `(left + span) < spanCap` were.
+    const phantomSlots = new Set();
+    if(stamped && week.layoutPhantom) slotMap.forEach((sl, c) => { if(week.layoutPhantom.indexOf(c) >= 0) phantomSlots.add(sl); });
+    const phantom = n => phantomSlots.has(n);
+    const earnedIn = (a, b) => { let c = 0; for(let n = a; n <= b; n++) if(!phantom(n)) c++; return c; };
+    const mcEarned = mc - phantomSlots.size;
+    const spanCap = (stamped && singleColumn) ? 1 : (nPhases > 1 ? Math.max(1, Math.floor((mcEarned - fixedSlots) / nPhases)) : mc);   // LR1: rule 17; LR2: earned slots
 
     const out = [];
     let k = 0;
@@ -20149,7 +20279,7 @@ export function initLegacyApp() {
         // data-* attributes rendered from them, the drag/double-click handles -- treat it exactly
         // like a phase cell, with no changes to either.
         let span = 1;
-        while(k+span < mc && span < spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
+        while(k+span < mc && earnedIn(k, k+span) <= spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }   // LR2
         if(c.type === 'phaseHiatus'){
           // Resolve any per-band rename/recolor the user has applied, keyed by week + phase.
           const hKey = c.weekIso + '|' + c.key;
@@ -20174,10 +20304,11 @@ export function initLegacyApp() {
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
-          let left = Math.min(n - k, Math.max(0, spanCap - 1));
+          let left = 0;
+          while(left < n - k && earnedIn(n - left - 1, n) <= spanCap) left++;                         // LR2
           const from = n - left;
           let span = 1;
-          while(n+span < mc && (left + span) < spanCap && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
+          while(n+span < mc && earnedIn(from, n+span) <= spanCap && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }   // LR2
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];

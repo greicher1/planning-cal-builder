@@ -236,6 +236,21 @@ calendars against today's column rules; the owner answered every difference "as 
   week no longer splits a run; a spare column between two phases goes to the left one; in Single Column Mode
   nothing widens. The even share, a lone phase filling the width, the Sim Post lane, bands and hand-dragged widths
   are as they were.
+- **Rule 20, a column must earn its place (later on 5 Nov 2026, owner: *"build it"*).** On a test calendar Post started
+  in Production's last week while Simultaneous Post still held its lane, so a third column opened for that one week
+  and stood empty beside Writers + Pre-Prep, and beside Production + Sim Post, for the rest of the year. The owner
+  asked not for a Post fix but for the algorithm to know *what looks right, with any phases*. Measured on the fifteen
+  calendars: every column drawn by hand is used beside another phase for at least 5 weeks over its run, rule 6's Wrap
+  column 3, and an earned column may stand empty (hand-02's third column, 6 weeks of Pre-Prep, then 14 empty beside
+  two one-wide phases). So a column whose occupants run beside another column for **fewer than 3 weeks over their
+  whole run** (the floor `LAYOUT_EARNED_WEEKS`), while another column in that year is used more, is a *phantom*:
+  **the Sim Post marker steps aside** for a phase whose column would otherwise be one (the phase takes the lane from
+  its first week, no marker is drawn on those rows, the marker resumes after a short one; the numbering and Post's
+  continued count skip those rows as they skip a hiatus), and **where the column must exist** (two real phases need
+  their cells) **it does not count toward the even share**, so the phase beside it spreads into it from the week it is
+  free for the rest of the run (frozen edit LR2, behind the stamp; `markLayoutPhantoms` on the drawn rows marks each
+  week row with its block's phantom columns, and the frozen branch reads them as it reads `col`). A phantom beside the
+  lane stays empty: the lane never widens and Production cannot cross it; no picture shows the shape.
 - **The switch retires.** The Reuse Empty Columns switch leaves Settings. Every new calendar lays out by the
   rules; its saved key `colReuse: true` (unchanged, permanent) is now the layout **stamp**. **A calendar saved
   without it keeps the columns and the widths it was saved with, byte for byte, forever**, and each time it is
@@ -245,9 +260,17 @@ calendars against today's column rules; the owner answered every difference "as 
   switch off and 71.6% with it on, against the figures below — and the switch asked users to know a mechanism
   that the rules now carry.
 - **Verified:** fixtures `layout-r3`, `r6`, `r9`, `r7`, `r13`, `r17` (synthetic) and leg `layoutrules`, green and
-  each red on the build before; the fifteen study calendars re-scored with the stamp on: **98.1%** of phase-weeks
+  each red on the build before; for rule 20, `layout-r20` (the test calendar's shape: two columns, the overlap row
+  reads Production | Post with no marker, Post then fills two) and `layout-r20b` (a one-week Table Read beside Writers
+  + Prep: its column stays, Prep is two wide from the week after), both red before rule 20, and the fifteen calendars
+  re-scored after it byte for byte as before (a first cut that counted a column's use per year, not per run, read
+  hand-09's December lane as a phantom and cost 8 width misses; caught by the re-score, fixed); the fifteen study
+  calendars re-scored with the stamp on: **98.1%** of phase-weeks
   as pictured, no width misses, the rest ruled or explained (HANDOFF); the unstamped path unchanged on every seed
-  (82.3%); the reference calendar's waterfall PDF and Excel parts
+  (82.3%); after rule 20 a full gate of 4,012 PASS / 4 FAIL, every baseline byte-identical — three the `simpostdays`
+  leg meeting rule 20 (Post starting in Production's last week now takes the lane, so that one working week has no
+  marker; the leg follows, 14/14), one the `phiatusnum` leg's own PDF reader trimming a Flate stream that ends in a
+  newline today (`main`'s by-`/Length` reader fixes it; the HEAD build fails the same way); the reference calendar's waterfall PDF and Excel parts
   byte-identical on the legacy path (the gate's `base` leg runs it there through the localhost-only
   `?layout=legacy`, because a new calendar is stamped and rule 13 widens its Localization — by design); both month
   PDFs byte-identical; `npm run check` 40/40; a full gate, 4,000 PASS / 1 FAIL (a month-PDF capture under contention,
