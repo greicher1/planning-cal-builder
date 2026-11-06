@@ -29732,10 +29732,16 @@ export function initLegacyApp() {
   }
 
   // ---- WHEN A RIPPLE RUNS: the settle tracking (plan §4) ----
-  // ⛔ NEVER PER KEYSTROKE. A date box fires 'input' for each digit of a year (2, 20, 202, 2027), and a Weeks spinner
-  // on every click. So the hiatus as it was is taken when an edit to it BEGINS (focus enters its Starts or Weeks box),
-  // and the ripple runs when the edit SETTLES, measured against that: focus leaves the row (or the phase's hiatus
-  // block), Enter, or a pick in the date popover. 2 -> 3 -> 4 on the spinner is ONE push of 2 weeks.
+  // The hiatus as it was is taken when an edit to it BEGINS (focus enters its Starts or Weeks box), and the ripple runs
+  // when the edit SETTLES, measured against that.
+  // ⭐ A WEEKS CHANGE SETTLES THE MOMENT IT IS MADE (owner, 5 Nov 2026: "it should do it immediately not after a
+  // second"). Every whole number the box takes -- a spinner click, an arrow key, a typed digit -- pushes at once and
+  // begins the next edit, focus kept: 2 -> 3 -> 4 is two pushes of 1 week, each its own pair of undo steps. Until then
+  // a Weeks change waited for focus to leave, so the hiatus's band grew while the phases after it sat still, which
+  // read as "Ripple Hiatus did nothing". An emptied box (or 0) mid-typing waits; leaving it empty settles as before.
+  // ⛔ A TYPED START DATE STILL WAITS: a date box fires 'input' for each digit of a year (0002, 0020, 0202, 2026), each
+  // a real date, so it settles when focus leaves the row (or the phase's hiatus block), on Enter, or on a pick in the
+  // date popover (a whole date, at once).
   // ⛔ Begun only on focus. A field written by code (a Load, an undo, a mover, a test's T.set) is never focused, so it
   // has no "before" and cannot ripple. refreshAfterRestore() forgets every pending edit: a restore or a shift has
   // rewritten the fields, so a "before" taken earlier no longer describes them.
@@ -29764,8 +29770,15 @@ export function initLegacyApp() {
     const now = rippleSpan(ed.h);
     if(now === 'invalid') return;           // keep waiting for a date the calendar can read
     rippleEdits.delete(host);
+    // Nothing changed since the edit began (Enter or a click away right after a Weeks change pushed): keep the line
+    // that push wrote. Clearing it here wiped "Pushed 1 wk: ..." the moment the user left the box.
+    if(rippleSameSpan(ed.before, now)) return;
     clearRippleNotes();
     try { rippleAfterHiatusEdit(ed.h, ed.before, now); } catch(e){ console.error(e); }
+  }
+  function rippleSameSpan(a, b){
+    if(!a || !b) return !a && !b;
+    return a.start.getTime() === b.start.getTime() && a.weeks === b.weeks;
   }
   function forgetRippleEdits(){ rippleEdits.clear(); }
   document.addEventListener('focusin', e=> rippleBegin(e.target), true);
@@ -29786,6 +29799,18 @@ export function initLegacyApp() {
     rippleSettle(r.host);
     rippleBegin(e.target);                          // focus stays: the next change is a new edit
   }, true);
+  // ⭐ Weeks, at once (see the top of this section). On the document in the BUBBLE phase, so the field's own handler
+  // (#hiatus-list's, or #phase-rows' for a phase's own hiatus) has already read the new number and run update().
+  // Only an edit the user began counts: a field written by code was never focused, so it has no entry and pushes nothing.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.matches || !t.matches('.hiatus-weeks, .phiatus-weeks')) return;
+    if(!(parseInt(t.value, 10) > 0)) return;       // emptied mid-typing: wait for a number
+    const r = rippleHostOf(t);
+    if(!r || !rippleEdits.has(r.host)) return;
+    rippleSettle(r.host);
+    rippleBegin(t);                                 // focus stays: the next change is a new edit
+  });
   // A pick in the date popover (DatePop.jsx) is a whole date: it writes the field and dispatches 'input' and 'change',
   // untrusted, with focus kept in the field. A typed date's events are trusted and wait for focus to leave.
   document.addEventListener('change', e=>{

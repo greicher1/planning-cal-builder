@@ -4,6 +4,20 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: RIPPLE HIATUS — A WEEKS CHANGE PUSHES AT ONCE. BUILT on branch `ripple-weeks-now` (in the worktree `.claude/worktrees/hiatus-ripple`, cut from `origin/main` at `3964bfb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §4 and §11. Tracker card `hiatus-ripple-weeks-push-at-once`
+- **Asked:** after a 2-week Writer's Rm hiatus pushed everything, *"when i try to adjust it from 2 weeks to 3 weeks it
+  doesnt shift everything down"*; offered a one-second pause, the owner: *"it should do it immediately not after a second"*.
+- **Cause (reproduced on the live code in the browser pane):** the settle rule (plan §4, my call on 4 Nov, not a ruling)
+  waited for focus to leave the Weeks box or Enter. The hiatus's own band grew at once, so it read as "did nothing".
+- **Built** (`src/legacy/app.js`, the ripple's settle tracking): a bubble-phase `input` listener on `.hiatus-weeks,
+  .phiatus-weeks` settles the pending edit and begins the next (focus kept) for every number above 0; an emptied box
+  waits. Only a focused (user-begun) edit has an entry, so code writes still never ripple. `rippleSettle` keeps the
+  result line when nothing changed since the edit began (`rippleSameSpan`), or leaving the box wiped it. Starts is
+  unchanged: typed dates wait, picked dates are at once. Help text reworded.
+- **Proof:** `hiatusripple.mjs` R1 / R3 / R5 rewritten, R8 extended with the owner's case (Pre Prep's own hiatus, Weeks
+  2 -> 3 by ArrowUp). 15/15 on the build; red on the live code in R1, R3, R5, R8 exactly. NEIGHBOURS_RESULT
+- ⏭ **Next:** ask the owner to push (per action).
+
 ### 🔨 5 Nov 2026: REBUILD FROM IS NOW **BUILD AROUND** — LENGTHS IN THE BOX, BOTH SIDES IN ONE RUN. BUILT on branch `build-around` (worktree `.claude/worktrees/build-around`, from `main` at `cf75104`; its `node_modules` is a symlink: unlink it before `git worktree remove`). COMMITTED on the branch as `88abfc5` (owner's picker *"Commit on the branch"*); local `main` (`c27c7d9`: the Shift date row, the double-click pull-back, the harness's PDF length reader) merged in as `147f3ab` (README the only conflict, both entries kept); then `origin/main` (`5867661`: the PDF length reader, which reached origin on its own retry, and the drag over an expanded part, `3b8306c`) and local `main` (`4621e4c`, a HANDOFF note) merged in as `74f5a0d` / `d107f05` (HANDOFF and README only; this entry moved back to the top); fast-forwarded onto `main` and PUSHED on the owner's picker *"Push to the live site"*. On the final merge: `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `centrepullback` 12/12, `npm run check` 40/40. On the first merged build (`147f3ab`): `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `snaptools` 14/14, `overrides` 20/20, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15, `phiatusnum` 18/18 (green with the PDF length reader), `centrepullback` 10/10, `stalebandkey` 9/9, `colreuse` 25/25 of the gate's checks, `npm run check` 40/40; no second full gate. Plan [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) (every ruling), mockup [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), tracker card `rebuild-from-lengths`.
 - **Why:** the owner asked whether Rebuild From is useful at all. Measured on the layout study's 15 seeds (plan §0): 46
   of the 47 handoffs that don't involve Writer's Rm are back to back, no seed has a gap, and the room overlaps the next

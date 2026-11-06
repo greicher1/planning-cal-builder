@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
+
+The owner gave Writer's Rm a 2-week hiatus (which pushed everything after it), then changed it to 3 weeks and saw
+nothing move: *"when i try to adjust it from 2 weeks to 3 weeks it doesnt shift everything down"*. The push did come,
+but only once focus left the Weeks box or Enter was pressed, while the hiatus's own band grew at once. Offered a
+one-second pause; the owner: *"it should do it immediately not after a second"*.
+
+- **Now:** every number a hiatus's Weeks box takes (spinner, arrow keys, typing) pushes or pulls the phases after it at
+  once, cursor kept in the box, for all-phase and per-phase hiatuses alike. 2 → 3 → 4 is two pushes of 1 week, and one
+  ⌘Z still takes back the last push and keeps the number. An emptied box waits for the next number.
+- **Unchanged:** a start date typed by hand still waits until it is finished (Enter or leaving the box), because a year
+  typed digit by digit passes through real dates (0002, 0020, 0202); a date picked in the calendar pushes at once.
+- **Also fixed:** leaving the box right after a push no longer wipes the "Pushed 1 wk: …" line under the hiatus.
+- **Verified:** `hiatusripple.mjs` R1, R3, R5 rewritten and R8 extended with the owner's case (a phase's own hiatus,
+  Weeks 2 → 3 by arrow): 15/15 on the build, R1 / R3 / R5 / R8 red on the live code. Help page reworded.
+
 ### Unreleased — Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
 
 The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured

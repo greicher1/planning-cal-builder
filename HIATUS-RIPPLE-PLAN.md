@@ -151,17 +151,26 @@ Rebuild From, Close all gaps, Start after previous) all write hiatus fields. A f
 each of them. So each edit path below calls one entry point, `rippleAfterHiatusEdit(before, after)`, and nothing
 else does.
 
-⛔ **Never per keystroke.** A date box fires `input` for each digit of a year (2, 20, 202, 2027), and a Weeks
-spinner fires on every click. The before state is taken when an edit to that hiatus begins. The ripple runs
-when the edit SETTLES, measured against that before state, so 2 → 3 → 4 on the spinner is one push of +2.
+⛔ **A typed date never ripples per keystroke.** A date box fires `input` for each digit of a year (2, 20, 202, 2027).
+The before state is taken when an edit to that hiatus begins, and the ripple runs when the edit SETTLES, measured
+against that before state.
+
+⭐ **AMENDED 5 Nov 2026 (owner): a Weeks change settles the moment it is made.** The owner changed a Writer's Rm
+hiatus from 2 to 3 weeks and saw nothing move: the hiatus's band grew while the phases after it waited for focus
+to leave the box. *"it should do it immediately not after a second"* (a one-second pause was offered and turned
+down). So every whole number a Weeks box takes (spinner click, arrow key, typed digit) pushes at once and begins the
+next edit with focus kept: 2 → 3 → 4 is two pushes of 1 week, each its own pair of undo steps. An emptied box (or 0)
+mid-typing waits for a number. Starts is unchanged: a typed date settles on leaving or Enter, a picked one at once.
 
 | Edit path | Settles when |
 |---|---|
-| All-phase row: Starts, Weeks | focus leaves the row (not into its own `.date-pop`), or Enter |
+| All-phase row: Weeks | at once, on every whole number (amended 5 Nov 2026) |
+| All-phase row: Starts | focus leaves the row (not into its own `.date-pop`), Enter, or a pick in the popover |
 | All-phase row: × | at once (after its existing confirm, `removeHiatusRow`) |
 | "+ Add hiatus period" | the new row has no start, so nothing until a start is typed and settles |
 | A phase's Hiatus switch (`phiatus-en-<key>`) | at once, if it has a start |
-| A phase's Starts, Weeks | focus leaves the block, or Enter |
+| A phase's Weeks | at once, on every whole number (amended 5 Nov 2026) |
+| A phase's Starts | focus leaves the block, Enter, or a pick in the popover |
 | Waterfall / month menu: Add hiatus here, Remove hiatus…, the phase-hiatus items (`addHiatusHere`, `removeHiatusHere`, `setPhaseHiatusHere`, `removePhaseHiatusHere`) | at once |
 | Month-view drag: move, first week, last week | on release, BEFORE the Keep / Undo question (§6) |
 | Name, colour, Lock in place, Number weeks | never: no date changes |
@@ -264,7 +273,7 @@ Everything in §3-§9 was built as planned, with these differences:
   wording; the wrap only when Production moved). ⚠️ **No "N locked hiatuses held"**, which §6 proposed: New's four
   winter breaks are locked and after almost every cutoff, so it would show on every push. When no phase starts after
   the hiatus, the line says `No phase starts after it to push` (its later notes and unlocked hiatuses still moved).
-- **What settles an edit** (§4): focus leaving the hiatus's two DATE boxes, not the whole row. Starts to Weeks of the
+- **What settles an edit** (§4; ⭐ Weeks amended 5 Nov 2026, see below): focus leaving the hiatus's two DATE boxes, not the whole row. Starts to Weeks of the
   same hiatus keeps the edit open; Tab from Weeks lands on Lock in place, and that settles it. An unreadable date (a
   year mid-typing) never settles; the edit waits for a readable one.
 - **The one-shot paths** go through `rippleAround(h, fn)`, which first settles any edit still pending on that hiatus.
@@ -284,3 +293,18 @@ Everything in §3-§9 was built as planned, with these differences:
   undo step (R5). Also green on the branch: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81,
   hiatussidebar 16/16, hiatusdrag 14/14, `npm run check` 40/40. The browser pane, real mouse and keys: Break 2 -> 3 weeks,
   Tab, Production 3/16 -> 3/23 with the line under the Break; the three switches drawn.
+
+## 11. Amended 5 Nov 2026: a Weeks change pushes at once
+
+- **Asked** (owner, after adding a 2-week Writer's Rm hiatus, which pushed): *"when i try to adjust it from 2 weeks to 3
+  weeks it doesnt shift everything down"*. Reproduced on the live code: with focus still in Weeks nothing after the hiatus
+  moved, though its own band grew; Enter or a click away then pushed 1 wk. Offered "as soon as you pause (about a
+  second)"; the owner: *"it should do it immediately not after a second"*.
+- **Built:** a bubble-phase `input` listener on `.hiatus-weeks, .phiatus-weeks` settles the pending edit and begins the
+  next one (focus kept), for every whole number above 0. Bubble phase, so the field's own handler has already run.
+  Only an edit the user began (focused) has an entry, so code writes still never ripple (R10). `rippleSettle` no longer
+  clears the result line when nothing changed since the edit began, or leaving the box right after a push wiped it.
+- **Unchanged:** Starts (a typed year passes through real dates), the one-shot paths, the drag, undo's two steps per push.
+- **Proof:** `hiatusripple.mjs` R1, R3, R5 rewritten (at once, focus kept; two ArrowUps two pushes; a typed 5, an emptied
+  box that waits, a typed 3, Enter keeping the line, one undo taking back only the last push).
+
