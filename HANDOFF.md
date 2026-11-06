@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. **Built and COMMITTED on branch `shift-held` (owner's picker *"Commit on the branch"*), NOT live. The owner asked for the FULL GATE before any push (*"Full gate, then ask again"*).** Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
+### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
 - **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
   because of the locked in place all phase hiatuses, we now have a 2 week gap."* Reproduced on a synthetic copy
   (`tests/fixtures/shiftheld.sptcal`): Phase & after Pre-Prep to 8/10/26 (4 wks earlier) slid every phase 4 CALENDAR
@@ -85,8 +85,8 @@
   8-episode tab (pass); it runs on the frozen `releases/v1.2.0.html` and never loads this build (the known flake).
   ⚠️ Two full gates started at once is what HANDOFF warns about; a session that queues a gate behind a PID should check
   no other session queued behind the same PID.
-- **Not done:** not pushed (the owner asked to be asked again after the gate). The ripple's own step-over is the open
-  follow-up (above).
+- **Not done:** the ripple's own step-over is the open follow-up (above): a hiatus edit with Ripple on still pushes the
+  phases after it by calendar weeks, so it can carry a phase across a locked break and open the same gap.
 
 ### ✅ 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). ✅ **LIVE at `6387159`** (owner's pickers *"Commit on the branch"*, *"Push to the live site"*; pushed `3964bfb..6387159` at 02:30 UTC 6 Nov, a fast-forward that also carried three HANDOFF-only notes from local `main`; deploy run `42150741791` green; the live `index.html` is the build byte for byte, sha256 `2d191510…`, "in a week this phase runs" present). Local `main` fast-forwarded to it. No version cut. Built on branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `phase-hiatus-picker-range`.
 - **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
