@@ -308,3 +308,59 @@ Everything in §3-§9 was built as planned, with these differences:
 - **Proof:** `hiatusripple.mjs` R1, R3, R5 rewritten (at once, focus kept; two ArrowUps two pushes; a typed 5, an emptied
   box that waits, a typed 3, Enter keeping the line, one undo taking back only the last push).
 
+
+## 12. PLANNED 6 Nov 2026: the ripple steps over locked breaks, as Shift does
+
+- **Asked** (owner's picker, 6 Nov 2026, *"Yes, plan it"*, to: "Shift now steps over locked breaks, but Ripple Hiatus still
+  pushes by plain calendar weeks… Should Ripple Hiatus step over locked breaks too?"; option text: *"Make it count only
+  working weeks past a locked break, like Shift. Built as its own change"*). The step-over session (`b9211a6`, tracker
+  `shift-held-hiatus-gap`) had left it as the open follow-up: the ripple has the same shape of bug.
+
+### 12.1 The bug, worked (synthetic dates; hand-worked, the build's leg holds them)
+
+A locked 2-week break, Mon 12/21/26 – Fri 1/1/27. Three phases end to end, the break inside the middle one:
+
+| Phase | Starts | Length | Runs | Ends |
+|---|---|---|---|---|
+| A | 11/2/26 | 6 wks | 11/2 … 12/7 | 12/11 |
+| B | 12/14 | 4 wks | 12/14, [break], 1/4, 1/11, 1/18 | 1/22/27 |
+| C | 1/25/27 | … | | |
+
+A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A, B and C 2 weeks.
+
+- **Today (calendar weeks):** A 11/16 → runs to 12/14, then the break, then 1/4 → ends **1/8**. B 12/28 is inside the break, so
+  it really starts 1/4 → ends **1/29**. C 2/8. So **A and B now overlap a week** (1/4 – 1/8) and **a week opens between
+  B and C** (2/1). The break moved from B into A: A runs 2 weeks longer, B 2 weeks shorter on the calendar.
+- **Stepping over:** A 11/16 (crosses nothing held) → ends 1/8. B counts 2 working weeks from 12/14: 12/21 and 12/28 are
+  held, so 1/4, 1/11 → starts **1/11**, ends **2/5**. C counts 1/25 → 2/1, 2/8 → **2/8**. A ends 1/8, B starts 1/11; B
+  ends 2/5, C starts 2/8: every gap and overlap is what it was. B and C moved 4 calendar weeks, A moved 2.
+
+### 12.2 The change
+
+- `rippleAfterHiatusEdit` passes `stepHeld: true` to each of its `shiftCalendarDates` steps (out, in, or the one length
+  step), so every date it moves goes through `stepOverHeld`, as the Shift form's do.
+- ⛔ **The edited hiatus must not be in the weeks it steps over.** The ripple holds it in place (`except`, fate 'stay'),
+  and `hiatusFatesFor` puts every 'stay' band into `held`. Left in, its own push would skip it: Break 2 → 3 wks would
+  push a phase that started the week after the old break **2** weeks (its start now sits in the new third week, "counts
+  from the week after it", then +1), and adding a hiatus would push a phase starting on its first week twice its
+  length. Checked by hand for lengthen, shorten, add and move: all four are right only with the edited band left out.
+  So `shiftCalendarDates` takes the edited row's weeks out of `held` (still 'stay': it does not move). A phase's own
+  hiatus is not in `hiatusFatesFor` at all (it travels with its phase, as in Shift), so nothing to take out there.
+- Every other band stays held as Shift's are: locked rows after the hiatus, and rows before it (outside the ripple's
+  range, so they stay), which a pull can cross. Unlocked rows after it move with the phases and are not held.
+  Holidays never count (Shift's rule).
+- `rippleNormaliseInside` (a phase starting inside the old all-phase hiatus) is unchanged and runs first.
+- **The line** already groups phases by how far each really went ("Pushed 2 wks: A · Pushed 4 wks: B, C"); add Shift's
+  own sentence for the ones that went further (`steppedText`, the same words): *"B and C were pushed 4 wks to step over a
+  held hiatus."* The month drag's question carries the same line.
+- **Unchanged:** the switch, when a ripple runs (Weeks at once, typed dates on finishing), the two undo steps, the edited
+  hiatus held, the one-shot paths. With no held band crossed, every date moves exactly as it does today (stepOverHeld's
+  own no-held path is `addDays(n * 7)`).
+
+### 12.3 Proof (planned)
+
+- A new fixture with the §12.1 calendar (synthetic), and `hiatusripple.mjs` cases: the §12.1 push (A 11/16 – 1/8, B
+  1/11 – 2/5, C 2/8; the sentence); the same edit taken back by one undo; a pull across the break (shorten the hiatus);
+  a moved hiatus; and Break 2 → 3 with a phase starting the week after the old break (moves 1, not 2: the trap above).
+- Red on today's build in the crossing cases, green in the rest (today is right whenever nothing held is crossed).
+- `hiatusripple` R0–R13 unchanged and green (the fixture's locked December breaks sit after every phase it moves).
