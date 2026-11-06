@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 5 Nov 2026: RIPPLE HIATUS — A WEEKS CHANGE PUSHES AT ONCE. BUILT on branch `ripple-weeks-now` (in the worktree `.claude/worktrees/hiatus-ripple`, cut from `origin/main` at `3964bfb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §4 and §11. Tracker card `hiatus-ripple-weeks-push-at-once`
+### ✅ 5 Nov 2026: RIPPLE HIATUS — A WEEKS CHANGE PUSHES AT ONCE — ✅ **LIVE at `850d930`** (owner's picker *"Push now"*; pushed from the branch `2a826e9..850d930` at 15:13:47 on 6 Nov 2026, a fast-forward; deploy succeeded; the live `index.html` matched the tested build `23e10177…` byte for byte at 15:14:37, `version.json` 1.12.1, no version cut). Built on branch `ripple-weeks-now` (in the worktree `.claude/worktrees/hiatus-ripple`, cut from `origin/main` at `3964bfb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §4 and §11. Tracker card `hiatus-ripple-weeks-push-at-once`
 - **Asked:** after a 2-week Writer's Rm hiatus pushed everything, *"when i try to adjust it from 2 weeks to 3 weeks it
   doesnt shift everything down"*; offered a one-second pause, the owner: *"it should do it immediately not after a second"*.
 - **Cause (reproduced on the live code in the browser pane):** the settle rule (plan §4, my call on 4 Nov, not a ruling)
@@ -25,9 +25,12 @@
   from `3964bfb`, `base` once differed from its baseline (Localization one column left in row 9); pure v1.12.0 and the
   merged build both match it, and the change cannot move a column (one listener on the Weeks boxes, ripple off in
   `base`). Cause not pinned down.
-- ⚠️ **Still open, NOT in this change:** the ripple pushes by CALENDAR weeks, so it can carry a phase across a locked
+- ⚠️ **Still open, NOT in this change (now approved to plan, below):** the ripple pushes by CALENDAR weeks, so it can carry a phase across a locked
   break and open the gap Shift's step-over fixed (that session's open follow-up; tracker `shift-held-hiatus-gap`).
-- ⏭ **Next:** ask the owner to push (per action); a fast-forward of `origin/main` from the branch.
+- ⏭ **Next: the ripple's step-over, APPROVED TO PLAN** (owner's picker, 6 Nov 2026, *"Yes, plan it"*, asked after this
+  push: should Ripple Hiatus count only working weeks past a locked break, like Shift?). Not started. Tracker card
+  `ripple-step-over-locked`. Watch-outs: the edited hiatus is held by `except` and must NOT be stepped over by its own
+  push; a moved hiatus's out step pulls phases back across where it now sits.
 
 ### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
 - **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
