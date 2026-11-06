@@ -1,6 +1,13 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: PLANNED, NO APP CODE (4 Nov 2026). R1–R9 not ruled. The note editor's LOOK is ruled: A2 (below).**
+**Status: RULED, NO APP CODE. R1–R9 all ruled 5 Nov 2026 by picker, every one the recommendation (§2). The note
+editor's LOOK is ruled: A2 (below).**
+- ⚠️ **Before step 1, refresh this plan against `main`** (found 5 Nov 2026): it was written on a branch that is now 86
+  commits behind. Rebuild From became **Build Around** (one run, both sides), **Close all gaps is gone**, and Shift
+  From / Anchor To are now choices inside the one Shift form (What moves / How far). §1.1, §1.3's mover table and step
+  1's leg list name the old tools. The waterfall editor also gained, live at `ac55bb7`, the Holiday / Auto Note
+  headings, the Hide buttons and the per-line Hide list (WATERFALL-NOTE-EDITOR-PLAN.md), which A2 (§4.4) must make
+  room for.
 - Mockup: [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html). Its first tab is the note editor with
   the new row. Its second is a before/after of Production moved by typing its start date, with a linked note
   following and an unlinked note staying. The calendar is synthetic (2033, generic names).
@@ -143,7 +150,14 @@
 
 ---
 
-## 2. Rulings needed
+## 2. Rulings (all made)
+
+✅ **RULED 5 Nov 2026, by the owner's pickers: every one is the recommendation.** R1(a) *Stays with*; R2(a) the
+choice is for the cell as a whole; R3(a) a shorter phase parks the note on its last week, a removed custom phase
+turns its notes into plain notes, a dateless phase hides them; R4(b) Production follows its shoot day when the picked
+day is one; R5(a) no links outside a phase yet; R6(a) with no day, the phase's first drawn day that week; R7(a)
+colour, size, style and row height all travel; R8(a) both editors, the month one in a later step; R9(a) one new key,
+`phaseNotes`, no version bump. The options are kept below as the record of what was weighed.
 
 Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
 
@@ -403,7 +417,8 @@ Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
    note keeps its own look.
 4. **Keys, copy, paste, drag** (§4.6). Extend `wfkeys` and `noteviews`.
 5. **The month view** (§4.2's month part, R6, then R8's editor). Extend `mvnotes` and `mvorder.mjs` (the line drag).
-6. **Production's shoot days** (R4(b)) and offsets (R5(b)), if ruled.
+6. **Production's shoot days** (R4(b), ruled). Offsets (R5(b)) were NOT ruled in (R5(a), not now); the store leaves
+   room for them (`production@-2`).
 
 - **The acceptance gate for each step:** the full gate green, with the waterfall PDF, every Excel part, the restore,
   gate 10's print documents and gate 13's written month PDFs byte-identical. No gate fixture holds `phaseNotes`, so

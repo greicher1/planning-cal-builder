@@ -4,7 +4,16 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 4 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — PLAN + MOCKUP, NINE RULINGS OPEN, PLANNED, NO APP CODE ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 📝 4 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — PLAN + MOCKUP, ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation), NO APP CODE ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+- ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
+  R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
+  R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
+  month later; R9(a) one new key `phaseNotes`, no version bump. Plan §2 holds the record.
+- ⚠️ **This branch (`claude/sharp-mendel-68482d`) is 86 commits behind `main` and was never merged into it**, so
+  `main`'s HANDOFF does not have this entry (it still says a plan-writing session was only proposed). Before building:
+  start a branch off `main`, merge this one in (docs only), and refresh the plan: Rebuild From is now Build Around,
+  Close all gaps is gone, Shift From / Anchor To are choices in the one Shift form, and A2 has to make room for the
+  waterfall editor's per-line Hide list (live at `ac55bb7`, which this branch predates).
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.
