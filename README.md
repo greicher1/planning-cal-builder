@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — notes linked to a phase, step 1: the engine (5 Nov 2026)
+
+Owner, 4 Nov 2026: *"we do need a way to link certain notes to certain weeks relative to a phase."* Rulings R1–R9 by
+picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md` §2). This is step 1 of 6 and has
+**no UI yet**. A linked note can only come from a file, so nobody sees a change until step 2 adds the editor's
+*Stays with* row.
+
+- **The store:** a new top-level save key, `phaseNotes`, keyed by the LINK: `<phase>@<n>`, the phase's n-th working
+  week, or `production@day<n>`, its n-th shoot day (R4(b)). Each entry is `{text, dow?, color?, size?, height?, style?,
+  monthHidden?, waterfall?}`. It is absent while empty, so every calendar without a linked note saves byte for byte as
+  before. No version bump (R9(a)): an older build opens the file without its linked notes.
+- **Placed every run:** `computeSchedule()` works out each note's week from the phase's own week numbers
+  (`placePhaseNotes`, on `schedule.phaseNotePlace`), as it does for the automatic notes. So typing a start, Build
+  Around, ▲ / ▼, the Shift form, an added hiatus and a Region change all carry a linked note, with no code in any
+  mover. A phase cut shorter keeps the note on its last week (R3(a)). A note with no day sits on the phase's first
+  drawn day that week (R6(a)).
+- **Drawn:** `effectiveNoteText()` draws a linked note after the week's own text and before its month notes. The
+  screen, Excel, the waterfall PDF, the widths and the row count all read that function, so all of them follow. Its
+  colour, size, style and row height travel with it (R7(a)), through the declarations `noteColorFor`,
+  `noteFontSizeFor`, `textStyleOf` and `syncRowHeights`. A week with typed text of its own keeps its own look. **No
+  frozen edit.**
+- **Kept safe meanwhile:** the waterfall note editor keeps, renames or deletes a linked line instead of copying it
+  into the week's typed text. Removing a custom phase turns its linked notes into plain notes where they were drawn
+  (§4.7). Reset Notes, New and Reset All clear the store, and the sanitizer drops hostile entries and counts them.
+- **Found on the way and fixed:** the row-height migration for files saved before 10 Sep 2026 treated any derived
+  height as an old file. The first build therefore "migrated" a linked note's height onto the week it had left
+  (`rowHeightsSynced`, `rowHeightsForFile`).
+- **Proof:** a new leg, `phasenotes` (fixture `phasenotes.sptcal`), 21/21 on the build. It covers every mover, both
+  exports, the Notes width, the editor, a custom phase removed, Save/Load, an older file, hostile entries and undo.
+  `npm run check` 40/40. Full gate: see HANDOFF.
+
 ### Unreleased — a phase's own hiatus is picked inside that phase (5 Nov 2026)
 
 Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the

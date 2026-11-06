@@ -1,13 +1,13 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: RULED, NO APP CODE. R1–R9 all ruled 5 Nov 2026 by picker, every one the recommendation (§2). The note
-editor's LOOK is ruled: A2 (below).**
-- ⚠️ **Before step 1, refresh this plan against `main`** (found 5 Nov 2026): it was written on a branch that is now 86
-  commits behind. Rebuild From became **Build Around** (one run, both sides), **Close all gaps is gone**, and Shift
-  From / Anchor To are now choices inside the one Shift form (What moves / How far). §1.1, §1.3's mover table and step
-  1's leg list name the old tools. The waterfall editor also gained, live at `ac55bb7`, the Holiday / Auto Note
-  headings, the Hide buttons and the per-line Hide list (WATERFALL-NOTE-EDITOR-PLAN.md), which A2 (§4.4) must make
-  room for.
+**Status: RULED; STEP 1 BUILT on branch `phase-notes` (5 Nov 2026, owner: *"Start step 1"*), steps 2–6 not
+started. R1–R9 all ruled 5 Nov 2026 by picker, every one the recommendation (§2). The note editor's LOOK is ruled:
+A2 (below). §9 is step 1's as-built record.**
+- ✅ **Refreshed against `main`** (5 Nov 2026, on `phase-notes`): Rebuild From became **Build Around**, **Close all
+  gaps is gone**, Shift From / Anchor To are choices inside the one Shift form, and ▲ / ▼, the bar drag and the
+  ripple are new movers (§0, §1.1, §1.3, step 1). ⚠️ Still open for step 2: the waterfall editor gained, live at
+  `ac55bb7`, the Holiday / Auto Note headings, the Hide buttons and the per-line Hide list
+  (WATERFALL-NOTE-EDITOR-PLAN.md), which A2 (§4.4) must make room for.
 - Mockup: [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html). Its first tab is the note editor with
   the new row. Its second is a before/after of Production moved by typing its start date, with a linked note
   following and an unlinked note staying. The calendar is synthetic (2033, generic names).
@@ -51,11 +51,16 @@ editor's LOOK is ruled: A2 (below).**
   |---|---|---|
   | Typing a start date | `update()` | stay |
   | The month view's body drag and edge grips | `installMonthPillDrag` → `setPhaseStart` | stay (an edited automatic line is rewritten, `autoNoteBaseline`) |
-  | Rebuild From | `workBackwardsFrom` / `workForwardsFrom` → `setPhaseStart` | stay |
-  | Close all gaps | `closeAllGaps` → `setPhaseStart` | stay |
+  | Build Around (Rebuild From until 5 Nov 2026) | `buildAround` → `workBackwardsFrom` / `workForwardsFrom` → `setPhaseStart` | stay |
+  | ▲ / ▼ on a phase card | `nudgePhase` → `shiftCalendarDates(…, {part: {phases: [key], windows: <empty>}})` | stay (only the phase's own hiatus and `<week>\|<key>` stores travel) |
+  | The month view's bar drag | carries what ▲ / ▼ carry (`month-drag-carry`) | stay |
   | A hiatus added inside a phase | the phase extends (`extendEndForHiatus`) | stay. A note can end up under the band, where the waterfall cannot show it (audit L-14). |
+  | A hiatus edit with Ripple Hiatus on | `rippleAfterHiatusEdit` → Shift From from the hiatus | move by week, as below |
   | A Region change (Production's shoot days move) | `update()` | stay, which is why `confirmRegionChange` asks first |
-  | Shift / Shift From / Anchor To | `shiftCalendar` | move by week, as above |
+  | The Shift form (What moves × How far; the ticked list) | `shiftCalendarDates(weeks, null, {part: {phases, windows}})` | move by week inside its windows |
+
+  *(Refreshed 5 Nov 2026 against `main`: Close all gaps is gone, Rebuild From is Build Around, and Shift From / Anchor
+  To are choices inside the one Shift form. The rows for ▲ / ▼, the bar drag and the ripple are new since the plan.)*
 
 - ⭐ **Automatic notes never get left behind, because they are not stored.** `computeSchedule` works out their days
   every time it runs (`addAutoNote`, its `drawn()` helper), so wherever a phase goes, its notes go. This plan gives a
@@ -95,9 +100,9 @@ editor's LOOK is ruled: A2 (below).**
   - A one-line hint under it says what will happen: *"Moves when Production moves. Stays on its week 2."* or
     *"Stays on the week of 5/9/33, whatever the phases do."*
   - The row is hidden in a week where no phase runs, since there is nothing to link to.
-- **Then every way of moving that phase carries the note:** typing its start date, the month drag, Rebuild From,
-  Close all gaps, the Shift tools, a hiatus added before it, a Region change, and any mover built later (the phase
-  week arrows, the hiatus ripple). None of them needs a line of code for it.
+- **Then every way of moving that phase carries the note:** typing its start date, the month drag, Build Around, the
+  Shift form, ▲ / ▼ on the phase card, a hiatus added before it (rippled or not), a Region change, and any mover built
+  later. None of them needs a line of code for it.
 - **The grid looks exactly as it does today.** No mark goes in the cell, because a cell's look is frozen. The editor
   is the one place that shows a link (D6).
 
@@ -122,9 +127,9 @@ editor's LOOK is ruled: A2 (below).**
 
 | Mover | Why the note follows |
 |---|---|
-| Typing a start date, the month drag, Rebuild From, Close all gaps | the phase's start changes, so `weekNo` changes, so the place changes |
-| A hiatus added before the note (all-phase or the phase's own) | that week is not a working week, so week n is one calendar week later. The note never lands under a band. |
-| Shift, Shift From, Anchor To, the merged Shift tool | the phase moves, so its notes move. Shift From's "edge" goes away for linked notes: a note follows ITS phase, not the cutoff. |
+| Typing a start date, the month drag, Build Around, ▲ / ▼ | the phase's start changes, so `weekNo` changes, so the place changes |
+| A hiatus added before the note (all-phase or the phase's own, rippled or not) | that week is not a working week, so week n is one calendar week later. The note never lands under a band. |
+| The Shift form, any choice | the phase moves, so its notes move. Its week windows go away for linked notes: a note follows ITS phase, not a window. |
 | A Region change, a day mark, a half day | Production's weeks follow its shoot days, so the note follows (and with R4(b), a note linked to a shoot day follows that day) |
 | Undo, redo, scenarios, Load | the store is in `captureSnapshot()`. Nothing is derived from the session. |
 
@@ -300,10 +305,13 @@ Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
 
 ### 4.3 The look (R7)
 
-- `noteColorFor(week)`: `noteColors[week]` if the week has typed text of its own; else the first linked note's
-  `color`; else purple.
+- **As built (`wfLinkedLook`):** a field comes from the week's FIRST linked note only when the week has neither typed
+  text of its own nor a value of its own in that store. So a typed note keeps its look with a visitor under it ("the
+  note that stayed owns it"), and a week of automatic text the user coloured keeps that colour. With no linked note
+  in the week every function returns exactly what it did.
+- `noteColorFor(week)`: the week's own colour, else (no typed text) the first linked note's `color`, else purple.
 - `noteFontSizeFor`, `textStyleOf('note', …)`: the same rule.
-- `syncRowHeights`: a week with no `rowHeightsByWeek` entry takes its first linked note's `height`.
+- `syncRowHeights`: a week with no `rowHeightsByWeek` entry and no typed text takes its first linked note's `height`.
 
 ### 4.4 The waterfall editor (R1, R2)
 
@@ -405,9 +413,9 @@ Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
 1. **Engine: the store and the placement.** Capture, sanitize, restore, the resets, §4.1, §4.2's waterfall part, and
    §4.3. No UI.
    - New leg `phasenotes` on a new fixture (synthetic, 2033).
-   - It holds a linked note's week through each mover in §1.3's table: typing a start, the month body drag, Rebuild
-     From both ways, Close all gaps, Shift and Shift From, an all-phase hiatus and a phase hiatus added before it, a
-     Region change.
+   - It holds a linked note's week through each mover in §1.3's table: typing a start, Build Around, ▲ / ▼, the
+     Shift form (All phases and Phase & after), an all-phase hiatus and a phase hiatus added before it, a Region
+     change.
    - An unlinked note stays put through the same moves.
    - The Excel cell, the waterfall PDF's `Tj`, the Notes width.
    - Save/Load round trip; an older file opens unchanged; hostile entries; undo.
@@ -456,3 +464,55 @@ Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
   is never lost: it becomes the week's own.
 - **A long-parked note (R3(a)) can sit on a phase's last week for a long time** while the phase stays short. The
   editor says so, but the grid doesn't (D6).
+
+---
+
+## 9. Step 1 as built (5 Nov 2026, branch `phase-notes`)
+
+Owner: *"Start step 1"*. Engine only, no UI: a linked note comes from a file. All in `src/legacy/app.js`, none of it
+frozen.
+
+- **Store, beside `userNotes`:** `var phaseNotes` (a `var`, since `computeSchedule` far above reads it),
+  `PHASE_NOTE_KEY` / `phaseNoteKeyParts` (a built-in key or `custom<n>`; weeks 1–`MAX_WEEKS`; `@day1`–`3000` on
+  Production only), `phaseNoteCopy` (the fixed field order), `phaseNotesSnapshot` (keys sorted).
+- **Placement:** `placePhaseNotes(segments, hiatuses)` is called in `computeSchedule` after the swaps and builds
+  `schedule.phaseNotePlace = {<week ISO>: [{key, phase, n, day, line, dayIso, dated, parked}]}`. That key is ABSENT
+  with an empty store. Weeks come from `seg.weekNo` in date order, the n-th or the last. A shoot day is
+  `seg.shootDays[n-1]` or the last. The day is `dow`, else the first day `segCoversDate` draws that is outside every
+  hiatus (`autoNoteEdgeDefs`' `drawn()` rule), else the first day of overlap. `sortPhaseNotePlace` orders each week by
+  its phase's `col`, a phase with no cell last, then by schedule order, weeks before shoot days, then n.
+- **Drawing:** `effectiveNoteText` = own + linked (`wfLinkedLinesFor`, reading `currentSchedule`) + month lines.
+- **Look:** `wfLinkedLook` behind `noteColorFor`, `noteFontSizeFor`, `textStyleOf('note')` and `syncRowHeights`
+  (§4.3 as built).
+- ⚠️ **The row-height migration (found by the leg's M1):** `syncRowHeights` migrated index-keyed `rowHeights` into
+  `rowHeightsByWeek` whenever the latter was empty, to catch pre-10-Sep-2026 files. A linked note's height made
+  `rowHeights` non-empty with an empty by-week map, so the next `update()` baked the height onto the week the note
+  had just left. Two fixes:
+  - `rowHeightsSynced`: the migration now skips the very object the last sync wrote.
+  - `rowHeightsForFile()`: the file's legacy `rowHeights` leaves out heights a linked note lent (`rowHeightsLinked`),
+    so a Load cannot migrate them either. It is the same object, so the same bytes, on every calendar without one.
+- **Save:** captured after `autoNoteColors`, before `colWidths`. Sanitized beside `userNotes` (§5's rules, every bad
+  field counted). Restored unconditionally beside `autoNoteNames`. Cleared by `resetWaterfallNotes` and `resetAll`.
+- **The editor's save (step 2's "choice unchanged" half, built now so a file with a link cannot be damaged):**
+  - `wfLinkedLineEdits` runs after `wfMonthLineEdits`, line by line, since a linked note can hold several lines.
+  - A line kept keeps its note. One changed in place renames it, with a dated one's drawn date taken out. One taken
+    out leaves its note, and a note with no line left is deleted.
+  - Any change to `phaseNotes` makes the commit run `update()`, not `render()`: the leg's E1 caught the stale line.
+  - `openNoteEditor` counts linked lines as known, not typed, so the Day picker and the switch are not for them.
+- **A custom phase removed:** `unlinkPhaseNotesOf(phase)` runs in `removeCustomPhaseRow` before `update()`.
+  - Each placed note becomes `userNotes` on its drawn week: after the week's own text, or merged into a typed note
+    through `mergeNoteValues`. A dated note is pinned to its day.
+  - The week takes the look it was wearing.
+  - A note placed nowhere goes with the phase.
+- **Shift:** a ⛔ comment beside `gridStintSwaps`' in `shiftCalendarDates`. Nothing re-keys `phaseNotes`.
+- **Not yet (later steps):**
+  - the Stays with row, the hint and linking from the editor (step 2);
+  - the look written onto the note by the editor's colour, the style bar and a row drag (step 3; today those write to
+    the week, which then owns the look);
+  - Delete / Cut / Copy / Paste / drag (step 4; Delete leaves a linked line, a drag copies it as typed text);
+  - the month view (step 5; linked notes are not drawn there yet);
+  - choosing a shoot day from the editor (step 6). Placement already honours `@day<n>`.
+- **Proof:**
+  - `phasenotes` 21/21 on the build: P1, L1, M1–M8, U1, X1, X2, W1, E1, C1, F1, F1b, F2, F3, E0.
+  - M1 was red before the `rowHeightsSynced` fix, E1 before the `update()` fix.
+  - `npm run check` 40/40. In `gate.sh`'s generic block as `phasenotes:phasenotes:900`.

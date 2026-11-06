@@ -4360,11 +4360,31 @@ export function initLegacyApp() {
   // sheetRowCount call it by name -- so all of them follow with no frozen edit, and a calendar with no such note returns
   // exactly what it always did, byte for byte. ⛔ Code that EDITS the week's own note (what saveNoteEdit stores) must read
   // wfOwnNoteText() instead, or it would bake the month notes' lines into the waterfall's typed text.
+  // ⭐ ...AND THE NOTES LINKED TO A PHASE drawn in this week (PHASE-LINKED-NOTES-PLAN.md §4.2, 5 Nov 2026), between the
+  // two: the week's own text, then its linked notes in their phases' column order, then its month notes. Their weeks
+  // come from currentSchedule.phaseNotePlace (wfLinkedLinesFor), the schedule every caller draws. A week with none of
+  // either returns exactly what it always did.
   function effectiveNoteText(weekKey, autoNotes){
     const own = wfOwnNoteText(weekKey, autoNotes);
+    const ll = wfLinkedLinesFor(weekKey);
     const ml = wfMonthLinesFor(weekKey);
-    if(!ml.length) return own;
-    return (own ? [own] : []).concat(ml.map(m => m.line)).join('\n');
+    if(!ml.length && !ll.length) return own;
+    return (own ? [own] : []).concat(ll.map(x => x.line), ml.map(m => m.line)).join('\n');
+  }
+  // Each week's linked notes in the order its cells are drawn: by the column their phase takes that week (after the
+  // swaps), a phase with no cell there (hidden in the waterfall, or paused) last, then by the phase's place in the
+  // schedule, a phase's weeks before its shoot days, then by count.
+  function sortPhaseNotePlace(place, weeks, segments){
+    const byIso = {};
+    weeks.forEach(w=>{ byIso[isoOf(w.date)] = w; });
+    const segAt = k => { const i = segments.findIndex(s=> s.key === k); return i < 0 ? 1e6 : i; };
+    Object.keys(place).forEach(wk=>{
+      const col = {}, w = byIso[wk];
+      (w ? w.cells : []).forEach(c=>{ if(c.type === 'phase' && c.key && Number.isFinite(c.col)) col[c.key] = c.col; });
+      const colOf = k => (k in col) ? col[k] : 1e6;
+      place[wk].sort((a, b)=> (colOf(a.phase) - colOf(b.phase)) || (segAt(a.phase) - segAt(b.phase))
+                             || ((a.day ? 1 : 0) - (b.day ? 1 : 0)) || (a.n - b.n));
+    });
   }
   // The week's own Notes text: its typed note, else its automatic notes. What effectiveNoteText was until 4 Nov 2026.
   function wfOwnNoteText(weekKey, autoNotes){
@@ -5561,6 +5581,12 @@ export function initLegacyApp() {
     const appliedColSwaps = applyColSwaps(wf.weeks);
 
     const schedule = {weeks: wf.weeks, maxConcurrent: wf.maxConcurrent, totalWeeks: wf.totalWeeks, overallStart: wf.overallStart, productionInfo, notesByIdx: wf.notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    // ⭐ NOTES LINKED TO A PHASE (PHASE-LINKED-NOTES-PLAN.md §4.1): where each is drawn, from THIS run's phase weeks, so
+    // every mover carries them with no code of its own. Over the whole week list (a calendar range cuts rows, not
+    // notes; wholeCalendar keeps the key), each week's in its phase's column order, after the swaps above. ⛔ ABSENT
+    // with no linked note, so such a schedule carries exactly the keys it always did.
+    const phaseNotePlace = placePhaseNotes(segments, hiatuses);
+    if(phaseNotePlace){ sortPhaseNotePlace(phaseNotePlace, weeks, segments); schedule.phaseNotePlace = phaseNotePlace; }
     if(cut){
       // The whole list, for the month view (wholeCalendar), and the work weeks each phase lost, for the
       // notice (reflectCalRangeNotice). A range that leaves no row at all (a start after the calendar's
@@ -8550,6 +8576,7 @@ export function initLegacyApp() {
     delete autoNotesOn[k + 'Start']; delete autoNotesOn[k + 'End'];   // ...and its automatic notes' ticks
     delete autoNotesView[k + 'Start']; delete autoNotesView[k + 'End'];   // ...in either view (plan D3)
     ['Start', 'End'].forEach(e=>{ delete autoNoteNames[k + e]; delete autoNoteColors[k + e]; });   // ...names and colours
+    unlinkPhaseNotesOf(k);   // ...and its linked notes become plain notes where they were drawn (PHASE-LINKED-NOTES-PLAN.md §4.7)
     // ⚠️ Custom keys are not renumbered when one is removed (a restore re-keys rows to the saved keys instead), so
     // no other phase's entry needs to move.
     row.remove();
@@ -16467,6 +16494,9 @@ export function initLegacyApp() {
         if(n){ cellItems.push(n); cellKnown.add(l); }
       });
       wfMonthLinesFor(weekKey).forEach(m=> cellKnown.add(m.line));
+      // ...and a note linked to a phase drawn here: not this week's typed text, so the Day picker and "Show in month
+      // view" are not for it (PHASE-LINKED-NOTES-PLAN.md; its own row comes in step 2).
+      wfLinkedLinesFor(weekKey).forEach(x=> x.line.split('\n').forEach(l=>{ if(l.trim()) cellKnown.add(l.trim()); }));
       if(boxLines.length === 1 && cellItems.length === 1) singleItem = cellItems[0];
     }
     // A typed line in the box (or an empty box, about to get one): what the Day picker and the switch are for.
@@ -16749,8 +16779,14 @@ export function initLegacyApp() {
       let auto = autoIn;
       // ⭐ The month notes this cell shows ("Show in waterfall", R2) go first, by what happened to their lines; what is
       // left is the week's own text, which takes the path it always did. With none in the week, `own` is the text box.
+      // ⭐ Then the notes linked to a phase drawn here (PHASE-LINKED-NOTES-PLAN.md §4.5), the same way: a line still in
+      // the box keeps its note, one changed in place renames it, one taken out deletes it. They sit between the week's
+      // own lines and the month lines in the box, so the month step is told they came before it.
       const ownBefore = wfOwnNoteText(weekKey, autoNotes);
-      const own = wfMonthLineEdits(weekKey, ownBefore, textarea.value);
+      const linkedBefore = wfLinkedLinesFor(weekKey).map(x => x.line);
+      const linkedSig = linkedBefore.length ? JSON.stringify(phaseNotes) : '';
+      const own = wfLinkedLineEdits(weekKey, ownBefore,
+        wfMonthLineEdits(weekKey, [ownBefore].concat(linkedBefore).filter(Boolean).join('\n'), textarea.value));
       if(!own.trim()){
         // The week's own lines only: a month line still in the box stays, so this is not Delete's wfClearNote.
         if(wfClearOwnNote(weekKey)) renamed = true;
@@ -16761,6 +16797,8 @@ export function initLegacyApp() {
         saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, chosenDate);
       }
       if(switched) renamed = renamed || true;
+      // A linked note renamed or deleted is a new line where computeSchedule placed it, so the calendar is rebuilt.
+      if(linkedSig && JSON.stringify(phaseNotes) !== linkedSig) renamed = renamed || true;
       const viewCb = pop.querySelector('.note-view-cb');
       if(viewCb) setWfNoteMonthHidden(weekKey, !viewCb.checked);
       if(pendingColor){
@@ -17910,6 +17948,157 @@ export function initLegacyApp() {
   // User-editable notes for the spreadsheet view. Keyed by ISO date string (Monday of each week)
   // so they survive schedule re-renders (week indices can shift when dates change, but the date itself doesn't).
   const userNotes = {}; // { 'YYYY-MM-DD': {text: string} }  text:'' = auto-note explicitly cleared
+  // ---------- Notes linked to a phase (PHASE-LINKED-NOTES-PLAN.md; rulings R1-R9, owner's pickers, 5 Nov 2026) ----------
+  // A typed note that STAYS WITH a phase's week ("Stays with Production wk 2", R1) instead of a calendar week. It is
+  // stored as the LINK, `<phase key>@<n>` -- n the phase's own WORKING-week count from 1 (D1: seg.weekNo's order, so
+  // paused and off weeks do not count, and Post's count is its own even while Sim Post continues the label's) -- or,
+  // for Production only, `production@day<n>`, its n-th shoot day (R4(b)). computeSchedule works out where each one is
+  // drawn every time it runs (placePhaseNotes), as it does the automatic notes, so EVERY way of moving a phase carries
+  // its linked notes with no code in any mover: typing a start, the month drag, Build Around, ▲ / ▼, the Shift form,
+  // an added hiatus, a Region change. Value: {text, dow?, color?, size?, height?, style?, monthHidden?, waterfall?}.
+  //   - dow: the picked weekday, 0 = Monday ... 6 = Sunday (the editor's Day list order); its date is drawn fresh
+  //     after the text wherever the note lands, never typed into it. A @day note has its day already.
+  //   - color / size / style / height: its look, which travels with it (R7(a); wfLinkedLook).
+  // ⛔ SAVE FORMAT (R9(a)): the top-level key `phaseNotes`, its key shapes and those field words are PERMANENT. Absent
+  // while empty, so every calendar without a linked note saves byte for byte as before. No SNAPSHOT_VERSION bump: an
+  // older build opens the file without its linked notes, and drops them if it saves.
+  // ⛔ NEVER add a shiftKeyedMap call for it in shiftCalendarDates: the week is derived, so a shift would move it twice.
+  // ⚠️ mvTextStyle.phase uses the same `<phase>@<n>` shape with the LABEL's number; the two differ only for Post while
+  // Sim Post continues its count.
+  // `var`, not `let`: computeSchedule (far above) reads it, and a `var` is never in a temporal dead zone.
+  var phaseNotes = {};
+  const PHASE_NOTE_KEY = /^([a-zA-Z][a-zA-Z0-9]{0,31})@(day)?([1-9]\d{0,3})$/;
+  // {phase, day, n} for a key this build can place, else null: a built-in phase or custom<n>; weeks 1-MAX_WEEKS;
+  // shoot days (Production only) 1-3000.
+  function phaseNoteKeyParts(k){
+    const m = PHASE_NOTE_KEY.exec(String(k || ''));
+    if(!m) return null;
+    const phase = m[1], day = !!m[2], n = +m[3];
+    if(!(PHASES.some(p=> p.key === phase) || /^custom\d+$/.test(phase))) return null;
+    if(day ? (phase !== 'production' || n > 3000) : n > MAX_WEEKS) return null;
+    return {phase, day, n};
+  }
+  function phaseNotesHasAny(){ return !!phaseNotes && Object.keys(phaseNotes).length > 0; }
+  // One entry in its saved shape: the fields in a fixed order, each only when set, so the undo stack's text compare and
+  // a file's bytes never depend on the order an entry was built in.
+  function phaseNoteCopy(v){
+    const o = {text: String(v.text || '')};
+    if(Number.isInteger(v.dow)) o.dow = v.dow;
+    if(v.color) o.color = v.color;
+    if(v.size !== undefined) o.size = v.size;
+    if(v.height !== undefined) o.height = v.height;
+    if(v.style) o.style = Object.assign({}, v.style);
+    if(v.monthHidden === true) o.monthHidden = true;
+    if(v.waterfall === true) o.waterfall = true;
+    return o;
+  }
+  function phaseNotesSnapshot(){
+    const out = {};
+    Object.keys(phaseNotes).sort().forEach(k=>{ out[k] = phaseNoteCopy(phaseNotes[k]); });
+    return out;
+  }
+  // Where each linked note is drawn, for one schedule (§4.1). Called by computeSchedule after its week loop, with its own
+  // segments and hiatuses; returns {<week ISO>: [{key, phase, n, day, line, dayIso, dated, parked}]} or null when the store
+  // is empty. ⛔ On the SCHEDULE only (schedule.phaseNotePlace), never module state: computeSchedule runs up to 300 times
+  // in Production's searches and the tools' trials, and a module-level placement would be whatever the last probe left.
+  //  - No segment (a phase with no dates, or a custom key with no phase): not drawn (R3(a)); it comes back with its dates.
+  //  - Weeks: the n-th of the phase's working weeks, or its LAST when it has fewer (R3(a), `parked`).
+  //  - Shoot days: Production's n-th shoot day, or its last.
+  //  - The day: `dow` if set, else the phase's first day that week as the month view draws its bar (R6(a)) --
+  //    autoNoteEdgeDefs' drawn() rule, so for Production it is the first SHOOT day.
+  //  - The line: the text's lines as typed, the picked or shoot day's m/d/yy after the last (the Day picker's stamp).
+  function placePhaseNotes(segments, hiatuses){
+    if(!phaseNotesHasAny()) return null;
+    const out = Object.create(null);
+    Object.keys(phaseNotes).sort().forEach(k=>{
+      const kp = phaseNoteKeyParts(k), v = phaseNotes[k];
+      if(!kp || !v) return;
+      const lines = String(v.text || '').split('\n').map(l=> l.trim()).filter(Boolean);
+      if(!lines.length) return;
+      const seg = segments.find(s=> s.key === kp.phase && !s.prep);
+      if(!seg) return;
+      let week, day, parked = false, dated = false;
+      if(kp.day){
+        const sd = seg.shootDays || [];
+        if(!sd.length) return;
+        parked = kp.n > sd.length;
+        day = parseDateUTC(sd[Math.min(kp.n, sd.length) - 1]);
+        if(!day) return;
+        week = mondayOf(day); dated = true;
+      } else {
+        const weeks = Object.keys(seg.weekNo || {}).sort();
+        if(!weeks.length) return;
+        parked = kp.n > weeks.length;
+        week = parseDateUTC(weeks[Math.min(kp.n, weeks.length) - 1]);
+        if(Number.isInteger(v.dow) && v.dow >= 0 && v.dow <= 6){ day = addDays(week, v.dow); dated = true; }
+        else {
+          const from = seg.start > week ? seg.start : week, to = addDays(week, 7) < seg.end ? addDays(week, 7) : seg.end;
+          for(let d = from; d < to && !day; d = addDays(d, 1))
+            if(segCoversDate(seg, d) && !hiatuses.some(h=> d >= h.start && d < h.end) && !isPhaseHiatusDate(seg, d)) day = d;
+          if(!day) day = from;
+        }
+      }
+      if(dated) lines[lines.length - 1] += ' ' + fmtShort(day);
+      const wk = isoOf(week);
+      (out[wk] || (out[wk] = [])).push({key: k, phase: kp.phase, n: kp.n, day: kp.day, line: lines.join('\n'),
+                                        dayIso: isoOf(day), dated, parked});
+    });
+    return out;
+  }
+  // The linked notes drawn in one week (its Monday's ISO), in the schedule effectiveNoteText's callers draw: theirs is
+  // always currentSchedule (frozen render(), exportExcel, buildWaterfallPdf, sheetColumnWidths, sheetRowCount), as
+  // sheetAutoNotesFor's is. A per-phase key ("week|phase") or a week with none: [].
+  function wfLinkedLinesFor(weekKey, schedule){
+    const p = (schedule || currentSchedule || {}).phaseNotePlace;
+    return (p && typeof weekKey === 'string' && Object.prototype.hasOwnProperty.call(p, weekKey)) ? p[weekKey] : [];
+  }
+  // Does the week hold typed text of its own? Then the cell is that note's and keeps its look (R7(a): "the note that
+  // stayed owns it", mergeNoteValues' rule); a visiting linked note never recolours it.
+  function wfOwnTyped(weekKey){
+    return userNoteList(weekKey).some(n=> String((n && n.text) || '').trim());
+  }
+  // A linked note's look in a cell (R7(a), §4.3): the FIRST linked note drawn in the week, read live from the store,
+  // when the week neither has typed text of its own nor a value of its own in that store. `own` is the week's value
+  // (undefined when unset). With no linked note in the week this returns `own` untouched, so every calendar without one
+  // draws exactly as before.
+  function wfLinkedLook(weekKey, field, own, schedule){
+    const ll = wfLinkedLinesFor(weekKey, schedule);
+    if(!ll.length || own !== undefined || wfOwnTyped(weekKey)) return own;
+    const v = phaseNotes[ll[0].key];
+    return v ? v[field] : undefined;
+  }
+  // A custom phase removed (PHASE-LINKED-NOTES-PLAN.md §4.7, R3(a)): each of its linked notes becomes a plain note of the
+  // week it is drawn on now, its line as drawn (a dated one pinned to that day, as the Day picker pins a note), after
+  // the week's own text, or joined to the week's typed note as two notes a shift merges are (mergeNoteValues). Where the
+  // cell was wearing the note's look (wfLinkedLook's rule: the week's first linked note, no typed text of its own), the
+  // week keeps that look. One drawn nowhere (its phase had no dates) goes with the phase. Called inside the removal's own
+  // undo step, before the row goes, while currentSchedule still places them. True when one was there.
+  function unlinkPhaseNotesOf(phase){
+    const keys = Object.keys(phaseNotes).filter(k=>{ const kp = phaseNoteKeyParts(k); return !!kp && kp.phase === phase; });
+    if(!keys.length) return false;
+    const place = (currentSchedule && currentSchedule.phaseNotePlace) || {};
+    Object.keys(place).sort().forEach(wk=> place[wk].forEach((e, i)=>{
+      const v = phaseNotes[e.key];
+      if(!v || keys.indexOf(e.key) < 0) return;
+      const typed = wfOwnTyped(wk);
+      if(i === 0 && !typed){
+        if(v.color && !(isHexColor(noteColors[wk]) || isMvNoFill(noteColors[wk]))) noteColors[wk] = v.color;
+        if(v.size !== undefined && noteFontSize[wk] === undefined) noteFontSize[wk] = v.size;
+        if(v.style && !textStyle.note[wk]) textStyle.note[wk] = Object.assign({}, v.style);
+        if(v.height !== undefined && finiteNum(rowHeightsByWeek[wk]) === null) rowHeightsByWeek[wk] = v.height;
+      }
+      const incoming = e.dated ? {text: e.line, date: e.dayIso} : {text: e.line};
+      if(typed) userNotes[wk] = mergeNoteValues(userNotes[wk], incoming);
+      else {
+        // The cell showed the week's own text first: its automatic notes, or nothing where they were cleared.
+        const base = wfOwnNoteText(wk, sheetAutoNotesFor(wk));
+        userNotes[wk] = Object.assign(incoming, {text: [base, e.line].filter(Boolean).join('\n')});
+      }
+      if(v.monthHidden === true && !typed) userNotes[wk].monthHidden = true;
+    }));
+    keys.forEach(k=>{ delete phaseNotes[k]; });
+    return true;
+  }
   // Month-view-only notes, keyed by DAY. Deliberately separate from userNotes: the waterfall's
   // unit is a week and its Notes column feeds the Excel export, so per-day notes added in the
   // month view live here and appear only in the month view and its PDF.
@@ -18028,6 +18217,50 @@ export function initLegacyApp() {
     gone.forEach(m=>{ const e = dayNoteList(m.iso)[m.index]; if(e) delete e.waterfall; });
     return a.filter((l, i)=> !used.has(i)).join('\n');
   }
+  // The waterfall note editor's text, saved, for the notes LINKED TO A PHASE drawn in this week (PHASE-LINKED-NOTES-
+  // PLAN.md §4.5, the choice left alone; wfMonthLineEdits' shape, line by line, since a linked note may hold several):
+  //  - a linked line still in the box, anywhere, is kept;
+  //  - one missing, with the box holding as many lines as it opened with, where a line now stands that is not one of
+  //    the week's own: renamed in place. A dated note's last line has its drawn date taken out (it is drawn fresh); one
+  //    given ANOTHER date is no rename, and the line stays in the box as the week's own text;
+  //  - any other missing line is taken out of its note, and a note left with no line is deleted.
+  // Returns what is left: the week's own text, for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the
+  // week's own text as the editor opened on it; the box showed it, then these notes' lines.
+  function wfLinkedLineEdits(weekKey, ownBefore, after){
+    const ll = wfLinkedLinesFor(weekKey);
+    if(!ll.length) return after;
+    const split = t => String(t || '').split('\n').map(l=> l.trim()).filter(Boolean);
+    const own = split(ownBefore), a = split(after), parts = [];
+    ll.forEach(e=>{
+      const v = phaseNotes[e.key];
+      if(!v) return;
+      const stored = split(v.text), drawn = split(e.line);
+      drawn.forEach((line, i)=> parts.push({e, line, stored: stored[i] !== undefined ? stored[i] : line,
+                                             dateOn: e.dated && i === drawn.length - 1, now: null}));
+    });
+    const before = own.concat(parts.map(p=> p.line)), used = new Set();
+    parts.forEach(p=>{
+      const k = a.findIndex((l, i)=> !used.has(i) && l === p.line);
+      if(k >= 0){ used.add(k); p.now = p.stored; }
+    });
+    parts.forEach((p, j)=>{
+      if(p.now !== null) return;
+      const i = own.length + j;
+      const now = (a.length === before.length && !used.has(i)) ? a[i] : null;
+      if(!now || own.indexOf(now) >= 0) return;
+      const name = p.dateOn ? stripHolidayDate(now, parseDateUTC(p.e.dayIso)) : now;
+      if(!name || (p.dateOn && /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name))) return;   // given another date: the week's own
+      used.add(i); p.now = name;
+    });
+    ll.forEach(e=>{
+      const v = phaseNotes[e.key];
+      if(!v) return;
+      const kept = parts.filter(p=> p.e === e && p.now !== null).map(p=> p.now);
+      if(!kept.length) delete phaseNotes[e.key];
+      else if(kept.join('\n') !== split(v.text).join('\n')) v.text = kept.join('\n');
+    });
+    return a.filter((l, i)=> !used.has(i)).join('\n');
+  }
   // R3: the waterfall's lines a day in the month view draws -- notesForWaterfallDate()'s, less the week's TYPED lines
   // while its note has "Show in month view" off. A holiday's line and an automatic note's (mvHolidayLineInfo,
   // mvAutoLineInfo) always stay. Every non-frozen reader of what the month view draws goes through here
@@ -18093,9 +18326,13 @@ export function initLegacyApp() {
   function emptyTextStyle(){ const o = {}; TEXT_STYLE_KINDS.forEach(k=>{ o[k] = {}; }); return o; }
   let textStyle = emptyTextStyle();
   // The style one grid text carries, or null. What the renderer and both writers read (§6 F1–F3).
+  // ⭐ A Notes cell showing only linked notes takes the first one's style (PHASE-LINKED-NOTES-PLAN.md R7(a), D10), as
+  // noteColorFor takes its colour.
   function textStyleOf(kind, key){
     const m = textStyle[kind];
-    return (m && key != null && Object.prototype.hasOwnProperty.call(m, key)) ? m[key] : null;
+    const own = (m && key != null && Object.prototype.hasOwnProperty.call(m, key)) ? m[key] : null;
+    if(kind !== 'note' || own) return own;
+    return wfLinkedLook(key, 'style', undefined) || null;
   }
   function textStyleHasAny(){ return TEXT_STYLE_KINDS.some(k => Object.keys(textStyle[k]).length > 0); }
   // §6 F1: the CSS one grid text's style adds, APPENDED after the cell's own inline style so it wins (the
@@ -20592,9 +20829,17 @@ export function initLegacyApp() {
   // colour that is not #rrggbb falls back to the default here, whatever put it in the store (H-1).
   // A note may also be No fill (#FFFFFF00, owner 28 Oct 2026), the one other value: the screen paints it
   // transparent with black ink as it stands, and the two writers skip its fill (frozen edits X1, P1).
-  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return (isHexColor(c) || isMvNoFill(c)) ? c : MILESTONE_COLOR; }
+  // ⭐ A linked note's colour travels with it (PHASE-LINKED-NOTES-PLAN.md R7(a), §4.3): a week with no typed text and no
+  // colour of its own takes the first linked note's (wfLinkedLook). Frozen render(), exportExcel and buildWaterfallPdf
+  // call this by name (sanctioned pattern 1). With no linked note in the week, exactly what it always returned.
+  function noteColorFor(weekKey){
+    const ok = c => isHexColor(c) || isMvNoFill(c);
+    const own = noteColors[weekKey], c = wfLinkedLook(weekKey, 'color', ok(own) ? own : undefined);
+    return ok(c) ? c : MILESTONE_COLOR;
+  }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
-  function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
+  // ...and its size (R7(a)), by the same rule.
+  function noteFontSizeFor(weekKey){ return wfLinkedLook(weekKey, 'size', noteFontSize[weekKey]); }
   function hiatusFontSizeFor(weekKey){ return hiatusFontSize[weekKey]; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
   function hiatusColorFor(weekKey){ const c = hiatusColors[weekKey]; return isHexColor(c) ? c : HIATUS_COLOR; }
@@ -24869,6 +25114,7 @@ export function initLegacyApp() {
   function resetWaterfallNotes(){
     if(activeNoteEditor){ closeNoteEditorPop(); activeNoteEditor = null; }
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
+    phaseNotes = {};         // ...and the notes linked to a phase, which are waterfall notes too (PHASE-LINKED-NOTES-PLAN.md D8)
     noteColors = {}; noteFontSize = {};
     textStyle.note = {};     // their text styles too, as their colours and sizes (TEXT-STYLE-BAR-PLAN.md §2)
     render(currentSchedule);
@@ -25015,6 +25261,21 @@ export function initLegacyApp() {
   // which is correct and not laziness: the index<->week mapping can only change when the SCHEDULE
   // changes, and computeSchedule runs nowhere else. The ~30 bare render() calls elsewhere repaint
   // the same week list and need no resync.
+  // The map the last sync produced. ⛔ Since 5 Nov 2026 a sync can derive heights with no by-week entry behind them (a
+  // note linked to a phase carries its own, PHASE-LINKED-NOTES-PLAN.md R7(a)), so "index keys and an empty by-week map"
+  // no longer proves an un-migrated file: the migration below skips the very object it last wrote. A file's own
+  // rowHeights (applyStateSnapshot) is always a different object, so every old file still migrates. `var`: no dead zone.
+  var rowHeightsSynced = null;
+  // ...and which of its indexes came from a linked note, not from rowHeightsByWeek. Those stay out of the file's legacy
+  // `rowHeights` key (rowHeightsForFile): an older build never draws a linked note, and a Load here would otherwise
+  // migrate the height onto the week the note happened to be on, where it would stay when the phase moved.
+  var rowHeightsLinked = null;
+  function rowHeightsForFile(){
+    if(!rowHeightsLinked || !rowHeightsLinked.size || rowHeights !== rowHeightsSynced) return rowHeights;
+    const o = {};
+    Object.keys(rowHeights).forEach(k=>{ if(!rowHeightsLinked.has(k)) o[k] = rowHeights[k]; });
+    return o;
+  }
   function syncRowHeights(schedule){
     const weeks = (schedule && schedule.weeks) || [];
     // ⭐ MIGRATION, forward-only, for every file saved before 10 Sep 2026: those carry index-keyed
@@ -25022,22 +25283,27 @@ export function initLegacyApp() {
     // is the only way to have index keys and an empty by-week map, and once converted the map is
     // non-empty so this cannot run twice. A calendar with no dragged rows has both empty and needs
     // nothing.
-    if(!Object.keys(rowHeightsByWeek).length && Object.keys(rowHeights).length && weeks.length){
+    if(!Object.keys(rowHeightsByWeek).length && Object.keys(rowHeights).length && weeks.length && rowHeights !== rowHeightsSynced){
       Object.keys(rowHeights).forEach(k=>{
         const i = +k;
         if(Number.isInteger(i) && weeks[i]) rowHeightsByWeek[isoOf(weeks[i].date)] = rowHeights[k];
       });
     }
-    const next = {};
+    const next = {}, linked = new Set();
     weeks.forEach((w, i)=>{
       // ⛔ A NUMBER or nothing: the frozen renderer writes this straight into
       // `<tr style="height:${rh}px">`, so a string from a file could break out of the attribute
       // (audit H-1). The drag writes numbers, and sanitizeSnapshot already holds restored values to
       // that; this is the belt to its braces, at the last non-frozen step before the markup.
-      const h = finiteNum(rowHeightsByWeek[isoOf(w.date)]);
-      if(h !== null && h > 0) next[i] = h;
+      // ⭐ ...or, for a week with no height of its own and no typed text, the first linked note's (PHASE-LINKED-NOTES-
+      // PLAN.md R7(a)): a row dragged tall for a long linked note goes where the note goes (audit M-12's rule).
+      const iso = isoOf(w.date), mine = finiteNum(rowHeightsByWeek[iso]);
+      const h = mine !== null ? mine : finiteNum(wfLinkedLook(iso, 'height', undefined, schedule));
+      if(h !== null && h > 0){ next[i] = h; if(mine === null) linked.add(String(i)); }
     });
     rowHeights = next;
+    rowHeightsSynced = next;
+    rowHeightsLinked = linked;
   }
 
   function update(){
@@ -27414,6 +27680,7 @@ export function initLegacyApp() {
     mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false; mvHeaderOff = false;
     headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
+    phaseNotes = {};   // every note linked to a phase (PHASE-LINKED-NOTES-PLAN.md D8)
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
@@ -28768,11 +29035,17 @@ export function initLegacyApp() {
       // keys, each written only while it holds something, sorted, as the holiday pair above.
       ...(Object.keys(autoNoteNames).length ? {autoNoteNames: sortedObj(autoNoteNames)} : {}),
       ...(Object.keys(autoNoteColors).length ? {autoNoteColors: sortedObj(autoNoteColors)} : {}),
+      // 5 Nov 2026: the notes linked to a phase (PHASE-LINKED-NOTES-PLAN.md R9(a), §5). ⛔ PERMANENT key, key shapes
+      // (`<phase>@<n>`, `production@day<n>`) and field words. Written only while one exists, keys sorted and each entry's
+      // fields in a fixed order, so a calendar without one saves byte for byte as before.
+      ...(phaseNotesHasAny() ? {phaseNotes: phaseNotesSnapshot()} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
       // wrong in a build from last week.
-      colWidths, colWidthsAlt, rowHeights, rowHeightsByWeek, cellSpans,
+      // rowHeights less any height a note linked to a phase lent its row (rowHeightsForFile); the same object, so the
+      // same bytes, on every calendar without one.
+      colWidths, colWidthsAlt, rowHeights: rowHeightsForFile(), rowHeightsByWeek, cellSpans,
       gridColSwaps, gridStintSwaps,
       // 20 Oct 2026, COLUMN-REUSE-PLAN.md §5. ⛔ PERMANENT keys. Each is ABSENT until used, so a calendar
       // that never ticks "Reuse empty columns" or moves a phase by hand saves byte for byte what it did.
@@ -29575,6 +29848,10 @@ export function initLegacyApp() {
     // pair whose partner has no stint in the block), so undoing the shift brings the order back --
     // the same "a stale override is ignored, never destroyed" rule applyCellSpanOverrides follows.
     // ⚠️ Do NOT "complete the checklist" by adding a shiftKeyedMap call here.
+    // ⛔ phaseNotes is NOT re-keyed either (PHASE-LINKED-NOTES-PLAN.md §1.3). Its keys are '<phase>@<n>', a phase's own
+    // week count, and computeSchedule derives the calendar week from the phase's dates every run, so a shifted phase
+    // already carries its linked notes. Re-keying it here would move them twice. Its look (color, size, style, height)
+    // is ON the note, so noteColors / noteFontSize / rowHeightsByWeek / textStyle.note above never hold it either.
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put:
     // "wrap party booked" belongs to a DATE, so a shift must leave it on that date.
     //
@@ -37677,6 +37954,37 @@ export function initLegacyApp() {
       if('monthHidden' in o && o.monthHidden !== true){ bad.n++; delete o.monthHidden; }
       return o;
     });
+    // Notes linked to a phase (PHASE-LINKED-NOTES-PLAN.md §5, 5 Nov 2026): a key this build can place (phaseNoteKeyParts)
+    // and a non-empty text, else the entry goes; each other field on the rule of the store it mirrors -- dow a weekday
+    // 0-6 (never on a shoot-day key, which has its day), a colour noteColors', a size noteFontSize's, a height
+    // rowHeightsByWeek's (it reaches <tr style>, audit H-1), a style textStyle.note's, monthHidden / waterfall only
+    // `true`. Anything else is dropped and counted. The TEXT is escaped wherever it is shown, so it keeps what was typed.
+    if('phaseNotes' in s){
+      const v = s.phaseNotes, out = {};
+      if(!isPlainObj(v)) bad.n++;
+      else Object.keys(v).forEach(k=>{
+        const kp = phaseNoteKeyParts(k), e = v[k];
+        if(!kp || !isPlainObj(e)){ bad.n++; return; }
+        const text = (typeof e.text === 'string') ? stripXmlIllegal(e.text, '\n') : '';
+        if(!text.trim()){ bad.n++; return; }
+        const o = {text};
+        Object.keys(e).forEach(f=>{
+          const x = e[f];
+          if(f === 'text') return;
+          if(f === 'style'){ const st = cleanTextStyleEntry('note', x, bad); if(st) o.style = st; return; }
+          let ok = true;
+          if(f === 'dow' && !kp.day && Number.isInteger(x) && x >= 0 && x <= 6) o.dow = x;
+          else if(f === 'color' && (isHexColor(x) || isMvNoFill(x))) o.color = x;
+          else if(f === 'size' && numIn(1, 400)(x) !== undefined) o.size = numIn(1, 400)(x);
+          else if(f === 'height' && numIn(1, 100000)(x) !== undefined) o.height = numIn(1, 100000)(x);
+          else if((f === 'monthHidden' || f === 'waterfall') && x === true) o[f] = true;
+          else ok = false;
+          if(!ok) bad.n++;
+        });
+        out[k] = phaseNoteCopy(o);
+      });
+      s.phaseNotes = out;
+    }
     setMap('dayNotes', v => {
       const one = e => {
         if(!isPlainObj(e)) return null;
@@ -38239,6 +38547,13 @@ export function initLegacyApp() {
     if(isPlainObj(snap.autoNoteColors)) Object.keys(snap.autoNoteColors).forEach(k=>{
       const v = snap.autoNoteColors[k];
       if(SNAP_ID.test(k) && !MV_UNSAFE_KEY.test(k) && (isHexColor(v) || isMvNoFill(v))) autoNoteColors[k] = v;
+    });
+    // ⛔ UNCONDITIONAL as well (PHASE-LINKED-NOTES-PLAN.md §5): no key, no linked note, so a file without one never keeps
+    // the previous calendar's. Rebuilt entry by entry from what sanitizeSnapshot passed, in the saved field order.
+    phaseNotes = {};
+    if(isPlainObj(snap.phaseNotes)) Object.keys(snap.phaseNotes).forEach(k=>{
+      const v = snap.phaseNotes[k];
+      if(phaseNoteKeyParts(k) && isPlainObj(v) && typeof v.text === 'string' && v.text.trim()) phaseNotes[k] = phaseNoteCopy(v);
     });
     // Runs after snap.fields is applied above, so the region selects already hold their saved
     // values and the date->name lookup resolves against the right list.

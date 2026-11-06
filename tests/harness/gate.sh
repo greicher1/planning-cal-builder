@@ -2113,6 +2113,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               stalebandkey:stalebandkey:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
+              phasenotes:phasenotes:900 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \

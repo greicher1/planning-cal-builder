@@ -4,16 +4,43 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 4 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — PLAN + MOCKUP, ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation), NO APP CODE ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEP 1 OF 6 (THE ENGINE, NO UI) BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in), NOT committed, NOT merged, NOT pushed ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
   R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
   month later; R9(a) one new key `phaseNotes`, no version bump. Plan §2 holds the record.
-- ⚠️ **This branch (`claude/sharp-mendel-68482d`) is 86 commits behind `main` and was never merged into it**, so
-  `main`'s HANDOFF does not have this entry (it still says a plan-writing session was only proposed). Before building:
-  start a branch off `main`, merge this one in (docs only), and refresh the plan: Rebuild From is now Build Around,
-  Close all gaps is gone, Shift From / Anchor To are choices in the one Shift form, and A2 has to make room for the
-  waterfall editor's per-line Hide list (live at `ac55bb7`, which this branch predates).
+- **Branches:** the plan, the mockups and the rulings were on `claude/sharp-mendel-68482d` (`4f70fb3`, `8c9d0f7`), which
+  was never merged into `main`. So `main`'s HANDOFF still says only that a plan-writing session was proposed, until
+  `phase-notes` lands. `phase-notes` was cut from `main` at `f68aa71`, with that branch merged in (`f3a26ad`; HANDOFF
+  the only conflict, both kept). The plan was then refreshed against `main`'s movers: Build Around, the one Shift
+  form, ▲ / ▼, the bar drag and the ripple; Close all gaps is gone. ⚠️ Still open for step 2: A2 has to make room for
+  the waterfall editor's per-line Hide list (live at `ac55bb7`).
+- 🔨 **STEP 1 BUILT** (owner: *"Start step 1"*), engine only, no UI. Plan §9 is the as-built record. It covers:
+  - the store `var phaseNotes` (keys `<phase>@<n>` / `production@day<n>`);
+  - `placePhaseNotes` in `computeSchedule`, giving `schedule.phaseNotePlace`, ABSENT when empty;
+  - `effectiveNoteText` drawing them;
+  - `wfLinkedLook` behind `noteColorFor` / `noteFontSizeFor` / `textStyleOf('note')` / `syncRowHeights`;
+  - capture, sanitize, unconditional restore and the two resets;
+  - `wfLinkedLineEdits` in the note editor's save (keep / rename / delete, then `update()`);
+  - `unlinkPhaseNotesOf` when a custom phase is removed.
+  No frozen edit.
+  - ⚠️ **Found by the leg and fixed:** the pre-10-Sep-2026 row-height MIGRATION in `syncRowHeights` read "index keys
+    + empty by-week map" as an old file, so a linked note's derived height was baked onto the week it had just
+    left. The fixes are `rowHeightsSynced` (skip the map the last sync wrote) and `rowHeightsForFile()` (the file's
+    legacy `rowHeights` leaves out heights a linked note lent). Anything else that ever derives a row height must
+    respect both.
+  - **Proof:**
+    - New leg `phasenotes` 21/21 on the build (fixture `phasenotes.sptcal` = `wfkeys` + five links). It covers
+      every mover (typing a start, Build Around, ▼, Shift All / Phase & after, an all-phase and a phase hiatus,
+      Region → None moving Day 10), Excel + fill, the PDF, the Notes width, the editor, a custom phase removed with
+      undo, Save field order, F1b (the height after Save → Load → move), an older file, hostile entries and errors.
+    - M1 was red before the migration fix, E1 before the `update()` fix.
+    - `npm run check` 40/40; build sha256 `ebac72f4…`.
+    - **Full gate: queued behind another session's** (port 8951, output in this session's scratchpad); result
+      below when it lands.
+  - **Not yet:** the Stays with row (step 2), the look written onto the note by the editor, the bar and a row drag
+    (step 3), Delete / Cut / Paste / drag (step 4), the month view (step 5), picking a shoot day (step 6).
+  - Docs: README Unreleased entry, CLAUDE.md state table row, fixtures README row.
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.
