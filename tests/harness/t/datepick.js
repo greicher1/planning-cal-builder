@@ -59,6 +59,7 @@ window.addEventListener('load', function () { (async function () {
   }
   var MON_HINT = 'Snap to Monday is on, so only Mondays can be picked.';
   var HIA_HINT = 'A hiatus always starts on a Monday.';
+  var PHIA_HINT = 'A hiatus always starts on a Monday, in a week this phase runs.';
   var WEEK_HINT = 'Any day picks its week — the calendar snaps to that Monday.';
   function isMondayOnly(r, hint){ return !!r && r.off === 36 && r.offExact && r.band === 0 && r.hint === hint && r.ids === 0; }
   function isDay(r){ return !!r && r.off === 0 && r.band === 0 && r.hint === '' && r.ids === 0; }
@@ -123,8 +124,13 @@ window.addEventListener('load', function () { (async function () {
     // ---- Every hiatus start is snapped, so Mondays only.
     r = await open(document.querySelector('#hiatus-list .hiatus-start'));
     add('H1', 'an all-phase hiatus start: Mondays only, the hiatus hint', isMondayOnly(r, HIA_HINT), r, '36 greyed, "' + HIA_HINT + '"');
+    // A phase's own hiatus is also held to the weeks its phase runs (5 Nov 2026; the phiatuspick leg holds that in
+    // full). Prod Prep starts 5/25/26 here, so its empty hiatus opens on May with only 5/25 and 6/1 to pick.
     r = await open('phiatus-start-prodPrep');
-    add('H2', "a phase's own hiatus start: Mondays only, the hiatus hint", isMondayOnly(r, HIA_HINT), r, '36 greyed, "' + HIA_HINT + '"');
+    var pickable = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }).map(function (c) { return c.iso; }) : [];
+    add('H2', "a phase's own hiatus start: Mondays only, and only those its phase runs, the hiatus hint",
+      !!r && r.off === 40 && pickable.join() === '2026-05-25,2026-06-01' && r.band === 0 && r.hint === PHIA_HINT && r.ids === 0,
+      {pick: r, pickable: pickable}, '40 greyed, 5/25 and 6/1 pickable, "' + PHIA_HINT + '"');
 
     // ---- A custom holiday is one day.
     r = await open('custom-hol-date');

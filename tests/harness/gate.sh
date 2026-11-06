@@ -1864,6 +1864,12 @@ done
 # Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and opening the picker does
 # not rewrite it); Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact
 # day with no week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# phiatuspick (owner, 5 Nov 2026: "the calendar popup for per phase hiatus periods should be limited to only
+# dates/months that fall in the range of the phase") holds a phase's own hiatus picker to its phase: an empty one opens
+# on the phase's first month; only the Mondays the phase runs WITHOUT that hiatus are pickable (the weeks the hiatus
+# adds are not); the arrows stop at the first and last months; Production to its wrap's week, an Ends phase from where
+# it starts without the hiatus; a phase with no dates and the all-phase hiatus are not limited. Red on the old picker
+# (K1-K5). Own line.
 # snapbox (owner, 30 Oct 2026, of a Wednesday left in a snapped Starts box: "It should also change the actual the date
 # shows in the box. Otherwise this is confusing.") holds the box's half: after TYPING a non-Monday, Enter or leaving the
 # box writes its Monday (built-in, Production, custom Weeks, both kinds of hiatus), the "Snapped to Mon" row goes and
@@ -2074,6 +2080,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              phiatuspick:-:200 \
               snapbox:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
