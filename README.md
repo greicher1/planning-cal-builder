@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — rule 21: a run never shrinks (6 Nov 2026)
+## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
+
+### rule 21: a run never shrinks (6 Nov 2026)
 
 The twenty-first layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
 §8); stamped calendars only, like the rest.
