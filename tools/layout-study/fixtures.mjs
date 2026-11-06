@@ -113,6 +113,36 @@ const SPECS = {
       { key: 'localization', start: '2032-08-09', weeks: 8 }
     ],
     hiatuses: [{ start: '2031-11-24', weeks: 1 }, Y1]
+  },
+  // Rule 20 (owner, 5 Nov 2026), giving way -- the owner's Test Show shape: Post starts in Production's last week
+  // while the Sim Post marker still holds its lane. Before rule 20 that opened a third column for ONE week, which
+  // then stood empty beside Writers + Design and beside Production + the lane for the rest of the year. Post takes
+  // the lane from its first week and the marker steps aside that week: two columns.
+  'layout-r20': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 20 },
+      { key: 'prePrep', name: 'Design', start: '2031-05-12', weeks: 4 },
+      { key: 'prodPrep', name: 'Prep', start: '2031-06-09', weeks: 10 },
+      { key: 'production', start: '2031-08-25', weeks: 14 },
+      { key: 'post', start: '2031-11-24', weeks: 20 }
+    ],
+    hiatuses: [Y1, Y2]
+  },
+  // Rule 20, absorbing, any phase: a one-week Table Read opens a third column beside the running Writers and Prep
+  // (both need their cells that week, so the column has to exist). Used one week in the year, it does not count
+  // toward the even share, and Prep, beside it, spreads into it from the week it is free for the rest of Prep's
+  // run; Writers, not beside it, stays one wide. No Sim Post, so nothing can give way.
+  'layout-r20b': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 20 },
+      { key: 'prodPrep', name: 'Prep', start: '2031-04-07', weeks: 12 },
+      { key: 'custom1', name: 'Table Read', start: '2031-04-21', weeks: 1 },
+      { key: 'production', start: '2031-06-30', weeks: 10 },
+      { key: 'post', start: '2031-09-08', weeks: 12 }
+    ],
+    hiatuses: [Y1]
   }
 };
 

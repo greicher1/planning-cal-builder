@@ -1984,9 +1984,11 @@ done
 # the freed column beside it; r6 the same-week competition for one free column (the shorter takes it, Post continues the
 # lane); r9 the same two columns on opposite sides in consecutive years (rule 9 through stintOrderFor); r7 a handoff left
 # of a running phase, a phase not following on placed right of everything running, a paused phase keeping its column,
-# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2). Each red on the build
-# before the rules where its rule differs. An UNSTAMPED calendar is every other leg of this gate: its placement and its
-# widths are byte for byte what they were.
+# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2); r20 and r20b rule 20
+# (owner, 5 Nov 2026: a column must earn its place): Post starting in Production's last week takes the lane and the
+# marker steps aside, two columns instead of a third for one week; a one-week phase's column does not count toward the
+# even share, so Prep spreads into it (frozen edit LR2). Each red on the build before the rules where its rule differs.
+# An UNSTAMPED calendar is every other leg of this gate: its placement and its widths are byte for byte what they were.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2059,7 +2061,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

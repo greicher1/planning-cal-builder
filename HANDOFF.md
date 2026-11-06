@@ -4,6 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 5 Nov 2026 (evening): RULE 20 — A COLUMN MUST EARN ITS PLACE — built, gated and COMMITTED on `layout-study` after the three pieces (the commit after `0e2e27e`; 4,012 / 4, the four explained below; owner's picker *"Commit on the branch"*). Not merged, not pushed. Tracker card `post-takes-lane-in-wrap-week`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §7.
+- **The ask.** The owner's screenshot of a test calendar: Post wk 1 in Production's last week while Sim Post held its
+  lane; rule 5 opened a third column for that week, empty beside Writers + Pre-Prep and beside Production + Sim Post
+  for the rest of the year. Reproduced exactly on the build (the stamped path; the legacy path draws it differently).
+  First proposal was "Post takes the lane"; the owner: *"its less about phase specific changes like that and more
+  about the algorithm understanding better what looks right and what doesnt with any phases"*. Then, on the simple
+  wording (*don't open a column for something that is only there for a week or two*): *"build it"*.
+- **What looks right, measured** (scratch `scan-coluse.py` / `scan-shared.py` over the 15 scrubbed seeds): every
+  pictured column is used beside another column's cell for ≥ 5 rows (hand-07 2025 Pre-Prep); hand-02 2026's third
+  column holds Pre-Prep 6 rows and then stands EMPTY beside two one-wide phases for 14 — an earned column may stand
+  empty; rule 6's Wrap column is 3; hand-12 2028 is 3 and 3. Floor `LAYOUT_EARNED_WEEKS = 3`.
+- **The measure** (one definition, `markLayoutPhantoms` + the scan in `placeSegmentsByRules`): a column's use in a year
+  block is, summed over what it holds there, each occupant's non-hiatus rows BESIDE another column's cell over its
+  WHOLE run (the marker is the lane's occupant). ⚠️ Whole run, not the year's slice: the first cut counted the year's
+  rows and read hand-09's lane (3 marker rows in December, 12 in January) as a phantom, so Prep absorbed it — 8 width
+  misses, 97.6%. The re-score caught it. A lone row counts nothing (rule 14). Phantom = used < 3 and < another
+  column's use in the block.
+- **Giving way** (`placeSegmentsByRules`, not frozen): the body is a pass; between passes `yielders` finds a phantom
+  column's occupant that started while the marker ran, is not Production, is not moved by hand, and whose run fits the
+  lane's column beside its non-marker occupants; the pass runs again with it sent to the lane (step 20, before rule 6),
+  `yields` records its rows, and the lane's `freeAt` is held past a short yielder so the marker resumes. In
+  `computeSchedule`, `isSimPostWeek` is false on a yielded row (`laneGiven`), so the week carries the phase's cell in
+  the lane and no marker; the numbering and Post's continued count skip it. Frozen SP1 sees no conflict.
+- **Absorbing** (⛔ frozen edit LR2 in `computePhaseRowLayout`, owner's "build it"; stamped only): `markLayoutPhantoms`
+  (after the week loop, on the drawn `wf.weeks`, per frozen `computeYearBlocks`) sets `layoutPhantom` (the block's
+  phantom columns) on each week row of a block that has one; LR2 maps them through the slotMap into `phantomSlots` and
+  leaves them out of the even share: `spanCap` over `mcEarned`, the rightward walk and the left-extend count earned
+  slots (`earnedIn`). Unstamped: no row carries the key, and the three counts are exactly the old
+  `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))`, `(left + span) < spanCap`.
+- **Not done, by design:** a phantom beside the lane (Production | lane | a real one-week phase) stays empty — the lane
+  never widens (15), Production cannot cross it; no picture shows it.
+- **Checks:** fixtures `layout-r20` (the test calendar's shape) and `layout-r20b` (a one-week Table Read beside
+  Writers + Prep), `fixtures.mjs`, leg `layoutrules` cases R20a–g / R20Ba–d, both red on `dist/pre.html`; all eight
+  layout fixtures green; colreuse live (the gate's judge) + restore, swapsplitreuse, settingswin, notescols,
+  simpostbeside green; `compare.mjs` 98.1%, 31 col misses, 0 width misses — identical to before rule 20; `npm run
+  check` 40/40. **Full gate (17:02–17:42): 4,012 PASS / 4 FAIL**, every baseline byte-identical; the four:
+  - `simpostdays` E1/E2/E3 — the leg met rule 20 head on. Its scenario E adds Production's own hiatus to the
+    reference calendar, which pushes Production's last week onto Post's first (11/2/26); Post, whose own column
+    would be a phantom, takes the lane there, so that one working week carries Post's cell and no marker, in both
+    views, and the marker is numbered 1..16 with Post carrying on at 17. ⚠️ **That is a deliberate exception to
+    the 2 Nov ruling "Sim Post on exactly Production's weeks"**, which the owner accepted in rule 20's plain wording
+    ("the marker stops"); the leg now expects exactly that one week without a marker (14/14 alone). If the owner
+    wants the marker kept in the overlap week instead, the give-way step goes and the third column comes back.
+  - `phiatusnum` H4 — NOT rule 20: the leg's own PDF reader trims trailing EOL bytes off each Flate stream, and
+    today's page content stream (the date "11.5.26" is in the header) happens to end in 0x0a, so the trim corrupts
+    it ("Failed to fetch") and no text run is found. Proven on a build of the branch's HEAD (identical failure) and
+    by reading the stream by its /Length (inflates, every run present). `main`'s `T.pdfStreams` (commit `2e87bd8`,
+    "read PDF text by each stream's /Length") is the fix; not touched here to avoid a merge conflict with it.
+  After the gate: the help text's two rule 20 sentences (`src/index.html`, chrome only), rebuilt, `npm run check`
+  40/40, `layout-r20` / `layout-r20b` green on the final build.
+- The owner's test calendar lived as a temporary untracked fixture (`zz-testshow.sptcal`) while this was built and is
+  deleted; `layout-r20` is its synthetic twin.
+
 ### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ⏭ MERGE INTO `main` AND PUSH ARE THE OWNER'S, BY PICKER. Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
 - **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns
   AND widths"; read only through `layoutStamped()`. A file without it keeps the placement and the widths it has today
