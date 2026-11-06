@@ -18,7 +18,135 @@
   2 -> 3 by ArrowUp). 15/15 on the build; red on the live code in R1, R3, R5, R8 exactly. NEIGHBOURS_RESULT
 - ⏭ **Next:** ask the owner to push (per action).
 
-### 🔨 5 Nov 2026: REBUILD FROM IS NOW **BUILD AROUND** — LENGTHS IN THE BOX, BOTH SIDES IN ONE RUN. BUILT on branch `build-around` (worktree `.claude/worktrees/build-around`, from `main` at `cf75104`; its `node_modules` is a symlink: unlink it before `git worktree remove`). COMMITTED on the branch as `88abfc5` (owner's picker *"Commit on the branch"*); local `main` (`c27c7d9`: the Shift date row, the double-click pull-back, the harness's PDF length reader) merged in as `147f3ab` (README the only conflict, both entries kept); then `origin/main` (`5867661`: the PDF length reader, which reached origin on its own retry, and the drag over an expanded part, `3b8306c`) and local `main` (`4621e4c`, a HANDOFF note) merged in as `74f5a0d` / `d107f05` (HANDOFF and README only; this entry moved back to the top); fast-forwarded onto `main` and PUSHED on the owner's picker *"Push to the live site"*. On the final merge: `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `centrepullback` 12/12, `npm run check` 40/40. On the first merged build (`147f3ab`): `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `snaptools` 14/14, `overrides` 20/20, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15, `phiatusnum` 18/18 (green with the PDF length reader), `centrepullback` 10/10, `stalebandkey` 9/9, `colreuse` 25/25 of the gate's checks, `npm run check` 40/40; no second full gate. Plan [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) (every ruling), mockup [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), tracker card `rebuild-from-lengths`.
+### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
+- **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
+  because of the locked in place all phase hiatuses, we now have a 2 week gap."* Reproduced on a synthetic copy
+  (`tests/fixtures/shiftheld.sptcal`): Phase & after Pre-Prep to 8/10/26 (4 wks earlier) slid every phase 4 CALENDAR
+  weeks while the locked Christmas break (12/21/26 x 2) stayed. The break had sat in Prod Prep's last weeks and landed
+  in Production's first: Prod Prep finished 2 wks sooner (a 2-wk GAP: Prod Prep to 11/27, Production from 12/14) and the
+  shoot ran 2 wks longer (wrap 5/19/27, so Post, moved 4 wks to 5/10/27, OVERLAPPED its last 2 wks; the owner had not
+  spotted that half).
+- **Ruling (owner's picker, "Step over it", after asking "why would stepping over it be the right decision? Does it
+  seem technically correct calendar wise?"):** Shift counts only the weeks a HELD hiatus does not cover. The argument
+  given: a phase's length is already working weeks (a hiatus pauses it, `extendEndForHiatus`), so a plan slid past a
+  break that stays put must be counted in the same units; the test is that the shifted calendar equals the plan
+  re-entered from scratch with the same lengths and gaps, and it does (Build Around from Pre Prep at 8/10/26, After,
+  gives the identical calendar: leg check S1). Caveats the owner was told: "4 weeks earlier" can move a phase 6; a break
+  between two phases counts as no time; the one-week arrows can carry a phase 3 weeks over a break; union holidays
+  still don't move.
+- **As built (`src/legacy/app.js`, all engine, nothing frozen, no snapshot key, no id):**
+  - `stepOverHeld(n, held)` maps a Date N working weeks (weekday kept; a date inside a held break counts from the week
+    after it). `workingWeeksBetween` / `workingWeeksToFinishBy` are To a date's counts (start / "ends by", the old
+    `weeksBetweenMondays` / `weeksToFinishBy` are now unused, left in place).
+  - `shiftCalendarDates`: its windows are `shiftScope(fromIso, part)` and every hiatus row's fate is decided FIRST by
+    `hiatusFatesFor(inRange, except)` ('stay' | 'locked' | 'move', plus `held` / `moving` week sets), because the
+    step-over needs the held weeks before step 1 moves a phase. Counts and step 3's predicates are unchanged.
+    `opts.stepHeld` swaps the constant `days` for the mapping everywhere a date moves: phase starts, their own
+    hiatuses, moving hiatuses, the range, all 15 `shiftKeyedMap` calls, `monthCursor`, `rewriteMovedAutoNotes`,
+    `notesOnHiatus` (`moveDate(d, daysOrFn)`, `shiftKeyedMap` / `rewriteMovedAutoNotes` / `shiftDateFieldValue` take
+    either). Without `stepHeld` every path is byte-for-byte the old arithmetic.
+  - `res.stepped` = moved phases whose start went other than N weeks (read after the refresh, so an Ends phase's
+    re-solved start counts), `res.steppedHiatuses` = held bands they crossed.
+  - `setPhaseStart(key, iso, endTo)`: the END of an Ends phase AND of a Dates phase goes through the mapping. Without it
+    Prod Prep in Ends mode ended 12/11 instead of 11/27 (leg E1, red on the old engine). For Dates the first cut kept
+    the calendar span ("a hiatus never pauses it"), and `builtindates` caught the result: Pre-Prep Wed 2/10-Tue 2/23
+    (locked week of 2/15 inside) +1 wk became 2/24-3/9, INTO Prod Prep's 3/8. Mapped, it is 2/24-3/2: 5 working days
+    and the 3-day gap kept. So a Dates phase's calendar span changes when a held break enters or leaves it.
+  - Who opts in: the Shift form (By weeks, To a date, all three What moves and own ticks) and the toolbar arrows.
+    `shiftHeldWeeks(part)` / `heldForMove(key)` give the form the held set before it runs, for To a date's delta and
+    the list's landing dates. NOT the hiatus ripple (it sizes its steps from the edited hiatus, which it holds itself
+    via `except`), the phase card's ▲ / ▼ (one phase, one week, by design), or the month drag (`carryOnly`).
+  - Words: the line adds *"Production was pulled 6 wks to step over a held hiatus."* (`steppedText`, pushed / pulled per
+    the owner's wording); the arrows' readout *"1 wk earlier · Production pulled 3 wks · wrap …"*; a start date
+    inside a held break: *"Your date is inside a held hiatus, so it starts the week after it."*
+- **My calls, not rulings (flag if the owner disagrees):** a note on a held band's week STAYS with the band (it is about
+  the break and the band covers it; it used to be carried out from under the band by calendar weeks). Both dates of a
+  Dates phase step over (above), so its calendar span can change. Held = locked rows AND, on a part move, the
+  unlocked rows outside its windows (they stay put too, so they are obstacles the same way). Whether the ripple should
+  also step over a locked break it pushes phases across is the open follow-up: it has the same shape of bug.
+- **Proof:** new leg **`shiftheld` 13/13** (gate.sh generic block after `stalebandkey`, `shiftheld:shiftheld:300`):
+  Build Around reference, the list's preview (Production 11/30/26 "Pulled 6 wks"), Go = Build Around, both handoffs
+  back to back, notes on their phase's weeks and XMAS-NOTE kept, the line, one undo, the arrows over the break, a date
+  inside the break, an Ends phase, All phases by weeks, 0 errors. **Red on the old engine** (main's `app.js` built into a
+  page outside `dist/`, which Vite empties: a first attempt read a stale JSON) at L1 S1 S2 S3 S4 A1 H1 E1 W1. Driven by
+  hand in the browser pane: the list, the line and the grid (Prod Prep wk 10 11/23, Production wk 1 11/30, Christmas
+  inside the shoot, wrap 5/5/27, Post wk 1 5/10/27). `npm run check` 40/40.
+- **Neighbouring legs on the build** (port 8978, one at a time; every leg that drives Shift or its arrows, plus Build Around
+  and the ripple): `anchorside` 30/30 (x2), `phasearrows` 26/26, `stalebandkey` 9/9 (x2), `snaptools` 14/14, `overrides`
+  20/20, `calrange` 18/18, `rowheight` 7/7, `autonote` 9/9, `autonotekinds` 16/16, `autonoteview` 18/18, `halfworked`
+  24/24, `mvtextstyle` 23/23 + 6/6, `phiatusnum` 18/18, `customunits` 23 + 28, `builtindates` 17 + 15, `episodeprep`
+  33 + 25 + 11, `offweek` 5 + 42, `textstyle` 51, `buildaround` 33/33, `rebuildticks` 19/19, `hiatusripple` 15/15.
+  `npm run check` 40/40.
+  - **Updated to the new rule (they held the old arithmetic):** `snaptools` L14 (a note shifted onto the locked Summer
+    Break's week now steps over it to 7/20, the shoot's 2nd week again, so the "hidden under a hiatus" warning has
+    nothing to say; the warning still fires on the ripple); `customunits` (Stage Build, Dates, 2/24-3/2; Rigging, Days,
+    Thu 2/25; To a date 2/24 is ONE working week, end 3/2) and `builtindates` (Pre Prep, Dates, 2/24-3/2 and Prod Prep
+    3/8). Each comment says what it was and why.
+  - ⚠️ **Flakes seen, not this change:** `autonoteview` V2 (a month PDF write timed out) in the batch run, 18/18 alone.
+    `offweek` (fixture) R8 / R9 / R13 threw in `load()` ("the loaded file's name in the file menu", the Load race
+    `colreuse` hit on 5 Nov) in both batch runs, which ran while other sessions loaded the machine; 42/42 alone twice on
+    this build, and 42/42 on the old engine.
+- ✅ **Full gate on `b9211a6` (port 8978): 4,048 PASS / 15 FAIL, every failure re-run alone and green, none from this
+  work.** It ran 22:50 to 10:34 (almost 12 hours) because the `angry-mclean` session's full gate started the same minute
+  and ran beside it all night (load average 16 to 25), with `release-r20`'s legs too. The baselines all held: 0 clipped
+  cells, the waterfall PDF identical, the Excel parts identical, every printed month document identical; `shiftheld`
+  13/13 inside the gate. The 15 were timeouts or no result: `monthprint` reference, `prefs`, `hdrverload`
+  (hdrtemplated), `onecol`, `colreuse` (live), `pilllabel` (shootorder) W2, `pwagate` C1, `xlsxdates` (ExcelJS load),
+  `legacyparse` T3, `mvorder` / `hiatusdrag` / `hiatusripple` (deadlines), `scenariocompat` v1.2.0. Alone (judged by
+  gate.sh's own judges where a leg has one): monthprint reference identical to baseline (16 sheets), prefs 13, hdrverload
+  7, onecol 17, colreuse 25, pilllabel (shootorder) 29, pwagate 13/13, xlsxdates 5/5, legacyparse 7/7, mvorder 30/30,
+  hiatusdrag 14/14, hiatusripple 15/15; `scenariocompat` v1.2.0 timed out once more ("Open... menu item"), then opened the
+  8-episode tab (pass); it runs on the frozen `releases/v1.2.0.html` and never loads this build (the known flake).
+  ⚠️ Two full gates started at once is what HANDOFF warns about; a session that queues a gate behind a PID should check
+  no other session queued behind the same PID.
+- **Not done:** the ripple's own step-over is the open follow-up (above): a hiatus edit with Ripple on still pushes the
+  phases after it by calendar weeks, so it can carry a phase across a locked break and open the same gap.
+
+### ✅ 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). ✅ **LIVE at `6387159`** (owner's pickers *"Commit on the branch"*, *"Push to the live site"*; pushed `3964bfb..6387159` at 02:30 UTC 6 Nov, a fast-forward that also carried three HANDOFF-only notes from local `main`; deploy run `42150741791` green; the live `index.html` is the build byte for byte, sha256 `2d191510…`, "in a week this phase runs" present). Local `main` fast-forwarded to it. No version cut. Built on branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `phase-hiatus-picker-range`.
+- **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
+  in the range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first
+  month of the phase"*. The picker opened on today's month and offered every Monday.
+- **Rule as built (a judgment call, not a ruling; flag it if the owner sees greyed weeks they expected):** the window
+  is the Mondays a hiatus can start on and still PAUSE the phase, worked out WITHOUT that hiatus (all-phase hiatuses
+  counted). The phase's drawn `end` includes its hiatus, so it would offer the weeks the hiatus adds, and a hiatus
+  started there lands after the phase finishes and pauses nothing (checked: Pre-Prep 6 wks + a 2-wk hiatus runs to
+  5/29; a start on 5/18 or 5/25 would have done nothing).
+  - Starts (Weeks): its start's Monday to the Monday of the week holding `extendEndForHiatus(start, weeks, null) - 7`
+    (the walk steps 7 days from the start, so this holds snapped or not).
+  - Ends (`cfg.endsAt`): from `weeksStartForEnd(endsAt, weeks, state.hiatuses, null)` (its hiatus moves its START) to
+    `end - 7`'s week.
+  - Days: to the week of the last day of `customUnitSpan(cfg, parsed, null)`; Dates: to the end's week (a hiatus
+    never moves it).
+  - Production (Starts): to the week of `simulateProductionSchedule(…, noLead=false, noOwnHiatus=true)`'s
+    `lastShootDay` (new 5th argument). ⚠️ Production held by its wrap (`productionEnds`) keeps its whole span, which
+    can offer a week or two that pause nothing: re-solving its start without the hiatus is `solveProductionEndsStart`'s
+    search. Permissive, never excludes a real week.
+  - The picker's months: from the phase's first day's month (or the window's first Monday's, when later: Ends) to
+    the last Monday's month.
+- **As built:** `computeSchedule()` puts `hiatusWindow: {first, last}` (Dates, Mondays) on every phase segment
+  (pure, additive; nothing reads it but the push). `hiatusWindowsFor(sch)` (beside `wholeCalendar`, read from the whole
+  calendar) feeds `chrome.dateContext({hiatusWindows})` in `update()`. `DatePop.jsx`: `hiatusWindowOf(el, ctx)` (by
+  the `phiatus-start-<key>` id), the days outside get `dp-off` / `aria-disabled`, the arrows `aria-disabled` at the
+  ends (CSS `.dp-nav[aria-disabled]`), `open()` reads the context through a ref and opens on the phase's first month
+  unless the field holds a date inside the window (clamped to the window's months), and the hint reads "A hiatus
+  always starts on a Monday, in a week this phase runs." A phase with no dates and the all-phase hiatus are not
+  limited. No id, no snapshot key, no frozen code, no export change.
+- **Proof:** new leg **`phiatuspick` 12/12** (`gate.sh` generic block after `datepick`, `phiatuspick:-:200`), red on
+  the old `DatePop.jsx` (K1–K5, then EX): the empty field opens on April for Pre-Prep, only 4/6–5/11 pickable, the
+  arrows stop at April and May, a pick writes and pauses the phase, the window does not grow with the hiatus, a date
+  outside the phase opens on April and is not rewritten, Production to its wrap's week without the hiatus, Post held
+  by its end from where it starts without the hiatus, Localization with no dates and the all-phase hiatus unlimited.
+  `datepick` H2 updated (Prod Prep's empty hiatus: 40 greyed, 5/25 and 6/1). Checked in the browser pane on the
+  fixture (Pre-Prep, Production, Post in Ends). `npm run check` 40/40. Neighbouring legs on the build: see the line
+  below. No full gate (chrome + an additive engine field).
+- **Neighbouring legs on the build** (dist sha256 `2d191510…`, port 8953, one at a time): `datepick` 17/17,
+  `phiatuspick` 12/12, `snapbox` 12/12, `phiatusnum` 18/18, `endsdate` 17/17, `prodends` 14/14, `hiatussidebar`
+  16/16, `spanhint` 9/9, `badyear` 6/6, `calrange` 18/18, `prodspan` 8/8, `stalebandkey` 9/9, `phasearrows` 26/26,
+  `wrapdate` (5 scenarios, all its flags true), `customunits` 23 + 28, `builtindates` 17 + 15.
+- **Not done:** no full gate (chrome + an additive engine field; the 17 legs above instead). A leg for Production
+  held by its wrap with a hiatus (the permissive case) was not written.
+
+### ✅ 5 Nov 2026: REBUILD FROM IS NOW **BUILD AROUND** — LENGTHS IN THE BOX, BOTH SIDES IN ONE RUN. ✅ **LIVE at `3964bfb`** (pushed `5867661..3964bfb` on the owner's picker; deploy run `42132450288` green; the live `index.html` is byte-identical to the build, sha256 `d4662b17…`: "Build Around" and `tool-solve-edge` present, `tool-close-gaps` absent). BUILT on branch `build-around` (worktree `.claude/worktrees/build-around`, from `main` at `cf75104`; its `node_modules` is a symlink: unlink it before `git worktree remove`). COMMITTED on the branch as `88abfc5` (owner's picker *"Commit on the branch"*); local `main` (`c27c7d9`: the Shift date row, the double-click pull-back, the harness's PDF length reader) merged in as `147f3ab` (README the only conflict, both entries kept); then `origin/main` (`5867661`: the PDF length reader, which reached origin on its own retry, and the drag over an expanded part, `3b8306c`) and local `main` (`4621e4c`, a HANDOFF note) merged in as `74f5a0d` / `d107f05` (HANDOFF and README only; this entry moved back to the top); fast-forwarded onto `main` and PUSHED on the owner's picker *"Push to the live site"*. On the final merge: `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `centrepullback` 12/12, `npm run check` 40/40. On the first merged build (`147f3ab`): `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `snaptools` 14/14, `overrides` 20/20, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15, `phiatusnum` 18/18 (green with the PDF length reader), `centrepullback` 10/10, `stalebandkey` 9/9, `colreuse` 25/25 of the gate's checks, `npm run check` 40/40; no second full gate. Plan [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) (every ruling), mockup [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), tracker card `rebuild-from-lengths`.
 - **Why:** the owner asked whether Rebuild From is useful at all. Measured on the layout study's 15 seeds (plan §0): 46
   of the 47 handoffs that don't involve Writer's Rm are back to back, no seed has a gap, and the room overlaps the next
   phase in all 15 (3–45 wks, median 11). Checked in the built app on hand-16 (launch.json `seeds-main-8979` serves
@@ -63,7 +191,7 @@
   be used: five preview servers in this folder belong to other chats). **Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work:** `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; ⚠️ `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
 - `python3 tools/check-refs.py` reports 5 prose line numbers — the same 5 on `main`, not from this work.
 
-### 🔨 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync three times: at 5f99223, at 854dbbe (the Shift date row and the centre pull-back), then at 3b8306c (the pull-back's drag-select follow-up); HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*). Pushed on the owner's *"Push now"*, then *"Retry the push"*:
+### ✅ 5 Nov 2026: THE HARNESS READS PDF TEXT BY EACH STREAM'S `/Length` (`T.pdfStreams` in `t/lib.js`). Test harness only; `phiatusnum` H4 green again. ✅ **LIVE at `5867661`** (pushed `3b8306c..5867661` at 23:47:37 UTC on the owner's *"Retry the push"*; the Pages deploy succeeded at 23:48:33; the live `index.html` is the pushed build `c6b60bda…` byte for byte, which this push did not change; `version.json` 1.11.0, no version cut). Tracker card `harness-pdf-length-reader`. On branch `claude/agitated-bhaskara-df2f66` (worktree `.claude/worktrees/agitated-bhaskara-df2f66`, local `main` 69c8bc0 + `origin/main` merged in through the app's sync three times: at 5f99223, at 854dbbe (the Shift date row and the centre pull-back), then at 3b8306c (the pull-back's drag-select follow-up); HANDOFF and README the only conflicts). ✅ **MERGED into local `main` as `9006552`** (owner's picker *"Merge into local main"*). Pushed on the owner's *"Push now"*, then *"Retry the push"*:
   - ⚠️ GitHub REJECTED the first four tries (23:22–23:24 UTC, `! [remote rejected] … (fatal error in commit_refs_rules)`), by sha and by branch name. That is a server-side error and no cause was found on our side: no rulesets, no branch protection, token scopes `repo` + `workflow`, the status page green, `git fsck` clean.
   - The fifth try (23:45) got past those checks but lost a race. `origin/main` had just moved to `3b8306c` ("cannot lock ref … expected 854dbbe"). That commit was merged in and the build re-checked before the next push.
 - **The fault** (recorded under "Full gate #2" in the stale band key entry below): sixteen legs read PDF text with a
@@ -108,6 +236,14 @@
   note, both unpushed and doc only). This branch is not on it. A push of this branch to `origin/main` is a
   fast-forward (`git push origin claude/agitated-bhaskara-df2f66:main`, the shape `stale-band-key` used). Merging it
   into local `main` instead means a HANDOFF conflict in the main checkout, which other sessions are using.
+  Done both ways in the end. Local `main` got the merge as `9006552` + a HANDOFF note (`c27c7d9`), made on a
+  temporary branch here and fast-forwarded. The push went from this branch after `3b8306c` was merged in.
+  ✅ **Local `main` is current** (owner, *"Yes, update main"*). By then the Build Around session had merged
+  `origin/main` into it, `5867661` included, which dropped `c27c7d9`'s stale "NOT LIVE" line. So the LIVE note was the
+  only thing left to merge. It went in `--no-ff` on a temporary branch here, and `main` was fast-forwarded to it.
+- ✅ **Re-checked on the build pushed** (`3b8306c` merged in, dist `c6b60bda…` = the live file before and after the
+  push): `phiatusnum` 18/18, `hiatuslabel` 7/7, `mvhdroff` 9/9, `wfnotecolors` 14/14, `notewrap` 16/16,
+  `autonoteview` 18/18 (its first run was dumped while "pending", green alone).
 
 ### ✅ 5 Nov 2026: FOLLOW-UP — A DRAG OVER ONLY THE EXPANDED PART OF CELLS NOW SELECTS THEM (the double-click then pulls them ALL back). ✅ **LIVE at `3b8306c`**: pushed `854dbbe..3b8306c` at 23:45:36 UTC; the Pages deploy succeeded and the live `index.html` matched the pushed build `c6b60bda…` byte for byte at 23:46:49 UTC. No version cut. Merged into local `main` as `4ce6630` (conflicts in HANDOFF/README only, beside another session's unpushed harness PDF-reader entry, both kept). Branch `batch-pullback`, on top of the live `854dbbe`. COMMITTED and PUSH APPROVED (owner's pickers *"Commit on the branch"*, *"Push live now"*). Tracker card `centre-pullback`.
 - **Report (owner, trying the live fix):** *"i tried highlighing a bunch of expanced cells and double clicking and it
@@ -240,6 +376,59 @@
 - **Proof:** leg `newtab` (gate.sh's generic block, `newtab:-:120`): 6/6 on the build, N1–N4 red on the pre-fix build.
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
+
+### ✅ 5 Nov 2026 (evening): RULE 20 — A COLUMN MUST EARN ITS PLACE — built, gated and committed on `layout-study` (`3141d91`; 4,012 / 4, the four explained below; owner's picker *"Commit on the branch"*), then MERGED into `release/layout-r20` (worktree `.claude/worktrees/release-r20`, cut from `main` at `871e26d` = `origin/main` 3964bfb + three HANDOFF notes; merge `01934a1`, owner: *"Yes, merge and gate"*). **Full gate on the merged build: 4,175 PASS / 0 FAIL** (18:02–18:40), every baseline identical; `phiatusnum` H4 green there (main's by-`/Length` reader is in), `simpostdays` 14/14, `layout-r20` / `r20b` green. The phase-hiatus picker (`6387159`, live) merged in as `5793d34`; that build's full gate ran beside two other sessions' gates for four hours, 4,079 / 15, every failure a timeout or hit-test, and all fifteen green re-run alone on 6 Nov. **Cut as v1.12.0 on 6 Nov 2026** (owner's picker: fast-forward `main`, cut v1.12.0, push): `APP_VERSION`, `version.json`, `package.json`; the nine Unreleased entries since v1.11.0 under one heading; `releases/v1.12.0.html` cmp-identical to the build (sha256 `9f801730…`); `tests/fixtures/v1.12.0-saved.sptcal` a real Save from it (44 keys, 77 ids); `npm run check` 40/40; the `pdfmark` leg under the gate's judge (Producer "SPTCal 1.12.0"). No full re-gate for the version string alone. ⚠️ Then `origin/main` moved again (`b9211a6` Shift steps over a held hiatus, live, + its HANDOFF): merged in (`576f958`), the cut re-made on that build — `releases/v1.12.0.html` cmp-identical (sha256 `34904f82…`), the fixture re-minted, `npm run check` 40/40, `pdfmark` 16/16; the ten Unreleased entries since v1.11.0 under the v1.12.0 heading. Rule 20 and the step-over were each gated with `main` on their own; the pair has a targeted run only. Tracker card `post-takes-lane-in-wrap-week`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §7.
+- **The ask.** The owner's screenshot of a test calendar: Post wk 1 in Production's last week while Sim Post held its
+  lane; rule 5 opened a third column for that week, empty beside Writers + Pre-Prep and beside Production + Sim Post
+  for the rest of the year. Reproduced exactly on the build (the stamped path; the legacy path draws it differently).
+  First proposal was "Post takes the lane"; the owner: *"its less about phase specific changes like that and more
+  about the algorithm understanding better what looks right and what doesnt with any phases"*. Then, on the simple
+  wording (*don't open a column for something that is only there for a week or two*): *"build it"*.
+- **What looks right, measured** (scratch `scan-coluse.py` / `scan-shared.py` over the 15 scrubbed seeds): every
+  pictured column is used beside another column's cell for ≥ 5 rows (hand-07 2025 Pre-Prep); hand-02 2026's third
+  column holds Pre-Prep 6 rows and then stands EMPTY beside two one-wide phases for 14 — an earned column may stand
+  empty; rule 6's Wrap column is 3; hand-12 2028 is 3 and 3. Floor `LAYOUT_EARNED_WEEKS = 3`.
+- **The measure** (one definition, `markLayoutPhantoms` + the scan in `placeSegmentsByRules`): a column's use in a year
+  block is, summed over what it holds there, each occupant's non-hiatus rows BESIDE another column's cell over its
+  WHOLE run (the marker is the lane's occupant). ⚠️ Whole run, not the year's slice: the first cut counted the year's
+  rows and read hand-09's lane (3 marker rows in December, 12 in January) as a phantom, so Prep absorbed it — 8 width
+  misses, 97.6%. The re-score caught it. A lone row counts nothing (rule 14). Phantom = used < 3 and < another
+  column's use in the block.
+- **Giving way** (`placeSegmentsByRules`, not frozen): the body is a pass; between passes `yielders` finds a phantom
+  column's occupant that started while the marker ran, is not Production, is not moved by hand, and whose run fits the
+  lane's column beside its non-marker occupants; the pass runs again with it sent to the lane (step 20, before rule 6),
+  `yields` records its rows, and the lane's `freeAt` is held past a short yielder so the marker resumes. In
+  `computeSchedule`, `isSimPostWeek` is false on a yielded row (`laneGiven`), so the week carries the phase's cell in
+  the lane and no marker; the numbering and Post's continued count skip it. Frozen SP1 sees no conflict.
+- **Absorbing** (⛔ frozen edit LR2 in `computePhaseRowLayout`, owner's "build it"; stamped only): `markLayoutPhantoms`
+  (after the week loop, on the drawn `wf.weeks`, per frozen `computeYearBlocks`) sets `layoutPhantom` (the block's
+  phantom columns) on each week row of a block that has one; LR2 maps them through the slotMap into `phantomSlots` and
+  leaves them out of the even share: `spanCap` over `mcEarned`, the rightward walk and the left-extend count earned
+  slots (`earnedIn`). Unstamped: no row carries the key, and the three counts are exactly the old
+  `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))`, `(left + span) < spanCap`.
+- **Not done, by design:** a phantom beside the lane (Production | lane | a real one-week phase) stays empty — the lane
+  never widens (15), Production cannot cross it; no picture shows it.
+- **Checks:** fixtures `layout-r20` (the test calendar's shape) and `layout-r20b` (a one-week Table Read beside
+  Writers + Prep), `fixtures.mjs`, leg `layoutrules` cases R20a–g / R20Ba–d, both red on `dist/pre.html`; all eight
+  layout fixtures green; colreuse live (the gate's judge) + restore, swapsplitreuse, settingswin, notescols,
+  simpostbeside green; `compare.mjs` 98.1%, 31 col misses, 0 width misses — identical to before rule 20; `npm run
+  check` 40/40. **Full gate (17:02–17:42): 4,012 PASS / 4 FAIL**, every baseline byte-identical; the four:
+  - `simpostdays` E1/E2/E3 — the leg met rule 20 head on. Its scenario E adds Production's own hiatus to the
+    reference calendar, which pushes Production's last week onto Post's first (11/2/26); Post, whose own column
+    would be a phantom, takes the lane there, so that one working week carries Post's cell and no marker, in both
+    views, and the marker is numbered 1..16 with Post carrying on at 17. ⚠️ **That is a deliberate exception to
+    the 2 Nov ruling "Sim Post on exactly Production's weeks"**, which the owner accepted in rule 20's plain wording
+    ("the marker stops"); the leg now expects exactly that one week without a marker (14/14 alone). If the owner
+    wants the marker kept in the overlap week instead, the give-way step goes and the third column comes back.
+  - `phiatusnum` H4 — NOT rule 20: the leg's own PDF reader trims trailing EOL bytes off each Flate stream, and
+    today's page content stream (the date "11.5.26" is in the header) happens to end in 0x0a, so the trim corrupts
+    it ("Failed to fetch") and no text run is found. Proven on a build of the branch's HEAD (identical failure) and
+    by reading the stream by its /Length (inflates, every run present). `main`'s `T.pdfStreams` (commit `2e87bd8`,
+    "read PDF text by each stream's /Length") is the fix; not touched here to avoid a merge conflict with it.
+  After the gate: the help text's two rule 20 sentences (`src/index.html`, chrome only), rebuilt, `npm run check`
+  40/40, `layout-r20` / `layout-r20b` green on the final build.
+- The owner's test calendar lived as a temporary untracked fixture (`zz-testshow.sptcal`) while this was built and is
+  deleted; `layout-r20` is its synthetic twin.
 
 ### ✅ 5 Nov 2026: THE LAYOUT RULES, BUILT IN THREE PIECES AND GATED ON THE BRANCH — placement v3 `e7b589c`, the widths (frozen edit LR1) `6288d4a`, the switch retired + the "Update layout" strip (the third commit). Full gate 4,000 PASS / 1 FAIL (the one a `pilllabel` month capture that caught 1 month of 18 under contention, 29/29 re-run alone), every baseline identical. ✅ **MERGED into local `main` as `9ca08ca`** (--no-ff, owner's picker *"Yes, merge into main"*, 5 Nov 2026), then **`origin/main` merged in as `0657ec6`** (39 commits: the phase arrows, hiatus ripple, the one Shift tool, the note editor, the month-drag carry; conflicts in HANDOFF and README only, both sides kept, layout entries first; app.js, Sidebar.jsx, index.html, legacy.css, gate.sh, settingswin.js auto-merged), and **v1.11.0 CUT** (owner's pickers *"Merge, targeted legs, then ask"*, *"Yes, cut v1.11.0"*): `APP_VERSION`, `version.json` AND `package.json` (⚠️ `npm run check` compares version.json with package.json, so a cut is THREE files now, not two), the 20 Unreleased changelog entries under one `## v1.11.0` heading, `tests/fixtures/v1.11.0-saved.sptcal` (a real Save, `t/mintfixture.js`), `releases/v1.11.0.html` = the checked build (`cmp`-identical, `e2960429…`). **On the merged 1.11.0 build: `npm run check` 40/40; a targeted run of gate.sh's sections (base→restore = gates 2 + 3, colreuse, layouthook, 17 generic legs incl. layoutrules ×6, anchorside, phasearrows, mvdragcarry, wfnoteeditor, simpostbeside, swapsplitreuse, colswappartial ×2, spancounts, prodspan, settingswin; hiatusripple; monthwriter = gate 13): 493 PASS / 0 FAIL in 5 min**, waterfall PDF and workbook identical, 0 clipped cells, the written month PDFs byte-identical. No full gate on the merge (the owner's pick). ✅ **LIVE at `7bfb40c` in v1.11.0** (owner's picker *"Push now"*; pushed `ca794cc..7bfb40c` plus tag `v1.11.0` at 21:11:26 UTC on 5 Nov 2026; the Pages deploy succeeded, and the live `index.html` matched the pushed build `e2960429…` byte for byte after ~30 s, `version.json` 1.11.0). Branch `layout-study` (worktree `.claude/worktrees/layout-study`; its `node_modules` is a symlink, unlink it before `git worktree remove`). ⚠️ Before the merge the main checkout's uncommitted mirror copies of `LAYOUT-RULES.md`, `LAYOUT-STUDY-PLAN.md` and `tools/layout-study/` were removed (the branch's committed copies were newer supersets, diffed), and another session's stale untracked `PHASE-WEEK-ARROWS-PLAN.md` / `mockups/phase-week-arrows.html` (4 lines each beyond origin's committed, as-built copies) were set aside in this session's scratchpad, as was its uncommitted HANDOFF hunk (the phase arrows "RULED: LAYOUT D" lines, superseded by origin's as-built entry). Tracker card `learned-column-layout`. Plan: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md); the rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0.
 - **The stamp.** `colReuse: true` (PERMANENT, unchanged in the file) now means "lays out by the layout rules, columns

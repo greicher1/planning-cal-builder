@@ -88,6 +88,9 @@
     border-radius:var(--mantine-radius-default);
   }
   .dp-nav:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  /* The arrows at a phase hiatus's first or last month (DatePop's hiatus window): nothing further to show. */
+  .dp-nav[aria-disabled]{ color:var(--mantine-color-gray-3); cursor:default; }
+  .dp-nav[aria-disabled]:hover{ background:transparent; color:var(--mantine-color-gray-3); }
   .dp-dow{ display:grid; grid-template-columns:repeat(7, 1fr); margin-bottom:2px; }
   .dp-dow span{
     text-align:center; font-size:var(--mantine-font-size-xxs); font-weight:600;

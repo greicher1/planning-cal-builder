@@ -1864,6 +1864,12 @@ done
 # Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and opening the picker does
 # not rewrite it); Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact
 # day with no week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# phiatuspick (owner, 5 Nov 2026: "the calendar popup for per phase hiatus periods should be limited to only
+# dates/months that fall in the range of the phase") holds a phase's own hiatus picker to its phase: an empty one opens
+# on the phase's first month; only the Mondays the phase runs WITHOUT that hiatus are pickable (the weeks the hiatus
+# adds are not); the arrows stop at the first and last months; Production to its wrap's week, an Ends phase from where
+# it starts without the hiatus; a phase with no dates and the all-phase hiatus are not limited. Red on the old picker
+# (K1-K5). Own line.
 # snapbox (owner, 30 Oct 2026, of a Wednesday left in a snapped Starts box: "It should also change the actual the date
 # shows in the box. Otherwise this is confusing.") holds the box's half: after TYPING a non-Monday, Enter or leaving the
 # box writes its Monday (built-in, Production, custom Weeks, both kinds of hiatus), the "Snapped to Mon" row goes and
@@ -1968,6 +1974,13 @@ done
 # (N1 N2 F1 P1: the label yielded on Summer Break's week, its colour, size and styles landed on that band) and on the
 # "plain key stays outside the window" one-liner (P1). On stalebandkey.sptcal (phasearrows.sptcal + the stale stores,
 # a Dates phase and an unlocked two-week band).
+# shiftheld (owner, 5 Nov 2026, picker "Step over it"; stepOverHeld) is the Shift tool counting only the weeks a HELD
+# hiatus does not cover: Phase & after Pre Prep 4 wks earlier across a locked Christmas break that sat in Prod Prep
+# lands every phase where Build Around from the same date puts it (Production 6 wks, both handoffs back to back), notes
+# ride with their phase's week and one under the break stays, the line says "pulled 6 wks to step over a held hiatus",
+# the arrows (Production 3 wks over the break), a date inside the break (the week after), an Ends phase (its END is
+# mapped), All phases by weeks. Red on the old engine at L1 S1-S4 A1 H1 E1 W1 (the 2-week gap and the overlap).
+# On shiftheld.sptcal (synthetic, from anchorside.sptcal).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2027,9 +2040,11 @@ done
 # the freed column beside it; r6 the same-week competition for one free column (the shorter takes it, Post continues the
 # lane); r9 the same two columns on opposite sides in consecutive years (rule 9 through stintOrderFor); r7 a handoff left
 # of a running phase, a phase not following on placed right of everything running, a paused phase keeping its column,
-# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2). Each red on the build
-# before the rules where its rule differs. An UNSTAMPED calendar is every other leg of this gate: its placement and its
-# widths are byte for byte what they were.
+# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2); r20 and r20b rule 20
+# (owner, 5 Nov 2026: a column must earn its place): Post starting in Production's last week takes the lane and the
+# marker steps aside, two columns instead of a third for one week; a one-week phase's column does not count toward the
+# even share, so Prep spreads into it (frozen edit LR2). Each red on the build before the rules where its rule differs.
+# An UNSTAMPED calendar is every other leg of this gate: its placement and its widths are byte for byte what they were.
 # centrepullback (owner, 5 Nov 2026: "drag and select collumns and double click to unexpand them") holds the double-click
 # on the MIDDLE of an expanded cell, where the boundary between its columns runs and that boundary's column handle used
 # to take the double-click (the frozen autofit, a no-op), so pull-back worked only off the centre. Real pointer events
@@ -2072,6 +2087,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              phiatuspick:-:200 \
               snapbox:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
@@ -2104,6 +2120,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
+              shiftheld:shiftheld:300 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
@@ -2119,7 +2136,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 \
               centrepullback:layout-r13:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

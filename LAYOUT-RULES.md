@@ -69,9 +69,32 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     own.
 19. **A width dragged by hand wins.**
 
+**Looking back at the year — what looks right.**
+
+20. **A column must earn its place.** A column is there for the weeks something in it runs beside another phase. One
+    whose occupants run beside another column's cell for **fewer than 3 weeks over their whole run**, while another
+    column in that year is used more, is a *phantom*. Two things follow, for any phase:
+    - **Don't open it where something can give way.** The Sim Post marker — the only thing on the grid that is not a
+      phase — steps aside for a phase whose column would otherwise be a phantom: the phase takes the lane from its
+      first week, the marker is not drawn in the rows the phase holds there, and resumes after a short one. A phase
+      never loses a cell and a date never moves, so a phantom two real phases make has to exist.
+    - **Where it must exist, it does not count.** A phantom column is left out of the even share (12), so the phase
+      beside it spreads into it on rule 13's terms, and the year does not read three wide because of one week.
+
+    The floor is measured from the pictures, not chosen: the shortest column drawn by hand is used 5 weeks (hand-07's
+    Pre-Prep), rule 6's Wrap column 3; hand-02's third column holds Pre-Prep for 6 weeks beside two one-wide phases
+    and then stands empty beside them for 14 — earned, and left alone. A run crossing New Year counts both sides:
+    hand-09's lane holds three marker rows in December and twelve in January, and is earned in both years. *(Owner,
+    5 Nov 2026, on a Test Show where Post starting in Production's last week had opened a third column for one week,
+    empty beside Writers + Pre-Prep and beside Production + Sim Post for the rest of the year: "less about phase
+    specific changes ... more about the algorithm understanding better what looks right and what doesnt with any
+    phases". Simply: don't open a column for something that is only there for a week or two.)*
+
 **Built** (LAYOUT-BUILD-PLAN.md, 5 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
-`layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; the fixtures are
-`tests/fixtures/layout-r*.sptcal` (made by `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
+`layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; rule 20 is the
+scan between `placeSegmentsByRules`' passes (giving way), `markLayoutPhantoms` on the drawn rows and frozen edit LR2
+(absorbing), the floor `LAYOUT_EARNED_WEEKS`; the fixtures are `tests/fixtures/layout-r*.sptcal` (made by
+`tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
 
 **Old files.** A calendar saved without the layout stamp (`colReuse`) keeps its old columns and widths exactly,
 forever, and is offered the update once, by a strip — never changed on its own (owner ruling, 5 Nov 2026: *"yes

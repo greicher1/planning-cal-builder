@@ -177,7 +177,11 @@ window.addEventListener('load', function () { (async function () {
       $('pop-shift-btn').click(); await T.sleep(150);
       T.set('tool-shift-weeks', '1'); $('tool-shift-later').click(); await settle();
       out.movers.shift = dates();
-      check(out.movers.shift.pre === '2027-02-17' && out.movers.shift.preEnd === '2027-03-02'
+      // ⭐ Since 5 Nov 2026 Shift STEPS OVER a held hiatus (stepOverHeld): Pre Prep Wed 2/10 -> Wed 2/24 over the locked
+      // week of 2/15, and its END through the same step, Tue 2/23 -> Tue 3/2 (5 working days kept, the 3-day gap to Prod
+      // Prep's 3/8 kept). Before: 2/17-3/2 (a start inside the break). The first cut of the step-over kept the span and
+      // ended it 3/9, INTO Prod Prep.
+      check(out.movers.shift.pre === '2027-02-24' && out.movers.shift.preEnd === '2027-03-02' && out.movers.shift.pp === '2027-03-08'
             && out.movers.shift.post === '2027-04-08' && out.movers.shift.postEnd === '2027-05-19', 'Shift All +1 wk moves BOTH ends of each built-in Dates phase');
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
