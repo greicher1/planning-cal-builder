@@ -4,6 +4,67 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 4 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — PLAN + MOCKUP, ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation), NO APP CODE ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+- ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
+  R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
+  R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
+  month later; R9(a) one new key `phaseNotes`, no version bump. Plan §2 holds the record.
+- ⚠️ **This branch (`claude/sharp-mendel-68482d`) is 86 commits behind `main` and was never merged into it**, so
+  `main`'s HANDOFF does not have this entry (it still says a plan-writing session was only proposed). Before building:
+  start a branch off `main`, merge this one in (docs only), and refresh the plan: Rebuild From is now Build Around,
+  Close all gaps is gone, Shift From / Anchor To are choices in the one Shift form, and A2 has to make room for the
+  waterfall editor's per-line Hide list (live at `ac55bb7`, which this branch predates).
+- **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
+  note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
+  was not needed, but typing a phase's start date leaves its notes behind.
+- **Found in the code (plan §0):**
+  - Only the Shift tools move a typed note (`shiftCalendarDates` re-keys `userNotes` by week).
+  - Typing a start date, the month body drag and grips, Rebuild From, Close all gaps, a hiatus added inside a phase,
+    and a Region change all move phases and leave notes on their weeks.
+  - Automatic notes never get left behind, because `computeSchedule` derives them on every run.
+- **Proposed:** store the link, not the week. A new snapshot key, `phaseNotes`, keyed `<phase>@<n>`, where n is the
+  phase's own working-week count from `seg.weekNo`.
+  - `computeSchedule` places each note on `schedule.phaseNotePlace`, on the schedule object only (it runs up to 300
+    times in searches).
+  - `effectiveNoteText` draws the notes into the Notes cell, the NOTE-VIEWS path, so the screen, Excel, the waterfall
+    PDF, widths and row count follow. `mvWfLinesFor` draws them in the month view.
+  - Their look goes through `noteColorFor` / `noteFontSizeFor` / `textStyleOf` / `syncRowHeights`.
+  - **No frozen edit, and no code in any mover.**
+  - ⛔ `shiftCalendarDates` gets nothing: linked notes are not in `userNotes`, so it never sees them. Never add a
+    `shiftKeyedMap` call for `phaseNotes`.
+- **The editor:** one row under the text box, *Stays with [Week of 5/9/33 | Production wk 2]*. It lists the phase
+  cells the row draws, opens on the week, and is hidden when no phase runs. A one-line hint says what will happen.
+  The grid gets no mark (D6).
+- **Waiting on the owner: R1–R9** (plan §2). Recommended:
+  - R1 the words "Stays with";
+  - R2 one cell, one home (a visiting note keeps its link while the choice is untouched);
+  - R3 a shorter phase parks the note on its last week, a removed custom phase turns its notes into plain notes;
+  - R4 Production follows its shoot day when the picked day is one;
+  - R5 no offsets outside the phase yet;
+  - R6 with no day, the phase's first drawn day that week;
+  - R7 colour, size, style and row height travel;
+  - R8 both note editors, the month one in a later step;
+  - R9 one new key with no version bump (an older build drops linked notes if it saves).
+- **The mockup** (checked in the browser pane): tab 1 is the editor on a synthetic 2033 waterfall. Tab 2 types
+  Production two weeks later, with Before / After, a Today switch, a weeks stepper (R3's parked note) and a two-note
+  cell (R2). A switch at the top shows R1's three wordings.
+- **Fits:** the Shift tool, the phase week arrows and the hiatus ripple all carry linked notes for free (plan §7).
+- **Then the editor's look** (tracker card `note-editor-overhaul`, requested). Seeing it, the owner asked for *"a few
+  cleaner looking variations of this menu … this would also apply to the same menu in the month view"*.
+  [`mockups/note-editor-look.html`](mockups/note-editor-look.html) draws today's editor and A (one tidy list), B (text
+  first, chips) and C (every choice a button) for all five editors: the waterfall note, and the month view's note,
+  waterfall line, holiday and automatic note. Each keeps exactly today's settings.
+  - Then *"a version of a where the date selector is on the top, then stays with, then color is all the chips not a
+    dropdown, then show in month view"*: that is **A2**, in the same file.
+  - Heights for the waterfall editor: today 311 px, A 298, A2 352, B 194, C 433.
+  - ✅ **RULED: A2**, for both note editors (owner: *"yes A2, but its an "Auto-Note""*). So the month view's
+    automatic-note editor is titled **Auto-Note**, matching its Hide Auto-Note button. Today's title is
+    "5/2/33 · Auto Note", from `openMvNoteEditor`. The order and the build order with this plan are in its §4.4.
+  - No app code yet. Chrome only: both editors are body-level panels (`.note-pop`, `.mv-note-pop`), so nothing frozen
+    changes. But 18 legs drive `.note-pop` / `.mv-note-pop` (among them `noteviews`, `wfkeys`, `mvnotes`,
+    `wfnotecolors`, `autonoterename`, `holidayrename`; `grep -l note-pop tests/harness/t`), so the rebuild has to keep
+    their selectors or move them with it.
+
 ### ✅ 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). ✅ **LIVE at `6387159`** (owner's pickers *"Commit on the branch"*, *"Push to the live site"*; pushed `3964bfb..6387159` at 02:30 UTC 6 Nov, a fast-forward that also carried three HANDOFF-only notes from local `main`; deploy run `42150741791` green; the live `index.html` is the build byte for byte, sha256 `2d191510…`, "in a week this phase runs" present). Local `main` fast-forwarded to it. No version cut. Built on branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `phase-hiatus-picker-range`.
 - **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
   in the range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first
