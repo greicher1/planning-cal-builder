@@ -72,8 +72,21 @@
     `offweek` (fixture) R8 / R9 / R13 threw in `load()` ("the loaded file's name in the file menu", the Load race
     `colreuse` hit on 5 Nov) in both batch runs, which ran while other sessions loaded the machine; 42/42 alone twice on
     this build, and 42/42 on the old engine.
-- **Not done:** the full gate (requested by the owner before the push; its result goes here). Not pushed. The ripple's
-  own step-over is the open follow-up (above).
+- ✅ **Full gate on `b9211a6` (port 8978): 4,048 PASS / 15 FAIL, every failure re-run alone and green, none from this
+  work.** It ran 22:50 to 10:34 (almost 12 hours) because the `angry-mclean` session's full gate started the same minute
+  and ran beside it all night (load average 16 to 25), with `release-r20`'s legs too. The baselines all held: 0 clipped
+  cells, the waterfall PDF identical, the Excel parts identical, every printed month document identical; `shiftheld`
+  13/13 inside the gate. The 15 were timeouts or no result: `monthprint` reference, `prefs`, `hdrverload`
+  (hdrtemplated), `onecol`, `colreuse` (live), `pilllabel` (shootorder) W2, `pwagate` C1, `xlsxdates` (ExcelJS load),
+  `legacyparse` T3, `mvorder` / `hiatusdrag` / `hiatusripple` (deadlines), `scenariocompat` v1.2.0. Alone (judged by
+  gate.sh's own judges where a leg has one): monthprint reference identical to baseline (16 sheets), prefs 13, hdrverload
+  7, onecol 17, colreuse 25, pilllabel (shootorder) 29, pwagate 13/13, xlsxdates 5/5, legacyparse 7/7, mvorder 30/30,
+  hiatusdrag 14/14, hiatusripple 15/15; `scenariocompat` v1.2.0 timed out once more ("Open... menu item"), then opened the
+  8-episode tab (pass); it runs on the frozen `releases/v1.2.0.html` and never loads this build (the known flake).
+  ⚠️ Two full gates started at once is what HANDOFF warns about; a session that queues a gate behind a PID should check
+  no other session queued behind the same PID.
+- **Not done:** not pushed (the owner asked to be asked again after the gate). The ripple's own step-over is the open
+  follow-up (above).
 
 ### ✅ 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). ✅ **LIVE at `6387159`** (owner's pickers *"Commit on the branch"*, *"Push to the live site"*; pushed `3964bfb..6387159` at 02:30 UTC 6 Nov, a fast-forward that also carried three HANDOFF-only notes from local `main`; deploy run `42150741791` green; the live `index.html` is the build byte for byte, sha256 `2d191510…`, "in a week this phase runs" present). Local `main` fast-forwarded to it. No version cut. Built on branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `phase-hiatus-picker-range`.
 - **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
