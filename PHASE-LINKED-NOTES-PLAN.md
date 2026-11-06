@@ -1,13 +1,16 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: RULED; STEP 1 BUILT on branch `phase-notes` (5 Nov 2026, owner: *"Start step 1"*), steps 2–6 not
-started. R1–R9 all ruled 5 Nov 2026 by picker, every one the recommendation (§2). The note editor's LOOK is ruled:
-A2 (below). §9 is step 1's as-built record.**
+**Status: RULED; STEPS 1 AND 2 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, 5 Nov 2026; step 2 on
+6 Nov 2026, owner: *"can we start step 2"*), steps 3–6 not started. R1–R9 all ruled 5 Nov 2026 by picker, every one
+the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9 and §10 are the as-built records.**
+- ⛔ **Do not ship steps 2–4 without step 5.** Linking a typed note takes it out of `userNotes`, and the month view
+  reads a week's typed lines from `userNotes` through frozen `notesForWaterfallDate`; until step 5 draws linked notes
+  there (through `mvWfLinesFor`), a note leaves the Month view the moment it is linked.
 - ✅ **Refreshed against `main`** (5 Nov 2026, on `phase-notes`): Rebuild From became **Build Around**, **Close all
   gaps is gone**, Shift From / Anchor To are choices inside the one Shift form, and ▲ / ▼, the bar drag and the
-  ripple are new movers (§0, §1.1, §1.3, step 1). ⚠️ Still open for step 2: the waterfall editor gained, live at
-  `ac55bb7`, the Holiday / Auto Note headings, the Hide buttons and the per-line Hide list
-  (WATERFALL-NOTE-EDITOR-PLAN.md), which A2 (§4.4) must make room for.
+  ripple are new movers (§0, §1.1, §1.3, step 1). ⚠️ Still open for the A2 overhaul (card `note-editor-overhaul`): the
+  waterfall editor gained, live at `ac55bb7`, the Holiday / Auto Note headings, the Hide buttons and the per-line Hide
+  list (WATERFALL-NOTE-EDITOR-PLAN.md), which A2 (§4.4) must make room for. Step 2 added its row to TODAY's editor.
 - Mockup: [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html). Its first tab is the note editor with
   the new row. Its second is a before/after of Production moved by typing its start date, with a linked note
   following and an unlinked note staying. The calendar is synthetic (2033, generic names).
@@ -516,3 +519,68 @@ frozen.
   - `phasenotes` 21/21 on the build: P1, L1, M1–M8, U1, X1, X2, W1, E1, C1, F1, F1b, F2, F3, E0.
   - M1 was red before the `rowHeightsSynced` fix, E1 before the `update()` fix.
   - `npm run check` 40/40. In `gate.sh`'s generic block as `phasenotes:phasenotes:900`.
+
+---
+
+## 10. Step 2 as built (6 Nov 2026, branch `phase-notes`)
+
+Owner: *"can we start step 2"*. The waterfall note editor's **Stays with** row and its save (§4.4, §4.5). It is
+chrome plus the editor's save. No frozen edit and no save-format change: the row writes the step-1 store.
+
+- **The row** (`openNoteEditor`) goes in today's editor after the Day row, which is A2's place 2. The A2 overhaul will
+  move it.
+  - It is `<div class="note-link-row">` holding `Stays with <select class="note-link-select">` (NO id), a hint
+    (`.note-link-hint`, `.is-wait` amber) and R2(a)'s "Also here" line (`.note-link-also`).
+  - It shows and hides with the Day row: it is for typed text. Linked lines count as typed again; step 1 had them
+    "known".
+- **What it offers:** `wfLinkContext(weekKey)` gives the week (value `''`), then each `type:'phase'` cell of the row by
+  column, valued `<phase>@<n>` and labelled with the cell's own label.
+  - **Opening on a home (R2(a)):** `single` is the cell's one linked note when the week has no typed text of its own,
+    and the row opens on its key. Otherwise the row opens on the week, and every linked note drawn there is a visitor.
+  - **A single note the row does not draw** (R3(a) waiting, or its phase hidden) gets its own option, "Prod Prep wk 8
+    (waits on its last week)". So opening and saving never moves it.
+  - **The home label:** `phaseNoteHomeLabel(key)`, the phase's own `template` at its label number.
+- **Hint wording (R1, R3(a)):**
+  - The week: "Stays on the week of 7/6/26, whatever the phases do."
+  - A phase: "Moves when Production moves. Stays on its week 2."
+  - Waiting: "Prod Prep has 6 weeks now. This note waits on its last week, and goes back to Prod Prep wk 8 if it
+    grows."
+  - The Day list's empty choice reads "First day (default)" on a phase (R6(a)) and "Mon (default)" on the week.
+- **The "Also here" line (R2(a)):** "Also here: “Visitor” stays with Production wk 6", then either "Leave the choice
+  alone and it keeps its link." or "Saving with this choice gives it this one instead."
+- **Opening a single note:** the Day picker opens on its day (`dayIso` when dated), and "Show in month view" on its own
+  `monthHidden`.
+- **The save** (`commitActiveNoteEditor`) compares `sel0` (what the row opened on) with `choice` (what it says now):
+  - **Unchanged:** `wfLinkedLineEdits(…, single)`, which now also takes `{key, dayIso}` for the cell's one note. Its
+    weekday follows the Day picker (`dow`; `''` deletes it). The date the picker stamped is taken off its last line
+    (`stripTrailingDate`, D3), so a changed Day never freezes a date into the text. The week's own text is saved with
+    no date, because the Day was the note's.
+  - **To a phase:** each visiting note is deleted. Every line in the box that is not automatic (`autoNotesText(autoIn)`)
+    or a month line (`wfMonthLineEdits` runs first) becomes ONE note at the chosen key, joined to any existing note
+    there.
+    - The Day's stamp comes off and becomes `dow`, and the switch becomes `monthHidden`.
+    - The cell's look moves onto the note (`wfCellLook`: the week's own, else its first visitor's, field by field), and
+      the week keeps none of it.
+    - The automatic lines stay the week's, through the usual path, so an untouched automatic line goes back to plain
+      automatic.
+  - **To the week:** the visitors are deleted and their lines stay in the box as the week's typed text, through the
+    usual path with the Day picker's date. Each linked look goes to the week where the week has none.
+- **After any save:**
+  - A colour picked in the editor goes where the cell takes its look from: the note while the week has no typed text,
+    else the week.
+  - Any change to `phaseNotes` runs `update()`.
+  - `wfLinkedLinesFor` now drops a note deleted since the schedule was placed.
+- **CSS:** `legacy.css`, beside `.note-day-row`; the select shares `.note-day-select`'s chevron. **Help:** one passage
+  after the Day dropdown's (D11).
+- **Proof:**
+  - New leg `phaselink` 14/14 (R1, R2, L1–L4, U1, D1, C1, V1, W1, P1, F1, E0).
+  - On the same build: `phasenotes` 21/21, `noteviews` 15/15, `wfnoteeditor` 13/13, `wfnotecolors` 14/14,
+    `holidayrename` 14/14, `autonoterename` 24/24, `autonoteview` 18/18, `wfkeys` 84/84.
+  - That build went to a separate `dist-step2/` while step 1's gate was reading `dist/`.
+  - **Full gate on the step-2 build: 4,206 PASS / 1 FAIL, every baseline identical.** The FAIL is `phasesui` P1, a
+    Load timeout on one of 46 fixtures, 8/8 alone. This is the acceptance gate for steps 1 and 2 together.
+- **Not yet:**
+  - writing the look onto a linked note from the style bar and the row drag (step 3);
+  - Delete / Cut / Paste / drag (step 4);
+  - the month view's drawing and editor (step 5, which steps 2–4 must not ship without, see the status);
+  - picking a shoot day (step 6).

@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — notes linked to a phase, step 2: "Stays with" in the waterfall note editor (6 Nov 2026)
+
+Owner: *"can we start step 2"*. Rulings R1 ("Stays with"), R2(a) (one cell, one home), R3(a), R6(a) and R7(a), in
+`PHASE-LINKED-NOTES-PLAN.md` §4.4–4.5 and §10.
+
+- **The row:** under the Day picker, *Stays with* lists the week, then each phase that week shows ("Production wk 2").
+  A line under it says what will happen: "Moves when Production moves. Stays on its week 2." Choose a phase week and
+  the note moves whenever that phase does. Choose the week and the note stays put, as notes always have.
+- **What it opens on:**
+  - **A cell whose one note is linked** opens on that note's home and its day.
+  - **A cell with typed text and a linked note visiting** opens on the week. It names the visitor ("Also here:
+    “Visitor” stays with Production wk 6"), which keeps its link unless the choice is changed.
+  - **A note waiting on a phase's last week** says so in amber.
+- **Saving with a new choice gives everything typed in the cell that one home.** The cell's colour, size, style and
+  row height go with it. Automatic lines such as "Start Principal Photography" stay automatic. A day picked with the
+  Day dropdown becomes the note's weekday, so its date is drawn fresh after every move instead of being frozen into the
+  text.
+- **A colour picked on a linked note goes on the note.** So does "Show in month view".
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+- **Proof:** a new leg, `phaselink`, 14/14. `phasenotes` 21/21. The note-editor legs `noteviews`, `wfnoteeditor`,
+  `wfnotecolors`, `holidayrename`, `autonoterename`, `autonoteview` and `wfkeys` are all green on the same build.
+- **Full gate (steps 1 and 2): 4,206 PASS / 1 FAIL, every baseline identical.** The one FAIL is a Load timeout in
+  `phasesui`, green alone.
+
 ### Unreleased — notes linked to a phase, step 1: the engine (5 Nov 2026)
 
 Owner, 4 Nov 2026: *"we do need a way to link certain notes to certain weeks relative to a phase."* Rulings R1–R9 by

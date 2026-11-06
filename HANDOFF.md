@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEP 1 OF 6 (THE ENGINE, NO UI) BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in), NOT committed, NOT merged, NOT pushed ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); NOT merged, NOT pushed. ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
   R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
@@ -41,6 +41,43 @@
   - **Not yet:** the Stays with row (step 2), the look written onto the note by the editor, the bar and a row drag
     (step 3), Delete / Cut / Paste / drag (step 4), the month view (step 5), picking a shoot day (step 6).
   - Docs: README Unreleased entry, CLAUDE.md state table row, fixtures README row.
+- ⚠️ **Step 1's full gate was contaminated.** It started at 22:50 on 5 Nov, at the same moment as `shift-held`'s:
+  both were queued behind the same third gate, with the same `while pgrep gate.sh` wait. The two stalled each other
+  for 11+ hours.
+  - Every baseline compare that had run was identical (gates 2, 3 and 10, the restore and `fields.byId`).
+  - It finished at 10:51 on 6 Nov: **3,981 PASS / 27 FAIL**, every one of the 27 already failed by 10:33 while both
+    gates ran. They were "produced no result" and load / ExcelJS timeouts, plus `pilllabel`, `hdrfile`,
+    `simpostbeside`, `pwagate` C1 and `exportrefused` E4 under that load. Gate 13's written month PDFs were
+    byte-identical too.
+  - The clean verdict for steps 1 and 2 together is step 2's full gate, below.
+  - ⛔ **Lesson:** two sessions polling `pgrep gate.sh` start together the moment the gate they wait on ends. The
+    queue needs a lock (e.g. `mkdir /tmp/sptcal-gate.lock`), not a poll.
+- 🔨 **STEP 2 BUILT** (owner, 6 Nov 2026: *"can we start step 2"*). Plan §10 is the as-built record.
+  - **The row:** *Stays with* under the Day picker of today's editor (`.note-link-row`, an id-less
+    `.note-link-select`), from `wfLinkContext`: the week, then each phase cell of the row.
+  - **Hint:** R1's wording, and R3(a)'s amber "waits on its last week".
+  - **R2(a):** a cell whose one note is linked opens on its home. Otherwise it opens on the week and an "Also
+    here" line names the visitors.
+  - **The save** (`commitActiveNoteEditor`):
+    - unchanged: `wfLinkedLineEdits(…, single)`, and the Day becomes `dow` with the stamp stripped (D3);
+    - to a phase: every non-automatic, non-month line becomes one note at that key, with the cell's look
+      (`wfCellLook`); the automatic lines stay the week's;
+    - to the week: the visitors become typed text, their look going to the week where it has none.
+    A colour picked on a linked cell goes on the note.
+  - **Proof:**
+    - New leg `phaselink` 14/14. `phasenotes` 21/21, `noteviews` 15/15, `wfnoteeditor` 13/13, `wfnotecolors`
+      14/14, `holidayrename` 14/14, `autonoterename` 24/24, `autonoteview` 18/18 and `wfkeys` 84/84, all on
+      that build.
+    - The build went to a temporary `dist-step2/` while step 1's gate held `dist/`.
+    - ✅ **FULL GATE on the step-2 build** (dist sha256 `9e018604…`, port 8951, 10:53–11:32 on 6 Nov, no other
+      gate running): **4,206 PASS / 1 FAIL**, every baseline identical: gates 2 and 3, gate 10's print documents,
+      gate 13's written month PDFs, the restore and `fields.byId`.
+      - The one FAIL is `phasesui` (hidewf) P1, a Load timeout on `v1.7.0-saved`, one of 46 fixtures. Rerun alone
+        it is 8/8 with all 46 matching.
+      - `phasenotes` and `phaselink` are both in the gate (generic block) and green there.
+  - ⛔ **NOT SHIPPABLE BEFORE STEP 5.** The month view takes a week's typed lines from `userNotes` through
+    frozen `notesForWaterfallDate`, so a note linked here leaves the Month view until step 5 draws
+    `phaseNotePlace` through `mvWfLinesFor`.
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.

@@ -3658,7 +3658,7 @@
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
   /* The editor's two small selects wear the same NativeSelect chevron as every other chrome
      select, at their own scale. They stay id-less real <select>s (save-format hygiene). */
-  .note-day-select, .note-size-select{
+  .note-day-select, .note-size-select, .note-link-select{
     -webkit-appearance:none; appearance:none;
     font-size:var(--mantine-font-size-xxs); padding:2px 20px 2px 6px;
     border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm);
@@ -3666,6 +3666,17 @@
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 5px center; background-size:11px 11px;
   }
+  /* "Stays with" (PHASE-LINKED-NOTES-PLAN.md §4.4, R1; step 2): the Day row's look, the select taking the rest of the
+     line, then a one-line hint (amber while the note waits on a phase's last week, R3(a)) and R2(a)'s "Also here"
+     line. Chrome only: .note-pop is a body-level panel, never in #table-wrap or #print-root. The select has no id. */
+  .note-link-row{ margin-top:var(--mantine-spacing-xs); }
+  .note-link-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
+  .note-link-select{ flex:1; min-width:0; font-weight:600; }
+  .note-link-hint{ margin-top:3px; font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--text-muted); }
+  .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
+  .note-link-also{ margin-top:4px; padding:5px 7px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-gray-0); font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--text-muted); }
   .note-size-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
   .note-size-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }

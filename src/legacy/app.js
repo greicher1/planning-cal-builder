@@ -16494,9 +16494,8 @@ export function initLegacyApp() {
         if(n){ cellItems.push(n); cellKnown.add(l); }
       });
       wfMonthLinesFor(weekKey).forEach(m=> cellKnown.add(m.line));
-      // ...and a note linked to a phase drawn here: not this week's typed text, so the Day picker and "Show in month
-      // view" are not for it (PHASE-LINKED-NOTES-PLAN.md; its own row comes in step 2).
-      wfLinkedLinesFor(weekKey).forEach(x=> x.line.split('\n').forEach(l=>{ if(l.trim()) cellKnown.add(l.trim()); }));
+      // A note linked to a phase is the user's own typed text (PHASE-LINKED-NOTES-PLAN.md step 2), so it is NOT known
+      // here: the Day picker, "Show in month view" and the Stays with row are for it.
       if(boxLines.length === 1 && cellItems.length === 1) singleItem = cellItems[0];
     }
     // A typed line in the box (or an empty box, about to get one): what the Day picker and the switch are for.
@@ -16519,7 +16518,12 @@ export function initLegacyApp() {
     // month view can place it. Default is "Mon (default)" -- the same fallback the month view
     // uses -- so this is opt-in rather than another required field.
     const existing = userNotes[weekKey];
-    const pinnedDate = (!isHiatus && existing && typeof existing === 'object' && existing.date) ? existing.date : '';
+    // ⭐ STAYS WITH (PHASE-LINKED-NOTES-PLAN.md §4.4, rulings R1, R2(a), R3(a); step 2): what this week's note can stay
+    // with. A cell whose one note is linked opens on that note's home and its day (`dow`, or a shoot day).
+    const link = isHiatus ? null : wfLinkContext(weekKey);
+    const linkSingle = link && link.single;
+    const pinnedDate = linkSingle ? (linkSingle.dated ? linkSingle.dayIso : '')
+                     : ((!isHiatus && existing && typeof existing === 'object' && existing.date) ? existing.date : '');
     // Note cells key off a plain week ISO; per-phase hiatus cells key off "week|phase", which
     // isn't a parseable date. The day picker is only built for notes, so skip it for hiatus.
     const weekStart = isHiatus ? null : parseDateUTC(weekKey);
@@ -16536,13 +16540,25 @@ export function initLegacyApp() {
     // in activeNoteEditor below, never touched now, so a commit writes no size.
     const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
       <label>Day <select class="note-day-select">
-        <option value=""${pinnedDate?'':' selected'}>Mon (default)</option>
+        <option value=""${pinnedDate?'':' selected'}>${linkSingle ? 'First day (default)' : 'Mon (default)'}</option>
         ${dayOpts}
       </select></label>
     </div>`;
     // "Show in month view", right below the colours (owner, 4 Nov 2026; see dayNoteWfLine). A note only: a hiatus band
     // is drawn in the month view from the hiatus itself. On unless this week's typed text was switched off (R3).
-    const viewRow = isHiatus ? '' : noteViewSwitchHtml('Show in month view', !wfNoteMonthHidden(weekKey),
+    // The row: "Stays with [Week of 7/6/26 | Production wk 2 | ...]", a one-line hint under it, and (R2(a)) a line naming
+    // the other linked notes drawn here. ⛔ The select has NO id: collectFieldValues() sweeps select[id], and this is a
+    // note's own setting, never a calendar field. Shown with the Day row: for typed text (a linked note's included).
+    const linkRow = !link ? '' : `<div class="note-link-row"${typedShown ? '' : ' style="display:none"'}>
+      <label>Stays with <select class="note-link-select" title="What this note stays with when phases move">
+        <option value=""${link.sel0 ? '' : ' selected'}>Week of ${escHtml(fmtShort(link.week))}</option>
+        ${link.opts.map(o=> `<option value="${escHtml(o.value)}"${o.value === link.sel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')}
+      </select></label>
+      <div class="note-link-hint"></div>
+      <div class="note-link-also" hidden></div>
+    </div>`;
+    const viewRow = isHiatus ? '' : noteViewSwitchHtml('Show in month view',
+      linkSingle ? !(phaseNotes[linkSingle.key] && phaseNotes[linkSingle.key].monthHidden === true) : !wfNoteMonthHidden(weekKey),
       'Off: the text you typed here is left out of the month view and its PDF. Automatic notes and holidays keep their own settings.');
     // Hide (R1-R3): one item's own button, or a list of the cell's automatic notes and holidays, each with Hide. It hides
     // the note from the waterfall only (hideAutoNoteIn / hideHolidayInWaterfall), at once, saving the rest of the editor
@@ -16577,6 +16593,7 @@ export function initLegacyApp() {
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
+      ${linkRow}
       ${swatchRows}
       ${viewRow}
       ${itemsHtml}
@@ -16633,7 +16650,40 @@ export function initLegacyApp() {
 
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
-                        hide: null};   // the note a Hide button hides (R2(b): set, then committed at once)
+                        hide: null,    // the note a Hide button hides (R2(b): set, then committed at once)
+                        link};         // what the Stays with row opened on (wfLinkContext), read on commit
+
+    // Stays with: the hint says what will happen (R1), the waiting message is R3(a)'s, and the "Also here" line R2(a)'s.
+    // The Day list's empty choice reads "First day (default)" for a phase (R6(a)), "Mon (default)" for the week.
+    const linkSel = pop.querySelector('.note-link-select');
+    const reflectLinkRow = ()=>{
+      if(!linkSel || !link) return;
+      const v = linkSel.value, o = link.opts.find(x=> x.value === v);
+      const hint = pop.querySelector('.note-link-hint'), also = pop.querySelector('.note-link-also');
+      hint.classList.remove('is-wait');
+      if(!v || !o) hint.textContent = 'Stays on the week of ' + fmtShort(link.week) + ', whatever the phases do.';
+      else if(o.parked){
+        hint.textContent = o.name + ' has ' + o.weeks + ' weeks now. This note waits on its last week, and goes back to '
+                         + o.home + ' if it grows.';
+        hint.classList.add('is-wait');
+      } else hint.textContent = 'Moves when ' + o.name + ' moves. ' + (o.num != null ? 'Stays on its week ' + o.num : 'Stays on ' + o.home) + '.';
+      const others = link.visitors.filter(e=> e.key !== v);
+      if(others.length && (link.visitors.length > 1 || !link.single)){
+        also.hidden = false;
+        also.textContent = 'Also here: ' + others.map(e=> '\u201c' + e.line.replace(/\n/g, ' ') + '\u201d stays with '
+                         + phaseNoteHomeLabel(e.key)).join('; ')
+                         + (v === link.sel0 ? '. Leave the choice alone and it keeps its link.'
+                                            : '. Saving with this choice gives it this one instead.');
+      } else { also.hidden = true; also.textContent = ''; }
+      const dflt = daySel && daySel.querySelector('option[value=""]');
+      if(dflt) dflt.textContent = v ? 'First day (default)' : 'Mon (default)';
+    };
+    if(linkSel){
+      linkSel.addEventListener('mousedown', e=> e.stopPropagation());
+      linkSel.addEventListener('click', e=> e.stopPropagation());
+      linkSel.addEventListener('change', e=>{ e.stopPropagation(); reflectLinkRow(); textarea.focus(); });
+      reflectLinkRow();
+    }
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -16653,12 +16703,13 @@ export function initLegacyApp() {
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
     // The Day picker and the switch show as soon as the box holds a typed line (D4, D5), and go again if it stops.
-    const dayRowEl = pop.querySelector('.note-day-row');
+    const dayRowEl = pop.querySelector('.note-day-row'), linkRowEl = pop.querySelector('.note-link-row');
     if(viewSw && !typedShown) viewSw.style.display = 'none';
-    if(dayRowEl || viewSw){
+    if(dayRowEl || viewSw || linkRowEl){
       textarea.addEventListener('input', ()=>{
         const on = typedIn(textarea.value);
         if(dayRowEl) dayRowEl.style.display = on ? '' : 'none';
+        if(linkRowEl) linkRowEl.style.display = on ? '' : 'none';
         if(viewSw) viewSw.style.display = on ? '' : 'none';
       });
     }
@@ -16784,9 +16835,57 @@ export function initLegacyApp() {
       // own lines and the month lines in the box, so the month step is told they came before it.
       const ownBefore = wfOwnNoteText(weekKey, autoNotes);
       const linkedBefore = wfLinkedLinesFor(weekKey).map(x => x.line);
-      const linkedSig = linkedBefore.length ? JSON.stringify(phaseNotes) : '';
-      const own = wfLinkedLineEdits(weekKey, ownBefore,
-        wfMonthLineEdits(weekKey, [ownBefore].concat(linkedBefore).filter(Boolean).join('\n'), textarea.value));
+      const linkedSig = JSON.stringify(phaseNotes);
+      const viewCb = pop.querySelector('.note-view-cb');
+      const afterMonth = wfMonthLineEdits(weekKey, [ownBefore].concat(linkedBefore).filter(Boolean).join('\n'), textarea.value);
+      // ⭐ STAYS WITH (PHASE-LINKED-NOTES-PLAN.md §4.5, R2(a); step 2). `sel0` is what the row opened on ('' = the week,
+      // else the cell's one linked note), `choice` what it says now.
+      //  - Unchanged: each linked line goes by what happened to it (wfLinkedLineEdits); the cell's one linked note takes
+      //    the Day picker's day as its weekday, the date the picker stamped taken out of its text (D3).
+      //  - Changed: the cell gets ONE home. Every typed line in the box -- the week's own and the linked notes' alike,
+      //    never an automatic line or a month note's -- becomes one linked note at the chosen phase week (with the
+      //    cell's look, R7(a)), or the week's own note (each linked note's look going to the week where it has none).
+      //    Automatic lines stay with the week: they follow their phase anyway.
+      const link = activeNoteEditor.link, linkSelEl = pop.querySelector('.note-link-select');
+      const sel0 = link ? link.sel0 : '', choice = linkSelEl ? linkSelEl.value : sel0;
+      const visitorKeys = (link ? link.visitors : []).map(e=> e.key).filter(k=> phaseNotes[k]);
+      let own, ownDate = chosenDate, lookNote = null;   // lookNote: the linked note a colour picked here goes on
+      if(choice === sel0){
+        own = wfLinkedLineEdits(weekKey, ownBefore, afterMonth, sel0 ? {key: sel0, dayIso: chosenDate} : null);
+        if(sel0) ownDate = '';                            // the Day picker was the linked note's
+        lookNote = sel0 || visitorKeys.find(k=> phaseNotes[k]) || null;
+      } else {
+        const autoSet = new Set(autoNotesText(autoIn).split('\n').map(l=> l.trim()).filter(Boolean));
+        const lines = afterMonth.split('\n').map(l=> l.trim()).filter(Boolean);
+        const look = wfCellLook(weekKey, visitorKeys);
+        visitorKeys.forEach(k=>{ delete phaseNotes[k]; });
+        if(choice){
+          const typed = lines.filter(l=> !autoSet.has(l));
+          const day = chosenDate ? parseDateUTC(chosenDate) : null;
+          if(day && typed.length){
+            typed[typed.length - 1] = stripTrailingDate(typed[typed.length - 1], day);
+            if(!typed[typed.length - 1]) typed.pop();
+          }
+          if(typed.length){
+            const prev = phaseNotes[choice];
+            const note = Object.assign({}, look, {text: (prev ? split0(prev.text).concat(typed) : typed).join('\n')});
+            if(day && link && link.week) note.dow = Math.round((day - link.week) / DAY_MS);
+            if(viewCb && !viewCb.checked) note.monthHidden = true;
+            phaseNotes[choice] = phaseNoteCopy(note);
+            lookNote = choice;
+            // The look went with the note: the week keeps none of it (R7(a)).
+            delete noteColors[weekKey]; delete noteFontSize[weekKey]; delete textStyle.note[weekKey]; delete rowHeightsByWeek[weekKey];
+          }
+          own = lines.filter(l=> autoSet.has(l)).join('\n');
+          ownDate = '';
+        } else {
+          own = afterMonth;
+          if(look.color && !(isHexColor(noteColors[weekKey]) || isMvNoFill(noteColors[weekKey]))) noteColors[weekKey] = look.color;
+          if(look.size !== undefined && noteFontSize[weekKey] === undefined) noteFontSize[weekKey] = look.size;
+          if(look.style && !textStyle.note[weekKey]) textStyle.note[weekKey] = Object.assign({}, look.style);
+          if(look.height !== undefined && finiteNum(rowHeightsByWeek[weekKey]) === null) rowHeightsByWeek[weekKey] = look.height;
+        }
+      }
       if(!own.trim()){
         // The week's own lines only: a month line still in the box stays, so this is not Delete's wfClearNote.
         if(wfClearOwnNote(weekKey)) renamed = true;
@@ -16794,15 +16893,25 @@ export function initLegacyApp() {
       } else {
         renamed = wfLineEdits(weekKey, ownBefore, own, autoIn);
         auto = renamed ? renamed.autoNotes : autoIn;
-        saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, chosenDate);
+        saveNoteEdit(weekKey, renamed ? renamed.text : own, auto, ownDate);
       }
       if(switched) renamed = renamed || true;
-      // A linked note renamed or deleted is a new line where computeSchedule placed it, so the calendar is rebuilt.
-      if(linkedSig && JSON.stringify(phaseNotes) !== linkedSig) renamed = renamed || true;
-      const viewCb = pop.querySelector('.note-view-cb');
-      if(viewCb) setWfNoteMonthHidden(weekKey, !viewCb.checked);
+      // A linked note made, renamed, moved or deleted is a new line where computeSchedule places it, so the calendar is
+      // rebuilt (update(), not render()).
+      if(JSON.stringify(phaseNotes) !== linkedSig) renamed = renamed || true;
+      // "Show in month view": the week's typed text's, and the linked note's the row is on (it carries its own).
+      const switchNote = (choice || sel0) && phaseNotes[choice || sel0] ? (choice || sel0) : null;
+      if(viewCb){
+        setWfNoteMonthHidden(weekKey, !viewCb.checked);
+        if(switchNote){ if(viewCb.checked) delete phaseNotes[switchNote].monthHidden; else phaseNotes[switchNote].monthHidden = true; }
+      }
+      // A colour picked here goes where the cell takes its look from (wfLinkedLook): the week while it holds typed text
+      // of its own, else the linked note.
       if(pendingColor){
-        if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
+        const toNote = lookNote && phaseNotes[lookNote] && !wfOwnTyped(weekKey) ? phaseNotes[lookNote] : null;
+        const plain = pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase();
+        if(toNote){ if(plain) delete toNote.color; else toNote.color = pendingColor; renamed = renamed || true; }
+        else if(plain) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
       }
       if(sizeTouched){
@@ -18050,7 +18159,9 @@ export function initLegacyApp() {
   // sheetAutoNotesFor's is. A per-phase key ("week|phase") or a week with none: [].
   function wfLinkedLinesFor(weekKey, schedule){
     const p = (schedule || currentSchedule || {}).phaseNotePlace;
-    return (p && typeof weekKey === 'string' && Object.prototype.hasOwnProperty.call(p, weekKey)) ? p[weekKey] : [];
+    if(!(p && typeof weekKey === 'string' && Object.prototype.hasOwnProperty.call(p, weekKey))) return [];
+    // A note deleted since the schedule was placed (an editor save, before its update()) is gone at once.
+    return p[weekKey].every(e=> phaseNotes[e.key]) ? p[weekKey] : p[weekKey].filter(e=> phaseNotes[e.key]);
   }
   // Does the week hold typed text of its own? Then the cell is that note's and keeps its look (R7(a): "the note that
   // stayed owns it", mergeNoteValues' rule); a visiting linked note never recolours it.
@@ -18067,6 +18178,80 @@ export function initLegacyApp() {
     const v = phaseNotes[ll[0].key];
     return v ? v[field] : undefined;
   }
+  // A linked note's home as the grid would name it: "Production wk 12" -- the phase's own cell label for its n-th working
+  // week (seg.template, so "Number weeks" off and Post's continued count read as the grid reads them) -- or, for a note
+  // that is waiting on a phase's last week (R3(a)), the number it will go back to. A shoot-day note reads "Production day 10".
+  function phaseNoteHomeLabel(key, schedule){
+    const kp = phaseNoteKeyParts(key), sch = schedule || currentSchedule || {};
+    const seg = kp && (sch.segments || []).find(s=> s.key === kp.phase && !s.prep);
+    if(!kp) return String(key);
+    if(!seg) return kp.phase + ' wk ' + kp.n;
+    if(kp.day) return seg.label + ' day ' + kp.n;
+    const weeks = Object.keys(seg.weekNo || {}).sort();
+    const first = weeks.length ? seg.weekNo[weeks[0]] : 1;
+    const num = first + kp.n - 1;
+    return typeof seg.template === 'function' ? seg.template(num) : (seg.label + ' wk ' + num);
+  }
+  // What the waterfall note editor's "Stays with" row offers for one week (PHASE-LINKED-NOTES-PLAN.md §4.4, R1, R2(a), D2):
+  //  - options: the week (value ''), then each phase CELL the row draws, in column order, by its own label, valued
+  //    '<phase>@<n>' with n its working-week count (D1). Not a phase hidden here, paused here (a band), Sim Post or a prep
+  //    bar: none of those is a phase cell.
+  //  - single: the cell's ONE note, when it holds a linked note and no typed text of its own (R2(a): the row opens on that
+  //    note's home); else the row opens on the week, and every linked note drawn here is a "visitor" that keeps its link
+  //    while the choice is left alone. A single note whose home the row does not draw (waiting on a last week, or its
+  //    phase hidden) gets its own option, so opening and saving never moves it.
+  // Null when there is nothing to stay with: no phase cell, no linked note.
+  function wfLinkContext(weekKey){
+    const sch = currentSchedule;
+    if(!sch || !sch.weeks || typeof weekKey !== 'string') return null;
+    const w = sch.weeks.find(x=> isoOf(x.date) === weekKey);
+    if(!w) return null;
+    const opts = [];
+    w.cells.filter(c=> c.type === 'phase' && c.key)
+      .slice().sort((a, b)=> (Number.isFinite(a.col) ? a.col : 1e6) - (Number.isFinite(b.col) ? b.col : 1e6))
+      .forEach(c=>{
+        const seg = (sch.segments || []).find(s=> s.key === c.key && !s.prep);
+        const n = seg ? Object.keys(seg.weekNo || {}).sort().indexOf(weekKey) + 1 : 0;
+        if(n < 1 || opts.some(o=> o.value === c.key + '@' + n)) return;
+        opts.push({value: c.key + '@' + n, label: c.label || phaseNoteHomeLabel(c.key + '@' + n, sch), phase: c.key,
+                   name: seg.label, num: seg.weekNo[weekKey]});
+      });
+    const visitors = wfLinkedLinesFor(weekKey).filter(e=> phaseNotes[e.key]);
+    const single = (visitors.length === 1 && !wfOwnTyped(weekKey)) ? visitors[0] : null;
+    if(single && !opts.some(o=> o.value === single.key)){
+      const kp = phaseNoteKeyParts(single.key), seg = kp && (sch.segments || []).find(s=> s.key === kp.phase && !s.prep);
+      opts.push({value: single.key, label: phaseNoteHomeLabel(single.key, sch) + (single.parked ? ' (waits on its last week)' : ''),
+                 phase: kp ? kp.phase : '', name: seg ? seg.label : '', parked: !!single.parked,
+                 weeks: seg ? Object.keys(seg.weekNo || {}).length : 0, home: phaseNoteHomeLabel(single.key, sch)});
+    }
+    if(!opts.length) return null;
+    return {opts, visitors, single, sel0: single ? single.key : '', week: parseDateUTC(weekKey)};
+  }
+  // The look a Notes cell wears now, as a linked note's fields (R7(a)): the week's own where it has one, else its first
+  // linked note's (wfLinkedLook's rule, field by field). What linking the cell carries onto the new note, and unlinking
+  // puts on the week.
+  function wfCellLook(weekKey, visitorKeys){
+    const first = (visitorKeys || []).map(k=> phaseNotes[k]).find(Boolean) || {};
+    const typed = wfOwnTyped(weekKey), out = {};
+    const c = noteColors[weekKey];
+    if(isHexColor(c) || isMvNoFill(c)) out.color = c; else if(!typed && first.color) out.color = first.color;
+    if(noteFontSize[weekKey] !== undefined) out.size = noteFontSize[weekKey]; else if(!typed && first.size !== undefined) out.size = first.size;
+    if(textStyle.note[weekKey]) out.style = Object.assign({}, textStyle.note[weekKey]); else if(!typed && first.style) out.style = Object.assign({}, first.style);
+    const h = finiteNum(rowHeightsByWeek[weekKey]);
+    if(h !== null && h > 0) out.height = h; else if(!typed && first.height !== undefined) out.height = first.height;
+    if(out.color && out.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete out.color;
+    return out;
+  }
+  // A line with the Day picker's stamp -- a trailing m/d/yy (or m/d/yyyy) that is `day` -- taken off its end (D3). A date
+  // typed in the middle of a sentence, or any other date, is left alone.
+  function stripTrailingDate(line, day){
+    const m = /\s*(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})\s*$/.exec(String(line || ''));
+    if(!m || !day) return String(line || '').trim();
+    const y = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
+    const same = y === day.getUTCFullYear() && parseInt(m[1], 10) === day.getUTCMonth() + 1 && parseInt(m[2], 10) === day.getUTCDate();
+    return (same ? line.slice(0, m.index) : line).trim();
+  }
+  function split0(t){ return String(t || '').split('\n').map(l=> l.trim()).filter(Boolean); }
   // A custom phase removed (PHASE-LINKED-NOTES-PLAN.md §4.7, R3(a)): each of its linked notes becomes a plain note of the
   // week it is drawn on now, its line as drawn (a dated one pinned to that day, as the Day picker pins a note), after
   // the week's own text, or joined to the week's typed note as two notes a shift merges are (mergeNoteValues). Where the
@@ -18226,17 +18411,21 @@ export function initLegacyApp() {
   //  - any other missing line is taken out of its note, and a note left with no line is deleted.
   // Returns what is left: the week's own text, for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the
   // week's own text as the editor opened on it; the box showed it, then these notes' lines.
-  function wfLinkedLineEdits(weekKey, ownBefore, after){
+  // `single` (step 2): {key, dayIso} when the editor was on the cell's ONE linked note (its Stays with row opened on
+  // that note's home), with the Day picker's choice: the note's weekday follows it (dow; '' = none), and the date the
+  // picker stamped at the end of the box is taken out of the note's text (D3), never frozen into it.
+  function wfLinkedLineEdits(weekKey, ownBefore, after, single){
     const ll = wfLinkedLinesFor(weekKey);
     if(!ll.length) return after;
     const split = t => String(t || '').split('\n').map(l=> l.trim()).filter(Boolean);
     const own = split(ownBefore), a = split(after), parts = [];
+    const stamp = single && single.dayIso ? parseDateUTC(single.dayIso) : null;
     ll.forEach(e=>{
       const v = phaseNotes[e.key];
       if(!v) return;
       const stored = split(v.text), drawn = split(e.line);
       drawn.forEach((line, i)=> parts.push({e, line, stored: stored[i] !== undefined ? stored[i] : line,
-                                             dateOn: e.dated && i === drawn.length - 1, now: null}));
+                                             last: i === drawn.length - 1, now: null}));
     });
     const before = own.concat(parts.map(p=> p.line)), used = new Set();
     parts.forEach(p=>{
@@ -18248,8 +18437,14 @@ export function initLegacyApp() {
       const i = own.length + j;
       const now = (a.length === before.length && !used.has(i)) ? a[i] : null;
       if(!now || own.indexOf(now) >= 0) return;
-      const name = p.dateOn ? stripHolidayDate(now, parseDateUTC(p.e.dayIso)) : now;
-      if(!name || (p.dateOn && /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name))) return;   // given another date: the week's own
+      // A last line drops its drawn date, and on the cell's one note the date the Day picker stamped; a last line left
+      // ending in ANOTHER date is no rename, and stays in the box as the week's own text.
+      const drawnDay = p.e.dated ? parseDateUTC(p.e.dayIso) : null;
+      const mine = single && single.key === p.e.key;
+      let name = now;
+      if(p.last && drawnDay) name = stripTrailingDate(name, drawnDay);
+      if(p.last && mine && stamp) name = stripTrailingDate(name, stamp);
+      if(!name || (p.last && (drawnDay || (mine && stamp)) && /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name))) return;
       used.add(i); p.now = name;
     });
     ll.forEach(e=>{
@@ -18259,6 +18454,12 @@ export function initLegacyApp() {
       if(!kept.length) delete phaseNotes[e.key];
       else if(kept.join('\n') !== split(v.text).join('\n')) v.text = kept.join('\n');
     });
+    // The one note's day (D3): a weekday of its week, never on a shoot-day key, which has its own day.
+    const kp = single && phaseNoteKeyParts(single.key), v1 = single && phaseNotes[single.key];
+    if(v1 && kp && !kp.day){
+      const wk = parseDateUTC(weekKey);
+      if(stamp && wk) v1.dow = Math.round((stamp - wk) / DAY_MS); else delete v1.dow;
+    }
     return a.filter((l, i)=> !used.has(i)).join('\n');
   }
   // R3: the waterfall's lines a day in the month view draws -- notesForWaterfallDate()'s, less the week's TYPED lines
