@@ -47,6 +47,30 @@ one-second pause; the owner: *"it should do it immediately not after a second"*.
   merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
   baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
 
+## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
+
+### rule 21: a run never shrinks (6 Nov 2026)
+
+The twenty-first layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
+§8); stamped calendars only, like the rest.
+
+- **What.** A column a phase has spread into stays its for the rest of the run while that column is free; the even
+  share of a later row takes nothing back. On the owner's screenshot Post, two wide while alone for 24 weeks, had been
+  pulled back to one for its last two weeks when Localization started beside it (placed to the right by rule 4; the
+  even share then gave each one column and the spare sat at the left edge, where rule 12 hands nothing over). Now Post
+  keeps both columns to the end, Localization sits one wide beside it, and fills the width when Post ends. Frozen edit
+  LR3 in `computePhaseRowLayout`, behind the stamp: a post-pass that gives a phase cell the columns rules 12 and 13
+  would have given it at an earlier row of its run, when they are empty here. Bands keep rule 16's own terms.
+- **Why:** rule 13 already said a width "only ever grows along a run, never grows and shrinks back"; as built that only
+  stopped a phase growing into a column taken later. The owner: *"why is this happening with post and localization?"*,
+  then *"Yes, build it"*.
+- **Verified:** fixture `layout-r21` (Post alone in the lane for 22 weeks, Localization overlapping its last two): Post
+  `0+2` throughout and Localization `2+1` then `0+3`, red on the v1.12.0 build (Post `1+1` for its last two weeks, the
+  screenshot's hole); none of the 15 study calendars draws a run that narrows, so the re-score is unchanged (figures
+  below); the eight other layout fixtures, the centre pull-back on widened cells, swap-split, the settings window, the
+  notes columns and Sim Post beside all green; `npm run check` 40/40; a full gate of **4207 PASS / 0 FAIL**, every baseline
+  byte-identical.
+
 ## v1.12.0 — the twentieth layout rule (a column must earn its place), Shift steps over a locked hiatus, a phase's own hiatus picked inside the phase, Rebuild From is Build Around, a drag over expanded cells selects them and the double-click pulls them back, Shift's phase beside its date, a leftover band label stays, New opens on Show info (6 Nov 2026)
 
 ### Shift steps over locked hiatuses, so the gaps between phases are kept (5 Nov 2026)

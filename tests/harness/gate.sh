@@ -2043,7 +2043,8 @@ done
 # Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2); r20 and r20b rule 20
 # (owner, 5 Nov 2026: a column must earn its place): Post starting in Production's last week takes the lane and the
 # marker steps aside, two columns instead of a third for one week; a one-week phase's column does not count toward the
-# even share, so Prep spreads into it (frozen edit LR2). Each red on the build before the rules where its rule differs.
+# even share, so Prep spreads into it (frozen edit LR2); r21 rule 21 (owner, 6 Nov 2026: a run never shrinks): Post keeps its
+# two columns for the two weeks Localization runs beside it (frozen edit LR3). Each red on the build before the rules where its rule differs.
 # An UNSTAMPED calendar is every other leg of this gate: its placement and its widths are byte for byte what they were.
 # centrepullback (owner, 5 Nov 2026: "drag and select collumns and double click to unexpand them") holds the double-click
 # on the MIDDLE of an expanded cell, where the boundary between its columns runs and that boundary's column handle used
@@ -2136,7 +2137,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 \
               centrepullback:layout-r13:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

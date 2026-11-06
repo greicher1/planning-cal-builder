@@ -270,3 +270,29 @@ build before rule 20: r20 the Test Show shape (two columns; the 24 Nov row reads
 then fills two); r20b a one-week Table Read beside Writers + Prep (its column stays, Prep is two wide from the week
 after, Writers one wide throughout — Prep's column is taken before Writers' run ends, rule 13).
 
+## 8. Rule 21 — a run never shrinks (owner, 6 Nov 2026, after v1.12.0 went live)
+
+**The ask.** The owner's screenshot: Post, in the Sim Post lane after the shoot and alone for 24 weeks, drew two wide
+(Production's old column and its own; the third was Localization's before Post ended, so rule 13 refused it). When
+Localization started two weeks before Post ended, rule 4 put it to the right, rule 12's even share gave each one column,
+Post was pulled back to its own middle column, and the spare sat at the LEFT edge, where rule 12's R-E (a spare
+BETWEEN two phases goes to the left one) does not reach. Then Localization, alone, filled three. *"why is this happening
+with post and localization?"* — the explanation above, then *"Yes, build it"*.
+
+**The rule.** Rule 13 already says a width only grows along a run; as built, that only stopped a phase growing into a
+column taken later. It did not stop the even share taking back, when a second phase appeared in a different column,
+what rule 13 had granted. Rule 21 closes that half: a phase keeps every column rules 12 and 13 would have given it at
+an EARLIER row of its run (the share as it stood then; the columns free from that row to the run's end) when those
+columns are empty here. The 15 pictures contain no run that narrows (no `wide` entry in the study's keys carries a
+`to`), so nothing pictured moves.
+
+**Built (frozen edit LR3 in `computePhaseRowLayout`, stamped only).** A post-pass on the row's segments, before R-E:
+for each phase cell (bands keep rule 16's own terms), `layoutRunStart` finds the run's first row (walking back across
+all-phase hiatus rows, rule 18) and `layoutRestOfRun` its last; for every earlier row of the run that the phase itself
+holds (not its own hiatus rows), the walk rules 12 + 13 would have made there — the even share from that row's
+occupants (`LAYOUT_SIM_KEY` marks the marker's slot as fixed), left first then right, over slots free from that row to
+the run's end — gives an entitlement; the widest wins (ties: the earliest row). Slots of the entitlement that are
+`empty` segments now go to the cell, and the row is re-emitted from the slot owners. Unstamped the block is skipped.
+Fixture `layout-r21` (Writers, Production + lane, Post in the lane alone for 22 weeks, Localization overlapping its
+last two): Post `0+2` throughout, Localization `2+1` then `0+3`; red on the v1.12.0 build (`0+2` then `1+1`).
+

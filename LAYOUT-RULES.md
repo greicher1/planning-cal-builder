@@ -90,11 +90,19 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     specific changes ... more about the algorithm understanding better what looks right and what doesnt with any
     phases". Simply: don't open a column for something that is only there for a week or two.)*
 
-**Built** (LAYOUT-BUILD-PLAN.md, 5 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
+21. **A run never shrinks.** A column a phase has spread into stays its for the rest of the run while that column is
+    free; the even share of a later row takes nothing back. So Post, two wide while alone, keeps both columns for the
+    two weeks Localization runs beside it, and Localization sits one wide beside it until Post ends. Rule 13 already
+    said a width "only ever grows along a run, never grows and shrinks back"; this is the half of it the even share
+    had been allowed to undo. None of the 15 pictures draws a run that narrows. *(Owner, 6 Nov 2026, on a screenshot
+    where Post wk 25–26 sat one wide with an empty column to their left: "why is this happening with post and
+    localization?" — "Yes, build it".)*
+
+**Built** (LAYOUT-BUILD-PLAN.md, 5–6 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
 `layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; rule 20 is the
 scan between `placeSegmentsByRules`' passes (giving way), `markLayoutPhantoms` on the drawn rows and frozen edit LR2
-(absorbing), the floor `LAYOUT_EARNED_WEEKS`; the fixtures are `tests/fixtures/layout-r*.sptcal` (made by
-`tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
+(absorbing), the floor `LAYOUT_EARNED_WEEKS`; rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; the
+fixtures are `tests/fixtures/layout-r*.sptcal` (made by `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
 
 **Old files.** A calendar saved without the layout stamp (`colReuse`) keeps its old columns and widths exactly,
 forever, and is offered the update once, by a strip — never changed on its own (owner ruling, 5 Nov 2026: *"yes

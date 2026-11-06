@@ -133,6 +133,21 @@ const SPECS = {
   // (both need their cells that week, so the column has to exist). Used one week in the year, it does not count
   // toward the even share, and Prep, beside it, spreads into it from the week it is free for the rest of Prep's
   // run; Writers, not beside it, stays one wide. No Sim Post, so nothing can give way.
+  // Rule 21 (owner, 6 Nov 2026): a run never shrinks. Post, in the lane after the shoot and alone, spreads into
+  // Production's old column (two wide; the third column is Localization's before Post ends, so not that one);
+  // Localization starts two weeks before Post ends and goes right (rule 4). Today the even share then pulls Post back
+  // to one column and the spare sits at the left edge; now Post keeps its two for the rest of its run, Localization
+  // sits one wide beside it, and fills the width when Post ends.
+  'layout-r21': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 4 },
+      { key: 'production', start: '2031-02-03', weeks: 12 },
+      { key: 'post', start: '2031-05-12', weeks: 24 },
+      { key: 'localization', start: '2031-10-13', weeks: 8 }
+    ],
+    hiatuses: [Y1]
+  },
   'layout-r20b': {
     stamped: true, simpost: { enabled: false },
     phases: [
