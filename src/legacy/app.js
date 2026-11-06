@@ -270,6 +270,8 @@ export function initLegacyApp() {
   // floor is measured from the owner's calendars: the shortest column they ever drew by hand is used 5 weeks, and
   // rule 6's Wrap column is 3. Stamped calendars only, through layoutStamped().
   const LAYOUT_EARNED_WEEKS = 3;
+  // computeBlockLayout's (frozen) sentinel for the Sim Post marker in a block's occupancy grid, read by rule 21 below.
+  const LAYOUT_SIM_KEY = ' simpost';
 
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
@@ -20234,6 +20236,22 @@ export function initLegacyApp() {
     return [localWeek, end];
   }
 
+  // ⭐ RULE 21's run start (LAYOUT-RULES.md §0; owner, 6 Nov 2026, on Post narrowing beside Localization: "a run never
+  // shrinks"). The first row the same occupant holds slot s, walking back across all-phase hiatus rows as
+  // layoutRestOfRun walks forward. Not frozen.
+  function layoutRunStart(occupancy, s, localWeek){
+    const key = occupancy[s].get(localWeek);
+    let start = localWeek;
+    for(let r = localWeek - 1; r >= 0; r--){
+      const k = occupancy[s].get(r);
+      if(k === key){ start = r; continue; }
+      if(k !== undefined) break;                            // another occupant: the run began after it
+      if(occupancy.some(m => m.has(r))) break;              // an ordinary empty week in this slot: began after it
+      // nobody anywhere: an all-phase hiatus row -- look past it (rule 18)
+    }
+    return start;
+  }
+
   // Compute how a single week's phase area (mc phase slots) should be laid out:
   //  - Phases sit in their stable slots.
   //  - A phase spans rightward into a neighbor slot only if that neighbor is empty for the
@@ -20358,6 +20376,43 @@ export function initLegacyApp() {
           out.push({kind:'empty', colspan:span});
           k += span;
         }
+      }
+    }
+    // ⛔ FROZEN EDIT LR3 (owner, 6 Nov 2026, "Yes, build it"; LAYOUT-RULES.md §0 rule 21). On a STAMPED calendar a run
+    // never shrinks: a phase cell keeps every column rules 12 and 13 would have given it at an EARLIER row of its run
+    // (the even share as it stood then; the columns free from that row to the run's end), when those columns are
+    // empty here. The even share of a later row takes nothing back -- Post, two wide while alone, stays two wide for
+    // the two weeks Localization runs beside it, and Localization sits one wide beside it. Phase cells only (a band
+    // keeps rule 16's own terms); ties go to the widest, then the earliest row. The owner's 15 calendars draw no run
+    // that narrows. Unstamped this block is skipped and the row is exactly what it was. Gate: fixture layout-r21.
+    if(stamped && !singleColumn && occupancy){
+      const owner = new Array(mc).fill(-1);
+      { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
+      let changed = false;
+      out.forEach((sg, i)=>{
+        if(sg.kind !== 'phase' || sg.own === undefined) return;
+        const k = sg.own, key = occupancy[k].get(localWeek);
+        const r0 = layoutRunStart(occupancy, k, localWeek);
+        if(r0 >= localWeek) return;
+        const re = layoutRestOfRun(occupancy, k, localWeek)[1];
+        const freeSince = (n, r) => { for(let w = r; w <= re; w++) if(occupancy[n].has(w)) return false; return true; };
+        const capAt = r => { let n = 0, fixed = 0; occupancy.forEach(m => { if(!m.has(r)) return; if(m.get(r) === LAYOUT_SIM_KEY) fixed = 1; else n++; }); return n > 1 ? Math.max(1, Math.floor((mcEarned - fixed) / n)) : mc; };
+        let best = null;
+        for(let r = r0; r < localWeek; r++){
+          if(occupancy[k].get(r) !== key) continue;           // a hiatus row inside the run grants nothing
+          const cap = capAt(r);
+          let from = k; while(from - 1 >= 0 && freeSince(from - 1, r) && earnedIn(from - 1, k) <= cap) from--;
+          let to = k;   while(to + 1 < mc && freeSince(to + 1, r) && earnedIn(from, to + 1) <= cap) to++;
+          if(!best || (to - from) > (best[1] - best[0])) best = [from, to];
+        }
+        if(!best) return;
+        for(let n = best[0]; n <= best[1]; n++){ if(owner[n] !== i && out[owner[n]].kind === 'empty'){ owner[n] = i; changed = true; } }
+      });
+      if(changed){
+        const kept = [];
+        let q = 0;
+        while(q < mc){ const i = owner[q]; let span = 1; while(q + span < mc && owner[q + span] === i) span++; kept.push(Object.assign({}, out[i], {colspan: span})); q += span; }
+        out.length = 0; kept.forEach(sg => out.push(sg));
       }
     }
     // LR1, rule 12 (R-E): an empty run between a phase (or its band) and the cell to its right goes to the phase on

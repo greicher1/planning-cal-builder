@@ -20,6 +20,8 @@
 //               that week, two columns (before: a third column for one week, empty for the rest of the year).
 //   layout-r20b rule 20, absorbing: a one-week Table Read's column does not count toward the even share; Prep
 //               spreads into it once it is free for the rest of Prep's run.
+//   layout-r21  rule 21, a run never shrinks: Post, two wide while alone, keeps both columns for the two weeks
+//               Localization runs beside it (today it narrows to one and the spare sits at the left edge).
 //
 // ⚠️ Run against the BUILD: HARNESS_PAGE=/dist/index.html.
 window.addEventListener('load', function () { (async function () {
@@ -217,6 +219,17 @@ window.addEventListener('load', function () { (async function () {
       W20('R20e', 'Design: one wide beside Writers (even share of two), then fills the width when Writers ends', 'prePrep', 2031, ['2031-05-12:1+1', '2031-05-26:0+2']);
       W20('R20f', 'Production: one wide beside the lane for the whole shoot (rule 15)', 'production', 2031, ['2031-08-25:0+1']);
       C('R20g', '2032: Post alone, one column', slotsIn(bl, 2032) === 1 && slotOf(bl, 2032, 'post') === 0, J(out.slots['2032']));
+    }
+    if (FX === 'layout-r21') {
+      var W21 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R21a', 'columns: Writers then Production left with the lane beside them, Post in the lane, Localization right of the running Post (rules 2, 6, 8, 4); three columns',
+        same(bl, 2031, 'production', 'writersRoom') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'post') === 1 && slotOf(bl, 2031, 'localization') === 2 && slotsIn(bl, 2031) === 3,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      W21('R21b', 'Post: two wide from its first week (alone; the third column is Localization’s before Post ends) and STILL two wide for its last two weeks beside Localization (rule 21; today it narrows to one)',
+        'post', 2031, ['2031-05-12:0+2']);
+      W21('R21c', 'Localization: one wide beside Post for two weeks, then fills the width', 'localization', 2031, ['2031-10-13:2+1', '2031-10-27:0+3']);
+      W21('R21d', 'Production: one wide beside the lane', 'production', 2031, ['2031-02-03:0+1']);
+      C('R21e', 'no empty column beside Post in its last two weeks', (function () { var a = cellAt(bl, '2031-10-13', 'post'), b = cellAt(bl, '2031-10-20', 'post'); return J(a) === '[0,2]' && J(b) === '[0,2]'; })(), J([cellAt(bl, '2031-10-13', 'post'), cellAt(bl, '2031-10-20', 'post')]));
     }
     if (FX === 'layout-r20b') {
       var W20b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
