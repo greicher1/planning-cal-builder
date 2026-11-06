@@ -4876,8 +4876,10 @@ export function initLegacyApp() {
     // and the list of union holidays that landed on a would-be shoot day (for notes).
     // `noLead` (LABELS-SETUP-PLAN.md item 5): walk as if no day carried a 'lead' mark, which is how the
     // lead weekend itself is found (productionLeadWeekend). Every other caller leaves it off.
-    function simulateProductionSchedule(start, shootDaysRequested, holidayList, noLead){
-      const ownHi = phaseHiatusRanges['production'];
+    // `noOwnHiatus` (5 Nov 2026): walk as if Production had no hiatus of its own, which is how the segment's
+    // `hiatusWindow` is found (the weeks its hiatus's date picker offers). Every other caller leaves it off.
+    function simulateProductionSchedule(start, shootDaysRequested, holidayList, noLead, noOwnHiatus){
+      const ownHi = noOwnHiatus ? null : phaseHiatusRanges['production'];
       let current = start;
       let count = 0;
       let lastShootDay = null;
@@ -5075,8 +5077,12 @@ export function initLegacyApp() {
         if(!parsed) return;
         const span = customUnitSpan(cfg, parsed, p.key);
         if(!span) return;
+        // The hiatus window (see hiatusWindow below): up to the week of the last day the phase works WITHOUT its own
+        // hiatus. A Dates phase's end is typed, so its hiatus never moves it; a Days phase walks again with none.
+        const free = ((cfg.unit === 'days' && phaseHiatusRanges[p.key]) ? customUnitSpan(cfg, parsed, null) : null) || span;
         segments.push(Object.assign({}, p, {start:span.start, end:span.end, weeks:span.weeks, enteredDate:parsed,
-          shootDays:null, days:span.days, unit:cfg.unit, phaseHiatus: phaseHiatusRanges[p.key] || null}));
+          shootDays:null, days:span.days, unit:cfg.unit, phaseHiatus: phaseHiatusRanges[p.key] || null,
+          hiatusWindow: {first: mondayOf(span.start), last: mondayOf(addDays(free.end, -1))}}));
         return;
       }
       if(cfg && cfg.start && cfg.weeks>0){
@@ -5092,7 +5098,7 @@ export function initLegacyApp() {
         // `let`: Production's segment can start EARLIER than its entered start, on the weekend just before
         // it (productionLeadWeekend). Every other phase keeps this value.
         let start = (cfg.snap === false) ? parsed : mondayOf(parsed);
-        let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null, offWeeksForSegment = null;
+        let end, hiatusWindow = null, weeksForSegment = cfg.weeks, shootDaysForSegment = null, offWeeksForSegment = null;
         if(p.key==='production'){
           // Only ENABLED holidays cost a shoot day; a holiday switched off in Settings is treated
           // as an ordinary working day.
@@ -5106,6 +5112,7 @@ export function initLegacyApp() {
           const lead = hasLead ? productionLeadWeekend(simulateProductionSchedule(start, cfg.rawValue, holidayList, true), holidayList)
                                : {days: [], from: null};
           if(!hasLead && sim.shootDays.length) lead.days = productionLeadWeekend(sim, holidayList).days;
+          const simFrom = lead.from || start;   // where the walk began, for the hiatus window below
           if(lead.from){
             sim = simulateProductionSchedule(lead.from, cfg.rawValue, holidayList);
             start = (cfg.snap === false) ? lead.from : mondayOf(lead.from);
@@ -5146,10 +5153,33 @@ export function initLegacyApp() {
                             // The weekend just before the first shoot day (item 5), for the day menu.
                             leadDays:lead.days};
           shootDaysForSegment = sim.shootDays;
+          // Held by its wrap (productionEnds), Production's start moves for its hiatus and the wrap does not: the
+          // window keeps the whole span, which offers every week that pauses the shoot and perhaps a few that don't.
+          // Solving the start a second time with no hiatus is a search (solveProductionEndsStart), not worth it here.
+          const free = (phaseHiatusRanges['production'] && productionEnds === null)
+            ? simulateProductionSchedule(simFrom, cfg.rawValue, holidayList, false, true) : sim;
+          hiatusWindow = {first: mondayOf(start), last: mondayOf(free.lastShootDay)};
         } else {
           end = extendEndForHiatus(start, cfg.weeks, p.key);
+          const own = phaseHiatusRanges[p.key];
+          if(cfg.endsAt){
+            // An Ends phase (phaseEnds) is pinned at its end, and its hiatus moves its START earlier (readState's
+            // weeksStartForEnd). So the window opens where the phase would start WITHOUT the hiatus.
+            const first = own ? weeksStartForEnd(parseDateUTC(cfg.endsAt), cfg.weeks, state.hiatuses, null) : start;
+            hiatusWindow = {first: mondayOf(first), last: mondayOf(addDays(end, -7))};
+          } else {
+            const free = own ? extendEndForHiatus(start, cfg.weeks, null) : end;
+            hiatusWindow = {first: mondayOf(start), last: mondayOf(addDays(free, -7))};
+          }
         }
-        const seg = Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment, phaseHiatus: phaseHiatusRanges[p.key] || null});
+        // ⭐ `hiatusWindow` (5 Nov 2026, owner: "the calendar popup for per phase hiatus periods should be limited to only
+        // dates/months that fall in the range of the phase"): the Mondays this phase's OWN hiatus can start on and still
+        // pause it, `first` to `last` inclusive, both Mondays. Worked out WITHOUT that hiatus, all-phase hiatuses still
+        // counted: the phase's `end` includes its hiatus, so it would offer weeks the phase reaches only BECAUSE of it,
+        // and a hiatus started there lands after the phase has finished and pauses nothing. A Weeks phase's walk steps
+        // 7 days from its start (extendEndForHiatus), so its last week is the one holding end - 7 days, snapped or not.
+        // Read only by update()'s dateContext push (hiatusWindows), for the date picker (DatePop.jsx). Never saved.
+        const seg = Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment, phaseHiatus: phaseHiatusRanges[p.key] || null, hiatusWindow});
         // ⛔ Only when there IS one. The month band's frozen block tests `s.offWeeks` for presence
         // (OFF-WEEK-PLAN.md §3.5), so an empty Set here would make its edit reachable on calendars it
         // was proved inert on. Every segment without off weeks keeps exactly its old shape.
@@ -25122,6 +25152,9 @@ export function initLegacyApp() {
         .filter(h => h.enabled !== false)
         .map(h => ({ iso: h.date, name: h.name })),
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks })),
+      // Each phase's hiatus window (computeSchedule's hiatusWindow): its own hiatus's picker offers only these Mondays
+      // and opens on the phase's first month (owner, 5 Nov 2026). A phase with no dates has none, and is not limited.
+      hiatusWindows: hiatusWindowsFor(currentSchedule),
       // Ends for Production (productionEnds): what the wrap box's picker needs to offer only days the shoot can work --
       // the day marks that skip a day or force one, and Production's own hiatus. Null in Starts.
       prodShoot: productionEnds === null ? null : {
@@ -25135,6 +25168,20 @@ export function initLegacyApp() {
     scheduleScenarioFacts();   // the key facts band re-reads the tab on screen (KEY-FACTS-PLAN.md), debounced
     markDirty();
     restoreScroll(scrollSnap);
+  }
+
+  // The per-phase hiatus windows the date picker reads (DatePop.jsx; owner, 5 Nov 2026), as ISO days by phase key:
+  // `first` / `last` the Mondays a hiatus may start on (computeSchedule's hiatusWindow), `from` the day the picker's
+  // months begin, the phase's own first day (or the window's first Monday, when that is later: an Ends phase with a
+  // hiatus). Read from the whole calendar, since a calendar range cuts only the waterfall's rows.
+  function hiatusWindowsFor(sch){
+    const out = {};
+    ((wholeCalendar(sch) || {}).segments || []).forEach(s=>{
+      const w = s && s.hiatusWindow;
+      if(!w || !s.key || !(w.first <= w.last)) return;
+      out[s.key] = {first: isoOf(w.first), last: isoOf(w.last), from: isoOf(s.start > w.first ? s.start : w.first)};
+    });
+    return out;
   }
 
   // The schedule the MONTH view reads: the whole week list under a calendar range (computeSchedule's

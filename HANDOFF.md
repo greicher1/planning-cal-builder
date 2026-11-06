@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). Branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). NOT committed, NOT pushed. Tracker card `phase-hiatus-picker-range`.
+- **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
+  in the range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first
+  month of the phase"*. The picker opened on today's month and offered every Monday.
+- **Rule as built (a judgment call, not a ruling; flag it if the owner sees greyed weeks they expected):** the window
+  is the Mondays a hiatus can start on and still PAUSE the phase, worked out WITHOUT that hiatus (all-phase hiatuses
+  counted). The phase's drawn `end` includes its hiatus, so it would offer the weeks the hiatus adds, and a hiatus
+  started there lands after the phase finishes and pauses nothing (checked: Pre-Prep 6 wks + a 2-wk hiatus runs to
+  5/29; a start on 5/18 or 5/25 would have done nothing).
+  - Starts (Weeks): its start's Monday to the Monday of the week holding `extendEndForHiatus(start, weeks, null) - 7`
+    (the walk steps 7 days from the start, so this holds snapped or not).
+  - Ends (`cfg.endsAt`): from `weeksStartForEnd(endsAt, weeks, state.hiatuses, null)` (its hiatus moves its START) to
+    `end - 7`'s week.
+  - Days: to the week of the last day of `customUnitSpan(cfg, parsed, null)`; Dates: to the end's week (a hiatus
+    never moves it).
+  - Production (Starts): to the week of `simulateProductionSchedule(…, noLead=false, noOwnHiatus=true)`'s
+    `lastShootDay` (new 5th argument). ⚠️ Production held by its wrap (`productionEnds`) keeps its whole span, which
+    can offer a week or two that pause nothing: re-solving its start without the hiatus is `solveProductionEndsStart`'s
+    search. Permissive, never excludes a real week.
+  - The picker's months: from the phase's first day's month (or the window's first Monday's, when later: Ends) to
+    the last Monday's month.
+- **As built:** `computeSchedule()` puts `hiatusWindow: {first, last}` (Dates, Mondays) on every phase segment
+  (pure, additive; nothing reads it but the push). `hiatusWindowsFor(sch)` (beside `wholeCalendar`, read from the whole
+  calendar) feeds `chrome.dateContext({hiatusWindows})` in `update()`. `DatePop.jsx`: `hiatusWindowOf(el, ctx)` (by
+  the `phiatus-start-<key>` id), the days outside get `dp-off` / `aria-disabled`, the arrows `aria-disabled` at the
+  ends (CSS `.dp-nav[aria-disabled]`), `open()` reads the context through a ref and opens on the phase's first month
+  unless the field holds a date inside the window (clamped to the window's months), and the hint reads "A hiatus
+  always starts on a Monday, in a week this phase runs." A phase with no dates and the all-phase hiatus are not
+  limited. No id, no snapshot key, no frozen code, no export change.
+- **Proof:** new leg **`phiatuspick` 12/12** (`gate.sh` generic block after `datepick`, `phiatuspick:-:200`), red on
+  the old `DatePop.jsx` (K1–K5, then EX): the empty field opens on April for Pre-Prep, only 4/6–5/11 pickable, the
+  arrows stop at April and May, a pick writes and pauses the phase, the window does not grow with the hiatus, a date
+  outside the phase opens on April and is not rewritten, Production to its wrap's week without the hiatus, Post held
+  by its end from where it starts without the hiatus, Localization with no dates and the all-phase hiatus unlimited.
+  `datepick` H2 updated (Prod Prep's empty hiatus: 40 greyed, 5/25 and 6/1). Checked in the browser pane on the
+  fixture (Pre-Prep, Production, Post in Ends). `npm run check` 40/40. Neighbouring legs on the build: see the line
+  below. No full gate (chrome + an additive engine field).
+- **Neighbouring legs on the build** (dist sha256 `2d191510…`, port 8953, one at a time): `datepick` 17/17,
+  `phiatuspick` 12/12, `snapbox` 12/12, `phiatusnum` 18/18, `endsdate` 17/17, `prodends` 14/14, `hiatussidebar`
+  16/16, `spanhint` 9/9, `badyear` 6/6, `calrange` 18/18, `prodspan` 8/8, `stalebandkey` 9/9, `phasearrows` 26/26,
+  `wrapdate` (5 scenarios, all its flags true), `customunits` 23 + 28, `builtindates` 17 + 15.
+- **Next:** the owner's commit / push decision. The tracker card stays `building` until then.
+
 ### ✅ 5 Nov 2026: REBUILD FROM IS NOW **BUILD AROUND** — LENGTHS IN THE BOX, BOTH SIDES IN ONE RUN. ✅ **LIVE at `3964bfb`** (pushed `5867661..3964bfb` on the owner's picker; deploy run `42132450288` green; the live `index.html` is byte-identical to the build, sha256 `d4662b17…`: "Build Around" and `tool-solve-edge` present, `tool-close-gaps` absent). BUILT on branch `build-around` (worktree `.claude/worktrees/build-around`, from `main` at `cf75104`; its `node_modules` is a symlink: unlink it before `git worktree remove`). COMMITTED on the branch as `88abfc5` (owner's picker *"Commit on the branch"*); local `main` (`c27c7d9`: the Shift date row, the double-click pull-back, the harness's PDF length reader) merged in as `147f3ab` (README the only conflict, both entries kept); then `origin/main` (`5867661`: the PDF length reader, which reached origin on its own retry, and the drag over an expanded part, `3b8306c`) and local `main` (`4621e4c`, a HANDOFF note) merged in as `74f5a0d` / `d107f05` (HANDOFF and README only; this entry moved back to the top); fast-forwarded onto `main` and PUSHED on the owner's picker *"Push to the live site"*. On the final merge: `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `centrepullback` 12/12, `npm run check` 40/40. On the first merged build (`147f3ab`): `buildaround` 33/33, `rebuildticks` 19/19, `anchorside` 30/30, `snaptools` 14/14, `overrides` 20/20, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15, `phiatusnum` 18/18 (green with the PDF length reader), `centrepullback` 10/10, `stalebandkey` 9/9, `colreuse` 25/25 of the gate's checks, `npm run check` 40/40; no second full gate. Plan [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) (every ruling), mockup [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), tracker card `rebuild-from-lengths`.
 - **Why:** the owner asked whether Rebuild From is useful at all. Measured on the layout study's 15 seeds (plan §0): 46
   of the 47 handoffs that don't involve Writer's Rm are back to back, no seed has a gap, and the room overlaps the next

@@ -21,6 +21,13 @@
 //     must be able to choose a date that lands on a holiday and see the consequence. The data
 //     arrives through the bridge (chrome.dateContext, pushed by update()) like every other chrome
 //     surface — the popover never reaches into the engine.
+//   * A phase's own hiatus (.phiatus-start) can be picked only on the Mondays that phase runs, and
+//     the months stop at the phase's first and last (owner, 5 Nov 2026: "limited to only
+//     dates/months that fall in the range of the phase"). It opens on the phase's first month
+//     unless the field already holds a date inside it. The window is the engine's
+//     (computeSchedule's hiatusWindow, via chrome.dateContext's hiatusWindows), worked out WITHOUT
+//     that hiatus, so its weeks do not grow as the hiatus pushes the phase's end out. A phase with
+//     no dates has no window and the picker is not limited. Typing is untouched.
 //   * #custom-hol-date was the first single-DAY field to get no week band — that difference was
 //     invisible before and is the reason it kept being mistaken for a week field.
 //
@@ -29,7 +36,7 @@
 // buildSavedHtml() additionally strips .date-pop from shareable copies (belt and braces — the
 // popover unmounts when closed, but a Share click lands on the same tick as the outside-click
 // that closes it, and the engine builds the copy before React commits).
-import { useState, useLayoutEffect, useCallback } from 'react'
+import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { installChrome } from './bridge.js'
 
 // UTC date math, matching the engine's convention (PROJECT-CONTEXT §4): all dates are UTC
@@ -45,6 +52,7 @@ const mondayOf = (t) => t - ((new Date(t).getUTCDay() + 6) % 7) * MS
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+const monthOf = (t) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) }
 
 const POP_W = 252
 const POP_H = 286
@@ -102,13 +110,28 @@ function fieldKind(el) {
   return 'week'                                                     // the calendar range
 }
 
+// The weeks a phase's own hiatus may start in, or null (not a phase hiatus, or a phase with no
+// dates): {first, last} the Mondays, {minMonth, maxMonth} the months the picker may show. From
+// update()'s hiatusWindows, keyed by the phase key in the field's id (phiatus-start-<key>).
+function hiatusWindowOf(el, ctx) {
+  if (!el.classList.contains('phiatus-start') || !el.id.startsWith('phiatus-start-')) return null
+  const w = (ctx.hiatusWindows || {})[el.id.slice('phiatus-start-'.length)]
+  const first = w && parseIso(w.first), last = w && parseIso(w.last), from = w && parseIso(w.from)
+  if (first == null || last == null || last < first) return null
+  return { first, last, minMonth: monthOf(from ?? first), maxMonth: monthOf(last) }
+}
+
 export function DatePop() {
   const [target, setTarget] = useState(null)
   const [value, setValue] = useState(null)        // ms | null — the field's current value
   const [month, setMonth] = useState(null)        // ms of the 1st of the shown month
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [hover, setHover] = useState(null)        // ms | null
-  const [ctx, setCtx] = useState({ holidays: [], hiatuses: [] })
+  const [ctx, setCtx] = useState({ holidays: [], hiatuses: [], hiatusWindows: {} })
+  // open() reads the context it opens with (a phase hiatus opens on its phase's first month), and
+  // stays one callback for the life of the listeners below, so it reads it through a ref.
+  const ctxRef = useRef(ctx)
+  ctxRef.current = ctx
 
   useLayoutEffect(() => {
     installChrome({ dateContext: (patch) => setCtx((s) => ({ ...s, ...patch })) })
@@ -127,11 +150,17 @@ export function DatePop() {
 
   const open = useCallback((el) => {
     const v = parseIso(el.value)
-    const base = v ?? Date.now()
-    const d = new Date(base)
+    // A phase's hiatus opens on the month its date is in when that date is one it may start on,
+    // and otherwise (empty, or a date the phase has moved away from) on the phase's first month.
+    const win = hiatusWindowOf(el, ctxRef.current)
+    const inWin = win && v != null && mondayOf(v) >= win.first && mondayOf(v) <= win.last
+    // Clamped to the phase's months: a Monday just before a mid-week start (Snap off) is the
+    // phase's first week, and its month's grid shows it.
+    let base = monthOf(win && !inWin ? win.minMonth : (v ?? Date.now()))
+    if (win) base = Math.min(Math.max(base, win.minMonth), win.maxMonth)
     setTarget(el)
     setValue(v)
-    setMonth(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
+    setMonth(base)
     place(el)
   }, [place])
 
@@ -181,6 +210,7 @@ export function DatePop() {
 
   const kind = fieldKind(target)
   const weekMode = kind === 'week'
+  const win = hiatusWindowOf(target, ctx)
 
   // The write-back: the native setter plus a real 'input' event, so React's value tracker (on the
   // uncontrolled Mantine inputs) and the engine's per-field listeners both see a normal edit.
@@ -245,6 +275,7 @@ export function DatePop() {
     // of the field.
     const off = (kind === 'monday' && !isMon) || (kind === 'friday' && d.getUTCDay() !== 5)
       || (kind === 'wrap' && !shootable(t, dayIso))
+      || (win != null && (t < win.first || t > win.last))
     const cls = ['dp-day']
     if (off) cls.push('dp-off')
     if (!inMonth) cls.push('dp-out')
@@ -273,6 +304,10 @@ export function DatePop() {
   }
 
   const nav = (delta) => setMonth(Date.UTC(y, m + delta, 1))
+  // A phase's hiatus shows only its phase's months: the arrows stop at the first and the last.
+  // aria-disabled rather than `disabled`, for the reason the days use it.
+  const prevOff = win != null && month <= win.minMonth
+  const nextOff = win != null && month >= win.maxMonth
 
   return (
     <div
@@ -286,9 +321,11 @@ export function DatePop() {
       onMouseLeave={() => setHover(null)}
     >
       <div className="dp-head">
-        <button type="button" className="dp-nav" aria-label="Previous month" onClick={() => nav(-1)}>‹</button>
+        <button type="button" className="dp-nav" aria-label="Previous month" aria-disabled={prevOff || undefined}
+          tabIndex={prevOff ? -1 : undefined} onClick={prevOff ? undefined : () => nav(-1)}>‹</button>
         <span className="dp-title">{MONTHS[m]} {y}</span>
-        <button type="button" className="dp-nav" aria-label="Next month" onClick={() => nav(1)}>›</button>
+        <button type="button" className="dp-nav" aria-label="Next month" aria-disabled={nextOff || undefined}
+          tabIndex={nextOff ? -1 : undefined} onClick={nextOff ? undefined : () => nav(1)}>›</button>
       </div>
       <div className="dp-dow" aria-hidden="true">{DOW.map((d) => <span key={d}>{d}</span>)}</div>
       <div className={'dp-grid' + (kind === 'monday' ? ' dp-mondays' : kind === 'friday' ? ' dp-fridays' : kind === 'wrap' ? ' dp-shootdays' : '')}>{cells}</div>
@@ -297,7 +334,9 @@ export function DatePop() {
       )}
       {kind === 'monday' && (
         <div className="dp-hint">
-          {target.classList.contains('hiatus-start') || target.classList.contains('phiatus-start')
+          {win
+            ? 'A hiatus always starts on a Monday, in a week this phase runs.'
+            : target.classList.contains('hiatus-start') || target.classList.contains('phiatus-start')
             ? 'A hiatus always starts on a Monday.'
             : 'Snap to Monday is on, so only Mondays can be picked.'}
         </div>

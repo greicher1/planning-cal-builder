@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a phase's own hiatus is picked inside that phase (5 Nov 2026)
+
+Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the
+range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first month of the
+phase."* Until now the picker opened on today's month and offered every Monday in every year.
+
+- **Only the Mondays the phase runs can be picked.** Every other Monday is greyed like the other days, and the month
+  arrows stop at the phase's first and last months. The hint reads "A hiatus always starts on a Monday, in a week
+  this phase runs."
+- **It opens on the phase's first month** when the date is empty, or holds a date outside the phase (one left behind
+  when the phase moved, say). A date inside the phase opens on its own month, as before.
+- **The weeks the hiatus itself adds are not offered.** A hiatus pushes its phase's end out, but a hiatus started in
+  those extra weeks would land after the phase had already finished and pause nothing. So the window is the phase's
+  span worked out WITHOUT its own hiatus (all-phase hiatuses still counted): Starts phases end where they would with
+  no hiatus; a phase held by its end opens where it would start with no hiatus; Production runs from its first week
+  to its wrap's week with no hiatus. One allowance: Production held by its wrap keeps its whole span, which can offer
+  a week or two that pause nothing, because finding its start a second time is a search.
+- A phase with no dates, and the all-phase hiatus, are not limited. Typing a date is untouched.
+- **How:** `computeSchedule()` gives each phase's segment a `hiatusWindow` (`{first, last}` Mondays; a new
+  `noOwnHiatus` argument on `simulateProductionSchedule`), `update()` pushes them to the picker as
+  `dateContext.hiatusWindows`, and `DatePop.jsx` greys and stops at them. Nothing is saved and no id was added; no
+  frozen code and no export changed.
+- **Proof:** new leg `phiatuspick` 12/12 (in `gate.sh` after `datepick`), red on the old picker (K1–K5); `datepick`
+  H2 updated for the window. See HANDOFF for the neighbouring legs.
+
 ### Unreleased — Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
 
 The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured
