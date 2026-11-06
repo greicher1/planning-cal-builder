@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — rule 20: a column must earn its place (5 Nov 2026)
+## v1.12.0 — the twentieth layout rule (a column must earn its place), a phase's own hiatus picked inside the phase, Rebuild From is Build Around, a drag over expanded cells selects them and the double-click pulls them back, Shift's phase beside its date, a leftover band label stays, New opens on Show info (6 Nov 2026)
+
+### rule 20: a column must earn its place (5 Nov 2026)
 
 The twentieth layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
 §7), after v1.11.0's nineteen; stamped calendars only, like the rest.
@@ -55,7 +57,7 @@ The twentieth layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`
   24/24, `hiatusdrag` 14/14, `hiatusripple` 15/15, `cspproof` 15/15, `textstyle` 51/51, `scenariocompat` on v1.2.0
   twice); `npm run check` 40/40.
 
-### Unreleased — a phase's own hiatus is picked inside that phase (5 Nov 2026)
+### a phase's own hiatus is picked inside that phase (5 Nov 2026)
 
 Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the
 range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first month of the
@@ -80,7 +82,7 @@ phase."* Until now the picker opened on today's month and offered every Monday i
 - **Proof:** new leg `phiatuspick` 12/12 (in `gate.sh` after `datepick`), red on the old picker (K1–K5); `datepick`
   H2 updated for the window. See HANDOFF for the neighbouring legs.
 
-### Unreleased — Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
+### Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
 
 The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured
 on the layout study's 15 real calendars: 46 of the 47 handoffs that don't involve the Writer's Room are back to back,
@@ -109,7 +111,7 @@ length is the phase's own field. The ids stay `pop-solve-*` / `tool-solve-*` (th
 
 Verified: new leg `buildaround` 33/33 (a new calendar built in one run from typed lengths, staged until Build and taken back by one undo; both sides in one run; the shortcuts; ends by; Production unset; "Save 1 length"; no box control in the saved state). Updated and green: `rebuildticks` 19/19, `overrides` 20/20 (its Close all gaps case now drives Build Around and lands on the same dates and day marks), `snaptools` 14/14. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15. `npm run check` 40/40. Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work: `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
 
-### Unreleased — the test harness reads PDF text by each stream's length (5 Nov 2026)
+### the test harness reads PDF text by each stream's length (5 Nov 2026)
 
 Test harness only: the app and both PDF writers are unchanged. Since v1.11.0 the `phiatusnum` leg's check H4 ("one
 text run each for Pre-Prep Hiatus wk 1-3 in the waterfall PDF") was red on the live build, and it found no text at
@@ -142,7 +144,7 @@ save before reading any PDF; each was green alone. `npm run check` 40/40. A Node
 the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
 stream throws. No gate.sh change: leg names and budgets are the same.
 
-### Unreleased — a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
+### a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
 
 Owner, trying the entry below once it was live: *"i tried highlighing a bunch of expanced cells and double clicking
 and it only pulled back the cell my cursor was on."* A drag selects phase cells by each cell's **own** column, not
@@ -166,7 +168,7 @@ the pointer.
     `colreuse (live)`'s "Update layout" strip checks, a timing flake while another session's full gate ran: the live
     build fails them the same way, 2 of 3 runs, and each build passes 25/25 on other runs. `npm run check` 40/40.
 
-### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+### a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
 
 Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
 and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
@@ -206,7 +208,7 @@ Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0�
     generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
     layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
 
-### Unreleased — Shift: the phase sits beside the date (5 Nov 2026)
+### Shift: the phase sits beside the date (5 Nov 2026)
 
 In the Shift box, **To a date** now names the phase that lands right above the date (owner, 5 Nov 2026, on a
 screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have
@@ -224,7 +226,7 @@ written back into it on change, and carries no id, so nothing reaches a saved fi
 `npm run check` 40/40; `anchorside` 30/30 (W1 reads the rows; new J1 picks the landing phase on the subject row, sees it
 mirrored, the date prefilled, the row pinned, and Go land it); the nine other Shift legs green.
 
-### Unreleased — a leftover band label stays where it is (5 Nov 2026)
+### a leftover band label stays where it is (5 Nov 2026)
 
 A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
 other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
@@ -247,7 +249,7 @@ gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in
 this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
 new widths now end a stream with; the PDF is fine).
 
-### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
+### New always opens the sidebar on Show info (5 Nov 2026)
 
 Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never
 touched the sidebar's tab, so it kept whichever was up, usually Phases, and a blank calendar opened on a list of empty
