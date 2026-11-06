@@ -1974,6 +1974,13 @@ done
 # (N1 N2 F1 P1: the label yielded on Summer Break's week, its colour, size and styles landed on that band) and on the
 # "plain key stays outside the window" one-liner (P1). On stalebandkey.sptcal (phasearrows.sptcal + the stale stores,
 # a Dates phase and an unlocked two-week band).
+# shiftheld (owner, 5 Nov 2026, picker "Step over it"; stepOverHeld) is the Shift tool counting only the weeks a HELD
+# hiatus does not cover: Phase & after Pre Prep 4 wks earlier across a locked Christmas break that sat in Prod Prep
+# lands every phase where Build Around from the same date puts it (Production 6 wks, both handoffs back to back), notes
+# ride with their phase's week and one under the break stays, the line says "pulled 6 wks to step over a held hiatus",
+# the arrows (Production 3 wks over the break), a date inside the break (the week after), an Ends phase (its END is
+# mapped), All phases by weeks. Red on the old engine at L1 S1-S4 A1 H1 E1 W1 (the 2-week gap and the overlap).
+# On shiftheld.sptcal (synthetic, from anchorside.sptcal).
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2113,6 +2120,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
+              shiftheld:shiftheld:300 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \

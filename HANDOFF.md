@@ -4,6 +4,90 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. **Built and COMMITTED on branch `shift-held` (owner's picker *"Commit on the branch"*), NOT live. The owner asked for the FULL GATE before any push (*"Full gate, then ask again"*).** Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
+- **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
+  because of the locked in place all phase hiatuses, we now have a 2 week gap."* Reproduced on a synthetic copy
+  (`tests/fixtures/shiftheld.sptcal`): Phase & after Pre-Prep to 8/10/26 (4 wks earlier) slid every phase 4 CALENDAR
+  weeks while the locked Christmas break (12/21/26 x 2) stayed. The break had sat in Prod Prep's last weeks and landed
+  in Production's first: Prod Prep finished 2 wks sooner (a 2-wk GAP: Prod Prep to 11/27, Production from 12/14) and the
+  shoot ran 2 wks longer (wrap 5/19/27, so Post, moved 4 wks to 5/10/27, OVERLAPPED its last 2 wks; the owner had not
+  spotted that half).
+- **Ruling (owner's picker, "Step over it", after asking "why would stepping over it be the right decision? Does it
+  seem technically correct calendar wise?"):** Shift counts only the weeks a HELD hiatus does not cover. The argument
+  given: a phase's length is already working weeks (a hiatus pauses it, `extendEndForHiatus`), so a plan slid past a
+  break that stays put must be counted in the same units; the test is that the shifted calendar equals the plan
+  re-entered from scratch with the same lengths and gaps, and it does (Build Around from Pre Prep at 8/10/26, After,
+  gives the identical calendar: leg check S1). Caveats the owner was told: "4 weeks earlier" can move a phase 6; a break
+  between two phases counts as no time; the one-week arrows can carry a phase 3 weeks over a break; union holidays
+  still don't move.
+- **As built (`src/legacy/app.js`, all engine, nothing frozen, no snapshot key, no id):**
+  - `stepOverHeld(n, held)` maps a Date N working weeks (weekday kept; a date inside a held break counts from the week
+    after it). `workingWeeksBetween` / `workingWeeksToFinishBy` are To a date's counts (start / "ends by", the old
+    `weeksBetweenMondays` / `weeksToFinishBy` are now unused, left in place).
+  - `shiftCalendarDates`: its windows are `shiftScope(fromIso, part)` and every hiatus row's fate is decided FIRST by
+    `hiatusFatesFor(inRange, except)` ('stay' | 'locked' | 'move', plus `held` / `moving` week sets), because the
+    step-over needs the held weeks before step 1 moves a phase. Counts and step 3's predicates are unchanged.
+    `opts.stepHeld` swaps the constant `days` for the mapping everywhere a date moves: phase starts, their own
+    hiatuses, moving hiatuses, the range, all 15 `shiftKeyedMap` calls, `monthCursor`, `rewriteMovedAutoNotes`,
+    `notesOnHiatus` (`moveDate(d, daysOrFn)`, `shiftKeyedMap` / `rewriteMovedAutoNotes` / `shiftDateFieldValue` take
+    either). Without `stepHeld` every path is byte-for-byte the old arithmetic.
+  - `res.stepped` = moved phases whose start went other than N weeks (read after the refresh, so an Ends phase's
+    re-solved start counts), `res.steppedHiatuses` = held bands they crossed.
+  - `setPhaseStart(key, iso, endTo)`: the END of an Ends phase AND of a Dates phase goes through the mapping. Without it
+    Prod Prep in Ends mode ended 12/11 instead of 11/27 (leg E1, red on the old engine). For Dates the first cut kept
+    the calendar span ("a hiatus never pauses it"), and `builtindates` caught the result: Pre-Prep Wed 2/10-Tue 2/23
+    (locked week of 2/15 inside) +1 wk became 2/24-3/9, INTO Prod Prep's 3/8. Mapped, it is 2/24-3/2: 5 working days
+    and the 3-day gap kept. So a Dates phase's calendar span changes when a held break enters or leaves it.
+  - Who opts in: the Shift form (By weeks, To a date, all three What moves and own ticks) and the toolbar arrows.
+    `shiftHeldWeeks(part)` / `heldForMove(key)` give the form the held set before it runs, for To a date's delta and
+    the list's landing dates. NOT the hiatus ripple (it sizes its steps from the edited hiatus, which it holds itself
+    via `except`), the phase card's ▲ / ▼ (one phase, one week, by design), or the month drag (`carryOnly`).
+  - Words: the line adds *"Production was pulled 6 wks to step over a held hiatus."* (`steppedText`, pushed / pulled per
+    the owner's wording); the arrows' readout *"1 wk earlier · Production pulled 3 wks · wrap …"*; a start date
+    inside a held break: *"Your date is inside a held hiatus, so it starts the week after it."*
+- **My calls, not rulings (flag if the owner disagrees):** a note on a held band's week STAYS with the band (it is about
+  the break and the band covers it; it used to be carried out from under the band by calendar weeks). Both dates of a
+  Dates phase step over (above), so its calendar span can change. Held = locked rows AND, on a part move, the
+  unlocked rows outside its windows (they stay put too, so they are obstacles the same way). Whether the ripple should
+  also step over a locked break it pushes phases across is the open follow-up: it has the same shape of bug.
+- **Proof:** new leg **`shiftheld` 13/13** (gate.sh generic block after `stalebandkey`, `shiftheld:shiftheld:300`):
+  Build Around reference, the list's preview (Production 11/30/26 "Pulled 6 wks"), Go = Build Around, both handoffs
+  back to back, notes on their phase's weeks and XMAS-NOTE kept, the line, one undo, the arrows over the break, a date
+  inside the break, an Ends phase, All phases by weeks, 0 errors. **Red on the old engine** (main's `app.js` built into a
+  page outside `dist/`, which Vite empties: a first attempt read a stale JSON) at L1 S1 S2 S3 S4 A1 H1 E1 W1. Driven by
+  hand in the browser pane: the list, the line and the grid (Prod Prep wk 10 11/23, Production wk 1 11/30, Christmas
+  inside the shoot, wrap 5/5/27, Post wk 1 5/10/27). `npm run check` 40/40.
+- **Neighbouring legs on the build** (port 8978, one at a time; every leg that drives Shift or its arrows, plus Build Around
+  and the ripple): `anchorside` 30/30 (x2), `phasearrows` 26/26, `stalebandkey` 9/9 (x2), `snaptools` 14/14, `overrides`
+  20/20, `calrange` 18/18, `rowheight` 7/7, `autonote` 9/9, `autonotekinds` 16/16, `autonoteview` 18/18, `halfworked`
+  24/24, `mvtextstyle` 23/23 + 6/6, `phiatusnum` 18/18, `customunits` 23 + 28, `builtindates` 17 + 15, `episodeprep`
+  33 + 25 + 11, `offweek` 5 + 42, `textstyle` 51, `buildaround` 33/33, `rebuildticks` 19/19, `hiatusripple` 15/15.
+  `npm run check` 40/40.
+  - **Updated to the new rule (they held the old arithmetic):** `snaptools` L14 (a note shifted onto the locked Summer
+    Break's week now steps over it to 7/20, the shoot's 2nd week again, so the "hidden under a hiatus" warning has
+    nothing to say; the warning still fires on the ripple); `customunits` (Stage Build, Dates, 2/24-3/2; Rigging, Days,
+    Thu 2/25; To a date 2/24 is ONE working week, end 3/2) and `builtindates` (Pre Prep, Dates, 2/24-3/2 and Prod Prep
+    3/8). Each comment says what it was and why.
+  - ⚠️ **Flakes seen, not this change:** `autonoteview` V2 (a month PDF write timed out) in the batch run, 18/18 alone.
+    `offweek` (fixture) R8 / R9 / R13 threw in `load()` ("the loaded file's name in the file menu", the Load race
+    `colreuse` hit on 5 Nov) in both batch runs, which ran while other sessions loaded the machine; 42/42 alone twice on
+    this build, and 42/42 on the old engine.
+- ✅ **Full gate on `b9211a6` (port 8978): 4,048 PASS / 15 FAIL, every failure re-run alone and green, none from this
+  work.** It ran 22:50 to 10:34 (almost 12 hours) because the `angry-mclean` session's full gate started the same minute
+  and ran beside it all night (load average 16 to 25), with `release-r20`'s legs too. The baselines all held: 0 clipped
+  cells, the waterfall PDF identical, the Excel parts identical, every printed month document identical; `shiftheld`
+  13/13 inside the gate. The 15 were timeouts or no result: `monthprint` reference, `prefs`, `hdrverload`
+  (hdrtemplated), `onecol`, `colreuse` (live), `pilllabel` (shootorder) W2, `pwagate` C1, `xlsxdates` (ExcelJS load),
+  `legacyparse` T3, `mvorder` / `hiatusdrag` / `hiatusripple` (deadlines), `scenariocompat` v1.2.0. Alone (judged by
+  gate.sh's own judges where a leg has one): monthprint reference identical to baseline (16 sheets), prefs 13, hdrverload
+  7, onecol 17, colreuse 25, pilllabel (shootorder) 29, pwagate 13/13, xlsxdates 5/5, legacyparse 7/7, mvorder 30/30,
+  hiatusdrag 14/14, hiatusripple 15/15; `scenariocompat` v1.2.0 timed out once more ("Open... menu item"), then opened the
+  8-episode tab (pass); it runs on the frozen `releases/v1.2.0.html` and never loads this build (the known flake).
+  ⚠️ Two full gates started at once is what HANDOFF warns about; a session that queues a gate behind a PID should check
+  no other session queued behind the same PID.
+- **Not done:** not pushed (the owner asked to be asked again after the gate). The ripple's own step-over is the open
+  follow-up (above).
+
 ### ✅ 5 Nov 2026: A PHASE'S OWN HIATUS IS PICKED INSIDE THAT PHASE (the date picker's window). ✅ **LIVE at `6387159`** (owner's pickers *"Commit on the branch"*, *"Push to the live site"*; pushed `3964bfb..6387159` at 02:30 UTC 6 Nov, a fast-forward that also carried three HANDOFF-only notes from local `main`; deploy run `42150741791` green; the live `index.html` is the build byte for byte, sha256 `2d191510…`, "in a week this phase runs" present). Local `main` fast-forwarded to it. No version cut. Built on branch `phiatus-picker-range` (worktree `.claude/worktrees/phiatus-picker-range`, from local `main` at `871e26d`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Tracker card `phase-hiatus-picker-range`.
 - **Ask (owner):** *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall
   in the range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first

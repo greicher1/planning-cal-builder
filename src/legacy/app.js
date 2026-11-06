@@ -8896,14 +8896,20 @@ export function initLegacyApp() {
   // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
   // Days phases need nothing more -- their length is a count. A new mover must write through this,
   // or Dates phases stretch under it. Returns false when there is no start field to write.
-  function setPhaseStart(key, iso){
+  // `endTo` (optional): Shift's step-over mapping (stepOverHeld). The END of a Dates or an Ends phase then goes where the
+  // mapping sends it, not by the start's calendar distance: a held hiatus between its start and its end makes those
+  // differ. A Dates phase so keeps its WORKING days and the gaps either side of it, while its calendar span changes as a
+  // held break enters or leaves it. (First cut kept the span: Pre-Prep Wed 2/10-Tue 2/23 with a locked week inside,
+  // +1 wk, became 2/24-3/9 and ran into Prod Prep on 3/8; mapped, it is 2/24-3/2, still 5 working days and a 3-day gap.
+  // Leg builtindates.) An Ends phase's start is then solved again from its end.
+  function setPhaseStart(key, iso, endTo){
     const el = document.getElementById('start-' + key);
     if(!el) return false;
     const was = parseDateUTC(el.value), to = parseDateUTC(iso);
     if(was && to && customPhaseUnit(key) === 'dates'){
       const endEl = document.getElementById('end-' + key);
       const end = endEl ? parseDateUTC(endEl.value) : null;
-      if(end) endEl.value = isoOf(addDays(end, Math.round((to - was) / DAY_MS)));
+      if(end) endEl.value = isoOf(endTo ? endTo(end) : addDays(end, Math.round((to - was) / DAY_MS)));
     }
     // An Ends phase (phaseEnds) is held by its END, so a mover moves that: by the same distance, to the nearest
     // whole week, so it stays on a Friday (a month-view drag can move a start by days). The start written below
@@ -8911,7 +8917,8 @@ export function initLegacyApp() {
     if(was && to && phaseEndsOn(key)){
       const endEl = document.getElementById('end-' + key);
       const end = endEl ? parseDateUTC(endEl.value) : null;
-      if(end) endEl.value = isoOf(addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
+      if(end) endEl.value = isoOf(endTo ? fridayOfWeek(endTo(fridayOfWeek(end)))
+        : addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
     }
     // Production held by its wrap (productionEnds): a mover moves the shoot as it does in Starts, and the next update()
     // takes the wrap it lands on as the held one (ruled with the mockup: "Yes, build it").
@@ -29189,12 +29196,68 @@ export function initLegacyApp() {
   //    day-addressed by nature and stay put for the same reason, along with their extra lanes.
   const MAX_SHIFT_WEEKS = 520; // ~10 years; a typo'd week count shouldn't fling the calendar away
 
+  // `days` is a number of days, or a function from a Date to the Date it moves to (the step-over below).
+  const moveDate = (d, days) => typeof days === 'function' ? days(d) : addDays(d, days);
   function shiftDateFieldValue(el, days){
     if(!el || !el.value) return false;      // an empty date field has nothing to shift
     const d = parseDateUTC(el.value);
     if(!d) return false;                    // unparseable (mid-typing, bad year) -- leave alone
-    el.value = isoOf(addDays(d, days));
+    el.value = isoOf(moveDate(d, days));
     return true;
+  }
+
+  // ---------- ⭐ THE STEP-OVER: Shift counts only the weeks a HELD hiatus does not cover ----------
+  // Owner, 5 Nov 2026, on a calendar whose locked Christmas break sat in Prod Prep's last weeks: Phase & after Pre-Prep,
+  // 4 weeks earlier, slid every phase 4 calendar weeks while the break stayed on Christmas. So the break left Prod Prep
+  // (which finished 2 weeks sooner: a 2-week GAP before Production) and landed in Production (which ran 2 weeks longer:
+  // Post OVERLAPPED the shoot's last 2 weeks). Shift promises to keep the gaps, and it kept neither. Ruled by picker,
+  // "Step over it", after asking why it is right: a phase's length is WORKING weeks (a hiatus pauses it,
+  // extendEndForHiatus), so a plan slid past a break that stays put has to be counted the way the phases count
+  // themselves. Checked: the result equals Build Around from the same phase on the same date (After), i.e. the plan
+  // re-entered from scratch with the same lengths and gaps.
+  //
+  // THE RULE: every date the shift moves (phase starts, their own hiatuses, unlocked hiatuses, the calendar range, and
+  // every week-keyed store) goes N WORKING weeks, where a working week is one no held all-phase hiatus covers. Held =
+  // the bands this shift leaves where they are: locked ones, and on a part move or a cutoff the ones outside its week
+  // windows (hiatusFatesFor). A phase that crosses a held break moves that many extra calendar weeks; the result line
+  // says so (`stepped`). Nothing moved lands inside a held break.
+  //   * A date INSIDE a held break counts from the week the break ends -- where a phase typed there really works
+  //     from (the walk skips the break's weeks; rippleNormaliseInside's rule).
+  //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
+  //   * Not for every mover: the Shift form and the toolbar arrows opt in (`stepHeld`). The hiatus ripple sizes its
+  //     own steps from the edited hiatus, and the phase card's ▲ / ▼ move one phase one week by design.
+  function stepOverHeld(n, held){
+    if(!held || !held.size) return d => addDays(d, n * 7);
+    const isHeld = w => held.has(isoOf(w));
+    const step = n > 0 ? 7 : -7;
+    const cap = Math.abs(n) + held.size + 1;
+    return d => {
+      const mon = mondayOf(d), off = Math.round((d - mon) / DAY_MS);
+      let w = mon, guard = 0;
+      while(isHeld(w) && guard++ < cap) w = addDays(w, 7);
+      for(let left = Math.abs(n); left > 0 && guard++ < cap * 2; ){ w = addDays(w, step); if(!isHeld(w)) left--; }
+      return addDays(w, off);
+    };
+  }
+  // The same count the other way: how many working weeks lie from `from`'s week to `to`'s (signed). A date inside a
+  // held break counts from the week it ends, so a target typed inside one lands the week after it.
+  function workingWeeksBetween(from, to, held){
+    const norm = d => { let w = mondayOf(d), g = 0; while(held && held.has(isoOf(w)) && g++ < MAX_WEEKS) w = addDays(w, 7); return w; };
+    const a = norm(from), b = norm(to);
+    const steps = Math.round((b - a) / DAY_MS / 7), sign = steps < 0 ? -1 : 1;
+    if(!held || !held.size) return steps;
+    let n = 0, w = a;
+    for(let i = 0; i < Math.abs(steps); i++){ w = addDays(w, 7 * sign); if(!held.has(isoOf(w))) n += sign; }
+    return n;
+  }
+  // "Ends by" in working weeks (weeksToFinishBy's floor): the most a phase ending on `lastDay` can move and still end
+  // on or before `target` -- the latest working week whose day at lastDay's weekday is not past the target.
+  function workingWeeksToFinishBy(lastDay, target, held){
+    const off = Math.round((lastDay - mondayOf(lastDay)) / DAY_MS);
+    let w = mondayOf(target), g = 0;
+    if(addDays(w, off) > target) w = addDays(w, -7);
+    while(held && held.has(isoOf(w)) && g++ < MAX_WEEKS) w = addDays(w, -7);
+    return workingWeeksBetween(lastDay, w, held);
   }
   // Rebuild a week/day-keyed map under shifted keys. `keep(key)` returns true for entries that
   // must stay on their original key. Built fresh rather than mutated in place so a shift can never
@@ -29226,7 +29289,7 @@ export function initLegacyApp() {
       const { iso, suffix } = splitWeekKey(k);
       const d = parseDateUTC(iso);
       if(!d || (keep && keep(k))) out[k] = v;         // unparseable keys stay put too
-      else moving.push([isoOf(addDays(d, days)) + suffix, v]);
+      else moving.push([isoOf(moveDate(d, days)) + suffix, v]);
     });
     moving.forEach(([k, v])=>{
       if(!(k in out)) out[k] = v;
@@ -29282,7 +29345,7 @@ export function initLegacyApp() {
     Object.keys(staleByOldKey).forEach(oldKey=>{
       const d = parseDateUTC(oldKey);
       if(!d) return;
-      const newKey = isoOf(addDays(d, days));
+      const newKey = isoOf(moveDate(d, days));
       const v = userNotes[newKey];
       if(v === undefined || (v && typeof v === 'object' && Array.isArray(v.notes))) return;
       const text = (typeof v === 'string') ? v : ((v && typeof v.text === 'string') ? v.text : '');
@@ -29537,6 +29600,56 @@ export function initLegacyApp() {
   //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
   //               the phase that OWNS it is held too (the hiatus pauses it, which is the point), and with it its own
   //               hiatus fields. The ripple never passes `part`, and passes `keepView` (above).
+  // The week windows a shift's week-keyed things move inside, and the test against them: a part move's own (one per
+  // ticked phase, or a shortcut's single window), else the cutoff's open-ended one, else none (a whole-calendar
+  // shift, where everything is in range). `inRange` takes a cell key, which may carry a "|<phase key>" suffix, so it
+  // compares on the week part only. Shared with the Shift form, which asks which hiatuses a move would hold before it
+  // runs (shiftHeldWeeks).
+  function shiftScope(fromIso, part){
+    const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
+    const windows = part
+      ? (part.windows || [{from: part.fromWeek || null, to: part.toWeek || null}]).map(w => ({from: weekOf(w.from), to: weekOf(w.to)}))
+      : (fromIso ? [{from: mondayOf(parseDateUTC(fromIso)), to: null}] : null);
+    const inRange = key => {
+      if(!windows) return true;
+      const d = parseDateUTC(splitWeekKey(key).iso);
+      if(!d) return false;
+      const m = mondayOf(d);
+      return windows.some(w => (!w.from || m >= w.from) && (!w.to || m <= w.to));
+    };
+    return {windows, inRange};
+  }
+  // What a shift does with each all-phase hiatus row, decided from the pre-shift dates BEFORE anything moves: 'stay'
+  // (outside the week windows, or the ripple's own `except`), 'locked', or 'move'. With every week of the bands that
+  // stay (`held`: the step-over's obstacles, and step 3's plain band keys that stay) and of the ones that move.
+  function hiatusFatesFor(inRange, except){
+    const fates = [], held = new Set(), moving = new Set();
+    const recordBandWeeks = (row, into)=>{
+      const startEl = row.querySelector('.hiatus-start');
+      const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
+      if(!d) return;
+      // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
+      const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
+      for(let i=0;i<wks;i++) into.add(isoOf(addDays(d, i*7)));
+    };
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const startEl = row.querySelector('.hiatus-start');
+      let fate;
+      if(!startEl || !startEl.value || !inRange(startEl.value)) fate = 'stay';
+      else if(except && except.kind === 'all' && except.row === row) fate = 'stay';
+      else { const lock = row.querySelector('.hiatus-locked'); fate = (lock && lock.checked) ? 'locked' : 'move'; }
+      recordBandWeeks(row, fate === 'move' ? moving : held);
+      fates.push({row, startEl, fate});
+    });
+    return {fates, held, moving};
+  }
+  // The weeks a Shift form move (or an All phases one: `part` null) would hold, for the step-over's arithmetic.
+  function shiftHeldWeeks(part){
+    return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
+  }
+  //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
+  //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form and the toolbar
+  //           arrows pass it; the ripple, the phase arrows and the month drag (carryOnly) do not.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -29545,23 +29658,17 @@ export function initLegacyApp() {
     const days = n * 7;
     const part = opts.part || null;
     const partPhases = part ? new Set(part.phases || []) : null;
-    const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
-    // The week windows: a part move's own (one per ticked phase, or a shortcut's single window), else the cutoff's
-    // open-ended one, else none (a whole-calendar shift).
-    const windows = part
-      ? (part.windows || [{from: part.fromWeek || null, to: part.toWeek || null}]).map(w => ({from: weekOf(w.from), to: weekOf(w.to)}))
-      : (fromIso ? [{from: mondayOf(parseDateUTC(fromIso)), to: null}] : null);
-    // Whole-calendar shift -> everything is in range. Takes a cell key, which may carry a
-    // "|<phase key>" suffix, so it compares on the week part only.
-    const inRange = key => {
-      if(!windows) return true;
-      const d = parseDateUTC(splitWeekKey(key).iso);
-      if(!d) return false;
-      const m = mondayOf(d);
-      return windows.some(w => (!w.from || m >= w.from) && (!w.to || m <= w.to));
-    };
+    const {inRange} = shiftScope(fromIso, part);
     // Step 1's test: with `part`, exactly its list; otherwise the phase's start against the cutoff, as always.
     const phaseMoves = (key, startIso) => partPhases ? partPhases.has(key) : inRange(startIso);
+    // Every all-phase hiatus's fate, from the pre-shift dates (step 2 acts on it). Worked out first, because the
+    // step-over needs the held weeks before step 1 moves a single phase.
+    const hf = hiatusFatesFor(inRange, except);
+    const stepHeld = !!opts.stepHeld && !opts.carryOnly;
+    // Where a date goes: `days` (a number) as always, or the step-over's mapping.
+    const move = stepHeld ? stepOverHeld(n, hf.held) : days;
+    // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
+    const startsBefore = {};
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
@@ -29585,38 +29692,25 @@ export function initLegacyApp() {
       if(opts.carryOnly) movedPhases++;
       else {
         const from = parseDateUTC(startEl.value);
-        if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
+        // The step-over also hands setPhaseStart its mapping, for an Ends phase: its END goes N working weeks, which
+        // is not the start's calendar distance when a held hiatus sits between them.
+        if(from && setPhaseStart(p.key, isoOf(moveDate(from, move)), stepHeld ? move : null)){ movedPhases++; startsBefore[p.key] = from; }
       }
-      shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
+      shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), move);
     });
 
     // 2. All-phase hiatuses -- only the ones the user has unlocked.
     let movedHiatuses = 0, lockedHiatuses = 0;
-    // Every week still occupied by a band that did NOT move -- because it is locked, or (on a
-    // ripple) starts before the cutoff. Collected from the pre-shift dates, which is automatic:
-    // a row is recorded on exactly the paths that return before touching its start field.
-    const stayingHiatusWeeks = new Set();
-    // ...and every week of a band that DID move, also from its pre-shift dates (recorded just before its start field
-    // is written). Step 3 needs both: a plain key on a moving band goes with the band, EVERY week of it, even a week
-    // outside the move's week windows -- a band starting in a Dates phase's last week runs past that phase's run (a
-    // hiatus does not lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
-    const movingHiatusWeeks = new Set();
-    const recordBandWeeks = (row, into)=>{
-      const startEl = row.querySelector('.hiatus-start');
-      const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
-      if(!d) return;
-      // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
-      const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
-      for(let i=0;i<wks;i++) into.add(isoOf(addDays(d, i*7)));
-    };
-    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
-      const startEl = row.querySelector('.hiatus-start');
-      if(!startEl || !startEl.value || !inRange(startEl.value)){ recordBandWeeks(row, stayingHiatusWeeks); return; }
-      if(except && except.kind === 'all' && except.row === row){ recordBandWeeks(row, stayingHiatusWeeks); return; }
-      const lock = row.querySelector('.hiatus-locked');
-      if(lock && lock.checked){ lockedHiatuses++; recordBandWeeks(row, stayingHiatusWeeks); return; }
-      recordBandWeeks(row, movingHiatusWeeks);
-      if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
+    // Every week still occupied by a band that did NOT move -- because it is locked, or (on a ripple) starts before the
+    // cutoff -- and every week of a band that DID move, both from the pre-shift dates (hiatusFatesFor, above). Step 3
+    // needs both: a plain key on a moving band goes with the band, EVERY week of it, even a week outside the move's
+    // week windows -- a band starting in a Dates phase's last week runs past that phase's run (a hiatus does not
+    // lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
+    const stayingHiatusWeeks = hf.held;
+    const movingHiatusWeeks = hf.moving;
+    hf.fates.forEach(({startEl, fate})=>{
+      if(fate === 'locked') lockedHiatuses++;
+      if(fate === 'move' && shiftDateFieldValue(startEl, move)) movedHiatuses++;
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
     //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
@@ -29624,15 +29718,19 @@ export function initLegacyApp() {
     //     Rebuild From never comes here, so it leaves them, as ruled.
     ['cal-range-start', 'cal-range-end'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, days);
+      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, move);
     });
 
     // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
     //    a note's colour keys off the same week as the note, so it must make the same stay-or-go
     //    decision -- and by the time the colours are shifted, userNotes has already been rewritten.
     const pinnedWeeks = new Set(Object.keys(userNotes).filter(k => userNoteList(k).some(n => !!n.date)));
-    // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff.
-    const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k);
+    // Under the step-over, a note on a HELD hiatus's week stays with the hiatus: the band covers it, it is about the
+    // break, and the step-over has no working week to count it from. (Before 5 Nov 2026 it moved by calendar weeks,
+    // out from under the band.)
+    const onHeldBand = k => { const d = parseDateUTC(splitWeekKey(k).iso); return !!d && stayingHiatusWeeks.has(isoOf(mondayOf(d))); };
+    // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff, OR (the step-over) under a held band.
+    const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k) || (stepHeld && onHeldBand(k));
     // R5 / audit M-10: the auto text each MOVING note's week shows right now, so it can be swapped for
     // the auto text of the week it lands on (rewriteMovedAutoNotes, after the refresh below). Read off
     // currentSchedule, which is still the PRE-shift schedule: nothing recomputes it until then.
@@ -29640,18 +29738,18 @@ export function initLegacyApp() {
     Object.keys(userNotes).forEach(k=>{ if(!isPinnedWeek(k)) staleAuto[k] = weekAutoTexts(currentSchedule, k); });
     // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
     // rather than reassigned.
-    const shiftedNotes = shiftKeyedMap(userNotes, days, isPinnedWeek, mergeNoteValues);
+    const shiftedNotes = shiftKeyedMap(userNotes, move, isPinnedWeek, mergeNoteValues);
     Object.keys(userNotes).forEach(k=> delete userNotes[k]);
     Object.assign(userNotes, shiftedNotes);
     // No merge for colours: a cell has one fill, and the note that stayed owns it.
-    noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
-    noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
+    noteColors  = shiftKeyedMap(noteColors, move, isPinnedWeek);
+    noteFontSize = shiftKeyedMap(noteFontSize, move, isPinnedWeek);
     // A hand-dragged row height is almost always there FOR the week's note -- a row is dragged
     // taller to show a long one -- so it makes the note's stay-or-go decision. Left behind (audit
     // M-12), the note moved into a 20px row and was cut off in the grid, Excel and the PDF, while an
     // empty tall row sat on the old week. syncRowHeights() rebuilds the render-facing rowHeights from
     // this map on the update() that refreshAfterRestore() runs below.
-    rowHeightsByWeek = shiftKeyedMap(rowHeightsByWeek, days, isPinnedWeek);
+    rowHeightsByWeek = shiftKeyedMap(rowHeightsByWeek, move, isPinnedWeek);
     // A band's label, colour and text size have to make the SAME stay-or-go decision the band
     // made in steps 1-2, or they walk off it: a locked band would revert to the default red
     // "Holiday Hiatus" while "Christmas Break" ended up on a week with no band at all. Note this
@@ -29671,33 +29769,33 @@ export function initLegacyApp() {
       if(movingHiatusWeeks.has(iso)) return false;
       return !inRange(iso);
     };
-    hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
+    hiatusTexts = shiftKeyedMap(hiatusTexts, move, hiatusKeyStays);
     // Carries sync ownership along with the text it applies to -- otherwise a moved band would
     // already show the right name (from the line above) but a LATER rename would be mistaken for
     // a hand-edit and refused, since the tracker's keys would still point at the old dates.
-    hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, days, hiatusKeyStays);
-    hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
-    hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
+    hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, move, hiatusKeyStays);
+    hiatusColors = shiftKeyedMap(hiatusColors, move, hiatusKeyStays);
+    hiatusFontSize = shiftKeyedMap(hiatusFontSize, move, hiatusKeyStays);
     // Text styles go where what they style goes (TEXT-STYLE-BAR-PLAN.md §2): a note's with its note, a band's
     // with its band, a phase week's with its phase, Sim Post's with Production (it only runs inside the
     // shoot). Dates and headings carry no movable week, so they stay.
-    textStyle.note = shiftKeyedMap(textStyle.note, days, isPinnedWeek);
-    textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, days, hiatusKeyStays);
+    textStyle.note = shiftKeyedMap(textStyle.note, move, isPinnedWeek);
+    textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, move, hiatusKeyStays);
     // The month view's band styles move as hiatusTexts does (MONTH-TEXT-STYLE-PLAN.md §4). Its phase, episode and Sim
     // Post styles are keyed by what their labels say, so they need no re-key, and a note's rides on the note.
-    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, days, hiatusKeyStays);
-    textStyle.phase = shiftKeyedMap(textStyle.phase, days, hiatusKeyStays);
-    textStyle.simpost = shiftKeyedMap(textStyle.simpost, days, () => stayingPhases.has('production'));
+    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, move, hiatusKeyStays);
+    textStyle.phase = shiftKeyedMap(textStyle.phase, move, hiatusKeyStays);
+    textStyle.simpost = shiftKeyedMap(textStyle.simpost, move, () => stayingPhases.has('production'));
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
     // the same journey a per-phase hiatus band does: it moves when its phase moves, stays when
     // the phase stays put on a ripple.
-    cellSpans = shiftKeyedMap(cellSpans, days, hiatusKeyStays);
+    cellSpans = shiftKeyedMap(cellSpans, move, hiatusKeyStays);
     // A column-order override is keyed the same way and is phase-owned, so it travels identically.
     // hiatusKeyStays is the correct predicate; isPinnedWeek is explicitly WRONG here (that guard is
     // about date-pinned notes, a different rule). No merge fn: last-writer-yields matches cellSpans,
     // and swapPairsForWeek's mutual-pointer check drops any inconsistent survivor rather than
     // half-applying it -- which is exactly the case where a ripple moves one phase and not the other.
-    gridColSwaps = shiftKeyedMap(gridColSwaps, days, hiatusKeyStays);
+    gridColSwaps = shiftKeyedMap(gridColSwaps, move, hiatusKeyStays);
     // ⛔ gridStintSwaps is deliberately NOT re-keyed, and the omission is owner ruling E5, not an
     // oversight. Its keys are '<year>|<phaseKey>' -- a YEAR, not a week -- so there is no date in
     // them to shift. A stint pushed from December into January simply has no entry for its new year
@@ -29721,12 +29819,12 @@ export function initLegacyApp() {
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
     // month view has been opened once, in which case it picks its own start and needs no nudge.
-    if(monthCursor && !opts.keepView) monthCursor = addDays(monthCursor, days);
+    if(monthCursor && !opts.keepView) monthCursor = moveDate(monthCursor, move);
     refreshAfterRestore();
     syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
-    if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
+    if(rewriteMovedAutoNotes(staleAuto, move)) render(currentSchedule);
     // Audit L-14: an all-phase hiatus row is ONE band across the whole block, the notes column
     // included, so a note moved onto such a week is hidden in the waterfall, Excel and the PDF. It is
     // not lost -- it comes back when the hiatus or the note moves off -- but the user has to be told.
@@ -29734,12 +29832,37 @@ export function initLegacyApp() {
       .filter(w => w.cells.length && w.cells[0].type === 'hiatus').map(w => isoOf(w.date)));
     const notesOnHiatus = Object.keys(staleAuto).filter(k=>{
       const d = parseDateUTC(k);
-      const to = d ? isoOf(addDays(d, days)) : null;
+      const to = d ? isoOf(moveDate(d, move)) : null;
       return !!to && hiatusWeeks.has(to) && !!noteValueText(userNotes[to]);
     }).length;
+    // The step-over's report: every moved phase whose start went more or fewer calendar weeks than asked (it crossed a
+    // held break, or started inside one), read AFTER the refresh, so an Ends phase's re-solved start counts. And how
+    // many held bands those moves crossed, for the line's "a held hiatus" / "held hiatuses".
+    const stepped = [];
+    let steppedHiatuses = 0;
+    if(stepHeld){
+      const crossed = new Set();
+      Object.keys(startsBefore).forEach(k=>{
+        const now = parseDateUTC((document.getElementById('start-' + k) || {}).value);
+        if(!now) return;
+        const wk = Math.round((now - startsBefore[k]) / DAY_MS / 7);
+        if(wk === n) return;
+        stepped.push({key: k, weeks: wk});
+        const lo = mondayOf(now < startsBefore[k] ? now : startsBefore[k]), hi = mondayOf(now < startsBefore[k] ? startsBefore[k] : now);
+        hf.fates.forEach((f, i)=>{
+          if(f.fate === 'move') return;
+          const s = f.startEl && f.startEl.value ? parseDateUTC(f.startEl.value) : null;
+          if(!s) return;
+          const first = mondayOf(s);
+          const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((f.row.querySelector('.hiatus-weeks') || {}).value, 10) || 1));
+          if(first < hi && addDays(first, wks * 7) > lo) crossed.add(i);
+        });
+      });
+      steppedHiatuses = crossed.size;
+    }
 
     return {
-      weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus,
+      weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus, stepped, steppedHiatuses,
       productionWrap: productionWrapText()
     };
   }
@@ -31484,7 +31607,8 @@ export function initLegacyApp() {
     let flashTimer = null;
     function runShift(weeks){
       pushUndoSnapshot();          // close off whatever came before, so this click stands alone
-      const res = shiftCalendar(weeks);
+      // The step-over (stepOverHeld): a phase next to a held break crosses it, so "1 wk" can move it 3.
+      const res = shiftCalendar(weeks, null, {stepHeld: true});
       pushUndoSnapshot();          // ...and bank the shift itself immediately
       if(!res || !readout) return;
       // Say what happened. The wrap date is worth showing because holidays don't move with the
@@ -31492,7 +31616,10 @@ export function initLegacyApp() {
       const dir = res.weeks < 0 ? 'earlier' : 'later';
       const n = Math.abs(res.weeks);
       const ov = takeShootDayMoveNote(true);   // what the move did to Production's day marks, if anything
-      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
+      // A phase that stepped over a held hiatus says how far it really went ("Production pulled 3 wks").
+      const st = (res.stepped || []).map(x => rippleName(x.key) + (x.weeks > 0 ? ' pushed ' : ' pulled ') + rippleWks(Math.abs(x.weeks)));
+      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (st.length ? ' · ' + st.join(' · ') : '')
+        + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
         + (ov ? ' · ' + ov : '');
       // The readout anchors under the button that acted (owner, round 6): CSS reads this.
       group.dataset.shiftDir = dir;
@@ -31574,6 +31701,7 @@ export function initLegacyApp() {
       const n = Math.abs(res.weeks);
       let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
+      out += steppedText(res);
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
       if(res.notesOnHiatus){
@@ -31584,6 +31712,21 @@ export function initLegacyApp() {
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       return out;
+    }
+    // The step-over's sentence (stepOverHeld): the phases that moved more or fewer calendar weeks than asked, because
+    // they crossed a held hiatus. "Production was pulled 6 wks to step over a held hiatus." Owner's wording for a moved
+    // date: pushed / pulled, never + or -.
+    function steppedText(res){
+      const s = (res && res.stepped) || [];
+      if(!s.length) return '';
+      const groups = [];
+      s.forEach(x=>{
+        const g = groups.find(g => g.weeks === x.weeks);
+        if(g) g.names.push(rippleName(x.key)); else groups.push({weeks: x.weeks, names: [rippleName(x.key)]});
+      });
+      return ' ' + groups.map(g => andList(g.names) + (g.names.length > 1 ? ' were ' : ' was ')
+          + (g.weeks > 0 ? 'pushed ' : 'pulled ') + rippleWks(Math.abs(g.weeks))).join(' and ')
+        + ' to step over ' + (res.steppedHiatuses > 1 ? 'held hiatuses.' : 'a held hiatus.');
     }
     function readWeeks(id){
       const v = Math.round(Number((document.getElementById(id) || {}).value));
@@ -31829,11 +31972,20 @@ export function initLegacyApp() {
       return out;
     }
     // How far To a date would move the landmark right now (the Go handler's own arithmetic), or 0.
+    // Counted in WORKING weeks (the step-over, stepOverHeld): the held hiatuses' weeks are not counted, so the landmark
+    // lands on the date asked for even when a held break lies between.
     function anchorDeltaNow(){
       const {key, edge, current} = anchorSelection();
       const target = parseDateUTC((document.getElementById('tool-anchor-date') || {}).value);
       if(!key || !current || !target) return 0;
-      return edge === 'start' ? weeksBetweenMondays(current, target) : weeksToFinishBy(current, target);
+      const held = heldForMove(key);
+      return edge === 'start' ? workingWeeksBetween(current, target, held) : workingWeeksToFinishBy(current, target, held);
+    }
+    // The weeks the move the form is set to would hold (shiftCalendarDates' own decision, made before it runs).
+    function heldForMove(key){
+      const move = shiftMoveFor(key);
+      const plan = move === 'all' ? null : shiftPlan(move, key);
+      return shiftHeldWeeks(plan ? plan.part : null);
     }
     // Draw the list: Rebuild From's rows (solveRow). By weeks a row says Moves or Stays; to a date it shows the new
     // start and Pushed / Pulled N wks once a date is typed. The landing phase is PINNED to a date (it has to move,
@@ -31845,12 +31997,14 @@ export function initLegacyApp() {
       const toDate = shiftFar === 'date';
       const whole = toDate && key === ANCHOR_ALL;
       const n = toDate ? anchorDeltaNow() : 0;
+      // Where each ticked phase lands: the move's own step-over, so a phase crossing a held break shows its real date.
+      const step = n ? stepOverHeld(n, heldForMove(key)) : null;
       const rows = shiftRows();
       const html = rows.map(r => {
         const pin = toDate && !whole && r.key === key;
         const on = shiftTicks.has(r.key) || pin;
         const shown = phaseSnapped(r.key) ? r.week : r.start;
-        const to = (on && n) ? addDays(shown, n * 7) : shown;
+        const to = (on && n) ? step(shown) : shown;
         const words = (!toDate || !n) ? (pin ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
         const cls = (pin ? ' is-pin' : '') + (on ? (n ? ' is-moving' : '') : ' is-off');
         const lead = pin ? SOLVE_PIN_SVG
@@ -31962,13 +32116,13 @@ export function initLegacyApp() {
       const sel = document.getElementById('tool-anchor-phase');
       const move = shiftMoveFor(sel.value);
       // All phases: the old Shift All form -- the same call, the same result line.
-      if(move === 'all') return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
+      if(move === 'all') return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true}))));
       // Phase & after is the old Shift From; Phase & before its mirror; the user's own ticks their own set.
       if(!sel.value && move !== 'custom') return say('No phase selected.', true);
       const label = phaseLabelOf(sel, 'That phase');
       const plan = shiftPlan(move, sel.value);
       if(!plan) return say(move === 'custom' ? 'Tick a phase to move.' : label + ' has no start date.', true);
-      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part}));
+      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
       if(!res) return say('Nothing to shift.', true);
       say(describeShift(res, moveTail(res, move, label, plan)));
     }
@@ -31997,25 +32151,29 @@ export function initLegacyApp() {
           ? label + ' has no end yet — give it a duration first.'
           : label + ' has no start date to move.', true);
       }
-      const delta = edge === 'start'
-        ? weeksBetweenMondays(current, target)
-        : weeksToFinishBy(current, target);
-      if(!delta){
-        return say(edge === 'start'
-          ? label + ' already starts that week.'
-          : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
-      }
+      // In WORKING weeks (the step-over): the weeks of the hiatuses this move holds are not counted, so the landmark
+      // lands on the date even with a held break between. A start typed inside a held break lands the week after it.
       const move = shiftMoveFor(key);
       const plan = move === 'all' ? null : shiftPlan(move, key);
+      const held = shiftHeldWeeks(plan ? plan.part : null);
+      const inHeld = edge === 'start' && held.has(isoOf(mondayOf(target)));
+      const delta = edge === 'start'
+        ? workingWeeksBetween(current, target, held)
+        : workingWeeksToFinishBy(current, target, held);
+      if(!delta){
+        return say(edge === 'start'
+          ? (inHeld ? label + ' already starts right after the held hiatus your date falls in.' : label + ' already starts that week.')
+          : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
+      }
       if(move !== 'all' && !plan) return say(label + ' has no start date to move.', true);
-      // All phases: the old Anchor To call, unchanged.
-      const res = asOneUndoStep(()=> move === 'all' ? shiftCalendar(delta) : shiftCalendar(delta, null, {part: plan.part}));
+      const res = asOneUndoStep(()=> move === 'all' ? shiftCalendar(delta, null, {stepHeld: true}) : shiftCalendar(delta, null, {part: plan.part, stepHeld: true}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
       // can even grow over one it now overlaps and finish past the date.
       const landed = landmarkDate(key, edge);
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
+        + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
         + moveTail(res, move, label, plan));
       say(out, overshot);
