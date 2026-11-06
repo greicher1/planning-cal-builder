@@ -658,6 +658,21 @@ row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`,
 
 ### What a shift moves — and what deliberately doesn't
 
+**⭐ The step-over (owner, 5 Nov 2026, picker *"Step over it"*; `stepOverHeld`).** A held hiatus (locked, or outside
+a part move's windows) stays on its dates while the plan moves, so a shift by calendar weeks moves the break from one
+phase into another: the phase it left finishes early (a gap opens after it), the phase it entered runs long (it
+overlaps the next). That broke "Shift keeps the gaps" on the owner's own calendar (Christmas in Prod Prep's last weeks,
+Phase & after Pre-Prep 4 wks earlier: a 2-wk gap before Production and Post overlapping the shoot by 2 wks). So the
+Shift form and the toolbar arrows (`opts.stepHeld`) move every date by N **working** weeks, a working week being one no
+held band covers. A phase's length is working weeks already (`extendEndForHiatus`), so this is the plan slid in the
+same units it is measured in; the result equals Build Around from the same phase and date (After). A phase that
+crosses a held break moves that many extra calendar weeks and the line says so (`res.stepped`, *"Production was pulled
+6 wks to step over a held hiatus"*). To a date counts working weeks (`workingWeeksBetween`,
+`workingWeeksToFinishBy`); a start typed inside a held break lands the week after it. A Dates or an Ends phase's
+END is mapped too (`setPhaseStart`'s `endTo`), so a Dates phase keeps its working days and its gaps while its calendar
+span changes; a note under a held band stays with the band. The
+hiatus ripple, the phase card's ▲ / ▼ and the month drag do not opt in. Leg `shiftheld`.
+
 A shift that moved only the dates would leave every note behind on the old calendar date, silently
 detached from the phase it was written for. `shiftCalendar` therefore also re-keys the week-keyed
 stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `monthCursor`.
@@ -684,7 +699,7 @@ at all; Build Around and the month drag leave every note on its week, as before.
 | Stays put | Why |
 |---|---|
 | Union holidays | Real calendar dates. Because Production is a day-level sim, shifting by exactly 7 days can move its **wrap** by more or less than 7 — the tools report the resulting wrap for this reason. |
-| All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. |
+| All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. And since 5 Nov 2026 the Shift form and the arrows **step over** a held break (below): its weeks are not counted. |
 | Notes carrying a **date** | A dated note is *about* that day. Month-view day notes and `mvExtraLanes` stay for the same reason. |
 | Per-phase hiatuses | These **do** travel — they belong to their phase's work, and move with it as a unit. |
 | `rowHeightsByWeek` | These **do** travel (v1.3.1, audit M-12): a dragged row height follows its week's note, with the same stay-or-go test as `noteFontSize`, so a row made tall for a long note is not left behind. |

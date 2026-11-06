@@ -227,19 +227,25 @@ window.addEventListener('load', function () { (async function () {
       $('pop-shift-btn').click(); await T.sleep(150);
       T.set('tool-shift-weeks', '1'); $('tool-shift-later').click(); await settle();
       out.movers.shift = dates(); out.movers.shiftHint4 = meta('custom4');
-      check(out.movers.shift.s3 === '2027-02-17' && out.movers.shift.e3 === '2027-03-02', 'Shift All +1 wk moves BOTH ends of a Dates phase');
-      // Rigging's new start 2/18 sits in the locked hiatus, so its 5 days run Mon 2/22 - Fri 2/26.
-      check(out.movers.shift.s4 === '2027-02-18' && out.movers.shiftHint4.indexOf('Mon 2/22/27 \u2192 Fri 2/26/27') !== -1,
-            'Shift All moves a Days phase, which walks past the locked hiatus');
+      // ⭐ Since 5 Nov 2026 Shift STEPS OVER a held hiatus (stepOverHeld; owner's picker "Step over it"): one working
+      // week, and the locked week of 2/15 is not one. Stage Build Wed 2/10 -> Wed 2/24, and its END goes through the same
+      // step: Tue 2/23 -> Tue 3/2, its 5 working days kept (the break was inside it; now it is not). Before: 2/17-3/2,
+      // a start inside the break.
+      check(out.movers.shift.s3 === '2027-02-24' && out.movers.shift.e3 === '2027-03-02', 'Shift All +1 wk moves BOTH ends of a Dates phase, over the held week');
+      // Rigging Thu 2/11 steps over the break to Thu 2/25, a day after Stage Build as before; its 5 days Thu 2/25 - Wed 3/3.
+      // (Before: start 2/18, inside the break, worked Mon 2/22 - Fri 2/26.)
+      check(out.movers.shift.s4 === '2027-02-25' && out.movers.shiftHint4.indexOf('Thu 2/25/27 \u2192 Wed 3/3/27') !== -1,
+            'Shift All moves a Days phase over the locked hiatus');
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
-      // Anchor To: Stage Build's START to 2/24/27, a whole-calendar shift of 2 weeks.
+      // Anchor To: Stage Build's START to 2/24/27. Two calendar weeks, ONE working week (the step-over: the locked week of
+      // 2/15 is not counted), so its end goes to Tue 3/2 as on the +1 wk shift above (was 3/9 before 5 Nov 2026).
       // Anchor To is the Shift form's To a date since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6), on All phases.
       $('pop-shift-btn').click(); await T.sleep(150); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
       T.set('tool-anchor-phase', 'custom3'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-02-24');
       $('tool-anchor-go').click(); await settle();
       out.movers.anchor = dates();
-      check(out.movers.anchor.s3 === '2027-02-24' && out.movers.anchor.e3 === '2027-03-09', 'Anchor To moves BOTH ends of a Dates phase');
+      check(out.movers.anchor.s3 === '2027-02-24' && out.movers.anchor.e3 === '2027-03-02', 'Anchor To moves BOTH ends of a Dates phase');
       await undo(); check(same(), 'one undo restores every date after Anchor To');
 
       // Rebuild From FORWARDS from Scout, pinned where it is (Wed 1/13, ends Tue 1/26):

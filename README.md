@@ -29,6 +29,46 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Shift steps over locked hiatuses, so the gaps between phases are kept (5 Nov 2026)
+
+Owner's bug report, with before and after screenshots: Phase & after Pre-Prep, to a date four weeks earlier, left a
+two-week gap between Prod Prep and Production. Cause: Shift moved every phase by calendar weeks while a locked hiatus
+stays on its dates. The Christmas break had sat in Prod Prep's last weeks; after the move it sat in Production's. So
+Prod Prep finished two weeks sooner, which opened the gap. And the shoot ran two weeks longer, so Post (moved four weeks
+like everything else) overlapped its last two weeks. Shift promises to keep the gaps, and it kept neither.
+
+- **Ruled (owner's picker, "Step over it", after asking why it is right):** Shift now counts only the weeks a held
+  hiatus does not cover. That is how the app already measures a phase: its length is working weeks, and a hiatus pauses
+  it (`extendEndForHiatus`). So a plan slid past a break that stays put is counted the same way. Checked against a
+  second route: the result is exactly what Build Around gives from the same phase on the same date (After), i.e. the
+  plan re-entered from scratch with the same lengths and gaps.
+- **What changes for the user:** a phase that crosses a held break moves that many extra calendar weeks. In the owner's
+  case, Production moves 6 weeks (to 11/30/26), Christmas falls inside the shoot, and Prod Prep → Production and the
+  wrap → Post both stay back to back. The result line says so: *"Production was pulled 6 wks to step over a held
+  hiatus."* The toolbar arrows do the same, and their readout says *"Production pulled 3 wks"* when one click carries a
+  phase over a break.
+- **Held** means the bands this move leaves where they are: locked ones, and on a part move the ones outside its week
+  windows. Unlocked hiatuses, a phase's own hiatus, the calendar range and every note keyed to a week move by the same
+  count, so a note on Production's week 4 is still on Production's week 4. Nothing moved lands inside a held break.
+- **To a date** counts working weeks too, so the phase lands on the date even with a break in between. A start date
+  typed inside a held break lands the week after it, and the line says why. The list under the form shows each
+  phase's real landing date ("Production 11/30/26, Pulled 6 wks").
+- **An Ends phase** (held by its end) has its END moved by the same count, so its start is re-solved correctly. Before,
+  its end moved by its start's calendar distance, which put Prod Prep's end on 12/11 instead of 11/27 in this case.
+- **A Dates phase** has both of its dates moved by the same count, so it keeps its working days and the gaps either
+  side. Its calendar span changes when a held break enters or leaves it: Pre-Prep Wed 2/10 – Tue 2/23 with a locked
+  week inside, shifted a week, is 2/24 – 3/2 (still 5 working days, still 3 days before Prod Prep). A first cut that
+  kept the span ended it 3/9, running into Prod Prep; the `builtindates` leg caught it.
+- **My calls, flagged in HANDOFF:** a note sitting under a held break stays with the break (it is about the break, and
+  the band covers it) instead of being pulled out from under it. The hiatus ripple and the phase card's ▲ / ▼ are
+  unchanged: the ripple sizes its own steps from the edited hiatus, and the arrows move one phase one week by design.
+- **Proof:** new leg `shiftheld` 13/13 (in `gate.sh` after `stalebandkey`), on a synthetic copy of the owner's
+  calendar. Red on the old engine at 9 of its checks (the gap, the overlap, the arrows, a date inside the break, the
+  Ends phase, All phases by weeks). Three legs that held the old arithmetic were updated to the new rule:
+  `snaptools` L14 (a note shifted onto a locked week now steps over it, so there is no "hidden under a hiatus" warning
+  to give), `customunits` and `builtindates` (a Dates and a Days phase over a locked week). See HANDOFF for the
+  neighbouring legs.
+
 ### Unreleased — a phase's own hiatus is picked inside that phase (5 Nov 2026)
 
 Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the

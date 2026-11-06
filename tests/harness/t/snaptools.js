@@ -15,7 +15,9 @@
 //   L-13  Anchor To "ends by" treated a phase as ending on Sunday, so a Friday deadline cost a week.
 //   L-15  Rebuild From said "Nothing to place" after it had already moved the pinned phase.
 //   L-14  A shift that lands an undated note on an all-phase hiatus week hides it; the result line
-//         now says so.
+//         now says so. ⭐ Since 5 Nov 2026 (the step-over, stepOverHeld) the Shift form and the arrows never land
+//         a note on a HELD band's week: the note steps over the break to the next working week and stays visible,
+//         so L14 now holds that, and that no warning is given. The warning still fires on the hiatus ripple.
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -116,16 +118,22 @@ window.addEventListener('load', function () { (async function () {
       val('start-post') === '2026-11-02' && go15.disabled && /tick a phase to build/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
       {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Tick a phase to build" disabled, a "No length" row');
 
-    // L-14 -- a note on the week of 7/6, Shift All +1 wk: it lands on the Summer Break week.
+    // L-14 -- a note on the week of 7/6 (Production's 2nd week), Shift All +1 wk. Before the step-over it landed on the
+    // LOCKED Summer Break week (7/13), under the band, and the line warned. Now it steps over the break to 7/20, the
+    // shoot's 2nd week again, where it shows; no warning.
     closePops(); await T.sleep(150);
     if(!document.querySelector('#table-wrap td.sheet-note-cell')){ document.getElementById('view-sheet-btn').click(); await settle(); }
     await T.typeUserNote('2026-07-06', 'Stunt rehearsal');
     await openPop('pop-shift-btn');
     T.set('tool-shift-weeks', '1');
+    var prev14 = (T.latestBackup() || {}).at || 0, b14 = null;
     document.getElementById('tool-shift-later').click();
     await settle();
-    add('L14', 'a shift that lands a note on an all-phase hiatus week says so', /hiatus/i.test(msg('pop-shift')) && /note/i.test(msg('pop-shift')),
-      {msg: msg('pop-shift')}, '... note ... hiatus ...');
+    try { await T.until(function () { var b = T.latestBackup(); if(b && b.at > prev14){ b14 = b; return true; } return false; }, 'a backup after the shift', 150, 100); } catch(e) {}
+    var on14 = b14 ? Object.keys(b14.state.userNotes || {}).filter(function (k) { return /Stunt rehearsal/.test(JSON.stringify(b14.state.userNotes[k])); }) : null;
+    add('L14', 'Shift All +1 wk steps a 7/6 note over the locked Summer Break to 7/20 (the shoot\'s 2nd week), where it shows: no note under the band and no warning',
+      JSON.stringify(on14) === '["2026-07-20"]' && !/hiatus week/i.test(msg('pop-shift')),
+      {msg: msg('pop-shift'), noteOn: on14}, 'the note on 2026-07-20; no "hiatus week" warning');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'snaptools', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });
