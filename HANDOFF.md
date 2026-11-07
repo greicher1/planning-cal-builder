@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); NOT merged, NOT pushed. NEXT: step 4 or step 5, in a fresh session (this one ran long). ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. NEXT: step 5 (the month view), which steps 2–4 must not ship without. ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
   R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
@@ -95,6 +95,29 @@
   - ⛔ **NOT SHIPPABLE BEFORE STEP 5.** The month view takes a week's typed lines from `userNotes` through
     frozen `notesForWaterfallDate`, so a note linked here leaves the Month view until step 5 draws
     `phaseNotePlace` through `mvWfLinesFor`.
+- 🔨 **STEP 4 BUILT** (6 Nov 2026, a side session started from the step-3 session). Plan §12 is the as-built record.
+  - **Delete and Cut** delete the cell's linked notes (`wfClearNote` → `wfLinkedNotesOff`). Until now a linked line
+    survived Delete.
+  - **Copy → Paste** lands as a PLAIN note of the target week, in the look the cell was drawn in (`wfNoteItem` reads
+    `wfLinkedLook`, plus a row height the note lends), re-dated to the same weekday.
+    - A paste over a cell replaces its linked notes. A copy pasted back onto its own cell changes nothing.
+    - Plain text pasted over a linked note keeps the look the note lent the cell (`lend` → `wfLookToWeek`).
+  - **Drag** (`wfNoteParts` / `wfRelinkKey` / `wfPutLinked`): a linked note keeps its phase when the drop week's row
+    draws that phase, re-linked to that week's n. A shoot-day note goes by day. Anywhere else it lands as plain text.
+  - **`wfNoteStep`** now runs `update()` when `phaseNotes` or `rowHeightsByWeek` moved.
+  - **Refactors:** `wfLinkOptions` came out of `wfLinkContext`; `wfLookToWeek` replaced two copies of the same four
+    lines (the editor's to-the-week save, `unlinkPhaseNotesOf`).
+  - No frozen edit, no save-format change. One Help sentence.
+  - ⚠️ **Noticed, not changed:** `wfCleanClipItem` drops `monthHidden`, so a pasted copy of a note with "Show in
+    month view" off comes back with it on. That has been true for plain notes since NOTE-VIEWS; a drag is fine.
+  - **Proof:**
+    - New leg `phasekeys` 18/18 (fixture `phasenotes.sptcal`); 14 of 18 red on the step-3 build.
+    - Green on the build (sha256 `cce7eb42…`): `phasenotes` 21, `phaselink` 14, `phaselook` 10, `wfkeys` 84,
+      `noteviews` 15, `wfnotecolors` 14, `wfnoteeditor` 13, `holidayrename` 14, `autonoterename` 24, `autonoteview`
+      18, `wfmenu` 39, `wfkeysreal` 6, `npm run check` 40/40.
+    - ✅ **Full gate on the step-4 build: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
+  - **Next, step 5:** the month view draws linked notes (`mvWfLinesFor`), gets the editor row (R8(a)) and the line
+    drag (`moveWfLine`, §4.6's last bullet, by day).
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.

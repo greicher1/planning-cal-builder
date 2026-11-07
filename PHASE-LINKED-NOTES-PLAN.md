@@ -1,8 +1,9 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: RULED; STEPS 1–3 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`; step 3 on
-6 Nov 2026, owner: *"Start step 3"*), steps 4–6 not started. R1–R9 all ruled 5 Nov 2026 by picker, every one
-the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9–§11 are the as-built records.**
+**Status: RULED; STEPS 1–4 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`, step 3
+`647690b`; step 4 on 6 Nov 2026, Delete / copy / paste / drag), steps 5–6 not started. R1–R9 all ruled 5 Nov 2026 by
+picker, every one the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9–§12 are the as-built
+records.**
 - ⛔ **Do not ship steps 2–4 without step 5.** Linking a typed note takes it out of `userNotes`, and the month view
   reads a week's typed lines from `userNotes` through frozen `notesForWaterfallDate`; until step 5 draws linked notes
   there (through `mvWfLinesFor`), a note leaves the Month view the moment it is linked.
@@ -623,3 +624,74 @@ copy of that field, which would otherwise win.
   - Delete / Cut / Copy / Paste / drag (step 4: `wfNoteItem` still reads and writes the week's look);
   - the month view (step 5; its text style, `mvTextStyle.wfnote`, is keyed by a line's text and needs no change);
   - shoot days (step 6).
+
+---
+
+## 12. Step 4 as built (6 Nov 2026, branch `phase-notes`)
+
+§4.6's waterfall half: Delete, Cut, Copy, Paste and the note drag (WATERFALL-KEYS-PLAN's code). The month view's line
+drag (`moveWfLine`, §4.6's last bullet) belongs with step 5, since the month view does not draw linked notes yet. No
+frozen edit, no save-format change. All in `src/legacy/app.js`, plus one Help sentence in `src/index.html`.
+
+- **Delete and Cut:** `wfClearNote` calls a new `wfLinkedNotesOff(wk)`, which deletes every linked note drawn in the
+  week. The note's look and row height go with it; the week's own look goes as it always did.
+- **What a copy carries:** `wfNoteItem` reads the cell's look as it is drawn (`wfLinkedLook`, field by field: the
+  week's own, else the look-lending note's).
+  - It adds `height` only when the note lends it, i.e. the week has no row height of its own. A plain note never
+    carried a row height and still doesn't.
+  - The note's day goes as `dow` / `stamp` when the week has no pinned date of its own, and so does its
+    `monthHidden`. `wfCleanClipItem` accepts `height` on rowHeightsByWeek's rule (1–100000).
+  - A cell with no linked note builds exactly the item it built before.
+- **Paste (`wfPutNote`):**
+  - **Replace:** the target's linked notes are deleted, as its month lines are switched off.
+  - **Pasted back onto itself** (the text equals the cell's whole text): nothing is deleted, and only the week's own
+    part is written. The look goes where the cell takes it from (`wfLinkedLookKey`): onto the note through
+    `wfLookOntoNote`, never onto the week, whose copy would win and stay behind. An identical paste moves no store, so
+    no undo step is banked.
+  - **Plain text** (no SPTCal data) over a cell whose look a linked note lent: the look stays the cell's (`lend` →
+    `wfLookToWeek`), including the row height and "Show in month view" off, as typing over it would. A blank paste
+    is Delete and lends nothing.
+  - **A rich paste:** the item's look replaces as before, and its lent `height` becomes the week's row height.
+  - `wfLookToWeek` is now the one helper for "a linked note's look handed to the week where it has none". The editor's
+    to-the-week save and `unlinkPhaseNotesOf` call it too; the same four lines were there twice.
+- **Drag (`wfNoteDragEnd`):** `wfNoteParts(wk)` is taken for every dragged week before anything changes. It holds the
+  week's own text (typed or automatic), its pinned date, its month lines, each linked note (copied), the look-lending
+  note, and the look the week itself lends while a note is its look. It is null for a week with no linked note, which
+  goes the old way (`wfPutNote`), unchanged.
+  - **`wfRelinkKey`:** a note keeps its phase when the drop week's row draws a cell of that phase
+    (`wfLinkOptions`, factored out of `wfLinkContext`), re-keyed to that week's n.
+    - A shoot-day note goes by day: the same weekday of the drop week becomes `production@day<m>` when Production
+      shoots it, else Production's week there with that weekday as `dow`.
+    - Otherwise the note lands as plain text: its last line's drawn date is moved to the same weekday (`moveDay`,
+      through `stripTrailingDate`).
+  - **`wfPutLinked`:** the plain part (own text, flattened lines, month lines) goes through `wfPutNote` with the
+    item's look, so the cell keeps the look it was drawn in.
+    - The week's own pinned date is re-stamped wherever its line now sits.
+    - A day or "Show in month view" that came from a note that stays linked is taken off the plain part: they
+      travel on the note.
+    - Then each re-linked note is written (two landing on one key join their lines). When the cell lands holding
+      only re-linked notes, the look its week lent goes on the first of them in the drop week's column order.
+- **`wfNoteStep`:** its signature also holds `phaseNotes` and `rowHeightsByWeek`. Either one moving runs `update()`, since
+  `computeSchedule` places linked notes and `syncRowHeights` draws heights. A calendar with no linked note never moves
+  either in these paths.
+- **Why one store re-keyed in place is safe across a multi-week drop:** sources are cleared first, from the placement
+  the drag began on. A key created for a drop week is that week's own n (or its shoot day), which the old placement
+  draws in that same week, so a later drop week's "replace" can never delete it.
+- **Help (D11):** "A note that stays with a phase keeps it when you drag it to a week that phase runs in, and becomes
+  a plain note of the week anywhere else; a pasted copy is always a plain note of the week you paste it in."
+- **Proof:**
+  - New leg `phasekeys` 18/18 on the build (sha256 `cce7eb42…`): D1, D2, U1, X1, C1–C4, G1, GU, G2–G7, F1, E0. On
+    the step-3 build, 14 of the 18 fail. The 4 that pass there: C4, GU, F1, E0.
+  - Green on the same build: `phasenotes` 21/21, `phaselink` 14/14, `phaselook` 10/10, `wfkeys` 84/84, `noteviews`
+    15/15, `wfnotecolors` 14/14, `wfnoteeditor` 13/13, `holidayrename` 14/14, `autonoterename` 24/24, `autonoteview`
+    18/18, `wfmenu` 39/39, `wfkeysreal` 6/6, and `npm run check` 40/40.
+  - In `gate.sh`'s generic block as `phasekeys:phasenotes:900`.
+  - **Full gate on the step-4 build: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
+- **Noticed, not changed (plain notes, before this step):** `wfCleanClipItem` drops `monthHidden`. So a note copied
+  with "Show in month view" off pastes with it on, and a copy pasted back onto itself switches it on again. A drag is
+  unaffected, since its items never pass the cleaner. A one-line follow-up if wanted.
+- **Not yet:**
+  - the month view, which draws linked notes through `mvWfLinesFor` and gets its editor row and the line drag
+    `moveWfLine` (step 5);
+  - picking a shoot day (step 6).
+

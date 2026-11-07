@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
+
+Plan §4.6 (`PHASE-LINKED-NOTES-PLAN.md` §12). The waterfall's editing keys now know about linked notes. Until now a
+linked line survived Delete, and a drag copied it as typed text while the link stayed behind.
+
+- **Delete and Cut** delete the cell's linked notes too, with their look and row height. One undo brings them back.
+- **Copy, then Paste** lands as a plain note of the week it is pasted on. A copy that kept its link would be drawn back
+  on its phase week, not where you pasted it.
+  - It keeps the look the cell was drawn in, including a row height the note lent it, and the note's day (re-dated
+    to the same weekday).
+  - A copy pasted back onto its own cell changes nothing.
+  - Plain text pasted over a linked note replaces it, and the cell keeps the look the note gave it.
+- **A drag to another week:** each linked note keeps its phase when that phase runs in the drop week. It is re-linked
+  to that week's place in the phase ("Production wk 4"), keeping its look and day. Anywhere else it lands as a plain
+  note, re-dated to the same weekday. A shoot-day note follows by day: Day ten dragged two weeks on is Day 20. Typed
+  text in the same cell lands as the week's own note, as before.
+- **No change** for a cell with no linked note, nothing frozen edited, and no save-format change.
+- **Help:** one sentence in "Moving around, and moving notes".
+- **Proof:**
+  - A new leg, `phasekeys`, 18/18 on the build; 14 of its 18 fail on the step-3 build.
+  - Green on the same build: `phasenotes` 21, `phaselink` 14, `phaselook` 10, `wfkeys` 84, `noteviews` 15,
+    `wfnotecolors` 14, `wfnoteeditor` 13, `holidayrename` 14, `autonoterename` 24, `autonoteview` 18, `wfmenu` 39,
+    `wfkeysreal` 6/6, and `npm run check` 40/40.
+  - **Full gate: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+
 ### Unreleased — notes linked to a phase, step 3: a linked note's look travels with it (6 Nov 2026)
 
 Owner: *"Start step 3"*. Ruling R7(a) (`PHASE-LINKED-NOTES-PLAN.md` §11).
