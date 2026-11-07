@@ -16,8 +16,13 @@
 //               right of everything running, and a paused phase keeps its column; Post -> Localization stacked.
 //   layout-r13  rules 11-16 + 18 (piece 2, frozen widths): widths week by week.
 //   layout-r17  rule 17 (piece 2): Single Column, nothing widens; Post in the lane.
-//   layout-r20  rule 20, giving way: Post starting in Production's last week takes the lane, the marker steps aside
-//               that week, two columns (before: a third column for one week, empty for the rest of the year).
+//   layout-r20  rule 20 as it stands since 6 Nov 2026: Post starting in Production's last week gets a third column
+//               beside the lane and Sim Post stays on every shoot week (the give-way of v1.12.0-v1.12.1, which sent
+//               Post into the lane and dropped the marker, was withdrawn by the owner); Design beside Writers spreads
+//               into that column.
+//   layout-r13b rules 12, 13 and 15 since 6 Nov 2026 (frozen edit LR4): the owner's three-week-overlap calendar --
+//               Pre-Prep two wide beside Writers (the right spread is not capped by the even share), the lane reserved
+//               until the shoot ends, Sim Post on every shoot week, Post in a third column for its three overlap weeks.
 //   layout-r20b rule 20, absorbing: a one-week Table Read's column does not count toward the even share; Prep
 //               spreads into it once it is free for the rest of Prep's run.
 //   layout-r21  rule 21, a run never shrinks: Post, two wide while alone, keeps both columns for the two weeks
@@ -198,8 +203,8 @@ window.addEventListener('load', function () { (async function () {
         'custom2', 2031, ['2031-03-03:2+1', '2031-05-26:0+3']);
       W('R13e', 'Production: one wide beside the active Sim Post lane for the whole shoot (rule 15)', 'production', 2031, ['2031-06-23:0+1']);
       W('R13f', 'Reshoots: one wide under Production beside Post', 'custom3', 2031, ['2031-09-15:0+1']);
-      W('R13g', 'Post: one wide in the lane beside Reshoots, then fills the width the week Reshoots ends (rule 13: free for the REST of the run)',
-        'post', 2031, ['2031-09-15:1+1', '2031-10-06:0+3']);
+      W('R13g', 'Post: in the lane beside Reshoots it takes the empty column to its right at once (rule 13 uncapped, 6 Nov 2026; until then the even share held it to one), then fills the width the week Reshoots ends',
+        'post', 2031, ['2031-09-15:1+2', '2031-10-06:0+3']);
       W('R13h', '2032: Post alone fills the two columns', 'post', 2032, ['2032-01-05:0+2']);
       W('R13i', 'Delivery: one wide while Marketing’s column is empty but taken before the run ends, across the mid-year hiatus (rules 13, 18), then two wide once Marketing ends',
         'custom4', 2032, ['2032-02-16:0+1', '2032-08-30:0+2']);
@@ -208,17 +213,27 @@ window.addEventListener('load', function () { (async function () {
     }
     if (FX === 'layout-r20') {
       var W20 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
-      C('R20a', '2031 is TWO columns: no column for the one week Post overlaps the shoot (rule 20; today a third)', slotsIn(bl, 2031) === 2 && blockOf(bl, 2031).width === 2, J(out.blockWidths));
-      C('R20b', 'Post takes the Sim Post lane from its first week, Production’s last (rules 6, 20)',
-        slotOf(bl, 2031, 'post') === 1 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'production') === 0, J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
-      C('R20c', 'that week reads Production | Post with no Sim Post marker; the week before, Production | Simultaneous Post',
-        J(cellAt(bl, '2031-11-24', 'production')) === '[0,1]' && J(cellAt(bl, '2031-11-24', 'post')) === '[1,1]' && cellAt(bl, '2031-11-24', 'simpost') === null
-          && J(cellAt(bl, '2031-11-17', 'simpost')) === '[1,1]' && cellAt(bl, '2031-11-17', 'post') === null,
-        J({ nov24: [cellAt(bl, '2031-11-24', 'production'), cellAt(bl, '2031-11-24', 'post'), cellAt(bl, '2031-11-24', 'simpost')], nov17: [cellAt(bl, '2031-11-17', 'simpost'), cellAt(bl, '2031-11-17', 'post')] }));
-      W20('R20d', 'Post: one wide in the lane that week, then fills the two columns (rule 14)', 'post', 2031, ['2031-11-24:1+1', '2031-12-01:0+2']);
-      W20('R20e', 'Design: one wide beside Writers (even share of two), then fills the width when Writers ends', 'prePrep', 2031, ['2031-05-12:1+1', '2031-05-26:0+2']);
-      W20('R20f', 'Production: one wide beside the lane for the whole shoot (rule 15)', 'production', 2031, ['2031-08-25:0+1']);
-      C('R20g', '2032: Post alone, one column', slotsIn(bl, 2032) === 1 && slotOf(bl, 2032, 'post') === 0, J(out.slots['2032']));
+      C('R20a', '2031 is THREE columns: Post, starting in Production’s last week, needs one beside the lane (the marker never steps aside; owner, 6 Nov 2026)', slotsIn(bl, 2031) === 3 && blockOf(bl, 2031).width === 3, J(out.blockWidths));
+      C('R20b', 'Sim Post stays on every shoot week, Production’s last included: that row reads Production | Simultaneous Post | Post',
+        J(cellAt(bl, '2031-11-24', 'production')) === '[0,1]' && J(cellAt(bl, '2031-11-24', 'simpost')) === '[1,1]' && J(cellAt(bl, '2031-11-24', 'post')) === '[2,1]' && laneIn(bl, 2031) === 1,
+        J({ nov24: [cellAt(bl, '2031-11-24', 'production'), cellAt(bl, '2031-11-24', 'simpost'), cellAt(bl, '2031-11-24', 'post')], lane: out.lanes['2031'] }));
+      W20('R20c', 'Post: one wide in the third column that week, then fills the three (rule 14)', 'post', 2031, ['2031-11-24:2+1', '2031-12-01:0+3']);
+      W20('R20d', 'Design: beside Writers it spreads into the third column, free for the rest of its run (rule 13, uncapped), then fills the width when Writers ends',
+        'prePrep', 2031, ['2031-05-12:1+2', '2031-05-26:0+3']);
+      W20('R20e', 'Production: one wide beside the lane for the whole shoot; the column beside the lane stays empty (the lane never widens, rule 15)', 'production', 2031, ['2031-08-25:0+1']);
+      C('R20f', '2032: Post alone, one column', slotsIn(bl, 2032) === 1 && slotOf(bl, 2032, 'post') === 0, J(out.slots['2032']));
+    }
+    if (FX === 'layout-r13b') {
+      var W13b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R13Ba', 'columns: Writers | Pre-Prep, Prep and the lane | Post (three weeks beside the shoot); three columns',
+        slotOf(bl, 2031, 'writersRoom') === 0 && slotOf(bl, 2031, 'prePrep') === 1 && same(bl, 2031, 'prePrep', 'prodPrep') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'post') === 2 && slotsIn(bl, 2031) === 3,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      W13b('R13Bb', 'Pre-Prep: TWO wide beside Writers from its first week -- the column to its right is free for the rest of its run, and the even share no longer caps a spread to the right (owner, 6 Nov 2026) -- then fills the width when Writers ends',
+        'prePrep', 2031, ['2031-03-17:1+2', '2031-04-14:0+3']);
+      W13b('R13Bc', 'Writers: one wide throughout (Pre-Prep takes the next column before Writers’ run ends, rule 13)', 'writersRoom', 2031, ['2031-01-06:0+1']);
+      W13b('R13Bd', 'Production: one wide beside the lane for the whole shoot', 'production', 2031, ['2031-08-04:0+1']);
+      C('R13Be', 'Sim Post on every shoot week, the three Post overlaps included', (function () { var b = blockOf(bl, 2031); var rows = b.rows.filter(function (r) { return r.cells.some(function (c) { return c.what === 'production' && !c.band; }); }); return rows.length === 19 && rows.every(function (r) { return r.cells.some(function (c) { return c.what === 'simpost'; }); }); })(), J((function () { var b = blockOf(bl, 2031); return b.rows.filter(function (r) { return r.cells.some(function (c) { return c.what === 'production'; }) && !r.cells.some(function (c) { return c.what === 'simpost'; }); }).map(function (r) { return r.iso; }); })()));
+      W13b('R13Bf', 'Post: one wide in the third column for the three overlap weeks, then fills the three', 'post', 2031, ['2031-11-24:2+1', '2031-12-15:0+3']);
     }
     if (FX === 'layout-r21') {
       var W21 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };

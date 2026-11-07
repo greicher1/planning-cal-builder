@@ -363,6 +363,38 @@
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
 
+### 🔨 6 Nov 2026 (afternoon): SIM POST NEVER STEPS ASIDE; A PHASE FILLS THE EMPTY COLUMN TO ITS RIGHT — built on branch `no-giveway` (worktree `.claude/worktrees/no-giveway`, cut from `main` at `d0dd33b` = v1.12.1 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `simpost-never-steps-aside`. Rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rules 12, 13, 15, 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9.
+- **The asks (owner, on the live v1.12.1, two screenshots):** Post moved up two weeks took the lane and dropped two Sim
+  Post weeks — *"it ate into Sim post. thats not right"*; moved up three, the column is earned and *"it fixes it"*
+  (Production | Sim Post | Post for three weeks); and on that picture *"notice how pre-prep also isnt filling its
+  collumn"* (Pre-Prep one wide beside Writers, the third column empty until Post).
+- **Rulings:** Sim Post on every shoot week, no exception — rule 20's give-way withdrawn (placement one pass again;
+  `yields` / `laneGiven` gone; `simpostdays` back to "exactly Production's weeks", 14/14). A phase takes the empty column
+  to its RIGHT from the week it is free for the rest of its run, whatever runs beside it: rule 13 uncapped rightward;
+  the even share (12) now governs only a LEFT extension and hand-dragged widths. The 15 pictures keep a trailing spare
+  empty only where it is the Sim Post lane (hand-02 2027, hand-03, hand-04, hand-09) or taken before the run ends
+  (hand-02 2026, hand-08), so a phase SHARING its row does not spread into the lane column before the shoot ends (rule
+  15 reworded; a lone phase still fills it — hand-13's Prod Prep is two wide the week before its shoot — and R-E's hole
+  between two phases is still filled).
+- **As built:** ⛔ frozen edit LR4 in `computePhaseRowLayout`, stamped only: the two rightward walks skip
+  `earnedIn(...) <= spanCap` when stamped (Single Column keeps rule 17's one) and refuse `laneReserved(n)` (the block's
+  fixed Sim Post slot while any marker row is at or after this row) when the row holds more than one phase; the
+  left-extend keeps its cap; R-E and a lone phase's fill untouched; rule 21's walk likewise. Unstamped: every line as it
+  was. Help text reworded. ⚠️ **`LAYOUT_SIM_KEY` was wrong in v1.12.1**: the engine's sentinel is `'\u0000simpost'` (a NUL
+  a terminal prints as a space), shipped as `' simpost'`; rule 21's share count read the marker as a phase (harmless, the
+  lane is never free) and the reservation matched nothing until a probe dumped the grid. Fixed.
+- **Checks:** `layout-r20` re-expected, 4/8 on v1.12.1 / 8/8 here; `layout-r13b` (new, the owner's three-week
+  calendar) 7/8 on v1.12.1 (Pre-Prep `1+1`) / 8/8 here; all ten layout fixtures green (R13g re-expected: Post in the
+  lane beside Reshoots takes the free column to its right at once); `simpostdays` 14/14 on its original expectations;
+  `centrepullback` 12/12, `swapsplitreuse` 5/5, `settingswin` 21/21, `colreuse` live + restore, `simpostbeside` 19/19,
+  `layouthook`; the 15 calendars re-scored identical to v1.12.1 (98.1%, 31 column misses, 0 width misses — a first cut
+  that reserved the lane for everyone broke r13's R-E and lone-phase fills, and a per-year reservation with the wrong
+  sentinel let Prep spread into the lane on hand-02/03/04/05/09, 72 width misses; both caught by the fixtures and the
+  re-score); `npm run check` 40/40. Full gate: running, written here when done.
+- ⚠️ A first patch script died on a quote and a second on a comment-only edit; neither wrote anything (each file is
+  written at the end of its section), and `git status` was checked before the third ran. Check `git status`, not the
+  script's intent, after any multi-file patch.
+
 ### ✅ 6 Nov 2026: RULE 21 — A RUN NEVER SHRINKS — ✅ **LIVE as v1.12.1 at `2a826e9`** (pushed `4c057a9..2a826e9` 6 Nov 2026 13:44 PST on the owner's pickers; deploy run 42299137741 green; live `version.json` 1.12.1 and the live `index.html` sha256 `ef04c76e…` = the build = `releases/v1.12.1.html`; tag `v1.12.1` at `2a826e9`). A clean fast-forward and push with strict exit checks, no pipes. The worktree is removed and the branch deleted (fully merged). Built and gated on branch `run-never-shrinks` (worktree `.claude/worktrees/run-never-shrinks`, cut from `main` at `0de03df` = v1.12.0 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch, not merged. Tracker card `layout-run-never-shrinks`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 21; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §8.
 - **The ask.** The owner's screenshot on the live v1.12.0: Post, alone in the lane for 24 weeks and two wide (Production's
   old column + its own), narrowed to one for its last two weeks when Localization started beside it, leaving an empty

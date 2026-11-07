@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right (6 Nov 2026)
+
+Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and
+[`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9; stamped calendars only, like the rest.
+
+- **Sim Post is on every shoot week, without exception.** Rule 20's give-way — Post, starting in the shoot's last week
+  or two, took the Simultaneous Post lane and the marker was not drawn there — is withdrawn: the owner moved Post up
+  two weeks and watched it eat two Sim Post weeks (*"thats not right"*). A short overlap now gets a column beside the
+  lane for those weeks, exactly as a three-week overlap always did (*"then when I move it up 3 weeks, it fixes it"*).
+  Placement is one pass again; the 2 Nov "exactly Production's weeks" ruling holds in full, and its leg says so again.
+- **A phase fills the empty column to its right** from the week that column is free for the rest of its run, whatever
+  runs beside it (*"notice how pre-prep also isnt filling its collumn"*): Pre-Prep beside Writers is two wide from its
+  first week when the third column is Post's months later. Until now rule 12's even share capped two phases in three
+  columns at one each; the share now governs only a spread to the left and hand-dragged widths. Against the owner's
+  15 calendars every trailing spare they keep empty is either the Sim Post lane or taken before the run ends, so **a
+  phase sharing its row does not spread into the lane column before the shoot ends** (rule 15 reworded; it used to be
+  excluded only while the marker ran; a phase alone still fills it, as one calendar draws). Frozen edit LR4 in
+  `computePhaseRowLayout`, behind the stamp. Also fixed on the way: rule 21's marker sentinel had shipped as a space
+  where the engine writes a NUL, so its share count read the marker as a phase.
+- **Verified:** `layout-r20` re-expected (three columns, Production | Simultaneous Post | Post, Design two wide beside
+  Writers), 4/8 on v1.12.1 and 8/8 here; new `layout-r13b`, the owner's three-week calendar, 7/8 on v1.12.1 (Pre-Prep
+  one wide) and 8/8 here; `simpostdays` 14/14 on its original expectations; `npm run check` 40/40; the rest below.
+
 ## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
 
 ### rule 21: a run never shrinks (6 Nov 2026)

@@ -148,6 +148,21 @@ const SPECS = {
     ],
     hiatuses: [Y1]
   },
+  // Rules 12, 13 and 15 as the owner ruled them on 6 Nov 2026 (frozen edit LR4), the shape of their screenshot:
+  // Pre-Prep beside Writers is TWO wide from its first week (the column to its right is free for the rest of its run,
+  // and the even share no longer caps a spread to the right), the lane is reserved until the shoot ends, Sim Post is
+  // on every shoot week, and Post, starting three weeks before the shoot ends, gets a third column for those weeks.
+  'layout-r13b': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 14 },
+      { key: 'production', start: '2031-08-04', weeks: 19 },
+      { key: 'post', start: '2031-11-24', weeks: 26 }
+    ],
+    hiatuses: [Y1, Y2]
+  },
   'layout-r20b': {
     stamped: true, simpost: { enabled: false },
     phases: [
