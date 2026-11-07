@@ -29,6 +29,119 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a phase you move keeps its column (sticky columns, 6 Nov 2026)
+
+[`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three
+screenshots of a test phase nudged a week at a time around Production (right, LEFT in the week the two start together,
+right again): *"its not just about production i dont like how it does this for any phase"*; by picker *"Plan sticky
+columns"*, then rulings K1–K4 as recommended.
+
+- **What was wrong.** Rule 6's same-week tie gives a column that has just come free to the shorter of two phases
+  starting that week, so a phase nudged through that week jumped to the other side and back. Any fixed tie rule makes one
+  of the two jump (measured), and reversing it costs one of the 15 pictured calendars. The layout had to remember.
+- **What changed.** A phase the user MOVES (a typed date, ▲ / ▼, Shift, Build Around, a length, a hiatus that moved it)
+  remembers what its column held before it — the phase it followed, the Sim Post lane, or a column of its own — and keeps
+  that column whenever its new dates still fit there (K1, K3: even past rule 2's four-week gap). Where it can't fit, the
+  rules place it and the memory is kept, so it comes home when nudged back (K2). Phases never moved are placed by the
+  rules as before, except that the rules don't hand a remembered column to a phase that would still be in it the week
+  the moved phase starts, and in a same-week tie the moved phase is placed first. Nothing on screen marks it (K4); Reset
+  Columns clears it. Written only by `update()`, against a per-phase record of where the layout last placed each phase
+  (so a date typed through invalid years still reads as a move), never in a trial and never on a restore. Help: one
+  sentence in "Where a phase goes".
+- **The file.** New PERMANENT snapshot key `colKeep` (`{phase: '<phase it followed>' | '' | 'simPostLane'}`), sorted,
+  ABSENT while empty, so a calendar nobody moved a phase on saves byte for byte as before; sanitized to known phases;
+  restored unconditionally; cleared by New and Reset Columns; pruned with a custom phase. An older build ignores it.
+  Stamped calendars only.
+- **Verified.** New leg `stickycols` on fixture `sticky-cols` (the owner's shape in 2031), 12/12: Test nudged through
+  the tie stays right, Production nudged into Test's week stays left, an overlap and back, undo / redo, Reset Columns,
+  New, Load, and a typed date; red on the build before at K1, K3, K6, K8. `layoutrules` re-expected where a moved phase
+  now keeps its column: `layout-r2g` R2Gc (Test stays in Writers' column at five weeks) with R2Gd proving the rules after
+  Reset Columns, `layout-r2h` R2Ha (a moved Prod Prep stays right all six weeks) with R2Hb replaying the rules' sweep.
+  The 15 pictures re-scored unchanged (98.1%, 31 column misses, 0 width misses); every other layout fixture,
+  `colsreset` (now with `colKeep`), `phasefill`, `swapholds`, `simpostdays`, `centrepullback` and the swap legs green;
+  `npm run check` 40/40. Full gate 4,270 PASS / 2 FAIL, both load timing and green alone (`pwagate`, `scenariocompat`).
+
+### Unreleased — a phase a few weeks late still follows into the freed column (6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 2, [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §9. Owner, two screenshots of
+a test calendar: *"what is going on here?"*, then by picker *"up to 4 weeks"*.
+
+- **What was wrong.** A phase starting the week after another ended took over its column. One week later, it no longer
+  counted as following on, so rule 4 sent it right of everything still running: a new column, with the old one left
+  empty for weeks. Moving a phase a single week could reshape the whole year, and a column swap holding it was dropped.
+- **What changed.** When no column was freed the week before, a column freed up to four working weeks earlier counts as
+  following on, and the phase takes the one freed most recently. ⚠️ The first test build took the LEFTMOST of them, and
+  the owner caught it at once (*"this is terrible now. Its jumping back and fourth so many times"*): Prod Prep slid a week
+  at a time went right, left, left, right, right, left. Latest-freed changes once, at five weeks; fixture `layout-r2h`
+  replays the sweep (red on that first build). Five weeks or more is rule 4's "right of everything running", as ruled on 5 Nov 2026.
+- **Verified.** The 15 pictured calendars score the same at gaps of 1, 2, 4, 8 weeks and unlimited (98.1%, 31 column
+  misses, 0 width misses), so the pictures don't decide it; rule R-D's own fixture breaks from five, which set the
+  limit. New fixture `layout-r2g`: one, four and five weeks (red on the build before at one and four). All eleven
+  other layout fixtures, `swapholds`, `phasefill`, `colsreset` and `centrepullback` green; `npm run check` 40/40.
+
+### Unreleased — a column swap holds when one of its phases moves (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §8. Owner: *"so if you swap a column then move one of those column up, it
+should maintain the position its in."*
+
+- **What was wrong.** A block swap was stored as "exchange these two columns". Move one of the swapped phases earlier
+  until it starts before the other, and the layout already puts it on the left, so the exchange put it back on the
+  right: the swap undid itself. Measured: Prod Prep swapped left of Pre-Prep held through three ▲ clicks and flipped
+  back on the fourth.
+- **What changed.** A swap now also records which side each phase took, and the app exchanges the two columns only
+  when the layout has them the other way round. Moving either phase, by typing a date or with the ▲ / ▼ arrows, keeps
+  the order you gave them. Swapping them back, or Reset Columns, lets the layout choose again.
+- **Saved calendars.** A swap saved before this has no side. On load the app writes its side down from what the swap
+  shows today, so every calendar opens exactly as it did and holds from then on. An older build ignores the new field.
+  A block pushed into the next year still takes that year's own order (ruling E5), and the week-by-week swap is
+  unchanged.
+- **Verified.** New leg `swapholds` 8/8 (red on the build before at the side record and the flip); the gate's whole
+  swap section, 115 checks, green; `noswapbtns`, `colswappartial` (both fixtures), `swapsplitreuse`, `colswapcache`,
+  `colsreset`, `phasefill` green; `npm run check` 40/40.
+
+### Unreleased — Reset Columns: every column back on the automatic layout in one click (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §6. Owner, trying the fill wish: *"will there be a way to reset back to
+default algorithm?"* — then *"Add it"*.
+
+- **What.** A **Reset Columns** button in the app header, beside Reset Notes, in the Waterfall view. One click, one
+  undo step: every phase's fill or pull-back wish, every dragged cell and column width (both layouts, the Date and
+  Notes columns too), every swapped column and every phase moved by hand into a free column go back to the automatic
+  layout. Dates, notes, row heights, typed headings and their styles stay, and so does the layout stamp. It greys
+  while every column is already automatic, and the Month view hides it.
+- **Why.** Until now only one phase at a time could go back (the edge handle's double-click), or the whole calendar
+  through New.
+- **Header fit.** Labelled, it overflowed the header by 25 px at 1121 px wide, so it runs icon-only at 1280 px and
+  below, a rung before New and Save As. Swept 961–1440 px: no overflow, the header one row high.
+- **Verified.** New leg `colsreset` 8/8 (one of every column choice loaded, cleared in one click, note, row height and
+  stamp kept, a grey click adds no undo step, hidden in the Month view); `hdrcontrols` 12/12 with N0 re-expected to
+  the new header ending; `phasefill` 13/13, `centrepullback` 12/12, `noresetall` 5/5, `regionlock` 14/14,
+  `mvtextstyle` 23/23, `sharecopy2` passing; `npm run check` 40/40.
+
+### Unreleased — the double-click stores a wish on the phase, not a width on the cell (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md). Owner, after seeing hand-set widths behave oddly once the calendar moved
+under them: *"so theres no way to automate the fix in the background?"* — then *"Yes, build it"*.
+
+- **What.** On a stamped calendar a double-click no longer writes a width on one cell. It marks the phase with a wish:
+  double-click a one-wide cell and the phase **fills the empty columns beside it**, every week from then on; double-click
+  a wide cell and the phase **keeps to its own column**, every week. The layout applies the wish fresh on every redraw,
+  so a filling phase narrows the week another phase moves in, widens again the week it leaves, and follows every shift
+  and length change with nothing to tidy. Double-click the cell's edge handle to let the layout decide again. A
+  highlighted run of cells does the same for every phase in it, and the label above the highlight says which. A drag
+  to an exact width is still a per-cell width (rule 19) and still wins for that cell. An unstamped calendar keeps the
+  old per-cell double-click, since its layout is frozen by the stamp rule.
+- **Saved as `phaseFill`** (`{key: true | false}`, absent while none; a PERMANENT key; an older build ignores it and
+  draws the automatic layout). Frozen edit LR5 in `computePhaseRowLayout`, behind the stamp. Setting a wish drops the
+  phase's per-cell widths, which said the same thing the old way. New clears it; a removed custom phase takes its wish
+  with it.
+- **Why:** a stored width is a guess about what you wanted once the schedule moves; a stored wish is not.
+- **Verified:** new leg `phasefill` on a synthetic calendar where Pre-Prep is one wide for six weeks under rule 13:
+  the double-click makes it two wide for five and one beside Production, the file carries the key and no new field id,
+  Production moved two weeks earlier narrows it on its own, undo one step each, a wide cell's double-click keeps it to
+  its column, the edge handle hands it back, an unstamped file keeps the per-cell double-click, Load applies the key
+  and New clears it (13/13); `centrepullback` re-expected to the phase level (12/12); the rest below.
+
 ### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
 
 Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and

@@ -224,6 +224,19 @@ export function initLegacyApp() {
   // free-column reuse and SHIFTS whenever any start date changes; a slot index means a different
   // column in each year block. A phase key is stable under both, and under renames.
   let gridStintSwaps = {};
+  // ⭐ `left` (owner, 6 Nov 2026: "if you swap a column then move one of those columns up, it should maintain the
+  // position its in"). A swap made since then also says which side each phase TOOK: `left: true` on the phases that
+  // went left, `false` on those that went right. The reconciler then reads the group as an ORDER, not an exchange:
+  // it exchanges the two columns only when the layout has them the other way round (applyStintSwaps). Before it, a
+  // swap was always an exchange, so the week a moved phase started before its partner the layout already put it on
+  // the left, the exchange put it back on the right, and the swap undid itself. Measured on the fill-intent build:
+  // Prod Prep swapped left of Pre-Prep held through three ▲ clicks and flipped back on the fourth.
+  // ⛔ PERMANENT, and only `true` / `false`. Still not a seat: it names a side of ONE pair in ONE year, read against
+  // the block's own left-to-right order, so the first-appearance trap above does not apply. An entry without it is
+  // a swap saved before 6 Nov 2026: refreshAfterRestore() writes its sides down from the exchange it makes on load
+  // (recordStintSwapSides), so the calendar opens exactly as it did. An older build ignores the field and
+  // exchanges, as it always did.
+  let stintSwapsNeedSides = false;
 
   // ---------- Column reuse (COLUMN-REUSE-PLAN.md; owner rulings 20 Oct 2026) ----------
   // The calendar's "Reuse empty columns" box, until 5 Nov 2026. Ticked, computeSchedule placed phases with
@@ -248,6 +261,33 @@ export function initLegacyApp() {
   // opaque number that shifts with every date edit. A choice that can't apply is kept, never deleted --
   // it applies again once it fits, and a typo in a date cannot destroy it.
   let colFollow = {};
+  // ⭐ STICKY COLUMNS (owner, 6 Nov 2026, STICKY-COLUMNS-PLAN.md; rulings K1-K4 by picker, all as recommended): A PHASE
+  // YOU MOVE KEEPS THE COLUMN IT WAS IN, whenever its new dates still fit there. The owner nudged a test phase a week at
+  // a time around Production and watched it sit right, LEFT in the week the two start together (rule 6's same-week
+  // tie), then right again: "its not just about production i dont like how it does this for any phase". Any fixed tie
+  // rule flips one of the two (measured, plan §0), so the layout has to remember which phase the user moved.
+  //   colKeep[phaseKey] = the phase whose column it continued in the layout BEFORE it was first moved, '' when it had
+  //   opened a column of its own (rule 5), or COL_KEEP_LANE when it had continued the Sim Post lane. Never a column
+  //   number: `col` is handed out in start order and shifts with every date edit (the colFollow / swap-store trap).
+  //   - K1: only the phases the user MOVES. update() compares each phase's dates with the schedule before the edit and
+  //     sets the entry for a phase whose start or end changed, from the previous layout's relationships (colRel), and
+  //     only while it has none: the first remembered column is the one it keeps (K2 needs that).
+  //   - K2: an entry that can't apply (the predecessor still running, or not on the calendar) leaves the phase to the
+  //     rules and is KEPT, so nudging it back brings it home (colFollow's "a choice that can't apply is kept").
+  //   - K3: kept beats the rules for that phase, rule 2's four-week gap and R-D included. Everything never moved is
+  //     placed by the rules, with one reservation (placeSegmentsByRules).
+  //   - K4: no marker on screen. Reset Columns clears every entry with the other column choices.
+  //   - ⛔ Written ONLY by noteMovedPhases() from update(), never in a trial (computeSchedule runs inside the swap gate,
+  //     followRunFor, the year shapes and Production's backward search; the placement only READS this), and never on a
+  //     restore (colKeepRestored, raised by applyStateSnapshot and New: a different calendar is not a move).
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `colKeep`, PERMANENT, sorted, ABSENT while empty (a calendar nobody moved a
+  //     phase on saves byte for byte as before); sanitized; restored unconditionally; cleared by New and Reset Columns;
+  //     pruned with a custom phase. Stamped calendars only: an unstamped one never reads or writes it. An older build
+  //     ignores the key and lays out by the rules.
+  let colKeep = {};
+  const COL_KEEP_LANE = 'simPostLane';   // the value for "it continued the Sim Post lane": no phase key can be this
+  let colKeepRestored = false;           // set by a restore / New; the next update() compares nothing
+  let colKeepBase = new Map();           // phase key -> {start, end, rel} where the layout last placed it (noteMovedPhases)
   // ⭐ `colReuse` IS THE LAYOUT STAMP (LAYOUT-RULES.md §4, owner, 5 Nov 2026): a calendar carrying it lays out by
   // the layout rules -- placement (placeSegmentsByRules) and widths (computePhaseRowLayout's stamped branch); a
   // calendar without it keeps the placement and the widths it has today, byte for byte, forever. Read only through
@@ -271,6 +311,15 @@ export function initLegacyApp() {
   // floor is measured from the owner's calendars: the shortest column they ever drew by hand is used 5 weeks, and
   // rule 6's Wrap column is 3. Stamped calendars only, through layoutStamped().
   const LAYOUT_EARNED_WEEKS = 3;
+  // Rule 2's short gap (owner, 6 Nov 2026, by picker: "up to 4 weeks"; FILL-INTENT-PLAN.md §9). A column freed up to this
+  // many WORKING weeks before a phase starts counts as following on when no column was freed the week before, so a
+  // phase nudged a week or two later keeps the column it would have followed into instead of opening a new one right of
+  // everything running (R-D). The owner's test calendar: a phase starting 4/12, the week after Writers' Room ended, took
+  // Writers' column; moved to 4/19 it opened a third column and left that one empty for nine weeks, and a block swap
+  // holding it was dropped. ⛔ 4 is the most R-D allows: its own fixture (layout-r7, Research five working weeks after the
+  // free column emptied) must still go right. Scored against the 15 pictured calendars: identical at 1, 2, 4, 8 and
+  // unlimited (98.1% / 31 / 0), so the pictures do not decide it; the owner's ruling and R-D's fixture do.
+  const LAYOUT_FOLLOW_GAP_WEEKS = 4;
   // computeBlockLayout's (frozen) sentinel for the Sim Post marker in a block's occupancy grid, read by rules 21 and
   // 15 below. ⚠️ It is a NUL character followed by "simpost" -- a terminal prints the NUL as a space, and v1.12.1
   // shipped this as ' simpost' (a space), which matched nothing: rule 21's share count read the marker as a phase
@@ -777,6 +826,17 @@ export function initLegacyApp() {
     const td = e.target.closest && e.target.closest('.sheet-phase-cell');
     if(!td) return;
     e.preventDefault();
+    if(layoutStamped()){
+      // The wish, not the width (FILL-INTENT-PLAN.md §2): a wide cell -> the phase pulls back, a one-wide cell -> the
+      // phase fills, every week from now on. Unstamped keeps the per-cell fill below.
+      const pk = td.dataset.pkey;
+      if(!pk) return;
+      pushUndoSnapshot();
+      setPhaseFill(pk, !((td.colSpan || 1) > 1));
+      render(currentSchedule);
+      markDirty();
+      return;
+    }
     const own = +td.dataset.own;
     const maxL = own - (+td.dataset.lmin), maxR = (+td.dataset.rmax) - own;   // room available
     const curL = own - (+td.dataset.a),   curR = (+td.dataset.b) - own;       // room taken now
@@ -800,9 +860,11 @@ export function initLegacyApp() {
     e.preventDefault();
     if(h.classList.contains('is-span')){
       const key = h.dataset.week + '|' + h.dataset.pkey;
-      if(cellSpans[key] === undefined) return;   // already automatic
+      const wished = layoutStamped() && h.dataset.pkey in phaseFill;   // FILL-INTENT-PLAN.md §2: the edge hands the PHASE back too
+      if(cellSpans[key] === undefined && !wished) return;   // already automatic
       pushUndoSnapshot();
       delete cellSpans[key];
+      if(wished) setPhaseFill(h.dataset.pkey, null);
       render(currentSchedule);
       markDirty();
       return;
@@ -1098,10 +1160,14 @@ export function initLegacyApp() {
     // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand" once
     // contradicted the toolbar button reading "Pull back" at the selection's limit; that button is
     // gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
-    if(rows.length && expandable && !swapFlash){
+    // Stamped (FILL-INTENT-PLAN.md §2): the double-click sets the wish on the highlight's phases, which is forward-looking
+    // (a cell with no room this week may have room next month), so the chip shows whenever a phase is highlighted.
+    const selPks = layoutStamped() ? Array.from(new Set(rows.map(r => r.td.dataset.pkey).filter(Boolean))) : [];
+    if(rows.length && (selPks.length || expandable) && !swapFlash){
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
-      chip.textContent = 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
+      chip.textContent = selPks.length ? 'Double click to ' + (rows.every(r => (r.td.colSpan || 1) > 1) ? 'pull back cells' : 'fill free space')
+                                       : 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
       layer.appendChild(chip);
       // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
       //   * below, it always covered the next week's phase labels -- the chip was reporting on the
@@ -1368,6 +1434,18 @@ export function initLegacyApp() {
     // here re-renders and detaches every td, which is exactly why this cannot go after selCells().
     if(activeNoteEditor) commitActiveNoteEditor();
     const cells = keys ? allPhaseTds().filter(td => keys.has(SEL_KEY(td))) : selCells();
+    if(layoutStamped()){
+      // The wish for every phase in the highlight (FILL-INTENT-PLAN.md §2), bands included: all on -> all off, else all on.
+      const pks = Array.from(new Set(cells.map(td => td.dataset.pkey).filter(Boolean)));
+      if(!pks.length) return false;
+      const allWide = cells.every(td => (td.colSpan || 1) > 1);   // every highlighted cell wide -> pull the phases back, else fill
+      pushUndoSnapshot();
+      pks.forEach(k => setPhaseFill(k, !allWide));
+      render(currentSchedule);                 // ONE render -> ONE captureScroll/restoreScroll pair
+      pushUndoSnapshot();
+      markDirty();
+      return true;
+    }
     const rows = resolveRowContention(cells.map(spanRoom).filter(canExpand));
     // Re-tested AFTER contention clamping: a cell whose only free slot was awarded to a neighbour in
     // the same week has nothing left to do, and must not have {0,0} written over an inert override.
@@ -4709,9 +4787,26 @@ export function initLegacyApp() {
   // ⚠️ FREE MEANS WEEK ROWS, not raw dates, as the reuse placement had it: two snap-off phases meeting mid-week
   // must never land in one column on the same row. For an all-snapped calendar the two tests are identical.
   //
-  // Returns { moves, lane } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
+  //  10b. KEPT (colKeep, STICKY-COLUMNS-PLAN.md §4; owner's rulings K1-K4, 6 Nov 2026): a phase the user has MOVED
+  //      keeps the column it was in. After the hand move and before the rules: a remembered predecessor that is placed
+  //      and whose column is free at this phase's start -> that column; '' -> a new column (rule 5); the lane token ->
+  //      the lane. Silent (no row note). An entry that can't apply falls through to the rules and is kept (K2). Two
+  //      things make it hold through rule 6's same-week tie, where the owner saw the flip:
+  //        - IN A SAME-WEEK GROUP, a kept phase whose column is free goes first (after any hand move), so the tie's
+  //          shorter-first order cannot hand its column to the other phase first, and the phase placed after it sees
+  //          it running (R-D).
+  //        - THE RESERVATION: the rules do not offer a phase a column that a not-yet-placed kept phase remembers and
+  //          could take, when this phase would still be in it the week that one starts. Production nudged a week
+  //          later remembered Prod Prep's column; without this, Test (unmoved, starting the same week or earlier) was
+  //          handed it by the rules and Production flipped.
+  //      Inert when colKeep is empty: no group is reordered and nothing is reserved, so every unmoved calendar -- the 15
+  //      pictures, every fixture as loaded -- is placed byte for byte as before.
+  //
+  // Returns { moves, lane, rel } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
   // blocker?} } for every phase moved by hand, read by reflectColMoveNotes and followRunFor), lane = the lane's
-  // column and ordering key, or null.
+  // column and ordering key, or null; rel = { phaseKey: what its column held before it -- the previous occupant's key,
+  // COL_KEEP_LANE for the Sim Post lane, '' for a new column } for every placed phase, which is what update() remembers
+  // in colKeep for a phase the user moves (noteMovedPhases).
   function placeSegmentsByRules(segments, hiatuses, segCol, simPostOn){
     const WEEK = 7*DAY_MS;
     const firstRow = s => mondayOf(s.start).getTime();
@@ -4728,7 +4823,17 @@ export function initLegacyApp() {
     const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
+    const rel = {};
     let lane = null;
+    // 10b. Kept phases (colKeep). keepOf: the entry, or undefined. keptCol: the column a non-empty entry names as things
+    // stand -- its predecessor's column, or the lane -- or -1 while that is not placed.
+    const keepOf = s => (Object.prototype.hasOwnProperty.call(colKeep, s.key) && colKeep[s.key] !== s.key) ? colKeep[s.key] : undefined;
+    const keptCol = tok => {
+      if(tok === COL_KEEP_LANE) return lane ? lane.col : -1;
+      const x = placed.get(tok);
+      return x ? segCol.get(x) : -1;
+    };
+    const kept = segments.filter(s => typeof keepOf(s) === 'string' && keepOf(s) !== '');
     const occupy = (i, seg, first, end, t, marker) => {
       cols[i].freeAt = end; cols[i].last = seg;
       cols[i].occ.push({ t, y0: yearOf(first), y1: yearOf(Math.max(first, end - WEEK)), first, end, seg, marker: !!marker });
@@ -4763,12 +4868,35 @@ export function initLegacyApp() {
       if(group.length > 1 && cols.some(c => c.freeAt <= first)){
         group.sort((a, b) => ((rowsEnd(a) - first) - (rowsEnd(b) - first)) || (idxOf.get(a) - idxOf.get(b)));
       }
+      // 10b. A kept phase whose remembered column is free goes first in its week, after any hand move that can apply;
+      // the rest keep rule 6's order. Only when such a phase is in the group, so no other group is ever reordered.
+      if(group.length > 1){
+        const fits = s => { const t = keepOf(s); if(typeof t !== 'string' || t === '') return false; const c = keptCol(t); return c >= 0 && cols[c].freeAt <= first; };
+        if(group.some(fits)){
+          const hand = s => { const w = colFollow[s.key]; if(!w || w === s.key) return false; const x = placed.get(w); return !!x && cols[segCol.get(x)].freeAt <= first; };
+          const rank = s => hand(s) ? 0 : fits(s) ? 1 : 2;
+          const at0 = new Map(group.map((s, i) => [s, i]));
+          group.sort((a, b) => (rank(a) - rank(b)) || (at0.get(a) - at0.get(b)));
+        }
+      }
       group.forEach(seg => {
         const y = yearOf(first);
         const free = i => cols[i].freeAt <= first;
+        // 10b. The reservation: column i is held for a kept phase not yet placed that remembers it and could take it
+        // (free by its start), when this phase would still be in it that week. Asked only by the rules below.
+        const reserved = i => kept.some(k => k !== seg && !placed.has(k.key) && keptCol(keepOf(k)) === i
+          && cols[i].freeAt <= firstRow(k) && rowsEnd(seg) > firstRow(k));
         const handoff = i => {
           if(!free(i)) return false;
           for(let t = cols[i].freeAt; t < first; t += WEEK) if(!inHiatus(t)) return false;
+          return true;
+        };
+        // Rule 2's short gap (LAYOUT_FOLLOW_GAP_WEEKS): free, and emptied no more than that many working weeks before.
+        // Asked only when no column was handed off the week before, so every true handoff is decided as it was.
+        const nearHandoff = i => {
+          if(!free(i)) return false;
+          let gap = 0;
+          for(let t = cols[i].freeAt; t < first; t += WEEK) if(!inHiatus(t) && ++gap > LAYOUT_FOLLOW_GAP_WEEKS) return false;
           return true;
         };
         // R-D: right of every phase still running -- every busy column's position in this year's order.
@@ -4788,12 +4916,18 @@ export function initLegacyApp() {
             reason: x ? 'busy' : (segments.some(s => s.key === want) ? 'later' : 'unscheduled'),
             blocker: x ? cols[xc].last.key : null };
         }
+        // 10b. Kept: the column it was in before the user moved it, when that still fits (K2: else the rules, entry kept).
+        const keep = keepOf(seg);
+        if(at < 0 && typeof keep === 'string'){
+          if(keep === '') at = newCol();
+          else { const kc = keptCol(keep); if(kc >= 0 && free(kc)) at = kc; }
+        }
         // 6. Post continues the Sim Post lane, once the shoot has ended.
-        if(at < 0 && seg.key === 'post' && lane && free(lane.col) && lane.end <= first) at = lane.col;
+        if(at < 0 && seg.key === 'post' && lane && free(lane.col) && !reserved(lane.col) && lane.end <= first) at = lane.col;
         if(at < 0){
           const hand = [], open = [];
           for(let i = 0; i < cols.length; i++){
-            if(!free(i)) continue;
+            if(!free(i) || reserved(i)) continue;
             if(handoff(i)) hand.push(i);
             else if(rightOfRunning(i)) open.push(i);
           }
@@ -4802,11 +4936,28 @@ export function initLegacyApp() {
           //    running on its right, Production sat one wide beside an empty column for the whole shoot; hand-10, 12,
           //    15 and 16 already put it in Writers' free column over Prep's handoff). R-D (rule 4) is for the other
           //    phases: hand-05 and hand-08 keep Localization in its handoff column over a free column further left.
-          if(seg.key === 'production'){ const all = []; for(let i = 0; i < cols.length; i++) if(free(i)) all.push(i); at = leftmost(all, y, first); }
+          if(seg.key === 'production'){ const all = []; for(let i = 0; i < cols.length; i++) if(free(i) && !reserved(i)) all.push(i); at = leftmost(all, y, first); }
           // 2 + 3. A handoff, the left one of two.  4. Else the leftmost free column right of everything running.
-          else at = hand.length ? leftmost(hand, y, first) : leftmost(open, y, first);
+          else if(hand.length) at = leftmost(hand, y, first);
+          else {
+            // 2a. A short gap still follows on (LAYOUT_FOLLOW_GAP_WEEKS), before R-D's "right of everything running":
+            //     the column freed MOST RECENTLY -- the one this phase is following -- and the left one of a tie.
+            //     ⛔ Not the leftmost of them: the first build took the leftmost, so as a phase slid a week at a time
+            //     the set of qualifying columns changed and it flipped side three times in seven weeks (owner, 6 Nov
+            //     2026: "this is terrible now. Its jumping back and fourth so many times"; measured on a twin: right,
+            //     left, left, right, right, left, left). Latest-freed gives one change, at the five-week limit; the 15
+            //     pictures and every layout fixture are unchanged either way. Leg layoutrules, fixture layout-r2h.
+            const near = []; for(let i = 0; i < cols.length; i++) if(nearHandoff(i) && !reserved(i)) near.push(i);
+            at = near.length
+              ? near.reduce((b, i) => (cols[i].freeAt > cols[b].freeAt
+                  || (cols[i].freeAt === cols[b].freeAt && cmpKey(orderKey(i, y, first), orderKey(b, y, first)) < 0)) ? i : b)
+              : leftmost(open, y, first);
+          }
         }
         if(at < 0) at = newCol();                              // 5. A new column on the right.
+        // What the column held before this phase, for update()'s memory of a moved phase (10b, noteMovedPhases).
+        const prevOcc = cols[at].occ.length ? cols[at].occ[cols[at].occ.length - 1] : null;
+        rel[seg.key] = !prevOcc ? '' : (prevOcc.marker ? COL_KEEP_LANE : prevOcc.seg.key);
         occupy(at, seg, first, rowsEnd(seg), first);
         segCol.set(seg, at);
         placed.set(seg.key, seg);
@@ -4817,14 +4968,14 @@ export function initLegacyApp() {
         if(seg.key === 'production' && simPostOn){
           const pk = orderKey(at, y, first);
           const cands = [];
-          for(let i = 0; i < cols.length; i++) if(i !== at && free(i) && cmpKey(orderKey(i, y, first), pk) > 0) cands.push(i);
+          for(let i = 0; i < cols.length; i++) if(i !== at && free(i) && !reserved(i) && cmpKey(orderKey(i, y, first), pk) > 0) cands.push(i);
           const lc = cands.length ? leftmost(cands, y, first) : newCol();
           occupy(lc, seg, first, rowsEnd(seg), first, true);
           lane = { col: lc, t: first, end: rowsEnd(seg) };
         }
       });
     });
-    return { moves, lane };
+    return { moves, lane, rel };
     };
     return pass();
   }
@@ -5645,6 +5796,9 @@ export function initLegacyApp() {
     // Whether each hand move applied, for the phase rows' notes. Only on a stamped calendar, so the
     // schedule of a calendar without the stamp carries exactly the keys it always did.
     if(colMoves) schedule.colMoves = colMoves;
+    // What each placed phase's column held before it (placeSegmentsByRules' rel), read by update()'s next run to
+    // remember the column of a phase the user moves (colKeep). Stamped only, like colMoves; never serialised.
+    if(layout) schedule.colRel = layout.rel;
     // ⭐ PER-EPISODE PREP, appended LAST (EPISODE-PREP-PLAN.md §4): every week, column, maxConcurrent, note
     // and holiday above was built without it, so the waterfall, Excel and the waterfall PDF -- which read
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
@@ -5845,7 +5999,24 @@ export function initLegacyApp() {
           cellsByKey.get(c.key).push(c);
         });
       }
-      const groups = stintSwapGroupsForBlock(b.year, cellsByKey);
+      // ⭐ AN ORDER, NOT AN EXCHANGE (see `left` at gridStintSwaps). `before` is the block's columns left to right
+      // BEFORE any col moves -- the order pinned below. A group whose every phase says which side it took is
+      // exchanged only when the layout has it the other way round; one already in that order is left alone, and
+      // is not `applied` (so the gesture reads it as a fresh swap, never a "swap back"). A group without sides, or
+      // with mixed ones (a swap saved before 6 Nov 2026, or a hand-edited file), is exchanged, as it always was.
+      const before = derived(b, bi);
+      const at = col => Array.isArray(before) ? before.indexOf(col) : -1;
+      const sideOf = list => {
+        const v = list.map(k => (gridStintSwaps[b.year + '|' + k] || {}).left);
+        return v.every(x => x === true) ? true : v.every(x => x === false) ? false : null;
+      };
+      const groups = stintSwapGroupsForBlock(b.year, cellsByKey).filter(gp=>{
+        const aWants = sideOf(gp.a), bWants = sideOf(gp.b);
+        if(aWants === null || bWants === null || aWants === bWants) return true;
+        const ia = at(gp.colA), ib = at(gp.colB);
+        if(ia < 0 || ib < 0) return true;
+        return (ia < ib) !== aWants;
+      });
       if(!groups.length){ orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
 
       // ⛔ WOULD THIS LOSE A CELL? Refuse the group outright if so. With the gesture building the
@@ -5908,7 +6079,10 @@ export function initLegacyApp() {
 
       orders.push(derived(b, bi));    // ⛔ BEFORE a single col moves
       all.forEach((col, c)=>{ c.col = col; });
-      legal.forEach(gp => applied.push({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB }));
+      // aLeft: after the exchange the `a` side sits in colB's place, so it is left when colB was. Read by
+      // recordStintSwapSides() to write an old swap's sides down; null when the order does not say.
+      legal.forEach(gp => applied.push({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB,
+        aLeft: (at(gp.colA) < 0 || at(gp.colB) < 0) ? null : at(gp.colB) < at(gp.colA) }));
     });
     return { orders, applied, refused };
   }
@@ -6224,12 +6398,13 @@ export function initLegacyApp() {
       + '|' + weeks.map(w => w.cells.map(c => (c.key || '') + '=' + (c.label || '')).join('\u0001')).join('\u0002')
       + '|' + simPostDisplayName()
       + '|' + Object.keys(gridColSwaps).sort().join(',')
-      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '')).join(',')
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '') + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + Object.keys(cellSpans).sort().map(k => {
           const v = cellSpans[k];
           return k + ':' + (v && typeof v === 'object' ? (v.l|0) + ',' + (v.r|0) : '?');
         }).join(',')
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
+      + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // sticky columns move phases too
       + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
       + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
     if(key === _swapGateKey) return Object.assign({}, _swapGateRes, { schedule });
@@ -6726,8 +6901,9 @@ export function initLegacyApp() {
       if(memberSet.has(k.slice(pre.length)) || (v && memberSet.has(v.with))) delete next[k];
     });
     if(reversing) return { store: next, reversing: true };
-    run.partners.forEach(p => { next[pre + p] = { with: run.phaseKey }; });
-    run.movers.forEach(m => { next[pre + m] = { with: run.partners[0] }; });
+    // `left`: the movers go to the side `dir` points at (stintRunFor: other = own + dir), the partners to the other.
+    run.partners.forEach(p => { next[pre + p] = { with: run.phaseKey, left: run.dir > 0 }; });
+    run.movers.forEach(m => { next[pre + m] = { with: run.partners[0], left: run.dir < 0 }; });
     return { store: next, reversing: false };
   }
 
@@ -7121,7 +7297,8 @@ export function initLegacyApp() {
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
-      + '|' + Object.keys(gridStintSwaps).sort().join(',')
+      + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
@@ -8615,6 +8792,12 @@ export function initLegacyApp() {
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
     pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
+    delete phaseFill[k];     // ...and its fill (FILL-INTENT-PLAN.md)
+    // ...and its kept column, and every other phase's memory of following it, which can never apply again (sticky
+    // columns). A fresh object, as everywhere colKeep is written: an undo step may hold the old one.
+    if(Object.keys(colKeep).some(x => x === k || colKeep[x] === k)){
+      const next = {}; Object.keys(colKeep).forEach(x => { if(x !== k && colKeep[x] !== k) next[x] = colKeep[x]; }); colKeep = next;
+    }
     delete phaseEnds[k];     // ...and its Ends
     delete autoNotesOn[k + 'Start']; delete autoNotesOn[k + 'End'];   // ...and its automatic notes' ticks
     delete autoNotesView[k + 'Start']; delete autoNotesView[k + 'End'];   // ...in either view (plan D3)
@@ -18569,6 +18752,31 @@ export function initLegacyApp() {
     Object.keys(phaseHidden).sort().forEach(k=>{ o[k] = Object.assign({}, phaseHidden[k]); });
     return o;
   }
+  // ⭐ A PHASE FILLS ITS FREE SPACE, OR KEEPS TO ITS COLUMN (owner, 6 Nov 2026; FILL-INTENT-PLAN.md): the double-click
+  // stores the WISH, not the width. Phase key -> true (fills every empty column beside it, every week) or false (stays
+  // in its own column, every week); absent = the automatic layout. Applied fresh on every redraw (frozen edit LR5 in
+  // computePhaseRowLayout): a filling phase narrows the week another phase moves in and widens the week it leaves,
+  // follows a shift and a length change. Nothing per cell can go stale, which is what a hand-widened cell did ("why
+  // those manually changed columns are now behaving weirdly"). The double-click does the visible opposite of what it
+  // sees: a cell wider than its own column -> the phase pulls back (false); a one-wide cell -> the phase fills (true);
+  // double-click the cell's edge handle -> automatic again. A drag to an exact width is still a per-cell width
+  // (cellSpans), rule 19, laid over the wish.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `phaseFill`, written only while non-empty, keys sorted; PERMANENT from the
+  //     first file saved with it. An older build ignores the key and draws the automatic layout.
+  //   - Stamped calendars only: an unstamped double-click keeps its per-cell meaning (the stamp rule freezes that layout).
+  //   - Phase-keyed, so the shift tools and the arrows have nothing to re-key. Pruned with its custom phase.
+  //   - Read only through phaseFillOn(); written only through setPhaseFill().
+  let phaseFill = {};
+  function phaseFillOn(key){ return phaseFill[key] === true; }
+  function phaseFillOff(key){ return phaseFill[key] === false; }
+  function phaseFillSnapshot(){ const o = {}; Object.keys(phaseFill).sort().forEach(k=>{ o[k] = phaseFill[k] === true; }); return o; }
+  // A wish (true or false) replaces the phase's per-cell widths: they said the same thing the old way, and a stale
+  // {l:0,r:0} would narrow a cell the wish wants wide. null = back to the automatic layout, which restores nothing.
+  function setPhaseFill(key, wish){
+    if(wish === null || wish === undefined){ delete phaseFill[key]; return; }
+    phaseFill[key] = !!wish;
+    Object.keys(cellSpans).forEach(k=>{ if(k.slice(k.indexOf('|') + 1) === key) delete cellSpans[k]; });
+  }
   // ⭐ ENDS: A WEEKS PHASE PINNED BY ITS END (owner, 30 Oct 2026; mockups/weeks-end-date.html). Phase key -> true.
   // The date over a Weeks phase reads Starts or Ends; with Ends the END holds, and the start is worked out back from
   // it and the week count, so a longer count or a hiatus moves the start instead. Ruled "Yes, no switch": an Ends
@@ -20279,6 +20487,13 @@ export function initLegacyApp() {
     // `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))` and `(left + span) < spanCap` were.
     const phantomSlots = new Set();
     if(stamped && week.layoutPhantom) slotMap.forEach((sl, c) => { if(week.layoutPhantom.indexOf(c) >= 0) phantomSlots.add(sl); });
+    // ⛔ FROZEN EDIT LR5 (owner, 6 Nov 2026, "Yes, build it"; FILL-INTENT-PLAN.md §3). On a STAMPED calendar a phase whose
+    // wish is set (phaseFill, read through phaseFillOn as cellSpans is read) takes every empty slot beside it THIS
+    // week: no rest-of-run test (13), no even share (12), no lane reservation (15's pre-shoot rule) -- only a cell or
+    // this week's marker stops it. Rule 21's post-pass skips it (it has everything free); a per-cell drag still lays
+    // over it (19). Rule 17 holds Single Column at one. Unstamped, fillsFree is false and every line is what it was.
+    const fillsFree = k => stamped && !singleColumn && !!bySlot[k] && phaseFillOn(bySlot[k].key);
+    const keepsNarrow = k => stamped && !!bySlot[k] && phaseFillOff(bySlot[k].key);   // the other wish: its own column, every week
     const phantom = n => phantomSlots.has(n);
     const earnedIn = (a, b) => { let c = 0; for(let n = a; n <= b; n++) if(!phantom(n)) c++; return c; };
     const mcEarned = mc - phantomSlots.size;
@@ -20298,7 +20513,8 @@ export function initLegacyApp() {
         // data-* attributes rendered from them, the drag/double-click handles -- treat it exactly
         // like a phase cell, with no changes to either.
         let span = 1;
-        while(k+span < mc && ((stamped && !singleColumn) || earnedIn(k, k+span) <= spanCap) && !(nPhases > 1 && laneReserved(k+span)) && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }   // LR2; LR4 (b) uncapped when stamped (rule 17 holds Single Column at one), (a) the lane kept while sharing
+        while(k+span < mc && !bySlot[k+span] && !keepsNarrow(k) && (fillsFree(k) ? (k+span !== simSlot)
+              : (((stamped && !singleColumn) || earnedIn(k, k+span) <= spanCap) && !(nPhases > 1 && laneReserved(k+span)) && freeForRun(k, k+span)))){ span++; }   // LR2; LR4 (b) uncapped when stamped (rule 17 holds Single Column at one), (a) the lane kept while sharing; LR5 the wish
         if(c.type === 'phaseHiatus'){
           // Resolve any per-band rename/recolor the user has applied, keyed by week + phase.
           const hKey = c.weekIso + '|' + c.key;
@@ -20319,15 +20535,17 @@ export function initLegacyApp() {
         // is excluded as an absorb target so it can never widen past its own column.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
-        if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && freeForRunSpan(n, k, n-1)){
+        if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
           let left = 0;
-          while(left < n - k && earnedIn(n - left - 1, n) <= spanCap) left++;                         // LR2
+          if(fillsFree(n)) left = n - k;                                                             // LR5
+          else while(left < n - k && earnedIn(n - left - 1, n) <= spanCap) left++;                   // LR2
           const from = n - left;
           let span = 1;
-          while(n+span < mc && ((stamped && !singleColumn) || earnedIn(from, n+span) <= spanCap) && !(nPhases > 1 && laneReserved(n+span)) && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }   // LR2; LR4 (a) + (b)
+          while(n+span < mc && !bySlot[n+span] && (fillsFree(n) ? (n+span !== simSlot)
+                : (((stamped && !singleColumn) || earnedIn(from, n+span) <= spanCap) && !(nPhases > 1 && laneReserved(n+span)) && freeForRun(n, n+span)))){ span++; }   // LR2; LR4 (a) + (b); LR5
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];
@@ -20354,7 +20572,7 @@ export function initLegacyApp() {
       { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
       let changed = false;
       out.forEach((sg, i)=>{
-        if(sg.kind !== 'phase' || sg.own === undefined) return;
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own)) return;   // LR5: a wish decides its own width
         const k = sg.own, key = occupancy[k].get(localWeek);
         const r0 = layoutRunStart(occupancy, k, localWeek);
         if(r0 >= localWeek) return;
@@ -20386,7 +20604,7 @@ export function initLegacyApp() {
     if(stamped && !singleColumn){
       for(let i = 1; i + 1 < out.length; i++){
         const e = out[i], l = out[i - 1];
-        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined) continue;
+        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own)) continue;   // LR5: not to a phase keeping to its column
         let at = 0; for(let j = 0; j < i; j++) at += out[j].colspan;
         let ok = true;
         for(let n = at; n < at + e.colspan; n++) if(!freeForRun(l.own, n)){ ok = false; break; }
@@ -24814,6 +25032,9 @@ export function initLegacyApp() {
     const mv = viewMode === 'month';
     chrome.headerModeBtn({ view: mv ? 'month' : 'sheet', mode: headerModeKey(mv) });
     chrome.notesResetBtn({ view: mv ? 'month' : 'sheet' });
+    // Reset Columns: the Waterfall's only, greyed while every column is automatic. Every way a column store changes
+    // ends in render() rebuilding #table-wrap, so this observer sees it (and the click re-checks regardless).
+    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist() });
   }
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
@@ -25198,6 +25419,44 @@ export function initLegacyApp() {
     rowHeights = next;
   }
 
+  // ⭐ STICKY COLUMNS, the writer (STICKY-COLUMNS-PLAN.md §3; ruling K1, only the phases the user moves).
+  // colKeepBase remembers, per waterfall phase, where the layout last PLACED it: its start, its end and what its column
+  // held before it (colRel: a phase key, the lane, or '' for a column of its own). It is per phase and survives an
+  // update() that places nothing, because a date typed into a date box passes through invalid years on the way
+  // (0002, 0020, 0203, 2031), and those schedules have no layout; compared only with the schedule just before, the
+  // finished date would never read as a move. Rebuilt from nothing after a restore. (Declared beside colKeep, at the
+  // top: update() runs during the IIFE's evaluation, and a `let` down here would be read in its dead zone.)
+  // `next` is the schedule just computed from the edited fields. Every placed phase whose start or end differs from its
+  // remembered placement, and that remembers no column yet, remembers the one it had. Returns true when colKeep
+  // changed, so update() places once more. A phase that already remembers a column keeps that one (K2: placed by the
+  // rules while it cannot fit, it must still return when nudged back, so the rules' column never overwrites it).
+  // ⛔ Never on a restore: Load, New, undo / redo, crash recovery, a scenario switch and the Compare probe REPLACE the
+  // calendar, and against the previous one every phase would look moved. applyStateSnapshot() and New raise
+  // colKeepRestored, which empties the baseline, and nothing is compared while suppressDirty holds (every restore path
+  // raises it). Never in a trial: only update() calls this. Stamped calendars only (colRel exists only there).
+  function noteMovedPhases(next){
+    if(colKeepRestored){ colKeepRestored = false; colKeepBase = new Map(); return false; }
+    // ⚠️ suppressDirty LAST: it is declared ~4,000 lines below, and update() runs during the IIFE's evaluation before
+    // that line (its temporal dead zone). Every update() before the boot's restore has no stamp and no colRel.
+    if(!layoutStamped() || !next || !next.colRel || !next.segments || !colKeepBase.size || suppressDirty) return false;
+    const add = {};
+    next.segments.forEach(s => {
+      if(!s || !(s.key in next.colRel) || Object.prototype.hasOwnProperty.call(colKeep, s.key)) return;
+      const b = colKeepBase.get(s.key);
+      if(!b || (b.start === s.start.getTime() && b.end === s.end.getTime())) return;
+      if(typeof b.rel === 'string' && b.rel !== s.key) add[s.key] = b.rel;
+    });
+    if(!Object.keys(add).length) return false;
+    colKeep = Object.assign({}, colKeep, add);   // a fresh object: an undo step may hold the old one
+    return true;
+  }
+  // The baseline's other half: after update() has placed the calendar, every placed phase's dates and column, kept.
+  function rememberPlacements(sch){
+    if(!layoutStamped() || !sch || !sch.colRel || !sch.segments) return;
+    sch.segments.forEach(s => {
+      if(s && s.key in sch.colRel) colKeepBase.set(s.key, { start: s.start.getTime(), end: s.end.getTime(), rel: sch.colRel[s.key] });
+    });
+  }
   function update(){
     // Belt and braces around render()'s own snapshot: markDirty() below touches the DOM after the
     // grid is rebuilt, and update() is what the handlers that add or
@@ -25218,6 +25477,11 @@ export function initLegacyApp() {
     // stand NOW, before anything is scheduled from them (see beginShootDayMove).
     if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
     currentSchedule = computeSchedule(state);
+    // ⭐ STICKY COLUMNS (colKeep): a phase this edit MOVED remembers the column it had where the layout last placed it,
+    // and the layout is placed once more with that memory. Only the first move of a phase changes the store, so this
+    // costs a second computeSchedule() then and never again for that phase.
+    if(noteMovedPhases(currentSchedule)) currentSchedule = computeSchedule(state);
+    rememberPlacements(currentSchedule);
     // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
     // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
     // update() is bound undebounced to the `input` event of every phase date/weeks field, so this is
@@ -26400,6 +26664,33 @@ export function initLegacyApp() {
     colFollow = next;
     update();
   });
+  // ---------- Reset Columns (owner, 6 Nov 2026: "will there be a way to reset back to default algorithm?" -> "Add it") ----------
+  // Every column back on the automatic layout in one step: each phase's fill or pull-back wish (phaseFill), every
+  // dragged cell width (cellSpans), every dragged column width in BOTH layouts (colWidths, colWidthsAlt: the Date and
+  // Notes columns too, since the width model sizes those as well), every swap (gridColSwaps, gridStintSwaps) and every
+  // phase moved by hand into a free column (colFollow). ⛔ It leaves alone what is not a column choice: dates, notes,
+  // row heights, typed headings and their styles, hidden Notes columns, Single Column Mode and the layout stamp itself
+  // (an unstamped calendar keeps its old layout; "Update layout" is the strip's job). Fresh objects throughout, never a
+  // mutation: an undo step may still hold the old ones. update() ends in markDirty(), which banks the one undo step.
+  // The button (#tb-cols-reset-btn, Header.jsx) shows in the Waterfall view only, and greys while this is false.
+  function columnEditsExist(){
+    return [phaseFill, cellSpans, colWidths, colWidthsAlt, gridColSwaps, gridStintSwaps, colFollow, colKeep]
+      .some(o => !!o && Object.keys(o).length > 0);
+  }
+  function resetColumns(){
+    if(!columnEditsExist()) return false;
+    phaseFill = {}; cellSpans = {}; colWidths = {}; colWidthsAlt = {};
+    gridColSwaps = {}; gridStintSwaps = {}; colFollow = {};
+    colKeep = {};   // every moved phase back on the rules (sticky columns, ruling K4)
+    update();
+    return true;
+  }
+  // Delegated, as the notes reset is: React owns the node. closest(), so a click on the icon lands too.
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-cols-reset-btn');
+    if(!t || viewMode === 'month') return;
+    resetColumns();
+  });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
   // through update() + markDirty() -- it dirties the file and is one undo step, where the per-user
@@ -27500,9 +27791,11 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     colReuse = true; colFollow = {}; reflectColReuse();   // a new calendar reuses columns (owner, 2 Nov 2026)
+    colKeep = {}; colKeepRestored = true;   // ...remembers no moved phase, and New itself is not a move (sticky columns)
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
+    phaseFill = {};                           // ...and no phase fills its free space (FILL-INTENT-PLAN.md)
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();
@@ -28905,6 +29198,10 @@ export function initLegacyApp() {
       // key. Nothing hidden is an ABSENT key, so a calendar that never hides a phase saves byte for byte as before.
       // Keys in sorted order: the undo stack compares snapshots as text.
       ...(Object.keys(phaseHidden).length ? {phaseHidden: phaseHiddenSnapshot()} : {}),
+      // 6 Nov 2026 (FILL-INTENT-PLAN.md): each phase's wish, {key: true} (fills its free space) or {key: false} (keeps to
+      // its column). ⛔ PERMANENT key. None is an ABSENT key, so a calendar that never uses it saves byte for byte as
+      // before. Keys in sorted order.
+      ...(Object.keys(phaseFill).length ? {phaseFill: phaseFillSnapshot()} : {}),
       // 30 Oct 2026 (Ends, see phaseEnds): the Weeks phases held by their END, a sorted array of keys. ⛔ PERMANENT key.
       // None is an ABSENT key, so a calendar that never uses Ends saves byte for byte as before. Each one's end is
       // end-<key> and its worked-out start is start-<key>, both in fields.byId, so an older build opens it where it is.
@@ -28936,6 +29233,9 @@ export function initLegacyApp() {
       // that never ticks "Reuse empty columns" or moves a phase by hand saves byte for byte what it did.
       ...(colReuse ? {colReuse: true} : {}),
       ...(Object.keys(colFollow).length ? {colFollow: Object.assign({}, colFollow)} : {}),
+      // Sticky columns (STICKY-COLUMNS-PLAN.md §5, 6 Nov 2026). ⛔ PERMANENT key, sorted, ABSENT while empty: a calendar
+      // nobody has moved a phase on saves byte for byte what it did.
+      ...(Object.keys(colKeep).length ? {colKeep: sortedObj(colKeep)} : {}),
       fields: collectFieldValues()
     };
   }
@@ -37528,6 +37828,26 @@ export function initLegacyApp() {
   // Session state, never saved: set by applyStateSnapshot's legacy headerOverrides branch, consumed
   // by the refreshAfterRestore() that every restore path ends in.
   let headerOverridesNeedDefaults = false;
+  // An old block swap (no `left`) becomes an order: every member of a group the reconciler EXCHANGED for this file
+  // gets the side it now sits on (applyStintSwaps' aLeft), so the calendar looks exactly as it did and from now on
+  // holds when a phase moves. A group not applied now (refused, or a partner no longer in that year) keeps its
+  // entries as they were, read as the old exchange if it ever applies again. A fresh object: an undo step may hold
+  // the old one.
+  function recordStintSwapSides(sch){
+    const st = sch && sch.stintOrder;
+    if(!st || !Array.isArray(st.applied) || !st.applied.length) return;
+    let next = null;
+    st.applied.forEach(ap=>{
+      if(typeof ap.aLeft !== 'boolean') return;
+      const keys = ap.a.concat(ap.b);
+      if(keys.every(k => { const v = gridStintSwaps[ap.year + '|' + k]; return !v || typeof v.left === 'boolean'; })) return;
+      if(!next) next = Object.assign({}, gridStintSwaps);
+      const put = (k, left) => { const id = ap.year + '|' + k, v = next[id]; if(v) next[id] = { with: v.with, left }; };
+      ap.a.forEach(k => put(k, ap.aLeft));
+      ap.b.forEach(k => put(k, !ap.aLeft));
+    });
+    if(next) gridStintSwaps = next;
+  }
   function refreshAfterRestore(){
     // A different document is replacing what is on screen, so a cell highlight from the PREVIOUS
     // calendar must not survive it. The overlay's prune only drops keys with no matching cell, and
@@ -37561,6 +37881,12 @@ export function initLegacyApp() {
       simLaneNeedsMove = false;
       const sp = document.getElementById('simpost-enabled');
       if(sp && sp.checked){ try { moveSimLaneStores(false); } catch(e){ console.error(e); } }
+    }
+    // Block swaps saved before 6 Nov 2026: their sides, from the exchange this file's layout makes (after the Sim
+    // lane move above, so it is the layout the update() below draws). Nothing on screen changes.
+    if(stintSwapsNeedSides){
+      stintSwapsNeedSides = false;
+      try { recordStintSwapSides(computeSchedule(readState())); } catch(e){ console.error(e); }
     }
     update();
     // After syncRegionTracking(), so effectiveRegionKey() reflects the file that was just applied
@@ -37854,7 +38180,12 @@ export function initLegacyApp() {
       for(const k of Object.keys(v)){ const n = finiteNum(v[k]); if(n === null || Math.floor(n) !== n) return undefined; out[k] = n; }
       return out;
     });
-    const swap = v => (isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with)) ? Object.assign({}, v) : undefined;
+    const swap = v => {
+      if(!(isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with))) return undefined;
+      const o = Object.assign({}, v);
+      if('left' in o && typeof o.left !== 'boolean'){ bad.n++; delete o.left; }   // a block swap's side (6 Nov 2026)
+      return o;
+    };
     setMap('gridColSwaps', swap);
     setMap('gridStintSwaps', swap);
     // A hand move names another phase by key (COLUMN-REUSE-PLAN.md §5).
@@ -38173,6 +38504,34 @@ export function initLegacyApp() {
         if(Object.keys(o).length) s.phaseHidden = o; else delete s.phaseHidden;
       }
     }
+    // Each phase's wish (FILL-INTENT-PLAN.md): a built-in phase or a custom phase this file defines, each `true` (fills)
+    // or `false` (keeps to its column). Anything else is dropped and counted; an emptied map is dropped (absent = none).
+    if('phaseFill' in s){
+      if(!isPlainObj(s.phaseFill)){ bad.n++; delete s.phaseFill; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.phaseFill).forEach(k=>{ if(known.has(k) && typeof s.phaseFill[k] === 'boolean') o[k] = s.phaseFill[k]; else bad.n++; });
+        if(Object.keys(o).length) s.phaseFill = o; else delete s.phaseFill;
+      }
+    }
+    // Sticky columns (STICKY-COLUMNS-PLAN.md §5): a built-in phase or a custom phase this file defines -> '' (a column
+    // of its own), the lane (COL_KEEP_LANE), or ANOTHER known phase. The app writes nothing else, so anything else is
+    // dropped and counted, and an emptied map is dropped (absent already means "nothing remembered").
+    if('colKeep' in s){
+      if(!isPlainObj(s.colKeep)){ bad.n++; delete s.colKeep; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.colKeep).forEach(k=>{
+          const v = s.colKeep[k];
+          if(known.has(k) && typeof v === 'string' && (v === '' || v === COL_KEEP_LANE || (known.has(v) && v !== k))) o[k] = v; else bad.n++;
+        });
+        if(Object.keys(o).length) s.colKeep = o; else delete s.colKeep;
+      }
+    }
     // The Weeks phases held by their end (phaseEnds): a built-in phase other than Production, or a custom phase this
     // file defines, each once. The app writes nothing else, so anything else is dropped and counted, and an emptied
     // list is dropped (absent already means "none").
@@ -38414,6 +38773,8 @@ export function initLegacyApp() {
     // Same rule, same reason: `: {}` is the point, not defensiveness. A file with no stint swaps must
     // clear the previous file's, or one calendar's column order silently applies to another.
     gridStintSwaps = (snap.gridStintSwaps && typeof snap.gridStintSwaps === 'object') ? Object.assign({}, snap.gridStintSwaps) : {};
+    // A swap saved before 6 Nov 2026 carries no side; refreshAfterRestore() writes it down from this file's layout.
+    stintSwapsNeedSides = Object.keys(gridStintSwaps).some(k => { const v = gridStintSwaps[k]; return !!v && typeof v.left !== 'boolean'; });
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
@@ -38637,6 +38998,9 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL (PHASES-TAB-PLAN.md §2.3): a file with no key hides nothing -- never the previously open
     // calendar's ticks. Rebuilt entry by entry (sanitizeSnapshot has held it to {key: {sheet: true}}), so nothing
     // in the store can be a snapshot the undo stack holds. refreshAfterRestore() puts the ticks and tags in step.
+    // ⛔ UNCONDITIONAL (FILL-INTENT-PLAN.md §1): a file with no key fills nothing -- never the previous calendar's wishes.
+    phaseFill = {};
+    if(isPlainObj(snap.phaseFill)) Object.keys(snap.phaseFill).forEach(k=>{ if(typeof snap.phaseFill[k] === 'boolean') phaseFill[k] = snap.phaseFill[k]; });
     phaseHidden = {};
     if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
       const v = snap.phaseHidden[k];
@@ -38671,6 +39035,10 @@ export function initLegacyApp() {
     // calendar starts ticked (2 Nov 2026): every older file, and every one saved unticked, lacks the key.
     colReuse = snap.colReuse === true;
     colFollow = (snap.colFollow && typeof snap.colFollow === 'object') ? Object.assign({}, snap.colFollow) : {};
+    // Sticky columns: unconditional for the same reason (a file without the key remembers nothing, never the previous
+    // calendar's), and the next update() compares nothing -- a different calendar, or an undo step, is not a move.
+    colKeep = (snap.colKeep && typeof snap.colKeep === 'object') ? Object.assign({}, snap.colKeep) : {};
+    colKeepRestored = true;
     reflectColReuse();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.

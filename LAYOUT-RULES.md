@@ -24,6 +24,12 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
 2. **Follow on.** A column is free once the phase in it has ended before this one starts (hiatus weeks between
    don't matter). If a column's phase ended the week before, take that column. **A paused phase has not ended:**
    a phase on its own hiatus keeps its column.
+   *(Since 6 Nov 2026, owner's picker "up to 4 weeks": **a short gap still follows on.** When no column was freed the
+   week before, a column freed up to four working weeks earlier counts as following on, so a phase nudged a week or
+   two later keeps the column instead of opening a new one right of everything running — **the column freed most
+   recently**, the one it is following (taking the leftmost of them made a phase slid week by week flip three times). Five or more is rule 4's R-D
+   again — its fixture, `layout-r7`'s Research, has exactly five. The 15 pictures score the same at any gap
+   (FILL-INTENT-PLAN.md §9); `layout-r2g` holds it.)*
 3. **Two just freed: take the left one.** That is what puts Production in Writers' column, not Prep's.
    *(As built, 5 Nov 2026 — LAYOUT-BUILD-PLAN.md §2.2: **Production goes left whether or not both columns were freed
    that week.** In hand-10, 12, 15 and 16 Writers' column had been free for one to six weeks and only Prod Prep's was
@@ -36,7 +42,8 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
    phase, since hand-08 keeps Localization in its handoff column with exactly that empty column on its left.)*
 4. **Nothing just freed: the lowest free column** — preferring one already used this year, so the year does not
    grow a column — **but never left of a phase still running** unless following on (rule 2): a phase that is not
-   continuing a column goes right of everything running. *(Ruled R-D, 5 Nov 2026.)*
+   continuing a column goes right of everything running. *(Ruled R-D, 5 Nov 2026. "Following on" includes rule 2's
+   short gap since 6 Nov 2026.)*
 5. **Nothing free: a new column on the right.**
 6. **Post continues the Sim Post lane** when Sim Post ran, so whatever else starts the week Production ends takes
    Production's column by rule 2. **Where several phases start the same week and compete for one free column,
@@ -49,6 +56,14 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
 9. **Order within a year:** columns run left to right by when the phase at the top of each column started —
    earliest on the left; a column that first appears later in the year goes after.
 10. **A hidden phase takes no column. A hand move** (drag into a free column, Swap Column) **always wins.**
+    **A phase you move keeps its column** *(sticky columns, owner, 6 Nov 2026, STICKY-COLUMNS-PLAN.md, rulings K1–K4)*:
+    moved by a typed date, ▲ / ▼, Shift, Build Around, a length or a hiatus, it stays in the column it was in whenever
+    its new dates still fit there — even past rule 2's four-week gap and rule 4's R-D (K3); where it can't fit, the
+    rules above place it and it comes back when moved back (K2). Only the phases you move (K1); every other phase is
+    placed by rules 1–9, except that they are not handed a column a moved phase remembers if they would still be in it
+    the week that phase starts, and in a same-week tie the moved phase goes first. No marker (K4); **Reset Columns**
+    forgets it. *(Why: rule 6's tie flipped a phase nudged through the week another starts — right, left, right — and
+    any fixed tie rule flips one of the two; only a layout that remembers can keep both still.)*
 
 **Widths — how wide each cell draws.**
 
@@ -81,7 +96,9 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     ruled R-F, 5 Nov 2026: typed column headings do NOT make lanes, so typing a heading never changes a width.)*
 18. **A hiatus week does not split a phase's run** for these rules: the weeks before a band do not widen on their
     own.
-19. **A width dragged by hand wins.**
+19. **A width dragged by hand wins.** *(Since 6 Nov 2026, FILL-INTENT-PLAN.md, the double-click stores a WISH on the
+    phase instead of a width on the cell — fills its free space, or keeps to its column — re-applied every week, so
+    nothing stored per cell can go stale; a drag to an exact width is still per cell and still wins for that cell.)*
 
 **Looking back at the year — what looks right.**
 
@@ -115,7 +132,8 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
 **Built** (LAYOUT-BUILD-PLAN.md, 5–6 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
 `layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; rule 20 is
 `markLayoutPhantoms` on the drawn rows and frozen edit LR2 (absorbing), the floor `LAYOUT_EARNED_WEEKS` (its give-way is
-gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rules 12, 13 and 15 as of 6 Nov 2026 are frozen
+gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rule 10's sticky columns are `colKeep`, read
+by `placeSegmentsByRules` (step 10b) and written only by `update()` through `noteMovedPhases` (leg `stickycols`); rules 12, 13 and 15 as of 6 Nov 2026 are frozen
 edit LR4 (`laneReserved`, the uncapped right walk); the fixtures are `tests/fixtures/layout-r*.sptcal` (made by
 `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
 

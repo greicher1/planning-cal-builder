@@ -2056,6 +2056,26 @@ done
 # boundary that is a real cell edge. Red on the build before it at P2. P9 + P10 (owner, the same night: "it only pulled
 # back the cell my cursor was on"): a drag over only the expanded part of cells (no own column touched) selects them,
 # and a drag that does touch own columns keeps the 1 Sep own-column rule. P9 red on the live 854dbbe build.
+# phasefill (owner, 6 Nov 2026, "so theres no way to automate the fix in the background?"; FILL-INTENT-PLAN.md) holds the
+# double-click's new meaning on a stamped calendar: the WISH on the phase ("fills its free space", frozen edit LR5),
+# re-applied on every redraw -- two wide for five weeks and one beside Production in the sixth, narrowing on its own
+# when Production moves earlier, off again on the next double-click, one undo step each, saved as phaseFill (absent
+# when none) with no new field id, restored on Load and cleared by New; the unstamped double-click keeps its per-cell
+# meaning. Red on the build before it at F2.
+# colsreset (owner, 6 Nov 2026, "will there be a way to reset back to default algorithm?" -> "Add it") holds the header's
+# Reset Columns: one click empties every column store (wishes, cell and column widths in both layouts, both swaps, hand
+# moves) and keeps notes, row heights and the stamp; Pre-Prep is automatic again; the button greys; a grey click adds no
+# undo step; the Month view hides it. Red on the build before it at R1.
+# swapholds (owner, 6 Nov 2026, "if you swap a column then move one of those column up, it should maintain the position
+# its in") holds the block swap as an ORDER: an old side-less swap opens as it did and is written down with its sides, the
+# moved phase keeps its side through five ▲ clicks (the old exchange flipped back the week it started first) and a typed
+# date, a fresh knob swap records its sides and holds through ▼, undo is one step. Red on the build before at H2/H3.
+# stickycols (owner, 6 Nov 2026, "its not just about production i dont like how it does this for any phase"; STICKY-COLUMNS-PLAN.md,
+# rulings K1-K4) holds the moved phase's kept column: Test nudged through the week it and Production start together
+# stays right (the rules alone put it left), Production nudged into Test's week stays left (the reservation), a move
+# into an overlap goes where the rules say and comes home when nudged back, undo / redo carry the memory, Reset Columns
+# and New clear it, Load restores it and remembers nothing on the way in, and a date typed through invalid years still
+# reads as a move. Red on the build before it at K1, K3, K6 and K8.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2139,7 +2159,11 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 layoutrules:layout-r2g:240 layoutrules:layout-r2h:300 \
+              phasefill:fill-intent:400 \
+              colsreset:fill-intent:300 \
+              swapholds:swap-holds:400 \
+              stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

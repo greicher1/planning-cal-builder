@@ -179,6 +179,80 @@ const SPECS = {
     ],
     hiatuses: [Y1, Y2]
   },
+  // FILL-INTENT-PLAN.md §4 (leg phasefill): Writers alone, Pre-Prep six weeks with Production arriving in its sixth,
+  // Post after, no Sim Post -- under rule 13 Pre-Prep is one wide for all six weeks, which is where the double-click's
+  // wish ("fills its free space") shows. Not a layout-r* fixture: the layoutrules leg does not read it.
+  'fill-intent': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'prePrep', start: '2031-04-14', weeks: 6 },
+      { key: 'production', start: '2031-05-19', weeks: 10 },
+      { key: 'post', start: '2031-07-28', weeks: 8 }
+    ],
+    hiatuses: [Y1]
+  },
+  // A block swap holds when one of its phases moves (owner, 6 Nov 2026: "if you swap a column then move one of those
+  // columns up, it should maintain the position its in"; FILL-INTENT-PLAN.md §8). Pre-Prep and Prod Prep run side by
+  // side for three weeks, Pre-Prep left; the file swaps them the way every build before 6 Nov 2026 saved a swap, with no
+  // side (`extra`), so the leg also proves an old swap opens looking the same. Leg `swapholds`.
+  'swap-holds': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'prodPrep', start: '2031-04-07', weeks: 14 },
+      { key: 'production', start: '2031-08-04', weeks: 19 },
+      { key: 'post', start: '2031-11-24', weeks: 26 }
+    ],
+    hiatuses: [Y1, Y2],
+    extra: { gridStintSwaps: { '2031|prePrep': { with: 'prodPrep' }, '2031|prodPrep': { with: 'prePrep' } } }
+  },
+  // Rule 2's short gap (owner, 6 Nov 2026, "up to 4 weeks"; FILL-INTENT-PLAN.md §9): the owner's test calendar's shape. Writers
+  // ends 4/7; Pre-Prep runs beside it; a custom "Test" starts 4/21, one working week after Writers' column emptied, and
+  // follows Writers into it instead of opening a third column right of Pre-Prep (R-D). The leg also moves Test to 5/12
+  // (four weeks: still Writers' column) and 5/19 (five: a new column, R-D, as layout-r7's Research).
+  'layout-r2g': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'custom1', name: 'Test', start: '2031-04-21', weeks: 10 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 10 },
+      { key: 'production', start: '2031-08-04', weeks: 10 },
+      { key: 'post', start: '2031-10-13', weeks: 8 }
+    ],
+    hiatuses: [Y1]
+  },
+  // Rule 2's short gap, the LATEST-freed column (owner, 6 Nov 2026: "Its jumping back and fourth so many times"): the
+  // owner's sweep, shifted to 2030-31. Writers ends 1/6/31, Pre-Prep beside it ends 1/20, Prod Prep follows Pre-Prep
+  // on 1/27, Production starts 3/24. The leg slides Prod Prep 1/27 -> 3/3 a week at a time: it stays in Pre-Prep's
+  // column, right of Production, through four weeks' gap, and changes once, at five (R-D's limit).
+  'layout-r2h': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2030-08-26', weeks: 20 },
+      { key: 'prePrep', start: '2030-12-16', weeks: 6 },
+      { key: 'prodPrep', start: '2031-01-27', weeks: 10 },
+      { key: 'production', start: '2031-03-24', weeks: 20 }
+    ],
+    hiatuses: [Y1]
+  },
+  // Sticky columns (owner, 6 Nov 2026, STICKY-COLUMNS-PLAN.md; rulings K1-K4): the owner's shape, shifted to 2031.
+  // Writers then Prod Prep in the left column, Prod Prep's last week 7/28; Production 8/4 (20 weeks); a 10-week custom
+  // "Test" starting 7/28, right of Production. By the rules alone, Test nudged to 8/4 -- the week both start, with
+  // Prod Prep's column just freed -- goes LEFT (rule 6's tie: the shorter takes it) and right again at 8/11; and
+  // Production nudged into Test's start week goes right. A phase the user moves keeps its column. Leg `stickycols`.
+  'sticky-cols': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 16 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 14 },
+      { key: 'production', start: '2031-08-04', weeks: 20 },
+      { key: 'custom1', name: 'Test', start: '2031-07-28', weeks: 10 }
+    ],
+    hiatuses: [Y1]
+  },
   'layout-r20b': {
     stamped: true, simpost: { enabled: false },
     phases: [
@@ -192,8 +266,12 @@ const SPECS = {
   }
 };
 
+// `node tools/layout-study/fixtures.mjs <id> …` writes only those; with no ids, every one.
+const only = process.argv.slice(2);
 for (const [id, spec] of Object.entries(SPECS)) {
+  if (only.length && !only.includes(id)) continue;
   const s = buildSnapshot(spec, id);
+  if (spec.extra) Object.assign(s, spec.extra);   // stores the spec format has no field for (swap-holds' old swap)
   fs.writeFileSync(path.join(out, id + '.sptcal'), JSON.stringify(s, null, 2) + '\n');
   console.log('wrote tests/fixtures/' + id + '.sptcal');
 }

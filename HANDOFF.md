@@ -363,7 +363,112 @@
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
 
-### 🔨 6 Nov 2026 (later): PRODUCTION TAKES THE LEFTMOST FREE COLUMN, A RUNNING PHASE TO ITS RIGHT OR NOT — built on branch `prod-leftmost` (worktree `.claude/worktrees/prod-leftmost`, cut from `no-giveway` at `6c3e1e6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `production-leftmost-free-column`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 3; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §10.
+### 🔨 6 Nov 2026 (late night): STICKY COLUMNS — A PHASE YOU MOVE KEEPS ITS COLUMN — built on branch `sticky-cols` (worktree `.claude/worktrees/magical-ishizaka-a283e6`, cut from `follow-gap`'s local commit `598bb44` with the `lab-gap` worktree's uncommitted work applied on top, so it carries the fill wish, Reset Columns, the swap order and the four-week follow-on too; its `node_modules` is a symlink, unlink it before `git worktree remove`). ✅ Committed LOCALLY on `sticky-cols` (owner's picker *"Commit on the branch"*), ONE commit that also carries the `lab-gap` work it was built on (the fill wish, Reset Columns, the swap order, the four-week follow-on, their docs and legs); not merged, not pushed. Tracker card `no-side-flip-when-nudged`. Plan: [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md) (§8 = as built); rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10.
+- **The ask.** Three screenshots of a phase moved a week at a time around Production (right, LEFT in the week they start
+  together, right), then *"its not just about production i dont like how it does this for any phase"*; by picker
+  *"Plan sticky columns"*, rulings K1–K4 as recommended (only moved phases; returns when it fits again; kept wins for
+  that phase; no marker).
+- **As built.** `colKeep[key]` = what the phase's column held before it (a phase key, `'simPostLane'`, or `''` for a
+  column of its own), PERMANENT snapshot key, sorted, absent while empty, sanitized, restored unconditionally, cleared by
+  New and Reset Columns (`columnEditsExist()` counts it), pruned with a custom phase, in both column caches.
+  `placeSegmentsByRules` step 10b: after the hand move, before the rules; a kept phase whose column is free goes first in
+  its same-week group; the rules (2–6, Production's rule 3 and the lane) are not offered a column an unplaced kept phase
+  remembers and could take when they would still be in it that week. Returns `rel`, carried as `schedule.colRel`.
+  Written only by `update()` (`noteMovedPhases` then one more `computeSchedule()`, `rememberPlacements`), against a
+  PER-PHASE baseline (`colKeepBase`) because a typed date passes through invalid years that lay nothing out; an entry is
+  written only while the phase has none (K2). Never in a trial; never on a restore (`colKeepRestored`, raised by
+  `applyStateSnapshot()` and New; and nothing while `suppressDirty`). ⚠️ `suppressDirty` is read LAST in
+  `noteMovedPhases`: it is declared ~4,000 lines below `update()`, which runs during the IIFE's evaluation. No frozen code
+  changed. Help: one sentence in "Where a phase goes".
+- **Checks:** leg `stickycols` 12/12 on fixture `sticky-cols` (red on the build before at K1, K3, K6, K8), in the gate's
+  AFSPEC; `layoutrules` `layout-r2g` 6/6 (R2Gc re-expected, R2Gd new) and `layout-r2h` 4/4 (R2Ha re-expected, R2Hb new,
+  the rules' own sweep after Reset Columns); the other eleven layout fixtures, `colsreset` (now with `colKeep`),
+  `phasefill`, `swapholds`, `simpostdays`, `centrepullback`, `colswapcache`, `settingswin`, `hdrcontrols`, `noswapbtns`,
+  `colswappartial` ×2, `swapsplitreuse`, `monthmap` green; the 15 pictures 98.1% / 31 / 0, unchanged; `npm run check`
+  40/40. ✅ **Full gate on build sha256 `5921990…`** (= `~/Downloads/SPTCal-test-sticky-columns-6Nov.html`, unchanged start
+  to finish), alone on the machine except this session's own scratch legs: **4,270 PASS / 2 FAIL**, both load timing and
+  both GREEN re-run alone with the gate's judges (`pwagate` 13/13; `scenariocompat` on `releases/v1.2.0.html`, which
+  nothing here touches). No baseline check failed. So `sticky-cols` is gate-green; not committed, not pushed.
+- ⚠️ **Worktree trap, found here:** the app had COPIED a `node_modules` folder into this new worktree, so
+  `ln -sfn … node_modules` made a link INSIDE it, and the build bundled two copies of React (every leg: "Cannot read
+  properties of null (reading 'useState')"; the build's React minified names differed from a clean build's). Moved the
+  copy to the session scratchpad and linked properly. Check `ls -la node_modules` is a symlink before trusting a build.
+- ⚠️ `tools/check-refs.py` reports 5 prose line numbers in older HANDOFF sections (the same in `lab-gap`); not from this.
+
+### 🔨 6 Nov 2026 (late night): RULE 2'S SHORT GAP — A PHASE UP TO 4 WORKING WEEKS LATE STILL FOLLOWS INTO THE FREED COLUMN — built on branch `follow-gap` (worktree `.claude/worktrees/lab-gap`, the lab where it was measured; = `swap-holds` + this; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not merged. ⛔ Owner: *"up to 4 weeks...but i just want to try it out first not push it"* — a test file only until they say otherwise. Tracker card `follow-on-short-gap`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §9; rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 2.
+- **As built.** `LAYOUT_FOLLOW_GAP_WEEKS = 4`; in `placeSegmentsByRules`, `nearHandoff(i)` (free, emptied ≤ 4 working weeks
+  before) is asked only when no true handoff exists, the LATEST-freed of those (left one of a tie), before R-D's `open`.
+  ⚠️ The first test file took the leftmost and the owner caught it (*"Its jumping back and fourth so many times"*: right,
+  left, left, right, right, left as Prod Prep slid weekly); fixture `layout-r2h` replays it, red there, one change now.
+  Re-scored after the fix: 15 pictures 98.1% / 31 / 0, all twelve layout fixtures green, `swapholds` 8/8, check 40/40. Production's rule 3 and the
+  Sim Post lane are unchanged. Help: one clause in "Where a phase goes".
+- **Measured** (study tools on the lab build): the 15 pictures identical at 1, 2, 4, 8 and unlimited; `layout-r7` (R-D,
+  a five-week gap) breaks from 5. New fixture `layout-r2g` (the owner's shape in 2031): R2Ga/b red on `swap-holds`,
+  R2Gc (five weeks) the same on both. The second swap cause (a collision with a phase outside the swap) is NOT fixed:
+  owner's picker *"Keep swapping phases only"*.
+
+### 🔨 6 Nov 2026 (night): A COLUMN SWAP HOLDS WHEN ONE OF ITS PHASES MOVES — built on branch `swap-holds` (worktree `.claude/worktrees/swap-holds`, cut from `prod-leftmost` at `598bb44` with the `fill-intent` worktree's uncommitted work copied in, so it carries the fill wish and Reset Columns too; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not merged. Tracker card `swap-holds-when-phase-moves`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §8.
+- **The ask.** The owner, after asking whether the wish idea applies to column swapping: *"so if you swap a collumn then
+  move one of those collumn up, it should maintain the position its in."* Measured on the fill-intent build: the block
+  swap held while the moved phase still started after its partner, and undid itself the week it started first (Prod
+  Prep ▲ from 4/7: held at 3/31, 3/24, 3/17, flipped at 3/10).
+- **As built.** `gridStintSwaps` entries gain `left: true | false` (PERMANENT; booleans only, the sanitizer drops
+  anything else). `stintStoreAfter` writes it (movers left iff `run.dir < 0`). `applyStintSwaps` reads a fully-sided
+  group as an ORDER against the block's own pinned left-to-right order and exchanges only when it is the other way
+  round; an in-order group is not `applied`. Side-less or mixed groups exchange as before. Old files:
+  `stintSwapsNeedSides` (set in `applyStateSnapshot`) → `recordStintSwapSides()` in `refreshAfterRestore` writes each
+  exchanged group's sides from `aLeft` on the applied list, so nothing on screen moves at load. Both cache keys
+  (`_swapGateKey`, the knob's) carry `left`. Help: one sentence in "Swapping two phases' columns". E5 and the per-week
+  swap untouched.
+- **Checks:** leg `swapholds` 8/8 on fixture `swap-holds` (3/8 on the fill-intent build: H2, H3 red as designed); the
+  gate's swap section run alone, 115 checks, 0 failing; `noswapbtns`, `colswappartial` ×2, `swapsplitreuse`,
+  `colswapcache`, `colsreset`, `phasefill` green (7, 8 + 8, 5, 9, 8, 13 checks); `npm run check` 40/40 on the final build (sha256 `59940e31…`). ⚠️ The
+  queued full gate moved from `fill-intent` to this branch, since this build contains all three.
+- ✅ **Full gate on this build** (sha256 `59940e31…`, unchanged start to finish), 18:05–19:39 PST: **4,201 PASS / 5 FAIL**,
+  all five load timing while scoring runs shared the machine, and all five GREEN re-run alone with the gate's own judges
+  (`pwagate` 13, `papersize` 12, `backuplink` 5, `pilldrag` 31, `scenariocompat` 2 — the last runs the old
+  `releases/v1.2.0.html` and `v1.8.0.html`, which nothing here touches). Baselines byte-identical (no baseline check
+  failed). So `swap-holds` (the fill wish, Reset Columns, the swap order) is gate-green; not committed, not pushed.
+
+### 🔨 6 Nov 2026 (evening): THE DOUBLE-CLICK STORES A WISH ON THE PHASE, NOT A WIDTH ON THE CELL — built on branch `fill-intent` (worktree `.claude/worktrees/fill-intent`, cut from `prod-leftmost` at `598bb44`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker cards `hand-width-visible-and-explained`, `reset-columns-to-automatic`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md).
+- ⭐ **Reset Columns joined this branch the same evening** (owner, trying the fill wish: *"will there be a way to reset
+  back to default algorithm?"* → *"Add it"*; plan §6). `#tb-cols-reset-btn` in `Header.jsx` beside Reset Notes,
+  Waterfall view only (display:none in the Month view, always rendered), `data-disabled` while `columnEditsExist()` is
+  false, pushed as `chrome.colsResetBtn({view, any})` from `pushViewControls()`. `resetColumns()` (beside the row
+  note's Reset) empties `phaseFill`, `cellSpans`, `colWidths`, `colWidthsAlt`, `gridColSwaps`, `gridStintSwaps`,
+  `colFollow` with fresh objects and runs `update()` (one undo step). ⛔ It keeps dates, notes, row heights, typed
+  headings and their styles, hidden Notes columns, Single Column Mode and the stamp. ⚠️ Header fit: labelled it
+  overflowed by 25 px at 1121 px (the status has an inline 78 px minimum, so nothing gives way); `.btn-collapse-early`
+  makes it icon-only at ≤1280 px (UI-CONVENTIONS ladder). Swept 961–1440 px in the pane: no overflow, 63 px, ≥64 px
+  spare. Leg `colsreset` 8/8 (in the gate's AFSPEC); `hdrcontrols` N0 re-expected (the Waterfall's header now ends
+  divider, Reset Notes, Reset Columns), 12/12; `phasefill`, `centrepullback`, `noresetall`, `regionlock`, `mvtextstyle`,
+  `sharecopy2` green; check 40/40. The full gate queued on this build was stopped before it started and re-queued
+  after these checks, so it covers both.
+- **What else could carry a wish** (owner: *"Perhaps it applies to column swapping as well?"*): plan §7 tables every
+  column choice by what it is stored against. Both swaps and the hand move already name phases; the position-keyed
+  header-row widths and typed headings are the remaining "weird after an edit" gap. Nothing built; the owner's call.
+- **The ask.** Hand-set widths (`cellSpans`) are per cell, invisible, trimmed or held in silence when the schedule moves:
+  *"how do we make sure we dont frustrate users ... why those manually changed columns are now behaving weirdly"* →
+  *"so theres no way to automate the fix in the background?"* → store the wish, not the width → *"Yes, build it"*.
+- **As built.** `phaseFill` `{key: true | false}` (fills its free space / keeps to its column; absent = automatic), beside
+  `phaseHidden`; `phaseFillOn` / `phaseFillOff` / `setPhaseFill` (a wish drops the phase's per-cell widths). The
+  double-click on a STAMPED calendar does the visible opposite of what it sees (wide → `false`, one wide → `true`); the
+  edge handle's double-click drops the wish too; the batch sets every highlighted phase (all wide → keep, else fill) and
+  the chip reads "pull back cells" / "fill free space". Unstamped: the per-cell double-click as before. ⛔ Frozen edit
+  LR5 in `computePhaseRowLayout`, stamped only: `fillsFree(k)` takes every empty slot this week (no rest-of-run, no
+  share, no lane reservation; the marker and cells stop it; Single Column holds), `keepsNarrow(k)` takes nothing and is
+  given nothing (R-E, rule 21 skip it); `applyCellSpanOverrides` still lays a drag over it. Snapshot: PERMANENT key
+  `phaseFill`, sorted, absent while empty; sanitized to known phases and booleans; restored unconditionally; cleared by
+  New; pruned with a custom phase. Help reworded.
+- **Checks:** leg `phasefill` 13/13 on fixture `fill-intent` (F1–F6; red on the build before at F2); `centrepullback`
+  re-expected to the phase level, 12/12 (the owner's 5 Nov double-click-to-unexpand survives as "keeps to its column");
+  all eleven layout fixtures and the stamped-path legs green; `npm run check` 40/40; the 15 calendars re-scored
+  identical to v1.12.1 (98.1%, 31 column misses, 0 width misses; no seed carries the key). The `no-giveway` build's
+  full gate (4,203 / 9) lost `pilllabel (blocksoff)` and `offweek` R12/R13 to load timeouts while legs, re-scores and
+  builds ran beside it; alone on this build `offweek` 38/39 (R7, a load timeout again) and `pilllabel (blocksoff)` ran
+  to the end — the full gate on this build is queued and judges both. Written here when done.
+
+### 🔨 6 Nov 2026 (later): PRODUCTION TAKES THE LEFTMOST FREE COLUMN, A RUNNING PHASE TO ITS RIGHT OR NOT — built on branch `prod-leftmost` (worktree `.claude/worktrees/prod-leftmost`, cut from `no-giveway` at `6c3e1e6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch as `598bb44` (local only, so `fill-intent` could be cut from it); not merged, not pushed. Tracker card `production-leftmost-free-column`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 3; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §10.
 - **The ask (owner, a screenshot without Sim Post, Post starting before the shoot):** Production, handed Prod Prep's
   middle column, sat one wide beside Post with Writers' free column empty on its left for the whole shoot — *"Do you
   think in this situation production should expand to the left to fill the blank space and maybe prod prep should fill
@@ -377,9 +482,13 @@
   `centrepullback` 12/12, `swapsplitreuse` 5/5, `settingswin` 21/21, `colreuse` live + restore, `notescols` 49/49,
   `simpostbeside` 19/19, `layouthook`; the 15 calendars re-scored identical to v1.12.1 (98.1%, 31 column misses, 0 width
   misses; four seeds' dumps came back empty under the running gate and scored 100% alone, as before). Full gate on this
-  build (which carries the Sim Post fix too): queued behind the `no-giveway` gate, written here when done.
+  build (which carries the Sim Post fix too), 17:26–18:05 PST: **4,217 PASS / 4 FAIL**, all four under load (other legs
+  ran beside it): `hdrfile` ×2 (the V1 preset import and the junk-key drop) green alone on the `swap-holds` build;
+  `phasesui (hidewf)` P1, one of 46 fixtures timed out loading (`hiatus-blanklabel`); `scenariocompat` (v1.2.0 opens the
+  scenario on screen), a known load-timing failure that has passed alone before. The combined gate on `swap-holds`
+  judges all four again.
 
-### ✅ 6 Nov 2026 (afternoon): SIM POST NEVER STEPS ASIDE; A PHASE FILLS THE EMPTY COLUMN TO ITS RIGHT — built on branch `no-giveway` (worktree `.claude/worktrees/no-giveway`, cut from `main` at `d0dd33b` = v1.12.1 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `simpost-never-steps-aside`. Rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rules 12, 13, 15, 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9.
+### ✅ 6 Nov 2026 (afternoon): SIM POST NEVER STEPS ASIDE; A PHASE FILLS THE EMPTY COLUMN TO ITS RIGHT — built on branch `no-giveway` (worktree `.claude/worktrees/no-giveway`, cut from `main` at `d0dd33b` = v1.12.1 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch as `6c3e1e6` (local only); not merged, not pushed. Tracker card `simpost-never-steps-aside`. Rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rules 12, 13, 15, 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9.
 - **The asks (owner, on the live v1.12.1, two screenshots):** Post moved up two weeks took the lane and dropped two Sim
   Post weeks — *"it ate into Sim post. thats not right"*; moved up three, the column is earned and *"it fixes it"*
   (Production | Sim Post | Post for three weeks); and on that picture *"notice how pre-prep also isnt filling its

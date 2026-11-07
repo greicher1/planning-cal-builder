@@ -20,6 +20,13 @@
 //               beside the lane and Sim Post stays on every shoot week (the give-way of v1.12.0-v1.12.1, which sent
 //               Post into the lane and dropped the marker, was withdrawn by the owner); Design beside Writers spreads
 //               into that column.
+//   layout-r2g  rule 2's short gap (6 Nov 2026): a phase starting up to 4 working weeks after a column empties follows into it;
+//               5 weeks is R-D again -- for a phase the user has not moved. Test is moved here, so since sticky columns
+//               (STICKY-COLUMNS-PLAN.md, ruling K3) it KEEPS Writers' column at five weeks; Reset Columns then hands it
+//               back to the rules, which put it right (R2Gd)
+//   layout-r2h  the short gap takes the LATEST-freed column: Prod Prep slid six weeks changes side once, not three times
+//               (R2Hb, re-placed by the rules after each step with Reset Columns); slid by the user, it never changes
+//               side at all (R2Ha, sticky columns)
 //   layout-r3b  rule 3 since 6 Nov 2026: Production takes the leftmost FREE column even with a phase running to the
 //               right of it (Writers' column over Prod Prep's handoff, Post running), and R-E gives it the spare.
 //   layout-r13b rules 12, 13 and 15 since 6 Nov 2026 (frozen edit LR4): the owner's three-week-overlap calendar --
@@ -257,6 +264,43 @@ window.addEventListener('load', function () { (async function () {
       W3b('R3Bc', 'Post: one wide in the third column beside Prod Prep and then the shoot, then fills the three', 'post', 2031, ['2031-07-07:2+1', '2031-12-01:0+3']);
       W3b('R3Bd', 'Prod Prep: two wide (Writers’ freed column and its own); the third column stays empty because Post takes it before Prod Prep ends (rule 13; hand-08’s Shoot)', 'prodPrep', 2031, ['2031-04-28:0+2']);
       W3b('R3Be', 'Pre-Prep: two wide beside Writers (rule 13 uncapped), then fills the width', 'prePrep', 2031, ['2031-03-17:1+2', '2031-04-14:0+3']);
+    }
+    if (FX === 'layout-r2g') {
+      // Rule 2's short gap (LAYOUT_FOLLOW_GAP_WEEKS = 4). Test is moved by typing its start, then the grid re-read.
+      var r2g = function () { var b2 = read(); return { same: same(b2, 2031, 'custom1', 'writersRoom'), test: slotOf(b2, 2031, 'custom1'), cols: slotsIn(b2, 2031) }; };
+      var g1 = r2g();
+      C('R2Ga', 'Test, one working week after Writers’ column emptied, follows Writers into it: two columns, not a third right of Pre-Prep (rule 2, short gap)',
+        g1.same && g1.test === 0 && g1.cols === 2, J(g1));
+      T.set('start-custom1', '2031-05-12'); await settle('Test at 5/12');
+      var g4 = r2g();
+      C('R2Gb', 'moved to 5/12, four working weeks after: still Writers’ column, two columns', g4.same && g4.test === 0 && g4.cols === 2, J(g4));
+      T.set('start-custom1', '2031-05-19'); await settle('Test at 5/19');
+      var g5 = r2g();
+      C('R2Gc', 'moved to 5/19, five working weeks after: Test was MOVED, so it keeps Writers\u2019 column (sticky columns, ruling K3: kept beats rule 2\u2019s gap and R-D)',
+        g5.same && g5.test === 0 && g5.cols === 2, J(g5));
+      var rb = document.getElementById('tb-cols-reset-btn'); if (rb) rb.click();
+      await settle('Test at 5/19, reset');
+      var g6 = r2g();
+      C('R2Gd', 'Reset Columns: placed by the rules, five working weeks is not following on, so right of everything running -- a third column (R-D, as layout-r7)',
+        !!rb && !g6.same && g6.test === 2 && g6.cols === 3, J(g6));
+    }
+    if (FX === 'layout-r2h') {
+      // The owner's sweep: Prod Prep slid a week at a time; which side of Production it sits on, each week.
+      var sideOf = function () { var b2 = read(); var a1 = slotOf(b2, 2031, 'prodPrep'), p1 = slotOf(b2, 2031, 'production'); return (a1 === null || p1 === null) ? '?' : (a1 < p1 ? 'L' : 'R'); };
+      var sweep = [];
+      var days = ['2031-01-27', '2031-02-03', '2031-02-10', '2031-02-17', '2031-02-24', '2031-03-03'];
+      for (var d = 0; d < days.length; d++) { T.set('start-prodPrep', days[d]); await settle('Prod Prep at ' + days[d]); sweep.push(days[d].slice(5) + ' ' + sideOf()); }
+      C('R2Ha', 'Prod Prep slid by the user 1/27 -> 3/3 a week at a time: right of Production EVERY week -- it keeps Pre-Prep\u2019s column, the one it was in (sticky columns, ruling K3; until then it went left at 3/3, R-D)',
+        J(sweep) === J(['01-27 R', '02-03 R', '02-10 R', '02-17 R', '02-24 R', '03-03 R']), J(sweep));
+      // The rules alone, as they place a phase nobody moved: Reset Columns after each step forgets the move.
+      var rsweep = [], rbtn = document.getElementById('tb-cols-reset-btn');
+      for (var e = 0; e < days.length && rbtn; e++) {
+        T.set('start-prodPrep', days[e]); await settle('Prod Prep at ' + days[e]);
+        rbtn.click(); await settle('Prod Prep at ' + days[e] + ', reset');
+        rsweep.push(days[e].slice(5) + ' ' + sideOf());
+      }
+      C('R2Hb', 'the rules alone (Reset Columns after each step): right of Production through four weeks\u2019 gap (the latest-freed column) and left from 3/3, five weeks after (R-D) -- ONE change, not three',
+        J(rsweep) === J(['01-27 R', '02-03 R', '02-10 R', '02-17 R', '02-24 R', '03-03 L']), J(rsweep));
     }
     if (FX === 'layout-r20b') {
       var W20b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
