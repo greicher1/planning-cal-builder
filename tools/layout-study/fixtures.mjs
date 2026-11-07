@@ -163,6 +163,22 @@ const SPECS = {
     ],
     hiatuses: [Y1, Y2]
   },
+  // Rule 3 as ruled on 6 Nov 2026 ("Yes, Production only"), the owner's screenshot without Sim Post: Post starts before
+  // the shoot and runs to its right; Production, handed Prod Prep's middle column, used to sit one wide beside Post
+  // with Writers' free column empty on its left for the whole shoot. Now Production takes the leftmost free column,
+  // Writers', and the spare middle column goes to it (R-E). Prod Prep keeps its white column (rule 13: Post takes it
+  // before Prod Prep ends), as hand-08's Shoot does.
+  'layout-r3b': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 14 },
+      { key: 'post', start: '2031-07-07', weeks: 26 },
+      { key: 'production', start: '2031-08-04', weeks: 17 }
+    ],
+    hiatuses: [Y1, Y2]
+  },
   'layout-r20b': {
     stamped: true, simpost: { enabled: false },
     phases: [

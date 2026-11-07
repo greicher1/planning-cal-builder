@@ -332,3 +332,23 @@ beside Writers; Post 2+1 then 0+3) — 4/8 on v1.12.1, 8/8 here. New `layout-r13
 the shoot ends): Pre-Prep 1+2 then 0+3, Writers 0+1, Production 0+1, Sim Post on all 19 shoot rows, Post 2+1 ×3 then
 0+3 — 7/8 on v1.12.1 (Pre-Prep 1+1, the screenshot), 8/8 here.
 
+## 10. 6 Nov 2026, later: Production takes the leftmost free column, a running phase to its right or not
+
+**The ask.** A screenshot without Sim Post, Post starting before the shoot: Production, handed Prod Prep's middle column
+(rule 2), sat one wide beside the running Post with Writers' free column empty on its left for all seventeen shoot
+weeks, because rule 4 (R-D) keeps a column left of a running phase out of "open" and it was not a handoff. *"Do you
+think in this situation production should expand to the left to fill the blank space and maybe prod prep should fill
+its white space? What rules would this change"* — then *"Yes, Production only"*, and on *"wait just for production or
+any phase in that same position?"*: Production only, because hand-05 and hand-08 keep Localization in its handoff
+column over a free column further left (hand-08 with exactly this hole, 20 weeks), while hand-10, 12, 15 and 16 send
+Production into Writers' free column over Prep's handoff.
+
+**Built** (`placeSegmentsByRules`, not frozen): Production's candidates are every free column, not `hand ∪ open`; the
+leftmost by the year order wins, as before. Nothing else moves: rule 12 (R-E) then hands it the spare middle column, so
+it draws two wide beside Post. Prod Prep's white column stays (rule 13: Post takes it before Prod Prep ends; hand-08's
+Shoot keeps the same shape for 31 weeks) — fill-while-free would make a width shrink mid-run, declined.
+
+**Fixture** `layout-r3b` (the screenshot's shape: Writers 14 wks, Pre-Prep 6, Prod Prep 14, Post from four weeks before
+the shoot, Production 17, no Sim Post): Production in Writers' column, `0+2` for the shoot; Post `2+1` then `0+3`; Prod
+Prep `0+2`; Pre-Prep `1+2` then `0+3`. 5/7 on the build before (Production at slot 1, `1+1`), 7/7 here.
+

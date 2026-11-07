@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right (6 Nov 2026)
+### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
 
 Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and
 [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9; stamped calendars only, like the rest.
@@ -48,9 +48,16 @@ Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.
   excluded only while the marker ran; a phase alone still fills it, as one calendar draws). Frozen edit LR4 in
   `computePhaseRowLayout`, behind the stamp. Also fixed on the way: rule 21's marker sentinel had shipped as a space
   where the engine writes a NUL, so its share count read the marker as a phase.
+- **Production takes the leftmost free column, a running phase to its right or not** (later the same day; owner:
+  *"Yes, Production only"*). Without Sim Post and with Post starting before the shoot, Production had been handed Prod
+  Prep's middle column and sat one wide beside Post with Writers' free column empty on its left for the whole shoot,
+  because rule 4 keeps a column left of a running phase out of reach unless it is a handoff. Rule 3 now says Production
+  goes to the leftmost free column regardless, and rule 12 hands it the spare between it and Post. Production only:
+  the pictures keep Localization in its handoff column over a free column further left (hand-05, hand-08).
 - **Verified:** `layout-r20` re-expected (three columns, Production | Simultaneous Post | Post, Design two wide beside
   Writers), 4/8 on v1.12.1 and 8/8 here; new `layout-r13b`, the owner's three-week calendar, 7/8 on v1.12.1 (Pre-Prep
-  one wide) and 8/8 here; `simpostdays` 14/14 on its original expectations; `npm run check` 40/40; the rest below.
+  one wide) and 8/8 here; new `layout-r3b`, the Production screenshot, 5/7 on the build before (Production one wide in
+  the middle) and 7/7 here; `simpostdays` 14/14 on its original expectations; `npm run check` 40/40; the rest below.
 
 ## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
 

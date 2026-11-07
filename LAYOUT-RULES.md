@@ -29,7 +29,11 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
    that week.** In hand-10, 12, 15 and 16 Writers' column had been free for one to six weeks and only Prod Prep's was
    handed off, and the pictures still put Production in Writers' column; the study's own scoring agrees, since Reuse
    OFF, which takes the lowest free column, got those seeds right. Every other phase takes its handoff column first,
-   as rule 2 says — hand-05's and hand-08's Localization over a free column further left.)*
+   as rule 2 says — hand-05's and hand-08's Localization over a free column further left.)* *(And since 6 Nov 2026,
+   **a phase still running to the right of that free column does not stop Production either**: handed Prod Prep's
+   middle column with Writers' free column on its left and Post running on its right, Production had sat one wide
+   beside an empty column for the whole shoot. Owner: "Yes, Production only" — rule 4's R-D stays for every other
+   phase, since hand-08 keeps Localization in its handoff column with exactly that empty column on its left.)*
 4. **Nothing just freed: the lowest free column** — preferring one already used this year, so the year does not
    grow a column — **but never left of a phase still running** unless following on (rule 2): a phase that is not
    continuing a column goes right of everything running. *(Ruled R-D, 5 Nov 2026.)*

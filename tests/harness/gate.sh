@@ -2044,7 +2044,8 @@ done
 # (owner, 5 Nov 2026: a column must earn its place; the give-way withdrawn 6 Nov 2026): Post starting in Production's
 # last week gets a third column beside the lane and Sim Post stays on every shoot week; a one-week phase's column does
 # not count toward the even share (frozen edit LR2); r13b rules 12, 13 and 15 as ruled on 6 Nov 2026 (frozen edit LR4:
-# the right spread uncapped, the lane reserved until the shoot ends); r21 rule 21 (owner, 6 Nov 2026: a run never shrinks): Post keeps its
+# the right spread uncapped, the lane reserved until the shoot ends); r3b rule 3 since 6 Nov 2026 (Production takes the
+# leftmost free column even with a phase running to its right); r21 rule 21 (owner, 6 Nov 2026: a run never shrinks): Post keeps its
 # two columns for the two weeks Localization runs beside it (frozen edit LR3). Each red on the build before the rules where its rule differs.
 # An UNSTAMPED calendar is every other leg of this gate: its placement and its widths are byte for byte what they were.
 # centrepullback (owner, 5 Nov 2026: "drag and select collumns and double click to unexpand them") holds the double-click
@@ -2138,7 +2139,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 \
               centrepullback:layout-r13:240 \
               phasesui:hidewf:1500; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

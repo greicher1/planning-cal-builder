@@ -4685,7 +4685,8 @@ export function initLegacyApp() {
   //      not ended. A column whose phase ended the week before (or only all-phase hiatus weeks between, ruled Q5)
   //      is a HANDOFF, and the phase takes it. Localization after Post (7), a wrap after Production (6).
   //   3. Two handed off: the LEFT one. ⚠️ Production goes left whether or not both columns were freed that week
-  //      (hand-10, 12, 15, 16: Writers' column free for weeks, Prod Prep's handed off, Production in Writers').
+  //      (hand-10, 12, 15, 16: Writers' column free for weeks, Prod Prep's handed off, Production in Writers'), and
+  //      since 6 Nov 2026 whether or not a phase runs to the right of that free column (R-D is for the others).
   //   4. Nothing handed off: the leftmost free column, never left of a phase still running (R-D). An unused
   //      column sorts after every used one, so a year never grows a column it does not need (hand-13).
   //   5. Nothing free: a new column on the right.
@@ -4796,8 +4797,12 @@ export function initLegacyApp() {
             if(handoff(i)) hand.push(i);
             else if(rightOfRunning(i)) open.push(i);
           }
-          // 3. Production goes LEFT: the leftmost of every column it may take, handed off or not.
-          if(seg.key === 'production') at = leftmost(hand.concat(open), y, first);
+          // 3. Production goes LEFT: the leftmost FREE column, handed off or not, a phase still running to its right or
+          //    not (owner, 6 Nov 2026: handed Prod Prep's middle column with Writers' free column on its left and Post
+          //    running on its right, Production sat one wide beside an empty column for the whole shoot; hand-10, 12,
+          //    15 and 16 already put it in Writers' free column over Prep's handoff). R-D (rule 4) is for the other
+          //    phases: hand-05 and hand-08 keep Localization in its handoff column over a free column further left.
+          if(seg.key === 'production'){ const all = []; for(let i = 0; i < cols.length; i++) if(free(i)) all.push(i); at = leftmost(all, y, first); }
           // 2 + 3. A handoff, the left one of two.  4. Else the leftmost free column right of everything running.
           else at = hand.length ? leftmost(hand, y, first) : leftmost(open, y, first);
         }

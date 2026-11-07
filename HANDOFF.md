@@ -363,7 +363,23 @@
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
 
-### 🔨 6 Nov 2026 (afternoon): SIM POST NEVER STEPS ASIDE; A PHASE FILLS THE EMPTY COLUMN TO ITS RIGHT — built on branch `no-giveway` (worktree `.claude/worktrees/no-giveway`, cut from `main` at `d0dd33b` = v1.12.1 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `simpost-never-steps-aside`. Rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rules 12, 13, 15, 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9.
+### 🔨 6 Nov 2026 (later): PRODUCTION TAKES THE LEFTMOST FREE COLUMN, A RUNNING PHASE TO ITS RIGHT OR NOT — built on branch `prod-leftmost` (worktree `.claude/worktrees/prod-leftmost`, cut from `no-giveway` at `6c3e1e6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `production-leftmost-free-column`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 3; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §10.
+- **The ask (owner, a screenshot without Sim Post, Post starting before the shoot):** Production, handed Prod Prep's
+  middle column, sat one wide beside Post with Writers' free column empty on its left for the whole shoot — *"Do you
+  think in this situation production should expand to the left to fill the blank space and maybe prod prep should fill
+  its white space?"* → *"Yes, Production only"*; on *"wait just for production or any phase in that same position?"*:
+  Production only (hand-05/08 keep Localization in its handoff column over a free column further left; hand-10/12/15/16
+  send Production into Writers' free column). Prod Prep's white column stays: filling it would be a width that shrinks
+  mid-run, the shape hand-08's Shoot refuses for 31 weeks.
+- **As built** (`placeSegmentsByRules`, not frozen): Production's candidates are every free column (not `hand ∪ open`),
+  the leftmost by year order; R-E then gives it the spare middle column. Fixture `layout-r3b` (the screenshot's shape):
+  5/7 on the build before, 7/7 here; all eleven layout fixtures green; `npm run check` 40/40; `simpostdays` 14/14,
+  `centrepullback` 12/12, `swapsplitreuse` 5/5, `settingswin` 21/21, `colreuse` live + restore, `notescols` 49/49,
+  `simpostbeside` 19/19, `layouthook`; the 15 calendars re-scored identical to v1.12.1 (98.1%, 31 column misses, 0 width
+  misses; four seeds' dumps came back empty under the running gate and scored 100% alone, as before). Full gate on this
+  build (which carries the Sim Post fix too): queued behind the `no-giveway` gate, written here when done.
+
+### ✅ 6 Nov 2026 (afternoon): SIM POST NEVER STEPS ASIDE; A PHASE FILLS THE EMPTY COLUMN TO ITS RIGHT — built on branch `no-giveway` (worktree `.claude/worktrees/no-giveway`, cut from `main` at `d0dd33b` = v1.12.1 + a HANDOFF note; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not gated, not merged. Tracker card `simpost-never-steps-aside`. Rules: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rules 12, 13, 15, 20; build: [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9.
 - **The asks (owner, on the live v1.12.1, two screenshots):** Post moved up two weeks took the lane and dropped two Sim
   Post weeks — *"it ate into Sim post. thats not right"*; moved up three, the column is earned and *"it fixes it"*
   (Production | Sim Post | Post for three weeks); and on that picture *"notice how pre-prep also isnt filling its

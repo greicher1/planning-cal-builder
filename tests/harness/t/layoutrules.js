@@ -20,6 +20,8 @@
 //               beside the lane and Sim Post stays on every shoot week (the give-way of v1.12.0-v1.12.1, which sent
 //               Post into the lane and dropped the marker, was withdrawn by the owner); Design beside Writers spreads
 //               into that column.
+//   layout-r3b  rule 3 since 6 Nov 2026: Production takes the leftmost FREE column even with a phase running to the
+//               right of it (Writers' column over Prod Prep's handoff, Post running), and R-E gives it the spare.
 //   layout-r13b rules 12, 13 and 15 since 6 Nov 2026 (frozen edit LR4): the owner's three-week-overlap calendar --
 //               Pre-Prep two wide beside Writers (the right spread is not capped by the even share), the lane reserved
 //               until the shoot ends, Sim Post on every shoot week, Post in a third column for its three overlap weeks.
@@ -245,6 +247,16 @@ window.addEventListener('load', function () { (async function () {
       W21('R21c', 'Localization: one wide beside Post for two weeks, then fills the width', 'localization', 2031, ['2031-10-13:2+1', '2031-10-27:0+3']);
       W21('R21d', 'Production: one wide beside the lane', 'production', 2031, ['2031-02-03:0+1']);
       C('R21e', 'no empty column beside Post in its last two weeks', (function () { var a = cellAt(bl, '2031-10-13', 'post'), b = cellAt(bl, '2031-10-20', 'post'); return J(a) === '[0,2]' && J(b) === '[0,2]'; })(), J([cellAt(bl, '2031-10-13', 'post'), cellAt(bl, '2031-10-20', 'post')]));
+    }
+    if (FX === 'layout-r3b') {
+      var W3b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R3Ba', 'Production takes the leftmost FREE column, Writers’, though Prod Prep’s was handed off and Post runs to the right (rule 3, 6 Nov 2026); Post in the third column',
+        same(bl, 2031, 'production', 'writersRoom') && slotOf(bl, 2031, 'production') === 0 && same(bl, 2031, 'prePrep', 'prodPrep') && slotOf(bl, 2031, 'prodPrep') === 1 && slotOf(bl, 2031, 'post') === 2 && slotsIn(bl, 2031) === 3,
+        J(out.slots['2031']));
+      W3b('R3Bb', 'Production: two wide beside Post for the whole shoot -- the spare middle column goes to it (rule 12); no empty column', 'production', 2031, ['2031-08-04:0+2']);
+      W3b('R3Bc', 'Post: one wide in the third column beside Prod Prep and then the shoot, then fills the three', 'post', 2031, ['2031-07-07:2+1', '2031-12-01:0+3']);
+      W3b('R3Bd', 'Prod Prep: two wide (Writers’ freed column and its own); the third column stays empty because Post takes it before Prod Prep ends (rule 13; hand-08’s Shoot)', 'prodPrep', 2031, ['2031-04-28:0+2']);
+      W3b('R3Be', 'Pre-Prep: two wide beside Writers (rule 13 uncapped), then fills the width', 'prePrep', 2031, ['2031-03-17:1+2', '2031-04-14:0+3']);
     }
     if (FX === 'layout-r20b') {
       var W20b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
