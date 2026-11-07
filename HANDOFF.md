@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 6 Nov 2026: RIPPLE HIATUS STEPS OVER LOCKED BREAKS, AS SHIFT DOES. BUILT on branch `ripple-weeks-now` (worktree `.claude/worktrees/hiatus-ripple`; on top of the at-once Weeks push, LIVE at `850d930`). Not pushed. [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §12. Tracker card `ripple-step-over-locked`
+### ✅ 6 Nov 2026: RIPPLE HIATUS STEPS OVER LOCKED BREAKS, AS SHIFT DOES — ✅ **LIVE at `ed74749`** (owner's picker *"Push now"*; pushed from the branch `850d930..ed74749` at 16:13:03, a fast-forward carrying `3d49143` and `8d065f2`, docs only; deploy succeeded; the live `index.html` matched the tested build `6455f09a…` byte for byte at 16:13:52, `version.json` 1.12.1, no version cut). Built on branch `ripple-weeks-now` (worktree `.claude/worktrees/hiatus-ripple`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §12. Tracker card `ripple-step-over-locked`
 - **Asked / ruled** (owner's pickers, 6 Nov 2026): *"Yes, plan it"* (should Ripple Hiatus step over locked breaks like
   Shift?), then on the plan *"Build it"* and *"Distances only"* (no extra sentence on the line).
 - **Built** (`src/legacy/app.js`): `rippleAfterHiatusEdit` passes `stepHeld: true`. ⛔ `hiatusFatesFor` now also returns
@@ -17,7 +17,7 @@
   the waterfall PDF and Excel identical to the baselines, the hiatus legs, undo / dialog keys, `shiftheld`, `anchorside`,
   `phasearrows`): 215 PASS, its only FAIL S3's expected line order, corrected in the test (pulls are listed smallest
   first, as the line always has). `npm run check` 40/40. Help page: one sentence (Ripple counts working weeks, like Shift).
-- ⏭ **Next:** ask the owner to push (per action).
+- ⏭ **Next:** nothing owed for the ripple. Local `main` was not moved (pushed from the branch).
 
 ### ✅ 5 Nov 2026: RIPPLE HIATUS — A WEEKS CHANGE PUSHES AT ONCE — ✅ **LIVE at `850d930`** (owner's picker *"Push now"*; pushed from the branch `2a826e9..850d930` at 15:13:47 on 6 Nov 2026, a fast-forward; deploy succeeded; the live `index.html` matched the tested build `23e10177…` byte for byte at 15:14:37, `version.json` 1.12.1, no version cut). Built on branch `ripple-weeks-now` (in the worktree `.claude/worktrees/hiatus-ripple`, cut from `origin/main` at `3964bfb`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §4 and §11. Tracker card `hiatus-ripple-weeks-push-at-once`
 - **Asked:** after a 2-week Writer's Rm hiatus pushed everything, *"when i try to adjust it from 2 weeks to 3 weeks it
