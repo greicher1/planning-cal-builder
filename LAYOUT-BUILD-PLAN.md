@@ -296,3 +296,59 @@ the run's end — gives an entitlement; the widest wins (ties: the earliest row)
 Fixture `layout-r21` (Writers, Production + lane, Post in the lane alone for 22 weeks, Localization overlapping its
 last two): Post `0+2` throughout, Localization `2+1` then `0+3`; red on the v1.12.0 build (`0+2` then `1+1`).
 
+## 9. 6 Nov 2026, afternoon: the give-way withdrawn; the right spread uncapped; the lane reserved all year
+
+**The ask, in two screenshots.** On the live v1.12.1 the owner moved Post up two weeks into the shoot: rule 20's
+give-way sent it into the Sim Post lane and dropped the marker for those two weeks — *"it ate into Sim post. thats not
+right"*. Moved up three weeks, the column is earned and the picture was right to them: *"then when I move it up 3 weeks,
+it fixes it"* — Production | Sim Post | Post for three weeks, then Post fills. And on that picture: *"notice how pre-prep
+also isnt filling its collumn"* — Pre-Prep wk 1–4 one wide beside Writers with the third column (Post's, months later)
+empty.
+
+**Rulings read from that.** (1) Sim Post is on every shoot week, the 2 Nov ruling, without exception: rule 20's give-way
+goes (placement is one pass again; `yields`, `laneGiven` gone; the simpostdays leg back to "exactly Production's weeks").
+A one- or two-week overlap gets its column beside the lane, as a three-week one does. (2) A phase takes the empty column
+to its right from the week it is free for the rest of its run, whatever runs beside it: rule 13 uncapped to the right.
+The even share (12) had capped two phases in three columns at one each; it now governs only a spread to the LEFT
+(hand-08 keeps Post one wide beside a freed column on its left) and hand-dragged widths. (3) Against the 15 pictures
+every trailing spare they keep empty is either the Sim Post lane (hand-02 2027, hand-03, hand-04, hand-09) or taken
+before the run ends (hand-02 2026, hand-08 2027), so a phase SHARING its row must not spread into the lane column
+before the shoot ends: rule 15 reworded. A lone phase still fills it (hand-13 2028's Prod Prep is two wide the week
+before its shoot), and a hole between two phases still goes to the left one (R-E).
+
+**Built: frozen edit LR4 in `computePhaseRowLayout`, stamped only.** `laneReserved(n)`: the block's fixed Sim Post slot
+while any marker row lies at or after this row (`LAYOUT_SIM_KEY` in the occupancy grid). The two rightward walks drop
+the `earnedIn(...) <= spanCap` test when stamped (Single Column keeps rule 17's one) and refuse the reserved lane when
+the row holds more than one phase; the left-extend's count keeps the cap; R-E and a lone phase's fill are untouched.
+Rule 21's entitlement walk follows suit (right side uncapped, the lane refused where that row held more than one
+phase). Unstamped every line is what it was. Help text: the give-way sentence gone, the width sentence reworded.
+⚠️ `LAYOUT_SIM_KEY` had shipped in v1.12.1 as a space + "simpost": the engine's sentinel is a NUL + "simpost", which a
+terminal prints as a space. The reservation matched nothing until a probe showed `\u0000simpost` in the grid; rule 21's
+share count had been reading the marker as a phase (harmless: the lane is never free). Fixed here.
+
+**Fixtures.** `layout-r20` re-expected (three columns; Production | Simultaneous Post | Post on 24 Nov; Design 1+2
+beside Writers; Post 2+1 then 0+3) — 4/8 on v1.12.1, 8/8 here. New `layout-r13b`, the owner's three-week calendar
+(Writers 14 wks, Pre-Prep 6 overlapping its last 4, Prep 14, Production 19 with Sim Post, Post from three weeks before
+the shoot ends): Pre-Prep 1+2 then 0+3, Writers 0+1, Production 0+1, Sim Post on all 19 shoot rows, Post 2+1 ×3 then
+0+3 — 7/8 on v1.12.1 (Pre-Prep 1+1, the screenshot), 8/8 here.
+
+## 10. 6 Nov 2026, later: Production takes the leftmost free column, a running phase to its right or not
+
+**The ask.** A screenshot without Sim Post, Post starting before the shoot: Production, handed Prod Prep's middle column
+(rule 2), sat one wide beside the running Post with Writers' free column empty on its left for all seventeen shoot
+weeks, because rule 4 (R-D) keeps a column left of a running phase out of "open" and it was not a handoff. *"Do you
+think in this situation production should expand to the left to fill the blank space and maybe prod prep should fill
+its white space? What rules would this change"* — then *"Yes, Production only"*, and on *"wait just for production or
+any phase in that same position?"*: Production only, because hand-05 and hand-08 keep Localization in its handoff
+column over a free column further left (hand-08 with exactly this hole, 20 weeks), while hand-10, 12, 15 and 16 send
+Production into Writers' free column over Prep's handoff.
+
+**Built** (`placeSegmentsByRules`, not frozen): Production's candidates are every free column, not `hand ∪ open`; the
+leftmost by the year order wins, as before. Nothing else moves: rule 12 (R-E) then hands it the spare middle column, so
+it draws two wide beside Post. Prod Prep's white column stays (rule 13: Post takes it before Prod Prep ends; hand-08's
+Shoot keeps the same shape for 31 weeks) — fill-while-free would make a width shrink mid-run, declined.
+
+**Fixture** `layout-r3b` (the screenshot's shape: Writers 14 wks, Pre-Prep 6, Prod Prep 14, Post from four weeks before
+the shoot, Production 17, no Sim Post): Production in Writers' column, `0+2` for the shoot; Post `2+1` then `0+3`; Prod
+Prep `0+2`; Pre-Prep `1+2` then `0+3`. 5/7 on the build before (Production at slot 1, `1+1`), 7/7 here.
+

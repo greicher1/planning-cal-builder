@@ -46,7 +46,7 @@ function blank() {
   s.customHolidays = [];
   s.headerMode = 'auto'; s.mvHeaderMode = 'auto'; s.headerTemplates = false; s.mvHeaderTemplates = false;
   s.viewMode = 'sheet'; s.sidebarTab = 'phases'; s.singleColumn = false;
-  delete s.autoNotesOn; delete s.autoNotesOff; delete s.colReuse; delete s.colFollow;
+  delete s.autoNotesOn; delete s.autoNotesOff; delete s.colReuse; delete s.colFollow; delete s.colKeep;
   return s;
 }
 

@@ -178,6 +178,15 @@
   /* Step 2 — the brand NAME goes. The mark stays, so identity survives. (Was 1080; raised because
      the name is ~185px and giving it up early is cheaper than truncating a command.) */
   @media (max-width:1200px){ .app-brand-name{ display:none; } .app-brand{ padding-right:16px; } }
+  /* Step 2a — Reset Columns (owner, 6 Nov 2026) runs icon-only, with its title= tooltip, a rung before the other
+     commands. Measured in the Waterfall view, its widest state: labelled it needs 128px, and the header then
+     overflowed by 25px at 1121px and 11px at 1201px (the status keeps an inline 78px minimum, so nothing gives way).
+     Icon-only up to 1280px, the narrowest spare room anywhere is 63px (1121px); labelled above it, 66px (1321px). */
+  @media (max-width:1280px){
+    .app-toolbar .btn-collapse-early .mantine-Button-label{ display:none; }
+    .app-toolbar .btn-collapse-early .mantine-Button-section{ margin:0; }
+    .app-toolbar .btn-collapse-early{ padding-left:9px; padding-right:9px; }
+  }
   /* Step 3 — the three secondary commands run icon-only. Save keeps its label (it carries the
      engine's "Saved ✓" flash confirmation) and so does the primary Export PDF; New, Save As and
      the secondary export drop to their icons with title= tooltips. */
