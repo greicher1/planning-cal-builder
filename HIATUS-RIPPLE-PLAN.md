@@ -151,17 +151,26 @@ Rebuild From, Close all gaps, Start after previous) all write hiatus fields. A f
 each of them. So each edit path below calls one entry point, `rippleAfterHiatusEdit(before, after)`, and nothing
 else does.
 
-⛔ **Never per keystroke.** A date box fires `input` for each digit of a year (2, 20, 202, 2027), and a Weeks
-spinner fires on every click. The before state is taken when an edit to that hiatus begins. The ripple runs
-when the edit SETTLES, measured against that before state, so 2 → 3 → 4 on the spinner is one push of +2.
+⛔ **A typed date never ripples per keystroke.** A date box fires `input` for each digit of a year (2, 20, 202, 2027).
+The before state is taken when an edit to that hiatus begins, and the ripple runs when the edit SETTLES, measured
+against that before state.
+
+⭐ **AMENDED 5 Nov 2026 (owner): a Weeks change settles the moment it is made.** The owner changed a Writer's Rm
+hiatus from 2 to 3 weeks and saw nothing move: the hiatus's band grew while the phases after it waited for focus
+to leave the box. *"it should do it immediately not after a second"* (a one-second pause was offered and turned
+down). So every whole number a Weeks box takes (spinner click, arrow key, typed digit) pushes at once and begins the
+next edit with focus kept: 2 → 3 → 4 is two pushes of 1 week, each its own pair of undo steps. An emptied box (or 0)
+mid-typing waits for a number. Starts is unchanged: a typed date settles on leaving or Enter, a picked one at once.
 
 | Edit path | Settles when |
 |---|---|
-| All-phase row: Starts, Weeks | focus leaves the row (not into its own `.date-pop`), or Enter |
+| All-phase row: Weeks | at once, on every whole number (amended 5 Nov 2026) |
+| All-phase row: Starts | focus leaves the row (not into its own `.date-pop`), Enter, or a pick in the popover |
 | All-phase row: × | at once (after its existing confirm, `removeHiatusRow`) |
 | "+ Add hiatus period" | the new row has no start, so nothing until a start is typed and settles |
 | A phase's Hiatus switch (`phiatus-en-<key>`) | at once, if it has a start |
-| A phase's Starts, Weeks | focus leaves the block, or Enter |
+| A phase's Weeks | at once, on every whole number (amended 5 Nov 2026) |
+| A phase's Starts | focus leaves the block, Enter, or a pick in the popover |
 | Waterfall / month menu: Add hiatus here, Remove hiatus…, the phase-hiatus items (`addHiatusHere`, `removeHiatusHere`, `setPhaseHiatusHere`, `removePhaseHiatusHere`) | at once |
 | Month-view drag: move, first week, last week | on release, BEFORE the Keep / Undo question (§6) |
 | Name, colour, Lock in place, Number weeks | never: no date changes |
@@ -264,7 +273,7 @@ Everything in §3-§9 was built as planned, with these differences:
   wording; the wrap only when Production moved). ⚠️ **No "N locked hiatuses held"**, which §6 proposed: New's four
   winter breaks are locked and after almost every cutoff, so it would show on every push. When no phase starts after
   the hiatus, the line says `No phase starts after it to push` (its later notes and unlocked hiatuses still moved).
-- **What settles an edit** (§4): focus leaving the hiatus's two DATE boxes, not the whole row. Starts to Weeks of the
+- **What settles an edit** (§4; ⭐ Weeks amended 5 Nov 2026, see below): focus leaving the hiatus's two DATE boxes, not the whole row. Starts to Weeks of the
   same hiatus keeps the edit open; Tab from Weeks lands on Lock in place, and that settles it. An unreadable date (a
   year mid-typing) never settles; the edit waits for a readable one.
 - **The one-shot paths** go through `rippleAround(h, fn)`, which first settles any edit still pending on that hiatus.
@@ -284,3 +293,84 @@ Everything in §3-§9 was built as planned, with these differences:
   undo step (R5). Also green on the branch: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81,
   hiatussidebar 16/16, hiatusdrag 14/14, `npm run check` 40/40. The browser pane, real mouse and keys: Break 2 -> 3 weeks,
   Tab, Production 3/16 -> 3/23 with the line under the Break; the three switches drawn.
+
+## 11. Amended 5 Nov 2026: a Weeks change pushes at once
+
+- **Asked** (owner, after adding a 2-week Writer's Rm hiatus, which pushed): *"when i try to adjust it from 2 weeks to 3
+  weeks it doesnt shift everything down"*. Reproduced on the live code: with focus still in Weeks nothing after the hiatus
+  moved, though its own band grew; Enter or a click away then pushed 1 wk. Offered "as soon as you pause (about a
+  second)"; the owner: *"it should do it immediately not after a second"*.
+- **Built:** a bubble-phase `input` listener on `.hiatus-weeks, .phiatus-weeks` settles the pending edit and begins the
+  next one (focus kept), for every whole number above 0. Bubble phase, so the field's own handler has already run.
+  Only an edit the user began (focused) has an entry, so code writes still never ripple (R10). `rippleSettle` no longer
+  clears the result line when nothing changed since the edit began, or leaving the box right after a push wiped it.
+- **Unchanged:** Starts (a typed year passes through real dates), the one-shot paths, the drag, undo's two steps per push.
+- **Proof:** `hiatusripple.mjs` R1, R3, R5 rewritten (at once, focus kept; two ArrowUps two pushes; a typed 5, an emptied
+  box that waits, a typed 3, Enter keeping the line, one undo taking back only the last push).
+
+
+## 12. RULED 6 Nov 2026 ("Build it"): the ripple steps over locked breaks, as Shift does
+
+- **Asked** (owner's picker, 6 Nov 2026, *"Yes, plan it"*, to: "Shift now steps over locked breaks, but Ripple Hiatus still
+  pushes by plain calendar weeks… Should Ripple Hiatus step over locked breaks too?"; option text: *"Make it count only
+  working weeks past a locked break, like Shift. Built as its own change"*). The step-over session (`b9211a6`, tracker
+  `shift-held-hiatus-gap`) had left it as the open follow-up: the ripple has the same shape of bug.
+
+### 12.1 The bug, worked (synthetic dates; hand-worked, the build's leg holds them)
+
+A locked 2-week break, Mon 12/21/26 – Fri 1/1/27. Three phases end to end, the break inside the middle one:
+
+| Phase | Starts | Length | Runs | Ends |
+|---|---|---|---|---|
+| A | 11/2/26 | 6 wks | 11/2 … 12/7 | 12/11 |
+| B | 12/14 | 4 wks | 12/14, [break], 1/4, 1/11, 1/18 | 1/22/27 |
+| C | 1/25/27 | … | | |
+
+A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A, B and C 2 weeks.
+
+- **Today (calendar weeks):** A 11/16 → runs to 12/14, then the break, then 1/4 → ends **1/8**. B 12/28 is inside the break, so
+  it really starts 1/4 → ends **1/29**. C 2/8. So **A and B now overlap a week** (1/4 – 1/8) and **a week opens between
+  B and C** (2/1). The break moved from B into A: A runs 2 weeks longer, B 2 weeks shorter on the calendar.
+- **Stepping over:** A 11/16 (crosses nothing held) → ends 1/8. B counts 2 working weeks from 12/14: 12/21 and 12/28 are
+  held, so 1/4, 1/11 → starts **1/11**, ends **2/5**. C counts 1/25 → 2/1, 2/8 → **2/8**. A ends 1/8, B starts 1/11; B
+  ends 2/5, C starts 2/8: every gap and overlap is what it was. B moved 4 calendar weeks (its start crossed the
+  break), A and C moved 2.
+
+### 12.2 The change
+
+- `rippleAfterHiatusEdit` passes `stepHeld: true` to each of its `shiftCalendarDates` steps (out, in, or the one length
+  step), so every date it moves goes through `stepOverHeld`, as the Shift form's do.
+- ⛔ **The edited hiatus must not be in the weeks it steps over.** The ripple holds it in place (`except`, fate 'stay'),
+  and `hiatusFatesFor` puts every 'stay' band into `held`. Left in, its own push would skip it: Break 2 → 3 wks would
+  push a phase that started the week after the old break **2** weeks (its start now sits in the new third week, "counts
+  from the week after it", then +1), and adding a hiatus would push a phase starting on its first week twice its
+  length. Checked by hand for lengthen, shorten, add and move: all four are right only with the edited band left out.
+  So `shiftCalendarDates` takes the edited row's weeks out of `held` (still 'stay': it does not move). A phase's own
+  hiatus is not in `hiatusFatesFor` at all (it travels with its phase, as in Shift), so nothing to take out there.
+- Every other band stays held as Shift's are: locked rows after the hiatus, and rows before it (outside the ripple's
+  range, so they stay), which a pull can cross. Unlocked rows after it move with the phases and are not held.
+  Holidays never count (Shift's rule).
+- `rippleNormaliseInside` (a phase starting inside the old all-phase hiatus) is unchanged and runs first.
+- **The line: distances only** (owner's picker, 6 Nov 2026, *"Distances only"*, over adding Shift's sentence). It
+  already groups phases by how far each really went ("Pushed 4 wks: B · Pushed 2 wks: A, C"); nothing is added. The
+  month drag's question carries the same line.
+- **Unchanged:** the switch, when a ripple runs (Weeks at once, typed dates on finishing), the two undo steps, the edited
+  hiatus held, the one-shot paths. With no held band crossed, every date moves exactly as it does today (stepOverHeld's
+  own no-held path is `addDays(n * 7)`).
+
+### 12.3 Proof (planned)
+
+- A new fixture with the §12.1 calendar (synthetic), and `hiatusripple.mjs` cases: the §12.1 push (A 11/16 – 1/8, B
+  1/11 – 2/5, C 2/8; the sentence); the same edit taken back by one undo; a pull across the break (shorten the hiatus);
+  a moved hiatus; and Break 2 → 3 with a phase starting the week after the old break (moves 1, not 2: the trap above).
+- Red on today's build in the crossing cases, green in the rest (today is right whenever nothing held is crossed).
+- `hiatusripple` R0–R13 unchanged and green (the fixture's locked December breaks sit after every phase it moves).
+
+### 12.4 As built (6 Nov 2026)
+
+- As planned, with one name: the set the step-over reads is `obstacles` (`hiatusFatesFor`), `held` without the ripple's
+  edited row; `hiatusKeyStays` still reads `held`. The line lists pulls smallest first (its order since 4 Nov), so a pull
+  over the break reads "Pulled 2 wks: Pre-Prep, Post · Pulled 4 wks: Prod Prep".
+- Proof: `hiatusripple.mjs` S1–S4 on `ripplestep.sptcal`, 19/19; live code red in S1, S3, S4; edited-as-obstacle build red
+  in R4, R5, S4; 215 neighbouring checks green.
+

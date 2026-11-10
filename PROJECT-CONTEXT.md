@@ -577,60 +577,69 @@ closes them.** Anything true of both
 (durations are never changed by either) must **not** appear in a description. It reads as a distinction while
 distinguishing nothing.
 
-The Shift form (`#pop-shift`, 340 px), top to bottom:
-1. **What moves:** `All phases | Phase & before | Phase & after` (the owner's words, picked from four options).
-2. **The phase** (`#tool-anchor-phase`), the PIVOT, shown only for Phase & before / after (since the evening of
-   5 Nov 2026; before that it also showed for All phases and the user's own ticks to a date, as the landmark, two
-   sections above the date, which the owner found confusing). Its list offers *Whole schedule* only for All
-   phases to a date. Shown or hidden, it is the one select every reader asks.
-3. **The list of phases** (since 5 Nov 2026, owner's layout A, plan §7): Rebuild From's rows (`solveRow`), one
-   per scheduled phase, a tick (`data-key`, no id), the colour, the name, its date, and Moves / Stays by weeks or
-   the new date and Pushed / Pulled to a date. The three buttons fill the ticks in; a tick changed by hand makes
-   the user's own set, and then no button is pressed. Folded behind *Choose phases…* under All phases. To a date
-   the landing phase is pinned (it must move); Whole schedule fixes every tick. Drawn by `renderShiftList`.
-4. **How far:** `By weeks | To a date`.
-5. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: first the SUBJECT, the phase that lands
-   (`mockups/shift-date-row.html`): under All phases or the user's own ticks a select, `[data-shift-subject]`, a
-   mirror of the phase select with no id, filled from it and written back into it on change; under Phase &
-   before / after the pivot's option as a line of text (`.tools-subject`). Then `[starts on / ends by] [date]
-   [Go]` (`tool-anchor-*`).
+The Shift form (`#pop-shift`, 340 px), top to bottom. **The list first since 9 Nov 2026** (owner's eight-point spec
+and three corrections the same day; ANCHOR-TO-DIRECTION-PLAN.md §7.6): the What moves buttons (`All phases | Phase &
+before | Phase & after`), the pivot select above the list, its mirror under How far, the fold and the pin are gone.
+1. **"Phases"**, then the list's box (`.shift-box`):
+   - **The header strip** (`.shift-all`): a select-all box (`[data-shift-all]`) in the ticks' own column and the
+     count (`[data-shift-count]`). Ticked, and drawn as a minus, once every phase is ticked: a click then clears
+     them all. Otherwise empty: a click ticks every phase. A sibling above the rows' scroller, never sticky.
+   - **The rows** (`[data-shift-list]`, Build Around's `solveRow`, drawn by `renderShiftList`): one per scheduled
+     phase, in START order: a tick (`data-key`, no id), the colour, the name, its date, and Moves / Stays by
+     weeks or the new date and Pushed / Pulled to a date. A click on a row CHOOSES it (`shiftMark`, the outline,
+     `is-mark`) and leaves its tick; its box ticks; a press-and-drag sets a run, the row pressed deciding on or
+     off, redone from the ticks at the press so dragging back un-does an overshoot. No row has a `title`.
+2. **`Prior to X` / `After X`** (`[data-shift-prior]`, `[data-shift-after]`): the outlined row and every row above
+   it, or below it. Each REPLACES the ticks. One line, cut with an ellipsis.
+3. **How far:** `By weeks | To a date`.
+4. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: the phase that lands (`#tool-anchor-phase`,
+   the one phase select left), then `[starts on / ends by] [date] [Go]` (`tool-anchor-*`). The select shows the
+   outlined row's phase and offers ticked phases only, plus *Whole schedule* while every phase is ticked
+   (`fillShiftPhase`); a pick in it outlines that row, so there is one chosen phase. Its row wears `is-land` and
+   keeps its tick box; untick it and the select moves to another ticked phase. Whole schedule fixes the ticks.
 
-It opens on **All phases, By weeks every time** (ruling R2(a)), which is exactly the old Shift All form. Earlier/Later
-always shift by weeks and Go always goes to the date, each reading What moves for itself. How far only chooses which
-row is shown. Both choices are session UI: id-less buttons inside `.tools-menu`, never saved.
+It opens with **every phase ticked, By weeks, every time** (ruling R2(a)), which is exactly the old Shift All form.
+Earlier/Later always shift by weeks and Go always goes to the date. All of it is session UI: nothing new carries an
+id, everything is inside `.tools-menu`, never saved.
 
-| | **By weeks** | **To a date** |
+⭐ **The ticks decide the move** (`shiftPlan()`, worked out once for the list, the result line and the engine's
+`part`), however they were set:
+
+| The ticks | The move | Notes, unlocked hiatuses, the range |
 |---|---|---|
-| **All phases** | the old Shift All form; the arrows | the old Anchor To |
-| **Phase & before** | new | new |
-| **Phase & after** | the old Shift From | new |
+| every phase | the whole calendar: the old Shift All form, the arrows, the old Anchor To; no `part` | all of them |
+| the top of the list, down to X (what *Prior to X* sets) | the old Phase & before | up to X's LAST week |
+| the bottom of the list, from X (what *After X* sets) | the old Phase & after and Shift From | from X's start week |
+| any other set | exactly those phases | one window per ticked phase (T2) |
 
-- **All phases** — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
+- **Every phase ticked** (the old All phases) — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
   (`weeksBetweenMondays` for a start, `weeksToFinishBy` for "ends by", which floors) and shifts by it. It moves
   **dates, not phases**: a phase with a week count but no date is invisible to it.
-- **Phase & before / Phase & after, and the user's own ticks** — `shiftCalendar(weeks, null, {part: {phases,
-  windows}})`. The form works the move out once, before anything moves (`shiftPlan`). Its list and the move both
-  read it, so they cannot disagree:
-  - **Which phases move:** the picked phase and every phase whose START week is on the chosen side. Phase & after is
-    exactly the old Shift From's set; Phase & before is its mirror. **An overlap does not count.** ⛔ For one deploy
+- **Any other set of ticks** (the top of the list = the old Phase & before, the bottom = the old Phase & after, or
+  the user's own) — `shiftCalendar(weeks, null, {part: {phases, windows}})`. The form works the move out once,
+  before anything moves (`shiftPlan`). Its list and the move both read it, so they cannot disagree:
+  - **Which phases move:** the ticked ones. *Prior to X* / *After X* tick X and every row above or below it, and
+    the rows run in START order, so that is X and every phase whose START is on that side. After X is exactly the
+    old Shift From's set; Prior to X is its mirror. **An overlap does not count.** ⛔ For one deploy
     (`c52094f`, 5 Nov 2026) a phase sharing a working day with the picked one moved too (owner's picker, *"Overlaps
     move too"*). The owner reverted it the same night on a real calendar: *"how would you move everything except for
     writers room"*. A Writer's Room running three weeks into Pre-Prep made Phase & after Pre-Prep take every phase.
   - **The week windows** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
-    calendar range); a key moves when any window holds its week. A shortcut passes one: from the picked phase's
-    start week (Phase & after) or to its **LAST** week (Phase & before; `phaseLastWorkday`, for Production the
-    wrap). So the picked phase takes its own notes and any hiatus inside it along. With one bound at its start, a
-    12-week shoot moved and left weeks 2–12 of its notes, and its Christmas hiatus, behind. **A hand-picked set
+    calendar range); a key moves when any window holds its week. The bottom of the list from X passes one, from
+    X's start week; the top of the list down to X passes one, to X's **LAST** week (`phaseLastWorkday`, for
+    Production the wrap). So X takes its own notes and any hiatus inside it along. With one bound at its start, a
+    12-week shoot moved and left weeks 2–12 of its notes, and its Christmas hiatus, behind. **Any other set
     passes one window per ticked phase**, its start week to its last week (owner's T2, 5 Nov 2026), so a note in
     the gap between two ticked phases, or in an unticked phase between them, stays.
-  - **Notes go by week, not by phase.** A phase that stays but shares a week with the picked one loses that week's
+  - **Notes go by week, not by phase.** A phase that stays but shares a week with a ticked one loses that week's
     notes to it.
   - `part` is also the "just this phase" mover: `{phases: [key]}` (PHASE-WEEK-ARROWS-PLAN.md's `{onlyPhase}`).
-  - Earlier/Later is the direction of **travel**, not which side moves.
+  - Earlier/Later is the direction of **travel**, not which phases move.
   - ⚠️ `shiftCalendarDates`' third argument is ONE options object. `HIATUS-RIPPLE-PLAN.md` (branch
     `hiatus-ripple`) adds `except` and `keepView` to the same object.
-- The result line is the old one for All phases, word for word. A part-calendar move adds *"Production and
-  everything before it moved (4 phases). 2 stayed where they were."*
+- The result line is the old one with every phase ticked, word for word. The top or the bottom of the list adds
+  *"Production and everything before it moved (4 phases). 2 stayed where they were."*; any other set, *"3 ticked
+  phases moved. Writer's Rm, Pre Prep and Localization stayed where they were."*
 - **The phase card's ▲ / ▼** (owner, 4 Nov 2026, layout C2; `PHASE-WEEK-ARROWS-PLAN.md`) are not on the toolbar: two
   small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
   the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be

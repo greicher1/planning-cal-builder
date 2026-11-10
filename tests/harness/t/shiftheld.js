@@ -49,7 +49,7 @@ window.addEventListener('load', function () { (async function () {
   }
   async function settle(){ await T.sleep(1100); }
   async function openShift(){ document.body.click(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
-  async function choose(move, far){ if(move) q('[data-move="' + move + '"]').click(); if(far) q('[data-far="' + far + '"]').click(); await T.sleep(150); }
+  async function far(f){ q('[data-far="' + f + '"]').click(); await T.sleep(150); }
   async function undo(){ document.body.click(); await T.sleep(150); $('undo-btn').click(); await settle(); }
   function listRows(){ return Array.prototype.map.call(MENU().querySelectorAll('[data-shift-list] .solve-row'), function (r) { return (r.innerText || r.textContent || '').replace(/\s+/g, ' ').trim(); }); }
   var KEYS = ['writersRoom', 'prePrep', 'prodPrep', 'production', 'post', 'localization'];
@@ -65,8 +65,12 @@ window.addEventListener('load', function () { (async function () {
     return got.state;
   }
   function notesOf(s){ var o = {}; Object.keys(s.userNotes || {}).sort().forEach(function (k) { o[k] = s.userNotes[k].text; }); return o; }
+  // What moves is said through the list now (the Shift box, list first, 9 Nov 2026): 'after' is "After <phase>",
+  // that phase and every phase after it, which is also the phase that lands (the box follows the outlined row).
   async function shiftTo(move, key, iso){
-    await openShift(); await choose(move, 'date');
+    await openShift(); await far('date');
+    if(move === 'after') await T.shiftSide('after', key);
+    else if(move === 'before') await T.shiftSide('prior', key);
     T.set('tool-anchor-phase', key); await T.sleep(200);
     T.set('tool-anchor-date', iso); await T.sleep(400);
   }
@@ -159,7 +163,7 @@ window.addEventListener('load', function () { (async function () {
     await undo(); await undo();
 
     // ---- W1: All phases by weeks ----
-    await openShift(); await choose('all', 'weeks');
+    await openShift();                       // it opens with every phase ticked, By weeks
     T.set('tool-shift-weeks', '4'); $('tool-shift-earlier').click(); await settle();
     var stW = starts(), mW = msg();
     add('W1', 'All phases, 4 weeks Earlier: Writer\'s Rm 3/23/26 (4 wks), Production 11/30/26 (6 wks), Post 5/10/27',

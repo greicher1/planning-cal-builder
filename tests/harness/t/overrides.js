@@ -81,8 +81,8 @@ window.addEventListener('load', function () { (async function () {
     // O1 -- Shift From Post +1 wk: Production does not move, so no mark may move.
     // Shift From is the Shift form's Phase & after since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6).
     await openPop('pop-shift-btn');
-    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
-    T.set('tool-anchor-phase', 'post'); T.set('tool-shift-weeks', '1');
+    await T.shiftSide('after', 'post');      // Post and every phase after it (the old Phase & after / Shift From)
+    T.set('tool-shift-weeks', '1');
     document.getElementById('tool-shift-later').click();
     await settle();
     var s1 = await snap(), r1 = reading();
@@ -138,8 +138,8 @@ window.addEventListener('load', function () { (async function () {
     // O4 -- Shift From Production +1 wk, then Build Around from the Writers' Room at its own date, After, every phase
     // ticked: what Close all gaps did before it was removed (it also closes Pre Prep's gap).
     await openPop('pop-shift-btn');
-    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
-    T.set('tool-anchor-phase', 'production'); T.set('tool-shift-weeks', '1');
+    await T.shiftSide('after', 'production');   // Production and every phase after it (the old Shift From)
+    T.set('tool-shift-weeks', '1');
     document.getElementById('tool-shift-later').click();
     await settle();
     var s4a = await snap();
@@ -163,8 +163,8 @@ window.addEventListener('load', function () { (async function () {
     // or holiday, and the moved shoot need not have one where the original did.
     var BACK = {'2026-07-06': 'half', '2026-07-07': 'off', '2026-07-25': 'on'};
     await openPop('pop-shift-btn');
-    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
-    T.set('tool-anchor-phase', 'production'); T.set('tool-shift-weeks', '1');
+    await T.shiftSide('after', 'production');   // Production and every phase after it (the old Shift From)
+    T.set('tool-shift-weeks', '1');
     document.getElementById('tool-shift-later').click();
     await settle();
     closePops(); await T.sleep(150);

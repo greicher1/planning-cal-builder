@@ -521,3 +521,51 @@ row carries its own subject.
 filled from it by `syncShiftForm` and written back into it on change, so every reader keeps asking the one select;
 the phase row shows only as the pivot. `anchorside` 30/30 (W1 the rows, J1 the mirror end to end). HANDOFF has the
 as-built record.
+
+### 7.6 The list first (owner, 9 Nov 2026: an eight-point spec, *"build this"*) — ✅ RULED, ✅ BUILT
+
+The owner's spec, in their words, replaced layout A's top half:
+
+1. Remove the What moves block entirely; the panel goes straight from the title to the phases list.
+2. A header strip inside the list, above the first row, a slight tint and a hairline under it. Not a column header:
+   a checkbox on the left and a line of text beside it.
+3. The header checkbox selects all, in the row checkboxes' column: empty when not everything is selected (a click
+   selects every phase); a minus when everything is selected (a click clears every phase).
+4. The count ("4 of 7 move") moves into the header; the label above the list keeps only the word Phases.
+5. Drag to select: press on a row and drag up or down to set a run; the first row decides the value; releasing
+   anywhere ends it.
+6. The last row touched keeps a light outline until another row is touched; the buttons in 7 act from it.
+7. Prior and After as two big buttons under the list, full width, side by side, each naming the outlined row. Prior
+   selects that row and everything above it; After, that row and everything below it. Both replace the selection.
+   Long names ellipsize.
+8. Nothing covers the list: no panel, popover or floating control may sit over the rows or their text at any width.
+
+**Three corrections the same day, each after trying a working build in the browser:**
+
+- **The default.** Asked *"by default, why did you have everything selected? ... make a case for or against"*; kept
+  everything ticked (*"what if we have all selected, but..."*). The case that decided it: To a date keeps meaning
+  "slide the whole plan", and the default press moves something instead of warning.
+- **A click on a row must not untick it** (*"could it not unselect it? cuz that is very confusing ... Could it just
+  select it but keep the checkbox selected?"*). So: the row chooses, the box ticks, a drag from either sets a run.
+- **To a date follows the list** (*"when pre-prep is selected, it should be the default option under To a date. The
+  list should also be limited to only selected phases ... this applies to whichever phase is currently
+  highlighted"*). So: the box shows the outlined phase and offers ticked phases only.
+
+**Decisions made in building it** (not in the spec; each told to the owner):
+
+- **The ticks decide the move** (`shiftPlan()`), since there are no buttons left to remember: every phase = the whole
+  calendar; the top of the list = the old Phase & before; the bottom = the old Phase & after; any other set = T2's
+  window per ticked phase. A set made by hand and the same set made by a button now move the same things.
+- **Until a row is touched, the shoot is outlined**, so Prior / After always name a row.
+- **The drag is a range**, redone from the ticks at the press, so dragging back un-does an overshoot; a drag that
+  starts on a row's name and returns to it changes nothing.
+- **One chosen phase:** a pick in To a date's box outlines that row, so the box and the buttons never name two
+  different phases while the chosen one is ticked.
+- **The pin went.** With the landing phase following every row click, a tick box that turned into a pin under the
+  pointer could not be cleared. The landing row keeps its box, a tint and "On your date"; untick it and the box moves
+  to another ticked phase; with nothing ticked the box reads "Tick a phase first".
+- **Item 8** took three things: the strip is a sibling above the rows' scroller (not sticky), no row has a `title`,
+  and the box's hint opens above the title and never flips.
+
+HANDOFF has the as-built record; `anchorside` (39 cases) holds it.
+
