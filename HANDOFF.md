@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
+### ✅ 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN. ✅ **LIVE at `51ce127`** (owner: *"push"*; pushed `3c7b9f6..51ce127` at 15:28 PST 10 Nov, a fast-forward; deploy run `42923707269` green; the live `index.html` is the gated build byte for byte, sha256 `eea8b792…`, with `tb-fill-space-btn` and `tb-cols-reset-btn`). **No version cut** (none was approved): `version.json` stays 1.12.1, so installed users get no update strip. Local `main` in the main checkout was NOT moved (other sessions hold uncommitted edits there); it is behind origin by these commits. (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and
   ripple work (README the only conflict, both kept); `5b58380` rule 22 (a follow-on carries its predecessor's width,
@@ -25,7 +25,7 @@
   98.1% / 31 / 0; check 41/41. ✅ **ONE FULL GATE, 11:05–12:37 PST 10 Nov: 4,329 PASS / 4 FAIL**, the build unchanged
   start to finish, every export baseline byte-identical; the four were load timing and are GREEN re-run alone with the
   gate's judges: `labelsetup (halfdays)` 41/41, `wfnoteeditor (autonoterename)` 13/13, `monthexport (monthscale)` 9/9,
-  `monthexport (mvnotesize-14)` 9/9. Ready for the owner's pickers (version, push).
+  `monthexport (mvnotesize-14)` 9/9. Pushed on the owner's *"push"*; see the heading.
 
 ### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 
