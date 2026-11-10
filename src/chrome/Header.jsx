@@ -14,7 +14,7 @@
 import { useState, useLayoutEffect, useCallback } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw } from './icons.jsx'
+import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
@@ -34,6 +34,8 @@ export function Header() {
   const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], open: false })
   // The notes reset's view (owner ruling 4): its label and tooltip say which notes it clears.
   const [notesReset, setNotesReset] = useState({ view: 'sheet' })
+  // Reset Columns (owner, 6 Nov 2026): the Waterfall's only; `any` says whether a column choice exists to clear.
+  const [colsReset, setColsReset] = useState({ view: 'sheet', any: false })
   // The recents filter. React-local on purpose: the engine pushes the full list through the
   // bridge and never needs to know a filter exists. The input carries NO id -- collectFieldValues
   // sweeps input[id] document-wide, and this box must never enter a saved file or the undo stack.
@@ -56,6 +58,7 @@ export function Header() {
       exportWfBtn: merge(setExpWf),
       fileMenu: merge(setMenu),
       notesResetBtn: merge(setNotesReset),
+      colsResetBtn: merge(setColsReset),
     })
   }, [merge])
 
@@ -379,6 +382,21 @@ export function Header() {
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
           : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
         {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
+      </Button>
+      {/* Reset Columns (owner, 6 Nov 2026: "will there be a way to reset back to default algorithm?" -> "Add it").
+          Every column back on the automatic layout: fill and pull-back wishes, dragged widths, swapped and moved
+          columns, in one undo step (resetColumns() in the engine, delegated on this id). The Waterfall's only: the
+          month view has no columns, so it is hidden there by display -- ALWAYS RENDERED, as #export-wf-pdf-btn is.
+          data-disabled, never disabled, so its tooltip still says why it is grey. btn-collapse-early: icon-only at
+          1280 px and below, a rung before New and Save As (legacy.css, step 2a, has the measurements). */}
+      <Button {...BTN} id="tb-cols-reset-btn" className="btn-collapse btn-collapse-early" variant="default" fw={500}
+        leftSection={<IconColumns className="btn-ic" />}
+        data-disabled={!colsReset.any || undefined}
+        style={{ display: colsReset.view === 'month' ? 'none' : undefined }}
+        title={colsReset.any
+          ? 'Put every column back on the automatic layout: each phase’s fill or pull-back, every dragged width, every swapped or moved column. Dates, notes and row heights stay. Undo brings it all back.'
+          : 'Every column is already on the automatic layout.'}>
+        Reset Columns
       </Button>
     </Group>
   )

@@ -797,6 +797,7 @@ deliberate steps instead:
 | Below | What gives up room, and why it is the cheapest thing to lose |
 |---|---|
 | **1320 px** | the file chip narrows 224 → 180 px — the widest single control, and the same name is inside the menu it opens |
+| **1280 px** | **Reset Columns** (Waterfall view only, 6 Nov 2026) goes **icon-only** with its `title=` tooltip (`.btn-collapse-early`). Labelled it needs 128 px, and the header overflowed by 25 px at 1121 px and 11 px at 1201 px, since the status keeps an inline 78 px minimum. Swept 961–1440 px with it: no overflow, 63 px high, at least 64 px spare |
 | **1200 px** | the brand **name** hides; the mark stays, so identity survives |
 | **1120 px** | New / Save As / the secondary export go **icon-only** with `title=` tooltips |
 | **980 px** | the status text hides — the only thing here that is not a command |
@@ -804,6 +805,10 @@ deliberate steps instead:
 **Save keeps its label at every width** (it carries the engine's "Saved ✓" flash confirmation) and so
 does the primary export. Verified at 1440 / 1280 / 1150 / 1024 / 900: zero clipped labels, zero
 overflow, `--header-h` 63 px throughout.
+
+**Fill Space (9 Nov 2026), left of Side Boxes** (off = one even width per phase per year): labelled above 1300 px, the drawn switch alone (40 px) at 1300 px and
+below. Measured with it: the row stays on one line down to ~1240 px and wraps between ~1200 and 1230 px where it
+otherwise would not. A toggle Button with `aria-pressed`, never a Switch (its automatic id would be swept into saves).
 
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
 toggle and the Shift All arrows, which are deliberately one-click. ~~Below `lg` the three labelled

@@ -14,6 +14,9 @@
 //   P0  the trap's precondition: wk 14-17 two columns wide, a column handle on top at each one's centre
 //   P1  a marquee over wk 14-17 selects the four; the hint says "Double click to pull back cells"
 //   P2  a double-click on wk 15's centre (the handle) pulls all four back; no column width moved
+//       ⚠️ Since 6 Nov 2026 (FILL-INTENT-PLAN.md) the double-click sets a WISH on the PHASE -- "keeps to its column"
+//       -- so every Writer's Rm cell pulls back (wk 18-20 too), the hint then offers "fill free space", and P5's
+//       lone double-click pulls the phase back as well. The gesture, the hit-testing and the undo steps are the same.
 //   P3  a double-click on the same spot (now a cell) expands them again: the round trip
 //   P4  each was ONE undo step: two undos put the calendar back and leave nothing to undo
 //   P5  nothing selected: a double-click on wk 18's centre pulls back that one cell, and selects nothing
@@ -85,8 +88,8 @@ window.addEventListener('load', function () { (async function () {
     await dblAt(c15.x, c15.y);
     await T.until(function () { return wr(15) && wr(15).colSpan === 1; }, 'the pull-back to land', 40, 100);
     add('P2', "a double-click on wk 15's centre (the column handle) pulls all four back; no column width moved",
-      spans(13, 20) === '13:1 14:1 15:1 16:1 17:1 18:2 19:2 20:2' && cols() === cols0 && chipText() === 'Double click to expand cells',
-      {spans: spans(13, 20), colsSame: cols() === cols0, chip: chipText()}, '14-17 :1, 18-20 :2, widths unchanged, hint "expand"');
+      spans(13, 20) === '13:1 14:1 15:1 16:1 17:1 18:1 19:1 20:1' && cols() === cols0 && chipText() === 'Double click to fill free space',
+      {spans: spans(13, 20), colsSame: cols() === cols0, chip: chipText()}, '14-20 :1 (the phase keeps to its column), widths unchanged, hint "fill free space"');
 
     // Its own centre now: the old centre is the boundary at its right edge, which is the column's handle.
     var n15 = centre(wr(15));
@@ -98,7 +101,7 @@ window.addEventListener('load', function () { (async function () {
     await undo(); var u1 = spans(13, 20);
     await undo(); var u2 = spans(13, 20), more = undoOn();
     add('P4', 'each was one undo step: undo -> pulled back, undo -> as loaded, nothing left to undo',
-      u1 === '13:1 14:1 15:1 16:1 17:1 18:2 19:2 20:2' && u2 === start && !more, {afterOne: u1, afterTwo: u2, undoStillOn: more}, 'two steps exactly');
+      u1 === '13:1 14:1 15:1 16:1 17:1 18:1 19:1 20:1' && u2 === start && !more, {afterOne: u1, afterTwo: u2, undoStillOn: more}, 'two steps exactly');
 
     document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
     await T.sleep(200);
@@ -106,9 +109,9 @@ window.addEventListener('load', function () { (async function () {
     var c18 = centre(wr(18)), t18 = top(c18.x, c18.y);
     await dblAt(c18.x, c18.y);
     await T.until(function () { return wr(18) && wr(18).colSpan === 1; }, 'the one-cell pull-back', 40, 100);
-    add('P5', "nothing selected: a double-click on wk 18's centre pulls back that one cell and selects nothing",
-      !!t18 && t18.classList.contains('is-col') && spans(13, 20) === '13:1 14:2 15:2 16:2 17:2 18:1 19:2 20:2' && selShown() === 0 && cols() === cols0,
-      {top: t18 && t18.className, spans: spans(13, 20), sel: selShown(), colsSame: cols() === cols0}, '18 :1 only, no selection');
+    add('P5', "nothing selected: a double-click on wk 18's centre pulls the phase back (every Writer's Rm cell) and selects nothing",
+      !!t18 && t18.classList.contains('is-col') && spans(13, 20) === '13:1 14:1 15:1 16:1 17:1 18:1 19:1 20:1' && selShown() === 0 && cols() === cols0,
+      {top: t18 && t18.className, spans: spans(13, 20), sel: selShown(), colsSame: cols() === cols0}, '14-20 :1, no selection');
     await undo();
 
     // P6: the frozen column drag saves a width on ANY move, so a press that drifts 1.4px pins the column. The
@@ -129,7 +132,7 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     var p6u = spans(13, 20), p6more = undoOn();
     add('P6', "a press that drifts the boundary 1.4px: the double-click still pulls wk 19 back, the width is put back, one undo step",
-      sawDrift && p6 === '13:1 14:2 15:2 16:2 17:2 18:2 19:1 20:2' && p6cols && p6u === start && cols() === cols0 && !p6more,
+      sawDrift && p6 === '13:1 14:1 15:1 16:1 17:1 18:1 19:1 20:1' && p6cols && p6u === start && cols() === cols0 && !p6more,
       {driftWroteAWidth: sawDrift, spans: p6, colsSame: p6cols, afterUndo: p6u, undoStillOn: p6more}, 'drift written, then put back; one step');
 
     // P7: wk 13's right edge is the same y2031:s0 boundary, a real edge there. Drag it 40px, then double-click it

@@ -64,11 +64,14 @@ export function PreviewToolbar() {
   // `view` picks which header's mode it shows. (The batch-expand button, the first control built this
   // way, went with owner ruling 2.)
   const [hdr, setHdr] = useState({ view: 'sheet', mode: 'auto' })
+  // Fill Space (owner, 9 Nov 2026): pushed by the engine with the view controls. Hidden until the engine says otherwise.
+  const [fill, setFill] = useState({ visible: false, on: true })
 
   useLayoutEffect(() => {
     installChrome({
       undoRedo: (patch) => setUndoRedo((s) => ({ ...s, ...patch })),
       headerModeBtn: (s) => setHdr((p) => ({ ...p, ...s })),
+      fillSpaceBtn: (s) => setFill((p) => ({ ...p, ...s })),
     })
   }, [])
 
@@ -258,6 +261,23 @@ export function PreviewToolbar() {
             <p className="tools-msg" data-tools-msg=""></p>
           </div>
         </div>
+
+        {/* Fill Space (owner, 9 Nov 2026: "a toggle to the left of side boxes button that turns on or off expand rows to
+            fill empty space"). On, phases widen into the empty columns beside them (the layout as it was); off, every
+            phase keeps its own lane. The engine flips it by DELEGATION on this id and pushes {visible, on} back
+            (chrome.fillSpaceBtn). ⛔ A <button> with aria-pressed and a drawn switch, NEVER a Mantine Switch: that
+            renders an input with an automatic id, and collectFieldValues() would sweep it into every saved file and
+            add phantom undo steps. The switch drawn inside is a span (.fill-switch), not a control. Always rendered,
+            visibility by display, as the header's view-following buttons are. */}
+        <Button id="tb-fill-space-btn" className="tools-btn fill-space-btn" type="button" size="xs" variant="default"
+                aria-pressed={fill.on ? 'true' : 'false'}
+                style={{ display: fill.visible ? undefined : 'none' }}
+                title={fill.on
+                  ? 'Phases widen into the empty columns beside them. Click to keep every phase in its own lane.'
+                  : 'Every phase keeps its own lane. Click to let phases widen into the empty columns beside them.'}
+                leftSection={<span className={'fill-switch' + (fill.on ? ' is-on' : '')} aria-hidden="true"><span className="fill-knob" /></span>}>
+          Fill Space
+        </Button>
 
         {/* Side boxes (owner ruling 7 + Q7, 20 Oct 2026; SIDE-BOXES-PLAN.md): adds a colour key or a
             text box beside the waterfall. The engine opens its menu (openSideMenu) by DELEGATION,
