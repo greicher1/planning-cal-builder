@@ -17,7 +17,10 @@
 //   B1/B2  from Wed 7/1/26 (snap off): the first week (6/29) is a Sim Post week; its bar is Wed-Thu, as Production's
 //   C1/C2  from Thu 7/2/26
 //   D1/D2  from Fri 7/10/26
-//   E1/E2  plus Production's own one-week hiatus 8/3/26: no Sim Post that week, in either view
+//   E1/E2  plus Production's own one-week hiatus 8/3/26: no Sim Post that week, in either view. The hiatus pushes
+//          Production's last week onto Post's first (11/2/26): Sim Post stays on it (the 2 Nov ruling; v1.12.0's
+//          give-way, which dropped the marker there, was withdrawn by the owner on 6 Nov 2026) and Post takes a column
+//          beside the lane.
 //   E3     numbered ("Number these weeks"): Sim Post wk 1..K over Production's working weeks, skipping the hiatus, and
 //          Post carries on at wk K+1
 //   F1     offset 2 on the Friday start: Sim Post from 7/20/26, two calendar weeks after Production's first row (7/6);

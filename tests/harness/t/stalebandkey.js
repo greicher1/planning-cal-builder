@@ -59,7 +59,6 @@ window.addEventListener('load', function () { (async function () {
   function q(sel){ return MENU().querySelector(sel); }
   function tick(key, on){ var b = q('input[data-key="' + key + '"]'); if(!b) throw new Error('no tick for ' + key); if(b.checked !== on){ b.checked = on; b.dispatchEvent(new Event('change', {bubbles: true})); } }
   async function openShift(){ document.body.click(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
-  async function choose(move){ q('[data-move="' + move + '"]').click(); await T.sleep(120); }
   function canon(o){
     if(Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
     if(o && typeof o === 'object') return '{' + Object.keys(o).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(o[k]); }).join(',') + '}';
@@ -144,8 +143,8 @@ window.addEventListener('load', function () { (async function () {
       'production 6/22; Old Break Name on 7/6');
 
     // ---- F1: Phase & after Post, 1 wk later (Shift From) ----
-    await openShift(); await choose('after');
-    T.set('tool-anchor-phase', 'post'); await T.sleep(150);
+    await openShift();
+    await T.shiftSide('after', 'post');      // the Shift box's "After Post": Post and every phase after it
     T.set('tool-shift-weeks', '1');
     $('tool-shift-later').click(); await settle();
     var sF1 = await take(), bF1 = bands(sF1);
@@ -159,7 +158,6 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- P1: only Stage Build ticked, 1 wk earlier ----
     await openShift();
-    q('[data-shift-choose]').click(); await T.sleep(150);
     KEYS.forEach(function (k) { tick(k, k === 'custom1'); });
     await T.sleep(150);
     T.set('tool-shift-weeks', '1');

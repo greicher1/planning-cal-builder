@@ -129,7 +129,404 @@ picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md`
   exports, the Notes width, the editor, a custom phase removed, Save/Load, an older file, hostile entries and undo.
   `npm run check` 40/40. Full gate: see HANDOFF.
 
-### Unreleased — a phase's own hiatus is picked inside that phase (5 Nov 2026)
+### Unreleased — Shift: the list first (9 Nov 2026)
+
+The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of
+phases**, and the ticks alone say what moves. Built from the owner's eight-point spec (*"build this"*, 9 Nov 2026) and
+three corrections made the same day while trying it in the browser (ANCHOR-TO-DIRECTION-PLAN.md §7.6).
+
+- **A header strip in the list**: a box that ticks every phase and, once every phase is ticked, shows a minus and
+  clears them all, with the live count ("4 of 6 move") beside it. "Phases" above the list is now just the word.
+- **Click a row to choose it; its tick box ticks.** A click on a row outlines it and leaves its tick as it was
+  (owner: *"could it just select it but keep the checkbox selected?"*; the first build cleared it). A click on the
+  tick box flips the tick.
+- **Drag to set a run.** Press on a row and drag up or down: every row between the press and the pointer takes one
+  value, on if the pressed row was off and off if it was on. Dragging back un-does an overshoot.
+- **Prior to … / After …**, two buttons under the list, name the outlined row. Prior ticks it and every phase above
+  it; After, it and every phase below it. Each replaces the ticks. A long name is cut with an ellipsis.
+- **To a date follows the list** (owner: *"when pre-prep is selected, it should be the default option under To a
+  date. The list should also be limited to only selected phases"*): the phase above "starts on" is the outlined one,
+  and only ticked phases are offered. Picking a phase there outlines its row. The phase that lands is no longer
+  pinned in place of its tick: every row keeps its box.
+- **Nothing floats over the rows**: the header strip sits above them, no row has a hover tooltip, and the box's
+  "i" hint now opens upward.
+- It still opens with every phase ticked, By weeks, so "2 wks, Later" moves the whole calendar as before (the owner
+  asked for the case for opening with none ticked, and kept it).
+
+**What a set of ticks moves** is unchanged in substance, and now depends only on the set: every phase is the old
+whole-calendar move; the top of the list down to one phase is the old Phase & before; the bottom of the list from one
+phase is the old Phase & after (Shift From); any other set takes the notes inside each ticked phase's own weeks.
+
+**A bug found while testing with real clicks, fixed before anything shipped:** the guard that swallows a press's own
+click was disarmed by a timer, and when no click followed the press it ate the next click instead, so "choose a row,
+press After" did nothing. The next press or key drops the guard now.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, and everything is inside
+`.tools-menu`. Verified: `npm run check` 41/41 (a new check holds the hint opening upward, which a harness leg cannot
+hover); `anchorside` rewritten, 39/39 (each of the eight points and the three corrections has a case); the sixteen
+other legs that drive the Shift box or share its rows green, five of them ported from the old buttons to the list
+through new `T.shiftPress` / `T.shiftDrag` / `T.shiftSide` helpers. Three broken builds each turn `anchorside` red (a
+row click that flips the tick: M1, D4, W1; a To a date box that ignores the outline, or lists every phase: W1). No full
+gate: chrome only.
+
+### Unreleased — Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
+
+Shift learned to step over a locked hiatus on 5 Nov (owner's ruling: count only working weeks, so the gaps between
+phases are kept). Ripple Hiatus still pushed by calendar weeks, so a push could carry a phase's start across a locked
+break, moving the break from one phase into the one before it: a week of overlap there and a week's gap after.
+Owner, by picker: *"Yes, plan it"*, then *"Build it"* and *"Distances only"* for the line (HIATUS-RIPPLE-PLAN.md §12).
+
+- **Now:** a hiatus change moves every later phase by the same number of WORKING weeks: a phase whose start crosses a
+  locked break moves the break's length further, and every gap and overlap is kept. The line under the hiatus already
+  shows each phase's real distance ("Pushed 4 wks: Prod Prep · Pushed 2 wks: Pre Prep, Post"); nothing is added to it.
+- **The hiatus being edited is not stepped over.** It stays where you put it, but it is the reason for the push, not an
+  obstacle to it: counted as one, lengthening a break 2 → 3 weeks would push the phase that started right after it 2
+  weeks. Notes in its weeks move with the work, as before.
+- **Unchanged:** when a ripple runs, the switch, the two undo steps, and every push that crosses no locked break.
+- **Verified:** new `ripplestep.sptcal` (synthetic) and `hiatusripple.mjs` S1–S4 (Writer's Rm's own hiatus pushing Prod
+  Prep over the locked Christmas break; undo; redo and the pull back over it; the edited-hiatus trap). `hiatusripple` **19/19** on the build; on the live code (`850d930`) S1, S3, S4 red (the crossing cases); on a build that
+  counts the edited hiatus as an obstacle (`stepOverHeld(n, hf.held)`) R4, R5, S4 red. The neighbouring set (base with
+  the waterfall PDF and Excel identical to the baselines, the hiatus legs, undo / dialog keys, `shiftheld`, `anchorside`,
+  `phasearrows`): 215 PASS, its only FAIL S3's expected line order, corrected in the test (pulls are listed smallest
+  first, as the line always has). `npm run check` 40/40. Help page: one sentence (Ripple counts working weeks, like Shift).
+
+### Unreleased — Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
+
+The owner gave Writer's Rm a 2-week hiatus (which pushed everything after it), then changed it to 3 weeks and saw
+nothing move: *"when i try to adjust it from 2 weeks to 3 weeks it doesnt shift everything down"*. The push did come,
+but only once focus left the Weeks box or Enter was pressed, while the hiatus's own band grew at once. Offered a
+one-second pause; the owner: *"it should do it immediately not after a second"*.
+
+- **Now:** every number a hiatus's Weeks box takes (spinner, arrow keys, typing) pushes or pulls the phases after it at
+  once, cursor kept in the box, for all-phase and per-phase hiatuses alike. 2 → 3 → 4 is two pushes of 1 week, and one
+  ⌘Z still takes back the last push and keeps the number. An emptied box waits for the next number.
+- **Unchanged:** a start date typed by hand still waits until it is finished (Enter or leaving the box), because a year
+  typed digit by digit passes through real dates (0002, 0020, 0202); a date picked in the calendar pushes at once.
+- **Also fixed:** leaving the box right after a push no longer wipes the "Pushed 1 wk: …" line under the hiatus.
+- **Verified:** `hiatusripple.mjs` R1, R3, R5 rewritten and R8 extended with the owner's case (a phase's own hiatus,
+  Weeks 2 → 3 by arrow): 15/15 on the build, R1 / R3 / R5 / R8 red on the live code. Help page reworded. On the build
+  merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
+  baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
+
+### Unreleased — a follow-on carries its predecessor's width (rule 22, 6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 22. Owner, on a test calendar: *"i feel like its weird that the last 3 weeks
+of prod prep extend across"*, then a picture, *"this is how it should sort"*, and by picker *"Build it"* (the sign-off
+for a frozen edit).
+
+- **What was wrong.** Prod Prep followed a two-wide Pre-Prep but sat one wide, because a Casting phase would take the
+  third column before Prod Prep ended (rule 13). Then, alone for its last three weeks, it filled all three columns
+  (rule 14), right before Production and Sim Post began in two of them.
+- **What changed.** Frozen edit LR6 in `computePhaseRowLayout`, stamped calendars only: a phase that takes over a column
+  the week its occupant ends keeps the cell that occupant drew in its last week (counting a column rule 21 kept for
+  it), while those columns stay empty. Once one is taken, it keeps what it had less that column until it ends, and does
+  not spread again, even alone; never squeezed, it fills alone as before. A column already taken
+  in the follow-on's first week was never carried, so Production after a wide Prod Prep, with the lane beside it, is
+  unchanged. Help: one sentence in "How far a cell reaches".
+- **Fixed before commit.** The first test build measured the predecessor by its last week's even share only: a
+  Pre-Prep kept two wide by rule 21 beside Casting handed on nothing, and Prod Prep drew an upside-down T (*"wait why is
+  it still doing the upside down T pattern for prod prep"*). Its hold also handed back a freed column the phase had
+  spread into (a run that shrinks; found by the fewest-columns session). Fixtures `layout-r22b` and `layout-r22c`, red
+  on that build at R22Bc and R22Ca.
+- **Verified.** New fixture `layout-r22` (the owner's shape in 2031), 8/8, red on the build before at R22c and R22d.
+  Re-expected: `layout-r13` R13i (Delivery carries Post's two-wide cell until Marketing takes the column, then stays one
+  wide) and `layout-r3b` R3Bd (Prod Prep carries Pre-Prep's three-wide cell until Post arrives, then two wide).
+  `fill-intent` gained a three-week phase beside Writers' last weeks, so its Pre-Prep still starts one wide and
+  `phasefill` 13/13 and `colsreset` 8/8 keep testing the double-click wish (13/13 on the build before too). The 15
+  pictures score the same (98.1%, 31 column misses, 0 width misses): none narrows a run.
+
+### Unreleased — the waterfall uses as few columns as it can (rule 23, 6–9 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 23. Owner, two screenshots of a test calendar (today three columns, wanted
+two): *"We should always prioritize as few collumns as possible"*; by picker *"Yes, build it"*, *"Fewest columns"* over
+Post keeping the Sim Post lane, and *"Fill the width"* for a phase alone in its last weeks (no width change). Numbered
+23, not 22: the sticky-columns session's width rule (a follow-on carries its predecessor's width) took 22 the same night.
+Then, 9 Nov 2026, by picker in that session: *"Give way"*: a moved phase's column of its own gives way when it costs one.
+
+- **What was wrong.** The rules place one phase at a time and cannot look ahead. Prod Prep took Pre-Prep's handed-off
+  column, so Casting, starting beside it and not following on, could not sit left of it in Writers' free column (R-D)
+  and opened a third column. Had Prod Prep followed Writers into its column (freed three weeks before, rule 2's short
+  gap), Casting would have taken Pre-Prep's, and the year needs two.
+- **What changed.** Wherever the rules have a choice of column for a phase (a handoff, a short gap, right of everything
+  running, Production's free columns, Post's lane, or a new column), each allowed one is tried with the rest placed by
+  the rules, and the one leaving the fewest columns, summed over the year blocks, is kept. A tie keeps the rules' own
+  pick, so a calendar they already lay out in the fewest columns is unchanged. R-D still bounds the choices; a hand
+  move and a remembered predecessor (sticky columns) are not choices. A moved phase that remembers a column of its OWN
+  is: that new column against the rules' pick, the fewest columns winning and a tie keeping the own column, so a nudge
+  that cost nothing still holds (the owner's Casting, moved, had kept opening a third column beside two that would do).
+  Accepted consequences: Post may start under Production instead of
+  continuing the Sim Post lane when that saves a column, and a phase nobody moved can change column when another moves
+  far enough that the saving goes away. Help: one sentence in "Where a phase goes". Built on sticky columns (`dc8482b`).
+- **Verified.** New fixture `layout-r23` (the owner's calendar, shifted to 2031): two columns, red on the build before
+  (three). `layout-r3b`, `layout-r2g` (R2Gd) and `layout-r21` re-expected, each one column narrower;
+  new `layout-r21b` and `layout-r3c` keep rules 21 and 3 tested in shapes rule 23 cannot narrow (green on both builds).
+  New `layout-r23b` (the owner's calendar with Casting remembering a column of its own): two columns, the memory still
+  in the file, red without the give-way. All 17 layout fixtures, `stickycols`, `swapholds`, `phasefill`, `colsreset`, `centrepullback` and `simpostdays` green;
+  `npm run check` 40/40. The 15 pictured calendars were scored on the prototype (byte-identical layouts, 98.1% / 31 /
+  0); the owner waived re-scoring the final build.
+
+### Unreleased — Fill Space: a switch for one even width per phase (9 Nov 2026)
+
+Owner: *"a toggle to the left of side boxes button that turns on or off expand rows to fill empty space"*; then, on a
+first build that kept every phase one column wide: *"when i say fill space i mean collumsn that fill only a portion of
+the phase such that only some weeks are wider than others. The algorithm should always fill collumns as wide as they
+have space for if they are all uniform in width."* Rulings by picker: even within each year; a double-click fill wish
+still wins; the frozen edit (*"Yes, make the edit"*).
+
+- **What.** A **Fill Space** switch in the preview toolbar, left of Side Boxes, in the Waterfall of a calendar on the
+  layout rules. On (the default) is the layout as it was: a phase widens into the columns beside it from the week they
+  are free, so its width can step up partway through. Off, no partial fills: every phase has ONE width per year, the
+  widest that is free on every week of its run there, in the calendar, the workbook and the PDF. A double-click fill
+  wish still widens that phase week by week, a keep wish keeps it one wide, and a dragged exact width still applies.
+  Saved with the calendar (`fillSpaceOff`, written only when off), one undo step, back on with New. Reset Columns leaves
+  it alone: it is a setting, like Single Column Mode.
+- **How.** Frozen edit LR7 in `computePhaseRowLayout`, owner-approved, active only with the switch off: a phase with no
+  wish takes its run's planned width (`layoutEvenPlan`: right first, then left into what no overlapping run holds)
+  instead of the per-week walk, and rule 21's and R-E's passes leave it alone. The control is a toggle button with a
+  drawn switch, not a Mantine Switch, whose automatic input id the save sweep would have baked into every file.
+- **Fit.** Labelled above 1300 px; the switch alone from 1300 px down. It adds a second toolbar line only between about
+  1200 and 1230 px.
+- **Verified.** Leg `fillspace` 6/6 on `layout-r13` (on: Post 2031 two then three wide, Writers one then two; off: Post
+  two and Writers one all year, every phase one width per year, every cell kept, the file key, no new field id, a fill
+  wish still varying, undo, the Month view, New). With the switch on: the 15 pictures and the layout fixtures, numbers in
+  HANDOFF; the full gate's export baselines.
+
+### Unreleased — a phase you move keeps its column (sticky columns, 6 Nov 2026)
+
+[`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three
+screenshots of a test phase nudged a week at a time around Production (right, LEFT in the week the two start together,
+right again): *"its not just about production i dont like how it does this for any phase"*; by picker *"Plan sticky
+columns"*, then rulings K1–K4 as recommended.
+
+- **What was wrong.** Rule 6's same-week tie gives a column that has just come free to the shorter of two phases
+  starting that week, so a phase nudged through that week jumped to the other side and back. Any fixed tie rule makes one
+  of the two jump (measured), and reversing it costs one of the 15 pictured calendars. The layout had to remember.
+- **What changed.** A phase the user MOVES (a typed date, ▲ / ▼, Shift, Build Around, a length, a hiatus that moved it)
+  remembers what its column held before it — the phase it followed, the Sim Post lane, or a column of its own — and keeps
+  that column whenever its new dates still fit there (K1, K3: even past rule 2's four-week gap). Where it can't fit, the
+  rules place it and the memory is kept, so it comes home when nudged back (K2). Phases never moved are placed by the
+  rules as before, except that the rules don't hand a remembered column to a phase that would still be in it the week
+  the moved phase starts, and in a same-week tie the moved phase is placed first. Nothing on screen marks it (K4); Reset
+  Columns clears it. Written only by `update()`, against a per-phase record of where the layout last placed each phase
+  (so a date typed through invalid years still reads as a move), never in a trial and never on a restore. Help: one
+  sentence in "Where a phase goes".
+- **The file.** New PERMANENT snapshot key `colKeep` (`{phase: '<phase it followed>' | '' | 'simPostLane'}`), sorted,
+  ABSENT while empty, so a calendar nobody moved a phase on saves byte for byte as before; sanitized to known phases;
+  restored unconditionally; cleared by New and Reset Columns; pruned with a custom phase. An older build ignores it.
+  Stamped calendars only.
+- **Verified.** New leg `stickycols` on fixture `sticky-cols` (the owner's shape in 2031), 12/12: Test nudged through
+  the tie stays right, Production nudged into Test's week stays left, an overlap and back, undo / redo, Reset Columns,
+  New, Load, and a typed date; red on the build before at K1, K3, K6, K8. `layoutrules` re-expected where a moved phase
+  now keeps its column: `layout-r2g` R2Gc (Test stays in Writers' column at five weeks) with R2Gd proving the rules after
+  Reset Columns, `layout-r2h` R2Ha (a moved Prod Prep stays right all six weeks) with R2Hb replaying the rules' sweep.
+  The 15 pictures re-scored unchanged (98.1%, 31 column misses, 0 width misses); every other layout fixture,
+  `colsreset` (now with `colKeep`), `phasefill`, `swapholds`, `simpostdays`, `centrepullback` and the swap legs green;
+  `npm run check` 40/40. Full gate 4,270 PASS / 2 FAIL, both load timing and green alone (`pwagate`, `scenariocompat`).
+
+### Unreleased — a phase a few weeks late still follows into the freed column (6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 2, [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §9. Owner, two screenshots of
+a test calendar: *"what is going on here?"*, then by picker *"up to 4 weeks"*.
+
+- **What was wrong.** A phase starting the week after another ended took over its column. One week later, it no longer
+  counted as following on, so rule 4 sent it right of everything still running: a new column, with the old one left
+  empty for weeks. Moving a phase a single week could reshape the whole year, and a column swap holding it was dropped.
+- **What changed.** When no column was freed the week before, a column freed up to four working weeks earlier counts as
+  following on, and the phase takes the one freed most recently. ⚠️ The first test build took the LEFTMOST of them, and
+  the owner caught it at once (*"this is terrible now. Its jumping back and fourth so many times"*): Prod Prep slid a week
+  at a time went right, left, left, right, right, left. Latest-freed changes once, at five weeks; fixture `layout-r2h`
+  replays the sweep (red on that first build). Five weeks or more is rule 4's "right of everything running", as ruled on 5 Nov 2026.
+- **Verified.** The 15 pictured calendars score the same at gaps of 1, 2, 4, 8 weeks and unlimited (98.1%, 31 column
+  misses, 0 width misses), so the pictures don't decide it; rule R-D's own fixture breaks from five, which set the
+  limit. New fixture `layout-r2g`: one, four and five weeks (red on the build before at one and four). All eleven
+  other layout fixtures, `swapholds`, `phasefill`, `colsreset` and `centrepullback` green; `npm run check` 40/40.
+
+### Unreleased — a column swap holds when one of its phases moves (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §8. Owner: *"so if you swap a column then move one of those column up, it
+should maintain the position its in."*
+
+- **What was wrong.** A block swap was stored as "exchange these two columns". Move one of the swapped phases earlier
+  until it starts before the other, and the layout already puts it on the left, so the exchange put it back on the
+  right: the swap undid itself. Measured: Prod Prep swapped left of Pre-Prep held through three ▲ clicks and flipped
+  back on the fourth.
+- **What changed.** A swap now also records which side each phase took, and the app exchanges the two columns only
+  when the layout has them the other way round. Moving either phase, by typing a date or with the ▲ / ▼ arrows, keeps
+  the order you gave them. Swapping them back, or Reset Columns, lets the layout choose again.
+- **Saved calendars.** A swap saved before this has no side. On load the app writes its side down from what the swap
+  shows today, so every calendar opens exactly as it did and holds from then on. An older build ignores the new field.
+  A block pushed into the next year still takes that year's own order (ruling E5), and the week-by-week swap is
+  unchanged.
+- **Verified.** New leg `swapholds` 8/8 (red on the build before at the side record and the flip); the gate's whole
+  swap section, 115 checks, green; `noswapbtns`, `colswappartial` (both fixtures), `swapsplitreuse`, `colswapcache`,
+  `colsreset`, `phasefill` green; `npm run check` 40/40.
+
+### Unreleased — Reset Columns: every column back on the automatic layout in one click (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §6. Owner, trying the fill wish: *"will there be a way to reset back to
+default algorithm?"* — then *"Add it"*.
+
+- **What.** A **Reset Columns** button in the app header, beside Reset Notes, in the Waterfall view. One click, one
+  undo step: every phase's fill or pull-back wish, every dragged cell and column width (both layouts, the Date and
+  Notes columns too), every swapped column and every phase moved by hand into a free column go back to the automatic
+  layout. Dates, notes, row heights, typed headings and their styles stay, and so does the layout stamp. It greys
+  while every column is already automatic, and the Month view hides it.
+- **Why.** Until now only one phase at a time could go back (the edge handle's double-click), or the whole calendar
+  through New.
+- **Header fit.** Labelled, it overflowed the header by 25 px at 1121 px wide, so it runs icon-only at 1280 px and
+  below, a rung before New and Save As. Swept 961–1440 px: no overflow, the header one row high.
+- **Verified.** New leg `colsreset` 8/8 (one of every column choice loaded, cleared in one click, note, row height and
+  stamp kept, a grey click adds no undo step, hidden in the Month view); `hdrcontrols` 12/12 with N0 re-expected to
+  the new header ending; `phasefill` 13/13, `centrepullback` 12/12, `noresetall` 5/5, `regionlock` 14/14,
+  `mvtextstyle` 23/23, `sharecopy2` passing; `npm run check` 40/40.
+
+### Unreleased — the double-click stores a wish on the phase, not a width on the cell (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md). Owner, after seeing hand-set widths behave oddly once the calendar moved
+under them: *"so theres no way to automate the fix in the background?"* — then *"Yes, build it"*.
+
+- **What.** On a stamped calendar a double-click no longer writes a width on one cell. It marks the phase with a wish:
+  double-click a one-wide cell and the phase **fills the empty columns beside it**, every week from then on; double-click
+  a wide cell and the phase **keeps to its own column**, every week. The layout applies the wish fresh on every redraw,
+  so a filling phase narrows the week another phase moves in, widens again the week it leaves, and follows every shift
+  and length change with nothing to tidy. Double-click the cell's edge handle to let the layout decide again. A
+  highlighted run of cells does the same for every phase in it, and the label above the highlight says which. A drag
+  to an exact width is still a per-cell width (rule 19) and still wins for that cell. An unstamped calendar keeps the
+  old per-cell double-click, since its layout is frozen by the stamp rule.
+- **Saved as `phaseFill`** (`{key: true | false}`, absent while none; a PERMANENT key; an older build ignores it and
+  draws the automatic layout). Frozen edit LR5 in `computePhaseRowLayout`, behind the stamp. Setting a wish drops the
+  phase's per-cell widths, which said the same thing the old way. New clears it; a removed custom phase takes its wish
+  with it.
+- **Why:** a stored width is a guess about what you wanted once the schedule moves; a stored wish is not.
+- **Verified:** new leg `phasefill` on a synthetic calendar where Pre-Prep is one wide for six weeks under rule 13:
+  the double-click makes it two wide for five and one beside Production, the file carries the key and no new field id,
+  Production moved two weeks earlier narrows it on its own, undo one step each, a wide cell's double-click keeps it to
+  its column, the edge handle hands it back, an unstamped file keeps the per-cell double-click, Load applies the key
+  and New clears it (13/13); `centrepullback` re-expected to the phase level (12/12); the rest below.
+
+### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
+
+Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and
+[`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9; stamped calendars only, like the rest.
+
+- **Sim Post is on every shoot week, without exception.** Rule 20's give-way — Post, starting in the shoot's last week
+  or two, took the Simultaneous Post lane and the marker was not drawn there — is withdrawn: the owner moved Post up
+  two weeks and watched it eat two Sim Post weeks (*"thats not right"*). A short overlap now gets a column beside the
+  lane for those weeks, exactly as a three-week overlap always did (*"then when I move it up 3 weeks, it fixes it"*).
+  Placement is one pass again; the 2 Nov "exactly Production's weeks" ruling holds in full, and its leg says so again.
+- **A phase fills the empty column to its right** from the week that column is free for the rest of its run, whatever
+  runs beside it (*"notice how pre-prep also isnt filling its collumn"*): Pre-Prep beside Writers is two wide from its
+  first week when the third column is Post's months later. Until now rule 12's even share capped two phases in three
+  columns at one each; the share now governs only a spread to the left and hand-dragged widths. Against the owner's
+  15 calendars every trailing spare they keep empty is either the Sim Post lane or taken before the run ends, so **a
+  phase sharing its row does not spread into the lane column before the shoot ends** (rule 15 reworded; it used to be
+  excluded only while the marker ran; a phase alone still fills it, as one calendar draws). Frozen edit LR4 in
+  `computePhaseRowLayout`, behind the stamp. Also fixed on the way: rule 21's marker sentinel had shipped as a space
+  where the engine writes a NUL, so its share count read the marker as a phase.
+- **Production takes the leftmost free column, a running phase to its right or not** (later the same day; owner:
+  *"Yes, Production only"*). Without Sim Post and with Post starting before the shoot, Production had been handed Prod
+  Prep's middle column and sat one wide beside Post with Writers' free column empty on its left for the whole shoot,
+  because rule 4 keeps a column left of a running phase out of reach unless it is a handoff. Rule 3 now says Production
+  goes to the leftmost free column regardless, and rule 12 hands it the spare between it and Post. Production only:
+  the pictures keep Localization in its handoff column over a free column further left (hand-05, hand-08).
+- **Verified:** `layout-r20` re-expected (three columns, Production | Simultaneous Post | Post, Design two wide beside
+  Writers), 4/8 on v1.12.1 and 8/8 here; new `layout-r13b`, the owner's three-week calendar, 7/8 on v1.12.1 (Pre-Prep
+  one wide) and 8/8 here; new `layout-r3b`, the Production screenshot, 5/7 on the build before (Production one wide in
+  the middle) and 7/7 here; `simpostdays` 14/14 on its original expectations; `npm run check` 40/40; the rest below.
+
+## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
+
+### rule 21: a run never shrinks (6 Nov 2026)
+
+The twenty-first layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
+§8); stamped calendars only, like the rest.
+
+- **What.** A column a phase has spread into stays its for the rest of the run while that column is free; the even
+  share of a later row takes nothing back. On the owner's screenshot Post, two wide while alone for 24 weeks, had been
+  pulled back to one for its last two weeks when Localization started beside it (placed to the right by rule 4; the
+  even share then gave each one column and the spare sat at the left edge, where rule 12 hands nothing over). Now Post
+  keeps both columns to the end, Localization sits one wide beside it, and fills the width when Post ends. Frozen edit
+  LR3 in `computePhaseRowLayout`, behind the stamp: a post-pass that gives a phase cell the columns rules 12 and 13
+  would have given it at an earlier row of its run, when they are empty here. Bands keep rule 16's own terms.
+- **Why:** rule 13 already said a width "only ever grows along a run, never grows and shrinks back"; as built that only
+  stopped a phase growing into a column taken later. The owner: *"why is this happening with post and localization?"*,
+  then *"Yes, build it"*.
+- **Verified:** fixture `layout-r21` (Post alone in the lane for 22 weeks, Localization overlapping its last two): Post
+  `0+2` throughout and Localization `2+1` then `0+3`, red on the v1.12.0 build (Post `1+1` for its last two weeks, the
+  screenshot's hole); none of the 15 study calendars draws a run that narrows, so the re-score is unchanged (figures
+  below); the eight other layout fixtures, the centre pull-back on widened cells, swap-split, the settings window, the
+  notes columns and Sim Post beside all green; `npm run check` 40/40; a full gate of **4207 PASS / 0 FAIL**, every baseline
+  byte-identical.
+
+## v1.12.0 — the twentieth layout rule (a column must earn its place), Shift steps over a locked hiatus, a phase's own hiatus picked inside the phase, Rebuild From is Build Around, a drag over expanded cells selects them and the double-click pulls them back, Shift's phase beside its date, a leftover band label stays, New opens on Show info (6 Nov 2026)
+
+### Shift steps over locked hiatuses, so the gaps between phases are kept (5 Nov 2026)
+
+Owner's bug report, with before and after screenshots: Phase & after Pre-Prep, to a date four weeks earlier, left a
+two-week gap between Prod Prep and Production. Cause: Shift moved every phase by calendar weeks while a locked hiatus
+stays on its dates. The Christmas break had sat in Prod Prep's last weeks; after the move it sat in Production's. So
+Prod Prep finished two weeks sooner, which opened the gap. And the shoot ran two weeks longer, so Post (moved four weeks
+like everything else) overlapped its last two weeks. Shift promises to keep the gaps, and it kept neither.
+
+- **Ruled (owner's picker, "Step over it", after asking why it is right):** Shift now counts only the weeks a held
+  hiatus does not cover. That is how the app already measures a phase: its length is working weeks, and a hiatus pauses
+  it (`extendEndForHiatus`). So a plan slid past a break that stays put is counted the same way. Checked against a
+  second route: the result is exactly what Build Around gives from the same phase on the same date (After), i.e. the
+  plan re-entered from scratch with the same lengths and gaps.
+- **What changes for the user:** a phase that crosses a held break moves that many extra calendar weeks. In the owner's
+  case, Production moves 6 weeks (to 11/30/26), Christmas falls inside the shoot, and Prod Prep → Production and the
+  wrap → Post both stay back to back. The result line says so: *"Production was pulled 6 wks to step over a held
+  hiatus."* The toolbar arrows do the same, and their readout says *"Production pulled 3 wks"* when one click carries a
+  phase over a break.
+- **Held** means the bands this move leaves where they are: locked ones, and on a part move the ones outside its week
+  windows. Unlocked hiatuses, a phase's own hiatus, the calendar range and every note keyed to a week move by the same
+  count, so a note on Production's week 4 is still on Production's week 4. Nothing moved lands inside a held break.
+- **To a date** counts working weeks too, so the phase lands on the date even with a break in between. A start date
+  typed inside a held break lands the week after it, and the line says why. The list under the form shows each
+  phase's real landing date ("Production 11/30/26, Pulled 6 wks").
+- **An Ends phase** (held by its end) has its END moved by the same count, so its start is re-solved correctly. Before,
+  its end moved by its start's calendar distance, which put Prod Prep's end on 12/11 instead of 11/27 in this case.
+- **A Dates phase** has both of its dates moved by the same count, so it keeps its working days and the gaps either
+  side. Its calendar span changes when a held break enters or leaves it: Pre-Prep Wed 2/10 – Tue 2/23 with a locked
+  week inside, shifted a week, is 2/24 – 3/2 (still 5 working days, still 3 days before Prod Prep). A first cut that
+  kept the span ended it 3/9, running into Prod Prep; the `builtindates` leg caught it.
+- **My calls, flagged in HANDOFF:** a note sitting under a held break stays with the break (it is about the break, and
+  the band covers it) instead of being pulled out from under it. The hiatus ripple and the phase card's ▲ / ▼ are
+  unchanged: the ripple sizes its own steps from the edited hiatus, and the arrows move one phase one week by design.
+- **Proof:** new leg `shiftheld` 13/13 (in `gate.sh` after `stalebandkey`), on a synthetic copy of the owner's
+  calendar. Red on the old engine at 9 of its checks (the gap, the overlap, the arrows, a date inside the break, the
+  Ends phase, All phases by weeks). Three legs that held the old arithmetic were updated to the new rule:
+  `snaptools` L14 (a note shifted onto a locked week now steps over it, so there is no "hidden under a hiatus" warning
+  to give), `customunits` and `builtindates` (a Dates and a Days phase over a locked week). See HANDOFF for the
+  neighbouring legs.
+
+### rule 20: a column must earn its place (5 Nov 2026)
+
+The twentieth layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
+§7), after v1.11.0's nineteen; stamped calendars only, like the rest.
+
+- **What.** On a test calendar Post started in Production's last week while Simultaneous Post still held its lane, so a third column opened for that one week and stood empty beside Writers + Pre-Prep, and beside Production + Sim Post, for the rest of the year. The owner asked not for a Post fix but for the algorithm to know *what looks right, with any phases*. Measured on the fifteen calendars: every column drawn by hand is used beside another phase for at least 5 weeks over its run, rule 6's Wrap column 3, and an earned column may stand empty (hand-02's third column, 6 weeks of Pre-Prep, then 14 empty beside two one-wide phases). So a column whose occupants run beside another column for **fewer than 3 weeks over their whole run** (the floor `LAYOUT_EARNED_WEEKS`), while another column in that year is used more, is a *phantom*: **the Sim Post marker steps aside** for a phase whose column would otherwise be one (the phase takes the lane from its first week, no marker is drawn on those rows, the marker resumes after a short one; the numbering and Post's continued count skip those rows as they skip a hiatus), and **where the column must exist** (two real phases need their cells) **it does not count toward the even share**, so the phase beside it spreads into it from the week it is free for the rest of the run (frozen edit LR2, behind the stamp; `markLayoutPhantoms` on the drawn rows marks each week row with its block's phantom columns, and the frozen branch reads them as it reads `col`). A phantom beside the lane stays empty: the lane never widens and Production cannot cross it; no picture shows the shape.
+- **Why:** the nineteen rules place phases one at a time and never look back at what the year came out like. The owner,
+  on the screenshot: *"its less about phase specific changes like that and more about the algorithm understanding
+  better what looks right and what doesnt with any phases"*; on the plain wording (*don't open a column for something
+  that is only there for a week or two*): *"build it"*.
+- **Verified:** fixtures `layout-r20` (the test calendar's shape: two columns, the overlap row reads Production | Post
+  with no marker, Post then fills two) and `layout-r20b` (a one-week Table Read beside Writers + Prep: its column
+  stays, Prep is two wide from the week after), both red on the build before rule 20; the six earlier layout fixtures
+  green; the fifteen study calendars re-scored byte for byte as before (98.1%, no width misses — a first cut that
+  counted a column's use per year, not per run, read hand-09's December lane as a phantom and cost 8 width misses,
+  caught by the re-score and fixed); on the branch a full gate of 4,012 PASS / 4 FAIL, every baseline byte-identical:
+  three the `simpostdays` leg meeting rule 20 (Post starting in Production's last week now takes the lane, so that one
+  working week has no marker — a deliberate exception to the 2 Nov "exactly Production's weeks" ruling; the leg
+  follows, 14/14), one the `phiatusnum` leg's own PDF reader trimming a Flate stream that happened to end in a
+  newline that day (`main`'s by-`/Length` reader fixes it). Merged into a release branch from `main` (owner: *"Yes,
+  merge and gate"*): a full gate of **4,175 PASS / 0 FAIL**, every baseline identical; with the phase-hiatus picker
+  commit merged in too, 4,079 / 15 under two other sessions' gates (every failure a timeout or a hit-test under load),
+  and all fifteen green re-run on their own (`hdrrow` 37/37, `retiredplaces` 8/8, `hiatuscolour` 14/14, `mvnotesize`
+  24/24, `hiatusdrag` 14/14, `hiatusripple` 15/15, `cspproof` 15/15, `textstyle` 51/51, `scenariocompat` on v1.2.0
+  twice); `npm run check` 40/40.
+
+### a phase's own hiatus is picked inside that phase (5 Nov 2026)
 
 Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the
 range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first month of the
@@ -154,7 +551,7 @@ phase."* Until now the picker opened on today's month and offered every Monday i
 - **Proof:** new leg `phiatuspick` 12/12 (in `gate.sh` after `datepick`), red on the old picker (K1–K5); `datepick`
   H2 updated for the window. See HANDOFF for the neighbouring legs.
 
-### Unreleased — Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
+### Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
 
 The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured
 on the layout study's 15 real calendars: 46 of the 47 handoffs that don't involve the Writer's Room are back to back,
@@ -183,7 +580,7 @@ length is the phase's own field. The ids stay `pop-solve-*` / `tool-solve-*` (th
 
 Verified: new leg `buildaround` 33/33 (a new calendar built in one run from typed lengths, staged until Build and taken back by one undo; both sides in one run; the shortcuts; ends by; Production unset; "Save 1 length"; no box control in the saved state). Updated and green: `rebuildticks` 19/19, `overrides` 20/20 (its Close all gaps case now drives Build Around and lands on the same dates and day marks), `snaptools` 14/14. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15. `npm run check` 40/40. Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work: `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
 
-### Unreleased — the test harness reads PDF text by each stream's length (5 Nov 2026)
+### the test harness reads PDF text by each stream's length (5 Nov 2026)
 
 Test harness only: the app and both PDF writers are unchanged. Since v1.11.0 the `phiatusnum` leg's check H4 ("one
 text run each for Pre-Prep Hiatus wk 1-3 in the waterfall PDF") was red on the live build, and it found no text at
@@ -216,7 +613,7 @@ save before reading any PDF; each was green alone. `npm run check` 40/40. A Node
 the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
 stream throws. No gate.sh change: leg names and budgets are the same.
 
-### Unreleased — a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
+### a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
 
 Owner, trying the entry below once it was live: *"i tried highlighing a bunch of expanced cells and double clicking
 and it only pulled back the cell my cursor was on."* A drag selects phase cells by each cell's **own** column, not
@@ -240,7 +637,7 @@ the pointer.
     `colreuse (live)`'s "Update layout" strip checks, a timing flake while another session's full gate ran: the live
     build fails them the same way, 2 of 3 runs, and each build passes 25/25 on other runs. `npm run check` 40/40.
 
-### Unreleased — a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+### a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
 
 Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
 and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
@@ -280,7 +677,7 @@ Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0�
     generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
     layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
 
-### Unreleased — Shift: the phase sits beside the date (5 Nov 2026)
+### Shift: the phase sits beside the date (5 Nov 2026)
 
 In the Shift box, **To a date** now names the phase that lands right above the date (owner, 5 Nov 2026, on a
 screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have
@@ -298,7 +695,7 @@ written back into it on change, and carries no id, so nothing reaches a saved fi
 `npm run check` 40/40; `anchorside` 30/30 (W1 reads the rows; new J1 picks the landing phase on the subject row, sees it
 mirrored, the date prefilled, the row pinned, and Go land it); the nine other Shift legs green.
 
-### Unreleased — a leftover band label stays where it is (5 Nov 2026)
+### a leftover band label stays where it is (5 Nov 2026)
 
 A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
 other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
@@ -321,7 +718,7 @@ gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in
 this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
 new widths now end a stream with; the PDF is fine).
 
-### Unreleased — New always opens the sidebar on Show info (5 Nov 2026)
+### New always opens the sidebar on Show info (5 Nov 2026)
 
 Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never
 touched the sidebar's tab, so it kept whichever was up, usually Phases, and a blank calendar opened on a list of empty

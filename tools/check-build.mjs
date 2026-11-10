@@ -99,6 +99,16 @@ check('Mantine chrome built in', /mantine/i.test(src));
 check('.sptcal save format present', /sptcal/.test(src));
 check('ExcelJS loader present', /exceljs/i.test(src));
 
+// THE SHIFT BOX'S HINT OPENS UPWARD AND NEVER FLIPS (owner's spec, 9 Nov 2026, item 8: no panel, popover or floating
+// control may sit over the list's rows). The list is directly under the box's title, so the hint's default place
+// (right, flipping when there is no room) would lay its card over the first rows. A harness leg cannot hover a
+// Mantine HoverCard (it ignores dispatched events), so the setting itself is asserted here, in the built file:
+// the Shift hint's props, as the bundler writes them (quotes or backticks, false or !1).
+const Q = '[`"\']';
+const shiftHint = new RegExp('label:' + Q + 'Shift' + Q + '[^{}]{0,80}position:' + Q + 'top-start' + Q + '[^{}]{0,40}middlewares:\\{[^{}]*flip:(?:!1|false)').test(src);
+check('the Shift box\'s hint opens above its title and never flips (nothing may float over the phase list)', shiftHint,
+  shiftHint ? '' : 'PreviewToolbar.jsx: <InfoHint label="Shift" position="top-start" middlewares={{ flip: false }}>');
+
 // --- 5. The update check and its marker agree ---------------------------------------------
 // The app polls version.json and compares it to its own baked-in version. If the two ever
 // disagree the banner is either permanently on (a phantom update) or permanently off (a real

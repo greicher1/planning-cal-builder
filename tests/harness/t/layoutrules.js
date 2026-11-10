@@ -16,6 +16,39 @@
 //               right of everything running, and a paused phase keeps its column; Post -> Localization stacked.
 //   layout-r13  rules 11-16 + 18 (piece 2, frozen widths): widths week by week.
 //   layout-r17  rule 17 (piece 2): Single Column, nothing widens; Post in the lane.
+//   layout-r20  rule 20 as it stands since 6 Nov 2026: Post starting in Production's last week gets a third column
+//               beside the lane and Sim Post stays on every shoot week (the give-way of v1.12.0-v1.12.1, which sent
+//               Post into the lane and dropped the marker, was withdrawn by the owner); Design beside Writers spreads
+//               into that column.
+//   layout-r2g  rule 2's short gap (6 Nov 2026): a phase starting up to 4 working weeks after a column empties follows into it;
+//               5 weeks is R-D again -- for a phase the user has not moved. Test is moved here, so since sticky columns
+//               (STICKY-COLUMNS-PLAN.md, ruling K3) it KEEPS Writers' column at five weeks; Reset Columns then hands it
+//               back to the rules, which put it right (R2Gd)
+//   layout-r2h  the short gap takes the LATEST-freed column: Prod Prep slid six weeks changes side once, not three times
+//               (R2Hb, re-placed by the rules after each step with Reset Columns); slid by the user, it never changes
+//               side at all (R2Ha, sticky columns)
+//   layout-r3b  rule 3's owner screenshot, since rule 23 laid out in TWO columns: Prod Prep follows Writers, Post takes
+//               Pre-Prep's column, Production follows Prod Prep (layout-r3c keeps rule 3's own case).
+//   layout-r13b rules 12, 13 and 15 since 6 Nov 2026 (frozen edit LR4): the owner's three-week-overlap calendar --
+//               Pre-Prep two wide beside Writers (the right spread is not capped by the even share), the lane reserved
+//               until the shoot ends, Sim Post on every shoot week, Post in a third column for its three overlap weeks.
+//   layout-r20b rule 20, absorbing: a one-week Table Read's column does not count toward the even share; Prep
+//               spreads into it once it is free for the rest of Prep's run.
+//   layout-r21  rule 21's original shape, since rule 23 (6 Nov 2026) laid out in TWO columns: Post under Production, so
+//               Localization can take the Sim Post lane's column (owner's picker: fewest columns over Post keeping the lane)
+//   layout-r21b rule 21, a run never shrinks: Post, two wide while alone, keeps both columns for the two weeks
+//               Localization runs beside it (three columns needed in January, so rule 23 saves nothing).
+//   layout-r23  rule 23, as few columns as possible (owner, 6 Nov 2026): the owner's test calendar in two columns -- Prod
+//               Prep follows Writers so Casting can take Pre-Prep's column; slid into the shoot, three either way.
+//   layout-r3c  rule 3 since 6 Nov 2026, in a shape rule 23 cannot narrow (Writers runs past Prod Prep's start).
+//   layout-r23b rule 23's give-way (owner, 9 Nov 2026): a moved phase's column of its own gives way when it costs one.
+//   layout-r22  rule 22, a follow-on carries its predecessor's width (frozen edit LR6, owner 6 Nov 2026): Prod Prep keeps
+//               Pre-Prep's two-wide cell until Casting takes the third column, then one wide to the end -- never across
+//               all three for its last three weeks alone.
+//   layout-r22b rule 22 measured by rule 21: Pre-Prep, KEPT two wide beside a Casting that remembers its own column, hands
+//               that cell to Prod Prep; WITH rule 23 (its give-way) Casting takes Writers' freed column and the year is two
+//               columns (re-expected for the pair, 10 Nov 2026, from the fewest-columns session's measurement).
+//   layout-r22c rule 22's hold keeps what the phase had: squeezed by Post, Prod Prep keeps Writers' freed column.
 //
 // ⚠️ Run against the BUILD: HARNESS_PAGE=/dist/index.html.
 window.addEventListener('load', function () { (async function () {
@@ -192,13 +225,199 @@ window.addEventListener('load', function () { (async function () {
         'custom2', 2031, ['2031-03-03:2+1', '2031-05-26:0+3']);
       W('R13e', 'Production: one wide beside the active Sim Post lane for the whole shoot (rule 15)', 'production', 2031, ['2031-06-23:0+1']);
       W('R13f', 'Reshoots: one wide under Production beside Post', 'custom3', 2031, ['2031-09-15:0+1']);
-      W('R13g', 'Post: one wide in the lane beside Reshoots, then fills the width the week Reshoots ends (rule 13: free for the REST of the run)',
-        'post', 2031, ['2031-09-15:1+1', '2031-10-06:0+3']);
+      W('R13g', 'Post: in the lane beside Reshoots it takes the empty column to its right at once (rule 13 uncapped, 6 Nov 2026; until then the even share held it to one), then fills the width the week Reshoots ends',
+        'post', 2031, ['2031-09-15:1+2', '2031-10-06:0+3']);
       W('R13h', '2032: Post alone fills the two columns', 'post', 2032, ['2032-01-05:0+2']);
-      W('R13i', 'Delivery: one wide while Marketing’s column is empty but taken before the run ends, across the mid-year hiatus (rules 13, 18), then two wide once Marketing ends',
-        'custom4', 2032, ['2032-02-16:0+1', '2032-08-30:0+2']);
+      W('R13i', 'Delivery: follows Post, so it carries Post\u2019s two-wide cell across the mid-year hiatus while the second column is empty (rule 22), one wide once Marketing takes it, and stays one wide after Marketing ends (rule 22\u2019s hold; until 6 Nov 2026 one wide, then two)',
+        'custom4', 2032, ['2032-02-16:0+2', '2032-08-02:0+1']);
       W('R13j', 'Marketing: one wide beside Delivery', 'custom5', 2032, ['2032-08-02:1+1']);
       C('R13k', 'block widths: 2031 three columns, 2032 two', out.blockWidths['2031'] === 3 && out.blockWidths['2032'] === 2, J(out.blockWidths));
+    }
+    if (FX === 'layout-r20') {
+      var W20 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R20a', '2031 is THREE columns: Post, starting in Production’s last week, needs one beside the lane (the marker never steps aside; owner, 6 Nov 2026)', slotsIn(bl, 2031) === 3 && blockOf(bl, 2031).width === 3, J(out.blockWidths));
+      C('R20b', 'Sim Post stays on every shoot week, Production’s last included: that row reads Production | Simultaneous Post | Post',
+        J(cellAt(bl, '2031-11-24', 'production')) === '[0,1]' && J(cellAt(bl, '2031-11-24', 'simpost')) === '[1,1]' && J(cellAt(bl, '2031-11-24', 'post')) === '[2,1]' && laneIn(bl, 2031) === 1,
+        J({ nov24: [cellAt(bl, '2031-11-24', 'production'), cellAt(bl, '2031-11-24', 'simpost'), cellAt(bl, '2031-11-24', 'post')], lane: out.lanes['2031'] }));
+      W20('R20c', 'Post: one wide in the third column that week, then fills the three (rule 14)', 'post', 2031, ['2031-11-24:2+1', '2031-12-01:0+3']);
+      W20('R20d', 'Design: beside Writers it spreads into the third column, free for the rest of its run (rule 13, uncapped), then fills the width when Writers ends',
+        'prePrep', 2031, ['2031-05-12:1+2', '2031-05-26:0+3']);
+      W20('R20e', 'Production: one wide beside the lane for the whole shoot; the column beside the lane stays empty (the lane never widens, rule 15)', 'production', 2031, ['2031-08-25:0+1']);
+      C('R20f', '2032: Post alone, one column', slotsIn(bl, 2032) === 1 && slotOf(bl, 2032, 'post') === 0, J(out.slots['2032']));
+    }
+    if (FX === 'layout-r13b') {
+      var W13b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R13Ba', 'columns: Writers | Pre-Prep, Prep and the lane | Post (three weeks beside the shoot); three columns',
+        slotOf(bl, 2031, 'writersRoom') === 0 && slotOf(bl, 2031, 'prePrep') === 1 && same(bl, 2031, 'prePrep', 'prodPrep') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'post') === 2 && slotsIn(bl, 2031) === 3,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      W13b('R13Bb', 'Pre-Prep: TWO wide beside Writers from its first week -- the column to its right is free for the rest of its run, and the even share no longer caps a spread to the right (owner, 6 Nov 2026) -- then fills the width when Writers ends',
+        'prePrep', 2031, ['2031-03-17:1+2', '2031-04-14:0+3']);
+      W13b('R13Bc', 'Writers: one wide throughout (Pre-Prep takes the next column before Writers’ run ends, rule 13)', 'writersRoom', 2031, ['2031-01-06:0+1']);
+      W13b('R13Bd', 'Production: one wide beside the lane for the whole shoot', 'production', 2031, ['2031-08-04:0+1']);
+      C('R13Be', 'Sim Post on every shoot week, the three Post overlaps included', (function () { var b = blockOf(bl, 2031); var rows = b.rows.filter(function (r) { return r.cells.some(function (c) { return c.what === 'production' && !c.band; }); }); return rows.length === 19 && rows.every(function (r) { return r.cells.some(function (c) { return c.what === 'simpost'; }); }); })(), J((function () { var b = blockOf(bl, 2031); return b.rows.filter(function (r) { return r.cells.some(function (c) { return c.what === 'production'; }) && !r.cells.some(function (c) { return c.what === 'simpost'; }); }).map(function (r) { return r.iso; }); })()));
+      W13b('R13Bf', 'Post: one wide in the third column for the three overlap weeks, then fills the three', 'post', 2031, ['2031-11-24:2+1', '2031-12-15:0+3']);
+    }
+    if (FX === 'layout-r21') {
+      var W21n = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R21a', 'TWO columns (rule 23; owner\u2019s picker "Fewest columns"): Production and then Post in Writers\u2019 column, the lane beside them, Localization in the lane\u2019s column once the shoot is over',
+        same(bl, 2031, 'production', 'writersRoom') && same(bl, 2031, 'post', 'production') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'localization') === 1 && slotsIn(bl, 2031) === 2 && blockOf(bl, 2031).width === 2,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'], width: out.blockWidths['2031'] }));
+      W21n('R21b', 'Post: one wide for its whole run (Localization takes the column beside it before Post ends, rule 13)', 'post', 2031, ['2031-05-12:0+1']);
+      W21n('R21c', 'Localization: one wide beside Post for two weeks, then fills the width', 'localization', 2031, ['2031-10-13:1+1', '2031-10-27:0+2']);
+      W21n('R21d', 'Production: one wide beside the lane', 'production', 2031, ['2031-02-03:0+1']);
+    }
+    if (FX === 'layout-r21b') {
+      var W21 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R21Ba', 'columns: Writers then Production left with the lane beside them, Post in the lane, Localization right of the running Post (rules 2, 6, 8, 4); three columns, needed in January',
+        same(bl, 2031, 'production', 'writersRoom') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'post') === 1 && slotOf(bl, 2031, 'localization') === 2 && slotsIn(bl, 2031) === 3,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      W21('R21Bb', 'Post: two wide from its first week (alone; the third column is Localization\u2019s before Post ends) and STILL two wide for its last two weeks beside Localization (rule 21)',
+        'post', 2031, ['2031-05-12:0+2']);
+      W21('R21Bc', 'Localization: one wide beside Post for two weeks, then fills the width', 'localization', 2031, ['2031-10-13:2+1', '2031-10-27:0+3']);
+      W21('R21Bd', 'Production: one wide beside the lane', 'production', 2031, ['2031-02-03:0+1']);
+      C('R21Be', 'no empty column beside Post in its last two weeks', (function () { var a = cellAt(bl, '2031-10-13', 'post'), b = cellAt(bl, '2031-10-20', 'post'); return J(a) === '[0,2]' && J(b) === '[0,2]'; })(), J([cellAt(bl, '2031-10-13', 'post'), cellAt(bl, '2031-10-20', 'post')]));
+    }
+    if (FX === 'layout-r3b') {
+      var W3b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R3Ba', 'TWO columns (rule 23): Prod Prep follows Writers into its column (rule 2\u2019s short gap) so Post can take Pre-Prep\u2019s; Production follows Prod Prep',
+        same(bl, 2031, 'prodPrep', 'writersRoom') && same(bl, 2031, 'production', 'prodPrep') && same(bl, 2031, 'post', 'prePrep') && slotOf(bl, 2031, 'production') === 0 && slotOf(bl, 2031, 'post') === 1 && slotsIn(bl, 2031) === 2,
+        J(out.slots['2031']));
+      W3b('R3Bb', 'Production: one wide beside Post for the whole shoot', 'production', 2031, ['2031-08-04:0+1']);
+      W3b('R3Bc', 'Post: one wide beside Prod Prep and then the shoot, then fills the two', 'post', 2031, ['2031-07-07:1+1', '2031-12-01:0+2']);
+      W3b('R3Bd', 'Prod Prep: one wide (Post takes the column beside it before Prod Prep ends, rule 13)', 'prodPrep', 2031, ['2031-04-28:0+1']);
+      W3b('R3Be', 'Pre-Prep: one wide beside Writers, then fills the width when Writers ends', 'prePrep', 2031, ['2031-03-17:1+1', '2031-04-14:0+2']);
+    }
+    if (FX === 'layout-r3c') {
+      var W3c = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R3Ca', 'Production takes the leftmost FREE column, Writers\u2019, though Prod Prep\u2019s was handed off and Post runs to the right (rule 3, 6 Nov 2026); Post in the third column, which rule 23 cannot save',
+        same(bl, 2031, 'production', 'writersRoom') && slotOf(bl, 2031, 'production') === 0 && same(bl, 2031, 'prePrep', 'prodPrep') && slotOf(bl, 2031, 'prodPrep') === 1 && slotOf(bl, 2031, 'post') === 2 && slotsIn(bl, 2031) === 3,
+        J(out.slots['2031']));
+      W3c('R3Cb', 'Production: two wide beside Post for the whole shoot -- the spare middle column goes to it (rule 12); no empty column', 'production', 2031, ['2031-08-04:0+2']);
+      W3c('R3Cc', 'Post: one wide in the third column beside Prod Prep and then the shoot, then fills the three', 'post', 2031, ['2031-07-07:2+1', '2031-12-01:0+3']);
+      W3c('R3Cd', 'Prod Prep: follows Pre-Prep, so it carries Pre-Prep\u2019s two-wide cell (rule 22), spreads into Writers\u2019 freed column when Writers ends, and when Post takes the third column it keeps the other two (rule 22\u2019s hold; the same shape as layout-r22c, re-expected for the pair 10 Nov 2026)', 'prodPrep', 2031, ['2031-04-28:1+2', '2031-05-26:0+3', '2031-07-07:0+2']);
+      W3c('R3Ce', 'Pre-Prep: two wide beside Writers (rule 13 uncapped)', 'prePrep', 2031, ['2031-03-17:1+2']);
+    }
+    if (FX === 'layout-r23') {
+      var r23 = function (b2) { return { prodPrep: slotOf(b2, 2031, 'prodPrep'), casting: slotOf(b2, 2031, 'custom1'), prePrep: slotOf(b2, 2031, 'prePrep'), cols: slotsIn(b2, 2031) }; };
+      C('R23a', 'TWO columns (rule 23, owner 6 Nov 2026: "always prioritize as few collumns as possible"): Prod Prep follows Writers into its column, Casting takes Pre-Prep\u2019s, Production left with the lane beside it',
+        same(bl, 2031, 'prodPrep', 'writersRoom') && same(bl, 2031, 'custom1', 'prePrep') && slotOf(bl, 2031, 'prodPrep') === 0 && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotsIn(bl, 2031) === 2 && blockOf(bl, 2031).width === 2,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'], width: out.blockWidths['2031'] }));
+      var W23 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      W23('R23b', 'Prod Prep: one wide while Casting is to come, and alone in its last three weeks it fills the width (owner\u2019s picker, "Fill the width")', 'prodPrep', 2031, ['2031-08-18:0+1', '2031-10-06:0+2']);
+      W23('R23c', 'Pre-Prep: one wide beside Writers, then fills the two when Writers ends', 'prePrep', 2031, ['2031-07-07:1+1', '2031-08-04:0+2']);
+      // Casting slid into the shoot, then handed back to the rules: three columns are needed either way (Casting
+      // overlaps Production and its lane), so there is nothing to save and Prod Prep takes Pre-Prep's column again.
+      T.set('start-custom1', '2031-10-13'); await settle('Casting at 10/13');
+      var rb23 = document.getElementById('tb-cols-reset-btn'); if (rb23) rb23.click();
+      await settle('Casting at 10/13, reset');
+      var b23 = read(), g23 = r23(b23);
+      C('R23d', 'Casting moved into the shoot (and Reset Columns): three columns either way, so the rules\u2019 own pick stands -- Prod Prep in Pre-Prep\u2019s column',
+        !!rb23 && g23.cols === 3 && g23.prodPrep === g23.prePrep, J(g23));
+    }
+    if (FX === 'layout-r23b') {
+      // Rule 23's give-way: Casting remembers a column of its own (colKeep '' in the file), and that column would be a
+      // third. It gives way to Writers' freed column; the memory itself stays in the file.
+      C('R23Ba', 'TWO columns: Casting, which remembers a column of its own, gives it up for Writers\u2019 freed column because the own column would cost a third (owner, 9 Nov 2026: "Give way"); Prod Prep follows Pre-Prep, Production left with the lane beside it',
+        same(bl, 2031, 'custom1', 'writersRoom') && same(bl, 2031, 'prodPrep', 'prePrep') && slotOf(bl, 2031, 'production') === 0 && laneIn(bl, 2031) === 1 && slotsIn(bl, 2031) === 2,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      var s23b = await (async function () {
+        var written = [], n = 0;
+        var h = { name: 'r23b.sptcal', kind: 'file', queryPermission: async function () { return 'granted'; }, requestPermission: async function () { return 'granted'; },
+          isSameEntry: async function (o) { return o === h; }, getFile: async function () { return new File([written[written.length - 1] || ''], 'r23b.sptcal', { lastModified: 1 }); },
+          createWritable: async function () { var parts = []; return { write: async function (c) { parts.push(typeof c === 'string' ? c : await c.text()); }, close: async function () { written.push(parts.join('')); } }; } };
+        window.showSaveFilePicker = async function () { return h; };
+        await T.until(function () { return !document.getElementById('save-file-btn').disabled; }, 'the Save button', 60, 100);
+        document.getElementById('save-file-btn').click();
+        await T.until(function () { return written.length > n; }, 'the Save write', 100, 100);
+        return JSON.parse(written[written.length - 1]);
+      })();
+      C('R23Bb', 'the memory is kept in the file (colKeep {custom1: ""}): giving way is a layout choice, not a forgotten move', J(s23b.colKeep) === J({ custom1: '' }), J(s23b.colKeep));
+      var rb23b = document.getElementById('tb-cols-reset-btn'); if (rb23b) rb23b.click();
+      await settle('reset');
+      var b23b = read();
+      C('R23Bc', 'Reset Columns: still two columns, the same way', !!rb23b && same(b23b, 2031, 'custom1', 'writersRoom') && slotsIn(b23b, 2031) === 2, J({ casting: slotOf(b23b, 2031, 'custom1'), cols: slotsIn(b23b, 2031) }));
+    }
+    if (FX === 'layout-r2g') {
+      // Rule 2's short gap (LAYOUT_FOLLOW_GAP_WEEKS = 4). Test is moved by typing its start, then the grid re-read.
+      var r2g = function () { var b2 = read(); return { same: same(b2, 2031, 'custom1', 'writersRoom'), test: slotOf(b2, 2031, 'custom1'), cols: slotsIn(b2, 2031) }; };
+      var g1 = r2g();
+      C('R2Ga', 'Test, one working week after Writers’ column emptied, follows Writers into it: two columns, not a third right of Pre-Prep (rule 2, short gap)',
+        g1.same && g1.test === 0 && g1.cols === 2, J(g1));
+      T.set('start-custom1', '2031-05-12'); await settle('Test at 5/12');
+      var g4 = r2g();
+      C('R2Gb', 'moved to 5/12, four working weeks after: still Writers’ column, two columns', g4.same && g4.test === 0 && g4.cols === 2, J(g4));
+      T.set('start-custom1', '2031-05-19'); await settle('Test at 5/19');
+      var g5 = r2g();
+      C('R2Gc', 'moved to 5/19, five working weeks after: Test was MOVED, so it keeps Writers\u2019 column (sticky columns, ruling K3: kept beats rule 2\u2019s gap and R-D)',
+        g5.same && g5.test === 0 && g5.cols === 2, J(g5));
+      var rb = document.getElementById('tb-cols-reset-btn'); if (rb) rb.click();
+      await settle('Test at 5/19, reset');
+      var g6 = r2g();
+      C('R2Gd', 'Reset Columns: placed by the rules, five working weeks is not following on, so Test goes right of everything running -- and rule 23 makes that Pre-Prep\u2019s column, not a third: Prod Prep follows Writers instead (two columns)',
+        !!rb && !g6.same && g6.test === 1 && g6.cols === 2, J(g6));
+    }
+    if (FX === 'layout-r2h') {
+      // The owner's sweep: Prod Prep slid a week at a time; which side of Production it sits on, each week.
+      var sideOf = function () { var b2 = read(); var a1 = slotOf(b2, 2031, 'prodPrep'), p1 = slotOf(b2, 2031, 'production'); return (a1 === null || p1 === null) ? '?' : (a1 < p1 ? 'L' : 'R'); };
+      var sweep = [];
+      var days = ['2031-01-27', '2031-02-03', '2031-02-10', '2031-02-17', '2031-02-24', '2031-03-03'];
+      for (var d = 0; d < days.length; d++) { T.set('start-prodPrep', days[d]); await settle('Prod Prep at ' + days[d]); sweep.push(days[d].slice(5) + ' ' + sideOf()); }
+      C('R2Ha', 'Prod Prep slid by the user 1/27 -> 3/3 a week at a time: right of Production EVERY week -- it keeps Pre-Prep\u2019s column, the one it was in (sticky columns, ruling K3; until then it went left at 3/3, R-D)',
+        J(sweep) === J(['01-27 R', '02-03 R', '02-10 R', '02-17 R', '02-24 R', '03-03 R']), J(sweep));
+      // The rules alone, as they place a phase nobody moved: Reset Columns after each step forgets the move.
+      var rsweep = [], rbtn = document.getElementById('tb-cols-reset-btn');
+      for (var e = 0; e < days.length && rbtn; e++) {
+        T.set('start-prodPrep', days[e]); await settle('Prod Prep at ' + days[e]);
+        rbtn.click(); await settle('Prod Prep at ' + days[e] + ', reset');
+        rsweep.push(days[e].slice(5) + ' ' + sideOf());
+      }
+      C('R2Hb', 'the rules alone (Reset Columns after each step): right of Production through four weeks\u2019 gap (the latest-freed column) and left from 3/3, five weeks after (R-D) -- ONE change, not three',
+        J(rsweep) === J(['01-27 R', '02-03 R', '02-10 R', '02-17 R', '02-24 R', '03-03 L']), J(rsweep));
+    }
+    if (FX === 'layout-r22') {
+      var W22 = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R22a', 'columns: Writers then Production left; Pre-Prep, Prod Prep and the lane in the middle; Casting right; three columns',
+        same(bl, 2031, 'production', 'writersRoom') && slotOf(bl, 2031, 'writersRoom') === 0 && same(bl, 2031, 'prePrep', 'prodPrep') && slotOf(bl, 2031, 'prodPrep') === 1 && laneIn(bl, 2031) === 1 && slotOf(bl, 2031, 'custom1') === 2 && slotsIn(bl, 2031) === 3,
+        J({ slots: out.slots['2031'], lane: out.lanes['2031'] }));
+      W22('R22b', 'Pre-Prep: two wide beside Writers (rule 13, the third column free for its whole run)', 'prePrep', 2031, ['2031-07-07:1+2']);
+      W22('R22c', 'Prod Prep: carries Pre-Prep\u2019s two-wide cell until Casting takes the third column, then one wide to the end -- not three wide alone for its last three weeks (rule 22; today one wide, then three)',
+        'prodPrep', 2031, ['2031-08-18:1+2', '2031-09-08:1+1']);
+      C('R22d', 'its last three weeks, alone: one wide in its own column, both others empty',
+        J(cellAt(bl, '2031-10-06', 'prodPrep')) === '[1,1]' && J(cellAt(bl, '2031-10-20', 'prodPrep')) === '[1,1]', J([cellAt(bl, '2031-10-06', 'prodPrep'), cellAt(bl, '2031-10-20', 'prodPrep')]));
+      W22('R22e', 'Writers one wide throughout; Casting one wide; Production one wide beside the lane', 'writersRoom', 2031, ['2031-04-28:0+1']);
+      C('R22f', 'Casting and Production one wide', J(shape(bl, 2031, 'custom1')) === J(['2031-09-08:2+1']) && J(shape(bl, 2031, 'production')) === J(['2031-10-27:0+1']),
+        J({ casting: shape(bl, 2031, 'custom1'), production: shape(bl, 2031, 'production') }));
+    }
+    if (FX === 'layout-r22b') {
+      var W22b = function (id, title, key, year, want, b2) { var got = shape(b2 || bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      // ⭐ With rule 23 (the pair, 10 Nov 2026): Casting's own-column memory GIVES WAY (owner's picker, 9 Nov 2026), since
+      // keeping it costs a third column; it takes Writers' freed column. Values measured by the fewest-columns session.
+      C('R22Ba', 'Casting remembers a column of its own, but keeping it would cost a third column, so it gives way (rule 23): two columns, Casting in Writers\u2019 column',
+        slotOf(bl, 2031, 'custom1') === 0 && same(bl, 2031, 'custom1', 'writersRoom') && slotsIn(bl, 2031) === 2, J(out.slots['2031']));
+      W22b('R22Bb', 'Pre-Prep: one wide beside Writers, in the right column', 'prePrep', 2031, ['2031-07-07:1+1']);
+      W22b('R22Bc', 'Prod Prep: follows Pre-Prep one wide beside Casting, then fills the width once Casting ends (alone it still fills)',
+        'prodPrep', 2031, ['2031-08-18:1+1', '2031-09-08:0+2']);
+      var rb = document.getElementById('tb-cols-reset-btn'); if (rb) rb.click();
+      await settle('reset');
+      var b3 = read();
+      C('R22Bd', 'Reset Columns: Casting, remembering nothing, follows Writers into its freed column -- two columns -- and Prod Prep follows Pre-Prep one wide, then fills alone',
+        !!rb && same(b3, 2031, 'custom1', 'writersRoom') && slotsIn(b3, 2031) === 2 && J(shape(b3, 2031, 'prodPrep')) === J(['2031-08-18:1+1', '2031-09-08:0+2']),
+        J({ slots: slotsIn(b3, 2031), casting: slotOf(b3, 2031, 'custom1'), prodPrep: shape(b3, 2031, 'prodPrep') }));
+    }
+    if (FX === 'layout-r22c') {
+      var W22c = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      W22c('R22Ca', 'Prod Prep: carries Pre-Prep\u2019s two-wide cell, spreads into Writers\u2019 column when Writers ends, and when Post takes the third column it KEEPS the other two (rule 22\u2019s hold keeps what it had; the first build gave Writers\u2019 column back)',
+        'prodPrep', 2031, ['2031-04-28:1+2', '2031-05-26:0+3', '2031-07-07:0+2']);
+    }
+    if (FX === 'layout-r20b') {
+      var W20b = function (id, title, key, year, want) { var got = shape(bl, year, key); C(id, title, J(got) === J(want), J(got), J(want)); };
+      C('R20Ba', 'columns: Writers | Prep | Table Read (one week, a phantom), Production and Post left; three columns',
+        slotOf(bl, 2031, 'writersRoom') === 0 && slotOf(bl, 2031, 'prodPrep') === 1 && slotOf(bl, 2031, 'custom1') === 2 && slotOf(bl, 2031, 'production') === 0 && slotOf(bl, 2031, 'post') === 0 && slotsIn(bl, 2031) === 3,
+        J(out.slots['2031']));
+      W20b('R20Bb', 'Prep: one wide until Table Read’s week, TWO wide from the week after (the phantom column does not count toward the share; rule 13’s rest of the run), then fills the width when Writers ends',
+        'prodPrep', 2031, ['2031-04-07:1+1', '2031-04-28:1+2', '2031-05-26:0+3']);
+      W20b('R20Bc', 'Writers: one wide throughout -- Prep takes the next column before Writers’ run ends (rule 13), and Writers is not beside the phantom', 'writersRoom', 2031, ['2031-01-06:0+1']);
+      W20b('R20Bd', 'Table Read: its one cell, one wide', 'custom1', 2031, ['2031-04-21:2+1']);
     }
     C('S0', 'a stamped fixture raises no "Update layout" strip', !out.strip, out.strip);
     out.errors = (window.__ERR || []).slice(0, 6);

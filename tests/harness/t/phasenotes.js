@@ -165,8 +165,9 @@ window.addEventListener('load', function () { (async function () {
   async function shiftForm(move, phase, weeks) {
     closePops(); await T.sleep(150);
     byId('pop-shift-btn').click(); await T.sleep(300);
-    if (move) { q('[data-move="' + move + '"]').click(); await T.sleep(150); }
-    if (phase) { T.set('tool-anchor-phase', phase); await T.sleep(150); }
+    // The Shift box lists the phases first (9 Nov 2026): it opens with every phase ticked (the old All phases), and
+    // "After X" ticks X and every phase after it (the old Phase & after).
+    if (move === 'after') await T.shiftSide('after', phase);
     T.set('tool-shift-weeks', String(weeks)); await T.sleep(150);
     byId('tool-shift-later').click(); await settle();
     closePops();

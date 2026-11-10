@@ -26,7 +26,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.11.0';
+  const APP_VERSION = '1.12.1';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -224,6 +224,19 @@ export function initLegacyApp() {
   // free-column reuse and SHIFTS whenever any start date changes; a slot index means a different
   // column in each year block. A phase key is stable under both, and under renames.
   let gridStintSwaps = {};
+  // ⭐ `left` (owner, 6 Nov 2026: "if you swap a column then move one of those columns up, it should maintain the
+  // position its in"). A swap made since then also says which side each phase TOOK: `left: true` on the phases that
+  // went left, `false` on those that went right. The reconciler then reads the group as an ORDER, not an exchange:
+  // it exchanges the two columns only when the layout has them the other way round (applyStintSwaps). Before it, a
+  // swap was always an exchange, so the week a moved phase started before its partner the layout already put it on
+  // the left, the exchange put it back on the right, and the swap undid itself. Measured on the fill-intent build:
+  // Prod Prep swapped left of Pre-Prep held through three ▲ clicks and flipped back on the fourth.
+  // ⛔ PERMANENT, and only `true` / `false`. Still not a seat: it names a side of ONE pair in ONE year, read against
+  // the block's own left-to-right order, so the first-appearance trap above does not apply. An entry without it is
+  // a swap saved before 6 Nov 2026: refreshAfterRestore() writes its sides down from the exchange it makes on load
+  // (recordStintSwapSides), so the calendar opens exactly as it did. An older build ignores the field and
+  // exchanges, as it always did.
+  let stintSwapsNeedSides = false;
 
   // ---------- Column reuse (COLUMN-REUSE-PLAN.md; owner rulings 20 Oct 2026) ----------
   // The calendar's "Reuse empty columns" box, until 5 Nov 2026. Ticked, computeSchedule placed phases with
@@ -248,6 +261,33 @@ export function initLegacyApp() {
   // opaque number that shifts with every date edit. A choice that can't apply is kept, never deleted --
   // it applies again once it fits, and a typo in a date cannot destroy it.
   let colFollow = {};
+  // ⭐ STICKY COLUMNS (owner, 6 Nov 2026, STICKY-COLUMNS-PLAN.md; rulings K1-K4 by picker, all as recommended): A PHASE
+  // YOU MOVE KEEPS THE COLUMN IT WAS IN, whenever its new dates still fit there. The owner nudged a test phase a week at
+  // a time around Production and watched it sit right, LEFT in the week the two start together (rule 6's same-week
+  // tie), then right again: "its not just about production i dont like how it does this for any phase". Any fixed tie
+  // rule flips one of the two (measured, plan §0), so the layout has to remember which phase the user moved.
+  //   colKeep[phaseKey] = the phase whose column it continued in the layout BEFORE it was first moved, '' when it had
+  //   opened a column of its own (rule 5), or COL_KEEP_LANE when it had continued the Sim Post lane. Never a column
+  //   number: `col` is handed out in start order and shifts with every date edit (the colFollow / swap-store trap).
+  //   - K1: only the phases the user MOVES. update() compares each phase's dates with the schedule before the edit and
+  //     sets the entry for a phase whose start or end changed, from the previous layout's relationships (colRel), and
+  //     only while it has none: the first remembered column is the one it keeps (K2 needs that).
+  //   - K2: an entry that can't apply (the predecessor still running, or not on the calendar) leaves the phase to the
+  //     rules and is KEPT, so nudging it back brings it home (colFollow's "a choice that can't apply is kept").
+  //   - K3: kept beats the rules for that phase, rule 2's four-week gap and R-D included. Everything never moved is
+  //     placed by the rules, with one reservation (placeSegmentsByRules).
+  //   - K4: no marker on screen. Reset Columns clears every entry with the other column choices.
+  //   - ⛔ Written ONLY by noteMovedPhases() from update(), never in a trial (computeSchedule runs inside the swap gate,
+  //     followRunFor, the year shapes and Production's backward search; the placement only READS this), and never on a
+  //     restore (colKeepRestored, raised by applyStateSnapshot and New: a different calendar is not a move).
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `colKeep`, PERMANENT, sorted, ABSENT while empty (a calendar nobody moved a
+  //     phase on saves byte for byte as before); sanitized; restored unconditionally; cleared by New and Reset Columns;
+  //     pruned with a custom phase. Stamped calendars only: an unstamped one never reads or writes it. An older build
+  //     ignores the key and lays out by the rules.
+  let colKeep = {};
+  const COL_KEEP_LANE = 'simPostLane';   // the value for "it continued the Sim Post lane": no phase key can be this
+  let colKeepRestored = false;           // set by a restore / New; the next update() compares nothing
+  let colKeepBase = new Map();           // phase key -> {start, end, rel} where the layout last placed it (noteMovedPhases)
   // ⭐ `colReuse` IS THE LAYOUT STAMP (LAYOUT-RULES.md §4, owner, 5 Nov 2026): a calendar carrying it lays out by
   // the layout rules -- placement (placeSegmentsByRules) and widths (computePhaseRowLayout's stamped branch); a
   // calendar without it keeps the placement and the widths it has today, byte for byte, forever. Read only through
@@ -260,6 +300,31 @@ export function initLegacyApp() {
     catch(e){ return false; }
   })();
   function layoutStamped(){ return colReuse && !LAYOUT_LEGACY_HOOK; }
+  // ⭐ RULE 20 (LAYOUT-RULES.md §0; owner, 5 Nov 2026, on a screenshot where a one-week overlap had opened a third
+  // column that stood empty beside running phases for the rest of the year: "less about phase specific changes ...
+  // more about the algorithm understanding better what looks right and what doesnt with any phases"). A column must
+  // EARN its place in a year block: one used for fewer weeks than this, while another column in the block is used
+  // more, is a PHANTOM, and frozen edit LR2 in computePhaseRowLayout lets the phase beside it absorb it (a phantom
+  // does not count toward the even share). ⛔ Placement never gives a column up for it: v1.12.0's give-way (the Sim
+  // Post marker stepping aside for a phase whose column would be a phantom) was withdrawn by the owner on 6 Nov 2026
+  // ("it ate into Sim post. thats not right"); Sim Post is on every shoot week, and a short overlap gets its column. The
+  // floor is measured from the owner's calendars: the shortest column they ever drew by hand is used 5 weeks, and
+  // rule 6's Wrap column is 3. Stamped calendars only, through layoutStamped().
+  const LAYOUT_EARNED_WEEKS = 3;
+  // Rule 2's short gap (owner, 6 Nov 2026, by picker: "up to 4 weeks"; FILL-INTENT-PLAN.md §9). A column freed up to this
+  // many WORKING weeks before a phase starts counts as following on when no column was freed the week before, so a
+  // phase nudged a week or two later keeps the column it would have followed into instead of opening a new one right of
+  // everything running (R-D). The owner's test calendar: a phase starting 4/12, the week after Writers' Room ended, took
+  // Writers' column; moved to 4/19 it opened a third column and left that one empty for nine weeks, and a block swap
+  // holding it was dropped. ⛔ 4 is the most R-D allows: its own fixture (layout-r7, Research five working weeks after the
+  // free column emptied) must still go right. Scored against the 15 pictured calendars: identical at 1, 2, 4, 8 and
+  // unlimited (98.1% / 31 / 0), so the pictures do not decide it; the owner's ruling and R-D's fixture do.
+  const LAYOUT_FOLLOW_GAP_WEEKS = 4;
+  // computeBlockLayout's (frozen) sentinel for the Sim Post marker in a block's occupancy grid, read by rules 21 and
+  // 15 below. ⚠️ It is a NUL character followed by "simpost" -- a terminal prints the NUL as a space, and v1.12.1
+  // shipped this as ' simpost' (a space), which matched nothing: rule 21's share count read the marker as a phase
+  // (harmless there: the lane is never free) and the 6 Nov lane reservation did not hold until this was found.
+  const LAYOUT_SIM_KEY = '\u0000simpost';
 
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
@@ -761,6 +826,17 @@ export function initLegacyApp() {
     const td = e.target.closest && e.target.closest('.sheet-phase-cell');
     if(!td) return;
     e.preventDefault();
+    if(layoutStamped()){
+      // The wish, not the width (FILL-INTENT-PLAN.md §2): a wide cell -> the phase pulls back, a one-wide cell -> the
+      // phase fills, every week from now on. Unstamped keeps the per-cell fill below.
+      const pk = td.dataset.pkey;
+      if(!pk) return;
+      pushUndoSnapshot();
+      setPhaseFill(pk, !((td.colSpan || 1) > 1));
+      render(currentSchedule);
+      markDirty();
+      return;
+    }
     const own = +td.dataset.own;
     const maxL = own - (+td.dataset.lmin), maxR = (+td.dataset.rmax) - own;   // room available
     const curL = own - (+td.dataset.a),   curR = (+td.dataset.b) - own;       // room taken now
@@ -784,9 +860,11 @@ export function initLegacyApp() {
     e.preventDefault();
     if(h.classList.contains('is-span')){
       const key = h.dataset.week + '|' + h.dataset.pkey;
-      if(cellSpans[key] === undefined) return;   // already automatic
+      const wished = layoutStamped() && h.dataset.pkey in phaseFill;   // FILL-INTENT-PLAN.md §2: the edge hands the PHASE back too
+      if(cellSpans[key] === undefined && !wished) return;   // already automatic
       pushUndoSnapshot();
       delete cellSpans[key];
+      if(wished) setPhaseFill(h.dataset.pkey, null);
       render(currentSchedule);
       markDirty();
       return;
@@ -1082,10 +1160,14 @@ export function initLegacyApp() {
     // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand" once
     // contradicted the toolbar button reading "Pull back" at the selection's limit; that button is
     // gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
-    if(rows.length && expandable && !swapFlash){
+    // Stamped (FILL-INTENT-PLAN.md §2): the double-click sets the wish on the highlight's phases, which is forward-looking
+    // (a cell with no room this week may have room next month), so the chip shows whenever a phase is highlighted.
+    const selPks = layoutStamped() ? Array.from(new Set(rows.map(r => r.td.dataset.pkey).filter(Boolean))) : [];
+    if(rows.length && (selPks.length || expandable) && !swapFlash){
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
-      chip.textContent = 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
+      chip.textContent = selPks.length ? 'Double click to ' + (rows.every(r => (r.td.colSpan || 1) > 1) ? 'pull back cells' : 'fill free space')
+                                       : 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
       layer.appendChild(chip);
       // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
       //   * below, it always covered the next week's phase labels -- the chip was reporting on the
@@ -1352,6 +1434,18 @@ export function initLegacyApp() {
     // here re-renders and detaches every td, which is exactly why this cannot go after selCells().
     if(activeNoteEditor) commitActiveNoteEditor();
     const cells = keys ? allPhaseTds().filter(td => keys.has(SEL_KEY(td))) : selCells();
+    if(layoutStamped()){
+      // The wish for every phase in the highlight (FILL-INTENT-PLAN.md §2), bands included: all on -> all off, else all on.
+      const pks = Array.from(new Set(cells.map(td => td.dataset.pkey).filter(Boolean)));
+      if(!pks.length) return false;
+      const allWide = cells.every(td => (td.colSpan || 1) > 1);   // every highlighted cell wide -> pull the phases back, else fill
+      pushUndoSnapshot();
+      pks.forEach(k => setPhaseFill(k, !allWide));
+      render(currentSchedule);                 // ONE render -> ONE captureScroll/restoreScroll pair
+      pushUndoSnapshot();
+      markDirty();
+      return true;
+    }
     const rows = resolveRowContention(cells.map(spanRoom).filter(canExpand));
     // Re-tested AFTER contention clamping: a cell whose only free slot was awarded to a neighbour in
     // the same week has nothing left to do, and must not have {0,0} written over an inert override.
@@ -4689,7 +4783,8 @@ export function initLegacyApp() {
   //      not ended. A column whose phase ended the week before (or only all-phase hiatus weeks between, ruled Q5)
   //      is a HANDOFF, and the phase takes it. Localization after Post (7), a wrap after Production (6).
   //   3. Two handed off: the LEFT one. ⚠️ Production goes left whether or not both columns were freed that week
-  //      (hand-10, 12, 15, 16: Writers' column free for weeks, Prod Prep's handed off, Production in Writers').
+  //      (hand-10, 12, 15, 16: Writers' column free for weeks, Prod Prep's handed off, Production in Writers'), and
+  //      since 6 Nov 2026 whether or not a phase runs to the right of that free column (R-D is for the others).
   //   4. Nothing handed off: the leftmost free column, never left of a phase still running (R-D). An unused
   //      column sorts after every used one, so a year never grows a column it does not need (hand-13).
   //   5. Nothing free: a new column on the right.
@@ -4702,13 +4797,42 @@ export function initLegacyApp() {
   //      frozen function through stintOrderFor, edit E0's seam. The lane counts as an occupant keyed a half step
   //      after Production.
   //  10. A hand move (colFollow) wins; a hidden phase is not in wfSegments and takes no column.
+  //  20. A column must earn its place (LAYOUT_EARNED_WEEKS) is a WIDTH rule only (frozen edit LR2): a column used
+  //      fewer weeks than that in a year block, while another is used more, is a phantom and does not count toward
+  //      the even share. ⛔ Placement never gives a column up for it: for one evening (v1.12.0-v1.12.1) a phase whose
+  //      column would be a phantom took the Sim Post lane and the marker stepped aside for its rows; the owner, on
+  //      seeing Post eat two Sim Post weeks (6 Nov 2026): "thats not right" -- Sim Post is on every shoot week, the
+  //      2 Nov ruling, and a short overlap simply gets its column, as a three-week one does.
   //
   // ⚠️ FREE MEANS WEEK ROWS, not raw dates, as the reuse placement had it: two snap-off phases meeting mid-week
   // must never land in one column on the same row. For an all-snapped calendar the two tests are identical.
   //
-  // Returns { moves, lane } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
+  //  10b. KEPT (colKeep, STICKY-COLUMNS-PLAN.md §4; owner's rulings K1-K4, 6 Nov 2026): a phase the user has MOVED
+  //      keeps the column it was in. After the hand move and before the rules: a remembered predecessor that is placed
+  //      and whose column is free at this phase's start -> that column; '' -> a new column (rule 5); the lane token ->
+  //      the lane. Silent (no row note). An entry that can't apply falls through to the rules and is kept (K2). Two
+  //      things make it hold through rule 6's same-week tie, where the owner saw the flip:
+  //        - IN A SAME-WEEK GROUP, a kept phase whose column is free goes first (after any hand move), so the tie's
+  //          shorter-first order cannot hand its column to the other phase first, and the phase placed after it sees
+  //          it running (R-D).
+  //        - THE RESERVATION: the rules do not offer a phase a column that a not-yet-placed kept phase remembers and
+  //          could take, when this phase would still be in it the week that one starts. Production nudged a week
+  //          later remembered Prod Prep's column; without this, Test (unmoved, starting the same week or earlier) was
+  //          handed it by the rules and Production flipped.
+  //      Inert when colKeep is empty: no group is reordered and nothing is reserved, so every unmoved calendar -- the 15
+  //      pictures, every fixture as loaded -- is placed byte for byte as before.
+  //
+  //  23. As few columns as possible (owner, 6 Nov 2026): wherever rules 2-8 had a choice of column, each allowed one is
+  //      tried with the rest placed by the rules, and the one leaving the fewest columns (summed over the year blocks)
+  //      is kept; a tie keeps the rules' pick, so a calendar they already lay out in the fewest columns is unchanged.
+  //      A moved phase's column of its OWN (colKeep '') is one of those choices too: kept unless the rules' column
+  //      saves one (owner, 9 Nov 2026, "Give way"). See the pass at the end of this function.
+  //
+  // Returns { moves, lane, rel, cost } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
   // blocker?} } for every phase moved by hand, read by reflectColMoveNotes and followRunFor), lane = the lane's
-  // column and ordering key, or null.
+  // column and ordering key, or null; rel = { phaseKey: what its column held before it -- the previous occupant's key,
+  // COL_KEEP_LANE for the Sim Post lane, '' for a new column } for every placed phase, which is what update() remembers
+  // in colKeep for a phase the user moves (noteMovedPhases).
   function placeSegmentsByRules(segments, hiatuses, segCol, simPostOn){
     const WEEK = 7*DAY_MS;
     const firstRow = s => mondayOf(s.start).getTime();
@@ -4719,15 +4843,28 @@ export function initLegacyApp() {
     const yearOf = t => singleColumn ? 0 : new Date(t).getUTCFullYear();
     const idxOf = new Map(segments.map((s, i) => [s, i]));
     const cmpKey = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
+    // One placement of every phase. `forced` (seg -> column, -1 = a new one) overrides the rules' pick at a choice; when
+    // `points` is given, every choice the rules made unforced is recorded there in placement order (rule 23 below).
+    const pass = (forced, points) => {
     // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, occ: its occupants
-    //             [{t: first row, y0, y1}] }
+    //             [{t: first row, y0, y1, first, end, seg, marker}] }
     const cols = [];
     const placed = new Map();     // phase key -> its segment, once placed
     const moves = {};
+    const rel = {};
     let lane = null;
-    const occupy = (i, seg, first, end, t) => {
+    // 10b. Kept phases (colKeep). keepOf: the entry, or undefined. keptCol: the column a non-empty entry names as things
+    // stand -- its predecessor's column, or the lane -- or -1 while that is not placed.
+    const keepOf = s => (Object.prototype.hasOwnProperty.call(colKeep, s.key) && colKeep[s.key] !== s.key) ? colKeep[s.key] : undefined;
+    const keptCol = tok => {
+      if(tok === COL_KEEP_LANE) return lane ? lane.col : -1;
+      const x = placed.get(tok);
+      return x ? segCol.get(x) : -1;
+    };
+    const kept = segments.filter(s => typeof keepOf(s) === 'string' && keepOf(s) !== '');
+    const occupy = (i, seg, first, end, t, marker) => {
       cols[i].freeAt = end; cols[i].last = seg;
-      cols[i].occ.push({ t, y0: yearOf(first), y1: yearOf(Math.max(first, end - WEEK)) });
+      cols[i].occ.push({ t, y0: yearOf(first), y1: yearOf(Math.max(first, end - WEEK)), first, end, seg, marker: !!marker });
     };
     const newCol = () => { cols.push({ freeAt: 0, last: null, occ: [] }); return cols.length - 1; };
     // Rule 9's metric. The top of column i in year y: the earliest first row among its occupants with rows in
@@ -4759,12 +4896,35 @@ export function initLegacyApp() {
       if(group.length > 1 && cols.some(c => c.freeAt <= first)){
         group.sort((a, b) => ((rowsEnd(a) - first) - (rowsEnd(b) - first)) || (idxOf.get(a) - idxOf.get(b)));
       }
+      // 10b. A kept phase whose remembered column is free goes first in its week, after any hand move that can apply;
+      // the rest keep rule 6's order. Only when such a phase is in the group, so no other group is ever reordered.
+      if(group.length > 1){
+        const fits = s => { const t = keepOf(s); if(typeof t !== 'string' || t === '') return false; const c = keptCol(t); return c >= 0 && cols[c].freeAt <= first; };
+        if(group.some(fits)){
+          const hand = s => { const w = colFollow[s.key]; if(!w || w === s.key) return false; const x = placed.get(w); return !!x && cols[segCol.get(x)].freeAt <= first; };
+          const rank = s => hand(s) ? 0 : fits(s) ? 1 : 2;
+          const at0 = new Map(group.map((s, i) => [s, i]));
+          group.sort((a, b) => (rank(a) - rank(b)) || (at0.get(a) - at0.get(b)));
+        }
+      }
       group.forEach(seg => {
         const y = yearOf(first);
         const free = i => cols[i].freeAt <= first;
+        // 10b. The reservation: column i is held for a kept phase not yet placed that remembers it and could take it
+        // (free by its start), when this phase would still be in it that week. Asked only by the rules below.
+        const reserved = i => kept.some(k => k !== seg && !placed.has(k.key) && keptCol(keepOf(k)) === i
+          && cols[i].freeAt <= firstRow(k) && rowsEnd(seg) > firstRow(k));
         const handoff = i => {
           if(!free(i)) return false;
           for(let t = cols[i].freeAt; t < first; t += WEEK) if(!inHiatus(t)) return false;
+          return true;
+        };
+        // Rule 2's short gap (LAYOUT_FOLLOW_GAP_WEEKS): free, and emptied no more than that many working weeks before.
+        // Asked only when no column was handed off the week before, so every true handoff is decided as it was.
+        const nearHandoff = i => {
+          if(!free(i)) return false;
+          let gap = 0;
+          for(let t = cols[i].freeAt; t < first; t += WEEK) if(!inHiatus(t) && ++gap > LAYOUT_FOLLOW_GAP_WEEKS) return false;
           return true;
         };
         // R-D: right of every phase still running -- every busy column's position in this year's order.
@@ -4784,21 +4944,75 @@ export function initLegacyApp() {
             reason: x ? 'busy' : (segments.some(s => s.key === want) ? 'later' : 'unscheduled'),
             blocker: x ? cols[xc].last.key : null };
         }
-        // 6. Post continues the Sim Post lane, once the shoot has ended.
-        if(at < 0 && seg.key === 'post' && lane && free(lane.col) && lane.end <= first) at = lane.col;
+        // 10b. Kept: the column it was in before the user moved it, when that still fits (K2: else the rules, entry kept).
+        const keep = keepOf(seg);
+        // ⭐ A column of its OWN ('') gives way when it costs a column (owner, 9 Nov 2026, by picker in the sticky-columns
+        // session: "Give way" -- "A moved phase keeps a column of its own only when that adds no column; otherwise it
+        // takes the freed one"). So it is not taken here but offered to rule 23 below as a choice: the new column the
+        // memory asks for, against the rules' own pick; the fewest columns win and a TIE KEEPS THE NEW COLUMN, so every
+        // nudge that cost nothing (stickycols K1-K10) still holds. A remembered predecessor is kept as before.
+        const ownKept = at < 0 && keep === '';
+        if(at < 0 && typeof keep === 'string' && keep !== ''){
+          const kc = keptCol(keep); if(kc >= 0 && free(kc)) at = kc;
+        }
         if(at < 0){
-          const hand = [], open = [];
+          const hand = [], open = [], near = [], all = [];
           for(let i = 0; i < cols.length; i++){
-            if(!free(i)) continue;
+            if(!free(i) || reserved(i)) continue;
+            all.push(i);
             if(handoff(i)) hand.push(i);
             else if(rightOfRunning(i)) open.push(i);
+            if(nearHandoff(i)) near.push(i);
           }
-          // 3. Production goes LEFT: the leftmost of every column it may take, handed off or not.
-          if(seg.key === 'production') at = leftmost(hand.concat(open), y, first);
+          // 6. Post continues the Sim Post lane, once the shoot has ended.
+          const laneOk = seg.key === 'post' && lane && free(lane.col) && !reserved(lane.col) && lane.end <= first;
+          let g;
+          if(laneOk) g = lane.col;
+          // 3. Production goes LEFT: the leftmost FREE column, handed off or not, a phase still running to its right or
+          //    not (owner, 6 Nov 2026: handed Prod Prep's middle column with Writers' free column on its left and Post
+          //    running on its right, Production sat one wide beside an empty column for the whole shoot; hand-10, 12,
+          //    15 and 16 already put it in Writers' free column over Prep's handoff). R-D (rule 4) is for the other
+          //    phases: hand-05 and hand-08 keep Localization in its handoff column over a free column further left.
+          else if(seg.key === 'production') g = leftmost(all, y, first);
           // 2 + 3. A handoff, the left one of two.  4. Else the leftmost free column right of everything running.
-          else at = hand.length ? leftmost(hand, y, first) : leftmost(open, y, first);
+          else if(hand.length) g = leftmost(hand, y, first);
+          else {
+            // 2a. A short gap still follows on (LAYOUT_FOLLOW_GAP_WEEKS), before R-D's "right of everything running":
+            //     the column freed MOST RECENTLY -- the one this phase is following -- and the left one of a tie.
+            //     ⛔ Not the leftmost of them: the first build took the leftmost, so as a phase slid a week at a time
+            //     the set of qualifying columns changed and it flipped side three times in seven weeks (owner, 6 Nov
+            //     2026: "this is terrible now. Its jumping back and fourth so many times"; measured on a twin: right,
+            //     left, left, right, right, left, left). Latest-freed gives one change, at the five-week limit; the 15
+            //     pictures and every layout fixture are unchanged either way. Leg layoutrules, fixture layout-r2h.
+            //     (Every handed-off column is also a short-gap one, gap 0; there is none here, so `near` is the gap.)
+            g = near.length
+              ? near.reduce((b, i) => (cols[i].freeAt > cols[b].freeAt
+                  || (cols[i].freeAt === cols[b].freeAt && cmpKey(orderKey(i, y, first), orderKey(b, y, first)) < 0)) ? i : b)
+              : leftmost(open, y, first);
+          }
+          // 23. Every column the rules ALLOW here -- the ones above, plus a new one (-1) -- for the fewest-columns pass.
+          //     R-D still bounds them: a phase not following on is never offered a column left of one still running.
+          const allowed = new Set(seg.key === 'production' ? all : hand.concat(near, open));
+          if(laneOk) allowed.add(lane.col);
+          allowed.add(-1);
+          if(ownKept){
+            // 10b + 23: the memory's new column is the pick; the rules' column is the only other choice.
+            if(forced && forced.has(seg)) at = forced.get(seg);
+            else {
+              at = -1;
+              if(points && g >= 0) points.push({ seg, g: -1, cands: [-1, g] });
+            }
+          }
+          else if(forced && forced.has(seg)) at = forced.get(seg);
+          else {
+            at = g;
+            if(points && allowed.size > 1) points.push({ seg, g, cands: Array.from(allowed) });
+          }
         }
         if(at < 0) at = newCol();                              // 5. A new column on the right.
+        // What the column held before this phase, for update()'s memory of a moved phase (10b, noteMovedPhases).
+        const prevOcc = cols[at].occ.length ? cols[at].occ[cols[at].occ.length - 1] : null;
+        rel[seg.key] = !prevOcc ? '' : (prevOcc.marker ? COL_KEEP_LANE : prevOcc.seg.key);
         occupy(at, seg, first, rowsEnd(seg), first);
         segCol.set(seg, at);
         placed.set(seg.key, seg);
@@ -4809,14 +5023,52 @@ export function initLegacyApp() {
         if(seg.key === 'production' && simPostOn){
           const pk = orderKey(at, y, first);
           const cands = [];
-          for(let i = 0; i < cols.length; i++) if(i !== at && free(i) && cmpKey(orderKey(i, y, first), pk) > 0) cands.push(i);
+          for(let i = 0; i < cols.length; i++) if(i !== at && free(i) && !reserved(i) && cmpKey(orderKey(i, y, first), pk) > 0) cands.push(i);
           const lc = cands.length ? leftmost(cands, y, first) : newCol();
-          occupy(lc, seg, first, rowsEnd(seg), first);
+          occupy(lc, seg, first, rowsEnd(seg), first, true);
           lane = { col: lc, t: first, end: rowsEnd(seg) };
         }
       });
     });
-    return { moves, lane };
+    // Rule 23's measure: the columns this placement uses, counted per year block and summed (a run crossing New Year
+    // counts in both; the Sim Post lane counts as a column).
+    const years = new Map();
+    cols.forEach((c, i) => c.occ.forEach(o => { for(let yy = o.y0; yy <= o.y1; yy++){ if(!years.has(yy)) years.set(yy, new Set()); years.get(yy).add(i); } }));
+    let cost = 0; years.forEach(set => { cost += set.size; });
+    return { moves, lane, rel, cost };
+    };
+    // ⭐ RULE 23, AS FEW COLUMNS AS POSSIBLE (owner, 6 Nov 2026, two screenshots of a test calendar: today three columns,
+    // wanted two -- "We should always prioritize as few collumns as possible"; by picker "Yes, build it", and "Fewest
+    // columns" over Post keeping the Sim Post lane). Prod Prep took Pre-Prep's handed-off column, so Casting, starting
+    // beside it and not following on, could not sit left of it in Writers' free column (R-D) and opened a third; had Prod
+    // Prep followed Writers into that column, freed three weeks before (rule 2's short gap), Casting would have taken
+    // Pre-Prep's. Rules 2-8 decide one phase at a time and cannot see that. So: at each place they had a CHOICE (more than
+    // one allowed column, a new one included), in placement order, every allowed column is tried with the rest placed
+    // by the rules, and the one that leaves the fewest columns is kept; a TIE KEEPS THE RULES' OWN PICK, so a calendar
+    // where they already use the fewest is placed byte for byte as before (measured: all 15 pictures, every engine dump
+    // identical). Choices only: a hand move (colFollow) and a remembered predecessor (colKeep) are not choices -- a
+    // remembered column of its own IS one since 9 Nov 2026 (the give-way above) -- and R-D still bounds
+    // what is allowed. Known consequences, both accepted: Post may leave the lane when that saves a column (layout-r21:
+    // Post under Production, Localization later in the lane column), and a phase nobody moved can change column when
+    // another moves far enough that the saving goes away (the twin: Casting slid into the shoot, three columns either
+    // way, Prod Prep back in Pre-Prep's). Cost: one placement per allowed column at each choice, a few dozen at most;
+    // computeSchedule runs this in its trials too (Production's backward search), which stays well inside a frame.
+    const forced = new Map();
+    for(let guard = 0; guard < 256; guard++){
+      const pts = [];
+      const run = pass(forced, pts);
+      const pt = pts[0];                       // the first choice still open, in placement order
+      if(!pt) return run;
+      let best = pt.g, bestCost = run.cost;    // the rules' own pick, everything after it by the rules
+      pt.cands.forEach(c => {
+        if(c === pt.g) return;
+        const f = new Map(forced); f.set(pt.seg, c);
+        const r = pass(f, null);
+        if(r.cost < bestCost){ bestCost = r.cost; best = c; }
+      });
+      forced.set(pt.seg, best);
+    }
+    return pass(forced, null);
   }
   // Rule 9's order for every year block of a placed, stamped calendar, derived from the drawn cells: per block,
   // the columns with cells in it sorted by their top occupant's first row (the lane's, Production's first row,
@@ -4839,6 +5091,44 @@ export function initLegacyApp() {
       }
       if(lane && simHere && top.has(lane.col) && lane.t < top.get(lane.col)) top.set(lane.col, lane.t);
       return Array.from(top.keys()).sort((a, c) => (top.get(a) - top.get(c)) || (a - c));
+    });
+  }
+
+  // Rule 20's measure on the DRAWN rows, for frozen edit LR2: a column EARNS its place in a year block when what it
+  // holds there runs beside another column's cell for LAYOUT_EARNED_WEEKS rows or more over its whole run (a run
+  // crossing New Year counts its rows on both sides; the Sim Post marker counts as the lane's occupant). A column
+  // used less than that, while another column in the block is used more, is a phantom, and every week row of the
+  // block carries the block's phantom columns as `layoutPhantom` -- data frozen computePhaseRowLayout reads through
+  // the block's slotMap, as it reads `col`. Set only on a stamped calendar (the caller), so an unstamped week row
+  // never carries the key and the frozen branch sees no phantom. Same measure as placeSegmentsByRules' scan, on the
+  // rows the renderer draws (a hidden phase has no cell, and a calendar range has cut its rows).
+  function markLayoutPhantoms(weeks, lane){
+    const LANE = ' lane';
+    const occ = weeks.map(w => {
+      if(w.cells.length && w.cells[0].type === 'hiatus') return null;
+      const s = new Set();
+      w.cells.forEach(c => { if(c.col !== undefined) s.add(c.col); });
+      if(w.simPost && lane) s.add(lane.col);
+      return s;
+    });
+    const shared = {};
+    weeks.forEach((w, i) => {
+      const s = occ[i]; if(!s || s.size < 2) return;
+      w.cells.forEach(c => { if(c.col !== undefined && c.key) shared[c.key] = (shared[c.key] || 0) + 1; });
+      if(w.simPost && lane) shared[LANE] = (shared[LANE] || 0) + 1;
+    });
+    computeYearBlocks(weeks).forEach(b => {      // FROZEN, read-only: the renderer's own blocks
+      const used = new Map(), seen = new Set();
+      const add = (key, col) => { const id = key + '@' + col; if(seen.has(id)) return; seen.add(id); used.set(col, (used.get(col) || 0) + (shared[key] || 0)); };
+      for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+        const w = weeks[i];
+        if(!occ[i]) continue;
+        w.cells.forEach(c => { if(c.col !== undefined && c.key) add(c.key, c.col); });
+        if(w.simPost && lane) add(LANE, lane.col);
+      }
+      let max = 0; used.forEach(n => { if(n > max) max = n; });
+      const phantoms = []; used.forEach((n, col) => { if(n < LAYOUT_EARNED_WEEKS && n < max) phantoms.push(col); });
+      if(phantoms.length) for(let i = b.startIdx; i < b.startIdx + b.count; i++) weeks[i].layoutPhantom = phantoms;
     });
   }
 
@@ -5576,6 +5866,7 @@ export function initLegacyApp() {
     // cells and pinned through stintOrderFor, edit E0's seam into frozen computeBlockLayout. A block swap stored on
     // top exchanges two columns' `col` values as it always did, with this as the order it preserves. Unstamped, or
     // under the `?layout=` hook, nothing is pinned and the frozen first-appearance order stands, as before.
+    if(layout) markLayoutPhantoms(wf.weeks, layout.lane);          // rule 20's phantom columns, for frozen edit LR2
     const ruleOrders = layout ? layoutBlockOrders(wf.weeks, wfSegments, layout.lane) : null;
     const stintOrder = applyStintSwaps(wf.weeks, ruleOrders);
     const appliedColSwaps = applyColSwaps(wf.weeks);
@@ -5602,6 +5893,9 @@ export function initLegacyApp() {
     // Whether each hand move applied, for the phase rows' notes. Only on a stamped calendar, so the
     // schedule of a calendar without the stamp carries exactly the keys it always did.
     if(colMoves) schedule.colMoves = colMoves;
+    // What each placed phase's column held before it (placeSegmentsByRules' rel), read by update()'s next run to
+    // remember the column of a phase the user moves (colKeep). Stamped only, like colMoves; never serialised.
+    if(layout) schedule.colRel = layout.rel;
     // ⭐ PER-EPISODE PREP, appended LAST (EPISODE-PREP-PLAN.md §4): every week, column, maxConcurrent, note
     // and holiday above was built without it, so the waterfall, Excel and the waterfall PDF -- which read
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
@@ -5802,7 +6096,24 @@ export function initLegacyApp() {
           cellsByKey.get(c.key).push(c);
         });
       }
-      const groups = stintSwapGroupsForBlock(b.year, cellsByKey);
+      // ⭐ AN ORDER, NOT AN EXCHANGE (see `left` at gridStintSwaps). `before` is the block's columns left to right
+      // BEFORE any col moves -- the order pinned below. A group whose every phase says which side it took is
+      // exchanged only when the layout has it the other way round; one already in that order is left alone, and
+      // is not `applied` (so the gesture reads it as a fresh swap, never a "swap back"). A group without sides, or
+      // with mixed ones (a swap saved before 6 Nov 2026, or a hand-edited file), is exchanged, as it always was.
+      const before = derived(b, bi);
+      const at = col => Array.isArray(before) ? before.indexOf(col) : -1;
+      const sideOf = list => {
+        const v = list.map(k => (gridStintSwaps[b.year + '|' + k] || {}).left);
+        return v.every(x => x === true) ? true : v.every(x => x === false) ? false : null;
+      };
+      const groups = stintSwapGroupsForBlock(b.year, cellsByKey).filter(gp=>{
+        const aWants = sideOf(gp.a), bWants = sideOf(gp.b);
+        if(aWants === null || bWants === null || aWants === bWants) return true;
+        const ia = at(gp.colA), ib = at(gp.colB);
+        if(ia < 0 || ib < 0) return true;
+        return (ia < ib) !== aWants;
+      });
       if(!groups.length){ orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
 
       // ⛔ WOULD THIS LOSE A CELL? Refuse the group outright if so. With the gesture building the
@@ -5865,7 +6176,10 @@ export function initLegacyApp() {
 
       orders.push(derived(b, bi));    // ⛔ BEFORE a single col moves
       all.forEach((col, c)=>{ c.col = col; });
-      legal.forEach(gp => applied.push({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB }));
+      // aLeft: after the exchange the `a` side sits in colB's place, so it is left when colB was. Read by
+      // recordStintSwapSides() to write an old swap's sides down; null when the order does not say.
+      legal.forEach(gp => applied.push({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB,
+        aLeft: (at(gp.colA) < 0 || at(gp.colB) < 0) ? null : at(gp.colB) < at(gp.colA) }));
     });
     return { orders, applied, refused };
   }
@@ -6181,13 +6495,15 @@ export function initLegacyApp() {
       + '|' + weeks.map(w => w.cells.map(c => (c.key || '') + '=' + (c.label || '')).join('\u0001')).join('\u0002')
       + '|' + simPostDisplayName()
       + '|' + Object.keys(gridColSwaps).sort().join(',')
-      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '')).join(',')
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + '>' + ((gridStintSwaps[k] || {}).with || '') + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + Object.keys(cellSpans).sort().map(k => {
           const v = cellSpans[k];
           return k + ':' + (v && typeof v === 'object' ? (v.l|0) + ',' + (v.r|0) : '?');
         }).join(',')
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
+      + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // sticky columns move phases too
       + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
+      + '|' + (fillSpaceOff ? 'lanes' : 'fill')   // the Fill Space switch changes every width
       + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
     if(key === _swapGateKey) return Object.assign({}, _swapGateRes, { schedule });
     // Recompute from a clean suppression set, or a pair suppressed by an edit that has since been
@@ -6683,8 +6999,9 @@ export function initLegacyApp() {
       if(memberSet.has(k.slice(pre.length)) || (v && memberSet.has(v.with))) delete next[k];
     });
     if(reversing) return { store: next, reversing: true };
-    run.partners.forEach(p => { next[pre + p] = { with: run.phaseKey }; });
-    run.movers.forEach(m => { next[pre + m] = { with: run.partners[0] }; });
+    // `left`: the movers go to the side `dir` points at (stintRunFor: other = own + dir), the partners to the other.
+    run.partners.forEach(p => { next[pre + p] = { with: run.phaseKey, left: run.dir > 0 }; });
+    run.movers.forEach(m => { next[pre + m] = { with: run.partners[0], left: run.dir < 0 }; });
     return { store: next, reversing: false };
   }
 
@@ -7078,7 +7395,9 @@ export function initLegacyApp() {
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
-      + '|' + Object.keys(gridStintSwaps).sort().join(',')
+      + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
+      + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
+      + '|' + (fillSpaceOff ? 'lanes' : 'fill')
       + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
@@ -8572,6 +8891,12 @@ export function initLegacyApp() {
     mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
     pruneMvTextStylePhase(k);   // ...and its bars' and bands' month styles (MONTH-TEXT-STYLE-PLAN.md §3.5)
     delete phaseHidden[k];   // ...and its Hide in waterfall (PHASES-TAB-PLAN.md §2.3)
+    delete phaseFill[k];     // ...and its fill (FILL-INTENT-PLAN.md)
+    // ...and its kept column, and every other phase's memory of following it, which can never apply again (sticky
+    // columns). A fresh object, as everywhere colKeep is written: an undo step may hold the old one.
+    if(Object.keys(colKeep).some(x => x === k || colKeep[x] === k)){
+      const next = {}; Object.keys(colKeep).forEach(x => { if(x !== k && colKeep[x] !== k) next[x] = colKeep[x]; }); colKeep = next;
+    }
     delete phaseEnds[k];     // ...and its Ends
     delete autoNotesOn[k + 'Start']; delete autoNotesOn[k + 'End'];   // ...and its automatic notes' ticks
     delete autoNotesView[k + 'Start']; delete autoNotesView[k + 'End'];   // ...in either view (plan D3)
@@ -8805,14 +9130,20 @@ export function initLegacyApp() {
   // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
   // Days phases need nothing more -- their length is a count. A new mover must write through this,
   // or Dates phases stretch under it. Returns false when there is no start field to write.
-  function setPhaseStart(key, iso){
+  // `endTo` (optional): Shift's step-over mapping (stepOverHeld). The END of a Dates or an Ends phase then goes where the
+  // mapping sends it, not by the start's calendar distance: a held hiatus between its start and its end makes those
+  // differ. A Dates phase so keeps its WORKING days and the gaps either side of it, while its calendar span changes as a
+  // held break enters or leaves it. (First cut kept the span: Pre-Prep Wed 2/10-Tue 2/23 with a locked week inside,
+  // +1 wk, became 2/24-3/9 and ran into Prod Prep on 3/8; mapped, it is 2/24-3/2, still 5 working days and a 3-day gap.
+  // Leg builtindates.) An Ends phase's start is then solved again from its end.
+  function setPhaseStart(key, iso, endTo){
     const el = document.getElementById('start-' + key);
     if(!el) return false;
     const was = parseDateUTC(el.value), to = parseDateUTC(iso);
     if(was && to && customPhaseUnit(key) === 'dates'){
       const endEl = document.getElementById('end-' + key);
       const end = endEl ? parseDateUTC(endEl.value) : null;
-      if(end) endEl.value = isoOf(addDays(end, Math.round((to - was) / DAY_MS)));
+      if(end) endEl.value = isoOf(endTo ? endTo(end) : addDays(end, Math.round((to - was) / DAY_MS)));
     }
     // An Ends phase (phaseEnds) is held by its END, so a mover moves that: by the same distance, to the nearest
     // whole week, so it stays on a Friday (a month-view drag can move a start by days). The start written below
@@ -8820,7 +9151,8 @@ export function initLegacyApp() {
     if(was && to && phaseEndsOn(key)){
       const endEl = document.getElementById('end-' + key);
       const end = endEl ? parseDateUTC(endEl.value) : null;
-      if(end) endEl.value = isoOf(addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
+      if(end) endEl.value = isoOf(endTo ? fridayOfWeek(endTo(fridayOfWeek(end)))
+        : addDays(fridayOfWeek(end), Math.round((to - was) / DAY_MS / 7) * 7));
     }
     // Production held by its wrap (productionEnds): a mover moves the shoot as it does in Starts, and the next update()
     // takes the wrap it lands on as the held one (ruled with the mockup: "Yes, build it").
@@ -19008,6 +19340,49 @@ export function initLegacyApp() {
     Object.keys(phaseHidden).sort().forEach(k=>{ o[k] = Object.assign({}, phaseHidden[k]); });
     return o;
   }
+  // ⭐ A PHASE FILLS ITS FREE SPACE, OR KEEPS TO ITS COLUMN (owner, 6 Nov 2026; FILL-INTENT-PLAN.md): the double-click
+  // stores the WISH, not the width. Phase key -> true (fills every empty column beside it, every week) or false (stays
+  // in its own column, every week); absent = the automatic layout. Applied fresh on every redraw (frozen edit LR5 in
+  // computePhaseRowLayout): a filling phase narrows the week another phase moves in and widens the week it leaves,
+  // follows a shift and a length change. Nothing per cell can go stale, which is what a hand-widened cell did ("why
+  // those manually changed columns are now behaving weirdly"). The double-click does the visible opposite of what it
+  // sees: a cell wider than its own column -> the phase pulls back (false); a one-wide cell -> the phase fills (true);
+  // double-click the cell's edge handle -> automatic again. A drag to an exact width is still a per-cell width
+  // (cellSpans), rule 19, laid over the wish.
+  //   - ⛔ CALENDAR DATA: captureSnapshot()'s `phaseFill`, written only while non-empty, keys sorted; PERMANENT from the
+  //     first file saved with it. An older build ignores the key and draws the automatic layout.
+  //   - Stamped calendars only: an unstamped double-click keeps its per-cell meaning (the stamp rule freezes that layout).
+  //   - Phase-keyed, so the shift tools and the arrows have nothing to re-key. Pruned with its custom phase.
+  //   - Read only through phaseFillOn(); written only through setPhaseFill().
+  let phaseFill = {};
+  function phaseFillOn(key){ return phaseFill[key] === true; }
+  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default) = the layout as it was: a phase
+  // widens into the columns beside it from the week they are free (rule 13's rest of the run), so its width can step up
+  // partway through. Off = NO PARTIAL FILLS: every phase has ONE width per year block, the widest that is free on every
+  // row of its run there (layoutEvenPlan, frozen edit LR7). The owner, correcting a first build that kept every phase
+  // one column wide: "when i say fill space i mean collumsn that fill only a portion of the phase such that only some
+  // weeks are wider than others. The algorithm should always fill collumns as wide as they have space for if they are
+  // all uniform in width." Rulings by picker: even within each YEAR (a run crossing New Year sits in two column sets);
+  // a phase's own double-click wish still wins (fill = week by week, keep = one wide); a dragged exact width still lays
+  // over it. CALENDAR DATA, since the exports follow: captureSnapshot's `fillSpaceOff`, written only as true (absent =
+  // on, every calendar before it); PERMANENT. Stamped calendars only, never in Single Column (rule 17). Reset Columns
+  // leaves it alone: it is a setting, like Single Column Mode, not a column choice.
+  let fillSpaceOff = false;
+  function phaseFillOff(key){ return phaseFill[key] === false; }
+  function setFillSpace(on){
+    const off = !on;
+    if(off === fillSpaceOff) return;
+    fillSpaceOff = off;
+    update();      // ends in markDirty(): one undo step, a dirty file
+  }
+  function phaseFillSnapshot(){ const o = {}; Object.keys(phaseFill).sort().forEach(k=>{ o[k] = phaseFill[k] === true; }); return o; }
+  // A wish (true or false) replaces the phase's per-cell widths: they said the same thing the old way, and a stale
+  // {l:0,r:0} would narrow a cell the wish wants wide. null = back to the automatic layout, which restores nothing.
+  function setPhaseFill(key, wish){
+    if(wish === null || wish === undefined){ delete phaseFill[key]; return; }
+    phaseFill[key] = !!wish;
+    Object.keys(cellSpans).forEach(k=>{ if(k.slice(k.indexOf('|') + 1) === key) delete cellSpans[k]; });
+  }
   // ⭐ ENDS: A WEEKS PHASE PINNED BY ITS END (owner, 30 Oct 2026; mockups/weeks-end-date.html). Phase key -> true.
   // The date over a Weeks phase reads Starts or Ends; with Ends the END holds, and the start is worked out back from
   // it and the week count, so a longer count or a hiatus moves the start instead. Ruled "Yes, no switch": an Ends
@@ -20624,6 +20999,57 @@ export function initLegacyApp() {
     return [localWeek, end];
   }
 
+  // ⭐ RULE 21's run start (LAYOUT-RULES.md §0; owner, 6 Nov 2026, on Post narrowing beside Localization: "a run never
+  // shrinks"). The first row the same occupant holds slot s, walking back across all-phase hiatus rows as
+  // layoutRestOfRun walks forward. Not frozen.
+  function layoutRunStart(occupancy, s, localWeek){
+    const key = occupancy[s].get(localWeek);
+    let start = localWeek;
+    for(let r = localWeek - 1; r >= 0; r--){
+      const k = occupancy[s].get(r);
+      if(k === key){ start = r; continue; }
+      if(k !== undefined) break;                            // another occupant: the run began after it
+      if(occupancy.some(m => m.has(r))) break;              // an ordinary empty week in this slot: began after it
+      // nobody anywhere: an all-phase hiatus row -- look past it (rule 18)
+    }
+    return start;
+  }
+
+  // ⭐ FILL SPACE OFF's even widths (owner, 9 Nov 2026; FILL-INTENT-PLAN.md §10; read by frozen edit LR7). For one year
+  // block's occupancy grid, every phase run's single width: [from, to] around its own slot, every column of it empty
+  // on EVERY row of the run (layoutRunStart .. layoutRestOfRun, across all-phase hiatus rows). The Sim Post marker's
+  // rows are in the grid (LAYOUT_SIM_KEY), so a run sharing rows with the shoot never crosses the lane. RIGHT first,
+  // as rule 12 gives a spare column between two phases to the left one: right extensions cannot collide (a run stops
+  // at any slot occupied on its rows). Then LEFT, into columns no overlapping run's range already holds. Keyed
+  // `${slot}|${run's first row}`; memoized per occupancy object (one per block per computeBlockLayout call, so the
+  // screen and each writer build their own). Not frozen.
+  const _layoutEvenPlans = new WeakMap();
+  function layoutEvenPlan(occupancy, mc){
+    const memo = _layoutEvenPlans.get(occupancy);
+    if(memo && memo.mc === mc) return memo.plan;
+    const runs = [];
+    for(let s = 0; s < mc && s < occupancy.length; s++){
+      const m = occupancy[s];
+      if(!m) continue;
+      const seen = new Set();
+      [...m.keys()].sort((a, b) => a - b).forEach(r=>{
+        const key = m.get(r);
+        if(key === LAYOUT_SIM_KEY || seen.has(r)) return;
+        const r0 = layoutRunStart(occupancy, s, r), r1 = layoutRestOfRun(occupancy, s, r)[1];
+        for(let w = r0; w <= r1; w++) if(m.get(w) === key) seen.add(w);
+        runs.push({ s, r0, r1, from: s, to: s });
+      });
+    }
+    const freeOn = (n, R) => { for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
+    runs.forEach(R=>{ let t = R.s; while(t + 1 < mc && freeOn(t + 1, R)) t++; R.to = t; });
+    const heldBy = (n, R) => runs.some(X => X !== R && X.from <= n && n <= X.to && X.r0 <= R.r1 && R.r0 <= X.r1);
+    runs.forEach(R=>{ let f = R.s; while(f - 1 >= 0 && freeOn(f - 1, R) && !heldBy(f - 1, R)) f--; R.from = f; });
+    const plan = new Map();
+    runs.forEach(R => plan.set(R.s + '|' + R.r0, { from: R.from, to: R.to }));
+    _layoutEvenPlans.set(occupancy, { mc, plan });
+    return plan;
+  }
+
   // Compute how a single week's phase area (mc phase slots) should be laid out:
   //  - Phases sit in their stable slots.
   //  - A phase spans rightward into a neighbor slot only if that neighbor is empty for the
@@ -20656,6 +21082,21 @@ export function initLegacyApp() {
     // week? True only if `n` is empty across every week that slot `s` phase runs. The SimPost
     // lane is treated like any other column here: a phase may span across it during weeks it
     // isn't used, as long as SimPost never appears in that column during the phase's run.
+    // ⛔ FROZEN EDIT LR4 (owner, 6 Nov 2026, "notice how pre-prep also isnt filling its collumn"; LAYOUT-RULES.md §0 rules
+    // 12, 13, 15). On a STAMPED calendar (b) the RIGHTWARD spread of rule 13 is not capped by the even share: a phase
+    // takes the empty column to its right from the week it is free for the rest of the run, so Pre-Prep beside Writers
+    // fills the column Post will take months later; and (a) a phase SHARING its row does not spread that way into the
+    // lane column before the shoot has ended (laneReserved: the block's fixed Sim Post slot while any marker row lies
+    // at or after this row), which is how every picture keeps Prep one wide beside Writers with the lane column empty
+    // for months (hand-02, hand-03, hand-04, hand-09). A phase ALONE still fills the lane column (rule 14; hand-13's
+    // Prod Prep is two wide the week before its shoot), and a hole BETWEEN two phases still goes to the left one
+    // (R-E). The even share still caps a LEFTWARD extension (hand-08 keeps Post one wide beside a freed column on its
+    // left) and every hand-dragged width (applyCellSpanOverrides). Unstamped, every line is what it was.
+    const laneReserved = (n) => {
+      if(!stamped || !occupancy || fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
+      let ahead = false; occupancy[fixedSimSlot].forEach((key, r) => { if(r >= localWeek && key === LAYOUT_SIM_KEY) ahead = true; });
+      return ahead;
+    };
     const freeForRun = (s, n) => {
       if(!occupancy) return false;
       if(n === simSlot) return false; // don't overrun THIS week's active SimPost marker
@@ -20678,7 +21119,35 @@ export function initLegacyApp() {
     // does, rather than being a fixed 1-column reservation like the Simultaneous Post marker.
     const fixedSlots = (simSlot >= 0 ? 1 : 0);
     const nPhases = bySlot.filter(Boolean).length;
-    const spanCap = (stamped && singleColumn) ? 1 : (nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc);   // LR1: rule 17
+    // ⛔ FROZEN EDIT LR2 (owner, 5 Nov 2026, "build it"; LAYOUT-RULES.md §0 rule 20). On a STAMPED calendar the week
+    // row carries the block's PHANTOM columns (`layoutPhantom`, computeSchedule's markLayoutPhantoms: a column whose
+    // occupants run beside another column for fewer than LAYOUT_EARNED_WEEKS rows while another column is used
+    // more), read here through the slotMap as `col` is. A phantom slot does not count toward the even share (12),
+    // so the phase beside it spreads into it on rule 13's terms, and the share is divided over the earned slots.
+    // Unstamped, no row carries the key, no slot is a phantom, and the three counts below are exactly what
+    // `span < spanCap`, `Math.min(n - k, Math.max(0, spanCap - 1))` and `(left + span) < spanCap` were.
+    const phantomSlots = new Set();
+    if(stamped && week.layoutPhantom) slotMap.forEach((sl, c) => { if(week.layoutPhantom.indexOf(c) >= 0) phantomSlots.add(sl); });
+    // ⛔ FROZEN EDIT LR5 (owner, 6 Nov 2026, "Yes, build it"; FILL-INTENT-PLAN.md §3). On a STAMPED calendar a phase whose
+    // wish is set (phaseFill, read through phaseFillOn as cellSpans is read) takes every empty slot beside it THIS
+    // week: no rest-of-run test (13), no even share (12), no lane reservation (15's pre-shoot rule) -- only a cell or
+    // this week's marker stops it. Rule 21's post-pass skips it (it has everything free); a per-cell drag still lays
+    // over it (19). Rule 17 holds Single Column at one. Unstamped, fillsFree is false and every line is what it was.
+    const fillsFree = k => stamped && !singleColumn && !!bySlot[k] && phaseFillOn(bySlot[k].key);
+    const keepsNarrow = k => stamped && !!bySlot[k] && phaseFillOff(bySlot[k].key);   // the other wish: its own column, every week
+    // ⛔ FROZEN EDIT LR7 (owner sign-off by picker, 9 Nov 2026: "Yes, make the edit"; FILL-INTENT-PLAN.md §10). With Fill
+    // Space OFF on a STAMPED calendar (never in Single Column) a phase with no wish of its own takes ONE width for its run
+    // in this block -- layoutEvenPlan's [from, to], every column of it free on every row of the run -- instead of the
+    // per-week walk below; R-E and rule 21's post-pass leave it alone, and a fill wish's walk stops at a column an even
+    // run holds this row. With Fill Space on, `even` is null and every line is what it was. Gate: leg fillspace, every
+    // export baseline byte-identical, the 15 pictures unchanged.
+    const even = (stamped && !singleColumn && fillSpaceOff && occupancy) ? layoutEvenPlan(occupancy, mc) : null;
+    const evenOf = k => (even && bySlot[k] && !fillsFree(k) && !keepsNarrow(k)) ? (even.get(k + '|' + layoutRunStart(occupancy, k, localWeek)) || null) : null;
+    const evenHolds = (n, self) => { if(!even) return false; for(let j = 0; j < mc; j++){ if(j === self) continue; const e = evenOf(j); if(e && e.from <= n && n <= e.to) return true; } return false; };
+    const phantom = n => phantomSlots.has(n);
+    const earnedIn = (a, b) => { let c = 0; for(let n = a; n <= b; n++) if(!phantom(n)) c++; return c; };
+    const mcEarned = mc - phantomSlots.size;
+    const spanCap = (stamped && singleColumn) ? 1 : (nPhases > 1 ? Math.max(1, Math.floor((mcEarned - fixedSlots) / nPhases)) : mc);   // LR1: rule 17; LR2: earned slots
 
     const out = [];
     let k = 0;
@@ -20694,7 +21163,10 @@ export function initLegacyApp() {
         // data-* attributes rendered from them, the drag/double-click handles -- treat it exactly
         // like a phase cell, with no changes to either.
         let span = 1;
-        while(k+span < mc && span < spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
+        const ev = evenOf(k);                                                                        // LR7
+        if(ev) span = Math.max(1, ev.to - k + 1);
+        else while(k+span < mc && !bySlot[k+span] && !keepsNarrow(k) && (fillsFree(k) ? (k+span !== simSlot && !evenHolds(k+span, k))
+              : (((stamped && !singleColumn) || earnedIn(k, k+span) <= spanCap) && !(nPhases > 1 && laneReserved(k+span)) && freeForRun(k, k+span)))){ span++; }   // LR2; LR4 (b) uncapped when stamped (rule 17 holds Single Column at one), (a) the lane kept while sharing; LR5 the wish
         if(c.type === 'phaseHiatus'){
           // Resolve any per-band rename/recolor the user has applied, keyed by week + phase.
           const hKey = c.weekIso + '|' + c.key;
@@ -20715,14 +21187,34 @@ export function initLegacyApp() {
         // is excluded as an absorb target so it can never widen past its own column.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
-        if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && freeForRunSpan(n, k, n-1)){
+        const evn = (n < mc) ? evenOf(n) : null;                                                     // LR7
+        if(evn && evn.from < n){
+          // An even run reaches left: exactly its plan, the same every row of the run.
+          const from = Math.max(k, evn.from);
+          if(from > k) out.push({kind:'empty', colspan:from - k});
+          const c = bySlot[n];
+          const span = Math.max(1, evn.to - n + 1);
+          if(c.type === 'phaseHiatus'){
+            const hKey = c.weekIso + '|' + c.key;
+            const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
+            const hCol = hiatusColors[hKey] || HIATUS_COLOR;
+            out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
+                      colspan:(n - from) + span, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel, cell:c, own:n});
+          } else {
+            out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n - from) + span, cell:c, own:n});
+          }
+          k = n + span;
+        } else if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
-          let left = Math.min(n - k, Math.max(0, spanCap - 1));
+          let left = 0;
+          if(fillsFree(n)){ left = 0; while(left < n - k && !evenHolds(n - left - 1, n)) left++; }    // LR5; LR7
+          else while(left < n - k && earnedIn(n - left - 1, n) <= spanCap) left++;                   // LR2
           const from = n - left;
           let span = 1;
-          while(n+span < mc && (left + span) < spanCap && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
+          while(n+span < mc && !bySlot[n+span] && (fillsFree(n) ? (n+span !== simSlot && !evenHolds(n+span, n))
+                : (((stamped && !singleColumn) || earnedIn(from, n+span) <= spanCap) && !(nPhases > 1 && laneReserved(n+span)) && freeForRun(n, n+span)))){ span++; }   // LR2; LR4 (a) + (b); LR5
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];
@@ -20737,13 +21229,166 @@ export function initLegacyApp() {
         }
       }
     }
+    // ⛔ FROZEN EDIT LR3 (owner, 6 Nov 2026, "Yes, build it"; LAYOUT-RULES.md §0 rule 21). On a STAMPED calendar a run
+    // never shrinks: a phase cell keeps every column rules 12 and 13 would have given it at an EARLIER row of its run
+    // (the even share as it stood then; the columns free from that row to the run's end), when those columns are
+    // empty here. The even share of a later row takes nothing back -- Post, two wide while alone, stays two wide for
+    // the two weeks Localization runs beside it, and Localization sits one wide beside it. Phase cells only (a band
+    // keeps rule 16's own terms); ties go to the widest, then the earliest row. The owner's 15 calendars draw no run
+    // that narrows. Unstamped this block is skipped and the row is exactly what it was. Gate: fixture layout-r21.
+    if(stamped && !singleColumn && occupancy){
+      const owner = new Array(mc).fill(-1);
+      { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
+      let changed = false;
+      out.forEach((sg, i)=>{
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own) || evenOf(sg.own)) return;   // LR5: a wish decides its own width; LR7: so does an even run
+        const k = sg.own, key = occupancy[k].get(localWeek);
+        const r0 = layoutRunStart(occupancy, k, localWeek);
+        if(r0 >= localWeek) return;
+        const re = layoutRestOfRun(occupancy, k, localWeek)[1];
+        const freeSince = (n, r) => { for(let w = r; w <= re; w++) if(occupancy[n].has(w)) return false; return true; };
+        const nAt = r => { let n = 0; occupancy.forEach(m => { if(m.has(r) && m.get(r) !== LAYOUT_SIM_KEY) n++; }); return n; };
+        const capAt = r => { let n = 0, fixed = 0; occupancy.forEach(m => { if(!m.has(r)) return; if(m.get(r) === LAYOUT_SIM_KEY) fixed = 1; else n++; }); return n > 1 ? Math.max(1, Math.floor((mcEarned - fixed) / n)) : mc; };
+        let best = null;
+        for(let r = r0; r < localWeek; r++){
+          if(occupancy[k].get(r) !== key) continue;           // a hiatus row inside the run grants nothing
+          const cap = capAt(r);
+          let from = k; while(from - 1 >= 0 && freeSince(from - 1, r) && earnedIn(from - 1, k) <= cap) from--;
+          let to = k;   while(to + 1 < mc && !(nAt(r) > 1 && laneReserved(to + 1)) && freeSince(to + 1, r)) to++;   // LR4: the right side uncapped, the lane kept while sharing
+          if(!best || (to - from) > (best[1] - best[0])) best = [from, to];
+        }
+        if(!best) return;
+        for(let n = best[0]; n <= best[1]; n++){ if(owner[n] !== i && out[owner[n]].kind === 'empty'){ owner[n] = i; changed = true; } }
+      });
+      if(changed){
+        const kept = [];
+        let q = 0;
+        while(q < mc){ const i = owner[q]; let span = 1; while(q + span < mc && owner[q + span] === i) span++; kept.push(Object.assign({}, out[i], {colspan: span})); q += span; }
+        out.length = 0; kept.forEach(sg => out.push(sg));
+      }
+    }
+    // ⛔ FROZEN EDIT LR6 (owner, 6 Nov 2026, on a test calendar whose Prod Prep sat one wide after a two-wide Pre-Prep
+    // and then filled all three columns for its last three weeks: "i feel like its weird that the last 3 weeks of prod
+    // prep extend across" ... "this is how it should sort", then by picker "Build it" -- the sign-off for this edit;
+    // LAYOUT-RULES.md §0 rule 22). On a STAMPED calendar, A FOLLOW-ON CARRIES ITS PREDECESSOR'S WIDTH:
+    //   (A) a phase whose slot's previous occupant ended the row before (only all-phase hiatus rows between) takes the
+    //       columns that occupant drew in its last row, for as long as they stay empty. "Drew" is rule 21's measure
+    //       (spanOf): the widest the rules gave it at any row of its run, over columns free from that row to its end --
+    //       so a column rule 21 kept for it counts. ⚠️ The first build read only the last row's even share, missed that
+    //       column, handed Prod Prep nothing after a Pre-Prep two wide beside Casting, and the owner saw the upside-down T
+    //       again ("wait why is it still doing the upside down T pattern for prod prep"). So Prod Prep keeps
+    //       Pre-Prep's two-wide cell until Casting moves into the second column.
+    //   (B) once one of those columns has been taken, the phase keeps what it had the row before -- the inherited
+    //       columns still held, and every column the rules had given it by then -- less what has been taken, and spreads
+    //       into nothing new for the rest of its run in the block: no rule 13 spread, no rule 14 fill when alone, no R-E
+    //       hole. So it stays one wide after Casting ends instead of filling across for its last weeks. ⚠️ The first
+    //       build kept only the inherited columns, so a phase that had also spread into a freed column gave it back when
+    //       squeezed -- a run that shrinks, against rule 21 (found by the fewest-columns session on its layout-r3c).
+    // A column already taken in the follow-on's first row was never inherited, so losing it is no break: Production
+    // after a two-wide Prod Prep, with the lane in the second column from its first week, lays out exactly as before.
+    // None of the 15 pictured calendars narrows a run, so (B) never applies to them, and they score 98.1% / 31 / 0
+    // with this as without it (measured). A fill wish or a pull-back decides its own width (LR5), as does the
+    // predecessor's; a hand-dragged width still lays over the result (applyCellSpanOverrides). Single Column holds every
+    // cell at one (17). Unstamped, heldNarrow stays empty, this block is skipped, and the row is exactly what it was.
+    // Gate: fixture layout-r22 (the owner's shape), and layout-r13 R13i / layout-r3b R3Bd re-expected.
+    const heldNarrow = new Set();
+    if(stamped && !singleColumn && occupancy){
+      const anyAt = r => occupancy.some(m => m.has(r));
+      const emptyAt = (n, r) => !occupancy[n].has(r) && !(r === localWeek && n === simSlot);
+      const laneAhead = (n, r) => {
+        if(fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
+        let a = false; occupancy[n].forEach((kk, rr) => { if(rr >= r && kk === LAYOUT_SIM_KEY) a = true; }); return a;
+      };
+      // The span a phase in slot k draws at row R of its run [rs, re], as the rules above draw it: the widest any row r of
+      // the run up to R would give it -- left within r's even share, right uncapped (the lane kept while sharing), over
+      // columns free from r to the run's end (rule 13) -- which is rule 21's own measure, so a column rule 21 kept counts.
+      const freeOver = (n, a, b) => { for(let r = a; r <= b; r++) if(occupancy[n].has(r)) return false; return true; };
+      const nAt = r => { let n = 0; occupancy.forEach(m => { if(m.has(r) && m.get(r) !== LAYOUT_SIM_KEY) n++; }); return n; };
+      const capAt = r => { let n = 0, fixed = 0; occupancy.forEach(m => { if(!m.has(r)) return; if(m.get(r) === LAYOUT_SIM_KEY) fixed = 1; else n++; }); return n > 1 ? Math.max(1, Math.floor((mcEarned - fixed) / n)) : mc; };
+      const spanOf = (k, key, rs, re, R, fill) => {
+        let best = [k, k];
+        for(let r = rs; r <= R; r++){
+          if(occupancy[k].get(r) !== key) continue;           // a row inside the run that is not this phase grants nothing
+          const cap = fill ? mc : capAt(r);
+          let from = k; while(from - 1 >= 0 && freeOver(from - 1, r, re) && earnedIn(from - 1, k) <= cap) from--;
+          let to = k;   while(to + 1 < mc && freeOver(to + 1, r, re) && (fill || !(nAt(r) > 1 && laneAhead(to + 1, r)))) to++;
+          if((to - from) > (best[1] - best[0])) best = [from, to];
+        }
+        return best;
+      };
+      const claims = [];
+      out.forEach((sg, i)=>{
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own) || evenOf(sg.own)) return;   // LR5: a wish decides; LR7: so does an even run (Fill Space off)
+        const k = sg.own, key = occupancy[k].get(localWeek);
+        const r0 = layoutRunStart(occupancy, k, localWeek);
+        let rp = r0 - 1;
+        while(rp >= 0 && !anyAt(rp)) rp--;                    // past all-phase hiatus rows (ruled Q5)
+        if(rp < 0) return;
+        const pk = occupancy[k].get(rp);
+        if(pk === undefined || pk === key || pk === LAYOUT_SIM_KEY || phaseFillOff(pk)) return;   // no predecessor, or one kept to its column
+        // What the predecessor drew in its last row (its run ends there).
+        const [pf, pt] = spanOf(k, pk, layoutRunStart(occupancy, k, rp), rp, rp, phaseFillOn(pk));
+        if(pf === k && pt === k) return;                      // a one-wide predecessor hands on nothing
+        // (A) Inherited: the part of that span empty in the follow-on's first row, around its own slot. While sharing,
+        // the lane column is not taken before the shoot ends (15).
+        const ok = n => n === k || !(nPhases > 1 && laneReserved(n));   // its own slot may BE the lane column (Prod Prep's is)
+        let a = k; while(a - 1 >= pf && emptyAt(a - 1, r0)) a--;
+        let b = k; while(b + 1 <= pt && emptyAt(b + 1, r0)) b++;
+        if(a === k && b === k) return;
+        // Held through row r: the inherited columns empty in every row from the first to r, around its own slot.
+        const heldTo = (lo, hi, from, r) => {
+          const kept = n => { for(let w = from; w <= r; w++) if(!emptyAt(n, w)) return false; return true; };
+          let x = k; while(x - 1 >= lo && kept(x - 1)) x--;
+          let y = k; while(y + 1 <= hi && kept(y + 1)) y++;
+          return [x, y];
+        };
+        // (B) The first row one of them is taken, if it has come yet.
+        let brk = -1;
+        for(let r = r0 + 1; r <= localWeek && brk < 0; r++){ const h = heldTo(a, b, r0, r); if(h[0] !== a || h[1] !== b) brk = r; }
+        if(brk < 0){
+          const h = heldTo(a, b, r0, localWeek);
+          if(ok(h[0]) && ok(h[1])) claims.push({i, from: h[0], to: h[1], exact: false});
+          return;
+        }
+        // Squeezed at row brk: it keeps what it had the row before -- the inherited columns still held then, and every
+        // column the rules had given it by then (rule 21's measure, so nothing it earned is handed back) -- less what has
+        // been taken since, and takes nothing new for the rest of the run.
+        const re = layoutRestOfRun(occupancy, k, localWeek)[1];
+        const h0 = heldTo(a, b, r0, brk - 1), g = spanOf(k, key, r0, re, brk - 1, false);
+        const had = [Math.min(h0[0], g[0]), Math.max(h0[1], g[1])];
+        let [x, y] = heldTo(had[0], had[1], brk, localWeek);
+        while(x < k && !ok(x)) x++;
+        while(y > k && !ok(y)) y--;
+        claims.push({i, from: x, to: y, exact: true});
+        heldNarrow.add(k);
+      });
+      if(claims.length){
+        // Slot owners: a segment index, or -1 for a slot this pass empties. Rebuilt as rule 21's pass rebuilds.
+        const owner = new Array(mc).fill(-1);
+        { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
+        const isEmpty = n => owner[n] === -1 || out[owner[n]].kind === 'empty';
+        claims.forEach(c => {
+          if(c.exact) for(let n = 0; n < mc; n++) if(owner[n] === c.i && (n < c.from || n > c.to)) owner[n] = -1;
+          for(let n = c.from; n <= c.to; n++) if(isEmpty(n)) owner[n] = c.i;
+        });
+        const rebuilt = [];
+        let q = 0;
+        while(q < mc){
+          if(isEmpty(q)){ let e = 1; while(q + e < mc && isEmpty(q + e)) e++; rebuilt.push({kind: 'empty', colspan: e}); q += e; continue; }
+          const i = owner[q]; let span = 1;
+          while(q + span < mc && owner[q + span] === i) span++;
+          rebuilt.push(Object.assign({}, out[i], {colspan: span})); q += span;
+        }
+        out.length = 0; rebuilt.forEach(sg => out.push(sg));
+      }
+    }
     // LR1, rule 12 (R-E): an empty run between a phase (or its band) and the cell to its right goes to the phase on
     // its left, when those slots are free for the rest of that phase's run -- so there is never a hole between two
     // phases, and a width still only grows along a run. A hole left of every phase, or right of every phase, stays.
     if(stamped && !singleColumn){
       for(let i = 1; i + 1 < out.length; i++){
         const e = out[i], l = out[i - 1];
-        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined) continue;
+        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own) || heldNarrow.has(l.own) || evenOf(l.own)) continue;   // LR5: not to a phase keeping to its column; LR6: nor to one held to what it inherited; LR7: nor to an even run
         let at = 0; for(let j = 0; j < i; j++) at += out[j].colspan;
         let ok = true;
         for(let n = at; n < at + e.colspan; n++) if(!freeForRun(l.own, n)){ ok = false; break; }
@@ -25355,7 +26000,19 @@ export function initLegacyApp() {
     const mv = viewMode === 'month';
     chrome.headerModeBtn({ view: mv ? 'month' : 'sheet', mode: headerModeKey(mv) });
     chrome.notesResetBtn({ view: mv ? 'month' : 'sheet' });
+    // Reset Columns: the Waterfall's only, greyed while every column is automatic. Every way a column store changes
+    // ends in render() rebuilding #table-wrap, so this observer sees it (and the click re-checks regardless).
+    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist() });
+    // Fill Space: the Waterfall of a stamped calendar only (an unstamped one keeps its old widths until Update layout).
+    chrome.fillSpaceBtn({ visible: !mv && layoutStamped(), on: !fillSpaceOff });
   }
+  // Delegated, as every React-rendered toolbar control is. A <button> with aria-pressed, never an input: a Mantine
+  // Switch carries an automatic id, and collectFieldValues() sweeps every input[id] into the saved file.
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-fill-space-btn');
+    if(!t || viewMode === 'month' || !layoutStamped()) return;
+    setFillSpace(fillSpaceOff);
+  });
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
 
@@ -25760,6 +26417,44 @@ export function initLegacyApp() {
     rowHeightsLinked = linked;
   }
 
+  // ⭐ STICKY COLUMNS, the writer (STICKY-COLUMNS-PLAN.md §3; ruling K1, only the phases the user moves).
+  // colKeepBase remembers, per waterfall phase, where the layout last PLACED it: its start, its end and what its column
+  // held before it (colRel: a phase key, the lane, or '' for a column of its own). It is per phase and survives an
+  // update() that places nothing, because a date typed into a date box passes through invalid years on the way
+  // (0002, 0020, 0203, 2031), and those schedules have no layout; compared only with the schedule just before, the
+  // finished date would never read as a move. Rebuilt from nothing after a restore. (Declared beside colKeep, at the
+  // top: update() runs during the IIFE's evaluation, and a `let` down here would be read in its dead zone.)
+  // `next` is the schedule just computed from the edited fields. Every placed phase whose start or end differs from its
+  // remembered placement, and that remembers no column yet, remembers the one it had. Returns true when colKeep
+  // changed, so update() places once more. A phase that already remembers a column keeps that one (K2: placed by the
+  // rules while it cannot fit, it must still return when nudged back, so the rules' column never overwrites it).
+  // ⛔ Never on a restore: Load, New, undo / redo, crash recovery, a scenario switch and the Compare probe REPLACE the
+  // calendar, and against the previous one every phase would look moved. applyStateSnapshot() and New raise
+  // colKeepRestored, which empties the baseline, and nothing is compared while suppressDirty holds (every restore path
+  // raises it). Never in a trial: only update() calls this. Stamped calendars only (colRel exists only there).
+  function noteMovedPhases(next){
+    if(colKeepRestored){ colKeepRestored = false; colKeepBase = new Map(); return false; }
+    // ⚠️ suppressDirty LAST: it is declared ~4,000 lines below, and update() runs during the IIFE's evaluation before
+    // that line (its temporal dead zone). Every update() before the boot's restore has no stamp and no colRel.
+    if(!layoutStamped() || !next || !next.colRel || !next.segments || !colKeepBase.size || suppressDirty) return false;
+    const add = {};
+    next.segments.forEach(s => {
+      if(!s || !(s.key in next.colRel) || Object.prototype.hasOwnProperty.call(colKeep, s.key)) return;
+      const b = colKeepBase.get(s.key);
+      if(!b || (b.start === s.start.getTime() && b.end === s.end.getTime())) return;
+      if(typeof b.rel === 'string' && b.rel !== s.key) add[s.key] = b.rel;
+    });
+    if(!Object.keys(add).length) return false;
+    colKeep = Object.assign({}, colKeep, add);   // a fresh object: an undo step may hold the old one
+    return true;
+  }
+  // The baseline's other half: after update() has placed the calendar, every placed phase's dates and column, kept.
+  function rememberPlacements(sch){
+    if(!layoutStamped() || !sch || !sch.colRel || !sch.segments) return;
+    sch.segments.forEach(s => {
+      if(s && s.key in sch.colRel) colKeepBase.set(s.key, { start: s.start.getTime(), end: s.end.getTime(), rel: sch.colRel[s.key] });
+    });
+  }
   function update(){
     // Belt and braces around render()'s own snapshot: markDirty() below touches the DOM after the
     // grid is rebuilt, and update() is what the handlers that add or
@@ -25780,6 +26475,11 @@ export function initLegacyApp() {
     // stand NOW, before anything is scheduled from them (see beginShootDayMove).
     if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
     currentSchedule = computeSchedule(state);
+    // ⭐ STICKY COLUMNS (colKeep): a phase this edit MOVED remembers the column it had where the layout last placed it,
+    // and the layout is placed once more with that memory. Only the first move of a phase changes the store, so this
+    // costs a second computeSchedule() then and never again for that phase.
+    if(noteMovedPhases(currentSchedule)) currentSchedule = computeSchedule(state);
+    rememberPlacements(currentSchedule);
     // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
     // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
     // update() is bound undebounced to the `input` event of every phase date/weeks field, so this is
@@ -26962,6 +27662,33 @@ export function initLegacyApp() {
     colFollow = next;
     update();
   });
+  // ---------- Reset Columns (owner, 6 Nov 2026: "will there be a way to reset back to default algorithm?" -> "Add it") ----------
+  // Every column back on the automatic layout in one step: each phase's fill or pull-back wish (phaseFill), every
+  // dragged cell width (cellSpans), every dragged column width in BOTH layouts (colWidths, colWidthsAlt: the Date and
+  // Notes columns too, since the width model sizes those as well), every swap (gridColSwaps, gridStintSwaps) and every
+  // phase moved by hand into a free column (colFollow). ⛔ It leaves alone what is not a column choice: dates, notes,
+  // row heights, typed headings and their styles, hidden Notes columns, Single Column Mode and the layout stamp itself
+  // (an unstamped calendar keeps its old layout; "Update layout" is the strip's job). Fresh objects throughout, never a
+  // mutation: an undo step may still hold the old ones. update() ends in markDirty(), which banks the one undo step.
+  // The button (#tb-cols-reset-btn, Header.jsx) shows in the Waterfall view only, and greys while this is false.
+  function columnEditsExist(){
+    return [phaseFill, cellSpans, colWidths, colWidthsAlt, gridColSwaps, gridStintSwaps, colFollow, colKeep]
+      .some(o => !!o && Object.keys(o).length > 0);
+  }
+  function resetColumns(){
+    if(!columnEditsExist()) return false;
+    phaseFill = {}; cellSpans = {}; colWidths = {}; colWidthsAlt = {};
+    gridColSwaps = {}; gridStintSwaps = {}; colFollow = {};
+    colKeep = {};   // every moved phase back on the rules (sticky columns, ruling K4)
+    update();
+    return true;
+  }
+  // Delegated, as the notes reset is: React owns the node. closest(), so a click on the icon lands too.
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-cols-reset-btn');
+    if(!t || viewMode === 'month') return;
+    resetColumns();
+  });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
   // through update() + markDirty() -- it dirties the file and is one undo step, where the per-user
@@ -28062,9 +28789,12 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     colReuse = true; colFollow = {}; reflectColReuse();   // a new calendar reuses columns (owner, 2 Nov 2026)
+    colKeep = {}; colKeepRestored = true;   // ...remembers no moved phase, and New itself is not a move (sticky columns)
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
+    phaseFill = {};                           // ...and no phase fills its free space (FILL-INTENT-PLAN.md)
+    fillSpaceOff = false;                     // ...and Fill Space back on
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();
@@ -29468,6 +30198,11 @@ export function initLegacyApp() {
       // key. Nothing hidden is an ABSENT key, so a calendar that never hides a phase saves byte for byte as before.
       // Keys in sorted order: the undo stack compares snapshots as text.
       ...(Object.keys(phaseHidden).length ? {phaseHidden: phaseHiddenSnapshot()} : {}),
+      // 6 Nov 2026 (FILL-INTENT-PLAN.md): each phase's wish, {key: true} (fills its free space) or {key: false} (keeps to
+      // its column). ⛔ PERMANENT key. None is an ABSENT key, so a calendar that never uses it saves byte for byte as
+      // before. Keys in sorted order.
+      ...(Object.keys(phaseFill).length ? {phaseFill: phaseFillSnapshot()} : {}),
+      ...(fillSpaceOff ? {fillSpaceOff: true} : {}),   // the Fill Space switch, off (9 Nov 2026); absent = on
       // 30 Oct 2026 (Ends, see phaseEnds): the Weeks phases held by their END, a sorted array of keys. ⛔ PERMANENT key.
       // None is an ABSENT key, so a calendar that never uses Ends saves byte for byte as before. Each one's end is
       // end-<key> and its worked-out start is start-<key>, both in fields.byId, so an older build opens it where it is.
@@ -29505,6 +30240,9 @@ export function initLegacyApp() {
       // that never ticks "Reuse empty columns" or moves a phase by hand saves byte for byte what it did.
       ...(colReuse ? {colReuse: true} : {}),
       ...(Object.keys(colFollow).length ? {colFollow: Object.assign({}, colFollow)} : {}),
+      // Sticky columns (STICKY-COLUMNS-PLAN.md §5, 6 Nov 2026). ⛔ PERMANENT key, sorted, ABSENT while empty: a calendar
+      // nobody has moved a phase on saves byte for byte what it did.
+      ...(Object.keys(colKeep).length ? {colKeep: sortedObj(colKeep)} : {}),
       fields: collectFieldValues()
     };
   }
@@ -29785,12 +30523,69 @@ export function initLegacyApp() {
   //    day-addressed by nature and stay put for the same reason, along with their extra lanes.
   const MAX_SHIFT_WEEKS = 520; // ~10 years; a typo'd week count shouldn't fling the calendar away
 
+  // `days` is a number of days, or a function from a Date to the Date it moves to (the step-over below).
+  const moveDate = (d, days) => typeof days === 'function' ? days(d) : addDays(d, days);
   function shiftDateFieldValue(el, days){
     if(!el || !el.value) return false;      // an empty date field has nothing to shift
     const d = parseDateUTC(el.value);
     if(!d) return false;                    // unparseable (mid-typing, bad year) -- leave alone
-    el.value = isoOf(addDays(d, days));
+    el.value = isoOf(moveDate(d, days));
     return true;
+  }
+
+  // ---------- ⭐ THE STEP-OVER: Shift counts only the weeks a HELD hiatus does not cover ----------
+  // Owner, 5 Nov 2026, on a calendar whose locked Christmas break sat in Prod Prep's last weeks: Phase & after Pre-Prep,
+  // 4 weeks earlier, slid every phase 4 calendar weeks while the break stayed on Christmas. So the break left Prod Prep
+  // (which finished 2 weeks sooner: a 2-week GAP before Production) and landed in Production (which ran 2 weeks longer:
+  // Post OVERLAPPED the shoot's last 2 weeks). Shift promises to keep the gaps, and it kept neither. Ruled by picker,
+  // "Step over it", after asking why it is right: a phase's length is WORKING weeks (a hiatus pauses it,
+  // extendEndForHiatus), so a plan slid past a break that stays put has to be counted the way the phases count
+  // themselves. Checked: the result equals Build Around from the same phase on the same date (After), i.e. the plan
+  // re-entered from scratch with the same lengths and gaps.
+  //
+  // THE RULE: every date the shift moves (phase starts, their own hiatuses, unlocked hiatuses, the calendar range, and
+  // every week-keyed store) goes N WORKING weeks, where a working week is one no held all-phase hiatus covers. Held =
+  // the bands this shift leaves where they are: locked ones, and on a part move or a cutoff the ones outside its week
+  // windows (hiatusFatesFor). A phase that crosses a held break moves that many extra calendar weeks; the result line
+  // says so (`stepped`). Nothing moved lands inside a held break.
+  //   * A date INSIDE a held break counts from the week the break ends -- where a phase typed there really works
+  //     from (the walk skips the break's weeks; rippleNormaliseInside's rule).
+  //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
+  //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
+  //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
+  //     The phase card's ▲ / ▼ move one phase one week by design.
+  function stepOverHeld(n, held){
+    if(!held || !held.size) return d => addDays(d, n * 7);
+    const isHeld = w => held.has(isoOf(w));
+    const step = n > 0 ? 7 : -7;
+    const cap = Math.abs(n) + held.size + 1;
+    return d => {
+      const mon = mondayOf(d), off = Math.round((d - mon) / DAY_MS);
+      let w = mon, guard = 0;
+      while(isHeld(w) && guard++ < cap) w = addDays(w, 7);
+      for(let left = Math.abs(n); left > 0 && guard++ < cap * 2; ){ w = addDays(w, step); if(!isHeld(w)) left--; }
+      return addDays(w, off);
+    };
+  }
+  // The same count the other way: how many working weeks lie from `from`'s week to `to`'s (signed). A date inside a
+  // held break counts from the week it ends, so a target typed inside one lands the week after it.
+  function workingWeeksBetween(from, to, held){
+    const norm = d => { let w = mondayOf(d), g = 0; while(held && held.has(isoOf(w)) && g++ < MAX_WEEKS) w = addDays(w, 7); return w; };
+    const a = norm(from), b = norm(to);
+    const steps = Math.round((b - a) / DAY_MS / 7), sign = steps < 0 ? -1 : 1;
+    if(!held || !held.size) return steps;
+    let n = 0, w = a;
+    for(let i = 0; i < Math.abs(steps); i++){ w = addDays(w, 7 * sign); if(!held.has(isoOf(w))) n += sign; }
+    return n;
+  }
+  // "Ends by" in working weeks (weeksToFinishBy's floor): the most a phase ending on `lastDay` can move and still end
+  // on or before `target` -- the latest working week whose day at lastDay's weekday is not past the target.
+  function workingWeeksToFinishBy(lastDay, target, held){
+    const off = Math.round((lastDay - mondayOf(lastDay)) / DAY_MS);
+    let w = mondayOf(target), g = 0;
+    if(addDays(w, off) > target) w = addDays(w, -7);
+    while(held && held.has(isoOf(w)) && g++ < MAX_WEEKS) w = addDays(w, -7);
+    return workingWeeksBetween(lastDay, w, held);
   }
   // Rebuild a week/day-keyed map under shifted keys. `keep(key)` returns true for entries that
   // must stay on their original key. Built fresh rather than mutated in place so a shift can never
@@ -29822,7 +30617,7 @@ export function initLegacyApp() {
       const { iso, suffix } = splitWeekKey(k);
       const d = parseDateUTC(iso);
       if(!d || (keep && keep(k))) out[k] = v;         // unparseable keys stay put too
-      else moving.push([isoOf(addDays(d, days)) + suffix, v]);
+      else moving.push([isoOf(moveDate(d, days)) + suffix, v]);
     });
     moving.forEach(([k, v])=>{
       if(!(k in out)) out[k] = v;
@@ -29878,7 +30673,7 @@ export function initLegacyApp() {
     Object.keys(staleByOldKey).forEach(oldKey=>{
       const d = parseDateUTC(oldKey);
       if(!d) return;
-      const newKey = isoOf(addDays(d, days));
+      const newKey = isoOf(moveDate(d, days));
       const v = userNotes[newKey];
       if(v === undefined || (v && typeof v === 'object' && Array.isArray(v.notes))) return;
       const text = (typeof v === 'string') ? v : ((v && typeof v.text === 'string') ? v.text : '');
@@ -30133,6 +30928,62 @@ export function initLegacyApp() {
   //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
   //               the phase that OWNS it is held too (the hiatus pauses it, which is the point), and with it its own
   //               hiatus fields. The ripple never passes `part`, and passes `keepView` (above).
+  // The week windows a shift's week-keyed things move inside, and the test against them: a part move's own (one per
+  // ticked phase, or a shortcut's single window), else the cutoff's open-ended one, else none (a whole-calendar
+  // shift, where everything is in range). `inRange` takes a cell key, which may carry a "|<phase key>" suffix, so it
+  // compares on the week part only. Shared with the Shift form, which asks which hiatuses a move would hold before it
+  // runs (shiftHeldWeeks).
+  function shiftScope(fromIso, part){
+    const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
+    const windows = part
+      ? (part.windows || [{from: part.fromWeek || null, to: part.toWeek || null}]).map(w => ({from: weekOf(w.from), to: weekOf(w.to)}))
+      : (fromIso ? [{from: mondayOf(parseDateUTC(fromIso)), to: null}] : null);
+    const inRange = key => {
+      if(!windows) return true;
+      const d = parseDateUTC(splitWeekKey(key).iso);
+      if(!d) return false;
+      const m = mondayOf(d);
+      return windows.some(w => (!w.from || m >= w.from) && (!w.to || m <= w.to));
+    };
+    return {windows, inRange};
+  }
+  // What a shift does with each all-phase hiatus row, decided from the pre-shift dates BEFORE anything moves: 'stay'
+  // (outside the week windows, or the ripple's own `except`), 'locked', or 'move'. With every week of the bands that
+  // stay (`held`: the step-over's obstacles, and step 3's plain band keys that stay) and of the ones that move.
+  // `obstacles` is `held` without the hiatus being EDITED (`except`, the ripple's): what the step-over steps over. The
+  // edited hiatus stays put like any held band (its name, colour and size keep to its weeks), but it is the reason for
+  // the push, not something in its way (HIATUS-RIPPLE-PLAN.md §12.2): counted as an obstacle, Break 2 -> 3 wks would push
+  // the phase that started the week after the old break 2 weeks, and adding a hiatus would push a phase starting on its
+  // first week twice its length. With no `except` (every Shift form move) it is exactly `held`.
+  function hiatusFatesFor(inRange, except){
+    const fates = [], held = new Set(), moving = new Set(), obstacles = new Set();
+    const recordBandWeeks = (row, into)=>{
+      const startEl = row.querySelector('.hiatus-start');
+      const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
+      if(!d) return;
+      // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
+      const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
+      for(let i=0;i<wks;i++) into.add(isoOf(addDays(d, i*7)));
+    };
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const startEl = row.querySelector('.hiatus-start');
+      let fate;
+      if(!startEl || !startEl.value || !inRange(startEl.value)) fate = 'stay';
+      else if(except && except.kind === 'all' && except.row === row) fate = 'stay';
+      else { const lock = row.querySelector('.hiatus-locked'); fate = (lock && lock.checked) ? 'locked' : 'move'; }
+      recordBandWeeks(row, fate === 'move' ? moving : held);
+      if(fate !== 'move' && !(except && except.kind === 'all' && except.row === row)) recordBandWeeks(row, obstacles);
+      fates.push({row, startEl, fate});
+    });
+    return {fates, held, moving, obstacles};
+  }
+  // The weeks a Shift form move (or an All phases one: `part` null) would hold, for the step-over's arithmetic.
+  function shiftHeldWeeks(part){
+    return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
+  }
+  //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
+  //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
+  //           arrows and the hiatus ripple pass it; the phase arrows and the month drag (carryOnly) do not.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -30141,23 +30992,17 @@ export function initLegacyApp() {
     const days = n * 7;
     const part = opts.part || null;
     const partPhases = part ? new Set(part.phases || []) : null;
-    const weekOf = iso => { const d = iso ? parseDateUTC(iso) : null; return d ? mondayOf(d) : null; };
-    // The week windows: a part move's own (one per ticked phase, or a shortcut's single window), else the cutoff's
-    // open-ended one, else none (a whole-calendar shift).
-    const windows = part
-      ? (part.windows || [{from: part.fromWeek || null, to: part.toWeek || null}]).map(w => ({from: weekOf(w.from), to: weekOf(w.to)}))
-      : (fromIso ? [{from: mondayOf(parseDateUTC(fromIso)), to: null}] : null);
-    // Whole-calendar shift -> everything is in range. Takes a cell key, which may carry a
-    // "|<phase key>" suffix, so it compares on the week part only.
-    const inRange = key => {
-      if(!windows) return true;
-      const d = parseDateUTC(splitWeekKey(key).iso);
-      if(!d) return false;
-      const m = mondayOf(d);
-      return windows.some(w => (!w.from || m >= w.from) && (!w.to || m <= w.to));
-    };
+    const {inRange} = shiftScope(fromIso, part);
     // Step 1's test: with `part`, exactly its list; otherwise the phase's start against the cutoff, as always.
     const phaseMoves = (key, startIso) => partPhases ? partPhases.has(key) : inRange(startIso);
+    // Every all-phase hiatus's fate, from the pre-shift dates (step 2 acts on it). Worked out first, because the
+    // step-over needs the held weeks before step 1 moves a single phase.
+    const hf = hiatusFatesFor(inRange, except);
+    const stepHeld = !!opts.stepHeld && !opts.carryOnly;
+    // Where a date goes: `days` (a number) as always, or the step-over's mapping.
+    const move = stepHeld ? stepOverHeld(n, hf.obstacles) : days;
+    // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
+    const startsBefore = {};
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
@@ -30181,38 +31026,25 @@ export function initLegacyApp() {
       if(opts.carryOnly) movedPhases++;
       else {
         const from = parseDateUTC(startEl.value);
-        if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
+        // The step-over also hands setPhaseStart its mapping, for an Ends phase: its END goes N working weeks, which
+        // is not the start's calendar distance when a held hiatus sits between them.
+        if(from && setPhaseStart(p.key, isoOf(moveDate(from, move)), stepHeld ? move : null)){ movedPhases++; startsBefore[p.key] = from; }
       }
-      shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
+      shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), move);
     });
 
     // 2. All-phase hiatuses -- only the ones the user has unlocked.
     let movedHiatuses = 0, lockedHiatuses = 0;
-    // Every week still occupied by a band that did NOT move -- because it is locked, or (on a
-    // ripple) starts before the cutoff. Collected from the pre-shift dates, which is automatic:
-    // a row is recorded on exactly the paths that return before touching its start field.
-    const stayingHiatusWeeks = new Set();
-    // ...and every week of a band that DID move, also from its pre-shift dates (recorded just before its start field
-    // is written). Step 3 needs both: a plain key on a moving band goes with the band, EVERY week of it, even a week
-    // outside the move's week windows -- a band starting in a Dates phase's last week runs past that phase's run (a
-    // hiatus does not lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
-    const movingHiatusWeeks = new Set();
-    const recordBandWeeks = (row, into)=>{
-      const startEl = row.querySelector('.hiatus-start');
-      const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
-      if(!d) return;
-      // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
-      const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
-      for(let i=0;i<wks;i++) into.add(isoOf(addDays(d, i*7)));
-    };
-    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
-      const startEl = row.querySelector('.hiatus-start');
-      if(!startEl || !startEl.value || !inRange(startEl.value)){ recordBandWeeks(row, stayingHiatusWeeks); return; }
-      if(except && except.kind === 'all' && except.row === row){ recordBandWeeks(row, stayingHiatusWeeks); return; }
-      const lock = row.querySelector('.hiatus-locked');
-      if(lock && lock.checked){ lockedHiatuses++; recordBandWeeks(row, stayingHiatusWeeks); return; }
-      recordBandWeeks(row, movingHiatusWeeks);
-      if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
+    // Every week still occupied by a band that did NOT move -- because it is locked, or (on a ripple) starts before the
+    // cutoff -- and every week of a band that DID move, both from the pre-shift dates (hiatusFatesFor, above). Step 3
+    // needs both: a plain key on a moving band goes with the band, EVERY week of it, even a week outside the move's
+    // week windows -- a band starting in a Dates phase's last week runs past that phase's run (a hiatus does not
+    // lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
+    const stayingHiatusWeeks = hf.held;
+    const movingHiatusWeeks = hf.moving;
+    hf.fates.forEach(({startEl, fate})=>{
+      if(fate === 'locked') lockedHiatuses++;
+      if(fate === 'move' && shiftDateFieldValue(startEl, move)) movedHiatuses++;
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
     //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
@@ -30220,15 +31052,21 @@ export function initLegacyApp() {
     //     Rebuild From never comes here, so it leaves them, as ruled.
     ['cal-range-start', 'cal-range-end'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, days);
+      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, move);
     });
 
     // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
     //    a note's colour keys off the same week as the note, so it must make the same stay-or-go
     //    decision -- and by the time the colours are shifted, userNotes has already been rewritten.
     const pinnedWeeks = new Set(Object.keys(userNotes).filter(k => userNoteList(k).some(n => !!n.date)));
-    // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff.
-    const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k);
+    // Under the step-over, a note on a HELD hiatus's week stays with the hiatus: the band covers it, it is about the
+    // break, and the step-over has no working week to count it from. (Before 5 Nov 2026 it moved by calendar weeks,
+    // out from under the band.)
+    // The obstacles, not every held week: a note in the weeks of the hiatus a ripple is pushing for belongs to the work
+    // that is pushed (a hiatus added over it), so it moves with the phases, as it always has.
+    const onHeldBand = k => { const d = parseDateUTC(splitWeekKey(k).iso); return !!d && hf.obstacles.has(isoOf(mondayOf(d))); };
+    // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff, OR (the step-over) under a held band.
+    const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k) || (stepHeld && onHeldBand(k));
     // R5 / audit M-10: the auto text each MOVING note's week shows right now, so it can be swapped for
     // the auto text of the week it lands on (rewriteMovedAutoNotes, after the refresh below). Read off
     // currentSchedule, which is still the PRE-shift schedule: nothing recomputes it until then.
@@ -30236,18 +31074,18 @@ export function initLegacyApp() {
     Object.keys(userNotes).forEach(k=>{ if(!isPinnedWeek(k)) staleAuto[k] = weekAutoTexts(currentSchedule, k); });
     // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
     // rather than reassigned.
-    const shiftedNotes = shiftKeyedMap(userNotes, days, isPinnedWeek, mergeNoteValues);
+    const shiftedNotes = shiftKeyedMap(userNotes, move, isPinnedWeek, mergeNoteValues);
     Object.keys(userNotes).forEach(k=> delete userNotes[k]);
     Object.assign(userNotes, shiftedNotes);
     // No merge for colours: a cell has one fill, and the note that stayed owns it.
-    noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
-    noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
+    noteColors  = shiftKeyedMap(noteColors, move, isPinnedWeek);
+    noteFontSize = shiftKeyedMap(noteFontSize, move, isPinnedWeek);
     // A hand-dragged row height is almost always there FOR the week's note -- a row is dragged
     // taller to show a long one -- so it makes the note's stay-or-go decision. Left behind (audit
     // M-12), the note moved into a 20px row and was cut off in the grid, Excel and the PDF, while an
     // empty tall row sat on the old week. syncRowHeights() rebuilds the render-facing rowHeights from
     // this map on the update() that refreshAfterRestore() runs below.
-    rowHeightsByWeek = shiftKeyedMap(rowHeightsByWeek, days, isPinnedWeek);
+    rowHeightsByWeek = shiftKeyedMap(rowHeightsByWeek, move, isPinnedWeek);
     // A band's label, colour and text size have to make the SAME stay-or-go decision the band
     // made in steps 1-2, or they walk off it: a locked band would revert to the default red
     // "Holiday Hiatus" while "Christmas Break" ended up on a week with no band at all. Note this
@@ -30267,33 +31105,33 @@ export function initLegacyApp() {
       if(movingHiatusWeeks.has(iso)) return false;
       return !inRange(iso);
     };
-    hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
+    hiatusTexts = shiftKeyedMap(hiatusTexts, move, hiatusKeyStays);
     // Carries sync ownership along with the text it applies to -- otherwise a moved band would
     // already show the right name (from the line above) but a LATER rename would be mistaken for
     // a hand-edit and refused, since the tracker's keys would still point at the old dates.
-    hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, days, hiatusKeyStays);
-    hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
-    hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
+    hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, move, hiatusKeyStays);
+    hiatusColors = shiftKeyedMap(hiatusColors, move, hiatusKeyStays);
+    hiatusFontSize = shiftKeyedMap(hiatusFontSize, move, hiatusKeyStays);
     // Text styles go where what they style goes (TEXT-STYLE-BAR-PLAN.md §2): a note's with its note, a band's
     // with its band, a phase week's with its phase, Sim Post's with Production (it only runs inside the
     // shoot). Dates and headings carry no movable week, so they stay.
-    textStyle.note = shiftKeyedMap(textStyle.note, days, isPinnedWeek);
-    textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, days, hiatusKeyStays);
+    textStyle.note = shiftKeyedMap(textStyle.note, move, isPinnedWeek);
+    textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, move, hiatusKeyStays);
     // The month view's band styles move as hiatusTexts does (MONTH-TEXT-STYLE-PLAN.md §4). Its phase, episode and Sim
     // Post styles are keyed by what their labels say, so they need no re-key, and a note's rides on the note.
-    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, days, hiatusKeyStays);
-    textStyle.phase = shiftKeyedMap(textStyle.phase, days, hiatusKeyStays);
-    textStyle.simpost = shiftKeyedMap(textStyle.simpost, days, () => stayingPhases.has('production'));
+    mvTextStyle.band = shiftKeyedMap(mvTextStyle.band, move, hiatusKeyStays);
+    textStyle.phase = shiftKeyedMap(textStyle.phase, move, hiatusKeyStays);
+    textStyle.simpost = shiftKeyedMap(textStyle.simpost, move, () => stayingPhases.has('production'));
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
     // the same journey a per-phase hiatus band does: it moves when its phase moves, stays when
     // the phase stays put on a ripple.
-    cellSpans = shiftKeyedMap(cellSpans, days, hiatusKeyStays);
+    cellSpans = shiftKeyedMap(cellSpans, move, hiatusKeyStays);
     // A column-order override is keyed the same way and is phase-owned, so it travels identically.
     // hiatusKeyStays is the correct predicate; isPinnedWeek is explicitly WRONG here (that guard is
     // about date-pinned notes, a different rule). No merge fn: last-writer-yields matches cellSpans,
     // and swapPairsForWeek's mutual-pointer check drops any inconsistent survivor rather than
     // half-applying it -- which is exactly the case where a ripple moves one phase and not the other.
-    gridColSwaps = shiftKeyedMap(gridColSwaps, days, hiatusKeyStays);
+    gridColSwaps = shiftKeyedMap(gridColSwaps, move, hiatusKeyStays);
     // ⛔ gridStintSwaps is deliberately NOT re-keyed, and the omission is owner ruling E5, not an
     // oversight. Its keys are '<year>|<phaseKey>' -- a YEAR, not a week -- so there is no date in
     // them to shift. A stint pushed from December into January simply has no entry for its new year
@@ -30321,12 +31159,12 @@ export function initLegacyApp() {
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
     // month view has been opened once, in which case it picks its own start and needs no nudge.
-    if(monthCursor && !opts.keepView) monthCursor = addDays(monthCursor, days);
+    if(monthCursor && !opts.keepView) monthCursor = moveDate(monthCursor, move);
     refreshAfterRestore();
     syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
-    if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
+    if(rewriteMovedAutoNotes(staleAuto, move)) render(currentSchedule);
     // Audit L-14: an all-phase hiatus row is ONE band across the whole block, the notes column
     // included, so a note moved onto such a week is hidden in the waterfall, Excel and the PDF. It is
     // not lost -- it comes back when the hiatus or the note moves off -- but the user has to be told.
@@ -30334,12 +31172,37 @@ export function initLegacyApp() {
       .filter(w => w.cells.length && w.cells[0].type === 'hiatus').map(w => isoOf(w.date)));
     const notesOnHiatus = Object.keys(staleAuto).filter(k=>{
       const d = parseDateUTC(k);
-      const to = d ? isoOf(addDays(d, days)) : null;
+      const to = d ? isoOf(moveDate(d, move)) : null;
       return !!to && hiatusWeeks.has(to) && !!noteValueText(userNotes[to]);
     }).length;
+    // The step-over's report: every moved phase whose start went more or fewer calendar weeks than asked (it crossed a
+    // held break, or started inside one), read AFTER the refresh, so an Ends phase's re-solved start counts. And how
+    // many held bands those moves crossed, for the line's "a held hiatus" / "held hiatuses".
+    const stepped = [];
+    let steppedHiatuses = 0;
+    if(stepHeld){
+      const crossed = new Set();
+      Object.keys(startsBefore).forEach(k=>{
+        const now = parseDateUTC((document.getElementById('start-' + k) || {}).value);
+        if(!now) return;
+        const wk = Math.round((now - startsBefore[k]) / DAY_MS / 7);
+        if(wk === n) return;
+        stepped.push({key: k, weeks: wk});
+        const lo = mondayOf(now < startsBefore[k] ? now : startsBefore[k]), hi = mondayOf(now < startsBefore[k] ? startsBefore[k] : now);
+        hf.fates.forEach((f, i)=>{
+          if(f.fate === 'move') return;
+          const s = f.startEl && f.startEl.value ? parseDateUTC(f.startEl.value) : null;
+          if(!s) return;
+          const first = mondayOf(s);
+          const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((f.row.querySelector('.hiatus-weeks') || {}).value, 10) || 1));
+          if(first < hi && addDays(first, wks * 7) > lo) crossed.add(i);
+        });
+      });
+      steppedHiatuses = crossed.size;
+    }
 
     return {
-      weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus,
+      weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus, stepped, steppedHiatuses,
       productionWrap: productionWrapText()
     };
   }
@@ -30466,7 +31329,9 @@ export function initLegacyApp() {
     asShootDayMove(()=>{
       if(before && h.kind === 'all') rippleNormaliseInside(before);
       steps.forEach(st=>{
-        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true});
+        // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
+        // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
+        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
         if(r) results.push(r);
       });
     });
@@ -30510,10 +31375,16 @@ export function initLegacyApp() {
   }
 
   // ---- WHEN A RIPPLE RUNS: the settle tracking (plan §4) ----
-  // ⛔ NEVER PER KEYSTROKE. A date box fires 'input' for each digit of a year (2, 20, 202, 2027), and a Weeks spinner
-  // on every click. So the hiatus as it was is taken when an edit to it BEGINS (focus enters its Starts or Weeks box),
-  // and the ripple runs when the edit SETTLES, measured against that: focus leaves the row (or the phase's hiatus
-  // block), Enter, or a pick in the date popover. 2 -> 3 -> 4 on the spinner is ONE push of 2 weeks.
+  // The hiatus as it was is taken when an edit to it BEGINS (focus enters its Starts or Weeks box), and the ripple runs
+  // when the edit SETTLES, measured against that.
+  // ⭐ A WEEKS CHANGE SETTLES THE MOMENT IT IS MADE (owner, 5 Nov 2026: "it should do it immediately not after a
+  // second"). Every whole number the box takes -- a spinner click, an arrow key, a typed digit -- pushes at once and
+  // begins the next edit, focus kept: 2 -> 3 -> 4 is two pushes of 1 week, each its own pair of undo steps. Until then
+  // a Weeks change waited for focus to leave, so the hiatus's band grew while the phases after it sat still, which
+  // read as "Ripple Hiatus did nothing". An emptied box (or 0) mid-typing waits; leaving it empty settles as before.
+  // ⛔ A TYPED START DATE STILL WAITS: a date box fires 'input' for each digit of a year (0002, 0020, 0202, 2026), each
+  // a real date, so it settles when focus leaves the row (or the phase's hiatus block), on Enter, or on a pick in the
+  // date popover (a whole date, at once).
   // ⛔ Begun only on focus. A field written by code (a Load, an undo, a mover, a test's T.set) is never focused, so it
   // has no "before" and cannot ripple. refreshAfterRestore() forgets every pending edit: a restore or a shift has
   // rewritten the fields, so a "before" taken earlier no longer describes them.
@@ -30542,8 +31413,15 @@ export function initLegacyApp() {
     const now = rippleSpan(ed.h);
     if(now === 'invalid') return;           // keep waiting for a date the calendar can read
     rippleEdits.delete(host);
+    // Nothing changed since the edit began (Enter or a click away right after a Weeks change pushed): keep the line
+    // that push wrote. Clearing it here wiped "Pushed 1 wk: ..." the moment the user left the box.
+    if(rippleSameSpan(ed.before, now)) return;
     clearRippleNotes();
     try { rippleAfterHiatusEdit(ed.h, ed.before, now); } catch(e){ console.error(e); }
+  }
+  function rippleSameSpan(a, b){
+    if(!a || !b) return !a && !b;
+    return a.start.getTime() === b.start.getTime() && a.weeks === b.weeks;
   }
   function forgetRippleEdits(){ rippleEdits.clear(); }
   document.addEventListener('focusin', e=> rippleBegin(e.target), true);
@@ -30564,6 +31442,18 @@ export function initLegacyApp() {
     rippleSettle(r.host);
     rippleBegin(e.target);                          // focus stays: the next change is a new edit
   }, true);
+  // ⭐ Weeks, at once (see the top of this section). On the document in the BUBBLE phase, so the field's own handler
+  // (#hiatus-list's, or #phase-rows' for a phase's own hiatus) has already read the new number and run update().
+  // Only an edit the user began counts: a field written by code was never focused, so it has no entry and pushes nothing.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.matches || !t.matches('.hiatus-weeks, .phiatus-weeks')) return;
+    if(!(parseInt(t.value, 10) > 0)) return;       // emptied mid-typing: wait for a number
+    const r = rippleHostOf(t);
+    if(!r || !rippleEdits.has(r.host)) return;
+    rippleSettle(r.host);
+    rippleBegin(t);                                 // focus stays: the next change is a new edit
+  });
   // A pick in the date popover (DatePop.jsx) is a whole date: it writes the field and dispatches 'input' and 'change',
   // untrusted, with focus kept in the field. A typed date's events are trusted and wait for focus to leave.
   document.addEventListener('change', e=>{
@@ -32084,7 +32974,8 @@ export function initLegacyApp() {
     let flashTimer = null;
     function runShift(weeks){
       pushUndoSnapshot();          // close off whatever came before, so this click stands alone
-      const res = shiftCalendar(weeks);
+      // The step-over (stepOverHeld): a phase next to a held break crosses it, so "1 wk" can move it 3.
+      const res = shiftCalendar(weeks, null, {stepHeld: true});
       pushUndoSnapshot();          // ...and bank the shift itself immediately
       if(!res || !readout) return;
       // Say what happened. The wrap date is worth showing because holidays don't move with the
@@ -32092,7 +32983,10 @@ export function initLegacyApp() {
       const dir = res.weeks < 0 ? 'earlier' : 'later';
       const n = Math.abs(res.weeks);
       const ov = takeShootDayMoveNote(true);   // what the move did to Production's day marks, if anything
-      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
+      // A phase that stepped over a held hiatus says how far it really went ("Production pulled 3 wks").
+      const st = (res.stepped || []).map(x => rippleName(x.key) + (x.weeks > 0 ? ' pushed ' : ' pulled ') + rippleWks(Math.abs(x.weeks)));
+      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (st.length ? ' · ' + st.join(' · ') : '')
+        + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
         + (ov ? ' · ' + ov : '');
       // The readout anchors under the button that acted (owner, round 6): CSS reads this.
       group.dataset.shiftDir = dir;
@@ -32132,17 +33026,18 @@ export function initLegacyApp() {
     let solveDir = 0;
     let solveTicks = {};
     let solveLens = {};
-    // The Shift form's two choices. Session UI, never saved (no id, inside .tools-menu), and both reset to All
-    // phases, By weeks on EVERY opening (ruling R2(a)), so someone who never touches them gets exactly the old
-    // Shift All form. Declared up here because refreshMenuFromCalendar() and openPop() reach them.
+    // The Shift form (the list first: owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). Session UI, never
+    // saved (no id on anything new, all inside .tools-menu), and reset on EVERY opening (ruling R2(a)): every phase
+    // ticked, By weeks, so someone who never touches the list gets exactly the old Shift All form. Declared up here
+    // because refreshMenuFromCalendar(), closeAllPops() and openPop() reach them.
     const shiftMenu = document.getElementById('pop-shift');
-    let shiftMove = 'all';    // 'all' | 'before' | 'after' | 'custom' (the user's own ticks: no button pressed)
     let shiftFar = 'weeks';   // 'weeks' | 'date'
-    // The list of phases (owner's layout A, 5 Nov 2026; plan §7). `shiftTicks` holds the keys that move: a shortcut
-    // fills it (presetTicks) and a tick changed by hand makes it the user's own set. `shiftListOpen` is the fold under
-    // All phases. Both are forgotten on every opening, as Rebuild From's ticks are.
+    // `shiftTicks` holds the keys that move. `shiftMark` is the OUTLINED row, the last one clicked, ticked, cleared or
+    // dragged over: Prior / After act from it ('' until a row is touched: shiftMarkKey() then names the shoot).
+    // `shiftDrag` is a press-and-drag in progress (see the list's pointerdown).
     let shiftTicks = new Set();
-    let shiftListOpen = false;
+    let shiftMark = '';
+    let shiftDrag = null;
 
     // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
@@ -32174,6 +33069,7 @@ export function initLegacyApp() {
       const n = Math.abs(res.weeks);
       let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
+      out += steppedText(res);
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
       if(res.notesOnHiatus){
@@ -32184,6 +33080,21 @@ export function initLegacyApp() {
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       return out;
+    }
+    // The step-over's sentence (stepOverHeld): the phases that moved more or fewer calendar weeks than asked, because
+    // they crossed a held hiatus. "Production was pulled 6 wks to step over a held hiatus." Owner's wording for a moved
+    // date: pushed / pulled, never + or -.
+    function steppedText(res){
+      const s = (res && res.stepped) || [];
+      if(!s.length) return '';
+      const groups = [];
+      s.forEach(x=>{
+        const g = groups.find(g => g.weeks === x.weeks);
+        if(g) g.names.push(rippleName(x.key)); else groups.push({weeks: x.weeks, names: [rippleName(x.key)]});
+      });
+      return ' ' + groups.map(g => andList(g.names) + (g.names.length > 1 ? ' were ' : ' was ')
+          + (g.weeks > 0 ? 'pushed ' : 'pulled ') + rippleWks(Math.abs(g.weeks))).join(' and ')
+        + ' to step over ' + (res.steppedHiatuses > 1 ? 'held hiatuses.' : 'a held hiatus.');
     }
     function readWeeks(id){
       const v = Math.round(Number((document.getElementById(id) || {}).value));
@@ -32279,10 +33190,9 @@ export function initLegacyApp() {
       document.getElementById('tool-solve-date').value = start ? isoOf(phaseSnapped(key) ? mondayOf(start) : start) : '';
     }
     function refreshMenuFromCalendar(){
-      const list = scheduledPhases();
-      // The Shift form's one phase list (Anchor To's, by id). The shoot is the usual pick. Whole schedule is
-      // in it only for All phases to a date: it has nothing before or after it, and By weeks needs no phase.
-      fillPhaseSelect('tool-anchor-phase', list, 'production', shiftOffersWhole());
+      // The Shift form's landing phase (Anchor To's select, by id): fillShiftPhase(), which syncShiftForm() runs
+      // again. Filled here FIRST because the date below is read from it, and the list reads the date.
+      fillShiftPhase();
       fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production', false, true);
       syncAnchorDate();
       syncSolveDate();
@@ -32292,6 +33202,7 @@ export function initLegacyApp() {
       if(solveMenu && solveMenu.classList.contains('open')) renderSolve();
     }
     function closeAllPops(){
+      shiftDrag = null;   // a drag down the Shift list ends with its box
       POPS.forEach(p=>{
         p.menu.classList.remove('open');
         p.btn.setAttribute('aria-expanded','false');
@@ -32324,9 +33235,9 @@ export function initLegacyApp() {
       const wasOpen = target.menu.classList.contains('open');
       closeAllPops();
       if(wasOpen) return;
-      // R2(a): the Shift form opens on All phases, By weeks every time, every phase ticked and the list folded.
-      // Before the refresh, which fills the phase list for the choice in force.
-      if(target.menu === shiftMenu){ shiftMove = 'all'; shiftFar = 'weeks'; shiftListOpen = false; }
+      // R2(a): the Shift form opens with every phase ticked, By weeks, every time, and no row touched yet.
+      // Before the refresh, which fills the landing phase's list for the choice in force.
+      if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       // Build Around forgets everything between openings, so each one starts on Both, its default ticks, its starts
       // date and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
@@ -32356,18 +33267,16 @@ export function initLegacyApp() {
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
 
-    // The phase names the list's shortcut set and its pinned row, so a new pick redraws it.
-    document.getElementById('tool-anchor-phase').addEventListener('change', ()=>{ syncAnchorDate(); syncShiftForm(); });
+    // A pick made in the box CHOOSES that phase: its row is outlined, so Prior / After name it too (fillShiftPhase:
+    // one chosen phase). Whole schedule is no phase, so the outline stays where it was.
+    document.getElementById('tool-anchor-phase').addEventListener('change', e=>{
+      if(e.target.value && e.target.value !== ANCHOR_ALL) shiftMark = e.target.value;
+      syncAnchorDate(); syncShiftForm();
+    });
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
 
-    // ---------- The Shift form (ANCHOR-TO-DIRECTION-PLAN.md §6) ----------
-    const shiftOffersWhole = () => shiftMove === 'all' && shiftFar === 'date';
-    // What moves, as the action buttons read it. Whole schedule has nothing before or after it, so it is All
-    // phases whatever the buttons say (and it is only offered with All phases anyway).
-    const shiftMoveFor = key => (shiftMove === 'all' || key === ANCHOR_ALL) ? 'all' : shiftMove;
-    const phaseLabelOf = (sel, fallback) =>
-      ((sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0]) || fallback;
+    // ---------- The Shift form (ANCHOR-TO-DIRECTION-PLAN.md §6, §7; the list first since 9 Nov 2026, §7.6) ----------
     // "A", "A and B", "A, B and C".
     const andList = names => names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
     // Every scheduled phase with its first and last WEEK (phaseLastWorkday; Production to its wrap), in the order
@@ -32379,65 +33288,105 @@ export function initLegacyApp() {
         return {key: x.p.key, p: x.p, label: x.p.label || 'Phase', start: x.start, week: mondayOf(x.start), lastWeek: mondayOf(last)};
       });
     }
-    // A shortcut's set: the picked phase and every phase whose START week is on the chosen side (the rule live
-    // since 4 Nov 2026; an overlap does not count: owner, 5 Nov 2026, "how would you move everything except for
-    // writers room"). All phases, or Whole schedule, is every phase.
-    function presetTicks(move, key){
+    // The OUTLINED row's phase: the last row clicked, ticked, cleared or dragged over (`shiftMark`). Until a row is touched,
+    // and when the touched phase is no longer scheduled, it is the shoot (the usual pick), else the first row, so
+    // Prior / After always have a row to name.
+    function shiftMarkKey(){
       const rows = shiftRows();
-      if(move === 'all' || !key || key === ANCHOR_ALL) return new Set(rows.map(r => r.key));
-      const p = rows.find(r => r.key === key);
-      if(!p) return new Set(rows.map(r => r.key));
-      return new Set(rows.filter(r => r.key === key || (move === 'after' ? r.week >= p.week : r.week <= p.week)).map(r => r.key));
+      if(rows.some(r => r.key === shiftMark)) return shiftMark;
+      return rows.some(r => r.key === 'production') ? 'production' : (rows[0] ? rows[0].key : '');
     }
-    // Which shortcut the ticks match now, if any. All first: with one phase scheduled all three would match.
-    function matchShiftMove(key){
-      const same = set => set.size === shiftTicks.size && [...set].every(k => shiftTicks.has(k));
-      for(const m of ['all', 'before', 'after']) if(same(presetTicks(m, key))) return m;
-      return 'custom';
-    }
-    // ⭐ WHAT A PART-CALENDAR MOVE TAKES, worked out ONCE for the list and for the move (shiftCalendarDates' `part`),
-    //    so the two can never disagree (plan §2, §7):
-    //   * the ticked phases, which a shortcut has just set or the user has edited;
-    //   * the week window for notes, unlocked hiatuses and the range: a shortcut's runs from the picked phase's start
-    //     week (after) or to its LAST week (before); a hand-picked set gets one window per ticked phase, its start
-    //     week to its last week (T2, owner's picker, 5 Nov 2026: a note inside a ticked phase's run moves, even in a
-    //     week an unticked phase shares).
-    // Null when nothing is ticked.
-    function shiftPlan(move, key){
+    // ⭐ WHAT THE TICKS AMOUNT TO, worked out ONCE for the list, the result line and the move itself
+    //    (shiftCalendarDates' `part`), so the three can never disagree (plan §2, §7, §7.6). The form has no
+    //    All phases / Phase & before / Phase & after buttons to remember any more (owner's spec, 9 Nov 2026): the SET
+    //    decides, however it was made (a tick, a drag, the header box, Prior / After).
+    //   * every phase ticked: `all`, the whole calendar: the old Shift All / Anchor To call, with no `part`;
+    //   * the ticks are the TOP of the list, down to one phase: `before` it (the old Phase & before, and what "Prior
+    //     to X" sets). Notes, unlocked hiatuses and the range move up to that phase's LAST week;
+    //   * the ticks are the BOTTOM of the list, from one phase: `after` it (the old Phase & after and Shift From, and
+    //     what "After X" sets). They move from that phase's start week on;
+    //   * any other set: one window per ticked phase, its start week to its last week (T2, owner's picker, 5 Nov
+    //     2026: a note inside a ticked phase's run moves, even in a week an unticked phase shares).
+    // The rows run in START order, so "above" is "starts no later": the start-week rule the buttons had (an overlap
+    // does not count: owner, 5 Nov 2026, "how would you move everything except for writers room"). Null when nothing
+    // is ticked.
+    function shiftPlan(){
       const rows = shiftRows();
       const moving = rows.filter(r => shiftTicks.has(r.key));
+      if(moving.length === rows.length) return {move: 'all', pivot: null, moving, staying: [], part: null};
       if(!moving.length) return null;
-      const p = rows.find(r => r.key === key);
-      let windows;
-      if(move === 'after' && p) windows = [{from: isoOf(p.week), to: null}];
-      else if(move === 'before' && p) windows = [{from: null, to: isoOf(p.lastWeek)}];
+      const first = rows.indexOf(moving[0]), last = rows.indexOf(moving[moving.length - 1]);
+      const oneRun = last - first + 1 === moving.length;
+      let move = 'custom', pivot = null, windows;
+      if(oneRun && first === 0){ move = 'before'; pivot = rows[last]; windows = [{from: null, to: isoOf(pivot.lastWeek)}]; }
+      else if(oneRun && last === rows.length - 1){ move = 'after'; pivot = rows[first]; windows = [{from: isoOf(pivot.week), to: null}]; }
       else windows = moving.map(r => ({from: isoOf(r.week), to: isoOf(r.lastWeek)}));
-      return {moving, staying: rows.filter(r => !shiftTicks.has(r.key)), part: {phases: moving.map(r => r.key), windows}};
+      return {move, pivot, moving, staying: rows.filter(r => !shiftTicks.has(r.key)), part: {phases: moving.map(r => r.key), windows}};
     }
-    // The result line's tail for a part-calendar move (plan §1, §7). All phases adds nothing, so its line is the old
-    // Shift All / Anchor To line word for word.
-    function moveTail(res, move, label, plan){
-      if(move === 'all' || !res) return '';
-      if(move === 'custom'){
-        const stay = (plan ? plan.staying : []).map(r => r.label);
+    // The result line's tail for a part-calendar move (plan §1, §7). Every phase ticked adds nothing, so its line is
+    // the old Shift All / Anchor To line word for word.
+    function moveTail(res, plan){
+      if(!res || !plan || plan.move === 'all') return '';
+      if(plan.move === 'custom'){
+        const stay = plan.staying.map(r => r.label);
         return ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
           + (stay.length ? ' ' + andList(stay) + (stay.length === 1 ? ' stayed where it was.' : ' stayed where they were.') : '');
       }
-      let out = ' ' + label + ' and everything ' + move + ' it moved (' + res.movedPhases
+      let out = ' ' + plan.pivot.label + ' and everything ' + plan.move + ' it moved (' + res.movedPhases
         + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
       if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
       return out;
     }
     // How far To a date would move the landmark right now (the Go handler's own arithmetic), or 0.
+    // Counted in WORKING weeks (the step-over, stepOverHeld): the held hiatuses' weeks are not counted, so the landmark
+    // lands on the date asked for even when a held break lies between.
     function anchorDeltaNow(){
       const {key, edge, current} = anchorSelection();
       const target = parseDateUTC((document.getElementById('tool-anchor-date') || {}).value);
       if(!key || !current || !target) return 0;
-      return edge === 'start' ? weeksBetweenMondays(current, target) : weeksToFinishBy(current, target);
+      const held = heldForMove();
+      return edge === 'start' ? workingWeeksBetween(current, target, held) : workingWeeksToFinishBy(current, target, held);
     }
-    // Draw the list: Rebuild From's rows (solveRow). By weeks a row says Moves or Stays; to a date it shows the new
-    // start and Pushed / Pulled N wks once a date is typed. The landing phase is PINNED to a date (it has to move,
-    // so it has no tick to clear), and Whole schedule fixes every tick.
+    // The weeks the move the form is set to would hold (shiftCalendarDates' own decision, made before it runs).
+    function heldForMove(){
+      const plan = shiftPlan();
+      return shiftHeldWeeks(plan ? plan.part : null);
+    }
+    // The phase that LANDS on the date (#tool-anchor-phase, Anchor To's select by id; it shows only To a date, on the
+    // row above "starts on"). Refilled on every sync, because it follows the list (owner, 9 Nov 2026, on a screenshot
+    // with Pre Prep outlined and Production in the box: "when pre-prep is selected, it should be the default option
+    // under To a date. The list should also be limited to only selected phases ... this applies to whichever phase
+    // is currently highlighted"):
+    //   * it OFFERS only the ticked phases: a phase that stays cannot land anywhere. Whole schedule is in it only
+    //     with EVERY phase ticked (the old "All phases to a date"), since it has nothing before or after it;
+    //   * it SHOWS the outlined row's phase whenever that row is ticked. The link runs both ways: a pick made in
+    //     the box outlines that row (its `change` handler), so there is ONE chosen phase, which Prior / After name
+    //     and which lands on the date. Only an outlined row that is NOT ticked parts the two: the box then keeps its
+    //     phase while that is ticked, else takes the shoot, else the first ticked phase.
+    // ⛔ The landing phase is no longer forced to move and drawn pinned in place of its tick (5 Nov 2026's rule): it
+    // changes with every row clicked now, and a tick box that turned into a pin under the pointer could not be
+    // cleared. Every row keeps its box; untick the phase that lands and the box moves to another ticked one.
+    // True when the pick changed, so the caller re-reads the date.
+    function fillShiftPhase(){
+      const sel = document.getElementById('tool-anchor-phase');
+      if(!sel) return false;
+      const was = sel.value;
+      const rows = shiftRows();
+      const have = new Set(rows.map(r => r.key));
+      shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+      const ticked = rows.filter(r => shiftTicks.has(r.key));
+      const offerWhole = shiftFar === 'date' && rows.length > 0 && ticked.length === rows.length;
+      fillPhaseSelect('tool-anchor-phase', scheduledPhases().filter(x => shiftTicks.has(x.p.key)), 'production', offerWhole);
+      if(rows.length && !ticked.length) sel.innerHTML = '<option value="">Tick a phase first</option>';
+      const mark = shiftMarkKey();
+      if(!(was === ANCHOR_ALL && offerWhole) && shiftTicks.has(mark)) sel.value = mark;
+      return sel.value !== was;
+    }
+    // Draw the list: Build Around's rows (solveRow). By weeks a row says Moves or Stays; to a date it shows the new
+    // start and Pushed / Pulled N wks once a date is typed. The phase that lands wears `is-land` (a tint, and "On
+    // your date" until a date is typed) and keeps its tick box; Whole schedule fixes every tick. The outlined row
+    // wears `is-mark`.
+    // ⛔ No `title` on a row: a native tooltip floats over the rows, and nothing may (the owner's spec, item 8).
     function renderShiftList(){
       const listEl = shiftMenu && shiftMenu.querySelector('[data-shift-list]');
       if(!listEl) return;
@@ -32445,104 +33394,177 @@ export function initLegacyApp() {
       const toDate = shiftFar === 'date';
       const whole = toDate && key === ANCHOR_ALL;
       const n = toDate ? anchorDeltaNow() : 0;
+      // Where each ticked phase lands: the move's own step-over, so a phase crossing a held break shows its real date.
+      const step = n ? stepOverHeld(n, heldForMove()) : null;
       const rows = shiftRows();
+      const mark = shiftMarkKey();
       const html = rows.map(r => {
-        const pin = toDate && !whole && r.key === key;
-        const on = shiftTicks.has(r.key) || pin;
+        const on = shiftTicks.has(r.key);
+        const lands = toDate && !whole && on && r.key === key;
         const shown = phaseSnapped(r.key) ? r.week : r.start;
-        const to = (on && n) ? addDays(shown, n * 7) : shown;
-        const words = (!toDate || !n) ? (pin ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
-        const cls = (pin ? ' is-pin' : '') + (on ? (n ? ' is-moving' : '') : ' is-off');
-        const lead = pin ? SOLVE_PIN_SVG
-          : '<input type="checkbox" data-key="' + escHtml(r.key) + '"' + (on ? ' checked' : '') + (whole ? ' disabled' : '')
-            + ' aria-label="' + escHtml('Move ' + r.label) + '">';
-        return solveRow(r.p, cls, lead, to, words, pin ? 'The phase you picked. It lands on your date.' : '');
+        const to = (on && n) ? step(shown) : shown;
+        const words = (!toDate || !n) ? (lands ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
+        const cls = (lands ? ' is-land' : '') + (on ? (n ? ' is-moving' : '') : ' is-off') + (r.key === mark ? ' is-mark' : '');
+        const lead = '<input type="checkbox" data-key="' + escHtml(r.key) + '"' + (on ? ' checked' : '') + (whole ? ' disabled' : '')
+          + ' aria-label="' + escHtml('Move ' + r.label) + '">';
+        return solveRow(r.p, cls, lead, to, words, '');
       });
       listEl.innerHTML = html.length ? html.join('') : '<div class="solve-row solve-empty">No phases scheduled yet.</div>';
+      // Each row names its phase for the press-and-drag below. Set here, not in solveRow, which is Build Around's too.
+      if(html.length) Array.prototype.forEach.call(listEl.children, (el, i) => { el.dataset.key = rows[i].key; });
       const count = shiftMenu.querySelector('[data-shift-count]');
-      if(count) count.textContent = rows.length ? rows.filter(r => shiftTicks.has(r.key) || (toDate && !whole && r.key === key)).length + ' of ' + rows.length + ' move' : '';
+      if(count) count.textContent = rows.length ? rows.filter(r => shiftTicks.has(r.key)).length + ' of ' + rows.length + ' move' : '';
     }
-    // Reflect the choices: which buttons are on, which rows show, the ticks a shortcut sets, and the list. The phase
-    // row shows only when it is needed (owner's picker): All phases by weeks is the old Shift All form and needs
-    // none. The list is folded under All phases until opened (layout A): that is the one case where a click makes
-    // a row appear ABOVE the control clicked -- ruled: keep it.
+    // Reflect the form: which How far button is on, which rows show, the header box, the two buttons under the list,
+    // and the list. The header box is ticked (drawn as a minus) when every phase is ticked; Prior / After name the
+    // outlined row. Whole schedule fixes the ticks, so it switches the header box and both buttons off.
     function syncShiftForm(){
       if(!shiftMenu) return;
+      if(fillShiftPhase()) syncAnchorDate();
       const sel = document.getElementById('tool-anchor-phase');
-      const key = sel ? sel.value : '';
-      // A shortcut's ticks follow the calendar and the picked phase; the user's own set is kept, less any phase
-      // that is no longer scheduled. To a date, the landing phase is always in.
-      if(shiftMove !== 'custom') shiftTicks = presetTicks(shiftMove, key);
-      else {
-        const have = new Set(shiftRows().map(r => r.key));
-        shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
-        if(shiftFar === 'date' && key && key !== ANCHOR_ALL) shiftTicks.add(key);
-        shiftMove = matchShiftMove(key);
-      }
-      shiftMenu.querySelectorAll('[data-move]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.move === shiftMove)));
-      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
-      // The phase row only as the PIVOT: Phase & before / after hinge on it. All phases and the user's own ticks
-      // need none by weeks, and to a date the phase that lands is picked on the SUBJECT row under How far instead
-      // (owner, 5 Nov 2026, mockups/shift-date-row.html: the phase sat two sections above the date it was the
-      // subject of). The subject select mirrors #tool-anchor-phase, which stays the one select every reader asks;
-      // under Phase & before / after the pivot is the phase that lands, and the subject line repeats its name.
-      const pivot = shiftMove === 'before' || shiftMove === 'after';
+      const rows = shiftRows();
       const toDate = shiftFar === 'date';
+      const whole = toDate && !!sel && sel.value === ANCHOR_ALL;
+      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.far === shiftFar)));
       const phaseRow = shiftMenu.querySelector('[data-shift-phase-row]');
-      if(phaseRow) phaseRow.hidden = !pivot;
-      const subjRow = shiftMenu.querySelector('[data-shift-subject-row]');
-      const subj = shiftMenu.querySelector('[data-shift-subject]');
-      if(subjRow) subjRow.hidden = !(toDate && !pivot);
-      if(subj && sel && !subjRow.hidden){ subj.innerHTML = sel.innerHTML; subj.value = sel.value; }
-      const subjLine = shiftMenu.querySelector('[data-shift-subject-line]');
-      if(subjLine){
-        subjLine.hidden = !(toDate && pivot);
-        subjLine.textContent = subjLine.hidden ? '' : ((sel && sel.selectedOptions[0]) ? sel.selectedOptions[0].textContent : '');
-      }
-      const listShown = shiftMove !== 'all' || shiftListOpen;
-      const wrap = shiftMenu.querySelector('[data-shift-list-wrap]');
-      if(wrap) wrap.hidden = !listShown;
-      const link = shiftMenu.querySelector('[data-shift-choose]');
-      if(link) link.hidden = listShown;
+      if(phaseRow) phaseRow.hidden = !toDate;
       shiftMenu.querySelectorAll('[data-far-row]').forEach(r => { r.hidden = r.dataset.farRow !== shiftFar; });
-      if(listShown) renderShiftList();
-    }
-    // A choice changed. Whole schedule comes and goes with All phases to a date, so the list is refilled; the date
-    // follows the phase only when the pick itself changed, so a date already typed survives a change of choice.
-    function setShiftChoice(move, far){
-      if(move !== shiftMove){ shiftMove = move; if(move === 'all') shiftListOpen = false; }
-      shiftFar = far;
-      const sel = document.getElementById('tool-anchor-phase');
-      const was = sel.value;
-      fillPhaseSelect('tool-anchor-phase', scheduledPhases(), 'production', shiftOffersWhole());
-      if(sel.value !== was) syncAnchorDate();
-      syncShiftForm();
-      say('');
+      const all = rows.length > 0 && rows.every(r => shiftTicks.has(r.key));
+      const allBox = shiftMenu.querySelector('[data-shift-all]');
+      if(allBox){
+        allBox.checked = all;
+        allBox.disabled = whole || !rows.length;
+        allBox.setAttribute('aria-label', all ? 'Clear every phase' : 'Tick every phase');
+      }
+      const mark = rows.find(r => r.key === shiftMarkKey());
+      [['[data-shift-prior]', 'Prior to '], ['[data-shift-after]', 'After ']].forEach(([q, words]) => {
+        const b = shiftMenu.querySelector(q);
+        if(!b) return;
+        b.textContent = words + (mark ? mark.label : '…');
+        b.disabled = !mark || whole;
+      });
+      renderShiftList();
     }
     if(shiftMenu){
-      shiftMenu.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(b.dataset.move, shiftFar)));
-      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=> setShiftChoice(shiftMove, b.dataset.far)));
-      const link = shiftMenu.querySelector('[data-shift-choose]');
-      if(link) link.addEventListener('click', ()=>{ shiftListOpen = true; syncShiftForm(); });
-      // The subject row's pick is written back into #tool-anchor-phase and goes through its own change handler
-      // (the date follows the phase, the list pins it), so the mirror never becomes a second source of truth.
-      const subj = shiftMenu.querySelector('[data-shift-subject]');
-      if(subj) subj.addEventListener('change', ()=>{
-        const sel = document.getElementById('tool-anchor-phase');
-        if(!sel || sel.value === subj.value) return;
-        sel.value = subj.value;
-        sel.dispatchEvent(new Event('change', {bubbles: true}));
+      // By weeks | To a date. The date follows the phase only when the pick itself changed (syncShiftForm), so a date
+      // already typed survives the switch.
+      shiftMenu.querySelectorAll('[data-far]').forEach(b => b.addEventListener('click', ()=>{ shiftFar = b.dataset.far; syncShiftForm(); say(''); }));
+      // The header box: every phase, or none once every phase is ticked.
+      const allBox = shiftMenu.querySelector('[data-shift-all]');
+      if(allBox) allBox.addEventListener('change', ()=>{
+        const rows = shiftRows();
+        const all = rows.length > 0 && rows.every(r => shiftTicks.has(r.key));
+        shiftTicks = all ? new Set() : new Set(rows.map(r => r.key));
+        syncShiftForm(); say('');
       });
+      // Prior / After: the outlined row and every row above it, or below it. Each REPLACES the ticks.
+      const side = dir => {
+        const rows = shiftRows();
+        const i = rows.findIndex(r => r.key === shiftMarkKey());
+        if(i < 0) return;
+        shiftTicks = new Set((dir < 0 ? rows.slice(0, i + 1) : rows.slice(i)).map(r => r.key));
+        syncShiftForm(); say('');
+      };
+      const priorBtn = shiftMenu.querySelector('[data-shift-prior]'), afterBtn = shiftMenu.querySelector('[data-shift-after]');
+      if(priorBtn) priorBtn.addEventListener('click', ()=> side(-1));
+      if(afterBtn) afterBtn.addEventListener('click', ()=> side(1));
       const listEl = shiftMenu.querySelector('[data-shift-list]');
-      if(listEl) listEl.addEventListener('change', e=>{
-        const box = e.target.closest('input[data-key]');
-        if(!box) return;
-        if(box.checked) shiftTicks.add(box.dataset.key); else shiftTicks.delete(box.dataset.key);
-        shiftMove = 'custom';    // syncShiftForm() lights a shortcut again if the ticks match one
-        shiftListOpen = true;
-        syncShiftForm();
-        say('');
-      });
+      if(listEl){
+        // A TAP (touch takes no part in the press below, so the list still scrolls under a finger) follows the same
+        // rule as the mouse: on the row itself it only chooses the row, so the label's own tick is stopped; on the
+        // box the tick goes ahead and `change`, next, hears it. A mouse click never reaches here: the press
+        // swallows it.
+        listEl.addEventListener('click', e=>{
+          const row = e.target.closest('.solve-row[data-key]');
+          if(!row || e.target.closest('input[type=checkbox]')) return;
+          e.preventDefault();
+          if(row.querySelector('input:disabled')) return;   // Whole schedule fixes every tick
+          shiftMark = row.dataset.key;
+          syncShiftForm(); say('');
+        });
+        // A tick changed from the keyboard (Space) or by a tap on its box: the mouse goes through the press below
+        // instead. The list is redrawn, so the box that had focus is put back in it.
+        listEl.addEventListener('change', e=>{
+          const box = e.target.closest('input[data-key]');
+          if(!box) return;
+          const key = box.dataset.key;
+          if(box.checked) shiftTicks.add(key); else shiftTicks.delete(key);
+          shiftMark = key;
+          syncShiftForm(); say('');
+          const again = Array.prototype.find.call(listEl.querySelectorAll('input[data-key]'), b => b.dataset.key === key);
+          if(again) again.focus();
+        });
+        // PRESS AND DRAG (owner's spec, 9 Nov 2026, items 5 and 6), with the owner's correction the same day: "when
+        // you click a phase to then select it so you can then click everything before or everything after it, could
+        // it not unselect it? ... Could it just select it but keep the checkbox selected?"
+        //   * A press on the row ITSELF only CHOOSES it (the outline, the row Prior / After name): no tick changes.
+        //   * A press on its BOX flips that tick, and chooses the row too.
+        //   * A DRAG up or down from either sets every row between the pressed one and the pointer to one value: on
+        //     if the pressed row was off, off if it was on. It is a RANGE, redone from the ticks as they stood at
+        //     the press, so dragging back un-does an overshoot; back on the row it began on, a drag that began on
+        //     the row itself has changed nothing. The row under the pointer is the outlined one.
+        // Rows are found by the pointer's HEIGHT alone, so the drag carries on with the pointer off to one side.
+        const rowAtY = y => {
+          const els = listEl.querySelectorAll('.solve-row[data-key]');
+          for(const el of els) if(y < el.getBoundingClientRect().bottom) return el.dataset.key;
+          return els.length ? els[els.length - 1].dataset.key : '';
+        };
+        const dragTo = key => {
+          if(!shiftDrag || !key || key === shiftDrag.at) return;
+          const keys = shiftRows().map(r => r.key);
+          const a = keys.indexOf(shiftDrag.from), b = keys.indexOf(key);
+          if(a < 0 || b < 0) return;
+          const next = new Set(shiftDrag.base);
+          if(a !== b || shiftDrag.box){
+            for(let i = Math.min(a, b); i <= Math.max(a, b); i++){ if(shiftDrag.value) next.add(keys[i]); else next.delete(keys[i]); }
+          }
+          shiftDrag.at = key;
+          shiftTicks = next;
+          shiftMark = key;
+          syncShiftForm();
+        };
+        listEl.addEventListener('pointerdown', e=>{
+          if(e.button !== 0 || e.ctrlKey || e.pointerType === 'touch') return;
+          const row = e.target.closest('.solve-row[data-key]');
+          if(!row || row.querySelector('input:disabled')) return;   // Whole schedule fixes every tick
+          e.preventDefault();
+          const key = row.dataset.key;
+          shiftDrag = {from: key, at: '', box: !!e.target.closest('input[type=checkbox]'), value: !shiftTicks.has(key), base: new Set(shiftTicks)};
+          dragTo(key);
+          say('');
+        });
+        document.addEventListener('pointermove', e=>{
+          if(!shiftDrag) return;
+          // A list taller than its box (many custom phases) scrolls as the pointer nears its top or bottom edge.
+          const box = listEl.getBoundingClientRect();
+          if(e.clientY < box.top + 6) listEl.scrollTop -= 14; else if(e.clientY > box.bottom - 6) listEl.scrollTop += 14;
+          dragTo(rowAtY(e.clientY));
+        });
+        // Letting go ANYWHERE ends it. The press may also end in a `click`, on the row or, let go outside the box, on
+        // whatever the two ends share: it would tick the row a second time, or close the box as a click-away. That
+        // one click is swallowed.
+        // ⛔ No timer disarms the guard. The row is redrawn under the press, so often NO click follows it, and a
+        // guard left armed ate the next click instead: "choose a row, press After" did nothing (found in a hidden
+        // pane, where an 80 ms timer ran a minute late). The guard is dropped by the next press or key instead: the
+        // only real click that can come before either is the press's own. A click made by code (isTrusted false:
+        // the harness, a .click()) is never swallowed.
+        let pressClickGuard = false;
+        const endDrag = ()=>{
+          if(!shiftDrag) return;
+          shiftDrag = null;
+          pressClickGuard = true;
+        };
+        document.addEventListener('pointerup', endDrag);
+        document.addEventListener('pointercancel', endDrag);
+        document.addEventListener('pointerdown', ()=>{ pressClickGuard = false; }, true);
+        document.addEventListener('keydown', ()=>{ pressClickGuard = false; }, true);
+        document.addEventListener('click', ev=>{
+          if(!pressClickGuard || !ev.isTrusted) return;
+          pressClickGuard = false;
+          ev.preventDefault(); ev.stopPropagation();
+        }, true);
+        window.addEventListener('blur', ()=>{ shiftDrag = null; });
+      }
       // A typed date fires `input` per keystroke: redraw once it settles, not once per digit.
       let shiftDateTimer = null;
       const dateEl = document.getElementById('tool-anchor-date');
@@ -32552,34 +33574,32 @@ export function initLegacyApp() {
       }
       document.getElementById('tool-anchor-edge').addEventListener('change', renderShiftList);
     }
+    shiftTicks = new Set(shiftRows().map(r => r.key));
     syncShiftForm();
 
-    // --- By weeks: Earlier / Later (the toolbar arrows are the one-click 1-week, All phases case of this).
-    //     Earlier and Later are directions of travel, not which side moves; What moves says that.
+    // --- By weeks: Earlier / Later (the toolbar arrows are the one-click 1-week, every-phase case of this).
+    //     Earlier and Later are directions of travel, not which side moves; the ticks say that.
     function shiftBy(sign){
       const n = readWeeks('tool-shift-weeks');
       if(!n) return say('Enter a number of weeks.', true);
-      const sel = document.getElementById('tool-anchor-phase');
-      const move = shiftMoveFor(sel.value);
-      // All phases: the old Shift All form -- the same call, the same result line.
-      if(move === 'all') return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
-      // Phase & after is the old Shift From; Phase & before its mirror; the user's own ticks their own set.
-      if(!sel.value && move !== 'custom') return say('No phase selected.', true);
-      const label = phaseLabelOf(sel, 'That phase');
-      const plan = shiftPlan(move, sel.value);
-      if(!plan) return say(move === 'custom' ? 'Tick a phase to move.' : label + ' has no start date.', true);
-      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part}));
+      const plan = shiftPlan();
+      if(!plan) return say('Tick a phase to move.', true);
+      // Every phase ticked: the old Shift All form -- the same call, the same result line.
+      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true}))));
+      // The bottom of the list from one phase is the old Shift From; the top down to one its mirror; any other set
+      // the user's own.
+      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, move, label, plan)));
+      say(describeShift(res, moveTail(res, plan)));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
 
     // --- To a date: Go (Anchor To's, by id). Put one landmark -- the start or the end of any phase, or of
-    //     the whole schedule -- on a chosen date. With All phases this slides the WHOLE calendar so that
-    //     landmark lands there: the plan keeps its shape and every phase keeps its lead time, it just sits
-    //     somewhere else on the calendar. With Phase & before / Phase & after only that side moves, and the
-    //     gap on the other side of the picked phase opens or closes (plan §2).
+    //     the whole schedule -- on a chosen date. With every phase ticked this slides the WHOLE calendar so
+    //     that landmark lands there: the plan keeps its shape and every phase keeps its lead time, it just sits
+    //     somewhere else on the calendar. With some phases unticked only the ticked ones move, and the gap
+    //     beside a phase left behind opens or closes (plan §2).
     //
     //     The two edges round differently, and deliberately. A START is Monday-snapped like every
     //     start in this tool, so aligning it to the target's week lands it exactly. An END falls on
@@ -32589,7 +33609,8 @@ export function initLegacyApp() {
     //     past a deadline to get nearer to it.
     document.getElementById('tool-anchor-go').addEventListener('click', ()=>{
       const {key, edge, label, current} = anchorSelection();
-      if(!key) return say('Nothing selected.', true);
+      // No phase in the box: nothing is scheduled, or nothing is ticked (the box offers ticked phases only).
+      if(!key) return say(shiftRows().length ? 'Tick a phase to move.' : 'Nothing selected.', true);
       const target = parseDateUTC((document.getElementById('tool-anchor-date')||{}).value);
       if(!target) return say('Pick a date first.', true);
       if(!current){
@@ -32597,27 +33618,32 @@ export function initLegacyApp() {
           ? label + ' has no end yet — give it a duration first.'
           : label + ' has no start date to move.', true);
       }
+      // In WORKING weeks (the step-over): the weeks of the hiatuses this move holds are not counted, so the landmark
+      // lands on the date even with a held break between. A start typed inside a held break lands the week after it.
+      // The box offers ticked phases only, so there is a plan; Whole schedule has every phase ticked.
+      const plan = shiftPlan();
+      const part = plan ? plan.part : null;
+      const held = shiftHeldWeeks(part);
+      const inHeld = edge === 'start' && held.has(isoOf(mondayOf(target)));
       const delta = edge === 'start'
-        ? weeksBetweenMondays(current, target)
-        : weeksToFinishBy(current, target);
+        ? workingWeeksBetween(current, target, held)
+        : workingWeeksToFinishBy(current, target, held);
       if(!delta){
         return say(edge === 'start'
-          ? label + ' already starts that week.'
+          ? (inHeld ? label + ' already starts right after the held hiatus your date falls in.' : label + ' already starts that week.')
           : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
       }
-      const move = shiftMoveFor(key);
-      const plan = move === 'all' ? null : shiftPlan(move, key);
-      if(move !== 'all' && !plan) return say(label + ' has no start date to move.', true);
-      // All phases: the old Anchor To call, unchanged.
-      const res = asOneUndoStep(()=> move === 'all' ? shiftCalendar(delta) : shiftCalendar(delta, null, {part: plan.part}));
+      if(!plan) return say(label + ' has no start date to move.', true);
+      const res = asOneUndoStep(()=> part ? shiftCalendar(delta, null, {part, stepHeld: true}) : shiftCalendar(delta, null, {stepHeld: true}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
       // can even grow over one it now overlaps and finish past the date.
       const landed = landmarkDate(key, edge);
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
+        + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, move, label, plan));
+        + moveTail(res, plan));
       say(out, overshot);
     });
 
@@ -37950,6 +38976,26 @@ export function initLegacyApp() {
   // Session state, never saved: set by applyStateSnapshot's legacy headerOverrides branch, consumed
   // by the refreshAfterRestore() that every restore path ends in.
   let headerOverridesNeedDefaults = false;
+  // An old block swap (no `left`) becomes an order: every member of a group the reconciler EXCHANGED for this file
+  // gets the side it now sits on (applyStintSwaps' aLeft), so the calendar looks exactly as it did and from now on
+  // holds when a phase moves. A group not applied now (refused, or a partner no longer in that year) keeps its
+  // entries as they were, read as the old exchange if it ever applies again. A fresh object: an undo step may hold
+  // the old one.
+  function recordStintSwapSides(sch){
+    const st = sch && sch.stintOrder;
+    if(!st || !Array.isArray(st.applied) || !st.applied.length) return;
+    let next = null;
+    st.applied.forEach(ap=>{
+      if(typeof ap.aLeft !== 'boolean') return;
+      const keys = ap.a.concat(ap.b);
+      if(keys.every(k => { const v = gridStintSwaps[ap.year + '|' + k]; return !v || typeof v.left === 'boolean'; })) return;
+      if(!next) next = Object.assign({}, gridStintSwaps);
+      const put = (k, left) => { const id = ap.year + '|' + k, v = next[id]; if(v) next[id] = { with: v.with, left }; };
+      ap.a.forEach(k => put(k, ap.aLeft));
+      ap.b.forEach(k => put(k, !ap.aLeft));
+    });
+    if(next) gridStintSwaps = next;
+  }
   function refreshAfterRestore(){
     // A different document is replacing what is on screen, so a cell highlight from the PREVIOUS
     // calendar must not survive it. The overlay's prune only drops keys with no matching cell, and
@@ -37983,6 +39029,12 @@ export function initLegacyApp() {
       simLaneNeedsMove = false;
       const sp = document.getElementById('simpost-enabled');
       if(sp && sp.checked){ try { moveSimLaneStores(false); } catch(e){ console.error(e); } }
+    }
+    // Block swaps saved before 6 Nov 2026: their sides, from the exchange this file's layout makes (after the Sim
+    // lane move above, so it is the layout the update() below draws). Nothing on screen changes.
+    if(stintSwapsNeedSides){
+      stintSwapsNeedSides = false;
+      try { recordStintSwapSides(computeSchedule(readState())); } catch(e){ console.error(e); }
     }
     update();
     // After syncRegionTracking(), so effectiveRegionKey() reflects the file that was just applied
@@ -38276,7 +39328,12 @@ export function initLegacyApp() {
       for(const k of Object.keys(v)){ const n = finiteNum(v[k]); if(n === null || Math.floor(n) !== n) return undefined; out[k] = n; }
       return out;
     });
-    const swap = v => (isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with)) ? Object.assign({}, v) : undefined;
+    const swap = v => {
+      if(!(isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with))) return undefined;
+      const o = Object.assign({}, v);
+      if('left' in o && typeof o.left !== 'boolean'){ bad.n++; delete o.left; }   // a block swap's side (6 Nov 2026)
+      return o;
+    };
     setMap('gridColSwaps', swap);
     setMap('gridStintSwaps', swap);
     // A hand move names another phase by key (COLUMN-REUSE-PLAN.md §5).
@@ -38626,6 +39683,35 @@ export function initLegacyApp() {
         if(Object.keys(o).length) s.phaseHidden = o; else delete s.phaseHidden;
       }
     }
+    // Each phase's wish (FILL-INTENT-PLAN.md): a built-in phase or a custom phase this file defines, each `true` (fills)
+    // or `false` (keeps to its column). Anything else is dropped and counted; an emptied map is dropped (absent = none).
+    if('fillSpaceOff' in s && s.fillSpaceOff !== true){ bad.n++; delete s.fillSpaceOff; }   // only ever written as true
+    if('phaseFill' in s){
+      if(!isPlainObj(s.phaseFill)){ bad.n++; delete s.phaseFill; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.phaseFill).forEach(k=>{ if(known.has(k) && typeof s.phaseFill[k] === 'boolean') o[k] = s.phaseFill[k]; else bad.n++; });
+        if(Object.keys(o).length) s.phaseFill = o; else delete s.phaseFill;
+      }
+    }
+    // Sticky columns (STICKY-COLUMNS-PLAN.md §5): a built-in phase or a custom phase this file defines -> '' (a column
+    // of its own), the lane (COL_KEEP_LANE), or ANOTHER known phase. The app writes nothing else, so anything else is
+    // dropped and counted, and an emptied map is dropped (absent already means "nothing remembered").
+    if('colKeep' in s){
+      if(!isPlainObj(s.colKeep)){ bad.n++; delete s.colKeep; }
+      else {
+        const known = new Set(PHASES.map(p=> p.key));
+        (Array.isArray(s.customPhaseDefs) ? s.customPhaseDefs : []).forEach(cp=>{ if(cp && typeof cp.key === 'string') known.add(cp.key); });
+        const o = {};
+        Object.keys(s.colKeep).forEach(k=>{
+          const v = s.colKeep[k];
+          if(known.has(k) && typeof v === 'string' && (v === '' || v === COL_KEEP_LANE || (known.has(v) && v !== k))) o[k] = v; else bad.n++;
+        });
+        if(Object.keys(o).length) s.colKeep = o; else delete s.colKeep;
+      }
+    }
     // The Weeks phases held by their end (phaseEnds): a built-in phase other than Production, or a custom phase this
     // file defines, each once. The app writes nothing else, so anything else is dropped and counted, and an emptied
     // list is dropped (absent already means "none").
@@ -38867,6 +39953,8 @@ export function initLegacyApp() {
     // Same rule, same reason: `: {}` is the point, not defensiveness. A file with no stint swaps must
     // clear the previous file's, or one calendar's column order silently applies to another.
     gridStintSwaps = (snap.gridStintSwaps && typeof snap.gridStintSwaps === 'object') ? Object.assign({}, snap.gridStintSwaps) : {};
+    // A swap saved before 6 Nov 2026 carries no side; refreshAfterRestore() writes it down from this file's layout.
+    stintSwapsNeedSides = Object.keys(gridStintSwaps).some(k => { const v = gridStintSwaps[k]; return !!v && typeof v.left !== 'boolean'; });
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
@@ -39097,6 +40185,10 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL (PHASES-TAB-PLAN.md §2.3): a file with no key hides nothing -- never the previously open
     // calendar's ticks. Rebuilt entry by entry (sanitizeSnapshot has held it to {key: {sheet: true}}), so nothing
     // in the store can be a snapshot the undo stack holds. refreshAfterRestore() puts the ticks and tags in step.
+    // ⛔ UNCONDITIONAL (FILL-INTENT-PLAN.md §1): a file with no key fills nothing -- never the previous calendar's wishes.
+    phaseFill = {};
+    if(isPlainObj(snap.phaseFill)) Object.keys(snap.phaseFill).forEach(k=>{ if(typeof snap.phaseFill[k] === 'boolean') phaseFill[k] = snap.phaseFill[k]; });
+    fillSpaceOff = snap.fillSpaceOff === true;   // absent = on, as every calendar saved before the switch
     phaseHidden = {};
     if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
       const v = snap.phaseHidden[k];
@@ -39131,6 +40223,10 @@ export function initLegacyApp() {
     // calendar starts ticked (2 Nov 2026): every older file, and every one saved unticked, lacks the key.
     colReuse = snap.colReuse === true;
     colFollow = (snap.colFollow && typeof snap.colFollow === 'object') ? Object.assign({}, snap.colFollow) : {};
+    // Sticky columns: unconditional for the same reason (a file without the key remembers nothing, never the previous
+    // calendar's), and the next update() compares nothing -- a different calendar, or an undo step, is not a move.
+    colKeep = (snap.colKeep && typeof snap.colKeep === 'object') ? Object.assign({}, snap.colKeep) : {};
+    colKeepRestored = true;
     reflectColReuse();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
