@@ -108,6 +108,33 @@ one-second pause; the owner: *"it should do it immediately not after a second"*.
   merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
   baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
 
+### Unreleased — a follow-on carries its predecessor's width (rule 22, 6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 22. Owner, on a test calendar: *"i feel like its weird that the last 3 weeks
+of prod prep extend across"*, then a picture, *"this is how it should sort"*, and by picker *"Build it"* (the sign-off
+for a frozen edit).
+
+- **What was wrong.** Prod Prep followed a two-wide Pre-Prep but sat one wide, because a Casting phase would take the
+  third column before Prod Prep ended (rule 13). Then, alone for its last three weeks, it filled all three columns
+  (rule 14), right before Production and Sim Post began in two of them.
+- **What changed.** Frozen edit LR6 in `computePhaseRowLayout`, stamped calendars only: a phase that takes over a column
+  the week its occupant ends keeps the cell that occupant drew in its last week (counting a column rule 21 kept for
+  it), while those columns stay empty. Once one is taken, it keeps what it had less that column until it ends, and does
+  not spread again, even alone; never squeezed, it fills alone as before. A column already taken
+  in the follow-on's first week was never carried, so Production after a wide Prod Prep, with the lane beside it, is
+  unchanged. Help: one sentence in "How far a cell reaches".
+- **Fixed before commit.** The first test build measured the predecessor by its last week's even share only: a
+  Pre-Prep kept two wide by rule 21 beside Casting handed on nothing, and Prod Prep drew an upside-down T (*"wait why is
+  it still doing the upside down T pattern for prod prep"*). Its hold also handed back a freed column the phase had
+  spread into (a run that shrinks; found by the fewest-columns session). Fixtures `layout-r22b` and `layout-r22c`, red
+  on that build at R22Bc and R22Ca.
+- **Verified.** New fixture `layout-r22` (the owner's shape in 2031), 8/8, red on the build before at R22c and R22d.
+  Re-expected: `layout-r13` R13i (Delivery carries Post's two-wide cell until Marketing takes the column, then stays one
+  wide) and `layout-r3b` R3Bd (Prod Prep carries Pre-Prep's three-wide cell until Post arrives, then two wide).
+  `fill-intent` gained a three-week phase beside Writers' last weeks, so its Pre-Prep still starts one wide and
+  `phasefill` 13/13 and `colsreset` 8/8 keep testing the double-click wish (13/13 on the build before too). The 15
+  pictures score the same (98.1%, 31 column misses, 0 width misses): none narrows a run.
+
 ### Unreleased — a phase you move keeps its column (sticky columns, 6 Nov 2026)
 
 [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three

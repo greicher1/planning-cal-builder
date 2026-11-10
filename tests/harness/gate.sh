@@ -2157,7 +2157,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
               layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
-              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 layoutrules:layout-r2g:240 layoutrules:layout-r2h:300 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 layoutrules:layout-r2g:240 layoutrules:layout-r2h:300 layoutrules:layout-r22:240 layoutrules:layout-r22b:240 layoutrules:layout-r22c:240 \
               phasefill:fill-intent:400 \
               colsreset:fill-intent:300 \
               swapholds:swap-holds:400 \

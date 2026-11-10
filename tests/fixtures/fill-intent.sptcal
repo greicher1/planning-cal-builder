@@ -1,7 +1,12 @@
 {
   "version": 1,
-  "customPhaseDefs": [],
-  "customPhaseCounter": 0,
+  "customPhaseDefs": [
+    {
+      "key": "custom1",
+      "colorIndex": 0
+    }
+  ],
+  "customPhaseCounter": 1,
   "phaseColorOverride": {},
   "episodeDefs": [
     {
@@ -343,6 +348,42 @@
         "value": ""
       },
       "phiatus-weeks-localization": {
+        "value": "2"
+      },
+      "name-custom1": {
+        "value": "Research"
+      },
+      "start-custom1": {
+        "value": "2031-03-24"
+      },
+      "end-custom1": {
+        "value": ""
+      },
+      "weeks-custom1": {
+        "value": "3"
+      },
+      "days-custom1": {
+        "value": ""
+      },
+      "unit-custom1": {
+        "value": "weeks"
+      },
+      "snap-custom1": {
+        "checked": true
+      },
+      "wknum-custom1": {
+        "checked": true
+      },
+      "phiatus-en-custom1": {
+        "checked": false
+      },
+      "phiatus-name-custom1": {
+        "value": ""
+      },
+      "phiatus-start-custom1": {
+        "value": ""
+      },
+      "phiatus-weeks-custom1": {
         "value": "2"
       }
     },

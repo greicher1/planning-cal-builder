@@ -179,13 +179,17 @@ const SPECS = {
     ],
     hiatuses: [Y1, Y2]
   },
-  // FILL-INTENT-PLAN.md §4 (leg phasefill): Writers alone, Pre-Prep six weeks with Production arriving in its sixth,
-  // Post after, no Sim Post -- under rule 13 Pre-Prep is one wide for all six weeks, which is where the double-click's
-  // wish ("fills its free space") shows. Not a layout-r* fixture: the layoutrules leg does not read it.
+  // FILL-INTENT-PLAN.md §4 (leg phasefill): Writers, Pre-Prep six weeks with Production arriving in its sixth, Post
+  // after, no Sim Post -- under rule 13 Pre-Prep is one wide for all six weeks, which is where the double-click's wish
+  // ("fills its free space") shows. Not a layout-r* fixture: the layoutrules leg does not read it. ⚠️ A three-week
+  // "Research" beside Writers' last weeks since 6 Nov 2026 (rule 22, frozen edit LR6): without it Writers is two wide in
+  // its last week, and Pre-Prep, following it, now carries that width, so the automatic layout would already draw what
+  // the wish draws.
   'fill-intent': {
     stamped: true, simpost: { enabled: false },
     phases: [
       { key: 'writersRoom', start: '2031-01-06', weeks: 14 },
+      { key: 'custom1', name: 'Research', start: '2031-03-24', weeks: 3 },
       { key: 'prePrep', start: '2031-04-14', weeks: 6 },
       { key: 'production', start: '2031-05-19', weeks: 10 },
       { key: 'post', start: '2031-07-28', weeks: 8 }
@@ -252,6 +256,55 @@ const SPECS = {
       { key: 'custom1', name: 'Test', start: '2031-07-28', weeks: 10 }
     ],
     hiatuses: [Y1]
+  },
+  // Rule 22 (owner, 6 Nov 2026, "this is how it should sort"; frozen edit LR6): the owner's test calendar, shifted to
+  // 2031. Pre-Prep two wide beside Writers; Prod Prep follows it and keeps that width until a 4-week Casting takes the
+  // third column, then one wide to the end -- not across all three for its last three weeks alone; Production and the
+  // lane after. Today: Prod Prep one wide from its first week, and three wide for its last three.
+  'layout-r22': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-04-28', weeks: 20 },
+      { key: 'prePrep', start: '2031-07-07', weeks: 6 },
+      { key: 'prodPrep', start: '2031-08-18', weeks: 10 },
+      { key: 'custom1', name: 'Casting', start: '2031-09-08', weeks: 4 },
+      { key: 'production', start: '2031-10-27', weeks: 16 }
+    ],
+    hiatuses: [Y1]
+  },
+  // Rule 22 again, the owner's second test calendar (6 Nov 2026: "wait why is it still doing the upside down T pattern
+  // for prod prep"), shifted to 2031. Writers ends 7/28; Pre-Prep, beside it, is two wide alone on 8/4 and KEPT two wide
+  // (rule 21) beside a Casting that remembers a column of its own (it had been moved: colKeep, `extra`). Prod Prep follows
+  // Pre-Prep and carries that two-wide cell (the first rule 22 build measured Pre-Prep by the even share alone, saw one
+  // column, and Prod Prep sat one wide in the middle, then filled across: the T); alone once Casting ends, it fills the
+  // width (ruling 3 of the fewest-columns session: a phase alone in its last weeks still fills). The leg then takes Reset
+  // Columns: Casting, remembering nothing, takes Writers' freed column and the year is two columns.
+  'layout-r22b': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-03-17', weeks: 20 },
+      { key: 'prePrep', start: '2031-07-07', weeks: 6 },
+      { key: 'prodPrep', start: '2031-08-18', weeks: 10 },
+      { key: 'custom1', name: 'Casting', start: '2031-08-11', weeks: 4 },
+      { key: 'production', start: '2031-10-27', weeks: 16 }
+    ],
+    hiatuses: [Y1],
+    extra: { colKeep: { custom1: '' } }
+  },
+  // Rule 22's hold keeps what the phase had (found by the fewest-columns session on its layout-r3c): layout-r3b with a
+  // 20-week Writers. Prod Prep follows Pre-Prep two wide, spreads into Writers' column when Writers ends (5/26), and when
+  // Post takes the third column (7/7) it keeps the other two -- the first build gave Writers' column back, a run that
+  // shrank, against rule 21.
+  'layout-r22c': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 20 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 14 },
+      { key: 'post', start: '2031-07-07', weeks: 26 },
+      { key: 'production', start: '2031-08-04', weeks: 17 }
+    ],
+    hiatuses: [Y1, Y2]
   },
   'layout-r20b': {
     stamped: true, simpost: { enabled: false },

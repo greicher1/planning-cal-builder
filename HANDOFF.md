@@ -488,6 +488,55 @@
   `filekeys` 16/16, `settingswin` 21/21, `npm run check` 40/40. No full gate (no grid, export or save-path code).
 - ⚠️ The browser pane could not be used: five preview servers in this folder belong to other chats (the per-folder cap).
 
+### 🔨 6 Nov 2026 (late night): RULE 22 — A FOLLOW-ON CARRIES ITS PREDECESSOR'S WIDTH (frozen edit LR6) — built on branch `sticky-cols` on top of `dc8482b` (same worktree as sticky columns, below). Not committed, not merged, not pushed. Tracker card `followon-keeps-width`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 22.
+- **The ask.** A screenshot of a test calendar (Writers | Pre-Prep two wide | then Prod Prep one wide beside an empty
+  column, Casting arriving, and Prod Prep three wide alone for its last three weeks before Production): *"i feel like its
+  weird that the last 3 weeks of prod prep extend across. What is going on and is this fixable without breaking our
+  other logic"*, then a second screenshot, *"this is how it should sort"*: Prod Prep two wide (Pre-Prep's cell) until
+  Casting, then one wide to the end. By picker *"Build it"*: the owner's sign-off for the frozen edit.
+- **Measured first, in a scratch copy** (the gated build untouched): (A) a follow-on carries its predecessor's last-row
+  width while those columns stay empty, (B) once one is taken it keeps to what is left and spreads no further. Drew the
+  picture exactly; the 15 pictures 98.1% / 31 / 0 unchanged (none narrows a run, so B never fires on them); changed only
+  `layout-r13` R13i, `layout-r3b` R3Bd and `fill-intent`'s premise (`phasefill`, `colsreset` R3).
+- **As built.** LR6 in `computePhaseRowLayout` (stamped, not Single Column): after rule 21's pass, before R-E; the
+  predecessor's last-row span is recomputed from the occupancy grid (right over empty columns, the lane kept while
+  sharing; left within that row's share); a column taken in the follow-on's first row was never inherited (so Production
+  after a two-wide Prod Prep with the lane is unchanged); `heldNarrow` keeps R-E's hole-fill off a held phase; a wish
+  (LR5) on either phase decides its own width; hand-dragged widths still lay over. Help: one sentence in "How far a cell
+  reaches".
+- ⚠️ **Fixed the same night, before any commit** (owner on the first test file, a second calendar with Writers from 3/16
+  and a Casting moved to 8/10: *"wait why is it still doing the upside down T pattern for prod prep"*):
+  1. The predecessor's width was read from its last row's even share, so a Pre-Prep kept two wide by rule 21 beside
+     Casting handed Prod Prep nothing: one wide in the middle, then three wide alone — the T. Now `spanOf` is rule 21's
+     own measure (the widest any row of the run gave it, over columns free to the run's end). Fixture `layout-r22b`.
+  2. The hold kept only the carried columns, so a squeezed phase handed back a freed column it had spread into (a run
+     that shrinks; found by the fewest-columns session on its `layout-r3c`). Now it keeps what it had the row before
+     the squeeze, less the taken column. Fixture `layout-r22c` (= the fork's `layout-r3c`, same phases and dates). ✅ The
+     owner ruled it in the fewest-cols session, asked "When rule 22 squeezes a phase, should it keep a column it had
+     already spread into?": *"Yes, keep it"* (rule 21 wins; only spreading into something NEW stops).
+  3. The lane guard (rule 15) wrongly tested the phase's OWN slot, which for Prod Prep is the lane column, and turned
+     the whole rule off on Sim Post calendars; caught by `layout-r22` / `layout-r22b` before the build was handed out.
+  Also found there: the third column in that screenshot is STICKY COLUMNS, not widths — Casting had been moved, so it
+  remembers "a column of its own" (`colKeep: ''`) and opens one, though Writers' freed column would do (fresh, or after
+  Reset Columns, the year is two columns; `layout-r22b` R22Bd). ✅ Owner's picker: *"Give way"* — a moved phase keeps
+  a column of its own only when that adds no column (STICKY-COLUMNS-PLAN.md ruling K5). Handed to the fewest-cols session
+  (rule 23 has the trial placement it needs); not built here, so `layout-r22b` R22Ba/R22Bc still expect three columns.
+- **Checks:** `layout-r22` 8/8 (red before at R22c, R22d), `layout-r22b` 6/6 and `layout-r22c` 3/3 (red on the first
+  test build at R22Bc and R22Ca); R13i and R3Bd re-expected; `fill-intent` gained a 3-week
+  "Research" beside Writers' last weeks so its Pre-Prep still starts one wide (`phasefill` 13/13, `colsreset` 8/8, both
+  also 13/13 / green on the build before); every other layout fixture, `stickycols`, `swapholds`, `simpostdays`,
+  `centrepullback`, `colswapcache`, `swapsplitreuse`, `colswappartial` ×2, `noswapbtns`, `monthmap` green; the 15
+  pictures 98.1% / 31 / 0 on the real build; `npm run check` 40/40 (first build `6784f53d…` =
+  `~/Downloads/SPTCal-test-followon-width-6Nov.html`, which still has the three faults above). After the fixes, build
+  sha256 `b25eb29f…` = `~/Downloads/SPTCal-test-followon-width-fixed-6Nov.html`: the 13 layout fixtures + r22b/r22c,
+  `stickycols`, `phasefill`, `colsreset`, `swapholds`, `simpostdays`, `centrepullback`, the swap legs and `monthmap`
+  green; 15 pictures 98.1% / 31 / 0; check 40/40. Full gate: queued behind the `fewest-cols` session's gate; written here
+  when done.
+- ⚠️ **A sibling session builds "fewest columns" on `fewest-cols`** (owner: "We should always prioritize as few collumns
+  as possible"; its ruling 3: a phase alone in its last weeks still fills the width). Compatible with rule 22 as far as
+  measured (in its shape Prod Prep is not a follow-on, so LR6 does not fire); `layout-r3b` changes under both. Rebase
+  notes: side-session-notes/local_b727b3e9…/sticky-cols-and-rule22-status.md.
+
 ### 🔨 6 Nov 2026 (late night): STICKY COLUMNS — A PHASE YOU MOVE KEEPS ITS COLUMN — built on branch `sticky-cols` (worktree `.claude/worktrees/magical-ishizaka-a283e6`, cut from `follow-gap`'s local commit `598bb44` with the `lab-gap` worktree's uncommitted work applied on top, so it carries the fill wish, Reset Columns, the swap order and the four-week follow-on too; its `node_modules` is a symlink, unlink it before `git worktree remove`). ✅ Committed LOCALLY on `sticky-cols` (owner's picker *"Commit on the branch"*), ONE commit that also carries the `lab-gap` work it was built on (the fill wish, Reset Columns, the swap order, the four-week follow-on, their docs and legs); not merged, not pushed. Tracker card `no-side-flip-when-nudged`. Plan: [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md) (§8 = as built); rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10.
 - **The ask.** Three screenshots of a phase moved a week at a time around Production (right, LEFT in the week they start
   together, right), then *"its not just about production i dont like how it does this for any phase"*; by picker

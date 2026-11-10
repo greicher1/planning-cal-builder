@@ -138,3 +138,8 @@ and `monthmap` green. The 15 pictures: 98.1%, 31 column misses, 0 width misses, 
 Full gate on the build (sha256 `5921990…`): 4,270 PASS / 2 FAIL, both load timing, both green alone (`pwagate`,
 `scenariocompat` v1.2.0).
 
+**Ruling K5 (owner, 6 Nov 2026 late night, by picker "Give way"):** a moved phase's memory of a column of its own (`''`)
+gives way when it costs a column — it keeps its own column only when that adds none, otherwise it takes the freed one.
+Found on the owner's test calendar (Writers from 3/16, Casting moved to 8/10: three columns where two would do;
+`layout-r22b`). The original nudge case is untouched (there both sides are two columns). Built with fewest columns
+(rule 23, branch `fewest-cols`), whose trial placement it needs — not on this branch.

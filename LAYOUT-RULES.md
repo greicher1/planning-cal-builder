@@ -129,10 +129,28 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     where Post wk 25–26 sat one wide with an empty column to their left: "why is this happening with post and
     localization?" — "Yes, build it".)*
 
+22. **A follow-on carries its predecessor's width.** A phase that takes over a column the week its occupant ends keeps
+    the cell that occupant drew in its last week — over the empty columns beside it, counting a column rule 21 kept for
+    it — for as long as those columns stay empty. **Once one of them is taken, it keeps what it had and takes nothing
+    new until it ends:** it loses only the taken column, and does not spread again, not even alone (rules 13 and 14 give
+    way to this). If nothing it carried is ever taken, it is laid out as rules 13 and 14 say, so alone it still fills. So Prod Prep after a two-wide Pre-Prep is two wide until Casting moves
+    into the second column, then one wide to the end, rather than one wide and then three wide alone for its last weeks.
+    A column already taken in the follow-on's first week was never carried, so Production after a two-wide Prod Prep,
+    with the Sim Post lane beside it from its first week, is unchanged. *(Owner, 6 Nov 2026, on a test calendar: "i feel
+    like its weird that the last 3 weeks of prod prep extend across" — then a picture, "this is how it should sort", and
+    by picker "Build it". None of the 15 pictures narrows a run, so they score the same with it: 98.1% / 31 / 0. It
+    changes `layout-r13`'s Delivery and `layout-r3b`'s Prod Prep the same way, and `fill-intent` gained a three-week
+    phase so its Pre-Prep still starts one wide. Two fixes the same night, before anything was committed: the first
+    build read the predecessor's width from its last week's even share alone, so a Pre-Prep kept two wide by rule 21
+    handed on nothing and the owner saw the upside-down T again (*"wait why is it still doing the upside down T pattern
+    for prod prep"*; `layout-r22b`); and its hold kept only the carried columns, so a squeezed phase gave back a freed
+    column it had spread into, a run that shrank (found by the fewest-columns session; `layout-r22c`) — the owner,
+    asked there whether a squeezed phase should keep a column it had already spread into: "Yes, keep it".)*
+
 **Built** (LAYOUT-BUILD-PLAN.md, 5–6 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
 `layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; rule 20 is
 `markLayoutPhantoms` on the drawn rows and frozen edit LR2 (absorbing), the floor `LAYOUT_EARNED_WEEKS` (its give-way is
-gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rule 10's sticky columns are `colKeep`, read
+gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rule 22 is frozen edit LR6 (`heldNarrow`, fixture `layout-r22`); rule 10's sticky columns are `colKeep`, read
 by `placeSegmentsByRules` (step 10b) and written only by `update()` through `noteMovedPhases` (leg `stickycols`); rules 12, 13 and 15 as of 6 Nov 2026 are frozen
 edit LR4 (`laneReserved`, the uncapped right walk); the fixtures are `tests/fixtures/layout-r*.sptcal` (made by
 `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.

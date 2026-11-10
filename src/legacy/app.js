@@ -20598,13 +20598,128 @@ export function initLegacyApp() {
         out.length = 0; kept.forEach(sg => out.push(sg));
       }
     }
+    // ⛔ FROZEN EDIT LR6 (owner, 6 Nov 2026, on a test calendar whose Prod Prep sat one wide after a two-wide Pre-Prep
+    // and then filled all three columns for its last three weeks: "i feel like its weird that the last 3 weeks of prod
+    // prep extend across" ... "this is how it should sort", then by picker "Build it" -- the sign-off for this edit;
+    // LAYOUT-RULES.md §0 rule 22). On a STAMPED calendar, A FOLLOW-ON CARRIES ITS PREDECESSOR'S WIDTH:
+    //   (A) a phase whose slot's previous occupant ended the row before (only all-phase hiatus rows between) takes the
+    //       columns that occupant drew in its last row, for as long as they stay empty. "Drew" is rule 21's measure
+    //       (spanOf): the widest the rules gave it at any row of its run, over columns free from that row to its end --
+    //       so a column rule 21 kept for it counts. ⚠️ The first build read only the last row's even share, missed that
+    //       column, handed Prod Prep nothing after a Pre-Prep two wide beside Casting, and the owner saw the upside-down T
+    //       again ("wait why is it still doing the upside down T pattern for prod prep"). So Prod Prep keeps
+    //       Pre-Prep's two-wide cell until Casting moves into the second column.
+    //   (B) once one of those columns has been taken, the phase keeps what it had the row before -- the inherited
+    //       columns still held, and every column the rules had given it by then -- less what has been taken, and spreads
+    //       into nothing new for the rest of its run in the block: no rule 13 spread, no rule 14 fill when alone, no R-E
+    //       hole. So it stays one wide after Casting ends instead of filling across for its last weeks. ⚠️ The first
+    //       build kept only the inherited columns, so a phase that had also spread into a freed column gave it back when
+    //       squeezed -- a run that shrinks, against rule 21 (found by the fewest-columns session on its layout-r3c).
+    // A column already taken in the follow-on's first row was never inherited, so losing it is no break: Production
+    // after a two-wide Prod Prep, with the lane in the second column from its first week, lays out exactly as before.
+    // None of the 15 pictured calendars narrows a run, so (B) never applies to them, and they score 98.1% / 31 / 0
+    // with this as without it (measured). A fill wish or a pull-back decides its own width (LR5), as does the
+    // predecessor's; a hand-dragged width still lays over the result (applyCellSpanOverrides). Single Column holds every
+    // cell at one (17). Unstamped, heldNarrow stays empty, this block is skipped, and the row is exactly what it was.
+    // Gate: fixture layout-r22 (the owner's shape), and layout-r13 R13i / layout-r3b R3Bd re-expected.
+    const heldNarrow = new Set();
+    if(stamped && !singleColumn && occupancy){
+      const anyAt = r => occupancy.some(m => m.has(r));
+      const emptyAt = (n, r) => !occupancy[n].has(r) && !(r === localWeek && n === simSlot);
+      const laneAhead = (n, r) => {
+        if(fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
+        let a = false; occupancy[n].forEach((kk, rr) => { if(rr >= r && kk === LAYOUT_SIM_KEY) a = true; }); return a;
+      };
+      // The span a phase in slot k draws at row R of its run [rs, re], as the rules above draw it: the widest any row r of
+      // the run up to R would give it -- left within r's even share, right uncapped (the lane kept while sharing), over
+      // columns free from r to the run's end (rule 13) -- which is rule 21's own measure, so a column rule 21 kept counts.
+      const freeOver = (n, a, b) => { for(let r = a; r <= b; r++) if(occupancy[n].has(r)) return false; return true; };
+      const nAt = r => { let n = 0; occupancy.forEach(m => { if(m.has(r) && m.get(r) !== LAYOUT_SIM_KEY) n++; }); return n; };
+      const capAt = r => { let n = 0, fixed = 0; occupancy.forEach(m => { if(!m.has(r)) return; if(m.get(r) === LAYOUT_SIM_KEY) fixed = 1; else n++; }); return n > 1 ? Math.max(1, Math.floor((mcEarned - fixed) / n)) : mc; };
+      const spanOf = (k, key, rs, re, R, fill) => {
+        let best = [k, k];
+        for(let r = rs; r <= R; r++){
+          if(occupancy[k].get(r) !== key) continue;           // a row inside the run that is not this phase grants nothing
+          const cap = fill ? mc : capAt(r);
+          let from = k; while(from - 1 >= 0 && freeOver(from - 1, r, re) && earnedIn(from - 1, k) <= cap) from--;
+          let to = k;   while(to + 1 < mc && freeOver(to + 1, r, re) && (fill || !(nAt(r) > 1 && laneAhead(to + 1, r)))) to++;
+          if((to - from) > (best[1] - best[0])) best = [from, to];
+        }
+        return best;
+      };
+      const claims = [];
+      out.forEach((sg, i)=>{
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own)) return;   // LR5: a wish decides
+        const k = sg.own, key = occupancy[k].get(localWeek);
+        const r0 = layoutRunStart(occupancy, k, localWeek);
+        let rp = r0 - 1;
+        while(rp >= 0 && !anyAt(rp)) rp--;                    // past all-phase hiatus rows (ruled Q5)
+        if(rp < 0) return;
+        const pk = occupancy[k].get(rp);
+        if(pk === undefined || pk === key || pk === LAYOUT_SIM_KEY || phaseFillOff(pk)) return;   // no predecessor, or one kept to its column
+        // What the predecessor drew in its last row (its run ends there).
+        const [pf, pt] = spanOf(k, pk, layoutRunStart(occupancy, k, rp), rp, rp, phaseFillOn(pk));
+        if(pf === k && pt === k) return;                      // a one-wide predecessor hands on nothing
+        // (A) Inherited: the part of that span empty in the follow-on's first row, around its own slot. While sharing,
+        // the lane column is not taken before the shoot ends (15).
+        const ok = n => n === k || !(nPhases > 1 && laneReserved(n));   // its own slot may BE the lane column (Prod Prep's is)
+        let a = k; while(a - 1 >= pf && emptyAt(a - 1, r0)) a--;
+        let b = k; while(b + 1 <= pt && emptyAt(b + 1, r0)) b++;
+        if(a === k && b === k) return;
+        // Held through row r: the inherited columns empty in every row from the first to r, around its own slot.
+        const heldTo = (lo, hi, from, r) => {
+          const kept = n => { for(let w = from; w <= r; w++) if(!emptyAt(n, w)) return false; return true; };
+          let x = k; while(x - 1 >= lo && kept(x - 1)) x--;
+          let y = k; while(y + 1 <= hi && kept(y + 1)) y++;
+          return [x, y];
+        };
+        // (B) The first row one of them is taken, if it has come yet.
+        let brk = -1;
+        for(let r = r0 + 1; r <= localWeek && brk < 0; r++){ const h = heldTo(a, b, r0, r); if(h[0] !== a || h[1] !== b) brk = r; }
+        if(brk < 0){
+          const h = heldTo(a, b, r0, localWeek);
+          if(ok(h[0]) && ok(h[1])) claims.push({i, from: h[0], to: h[1], exact: false});
+          return;
+        }
+        // Squeezed at row brk: it keeps what it had the row before -- the inherited columns still held then, and every
+        // column the rules had given it by then (rule 21's measure, so nothing it earned is handed back) -- less what has
+        // been taken since, and takes nothing new for the rest of the run.
+        const re = layoutRestOfRun(occupancy, k, localWeek)[1];
+        const h0 = heldTo(a, b, r0, brk - 1), g = spanOf(k, key, r0, re, brk - 1, false);
+        const had = [Math.min(h0[0], g[0]), Math.max(h0[1], g[1])];
+        let [x, y] = heldTo(had[0], had[1], brk, localWeek);
+        while(x < k && !ok(x)) x++;
+        while(y > k && !ok(y)) y--;
+        claims.push({i, from: x, to: y, exact: true});
+        heldNarrow.add(k);
+      });
+      if(claims.length){
+        // Slot owners: a segment index, or -1 for a slot this pass empties. Rebuilt as rule 21's pass rebuilds.
+        const owner = new Array(mc).fill(-1);
+        { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
+        const isEmpty = n => owner[n] === -1 || out[owner[n]].kind === 'empty';
+        claims.forEach(c => {
+          if(c.exact) for(let n = 0; n < mc; n++) if(owner[n] === c.i && (n < c.from || n > c.to)) owner[n] = -1;
+          for(let n = c.from; n <= c.to; n++) if(isEmpty(n)) owner[n] = c.i;
+        });
+        const rebuilt = [];
+        let q = 0;
+        while(q < mc){
+          if(isEmpty(q)){ let e = 1; while(q + e < mc && isEmpty(q + e)) e++; rebuilt.push({kind: 'empty', colspan: e}); q += e; continue; }
+          const i = owner[q]; let span = 1;
+          while(q + span < mc && owner[q + span] === i) span++;
+          rebuilt.push(Object.assign({}, out[i], {colspan: span})); q += span;
+        }
+        out.length = 0; rebuilt.forEach(sg => out.push(sg));
+      }
+    }
     // LR1, rule 12 (R-E): an empty run between a phase (or its band) and the cell to its right goes to the phase on
     // its left, when those slots are free for the rest of that phase's run -- so there is never a hole between two
     // phases, and a width still only grows along a run. A hole left of every phase, or right of every phase, stays.
     if(stamped && !singleColumn){
       for(let i = 1; i + 1 < out.length; i++){
         const e = out[i], l = out[i - 1];
-        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own)) continue;   // LR5: not to a phase keeping to its column
+        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own) || heldNarrow.has(l.own)) continue;   // LR5: not to a phase keeping to its column; LR6: nor to one held to what it inherited
         let at = 0; for(let j = 0; j < i; j++) at += out[j].colspan;
         let ok = true;
         for(let n = at; n < at + e.colspan; n++) if(!freeForRun(l.own, n)){ ok = false; break; }
