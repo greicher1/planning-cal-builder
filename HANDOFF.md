@@ -4,6 +4,65 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 9 Nov 2026: THE AUTO HEADER'S DATE IS THE **DATE LAST EDITED**, AND `{lastEdited}` IS IN THE TEMPLATE BUILDER. Built in the main checkout on `main`'s working tree (NOT committed, NOT pushed: waiting on the owner's picker). No version cut. Tracker card `header-date-last-edited`.
+- **Ask (owner):** *"For auto header, can we make the date in the top left corner for waterfall view (and top right corner
+  for month view) be the last time the calendar was edited. By edited i mean an actual meaningful change to the
+  calendar, basically anything that would change if it was exported to pdf or excel. Then add this "Date Last Edited"
+  variable to the template builder"*. The date was `new Date()`, i.e. the day it was opened or printed.
+- **Design (my calls, not rulings; flag any the owner disagrees with):**
+  - **Content, not events.** `noteLastEdited()` hashes `captureSnapshot()` less `viewMode`, `sidebarTab`, the stamp and
+    `fields.byId['custom-hol-name' / 'custom-hol-date']` (the Holidays card's add form: swept into every file since
+    v1.0.0, but nothing until Add; measured, the only two of the 18 non-phase ids that are a form). Content not seen
+    since the load is stamped `new Date().toISOString()`. Preferences never reach the snapshot, so never count.
+  - **A content remembers its stamp** (`lastEditedSeen`, a Map hash -> stamp, 200 entries, session only, never saved):
+    Undo, Redo, a drag answered Undo, a value typed back all bring back the date that content had. Without it, a
+    trial render (Build Around's `trialBuild`, a drag preview) would have stamped "now" and kept it.
+  - **Where it runs:** first thing in `computeHeaderDefaults()` and `computeMvHeaderDefaults()` (every render and every
+    export computes one; a render always follows the change it draws, so the screen is right on the same render, no
+    timer, no second render), and before every write: `captureFileObject()`, `buildSavedHtml()`,
+    `parkCurrentScenario()`. Never under `suppressDirty` (Load, restore, scenario flip, Compare's probe, undo).
+    `buildHeaderCtx()` only READS (`t.lastEdited`), since Compare's probe runs it over other tabs' snapshots.
+    Measured cost: ~0.2 ms per check against a ~20 ms render.
+  - **Rebased by** `resetUndoHistory()` (`rebaseLastEdited(true)`: a different calendar, the map forgotten) and
+    `switchScenario()` (`rebaseLastEdited(false)`). Undo/redo: `applySnapshotJSON()` computes the step's key from the
+    step's JSON (`lastEditedForStep`, a DEEP copy: the key function deletes from `fields.byId`), writes that content's
+    stamp onto the snapshot before applying, then rebases. ⛔ A NEW RESTORE PATH MUST REBASE, or the restored calendar
+    reads as an edit and stamps now.
+  - **Old files:** `openRecentFile()` gives a snapshot (and each parked scenario) with no valid stamp the FILE's
+    `lastModified` before applying; the next save writes it. `?state=` / a shareable copy opening itself have no file
+    time and read today until edited. New: `resetAll()` sets null.
+  - **Switching the header's mode counts** (Auto -> Template changes `headerMode` / `headerTemplates` / `headerManual`),
+    even though Template seeded from the Default prints the same text. ⚠️ And opening the template BUILDER from Auto
+    (the mode menu's Template row) switches to Template on the way in (by design, `hdreditor` asserts it), so it stamps
+    today too. Found while writing the leg: its live values read 11.9.26 on a calendar stamped 10.1.26.
+  - **Renaming a scenario does NOT count**, although `{scenario}` can print its name: the name is not in the snapshot.
+    Known gap; cheap to add (put the current tab's name into the key) if the owner wants it.
+  - **Templates:** `DEFAULT_HEADER_TEMPLATE.left` = `{lastEdited}`, `DEFAULT_MV_TEMPLATE.today` = `{lastEdited:dotpad}`
+    (the `hdrtemplate` / `mvhdrdefault` equalities hold). A header already in Template mode keeps `{today}`: only Auto
+    and a fresh seed move. The builder's new group **Date Last Edited** (before Dates): `{lastEdited}`, `:long`, `:slash`,
+    `:iso`. `HDR_PH_NAMES.lastEdited`. The month slot keeps its id `today` (a saved-file key).
+- **Saved files:** `lastEdited` is a PERMANENT top-level key (ISO UTC), written only when set; sanitizer drops a
+  malformed one; `applyStateSnapshot()` restores it unconditionally; `undoStateJSON()` drops it. SNAPSHOT_VERSION not
+  bumped (an older build ignores it and prints today). CLAUDE.md's key list and state table carry it.
+- **Proof:** new leg **`lastedited` 21/21** (fixture `tests/fixtures/lastedited.sptcal` = `hdrversion` + the key; in
+  gate.sh's generic list; `lib.js` `openViaFakePicker` gained `opts.mtime`). Updated to the new Default: `hdrpreset`,
+  `hdrfile`, `prove-header-preset.mjs` (`{lastEdited}` / `{lastEdited:dotpad}`), `hdrverload`'s KNOWN list.
+  `lastedited` re-run 21/21 on the final build (dist sha256 `47894740…`). **Targeted gate**, assembled from gate.sh's
+  own sections and judges (restore, wrapdate, hdrversion, hdrverload x5, hdrtemplate, hdrpreset, hdrfile, hdrexcel,
+  hdreditor, scenarios, scenariofacts, scenariocompat, lastedited, newtab, undokeys, dlgkeys, backuplink,
+  backuplinkstale, sharecopy2, mvhdroff, hdrcontrols, hdroverrides, prove-header-template), port 8392, load average
+  13-27 from other sessions: **281 PASS / 3 FAIL**, none from this work:
+  - `scenarios` S15 and `scenariofacts` F7: re-run alone on the final build, 23/23 and 12/12. On unmodified `main`
+    (a detached worktree build of `d0dd33b`) F7 failed too, at a different step, under the same load: a flake.
+  - `prove-header-preset.mjs`: `ReferenceError: cleanHeaderFormatEntry is not defined`, IDENTICAL on unmodified `main`.
+    Its slice of app.js is stale (pre-existing, not documented before); gate.sh's prover loop does not run it.
+  No full gate (header + save path; the targeted gate instead). `npm run check` 40/40. Seen in the browser pane: 10.1.26
+  top left on the fixture.
+- **Not done:** not committed, not pushed (owner's pickers pending). Local `main` is `d0dd33b`; `origin/main` moved on to
+  `51ce127` (another session's HANDOFF note), so a commit here needs a branch and that merged in before any push.
+- ⚠️ `run.sh`'s default port 8231 is shared by every session, and run.sh kills whatever `srv.js 8231` is running: this
+  session's first run did that while another session was using it. Pass `HARNESS_PORT=<your own>` (this session: 8392).
+
 ### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
 - **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
   because of the locked in place all phase hiatuses, we now have a 2 week gap."* Reproduced on a synthetic copy

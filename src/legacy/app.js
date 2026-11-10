@@ -20962,8 +20962,10 @@ export function initLegacyApp() {
   // Note r3: `[{episodes} Episodes]` rather than `{episodes} Episodes`. The auto r3 is EMPTY when
   // there is no episode count, and only the conditional group reproduces that -- without the
   // brackets an empty count would render the bare word "Episodes".
+  // ⚠️ `left` is {lastEdited} since 9 Nov 2026, when the auto header's date became the Date Last Edited (owner). A
+  // calendar already in Template mode keeps whatever its lines say, {today} included: only Auto and a fresh seed move.
   const DEFAULT_HEADER_TEMPLATE = {
-    left: '{today}',      l2: '{version}',        l3: '',
+    left: '{lastEdited}', l2: '{version}',        l3: '',
     c1:   '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
     r1:   '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
   };
@@ -21006,9 +21008,11 @@ export function initLegacyApp() {
   // other 121 (every 1st to 9th). Verified by enumerating 400 consecutive days, not by looking at
   // one. Using {today} here would have silently changed the printed date on a third of the days in
   // the year, and would have passed a same-day browser check.
+  // ⚠️ Since 9 Nov 2026 the date is {lastEdited:dotpad} (owner: the auto date is the Date Last Edited), with the same
+  // :dotpad reasoning above. The slot keeps its id, `today`: it is a key in saved files (mvHeaderManual, mvHeaderFormat).
   const DEFAULT_MV_TEMPLATE = {
     tleft: '', title: '[{titleSeason} ]Full Prelim Production Calendar',
-    subtitle: '', today: '{today:dotpad}',
+    subtitle: '', today: '{lastEdited:dotpad}',
   };
 
   // The month header's auto values -- the ONE definition of what it says by default.
@@ -21026,8 +21030,10 @@ export function initLegacyApp() {
     const rawTitle = (document.getElementById('show-title').value || '').trim();
     const seasonTxt = seasonLabel();   // "S2", or "S3 & S4" with two seasons ticked
     const t = rawTitle + (seasonTxt ? (rawTitle ? ' ' : '') + seasonTxt : '');
-    // LOCAL date, not UTC: this is "today" for the person reading it, unlike the schedule dates.
-    const now = new Date();
+    // LOCAL date, not UTC: this is a day for the person reading it, unlike the schedule dates. Since 9 Nov 2026 (owner)
+    // it is the DATE LAST EDITED, the waterfall's top left's twin; a calendar never edited reads today, as it always did.
+    noteLastEdited();
+    const now = lastEditedDate();
     const out = {
       tleft: '',
       title: (t ? t + ' ' : '') + 'Full Prelim Production Calendar',
@@ -23030,7 +23036,7 @@ export function initLegacyApp() {
   const HDR_PH_OPEN = String.fromCharCode(0xE000), HDR_PH_CLOSE = String.fromCharCode(0xE001);   // private-use, cannot occur in user text
   const HDR_PH_NAMES = {
     title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version', scenario:'Scenario',
-    episodes:'##', shootDaysPerEp:'#', shootDays:'##',
+    episodes:'##', shootDaysPerEp:'#', shootDays:'##', lastEdited:'Date Last Edited',
     'production.summary':'Production Span / Shooting Schedule',
     'production.dates':'Principal Photography — / Wrap: —',
     'writersRoom.line':"Writer's Room Opens: —",
@@ -24122,6 +24128,14 @@ export function initLegacyApp() {
         ['{shootDaysPerEp}', 'Shoot days per episode'],
         ['{shootDays}', 'Total shoot days'],
       ]},
+      // ⭐ Owner, 9 Nov 2026: "add this Date Last Edited variable to the template builder". Its own group, named as the
+      // owner named it, first among the dates: it is what the auto header prints. Each entry shows its live value.
+      { name: 'Date Last Edited', items: [
+        ['{lastEdited}', 'Date last edited, as 9.8.26'],
+        ['{lastEdited:long}', 'Date last edited, as September 8, 2026'],
+        ['{lastEdited:slash}', 'Date last edited, as 9/8/26'],
+        ['{lastEdited:iso}', 'Date last edited, as 2026-09-08'],
+      ]},
       { name: 'Dates', items: [
         ['{today}', "Today, as 9.8.26"],
         ['{today:long}', 'Today, as September 8, 2026'],
@@ -24415,6 +24429,10 @@ export function initLegacyApp() {
 
     // ---- Dates -------------------------------------------------------------------------------
     t.today = hdrDate(new Date(), true);   // LOCAL -- see the note above
+    // Date Last Edited (owner, 9 Nov 2026): what the auto header's date reads (see lastEdited). LOCAL, as {today} is;
+    // today while the calendar has never been edited. Only READ here: buildHeaderCtx() also serves Compare's probe,
+    // which runs other tabs' snapshots, so the check runs where a header is drawn, never here.
+    t.lastEdited = hdrDate(lastEditedDate(), true);
 
     // ---- Phases, generic over every built-in AND custom key ----------------------------------
     const segs = (schedule && schedule.segments) || [];
@@ -25104,7 +25122,11 @@ export function initLegacyApp() {
 
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
-    const today = new Date();
+    // The top left is the DATE LAST EDITED (owner, 9 Nov 2026), read in the reader's own time zone as today was, in
+    // the same M.D.YY. A calendar never edited has no stamp and reads today, exactly as it always did. noteLastEdited()
+    // first: this runs on every render and every export, after the change it draws (see lastEdited).
+    noteLastEdited();
+    const today = lastEditedDate();
     const todayStr = `${today.getMonth()+1}.${today.getDate()}.${String(today.getFullYear()).slice(2)}`;
     const showTitle = (document.getElementById('show-title').value || '').trim();
     // Carry the season as a short suffix, e.g. "Show Name S2" -- same convention as the month
@@ -27576,6 +27598,7 @@ export function initLegacyApp() {
     if(spCount) spCount.checked = false; // un-numbered is the default
     simPostName = ''; reflectSimPostName(true);   // ...and named "Simultaneous Post" again
     refreshSimPostUI();
+    lastEdited = null;   // a blank calendar has never been edited: its header reads today until it is (see lastEdited)
     // ⚠️ One select now. This block used to clear #union-country and park the two dependent
     // selects on their defaults; all three ids are gone, and so are DEFAULT_PROVINCE /
     // DEFAULT_US_AREA / lastCountry / lastSubregion / lastUsArea. Left as it was, the first line
@@ -27756,6 +27779,7 @@ export function initLegacyApp() {
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
     }
+    noteLastEdited();   // the copy carries this calendar's Date Last Edited (see lastEdited)
     // 2. Reflect current field values into attributes. outerHTML serializes ATTRIBUTES, not live
     //    DOM property values, so without this every form field exports blank.
     reflectFieldsToAttributes();
@@ -28045,6 +28069,7 @@ export function initLegacyApp() {
   // captureSnapshot(); two or more, the container above. ⛔ Not the undo stack and not a shareable copy: both are
   // the tab on screen only (undo is per tab; the shareable copy is ruling D6's "this tab only").
   function captureFileObject(){
+    noteLastEdited();   // a change no render has drawn yet still reaches the file with its date (see lastEdited)
     const snap = captureSnapshot();
     if(scenarioTabs.length < 2) return snap;
     return Object.assign({}, snap, {
@@ -28125,6 +28150,7 @@ export function initLegacyApp() {
     if(activeMvNote) commitMvNoteEditor();
     clearTimeout(undoPushTimer);
     pushUndoSnapshot();
+    noteLastEdited();   // the tab is parked with its own Date Last Edited
     const t = currentScenario();
     t.snapshot = JSON.parse(JSON.stringify(captureSnapshot()));
     t.undo = { stack: undoStack, redo: redoStack };
@@ -28164,6 +28190,7 @@ export function initLegacyApp() {
     redoStack = to.undo ? to.undo.redo : [];
     to.undo = null;
     lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
+    rebaseLastEdited(false);   // the tab's own Date Last Edited came with its snapshot; a flip is not an edit
     refreshUndoRedoUI();
     // At once, not on update()'s debounce: for those 120 ms the band would show the tab just left (KEY-FACTS-PLAN).
     refreshScenarioFacts();   // ...which pushes the chrome
@@ -28971,8 +28998,108 @@ export function initLegacyApp() {
       // that never ticks "Reuse empty columns" or moves a phase by hand saves byte for byte what it did.
       ...(colReuse ? {colReuse: true} : {}),
       ...(Object.keys(colFollow).length ? {colFollow: Object.assign({}, colFollow)} : {}),
+      // 9 Nov 2026 (owner): Date Last Edited, an ISO time in UTC. ⛔ PERMANENT key. Written only once the calendar has
+      // a stamp (an edit, or a Load that took the file's own time), so a calendar never edited saves byte for byte as
+      // before. See lastEdited.
+      ...(lastEdited ? {lastEdited} : {}),
       fields: collectFieldValues()
     };
+  }
+
+  // ---------- Date Last Edited (owner, 9 Nov 2026) ----------
+  // The auto header's date (the waterfall's top left, the month view's top right) and the {lastEdited} token read the
+  // last time the calendar CHANGED, not the day it is opened or printed. Owner: "an actual meaningful change to the
+  // calendar, basically anything that would change if it was exported to pdf or excel".
+  //
+  // ⭐ CONTENT, NOT EVENTS. A change is found by comparing the calendar itself -- captureSnapshot(), less the parts that
+  // are about the person rather than the calendar (the view, the sidebar tab, this stamp) -- never by listening for
+  // edits, because a list of "edits" would have to be kept in step with every control the app will ever grow.
+  // Preferences live in localStorage and never reach the snapshot, so they never stamp.
+  //
+  // ⭐ A CONTENT REMEMBERS ITS STAMP. Each content seen since the calendar was loaded is kept (as a hash) with the stamp
+  // it was first reached at, so a calendar that goes back to a state it had takes that state's date back: an undo,
+  // a redo, a drag answered Undo, a value typed back the way it was. Only content not seen before is stamped "now".
+  //
+  // WHEN IT RUNS (noteLastEdited): just before a header is drawn (computeHeaderDefaults, computeMvHeaderDefaults --
+  // every render and every export goes through one of them), and before the calendar is written anywhere
+  // (captureFileObject, buildSavedHtml, parkCurrentScenario). A render always follows the change it draws, so the
+  // date on screen is right on the same render, with no timer and no second render. Never while suppressDirty is
+  // set: a Load, a restore, a scenario flip, the Compare probe and an undo each set the stamp themselves.
+  //
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `lastEdited`, PERMANENT. Absent, the header reads today, exactly as it always
+  // did. A file loaded with no stamp (every calendar saved before 9 Nov 2026) takes the file's last-modified time, its
+  // best record of when it last changed (openRecentFile). ⛔ Not in the undo history (undoStateJSON() drops it): a
+  // stamp is never an undo step, and applySnapshotJSON() puts the step's own stamp back from lastEditedSeen.
+  // `var`, not `let`: the header reads these, and a render during evaluation, before this line runs, must find them.
+  var lastEdited = null;       // ISO time (UTC) of the last change, or null: never edited, the header reads today
+  var lastEditedSeen = null;   // Map: content hash -> the stamp it was first reached at (insertion order = age)
+  var lastEditedHash = null;   // the hash of the content as of the last check; null = no baseline yet
+  function lastEditedValid(v){
+    return typeof v === 'string' && v.length <= 40
+      && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/.test(v) && !isNaN(Date.parse(v));
+  }
+  // The date the header shows: the stamp, read in the reader's own time zone as {today} is, or today without one.
+  function lastEditedDate(){
+    const d = lastEdited ? new Date(lastEdited) : null;
+    return (d && !isNaN(d.getTime())) ? d : new Date();
+  }
+  // cyrb53, plus the length: the snapshot as text runs to tens of KB, and only "same or not" is ever asked of it.
+  function lastEditedHashOf(str){
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for(let i = 0; i < str.length; i++){
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return str.length + ':' + (h2 >>> 0).toString(36) + (h1 >>> 0).toString(36);
+  }
+  // `snap` is a throwaway (it is changed, fields.byId included): a fresh captureSnapshot(), or a deep copy of a step.
+  function lastEditedKey(snap){
+    delete snap.viewMode; delete snap.sidebarTab; delete snap.lastEdited;
+    // ...and the Holidays card's "add a holiday" boxes: collectFieldValues() sweeps them (they have ids, and every
+    // calendar since v1.0.0 carries them), but what is typed there changes nothing until Add, which writes
+    // customHolidays. Measured 9 Nov 2026: of the 18 id'd fields outside the phase rows, these are the only two that are
+    // a form rather than the calendar.
+    const byId = snap.fields && snap.fields.byId;
+    if(byId){ delete byId['custom-hol-name']; delete byId['custom-hol-date']; }
+    return lastEditedHashOf(JSON.stringify(snap));
+  }
+  function lastEditedRemember(key, stamp){
+    if(!lastEditedSeen) lastEditedSeen = new Map();
+    lastEditedSeen.delete(key);
+    lastEditedSeen.set(key, stamp);
+    if(lastEditedSeen.size > 200) lastEditedSeen.delete(lastEditedSeen.keys().next().value);
+  }
+  function noteLastEdited(){
+    if(suppressDirty) return;
+    let key;
+    try { key = lastEditedKey(captureSnapshot()); } catch(e){ return; }   // a render during evaluation
+    if(key === lastEditedHash) return;
+    // A baseline, not an edit. `== null`, not `===`: before its `var` line has run (a render during evaluation) the
+    // hash is undefined, and that must read as "no baseline yet" too.
+    if(lastEditedHash == null){ lastEditedHash = key; lastEditedRemember(key, lastEdited); return; }
+    lastEdited = (lastEditedSeen && lastEditedSeen.has(key)) ? lastEditedSeen.get(key) : new Date().toISOString();
+    lastEditedHash = key;
+    lastEditedRemember(key, lastEdited);
+  }
+  // What is on screen now is the baseline, with the stamp it has. `fresh`: a different calendar (Load, New, recovery,
+  // the first load), so the contents remembered for the one before are forgotten. A scenario flip keeps them.
+  function rebaseLastEdited(fresh){
+    if(fresh || !lastEditedSeen) lastEditedSeen = new Map();
+    lastEditedHash = null;
+    try { lastEditedHash = lastEditedKey(captureSnapshot()); lastEditedRemember(lastEditedHash, lastEdited); } catch(e){}
+  }
+  // An undo or redo step (the history's form: no viewMode, no stamp) takes the stamp its content had, or now for a
+  // content not seen since the load (a step older than the load cannot exist, so that is only after a long session
+  // pushed it out of lastEditedSeen). Written onto `snap` before it is applied, so the render inside the apply draws it.
+  function lastEditedForStep(snap){
+    let key = null;
+    // A DEEP copy: lastEditedKey() deletes from fields.byId, and `snap` is about to be applied.
+    try { key = lastEditedKey(JSON.parse(JSON.stringify(snap))); } catch(e){ key = null; }
+    const stamp = (key && lastEditedSeen && lastEditedSeen.has(key)) ? lastEditedSeen.get(key) : new Date().toISOString();
+    snap.lastEdited = stamp;
+    return stamp;
   }
 
   function markDirty(){
@@ -29095,6 +29222,10 @@ export function initLegacyApp() {
   function undoStateJSON(){
     const snap = captureSnapshot();
     delete snap.viewMode;
+    // ...nor is a new Date Last Edited (9 Nov 2026): the stamp follows the calendar's content, so an edit already
+    // changes what the history compares, and the stamp alone must never bank a step. applySnapshotJSON() puts the
+    // step's own stamp back (lastEditedForStep).
+    delete snap.lastEdited;
     return JSON.stringify(snap);
   }
 
@@ -29162,6 +29293,7 @@ export function initLegacyApp() {
   // the initial page load) -- undoing "past" the start of a different calendar makes no sense.
   function resetUndoHistory(){
     clearRippleNotes();   // a different calendar: the last ripple's line under a hiatus is not about it
+    rebaseLastEdited(true);   // ...and its Date Last Edited compares from here, with the stamp it was loaded with
     undoStack = [];
     redoStack = [];
     clearTimeout(undoPushTimer);
@@ -29199,6 +29331,9 @@ export function initLegacyApp() {
     // decides what an absent key means here.
     const snap = JSON.parse(json);
     snap.viewMode = viewMode;
+    // Date Last Edited: the step's content brings back the stamp it had (lastEditedSeen), so an undo of today's only
+    // change shows the date before it. Set on the snapshot, so the render inside refreshAfterRestore() draws it.
+    const stamp = lastEditedForStep(snap);
     applyStateSnapshot(snap);
     // refreshAfterRestore(), not a bare update(): undo/redo is applying a snapshot, so it needs
     // the same post-restore UI refresh that loading a file does. With only update() here, an undo
@@ -29206,6 +29341,9 @@ export function initLegacyApp() {
     refreshAfterRestore();
     suppressDirty = false;
     applyingUndoRedo = false;
+    // ...and what is on screen now is that stamp's content (the apply settled it), so the next render compares to it.
+    lastEdited = stamp;
+    rebaseLastEdited(false);
     lastPushedSnapshotJSON = json;
     markDirty(); // the restored state differs from what's on disk
     refreshUndoRedoUI();
@@ -31386,6 +31524,17 @@ export function initLegacyApp() {
     if(parsed.refused === 'newer' || !snapshotVersionOk(snap)){
       uiAlert('That calendar was saved by a newer version of SPTCal, so this version can\u2019t open it. Update the app and try again.');
       return false;
+    }
+    // DATE LAST EDITED (9 Nov 2026): a calendar saved before the stamp existed has none, and its header would read
+    // today. The file's own last-modified time is the best record of when it last changed (a save follows an edit),
+    // so it stands in, for each parked scenario too. The next Save writes it, and from then on the file's own stamp
+    // is read. A file that has one keeps it: re-saving a calendar unchanged moves its file time, not its stamp.
+    if(stamp && Number.isFinite(stamp.lastModified) && stamp.lastModified > 0){
+      const fileIso = new Date(stamp.lastModified).toISOString();
+      if(!lastEditedValid(snap.lastEdited)) snap.lastEdited = fileIso;
+      if(parsed.scenarios) parsed.scenarios.tabs.forEach(t=>{
+        if(t.snapshot && !lastEditedValid(t.snapshot.lastEdited)) t.snapshot.lastEdited = fileIso;
+      });
     }
     // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay. applyStateSnapshot
     // is called directly rather than round-tripping through the live #saved-state element: that
@@ -38083,6 +38232,8 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // Date Last Edited: an ISO time in UTC, as the app writes it. Anything else is dropped, and the header reads today.
+    if('lastEdited' in s && !lastEditedValid(s.lastEdited)){ bad.n++; delete s.lastEdited; }
     // Sim Post's name: a string the app would have kept as typed. Anything else is dropped, and it reads the default.
     if('simPostName' in s){
       const t = typeof s.simPostName === 'string' ? cleanSimPostName(s.simPostName) : '';
@@ -38621,6 +38772,8 @@ export function initLegacyApp() {
     // "Simultaneous Post" -- never the previous file's name.
     simPostName = typeof snap.simPostName === 'string' ? cleanSimPostName(snap.simPostName) : '';
     reflectSimPostName(true);
+    // ⛔ UNCONDITIONAL: a snapshot with no stamp has none -- never the previous calendar's. The header then reads today.
+    lastEdited = lastEditedValid(snap.lastEdited) ? snap.lastEdited : null;
     // ⛔ UNCONDITIONAL: assigned on every restore. Without the key this calendar's column positions may be the
     // pre-SP1 order; refreshAfterRestore() moves them once every store and field is this file's.
     simLaneNeedsMove = snap.simPostBeside !== true;
