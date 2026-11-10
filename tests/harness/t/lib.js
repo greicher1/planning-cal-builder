@@ -774,8 +774,54 @@ window.__T = (function(){
     var n = document.getElementById('pref-mv-notesize');
     return n ? n.value : '';
   }
+  // ⭐ THE SHIFT BOX (the list first, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons are gone:
+  // a leg says what moves through the LIST, as a user does. These press with real pointer events, the path the mouse
+  // takes (the list's pointerdown); a dispatched `click` only reaches its tap path. The box must be open: the rows
+  // are found by their place on the page.
+  //   shiftRow(key)                 the phase's row (throws when it has none)
+  //   shiftPress(key, where)        press and release: 'row' (its name: chooses the row, no tick changes; the default)
+  //                                 or 'box' (its tick box: flips the tick)
+  //   shiftDrag(from, to, where)    press on `from`, drag over each row in `to` (a key, or keys in order), release
+  //   shiftSide('prior'|'after', key)  choose the row, then press "Prior to X" / "After X": what Phase & before /
+  //                                 Phase & after on that phase used to set
+  function shiftRow(key){
+    var rows = document.querySelectorAll('#pop-shift [data-shift-list] .solve-row[data-key]');
+    for(var i = 0; i < rows.length; i++) if(rows[i].dataset.key === key) return rows[i];
+    throw new Error('no Shift row for ' + key);
+  }
+  function shiftPoint(key, where){
+    var row = shiftRow(key), el = where === 'box' ? row.querySelector('input[type=checkbox]') : row.querySelector('.solve-nm');
+    if(!el) throw new Error('no ' + where + ' in the Shift row for ' + key);
+    var r = el.getBoundingClientRect();
+    if(!r.height) throw new Error('the Shift box is not open');
+    return {el: el, x: r.left + r.width / 2, y: r.top + r.height / 2};
+  }
+  function shiftPointer(type, target, x, y){
+    target.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1,
+      pointerId: 1, pointerType: 'mouse', isPrimary: true, clientX: x, clientY: y}));
+  }
+  async function shiftPress(key, where){
+    var p = shiftPoint(key, where || 'row');
+    shiftPointer('pointerdown', p.el, p.x, p.y); shiftPointer('pointerup', document, p.x, p.y);
+    await sleep(80);
+  }
+  async function shiftDrag(from, to, where){
+    var a = shiftPoint(from, where || 'row'), last = a;
+    shiftPointer('pointerdown', a.el, a.x, a.y);
+    // Each point is read AFTER the step before it: the list is redrawn as the drag goes.
+    (Array.isArray(to) ? to : [to]).forEach(function(k){ last = shiftPoint(k, 'row'); shiftPointer('pointermove', document, last.x, last.y); });
+    shiftPointer('pointerup', document, last.x, last.y);
+    await sleep(80);
+  }
+  async function shiftSide(side, key){
+    await shiftPress(key, 'row');
+    var b = document.querySelector('#pop-shift ' + (side === 'prior' ? '[data-shift-prior]' : '[data-shift-after]'));
+    if(!b) throw new Error('no ' + side + ' button in the Shift box');
+    b.click();
+    await sleep(120);
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
-  return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
+  return {set:set,sleep:sleep,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,

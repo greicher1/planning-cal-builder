@@ -4,6 +4,88 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
+
+**As built:**
+- **The form, top to bottom** (`PreviewToolbar.jsx`, `#pop-shift`): the title and its hint; `p.tools-cap` "Phases";
+  `.shift-box` = the header strip (`label.shift-all` > `input[data-shift-all]` + `span[data-shift-count]`) then the
+  rows (`.solve-list[data-shift-list]`, the engine's); `.shift-sides` = `button.shift-side[data-shift-prior]` /
+  `[data-shift-after]` (the engine writes their text); "How far" and its two buttons; the landing phase's row
+  (`[data-shift-phase-row]` > `#tool-anchor-phase`, To a date only); the weeks row; the date row. GONE: `[data-move]`,
+  `[data-shift-choose]`, `[data-shift-list-wrap]`, the pivot row above the list, the mirror `[data-shift-subject]`,
+  `.tools-subject`, `.tools-link`, and the pin in this list.
+- **State** (`app.js`, the tools IIFE): `shiftFar`, `shiftTicks` (a Set), `shiftMark` (the outlined row's key; ''
+  until a row is touched, when `shiftMarkKey()` names the shoot, else the first row), `shiftDrag` (a press in
+  progress). `shiftMove`, `shiftListOpen`, `presetTicks`, `matchShiftMove`, `setShiftChoice`, `shiftMoveFor`,
+  `phaseLabelOf` and `shiftOffersWhole` are gone. Reset on every opening (`openPop`): every phase ticked, By weeks,
+  no row touched.
+- ⭐ **`shiftPlan()` takes no arguments and reads the ticks alone**: every phase → `{move: 'all', part: null}` (the
+  old `shiftCalendar(n, null, {stepHeld: true})` call); one run from the first row → `before`, pivot = its last row,
+  one window to the pivot's LAST week; one run to the last row → `after`, pivot = its first row, one window from its
+  start week; anything else → `custom`, one window per ticked phase. Null when nothing is ticked. `moveTail(res,
+  plan)` and `heldForMove()` follow it. So a set ticked by hand and the same set made by Prior / After move the
+  same notes, which was not true while the buttons were remembered (`shiftMove`).
+- **`fillShiftPhase()`** owns `#tool-anchor-phase`: it lists the TICKED phases (Whole schedule too, To a date with
+  every phase ticked), and shows `shiftMarkKey()` whenever that row is ticked (unless Whole schedule is picked and
+  still offered); otherwise it keeps its phase while that is ticked, else the shoot, else the first ticked. With
+  nothing ticked: one option, "Tick a phase first", value ''. It returns true when the pick changed, and the caller
+  re-reads the date. The select's own `change` sets `shiftMark` to the picked phase: one chosen phase.
+- **The landing row** wears `is-land` (Build Around's pin tint, "On your date" until a date is typed) and KEEPS its
+  tick box. The 5 Nov rule (forced to move, drawn as a pin with no box) went: with the landing phase following
+  every row click, a box that turned into a pin under the pointer could not be cleared.
+- **The press** (`pointerdown` on the list, mouse and pen only; touch scrolls): `shiftDrag = {from, at, box, value,
+  base}`. On the row itself it only moves the outline; on the box it flips the tick at once; `dragTo(key)` redoes
+  the range `from..key` from `base` on every row crossed, found by the pointer's HEIGHT alone (`rowAtY`). The list
+  scrolls 14 px a move when the pointer is within 6 px of its top or bottom edge. `pointerup` / `pointercancel`
+  anywhere end it; `closeAllPops()` and a window blur drop it.
+  - A tap (a `click` no press swallowed) on the row only chooses it (the label's own tick is prevented); on the box
+    the tick goes ahead and `change` hears it. `change` is also the keyboard's path (Space), and puts focus back
+    on the redrawn box.
+- ⛔ **THE CLICK GUARD HAS NO TIMER.** A press ends in a `click` on the row, or, let go outside the box, on the two
+  ends' common ancestor, which would tick the row twice or close the box as a click-away, so that one click is
+  swallowed (capture, `document`). The first build disarmed the guard with an 80 ms timer. The row is redrawn under
+  the press, so often NO click follows, and in a hidden Browser pane the timer ran a minute late: the guard ate the
+  NEXT click ("choose a row, press After" did nothing). Now `pressClickGuard` is dropped by the next `pointerdown`
+  or `keydown` (capture), the only things that can come before a later real click, and it never swallows an
+  untrusted click (the harness, a `.click()`).
+- **Item 8, nothing over the rows:** the strip is a static sibling above the scroller; no row has a `title` (the
+  pinned row's went); the hint is `<InfoHint position="top-start" middlewares={{flip: false, shift: true}}>`
+  (`InfoHint.jsx` passes `middlewares` through when given). Measured with a real pointer: the card ends 11 px above
+  the "i" and 53 px above the box.
+  - ⚠️ **A leg cannot hover a Mantine HoverCard**: dispatched mouseover / mouseenter / pointerover / pointerenter /
+    focus all leave it closed in headless Chrome (tried). So `tools/check-build.mjs` asserts the hint's props in the
+    built file instead (`npm run check` 41/41).
+  - ⚠️ **A hidden Browser pane runs timers a minute late and can return a stale screenshot.** Read state with
+    `javascript_tool`, not pictures, when the session is not open in a window.
+- **CSS** (`legacy.css`, "THE SHIFT LIST FIRST"): `.shift-box`, `.shift-all` (and its box, drawn with a minus when
+  ticked), `#pop-shift .solve-row.is-mark` (an inset 1.5 px navy-3 outline), `.is-land`, `.shift-sides`,
+  `.shift-side` (34 px, nowrap, ellipsis). `.tools-link` and `.tools-subject` are deleted.
+- **Measured in the pane** (anchorside.sptcal, 6 phases): 407 px tall as it opens (it was 225 folded), 443 px To a
+  date; 340 px wide.
+- **Help** ("Adjusting dates") is rewritten for the list. CLAUDE.md, PROJECT-CONTEXT §7a, README, plan §7.6 and
+  gate.sh's comment follow.
+- **The harness:** `t/lib.js` gains `T.shiftRow`, `T.shiftPress(key, 'row'|'box')`, `T.shiftDrag(from, to|[keys],
+  where)` and `T.shiftSide('prior'|'after', key)`: real `PointerEvent`s on the row, the mouse's own path.
+  `anchorside` is rewritten (**39/39**): O1 the layout, O3 the strip, HD the header box, M1 row vs box, D1–D4 the
+  drag (a run, back again, on from off, name vs box), K1 keyboard and tap, P1 Prior / After (place, names, replace,
+  ellipsis), N1 nothing over the rows, then the moves as before (X1 X2 C1 C2 C4 C3 H1 B1–Br U1 F2 B4 E1 F1 A1 B6),
+  W1 To a date's box, J1, O2, I1, S1, E0. Five legs pressed `[data-move="after"]` and now call
+  `T.shiftSide('after', …)`: `calrange`, `overrides`, `rowheight`, `stalebandkey`, `shiftheld`.
+- **Verified** on the build: `npm run check` 41/41; `anchorside` 39/39; `buildaround` 33/33, `rebuildticks`,
+  `calrange`, `datepick`, `halfworked`, `mvdragcarry`, `overrides`, `phasearrows`, `rowheight`, `shiftheld`,
+  `snaptools`, `stalebandkey`, `builtindates` and `customunits` (live and fixture), `episodeprep` (three states) and
+  `hiatusripple` green. By hand in the pane with real clicks: each of the eight points, the three corrections, two
+  real moves with one Undo each, and the hint. **No full gate** (chrome only: no frozen code, no writer, no save
+  format; the engine's `shiftCalendarDates` is untouched).
+- **The new cases bite.** Three broken builds, `anchorside` on each: a row click that flips the tick (the first
+  build's behaviour) → red on M1, D4, W1; To a date's box not following the outline → red on W1; the box listing
+  every phase → red on W1. Real build restored (`93502865…`), 39/39 again.
+- ⚠️ `episodeprep` (fixture state) threw once at its R11 file-load step, which does not touch the Shift box; 25/25
+  re-run alone. The load-timeout flake seen all month.
+- ⏭ **Not done:** not pushed (needs the owner's picker). Local `main` not moved.
+- 🧹 **Seen, not fixed (not this change's):** the Help's Build Around paragraph still reads "**Rebuild From** …
+  Work backwards … Close all gaps", and it is in `src/index.html` TWICE (a merge duplicated it on 5 Nov).
+
 ### ✅ 6 Nov 2026: RIPPLE HIATUS STEPS OVER LOCKED BREAKS, AS SHIFT DOES — ✅ **LIVE at `ed74749`** (owner's picker *"Push now"*; pushed from the branch `850d930..ed74749` at 16:13:03, a fast-forward carrying `3d49143` and `8d065f2`, docs only; deploy succeeded; the live `index.html` matched the tested build `6455f09a…` byte for byte at 16:13:52, `version.json` 1.12.1, no version cut). Built on branch `ripple-weeks-now` (worktree `.claude/worktrees/hiatus-ripple`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). [`HIATUS-RIPPLE-PLAN.md`](HIATUS-RIPPLE-PLAN.md) §12. Tracker card `ripple-step-over-locked`
 - **Asked / ruled** (owner's pickers, 6 Nov 2026): *"Yes, plan it"* (should Ripple Hiatus step over locked breaks like
   Shift?), then on the plan *"Build it"* and *"Distances only"* (no extra sentence on the line).
@@ -997,7 +1079,7 @@
   run that had not been reported).
 
 
-### ✅ 5 Nov 2026 (evening): SHIFT — THE PHASE BESIDE THE DATE UNDER TO A DATE — ✅ **BUILT on `shift-tool`, targeted legs green, NOT pushed** (owner, on a screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot' starts on **date selected**"*; *"Mock it up first"*; *"I like it but it doesn't need to say 'the phase you picked'"*). Worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`. Mockup [`mockups/shift-date-row.html`](mockups/shift-date-row.html) (today vs proposed, both live and mirrored; three ways to show the pinned phase, D2). Tracker card `shift-date-row-subject`
+### ✅ 5 Nov 2026 (evening): SHIFT — THE PHASE BESIDE THE DATE UNDER TO A DATE — ✅ **LIVE at `383b1f8`** (⚠️ this heading read "BUILT on `shift-tool`, targeted legs green, NOT pushed" until 9 Nov 2026: the push was recorded in a HANDOFF-only commit, `f2be138`, that stayed on branch `shift-tool` and never reached `main`. Owner's picker *"Push now (Recommended)"*; pushed `5f99223..383b1f8` at 22:59:46 UTC on 5 Nov, a fast-forward; the live `index.html` matched the pushed build `1e4b66cc…` byte for byte at 23:00:26. ⛔ SUPERSEDED 9 Nov 2026 by the list-first Shift box, the entry at the top: the pivot row, the mirror select and the subject line described below are gone; the one thing kept is the phase sitting directly above "starts on".) (owner, on a screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then understand that it means 'Shoot' starts on **date selected**"*; *"Mock it up first"*; *"I like it but it doesn't need to say 'the phase you picked'"*). Worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`. Mockup [`mockups/shift-date-row.html`](mockups/shift-date-row.html) (today vs proposed, both live and mirrored; three ways to show the pinned phase, D2). Tracker card `shift-date-row-subject`
 
 **As built:**
 - **The rule:** the phase row above the list (`[data-shift-phase-row]`, `#tool-anchor-phase`) shows ONLY as the

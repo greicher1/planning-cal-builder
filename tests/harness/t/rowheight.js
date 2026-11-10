@@ -72,8 +72,7 @@ window.addEventListener('load', function () { (async function () {
     // (The Shift form's Phase & after since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
     document.getElementById('pop-shift-btn').click();
     await T.sleep(300);
-    document.querySelector('#pop-shift [data-move="after"]').click(); await T.sleep(100);
-    T.set('tool-anchor-phase', 'post');
+    await T.shiftSide('after', 'post');      // Post and every phase after it (the old Phase & after / Shift From)
     T.set('tool-shift-weeks', '1');
     document.getElementById('tool-shift-later').click();
     await T.sleep(600); await settle(); await T.sleep(400);

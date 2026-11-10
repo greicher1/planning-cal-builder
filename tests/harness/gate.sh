@@ -1941,20 +1941,18 @@ done
 # calendar built in one run from lengths typed in the box (staged, saved on Build, one undo with the dates); both sides
 # in one run; the Before / After shortcuts; "ends by"; Production's length read-only ("Not set" + the Show info line);
 # "Save 1 length"; closing forgets; no Close all gaps; no id in the list.
-# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6) is the ONE Shift tool that
-# replaced Shift From and Anchor To: What moves (All phases | Phase & before | Phase & after) x How far (By weeks | To a
-# date). All phases is the old call (the arrow, the form by weeks and the form to a date give one snapshot); Phase &
-# after is the old Shift From; a phase goes by its START, so one that started earlier and runs into the picked one
-# stays (X2, the owner's "everything except for writers room", which reverted "overlaps move too"); notes, unlocked
-# hiatuses and the range go up to the picked phase's LAST week on Phase & before (red on a one-bound build: B2, B3);
-# by weeks = to a date; one undo; the form's resets; no new key in fields.byId. On anchorside.sptcal. Since 5 Nov 2026
-# (owner's layout A, plan §7) the LIST of phases: folded under All phases, opened by "Choose phases…", a shortcut's
-# ticks, a tick changed by hand (no button pressed; the phase row hidden by weeks), T2's windows per ticked phase
-# (C2 the shared week, C4 across a gap: red on a one-span build), nothing ticked, Whole schedule's fixed ticks, the
-# reset on reopening, and no id on any tick. Since the evening of 5 Nov 2026 (owner: "is this confusing?",
-# mockups/shift-date-row.html) the date row's SUBJECT: the phase row only as the pivot, a mirror select (no id) under
-# How far for All phases / own ticks to a date, the pivot's name as text for Phase & before / after to a date (W1),
-# and a pick on the mirror written back into #tool-anchor-phase, prefilling the date, pinning the row, landing on Go (J1).
+# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
+# tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
+# three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
+# and the count (O3, HD); a click on a row chooses it and leaves its tick, its box ticks, a drag sets a run and
+# dragging back un-does it (M1, D1-D4, K1); "Prior to X" / "After X" replace the ticks (P1); nothing covers the rows
+# (N1); To a date's box shows the outlined phase and offers ticked phases only (W1, J1). The ticks decide the move:
+# every phase is the old call (E1: the arrow, by weeks and to a date give one snapshot); the bottom of the list is the
+# old Shift From (F1); a phase goes by its START, so one that started earlier and runs into the picked one stays (X2,
+# the owner's "everything except for writers room"); notes, unlocked hiatuses and the range go up to the picked
+# phase's LAST week on Prior to (red on a one-bound build: B2, B3); any other set takes one window per ticked phase
+# (C2 the shared week, C4 across a gap: red on a one-span build); by weeks = to a date; one undo; the reset on
+# reopening; no id on anything new; no new key in fields.byId. On anchorside.sptcal.
 # phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
 # week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
 # the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land

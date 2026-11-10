@@ -29,6 +29,46 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Shift: the list first (9 Nov 2026)
+
+The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of
+phases**, and the ticks alone say what moves. Built from the owner's eight-point spec (*"build this"*, 9 Nov 2026) and
+three corrections made the same day while trying it in the browser (ANCHOR-TO-DIRECTION-PLAN.md §7.6).
+
+- **A header strip in the list**: a box that ticks every phase and, once every phase is ticked, shows a minus and
+  clears them all, with the live count ("4 of 6 move") beside it. "Phases" above the list is now just the word.
+- **Click a row to choose it; its tick box ticks.** A click on a row outlines it and leaves its tick as it was
+  (owner: *"could it just select it but keep the checkbox selected?"*; the first build cleared it). A click on the
+  tick box flips the tick.
+- **Drag to set a run.** Press on a row and drag up or down: every row between the press and the pointer takes one
+  value, on if the pressed row was off and off if it was on. Dragging back un-does an overshoot.
+- **Prior to … / After …**, two buttons under the list, name the outlined row. Prior ticks it and every phase above
+  it; After, it and every phase below it. Each replaces the ticks. A long name is cut with an ellipsis.
+- **To a date follows the list** (owner: *"when pre-prep is selected, it should be the default option under To a
+  date. The list should also be limited to only selected phases"*): the phase above "starts on" is the outlined one,
+  and only ticked phases are offered. Picking a phase there outlines its row. The phase that lands is no longer
+  pinned in place of its tick: every row keeps its box.
+- **Nothing floats over the rows**: the header strip sits above them, no row has a hover tooltip, and the box's
+  "i" hint now opens upward.
+- It still opens with every phase ticked, By weeks, so "2 wks, Later" moves the whole calendar as before (the owner
+  asked for the case for opening with none ticked, and kept it).
+
+**What a set of ticks moves** is unchanged in substance, and now depends only on the set: every phase is the old
+whole-calendar move; the top of the list down to one phase is the old Phase & before; the bottom of the list from one
+phase is the old Phase & after (Shift From); any other set takes the notes inside each ticked phase's own weeks.
+
+**A bug found while testing with real clicks, fixed before anything shipped:** the guard that swallows a press's own
+click was disarmed by a timer, and when no click followed the press it ate the next click instead, so "choose a row,
+press After" did nothing. The next press or key drops the guard now.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, and everything is inside
+`.tools-menu`. Verified: `npm run check` 41/41 (a new check holds the hint opening upward, which a harness leg cannot
+hover); `anchorside` rewritten, 39/39 (each of the eight points and the three corrections has a case); the sixteen
+other legs that drive the Shift box or share its rows green, five of them ported from the old buttons to the list
+through new `T.shiftPress` / `T.shiftDrag` / `T.shiftSide` helpers. Three broken builds each turn `anchorside` red (a
+row click that flips the tick: M1, D4, W1; a To a date box that ignores the outline, or lists every phase: W1). No full
+gate: chrome only.
+
 ### Unreleased — Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
 
 Shift learned to step over a locked hiatus on 5 Nov (owner's ruling: count only working weeks, so the gaps between
