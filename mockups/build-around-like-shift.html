@@ -15,8 +15,13 @@
          of the both button because you can just select all with the top checkbox"); the pin's row under the list ("Pin to a date":
          the phase above "starts on", as in Shift); the hint opens upward; no hover titles on rows;
        * Build Around, as it is today, showing the same pin, date and ticks in today's layout.
-     Two rulings are switches under the frame: what Prior / After tick (R13) and the box's width (R15). R14 (does
-     Both keep a button) is RULED: no.
+     R13, PROPOSED 10 Nov 2026 (owner: "its just confusing if you click prior to pre prep and then writers room
+     isn't selected", then "writers room doesnt always overlap the next phases, only sometimes", then "Yes, mock
+     that up"): a phase is left unticked ONLY when it runs alongside the phase it would be built against, on THIS
+     calendar, and a line under the buttons says so by name. Writer's Rm and custom phases are no longer special.
+     It applies to how the box opens and to Prior / After. Two made-up calendars show both cases: on A the room
+     runs a week into Pre Prep, on B it ends as Pre Prep starts. The alternative, "tick every row", is a switch.
+     R14 (does Both keep a button) is RULED: no. R15 (the box's width) is still a switch.
      Kept different on purpose: the Length column, the pin icon (the pinned phase is fixed to the date, it has no
      tick), the dark Build button whose label says what will happen, and the opening ticks (Writer's Rm and custom
      phases start unticked: the owner's ruling of 5 Nov 2026).
@@ -51,6 +56,12 @@ button, input, select{ font:inherit; }
 .info ul, .info ol{ margin:0; padding-left:18px; }
 .info b{ font-weight:600; }
 @media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+.cases{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 0; align-items:center; }
+.cases .lbl{ font-size:12px; color:var(--gray-6); margin-right:4px; }
+.case{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 13px; font-size:12.5px; font-weight:600;
+       cursor:pointer; color:var(--gray-9); }
+.case:hover{ background:var(--gray-0); }
+.case[aria-pressed="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
 .opts{ margin:12px 0 0; font-size:12.5px; color:var(--gray-7); display:grid; gap:6px; }
 .opts .q{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 .opts .q > b{ min-width:250px; font-weight:600; color:var(--gray-9); }
@@ -168,6 +179,9 @@ input.ctl.num{ width:52px; flex:none; }
 .new{ outline:2px dashed var(--mark); outline-offset:3px; border-radius:var(--r-md); }
 .strip.new{ outline-offset:-2px; border-radius:0; }      /* inside the box, which clips what is outside it */
 .msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+/* Why a phase was left unticked: one line, under the buttons, only while it applies. */
+.leftnote{ margin:-4px 0 10px; padding:6px 9px; border-radius:var(--r-md); background:var(--gray-0); border:1px solid var(--gray-2);
+           font-size:11px; line-height:1.4; color:var(--gray-7); }
 .msg:empty{ display:none; }
 .dead{ pointer-events:none; }
 
@@ -196,6 +210,13 @@ input.ctl.num{ width:52px; flex:none; }
     <h1>Build Around, with Shift's look and feel</h1>
     <p>The middle box is Build Around redrawn the way the new Shift box works: the phases first, in a box with a header strip; click a row to choose it, click its box to tick, drag to tick a run; two big buttons under the list; the date row at the bottom with the phase right above "starts on". Shift is on the left for reference, and today's Build Around on the right shows the same pin, date and ticks in today's layout.</p>
     <p>All three are live on one made-up calendar. Try in the middle box: click <b>Post</b> to pin it, drag down a few rows, press <b>After …</b>, type a length, press Build.</p>
+    <p><b>New: which phases start unticked.</b> A phase is left out only when it runs alongside the phase it would be built against, and a line under the buttons says so. Switch between the two calendars, then click <b>Pre Prep</b> and press <b>Prior to Pre Prep</b> on each.</p>
+  </div>
+
+  <div class="cases" id="cases">
+    <span class="lbl">Calendar:</span>
+    <button class="case" type="button" data-cal="A" aria-pressed="true">A · the Writer's Room runs a week into Pre Prep</button>
+    <button class="case" type="button" data-cal="B" aria-pressed="false">B · the Writer's Room ends as Pre Prep starts</button>
   </div>
 
   <div class="frame"><div class="cols">
@@ -217,9 +238,9 @@ input.ctl.num{ width:52px; flex:none; }
   </div></div>
 
   <div class="opts">
-    <div class="q"><b>R13 · Prior to / After tick:</b>
-      <label><input type="radio" name="r13" value="usual" checked> the usual set: Writer's Rm and custom phases stay unticked (recommended)</label>
-      <label><input type="radio" name="r13" value="every"> every row on that side, as in Shift</label></div>
+    <div class="q"><b>R13 · Which phases are left unticked:</b>
+      <label><input type="radio" name="r13" value="overlap" checked> only one that runs alongside its neighbour, with a line saying so (proposed)</label>
+      <label><input type="radio" name="r13" value="every"> none: Prior / After tick every row, always</label></div>
     <div class="q"><b>R15 · Width:</b>
       <label><input type="radio" name="r15" value="400" checked> 400 px, as today (recommended)</label>
       <label><input type="radio" name="r15" value="340"> 340 px, as Shift</label></div>
@@ -261,13 +282,13 @@ input.ctl.num{ width:52px; flex:none; }
         <li><b>The pinned row has a pin, not a tick.</b> It is fixed to the date; there is nothing to untick.</li>
         <li><b>The Length column</b>, typed in the list as today.</li>
         <li><b>The dark Build button.</b> Its label says what will happen, and nothing changes until it is pressed.</li>
-        <li><b>How it opens:</b> both sides, Writer's Rm and custom phases unticked. The top box ticks those two as well, so it is not quite the old Both: untick them, or reopen the box, to get the opening ticks back.</li>
+        <li><b>How it opens:</b> both sides ticked, less any phase that runs alongside its neighbour. That is a change from today, where Writer's Rm and custom phases always start unticked.</li>
       </ul>
     </div>
     <div>
       <h3>Your calls (the switches above)</h3>
       <ul>
-        <li><b>R13</b>: does "Prior to Production" leave Writer's Rm and Casting unticked (today's rule), or tick every row above, as the same words do in Shift?</li>
+        <li><b>R13</b> (proposed): a phase is left unticked only when it runs alongside the phase it would be built against, by a full week or more, and the line under the buttons names it. It changes how the box opens today, too. The other choice is the switch: tick every row, always.</li>
         <li><b>R14</b>: ruled, 10 Nov 2026. No Both button.</li>
         <li><b>R15</b>: 400 or 340 px. At 340 the names get about 65 px, and the longer ones are cut: Writer's Rm, Production, Localization.</li>
       </ul>
@@ -286,10 +307,12 @@ input.ctl.num{ width:52px; flex:none; }
   function $(id){ return document.getElementById(id); }
   var PIN_SVG = '<svg class="pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
 
-  // A made-up calendar, whole weeks from a Monday. Casting is a custom phase; Delivery has no length and no date
-  // yet; Post starts a week after the wrap and Localization two weeks after Post ends, so Build has gaps to close.
-  var SEED = [
-    {key:'writers',    name:"Writer's Rm",  start:'2026-01-05', len:12, unit:'wks',  color:'#FFF2CC', builtin:true},
+  // Two made-up calendars, whole weeks from a Monday. Casting is a custom phase that runs beside Pre Prep; Delivery
+  // has no length and no date yet; Post starts a week after the wrap and Localization two weeks after Post ends, so
+  // Build has gaps to close. They differ in ONE thing: on A the Writer's Room (14 weeks) runs a week into Pre Prep,
+  // on B (13 weeks) it ends the day Pre Prep starts.
+  function seed(roomWeeks){ return [
+    {key:'writers',    name:"Writer's Rm",  start:'2026-01-05', len:roomWeeks, unit:'wks', color:'#FFF2CC', builtin:true},
     {key:'casting',    name:'Casting',      start:'2026-03-16', len:5,  unit:'wks',  color:'#E4DFEC', builtin:false},
     {key:'preprep',    name:'Pre Prep',     start:'2026-04-06', len:6,  unit:'wks',  color:'#DCE6F1', builtin:true},
     {key:'prodprep',   name:'Prod Prep',    start:'2026-05-18', len:6,  unit:'wks',  color:'#D9D9D9', builtin:true},
@@ -297,7 +320,9 @@ input.ctl.num{ width:52px; flex:none; }
     {key:'post',       name:'Post',         start:'2026-11-09', len:16, unit:'wks',  color:'#FCE4D6', builtin:true},
     {key:'local',      name:'Localization', start:'2027-03-15', len:8,  unit:'wks',  color:'#EDEDED', builtin:true},
     {key:'delivery',   name:'Delivery',     start:'',           len:0,  unit:'wks',  color:'#DDEBF7', builtin:true}
-  ];
+  ]; }
+  var SEEDS = {A: seed(14), B: seed(13)}, CAL = 'A';
+  function andList(n){ return n.length <= 1 ? n.join('') : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1]; }
   var PH, S, B;
   function byKey(k){ for(var i = 0; i < PH.length; i++) if(PH[i].key === k) return PH[i]; return null; }
   // Every phase in the order it runs; the undated ones last, as they are listed.
@@ -376,16 +401,60 @@ input.ctl.num{ width:52px; flex:none; }
   // ====================== BUILD AROUND ======================
   function lenOf(p){ return (p.key in B.lens) ? B.lens[p.key] : p.len; }
   function canTick(p){ return p.key !== B.pin && lenOf(p) > 0; }
-  // The ticks a shortcut sets. "The usual set" (today's rule) leaves Writer's Rm and custom phases out: built end
-  // to end, the room pushed the shoot by weeks. R13 "every" ticks every row on that side, as Shift's buttons do.
-  function defaultSet(side){
+  // TODAY'S RULE, kept for today's box (which button its switch shows pressed) and for the "tick every row" switch's
+  // opening ticks: Writer's Rm and custom phases are always left out.
+  function usualSet(side){
     var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), t = {};
     rows.forEach(function(p, i){
       if(!canTick(p)) return;
-      var onSide = side === 0 || (side < 0 ? i < pi : i > pi);
-      t[p.key] = onSide && (B.r13 === 'every' ? true : (p.builtin && p.key !== 'writers'));
+      t[p.key] = (side === 0 || (side < 0 ? i < pi : i > pi)) && p.builtin && p.key !== 'writers';
     });
     return t;
+  }
+  // ⭐ THE PROPOSED RULE (R13): a phase is left unticked ONLY when it runs ALONGSIDE the phase it would be built
+  // against, by a full week or more. Built in line, it would be pulled away from that phase; left out, it stays
+  // beside it. Walk outward from the pin, each way: a phase that overlaps the last phase taken into the chain is
+  // left out (and named, with that neighbour); any other joins the chain and becomes the next one to build against.
+  // No phase is special: Writer's Rm and custom phases are ticked whenever they sit in line.
+  function alongside(){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), out = {}, i, p, anchor;
+    if(pi < 0) return out;
+    anchor = rows[pi];
+    for(i = pi - 1; i >= 0; i--){
+      p = rows[i]; if(!canTick(p)) continue;
+      if(p.start != null && anchor.start != null && (p.start + lenOf(p) * WEEK) - anchor.start >= WEEK) out[p.key] = anchor.name; else anchor = p;
+    }
+    anchor = rows[pi];
+    for(i = pi + 1; i < rows.length; i++){
+      p = rows[i]; if(!canTick(p)) continue;
+      var aEnd = (anchor.start != null && lenOf(anchor) > 0) ? anchor.start + lenOf(anchor) * WEEK : null;
+      if(p.start != null && aEnd != null && aEnd - p.start >= WEEK) out[p.key] = anchor.name; else anchor = p;
+    }
+    return out;
+  }
+  // The ticks for a side (0 both, as the box opens; -1 Prior to the pin; 1 After it), and the phases left out of it
+  // for running alongside a neighbour. Under the "tick every row" switch Prior / After take every row, and the box
+  // opens as it does today.
+  function ruleSet(side){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), along = alongside(), t = {}, left = [];
+    if(B.r13 === 'every' && side === 0) return {ticks: usualSet(0), left: []};
+    rows.forEach(function(p, i){
+      if(!canTick(p)) return;
+      var onSide = side === 0 || (side < 0 ? i < pi : i > pi), out = B.r13 !== 'every' && (p.key in along);
+      t[p.key] = onSide && !out;
+      if(onSide && out) left.push(p.key);
+    });
+    return {ticks: t, left: left};
+  }
+  function applyRule(side){ var r = ruleSet(side); B.ticks = r.ticks; B.left = r.left; B.side = side; }
+  // The line under the buttons: the phases the rule left out that are still unticked, and the phase each runs beside.
+  function leftNote(){
+    var along = alongside(), keys = B.left.filter(function(k){ return !B.ticks[k] && (k in along); });
+    if(!keys.length) return '';
+    var names = keys.map(function(k){ return byKey(k).name; }), nb = keys.map(function(k){ return along[k]; });
+    if(keys.length === 1) return names[0] + ' left unticked: it runs alongside ' + nb[0] + '. Tick it to build it in line.';
+    var same = nb.every(function(n){ return n === nb[0]; });
+    return andList(names) + ' left unticked: ' + (same ? 'they run alongside ' + nb[0] : 'each runs alongside the phase next to it') + '. Tick them to build them in line.';
   }
   function buildDateFor(key){
     var p = byKey(key); if(!p || p.start == null) return '';
@@ -461,6 +530,8 @@ input.ctl.num{ width:52px; flex:none; }
     h += '</div></div>';
     h += '<div class="row sides new"><button type="button" class="side" data-side="-1">Prior to ' + esc(pin ? pin.name : '…') + '</button>' +
          '<button type="button" class="side" data-side="1">After ' + esc(pin ? pin.name : '…') + '</button></div>';
+    var note = leftNote();
+    if(note) h += '<p class="leftnote new">' + esc(note) + '</p>';
     h += '<p class="cap"><span class="new">Pin to a date</span></p><div class="row new"><select class="ctl" data-pin="">' + pinOptions(true) + '</select></div>' +
          '<div class="row">' + edgeSelect('starts on') + '<input class="ctl" type="date" data-date="" value="' + B.date + '"></div>';
     h += '<button type="button" class="build-go" data-go=""' + (f.off ? ' disabled' : '') + '>' + esc(f.label) + '</button><p class="msg">' + esc(B.msg) + '</p>';
@@ -470,8 +541,8 @@ input.ctl.num{ width:52px; flex:none; }
   // Today's layout, drawn from the same pin, date and ticks.
   function renderToday(){
     var f = buildFacts(), pressed = null;
-    [-1, 0, 1].forEach(function(s){ var d = defaultSet(s); if(pressed === null && f.others.every(function(p){ return !!d[p.key] === !!B.ticks[p.key]; })) pressed = s; });
-    if(pressed !== null && pressed !== 0){ var d0 = defaultSet(0); if(f.others.every(function(p){ return !!d0[p.key] === !!B.ticks[p.key]; })) pressed = 0; }
+    [-1, 0, 1].forEach(function(s){ var d = usualSet(s); if(pressed === null && f.others.every(function(p){ return !!d[p.key] === !!B.ticks[p.key]; })) pressed = s; });
+    if(pressed !== null && pressed !== 0){ var d0 = usualSet(0); if(f.others.every(function(p){ return !!d0[p.key] === !!B.ticks[p.key]; })) pressed = 0; }
     var h = '<p class="head">Build around a phase <span class="i">i</span></p>';
     h += '<div class="row"><select class="ctl">' + pinOptions(false) + '</select>' + edgeSelect('starts').replace('class="ctl edge"', 'class="ctl edge" style="width:84px"') + '<input class="ctl" type="date" value="' + B.date + '" style="flex:none;width:124px"></div>';
     h += '<p class="head" style="margin-top:8px">Phases to build<span class="count">' + f.n + ' of ' + f.others.length + ' ticked</span></p>';
@@ -573,16 +644,29 @@ input.ctl.num{ width:52px; flex:none; }
     canTick: function(k){ return canTick(byKey(k)); },
     isOn: function(k){ return k === B.pin || !!B.ticks[k]; },
     copyTicks: function(){ var o = {}; Object.keys(B.ticks).forEach(function(k){ o[k] = B.ticks[k]; }); return o; },
-    setTicks: function(t){ B.ticks = t; },
+    // A tick changed by hand: the set is the user's own now (a new pin keeps it), and a phase the rule left out
+    // drops off the note once it is ticked.
+    setTicks: function(t){
+      var same = Object.keys(t).concat(Object.keys(B.ticks)).every(function(k){ return !!t[k] === !!B.ticks[k]; });
+      B.ticks = t;
+      if(!same){ B.side = null; B.left = B.left.filter(function(k){ return !t[k]; }); }
+    },
     locked: function(){ return false; },
     touched: function(){ B.msg = ''; },
     clicked: function(k){ setPin(k); }
   });
+  // A new pin: while the ticks are still a side's own set, that side is worked out again for the new pin; a set
+  // changed by hand is kept, and the phase that was pinned gets the tick the rule would give it.
   function setPin(k){
     if(k === B.pin) return;
     var was = byKey(B.pin);
-    B.pin = k; delete B.ticks[k];
-    if(was && lenOf(was) > 0 && !(was.key in B.ticks)) B.ticks[was.key] = was.builtin && was.key !== 'writers';
+    B.pin = k;
+    if(B.side !== null) applyRule(B.side);
+    else {
+      delete B.ticks[k];
+      B.left = B.left.filter(function(x){ return x !== k; });
+      if(was && lenOf(was) > 0 && !(was.key in B.ticks)) B.ticks[was.key] = B.r13 === 'every' ? true : !(was.key in alongside());
+    }
     buildRefill(); B.msg = '';
   }
 
@@ -614,10 +698,10 @@ input.ctl.num{ width:52px; flex:none; }
   $('pop-new').addEventListener('click', function(e){
     var b = e.target.closest('button');
     if(e.target.closest('[data-all]')){
-      var f = buildFacts(), all = f.all; f.others.forEach(function(p){ B.ticks[p.key] = !all; }); B.msg = ''; renderAll(); return;
+      var f = buildFacts(), all = f.all; f.others.forEach(function(p){ B.ticks[p.key] = !all; }); B.left = []; B.side = null; B.msg = ''; renderAll(); return;
     }
     if(!b) return;
-    if(b.dataset.side){ B.ticks = defaultSet(+b.dataset.side); B.msg = ''; }
+    if(b.dataset.side){ applyRule(+b.dataset.side); B.msg = ''; }
     else if(b.hasAttribute('data-go')) runBuild();
     renderAll();
   });
@@ -649,19 +733,21 @@ input.ctl.num{ width:52px; flex:none; }
   ['r13', 'r15'].forEach(function(name){
     document.querySelectorAll('input[name=' + name + ']').forEach(function(r){ r.addEventListener('change', function(){
       B[name] = r.value;
-      if(name === 'r13') B.ticks = defaultSet(0);
+      if(name === 'r13') applyRule(0);
       renderAll();
     }); });
   });
   function reset(){
-    PH = SEED.map(function(p){ var o = {}; Object.keys(p).forEach(function(k){ o[k] = p[k]; }); o.start = ms(p.start); return o; });
-    var keep = B ? {r13: B.r13, r15: B.r15} : {r13: 'usual', r15: '400'};
+    PH = SEEDS[CAL].map(function(p){ var o = {}; Object.keys(p).forEach(function(k){ o[k] = p[k]; }); o.start = ms(p.start); return o; });
+    var keep = B ? {r13: B.r13, r15: B.r15} : {r13: 'overlap', r15: '400'};
     S = {ticks: {}, mark: 'production', far: 'weeks', land: 'production', edge: 'start', date: '', weeks: 2, msg: ''};
     shiftRows().forEach(function(p){ S.ticks[p.key] = true; });
-    B = {pin: 'production', edge: 'start', date: '', ticks: {}, lens: {}, msg: '', r13: keep.r13, r15: keep.r15};
-    B.ticks = defaultSet(0); buildRefill(); S.date = shiftDateFor('production');
+    B = {pin: 'production', edge: 'start', date: '', ticks: {}, left: [], side: 0, lens: {}, msg: '', r13: keep.r13, r15: keep.r15};
+    applyRule(0); buildRefill(); S.date = shiftDateFor('production');
+    document.querySelectorAll('.case').forEach(function(c){ c.setAttribute('aria-pressed', String(c.dataset.cal === CAL)); });
     renderAll();
   }
+  $('cases').addEventListener('click', function(e){ var c = e.target.closest('.case'); if(!c) return; CAL = c.dataset.cal; reset(); });
   $('reset').addEventListener('click', reset);
   reset();
 })();
