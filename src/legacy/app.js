@@ -32295,6 +32295,9 @@ export function initLegacyApp() {
     let solveDir = 0;
     let solveTicks = {};
     let solveLens = {};
+    let solveDrag = null;     // a press-and-drag down Build Around's list (see its pointerdown)
+    // The guard that swallows a list press's own click (Shift's list and Build Around's; see Shift's pointerdown).
+    let pressClickGuard = false;
     // The Shift form (the list first: owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). Session UI, never
     // saved (no id on anything new, all inside .tools-menu), and reset on EVERY opening (ruling R2(a)): every phase
     // ticked, By weeks, so someone who never touches the list gets exactly the old Shift All form. Declared up here
@@ -32462,7 +32465,7 @@ export function initLegacyApp() {
       // The Shift form's landing phase (Anchor To's select, by id): fillShiftPhase(), which syncShiftForm() runs
       // again. Filled here FIRST because the date below is read from it, and the list reads the date.
       fillShiftPhase();
-      fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production', false, true);
+      fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production', false);
       syncAnchorDate();
       syncSolveDate();
       syncShiftForm();
@@ -32471,7 +32474,7 @@ export function initLegacyApp() {
       if(solveMenu && solveMenu.classList.contains('open')) renderSolve();
     }
     function closeAllPops(){
-      shiftDrag = null;   // a drag down the Shift list ends with its box
+      shiftDrag = null; solveDrag = null;   // a drag down either list ends with its box
       POPS.forEach(p=>{
         p.menu.classList.remove('open');
         p.btn.setAttribute('aria-expanded','false');
@@ -32511,7 +32514,7 @@ export function initLegacyApp() {
       // Build Around forgets everything between openings, so each one starts on Both, its default ticks, its starts
       // date and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
       if(target.menu === solveMenu){
-        solveTicks = {}; solveDir = 0; solveLens = {};
+        solveTicks = {}; solveDir = 0; solveLens = {}; solveDrag = null;
         const edgeEl = document.getElementById('tool-solve-edge');
         if(edgeEl && edgeEl.value !== 'start'){ edgeEl.value = 'start'; syncSolveDate(); }
         renderSolve();
@@ -32817,7 +32820,6 @@ export function initLegacyApp() {
         // pane, where an 80 ms timer ran a minute late). The guard is dropped by the next press or key instead: the
         // only real click that can come before either is the press's own. A click made by code (isTrusted false:
         // the harness, a .click()) is never swallowed.
-        let pressClickGuard = false;
         const endDrag = ()=>{
           if(!shiftDrag) return;
           shiftDrag = null;
@@ -32921,20 +32923,28 @@ export function initLegacyApp() {
     //     Pin one phase to a date (its start, or its end: "ends by", ruling R3) and build the TICKED phases around it,
     //     end to end, from their lengths: the ones before it backwards, the ones after it forwards, in one run.
     //     * ONE LIST, BOTH SIDES. Every phase in the order it runs (phaseSequence), the pinned one in its place.
-    //       `← Before · Both · After →` are SHORTCUTS that fill in the ticks, as Shift's three buttons do: solveDir
-    //       (-1 / 0 / 1) picks the default set and a tick changed by hand overrides it (solveTicks). It opens on Both.
-    //     * THE STARTING TICKS: every built-in phase on the chosen side that has a length, EXCEPT Writer's Rm (owner,
-    //       5 Nov 2026: the room overlaps the next phase on every one of the owner's calendars, plan §0); never a
-    //       custom phase (30 Oct 2026: a Casting beside Prod Prep chained end to end pushed everything before it).
+    //       SHIFT'S LOOK AND FEEL since 10 Nov 2026 (owner: "make Build Around match the same UI look and feel as the
+    //       shift tool"; mockups/build-around-like-shift.html): the list first, in Shift's box with its header strip
+    //       (a select-all box and the count); a click on a row PINS it, its box ticks, a drag sets a run; `Prior to X`
+    //       / `After X` under the list; the pin's row ("Pin to a date") under those. solveDir (-1 Prior, 0 both sides
+    //       as it opens, 1 After) picks the default set and a tick changed by hand overrides it (solveTicks). There is
+    //       no Both button (owner: "you can just select all with the top checkbox").
+    //     * THE STARTING TICKS (owner, 10 Nov 2026: "its just confusing if you click prior to pre prep and then
+    //       writers room isn't selected", "writers room doesnt always overlap the next phases, only sometimes"): every
+    //       phase on the chosen side that has a length, EXCEPT one that runs ALONGSIDE the phase it would be built
+    //       against (solveAlongside): built in line it would be pulled away from that phase. The line under the
+    //       buttons names it. ⛔ Until then Writer's Rm and every custom phase were always left out (5 Nov / 30 Oct
+    //       2026), which was wrong whenever the room did not overlap. One thing is still by kind: a CUSTOM phase with
+    //       no date yet starts unticked, because nothing on the calendar says where it belongs.
     //       Localization's rule (owner, 30 Oct 2026) still holds because a phase with no length can't be ticked.
     //     * LENGTHS IN THE LIST (plan D1, the owner's ask: "What if you could enter number of weeks within the
     //       menu?"). A box per row, staged in `solveLens` until Build (ruling R2(a)) and then written through the
     //       phase's own field, in the same undo step as the dates. Typing one into a row that had none ticks it.
     //       ⛔ Production's length is READ-ONLY here (ruling R4): Show info's shoot days, or "Not set".
     //     * Ticks, side, edge and staged lengths are session UI: forgotten on every opening, carried by no id.
-    //     The old direction buttons' ids live on: tool-solve-back is Before, tool-solve-fwd is After.
+    //     The old direction buttons' ids live on: tool-solve-back is Prior to X, tool-solve-fwd is After X.
     const solveList = solveMenu && solveMenu.querySelector('[data-solve-list]');
-    const solveDirBtns = solveMenu ? Array.from(solveMenu.querySelectorAll('.solve-dir [data-dir]')) : [];
+    const solveDirBtns = solveMenu ? Array.from(solveMenu.querySelectorAll('[data-dir]')) : [];
     const SOLVE_PIN_SVG = '<svg class="solve-pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
     // The pin and the phases in run order, read once per draw.
     function solveFrame(){
@@ -32943,11 +32953,48 @@ export function initLegacyApp() {
       return {key, seq, at: seq.findIndex(p => p.key === key)};
     }
     function solveSideOf(f, p){ const i = f.seq.indexOf(p); return i === f.at ? 0 : (i < f.at ? -1 : 1); }
-    // The default tick for a phase under a shortcut (dir -1 Before, 0 Both, 1 After).
+    // ⭐ THE PHASES THAT RUN ALONGSIDE THE PHASE THEY WOULD BE BUILT AGAINST, as {key: that phase's name}. Walk outward
+    //    from the pin, each way, over the phases that have a length. A phase that shares SOLVE_ALONGSIDE_DAYS or more
+    //    days with the last phase taken into the chain is alongside it: it is left out (and stays where it is); any
+    //    other joins the chain and is the next one to build against. So a Casting beside Pre Prep does not make the
+    //    Writer's Room before it "overlap": the room is judged against Pre Prep, which Casting is not part of.
+    //    Five days, a full working week: Pre Prep working two days into Prod Prep's first week, or the wrap falling
+    //    on the Tuesday Post starts, is how dates fall, not two phases side by side.
+    //    Read from the calendar as it stands (the dates on screen), never from a length typed in the list.
+    const SOLVE_ALONGSIDE_DAYS = 5;
+    function solveAlongside(f){
+      const out = {};
+      if(f.at < 0) return out;
+      const segs = (currentSchedule && currentSchedule.segments) || [];
+      const run = p => {
+        const start = phaseStartDate(p.key), seg = segs.find(x => x.key === p.key);
+        return {start: start || null, last: (start && seg) ? (phaseLastWorkday(seg) || null) : null, name: p.label || 'Phase'};
+      };
+      const shared = (last, start) => (last && start) ? Math.round((last - start) / DAY_MS) + 1 : 0;
+      let anchor = run(f.seq[f.at]);
+      for(let i = f.at - 1; i >= 0; i--){
+        const p = f.seq[i];
+        if(!solveHasLen(p)) continue;
+        const r = run(p);
+        if(shared(r.last, anchor.start) >= SOLVE_ALONGSIDE_DAYS) out[p.key] = anchor.name; else anchor = r;
+      }
+      anchor = run(f.seq[f.at]);
+      for(let i = f.at + 1; i < f.seq.length; i++){
+        const p = f.seq[i];
+        if(!solveHasLen(p)) continue;
+        const r = run(p);
+        if(shared(anchor.last, r.start) >= SOLVE_ALONGSIDE_DAYS) out[p.key] = anchor.name; else anchor = r;
+      }
+      return out;
+    }
+    const solveAlong = f => f.along || (f.along = solveAlongside(f));
+    // The default tick for a phase on a side (dir -1 Prior to the pin, 0 both sides, 1 After it): on, unless it runs
+    // alongside the phase it would be built against, or it is a custom phase with no date yet.
     function solveDefaultOn(f, p, dir){
-      if(PHASE_CHAIN.indexOf(p.key) === -1 || p.key === 'writersRoom') return false;
       const side = solveSideOf(f, p);
-      return side !== 0 && (dir === 0 || side === dir);
+      if(side === 0 || !(dir === 0 || side === dir)) return false;
+      if(p.key in solveAlong(f)) return false;
+      return PHASE_CHAIN.indexOf(p.key) !== -1 || !!phaseStartDate(p.key);
     }
     // A length, counting one typed in the box and not saved yet.
     function solveHasLen(p){
@@ -32996,15 +33043,15 @@ export function initLegacyApp() {
       if(p.key === 'production'){
         const info = showInfoStatus();
         return info.complete && info.totalShootDays > 0
-          ? '<span class="solve-len"><span class="solve-len-ro" title="From Show info. Change it there.">' + escHtml(String(info.totalShootDays)) + ' days</span></span>'
-          : '<span class="solve-len"><span class="solve-len-ro is-unset" title="Production’s length comes from Show info: episodes × shooting days.">Not set</span></span>';
+          ? '<span class="solve-len"><span class="solve-len-ro">' + escHtml(String(info.totalShootDays)) + ' days</span></span>'
+          : '<span class="solve-len"><span class="solve-len-ro is-unset">Not set</span></span>';
       }
       const unit = customPhaseUnit(p.key);
       if(unit === 'dates'){
         const s = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
         const e = parseDateUTC((document.getElementById('end-' + p.key) || {}).value || '');
         const n = (s && e && e >= s) ? Math.round((e - s) / DAY_MS) + 1 : 0;
-        return '<span class="solve-len"><span class="solve-len-ro" title="Set by its dates">' + (n ? n + (n === 1 ? ' day' : ' days') : '—') + '</span></span>';
+        return '<span class="solve-len"><span class="solve-len-ro">' + (n ? n + (n === 1 ? ' day' : ' days') : '—') + '</span></span>';
       }
       const el = lengthFieldFor(p.key);
       const staged = p.key in solveLens;
@@ -33034,8 +33081,6 @@ export function initLegacyApp() {
       // Build Around's rows carry the length column.
       const row = (p, cls, lead, date, words, title) => solveRow(p, cls, lead, date, words, title, solveLenCell(p));
       const f = solveFrame();
-      const pressed = solvePressed(f);
-      solveDirBtns.forEach(b => b.setAttribute('aria-pressed', String(pressed !== null && Number(b.dataset.dir) === pressed)));
       const dateIso = (document.getElementById('tool-solve-date') || {}).value;
       const target = parseDateUTC(dateIso || '');
       const edge = solveEdge();
@@ -33048,21 +33093,22 @@ export function initLegacyApp() {
       if(res && !res.error) res.written.forEach(w => { placed[w.key] = w.start; });
 
       let moving = false;
-      const rows = ['<div class="solve-row solve-colhead" aria-hidden="true"><span></span><span></span><span>Phase</span>'
-        + '<span class="solve-colr">Length</span><span class="solve-colr">Starts</span><span></span></div>'];
+      // ⛔ No `title` on a row: a native tooltip floats over the rows, and nothing may (Shift's rule, item 8). The
+      // words in the row say it: "No length", "Can’t place", and the note under the list for Production.
+      const rows = [];
       f.seq.forEach(p => {
         const now = solveShown(p.key, phaseStartDate(p.key));
         if(p === pinP){
           const to = res && !res.error && res.anchor ? solveShown(p.key, res.anchor) : (edge === 'start' && target ? solveShown(p.key, target) : now);
-          const words = (res && res.error) ? 'Can’t place' : (to && target ? solveMovedWords(now, to) : '');
-          if(words && words !== 'No change') moving = true;
-          rows.push(row(p, ' is-pin', SOLVE_PIN_SVG, to, words,
-            'The phase you pinned. It ' + (edge === 'end' ? 'ends by' : 'starts on') + ' your date.'));
+          const moved = (res && res.error) ? 'Can’t place' : (to && target ? solveMovedWords(now, to) : '');
+          if(moved && moved !== 'No change') moving = true;
+          // The pinned row is the CHOSEN row: Shift's outline, and "On your date" while the date is the one it has.
+          rows.push(row(p, ' is-pin is-mark', SOLVE_PIN_SVG, to, moved === 'No change' ? 'On your date' : moved, ''));
           return;
         }
         if(!solveHasLen(p)){
           rows.push(row(p, ' is-off is-nolen', '<input type="checkbox" disabled aria-label="' + escHtml((p.label || 'Phase') + ' has no length') + '">',
-            now, 'No length', p.key === 'production' ? 'Production’s length comes from Show info.' : 'Type a length to place it.'));
+            now, 'No length', ''));
           return;
         }
         const on = solveMoves(f, p);
@@ -33072,9 +33118,7 @@ export function initLegacyApp() {
         // No date picked: show where it is now. A ticked phase the trial could not place says so rather than quoting a
         // date it will not get -- after a Production with no length, say, or a shoot that fits nowhere before the date.
         if(!to){
-          const blocked = res && !res.error && (res.afterBlocked || res.skipped.indexOf(p.label || p.key) !== -1);
-          rows.push(row(p, '', box, now, res && !res.error ? 'Can’t place' : '',
-            blocked && pinP && pinP.key === 'production' ? 'Production’s length comes from Show info. Set it there, and the phases after it can be placed.' : ''));
+          rows.push(row(p, '', box, now, res && !res.error ? 'Can’t place' : '', ''));
           return;
         }
         const words = solveMovedWords(now, to);
@@ -33082,20 +33126,59 @@ export function initLegacyApp() {
         rows.push(row(p, words === 'No change' ? '' : ' is-moving', box, to, words));
       });
       if(f.at < 0) rows.push('<div class="solve-row solve-empty">Pick a phase to build around.</div>');
-      // Keep the caret in a length box across the redraw (the list is rebuilt from markup).
+      // Keep the caret in a length box, and focus on a tick box, across the redraw (the list is rebuilt from markup).
       const act = document.activeElement;
-      const focusKey = act && solveList.contains(act) && act.dataset ? act.dataset.len : null;
+      const inList = act && solveList.contains(act) && act.dataset;
+      const focusKey = inList ? act.dataset.len : null, tickKey = inList ? act.dataset.key : null;
       const caret = focusKey ? act.selectionStart : null;
       solveList.innerHTML = rows.join('');
+      // Each row names its phase for the press-and-drag below (solveRow is Shift's too, so it is set here). The rows
+      // are f.seq's, in order; the "Pick a phase" line after them has none.
+      f.seq.forEach((p, i) => { if(solveList.children[i]) solveList.children[i].dataset.key = p.key; });
       if(focusKey){
         const el = solveList.querySelector('input[data-len="' + focusKey + '"]');
         if(el){ el.focus(); if(caret !== null) el.setSelectionRange(caret, caret); }
+      } else if(tickKey){
+        const el = Array.prototype.find.call(solveList.querySelectorAll('input[data-key]'), b => b.dataset.key === tickKey);
+        if(el) el.focus();
       }
 
       const others = f.seq.filter(p => p !== pinP && solveHasLen(p));
       const n = others.filter(p => solveMoves(f, p)).length;
       const count = solveMenu.querySelector('[data-solve-count]');
-      if(count) count.textContent = others.length ? n + ' of ' + others.length + ' ticked' : '';
+      if(count) count.textContent = others.length ? n + ' of ' + others.length + ' build' : '';
+      // The header box: ticked (drawn as a minus) once every phase that can be built is ticked.
+      const allBox = solveMenu.querySelector('[data-solve-all]');
+      if(allBox){
+        const all = others.length > 0 && n === others.length;
+        allBox.checked = all;
+        allBox.disabled = !others.length;
+        allBox.setAttribute('aria-label', all ? 'Clear every phase' : 'Tick every phase');
+      }
+      // Prior to X / After X name the pinned phase.
+      solveDirBtns.forEach(b => {
+        const dir = Number(b.dataset.dir);
+        b.textContent = (dir < 0 ? 'Prior to ' : 'After ') + (pinP ? (pinP.label || 'Phase') : '…');
+        b.disabled = !pinP;
+      });
+      // WHY A PHASE WAS LEFT UNTICKED, in one line under the buttons: the phases on the side in force that run
+      // alongside the phase they would be built against and still have the tick the rule gave them (one the user has
+      // ticked, cleared or dragged over is their own choice, and drops off the line).
+      const left = solveMenu.querySelector('[data-solve-left]');
+      if(left){
+        const along = solveAlong(f);
+        const out = f.seq.filter(p => (p.key in along) && !(p.key in solveTicks) && solveHasLen(p)
+          && (solveDir === 0 || solveSideOf(f, p) === solveDir));
+        let text = '';
+        if(out.length === 1) text = (out[0].label || 'Phase') + ' left unticked: it runs alongside ' + along[out[0].key] + '. Tick it to build it in line.';
+        else if(out.length){
+          const same = out.every(p => along[p.key] === along[out[0].key]);
+          text = andList(out.map(p => p.label || 'Phase')) + ' left unticked: '
+            + (same ? 'they run alongside ' + along[out[0].key] : 'each runs alongside the phase next to it') + '. Tick them to build them in line.';
+        }
+        left.textContent = text;
+        left.hidden = !text;
+      }
       // Production's length can't be typed here (R4), so while it is missing the box says where it is set.
       const note = solveMenu.querySelector('[data-solve-note]');
       if(note) note.hidden = showInfoStatus().complete;
@@ -33158,19 +33241,112 @@ export function initLegacyApp() {
       if(ov) out += ' ' + ov;
       say(out);
     }
-    // A shortcut fills the ticks: forget any hand-ticked ones and take that side's defaults.
+    // Prior to X / After X fill the ticks: forget any hand-ticked ones and take that side's defaults.
     solveDirBtns.forEach(b => b.addEventListener('click', ()=>{
       solveDir = Math.max(-1, Math.min(1, Number(b.dataset.dir) || 0));
       solveTicks = {};
       say('');
       renderSolve();
     }));
+    // A tick changed from the keyboard (Space) or by a tap on its box; the mouse goes through the press below.
     if(solveList) solveList.addEventListener('change', e=>{
       const box = e.target.closest('input[type="checkbox"][data-key]');
       if(!box) return;
       solveTicks[box.dataset.key] = box.checked;
       renderSolve();
     });
+    // The header box: every phase that can be built, or none once every one of them is ticked.
+    const solveAllBox = solveMenu && solveMenu.querySelector('[data-solve-all]');
+    if(solveAllBox) solveAllBox.addEventListener('change', ()=>{
+      const f = solveFrame();
+      const others = f.seq.filter(p => solveSideOf(f, p) !== 0 && solveHasLen(p));
+      const all = others.length > 0 && others.every(p => solveMoves(f, p));
+      others.forEach(p => { solveTicks[p.key] = !all; });
+      say('');
+      renderSolve();
+    });
+    // PIN A PHASE. The dropdown under the list is the one place the pin lives, so a click on a row goes through it:
+    // its own `change` handlers refill the date and redraw (and re-tick, while the ticks are still a side's own set).
+    function solvePin(key){
+      const sel = document.getElementById('tool-solve-phase');
+      if(!sel || sel.value === key) return;
+      sel.value = key;
+      if(sel.value !== key) return;
+      say('');
+      sel.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    // PRESS AND DRAG, as in Shift's list (see its pointerdown), with ONE difference, on purpose:
+    //   * A press on a row ITSELF (its name, its date) and a release on it PINS that phase. In Shift the same click
+    //     only outlines the row; here the outlined row IS the pin, which sets the date and the whole preview.
+    //   * A press on its BOX flips that tick, and leaves the pin alone. So does a drag: ticking never moves the pin.
+    //   * A DRAG from either sets every row between the pressed one and the pointer to one value: on if the pressed
+    //     row was off, off if it was on (the pin counts as on). A range, redone from the ticks at the press. The pin
+    //     and the rows with no length have no tick, and are passed over.
+    //   * A press inside a length box is typing, and is left alone.
+    if(solveList){
+      const rowAtY = y => {
+        const els = solveList.querySelectorAll('.solve-row[data-key]');
+        for(const el of els) if(y < el.getBoundingClientRect().bottom) return el.dataset.key;
+        return els.length ? els[els.length - 1].dataset.key : '';
+      };
+      const dragTo = key => {
+        if(!solveDrag || !key || key === solveDrag.at) return;
+        const f = solveFrame(), keys = f.seq.map(p => p.key);
+        const a = keys.indexOf(solveDrag.from), b = keys.indexOf(key);
+        if(a < 0 || b < 0) return;
+        solveDrag.at = key;
+        if(a !== b) solveDrag.moved = true;
+        const next = Object.assign({}, solveDrag.base);
+        if(a !== b || solveDrag.box){
+          for(let i = Math.min(a, b); i <= Math.max(a, b); i++){
+            const p = f.seq[i];
+            if(solveSideOf(f, p) !== 0 && solveHasLen(p)) next[p.key] = solveDrag.value;
+          }
+        }
+        const same = Object.keys(next).length === Object.keys(solveTicks).length && Object.keys(next).every(k => next[k] === solveTicks[k]);
+        if(same) return;                   // a press on the row itself: nothing to redraw (each draw runs the solvers)
+        solveTicks = next;
+        renderSolve();
+      };
+      solveList.addEventListener('pointerdown', e=>{
+        if(e.button !== 0 || e.ctrlKey || e.pointerType === 'touch') return;
+        if(e.target.closest('input[data-len]')) return;
+        const row = e.target.closest('.solve-row[data-key]');
+        if(!row) return;
+        const box = e.target.closest('input[type="checkbox"]');
+        if(box && box.disabled) return;      // no length: nothing to tick. Its row can still be pinned.
+        e.preventDefault();
+        const f = solveFrame(), key = row.dataset.key, p = f.seq.find(x => x.key === key);
+        solveDrag = {from: key, at: '', box: !!box, moved: false, value: !(key === f.key || (!!p && solveMoves(f, p))), base: Object.assign({}, solveTicks)};
+        dragTo(key);
+        say('');
+      });
+      document.addEventListener('pointermove', e=>{
+        if(!solveDrag) return;
+        const box = solveList.getBoundingClientRect();
+        if(e.clientY < box.top + 6) solveList.scrollTop -= 14; else if(e.clientY > box.bottom - 6) solveList.scrollTop += 14;
+        dragTo(rowAtY(e.clientY));
+      });
+      // Letting go anywhere ends it; the press's own click is swallowed by the guard Shift's list set up.
+      const endSolveDrag = ()=>{
+        if(!solveDrag) return;
+        const d = solveDrag;
+        solveDrag = null;
+        pressClickGuard = true;
+        if(!d.box && !d.moved) solvePin(d.from);
+      };
+      document.addEventListener('pointerup', endSolveDrag);
+      document.addEventListener('pointercancel', endSolveDrag);
+      window.addEventListener('blur', ()=>{ solveDrag = null; });
+      // A TAP (touch takes no part in the press, so the list still scrolls under a finger), or a click made by code:
+      // on the row itself it pins, so the label's own tick is stopped; on a box it is the box's own.
+      solveList.addEventListener('click', e=>{
+        const row = e.target.closest('.solve-row[data-key]');
+        if(!row || e.target.closest('input')) return;
+        e.preventDefault();
+        solvePin(row.dataset.key);
+      });
+    }
     // A typed length: staged, and drawn once the typing settles (each draw runs the solvers).
     let solveLenTimer = null;
     if(solveList) solveList.addEventListener('input', e=>{

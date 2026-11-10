@@ -1827,7 +1827,10 @@
        * The rows are pressed and dragged, so their text is not selectable. */
   .shift-box{border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-md); overflow:hidden;
     margin-bottom:6px;}
-  #pop-shift .shift-box .solve-list{border:0; border-radius:0; margin:0; -webkit-user-select:none; user-select:none;}
+  #pop-shift .shift-box .solve-list, #pop-solve .shift-box .solve-list{border:0; border-radius:0; margin:0;
+    -webkit-user-select:none; user-select:none;}
+  /* Build Around's length boxes are typed in, so they stay selectable inside its list. */
+  #pop-solve .shift-box .solve-list input{-webkit-user-select:text; user-select:text;}
   .shift-all{display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:7px; margin:0;
     padding:5px 9px; background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-2);
     font-size:11.5px; line-height:1.4; color:var(--mantine-color-gray-7); cursor:pointer;
@@ -1848,7 +1851,7 @@
   .shift-all input[type=checkbox]:disabled:checked{background-color:var(--mantine-color-gray-4); border-color:var(--mantine-color-gray-4);}
   /* The last row clicked, ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge
      and the row lines never clip it. It is the row Prior / After name. */
-  #pop-shift .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
+  #pop-shift .solve-row.is-mark, #pop-solve .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
   /* To a date, the phase that lands: Build Around's pinned-row tint, on a row that keeps its tick box (it is the
      outlined row's phase whenever that row is ticked, so it changes with a click and must stay clearable). */
   #pop-shift .solve-row.is-land{background:var(--mantine-color-navy-0);}
@@ -1940,6 +1943,10 @@
   .solve-len-ro.is-unset{color:var(--mantine-color-warn-9); font-weight:600;}
   .solve-row.is-nolen .solve-ch{color:var(--mantine-color-warn-9);}
   .solve-ch{overflow:hidden; text-overflow:ellipsis;}
+  /* Why a phase was left unticked (owner, 10 Nov 2026): one quiet line under Prior / After, only while it applies.
+     The engine writes it and hides it through `hidden`. */
+  .solve-left{margin:-4px 0 10px; padding:6px 9px; border-radius:var(--mantine-radius-md); font-size:11px; line-height:1.4;
+    color:var(--mantine-color-gray-7); background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-2);}
   .solve-note{margin:-2px 0 var(--mantine-spacing-md); padding:6px 9px; border-radius:var(--mantine-radius-md);
     font-size:11px; line-height:1.4; color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
     border:1px solid var(--mantine-color-warn-2);}
