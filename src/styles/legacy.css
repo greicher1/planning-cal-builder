@@ -3232,34 +3232,58 @@
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
-  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools.
-     Since 28 Oct 2026 that line is .style-row, which it shares with the month stepper in the month view
-     (MONTH-RAIL-PLAN.md §18). In the waterfall the stepper renders nothing and the host fills the line, as before.
-     The host keeps 260 px, its controls' width, so on a narrow window the stepper wraps under it instead. */
+  /* SINCE 10 NOV 2026 (owner: "move the styling bar to this blank space between Month and the left shift button. It
+     should only be the buttons ... not the surrounding box, text, etc"): the host sits on the row's FIRST line,
+     between the view toggle and the tools, and the bar is its bare buttons. No box, no "Text" label (::before), no
+     "Highlight any text…" hint (::after); the engine puts that hint in the bar's title while nothing is picked.
+     CENTRED in the gap (owner, the same day: "put it evenly between month and the left shift button"): no margins,
+     so the row's space-between gives it equal space on each side. A highlight well appearing (a header or box line
+     picked) widens it, so it moves about 15 px left while that well shows; nothing else moves.
+     Before, the host was a full-width second line (.style-row), a boxed bar shared with the month stepper. */
+  .view-toggle-row > .style-bar-host{ flex:none; }
+  /* Where the three no longer fit on one line (PreviewToolbar.jsx, useStyleBarFit), the bar alone drops to a line
+     under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
+     owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
+     it did. */
+  .view-toggle-row.style-own-line > .style-bar-host{ order:1; flex:1 1 260px; min-width:0; margin:0; }
+  .view-toggle-row.style-own-line > .style-row{ order:2; flex:0 1 auto; }
+  /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
+     so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
+  .view-toggle-row.style-own-line:not(:has(> .month-map)) > .style-bar-host{ flex-basis:100%; }
+  /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
+     not even the row's gap above it. */
   .view-toggle-row > .style-row{
     flex:1 1 100%; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--mantine-spacing-xs);
   }
-  .style-row > .style-bar-host{ flex:1 1 260px; min-width:0; }
+  .view-toggle-row > .style-row:empty{ display:none; }
   .style-bar{
-    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
-    min-width:0;
-    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-sm);
+    display:flex; align-items:center; gap:4px; flex-wrap:nowrap; box-sizing:border-box;
+    /* Its own width, never its line's: the fit measures it, and it must not change with where the bar sits. */
+    width:max-content;
   }
-  .style-bar::before{
-    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
-    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  /* THE TOOLBAR'S BUTTONS (owner, 10 Nov 2026: "make the buttons tall enough to match the look and style of the other
+     buttons in the menu"): the .hf-* controls are the header strip's 22 px ones, so here they take the toolbar's
+     30 px height, white ground, gray-4 border and default radius, read from Undo / Side Boxes. B, I, A and Clear are
+     30 px squares like Undo; the glyphs grow with them. Scoped to .style-bar: the header editor keeps its own copy of
+     these controls at 22 px. */
+  .style-bar .hf-ctl{
+    height:var(--input-height-xs, 30px); box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default);
+    background:var(--mantine-color-white); color:var(--mantine-color-gray-7);
+    font-size:var(--mantine-font-size-xs); font-weight:500;
   }
-  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  .style-bar .hf-ctl:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .style-bar .hf-btn{ min-width:var(--input-height-xs, 30px); padding:0 6px; font-size:14px; }
+  .style-bar .hf-size{ width:66px; padding:0 6px; }
+  .style-bar .hf-swatch{ width:var(--input-height-xs, 30px); }
+  .style-bar .hf-swatch .hf-swatch-ink{ font-size:14px; }
+  .style-bar .hf-al-toggle{ gap:3px; padding:0 6px 0 7px; }
+  .style-bar .hf-al-toggle svg{ width:16px; height:16px; }
+  .style-bar .hf-btn.is-on{
+    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:700;
+  }
+  /* Nothing picked: dimmed and inert (the strip's empty-state rule, 21 Sep 2026). */
   .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
-  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
-     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
-     below it. */
-  .style-bar:not(.has-target)::after{
-    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
-    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
-  }
   .style-bar .hf-swatch[hidden]{ display:none; }
   /* A highlight that is part one look and part another: outlined in the accent, not filled. */
   .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }

@@ -23009,6 +23009,10 @@ export function initLegacyApp() {
     if(!styleBar) return;
     const look = styleBarLook();
     styleBar.classList.toggle('has-target', !!look);
+    // The hint was visible text after the buttons until 10 Nov 2026, when the bar moved into the toolbar row as its
+    // bare buttons (owner). It lives on as the tooltip: the dimmed controls take no pointer events, so a hover over
+    // any of them reaches the bar.
+    styleBar.title = look ? '' : 'Highlight any text in the calendar to style it';
     const q = s => styleBar.querySelector(s);
     const sel = q('.hf-size');
     const sizes = look ? look.sizes.slice() : STYLE_BAR_SIZES.grid.slice();
