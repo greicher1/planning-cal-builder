@@ -142,3 +142,23 @@ tools/layout-study/fixtures.mjs swap-holds` writes only it). Leg `swapholds` H1�
 fill-intent build 3/8, red at H2 (no sides) and H3 (Prod Prep back on the right at 3/10). The gate's whole swap section
 (colswap, colswapgate, colswapmove, colswapmid, colswapstale, stintswap, stintnoreflow, stintcollide, stintgroup,
 stintoneside, stintbtn, stintmulti, stintexport, stintchain, stintreshape): 115 checks, 0 failing.
+
+
+## 10. Fill Space — a switch for one even width per phase (owner, 9 Nov 2026)
+
+*"a toggle to the left of side boxes button that turns on or off expand rows to fill empty space"*, corrected after a
+first build that kept every phase one column wide: *"when i say fill space i mean collumsn that fill only a portion of
+the phase such that only some weeks are wider than others. The algorithm should always fill collumns as wide as they
+have space for if they are all uniform in width."*
+
+- **On** (default): the layout rules as built — rule 13 judges a column free for the REST of the run from each week,
+  so a phase's width steps up the week its neighbour leaves.
+- **Off**: no partial fills. `layoutEvenPlan` gives every run in a year block one [from, to]: every column free on every
+  row of the run (the Sim Post marker's rows count as taken), right first (rule 12's spare column to the left phase:
+  right extensions cannot collide), then left into what no overlapping run holds. Frozen edit LR7 applies it to every
+  phase without a wish; a fill wish still widens week by week (ruling: the double-click wins) but stops at a column an
+  even run holds; a keep wish stays one wide; a dragged width still lays over (rule 19). Even within each YEAR (ruling):
+  a run crossing New Year is planned per block, since the columns differ.
+- **Proof.** Leg `fillspace` (layout-r13: on, Post 2031 is two then three wide and Writers one then two; off, Post two
+  and Writers one all year, every phase one width per year). With the switch on, the gate's export baselines and the 15
+  pictures must not move — the frozen edit's acceptance gate, agreed with the owner.

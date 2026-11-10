@@ -257,6 +257,69 @@ const SPECS = {
     ],
     hiatuses: [Y1]
   },
+  // Rule 23, as few columns as possible (owner, 6 Nov 2026: "We should always prioritize as few collumns as possible"):
+  // the owner's test calendar, shifted to 2031. Writers ends 7/28; Pre-Prep beside it ends 8/11; Prod Prep starts 8/18;
+  // a four-week custom "Casting" starts 9/8 beside Prod Prep; Production 10/27 with Sim Post. By rules 2-8 alone Prod
+  // Prep takes Pre-Prep's handed-off column, so Casting (not following on, and never left of a running phase) opens a
+  // third column; Prod Prep following Writers into its column (freed three weeks before, rule 2's short gap) leaves
+  // Pre-Prep's for Casting, and the year needs two. The leg also slides Casting into the shoot, where three are needed
+  // either way.
+  'layout-r23': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-03-17', weeks: 20 },
+      { key: 'prePrep', start: '2031-07-07', weeks: 6 },
+      { key: 'prodPrep', start: '2031-08-18', weeks: 10 },
+      { key: 'custom1', name: 'Casting', start: '2031-09-08', weeks: 4 },
+      { key: 'production', start: '2031-10-27', weeks: 16 }
+    ],
+    hiatuses: [Y1, Y2]
+  },
+  // Rule 23's give-way (owner, 9 Nov 2026, by picker in the sticky-columns session: "Give way"): the owner's calendar
+  // with Casting moved, so it remembers a column of its OWN (colKeep custom1: ''), starting 8/11 the week after
+  // Writers' column frees. Kept, that own column is a third; given way, Casting takes Writers' column and the year
+  // needs two. A kept column of its own wins only on a tie (stickycols' nudges cost nothing and still hold).
+  'layout-r23b': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-03-17', weeks: 20 },
+      { key: 'prePrep', start: '2031-07-07', weeks: 6 },
+      { key: 'prodPrep', start: '2031-08-18', weeks: 10 },
+      { key: 'custom1', name: 'Casting', start: '2031-08-11', weeks: 4 },
+      { key: 'production', start: '2031-10-27', weeks: 16 }
+    ],
+    hiatuses: [Y1],
+    extra: { colKeep: { custom1: '' } }
+  },
+  // layout-r21's shape with three columns needed in January (Bible and Pilot Cut beside Writers), so rule 23 can save
+  // nothing later in the year and rule 21 is still what holds Post two wide beside Localization. (layout-r21 itself now
+  // lays out in two columns: Post under Production, Localization in the lane column, by the owner's ruling.)
+  'layout-r21b': {
+    stamped: true, simpost: { enabled: true, offset: 0 },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 4 },
+      { key: 'custom1', name: 'Bible', start: '2031-01-06', weeks: 4 },
+      { key: 'custom2', name: 'Pilot Cut', start: '2031-01-06', weeks: 4 },
+      { key: 'production', start: '2031-02-03', weeks: 12 },
+      { key: 'post', start: '2031-05-12', weeks: 24 },
+      { key: 'localization', start: '2031-10-13', weeks: 8 }
+    ],
+    hiatuses: [Y1]
+  },
+  // layout-r3b's shape with Writers running four more weeks, past Prod Prep's start, so Prod Prep cannot follow Writers
+  // and must take Pre-Prep's column; Post (not following on) opens a third, and rule 3 is what puts Production in
+  // Writers' free column with Post running to its right. (layout-r3b itself now lays out in two columns.)
+  'layout-r3c': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 20 },
+      { key: 'prePrep', start: '2031-03-17', weeks: 6 },
+      { key: 'prodPrep', start: '2031-04-28', weeks: 14 },
+      { key: 'post', start: '2031-07-07', weeks: 26 },
+      { key: 'production', start: '2031-08-04', weeks: 17 }
+    ],
+    hiatuses: [Y1, Y2]
+  },
   // Rule 22 (owner, 6 Nov 2026, "this is how it should sort"; frozen edit LR6): the owner's test calendar, shifted to
   // 2031. Pre-Prep two wide beside Writers; Prod Prep follows it and keeps that width until a 4-week Casting takes the
   // third column, then one wide to the end -- not across all three for its last three weeks alone; Production and the

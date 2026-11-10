@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
+- **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
+  wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and
+  ripple work (README the only conflict, both kept); `5b58380` rule 22 (a follow-on carries its predecessor's width,
+  frozen edit LR6), copied from the sticky session's worktree `magical-ishizaka-a283e6` where it was uncommitted; then
+  rule 23 (fewest columns, with the own-column give-way) from `wizardly-hertz-249976` and Fill Space from `fill-toggle`,
+  both uncommitted there. The source worktrees were read, never edited.
+- **Integration decisions.** (1) Fill Space's frozen edit is **LR7**: rule 22 already owns LR6. (2) With Fill Space off,
+  rule 22's carry pass and R-E skip an even run (`evenOf`), since off means one width per year. (3) Rule 22 + 23 test
+  files: rule 23's versions of `layoutrules.js` / `fixtures.mjs` plus rule 22's own entries, except rule 22's
+  `layout-r3b` R3Bd, which the shared note says follows rule 23 on the pair. (4) Re-expected for the pair: `layout-r22b`
+  R22Ba–c to the fewest-columns session's measured values (Casting gives way: two columns), and `layout-r3c` R3Cd to
+  rule 22's carry and hold (the same shape as `layout-r22c`, which expects exactly that).
+- **Checks:** on the pair (before Fill Space) all 20 layout fixtures green but R3Cd (re-expected), `phasefill`,
+  `colsreset`, `swapholds`, `centrepullback` green, `stickycols` one save-button timeout; the full release's targeted run,
+  the 15-picture re-score and the ONE full gate are running; written here when done.
+
 ### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 
 **As built:**
@@ -128,6 +145,34 @@
   push: should Ripple Hiatus count only working weeks past a locked break, like Shift?). Not started. Tracker card
   `ripple-step-over-locked`. Watch-outs: the edited hiatus is held by `except` and must NOT be stepped over by its own
   push; a moved hiatus's out step pulls phases back across where it now sits.
+
+### 🔨 9 Nov 2026: FILL SPACE — A SWITCH LEFT OF SIDE BOXES: OFF = ONE EVEN WIDTH PER PHASE PER YEAR — built on branch `fill-toggle` (worktree `.claude/worktrees/fill-toggle`, from the sticky-columns commit `dc8482b`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed. Tracker card `fill-space-toggle`. ⚠️ Rules 22 and 23 are being built in other worktrees on the same base (`magical-ishizaka-a283e6`, `wizardly-hertz-249976`); whichever lands later merges this in.
+- **The ask, and the correction.** *"a toggle to the left of side boxes button that turns on or off expand rows to fill
+  empty space"*. A first build made off = every phase one column wide (no frozen edit, through `phaseFillOff`); the
+  owner: *"you misunderstood, when i say fill space i mean collumsn that fill only a portion of the phase such that only
+  some weeks are wider than others. The algorithm should always fill collumns as wide as they have space for if they
+  are all uniform in width."* Pickers: even within each YEAR; a double-click wish still wins; the frozen edit approved
+  (*"Yes, make the edit"*, gate: on = byte-identical baselines and the 15 pictures; off = leg `fillspace`).
+- **As built.** `fillSpaceOff` beside `phaseFill` (the first build's `phaseFillOff` override removed). `layoutEvenPlan
+  (occupancy, mc)` (not frozen, memoized per occupancy object): every run of a block, its one [from, to], free on every
+  row of the run (marker rows count as taken), right first, then left into what no overlapping run holds. ⛔ FROZEN EDIT
+  LR7 in `computePhaseRowLayout`, only with the switch off on a stamped calendar outside Single Column: a phase with no
+  wish takes its planned width in the main walk and in the left-absorb branch (bands too); a fill wish's walk stops at
+  a column an even run holds this row (`evenHolds`); rule 21's post-pass and R-E skip an even run. With it on, `even` is
+  null and every line is what it was. Snapshot `fillSpaceOff: true` only when off (PERMANENT), sanitized, restored
+  unconditionally, cleared by New, untouched by Reset Columns; both layout cache keys carry it. Toolbar
+  `#tb-fill-space-btn` (a Button with `aria-pressed` and a drawn `.fill-switch`; ⛔ never a Mantine Switch, whose automatic
+  input id would enter `fields.byId`), pushed `{visible, on}` by `pushViewControls()`, clicked by delegation; label
+  hidden at ≤1300 px (measured). Help: one sentence in "How far a cell reaches".
+- **Ruled the same evening, no change:** the owner asked *"why is there a gap here"* (Writers' Room one wide beside two
+  empty columns for 19 weeks, its last week sharing the middle column with a new phase's first). Rule 13 widens only
+  into a column free for the REST of the run, so one shared week blocks it (hand-08's Shoot). Measured: filling every
+  free column week by week drops the 15 pictures from 98.1% to 78.1% (309 width misses, 14 of 15 change). Owner:
+  *"Keep it"*. A double-click fill wish does it for one phase. Tracker card `narrow-beside-late-neighbour` (rejected).
+- **Checks:** leg `fillspace` 6/6 on `layout-r13` (in the gate's AFSPEC). With the switch ON: the 15 pictures 98.1% / 31 /
+  0 (reuse off 82.3%), as before; all thirteen layout fixtures, `stickycols` 12, `phasefill` 13, `colsreset` 8, `swapholds`
+  8, `centrepullback` 12, `hdrcontrols` 12 green; `npm run check` 40/40. The full gate (the export baselines, LR7's
+  acceptance gate) is queued behind other sessions' gates; written here when done.
 
 ### ✅ 5 Nov 2026: SHIFT STEPS OVER A HELD HIATUS, SO THE GAPS BETWEEN PHASES ARE KEPT. ✅ **LIVE at `586bd17`** (owner's pickers *"Commit on the branch"*, *"Full gate, then ask again"*, then *"Push to the live site"*; pushed `6387159..586bd17` at 18:44 UTC 6 Nov, a fast-forward of the branch; deploy run `42273409203` green; the live `index.html` is the gated build byte for byte, sha256 `767fe508…`). Local `main` fast-forwarded to it. Worktree `.claude/worktrees/shift-held` (from local `main` at `f68aa71`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `shift-held-8983` in `.claude/launch.json`. No version cut. Tracker card `shift-held-hiatus-gap`.
 - **Report (owner, with before/after screenshots):** *"We shifted everything up effectively 4 weeks but im assuimg
@@ -538,6 +583,41 @@
   notes: side-session-notes/local_b727b3e9…/sticky-cols-and-rule22-status.md.
 
 ### 🔨 6 Nov 2026 (late night): STICKY COLUMNS — A PHASE YOU MOVE KEEPS ITS COLUMN — built on branch `sticky-cols` (worktree `.claude/worktrees/magical-ishizaka-a283e6`, cut from `follow-gap`'s local commit `598bb44` with the `lab-gap` worktree's uncommitted work applied on top, so it carries the fill wish, Reset Columns, the swap order and the four-week follow-on too; its `node_modules` is a symlink, unlink it before `git worktree remove`). ✅ Committed LOCALLY on `sticky-cols` (owner's picker *"Commit on the branch"*), ONE commit that also carries the `lab-gap` work it was built on (the fill wish, Reset Columns, the swap order, the four-week follow-on, their docs and legs); not merged, not pushed. Tracker card `no-side-flip-when-nudged`. Plan: [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md) (§8 = as built); rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10.
+
+### 🔨 6–9 Nov 2026: RULE 23 — AS FEW COLUMNS AS POSSIBLE — built on branch `fewest-cols` (worktree `.claude/worktrees/wizardly-hertz-249976`), UNCOMMITTED on top of `dc8482b` (sticky columns, committed on `sticky-cols`); its `node_modules` is a symlink, unlink it before `git worktree remove`. Not committed, not merged, not pushed. Tracker card `fewest-columns`. Rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 23.
+- ⚠️ **Rule 22 is a DIFFERENT rule, in a different worktree.** The sticky-columns session (worktree
+  `magical-ishizaka-a283e6`, branch `sticky-cols`) built the owner's width rule the same night as rule 22 (frozen edit
+  LR6: a follow-on carries its predecessor's width; squeezed, it keeps what it had), uncommitted on `dc8482b`, with
+  fixtures `layout-r22`, `r22b`, `r22c`. This rule was first written as "22" too and renamed 23 (fixtures `layout-r23`,
+  `r23b`). The two touch different functions (LR6 is `computePhaseRowLayout`, this is `placeSegmentsByRules`) and the
+  pair has only been run as a scratch test file; whichever lands second takes the other's commit, re-expects
+  `layout-r22b`'s R22Ba/R22Bc (they expect 3 columns; with the give-way it is 2), and runs one full gate on the pair.
+  The shared notes folder (`side-session-notes/local_b727b3e9…`) has both sessions' status files.
+- **The ask.** Two screenshots of a test calendar (Writers 3/16 x20, Pre-Prep 7/6 x6, Prod Prep 8/17 x10, a custom
+  Casting 9/7 x4, Production 10/26 + Sim Post): today three columns, wanted two. *"We should always prioritize as few
+  collumns as possible."* Pickers: *"Yes, build it"*; *"Fewest columns"* over Post keeping the Sim Post lane; *"Fill the
+  width"* for a phase alone in its last weeks (rule 14 stays; the owner's mock had it one wide, 7 of 15 pictures fill).
+  9 Nov, by picker in the sticky session: *"Give way"* (a moved phase's column of its own gives way when it costs one;
+  the third column in the owner's screenshot was Casting's sticky memory, not widths).
+- **As built.** `placeSegmentsByRules`' `pass(forced, points)` records each place the rules had a choice (allowed
+  columns: handoff, near, open, Production's free ones, Post's lane, and a new one); a loop at the end decides them in
+  placement order, trying each allowed column with the rest by the rules, keeping the fewest columns summed over year
+  blocks (`cost`), a tie keeping the rules' pick. R-D still bounds the choices; colFollow and a remembered predecessor
+  are not choices; a remembered column of its own (colKeep `''`, `ownKept`) is offered as new-column-vs-the-rules'-pick,
+  its tie keeping the new column. Not frozen code (placement). Help: one sentence in "Where a phase goes".
+- **Rebased 9 Nov** by `git reset --mixed dc8482b`: every untracked copy was byte-identical to `dc8482b`'s and every
+  line the tree dropped against it was this work's own replacement, so no file moved.
+- **Measured.** Prototype in scratch (6 Nov): the owner's twin reproduced "today" row for row without it and "after"
+  with it; the 15 pictures BYTE-IDENTICAL engine dumps (98.1% / 31 / 0). Final build: not re-scored (owner: *"skip
+  re-scoring against the 15"*). Side effect, accepted: a phase nobody moved can change column when another moves.
+- **Checks (9 Nov, build sha256 `3324de19…`, check 40/40):** `layout-r23` 6/6 (red on the sticky build), `layout-r23b`
+  5/5 (red without the give-way at R23Ba); `layout-r3b`, `layout-r2g` R2Gd and `layout-r21` re-expected (each one
+  column narrower); `layout-r21b` and `layout-r3c` keep rules 21 and 3 tested; all 17 layout fixtures, `stickycols`
+  12/12 (its nudges cost nothing, so the own column holds), `swapholds`, `phasefill`, `colsreset`, `centrepullback`,
+  `simpostdays` green. Full gate: see below. Test files: `~/Downloads/SPTCal-test-rule23-giveway-9Nov.html` (this
+  build) and the scratch-built pair with rule 22.
+
+### 🔨 6 Nov 2026 (late night): STICKY COLUMNS — A PHASE YOU MOVE KEEPS ITS COLUMN — built on branch `sticky-cols` (worktree `.claude/worktrees/magical-ishizaka-a283e6`, cut from `follow-gap`'s local commit `598bb44` with the `lab-gap` worktree's uncommitted work applied on top, so it carries the fill wish, Reset Columns, the swap order and the four-week follow-on too; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not committed, not merged, not pushed. Tracker card `no-side-flip-when-nudged`. Plan: [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md) (§8 = as built); rule: [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10.
 - **The ask.** Three screenshots of a phase moved a week at a time around Production (right, LEFT in the week they start
   together, right), then *"its not just about production i dont like how it does this for any phase"*; by picker
   *"Plan sticky columns"*, rulings K1–K4 as recommended (only moved phases; returns when it fits again; kept wins for

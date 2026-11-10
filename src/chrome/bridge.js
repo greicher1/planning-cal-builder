@@ -99,6 +99,9 @@ export const chrome = {
   // { view: 'sheet'|'month', any } -- the app header's Reset Columns (owner, 6 Nov 2026): Waterfall view only,
   // greyed while `any` is false (every column already on the automatic layout).
   colsResetBtn: noop,
+  // { visible, on } -- the preview toolbar's Fill Space toggle (owner, 9 Nov 2026), left of Side Boxes: the Waterfall of
+  // a stamped calendar only; `on` = phases fill the empty columns beside them (today's layout), off = each keeps its lane.
+  fillSpaceBtn: noop,
   // { value: 'week'|'episode'|'block', blockAvailable } — Settings ▸ Preferences ▸ Month view ▸ "Label Production by"
   // (MONTH-PILL-LABEL-PLAN.md §5.1). `value` is the label the month bars are DRAWN in, so with nothing
   // chosen it is what Schedule by gives; the engine's mvProdLabel is the only store. Bridged because a

@@ -806,6 +806,10 @@ deliberate steps instead:
 does the primary export. Verified at 1440 / 1280 / 1150 / 1024 / 900: zero clipped labels, zero
 overflow, `--header-h` 63 px throughout.
 
+**Fill Space (9 Nov 2026), left of Side Boxes** (off = one even width per phase per year): labelled above 1300 px, the drawn switch alone (40 px) at 1300 px and
+below. Measured with it: the row stays on one line down to ~1240 px and wraps between ~1200 and 1230 px where it
+otherwise would not. A toggle Button with `aria-pressed`, never a Switch (its automatic id would be swept into saves).
+
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
 toggle and the Shift All arrows, which are deliberately one-click. ~~Below `lg` the three labelled
 popover buttons collapse into one *Adjust ▾* menu.~~ ⛔ **Corrected 30 Sep 2026: no such menu exists in

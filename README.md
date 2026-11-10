@@ -135,6 +135,62 @@ for a frozen edit).
   `phasefill` 13/13 and `colsreset` 8/8 keep testing the double-click wish (13/13 on the build before too). The 15
   pictures score the same (98.1%, 31 column misses, 0 width misses): none narrows a run.
 
+### Unreleased — the waterfall uses as few columns as it can (rule 23, 6–9 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 23. Owner, two screenshots of a test calendar (today three columns, wanted
+two): *"We should always prioritize as few collumns as possible"*; by picker *"Yes, build it"*, *"Fewest columns"* over
+Post keeping the Sim Post lane, and *"Fill the width"* for a phase alone in its last weeks (no width change). Numbered
+23, not 22: the sticky-columns session's width rule (a follow-on carries its predecessor's width) took 22 the same night.
+Then, 9 Nov 2026, by picker in that session: *"Give way"*: a moved phase's column of its own gives way when it costs one.
+
+- **What was wrong.** The rules place one phase at a time and cannot look ahead. Prod Prep took Pre-Prep's handed-off
+  column, so Casting, starting beside it and not following on, could not sit left of it in Writers' free column (R-D)
+  and opened a third column. Had Prod Prep followed Writers into its column (freed three weeks before, rule 2's short
+  gap), Casting would have taken Pre-Prep's, and the year needs two.
+- **What changed.** Wherever the rules have a choice of column for a phase (a handoff, a short gap, right of everything
+  running, Production's free columns, Post's lane, or a new column), each allowed one is tried with the rest placed by
+  the rules, and the one leaving the fewest columns, summed over the year blocks, is kept. A tie keeps the rules' own
+  pick, so a calendar they already lay out in the fewest columns is unchanged. R-D still bounds the choices; a hand
+  move and a remembered predecessor (sticky columns) are not choices. A moved phase that remembers a column of its OWN
+  is: that new column against the rules' pick, the fewest columns winning and a tie keeping the own column, so a nudge
+  that cost nothing still holds (the owner's Casting, moved, had kept opening a third column beside two that would do).
+  Accepted consequences: Post may start under Production instead of
+  continuing the Sim Post lane when that saves a column, and a phase nobody moved can change column when another moves
+  far enough that the saving goes away. Help: one sentence in "Where a phase goes". Built on sticky columns (`dc8482b`).
+- **Verified.** New fixture `layout-r23` (the owner's calendar, shifted to 2031): two columns, red on the build before
+  (three). `layout-r3b`, `layout-r2g` (R2Gd) and `layout-r21` re-expected, each one column narrower;
+  new `layout-r21b` and `layout-r3c` keep rules 21 and 3 tested in shapes rule 23 cannot narrow (green on both builds).
+  New `layout-r23b` (the owner's calendar with Casting remembering a column of its own): two columns, the memory still
+  in the file, red without the give-way. All 17 layout fixtures, `stickycols`, `swapholds`, `phasefill`, `colsreset`, `centrepullback` and `simpostdays` green;
+  `npm run check` 40/40. The 15 pictured calendars were scored on the prototype (byte-identical layouts, 98.1% / 31 /
+  0); the owner waived re-scoring the final build.
+
+### Unreleased — Fill Space: a switch for one even width per phase (9 Nov 2026)
+
+Owner: *"a toggle to the left of side boxes button that turns on or off expand rows to fill empty space"*; then, on a
+first build that kept every phase one column wide: *"when i say fill space i mean collumsn that fill only a portion of
+the phase such that only some weeks are wider than others. The algorithm should always fill collumns as wide as they
+have space for if they are all uniform in width."* Rulings by picker: even within each year; a double-click fill wish
+still wins; the frozen edit (*"Yes, make the edit"*).
+
+- **What.** A **Fill Space** switch in the preview toolbar, left of Side Boxes, in the Waterfall of a calendar on the
+  layout rules. On (the default) is the layout as it was: a phase widens into the columns beside it from the week they
+  are free, so its width can step up partway through. Off, no partial fills: every phase has ONE width per year, the
+  widest that is free on every week of its run there, in the calendar, the workbook and the PDF. A double-click fill
+  wish still widens that phase week by week, a keep wish keeps it one wide, and a dragged exact width still applies.
+  Saved with the calendar (`fillSpaceOff`, written only when off), one undo step, back on with New. Reset Columns leaves
+  it alone: it is a setting, like Single Column Mode.
+- **How.** Frozen edit LR7 in `computePhaseRowLayout`, owner-approved, active only with the switch off: a phase with no
+  wish takes its run's planned width (`layoutEvenPlan`: right first, then left into what no overlapping run holds)
+  instead of the per-week walk, and rule 21's and R-E's passes leave it alone. The control is a toggle button with a
+  drawn switch, not a Mantine Switch, whose automatic input id the save sweep would have baked into every file.
+- **Fit.** Labelled above 1300 px; the switch alone from 1300 px down. It adds a second toolbar line only between about
+  1200 and 1230 px.
+- **Verified.** Leg `fillspace` 6/6 on `layout-r13` (on: Post 2031 two then three wide, Writers one then two; off: Post
+  two and Writers one all year, every phase one width per year, every cell kept, the file key, no new field id, a fill
+  wish still varying, undo, the Month view, New). With the switch on: the 15 pictures and the layout fixtures, numbers in
+  HANDOFF; the full gate's export baselines.
+
 ### Unreleased — a phase you move keeps its column (sticky columns, 6 Nov 2026)
 
 [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three

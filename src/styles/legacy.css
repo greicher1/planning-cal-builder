@@ -1712,6 +1712,22 @@
      user had to click to find out what it was. */
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
+  /* Fill Space (9 Nov 2026): a drawn switch inside a toggle button (a real Switch would carry an id the save sweep
+     collects). Track 22x12, knob 8; navy when on, the faint border grey when off. */
+  .fill-switch{ position:relative; display:inline-block; width:22px; height:12px; border-radius:6px;
+    background:var(--mantine-color-gray-4); transition:background .12s; flex:none; }
+  .fill-switch .fill-knob{ position:absolute; top:2px; left:2px; width:8px; height:8px; border-radius:50%;
+    background:#fff; transition:left .12s; }
+  .fill-switch.is-on{ background:var(--mantine-color-navy-6); }
+  .fill-switch.is-on .fill-knob{ left:12px; }
+  /* Measured 9 Nov 2026: the labelled button (99px) wraps the toolbar row to two lines below about 1293px, where the row
+     without it stays on one line down to 1200px. At 1300px and below it shows the drawn switch alone (40px); its
+     title= says what it does, as the header's icon-only buttons do. */
+  @media (max-width:1300px){
+    .fill-space-btn .mantine-Button-label{ display:none; }
+    .fill-space-btn .mantine-Button-section{ margin:0; }
+    .fill-space-btn{ padding-left:8px !important; padding-right:8px !important; }
+  }
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
   /* The SHIFTING tools (four until 4 Nov 2026, when Shift From and Anchor To folded into Shift) wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
      exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the

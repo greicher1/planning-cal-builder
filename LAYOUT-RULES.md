@@ -65,6 +65,8 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     forgets it. *(Why: rule 6's tie flipped a phase nudged through the week another starts — right, left, right — and
     any fixed tie rule flips one of the two; only a layout that remembers can keep both still.)*
 
+**And over all of these, rule 23: as few columns as possible** (below, under "Looking back at the year").
+
 **Widths — how wide each cell draws.**
 
 11. A cell is **one column wide** unless a rule below widens it.
@@ -146,12 +148,30 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     for prod prep"*; `layout-r22b`); and its hold kept only the carried columns, so a squeezed phase gave back a freed
     column it had spread into, a run that shrank (found by the fewest-columns session; `layout-r22c`) — the owner,
     asked there whether a squeezed phase should keep a column it had already spread into: "Yes, keep it".)*
+23. **As few columns as possible.** Rules 1–8 place one phase at a time and cannot see ahead. So wherever they leave a
+    phase a choice of column — a handoff, rule 2's short gap, a free column right of everything running, any free
+    column for Production, the Sim Post lane for Post, or a new column — each allowed one is tried with the rest
+    placed by the rules, and the one that leaves the year the **fewest columns** is kept. A tie keeps the rules' own
+    pick, so a calendar the rules already lay out in the fewest columns is unchanged (all 15 pictures, byte for byte).
+    R-D still bounds the choices; a hand move and a remembered predecessor (rule 10) are not choices. **A moved phase's
+    column of its own gives way when it costs a column** (owner, 9 Nov 2026, "Give way"): it is kept only when that adds
+    no column, and otherwise the phase takes the rules' column; a tie keeps its own. The owner's case: Prod Prep
+    took Pre-Prep's handed-off column, so Casting, starting beside it and not following on, opened a third column; with
+    Prod Prep following Writers into its column (freed three weeks earlier), Casting takes Pre-Prep's and the year needs
+    two. Two consequences, both ruled: **Post may start under Production instead of continuing the Sim Post lane** when
+    that saves a column (Localization then takes the lane's column), and a phase nobody moved can change column when
+    another moves far enough that the saving goes away. A phase alone in its last weeks still fills the width (rule 14).
+    *(Owner, 6 Nov 2026, two screenshots of a test calendar, three columns and two: "We should always prioritize as few
+    collumns as possible"; by picker "Yes, build it", "Fewest columns" over Post keeping the lane, "Fill the width".)*
 
 **Built** (LAYOUT-BUILD-PLAN.md, 5–6 Nov 2026): placement v3 is `placeSegmentsByRules` in `src/legacy/app.js`, rule 9 is
 `layoutBlockOrders` through `stintOrderFor`, the widths are `computePhaseRowLayout`'s stamped branch; rule 20 is
 `markLayoutPhantoms` on the drawn rows and frozen edit LR2 (absorbing), the floor `LAYOUT_EARNED_WEEKS` (its give-way is
-gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rule 22 is frozen edit LR6 (`heldNarrow`, fixture `layout-r22`); rule 10's sticky columns are `colKeep`, read
-by `placeSegmentsByRules` (step 10b) and written only by `update()` through `noteMovedPhases` (leg `stickycols`); rules 12, 13 and 15 as of 6 Nov 2026 are frozen
+gone); rule 21 is frozen edit LR3 in that branch with `layoutRunStart`; rule 22 is frozen edit LR6 (`heldNarrow`,
+fixtures `layout-r22`, `layout-r22b`, `layout-r22c`); rule 10's sticky columns are `colKeep`, read
+by `placeSegmentsByRules` (step 10b) and written only by `update()` through `noteMovedPhases` (leg `stickycols`);
+rule 23 is the fewest-columns pass at the end of `placeSegmentsByRules`, with the own-column give-way in its kept step
+(fixtures `layout-r23`, `layout-r23b`, `layout-r21b`, `layout-r3c`); rules 12, 13 and 15 as of 6 Nov 2026 are frozen
 edit LR4 (`laneReserved`, the uncapped right walk); the fixtures are `tests/fixtures/layout-r*.sptcal` (made by
 `tools/layout-study/fixtures.mjs`) and the leg `layoutrules`.
 

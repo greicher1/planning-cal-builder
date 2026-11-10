@@ -4802,7 +4802,13 @@ export function initLegacyApp() {
   //      Inert when colKeep is empty: no group is reordered and nothing is reserved, so every unmoved calendar -- the 15
   //      pictures, every fixture as loaded -- is placed byte for byte as before.
   //
-  // Returns { moves, lane, rel } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
+  //  23. As few columns as possible (owner, 6 Nov 2026): wherever rules 2-8 had a choice of column, each allowed one is
+  //      tried with the rest placed by the rules, and the one leaving the fewest columns (summed over the year blocks)
+  //      is kept; a tie keeps the rules' pick, so a calendar they already lay out in the fewest columns is unchanged.
+  //      A moved phase's column of its OWN (colKeep '') is one of those choices too: kept unless the rules' column
+  //      saves one (owner, 9 Nov 2026, "Give way"). See the pass at the end of this function.
+  //
+  // Returns { moves, lane, rel, cost } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
   // blocker?} } for every phase moved by hand, read by reflectColMoveNotes and followRunFor), lane = the lane's
   // column and ordering key, or null; rel = { phaseKey: what its column held before it -- the previous occupant's key,
   // COL_KEEP_LANE for the Sim Post lane, '' for a new column } for every placed phase, which is what update() remembers
@@ -4817,7 +4823,9 @@ export function initLegacyApp() {
     const yearOf = t => singleColumn ? 0 : new Date(t).getUTCFullYear();
     const idxOf = new Map(segments.map((s, i) => [s, i]));
     const cmpKey = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
-    const pass = () => {
+    // One placement of every phase. `forced` (seg -> column, -1 = a new one) overrides the rules' pick at a choice; when
+    // `points` is given, every choice the rules made unforced is recorded there in placement order (rule 23 below).
+    const pass = (forced, points) => {
     // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, occ: its occupants
     //             [{t: first row, y0, y1, first, end, seg, marker}] }
     const cols = [];
@@ -4918,27 +4926,36 @@ export function initLegacyApp() {
         }
         // 10b. Kept: the column it was in before the user moved it, when that still fits (K2: else the rules, entry kept).
         const keep = keepOf(seg);
-        if(at < 0 && typeof keep === 'string'){
-          if(keep === '') at = newCol();
-          else { const kc = keptCol(keep); if(kc >= 0 && free(kc)) at = kc; }
+        // ⭐ A column of its OWN ('') gives way when it costs a column (owner, 9 Nov 2026, by picker in the sticky-columns
+        // session: "Give way" -- "A moved phase keeps a column of its own only when that adds no column; otherwise it
+        // takes the freed one"). So it is not taken here but offered to rule 23 below as a choice: the new column the
+        // memory asks for, against the rules' own pick; the fewest columns win and a TIE KEEPS THE NEW COLUMN, so every
+        // nudge that cost nothing (stickycols K1-K10) still holds. A remembered predecessor is kept as before.
+        const ownKept = at < 0 && keep === '';
+        if(at < 0 && typeof keep === 'string' && keep !== ''){
+          const kc = keptCol(keep); if(kc >= 0 && free(kc)) at = kc;
         }
-        // 6. Post continues the Sim Post lane, once the shoot has ended.
-        if(at < 0 && seg.key === 'post' && lane && free(lane.col) && !reserved(lane.col) && lane.end <= first) at = lane.col;
         if(at < 0){
-          const hand = [], open = [];
+          const hand = [], open = [], near = [], all = [];
           for(let i = 0; i < cols.length; i++){
             if(!free(i) || reserved(i)) continue;
+            all.push(i);
             if(handoff(i)) hand.push(i);
             else if(rightOfRunning(i)) open.push(i);
+            if(nearHandoff(i)) near.push(i);
           }
+          // 6. Post continues the Sim Post lane, once the shoot has ended.
+          const laneOk = seg.key === 'post' && lane && free(lane.col) && !reserved(lane.col) && lane.end <= first;
+          let g;
+          if(laneOk) g = lane.col;
           // 3. Production goes LEFT: the leftmost FREE column, handed off or not, a phase still running to its right or
           //    not (owner, 6 Nov 2026: handed Prod Prep's middle column with Writers' free column on its left and Post
           //    running on its right, Production sat one wide beside an empty column for the whole shoot; hand-10, 12,
           //    15 and 16 already put it in Writers' free column over Prep's handoff). R-D (rule 4) is for the other
           //    phases: hand-05 and hand-08 keep Localization in its handoff column over a free column further left.
-          if(seg.key === 'production'){ const all = []; for(let i = 0; i < cols.length; i++) if(free(i) && !reserved(i)) all.push(i); at = leftmost(all, y, first); }
+          else if(seg.key === 'production') g = leftmost(all, y, first);
           // 2 + 3. A handoff, the left one of two.  4. Else the leftmost free column right of everything running.
-          else if(hand.length) at = leftmost(hand, y, first);
+          else if(hand.length) g = leftmost(hand, y, first);
           else {
             // 2a. A short gap still follows on (LAYOUT_FOLLOW_GAP_WEEKS), before R-D's "right of everything running":
             //     the column freed MOST RECENTLY -- the one this phase is following -- and the left one of a tie.
@@ -4947,11 +4964,29 @@ export function initLegacyApp() {
             //     2026: "this is terrible now. Its jumping back and fourth so many times"; measured on a twin: right,
             //     left, left, right, right, left, left). Latest-freed gives one change, at the five-week limit; the 15
             //     pictures and every layout fixture are unchanged either way. Leg layoutrules, fixture layout-r2h.
-            const near = []; for(let i = 0; i < cols.length; i++) if(nearHandoff(i) && !reserved(i)) near.push(i);
-            at = near.length
+            //     (Every handed-off column is also a short-gap one, gap 0; there is none here, so `near` is the gap.)
+            g = near.length
               ? near.reduce((b, i) => (cols[i].freeAt > cols[b].freeAt
                   || (cols[i].freeAt === cols[b].freeAt && cmpKey(orderKey(i, y, first), orderKey(b, y, first)) < 0)) ? i : b)
               : leftmost(open, y, first);
+          }
+          // 23. Every column the rules ALLOW here -- the ones above, plus a new one (-1) -- for the fewest-columns pass.
+          //     R-D still bounds them: a phase not following on is never offered a column left of one still running.
+          const allowed = new Set(seg.key === 'production' ? all : hand.concat(near, open));
+          if(laneOk) allowed.add(lane.col);
+          allowed.add(-1);
+          if(ownKept){
+            // 10b + 23: the memory's new column is the pick; the rules' column is the only other choice.
+            if(forced && forced.has(seg)) at = forced.get(seg);
+            else {
+              at = -1;
+              if(points && g >= 0) points.push({ seg, g: -1, cands: [-1, g] });
+            }
+          }
+          else if(forced && forced.has(seg)) at = forced.get(seg);
+          else {
+            at = g;
+            if(points && allowed.size > 1) points.push({ seg, g, cands: Array.from(allowed) });
           }
         }
         if(at < 0) at = newCol();                              // 5. A new column on the right.
@@ -4975,9 +5010,45 @@ export function initLegacyApp() {
         }
       });
     });
-    return { moves, lane, rel };
+    // Rule 23's measure: the columns this placement uses, counted per year block and summed (a run crossing New Year
+    // counts in both; the Sim Post lane counts as a column).
+    const years = new Map();
+    cols.forEach((c, i) => c.occ.forEach(o => { for(let yy = o.y0; yy <= o.y1; yy++){ if(!years.has(yy)) years.set(yy, new Set()); years.get(yy).add(i); } }));
+    let cost = 0; years.forEach(set => { cost += set.size; });
+    return { moves, lane, rel, cost };
     };
-    return pass();
+    // ⭐ RULE 23, AS FEW COLUMNS AS POSSIBLE (owner, 6 Nov 2026, two screenshots of a test calendar: today three columns,
+    // wanted two -- "We should always prioritize as few collumns as possible"; by picker "Yes, build it", and "Fewest
+    // columns" over Post keeping the Sim Post lane). Prod Prep took Pre-Prep's handed-off column, so Casting, starting
+    // beside it and not following on, could not sit left of it in Writers' free column (R-D) and opened a third; had Prod
+    // Prep followed Writers into that column, freed three weeks before (rule 2's short gap), Casting would have taken
+    // Pre-Prep's. Rules 2-8 decide one phase at a time and cannot see that. So: at each place they had a CHOICE (more than
+    // one allowed column, a new one included), in placement order, every allowed column is tried with the rest placed
+    // by the rules, and the one that leaves the fewest columns is kept; a TIE KEEPS THE RULES' OWN PICK, so a calendar
+    // where they already use the fewest is placed byte for byte as before (measured: all 15 pictures, every engine dump
+    // identical). Choices only: a hand move (colFollow) and a remembered predecessor (colKeep) are not choices -- a
+    // remembered column of its own IS one since 9 Nov 2026 (the give-way above) -- and R-D still bounds
+    // what is allowed. Known consequences, both accepted: Post may leave the lane when that saves a column (layout-r21:
+    // Post under Production, Localization later in the lane column), and a phase nobody moved can change column when
+    // another moves far enough that the saving goes away (the twin: Casting slid into the shoot, three columns either
+    // way, Prod Prep back in Pre-Prep's). Cost: one placement per allowed column at each choice, a few dozen at most;
+    // computeSchedule runs this in its trials too (Production's backward search), which stays well inside a frame.
+    const forced = new Map();
+    for(let guard = 0; guard < 256; guard++){
+      const pts = [];
+      const run = pass(forced, pts);
+      const pt = pts[0];                       // the first choice still open, in placement order
+      if(!pt) return run;
+      let best = pt.g, bestCost = run.cost;    // the rules' own pick, everything after it by the rules
+      pt.cands.forEach(c => {
+        if(c === pt.g) return;
+        const f = new Map(forced); f.set(pt.seg, c);
+        const r = pass(f, null);
+        if(r.cost < bestCost){ bestCost = r.cost; best = c; }
+      });
+      forced.set(pt.seg, best);
+    }
+    return pass(forced, null);
   }
   // Rule 9's order for every year block of a placed, stamped calendar, derived from the drawn cells: per block,
   // the columns with cells in it sorted by their top occupant's first row (the lane's, Production's first row,
@@ -6406,6 +6477,7 @@ export function initLegacyApp() {
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // sticky columns move phases too
       + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
+      + '|' + (fillSpaceOff ? 'lanes' : 'fill')   // the Fill Space switch changes every width
       + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
     if(key === _swapGateKey) return Object.assign({}, _swapGateRes, { schedule });
     // Recompute from a clean suppression set, or a pair suppressed by an edit that has since been
@@ -7299,6 +7371,7 @@ export function initLegacyApp() {
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
       + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
+      + '|' + (fillSpaceOff ? 'lanes' : 'fill')
       + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
@@ -18768,7 +18841,25 @@ export function initLegacyApp() {
   //   - Read only through phaseFillOn(); written only through setPhaseFill().
   let phaseFill = {};
   function phaseFillOn(key){ return phaseFill[key] === true; }
+  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default) = the layout as it was: a phase
+  // widens into the columns beside it from the week they are free (rule 13's rest of the run), so its width can step up
+  // partway through. Off = NO PARTIAL FILLS: every phase has ONE width per year block, the widest that is free on every
+  // row of its run there (layoutEvenPlan, frozen edit LR7). The owner, correcting a first build that kept every phase
+  // one column wide: "when i say fill space i mean collumsn that fill only a portion of the phase such that only some
+  // weeks are wider than others. The algorithm should always fill collumns as wide as they have space for if they are
+  // all uniform in width." Rulings by picker: even within each YEAR (a run crossing New Year sits in two column sets);
+  // a phase's own double-click wish still wins (fill = week by week, keep = one wide); a dragged exact width still lays
+  // over it. CALENDAR DATA, since the exports follow: captureSnapshot's `fillSpaceOff`, written only as true (absent =
+  // on, every calendar before it); PERMANENT. Stamped calendars only, never in Single Column (rule 17). Reset Columns
+  // leaves it alone: it is a setting, like Single Column Mode, not a column choice.
+  let fillSpaceOff = false;
   function phaseFillOff(key){ return phaseFill[key] === false; }
+  function setFillSpace(on){
+    const off = !on;
+    if(off === fillSpaceOff) return;
+    fillSpaceOff = off;
+    update();      // ends in markDirty(): one undo step, a dirty file
+  }
   function phaseFillSnapshot(){ const o = {}; Object.keys(phaseFill).sort().forEach(k=>{ o[k] = phaseFill[k] === true; }); return o; }
   // A wish (true or false) replaces the phase's per-cell widths: they said the same thing the old way, and a stale
   // {l:0,r:0} would narrow a cell the wish wants wide. null = back to the automatic layout, which restores nothing.
@@ -20409,6 +20500,41 @@ export function initLegacyApp() {
     return start;
   }
 
+  // ⭐ FILL SPACE OFF's even widths (owner, 9 Nov 2026; FILL-INTENT-PLAN.md §10; read by frozen edit LR7). For one year
+  // block's occupancy grid, every phase run's single width: [from, to] around its own slot, every column of it empty
+  // on EVERY row of the run (layoutRunStart .. layoutRestOfRun, across all-phase hiatus rows). The Sim Post marker's
+  // rows are in the grid (LAYOUT_SIM_KEY), so a run sharing rows with the shoot never crosses the lane. RIGHT first,
+  // as rule 12 gives a spare column between two phases to the left one: right extensions cannot collide (a run stops
+  // at any slot occupied on its rows). Then LEFT, into columns no overlapping run's range already holds. Keyed
+  // `${slot}|${run's first row}`; memoized per occupancy object (one per block per computeBlockLayout call, so the
+  // screen and each writer build their own). Not frozen.
+  const _layoutEvenPlans = new WeakMap();
+  function layoutEvenPlan(occupancy, mc){
+    const memo = _layoutEvenPlans.get(occupancy);
+    if(memo && memo.mc === mc) return memo.plan;
+    const runs = [];
+    for(let s = 0; s < mc && s < occupancy.length; s++){
+      const m = occupancy[s];
+      if(!m) continue;
+      const seen = new Set();
+      [...m.keys()].sort((a, b) => a - b).forEach(r=>{
+        const key = m.get(r);
+        if(key === LAYOUT_SIM_KEY || seen.has(r)) return;
+        const r0 = layoutRunStart(occupancy, s, r), r1 = layoutRestOfRun(occupancy, s, r)[1];
+        for(let w = r0; w <= r1; w++) if(m.get(w) === key) seen.add(w);
+        runs.push({ s, r0, r1, from: s, to: s });
+      });
+    }
+    const freeOn = (n, R) => { for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
+    runs.forEach(R=>{ let t = R.s; while(t + 1 < mc && freeOn(t + 1, R)) t++; R.to = t; });
+    const heldBy = (n, R) => runs.some(X => X !== R && X.from <= n && n <= X.to && X.r0 <= R.r1 && R.r0 <= X.r1);
+    runs.forEach(R=>{ let f = R.s; while(f - 1 >= 0 && freeOn(f - 1, R) && !heldBy(f - 1, R)) f--; R.from = f; });
+    const plan = new Map();
+    runs.forEach(R => plan.set(R.s + '|' + R.r0, { from: R.from, to: R.to }));
+    _layoutEvenPlans.set(occupancy, { mc, plan });
+    return plan;
+  }
+
   // Compute how a single week's phase area (mc phase slots) should be laid out:
   //  - Phases sit in their stable slots.
   //  - A phase spans rightward into a neighbor slot only if that neighbor is empty for the
@@ -20494,6 +20620,15 @@ export function initLegacyApp() {
     // over it (19). Rule 17 holds Single Column at one. Unstamped, fillsFree is false and every line is what it was.
     const fillsFree = k => stamped && !singleColumn && !!bySlot[k] && phaseFillOn(bySlot[k].key);
     const keepsNarrow = k => stamped && !!bySlot[k] && phaseFillOff(bySlot[k].key);   // the other wish: its own column, every week
+    // ⛔ FROZEN EDIT LR7 (owner sign-off by picker, 9 Nov 2026: "Yes, make the edit"; FILL-INTENT-PLAN.md §10). With Fill
+    // Space OFF on a STAMPED calendar (never in Single Column) a phase with no wish of its own takes ONE width for its run
+    // in this block -- layoutEvenPlan's [from, to], every column of it free on every row of the run -- instead of the
+    // per-week walk below; R-E and rule 21's post-pass leave it alone, and a fill wish's walk stops at a column an even
+    // run holds this row. With Fill Space on, `even` is null and every line is what it was. Gate: leg fillspace, every
+    // export baseline byte-identical, the 15 pictures unchanged.
+    const even = (stamped && !singleColumn && fillSpaceOff && occupancy) ? layoutEvenPlan(occupancy, mc) : null;
+    const evenOf = k => (even && bySlot[k] && !fillsFree(k) && !keepsNarrow(k)) ? (even.get(k + '|' + layoutRunStart(occupancy, k, localWeek)) || null) : null;
+    const evenHolds = (n, self) => { if(!even) return false; for(let j = 0; j < mc; j++){ if(j === self) continue; const e = evenOf(j); if(e && e.from <= n && n <= e.to) return true; } return false; };
     const phantom = n => phantomSlots.has(n);
     const earnedIn = (a, b) => { let c = 0; for(let n = a; n <= b; n++) if(!phantom(n)) c++; return c; };
     const mcEarned = mc - phantomSlots.size;
@@ -20513,7 +20648,9 @@ export function initLegacyApp() {
         // data-* attributes rendered from them, the drag/double-click handles -- treat it exactly
         // like a phase cell, with no changes to either.
         let span = 1;
-        while(k+span < mc && !bySlot[k+span] && !keepsNarrow(k) && (fillsFree(k) ? (k+span !== simSlot)
+        const ev = evenOf(k);                                                                        // LR7
+        if(ev) span = Math.max(1, ev.to - k + 1);
+        else while(k+span < mc && !bySlot[k+span] && !keepsNarrow(k) && (fillsFree(k) ? (k+span !== simSlot && !evenHolds(k+span, k))
               : (((stamped && !singleColumn) || earnedIn(k, k+span) <= spanCap) && !(nPhases > 1 && laneReserved(k+span)) && freeForRun(k, k+span)))){ span++; }   // LR2; LR4 (b) uncapped when stamped (rule 17 holds Single Column at one), (a) the lane kept while sharing; LR5 the wish
         if(c.type === 'phaseHiatus'){
           // Resolve any per-band rename/recolor the user has applied, keyed by week + phase.
@@ -20535,16 +20672,33 @@ export function initLegacyApp() {
         // is excluded as an absorb target so it can never widen past its own column.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
-        if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it
+        const evn = (n < mc) ? evenOf(n) : null;                                                     // LR7
+        if(evn && evn.from < n){
+          // An even run reaches left: exactly its plan, the same every row of the run.
+          const from = Math.max(k, evn.from);
+          if(from > k) out.push({kind:'empty', colspan:from - k});
+          const c = bySlot[n];
+          const span = Math.max(1, evn.to - n + 1);
+          if(c.type === 'phaseHiatus'){
+            const hKey = c.weekIso + '|' + c.key;
+            const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
+            const hCol = hiatusColors[hKey] || HIATUS_COLOR;
+            out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
+                      colspan:(n - from) + span, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel, cell:c, own:n});
+          } else {
+            out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n - from) + span, cell:c, own:n});
+          }
+          k = n + span;
+        } else if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
           let left = 0;
-          if(fillsFree(n)) left = n - k;                                                             // LR5
+          if(fillsFree(n)){ left = 0; while(left < n - k && !evenHolds(n - left - 1, n)) left++; }    // LR5; LR7
           else while(left < n - k && earnedIn(n - left - 1, n) <= spanCap) left++;                   // LR2
           const from = n - left;
           let span = 1;
-          while(n+span < mc && !bySlot[n+span] && (fillsFree(n) ? (n+span !== simSlot)
+          while(n+span < mc && !bySlot[n+span] && (fillsFree(n) ? (n+span !== simSlot && !evenHolds(n+span, n))
                 : (((stamped && !singleColumn) || earnedIn(from, n+span) <= spanCap) && !(nPhases > 1 && laneReserved(n+span)) && freeForRun(n, n+span)))){ span++; }   // LR2; LR4 (a) + (b); LR5
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
@@ -20572,7 +20726,7 @@ export function initLegacyApp() {
       { let p = 0; out.forEach((sg, i)=>{ for(let n = p; n < p + sg.colspan; n++) owner[n] = i; p += sg.colspan; }); }
       let changed = false;
       out.forEach((sg, i)=>{
-        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own)) return;   // LR5: a wish decides its own width
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own) || evenOf(sg.own)) return;   // LR5: a wish decides its own width; LR7: so does an even run
         const k = sg.own, key = occupancy[k].get(localWeek);
         const r0 = layoutRunStart(occupancy, k, localWeek);
         if(r0 >= localWeek) return;
@@ -20649,7 +20803,7 @@ export function initLegacyApp() {
       };
       const claims = [];
       out.forEach((sg, i)=>{
-        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own)) return;   // LR5: a wish decides
+        if(sg.kind !== 'phase' || sg.own === undefined || fillsFree(sg.own) || keepsNarrow(sg.own) || evenOf(sg.own)) return;   // LR5: a wish decides; LR7: so does an even run (Fill Space off)
         const k = sg.own, key = occupancy[k].get(localWeek);
         const r0 = layoutRunStart(occupancy, k, localWeek);
         let rp = r0 - 1;
@@ -20719,7 +20873,7 @@ export function initLegacyApp() {
     if(stamped && !singleColumn){
       for(let i = 1; i + 1 < out.length; i++){
         const e = out[i], l = out[i - 1];
-        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own) || heldNarrow.has(l.own)) continue;   // LR5: not to a phase keeping to its column; LR6: nor to one held to what it inherited
+        if(e.kind !== 'empty' || (l.kind !== 'phase' && l.kind !== 'phaseHiatus') || l.own === undefined || keepsNarrow(l.own) || heldNarrow.has(l.own) || evenOf(l.own)) continue;   // LR5: not to a phase keeping to its column; LR6: nor to one held to what it inherited; LR7: nor to an even run
         let at = 0; for(let j = 0; j < i; j++) at += out[j].colspan;
         let ok = true;
         for(let n = at; n < at + e.colspan; n++) if(!freeForRun(l.own, n)){ ok = false; break; }
@@ -25150,7 +25304,16 @@ export function initLegacyApp() {
     // Reset Columns: the Waterfall's only, greyed while every column is automatic. Every way a column store changes
     // ends in render() rebuilding #table-wrap, so this observer sees it (and the click re-checks regardless).
     chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist() });
+    // Fill Space: the Waterfall of a stamped calendar only (an unstamped one keeps its old widths until Update layout).
+    chrome.fillSpaceBtn({ visible: !mv && layoutStamped(), on: !fillSpaceOff });
   }
+  // Delegated, as every React-rendered toolbar control is. A <button> with aria-pressed, never an input: a Mantine
+  // Switch carries an automatic id, and collectFieldValues() sweeps every input[id] into the saved file.
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-fill-space-btn');
+    if(!t || viewMode === 'month' || !layoutStamped()) return;
+    setFillSpace(fillSpaceOff);
+  });
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
 
@@ -27911,6 +28074,7 @@ export function initLegacyApp() {
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     phaseFill = {};                           // ...and no phase fills its free space (FILL-INTENT-PLAN.md)
+    fillSpaceOff = false;                     // ...and Fill Space back on
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();
@@ -29317,6 +29481,7 @@ export function initLegacyApp() {
       // its column). ⛔ PERMANENT key. None is an ABSENT key, so a calendar that never uses it saves byte for byte as
       // before. Keys in sorted order.
       ...(Object.keys(phaseFill).length ? {phaseFill: phaseFillSnapshot()} : {}),
+      ...(fillSpaceOff ? {fillSpaceOff: true} : {}),   // the Fill Space switch, off (9 Nov 2026); absent = on
       // 30 Oct 2026 (Ends, see phaseEnds): the Weeks phases held by their END, a sorted array of keys. ⛔ PERMANENT key.
       // None is an ABSENT key, so a calendar that never uses Ends saves byte for byte as before. Each one's end is
       // end-<key> and its worked-out start is start-<key>, both in fields.byId, so an older build opens it where it is.
@@ -38758,6 +38923,7 @@ export function initLegacyApp() {
     }
     // Each phase's wish (FILL-INTENT-PLAN.md): a built-in phase or a custom phase this file defines, each `true` (fills)
     // or `false` (keeps to its column). Anything else is dropped and counted; an emptied map is dropped (absent = none).
+    if('fillSpaceOff' in s && s.fillSpaceOff !== true){ bad.n++; delete s.fillSpaceOff; }   // only ever written as true
     if('phaseFill' in s){
       if(!isPlainObj(s.phaseFill)){ bad.n++; delete s.phaseFill; }
       else {
@@ -39253,6 +39419,7 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL (FILL-INTENT-PLAN.md §1): a file with no key fills nothing -- never the previous calendar's wishes.
     phaseFill = {};
     if(isPlainObj(snap.phaseFill)) Object.keys(snap.phaseFill).forEach(k=>{ if(typeof snap.phaseFill[k] === 'boolean') phaseFill[k] = snap.phaseFill[k]; });
+    fillSpaceOff = snap.fillSpaceOff === true;   // absent = on, as every calendar saved before the switch
     phaseHidden = {};
     if(isPlainObj(snap.phaseHidden)) Object.keys(snap.phaseHidden).forEach(k=>{
       const v = snap.phaseHidden[k];
