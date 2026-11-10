@@ -31991,8 +31991,12 @@ export function initLegacyApp() {
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
 
-    // The phase names the list's pinned row, so a new pick redraws it.
-    document.getElementById('tool-anchor-phase').addEventListener('change', ()=>{ syncAnchorDate(); syncShiftForm(); });
+    // A pick made in the box CHOOSES that phase: its row is outlined, so Prior / After name it too (fillShiftPhase:
+    // one chosen phase). Whole schedule is no phase, so the outline stays where it was.
+    document.getElementById('tool-anchor-phase').addEventListener('change', e=>{
+      if(e.target.value && e.target.value !== ANCHOR_ALL) shiftMark = e.target.value;
+      syncAnchorDate(); syncShiftForm();
+    });
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
 
@@ -32073,10 +32077,20 @@ export function initLegacyApp() {
       return shiftHeldWeeks(plan ? plan.part : null);
     }
     // The phase that LANDS on the date (#tool-anchor-phase, Anchor To's select by id; it shows only To a date, on the
-    // row above "starts on"). Refilled on every sync, because what it offers follows the ticks: Whole schedule is in
-    // it only To a date with EVERY phase ticked (the old "All phases to a date"), since it has nothing before or after
-    // it. To a date the landing phase always moves, so it is ticked here and drawn pinned. True when the pick changed
-    // (Whole schedule no longer offered: the shoot is put back), so the caller re-reads the date.
+    // row above "starts on"). Refilled on every sync, because it follows the list (owner, 9 Nov 2026, on a screenshot
+    // with Pre Prep outlined and Production in the box: "when pre-prep is selected, it should be the default option
+    // under To a date. The list should also be limited to only selected phases ... this applies to whichever phase
+    // is currently highlighted"):
+    //   * it OFFERS only the ticked phases: a phase that stays cannot land anywhere. Whole schedule is in it only
+    //     with EVERY phase ticked (the old "All phases to a date"), since it has nothing before or after it;
+    //   * it SHOWS the outlined row's phase whenever that row is ticked. The link runs both ways: a pick made in
+    //     the box outlines that row (its `change` handler), so there is ONE chosen phase, which Prior / After name
+    //     and which lands on the date. Only an outlined row that is NOT ticked parts the two: the box then keeps its
+    //     phase while that is ticked, else takes the shoot, else the first ticked phase.
+    // ⛔ The landing phase is no longer forced to move and drawn pinned in place of its tick (5 Nov 2026's rule): it
+    // changes with every row clicked now, and a tick box that turned into a pin under the pointer could not be
+    // cleared. Every row keeps its box; untick the phase that lands and the box moves to another ticked one.
+    // True when the pick changed, so the caller re-reads the date.
     function fillShiftPhase(){
       const sel = document.getElementById('tool-anchor-phase');
       if(!sel) return false;
@@ -32084,16 +32098,18 @@ export function initLegacyApp() {
       const rows = shiftRows();
       const have = new Set(rows.map(r => r.key));
       shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
-      const toDate = shiftFar === 'date';
-      const landing = (was && was !== ANCHOR_ALL && have.has(was)) ? was : '';
-      const offer = toDate && rows.length > 0 && rows.every(r => shiftTicks.has(r.key) || r.key === landing);
-      fillPhaseSelect('tool-anchor-phase', scheduledPhases(), 'production', offer);
-      if(toDate && sel.value && sel.value !== ANCHOR_ALL) shiftTicks.add(sel.value);
+      const ticked = rows.filter(r => shiftTicks.has(r.key));
+      const offerWhole = shiftFar === 'date' && rows.length > 0 && ticked.length === rows.length;
+      fillPhaseSelect('tool-anchor-phase', scheduledPhases().filter(x => shiftTicks.has(x.p.key)), 'production', offerWhole);
+      if(rows.length && !ticked.length) sel.innerHTML = '<option value="">Tick a phase first</option>';
+      const mark = shiftMarkKey();
+      if(!(was === ANCHOR_ALL && offerWhole) && shiftTicks.has(mark)) sel.value = mark;
       return sel.value !== was;
     }
     // Draw the list: Build Around's rows (solveRow). By weeks a row says Moves or Stays; to a date it shows the new
-    // start and Pushed / Pulled N wks once a date is typed. The landing phase is PINNED to a date (it has to move,
-    // so it has no tick to clear), and Whole schedule fixes every tick. The outlined row wears `is-mark`.
+    // start and Pushed / Pulled N wks once a date is typed. The phase that lands wears `is-land` (a tint, and "On
+    // your date" until a date is typed) and keeps its tick box; Whole schedule fixes every tick. The outlined row
+    // wears `is-mark`.
     // ⛔ No `title` on a row: a native tooltip floats over the rows, and nothing may (the owner's spec, item 8).
     function renderShiftList(){
       const listEl = shiftMenu && shiftMenu.querySelector('[data-shift-list]');
@@ -32107,22 +32123,21 @@ export function initLegacyApp() {
       const rows = shiftRows();
       const mark = shiftMarkKey();
       const html = rows.map(r => {
-        const pin = toDate && !whole && r.key === key;
-        const on = shiftTicks.has(r.key) || pin;
+        const on = shiftTicks.has(r.key);
+        const lands = toDate && !whole && on && r.key === key;
         const shown = phaseSnapped(r.key) ? r.week : r.start;
         const to = (on && n) ? step(shown) : shown;
-        const words = (!toDate || !n) ? (pin ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
-        const cls = (pin ? ' is-pin' : '') + (on ? (n ? ' is-moving' : '') : ' is-off') + (r.key === mark ? ' is-mark' : '');
-        const lead = pin ? SOLVE_PIN_SVG
-          : '<input type="checkbox" data-key="' + escHtml(r.key) + '"' + (on ? ' checked' : '') + (whole ? ' disabled' : '')
-            + ' aria-label="' + escHtml('Move ' + r.label) + '">';
+        const words = (!toDate || !n) ? (lands ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? solveMovedWords(shown, to) : 'Stays');
+        const cls = (lands ? ' is-land' : '') + (on ? (n ? ' is-moving' : '') : ' is-off') + (r.key === mark ? ' is-mark' : '');
+        const lead = '<input type="checkbox" data-key="' + escHtml(r.key) + '"' + (on ? ' checked' : '') + (whole ? ' disabled' : '')
+          + ' aria-label="' + escHtml('Move ' + r.label) + '">';
         return solveRow(r.p, cls, lead, to, words, '');
       });
       listEl.innerHTML = html.length ? html.join('') : '<div class="solve-row solve-empty">No phases scheduled yet.</div>';
       // Each row names its phase for the press-and-drag below. Set here, not in solveRow, which is Build Around's too.
       if(html.length) Array.prototype.forEach.call(listEl.children, (el, i) => { el.dataset.key = rows[i].key; });
       const count = shiftMenu.querySelector('[data-shift-count]');
-      if(count) count.textContent = rows.length ? rows.filter(r => shiftTicks.has(r.key) || (toDate && !whole && r.key === key)).length + ' of ' + rows.length + ' move' : '';
+      if(count) count.textContent = rows.length ? rows.filter(r => shiftTicks.has(r.key)).length + ' of ' + rows.length + ' move' : '';
     }
     // Reflect the form: which How far button is on, which rows show, the header box, the two buttons under the list,
     // and the list. The header box is ticked (drawn as a minus) when every phase is ticked; Prior / After name the
@@ -32238,8 +32253,6 @@ export function initLegacyApp() {
           if(!row || row.querySelector('input:disabled')) return;   // Whole schedule fixes every tick
           e.preventDefault();
           const key = row.dataset.key;
-          // The pinned landing row has no box and counts as on (it is in shiftTicks): a press chooses it, a drag from
-          // it clears, and it stays ticked itself.
           shiftDrag = {from: key, at: '', box: !!e.target.closest('input[type=checkbox]'), value: !shiftTicks.has(key), base: new Set(shiftTicks)};
           dragTo(key);
           say('');
@@ -32320,7 +32333,8 @@ export function initLegacyApp() {
     //     past a deadline to get nearer to it.
     document.getElementById('tool-anchor-go').addEventListener('click', ()=>{
       const {key, edge, label, current} = anchorSelection();
-      if(!key) return say('Nothing selected.', true);
+      // No phase in the box: nothing is scheduled, or nothing is ticked (the box offers ticked phases only).
+      if(!key) return say(shiftRows().length ? 'Tick a phase to move.' : 'Nothing selected.', true);
       const target = parseDateUTC((document.getElementById('tool-anchor-date')||{}).value);
       if(!target) return say('Pick a date first.', true);
       if(!current){
@@ -32330,7 +32344,7 @@ export function initLegacyApp() {
       }
       // In WORKING weeks (the step-over): the weeks of the hiatuses this move holds are not counted, so the landmark
       // lands on the date even with a held break between. A start typed inside a held break lands the week after it.
-      // To a date the landing phase is always ticked, so there is a plan; Whole schedule has every phase ticked.
+      // The box offers ticked phases only, so there is a plan; Whole schedule has every phase ticked.
       const plan = shiftPlan();
       const part = plan ? plan.part : null;
       const held = shiftHeldWeeks(part);

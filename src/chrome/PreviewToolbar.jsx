@@ -178,9 +178,10 @@ export function PreviewToolbar() {
             {/* The phase that LANDS on the date, directly above "starts on" (owner, 5 Nov 2026: the date row must
                 carry its own subject, mockups/shift-date-row.html). To a date only; the engine hides it by weeks.
                 ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this element's innerHTML,
-                and the handlers recover the phase name by splitting the option label on ' — '. Whole schedule is
-                in it only while every phase is ticked. Since 9 Nov 2026 this is the ONE phase select in the box
-                (the pivot row and its mirror went with the What moves buttons). */}
+                and the handlers recover the phase name by splitting the option label on ' — '. Since 9 Nov 2026
+                this is the ONE phase select in the box (the pivot row and its mirror went with the What moves
+                buttons), it offers only the TICKED phases (Whole schedule too while every phase is ticked), and
+                it shows the outlined row's phase: one chosen phase (fillShiftPhase). */}
             <div className="tools-row" data-shift-phase-row="">
               <select id="tool-anchor-phase" aria-label="Phase that lands on the date"></select>
             </div>

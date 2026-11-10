@@ -1821,9 +1821,14 @@
   .shift-all input[type=checkbox]:disabled{background-color:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-3);
     cursor:not-allowed;}
   .shift-all input[type=checkbox]:disabled:checked{background-color:var(--mantine-color-gray-4); border-color:var(--mantine-color-gray-4);}
-  /* The last row ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge and the
-     row lines never clip it. It is the row Prior / After name. */
+  /* The last row clicked, ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge
+     and the row lines never clip it. It is the row Prior / After name. */
   #pop-shift .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
+  /* To a date, the phase that lands: Build Around's pinned-row tint, on a row that keeps its tick box (it is the
+     outlined row's phase whenever that row is ticked, so it changes with a click and must stay clearable). */
+  #pop-shift .solve-row.is-land{background:var(--mantine-color-navy-0);}
+  #pop-shift .solve-row.is-land .solve-nm{font-weight:600;}
+  #pop-shift .solve-row.is-land .solve-ch{color:var(--mantine-color-navy-7); font-weight:500;}
   /* Prior / After: two big buttons under the box, each half its width. One line always: a long phase name is cut
      with an ellipsis, so the buttons never change height. */
   .shift-sides{gap:6px; margin-bottom:10px;}
