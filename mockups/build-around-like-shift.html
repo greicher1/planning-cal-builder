@@ -11,11 +11,12 @@
        * Shift, as it is live (for reference: the look being matched);
        * Build Around, PROPOSED (items 1 to 12 of the list): "Phases" and the box with a header strip (a select-all
          box and the count) in place of the column header; a click on a row pins it, its box ticks, a drag sets a
-         run; Prior to X / Both / After X as buttons under the list; the pin's row under the list ("Pin to a date":
+         run; Prior to X / After X as buttons under the list (NO Both button: owner, 10 Nov 2026, "we can get rid
+         of the both button because you can just select all with the top checkbox"); the pin's row under the list ("Pin to a date":
          the phase above "starts on", as in Shift); the hint opens upward; no hover titles on rows;
        * Build Around, as it is today, showing the same pin, date and ticks in today's layout.
-     Three rulings are switches under the frame: what Prior / After tick (R13), whether Both keeps a button (R14),
-     and the box's width (R15).
+     Two rulings are switches under the frame: what Prior / After tick (R13) and the box's width (R15). R14 (does
+     Both keep a button) is RULED: no.
      Kept different on purpose: the Length column, the pin icon (the pinned phase is fixed to the date, it has no
      tick), the dark Build button whose label says what will happen, and the opening ticks (Writer's Rm and custom
      phases start unticked: the owner's ruling of 5 Nov 2026).
@@ -156,7 +157,6 @@ input.ctl.num{ width:52px; flex:none; }
 .sides{ gap:6px; margin-bottom:10px; }
 .side{ flex:1 1 0; min-width:0; height:34px; padding:0 10px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff;
        font-size:12px; font-weight:600; color:var(--gray-9); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.side.both{ flex:0 0 54px; padding:0; }
 .side:hover:not(:disabled){ background:var(--gray-0); }
 .side:active:not(:disabled){ background:var(--gray-1); }
 .side:disabled{ color:var(--gray-5); border-color:var(--gray-3); cursor:default; }
@@ -220,9 +220,6 @@ input.ctl.num{ width:52px; flex:none; }
     <div class="q"><b>R13 · Prior to / After tick:</b>
       <label><input type="radio" name="r13" value="usual" checked> the usual set: Writer's Rm and custom phases stay unticked (recommended)</label>
       <label><input type="radio" name="r13" value="every"> every row on that side, as in Shift</label></div>
-    <div class="q"><b>R14 · "Both":</b>
-      <label><input type="radio" name="r14" value="button" checked> keeps a small button between the two (recommended)</label>
-      <label><input type="radio" name="r14" value="none"> no button: the box opens that way, the header box ticks everything</label></div>
     <div class="q"><b>R15 · Width:</b>
       <label><input type="radio" name="r15" value="400" checked> 400 px, as today (recommended)</label>
       <label><input type="radio" name="r15" value="340"> 340 px, as Shift</label></div>
@@ -254,7 +251,7 @@ input.ctl.num{ width:52px; flex:none; }
         <li><b>"starts on"</b>, and the title reads "Build Around".</li>
         <li><b>The pin is the row you click</b>; the dropdown under the list follows, and picks it too.</li>
         <li><b>The date row is under the list</b>, the phase directly above "starts on".</li>
-        <li><b>Prior to … / After …</b> as buttons under the list, in place of the switch above it.</li>
+        <li><b>Prior to … / After …</b> as buttons under the list, in place of the switch above it. <b>Both is gone</b> (your ruling): the box at the top of the list ticks every phase.</li>
       </ol>
     </div>
     <div>
@@ -264,14 +261,14 @@ input.ctl.num{ width:52px; flex:none; }
         <li><b>The pinned row has a pin, not a tick.</b> It is fixed to the date; there is nothing to untick.</li>
         <li><b>The Length column</b>, typed in the list as today.</li>
         <li><b>The dark Build button.</b> Its label says what will happen, and nothing changes until it is pressed.</li>
-        <li><b>How it opens:</b> both sides, Writer's Rm and custom phases unticked.</li>
+        <li><b>How it opens:</b> both sides, Writer's Rm and custom phases unticked. The top box ticks those two as well, so it is not quite the old Both: untick them, or reopen the box, to get the opening ticks back.</li>
       </ul>
     </div>
     <div>
       <h3>Your calls (the switches above)</h3>
       <ul>
         <li><b>R13</b>: does "Prior to Production" leave Writer's Rm and Casting unticked (today's rule), or tick every row above, as the same words do in Shift?</li>
-        <li><b>R14</b>: does Both keep a button? Without it, the only way back to the opening ticks is to close and reopen.</li>
+        <li><b>R14</b>: ruled, 10 Nov 2026. No Both button.</li>
         <li><b>R15</b>: 400 or 340 px. At 340 the names get about 65 px, and the longer ones are cut: Writer's Rm, Production, Localization.</li>
       </ul>
     </div>
@@ -463,7 +460,6 @@ input.ctl.num{ width:52px; flex:none; }
     f.rows.forEach(function(p){ h += buildRow(p, f, false); });
     h += '</div></div>';
     h += '<div class="row sides new"><button type="button" class="side" data-side="-1">Prior to ' + esc(pin ? pin.name : '…') + '</button>' +
-         (B.r14 === 'button' ? '<button type="button" class="side both" data-side="0">Both</button>' : '') +
          '<button type="button" class="side" data-side="1">After ' + esc(pin ? pin.name : '…') + '</button></div>';
     h += '<p class="cap"><span class="new">Pin to a date</span></p><div class="row new"><select class="ctl" data-pin="">' + pinOptions(true) + '</select></div>' +
          '<div class="row">' + edgeSelect('starts on') + '<input class="ctl" type="date" data-date="" value="' + B.date + '"></div>';
@@ -650,7 +646,7 @@ input.ctl.num{ width:52px; flex:none; }
     var go = $('pop-new').querySelector('[data-go]'); if(go && !go.disabled) go.click();
   });
 
-  ['r13', 'r14', 'r15'].forEach(function(name){
+  ['r13', 'r15'].forEach(function(name){
     document.querySelectorAll('input[name=' + name + ']').forEach(function(r){ r.addEventListener('change', function(){
       B[name] = r.value;
       if(name === 'r13') B.ticks = defaultSet(0);
@@ -659,10 +655,10 @@ input.ctl.num{ width:52px; flex:none; }
   });
   function reset(){
     PH = SEED.map(function(p){ var o = {}; Object.keys(p).forEach(function(k){ o[k] = p[k]; }); o.start = ms(p.start); return o; });
-    var keep = B ? {r13: B.r13, r14: B.r14, r15: B.r15} : {r13: 'usual', r14: 'button', r15: '400'};
+    var keep = B ? {r13: B.r13, r15: B.r15} : {r13: 'usual', r15: '400'};
     S = {ticks: {}, mark: 'production', far: 'weeks', land: 'production', edge: 'start', date: '', weeks: 2, msg: ''};
     shiftRows().forEach(function(p){ S.ticks[p.key] = true; });
-    B = {pin: 'production', edge: 'start', date: '', ticks: {}, lens: {}, msg: '', r13: keep.r13, r14: keep.r14, r15: keep.r15};
+    B = {pin: 'production', edge: 'start', date: '', ticks: {}, lens: {}, msg: '', r13: keep.r13, r15: keep.r15};
     B.ticks = defaultSet(0); buildRefill(); S.date = shiftDateFor('production');
     renderAll();
   }
