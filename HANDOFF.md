@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
+### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **LIVE at `3c7b9f6`** (owner's picker *"Push now (Recommended)"*; pushed `47eeaea..3c7b9f6` at 02:13:01 UTC on 10 Nov 2026, the evening of 9 Nov Pacific, a fast-forward of the tested build: `origin/main` had not moved; the live `index.html` matched the pushed build `93502865…` byte for byte at 02:14:32, `version.json` 1.12.1, no version cut). (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 
 **As built:**
 - **The form, top to bottom** (`PreviewToolbar.jsx`, `#pop-shift`): the title and its hint; `p.tools-cap` "Phases";
@@ -82,7 +82,8 @@
   every phase → red on W1. Real build restored (`93502865…`), 39/39 again.
 - ⚠️ `episodeprep` (fixture state) threw once at its R11 file-load step, which does not touch the Shift box; 25/25
   re-run alone. The load-timeout flake seen all month.
-- ⏭ **Not done:** not pushed (needs the owner's picker). Local `main` not moved.
+- ⏭ **Not done:** local `main` not moved (this worktree's branch was pushed straight to `origin/main`). No version
+  cut: it rides in the next one.
 - 🧹 **Seen, not fixed (not this change's):** the Help's Build Around paragraph still reads "**Rebuild From** …
   Work backwards … Close all gaps", and it is in `src/index.html` TWICE (a merge duplicated it on 5 Nov).
 
