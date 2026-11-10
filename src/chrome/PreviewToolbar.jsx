@@ -80,8 +80,10 @@ function useStyleBarFit() {
       const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
       const reserve = hl && hl.hidden && sw ? sw.offsetWidth + (parseFloat(barCs.columnGap) || 0) : 0
       const gap = parseFloat(rowCs.columnGap) || 0
-      const hostLead = parseFloat(getComputedStyle(host).marginLeft) || 0
-      const need = toggle.offsetWidth + gap + hostLead + bar.offsetWidth + reserve + gap + tools.offsetWidth
+      // The space after the bar, before Shift. Read from the row's custom property, never the host's computed margin:
+      // the margin is 0 on its own line, and a need that changed with the mode would flip it back and forth.
+      const trail = parseFloat(rowCs.getPropertyValue('--tools-group-gap')) || 0
+      const need = toggle.offsetWidth + gap + bar.offsetWidth + reserve + trail + gap + tools.offsetWidth
       row.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
     }
     const later = () => { if (!frame) frame = requestAnimationFrame(fit) }

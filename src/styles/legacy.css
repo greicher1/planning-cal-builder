@@ -1619,7 +1619,10 @@
 
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
-    flex-wrap:wrap; margin-bottom:14px;}
+    flex-wrap:wrap; margin-bottom:14px;
+    /* The extra space that sets a group of tools apart, on top of the 10 px gap: after Build Around, and after the
+       text style bar's buttons (10 Nov 2026). Read by useStyleBarFit too. */
+    --tools-group-gap:16px;}
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1763,7 +1766,9 @@
      From's wrapper, NOT on the Header button: .preview-tools wraps on a narrow window, and the Header
      button is what moves to the new line (measured at a 600 px viewport), where a margin-left would
      indent it. A trailing margin at the end of a line is invisible. */
-  .tools-wrap:has(> #pop-solve-btn){ margin-right:16px; }
+  /* The 16 px is --tools-group-gap (on .view-toggle-row) since 10 Nov 2026, when the text style bar moved up beside
+     Shift with the same gap before it (owner). One value, so the two gaps cannot drift apart. */
+  .tools-wrap:has(> #pop-solve-btn){ margin-right:var(--tools-group-gap); }
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
@@ -3236,11 +3241,13 @@
      should only be the buttons ... not the surrounding box, text, etc"): the host sits on the row's FIRST line,
      between the view toggle and the tools, and the bar is its bare buttons. No box, no "Text" label (::before), no
      "Highlight any text…" hint (::after); the engine puts that hint in the bar's title while nothing is picked.
-     CENTRED in the gap (owner, the same day: "put it evenly between month and the left shift button"): no margins,
-     so the row's space-between gives it equal space on each side. A highlight well appearing (a header or box line
-     picked) widens it, so it moves about 15 px left while that well shows; nothing else moves.
+     BESIDE SHIFT (owner, the same day, after a first pass centred it: "the same size gap between the right edge of
+     the styling menu and the left shift button as there is between build around and fill space button"): the auto
+     left margin takes the line's free space, and the gap to Shift is the row's 10 px plus --tools-group-gap, as
+     after Build Around. A highlight well appearing (a header or box line picked) widens it to the left; nothing
+     else moves.
      Before, the host was a full-width second line (.style-row), a boxed bar shared with the month stepper. */
-  .view-toggle-row > .style-bar-host{ flex:none; }
+  .view-toggle-row > .style-bar-host{ flex:none; margin-left:auto; margin-right:var(--tools-group-gap); }
   /* Where the three no longer fit on one line (PreviewToolbar.jsx, useStyleBarFit), the bar alone drops to a line
      under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
      owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
