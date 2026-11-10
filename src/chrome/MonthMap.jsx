@@ -2,8 +2,9 @@
 // calendar with the phases drawn over them as named bars. Click a month to go there, click a phase to go to the
 // month it starts in. In the month view only; in the waterfall it renders nothing.
 //
-// MonthStepper, below, is its twin on the text style bar's row (owner, 28 Oct 2026, option B of
-// mockups/month-arrows.html; MONTH-RAIL-PLAN.md §18): Today and ‹ October 2026 ›, directly above the calendar. It
+// MonthStepper, below, is its twin on the line under the map (owner, 28 Oct 2026, option B of
+// mockups/month-arrows.html; MONTH-RAIL-PLAN.md §18; it shared the text style bar's row until the bar moved up beside
+// Shift on 10 Nov 2026): Today and ‹ October 2026 ›, directly above the calendar. It
 // replaced the map's own two small arrows, so there is one set of month buttons.
 //
 // It DRAWS what the engine pushes (`monthMap`, app.js "THE PHASE MAP": monthMapModel's output) and decides nothing:
@@ -142,7 +143,8 @@ export function MonthMap() {
   )
 }
 
-// Today and ‹ October 2026 ›, at the right end of the text style bar's row, in the month view only (§18). Like the
+// Today and ‹ October 2026 ›, at the right end of its own line (the text style bar's row until 10 Nov 2026), in the
+// month view only (§18). Like the
 // map it decides nothing: the label is the model's month on screen, and the buttons hand data-mvstep / data-mvgo to
 // the engine's document listener (goToMonth, the frozen arrows' range rule).
 // ⛔ No id on anything (collectFieldValues).

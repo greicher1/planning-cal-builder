@@ -26,8 +26,9 @@
 //   T0  the toolbar holds the Header button after Rebuild From, reading "Header: Manual ▾" (the file's
 //       mode); the three originals are still in the page, hidden
 //   T1  Manual: the strip above the header is RETIRED (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md): it is
-//       in the page but hidden, and the text style bar under the toolbar carries the editor-toolbar look
-//       (grey fill, a "Text" label) and spans the toolbar row
+//       in the page but hidden, and the text style bar is shown in the toolbar row. Until 10 Nov 2026 it was a
+//       grey, "Text"-labelled line spanning the row; since then it is its bare buttons beside Shift (owner), with no
+//       fill and no label (stylebarplace holds its place)
 //   T2  the button opens the mode menu UNDER IT (aria-expanded true), each of its four rows its name
 //       alone (the descriptions were deleted, owner, 23 Oct 2026), a second click closes it; a
 //       click on the hidden original opens the same menu under the toolbar button, not at 0,0; the
@@ -144,9 +145,9 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- T1 ------------------------------------------------------------------------------------
     var s1 = strip('#table-wrap .hdr-tools .hdr-fmt'), g0 = gray0(), sb = strip('.view-toggle-row .style-bar-host .style-bar');
-    add('T1', 'Manual: the strip above the header is retired (in the page, hidden); the text style bar under the toolbar has the editor-toolbar look and spans the row',
-      !!s1 && !s1.shown && !!sb && sb.shown && sb.bg === g0 && /Text/.test(sb.label) && sb.spans,
-      {strip: s1, styleBar: sb, gray0: g0}, 'strip hidden; bar: gray-0 fill, ::before "Text", full width');
+    add('T1', 'Manual: the strip above the header is retired (in the page, hidden); the text style bar is shown in the toolbar row as its bare buttons',
+      !!s1 && !s1.shown && !!sb && sb.shown && sb.bg === 'rgba(0, 0, 0, 0)' && sb.label === 'none',
+      {strip: s1, styleBar: sb}, 'strip hidden; bar shown, no fill, no ::before label');
 
     // ---- T2 ------------------------------------------------------------------------------------
     b0.click();

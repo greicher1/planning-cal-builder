@@ -51,7 +51,7 @@ import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
 // WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits between the view toggle and the tools while all three
-// fit on the row's first line. Where they don't, it takes `.style-own-line` on the row, and CSS puts the bar alone
+// fit on the row's first line. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
 // on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead, moving Shift and
 // Undo on every narrow window. Measured, not a media query: the tools' width changes with the view (Side Boxes is
 // waterfall only), the Header button's label and the window (Fill Space's label goes at 1300 px).
@@ -60,9 +60,14 @@ import { MonthMap, MonthStepper } from './MonthMap.jsx'
 //   the bar is width:max-content.
 // * The bar's hidden highlight well counts as shown. It appears for a header or box line, and a toolbar that jumped
 //   to two lines when a header line was clicked would be worse than one that drops a little sooner.
-// * Applied a frame later: changing the row's height inside the observer's own callback is what makes Chrome report
-//   "ResizeObserver loop completed with undelivered notifications" as a page error, which legs count.
-// * The class is on .view-toggle-row, which the static skeleton owns (src/index.html); the engine only reads it.
+// * Applied in a task of its own (a zero timer): changing the row's height inside the observer's own callback is what
+//   makes Chrome report "ResizeObserver loop completed with undelivered notifications" as a page error, which legs
+//   count. ⛔ Not requestAnimationFrame: a hidden page never gets one, and under the harness's --virtual-time-budget
+//   it may never fire (monthmap.js says the same), so the class would never be set there.
+// * The class is on the HOST, not on .view-toggle-row: the shareable copy is a clone of the page, and its builder empties
+//   the row but keeps the row's own attributes, so a class on the row travelled into every copy's markup (sharecopy2
+//   caught it). The host goes with the row's children. React set the host's className once and never changes that
+//   prop, so it never writes the attribute again and the class survives its re-renders.
 function useStyleBarFit() {
   useLayoutEffect(() => {
     const row = document.querySelector('.view-toggle-row')
@@ -70,11 +75,11 @@ function useStyleBarFit() {
     const toggle = row && row.querySelector('.view-toggle')
     const tools = row && row.querySelector('.preview-tools')
     if (!row || !host || !toggle || !tools || typeof ResizeObserver === 'undefined') return
-    let frame = 0, watchedBar = null
+    let timer = 0, watchedBar = null
     const fit = () => {
-      frame = 0
+      timer = 0
       const bar = host.firstElementChild
-      if (!bar) { row.classList.remove('style-own-line'); return }
+      if (!bar) { host.classList.remove('style-own-line'); return }
       if (bar !== watchedBar) { ro.observe(bar); watchedBar = bar }
       const hl = bar.querySelector('.hf-swatch-hl'), sw = bar.querySelector('.hf-swatch:not(.hf-swatch-hl)')
       const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
@@ -84,16 +89,19 @@ function useStyleBarFit() {
       // the margin is 0 on its own line, and a need that changed with the mode would flip it back and forth.
       const trail = parseFloat(rowCs.getPropertyValue('--tools-group-gap')) || 0
       const need = toggle.offsetWidth + gap + bar.offsetWidth + reserve + trail + gap + tools.offsetWidth
-      row.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
+      host.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
     }
-    const later = () => { if (!frame) frame = requestAnimationFrame(fit) }
+    const later = () => { if (!timer) timer = setTimeout(fit, 0) }
     const ro = new ResizeObserver(later)
     ;[row, host, toggle, tools].forEach((el) => ro.observe(el))
     // The engine fills the host after React mounts; a mutation says so even on a page that is not painting.
     const mo = new MutationObserver(later)
     mo.observe(host, { childList: true })
+    // A ResizeObserver reports only at a rendering opportunity, which a hidden page never gets (the grid fit in app.js
+    // found that); a window resize arrives regardless.
+    window.addEventListener('resize', later)
     fit()
-    return () => { ro.disconnect(); mo.disconnect(); if (frame) cancelAnimationFrame(frame) }
+    return () => { ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later); if (timer) clearTimeout(timer) }
   }, [])
 }
 
@@ -399,9 +407,9 @@ export function PreviewToolbar() {
       </div>
 
       {/* The phase map (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+): a full-width line of this row in the month
-          view only, ABOVE the style bar, so the style bar sits on the calendar it styles. Its own component with its own
-          state, so its re-renders never reach this component's engine-owned children. Inside this row for the reason
-          the style bar's host is. */}
+          view only, under the toggle and the tools (and, since 10 Nov 2026, the style bar's buttons beside them). Its own
+          component with its own state, so its re-renders never reach this component's engine-owned children. Inside
+          this row for the reason the style bar's host is. */}
       <MonthMap />
       {/* The month stepper's line (MONTH-RAIL-PLAN.md §18, option B, 28 Oct 2026). It shared this line with the text
           style bar until the bar moved up beside the view toggle (10 Nov 2026), and it keeps the line alone, at its

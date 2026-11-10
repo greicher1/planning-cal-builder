@@ -4,6 +4,58 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
+- **Asks (owner, four passes, each tried in the browser):** *"can we move the styling bar to this blank space between
+  "Month" and the left shift button. It should only be the buttons in the 2nd image, not the surrounding box, text,
+  etc"*; then *"put it evenly between month and the left shift button. Also make the buttons tall enough to match the
+  look and style of the other buttons in the menu"*; then *"actually move it so there is the same size gap between the
+  right edge of the styling menu and the left shift button as there is between build around the and fill space
+  button"* (this replaced the centring); then *"move the downward carrot over a little in the size box so it doesnt
+  hit the right edge"*; then *"Yes, finish it"*.
+- **As built (no engine logic, nothing frozen, no snapshot key, no id):**
+  - `PreviewToolbar.jsx`: `.style-bar-host` moved from `.style-row` to between `.view-toggle` and `.preview-tools`
+    (still inside `.view-toggle-row`; the engine finds it by class, so `app.js` did not change for the move).
+    `.style-row` keeps only `<MonthStepper />`, and `.style-row:empty{display:none}` makes it take no room in the
+    waterfall.
+  - **`useStyleBarFit()`** (same file) sets `.style-own-line` on the HOST when toggle + bar + tools + gaps do not fit.
+    ⛔ Not on `.view-toggle-row`: the first cut put it there and `sharecopy2` went red, because the shareable copy is a
+    clone of the page whose builder empties the row but keeps the row's attributes, so the class was baked into every
+    copy's markup (`<div class="view-toggle-row style-own-line">`). The host leaves with the row's children; React set
+    its className once and never rewrites it. `stylebarplace` P9 holds the row classless; CSS then puts the bar alone on a line under them by flex `order` (month view: before the stepper, on
+    its line, as before; no map: `flex-basis:100%` through `:not(:has(> .month-map))`). Without it a plain wrap would
+    push the TOOLS down. Measured, not a media query (the tools' width varies by view, Header label, Fill Space). None
+    of the three widths depends on the mode (the bar is `width:max-content`, the gap after it is read from
+    `--tools-group-gap`, never the host's margin, which is 0 on its own line), so it cannot flip-flop. The hidden
+    Highlight well counts as shown. ⛔ Applied in `setTimeout(0)`, not rAF (rAF never comes on a hidden page or,
+    possibly, under `--virtual-time-budget`) and not inside the ResizeObserver callback (a height change there is
+    Chrome's "ResizeObserver loop" page error); a window `resize` listener backs the observer up on a hidden page.
+  - `legacy.css`, "The text style bar": the box, `::before` "Text" and `::after` hint are gone; host
+    `margin-left:auto; margin-right:var(--tools-group-gap)`. `--tools-group-gap:16px` on `.view-toggle-row` is now
+    also what `.tools-wrap:has(> #pop-solve-btn)` reads, so the gap before Shift = Build Around → Fill Space (26 px).
+    Toolbar-sized controls scoped to `.style-bar` (30 px, gray-4 border, default radius; B / I / A / Clear 30 px
+    squares; the header editor's `.hf-*` copy is untouched). The Size select is `appearance:none` with the tool
+    popovers' chevron at `right 8px`, and the bar's hover sets `background-color` (the shorthand would wipe it).
+  - `app.js` `syncStyleBar()`: one line, the hint as `styleBar.title` while nothing is picked.
+- **Where it fits on the first line** (measured at 1,720 px on `fill-intent`): from about a 1,690 px window with Fill
+  Space showing, about 1,580 px without it, less in the month view (no Side Boxes). Narrower, it is the old place,
+  boxless. At the owner's window (estimated from the screenshot, ~1,720) it fits with ~30-50 px spare.
+- **My calls, not rulings (flag any the owner disagrees with):** the fallback line (rather than squeezing or hiding);
+  counting the Highlight well as shown (the bar drops ~34 px of window sooner, but a header click never re-flows the
+  toolbar); the hint kept as a tooltip.
+- **Proof:** new leg **`stylebarplace` 11/11** on `fill-intent` (in gate.sh's generic list; sets the ROW's width to
+  either side of the fit, since the harness window is fixed), red on `origin/main`'s build in all 8 placement cases.
+  Updated: `textstyle` B2 (tooltip, no box/label/hint), `hdrcontrols` T1 (bare buttons, no fill or label),
+  `monthmap` C0 / B7 (the stepper alone on its line; the bar beside Shift or, own line, beside the stepper / under the
+  tools). Partial gate `tests/harness/partgate-stylebar.zsh` (port 8422, `rerun` for the second batch), all on the
+  build: `textstyle` 51/51, `hdrcontrols` 12/12, `monthmap` 20/20 ×3 (mvnotes, colreuse, offweek), `calzoom` 26/26,
+  `sharecopy2` pass, `fillspace` 6/6, `mvtextstyle` 23/23 + 6/6, `sideboxes` 78/78, `mvnotesize` 12/12 ×2.
+  `npm run check` 41/41. Fence (gate 7, by hand) against `origin/main`'s build: 511 values, the only difference
+  `/waterfall/scroll` height 789 → 793 px (the grid fit giving back the 4 px the slimmer line freed at 1600 × 1200).
+  Seen by hand in the pane at 1,720 and 1,440 px.
+  - ⚠️ Flakes seen, not this change: `mvnotesize` (mvnotes) N4 in the first batch, 12/12 in the second; `textstyle`
+    threw in `load()` ("the loaded calendar", the Load race) in the second batch, 51/51 alone; `sharecopy2` produced
+    no JSON in the second batch, pass alone at a 180 s budget.
+
 ### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and

@@ -1915,6 +1915,11 @@ done
 # PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
 # Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
 # hidden, a hostile key, removal pruning the key, and Shift All.
+# stylebarplace (owner, 10 Nov 2026) is where the text style bar sits: its bare buttons on the toolbar's first line,
+# beside Shift with Build Around's gap before it (--tools-group-gap, one value), at Shift's 30 px, the Size box's own
+# arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving; and, the row set narrower
+# than the three groups, the bar alone on its old line (the month view: beside the stepper), the class never flipping.
+# On fill-intent (Fill Space shows: the widest toolbar). Red on the build before it in every placement case.
 # phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
 # fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
 # BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
@@ -1925,7 +1930,8 @@ done
 # and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
 # and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
 # the 36 px month minimum, its height, no ids, gone in the waterfall), and since 28 Oct 2026 part C the month stepper
-# on the style bar's line (§18: its label is always the month band's month, its ends, Today, no ids). On mvnotes,
+# (§18: its label is always the month band's month, its ends, Today, no ids), on the style bar's line until 10 Nov 2026
+# and alone on it since, when the bar moved up beside Shift (C0 and B7 hold both of the bar's places). On mvnotes,
 # colreuse (29 months, so it scrolls) and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
 # look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
 # box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
@@ -2165,7 +2171,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               swapholds:swap-holds:400 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
-              phasesui:hidewf:1500; do
+              phasesui:hidewf:1500 \
+              stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

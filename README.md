@@ -29,6 +29,41 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The text style buttons move into the toolbar (10 Nov 2026)
+
+The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
+colour, alignment, Clear, and Highlight when a header or box line is picked) now sit **on the toolbar's first line,
+just left of Shift**. The calendar gains that line's height. Built and adjusted in three passes with the owner trying
+each in the browser: *"move the styling bar to this blank space between Month and the left shift button. It should only
+be the buttons ... not the surrounding box, text, etc"*, then *"make the buttons tall enough to match the look and
+style of the other buttons in the menu"*, then *"the same size gap between the right edge of the styling menu and the
+left shift button as there is between build around and fill space"*, then the Size box's arrow moved in from the edge.
+
+- **Bare buttons**: no box, no "TEXT" label, no "Highlight any text…" line. That hint is now the buttons' tooltip
+  while nothing is picked.
+- **The toolbar's look**: every control is 30 px tall with the white ground, grey border and rounded corners of Undo
+  and Side Boxes; Bold, Italic, the colour and Clear are 30 px squares like Undo. The Size box draws its own arrow 8 px
+  in from its edge (the browser's sat against the border). The header editor's own copy of these controls is unchanged.
+- **The gap before Shift is Build Around's gap** (26 px): one shared value, so the two cannot drift apart.
+- **On a narrower window** (below about 1,690 px with Fill Space showing, about 1,580 px without; less in the month
+  view, which has no Side Boxes), the buttons cannot fit beside Shift, so they alone drop to their old line under the
+  toolbar, and in the month view share it with the month arrows as before. Shift and Undo never move to a second line.
+  The fit is measured (it counts the Highlight button as shown, so picking a header line never flips it).
+- Picking a header line adds the Highlight button on the left of the group; nothing else moves.
+
+Chrome only: nothing in the calendar, the exports or saved files changes. The month arrows keep their line in the
+month view. **Verified:** a new leg `stylebarplace` (11 cases: the markup, the 30 px controls and the Size arrow, the
+first-line geometry and the 26 px gap, the header pick, the narrow fallback in both views, no flip-flop, the tooltip,
+the shared value, the toolbar row left classless, no console error), red on the build before it in all 8 placement
+cases; `textstyle` B2, `hdrcontrols` T1 and `monthmap` C0 / B7 updated to the new place; the neighbouring legs green
+(list in HANDOFF); `npm run check` 41/41. The fence's computed styles inside `#table-wrap` against the build before:
+511 values, the only difference the waterfall's scroll box 4 px taller (789 → 793 px at 1600 × 1200), which is the
+grid fit giving the calendar the height the slimmer toolbar line freed.
+
+**Found on the way:** the first cut put its narrow-window class on the toolbar row, and `sharecopy2` caught it riding
+into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
+The class lives on the bar's host instead, which leaves with the row's children.
+
 ### Unreleased — Shift: the list first (9 Nov 2026)
 
 The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of

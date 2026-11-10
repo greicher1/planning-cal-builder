@@ -3252,11 +3252,11 @@
      under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
      owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
      it did. */
-  .view-toggle-row.style-own-line > .style-bar-host{ order:1; flex:1 1 260px; min-width:0; margin:0; }
-  .view-toggle-row.style-own-line > .style-row{ order:2; flex:0 1 auto; }
+  .view-toggle-row > .style-bar-host.style-own-line{ order:1; flex:1 1 260px; min-width:0; margin:0; }
+  .view-toggle-row > .style-bar-host.style-own-line ~ .style-row{ order:2; flex:0 1 auto; }
   /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
      so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
-  .view-toggle-row.style-own-line:not(:has(> .month-map)) > .style-bar-host{ flex-basis:100%; }
+  .view-toggle-row:not(:has(> .month-map)) > .style-bar-host.style-own-line{ flex-basis:100%; }
   /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
      not even the row's gap above it. */
   .view-toggle-row > .style-row{
