@@ -3279,9 +3279,19 @@
     background:var(--mantine-color-white); color:var(--mantine-color-gray-7);
     font-size:var(--mantine-font-size-xs); font-weight:500;
   }
-  .style-bar .hf-ctl:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  /* background-COLOR: the shorthand would also clear the Size box's drawn arrow on hover. */
+  .style-bar .hf-ctl:hover{ background-color:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
   .style-bar .hf-btn{ min-width:var(--input-height-xs, 30px); padding:0 6px; font-size:14px; }
-  .style-bar .hf-size{ width:66px; padding:0 6px; }
+  /* Its arrow drawn, not Chrome's: the UA arrow sat against the right border (owner, 10 Nov 2026: "move the downward
+     carrot over a little in the size box so it doesnt hit the right edge") and padding does not move it. The tool
+     popovers' selects' chevron (.tools-menu select), 8 px in from the edge. Still a real <select>: syncStyleBar
+     writes its options. */
+  .style-bar .hf-size{
+    width:66px; padding:0 24px 0 8px;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
+  }
   .style-bar .hf-swatch{ width:var(--input-height-xs, 30px); }
   .style-bar .hf-swatch .hf-swatch-ink{ font-size:14px; }
   .style-bar .hf-al-toggle{ gap:3px; padding:0 6px 0 7px; }
