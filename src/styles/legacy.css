@@ -1786,24 +1786,55 @@
   .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
   .tools-msg:empty{display:none;}
   .tools-msg.warn{color:var(--danger);}
-  /* THE SHIFT TOOL (owner's layout C, 4 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §6). Its two choices, What moves and
-     How far, wear Rebuild From's direction look (.solve-dir, below), each under a small caption. The engine hides
-     the rows a choice does not need with `hidden`, which a .tools-row's own display:flex would otherwise override. */
+  /* THE SHIFT TOOL (owner's layout C, 4 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §6). Its one choice left, How far,
+     wears Build Around's direction look (.solve-dir, below) under a small caption; "Phases" is the same caption over
+     the list (the What moves buttons went on 9 Nov 2026, see THE SHIFT LIST FIRST). The engine hides the rows a
+     choice does not need with `hidden`, which a .tools-row's own display:flex would otherwise override. */
   .tools-cap{margin:0 0 3px; font-size:var(--mantine-font-size-xxs); letter-spacing:.05em; text-transform:uppercase;
     font-weight:600; color:var(--mantine-color-gray-6);}
   #pop-shift [hidden]{display:none;}
-  /* The Shift form's list of phases (owner's layout A, 5 Nov 2026) is Rebuild From's .solve-list, drawn by the engine.
-     Under All phases it is folded behind one quiet link, right-aligned under the buttons. */
-  .tools-link{display:block; margin:-2px 0 8px auto; padding:0; border:0; background:none; font:inherit;
-    font-size:11.5px; font-weight:600; color:var(--mantine-color-navy-6); cursor:pointer;}
-  .tools-link:hover{text-decoration:underline;}
-  .tools-link:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; border-radius:2px;}
-  #pop-shift .solve-list{margin-bottom:8px;}
-  /* The date row's subject under Phase & before / after (owner, 5 Nov 2026, mockups/shift-date-row.html): the pivot's
-     name as a line of text where the subject select stands in the other cases, the select's height, so
-     "Production — 6/29/26" over "starts on 06/29/2026" reads top to bottom whichever way the phase was picked. */
-  .tools-subject{margin:0 0 6px; min-height:30px; display:flex; align-items:center; padding:0 1px;
-    font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-text);}
+  /* THE SHIFT LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The box is the list's frame:
+     a HEADER STRIP, then the rows (Build Around's .solve-list, drawn by the engine).
+       * The strip is not a column header: no labels. A select-all box in the ticks' own column (the rows' grid: 9px
+         in, 16px wide) and the live count beside it, on a slight tint with a hairline under it.
+       * ⛔ The strip is a sibling ABOVE the rows' scroller, not a sticky bar inside it: nothing may sit over the
+         rows or their text (item 8). For the same reason no row carries a `title`, and the box's hint opens upward.
+       * The rows are pressed and dragged, so their text is not selectable. */
+  .shift-box{border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-md); overflow:hidden;
+    margin-bottom:6px;}
+  #pop-shift .shift-box .solve-list{border:0; border-radius:0; margin:0; -webkit-user-select:none; user-select:none;}
+  .shift-all{display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:7px; margin:0;
+    padding:5px 9px; background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-2);
+    font-size:11.5px; line-height:1.4; color:var(--mantine-color-gray-7); cursor:pointer;
+    -webkit-user-select:none; user-select:none;}
+  /* The header box wears the rows' box (.solve-row input, above), with a MINUS where they have a tick: ticked means
+     every phase is ticked, and a click then clears them all. */
+  .shift-all input[type=checkbox]{-webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0; padding:0;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px; background:var(--mantine-color-white);
+    display:inline-block; flex:none; cursor:pointer; transition:background-color 100ms ease, border-color 100ms ease;}
+  .shift-all input[type=checkbox]:hover:not(:disabled){border-color:var(--mantine-color-gray-5);}
+  .shift-all input[type=checkbox]:checked{background-color:var(--mantine-primary-color-filled);
+    border-color:var(--mantine-primary-color-filled);
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='4' width='7' height='2' rx='1' fill='white'/%3E%3C/svg%3E");
+    background-size:62% auto; background-position:center; background-repeat:no-repeat;}
+  .shift-all input[type=checkbox]:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;}
+  .shift-all input[type=checkbox]:disabled{background-color:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-3);
+    cursor:not-allowed;}
+  .shift-all input[type=checkbox]:disabled:checked{background-color:var(--mantine-color-gray-4); border-color:var(--mantine-color-gray-4);}
+  /* The last row ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge and the
+     row lines never clip it. It is the row Prior / After name. */
+  #pop-shift .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
+  /* Prior / After: two big buttons under the box, each half its width. One line always: a long phase name is cut
+     with an ellipsis, so the buttons never change height. */
+  .shift-sides{gap:6px; margin-bottom:10px;}
+  .shift-side{flex:1 1 0; min-width:0; height:34px; padding:0 10px; border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-md); background:var(--mantine-color-white); font:inherit; font-size:12px;
+    font-weight:600; color:var(--mantine-color-gray-9); cursor:pointer; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis;}
+  .shift-side:hover:not(:disabled){background:var(--mantine-color-gray-0);}
+  .shift-side:active:not(:disabled){background:var(--mantine-color-gray-1);}
+  .shift-side:disabled{color:var(--mantine-color-gray-5); border-color:var(--mantine-color-gray-3); cursor:default;}
+  .shift-side:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;}
 
   /* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html). The
      panel is the widest of the four because each row holds a tick, a colour, the name, a date and

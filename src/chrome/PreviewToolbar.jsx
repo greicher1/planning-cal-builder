@@ -139,50 +139,51 @@ export function PreviewToolbar() {
           <div className="tools-menu" id="pop-shift" role="dialog" aria-label="Shift">
             <p className="tools-head">
               Shift
-              <InfoHint label="Shift" width={300}>
-                Moves phases by a number of weeks or to a date. Choose whether all phases move, or one phase and the ones after it or before it, or tick the phases yourself. Gaps are kept; use Build Around to close them.
+              {/* ⛔ Opens ABOVE the title and never flips (owner's spec, 9 Nov 2026, item 8: no panel, popover or
+                  floating control may sit over the list's rows at any width). The list is directly under this
+                  title now, so the default position ("right", which can flip) would lay the card over its first
+                  rows. Above is always clear: the toolbar and the app header are there. */}
+              <InfoHint label="Shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+                Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.
               </InfoHint>
             </p>
-            <p className="tools-cap">What moves</p>
-            <div className="tools-seg" role="group" aria-label="What moves" data-shift-move="">
-              <button type="button" data-move="all">All phases</button>
-              <button type="button" data-move="before">Phase &amp; before</button>
-              <button type="button" data-move="after">Phase &amp; after</button>
-            </div>
-            <div className="tools-row" data-shift-phase-row="">
-              {/* ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this
-                  element's innerHTML, and the handlers recover the phase name by splitting the
-                  option label on ' — '. Whole schedule is in it only for All phases to a date.
-                  Since 5 Nov 2026 this row shows ONLY under Phase & before / after, where the phase
-                  is the pivot; under All phases or a hand-picked set the phase that lands on a date
-                  is picked on the subject row under How far, a mirror of this select (owner: "is
-                  this confusing?", mockups/shift-date-row.html). This one stays the source of truth
-                  every reader asks, shown or hidden. */}
-              <select id="tool-anchor-phase" aria-label="Phase"></select>
-            </div>
-            {/* The list (see the head of this block). No children: the engine owns everything inside. The link
-                and the list wrap are shown or hidden by the engine through `hidden`. */}
-            <button type="button" className="tools-link" data-shift-choose="">Choose phases…</button>
-            <div data-shift-list-wrap="">
-              <p className="tools-head">Phases<span className="solve-count" data-shift-count=""></span></p>
+            {/* THE LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons
+                (All phases | Phase & before | Phase & after) are gone: the box goes from its title straight to the
+                phases, and the ticks alone say what moves.
+                  * The box holds a HEADER STRIP and the rows. The strip is not a column header: a select-all box
+                    in the ticks' own column and the live count beside it. It is a sibling ABOVE the rows'
+                    scroller, never a sticky bar over them (item 8).
+                  * The rows are the engine's (renderShiftList); no children here. Press a row and drag to set a
+                    run; the last row touched is outlined.
+                  * Prior / After, under the box, name the outlined row; the engine writes their text.
+                ⛔ No id on anything here: ids inside .tools-menu are skipped by the save sweep, but transient
+                chrome does not get ids in this codebase. */}
+            <p className="tools-cap">Phases</p>
+            <div className="shift-box">
+              <label className="shift-all">
+                <input type="checkbox" data-shift-all="" aria-label="Tick every phase" />
+                <span data-shift-count=""></span>
+              </label>
               <div className="solve-list" data-shift-list=""></div>
+            </div>
+            <div className="tools-row shift-sides">
+              <button type="button" className="shift-side" data-shift-prior=""></button>
+              <button type="button" className="shift-side" data-shift-after=""></button>
             </div>
             <p className="tools-cap">How far</p>
             <div className="tools-seg" role="group" aria-label="How far" data-shift-far="">
               <button type="button" data-far="weeks">By weeks</button>
               <button type="button" data-far="date">To a date</button>
             </div>
-            {/* The SUBJECT of the date row (owner, 5 Nov 2026, mockups/shift-date-row.html): the date row used to
-                read "starts on 3/2/26" with its phase two sections up, past the How far toggle. Under All phases
-                or a hand-picked set, To a date, the phase that lands is picked HERE, directly above "starts on":
-                a mirror of #tool-anchor-phase that the engine fills from it and writes back into it on change,
-                so every reader keeps asking the one select. No id, so it never enters fields.byId. Under Phase &
-                before / after the pivot (the row above) is the phase that lands, and the line repeats its name as
-                text. Which one shows is the engine's, through `hidden`; by weeks neither does. */}
-            <div className="tools-row" data-shift-subject-row="">
-              <select data-shift-subject="" aria-label="Phase that lands on the date"></select>
+            {/* The phase that LANDS on the date, directly above "starts on" (owner, 5 Nov 2026: the date row must
+                carry its own subject, mockups/shift-date-row.html). To a date only; the engine hides it by weeks.
+                ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this element's innerHTML,
+                and the handlers recover the phase name by splitting the option label on ' — '. Whole schedule is
+                in it only while every phase is ticked. Since 9 Nov 2026 this is the ONE phase select in the box
+                (the pivot row and its mirror went with the What moves buttons). */}
+            <div className="tools-row" data-shift-phase-row="">
+              <select id="tool-anchor-phase" aria-label="Phase that lands on the date"></select>
             </div>
-            <p className="tools-subject" data-shift-subject-line=""></p>
             <div className="tools-row" data-far-row="weeks">
               <input type="number" id="tool-shift-weeks" min="1" step="1" defaultValue="2" aria-label="Number of weeks to shift" />
               <span className="tools-unit">wks</span>
@@ -191,7 +192,7 @@ export function PreviewToolbar() {
             </div>
             <div className="tools-row" data-far-row="date">
               {/* The option VALUES are read directly ('start' / 'end'); do not reword them. Beside the
-                  date, not the phase (owner, 4 Nov 2026); the phase is the line above since 5 Nov 2026. */}
+                  date, not the phase (owner, 4 Nov 2026); the phase is the row above since 5 Nov 2026. */}
               <select id="tool-anchor-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
                 <option value="start">starts on</option>
                 <option value="end">ends by</option>
