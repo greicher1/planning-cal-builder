@@ -31756,9 +31756,9 @@ export function initLegacyApp() {
     // because refreshMenuFromCalendar(), closeAllPops() and openPop() reach them.
     const shiftMenu = document.getElementById('pop-shift');
     let shiftFar = 'weeks';   // 'weeks' | 'date'
-    // `shiftTicks` holds the keys that move. `shiftMark` is the OUTLINED row, the last one ticked, cleared or dragged
-    // over: Prior / After act from it ('' until a row is touched: shiftMarkKey() then names the shoot). `shiftDrag`
-    // is a press-and-drag in progress (see the list's pointerdown).
+    // `shiftTicks` holds the keys that move. `shiftMark` is the OUTLINED row, the last one clicked, ticked, cleared or
+    // dragged over: Prior / After act from it ('' until a row is touched: shiftMarkKey() then names the shoot).
+    // `shiftDrag` is a press-and-drag in progress (see the list's pointerdown).
     let shiftTicks = new Set();
     let shiftMark = '';
     let shiftDrag = null;
@@ -32008,7 +32008,7 @@ export function initLegacyApp() {
         return {key: x.p.key, p: x.p, label: x.p.label || 'Phase', start: x.start, week: mondayOf(x.start), lastWeek: mondayOf(last)};
       });
     }
-    // The OUTLINED row's phase: the last row ticked, cleared or dragged over (`shiftMark`). Until a row is touched,
+    // The OUTLINED row's phase: the last row clicked, ticked, cleared or dragged over (`shiftMark`). Until a row is touched,
     // and when the touched phase is no longer scheduled, it is the shoot (the usual pick), else the first row, so
     // Prior / After always have a row to name.
     function shiftMarkKey(){
@@ -32179,8 +32179,20 @@ export function initLegacyApp() {
       if(afterBtn) afterBtn.addEventListener('click', ()=> side(1));
       const listEl = shiftMenu.querySelector('[data-shift-list]');
       if(listEl){
-        // A tick changed from the keyboard (Space), or by a tap: the mouse goes through the press below instead. The
-        // list is redrawn, so the box that had focus is put back in it.
+        // A TAP (touch takes no part in the press below, so the list still scrolls under a finger) follows the same
+        // rule as the mouse: on the row itself it only chooses the row, so the label's own tick is stopped; on the
+        // box the tick goes ahead and `change`, next, hears it. A mouse click never reaches here: the press
+        // swallows it.
+        listEl.addEventListener('click', e=>{
+          const row = e.target.closest('.solve-row[data-key]');
+          if(!row || e.target.closest('input[type=checkbox]')) return;
+          e.preventDefault();
+          if(row.querySelector('input:disabled')) return;   // Whole schedule fixes every tick
+          shiftMark = row.dataset.key;
+          syncShiftForm(); say('');
+        });
+        // A tick changed from the keyboard (Space) or by a tap on its box: the mouse goes through the press below
+        // instead. The list is redrawn, so the box that had focus is put back in it.
         listEl.addEventListener('change', e=>{
           const box = e.target.closest('input[data-key]');
           if(!box) return;
@@ -32191,11 +32203,16 @@ export function initLegacyApp() {
           const again = Array.prototype.find.call(listEl.querySelectorAll('input[data-key]'), b => b.dataset.key === key);
           if(again) again.focus();
         });
-        // PRESS AND DRAG (owner's spec, 9 Nov 2026, items 5 and 6). A press on a row flips it, and dragging up or down
-        // the column sets every row between the pressed one and the pointer to that same value: off rows on if the
-        // pressed row was off, on rows off if it was on. It is a RANGE, redone from the ticks as they stood at the
-        // press, so dragging back un-does an overshoot. The row under the pointer is the outlined one. Rows are
-        // found by the pointer's HEIGHT alone, so the drag carries on with the pointer off to one side.
+        // PRESS AND DRAG (owner's spec, 9 Nov 2026, items 5 and 6), with the owner's correction the same day: "when
+        // you click a phase to then select it so you can then click everything before or everything after it, could
+        // it not unselect it? ... Could it just select it but keep the checkbox selected?"
+        //   * A press on the row ITSELF only CHOOSES it (the outline, the row Prior / After name): no tick changes.
+        //   * A press on its BOX flips that tick, and chooses the row too.
+        //   * A DRAG up or down from either sets every row between the pressed one and the pointer to one value: on
+        //     if the pressed row was off, off if it was on. It is a RANGE, redone from the ticks as they stood at
+        //     the press, so dragging back un-does an overshoot; back on the row it began on, a drag that began on
+        //     the row itself has changed nothing. The row under the pointer is the outlined one.
+        // Rows are found by the pointer's HEIGHT alone, so the drag carries on with the pointer off to one side.
         const rowAtY = y => {
           const els = listEl.querySelectorAll('.solve-row[data-key]');
           for(const el of els) if(y < el.getBoundingClientRect().bottom) return el.dataset.key;
@@ -32207,7 +32224,9 @@ export function initLegacyApp() {
           const a = keys.indexOf(shiftDrag.from), b = keys.indexOf(key);
           if(a < 0 || b < 0) return;
           const next = new Set(shiftDrag.base);
-          for(let i = Math.min(a, b); i <= Math.max(a, b); i++){ if(shiftDrag.value) next.add(keys[i]); else next.delete(keys[i]); }
+          if(a !== b || shiftDrag.box){
+            for(let i = Math.min(a, b); i <= Math.max(a, b); i++){ if(shiftDrag.value) next.add(keys[i]); else next.delete(keys[i]); }
+          }
           shiftDrag.at = key;
           shiftTicks = next;
           shiftMark = key;
@@ -32219,8 +32238,9 @@ export function initLegacyApp() {
           if(!row || row.querySelector('input:disabled')) return;   // Whole schedule fixes every tick
           e.preventDefault();
           const key = row.dataset.key;
-          // The pinned landing row counts as on (it is in shiftTicks), so a drag from it clears; it stays ticked itself.
-          shiftDrag = {from: key, at: '', value: !shiftTicks.has(key), base: new Set(shiftTicks)};
+          // The pinned landing row has no box and counts as on (it is in shiftTicks): a press chooses it, a drag from
+          // it clears, and it stays ticked itself.
+          shiftDrag = {from: key, at: '', box: !!e.target.closest('input[type=checkbox]'), value: !shiftTicks.has(key), base: new Set(shiftTicks)};
           dragTo(key);
           say('');
         });
@@ -32231,18 +32251,29 @@ export function initLegacyApp() {
           if(e.clientY < box.top + 6) listEl.scrollTop -= 14; else if(e.clientY > box.bottom - 6) listEl.scrollTop += 14;
           dragTo(rowAtY(e.clientY));
         });
-        // Letting go ANYWHERE ends it. The press also ends in a `click`, on the row or, let go outside the box, on
+        // Letting go ANYWHERE ends it. The press may also end in a `click`, on the row or, let go outside the box, on
         // whatever the two ends share: it would tick the row a second time, or close the box as a click-away. That
         // one click is swallowed.
+        // ⛔ No timer disarms the guard. The row is redrawn under the press, so often NO click follows it, and a
+        // guard left armed ate the next click instead: "choose a row, press After" did nothing (found in a hidden
+        // pane, where an 80 ms timer ran a minute late). The guard is dropped by the next press or key instead: the
+        // only real click that can come before either is the press's own. A click made by code (isTrusted false:
+        // the harness, a .click()) is never swallowed.
+        let pressClickGuard = false;
         const endDrag = ()=>{
           if(!shiftDrag) return;
           shiftDrag = null;
-          const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
-          document.addEventListener('click', swallow, {capture: true, once: true});
-          setTimeout(()=> document.removeEventListener('click', swallow, {capture: true}), 80);
+          pressClickGuard = true;
         };
         document.addEventListener('pointerup', endDrag);
         document.addEventListener('pointercancel', endDrag);
+        document.addEventListener('pointerdown', ()=>{ pressClickGuard = false; }, true);
+        document.addEventListener('keydown', ()=>{ pressClickGuard = false; }, true);
+        document.addEventListener('click', ev=>{
+          if(!pressClickGuard || !ev.isTrusted) return;
+          pressClickGuard = false;
+          ev.preventDefault(); ev.stopPropagation();
+        }, true);
         window.addEventListener('blur', ()=>{ shiftDrag = null; });
       }
       // A typed date fires `input` per keystroke: redraw once it settles, not once per digit.
