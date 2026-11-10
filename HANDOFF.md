@@ -18,8 +18,14 @@
   R22Ba–c to the fewest-columns session's measured values (Casting gives way: two columns), and `layout-r3c` R3Cd to
   rule 22's carry and hold (the same shape as `layout-r22c`, which expects exactly that).
 - **Checks:** on the pair (before Fill Space) all 20 layout fixtures green but R3Cd (re-expected), `phasefill`,
-  `colsreset`, `swapholds`, `centrepullback` green, `stickycols` one save-button timeout; the full release's targeted run,
-  the 15-picture re-score and the ONE full gate are running; written here when done.
+  `colsreset`, `swapholds`, `centrepullback` green, `stickycols` one save-button timeout. On the full release (build
+  sha256 `eea8b792…`): all 20 layout fixtures, `stickycols` 12, `phasefill` 13 (on a fresh port: the reused profile held
+  a stale backup), `colsreset` 8, `swapholds` 8, `centrepullback` 12, `fillspace` 6, `hdrcontrols` 12, main's `anchorside`
+  39, `calrange` 18, `overrides` 20, `rowheight` 7, `shiftheld` 13, `stalebandkey` 9, `hiatusripple` 19; the 15 pictures
+  98.1% / 31 / 0; check 41/41. ✅ **ONE FULL GATE, 11:05–12:37 PST 10 Nov: 4,329 PASS / 4 FAIL**, the build unchanged
+  start to finish, every export baseline byte-identical; the four were load timing and are GREEN re-run alone with the
+  gate's judges: `labelsetup (halfdays)` 41/41, `wfnoteeditor (autonoterename)` 13/13, `monthexport (monthscale)` 9/9,
+  `monthexport (mvnotesize-14)` 9/9. Ready for the owner's pickers (version, push).
 
 ### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 
