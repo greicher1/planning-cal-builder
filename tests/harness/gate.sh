@@ -1936,11 +1936,18 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id. Updated 5 Nov 2026
-# for Build Around (one list for both sides, Writer's Rm unticked, "Build N phases", opens on Both).
+# for Build Around (one list for both sides, "Build N phases", opens on both sides) and 10 Nov 2026 for the overlap
+# rule (Casting, beside Prod Prep, left out and named on the line; Writer's Rm ticked; Localization left out while it
+# starts in Post's last week, ticked once it starts after it).
 # buildaround (owner, 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B) is Rebuild From renamed Build Around: a new
 # calendar built in one run from lengths typed in the box (staged, saved on Build, one undo with the dates); both sides
-# in one run; the Before / After shortcuts; "ends by"; Production's length read-only ("Not set" + the Show info line);
-# "Save 1 length"; closing forgets; no Close all gaps; no id in the list.
+# in one run; "ends by"; Production's length read-only ("Not set" + the Show info line); "Save 1 length"; closing
+# forgets; no Close all gaps; no id in the list. Since 10 Nov 2026 (plan §7) it wears Shift's look and feel: the order
+# of parts and no column header, Both button or row title (O1); the header box (H1); a click on a row pins it, its box
+# ticks (K1); a drag sets a run and never moves the pin (D1); Prior to X / After X by the rule (S1-S3).
+# buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
+# shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
+# week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2138,6 +2145,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               rebuildticks:-:300 \
               buildaround:-:600 \
               anchorside:anchorside:400 \
+              buildalongside:anchorside:200 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \

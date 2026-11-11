@@ -4,6 +4,85 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 10 Nov 2026: BUILD AROUND TAKES SHIFT'S LOOK AND FEEL, AND STOPS LEAVING THE WRITER'S ROOM OUT BY RULE — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner, 9–10 Nov: *"make Build Around match the same UI look and feel as the shift tool. Make a list of everything we could change"*; *"give me a mockup"*; three rulings on the mockup; *"Yes, build it"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, with `origin/main` (`51ce127`) merged in. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7 has the list, the rulings and the decisions; [`mockups/build-around-like-shift.html`](mockups/build-around-like-shift.html) is the mockup (Shift, the proposal and the old box, live on one made-up calendar). Tracker card `build-around-match-shift`
+
+**As built:**
+- **The box, top to bottom** (`PreviewToolbar.jsx`, `#pop-solve`, 400 px): the title "Build Around" and its hint;
+  `p.tools-cap` "Phases"; `.shift-box` = the strip (`label.shift-all` > `input[data-solve-all]` +
+  `span[data-solve-count]`) then `.solve-list[data-solve-list]` (the engine's rows); `.shift-sides` =
+  `button.shift-side#tool-solve-back[data-dir="-1"]` / `#tool-solve-fwd[data-dir="1"]` (the engine writes "Prior to X"
+  / "After X"); `p.solve-left[data-solve-left]`; `p.solve-note` (Production's length); `p.tools-cap` "Pin to a date";
+  a row with `#tool-solve-phase`; a row with `#tool-solve-edge` ("starts on" / "ends by") and `#tool-solve-date`;
+  `#tool-solve-go`; the message. GONE: the column header row (`.solve-colhead`), the `.solve-dir` switch,
+  `#tool-solve-both`, every `title` in the list, the pin's row at the top.
+- **The engine reuses its own model** (`app.js`, the tools IIFE): `solveDir` (-1 Prior, 0 both sides as it opens,
+  1 After) picks the default set and `solveTicks` holds the ticks changed by hand, which override it. So the two
+  buttons are still "set `solveDir`, forget the overrides", and the header box writes an override for every phase.
+- ⭐ **THE RULE, `solveAlongside(f)` → `{key: neighbour's name}`.** Walk outward from the pin, each way, over the
+  phases that have a length (`solveHasLen`). A phase that shares `SOLVE_ALONGSIDE_DAYS` (5) or more days with the
+  last phase taken into the chain is alongside it and is left out; any other joins and is the next one to build
+  against. Days shared = last workday (`phaseLastWorkday(seg)`) minus the other's start, plus one. Read from
+  `currentSchedule.segments`, the calendar as it stands, never from a length typed in the list. Cached per draw on
+  the frame (`solveAlong(f)`). `solveDefaultOn(f, p, dir)`: on the side in force, not alongside, and not a custom
+  phase with no date. ⛔ The old rule (`PHASE_CHAIN` only, never `writersRoom`) is gone.
+  - ⚠️ **A ONE-WEEK overlap counts.** `buildFixture()`: Post is 16 weeks from 11/2/26, paused two by the default
+    Christmas hiatus, so it works to **Fri 3/5/27**; Localization starts Mon 3/1/27. Five shared days: left out,
+    with the line. Before, Localization opened ticked and the room unticked; now the reverse. Told to the owner
+    before *"Yes, finish it"*.
+  - **Two days do not count** (`buildalongside`, on anchorside.sptcal): Pre Prep works to Tue 5/19 with Prod Prep
+    from Mon 5/18; the shoot wraps Tue 11/3 with Post from Mon 11/2. Both stay ticked.
+- **The line** (`[data-solve-left]`, in `renderSolve`): the alongside phases on the side in force that have NO
+  override in `solveTicks`. One phase: *"X left unticked: it runs alongside Y. Tick it to build it in line."*; several
+  with one neighbour: *"X and Z left unticked: they run alongside Y. …"*; else *"each runs alongside the phase next
+  to it"*. Ticking, clearing or dragging over a phase gives it an override, so it drops off; the header box gives
+  every phase one, so the line goes.
+- **Pinning**: `solvePin(key)` sets `#tool-solve-phase` and dispatches its `change`, so the two handlers already
+  there run (`syncSolveDate`, then the re-tick-if-a-default-set-is-in-force and the redraw). The dropdown shows
+  "Production — 6/29/26" now (`fillPhaseSelect` without `bare`), as Shift's does. ⚠️ The pin is KEPT between
+  openings, as before (only ticks, side and typed lengths are forgotten): a leg that pins must put it back.
+- **The press** (`solveList` `pointerdown`, mouse and pen): `solveDrag = {from, at, box, moved, value, base}`. A press
+  inside a length box is typing and is left alone. On a box it flips at once; on the row itself nothing changes
+  until the drag reaches another row; `pointerup` with no row crossed and not on a box pins. The range is redone
+  from `base`; the pin and rows with no length are passed over; a redraw happens only when the ticks changed (each
+  draw runs the solvers). A tap, or a click made by code, on the row pins too (`click` listener: the label's own
+  tick is prevented).
+- **`pressClickGuard` is hoisted** to the tools IIFE and shared by both lists (Shift's block registers the three
+  document listeners; Build Around's drag end only arms it).
+- **Words:** the pinned row says "On your date" where it said "No change"; the count is "N of M build".
+- **CSS** (`legacy.css`): `.shift-box .solve-list` and `.solve-row.is-mark` now name `#pop-solve` too; length boxes
+  stay text-selectable inside the list; `.solve-left` (a quiet gray note). `.solve-colhead` / `.solve-dir` rules are
+  left in place (`.solve-dir` shares its rule with `.tools-seg`).
+- **Help** ("Adjusting dates"): a new Build Around paragraph. ⚠️ It still said "Rebuild From … Work backwards …
+  Close all gaps", in TWO copies of one paragraph (a merge on 5 Nov), and the section's opening line named Rebuild
+  From. All three fixed; "Rebuild From" is no longer in the Help.
+- **`tools/check-build.mjs`**: the hint check loops over Shift and Build Around (`npm run check` 42/42).
+- **The harness:** `t/lib.js` gains `T.solveRow`, `T.solvePress`, `T.solveDrag` (Shift's helpers pointed at
+  `#pop-solve [data-solve-list]`; they wait 450 ms, a pin runs the solvers). `T.rebuildAll` needed no change.
+  - `buildaround` **36/36** (was 33): O1 the order of parts and what is gone; O2 the pin outlined, both buttons,
+    the dropdown's text; O3 the starting ticks by the rule and the line; **H1** the header box; **K1** a click pins,
+    the box does not, a tap pins; **D1** the drag; B1/B2 the room built (1/26/26); S1–S3 Prior / After by the rule
+    and a hand tick; E5 and Z1 untick the room first; P1 three placed.
+  - `rebuildticks` **20/20** (was 19): L2/L3/G1/G2/C1 with the room ticked and Casting on the line; F1 Localization
+    left out and named (and Post's end, 3/5/27, asserted); D1 without the Both button; U2 ticked from 3/8/27, new U3
+    left out from 3/1/27.
+  - New `buildalongside` **8/8** on `HARNESS_STATE=anchorside`, in gate.sh after `anchorside`.
+  - Unchanged and green: `datepick`, `snaptools`, `overrides`, `shiftheld`, `builtindates` and `customunits` (both
+    states), `hdrcontrols`: they reach Build Around by its ids.
+- **Verified** on build `7508104e…`: `npm run check` 42/42; the three legs above; `anchorside` 39/39, `calrange`,
+  `rowheight`, `stalebandkey`, `phasearrows`, `mvdragcarry`, `halfworked`, `episodeprep`, `hiatusripple` green (21
+  runs, 0 failures). By hand in the pane with real clicks: pin by a row click, Prior, a box, a drag, the header
+  box, After straight after a pin (the click guard), Build and one Undo; Shift's box after the guard was hoisted.
+  **No full gate** (chrome only: no frozen code, no writer, no save format; `buildAround` / `trialBuild` untouched).
+- **The new cases bite.** Three broken builds, the three Build Around legs on each:
+  - one shared day counts as alongside → `buildalongside` red on A2, A3, A4, A5 (Pre Prep and Post left out); the
+    other two do not notice, which is why that leg exists;
+  - the old rule (Writer's Rm and custom phases always out) → `buildalongside` red on A1, A4, A6; `rebuildticks` on
+    L2, L3, G1, G2, C1, F1, F2, D1; `buildaround` on O3, K1, D1, B1, B2, S1, S2, S3;
+  - a press on a row flips its tick → `buildaround` red on D1 only. K1 cannot see it: the pressed row becomes the
+    pin, which has no tick, so the flip shows only when the release does not pin (the drag back in D1).
+  Real build restored (`7508104e…`, the one verified above).
+- ⏭ **Not done:** not pushed (needs the owner's picker). Width (R15) not ruled: left at 400 px.
+
 ### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and

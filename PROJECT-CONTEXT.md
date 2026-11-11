@@ -657,9 +657,20 @@ id, everything is inside `.tools-menu`, never saved.
   backward pass's own solvers) and builds the ticked phases on both sides end to end, **writing** start
   dates including into empty fields. One list, every phase in run order, the pin in its place; the
   preview is the real solvers run and put back (`trialBuild`, which also applies the typed lengths).
-  `← Before · Both · After →` fill the ticks; it opens on Both. Built-ins start ticked **except Writer's
-  Rm**; custom phases not. **Lengths are typed in the list** (`solveLens`, saved on Build through the
-  phase's own field, one undo step); Production's is read-only (Show info).
+  **Lengths are typed in the list** (`solveLens`, saved on Build through the phase's own field, one undo
+  step); Production's is read-only (Show info).
+  - **Shift's look and feel since 10 Nov 2026** (`mockups/build-around-like-shift.html`): "Phases", the list
+    in `.shift-box` with the header strip (`[data-solve-all]`, the count "N of M build"), `Prior to X` /
+    `After X` (`tool-solve-back` / `-fwd`; no Both button, it still opens on both sides), the line that says
+    why a phase was left unticked (`[data-solve-left]`), then "Pin to a date": `#tool-solve-phase` above
+    `starts on`. A click on a row pins it (`solvePin`, through the dropdown's `change`); its box ticks; a
+    drag sets a run; neither a tick nor a drag moves the pin.
+  - **The starting ticks** (`solveDefaultOn` → `solveAlongside`): every phase on the side in force that has
+    a length, except one that shares 5 or more days (`SOLVE_ALONGSIDE_DAYS`) with the phase it would be
+    built against, walking outward from the pin and judging each phase against the last one taken into the
+    chain; and except a custom phase with no date yet. `solveDir` picks the side and `solveTicks` holds the
+    ticks changed by hand, which override it; the line lists the alongside phases with no override.
+    Until 10 Nov 2026 Writer's Rm and custom phases were always left out.
 - **Close all gaps — REMOVED 5 Nov 2026.** `closeAllGaps()` chained every dated built-in after the one
   before it, Pre-Prep after the Writer's Room included, so on every one of the owner's 15 real calendars
   (which all overlap the room with the next phase) it **moved the shoot** 3 to 45 weeks while closing no

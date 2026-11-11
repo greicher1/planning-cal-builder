@@ -29,6 +29,42 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
+
+Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
+look and feel as the shift tool"*; a list of the differences, a mockup, a working build to try, then *"Yes, finish
+it"*; REBUILD-FROM-LENGTHS-PLAN.md §7, `mockups/build-around-like-shift.html`).
+
+- **The list first**, in the same box as Shift's: a header strip with a box that ticks every phase (and, once every
+  phase is ticked, shows a minus and clears them) and the count, in place of the column header.
+- **Click a row to pin that phase; its tick box ticks; drag to tick or clear a run.** A click on a row used to flip
+  its tick. Ticking never moves the pin.
+- **Prior to … / After …** under the list, in place of the *← Before · Both · After →* switch above it. There is no
+  Both button: the box at the top ticks everything (owner's ruling).
+- **Pin to a date** sits under the list, the phase directly above "starts on", as in Shift.
+- The hint opens upward and rows have no hover tooltips, so nothing floats over the list.
+
+**Which phases start unticked has changed.** Until now the Writer's Room and every custom phase were always left out.
+Owner: *"its just confusing if you click prior to pre prep and then writers room isn't selected"*, and *"writers room
+doesnt always overlap the next phases, only sometimes"*. Now a phase is left unticked **only when it runs alongside
+the phase it would be built against** (five shared days or more: built in line, it would be pulled away from it), and
+a line under the buttons says so by name: *"Writer's Rm left unticked: it runs alongside Pre Prep. Tick it to build
+it in line."* A Writer's Room that ends before Pre-Prep starts is ticked and built like any other phase. It applies
+to how the box opens and to Prior / After. A custom phase with no date yet still starts unticked.
+
+**Help** ("Adjusting dates") now describes Build Around: it still said "Rebuild From … Work backwards … Close all
+gaps", and held that paragraph twice.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, everything is inside `.tools-menu`,
+and the solvers (`buildAround`, `trialBuild`) are untouched. Verified: `npm run check` 42/42 (a new check holds Build
+Around's hint opening upward); `buildaround` 36/36 (updated, with new cases for the order of parts, the header box,
+pinning by a click, the drag); `rebuildticks` 20/20 (updated: Casting beside Prod Prep left out and named, the room
+ticked, Localization out while it starts in Post's last week and ticked once it starts after it); new leg
+`buildalongside` 8/8 on a calendar where phases touch by two days (they stay ticked); the legs that use Build Around
+through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Three broken builds turn the legs red:
+one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
+its tick (`buildaround` D1). No full gate: chrome only.
+
 ### Unreleased — Shift: the list first (9 Nov 2026)
 
 The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of
