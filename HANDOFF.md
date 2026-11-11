@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally, NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
+### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
   including its per phase hiatus should operate as one single block where the expand box would span the length of the
   entire phase including the hiatus"*. LR8 by picker: *"Yes, make the edit"* (asked with the gate below).
@@ -16,19 +16,23 @@
   run through and act on band weeks (`cellSpans` keys a band as it keys its phase's cells); (2) ⛔ **frozen edit LR8**: in
   the left-absorb branch a band absorbs the empty run on its left only when its phase fills (`fillsFree(n)`), pushed as
   a band. No wish, or unstamped: unchanged. (3) Help: one sentence at the end of "How far a cell reaches".
-- **Proof so far:** `hoverhiatus` 13/13 on the build; 8/13 (B4a-e red) on the build without LR8, 3/13 on `origin/main`'s.
-  The 15 pictures: all 30 engine dumps byte-identical before / after (98.1% / 31 / 0). Partial gate
-  `tests/harness/partgate-hoverhiatus.zsh` (gate.sh's base / waterfall PDF / seams / Excel sections + offweek + the 20
-  layout fixtures + pointer and band legs; port 8466): waterfall PDF identical, Excel parts identical, 0 clipped,
-  phasefill green. Two FAILs under load average 85 (other sessions' gates): `offweek (offweek)` R12 the known 10 s
-  Load-wait flake (R13 follows it), `layoutrules (layout-r22c)` produced no result. Both need a re-run alone. The gate
-  was still running when the session hit its usage limit: read `tests/harness/partgate-hoverhiatus.log` for the rest.
-  `npm run check` 42/42.
-- ⏭ **Left:** re-run those two legs alone; finish reading the partial gate log; `npm run build` again (the Help
-  sentence in `src/index.html` was added after the gated build; the build was not rebuilt so the gate's dist would not
-  change under it); hand the owner the try link `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
-  `hover-hiatus-8463`); then the commit / push pickers. Not pushed. The pane origin localhost:8463 holds crash backups
-  from my own test clicks: delete them before the owner tries it.
+- **Proof** (final build `dist/index.html` sha256 `0cf76e32…`, Help sentence included):
+  - `hoverhiatus` 13/13; 8/13 (B4a-e red) on the build without LR8, 3/13 on `origin/main`'s build.
+  - The 15 pictures: all 30 engine dumps byte-identical before / after (98.1% / 31 / 0). None carries a fill wish.
+  - Partial gate `tests/harness/partgate-hoverhiatus.zsh` (gate.sh's base / waterfall PDF / seams / Excel sections +
+    offweek + the 20 layout fixtures + phasefill, colsreset, fillspace, swapholds, stickycols, centrepullback,
+    hoverexpand, hoverhiatus, phiatusnum, hiatusripple; port 8466), run on the build before the Help sentence, load
+    average 85-110 from other sessions' gates: **284 PASS / 11 FAIL**. Waterfall PDF identical to its baseline (date
+    stamp only), Excel parts identical, no seams, 0 clipped. The 11 were all load: `offweek (offweek)` R12 (10 s Load
+    wait) + the six R13 after it, `layout-r22c` and `colsreset` no result, `fillspace` EX, `phiatusnum` H14 (Load wait).
+  - **Re-run alone on the final build: all green**: `layoutrules (layout-r22c)` 3/3, `colsreset` 8/8, `fillspace` 6/6,
+    `phiatusnum` 18/18 (an earlier alone run at load 172 timed out on Save / Load waits only, H11 H13-H16; the
+    `origin/main` control run under that load produced no result at all), `offweek (offweek)` 42/42, `hoverhiatus` 13/13.
+  - `npm run check` 42/42. The month view never calls `computePhaseRowLayout`: gates 10 / 13 not run.
+- **No full gate** (a partial gate assembled from gate.sh's sections instead, as for v1.11.0).
+- ⏭ **Left:** the owner tries `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
+  `hover-hiatus-8463`; its origin's crash backups from my test clicks are deleted); then the push picker. Not pushed;
+  local `main` not moved.
 
 ### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo

@@ -45,7 +45,11 @@ including the hiatus"*.
   the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
 - Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
 
-**Verified:** see HANDOFF (10 Nov 2026, "A phase's own hiatus is part of the phase").
+**Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out
+byte for byte as before; the waterfall PDF and the workbook identical to their baselines; the 20 layout fixtures,
+`phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
+`offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
+42/42. No full gate (a partial gate of gate.sh's sections).
 
 ### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
 
