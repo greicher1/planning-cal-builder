@@ -23,6 +23,14 @@ else:
   print(('  PASS  ' if a.get('pass') is True else '  FAIL  ')+l+': '+('pass' if a.get('pass') is True else json.dumps(a)[:300]))
 PY
 }
+if [[ "$1" == wells-merged ]]; then
+  run stylebarplace fill-intent 300
+  run hoverexpand hover-expand 300
+  run hdrcontrols carry-rich 170
+  run fillspace layout-r13 300
+  run textstyle carry-rich 400
+  echo DONE >> $LOG; exit 0
+fi
 if [[ "$1" == wells ]]; then
   run stylebarplace fill-intent 300
   run textstyle carry-rich 400

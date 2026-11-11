@@ -38,6 +38,9 @@
   P4 the narrow fallback with Undo on line 1, P8 one value and no margins, P10 one well look and no well on the date
   tools, P11 "Fill Gaps"), red on `origin/main`'s build; `textstyle` B2 and `hdrcontrols` T1 (the bar's ground = the view
   toggle's), `fillspace` S1 (/Fill Gaps/). Partial gate `tests/harness/partgate-stylebar.zsh wells` (port 8422, on the build): `stylebarplace` 13/13, `textstyle` 52/52, `hdrcontrols` 12/12, `fillspace` 6/6, `monthmap` 20/20 ×3, `calzoom` 26/26, `sharecopy2` pass, `anchorside` 39/39, `buildaround` 36/36, `sideboxes` 78/78, `mvtextstyle` 23/23, `mvnotesize` 12/12, `lastedited` 22/22 alone (in the batch it timed out waiting for a Save As write while a second Chrome ran the red check on another port). Fence against `origin/main`'s build: 511 values, the only difference `/waterfall/scroll` 793 → 789 px (at the harness's 1,600 px the text well has its own line, and a 34 px well is 4 px taller than the bare 30 px buttons were; the grid fit hands those 4 px to the toolbar).
+  Merged with `origin/main` at `6afd31d` (the hover prompt's follow-up, engine only) as `ace3061`; on that build `npm run
+  check` 42/42, `stylebarplace` 13/13, `hoverexpand` 18/18, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle` 52/52
+  (`partgate-stylebar.zsh wells-merged`).
   `npm run check` 42/42. Driven by hand in the pane at 1,720 px: Shift, Build Around, Side Boxes and the Header menu open
   under their buttons; Fill Gaps toggles, Undo undoes it; Bold applies (purple chip); Month view; 1,440 px fallback.
 
