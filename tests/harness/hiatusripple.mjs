@@ -471,12 +471,34 @@ try {
   }
 
   // ---- R9: the switch, in Settings (its only place since 10 Nov 2026) --------------------------------------------------------
+  // ⚠️ Each flip WAITS for the switch to be on screen and then for the click to land. A fixed sleep after opening Settings
+  // was enough while the switch had a copy on the All-phase card to click instead; on a loaded machine (load average 170,
+  // 10 Nov 2026) every Settings click landed before the window was drawn, missed, and the case ran on with ripple ON.
+  const SW_TRACK = `(document.getElementById('pref-hiatus-ripple').closest('.mantine-Switch-root').querySelector('.mantine-Switch-track'))`;
+  // Shown = scrolled to, and the TOP element at its own centre: Settings stays mounted while closed, so the track keeps its
+  // size then, and a size test alone passed with the window shut (the first try at this, 10 Nov 2026).
+  const swShown = `(() => { const t = ${SW_TRACK}; if (!t) return false; t.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const r = t.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!at && t.closest('.mantine-Switch-root').contains(at); })()`;
+  const openSettings = async () => {
+    if (!(await ev(swShown))) await click('.side-settings-btn');
+    await until(swShown, 'the Settings switch on screen', 20000); await sleep(500);
+  };
+  const closeSettings = async () => {
+    if (await ev(swShown)) await click('.side-settings-btn');
+    await until(`!${swShown}`, 'Settings closed', 20000); await sleep(300);
+  };
+  const flipRipple = async want => {
+    await click(SW_TRACK);
+    await until(`(document.getElementById('pref-hiatus-ripple') || {}).checked === ${want}`, 'the switch ' + (want ? 'on' : 'off'), 10000);
+    await sleep(300);
+  };
   await load();
   {
-    await click('.side-settings-btn'); await sleep(500);
-    await click('label[for="pref-hiatus-ripple"]'); await sleep(400);
+    await openSettings(); await flipRipple(false);
     const off = await st();
-    await click('.side-settings-btn'); await sleep(400);
+    await closeSettings();
     await toPhases();
     await click(inRow('Break', '.hiatus-weeks'));
     await press('ArrowUp'); await press('Tab'); await sleep(700);
@@ -484,16 +506,14 @@ try {
     await undoBtn();
     const undone = await st();
     // On again, from Settings.
-    await click('.side-settings-btn'); await sleep(500);
-    await click('label[for="pref-hiatus-ripple"]'); await sleep(400);
+    await openSettings(); await flipRipple(true);
     const onAgain = await st();
     // Off, kept across a reload; then on, kept across a reload. Settings is still open for the first flip.
-    await click('label[for="pref-hiatus-ripple"]'); await sleep(300);
+    await flipRipple(false);
     await ev(`sessionStorage.setItem('ripple.keep', '1'), true`);
     await load();
     const reloadedOff = await st();
-    await click('.side-settings-btn'); await sleep(500);
-    await click('label[for="pref-hiatus-ripple"]'); await sleep(300);
+    await openSettings(); await flipRipple(true);
     await ev(`sessionStorage.setItem('ripple.keep', '1'), true`);
     await load();
     const reloadedOn = await st();
