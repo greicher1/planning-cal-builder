@@ -60,8 +60,8 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return shown(); }, 'the Fill Space switch', 60, 100);
     var n0 = cells().length, W0 = widths();
     var s0 = await save();
-    C('S1', 'stamped, Waterfall: the switch shows, on, labelled Fill Space; Post 2031 and Writers change width partway through the year',
-      shown() && btn().getAttribute('aria-pressed') === 'true' && /Fill Space/.test(btn().textContent) && W0['post 2031'] === '2/3' && W0['writersRoom 2031'] === '1/2' && !('fillSpaceOff' in s0),
+    C('S1', 'stamped, Waterfall: the switch shows, on, labelled Fill Gaps (Fill Space until 10 Nov 2026); Post 2031 and Writers change width partway through the year',
+      shown() && btn().getAttribute('aria-pressed') === 'true' && /Fill Gaps/.test(btn().textContent) && W0['post 2031'] === '2/3' && W0['writersRoom 2031'] === '1/2' && !('fillSpaceOff' in s0),
       J({ shown: shown(), pressed: btn() && btn().getAttribute('aria-pressed'), varying: varying(W0), key: s0.fillSpaceOff }));
     btn().click(); await settle();
     var s1 = await save(), W1 = widths();

@@ -33,6 +33,46 @@
   fixture and a blank calendar) that raised "Recover unsaved work" on every load. I deleted those four from that test
   origin's IndexedDB. Nothing of the owner's was there (all four were written during my own checks that hour).
 
+### 🔨 10 Nov 2026: THE TOOLBAR REGROUPED (VARIATION 27): ONE 12 PX GAP, GREY WELLS, UNDO FIRST; FILL SPACE IS NOW "FILL GAPS". Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`, made from `style-bar-toolbar` with `origin/main` merged in, last at `f5c05a4`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-look-variations`, `fill-gaps-name`.
+- **Asks (owner, in order):** *"Mock up a bunch (like 20) differnt variations for how this entire menu bar could like"*
+  → `mockups/toolbar-variations.html` (committed; 20 variations + my pick 21, switches for window width, view, editing
+  state, star). *"Combine the highlighted features of 4, 8, and 9"* → 22 / 22b (grey wells + Undo after the view toggle +
+  navy-filled Shift). *"Lets try making the whole shift tool also just white background color like build around. Also
+  the spacing between the differnt sections is literally all different. It needs to be consistnet"* → 23-27, one gap
+  rule, each card printing its measured gaps. *"Lets go with 27"* (view toggle alone at the left, tools packed right).
+  Mid-build: *"it should be "Fill Gaps" and Not "Fill Space""*. After trying it: *"remove the faint grey box surrounding
+  the shift and build around buttons"*. Then *"Yes, finish it"*.
+- **As built (no engine change, every id unchanged, nothing frozen, no snapshot key):**
+  - `PreviewToolbar.jsx`: the Undo / Redo `Group` moved from the end of `.preview-tools` to right after `.view-toggle`;
+    `.preview-tools` now holds two wrappers, `.tb-well.tb-dates` (`#shift-group`, the Build Around `.tools-wrap`) and
+    `.tb-well.tb-page` (Fill Gaps, Side Boxes, Header). Row order: view-toggle | undo-redo-group | style-bar-host |
+    preview-tools | MonthMap | style-row. `useStyleBarFit` counts Undo / Redo (need = toggle + undo + bar + reserve +
+    tools + three `--tb-gap`s) and observes it.
+  - `legacy.css`: `.view-toggle-row` `column-gap:var(--tb-gap)` (12 px; row-gap stays 10) and `--tb-gap` replaces
+    `--tools-group-gap` (gone, with Build Around's 16 px margin and the host's margins). `.tb-well` and
+    `.view-toggle-row > .undo-redo-group` share the view toggle's well (gray-1, 2 px padding, 2 px gap, 9 px corners);
+    the toggle went from md/sm corners to 9/7. `.tb-dates` has no ground and no padding (the owner's last change), so the
+    visible gaps to the navy outlines stay 12. Ghost buttons in wells: `.undo-redo-group .icon-btn`, `.tb-page >
+    .tools-btn`, `.style-bar .hf-ctl` transparent until hover / open (white + shadow-xs); `.style-bar .hf-btn.is-on`
+    white chip in edit purple; `#tb-hdr-mode-btn.is-manual` keeps its purple (id specificity). The style bar is a well
+    itself (`.style-bar` padding / ground / radius; never the host, which grows to 100% on its own line).
+  - "Fill Gaps": the button label and the Help sentence only. `tb-fill-space-btn`, `fillSpaceOff` (a PERMANENT saved
+    key) and every code name keep "fill space", as Load kept `data-action="open"`.
+- **Fit:** one line from about a 1,640 px window on `fill-intent` (Fill Gaps showing); narrower, the text well drops to its
+  old line at the left and every other section stays on line 1, 12 px apart (seen at 1,440).
+- **My calls (flag if the owner disagrees):** the 12 px gap (the size the cards were shown at; the owner did not pick one);
+  the date tools keep 2 px between Shift and Build Around (the in-section rule) after their well went; in Month view the
+  page well holds Header alone.
+- **Proof:** `stylebarplace` rewritten (P0 the row and tools order, P2 five sections centred on one line with 12 / 12 / 12,
+  P4 the narrow fallback with Undo on line 1, P8 one value and no margins, P10 one well look and no well on the date
+  tools, P11 "Fill Gaps"), red on `origin/main`'s build; `textstyle` B2 and `hdrcontrols` T1 (the bar's ground = the view
+  toggle's), `fillspace` S1 (/Fill Gaps/). Partial gate `tests/harness/partgate-stylebar.zsh wells` (port 8422, on the build): `stylebarplace` 13/13, `textstyle` 52/52, `hdrcontrols` 12/12, `fillspace` 6/6, `monthmap` 20/20 ×3, `calzoom` 26/26, `sharecopy2` pass, `anchorside` 39/39, `buildaround` 36/36, `sideboxes` 78/78, `mvtextstyle` 23/23, `mvnotesize` 12/12, `lastedited` 22/22 alone (in the batch it timed out waiting for a Save As write while a second Chrome ran the red check on another port). Fence against `origin/main`'s build: 511 values, the only difference `/waterfall/scroll` 793 → 789 px (at the harness's 1,600 px the text well has its own line, and a 34 px well is 4 px taller than the bare 30 px buttons were; the grid fit hands those 4 px to the toolbar).
+  Merged with `origin/main` at `6afd31d` (the hover prompt's follow-up, engine only) as `ace3061`; on that build `npm run
+  check` 42/42, `stylebarplace` 13/13, `hoverexpand` 18/18, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle` 52/52
+  (`partgate-stylebar.zsh wells-merged`).
+  `npm run check` 42/42. Driven by hand in the pane at 1,720 px: Shift, Build Around, Side Boxes and the Header menu open
+  under their buttons; Fill Gaps toggles, Undo undoes it; Bold applies (purple chip); Month view; 1,440 px fallback.
+
 ### 🔨 10 Nov 2026: `noteviews` F1 AND `textstyle` B4 GREEN AGAIN — two legs re-expected, nothing in the app changed. Branch `claude/festive-panini-36a6ae` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, reset to `origin/main` at `2ab646d`; local `main`'s HANDOFF-only `6e4d0f5` is not in it). Committed on the branch, not pushed. Only `tests/harness/t/noteviews.js` and `t/textstyle.js` changed.
 - **`noteviews` F1** (`keysSame` false) was Date Last Edited, as the hover entry below guessed: `keysAdded` (now in the
   case's output) is exactly `['lastEdited']`, `keysGone` empty. S0 is saved from the fixture as `?state=` opened it (no
@@ -208,7 +248,7 @@
   Real build restored (`7508104e…`, the one verified above).
 - ⏭ **Not done:** not pushed (needs the owner's picker). Width (R15) not ruled: left at 400 px.
 
-### 🔨 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
+### ✅ 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. ✅ **LIVE at `57c9e55`** (owner's picker "Push to the live site"; pushed `5357584..57c9e55`, a fast-forward of the branch after merging `origin/main`; deploy run `42928422227` green; the live `index.html` is the merged build byte for byte, sha256 `8cc0d12b…`). Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
 - **Asks (owner, four passes, each tried in the browser):** *"can we move the styling bar to this blank space between
   "Month" and the left shift button. It should only be the buttons in the 2nd image, not the surrounding box, text,
   etc"*; then *"put it evenly between month and the left shift button. Also make the buttons tall enough to match the
