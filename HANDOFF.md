@@ -4,6 +4,11 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. Branch `holiday-enable` on top of `bd29c58`; committed, not pushed.
+- **Owner:** *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. In
+  `renderHolidayVisList`'s grouping, the hiatus branch now sets `also = []`; a phase heading keeps its "also …".
+  `holidayenable` G2 asserts no "also" on Christmas. Proof: `holidayenable` 7/7, `npm run check` 42/42, tried in the pane.
+
 ### ✅ 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". ✅ **LIVE at `e1e447c`** (branch `holiday-enable`, worktree `.claude/worktrees/holiday-enable`, shipped AFTER v1.13.0 by the owner's picker: `origin/main` merged in at `5f1b67a`, pushed `5f1b67a..e1e447c` on the owner's *"ok can we push now?"*; the live `index.html` is the tested build byte for byte, sha256 `dff379c6…`, ~50 s after the push). No version cut. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
 - **Asks (owner, 11 Nov, in order):** *"Should the enable button even be there for holidays that do not occur during
   production? Maybe non-production holidays just have the note options"*; told that a Days custom phase and episode prep

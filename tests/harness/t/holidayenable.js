@@ -10,7 +10,7 @@
 //   E3  Fri 7/3/26 keeps its box and reads "Marked Working Day", not "Costs a shoot day"; Labor Day the other way round
 //   G1  the headings, in date order: Writer's Rm, Prod Prep, Production, Post, the hiatus, Post again, Localization;
 //       Production's says "counts shoot days"
-//   G2  Christmas sits under the hiatus with "also Post" on its date line
+//   G2  Christmas sits under the hiatus with no "also …" on its date line (owner, 11 Nov 2026: not necessary there)
 //   T1  Toggle all: Enable switches off ONLY the boxed rows, and no dashed row grows a box
 //   O1  a holiday saved OFF outside the shoot (Thanksgiving) keeps its box, unticked, so it can be turned back on
 // Red on main before 11 Nov 2026: every row there has a box and the list has no headings.
@@ -69,8 +69,8 @@ window.addEventListener('load', function () { (async function () {
       for (var p = el && el.previousElementSibling; p; p = p.previousElementSibling) if (p.classList.contains('hv-grp')) return txt(p.querySelector('.hv-grp-name'));
       return null;
     })();
-    add('G2', 'Christmas sits under the hiatus heading with "also Post" on its date line, and no box',
-      xmas && xmasHead === 'Hiatus' && /also Post/.test(xmas.date) && !xmas.box, {row: xmas, head: xmasHead}, 'Hiatus; also Post; dash');
+    add('G2', 'Christmas sits under the hiatus heading with no "also …" on its date line (an all-phase hiatus pauses every phase), and no box',
+      xmas && xmasHead === 'Hiatus' && !/also/.test(xmas.date) && !xmas.box, {row: xmas, head: xmasHead}, 'Hiatus; no also; dash');
 
     // T1: Toggle all: Enable. The fixture holds notes, so the recompute question may come: Continue.
     var before = rowsOf();

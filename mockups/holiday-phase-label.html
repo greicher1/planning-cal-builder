@@ -174,8 +174,8 @@ const H2 = [
   {n:'Labor Day', d:'Mon 9/7/26', g:'production', en:true, shoot:true},
   {n:'Thanksgiving', d:'Thu 11/26/26', g:'post'},
   {n:'Day After Thanksgiving', d:'Fri 11/27/26', g:'rigging', also:['post'], en:true},
-  {n:'Christmas Day', d:'Fri 12/25/26', g:'break', also:['post']},
-  {n:"New Year's Day", d:'Fri 1/1/27', g:'break', also:['post']},
+  {n:'Christmas Day', d:'Fri 12/25/26', g:'break'},
+  {n:"New Year's Day", d:'Fri 1/1/27', g:'break'},
   {n:'Martin Luther King Jr. Day', d:'Mon 1/18/27', g:'post'},
   {n:'Good Friday', d:'Fri 3/26/27', g:'localization'},
 ];
@@ -191,7 +191,7 @@ H2.forEach(h=>{
     + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+(h.worked?'<span class="wtag" title="Marked Work this day">Marked Working Day</span>':'')+'</span></span>'
     + enCell(h)+'<span class="hv-cell">'+box(false)+'</span><span class="hv-cell m">'+box()+'</span></div>';
 });
-V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus.',
+V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus, with no "also …".',
   html: head2 + rev});
 
 document.getElementById('grid').innerHTML = V.map(v =>

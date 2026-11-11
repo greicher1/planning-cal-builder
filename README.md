@@ -29,6 +29,13 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Holidays list: no "also …" under a hiatus (11 Nov 2026)
+
+Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an
+all-phase hiatus heading no longer names the phases around it (the hiatus pauses all of them); "also …" stays under a
+phase heading. Leg `holidayenable` G2 now asserts its absence. Verified: `holidayenable` 7/7, `npm run check` 42/42,
+tried in the pane on `anchorside`.
+
 ### Unreleased — Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
 
 Owner: *"Should the enable button even be there for holidays that do not occur during production? Maybe non-production

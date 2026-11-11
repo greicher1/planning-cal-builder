@@ -14394,7 +14394,7 @@ export function initLegacyApp() {
     //   - else the phase it falls in, preferring Production, then a phase counted in Days, then the earliest start,
     //     so a row with an Enable box sits under the phase that explains the box;
     //   - else "Outside the phases" (a custom holiday the list keeps anyway).
-    // Any other phase the day falls in is named on its date line ("also Post"). Headings come in the order of their
+    // Any other phase the day falls in is named on its date line ("also Post"), except under a hiatus heading. Headings come in the order of their
     // first holiday, and a heading recurs if its holidays are split by another group's, so the list stays in date
     // order. Episode prep is left out: its segment starts with Production's, so Production covers it. Headings carry
     // no id and no input, so nothing here reaches fields.byId; the rows keep every class and data- attribute the
@@ -14417,7 +14417,9 @@ export function initLegacyApp() {
         const wkKey = isoOf(mondayOf(schedule.hiatuses[hi].start));
         const name = String(hiatusTextFor(wkKey) || '').split('\n')[0].trim() || 'Hiatus';
         g = {key: 'hiatus:' + hi, name, color: hiatusColorFor(wkKey), note: /hiatus/i.test(name) ? '' : 'hiatus'};
-        also = inSegs.map(nameOf);
+        // No "also …" under a hiatus (owner, 11 Nov 2026: "I dont think all phase hiatuses need to say Also Post"): an
+        // all-phase hiatus pauses every phase, so naming the ones around it says nothing.
+        also = [];
       } else if(inSegs.length){
         const s = inSegs[0];
         g = {key: s.key, name: nameOf(s), color: s.color || '#EDEDED',
