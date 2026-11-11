@@ -53,6 +53,7 @@ h1{ font-size:24px; letter-spacing:-.015em; margin:0 0 6px; }
 input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy-6); vertical-align:middle; }
 .shoot{ font-size:10px; font-weight:600; color:var(--red); background:#FDECE4; border:1px solid #F5C7B2; border-radius:4px; padding:0 4px; }
 .dim{ opacity:.45; }
+.wtag{ font-size:10px; border:1px solid var(--gray-4); border-radius:4px; padding:0 3px; color:var(--gray-6); }
 
 /* A: phase in words on the date line */
 .ph-words{ font-weight:600; }
@@ -168,7 +169,7 @@ const H2 = [
   {n:"Presidents' Day", d:'Mon 2/16/26', g:'writersRoom', also:['prePrep']},
   {n:'Memorial Day', d:'Mon 5/25/26', g:'prodPrep'},
   {n:'Juneteenth', d:'Fri 6/19/26', g:'prodPrep'},
-  {n:'Independence Day (Observed)', d:'Fri 7/3/26', g:'production', en:true},
+  {n:'Independence Day (Observed)', d:'Fri 7/3/26', g:'production', en:true, worked:true},
   {n:'Independence Day', d:'Sat 7/4/26', g:'production'},
   {n:'Labor Day', d:'Mon 9/7/26', g:'production', en:true, shoot:true},
   {n:'Thanksgiving', d:'Thu 11/26/26', g:'post'},
@@ -180,17 +181,17 @@ const H2 = [
 ];
 const G2 = Object.assign({}, PH, {break:{label:'Winter break', fill:'#FF0000', note:'hiatus'}});
 const note2 = k => k==='production' ? 'counts shoot days' : (G2[k].days ? 'counts days' : (G2[k].note || ''));
-const head2 = '<div class="hv-head"><span class="n">Holiday</span><span>Enable</span><span class="w">Waterfall<br>note</span><span class="m">Month<br>note</span></div>';
+const head2 = '<div class="hv-head"><span class="n">Holiday</span><span>Enable</span><span>W’fall<br>note</span><span class="m">Month<br>note</span></div>';
 let last = null, rev = '';
 H2.forEach(h=>{
   if(h.g !== last){ last = h.g;
     rev += '<div class="grp"><span class="sw" style="background:'+G2[h.g].fill+'"></span>'+G2[h.g].label
       + (note2(h.g) ? '<span class="why-en">'+note2(h.g)+'</span>' : '') + '</div>'; }
   rev += '<div class="hv-row"><span class="hv-label"><span class="hv-name">'+h.n+'</span><span class="hv-date">'+h.d
-    + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+'</span></span>'
-    + enCell(h)+'<span class="hv-cell w">'+box(false)+'</span><span class="hv-cell m">'+box()+'</span></div>';
+    + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+(h.worked?'<span class="wtag" title="Marked Work this day">Shot anyway</span>':'')+'</span></span>'
+    + enCell(h)+'<span class="hv-cell">'+box(false)+'</span><span class="hv-cell m">'+box()+'</span></div>';
 });
-V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. <b>"Waterfall note" in full</b> (its column widens 46 → 60 px, so names get 14 px less). The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus.',
+V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus.',
   html: head2 + rev});
 
 document.getElementById('grid').innerHTML = V.map(v =>

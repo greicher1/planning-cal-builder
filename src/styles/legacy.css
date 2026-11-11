@@ -4403,9 +4403,6 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
-  /* "Waterfall" spelled out (owner, 11 Nov 2026, was "W’fall"): the word is 57 px in the header's 10 px caps, so its
-     column is 60 px, header and cells in lockstep as the others are. */
-  .hv-head .hv-head-sheet, .hv-cell-sheet{ width:60px; }
   /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates), owner 11 Nov 2026. */
   .hv-en-na{ color:var(--mantine-color-gray-4); cursor:default; }
   /* Grouped by phase (renderHolidayVisList, owner 11 Nov 2026, mockup C): a heading per phase, its swatch in the

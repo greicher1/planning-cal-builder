@@ -14296,6 +14296,7 @@ export function initLegacyApp() {
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
     // `also`: the other phases the day falls in, named on the date line under its group (below).
+    const prodSeg = ((schedule && schedule.segments) || []).find(s=> s.key === 'production');
     const rowHtml = (h, also)=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
@@ -14345,10 +14346,15 @@ export function initLegacyApp() {
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (also && also.length ? ' <span class="hv-also">· also '+also.map(escHtml).join(', ')+'</span>' : '')
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
+        // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
+        // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
+        // overrides the holiday. The box stays, since removing the mark makes it cost a day again.
+        +     ((!costsDay[h.iso] && on && (dayOverrides[h.iso] === 'on' || dayOverrides[h.iso] === 'onhalf') && prodSeg && h.date >= prodSeg.start && h.date < prodSeg.end)
+                 ? ' <span class="hv-tag" title="Marked Work this day in the month view, so Production shoots it. Remove the mark and it costs a shoot day.">Shot anyway</span>' : '')
         +   '</span>'
         + '</span>'
         + enCell
-        + '<span class="hv-cell hv-cell-sheet'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
+        + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
