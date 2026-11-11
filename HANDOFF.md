@@ -181,7 +181,7 @@
 - **Not done:** no full gate (nothing here reaches a grid cell, an export or a saved file: the overlay and which
   swap is offered).
 
-### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
+### ✅ 10-11 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). ✅ **LIVE at `52a112b`** (owner, 11 Nov 2026, after trying it: *"works now, commit and push it"*; `origin/main` (`27b0b5e`: Ripple in Settings only, the Compare hiatus fix) merged in as `52a112b`, only gate.sh's leg list and the README / HANDOFF top entries conflicting, both sides kept; pushed `27b0b5e..52a112b`; the live `index.html` matched the tested merged build byte for byte at 19:31:21 UTC, sha256 `5e09a93e…`). On the merged build: `npm run check` 42/42, `hoverhiatus` 15/15, `hoverexpand` 18/18, `phasefill` 13/13, `centrepullback` 12/12, `comparehiatus` 8/8, `layoutrules` r13 13/13 and r22 8/8. No version cut. Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
   including its per phase hiatus should operate as one single block where the expand box would span the length of the
   entire phase including the hiatus"*. LR8 by picker: *"Yes, make the edit"* (asked with the gate below).
@@ -210,12 +210,14 @@
 - ⭐ **Follow-up, 11 Nov 2026** (owner, trying the build, on Test wk 1 with a blank each side: *"once i expand one side,
   the box no longer pops up on the other side empty space"*): `hoverPromptFor` refused a blank beside a cell with a
   per-cell width, and the run broke at one. Both guards removed; the click keeps the side already taken. Leg
-  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right). Re-checked on the new build: `hoverexpand`
+  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right).
+- ⚠️ **LEARNED: do not run several legs that Load a file on ONE reused `HARNESS_PORT`.** `hoverexpand` (H6) and
+  `phasefill` (F5) both load `anchorside.sptcal` through the fake picker; run after other legs on the same port (one
+  Chrome profile), the page stayed in the Month view after the Load and both threw "a settled grid". Each on a fresh port:
+  18/18 and 13/13, on `origin/main`'s build and on this one alike. Give each such leg its own port when re-running. Re-checked on the new build: `hoverexpand`
   18/18 (on a fresh port; on port 8466 it threw in H6's Load twice, and the build BEFORE the fix throws there the same
   way, so not this change), `centrepullback` 12/12, `phasefill` 13/13, `npm run check` 42/42.
-- ⏭ **Left:** the owner tries `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
-  `hover-hiatus-8463`; its origin's crash backups from my test clicks are deleted); then the push picker. Not pushed;
-  local `main` not moved.
+- Local `main` not moved (it carries a HANDOFF-only commit `6e4d0f5` of its own and is far behind `origin/main`).
 ### ✅ 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
 - Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
 - **Stacked on `compare-hiatus-start`** (rebased 11 Nov 2026; only the README / HANDOFF top entries conflicted, both kept). Combined build: `npm run check` 42/42, `comparehiatus` 8/8.
