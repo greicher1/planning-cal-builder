@@ -198,13 +198,13 @@ window.addEventListener('load', function () { (async function () {
     check(out.p1Notes === 1, 'P1 the PDF draws one Notes heading, 2030\'s (' + out.p1Notes + ')');
     check(!/Principal Photography Wraps/.test(p1.content) && /Room Opens/.test(p1.content), 'P2 2031\'s note is not drawn; 2030\'s is');
     // A star in a hidden note: the PDF's font has none, and the warning names every place the writer would draw one.
-    await T.openSettings('prefs');
-    T.set('pref-gridlines', 'solid'); await T.sleep(200);
+    // Grid lines are chosen in the Export PDF dialog, their only control since 11 Nov 2026 (owner).
+    T.pdfDialogPick(['solid']);
     var pg = await pdf('the PDF with gridlines on');
     check(pg.runs.length > 50 && pg.runs.filter(function (r) { return r === 'Notes'; }).length === 1,
           'P3 with Grid Lines in Exports on, the PDF still writes with two columns hidden');
-    T.set('pref-gridlines', 'none'); await T.sleep(200);
-    await T.closeSettings();
+    T.pdfDialogPick(['none']);
+    await pdf('the PDF with gridlines back off');
 
     // ---- R: the print fallback ------------------------------------------------------------------------------------
     await T.sleep(700);

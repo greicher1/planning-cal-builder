@@ -781,9 +781,10 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  prefs threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('inertAtBoot'), f"prefs: inert with nothing stored -- no preference, no interior rules in the PDF ({a.get('pdfNoneInterior')})")
-chk(a.get('controlFound') and a.get('insideExcludedCard'),
-    "prefs: the control exists and sits inside .prefs-card (the collectFieldValues exclusion)")
-chk(a.get('optionValues')=='none,solid,dashed', f"prefs: exactly three options, None the default ({a.get('optionValues')})")
+chk(a.get('controlGone'),
+    "prefs: Grid Lines in Exports is gone from Preferences (owner, 11 Nov 2026); the Export PDF dialog sets it")
+chk(a.get('optionValues')=='none,solid,dashed' and a.get('valueAtBoot')=='none',
+    f"prefs: the dialog's Grid lines has exactly three options and opens on None ({a.get('optionValues')}, {a.get('valueAtBoot')})")
 chk(a.get('reachesPdf'), f"prefs: choosing Dashed puts interior rules INTO THE PDF ({a.get('pdfNoneInterior')} -> {a.get('pdfDashedInterior')})")
 chk(a.get('reallyDashed'),
     f"prefs: they are really DASHED, and the dash state is reset after every stroke ({a.get('dashOps')} set / {a.get('dashResets')} reset)")
@@ -2164,7 +2165,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
-              papersize:-:500 \
+              papersize:-:1000 \
               pdfdialog:-:500 \
               phasefold:-:300 \
               hiatusfold:-:300 \

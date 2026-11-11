@@ -4598,7 +4598,11 @@ export function initLegacyApp() {
   // two-digit-year date in its text.
   // ⛔ CALENDAR DATA: captureSnapshot()'s `dateFormat`, written only when not the default, so a calendar
   // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
-  const WEEK_DATE_FORMATS = ['m/d/yyyy'];
+  // ⭐ Day first since 11 Nov 2026 (owner: the Dates menu reads MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY):
+  // 'd/m/yyyy' and 'd/m/yy', also PERMANENT values. Unpadded, as the default always was (owner's picker,
+  // "Unpadded"), so 6 Jan 2025 reads 6/1/25. An older build's sanitizer drops a value it does not know, so a
+  // day-first calendar opens there month first, never refused.
+  const WEEK_DATE_FORMATS = ['m/d/yyyy', 'd/m/yyyy', 'd/m/yy'];
   let dateFormat = '';
   // The paper ('' = Letter) and an orientation picked in the Export PDF dialog ('' = follow the rule):
   // calendar data, explained beside SHEET_PAPERS. Declared up here only so boot code can read them.
@@ -4609,13 +4613,16 @@ export function initLegacyApp() {
   // buildWaterfallPdf's date cell -- and fmtShort() itself while the setting is the default, so those
   // three draw exactly what they drew before.
   function fmtWeekDate(date){
-    if(dateFormat !== 'm/d/yyyy') return fmtShort(date);
-    return `${date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+    if(!WEEK_DATE_FORMATS.includes(dateFormat)) return fmtShort(date);
+    const m = date.getUTCMonth()+1, d = date.getUTCDate();
+    const y = dateFormat.endsWith('yyyy') ? String(date.getUTCFullYear()) : String(date.getUTCFullYear()).slice(2);
+    return dateFormat.startsWith('d/') ? `${d}/${m}/${y}` : `${m}/${d}/${y}`;
   }
   // Excel's date-cell format. 'mm-dd-yy' is ExcelJS's name for built-in format 14, which Excel draws
   // in the READER'S system short-date format -- so the default is left exactly as it was written.
-  // 'm/d/yyyy' is an explicit custom format, the same on every machine.
-  function weekDateNumFmt(){ return dateFormat === 'm/d/yyyy' ? 'm/d/yyyy' : 'mm-dd-yy'; }
+  // 'm/d/yyyy' is an explicit custom format, the same on every machine, and so are the day-first two: the
+  // saved values ARE Excel's format codes.
+  function weekDateNumFmt(){ return WEEK_DATE_FORMATS.includes(dateFormat) ? dateFormat : 'mm-dd-yy'; }
 
   // ---------- The waterfall's header row (owner ruling 2, 20 Oct 2026; HEADER-ROW-PLAN.md §4) ----------
   // Off (the default): every year block's header row is `Date | <year> | Notes`, exactly as always --

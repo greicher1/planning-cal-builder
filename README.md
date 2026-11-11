@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
+
+Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and
+DD/MM/YY"*. Settings › Preferences › Waterfall now holds Single Column Mode, Dates and Hidden Notes columns. Paper and
+Grid Lines in Exports are chosen only in the Export PDF dialog, which already set the same saved paper and the same
+grid-lines preference, so Export to Excel follows it as before. Dates lists the four formats in the owner's order,
+named by pattern; the output stays unpadded (owner's picker), so MM/DD/YY is still the default 1/6/25 and every
+existing calendar looks as it did. Day first reads 6/1/25 or 6/1/2025 on screen, in the PDF, and in Excel as real
+dates in `d/m/yy` / `d/m/yyyy`. Two new permanent `dateFormat` values, `d/m/yyyy` and `d/m/yy`; an older build drops
+them and opens the calendar month first. The legs that drove the removed menus now go through the dialog
+(`T.pdfDialogPick` in `t/lib.js`), and `hdrrow` gains D6–D8 for day first. Verified: `hdrrow` 40/40, `settingswin`
+21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12 (its gate timeout raised to 1000 s: choosing a paper now exports a PDF), `prefs`, `sharecopy2`,
+`npm run check` 42/42. No full gate: nothing frozen, and the default output is unchanged.
+
 ### Unreleased — Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
 
 Owner's report: on a new file, Build Around with every phase ticked put Writer's Rm two weeks into Pre-Prep, but only

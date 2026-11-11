@@ -199,16 +199,17 @@ window.addEventListener('load', function () { (async function () {
     d = await open('click');
     await pick('tabloid'); await pick(rec0 === 'portrait' ? 'landscape' : 'portrait'); await pick('solid');
     var f1 = await exportIt(function () { document.querySelector('.export-pdf-dlg [data-pdfdlg="cancel"]').click(); });
-    var afterCancel = { status: /Unsaved/.test(status()), store: store(), undo: undoOff(), paper: byId('wf-paper').value };
+    // (The paper is read from the dialog's next opening and the file: Preferences has had no Paper select since 11 Nov 2026.)
+    var afterCancel = { status: /Unsaved/.test(status()), store: store(), undo: undoOff() };
     d = await open('click');
     var reopened = checked(d);
     await pick('legal');
     var f2 = await exportIt(function () { press('Escape', { target: document.querySelector('.export-pdf-dlg .mantine-Modal-content') || document }); });
-    var afterEsc = { status: /Unsaved/.test(status()), store: store(), undo: undoOff(), paper: byId('wf-paper').value };
+    var afterEsc = { status: /Unsaved/.test(status()), store: store(), undo: undoOff() };
     var s4 = await save();
     kase('D4', 'Cancel and Escape change nothing: no file, the calendar still saved, no undo step, the preference store untouched, Letter still chosen and nothing new in the file; the next opening is back on the defaults',
       !f1 && !f2 && st0 === false && afterCancel.status === false && afterEsc.status === false && afterCancel.store === store0 && afterEsc.store === store0 &&
-      afterCancel.undo === undo0 && afterEsc.undo === undo0 && afterCancel.paper === '' && afterEsc.paper === '' &&
+      afterCancel.undo === undo0 && afterEsc.undo === undo0 &&
       sameArr(reopened, ['letter', rec0, 'none']) && !('paperSize' in s4) && !('pageOrientation' in s4),
       { st0: st0, afterCancel: afterCancel, afterEsc: afterEsc, reopened: reopened });
 
@@ -259,9 +260,9 @@ window.addEventListener('load', function () { (async function () {
     var c6 = checked(d);
     await exportIt(function () { document.querySelector('.export-pdf-dlg [data-pdfdlg="cancel"]').click(); });
     // One undo step took the Tabloid + orientation change: check it before clearing.
-    // (Read back from the Paper select and the dialog, not a Save: undo lands on the saved state, so Save is off.)
+    // (Read back from the dialog, not a Save: undo lands on the saved state, so Save is off.)
     byId('undo-btn').click(); await settle('the grid after undo');
-    var u6 = { paper: byId('wf-paper').value, store: store() };
+    var u6 = { store: store() };
     d = await open('click');
     u6.opened = checked(d); u6.rec = recommended(d);
     await exportIt(function () { document.querySelector('.export-pdf-dlg [data-pdfdlg="cancel"]').click(); });
@@ -274,7 +275,7 @@ window.addEventListener('load', function () { (async function () {
     var s6 = await save();
     kase('D6', 'the dialog opens on the saved orientation; ONE undo takes back the paper and the orientation together and leaves the grid-lines preference; redo brings both back; exporting with the recommended orientation clears pageOrientation and keeps the paper',
       sameArr(c6, ['tabloid', other, 'solid']) &&
-      u6.paper === '' && sameArr(u6.opened, ['letter', u6.rec, 'solid']) && /solid/.test(u6.store || '') &&
+      sameArr(u6.opened, ['letter', u6.rec, 'solid']) && /solid/.test(u6.store || '') &&
       r6.paperSize === 'tabloid' && r6.pageOrientation === other &&
       !!p6 && p6.orient === recT && s6.paperSize === 'tabloid' && !('pageOrientation' in s6),
       { opened: c6, undo: u6,
