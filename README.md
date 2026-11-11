@@ -61,6 +61,12 @@ check 42/42; the same legs green again, plus the merged-in work's own: `hoverexp
 `textstyle` (with its `carry-rich` fixture) 52 checks. ⚠️ `hoverexpand` timed out once waiting for the grid when run
 first in a batch of eight; green on two re-runs alone, so recorded as a flake under load, not a failure.
 
+**And again after `origin/main` moved to `fefe9dc`** (the toolbar regroup, which edits the same toolbar file; it
+merged without a code conflict). Merged build sha256 `a661415f…`: check 42/42 and 15 leg runs, 0 failures:
+`buildaround` 36/36, `rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `shiftheld` 13/13, `snaptools`
+14/14, `overrides` 20/20, `datepick` 17/17, `stylebarplace` 13/13, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle`
+52 checks, `hoverexpand` 18/18, `lastedited` 22/22, `undokeys` 11/11.
+
 ### Unreleased — The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
 
 The preview toolbar's sections were told apart by gaps that were all different. The owner asked for about twenty

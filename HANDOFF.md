@@ -29,6 +29,9 @@
   `noteviews` 15/15, `textstyle` 52 checks. ⚠️ `hoverexpand` timed out once ("a settled grid") when it ran first in a
   batch of eight legs, and was green on two re-runs alone: a flake under load. ⚠️ And `textstyle` MUST be run as
   `HARNESS_STATE=carry-rich`; a grep of gate.sh for `textstyle:` picks up other legs' specs and runs it bare.
+- **Merged again with `origin/main` at `fefe9dc`** (the toolbar regroup; it edits `PreviewToolbar.jsx` and
+  `legacy.css` too, and merged with no code conflict). Merged build sha256 `a661415f…`: check 42/42 and 15 leg runs,
+  0 failures, the toolbar session's own legs included (`stylebarplace`, `hdrcontrols`, `fillspace`, `textstyle`).
 - **Housekeeping from the try-build:** my scripted checks on `localhost:8796` left four crash backups (the synthetic
   fixture and a blank calendar) that raised "Recover unsaved work" on every load. I deleted those four from that test
   origin's IndexedDB. Nothing of the owner's was there (all four were written during my own checks that hour).
