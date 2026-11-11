@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: `noteviews` F1 AND `textstyle` B4 GREEN AGAIN — two legs re-expected, nothing in the app changed. Branch `claude/festive-panini-36a6ae` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, reset to `origin/main` at `2ab646d`; local `main`'s HANDOFF-only `6e4d0f5` is not in it). Committed on the branch, not pushed. Only `tests/harness/t/noteviews.js` and `t/textstyle.js` changed.
+- **`noteviews` F1** (`keysSame` false) was Date Last Edited, as the hover entry below guessed: `keysAdded` (now in the
+  case's output) is exactly `['lastEdited']`, `keysGone` empty. S0 is saved from the fixture as `?state=` opened it (no
+  file time, so no stamp); the leg's edits stamp it. F1 now leaves `lastEdited` out of BOTH key lists and still fails
+  on any other new or missing top-level key, and on any new `fields.byId` id.
+- **`noteviews` F2** (a second Load, "the loaded file's name in the file menu") is **load timing only, hardened.** The
+  release-layout session's red run reads "(100 polls, 10000ms real)": exactly 100 x 100 ms, so that clock is VIRTUAL,
+  not real (lib.js's `until` calls it "real"; it is not, under `--virtual-time-budget`). Measured by wrapping
+  `Blob.prototype.text` in a throwaway copy of the leg: the app's `file.text()` on the picked file took **7.6 s, 1.0 s
+  and 0 s of virtual time** on three runs of one build, alone at load ~6; F1's Load (no unsaved-work question) 10 ms
+  every time. The page sits idle on real Blob I/O while the poll's timers run virtual time on, so 10 s had about 2 s to
+  spare. `load()` now waits as `calrange`'s does (150 polls for the question, 600 for the name, 60 s bounding a hang).
+- **`textstyle` B4 was never broken, and the style bar's move did not touch it.** The leg needs
+  `HARNESS_STATE=carry-rich` (its header, gate.sh and `partgate-stylebar.zsh` all pass it); the red runs had no state,
+  so there was no Manual header (B4) and no CARRY-NOTE (the G block's `click()` on null). With the fixture this build
+  is 51/51. The leg now checks the fixture first and stops with one failure naming the command (`B-`), and its own
+  `load()` got the same patience as noteviews' (the style-bar session saw it throw there under load).
+- **Verified** on a fresh `npm run build` of `2ab646d` (sha256 `fa9c16d4…`, the hover session's merged build), each
+  leg alone on its own port: `noteviews` (wfkeys) 15/15 three times (8613, 8618, 8619); `textstyle` (carry-rich) 52/52
+  twice (8617, 8620), PASS under gate.sh's own judge; without the fixture, 1 failure and the message. No gate.sh judge
+  changed. No full gate (no app, export or save code changed).
+- ⚠️ **The same 10 s Load wait is in other legs** (`episodeprep`, `offweek`, `settingswin`: 100 polls on the file-menu
+  name). `offweek` already threw there in batch runs (the 5 Nov entry). Not changed here; widen them the same way if
+  they go red.
+
 ### 🔨 10 Nov 2026: THE HOVER PROMPT — "EXPAND?" OVER A BLANK, "PULL BACK?" OVER WHAT WAS WIDENED — built on branch `hover-expand` (worktree `.claude/worktrees/hover-expand`, from the release's local HANDOFF note `98dc947` on top of the live `51ce127`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch (owner's picker *"Commit on the branch"*); push approved by picker (*"Merge, re-check, then push"*): `origin/main` merged in and re-checked first. Tracker card `blank-space-expand-prompt`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §11 (the as-built record).
 - **What.** Rest the pointer 300 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
   blank sits beside that phase, and **Expand?** in its very centre; the click writes per-cell widths (`cellSpans`) on
@@ -47,6 +72,8 @@
   `lastEdited`, since Date Last Edited) and `textstyle` B4 (*"Manual header: the in-calendar strip is in the page but
   hidden"*, then `Cannot read properties of null (reading 'scrollIntoView')`, since the style bar moved into the
   toolbar). Both legs need re-expecting by the sessions that own those changes; both are in the full gate.
+  ➡️ **Resolved in the entry above:** F1 was `lastEdited`, re-expected; F2 is load timing, hardened; textstyle B4 was
+  the leg run without its fixture (`HARNESS_STATE=carry-rich`), 51/51 with it, not the style bar.
 
 ### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
 
