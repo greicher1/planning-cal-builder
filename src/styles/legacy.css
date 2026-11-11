@@ -1675,6 +1675,11 @@
     display:inline-flex; align-items:center; flex:none; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1); border-radius:calc(var(--mantine-radius-default) + 2px);
   }
+  /* The date tools have NO well (owner, 10 Nov 2026: "remove the faint grey box surrounding the shift and build around
+     buttons"): their own navy outlines are their edge. No padding either, so the gap you see from those outlines to
+     the wells beside them is the one section gap, 12 px, as between every other pair. The 2 px between the two
+     buttons stays, the rule inside every section. */
+  .tb-dates{ background:transparent; padding:0; }
   /* Undo / Redo come right after the view toggle, and their auto left margin packs every tool to the right. */
   .view-toggle-row > .undo-redo-group{ margin-left:auto; }
   /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
