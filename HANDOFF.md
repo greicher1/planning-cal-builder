@@ -36,6 +36,17 @@
   (`release-layout`'s `eea8b792`) passed it once and failed it once the same way. A load-timing flake under contention,
   not this change. No full gate (nothing frozen, exported or saved changed); test files `~/Downloads/SPTCal-test-hover-
   expand-v1..v4-10Nov.html`.
+- **On the merged build** (`origin/main` merged in twice: `ee1b049` with Date Last Edited, the style bar move and Build
+  Around's look, README / HANDOFF / gate.sh conflicts only, both sides kept; then `96ca1eb` with `2a61a8c`, docs and a
+  leg; the build is sha256 `fa9c16d4…` both times): `npm run check` 42/42; `hoverexpand` 16, `centrepullback` 12,
+  `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `notewrap` 16, `undokeys`
+  11, `wfmenu` 39, and origin's own `stylebarplace` 11, `buildaround` 36, `lastedited` 22; gate.sh's swap section +
+  `onecol` 157 PASS and `colreuse` x2 29/29 under the gate's own judges.
+- ⚠️ **Red on `origin/main` itself, not this change** (built alone at `2a61a8c` in a scratch worktree, the same result):
+  `noteviews` F1 (`keysSame` false: the saved file now carries a top-level key the fixture lacks, by its look
+  `lastEdited`, since Date Last Edited) and `textstyle` B4 (*"Manual header: the in-calendar strip is in the page but
+  hidden"*, then `Cannot read properties of null (reading 'scrollIntoView')`, since the style bar moved into the
+  toolbar). Both legs need re-expecting by the sessions that own those changes; both are in the full gate.
 
 ### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
 
