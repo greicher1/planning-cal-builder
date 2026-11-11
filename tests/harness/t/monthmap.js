@@ -1,6 +1,6 @@
 // monthmap -- the phase map above the month view (MONTH-RAIL-PLAN.md). Part A, plan step 2: the engine's half.
 // Part B, plan step 3: the map MonthMap.jsx draws. Part C, §18 (owner, 28 Oct 2026, option B): the month stepper,
-// Today and ‹ October 2026 › on the style bar's line, which replaced the map's own two small arrows.
+// ‹ October 2026 ›, which replaced the map's own two small arrows; in the toolbar's slot since 11 Nov 2026, without Today.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=mvnotes ./run.sh monthmap 120
 //
@@ -28,12 +28,12 @@
 //   B5  no taller than the slimmer rows allow
 //   B6  this month's dot, and no id or form field anywhere in it
 //   PART C, §18: the month stepper (MonthStepper in MonthMap.jsx)
-//   C0  it sits alone on its line (.style-row), at its right end. The text style bar moved up to the first line on 10 Nov
-//       2026 (after Shift and Build Around since the owner's reorder); where it cannot fit there (.style-own-line, a narrow
-//       window) it comes back to this line, left of the stepper
+//   C0  it sits in the toolbar's slot (.tb-slots), exactly where Fill Gaps and Side Boxes sit in the waterfall, level with
+//       Shift; its old line (.style-row) is empty. The text style bar is on the first line after Build Around, or (its own
+//       line, a narrow window) directly under the first line, above the phase map
 //   C1  its label is always the month band's month: stepping › through every month, and after every map click
 //   C2  its ‹ and › are real clicks one month each way, disabled at the two ends
-//   C3  Today goes to this month and is then disabled; outside the calendar it is disabled and says so
+//   C3  there is no Today button (owner, 11 Nov 2026); the phase map's month still goes straight to this month
 //   C4  no id or form field anywhere in it
 //   B7  in the waterfall the map and the stepper are gone, the stepper's line takes no room, and the style bar is after
 //       Build Around on the first line, or (.style-own-line) a whole line of its own under the tools
@@ -286,26 +286,26 @@ window.addEventListener('load', function () { (async function () {
         {dots: dots, idsOrFields: ids}, {dots: keys.indexOf(thisMonth) >= 0 ? [thisMonth] : [], idsOrFields: 0});
 
     // ================= PART C, §18: the month stepper =================
-    var stp = function () { return document.querySelector('.view-toggle-row > .style-row > .month-step'); };
+    var stp = function () { return document.querySelector('.view-toggle-row .tb-slots > .month-step'); };
     var lbl = function () { var e = stp() && stp().querySelector('.ms-label'); return e ? e.textContent.trim() : ''; };
     var arrow = function (n) { return stp().querySelector('.ms-arrow[data-mvstep="' + n + '"]'); };
     // ---- C0: where it sits ----
-    // Since 10 Nov 2026 the stepper has the line to itself: the text style bar moved up beside Shift (owner). Where the
-    // bar cannot fit there (.style-own-line on its host) it comes back down to this line, left of the stepper, as before.
+    // Since 11 Nov 2026 the stepper is in the toolbar's slot, the one grid cell Fill Gaps and Side Boxes share with it (they
+    // keep their place here, hidden by visibility), so it covers exactly their span and nothing on the line moves.
     var ownLine = document.querySelector('.view-toggle-row > .style-bar-host').classList.contains('style-own-line');
-    var rowKids = Array.from(document.querySelector('.view-toggle-row > .style-row').children).map(function (e) { return e.className; });
-    var rowR = document.querySelector('.style-row').getBoundingClientRect(), barR = document.querySelector('.style-bar').getBoundingClientRect();
-    var shR = document.querySelector('.shift-group').getBoundingClientRect();
-    var stR = stp() ? stp().getBoundingClientRect() : null;
-    var cy = function (r) { return r.top + r.height / 2; };
     var R0 = function (el) { return el.getBoundingClientRect(); };
-    add('C0', "the stepper sits alone on its line, at its right end; the style bar is on the first line after Build Around, or (own line) left of the stepper",
-        !!stR && JSON.stringify(rowKids) === JSON.stringify(['month-step']) && Math.abs(stR.right - rowR.right) < 1 &&
-          (ownLine ? Math.abs(cy(barR) - cy(stR)) < 1 && barR.right <= stR.left
-                   : Math.abs(cy(barR) - cy(shR)) < 1 && barR.left > R0(document.getElementById('pop-solve-btn')).right && barR.bottom <= rowR.top),
-        {kids: rowKids, ownLine: ownLine, step: stR && [Math.round(stR.left), Math.round(stR.top), Math.round(stR.right), Math.round(stR.height)],
-         bar: [Math.round(barR.left), Math.round(barR.top), Math.round(barR.right), Math.round(barR.height)], rowRight: Math.round(rowR.right)},
-        'month-step alone, ending at the row\'s right edge; the bar level with Shift (or with the stepper on its own line)');
+    var cy = function (r) { return r.top + r.height / 2; };
+    var stR = stp() ? R0(stp()) : null, fR = R0(document.getElementById('tb-fill-space-btn')), sR = R0(document.getElementById('tb-side-boxes-btn'));
+    var shR = R0(document.querySelector('.shift-group')), barR = R0(document.querySelector('.style-bar')), mapR = R0(map());
+    var lineEmpty = document.querySelector('.view-toggle-row > .style-row').children.length === 0;
+    add('C0', "the stepper sits in the toolbar's slot, over Fill Gaps' and Side Boxes' span, level with Shift; its old line is empty; the style bar after Build Around (or on its own line under the first)",
+        !!stR && lineEmpty && Math.abs(stR.left - fR.left) < 1 && Math.abs(stR.right - sR.right) < 1 && Math.abs(cy(stR) - cy(shR)) < 1 &&
+          getComputedStyle(document.getElementById('tb-side-boxes-btn')).visibility === 'hidden' &&
+          (ownLine ? barR.top >= shR.bottom && barR.bottom <= mapR.top
+                   : Math.abs(cy(barR) - cy(shR)) < 1 && barR.left > R0(document.getElementById('pop-solve-btn')).right),
+        {ownLine: ownLine, lineEmpty: lineEmpty, step: stR && [Math.round(stR.left), Math.round(stR.right), Math.round(cy(stR))],
+         slot: [Math.round(fR.left), Math.round(sR.right)], shiftMid: Math.round(cy(shR)), bar: [Math.round(barR.left), Math.round(barR.top)]},
+        'the stepper over the slot, level with Shift; .style-row empty');
     // ---- C1: the label is the month band's month, always ----
     var off = [];
     clickMap('.mm-month[data-mvgo="' + keys[0] + '"]');
@@ -332,23 +332,12 @@ window.addEventListener('load', function () { (async function () {
         s1 === labelOf(step(mid, 1)) && s2 === labelOf(mid) && firstOff && firstNextOn && lastOff && lastPrevOn,
         {next: s1, prev: s2, prevOffAtStart: firstOff, nextOffAtEnd: lastOff},
         {next: labelOf(step(mid, 1)), prev: labelOf(mid), prevOffAtStart: true, nextOffAtEnd: true});
-    // ---- C3: Today ----
-    var tb = function () { return stp().querySelector('.ms-today'); };
-    var inCal = keys.indexOf(thisMonth) >= 0, c3;
-    if(inCal){
-      var away = thisMonth === keys[0] ? keys[keys.length - 1] : keys[0];
-      clickMap('.mm-month[data-mvgo="' + away + '"]'); await frame();
-      var onAway = !tb().disabled;
-      tb().click(); await frame();
-      c3 = {inCalendar: true, enabledAway: onAway, went: shown(), disabledThere: tb().disabled, title: tb().title};
-      add('C3', 'Today goes to this month and is then disabled', onAway && shown() === labelOf(thisMonth) && tb().disabled && lbl() === shown(),
-          c3, {inCalendar: true, enabledAway: true, went: labelOf(thisMonth), disabledThere: true, title: 'This month is on screen'});
-    } else {
-      c3 = {inCalendar: false, disabled: tb().disabled, title: tb().title};
-      add('C3', 'with this month outside the calendar, Today is disabled and says so',
-          tb().disabled && tb().title === 'This month is outside the calendar', c3,
-          {inCalendar: false, disabled: true, title: 'This month is outside the calendar'});
-    }
+    // ---- C3: no Today (owner, 11 Nov 2026), and the map still goes straight to this month ----
+    var noToday = !stp().querySelector('.ms-today') && !stp().querySelector('[data-mvgo]');
+    var inCal = keys.indexOf(thisMonth) >= 0, wentHome = true;
+    if(inCal){ clickMap('.mm-month[data-mvgo="' + thisMonth + '"]'); await frame(); wentHome = shown() === labelOf(thisMonth) && lbl() === shown(); }
+    add('C3', 'the stepper has no Today button; the phase map\'s month goes straight to this month', noToday && wentHome,
+        {noToday: noToday, inCalendar: inCal, label: lbl()}, {noToday: true});
     // ---- C4: no ids ----
     var stIds = stp().querySelectorAll('[id], input, select, textarea').length;
     add('C4', 'nothing in the stepper has an id or is a form field', stIds === 0, stIds, 0);
