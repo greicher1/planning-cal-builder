@@ -7514,8 +7514,14 @@ export function initLegacyApp() {
     const mine = stintTds(year, phaseKey);
     if(!mine.length) return null;
     const lane = simLaneOf(year);
-    let slot = +mine[0].dataset.own + dir;
-    if(lane && lane.inserted && slot === lane.slot) slot += dir;   // Sim Post's own column (simLaneOf)
+    const own = +mine[0].dataset.own;
+    let slot = own + dir;
+    // Sim Post's own column (simLaneOf) is stepped over. For PRODUCTION it is stepped over even when the lane is
+    // shared with a phase from before the shoot: it is Production's own column then (frozen SP1 glues the lane to
+    // Production's slot + 1), never a free one to move into. Not stepping over offered "Move Production into the
+    // free column, after Prep" beside Sim Post, and the trial honoured it by swapping two earlier phases while
+    // Production stayed put (owner's screenshot, 10 Nov 2026).
+    if(lane && slot === lane.slot && (lane.inserted || phaseKey === 'production')) slot += dir;
     const blocks = computeYearBlocks(sched.weeks);        // FROZEN, read-only
     const bi = blocks.findIndex(b => b.year === year);
     if(bi < 0) return null;
@@ -7544,6 +7550,20 @@ export function initLegacyApp() {
     try { trial = computeSchedule(readState()); } finally { colFollow = saved; }
     const v = trial && trial.colMoves && trial.colMoves[phaseKey];
     if(!v || !v.ok) return Object.assign(base, { reason:'follow-busy', blocker: (v && v.blocker) || follows });
+    // ⛔ A move must MOVE the phase. The placement can honour the follow by rearranging other phases instead, and a
+    // knob that says "Move X" and leaves X where it is makes no sense (owner, 10 Nov 2026). Read where the trial
+    // puts the phase's first week of this block; the same column as now is no move.
+    const tBlocks = computeYearBlocks(trial.weeks);       // FROZEN, read-only
+    const tbi = tBlocks.findIndex(b => b.year === year);
+    if(tbi >= 0){
+      const tb = tBlocks[tbi], tMap = computeBlockLayout(trial, tBlocks).blockSlotMaps[tbi];   // FROZEN, read-only
+      let landed = null;
+      for(let i = tb.startIdx; i < tb.startIdx + tb.count && landed === null; i++){
+        const c = trial.weeks[i].cells.find(x => x.key === phaseKey && x.col !== undefined);
+        if(c && tMap.has(c.col)) landed = tMap.get(c.col);
+      }
+      if(landed === own) return Object.assign(base, { reason:'follow-stays' });
+    }
     return Object.assign(base, { ok:true, follows,
       label: 'Move ' + phaseLabelFor(phaseKey) + ' into the free column, after ' + phaseLabelFor(follows) });
   }
@@ -7597,6 +7617,8 @@ export function initLegacyApp() {
       return phaseLabelFor(v.blocker) + ' uses that column while ' + phaseLabelFor(v.phaseKey) + ' runs.';
     if(v.reason === 'follow-nobody')
       return 'A phase can only move into a column after another phase there has finished.';
+    if(v.reason === 'follow-stays')
+      return phaseLabelFor(v.phaseKey) + ' would stay in its column, so there is nothing to move.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];
     return 'Can’t swap: ' + (SWAP_REASON_TEXT[v.reason] || v.reason) + '.';
   }
@@ -7638,7 +7660,6 @@ export function initLegacyApp() {
   function swapCandKey(){
     const seed = swapSeed();
     if(!seed) return '';
-    const wk = (currentSchedule && currentSchedule.weeks) || [];
     // The MODE first: the same seed means a different swap once the selection covers the whole stint
     // (swapSelectionMode), and a block swap changes gridStintSwaps rather than gridColSwaps.
     const mode = swapSelectionMode();
@@ -7646,13 +7667,21 @@ export function initLegacyApp() {
       // The selection itself, not just its size: the per-week candidate walks every selected cell of the
       // seed's phase (weekSwapEval), so two selections of one size and one seed can differ.
       + '|' + [...gridSel].sort().join(',')
+      + '|' + seed.weekIso + '|' + seed.phaseKey
+      + '|' + swapLayoutKey();
+  }
+  // Everything a verdict depends on apart from the selection: shared by the knob's cache above and the
+  // Swap Column button's (stintOffers), so the button can never disagree with the knob it leads to.
+  function swapLayoutKey(){
+    const wk = (currentSchedule && currentSchedule.weeks) || [];
+    return ''
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
       + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + (fillSpaceOff ? 'lanes' : 'fill')
-      + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
+      + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
       // VALUES, not just keys. The D4 refusal turns on a cell span's l/r, and a double-click fill
@@ -8109,6 +8138,32 @@ export function initLegacyApp() {
   // names Show Info's shooting blocks, BLOCKS-PLAN.md, which this button has nothing to do with).
   let stintHover = null;           // { year, phaseKey } while the pointer is over a stint or its button
   const sameStint = (a, b) => (!a && !b) || (!!a && !!b && a.year === b.year && a.phaseKey === b.phaseKey);
+  // ⭐ WOULD ITS CLICK OFFER A SWAP? (owner, 10 Nov 2026). The button's click selects the whole block, and the knob
+  // then appears only for a direction swapEvalDir passes. So this asks swapEvalDir itself, with that same selection
+  // put in place for the question and the user's own put back: one evaluator, so the button shows exactly where a
+  // knob will follow it. A verdict costs trial schedules, so it is cached against the block and swapLayoutKey()
+  // (the knob cache's key less the selection), and computed only when the pointer reaches a block it has not
+  // judged since the layout last changed; every repaint after that is a lookup.
+  const _stintOffer = new Map();
+  function stintOffers(year, phaseKey){
+    // Single Column in the key too: it changes what one block IS (every year, or one), while the start year and
+    // every week's cells can stay the same.
+    const key = year + '|' + phaseKey + '|' + (singleColumn ? 'one' : 'years') + '|' + swapLayoutKey();
+    if(_stintOffer.has(key)) return _stintOffer.get(key);
+    const tds = stintTds(year, phaseKey);
+    let ok = false;
+    if(tds.length){
+      const savedSel = gridSel, savedAnchor = gridSelAnchor;
+      try {
+        gridSel = new Set(tds.map(SEL_KEY));
+        gridSelAnchor = SEL_KEY(tds[0]);
+        ok = [-1, 1].some(dir => { const v = swapEvalDir(dir); return !!(v && v.ok); });
+      } finally { gridSel = savedSel; gridSelAnchor = savedAnchor; }
+    }
+    if(_stintOffer.size > 200) _stintOffer.clear();
+    _stintOffer.set(key, ok);
+    return ok;
+  }
   // ⚠️ Visible while the pointer is over ANY cell of the stint or the button itself -- never scoped to
   // the first week. A button that appears fourteen rows above the cell you are on and vanishes the
   // moment you move toward it is the classic broken hover target; since it sits at the top of the
@@ -8146,6 +8201,10 @@ export function initLegacyApp() {
     if(!tds.length) return;
     // Do not offer it where nothing can move: a block with one phase column has nothing to swap with.
     if(!document.querySelector('#table-wrap table.sheet-table colgroup col[data-ckey="y' + stintHover.year + ':s1"]')) return;
+    // ...and nowhere its click would lead to no knob (owner, 10 Nov 2026: "it shouldn't show up anywhere it doesnt
+    // make sense"). A second column in the year was not enough: it showed on a phase alone in its column for its
+    // whole run, and on Production beside Sim Post, whose own lane was the year's second column.
+    if(!stintOffers(stintHover.year, stintHover.phaseKey)) return;
     if(headerBottom === undefined){
       const thead = document.querySelector('#table-wrap table.sheet-table thead');
       headerBottom = thead ? (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z : 0;
