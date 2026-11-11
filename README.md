@@ -45,7 +45,12 @@ the console. Nothing a user sees was wrong: `applyStateSnapshot()` reads an abse
 36/36 (K0 green), `lastedited` 21/21, `rebuildticks` 20/20, `anchorside` 39/39, `buildalongside` 8/8, `shiftheld`
 13/13, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `hdrcontrols` 12/12, `undokeys` 11/11. In the browser:
 a new calendar, a title typed, Undo: the title is back to empty and the console is clean. ⚠️ No full gate was run.
-The `lastedited` leg has no case of its own for this (it never watches the console); `buildaround`'s K0 is what holds it.
+
+**The leg that holds it** (added the same day, on the owner's *"Yes, add it"*): `lastedited` N2. After New it types a
+title, presses Undo, and Saves As: the title is back, no "value ignored" warning was logged (counted before and after),
+and the saved file still has no `lastEdited` key. `lastedited` 22/22 on the live build (`52407af5…`); 21/22 with N2 red
+(1 warning) on a build with the guard taken out, which is byte for byte the pre-fix merged build (`c0bb3da5…`). Until
+N2, only `buildaround`'s K0 caught this, and only because that leg happens to undo back to its fixture.
 
 ### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
 

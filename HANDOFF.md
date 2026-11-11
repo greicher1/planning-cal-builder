@@ -14,8 +14,11 @@
 - **How it was found.** The Build Around push's re-check on the merged build: `buildaround` K0 (0 console errors) went
   35/36. That leg undoes back to its fixture, which is built with no stamp. It had never run on a build holding Date
   Last Edited. ⚠️ **Lesson: a leg's "0 console errors" case is a real check on OTHER features, so a red one after a
-  merge is not noise.** The `lastedited` leg does not watch the console; a case there (new calendar, one edit, Undo,
-  no warning) would hold this at its source. Not added: that leg belongs to the Date Last Edited work.
+  merge is not noise.**
+- **The leg that holds it at its source: `lastedited` N2** (added 10 Nov on the owner's *"Yes, add it"*; local, not
+  pushed). New, a typed title, Undo, Save As: the title is back, no "value ignored" warning (counted before and after,
+  so an earlier warning in the leg cannot pass or fail it), no `lastEdited` key in the file. 22/22 on the live build;
+  21/22 with N2 red on a build with the guard taken out (`c0bb3da5…`, byte for byte the pre-fix merged build).
 - **Verified** on `dist/index.html` sha256 `52407af5…`: check 42/42 and 11 legs green (README has the list); in the
   browser a new calendar, a typed title and Undo leave the console clean. No full gate.
 
