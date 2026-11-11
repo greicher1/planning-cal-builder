@@ -188,7 +188,7 @@ H2.forEach(h=>{
     rev += '<div class="grp"><span class="sw" style="background:'+G2[h.g].fill+'"></span>'+G2[h.g].label
       + (note2(h.g) ? '<span class="why-en">'+note2(h.g)+'</span>' : '') + '</div>'; }
   rev += '<div class="hv-row"><span class="hv-label"><span class="hv-name">'+h.n+'</span><span class="hv-date">'+h.d
-    + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+(h.worked?'<span class="wtag" title="Marked Work this day">Shot anyway</span>':'')+'</span></span>'
+    + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+(h.worked?'<span class="wtag" title="Marked Work this day">Marked Working Day</span>':'')+'</span></span>'
     + enCell(h)+'<span class="hv-cell">'+box(false)+'</span><span class="hv-cell m">'+box()+'</span></div>';
 });
 V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus.',

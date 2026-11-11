@@ -14350,7 +14350,7 @@ export function initLegacyApp() {
         // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
         // overrides the holiday. The box stays, since removing the mark makes it cost a day again.
         +     ((!costsDay[h.iso] && on && (dayOverrides[h.iso] === 'on' || dayOverrides[h.iso] === 'onhalf') && prodSeg && h.date >= prodSeg.start && h.date < prodSeg.end)
-                 ? ' <span class="hv-tag" title="Marked Work this day in the month view, so Production shoots it. Remove the mark and it costs a shoot day.">Shot anyway</span>' : '')
+                 ? ' <span class="hv-tag" title="Marked Work this day in the month view, so Production shoots it. Remove the mark and it costs a shoot day.">Marked Working Day</span>' : '')
         +   '</span>'
         + '</span>'
         + enCell
