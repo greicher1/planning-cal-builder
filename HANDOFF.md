@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 11 Nov 2026: THE HEADER HOLDS STILL BETWEEN THE VIEWS; RESET BAR ORDER. On `main`'s working tree, uncommitted at the time of writing (see git). Tracker card `header-fixed-slots`.
+### ✅ 11 Nov 2026: THE HEADER HOLDS STILL BETWEEN THE VIEWS; RESET BAR ORDER. ✅ **LIVE at `5043477`** (commit `f013ada`, merged with origin/main's toolbar-wells work, pushed `9bf7a98..5043477` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `017fbf4b…`). Legs re-run on the merged build: hdrcontrols 12/12, mvorder 31/31, mvordersp 11/11, noresetall 5/5, calzoom 1/1, colsreset 8/8 (one load-timeout flake, then green twice), check 42/42. Tracker card `header-fixed-slots`.
 - **Ask (owner, a screenshot of the header's right end):** *"I also want this top menu not to shift around when you toggle
   between waterfall/month view. Lets make the export pdf button land in the same place on both, put the reset notes
   button in the same place, and put a "Reset Phase Order" where reset collumns is. Make all corresponding buttons the
