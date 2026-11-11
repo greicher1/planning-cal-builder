@@ -967,7 +967,7 @@ export function HolidaysCard() {
         <div className="hv-head">
           <span className="hv-head-name">Holiday</span>
           <span>Enable</span>
-          <span>W’fall<br />note</span>
+          <span className="hv-head-sheet">Waterfall<br />note</span>
           <span className="hv-head-month">Month<br />note</span>
           {/* Lines up with each row's × slot (renderHolidayVisList); legacy.css shows it only
               while a custom holiday is listed. */}

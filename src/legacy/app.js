@@ -14295,7 +14295,8 @@ export function initLegacyApp() {
     const costsDay = {};
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
-    listEl.innerHTML = shown.map(h=>{
+    // `also`: the other phases the day falls in, named on the date line under its group (below).
+    const rowHtml = (h, also)=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
       // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
@@ -14342,15 +14343,59 @@ export function initLegacyApp() {
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
+        +     (also && also.length ? ' <span class="hv-also">· also '+also.map(escHtml).join(', ')+'</span>' : '')
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         +   '</span>'
         + '</span>'
         + enCell
-        + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
+        + '<span class="hv-cell hv-cell-sheet'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
-    }).join('');
+    };
+    // ⭐ GROUPED BY PHASE (owner, 11 Nov 2026, mockup C of mockups/holiday-phase-label.html: "make it more clear what
+    // phase each holiday is in"). Each holiday sits under ONE heading:
+    //   - an all-phase hiatus, when the day is in one (named by its band text), since nothing counts there;
+    //   - else the phase it falls in, preferring Production, then a phase counted in Days, then the earliest start,
+    //     so a row with an Enable box sits under the phase that explains the box;
+    //   - else "Outside the phases" (a custom holiday the list keeps anyway).
+    // Any other phase the day falls in is named on its date line ("also Post"). Headings come in the order of their
+    // first holiday, and a heading recurs if its holidays are split by another group's, so the list stays in date
+    // order. Episode prep is left out: its segment starts with Production's, so Production covers it. Headings carry
+    // no id and no input, so nothing here reaches fields.byId; the rows keep every class and data- attribute the
+    // delegated handlers and the legs match on.
+    const segs = ((schedule && schedule.segments) || []).filter(s=> !s.prep && s.start && s.end);
+    const rank = s=> s.key === 'production' ? 2 : (s.unit === 'days' ? 1 : 0);
+    const grpHtml = g=> '<div class="hv-grp"><span class="hv-grp-sw" style="background:'+escHtml(g.color)+'"></span>'
+      + '<span class="hv-grp-name">'+escHtml(g.name)+'</span>'
+      + (g.note ? '<span class="hv-grp-note">'+escHtml(g.note)+'</span>' : '') + '</div>';
+    let lastKey = null, html = '';
+    shown.forEach(h=>{
+      const d = h.date;
+      const inSegs = segs.filter(s=> d >= s.start && d < s.end)
+        .sort((a,b)=> (rank(b) - rank(a)) || (a.start - b.start));
+      const nameOf = s=> String(s.label || phaseLabelFor(s.key));
+      let g, also;
+      const hi = ((schedule && schedule.hiatuses) || []).findIndex(x=> d >= x.start && d < x.end);
+      if(hi >= 0){
+        // Keyed by the hiatus, not the week, so a break of several weeks is one heading; named by its first week's band.
+        const wkKey = isoOf(mondayOf(schedule.hiatuses[hi].start));
+        const name = String(hiatusTextFor(wkKey) || '').split('\n')[0].trim() || 'Hiatus';
+        g = {key: 'hiatus:' + hi, name, color: hiatusColorFor(wkKey), note: /hiatus/i.test(name) ? '' : 'hiatus'};
+        also = inSegs.map(nameOf);
+      } else if(inSegs.length){
+        const s = inSegs[0];
+        g = {key: s.key, name: nameOf(s), color: s.color || '#EDEDED',
+             note: s.key === 'production' ? 'counts shoot days' : (s.unit === 'days' ? 'counts days' : '')};
+        also = inSegs.slice(1).map(nameOf);
+      } else {
+        g = {key: 'outside', name: 'Outside the phases', color: 'transparent', note: ''};
+        also = [];
+      }
+      if(g.key !== lastKey){ html += grpHtml(g); lastKey = g.key; }
+      html += rowHtml(h, also);
+    });
+    listEl.innerHTML = html;
   }
 
   // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
