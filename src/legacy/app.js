@@ -36942,12 +36942,12 @@ export function initLegacyApp() {
       };
       const T = P.bigTag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
       const lw = wOf(label);
-      // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line. ⚠️ A bar whose size is
-      // styled carries M1's `line-height:15px`, which the tag INHERITS as a length (not as 1.5 x its own 9 px), so then its
-      // line box is the bar's 15 px and its baseline sits that much lower (W2; the monthemit leg measured 1 px).
-      // At 11 and 13 px the bar's line-height is a LENGTH too (legacy.css writes 16px / 19px), so the tag inherits it as
-      // it inherits M1's, and its line box is the bar's.
-      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, (F.size || B.line != null) ? mvlBarLine(B, P) : T.size * P.lineHeight).base;
+      // vertical-align:top sets the grey tag's line box at the top of the bar's line, and since frozen edit TC1
+      // (11 Nov 2026, owner: the tag centred on the label) that box is ALWAYS the bar's own line (legacy.css gives
+      // .mv-pill-block the bar's line-height as a length at every bar size, as M1's styled size already did), so the
+      // two texts centre on one line. Until then an unstyled bar's tag had its own 1.5 x 9 px = 13.5 px box and rode
+      // 0.6-1.8 px high.
+      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, mvlBarLine(B, P)).base;
       if(it.lines){
         // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6): its first two lines as the model broke them,
         // and when there are more, the second cut as -webkit-line-clamp cuts it -- the line as laid out, then the

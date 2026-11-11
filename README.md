@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month bar's grey text is centred on its label (11 Nov 2026)
+
+Owner, with a screenshot of a Blocks bar: *"S2- production week 4...etc not centered properly"*, then *"Yes, PDF too"*.
+The grey tag beside a Production bar's label ("Block 1 · Production Week 4 · Ep. 201, 202") was pinned to the top of the
+bar's line with a shorter line of its own, so it sat above the label: 0.6 px at Standard and Large, 1.8 px at Extra
+large. A bar with a month text style size was already right, since it hands the tag its line as a length. Frozen edit
+**TC1** gives every tag the bar's own line height (`.mv-pill-block`, in em of the tag's size so a month shrunk to fit
+scales it; a first version in px grew the shrunk months' bars, caught by monthwriter A3/A4), on screen and in the print
+rollback, and the month PDF writer's `tagBase` now always takes the bar's line. Still `vertical-align:top` with a line no
+taller than the bar's, so no bar, lane or "…" moves. **Verified:** on screen the tag's middle is within 0.4 px of the
+label's at all five bar sizes, bar heights unchanged (17/20/22/23/25); the month sections of gate.sh green (gate 10
+identical, monthwriter A3 to 0.03 px) but gate 13 and the load-flaky monthexport X6; **gate 13 re-cut on the owner's
+yes**, 21 files, every change a grey-tag run 0.75 pt lower and nothing else (baseline README has the table);
+`mvnotesize-mixed` byte-identical.
+
 ### Unreleased — Swap Column shows only where a swap can happen (11 Nov 2026)
 
 Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't

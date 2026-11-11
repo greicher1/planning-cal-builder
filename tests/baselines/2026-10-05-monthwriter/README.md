@@ -48,6 +48,38 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 11 Nov 2026 — TWENTY-ONE CASES: the grey tag is centred on the bar's label (frozen edit TC1)
+
+- **The ruling.** Owner, 11 Nov 2026: a screenshot of a Blocks bar, *"S2- production week 4...etc not centered
+  properly"*, then *"Yes, PDF too"* (picker) once the screen was fixed. `.mv-pill-block` (the grey tag inside
+  Production's pill) hung its own 1.5 × 9 px = 13.5 px line box from the top of the bar's 15 px line, so its letters
+  rode 0.6 px high at Standard and Large and 1.8 px at Extra large. TC1 gives the tag the bar's own line
+  (`calc(15em / 9)` etc., in em so a shrunk month scales it), and the writer's `tagBase` always takes `mvlBarLine`.
+- **The sign-off came first.** The owner saw a 600 dpi before | after close-up of `blocks`' July 2026 bar, and was told
+  the classification below; the answer was *"Yes, cut them"* (picker).
+- **What moved, classified line by line** (every stream inflated through `monthbase.parse`, every other object
+  identical): in each page's content, the ONLY changed lines are grey-tag text runs (`/F500`), each with the same
+  font, size, x and string and its `Tm` y lowered by exactly **0.75 pt** (1 CSS px, as Chrome rounds the line's
+  half-leading). No fill, rule, clip, bar or other text moved. Shrunk months moved the same 0.75 pt at their factor's
+  size (`/F500 3.164` in `month-lanecap`, `5.168` in `month-dense60`); monthwriter A3 holds them to Chrome to 0.03 px.
+
+  | case | tag runs moved |
+  |---|---|
+  | `reference` (and its UTC+14 and 1280 px runs, byte-identical), `blocksoff`, `dayoverrides`, `mvheader`, `mvheaderlegacy`, `dayoverrides-onhalf`, `hiatus-blanklabel`, `monthnotes`, `shootorder`, `notewrap`, `mvnotes`, `mvnotesize-14`, `mvbarsize-large` (at `/F500 8.25`) | 24 |
+  | `blocks`, `month-lanecap`, `month-dense60`, `carry-rich` | 23 |
+  | `stintswap-reshape` | 19 |
+  | `halfdays` | 17 |
+  | `monthscale` | 16 |
+  | `colswap-simpost-refuse` | 7 |
+
+- **Not moved, byte-identical:** `mvnotesize-mixed`. Its bars are 13 px, whose line-height was already a length the tag
+  inherited, which is the case TC1 makes universal.
+- **Cut from** the working tree on `main` at `6434d4f` plus TC1, build sha256 `4d21191a3c8e6bd0…` (2,080,815 bytes),
+  Google Chrome **157.0.8103.39**, port 8393. The month sections of gate.sh (gate 10, mvnotes' written PDF, monthemit,
+  bar size, note size, mvtextstyle, monthwriter, monthexport, gate 13) ran green but for gate 13 itself and monthexport
+  X6, which failed on a different calendar each run at load average 20-39 and passed alone (the same calendar passed
+  and failed with byte-identical PDFs).
+
 ## ✅ NEW CASES 2 Nov 2026 — `mvnotesize-14` and `mvnotesize-mixed` (MONTH-NOTE-SIZE-PLAN.md step 4); every other case untouched
 
 - **Signed off** on `monthbase.py sheets` contact sheets of all 17 months of each: the `mvnotes` baseline (the same

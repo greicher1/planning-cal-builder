@@ -2291,6 +2291,22 @@
   body.mv-bar-13 #table-wrap .mv-hiatus-bar{ font-size:13px; line-height:19px; border-radius:12px; height:23px; }
   body.mv-bar-13 #table-wrap .mv-pill.mv-pill-2l{ height:42px; }
   body.mv-bar-13 #table-wrap .mv-pill-block{ font-size:12px; }
+  /* ---- FROZEN EDIT TC1 (owner, 11 Nov 2026: a screenshot, "S2 - Production Week 4...etc not centered properly", then
+     "Yes, PDF too"): the grey tag is centred on the bar's label, on screen, in the print rollback and in the written PDF.
+     vertical-align:top hung the tag's OWN line box (1.5 x its smaller font) from the top of the bar's line, so its
+     letters rode high: measured 0.6 px at Standard and Large, 1.8 px at Extra large. A bar with a month text style size
+     was already right, because M1 writes the bar's line-height as a LENGTH and the tag inherits it. This gives every tag
+     that length (mvBarLinePx: 15 / 16 / 18 / 19 / 21 px), and in Inter the cap middle IS the centre of the line, so both
+     texts centre on one line. Unscoped (body.mv-bar-* holds #table-wrap and #print-root alike); the writer follows in
+     mvlPaintBar's tagBase, which now always takes the bar's line.
+     ⛔ LAYOUT-NEUTRAL: still vertical-align:top, and a line box no taller than the bar's, so no bar, lane or "…" moves.
+     ⚠️ Written in em of the tag's OWN size (bar line / tag px), never px: a month shrunk to fit scales every font, and
+     a px line stayed full size and grew the shrunk bars (monthwriter A3/A4, measured 3.5-8 px). */
+  .mv-pill-block{ line-height:calc(15em / 9); }
+  body.mv-bar-11 .mv-pill-block{ line-height:calc(16em / 10); }
+  body.mv-bar-large .mv-pill-block{ line-height:calc(18em / 11); }
+  body.mv-bar-13 .mv-pill-block{ line-height:calc(19em / 12); }
+  body.mv-bar-xl .mv-pill-block{ line-height:calc(21em / 12); }
   /* ---- FROZEN EDIT E1 (owner sign-off by picker, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md R0: "Yes, this setting only"):
      NOTE SIZE, on screen. A note whose effective size is above 10 px (the calendar's Note size, or the note's own month
      text style: R4) carries its size, its whole-px line and its one- and two-line heights in its OWN inline style

@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. On `main`'s working tree, NOT committed, NOT pushed. Tracker card `month-pill-tag-centred`.
+- **Ask (owner):** a screenshot of "Block 1  S2 - Production Week 4 · Ep. 201, 202", *"not centered properly"*; after the
+  screen fix, *"Yes, PDF too"*; after the classification and a 600 dpi before/after crop, *"Yes, cut them"* (gate 13).
+- **Cause:** `.mv-pill-block` is `vertical-align:top` and inherited the unitless 1.5, so its line box was 1.5 × its OWN
+  smaller size (13.5 px at Standard) hung from the top of the bar's 15 px line: the letters rode 0.6 px high (Standard,
+  Large), 1.8 px (Extra large). At 11 / 13 px and on a bar with a month text style size the bar's line-height is a
+  LENGTH, which the tag inherits, so those were already right (`mvnotesize-mixed`, 13 px bars, is byte-identical).
+- **Fix:** `legacy.css`, after the 11/13 px bar rules: `.mv-pill-block{ line-height:calc(15em / 9) }` and per
+  `body.mv-bar-*` (16/10, 18/11, 19/12, 21/12 em), UNSCOPED so `#table-wrap` and `#print-root` agree; `app.js`
+  `mvlPaintBar` `tagBase` always `mvlBarLine(B, P)`. In Inter the cap middle is the line's centre, so equal line boxes
+  centre the two texts.
+  ⛔ **em, never px.** The first version was px; monthwriter A3/A4 (Chrome's layout of a SHRUNK month restyles every font
+  at the factor) went red, the bars growing 3.5–8 px, because a px line does not shrink.
+- **Proof:** on screen tag-vs-label middle within 0.4 px at all five sizes, bar heights 17/20/22/23/25 unchanged. A
+  partial gate assembled from gate.sh's month sections (gate 10, mvnotes written PDF, monthemit, bar size, note size,
+  mvtextstyle, monthwriter, monthexport, gate 13), port 8393, load 20–39: everything green but gate 13 (re-cut, see
+  `tests/baselines/2026-10-05-monthwriter/README.md` §RE-CUT 11 Nov) and monthexport X6, which failed on a different
+  calendar each run and passed alone (same calendar passed and failed, byte-identical PDFs). `npm run check` green.
+- **Not done:** no full gate (the screen legs were not run; the change cannot move a box, and A3 holds the writer to
+  Chrome). The assembled script was a scratch file and is deleted.
+
 ### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN. ✅ **LIVE at `4d15eaa`** (pushed `52a112b..4d15eaa`; deploy run `43090025014` succeeded; the live `index.html` is the tested build byte for byte, sha256 `56555868…`, the new Help sentence present). No version cut. Branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` merged in twice (`27b0b5e`, then `52a112b`: the hover-hiatus work, conflicts in gate.sh, README and HANDOFF only, both sides kept) and local `main`'s unpushed HANDOFF note `6e4d0f5` (the Date Last Edited heading's "LIVE at `5357584`"), then `main` fast-forwarded onto it and pushed on the owner's pickers (*"Merge into main"*, *"Push and deploy"*, 11 Nov 2026). Tracker card `swap-column-only-where-it-swaps`.
 - **The ask (owner, a screenshot):** the hover button "Swap Column" on Production with Simultaneous Post beside it and
   only the Notes column beyond (the purple cells right of Sim Post were automatic notes) — *"this swap column button
