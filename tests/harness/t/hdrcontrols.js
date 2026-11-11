@@ -39,7 +39,7 @@
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
 //       the month strip is retired the same way (hidden); Auto from the toolbar leaves nothing above
 //       the month header; back in the Waterfall the label is the waterfall's again
-//   N0  the app header ends with a divider and "Reset Notes" (Waterfall) / "Reset Month Notes"
+//   N0  the app header ends with a divider and "Reset Waterfall Notes" ("Reset Notes" until 11 Nov 2026) (Waterfall) / "Reset Month Notes"
 //       (Month), and each tooltip says what it clears. Since 6 Nov 2026 (owner: Reset Columns, "Add it") the
 //       Waterfall's ends divider, Reset Notes, Reset Columns; since 11 Nov 2026 the Month view ends divider, Reset Month
 //       Notes, Reset Bar Order, and Export PDF and both resets occupy the same boxes in both views (fixed slots)
@@ -241,7 +241,7 @@ window.addEventListener('load', function () { (async function () {
     n0.monthTitle = resetBtn() ? resetBtn().getAttribute('title') : null;
     add('N0', 'the app header ends with a divider, the notes reset and Reset Columns (Waterfall) / Reset Bar Order (Month), labelled for the view, each tooltip saying what it clears, Export PDF and both resets in the same place in both views',
       JSON.stringify(n0.sheetTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-cols-reset-btn'])
-        && n0.sheetLabel === 'Reset Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
+        && n0.sheetLabel === 'Reset Waterfall Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
         && JSON.stringify(n0.monthTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-order-reset-btn'])
         && JSON.stringify(n0.sheetSlots) === JSON.stringify(n0.monthSlots)
         && n0.monthLabel === 'Reset Month Notes' && /Waterfall notes stay/.test(n0.monthTitle || ''),

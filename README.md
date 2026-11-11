@@ -29,6 +29,13 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Reset Notes" reads "Reset Waterfall Notes" (11 Nov 2026)
+
+Owner: *"make it say "Reset Waterfall Notes""*. The Waterfall's notes reset now names its view, as the Month view's
+"Reset Month Notes" does; what it clears is unchanged. The button keeps one width in both views (its hidden twin label
+updated), and the header still fits at 1100–1321 px with no overflow. Verified: `hdrcontrols` 12/12, `noresetall`,
+`calzoom`, `npm run check` 42/42.
+
 ### Unreleased — The header holds still between the views; Reset Bar Order (11 Nov 2026)
 
 Owner: *"I also want this top menu not to shift around when you toggle between waterfall/month view"*. Export PDF, the

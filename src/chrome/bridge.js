@@ -94,7 +94,7 @@ export const chrome = {
   // as a string (a textContent write would destroy a Mantine Button's inner spans).
   headerModeBtn: noop,
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
-  // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
+  // fallback that put it where Reset All was): "Reset Waterfall Notes" / "Reset Month Notes".
   notesResetBtn: noop,
   // { view: 'sheet'|'month', any } -- the app header's Reset Columns (owner, 6 Nov 2026): Waterfall view only,
   // greyed while `any` is false (every column already on the automatic layout).
