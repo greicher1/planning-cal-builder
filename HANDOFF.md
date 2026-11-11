@@ -4,6 +4,37 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
+- **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
+  gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;
+  `releases/v1.13.0.html` cmp-identical to the build; `tests/fixtures/v1.13.0-saved.sptcal` a real Save from it,
+  byte-identical to v1.12.1's, so a calendar with no linked note saves exactly as before).
+- **Full gate on the cut (`618d849e…`, 13:58–15:01, alone): 4,489 PASS / 17 FAIL, every baseline identical** (waterfall
+  PDF, Excel parts, restore, `fields.byId` 77, gate 10, all 24 of gate 13 byte for byte). The 17: twelve from six legs
+  red on `main` since Date Last Edited (below), and five timing flakes that pass alone (`launchopen` 16/16,
+  `monthexport` (blocks) 9/9, `holidayrename` M2) or are flaky on `main` too (`pilllabel` (blocksoff) "months 1 vs 18",
+  1 pass in 3 runs; `offweek` (offweek) "the loaded file's name" Load timeouts; an A/B on `origin/main` failed both the
+  same way).
+- ⚠️ **The first gate on the cut (11:45–12:36) was spoiled** by another session's two full gates (11:52–12:40) and is
+  not evidence of anything. An A/B of its 20 failing legs on `origin/main` vs the branch failed identically on both.
+- ✅ **Six legs red on `main` since Date Last Edited (`1507204`, gated then only by a targeted run), fixed here** (the
+  owner: *"Do this task here"*). A diagnostic copy of `phasearrows` / `mvdragcarry` showed `lastEdited` as the ONLY
+  difference, with Production's four marks back in another order (7/11, 7/7, 7/3, 7/6 → 7/7, 7/6, 7/11, 7/3).
+  - **A real bug, fixed in the app** (owner's picker *"Fix it in v1.13.0"*): the Date Last Edited check hashed the
+    calendar as written, so a Production ▼▲ or a drag put back (`endShootDayMove` rebuilds `dayOverrides` natural days
+    first) read as an edit, stamped today, and every undo back took the new stamp. `lastEditedKey` now hashes
+    `lastEditedCanon(snap)`: every object's keys sorted, arrays in order. Session-only; nothing saved changes.
+  - **Re-expected (the stamp is by design):** `wfnotecolors` F1, `holidayrename` F1, `autonoterename` F1,
+    `autonoteview` V9, `hidewf` F3 leave `lastEdited` out of their key / byte checks; `loadcarry` gives each fixture one
+    fixed `mtime` (the fake picker minted "a minute ago" at every open, so one file opened twice got two stamps).
+  - Green on the fixed build (`b046f185…`): `phasearrows` 26/26 and `mvdragcarry` 15/15 UNCHANGED, the six, `lastedited`
+    22, `buildaround` 36, `noteviews` 15, `undokeys` 11, `scenarios` 23, `scenariofacts` 12, `phasekeys` 18, `phasemonth`
+    21. **Partial gate** (base + workbook + restore + gate 10, the header sections `wrapdate` through `hdreditor`, and
+    `monthexport` + gate 13): **497 PASS / 0 FAIL**, every baseline identical.
+- **Next:** merge `main` once more (it gained lane-fill, date formats MM/DD + DD/MM, the arrows stepping over a hiatus),
+  re-run the partial gate and the new legs, then ask the owner about the push. After an approved push: tag `v1.13.0`,
+  fast-forward local `main`, check the live `version.json` reads 1.13.0.
+
 ### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. 🔨 step 5 (the month view) BUILT 10 Nov 2026 (R10(a) ruled, `sheetHidden`), with the owner's popup asks (Delete Note / Hide at the top right, the Day and Stays with boxes aligned); leg `phasemonth` 21/21; full gate 4,226 / 16 with every baseline identical, the 16 timeouts under heavy machine load, every one green alone on 11 Nov (bullet below); the owner tried a test copy (*"looks good"*); COMMITTED on the branch (owner's picker *"Commit now"*, 11 Nov 2026; `git log phase-notes` has the hash). Steps 1–5 ship together; step 6 (picking a shoot day) is not needed to ship ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;

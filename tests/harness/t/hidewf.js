@@ -175,7 +175,8 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
   // A file as the app writes it, with the keys a Load changes for its own reasons (the tab, the view) taken out.
-  function comparable(text) { var o = JSON.parse(text); delete o.sidebarTab; delete o.viewMode; return JSON.stringify(o, null, 1); }
+  // ⚠️ lastEdited too (11 Nov 2026): Date Last Edited (1507204) stamps a calendar once it has been edited, as noteviews allows.
+  function comparable(text) { var o = JSON.parse(text); delete o.sidebarTab; delete o.viewMode; delete o.lastEdited; return JSON.stringify(o, null, 1); }
 
   try {
     try { localStorage.clear(); } catch (e) {}

@@ -31,6 +31,27 @@ way a user would notice or a future session would need to return to. See
 
 ## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
+### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)
+
+Found while gating this release: six legs were red on `main` since Date Last Edited went live (`1507204`, gated then only
+by a targeted run). An A/B on `origin/main` and this build gave the same failures on both, so none came from the release.
+
+- **A real bug, fixed (owner's picker, *"Fix it in v1.13.0"*).** Nudging Production ▼ then ▲, or dragging it and putting
+  it back, stamped the calendar "edited today" with nothing changed, and every undo back to that state then took the new
+  stamp. Production's marked days come back from a move in a different order (natural days first), and the check hashed
+  the calendar as written, so the same marks in a new order read as an edit. It now hashes the calendar with every
+  object's keys sorted (`lastEditedCanon`); arrays keep their order, since there the order is the content. Nothing is
+  saved differently: the hash lives only in the session.
+- **Five tests re-expected** for the stamp itself, which is by design: an edited calendar saves `lastEdited`, and a file
+  opened without one takes its file's time. `wfnotecolors` F1, `holidayrename` F1, `autonoterename` F1, `autonoteview`
+  V9 and `hidewf` F3 leave `lastEdited` out of their "nothing else new" / byte-for-byte checks, as `noteviews` already
+  did. `loadcarry` C2 gives each test file one fixed last-modified time: the fake picker had minted "a minute ago" at
+  every open, so one calendar opened twice got two stamps.
+- **Proof:** `phasearrows` 26/26 and `mvdragcarry` 15/15 with their tests unchanged (red before the fix: a diagnostic
+  copy showed `lastEdited` as the only difference, and Production's four marks back in another order); the five
+  re-expected legs and `loadcarry` green; `lastedited` 22/22, `buildaround` 36/36, `noteviews` 15/15, `undokeys` 11/11,
+  `scenarios` 23/23, `scenariofacts` 12/12, `phasekeys` 18/18, `phasemonth` 21/21; `npm run check` 42/42.
+
 ### Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
 
 Owner's report: on a new file, Build Around with every phase ticked put Writer's Rm two weeks into Pre-Prep, but only

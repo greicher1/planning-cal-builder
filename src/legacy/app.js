@@ -30916,7 +30916,23 @@ export function initLegacyApp() {
     // a form rather than the calendar.
     const byId = snap.fields && snap.fields.byId;
     if(byId){ delete byId['custom-hol-name']; delete byId['custom-hol-date']; }
-    return lastEditedHashOf(JSON.stringify(snap));
+    return lastEditedHashOf(JSON.stringify(lastEditedCanon(snap)));
+  }
+  // ⭐ KEY ORDER IS NOT CONTENT (11 Nov 2026, owner's picker "Fix it in v1.13.0"). The calendar's stores are maps, and
+  // a mover can give one back with the same entries in another order: Production's ▼ then ▲, or a drag put back,
+  // rebuilds dayOverrides natural days first (endShootDayMove), so 7/11, 7/7, 7/3, 7/6 came back as 7/7, 7/6, 7/11, 7/3.
+  // Hashed as written, that read as an edit and stamped the calendar today with nothing changed, and every undo back to
+  // that content then took the new stamp (found by phasearrows N1 / M1 / F1 and mvdragcarry O2 / K1 / P1 / F1, red on
+  // main since 1507204). So the content is hashed with every object's keys sorted. Arrays keep their order: in an array
+  // the order is the content (episodes, hiatus rows, seasons).
+  function lastEditedCanon(v){
+    if(Array.isArray(v)) return v.map(lastEditedCanon);
+    if(v && typeof v === 'object'){
+      const o = {};
+      Object.keys(v).sort().forEach(k=>{ o[k] = lastEditedCanon(v[k]); });
+      return o;
+    }
+    return v;
   }
   function lastEditedRemember(key, stamp){
     if(!lastEditedSeen) lastEditedSeen = new Map();

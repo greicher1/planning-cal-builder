@@ -26,7 +26,12 @@ window.addEventListener('load', function () { (async function () {
   function gridHas(re){ return re.test((document.getElementById('table-wrap') || {}).textContent || ''); }
   async function load(file, title){
     progress('load ' + file);
-    var p = T.openViaFakePicker('/tests/fixtures/' + file, file, {writes: W});
+    // ⚠️ ONE FILE, ONE TIME (11 Nov 2026). A file with no Date Last Edited stamp takes its last-modified time (1507204), and
+    // the fake picker's default is "a minute ago" at each open, so B opened twice got two stamps and C2 read them as a
+    // carry. A real file keeps its time, so each fixture gets its own fixed one: B fresh and B after A then match, and A's
+    // stamp reaching B would still fail C2.
+    var mtime = Date.UTC(2026, 9, 1, 15) + 86400000 * (file.length % 7);
+    var p = T.openViaFakePicker('/tests/fixtures/' + file, file, {writes: W, mtime: mtime});
     // The unsaved-work guard ("Load another calendar?") sits between the menu click and the
     // picker whenever the previous step left the calendar dirty. Answer it the way a user would.
     for(var g = 0; g < 40; g++){ await T.sleep(100); if(/Load another calendar/.test(T.modalText())){ T.clickModalButton('Load'); break; } }

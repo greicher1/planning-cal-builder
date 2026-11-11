@@ -357,8 +357,11 @@ window.addEventListener('load', function () { (async function () {
       await load(SL);
       await T.openSettings('prefs');
       var t = ticks('writersRoomOpens'), S = await save();
-      kase('V9', 'the untouched calendar loaded after it opens with no split (restored unconditionally, the M-5 trap) and saves byte for byte as it did',
-           same(t, [true, true]) && S === S0, { ticks: t, identical: S === S0 });
+      // ⚠️ Date Last Edited (1507204, 9 Nov 2026) writes a top-level lastEdited once a calendar has been edited (or opened from a file with
+      // no stamp, which takes the file's time), so it is left out here, as noteviews does (11 Nov 2026).
+      function noStamp(text) { var o = JSON.parse(text); delete o.lastEdited; return JSON.stringify(o); }
+      kase('V9', 'the untouched calendar loaded after it opens with no split (restored unconditionally, the M-5 trap) and saves byte for byte as it did (Date Last Edited aside)',
+           same(t, [true, true]) && noStamp(S) === noStamp(S0), { ticks: t, identical: noStamp(S) === noStamp(S0) });
     });
 
     // ===== T1-T5: a waterfall note typed over the week (frozen edits N1 and N2) =======================================
