@@ -258,7 +258,7 @@ frozen CSS change was the `.mv-tools` rule, approved for it, and gate 10 stayed 
 - They are still emitted, unchanged, and are hidden on screen by `visibility:hidden; pointer-events:none`. Their boxes
   still size the month band, so the grid does not move.
 - Their twin is the phase map above the month view (`MonthMap.jsx`, a line of `.view-toggle-row`), and since 28 Oct
-  2026 the month stepper, Today and ‹ October 2026 › at the right end of its own line (`MonthStepper`, the
+  2026 the month stepper, ‹ October 2026 ›, in the toolbar's slot since 11 Nov 2026 (no Today; `MonthStepper`, the
   same file; MONTH-RAIL-PLAN.md §18), which replaced the map's own small arrows. Their buttons carry `data-mvgo` /
   `data-mvstep`, and the engine's `goToMonth()` applies the frozen handler's own range rule. A scripted `.click()` on
   the originals still pages the month, and the map and the stepper follow it.
