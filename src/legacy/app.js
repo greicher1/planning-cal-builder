@@ -29647,7 +29647,11 @@ export function initLegacyApp() {
     // A DEEP copy: lastEditedKey() deletes from fields.byId, and `snap` is about to be applied.
     try { key = lastEditedKey(JSON.parse(JSON.stringify(snap))); } catch(e){ key = null; }
     const stamp = (key && lastEditedSeen && lastEditedSeen.has(key)) ? lastEditedSeen.get(key) : new Date().toISOString();
-    snap.lastEdited = stamp;
+    // A content first seen with NO stamp (a new calendar before its first change) is remembered with null. The key is
+    // left off then: absent already means "never edited" (applyStateSnapshot reads both the same). ⛔ A null written
+    // here was counted by sanitizeSnapshot() as a value the app does not write, with its console warning on every
+    // undo back to a never-edited calendar (found 10 Nov 2026 by buildaround's K0 on the merged build).
+    if(stamp) snap.lastEdited = stamp; else delete snap.lastEdited;
     return stamp;
   }
 
