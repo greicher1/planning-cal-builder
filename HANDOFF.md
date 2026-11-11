@@ -52,6 +52,12 @@
   `npm run check` 41/41. Fence (gate 7, by hand) against `origin/main`'s build: 511 values, the only difference
   `/waterfall/scroll` height 789 → 793 px (the grid fit giving back the 4 px the slimmer line freed at 1600 × 1200).
   Seen by hand in the pane at 1,720 and 1,440 px.
+- **Merged with `origin/main`** at `d431541`: it moved to `5357584` (Date Last Edited, pushed by its own session) while
+  this was being finished, so the first push was refused by the fast-forward check before sending anything. HANDOFF and
+  README conflicted only on both top entries (both kept, this one first). On the merged build: `npm run check` 41/41,
+  `stylebarplace` 11/11, `lastedited` 21/21, `hdrcontrols` 12/12, `sharecopy2` pass, `monthmap` (mvnotes) 20/20,
+  `textstyle` 51/51, `calzoom` 26/26 (`partgate-stylebar.zsh merged`). Push approved by the owner's picker ("Push to
+  the live site").
   - ⚠️ Flakes seen, not this change: `mvnotesize` (mvnotes) N4 in the first batch, 12/12 in the second; `textstyle`
     threw in `load()` ("the loaded calendar", the Load race) in the second batch, 51/51 alone; `sharecopy2` produced
     no JSON in the second batch, pass alone at a 180 s budget.

@@ -23,6 +23,16 @@ else:
   print(('  PASS  ' if a.get('pass') is True else '  FAIL  ')+l+': '+('pass' if a.get('pass') is True else json.dumps(a)[:300]))
 PY
 }
+if [[ "$1" == merged ]]; then
+  run stylebarplace fill-intent 300
+  run lastedited lastedited 400
+  run hdrcontrols carry-rich 170
+  run sharecopy2 - 180
+  run monthmap mvnotes 180
+  run textstyle carry-rich 400
+  run calzoom mvnotes 300
+  echo DONE >> $LOG; exit 0
+fi
 if [[ "$1" == rerun ]]; then
   run stylebarplace fill-intent 300
   run hdrcontrols carry-rich 170
