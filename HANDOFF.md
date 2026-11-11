@@ -4,6 +4,9 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
+- Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
+- ⚠️ **Left to do:** read the partial gate's result (scratchpad `partgate-ripple.log`: hiatusdrag, hiatusripple, settingswin, hiatussidebar, phiatusnum, snapbox, badyear); rebase this branch onto `compare-hiatus-start` (both add README/HANDOFF top entries); rebuild, `npm run check`, re-run `comparehiatus` + `hiatusripple` on the combined build; then the owner's commit/push picker.
 ### ✅ 10 Nov 2026: COMPARE DATES A PHASE FROM THE FIRST WEEK IT WORKS — `{<phase>.open}` SKIPS A HIATUS OVER THE START. Branch `compare-hiatus-start` (worktree `.claude/worktrees/compare-hiatus-start`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Targeted partial gate green; not pushed. Tracker card `compare-hiatus-start`.
 - **Asked** (owner, with screenshots): Compare read Post "12/20/27 – 8/11/28" vs "1/3/28 – 8/11/28", "Start pushed 2 wks,
   end same", on two calendars whose grids were identical. *"There may be a bug in the compare button feature where it

@@ -29,6 +29,13 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+
+Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
+rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
+switch is in Settings › Preferences › Hiatus. The result line under an edited hiatus stays; the month drag's question,
+the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
+rewritten for one switch; browser check with the switch on and off; `npm run check` 42/42.
 ### Unreleased — Compare dates a phase from the first week it works (10 Nov 2026)
 
 The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and

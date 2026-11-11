@@ -585,6 +585,11 @@ records a property of the hiatus that only matters later, when a shift tool runs
 >   **no id**: they sit outside `.prefs-card`, and an id there would bake the preference into every saved calendar. Only
 >   the Settings copy has an id (`#pref-hiatus-ripple`), safe inside its `.prefs-card`. A future preference shown where it
 >   acts follows the same shape.
+>   ⚠️ **WITHDRAWN 10 Nov 2026 for this switch** (owner, *"Settings only"*, after asking whether anyone would want some
+>   hiatuses to ripple and some not, and that one global setting "would also remove clutter"): the two sidebar copies are
+>   gone, and Settings › Preferences › Hiatus holds the only switch. The shape above still stands for a future preference
+>   the owner wants shown where it acts; the clutter cost is now on record. The result line under an edited hiatus stays,
+>   so a ripple is still seen where it happens.
 
 **The inline-style duplication ends.** Of the seven repeated field recipes, six need no replacement
 at all — the component supplies the styling — and only `#show-title` needs one.
