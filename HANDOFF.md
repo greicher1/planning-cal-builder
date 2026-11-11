@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
+### ✅ 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. ✅ **LIVE at `57c9e55`** (owner's picker "Push to the live site"; pushed `5357584..57c9e55`, a fast-forward of the branch after merging `origin/main`; deploy run `42928422227` green; the live `index.html` is the merged build byte for byte, sha256 `8cc0d12b…`). Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
 - **Asks (owner, four passes, each tried in the browser):** *"can we move the styling bar to this blank space between
   "Month" and the left shift button. It should only be the buttons in the 2nd image, not the surrounding box, text,
   etc"*; then *"put it evenly between month and the left shift button. Also make the buttons tall enough to match the
