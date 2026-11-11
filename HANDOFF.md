@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: WITH FILL GAPS ON, PREP FILLS THE SIM POST LANE; OFF KEEPS IT (frozen edit LR9). Branch `lane-fill` (worktree `.claude/worktrees/lane-fill`, from `origin/main` at `52a112b`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `lane-fill-8991`. Committed locally, NOT pushed. Tracker card `prep-fills-sim-lane`.
+- **The report.** Owner, two screenshots of a stamped calendar: Prod Prep one wide beside Writer's Rm with Fill Gaps ON,
+  two wide with it OFF. Cause: rule 15's lane (`laneReserved`, LR4 (a)) keeps a phase SHARING its row out of the Sim
+  Post column until the shoot ends; Fill Gaps off's `layoutEvenPlan` only asked whether the column was empty on the
+  run's rows, so it filled it. Owner's picker *"Prep fills the lane"*, then *"prep should fill the lane only when fill
+  gaps is turned on"*.
+- **As built.** LR9: `laneReserved` returns false unless `fillSpaceOff`, so with the switch on rule 15 is gone and rule 13
+  fills the lane column like any other. `layoutEvenPlan` (not frozen) gained `laneHeld`: the lane slot (the slot holding
+  `LAYOUT_SIM_KEY` rows) is not free for a run that shares any of its rows with another phase while a marker row lies at or
+  after the run's first row. A run alone still fills it (rule 14). ⚠️ The name LR8 was already taken by the per-phase
+  hiatus edit (`hover-hiatus`, live), so this is LR9.
+- **Measured.** The 15 pictures with reuse on: 98.1% / 31 / 0 → **94.3% / 31 / 62**; every one of the 62 is Pre-Prep or
+  Prod Prep drawn one wide beside Writers (hand-02, -03, -04, -09), now two. Reuse off unchanged (82.3%). That is the
+  ruling, not a regression: LAYOUT-RULES.md rule 15 now says so.
+- **Checks.** New leg `lanefill` (layout-r9, L1-L3 + E0) green, red on the build before; in gate.sh's AFSPEC list after
+  `fillspace`. `npm run check` 42/42. Full gate: queued behind another session's gate; result written here when done.
+
 ### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
   including its per phase hiatus should operate as one single block where the expand box would span the length of the

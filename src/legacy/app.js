@@ -20823,7 +20823,7 @@ export function initLegacyApp() {
     }
     // The lane (owner, 11 Nov 2026: "prep should fill the lane only when fill gaps is turned on"). With the switch off a
     // run that SHARES a row with another phase never takes the Sim Post column while a marker row lies at or after its
-    // first row: rule 15's lane, which Fill Gaps on no longer keeps (LR4 (a) behind `fillSpaceOff`). So Prod Prep beside
+    // first row: rule 15's lane, which Fill Gaps on no longer keeps (LR9). So Prod Prep beside
     // Writers' Rm stays one wide, the same width every week. A run alone still fills it (rule 14).
     const laneSlot = occupancy.findIndex(m => m && [...m.values()].indexOf(LAYOUT_SIM_KEY) >= 0);
     const laneHeld = (n, R) => {
@@ -20888,12 +20888,12 @@ export function initLegacyApp() {
     // Prod Prep is two wide the week before its shoot), and a hole BETWEEN two phases still goes to the left one
     // (R-E). The even share still caps a LEFTWARD extension (hand-08 keeps Post one wide beside a freed column on its
     // left) and every hand-dragged width (applyCellSpanOverrides). Unstamped, every line is what it was.
-    // ⛔ FROZEN EDIT LR8 (owner, 11 Nov 2026, by picker "Prep fills the lane", then "prep should fill the lane only when
+    // ⛔ FROZEN EDIT LR9 (owner, 11 Nov 2026, by picker "Prep fills the lane", then "prep should fill the lane only when
     // fill gaps is turned on"). LR4 (a)'s lane is kept only with Fill Gaps OFF (`fillSpaceOff`), where layoutEvenPlan
     // keeps it too; with it on, a phase sharing its row fills the empty lane column like any other (Prod Prep beside
     // Writers' Rm two wide). Before, on kept the lane and off filled it, the reverse of what the switch says.
     const laneReserved = (n) => {
-      if(!fillSpaceOff) return false;   // LR8
+      if(!fillSpaceOff) return false;   // LR9
       if(!stamped || !occupancy || fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
       let ahead = false; occupancy[fixedSimSlot].forEach((key, r) => { if(r >= localWeek && key === LAYOUT_SIM_KEY) ahead = true; });
       return ahead;

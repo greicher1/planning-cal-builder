@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — With Fill Gaps on, Prep fills the empty Simultaneous Post column (11 Nov 2026)
+
+The owner, with two screenshots: *"why is prod prep not filling when fill gaps is on but is filling when its off?"*,
+then, by picker, *"Prep fills the lane"*, and *"prep should fill the lane only when fill gaps is turned on"*. Since
+6 Nov 2026 (rule 15, frozen edit LR4 (a)) a phase sharing its row with another, such as Prod Prep beside Writer's Rm,
+was kept out of the Simultaneous Post column until the shoot ended. Fill Gaps off's one-width-per-year plan
+(`layoutEvenPlan`) never asked about that column, so it filled it. The switch therefore did the reverse of what it says.
+Now the lane is kept only with Fill Gaps OFF: frozen edit LR9 in `computePhaseRowLayout` turns `laneReserved` off while
+the switch is on, and `layoutEvenPlan` applies the same test to a run that shares a row. A phase alone still fills the
+column either way (rule 14).
+
+Verified: new leg `lanefill` on `layout-r9` (on: Prod Prep two wide all 14 weeks; off: one wide with the lane empty; on
+again: two wide), red on the build before it, in the gate's AFSPEC list. `npm run check` 42/42. The 15 reference
+pictures go from 98.1% to 94.3% with Fill Gaps on (62 width misses, all Pre-Prep / Prod Prep beside Writer's Rm in
+hand-02, -03, -04 and -09, which draw it one wide): the change the owner asked for. Full gate: see HANDOFF.
+
 ### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
 
 The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
