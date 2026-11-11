@@ -80,9 +80,12 @@ window.addEventListener('load', function () { (async function () {
   async function load(text){
     var stem = 'textstyle-load-' + (++loads), name = stem + '.sptcal';
     var p = T.openViaFakePicker('/x.sptcal', name, { text: text, writes: written });
-    for(var i = 0; i < 60; i++){ await T.sleep(100); if(T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
+    // ⚠️ Patient on purpose (10 Nov 2026): this wait threw ("the loaded calendar") in a batch run beside other sessions'
+    // legs. After the unsaved-work question the app's file.text() can sit 7.6 s of VIRTUAL time on real Blob I/O
+    // (measured in noteviews' load(), which has the full note), so a 10 s wait had about 2 s to spare. 60 s bounds a hang.
+    for(var i = 0; i < 150; i++){ await T.sleep(100); if(T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
     await p;
-    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded calendar', 100, 100);
+    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded calendar', 600, 100);
     await T.sleep(800);
   }
   async function view(mode){
@@ -117,6 +120,14 @@ window.addEventListener('load', function () { (async function () {
   try {
     await T.appReady();
     if(!q('#view-sheet-btn').classList.contains('active')) await view('sheet');
+    // ⛔ THE FIXTURE OR NOTHING (10 Nov 2026). Run without HARNESS_STATE=carry-rich (as gate.sh and partgate-stylebar.zsh
+    // never do), there is no Manual header, no CARRY-NOTE and no CARRY-HIATUS: B4 failed and the G block's click() threw
+    // on a null note cell, and that read as the style bar's move into the toolbar for a day. With the fixture this build
+    // was 51/51. So a run without it stops here and says why.
+    var haveFixture = false;
+    try { await T.until(function(){ return !!noteTd() && !!bandTd(); }, 'the carry-rich fixture', 50, 100); haveFixture = true; } catch(e){}
+    if(!check(haveFixture, 'B- the carry-rich fixture is on screen (CARRY-NOTE, CARRY-HIATUS)'))
+      throw new Error('no carry-rich fixture on screen: run this leg as HARNESS_STATE=carry-rich ./run.sh textstyle 400');
     // Sim Post on, so every kind of grid text is on the page.
     var sp = $('simpost-enabled'); if(sp && !sp.checked){ sp.click(); await T.sleep(900); }
     var savedBefore = await save();
