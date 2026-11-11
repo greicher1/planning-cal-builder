@@ -235,6 +235,9 @@ window.addEventListener('load', function () { (async function () {
   function split(t) { return String(t || '').split('\n'); }
   function with_(mut) { var s = JSON.parse(S0text); mut(s); return JSON.stringify(s); }
   function repairWarnings() { return (T.appHealth().errors || []).filter(function (e) { return /were not in a form the app writes/.test(String(e)); }).length; }
+  // ⚠️ lastEdited is left out of the key list (11 Nov 2026), as noteviews does: Date Last Edited (1507204) writes it at the
+  // top level once a calendar has been edited, and S0 is a save of the untouched fixture.
+  function topKeys(o) { return Object.keys(o).filter(function (k) { return k !== 'lastEdited'; }).sort().join(','); }
   var S0, S0text, ids0, keys0;
 
   try {
@@ -245,7 +248,7 @@ window.addEventListener('load', function () { (async function () {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     bodyFocus();
     S0 = await snap(); S0text = JSON.stringify(S0);
-    ids0 = Object.keys(S0.fields.byId).sort().join(','); keys0 = Object.keys(S0).sort().join(',');
+    ids0 = Object.keys(S0.fields.byId).sort().join(','); keys0 = topKeys(S0);
 
     // ===== P: drawing ==================================================================================================
     await step('P1', async function () {
@@ -500,7 +503,7 @@ window.addEventListener('load', function () { (async function () {
       if (!s) throw new Error('E4 did not save');
       kase('F1', 'sheetHidden is saved as true on the note (E4\'s save), with no new snapshot key and no new fields.byId id',
         pn(s)['production@day7'] && pn(s)['production@day7'].sheetHidden === true &&
-        Object.keys(s).sort().join(',') === keys0 && Object.keys(s.fields.byId).sort().join(',') === ids0,
+        topKeys(s) === keys0 && Object.keys(s.fields.byId).sort().join(',') === ids0,
         { note: pn(s)['production@day7'] || null, keys: Object.keys(s).length, ids: Object.keys(s.fields.byId).length });
     });
     await step('F2', async function () {

@@ -154,6 +154,9 @@ window.addEventListener('load', function () { (async function () {
   function pn(s) { return s.phaseNotes || {}; }
   function noteStores(s) { return JSON.stringify([s.phaseNotes || {}, s.userNotes || {}, s.noteColors || {}, s.noteFontSize || {},
                                                    s.textStyles || {}, s.rowHeightsByWeek || {}]); }
+  // ⚠️ lastEdited is left out of the key list (11 Nov 2026), as noteviews does: Date Last Edited (1507204) writes it at the
+  // top level once a calendar has been edited, and S0 is a save of the untouched fixture.
+  function topKeys(o) { return Object.keys(o).filter(function (k) { return k !== 'lastEdited'; }).sort().join(','); }
   function holds(s, text) { return Object.keys(pn(s)).filter(function (k) { return pn(s)[k].text === text; }); }
 
   try {
@@ -165,7 +168,7 @@ window.addEventListener('load', function () { (async function () {
     if (!byId('view-sheet-btn').classList.contains('active')) { byId('view-sheet-btn').click(); await settle(); }
     bodyFocus();
     var S0 = await snap(), S0text = JSON.stringify(S0);
-    var ids0 = Object.keys(S0.fields.byId).sort().join(','), keys0 = Object.keys(S0).sort().join(',');
+    var ids0 = Object.keys(S0.fields.byId).sort().join(','), keys0 = topKeys(S0);
 
     // ===== D: Delete ===================================================================================================
     await step('D1', async function () {
@@ -345,7 +348,7 @@ window.addEventListener('load', function () { (async function () {
         same(o.style, { bold: true, italic: true }) && same(o.visitor, { text: 'Visitor', color: '#FF0000' }) && !o.old && !o.user83, o);
       var S5 = s;
       kase('F1', 'no snapshot key and no fields.byId id added (after a drag that re-links)',
-        Object.keys(S5).sort().join(',') === keys0 && Object.keys(S5.fields.byId).sort().join(',') === ids0,
+        topKeys(S5) === keys0 && Object.keys(S5.fields.byId).sort().join(',') === ids0,
         { keys: Object.keys(S5).length, ids: Object.keys(S5.fields.byId).length });
       await load(S0text);
     });
