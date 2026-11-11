@@ -171,7 +171,8 @@ needs the reverse to unexpand"*; built on *"Yes, build it"* (10 Nov). Three corr
 *"Can the expand button always sit in the very center of the outlined box (top to bottom and left to right)"*; *"ok
 except when these buttons collide"* (the chip on the Swap Column button). Tracker card `blank-space-expand-prompt`.
 
-- **Expand?** Rest the pointer (300 ms) on an empty slot beside a phase cell: the phase directly beside it (between two,
+- **Expand?** Rest the pointer (200 ms; it was 300 until the owner's *"a tiny bit sooner"*, counted from reaching the
+  cell, not from the last move on it) on an empty slot beside a phase cell: the phase directly beside it (between two,
   the LEFT one, rule 12) and the consecutive weeks where the same blank sits beside the same phase on the same side get
   one dashed purple box, a faint outline on the phase's cells, and the chip. The click writes a per-cell width
   (`cellSpans`, the shape an edge drag stores, `{l, r, k}` reaching the far edge of the blank) on **those weeks only**.
@@ -188,6 +189,10 @@ except when these buttons collide"* (the chip on the Swap Column button). Tracke
   box (below the button on a box of two weeks or more), else beside it on the same row, else above or below. Resting on
   the chip never summons or moves the button, and the way from the box to a chip that stepped outside it keeps the
   prompt up (`placeHoverChip`, run again by `drawStintButton`).
+- **Once up, it stays** while the pointer is anywhere on what it outlined (owner, 10 Nov 2026: *"the expand box and
+  button seem to disappear weirdly when you move your cursor after they first pop up"*): any cell of the run, any
+  outline, the chip, the space between outline and chip, read from what is drawn at each move so a scroll changes
+  nothing. v4 keyed it to the one week rested on, so the next week of the same outline redrew it.
 - **Never** on an unstamped calendar, in the Month view, with cells highlighted, or while a drag, resize or swap runs; a
   re-render takes it down. Each click is one undo step. Chrome on its own layer inside `.sheet-grid-wrap`
   (`.grid-hover-layer`), the selection layer's seat: it reads the drawn cells and writes nothing into the grid, absent

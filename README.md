@@ -67,6 +67,10 @@ files that day.
   that set the phase's fill wish instead). Resting on a widened cell outlines the space it took and shows **Pull back
   this week?** or **Pull back?**: the click clears the dragged widths of that run, or turns a fill wish off. One undo
   step each. Never with cells highlighted, in the Month view or on an unstamped calendar.
+- **Steady, and a little sooner** (owner, later that day: *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"*, *"a tiny bit sooner"*). Once up, the outline and chip stay while the
+  pointer is anywhere on them, across every week of the outline; the first live build redrew them on the next week.
+  They appear 200 ms after the pointer reaches a cell (300 ms before, and restarted by every small movement).
 - **Where the chip sits.** The very centre of the outline, both ways (owner: *"always sit in the very center of the
   outlined box"*), except on the Swap Column button (*"ok except when these buttons collide"*): the button keeps its
   place and the chip steps 4 px clear, inside the outline where there is room, else beside the button on the same row.
