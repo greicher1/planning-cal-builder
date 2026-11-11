@@ -10209,7 +10209,10 @@ export function initLegacyApp() {
     if(!wrap) return;
     const GRIP_W = 12, EDGE_W = 10, MIN_BAR_W = 46;
     let grip = null, shownFor = null, drag = null;
-    const effectiveOrder = ()=> mvLaneOrder((currentSchedule && currentSchedule.segments) || []).map(s=> s.key);
+    // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
+    const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
+    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
     function gripEl(){
       if(grip) return grip;
       grip = document.createElement('div');
@@ -10245,7 +10248,7 @@ export function initLegacyApp() {
       if(grip && t === grip) return;
       if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hide(); return; }
       // Resting on an edge grip keeps this one: the grips sit side by side on the same bar.
-      let pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      let pill = t && t.closest && t.closest(BAR_SEL);
       if(!pill && t && t.classList && t.classList.contains('phase-edge-handle')) pill = t._pill || null;
       if(!pill || !wrap.contains(pill)){ hide(); return; }
       if(pill !== shownFor) showFor(pill);
@@ -10259,7 +10262,7 @@ export function initLegacyApp() {
       if(e.button !== 0 || isMacCtrlClick(e) || viewMode !== 'month') return;
       const pill = grip && grip._pill;
       if(!pill || !wrap.contains(pill)) return;
-      const key = pill.getAttribute('data-ph');
+      const key = barKey(pill);
       const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), pill.closest('.mv-week'));
       if(!key || wi < 0) return;
       e.preventDefault();
@@ -10281,8 +10284,8 @@ export function initLegacyApp() {
       if(!week) return null;
       // Each phase in this row: the columns it covers and its topmost bar's box (it may have several pieces).
       const info = new Map();
-      week.querySelectorAll('.mv-pill[data-ph]').forEach(p=>{
-        const k = p.getAttribute('data-ph'), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
+      week.querySelectorAll(BAR_SEL).forEach(p=>{
+        const k = barKey(p), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
         const cur = info.get(k);
         if(!cur){ info.set(k, {cols: new Set(cols), top: r.top, bottom: r.bottom}); return; }
         cols.forEach(c=> cur.cols.add(c));
@@ -12924,7 +12927,10 @@ export function initLegacyApp() {
       // order set happens to BE date order (dragged back), where it could change nothing (ruling T3).
       if(mvPhaseOrder.length){
         const segs = (currentSchedule && currentSchedule.segments) || [];
-        const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
+        // Sim Post counts (SO1): an order that only moved Sim Post off the bottom is not date order.
+        const dateKeys = segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key);
+        if(mvOrderKeys(segs, currentSchedule).indexOf(MV_SIMPOST_KEY) >= 0) dateKeys.push(MV_SIMPOST_KEY);
+        const same = mvOrderKeys(segs, currentSchedule).join('|') === dateKeys.join('|');
         if(!same) items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
           run: resetMvPhaseOrder});
       }
@@ -15430,7 +15436,15 @@ export function initLegacyApp() {
 
       // One rounded pill per phase per contiguous run of covered days. Phases keep their lane
       // order so a phase sits at the same height all month.
-      laneSegs.forEach(s=>{
+      // ⛔ FROZEN EDIT SO1 (owner-approved 11 Nov 2026 by picker, "Approve with that gate": a calendar where Sim Post
+      // has not been moved draws and prints exactly as before, gates 10 and 13 byte-identical). Sim Post's bars are
+      // placed by placeSimPost(), the old block below unchanged in what it places, either right before the phase
+      // mvSimPostSlot() names (the user dragged Sim Post into the order) or, at -1, after every phase where they always
+      // were. On screen only (printingCursor null, as NS1) the bar carries data-sp so the reorder grip can find it; the
+      // print rollback and the month-PDF writer never see the attribute.
+      const spSlot = mvSimPostSlot(laneSegs);
+      laneSegs.forEach((s, si)=>{
+        if(si === spSlot) placeSimPost();
         // ⛔ FROZEN EDIT E4 (owner-approved 23 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §9):
         // where this phase's own bars begin in the row, so the notes dragged UNDER it on a day can be placed right
         // after them (the placeNotes call at the end of this loop), before the phases below it take their lines.
@@ -15545,6 +15559,10 @@ export function initLegacyApp() {
       // returns the Monday of the PREVIOUS week -- the week that ended the day this row starts --
       // so the band was drawn a week late, and the first sim-post week never appeared in the month
       // that actually contains it. The row's working days are Mon-Fri, so look up from its Monday.
+      // ⛔ FROZEN EDIT SO1: this block is placeSimPost(), a hoisted function declaration (it runs from the phase loop
+      // above when Sim Post has a place in the order), and runs here only when it has none (spSlot -1).
+      if(spSlot < 0) placeSimPost();
+      function placeSimPost(){
       const rowMonday = addDays(weekStart, 1);
       const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(rowMonday)));
       if(wkRec && wkRec.simPost){
@@ -15571,8 +15589,9 @@ export function initLegacyApp() {
         const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
           place(r.startCol, r.endCol, 'mv-bar mv-pill',
-            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, '');
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, printingCursor ? '' : 'data-sp="1"');
         });
+      }
       }
 
       // Notes last, so they sit under the phase pills.
@@ -18211,6 +18230,34 @@ export function initLegacyApp() {
     byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
       .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
     return out;
+  }
+  // ⭐ SIMULTANEOUS POST TAKES A PLACE IN THE SAME ORDER (owner, 11 Nov 2026: "we should be able to reorder the position
+  // of phases including sim post, without sim post having to stick to production"; frozen edit SO1, approved by picker
+  // "Approve with that gate"). Sim Post is not a segment, so it is named in mvPhaseOrder by the reserved key
+  // MV_SIMPOST_KEY (no phase can have it: built-ins are fixed words, custom phases are custom<n>). An older build keeps
+  // the key (the sanitizer keeps unknown keys) and never meets it, so it draws Sim Post where it always did.
+  //  - NOT NAMED (every calendar ever saved, and any order dragged before this): frozen renderMonthView places it AFTER
+  //    every phase, exactly as before. mvSimPostSlot() returns -1 and SO1 takes that old path, which is what keeps gates
+  //    10 and 13 byte-identical.
+  //  - NAMED: it goes right before the first phase the order names BELOW it (a phase the order does not name stays
+  //    with the named phase it follows, as mvLaneOrder places it), or after every phase when none is below it.
+  const MV_SIMPOST_KEY = 'simpost';
+  function mvSimPostSlot(laneSegs){
+    if(mvRefMode) return -1;
+    const at = mvPhaseOrder.indexOf(MV_SIMPOST_KEY);
+    if(at < 0) return -1;
+    const below = new Set(mvPhaseOrder.slice(at + 1));
+    return laneSegs.findIndex(s=> below.has(s.key));
+  }
+  // The month view's whole top-to-bottom order as keys, Sim Post included where SO1 draws it (only on a calendar that
+  // has Sim Post). What the reorder grip reads and writes.
+  function mvOrderKeys(segs, sch){
+    const keys = mvLaneOrder(segs).map(s=> s.key);
+    const hasSp = ((sch && sch.weeks) || []).some(w=> w && w.simPost);
+    if(!hasSp) return keys;
+    const laneSegs = mvLaneOrder(segs), slot = mvSimPostSlot(laneSegs);
+    keys.splice(slot < 0 ? keys.length : slot, 0, MV_SIMPOST_KEY);
+    return keys;
   }
 
   // Where a NOTE sits on its day (MONTH-ORDER-PLAN.md §3.2 and §9). A note is in one of three GROUPS, each placed

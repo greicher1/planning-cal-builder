@@ -2876,6 +2876,28 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYMO
 
+# ---- mvordersp: Simultaneous Post takes a place in the month view's order ---------------------------------
+# ⭐ ADDED 11 Nov 2026 (owner: "we should be able to reorder the position of phases including sim post, without sim post
+# having to stick to production"; frozen edit SO1, owner-approved by picker "Approve with that gate"). mvorder's
+# plumbing on colswap-simpost-refuse: Sim Post's grip (P1), dragged to the top in every week (P2), one undo (P3), saved
+# as "simpost" in mvPhaseOrder (P4), the WRITTEN month PDF stacks it the same way (P5), Back to date order (P6), between
+# two phases (P7), another phase's reorder leaves it at the bottom (P8), Escape (P9). Red on the build before SO1 (it
+# finds no Sim Post grip at all). ⛔ Gates 10 and 13 are what prove SO1 inert where Sim Post was never moved.
+node "$HERE/mvordersp.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvordersp.json" "mvordersp (colswap-simpost-refuse)" <<'PYMOS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMOS
+
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
 # reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
