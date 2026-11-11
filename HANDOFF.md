@@ -5,7 +5,13 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 ### ✅ 10 Nov 2026: THE HOVER PROMPT — "EXPAND?" OVER A BLANK, "PULL BACK?" OVER WHAT WAS WIDENED — ✅ **LIVE at `2ab646d`** (owner's pickers *"Commit on the branch"*, *"Merge, re-check, then push"*; pushed `2a61a8c..2ab646d` at 00:56 UTC 11 Nov, a fast-forward; deploy run `42935218265` green; the live `index.html` is the re-checked build byte for byte, sha256 `fa9c16d4…`, `version.json` 1.12.1, no version cut). Built on branch `hover-expand` (worktree `.claude/worktrees/hover-expand`, from the release's local HANDOFF note `98dc947` on top of the live `51ce127`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch (owner's picker *"Commit on the branch"*); push approved by picker (*"Merge, re-check, then push"*): `origin/main` merged in and re-checked first. Tracker card `blank-space-expand-prompt`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §11 (the as-built record).
-- **What.** Rest the pointer 300 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
+- ⭐ **Follow-up, 10 Nov 2026 evening (after it went live):** *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"* and *"a tiny bit sooner"*. The prompt was keyed to the ONE week rested
+  on, so the next week of the same outline took it down and redrew it; now any cell of the run (`hoverPrompt.tds`),
+  any outline, the chip or the space between keeps it, read live from the drawn layer (`insideHoverPrompt`), so a
+  scroll changes nothing. Delay 300 → 200 ms, counted from reaching a cell (`hoverPendingId`): every small move used
+  to restart it. Leg `hoverexpand` H1b + H1c, 18/18. Owner tried test file v5, then *"Commit and push"*.
+- **What.** Rest the pointer 200 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
   blank sits beside that phase, and **Expand?** in its very centre; the click writes per-cell widths (`cellSpans`) on
   THOSE weeks only. Rest on a widened cell: **Pull back this week?** / **Pull back?** in amber, clearing a run of
   per-cell widths or turning the phase's fill wish off. One undo step each; nothing new saved; stamped calendars, the

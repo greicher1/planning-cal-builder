@@ -1053,9 +1053,12 @@ export function initLegacyApp() {
   // resized or swapped. Chrome on its own overlay layer inside .sheet-grid-wrap, the selection layer's sanctioned seat:
   // it reads the drawn cells and writes nothing into the grid, and is absent from both print paths. The chip is the one
   // clickable thing on it; its pointerdown stops at the chip so no grid drag starts underneath. NOTHING NEW IS STORED.
-  const HOVER_PROMPT_DELAY_MS = 300;
-  let hoverTimer = 0, hoverPrompt = null;   // {id, rects: [client rects], action}
-  let hoverChipBox = null;   // {chip, ux0, uy0, ux1, uy1 (wrap px), bridge}: see placeHoverChip()
+  // 200 ms (owner, 10 Nov 2026: "show up after hovering your cursor just a tiny bit sooner"; it was 300). Counted from the
+  // moment the pointer reaches a cell, NOT from its last movement there: a hand on a mouse is never quite still, and a
+  // countdown restarted by every move only ever finished for a cursor that stopped dead.
+  const HOVER_PROMPT_DELAY_MS = 200;
+  let hoverTimer = 0, hoverPendingId = null, hoverPrompt = null;   // hoverPrompt: {id, tds: Set of the cells it outlines}
+  let hoverChipBox = null;   // {chip, ux0, uy0, ux1, uy1 (wrap px)}: see placeHoverChip()
   function ensureHoverLayer(){
     const wrap = document.querySelector('.sheet-grid-wrap');
     if(!wrap) return null;
@@ -1067,7 +1070,7 @@ export function initLegacyApp() {
     return layer;
   }
   function clearHoverPrompt(){
-    clearTimeout(hoverTimer); hoverTimer = 0; hoverPrompt = null; hoverChipBox = null;
+    clearTimeout(hoverTimer); hoverTimer = 0; hoverPendingId = null; hoverPrompt = null; hoverChipBox = null;
     document.querySelectorAll('.grid-hover-layer').forEach(l => { l.textContent = ''; });
   }
   function hoverPromptAllowed(){
@@ -1119,9 +1122,10 @@ export function initLegacyApp() {
     let phaseBoxes = [];
     const rowOf = td => td.parentElement;
     const cells = [];   // what the click acts on: [{td, side}] for Expand, [key, ...] for a per-cell pull back
+    const runTds = new Set([c.td]);   // every cell of the outlined run: resting on any of them keeps this prompt up
     if(c.kind === 'expand'){
       const b = tdBox(c.td, g);
-      rects.push(b); phaseBoxes.push(tdBox(c.owner.td, g)); cells.push({ td: c.owner.td, side: c.owner.side });
+      rects.push(b); phaseBoxes.push(tdBox(c.owner.td, g)); cells.push({ td: c.owner.td, side: c.owner.side }); runTds.add(c.owner.td);
       // The consecutive weeks where the same blank sits beside the same phase, on the same side.
       const sameOwner = td => { if(!isBlankTd(td)) return null; const o = blankOwner(td); return (o && o.side === c.owner.side && o.td.dataset.pkey === c.pkey) ? o : null; };
       for(const dir of ['previousElementSibling', 'nextElementSibling']){
@@ -1129,7 +1133,7 @@ export function initLegacyApp() {
         while(tr){
           const t = hoverSameBoxTd(tr, b, g), o = t && sameOwner(t);
           if(!o || cellSpans[o.td.dataset.week + '|' + c.pkey] !== undefined) break;
-          rects.push(tdBox(t, g)); phaseBoxes.push(tdBox(o.td, g)); cells.push({ td: o.td, side: o.side });
+          rects.push(tdBox(t, g)); phaseBoxes.push(tdBox(o.td, g)); cells.push({ td: o.td, side: o.side }); runTds.add(t).add(o.td);
           tr = tr[dir];
         }
       }
@@ -1156,7 +1160,7 @@ export function initLegacyApp() {
             const t = [...tr.cells].find(x => isPhaseTd(x) && x.dataset.pkey === c.pkey && x.dataset.own === own && blockYearOf(x.dataset.week) === y);
             const k = t && (t.dataset.week + '|' + c.pkey);
             if(!t || cellSpans[k] === undefined) break;
-            cells.push(k); extra(t).forEach(r => rects.push(r));
+            cells.push(k); extra(t).forEach(r => rects.push(r)); runTds.add(t);
             tr = tr[dir];
           }
         }
@@ -1168,7 +1172,7 @@ export function initLegacyApp() {
           while(tr){
             const t = [...tr.cells].find(x => isPhaseTd(x) && x.dataset.pkey === c.pkey && x.dataset.own === own && blockYearOf(x.dataset.week) === y);
             if(!t || (t.colSpan || 1) < 2) break;
-            extra(t).forEach(r => rects.push(r));
+            extra(t).forEach(r => rects.push(r)); runTds.add(t);
             tr = tr[dir];
           }
         }
@@ -1210,8 +1214,7 @@ export function initLegacyApp() {
     layer.appendChild(chip);
     // Centred on the outlined box (placeHoverChip), stepping aside for the Swap Column button.
     hoverChipBox = { chip, ux0: Math.min(...boxes.map(b => b.wrapLeft)), uy0: Math.min(...boxes.map(b => b.wrapTop)),
-                     ux1: Math.max(...boxes.map(b => b.wrapLeft + b.wrapWidth)), uy1: Math.max(...boxes.map(b => b.wrapTop + b.wrapHeight)),
-                     bridge: null };
+                     ux1: Math.max(...boxes.map(b => b.wrapLeft + b.wrapWidth)), uy1: Math.max(...boxes.map(b => b.wrapTop + b.wrapHeight)) };
     chip.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
     chip.addEventListener('dblclick', e => { e.stopPropagation(); e.preventDefault(); });
     chip.addEventListener('click', e => {
@@ -1233,10 +1236,7 @@ export function initLegacyApp() {
       render(currentSchedule);
       markDirty();
     });
-    // What keeps the prompt up while the pointer travels from the cell to the chip: every outlined box, the chip.
-    const toClient = b => ({ l: g.wrapRect.left + b.wrapLeft * g.z, t: g.wrapRect.top + b.wrapTop * g.z,
-                             r: g.wrapRect.left + (b.wrapLeft + b.wrapWidth) * g.z, b: g.wrapRect.top + (b.wrapTop + b.wrapHeight) * g.z });
-    hoverPrompt = { id: c.id, rects: rects.filter(Boolean).concat(phaseBoxes.filter(Boolean)).map(toClient) };
+    hoverPrompt = { id: c.id, tds: runTds };
     placeHoverChip();
   }
   // Where the chip sits: the very centre of the outlined box, both ways (owner, 10 Nov 2026: "Can the expand button
@@ -1248,8 +1248,6 @@ export function initLegacyApp() {
   // the chip steps aside, 4 px clear: to the nearest spot still inside the outlined box; else beside the button on the
   // same row, so a one-week chip stays on its week; else above or below it. Run again by drawStintButton(), since the
   // button can appear after the chip; resting on the chip itself never summons or moves the button (see its listener).
-  // hoverChipBox.bridge (client px) is the box and the chip together, so the pointer's way to a chip that stepped
-  // outside the box never crosses a cell that would close the prompt.
   function placeHoverChip(){
     const hc = hoverChipBox;
     if(!hc || !hc.chip.isConnected) return;
@@ -1273,23 +1271,42 @@ export function initLegacyApp() {
       }
     }
     chip.style.left = at.x + 'px'; chip.style.top = at.y + 'px';
-    const g = selGeom();
-    hc.bridge = !g ? null : { l: g.wrapRect.left + Math.min(ux0, at.x) * g.z, t: g.wrapRect.top + Math.min(uy0, at.y) * g.z,
-                              r: g.wrapRect.left + Math.max(ux1, at.x + cw) * g.z, b: g.wrapRect.top + Math.max(uy1, at.y + ch) * g.z };
   }
-  const inClientRect = (e, r) => !!r && e.clientX >= r.l && e.clientX <= r.r && e.clientY >= r.t && e.clientY <= r.b;
-  const insideHoverPrompt = e => !!hoverPrompt && (hoverPrompt.rects.some(r => inClientRect(e, r)) || inClientRect(e, hoverChipBox && hoverChipBox.bridge));
+  // Is the pointer still on what the prompt is about? Read from what is DRAWN, at the moment of the move, so a scroll
+  // since it appeared changes nothing: any outline or the chip, or the box spanning the outlines and the chip together
+  // (the way to a chip that stepped outside the outline, beside the Swap Column button, crosses no cell that would close
+  // it). Cells of the run are checked by the caller.
+  function insideHoverPrompt(e){
+    const layer = hoverPrompt && document.querySelector('.sheet-grid-wrap > .grid-hover-layer');
+    if(!layer) return false;
+    const x = e.clientX, y = e.clientY;
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    for(const el of layer.children){
+      const q = el.getBoundingClientRect();
+      if(x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) return true;
+      if(el.classList.contains('grid-hover-rect') || el.classList.contains('grid-hover-chip')){
+        l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+      }
+    }
+    return x >= l && x <= r && y >= t && y <= b;
+  }
+  // ⭐ Once up, the prompt stays while the pointer is anywhere on what it outlined (owner, 10 Nov 2026: "the expand box and
+  // button seem to disappear weirdly when you move your cursor after they first pop up"). The first build keyed it to
+  // the ONE week the pointer rested on, so moving to the next week of the same outline -- the way to the chip, centred
+  // in a box of several weeks -- took it down and drew it again 300 ms later. Now any cell of the run (runTds), any
+  // outline, the chip, or the space between the outline and the chip keeps it.
   document.addEventListener('pointermove', e=>{
     if(!hoverPromptAllowed()){ if(hoverPrompt || hoverTimer) clearHoverPrompt(); return; }
     if(e.buttons) return;                                            // a drag in progress: leave it alone
     if(e.target.closest && e.target.closest('.grid-hover-chip')) return;
     const td = e.target.closest && e.target.closest('#table-wrap table.sheet-table tbody td');
+    if(hoverPrompt && ((td && hoverPrompt.tds.has(td)) || insideHoverPrompt(e))) return;   // still on what it outlined
     const c = td ? hoverPromptFor(td) : null;
-    if(c && hoverPrompt && hoverPrompt.id === c.id) return;
-    if(!c && insideHoverPrompt(e)) return;                           // still over what it outlined
+    if(c && !hoverPrompt && hoverTimer && hoverPendingId === c.id) return;                 // still counting down on this cell
     if(hoverPrompt || hoverTimer) clearHoverPrompt();
     if(!c) return;
-    hoverTimer = setTimeout(()=>{ hoverTimer = 0; const again = hoverPromptFor(c.td); if(again && again.id === c.id && c.td.isConnected) showHoverPrompt(again); }, HOVER_PROMPT_DELAY_MS);
+    hoverPendingId = c.id;
+    hoverTimer = setTimeout(()=>{ hoverTimer = 0; hoverPendingId = null; const again = hoverPromptFor(c.td); if(again && again.id === c.id && c.td.isConnected) showHoverPrompt(again); }, HOVER_PROMPT_DELAY_MS);
   });
   document.addEventListener('pointerleave', clearHoverPrompt);
   // A re-render replaces .sheet-grid-wrap (and the layer with it): forget the prompt, as the selection layer does.

@@ -11,6 +11,12 @@
 //   H1  resting on the blank beside the middle week of that run: nothing before the delay; then ONE dashed box over
 //       exactly the run, a faint outline on Test, the chip "Expand?" in the box's very centre (owner: "always sit in the
 //       very center of the outlined box"), its title naming the weeks
+//   H1b once up, it STAYS while the pointer moves over what it outlined (owner, 10 Nov 2026: "the expand box and button
+//       seem to disappear weirdly when you move your cursor after they first pop up"): across every week of the run,
+//       onto the phase's cells, onto the chip -- the same chip, nothing in the layer redrawn. v4 (live at 2ab646d)
+//       keyed the prompt to the one week rested on: reproduced in the pane, it vanished on the next week.
+//   H1c a hand that keeps moving a little on one blank still gets the prompt, about 200 ms after arriving (owner, the
+//       same day: "a tiny bit sooner"; it was 300 ms, restarted by every move); leaving the outline takes it down
 //   H2  the chip's press, release and click: those weeks widen and NOTHING ELSE does -- Test wk 1 stays one wide (the
 //       owner, on the first build: "it also expanded test wk 1"); the file carries one per-cell width per week and no
 //       phaseFill; the press starts no selection; one undo step
@@ -129,6 +135,20 @@ window.addEventListener('load', function () { (async function () {
         && Math.abs(b0.t - fr.t) <= 1 && Math.abs(b0.b - lr.b) <= 1 && Math.abs(b0.l - fr.l) <= 1 && Math.abs(b0.r - fr.r) <= 1
         && /these \d+ weeks only/.test(c1.title) && c1.title.indexOf('these ' + run.length + ' weeks') !== -1,
       J({ early: early, chip: c1 && txt(c1), title: c1 && c1.title, boxes: bx.map(R), want: [Math.round(fr.l), Math.round(fr.t), Math.round(fr.r), Math.round(lr.b)], phase: ph.length, chipR: c1 && R(c1) }));
+    // ---- H1b ----
+    var removed = 0, mo = new MutationObserver(function (ms) { ms.forEach(function (m) { removed += m.removedNodes.length; }); });
+    if (c1) mo.observe(c1.parentNode, { childList: true });
+    var sweep = run.concat(run.slice().reverse());
+    for (var si = 0; si < sweep.length; si++) {
+      var bt = testWk(sweep[si]).previousElementSibling, br = rect(bt);
+      moveAt(br.l + (br.r - br.l) * 0.2, br.t + (br.b - br.t) * 0.3); await T.sleep(30);
+      moveAt(br.l + (br.r - br.l) * 0.85, br.t + (br.b - br.t) * 0.75); await T.sleep(30);
+    }
+    for (var sj = 0; sj < run.length; sj++) { var pr = rect(testWk(run[sj])); moveAt((pr.l + pr.r) / 2, (pr.t + pr.b) / 2); await T.sleep(30); }
+    if (c1) { var qr = rect(c1); moveAt((qr.l + qr.r) / 2, (qr.t + qr.b) / 2); await T.sleep(30); }
+    mo.disconnect();
+    C('H1b', 'once up, the prompt stays as the pointer crosses every week of the outline, Test\'s cells and the chip: the same chip, nothing redrawn',
+      !!c1 && chip() === c1 && removed === 0, J({ same: chip() === c1, removed: removed }));
     // ---- H2 ----
     var runWeeks = run.map(function (k) { return testWk(k).dataset.week; });
     await press(c1);
@@ -140,6 +160,18 @@ window.addEventListener('load', function () { (async function () {
       J({ spans: sp, want: wantSp, cellSpans: s1.cellSpans, phaseFill: s1.phaseFill, sel: selCount() }));
     await undo();
     C('H2b', 'one undo step puts every week back', spans() === '1111111111', spans());
+    // ---- H1c ----
+    var jb = testWk(run[0]).previousElementSibling;
+    jb.scrollIntoView({ block: 'center' }); await T.sleep(150);
+    var jr = rect(jb), t0 = performance.now(), shownAt = -1;
+    for (var ji = 0; ji < 14; ji++) {
+      moveAt(jr.l + (jr.r - jr.l) * (0.3 + ji * 0.03), jr.t + (jr.b - jr.t) * (0.35 + (ji % 3) * 0.12)); await T.sleep(40);
+      if (shownAt < 0 && chip()) shownAt = Math.round(performance.now() - t0);
+    }
+    var o3 = rect(testWk(3)); moveAt((o3.l + o3.r) / 2, (o3.t + o3.b) / 2); await T.sleep(40);
+    var goneOut = !chip();
+    C('H1c', 'a hand moving a little on one blank still gets the prompt, ~200 ms after arriving (' + shownAt + ' ms); leaving the outline takes it down',
+      shownAt >= 150 && shownAt <= 450 && goneOut, J({ shownAt: shownAt, goneOutside: goneOut }));
     await rest(testWk(run[0]).previousElementSibling);
     if (chip()) await press(chip());
     // ---- H3 ----
