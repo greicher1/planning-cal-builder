@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+
+Owner: *"When ripple hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after
+the hiatus"*. The phase card's arrows moved one calendar week a click by design, so a phase the week before a break
+went ▼ INTO it. Now, while Ripple Hiatus Periods is on (the default), a click is one WORKING week, as Shift and the
+toolbar arrows already count: ▼ from the week before an all-phase hiatus lands the week after it, ▲ from the week
+after lands the week before, locked break or not. The card's label counts the calendar weeks moved ("Pushed 3 wks"
+over a two-week break). With Ripple Hiatus off, the arrows move one calendar week as before. `nudgePhase` passes
+`stepHeld: hiatusRippleOn()`; nothing frozen, no save-format change. New leg `phasearrowsripple` (in `gate.sh` after
+`phasearrows`): 10/10 on the build, red on R1, R4, R6 without the fix (the phase lands inside the break). Neighbours on
+the build: `hiatusripple` 19/19, `shiftheld` 13/13, `anchorside` 39/39, `stalebandkey` 9/9, `npm run check` 42/42.
+⚠️ `phasearrows` 23/26 (N1, M1, F1) and `mvdragcarry` 11/15 (O2, K1, P1, F1) fail identically WITHOUT this change (both
+run with the ripple off, so it cannot reach them; Production's day marks): existing failures on `main`, not
+investigated here.
+
 ### Unreleased — Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
 
 Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and

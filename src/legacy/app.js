@@ -30458,7 +30458,9 @@ export function initLegacyApp() {
   //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
   //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
   //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
-  //     The phase card's ▲ / ▼ move one phase one week by design.
+  //     The phase card's ▲ / ▼ opt in too, but only while Ripple Hiatus is on (owner, 11 Nov 2026: "When ripple
+  //     hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after the hiatus");
+  //     with it off they move one calendar week, as built (PHASE-WEEK-ARROWS-PLAN.md).
   function stepOverHeld(n, held){
     if(!held || !held.size) return d => addDays(d, n * 7);
     const isHeld = w => held.has(isoOf(w));
@@ -30888,7 +30890,8 @@ export function initLegacyApp() {
   }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
   //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
-  //           arrows and the hiatus ripple pass it; the phase arrows and the month drag (carryOnly) do not.
+  //           arrows and the hiatus ripple pass it; the phase arrows pass it while Ripple Hiatus is on (nudgePhase);
+  //           the month drag (carryOnly) never does.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -31471,10 +31474,20 @@ export function initLegacyApp() {
       nudgeBurst = {key, weeks: 0, notesBase: autoNoteBaseline(), bound: beginShootDayMove(), note: '', timer: null};
     }
     const b = nudgeBurst;
-    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true});
+    // ⭐ THE STEP-OVER, while Ripple Hiatus is on (owner, 11 Nov 2026): one click is one WORKING week, so a phase the
+    // week before an all-phase hiatus goes ▼ to the week after it, and ▲ from the week after lands the week before.
+    // The empty week window holds every all-phase hiatus (hiatusFatesFor: none is in range), so every one is stepped
+    // over, locked or not. Ripple off: one calendar week, as built, into the break if that is where it falls.
+    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true,
+      stepHeld: hiatusRippleOn()});
     reapplyAutoNoteBaseline(b.notesBase);
     cancelPendingUndoPush();   // banked once, by endNudgeBurst
-    if(res && res.movedPhases) b.weeks += dir;
+    // The label counts CALENDAR weeks, so a click that stepped a 2-week break reads "Pushed 3 wks" (res.stepped names
+    // a phase only when it moved other than `dir`).
+    if(res && res.movedPhases){
+      const st = (res.stepped || []).find(x => x.key === key);
+      b.weeks += st ? st.weeks : dir;
+    }
     // What the burst so far does to Production's day marks (a worked holiday no longer on a holiday, a mark with no
     // shoot day left), worked out from the original pins as endShootDayMove will, and said in the result line's short
     // words. Through takeShootDayMoveNote, the one formatter, which also leaves nothing for a later result line.
