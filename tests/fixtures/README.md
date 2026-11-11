@@ -201,6 +201,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | File | Use |
 |---|---|
 | `wfkeys.sptcal` | `shift-stores.sptcal` ("Test Show", US General, two year blocks 2026 and 2027) edited by script, nothing else changed: its two tall rows removed (`rowHeightsByWeek: {}`), its notes replaced by four synthetic ones (2026-08-03 "Table read" #FFC000, size 9, bold + italic through `textStyles`; 2026-08-10 two lines; 2026-09-07 "Wrap party 9/10/26" pinned to Thu 9/10; 2026-09-14 "Blocker"), and one unlocked all-phase hiatus added, 11/23/26 for 2 weeks (two band rows with no Notes cell). The automatic notes on 1/5, 6/29 and 10/19/26 are the calendar's own. Read by `t/wfkeys.js` and `wfkeysreal.mjs` |
+| `lastedited.sptcal` | ⭐ 9 Nov 2026 (Date Last Edited): `hdrversion.sptcal` (synthetic, "Test Show") with one key added by script, `lastEdited: "2026-10-01T15:00:00.000Z"`, nothing else changed, so its header's date (10.1.26 / 10.01.26 in any US zone) is not today. Read by `t/lastedited.js`. No gate-10 or gate-13 baseline reads it |
 
 ## Month notes around the phases, and to another day (23 Oct 2026)
 

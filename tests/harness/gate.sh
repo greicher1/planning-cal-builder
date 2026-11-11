@@ -1915,6 +1915,11 @@ done
 # PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
 # Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
 # hidden, a hostile key, removal pruning the key, and Shift All.
+# stylebarplace (owner, 10 Nov 2026) is where the text style bar sits: its bare buttons on the toolbar's first line,
+# beside Shift with Build Around's gap before it (--tools-group-gap, one value), at Shift's 30 px, the Size box's own
+# arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving; and, the row set narrower
+# than the three groups, the bar alone on its old line (the month view: beside the stepper), the class never flipping.
+# On fill-intent (Fill Space shows: the widest toolbar). Red on the build before it in every placement case.
 # phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
 # fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
 # BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
@@ -1925,7 +1930,8 @@ done
 # and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
 # and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
 # the 36 px month minimum, its height, no ids, gone in the waterfall), and since 28 Oct 2026 part C the month stepper
-# on the style bar's line (§18: its label is always the month band's month, its ends, Today, no ids). On mvnotes,
+# (§18: its label is always the month band's month, its ends, Today, no ids), on the style bar's line until 10 Nov 2026
+# and alone on it since, when the bar moved up beside Shift (C0 and B7 hold both of the bar's places). On mvnotes,
 # colreuse (29 months, so it scrolls) and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
 # look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
 # box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
@@ -1936,11 +1942,18 @@ done
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
 # list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id. Updated 5 Nov 2026
-# for Build Around (one list for both sides, Writer's Rm unticked, "Build N phases", opens on Both).
+# for Build Around (one list for both sides, "Build N phases", opens on both sides) and 10 Nov 2026 for the overlap
+# rule (Casting, beside Prod Prep, left out and named on the line; Writer's Rm ticked; Localization left out while it
+# starts in Post's last week, ticked once it starts after it).
 # buildaround (owner, 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B) is Rebuild From renamed Build Around: a new
 # calendar built in one run from lengths typed in the box (staged, saved on Build, one undo with the dates); both sides
-# in one run; the Before / After shortcuts; "ends by"; Production's length read-only ("Not set" + the Show info line);
-# "Save 1 length"; closing forgets; no Close all gaps; no id in the list.
+# in one run; "ends by"; Production's length read-only ("Not set" + the Show info line); "Save 1 length"; closing
+# forgets; no Close all gaps; no id in the list. Since 10 Nov 2026 (plan §7) it wears Shift's look and feel: the order
+# of parts and no column header, Both button or row title (O1); the header box (H1); a click on a row pins it, its box
+# ticks (K1); a drag sets a run and never moves the pin (D1); Prior to X / After X by the rule (S1-S3).
+# buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
+# shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
+# week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2095,6 +2108,12 @@ done
 # newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
 # the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
 # info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
+# lastedited (owner, 9 Nov 2026: the auto header's date is "the last time the calendar was edited ... anything that would
+# change if it was exported to pdf or excel", and a "Date Last Edited" token in the template builder). The fixture is
+# stamped 1 Oct 2026: both headers and Excel's &L read it; a view switch, a sidebar tab and the add-a-holiday box do not
+# count; an edit reads today and Undo / Redo / the title typed back bring their own dates; Save As writes the stamp; a file
+# with no stamp reads its file time (openViaFakePicker's opts.mtime); the builder's group and live values; Template
+# mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2144,10 +2163,12 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               rebuildticks:-:300 \
               buildaround:-:600 \
               anchorside:anchorside:400 \
+              buildalongside:anchorside:200 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
+              lastedited:lastedited:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
@@ -2172,7 +2193,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
               hoverexpand:hover-expand:300 \
-              phasesui:hidewf:1500; do
+              phasesui:hidewf:1500 \
+              stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

@@ -153,11 +153,11 @@ window.addEventListener('load', function () { (async function () {
     // ⭐ Ruling 1: saving captures the look across BOTH outputs, so the month section travels too.
     out.savedBothSections = !!out.savedSheet && !!out.savedMonth &&
       out.savedMonth.lines && out.savedMonth.lines.title === '[{titleSeason} ]Full Prelim Production Calendar' &&
-      out.savedMonth.lines.today === '{today:dotpad}';
+      out.savedMonth.lines.today === '{lastEdited:dotpad}';   // the Default's date since 9 Nov 2026
     // ⭐ H8 itself: l2 is the token, not the rendered version.
     out.storesTemplates = !!out.savedLines &&
       out.savedLines.l2 === '{version}' &&
-      out.savedLines.left === '{today}' &&
+      out.savedLines.left === '{lastEdited}' &&   // the Default's date since 9 Nov 2026 (Date Last Edited)
       out.savedLines.c1 === '{titleSeason}' &&
       out.savedLines.r3 === '[{episodes} Episodes]';
     // Ids are generated, never the name -- a rename must not orphan anything.
