@@ -753,8 +753,8 @@ All in `src/legacy/app.js`, plus Help in `src/index.html` and the row CSS in `sr
   and Stays with row names share a right-aligned width (`.note-row-name`, 4.9em), and both selects flex to one size.
 - **Proof:** new leg `phasemonth` 21/21 on the build; in `gate.sh` as `phasemonth:phasenotes:900`. `wfnoteeditor` E1 now
   expects Delete Note on a typed cell. Full gate on the step-5 build: 4,226 PASS / 16 FAIL, every baseline identical (gates 2, 3, 10, 13, the restore,
-  `fields.byId`); the 16 are timeouts under heavy machine load, nine cleared alone, seven to re-run on a quiet machine
-  (HANDOFF.md has the list).
+  `fields.byId`); the 16 are timeouts under heavy machine load, every one green alone on 11 Nov (HANDOFF.md has the
+  list). The owner tried a test copy of the build: *"looks good"*.
 - ✅ **Settled by the owner, 10 Nov 2026 (*"thats fine"*):** a phase week holds ONE note with one day, so two notes
   linked to the same non-Production week on different days share the first one's day. The hint warns before saving.
   Production avoids it by following shoot days. Kept as built.

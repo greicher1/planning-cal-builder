@@ -91,9 +91,11 @@ With this step the feature is whole in both views.
     13's written month PDFs byte for byte. `phasemonth` 21/21 in it.
   - The 16 are timeouts or legs that never reported. Re-run alone, nine cleared: `wfmenu` 39/39, `mvnotesize` 12/12,
     `monthexport` (blocksoff) 9/9 and (halfdays) 9/9, `builtindates` 17/17, `episodeprep` 33/33 and (episodeprep) 25/25,
-    `weeknum` 6/6. ⚠️ Seven still time out under that load, NOT YET SEEN GREEN on this build: `onecol`,
-    `autonotephases`, `offweek`, `hiatusdrag`, `hiatusripple`, `wfkeysreal`, `scenariocompat`. The last runs only
-    `/releases/v1.2.0.html`, which holds none of this branch's code. Re-run them on a quiet machine.
+    `weeknum` 6/6. ✅ The other seven, re-run on 11 Nov once the machine was quiet (load ~10): `onecol` 17/17
+    (the gate's own checks), `autonotephases` 27/27, `offweek` 5/5 and (offweek) 42/42, `hiatusdrag` 14/14,
+    `hiatusripple` 19/19, `wfkeysreal` 6/6, `scenariocompat` on v1.2.0 and v1.8.0. So every one of the 16 is green
+    alone. `offweek`'s Load wait is flaky on both builds: an A/B run gave this build 42/42 and the pre-step-5 build
+    (`0a3366d`) 41/42 (one Load timeout).
 
 ### Unreleased — notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
 
