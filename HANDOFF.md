@@ -15,8 +15,9 @@
   35/36. That leg undoes back to its fixture, which is built with no stamp. It had never run on a build holding Date
   Last Edited. ⚠️ **Lesson: a leg's "0 console errors" case is a real check on OTHER features, so a red one after a
   merge is not noise.**
-- **The leg that holds it at its source: `lastedited` N2** (added 10 Nov on the owner's *"Yes, add it"*; local, not
-  pushed). New, a typed title, Undo, Save As: the title is back, no "value ignored" warning (counted before and after,
+- **The leg that holds it at its source: `lastedited` N2** (added 10 Nov on the owner's *"Yes, add it"*; on main
+  at `2a61a8c`, pushed 00:42 UTC on the 11th on the owner's picker, tests and docs only: the deploy republished the
+  same app file, live sha256 still `52407af5…`). New, a typed title, Undo, Save As: the title is back, no "value ignored" warning (counted before and after,
   so an earlier warning in the leg cannot pass or fail it), no `lastEdited` key in the file. 22/22 on the live build;
   21/22 with N2 red on a build with the guard taken out (`c0bb3da5…`, byte for byte the pre-fix merged build).
 - **Verified** on `dist/index.html` sha256 `52407af5…`: check 42/42 and 11 legs green (README has the list); in the
