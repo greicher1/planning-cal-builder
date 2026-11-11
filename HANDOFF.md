@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, goes out with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
+### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
 
 - **What it was.** `lastEditedForStep()` (Date Last Edited, `1507204`) wrote `snap.lastEdited = null` when the step's
   content had been remembered with no stamp (a new calendar before its first change: `lastEditedRemember(key, null)`).
@@ -19,7 +19,7 @@
 - **Verified** on `dist/index.html` sha256 `52407af5…`: check 42/42 and 11 legs green (README has the list); in the
   browser a new calendar, a typed title and Undo leave the console clean. No full gate.
 
-### ✅ 10 Nov 2026: BUILD AROUND TAKES SHIFT'S LOOK AND FEEL, AND STOPS LEAVING THE WRITER'S ROOM OUT BY RULE — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner, 9–10 Nov: *"make Build Around match the same UI look and feel as the shift tool. Make a list of everything we could change"*; *"give me a mockup"*; three rulings on the mockup; *"Yes, build it"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, with `origin/main` (`51ce127`) merged in. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7 has the list, the rulings and the decisions; [`mockups/build-around-like-shift.html`](mockups/build-around-like-shift.html) is the mockup (Shift, the proposal and the old box, live on one made-up calendar). Tracker card `build-around-match-shift`
+### ✅ 10 Nov 2026: BUILD AROUND TAKES SHIFT'S LOOK AND FEEL, AND STOPS LEAVING THE WRITER'S ROOM OUT BY RULE — ✅ **LIVE at `32e19a2`** (pushed 10 Nov 2026, 00:24 UTC on the 11th, on the owner's picker *"Build Around + the fix (Recommended)"*; the live page matched the build byte for byte at 00:25:05 UTC, sha256 `52407af5…`; `version.json` still 1.12.1, no version cut) (owner, 9–10 Nov: *"make Build Around match the same UI look and feel as the shift tool. Make a list of everything we could change"*; *"give me a mockup"*; three rulings on the mockup; *"Yes, build it"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, with `origin/main` (`51ce127`) merged in. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7 has the list, the rulings and the decisions; [`mockups/build-around-like-shift.html`](mockups/build-around-like-shift.html) is the mockup (Shift, the proposal and the old box, live on one made-up calendar). Tracker card `build-around-match-shift`
 
 **As built:**
 - **The box, top to bottom** (`PreviewToolbar.jsx`, `#pop-solve`, 400 px): the title "Build Around" and its hint;
