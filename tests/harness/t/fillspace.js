@@ -12,7 +12,8 @@
 //       input the save sweep collects)
 //   S3  off, a phase's own double-click fill wish still fills week by week -- only that phase varies
 //   S4  undo the wish, then undo the switch: the original widths, and the file carries no key
-//   S5  the Month view hides it; New turns it back on
+//   S5  the Month view hides it; New turns it OFF (a new calendar's default, owner 11 Nov 2026), so the file says
+//       fillSpaceOff: true. The switch is left ON going into New, so New has to change it.
 //
 // ⚠️ Run against the BUILD: HARNESS_PAGE=/dist/index.html. Red on the build before it at S1 (no switch).
 window.addEventListener('load', function () { (async function () {
@@ -84,7 +85,6 @@ window.addEventListener('load', function () { (async function () {
     C('S4', 'undo the wish (even again), then undo the switch: the original widths, on, and no key in the file',
       !afterUndo1.length && J(widths()) === J(W0) && btn().getAttribute('aria-pressed') === 'true' && !('fillSpaceOff' in s4),
       J({ afterWishUndo: afterUndo1, same: J(widths()) === J(W0), pressed: btn().getAttribute('aria-pressed'), key: s4.fillSpaceOff }));
-    btn().click(); await settle();
     $('view-month-btn').click(); await T.sleep(800);
     var inMonth = shown();
     $('view-sheet-btn').click(); await settle();
@@ -92,7 +92,7 @@ window.addEventListener('load', function () { (async function () {
     for (var i = 0; i < 30; i++) { await T.sleep(100); if (T.clickModalButton('Start new')) break; }
     await T.sleep(900);
     var s5 = await save();
-    C('S5', 'the Month view hides it; New turns Fill Space back on', !inMonth && !('fillSpaceOff' in s5) && btn().getAttribute('aria-pressed') === 'true',
+    C('S5', 'the Month view hides it; New turns Fill Gaps off', !inMonth && s5.fillSpaceOff === true && btn().getAttribute('aria-pressed') === 'false',
       J({ month: inMonth, key: s5.fillSpaceOff, pressed: btn().getAttribute('aria-pressed') }));
     out.errors = (window.__ERR || []).slice(0, 6);
     C('E0', 'no engine errors', !out.errors.length, J(out.errors));
