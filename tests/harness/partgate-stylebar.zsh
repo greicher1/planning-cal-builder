@@ -23,6 +23,26 @@ else:
   print(('  PASS  ' if a.get('pass') is True else '  FAIL  ')+l+': '+('pass' if a.get('pass') is True else json.dumps(a)[:300]))
 PY
 }
+if [[ "$1" == wells ]]; then
+  run stylebarplace fill-intent 300
+  run textstyle carry-rich 400
+  run hdrcontrols carry-rich 170
+  run fillspace layout-r13 300
+  run monthmap mvnotes 180
+  run monthmap colreuse 180
+  run monthmap offweek 180
+  run calzoom mvnotes 300
+  run sharecopy2 - 180
+  run anchorside anchorside 400
+  run buildaround - 600
+  run sideboxes sideboxes 900
+  run mvtextstyle - 900
+  run mvnotesize mvnotes 900
+  run lastedited lastedited 400
+  rm -f fence.json; HARNESS_PAGE=/tests/harness/old-stylebar.html ./run.sh fence 40 >/dev/null 2>&1; cp -f fence.json fence-old-wells.json
+  rm -f fence.json; ./run.sh fence 40 >/dev/null 2>&1; cp -f fence.json fence-new-wells.json
+  echo DONE >> $LOG; exit 0
+fi
 if [[ "$1" == merged ]]; then
   run stylebarplace fill-intent 300
   run lastedited lastedited 400

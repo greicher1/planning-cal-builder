@@ -125,13 +125,14 @@ window.addEventListener('load', function () { (async function () {
     var b = bar(), tw = $('table-wrap');
     check(b && q('.view-toggle-row').nextElementSibling === tw, 'B0 the bar is in the toolbar row\'s host; .view-toggle-row -> #table-wrap stays the sibling pair');
     check(b && !qa('[id]', b).length, 'B1 no id anywhere in the bar');
-    // Since 10 Nov 2026 the bar is its bare buttons (owner): no box, no "Text" label, no hint line. The hint is the bar's
-    // tooltip while nothing is picked, and goes once something is.
+    // Since 10 Nov 2026 the bar is its buttons in a toolbar well (owner: first the bare buttons, then variation 27): no
+    // border, no "Text" label, no hint line, the view toggle's grey ground. The hint is the bar's tooltip while nothing
+    // is picked, and goes once something is.
     var bcs = b && getComputedStyle(b);
     check(b && !armed() && /Highlight any text/.test(b.title) && Number(getComputedStyle(q('.hf-b', b)).opacity) < 1 &&
           getComputedStyle(b, '::after').content === 'none' && getComputedStyle(b, '::before').content === 'none' &&
-          bcs.borderTopWidth === '0px' && bcs.backgroundColor === 'rgba(0, 0, 0, 0)',
-          'B2 nothing picked: dimmed, and its tooltip says how to start; no box, label or hint text');
+          bcs.borderTopWidth === '0px' && bcs.backgroundColor === getComputedStyle(q('.view-toggle')).backgroundColor,
+          'B2 nothing picked: dimmed, and its tooltip says how to start; a well like the view toggle, no label or hint text');
     check(b && b.getBoundingClientRect().bottom <= tw.getBoundingClientRect().top + 0.5, 'B3 above the calendar (' + Math.round(b.getBoundingClientRect().height) + 'px tall)');
     var strip = q('#table-wrap .hdr-tools .hdr-fmt');
     check(strip && getComputedStyle(strip).display === 'none', 'B4 Manual header: the in-calendar strip is in the page but hidden');
