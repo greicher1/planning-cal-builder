@@ -43,6 +43,9 @@ including the hiatus"*.
   `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
   between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
   the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- **Expand? on both sides** (owner, trying it: *"once i expand one side, the box no longer pops up on the other side
+  empty space"*): a cell already widened to one side still offers Expand? on the blank on its other side, and the click
+  keeps the side it has. Before, the first Expand? took the other side's offer away.
 - Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
 
 **Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out

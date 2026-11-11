@@ -177,8 +177,8 @@ except when these buttons collide"* (the chip on the Swap Column button). Tracke
   one dashed purple box, a faint outline on the phase's cells, and the chip. The click writes a per-cell width
   (`cellSpans`, the shape an edge drag stores, `{l, r, k}` reaching the far edge of the blank) on **those weeks only**.
   ⛔ Not the fill wish: the first build set it, and a wish fills every week with room, so Test wk 1 widened too when
-  the owner had pointed at weeks 8–10. Not offered beside a cell with a dragged width that week, or for a phase already
-  filling. (It was not offered beside a phase's own hiatus band either, until §12.)
+  the owner had pointed at weeks 8–10. Not offered for a phase already filling. (Until §12 it was not offered beside a phase's own
+  hiatus band either, and until 11 Nov 2026 not beside a cell that already had a per-cell width that week: see §12.)
 - **Pull back this week? / Pull back?** Rest on a cell with a per-cell width: the columns it took beyond its own, in
   amber; the click clears that cell's width, or the whole run of them (same phase, same own column, consecutive weeks).
   On a cell its phase's fill wish widened: the click turns the wish off (`setPhaseFill(key, null)`, the automatic
@@ -242,3 +242,11 @@ the left of each):
 - The 15 pictured calendars: every engine dump byte-identical before and after (30 dumps, 98.1% / 31 / 0). None
   carries a fill wish, which LR8 needs.
 - The month view never calls `computePhaseRowLayout`, so the month PDFs (gates 10 and 13) cannot move.
+
+**Follow-up, 11 Nov 2026** (owner, on Test wk 1 with a blank on each side: *"the expand box pops up on either side in the
+empty gaps but once i expand one side, the box no longer pops up on the other side empty space"*). The prompt refused any
+blank beside a cell that already had a per-cell width that week, and its run stopped at one, so the first Expand? took
+the other side's away. Both guards are gone: the click already keeps the side a cell has taken (read off the drawn cell,
+`a` / `b`) and reaches across the new blank, so the two sides add up (`{l: 1, r: 1}`). A dragged width keeps its own
+side the same way. Leg `hoverhiatus` B6 (Prod Prep 7 weeks and Test kept to its column, so the hiatus weeks and wk 9
+have a blank each side): red on the build before (no chip on the right), 15/15 after.

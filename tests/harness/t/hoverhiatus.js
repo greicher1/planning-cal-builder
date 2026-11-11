@@ -17,6 +17,9 @@
 //   B4  the fill wish (a double-click on Test wk 8): all four two wide, the bands still bands (LR8; before it the two
 //       bands stayed one wide); the workbook merges the bands two wide as it does the weeks beside them; resting on a
 //       widened band offers "Pull back?", turning the fill off; one undo step each way
+//   B6  a blank on BOTH sides (owner, 11 Nov 2026: "once i expand one side, the box no longer pops up on the other side
+//       empty space"): Prod Prep 7 weeks and Test kept to its column; Expand? on the left, then Expand? still offered on
+//       the right blanks, three wide, the left kept; one undo step each
 //   B5  the other side: the hiatus moved to Test's first week (5/19/31), where the blank is on the band's RIGHT:
 //       "Expand?" for this week only beside it, and the fill wish widens it rightward
 //   E0  no engine errors
@@ -175,6 +178,37 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     C('B4e', 'one undo step: filling again, the bands with it', spans() === '2222' && kinds() === 'WBBW', J({ spans: spans(), kinds: kinds() }));
     await undo();
+    // ---- B6 ---- (owner, 11 Nov 2026: "once i expand one side, the box no longer pops up on the other side empty space")
+    // A blank on BOTH sides: Prod Prep 7 weeks (it ends 7/7), and Test kept to its own column (a double-click on its wide
+    // wk 10 sets the wish false), so the two hiatus weeks and wk 9 have a blank on each side, and wk 8 one on its left.
+    T.set('weeks-prodPrep', '7'); await T.sleep(300); await settle();
+    var w10 = [].find.call(document.querySelectorAll('#table-wrap td.sheet-phase-cell'), function (td) { return txt(td) === 'Test wk 10'; });
+    var held = !!w10 && w10.colSpan > 1;
+    if (held) { w10.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true })); await T.sleep(200); await settle(); }
+    var rowsOf = function () { return DATES.map(function (d) { var t = testCell(d); return !t ? '-' : (isBlank(t.previousElementSibling) ? 'b' : '.') + t.colSpan + (isBlank(t.nextElementSibling) ? 'b' : '.'); }).join(' '); };
+    var shape0 = rowsOf();
+    var c6a = null, c6b = null, sp6a = '', s6 = null;
+    if (shape0 === 'b1. b1b b1b b1b') {
+      await rest(testCell('7/7/31').previousElementSibling); c6a = chip();
+      if (c6a) await press(c6a);
+      sp6a = spans();
+      var right = testCell('7/28/31').nextElementSibling;
+      if (isBlank(right)) { await rest(right); c6b = chip(); }
+      var c6bt = c6b && [txt(c6b), c6b.title];
+      if (c6b) await press(c6b);
+      s6 = await save();
+    }
+    var cs6 = s6 && s6.cellSpans || {};
+    C('B6a', 'a blank on each side: Expand? on the left widens all four weeks; Expand? is STILL offered on the right blanks (the two hiatus weeks, wk 9 and wk 10), and widens them, keeping the left',
+      shape0 === 'b1. b1b b1b b1b' && !!c6a && sp6a === '2222' && !!c6b && txt(c6b) === 'Expand?' && c6b.title.indexOf('these 4 weeks') !== -1 && spans() === '2333'
+        && J(cs6['2031-07-28|custom1']) === J({ l: 1, r: 1, k: cs6['2031-07-28|custom1'] && cs6['2031-07-28|custom1'].k }) && cs6['2031-07-14|custom1'] && cs6['2031-07-14|custom1'].l === 1 && cs6['2031-07-14|custom1'].r === 1,
+      J({ before: shape0, heldBy: held, leftChip: c6a && txt(c6a), afterLeft: sp6a, rightChip: c6bt || null, afterRight: spans(), wk9: cs6['2031-07-28|custom1'] || null, band: cs6['2031-07-14|custom1'] || null }));
+    await undo();
+    var u6 = spans();
+    await undo();
+    C('B6b', 'one undo step takes back the right side only, the next the left', u6 === '2222' && spans() === '1111', J({ afterUndo1: u6, afterUndo2: spans() }));
+    if (held) await undo();
+    T.set('weeks-prodPrep', '10'); await T.sleep(300); await settle();
     // ---- B5 ----
     T.set('phiatus-start-custom1', '2031-05-19'); await T.sleep(300); await settle();
     var bnd = testCell('5/19/31');

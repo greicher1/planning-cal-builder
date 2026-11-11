@@ -30,6 +30,12 @@
     `origin/main` control run under that load produced no result at all), `offweek (offweek)` 42/42, `hoverhiatus` 13/13.
   - `npm run check` 42/42. The month view never calls `computePhaseRowLayout`: gates 10 / 13 not run.
 - **No full gate** (a partial gate assembled from gate.sh's sections instead, as for v1.11.0).
+- ⭐ **Follow-up, 11 Nov 2026** (owner, trying the build, on Test wk 1 with a blank each side: *"once i expand one side,
+  the box no longer pops up on the other side empty space"*): `hoverPromptFor` refused a blank beside a cell with a
+  per-cell width, and the run broke at one. Both guards removed; the click keeps the side already taken. Leg
+  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right). Re-checked on the new build: `hoverexpand`
+  18/18 (on a fresh port; on port 8466 it threw in H6's Load twice, and the build BEFORE the fix throws there the same
+  way, so not this change), `centrepullback` 12/12, `phasefill` 13/13, `npm run check` 42/42.
 - ⏭ **Left:** the owner tries `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
   `hover-hiatus-8463`; its origin's crash backups from my test clicks are deleted); then the push picker. Not pushed;
   local `main` not moved.

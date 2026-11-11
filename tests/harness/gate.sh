@@ -2113,7 +2113,9 @@ done
 # FILL-INTENT-PLAN.md §12) on hover-hiatus.sptcal (Test wk 8, Test Hiatus x2, Test wk 9, a blank on the left of each):
 # one box over all four weeks from beside the band or the week, Expand? widening the band weeks too, Pull back? from a
 # widened band, the double-click fill widening the bands (LR8) and the workbook merging them two wide, and the band
-# with its blank on the RIGHT. B4 red without LR8; B1-B5 red on the build before the hover change.
+# with its blank on the RIGHT. B4 red without LR8; B1-B5 red on the build before the hover change. B6 (11 Nov 2026:
+# "once i expand one side, the box no longer pops up on the other side empty space"): a blank each side, Expand? on the
+# left, then still offered on the right and the left kept; red on the build before (no chip).
 # newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
 # the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
 # info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.

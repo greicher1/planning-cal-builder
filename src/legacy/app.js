@@ -1041,8 +1041,12 @@ export function initLegacyApp() {
   //     the same phase, a faint outline on that phase's cell, and a chip. The click widens THOSE WEEKS ONLY, across the
   //     blank: one per-cell width each (cellSpans, the shape an edge drag stores), one undo. ⛔ Not the fill wish: the
   //     first build set it, and the owner, on Test weeks 8-10: "clicked expand and then it also expanded test wk 1" --
-  //     a wish fills every week with room, and he had pointed at three. Not offered beside a cell with a dragged exact
-  //     width that week, nor for a phase already filling.
+  //     a wish fills every week with room, and they had pointed at three. Not offered for a phase already filling.
+  //     ⭐ A cell that already has a per-cell width still offers Expand? on any blank left beside it (owner, 11 Nov 2026,
+  //     on Test wk 1 with a blank on each side: "the expand box pops up on either side in the empty gaps but once i expand
+  //     one side, the box no longer pops up on the other side empty space"). The first build refused any cell with a
+  //     width that week, so expanding one side took the other side's offer away. The click keeps the side already taken
+  //     (its claim is read off the drawn cell, `a` / `b`) and reaches across the new blank, so the two sides add up.
   //   ⭐ A PHASE'S OWN HIATUS IS PART OF THE PHASE (owner, 10 Nov 2026: "We need the expand and pull back to work with per
   //     phase hiatuses. And arguably, an entire phase, including its per phase hiatus should operate as one single block
   //     where the expand box would span the length of the entire phase including the hiatus"). Its band stands in for
@@ -1115,7 +1119,7 @@ export function initLegacyApp() {
       const o = blankOwner(td);
       if(!o) return null;
       const pk = o.td.dataset.pkey;
-      if(phaseFillOn(pk) || cellSpans[o.td.dataset.week + '|' + pk] !== undefined) return null;
+      if(phaseFillOn(pk)) return null;
       return { id: 'x|' + pk + '|' + o.td.dataset.week + '|' + o.side, kind: 'expand', pkey: pk, td, owner: o };
     }
     if(isPhaseTd(td) && (td.colSpan || 1) > 1){
@@ -1143,7 +1147,7 @@ export function initLegacyApp() {
         let tr = rowOf(c.td)[dir];
         while(tr){
           const t = hoverSameBoxTd(tr, b, g), o = t && sameOwner(t);
-          if(!o || cellSpans[o.td.dataset.week + '|' + c.pkey] !== undefined) break;
+          if(!o) break;
           rects.push(tdBox(t, g)); phaseBoxes.push(tdBox(o.td, g)); cells.push({ td: o.td, side: o.side }); runTds.add(t).add(o.td);
           tr = tr[dir];
         }
