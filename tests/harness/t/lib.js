@@ -52,17 +52,39 @@ window.__T = (function(){
   //    inside the app would have hidden exactly that.
   //  - modalText() leaves the dialog out while in this mode, for the moment between its opening and the click.
   //  - t/pdfdialog.js takes it over ('manual') to drive it the way a user does.
-  var pdfDialogMode = 'auto', pdfDialogAnswered = 0;
+  //  - ⭐ T.pdfDialogPick(['dashed', 'tabloid']) (11 Nov 2026): the NEXT dialog answered in 'auto' clicks those segments
+  //    first, then Export. Since the owner removed Paper and Grid Lines in Exports from Preferences, the dialog is
+  //    the only place a user picks either, so a leg that needs a paper or a grid-lines preference goes through it.
+  //    T.pdfDialog() also reports what the last answered dialog OPENED on (`opened`) and its segments (`values`).
+  var pdfDialogMode = 'auto', pdfDialogAnswered = 0, pdfDialogPicks = null, pdfDialogLast = null;
+  function pdfDialogRadios(){ return Array.prototype.slice.call(document.querySelectorAll('.export-pdf-dlg input[type="radio"]')); }
   function answerPdfDialog(){
     if(pdfDialogMode !== 'auto') return;
     var b = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
-    if(b && !b.__tAnswered){ b.__tAnswered = true; pdfDialogAnswered++; b.click(); }
+    if(!b || b.__tAnswered) return;
+    b.__tAnswered = true; pdfDialogAnswered++;
+    var rs = pdfDialogRadios();
+    pdfDialogLast = { values: rs.map(function(i){ return i.value; }),
+                      opened: rs.filter(function(i){ return i.checked; }).map(function(i){ return i.value; }) };
+    var picks = pdfDialogPicks; pdfDialogPicks = null;
+    if(!picks || !picks.length){ b.click(); return; }
+    picks.forEach(function(v){
+      var inp = pdfDialogRadios().find(function(i){ return i.value === v; });
+      if(!inp){ (window.__ERR = window.__ERR || []).push('T.pdfDialogPick: no ' + v + ' segment'); return; }
+      var lab = document.querySelector('label[for="' + inp.id + '"]');
+      (lab || inp).click();
+    });
+    setTimeout(function(){
+      var e = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
+      if(e) e.click();
+    }, 300);
   }
   new MutationObserver(answerPdfDialog).observe(document.documentElement, {childList: true, subtree: true});
   function pdfDialog(mode){
     if(mode === 'auto' || mode === 'manual') pdfDialogMode = mode;
-    return { mode: pdfDialogMode, answered: pdfDialogAnswered };
+    return { mode: pdfDialogMode, answered: pdfDialogAnswered, last: pdfDialogLast };
   }
+  function pdfDialogPick(values){ pdfDialogPicks = [].concat(values || []); }
   // Alt+Left / Alt+Right on the document: the column swap's keyboard path. The toolbar's
   // ◀ Swap / Swap ▶ buttons only duplicated it, and they went with owner ruling 2 (30 Sep 2026),
   // so the swap legs press the keys. The engine's handler needs a live selection in the
@@ -859,7 +881,7 @@ window.__T = (function(){
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,pdfStreams:pdfStreams,pdfInflated:pdfInflated,pdfRuns:pdfRuns,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
-          pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
+          pdfDialog:pdfDialog,pdfDialogPick:pdfDialogPick,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
           rebuildAll:rebuildAll, solveKeepSide:solveKeepSide};
 })();

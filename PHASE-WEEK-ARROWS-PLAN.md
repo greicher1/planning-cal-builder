@@ -82,6 +82,11 @@ side in a sidebar of 24% of the window (320 to 440 px; 415 on a 1728 window, 346
 ## 3. Behaviour (as ruled; §7 lists the calls)
 
 - **One click = one week, this phase only.** The gaps either side change; the Shift tool keeps gaps.
+  - ⭐ **Since 11 Nov 2026, one WORKING week while Ripple Hiatus is on** (owner: *"When ripple hiatus is on if you bump
+    over a hiatus period, it should bump it right to the week before/after the hiatus"*). `nudgePhase` passes
+    `stepHeld: hiatusRippleOn()`, so the arrows count weeks the way Shift does (`stepOverHeld`): the empty week window
+    holds every all-phase hiatus, locked or not, and a click from the week before one lands the week after it. The
+    label counts calendar weeks ("Pushed 3 wks"). Ripple off: one calendar week, as below. Leg `phasearrowsripple`.
 - **▲ = earlier** (the phase moves up the waterfall). ▼ = later.
 - **Moves with it:** its own hiatus; every `<week>|<key>` store (spans, column swaps, text styles, band names and
   colours); its automatic notes (they are computed) and edited automatic notes (as the month drag does); Production's

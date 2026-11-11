@@ -781,9 +781,10 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  prefs threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('inertAtBoot'), f"prefs: inert with nothing stored -- no preference, no interior rules in the PDF ({a.get('pdfNoneInterior')})")
-chk(a.get('controlFound') and a.get('insideExcludedCard'),
-    "prefs: the control exists and sits inside .prefs-card (the collectFieldValues exclusion)")
-chk(a.get('optionValues')=='none,solid,dashed', f"prefs: exactly three options, None the default ({a.get('optionValues')})")
+chk(a.get('controlGone'),
+    "prefs: Grid Lines in Exports is gone from Preferences (owner, 11 Nov 2026); the Export PDF dialog sets it")
+chk(a.get('optionValues')=='none,solid,dashed' and a.get('valueAtBoot')=='none',
+    f"prefs: the dialog's Grid lines has exactly three options and opens on None ({a.get('optionValues')}, {a.get('valueAtBoot')})")
 chk(a.get('reachesPdf'), f"prefs: choosing Dashed puts interior rules INTO THE PDF ({a.get('pdfNoneInterior')} -> {a.get('pdfDashedInterior')})")
 chk(a.get('reallyDashed'),
     f"prefs: they are really DASHED, and the dash state is reset after every stroke ({a.get('dashOps')} set / {a.get('dashResets')} reset)")
@@ -1979,6 +1980,10 @@ done
 # where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
 # undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
 # Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
+# phasearrowsripple (owner, 11 Nov 2026) is the same arrows with Ripple Hiatus ON (the users' default): one click is one
+# WORKING week, so ▼ from the week before an all-phase hiatus lands the week after it and ▲ comes back (the locked
+# Summer Break, the two-week Christmas break, the unlocked Fall Break), the label counts calendar weeks ("Pushed 3
+# wks"), and no band moves. Red on the build before (R1, R4, R6 land inside the break). On phasearrows.sptcal.
 # mvdragcarry (owner, 4 Nov 2026, by picker; PHASE-WEEK-ARROWS-PLAN.md §5) is the month view's body drag on the arrows'
 # mover: a dragged phase carries its own hiatus and its "<week>|<key>" stores by the whole weeks its run moved, always
 # from the press (out and back is exact, a stale band label included), live while the button is down, as ONE undo step;
@@ -2164,7 +2169,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
-              papersize:-:500 \
+              papersize:-:1000 \
               pdfdialog:-:500 \
               phasefold:-:300 \
               hiatusfold:-:300 \
@@ -2189,6 +2194,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               buildalongside:anchorside:200 \
               buildaroundfresh:-:120 \
               phasearrows:phasearrows:400 \
+              phasearrowsripple:phasearrows:300 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
@@ -2217,7 +2223,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               layoutrules:layout-r23:300 layoutrules:layout-r23b:300 layoutrules:layout-r21b:240 layoutrules:layout-r3c:240 \
               phasefill:fill-intent:400 \
               colsreset:fill-intent:300 \
-              fillspace:layout-r13:300 \
+              fillspace:layout-r13:300 lanefill:layout-r9:240 \
               swapholds:swap-holds:400 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \

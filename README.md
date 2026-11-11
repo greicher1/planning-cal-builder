@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
+## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
 ### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)
 
@@ -51,6 +51,51 @@ by a targeted run). An A/B on `origin/main` and this build gave the same failure
   copy showed `lastEdited` as the only difference, and Production's four marks back in another order); the five
   re-expected legs and `loadcarry` green; `lastedited` 22/22, `buildaround` 36/36, `noteviews` 15/15, `undokeys` 11/11,
   `scenarios` 23/23, `scenariofacts` 12/12, `phasekeys` 18/18, `phasemonth` 21/21; `npm run check` 42/42.
+
+### A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+
+Owner: *"When ripple hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after
+the hiatus"*. The phase card's arrows moved one calendar week a click by design, so a phase the week before a break
+went ▼ INTO it. Now, while Ripple Hiatus Periods is on (the default), a click is one WORKING week, as Shift and the
+toolbar arrows already count: ▼ from the week before an all-phase hiatus lands the week after it, ▲ from the week
+after lands the week before, locked break or not. The card's label counts the calendar weeks moved ("Pushed 3 wks"
+over a two-week break). With Ripple Hiatus off, the arrows move one calendar week as before. `nudgePhase` passes
+`stepHeld: hiatusRippleOn()`; nothing frozen, no save-format change. New leg `phasearrowsripple` (in `gate.sh` after
+`phasearrows`): 10/10 on the build, red on R1, R4, R6 without the fix (the phase lands inside the break). Neighbours on
+the build: `hiatusripple` 19/19, `shiftheld` 13/13, `anchorside` 39/39, `stalebandkey` 9/9, `npm run check` 42/42.
+⚠️ `phasearrows` 23/26 (N1, M1, F1) and `mvdragcarry` 11/15 (O2, K1, P1, F1) fail identically WITHOUT this change (both
+run with the ripple off, so it cannot reach them; Production's day marks): existing failures on `main`, not
+investigated here.
+
+### With Fill Gaps on, Prep fills the empty Simultaneous Post column (11 Nov 2026)
+
+The owner, with two screenshots: *"why is prod prep not filling when fill gaps is on but is filling when its off?"*,
+then, by picker, *"Prep fills the lane"*, and *"prep should fill the lane only when fill gaps is turned on"*. Since
+6 Nov 2026 (rule 15, frozen edit LR4 (a)) a phase sharing its row with another, such as Prod Prep beside Writer's Rm,
+was kept out of the Simultaneous Post column until the shoot ended. Fill Gaps off's one-width-per-year plan
+(`layoutEvenPlan`) never asked about that column, so it filled it. The switch therefore did the reverse of what it says.
+Now the lane is kept only with Fill Gaps OFF: frozen edit LR9 in `computePhaseRowLayout` turns `laneReserved` off while
+the switch is on, and `layoutEvenPlan` applies the same test to a run that shares a row. A phase alone still fills the
+column either way (rule 14).
+
+Verified: new leg `lanefill` on `layout-r9` (on: Prod Prep two wide all 14 weeks; off: one wide with the lane empty; on
+again: two wide), red on the build before it, in the gate's AFSPEC list. `npm run check` 42/42. The 15 reference
+pictures go from 98.1% to 94.3% with Fill Gaps on (62 width misses, all Pre-Prep / Prod Prep beside Writer's Rm in
+hand-02, -03, -04 and -09, which draw it one wide): the change the owner asked for. Full gate: see HANDOFF.
+
+### Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
+
+Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and
+DD/MM/YY"*. Settings › Preferences › Waterfall now holds Single Column Mode, Dates and Hidden Notes columns. Paper and
+Grid Lines in Exports are chosen only in the Export PDF dialog, which already set the same saved paper and the same
+grid-lines preference, so Export to Excel follows it as before. Dates lists the four formats in the owner's order,
+named by pattern; the output stays unpadded (owner's picker), so MM/DD/YY is still the default 1/6/25 and every
+existing calendar looks as it did. Day first reads 6/1/25 or 6/1/2025 on screen, in the PDF, and in Excel as real
+dates in `d/m/yy` / `d/m/yyyy`. Two new permanent `dateFormat` values, `d/m/yyyy` and `d/m/yy`; an older build drops
+them and opens the calendar month first. The legs that drove the removed menus now go through the dialog
+(`T.pdfDialogPick` in `t/lib.js`), and `hdrrow` gains D6–D8 for day first. Verified: `hdrrow` 40/40, `settingswin`
+21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12 (its gate timeout raised to 1000 s: choosing a paper now exports a PDF), `prefs`, `sharecopy2`,
+`npm run check` 42/42. No full gate: nothing frozen, and the default output is unchanged.
 
 ### Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
 

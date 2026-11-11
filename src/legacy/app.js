@@ -4598,7 +4598,11 @@ export function initLegacyApp() {
   // two-digit-year date in its text.
   // ⛔ CALENDAR DATA: captureSnapshot()'s `dateFormat`, written only when not the default, so a calendar
   // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
-  const WEEK_DATE_FORMATS = ['m/d/yyyy'];
+  // ⭐ Day first since 11 Nov 2026 (owner: the Dates menu reads MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY):
+  // 'd/m/yyyy' and 'd/m/yy', also PERMANENT values. Unpadded, as the default always was (owner's picker,
+  // "Unpadded"), so 6 Jan 2025 reads 6/1/25. An older build's sanitizer drops a value it does not know, so a
+  // day-first calendar opens there month first, never refused.
+  const WEEK_DATE_FORMATS = ['m/d/yyyy', 'd/m/yyyy', 'd/m/yy'];
   let dateFormat = '';
   // The paper ('' = Letter) and an orientation picked in the Export PDF dialog ('' = follow the rule):
   // calendar data, explained beside SHEET_PAPERS. Declared up here only so boot code can read them.
@@ -4609,13 +4613,16 @@ export function initLegacyApp() {
   // buildWaterfallPdf's date cell -- and fmtShort() itself while the setting is the default, so those
   // three draw exactly what they drew before.
   function fmtWeekDate(date){
-    if(dateFormat !== 'm/d/yyyy') return fmtShort(date);
-    return `${date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+    if(!WEEK_DATE_FORMATS.includes(dateFormat)) return fmtShort(date);
+    const m = date.getUTCMonth()+1, d = date.getUTCDate();
+    const y = dateFormat.endsWith('yyyy') ? String(date.getUTCFullYear()) : String(date.getUTCFullYear()).slice(2);
+    return dateFormat.startsWith('d/') ? `${d}/${m}/${y}` : `${m}/${d}/${y}`;
   }
   // Excel's date-cell format. 'mm-dd-yy' is ExcelJS's name for built-in format 14, which Excel draws
   // in the READER'S system short-date format -- so the default is left exactly as it was written.
-  // 'm/d/yyyy' is an explicit custom format, the same on every machine.
-  function weekDateNumFmt(){ return dateFormat === 'm/d/yyyy' ? 'm/d/yyyy' : 'mm-dd-yy'; }
+  // 'm/d/yyyy' is an explicit custom format, the same on every machine, and so are the day-first two: the
+  // saved values ARE Excel's format codes.
+  function weekDateNumFmt(){ return WEEK_DATE_FORMATS.includes(dateFormat) ? dateFormat : 'mm-dd-yy'; }
 
   // ---------- The waterfall's header row (owner ruling 2, 20 Oct 2026; HEADER-ROW-PLAN.md §4) ----------
   // Off (the default): every year block's header row is `Date | <year> | Notes`, exactly as always --
@@ -21530,7 +21537,22 @@ export function initLegacyApp() {
         runs.push({ s, r0, r1, from: s, to: s });
       });
     }
-    const freeOn = (n, R) => { for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
+    // The lane (owner, 11 Nov 2026: "prep should fill the lane only when fill gaps is turned on"). With the switch off a
+    // run that SHARES a row with another phase never takes the Sim Post column while a marker row lies at or after its
+    // first row: rule 15's lane, which Fill Gaps on no longer keeps (LR9). So Prod Prep beside
+    // Writers' Rm stays one wide, the same width every week. A run alone still fills it (rule 14).
+    const laneSlot = occupancy.findIndex(m => m && [...m.values()].indexOf(LAYOUT_SIM_KEY) >= 0);
+    const laneHeld = (n, R) => {
+      if(n !== laneSlot) return false;
+      let ahead = false; occupancy[laneSlot].forEach((key, r) => { if(r >= R.r0 && key === LAYOUT_SIM_KEY) ahead = true; });
+      if(!ahead) return false;
+      for(let w = R.r0; w <= R.r1; w++) for(let j = 0; j < mc && j < occupancy.length; j++){
+        if(j === R.s || j === laneSlot || !occupancy[j]) continue;
+        const k = occupancy[j].get(w); if(k !== undefined && k !== LAYOUT_SIM_KEY) return true;
+      }
+      return false;
+    };
+    const freeOn = (n, R) => { if(laneHeld(n, R)) return false; for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
     runs.forEach(R=>{ let t = R.s; while(t + 1 < mc && freeOn(t + 1, R)) t++; R.to = t; });
     const heldBy = (n, R) => runs.some(X => X !== R && X.from <= n && n <= X.to && X.r0 <= R.r1 && R.r0 <= X.r1);
     runs.forEach(R=>{ let f = R.s; while(f - 1 >= 0 && freeOn(f - 1, R) && !heldBy(f - 1, R)) f--; R.from = f; });
@@ -21582,7 +21604,12 @@ export function initLegacyApp() {
     // Prod Prep is two wide the week before its shoot), and a hole BETWEEN two phases still goes to the left one
     // (R-E). The even share still caps a LEFTWARD extension (hand-08 keeps Post one wide beside a freed column on its
     // left) and every hand-dragged width (applyCellSpanOverrides). Unstamped, every line is what it was.
+    // ⛔ FROZEN EDIT LR9 (owner, 11 Nov 2026, by picker "Prep fills the lane", then "prep should fill the lane only when
+    // fill gaps is turned on"). LR4 (a)'s lane is kept only with Fill Gaps OFF (`fillSpaceOff`), where layoutEvenPlan
+    // keeps it too; with it on, a phase sharing its row fills the empty lane column like any other (Prod Prep beside
+    // Writers' Rm two wide). Before, on kept the lane and off filled it, the reverse of what the switch says.
     const laneReserved = (n) => {
+      if(!fillSpaceOff) return false;   // LR9
       if(!stamped || !occupancy || fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
       let ahead = false; occupancy[fixedSimSlot].forEach((key, r) => { if(r >= localWeek && key === LAYOUT_SIM_KEY) ahead = true; });
       return ahead;
@@ -31292,7 +31319,9 @@ export function initLegacyApp() {
   //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
   //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
   //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
-  //     The phase card's ▲ / ▼ move one phase one week by design.
+  //     The phase card's ▲ / ▼ opt in too, but only while Ripple Hiatus is on (owner, 11 Nov 2026: "When ripple
+  //     hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after the hiatus");
+  //     with it off they move one calendar week, as built (PHASE-WEEK-ARROWS-PLAN.md).
   function stepOverHeld(n, held){
     if(!held || !held.size) return d => addDays(d, n * 7);
     const isHeld = w => held.has(isoOf(w));
@@ -31722,7 +31751,8 @@ export function initLegacyApp() {
   }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
   //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
-  //           arrows and the hiatus ripple pass it; the phase arrows and the month drag (carryOnly) do not.
+  //           arrows and the hiatus ripple pass it; the phase arrows pass it while Ripple Hiatus is on (nudgePhase);
+  //           the month drag (carryOnly) never does.
   function shiftCalendarDates(weeks, fromIso, opts){
     opts = opts || {};
     const except = opts.except || null;
@@ -32309,10 +32339,20 @@ export function initLegacyApp() {
       nudgeBurst = {key, weeks: 0, notesBase: autoNoteBaseline(), bound: beginShootDayMove(), note: '', timer: null};
     }
     const b = nudgeBurst;
-    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true});
+    // ⭐ THE STEP-OVER, while Ripple Hiatus is on (owner, 11 Nov 2026): one click is one WORKING week, so a phase the
+    // week before an all-phase hiatus goes ▼ to the week after it, and ▲ from the week after lands the week before.
+    // The empty week window holds every all-phase hiatus (hiatusFatesFor: none is in range), so every one is stepped
+    // over, locked or not. Ripple off: one calendar week, as built, into the break if that is where it falls.
+    const res = shiftCalendar(dir, null, {part: Object.assign({phases: [key]}, NUDGE_NO_WEEKS), keepView: true,
+      stepHeld: hiatusRippleOn()});
     reapplyAutoNoteBaseline(b.notesBase);
     cancelPendingUndoPush();   // banked once, by endNudgeBurst
-    if(res && res.movedPhases) b.weeks += dir;
+    // The label counts CALENDAR weeks, so a click that stepped a 2-week break reads "Pushed 3 wks" (res.stepped names
+    // a phase only when it moved other than `dir`).
+    if(res && res.movedPhases){
+      const st = (res.stepped || []).find(x => x.key === key);
+      b.weeks += st ? st.weeks : dir;
+    }
     // What the burst so far does to Production's day marks (a worked holiday no longer on a holiday, a mark with no
     // shoot day left), worked out from the original pins as endShootDayMove will, and said in the result line's short
     // words. Through takeShootDayMoveNote, the one formatter, which also leaves nothing for a later result line.

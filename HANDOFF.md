@@ -247,6 +247,43 @@
     `wfnotecolors`, `autonoterename`, `holidayrename`; `grep -l note-pop tests/harness/t`), so the rebuild has to keep
     their selectors or move them with it.
 
+### ✅ 11 Nov 2026: A PHASE'S ▲ / ▼ STEP OVER A HIATUS WHILE RIPPLE HIATUS IS ON. Committed LOCALLY on `main`, not pushed. Tracker card `phase-arrows-step-over-hiatus`.
+- **Owner:** *"i dont think the bump up and down buttons on individual phases are skipping over the hiatus periods properly. When ripple hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after the hiatus"*. Tried on localhost first, then *"Finish it"*.
+- **Cause:** not a bug in the step-over: the phase arrows were never given it ("The phase card's ▲ / ▼ move one phase one week by design", PHASE-WEEK-ARROWS-PLAN.md), so ▼ from the week before a break went INTO it.
+- **As built:** `nudgePhase` passes `stepHeld: hiatusRippleOn()` to `shiftCalendar`. The arrows' EMPTY week window means `hiatusFatesFor` holds every all-phase hiatus, so every one is stepped over, locked or not. The card's label adds `res.stepped`'s calendar weeks ("Pushed 3 wks" over a 2-week break). Ripple off: one calendar week, unchanged. Nothing frozen, no save-format change.
+- **Proof:** new leg `phasearrowsripple` (in `gate.sh` after `phasearrows`; it DELETES `hiatusRipple` from `sptcal.prefs` at its top, before the app reads prefs, to undo lib.js's off switch): 10/10, red on R1/R4/R6 on the build before. `hiatusripple` 19/19, `shiftheld` 13/13, `anchorside` 39/39, `stalebandkey` 9/9, `npm run check` 42/42. Tried in the pane on `?state=phasearrows`. No full gate (nothing frozen or exported changed).
+- ⚠️ **EXISTING FAILURES ON `main`, found here, not caused by this:** `phasearrows` 23/26 (N1, M1, F1) and `mvdragcarry` 11/15 (O2, K1, P1, F1), identical on the build WITHOUT this change. All concern Production's day marks after a move and undo (e.g. M1's marks land 6/29 off / 6/26 half / 7/4 on). Both legs run with the ripple off. Not investigated; worth a look before the next full gate.
+
+### 🔨 11 Nov 2026: WITH FILL GAPS ON, PREP FILLS THE SIM POST LANE; OFF KEEPS IT (frozen edit LR9). Branch `lane-fill` (worktree `.claude/worktrees/lane-fill`, from `origin/main` at `52a112b`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `lane-fill-8991`. Committed locally, NOT pushed. Tracker card `prep-fills-sim-lane`.
+- **The report.** Owner, two screenshots of a stamped calendar: Prod Prep one wide beside Writer's Rm with Fill Gaps ON,
+  two wide with it OFF. Cause: rule 15's lane (`laneReserved`, LR4 (a)) keeps a phase SHARING its row out of the Sim
+  Post column until the shoot ends; Fill Gaps off's `layoutEvenPlan` only asked whether the column was empty on the
+  run's rows, so it filled it. Owner's picker *"Prep fills the lane"*, then *"prep should fill the lane only when fill
+  gaps is turned on"*.
+- **As built.** LR9: `laneReserved` returns false unless `fillSpaceOff`, so with the switch on rule 15 is gone and rule 13
+  fills the lane column like any other. `layoutEvenPlan` (not frozen) gained `laneHeld`: the lane slot (the slot holding
+  `LAYOUT_SIM_KEY` rows) is not free for a run that shares any of its rows with another phase while a marker row lies at or
+  after the run's first row. A run alone still fills it (rule 14). ⚠️ The name LR8 was already taken by the per-phase
+  hiatus edit (`hover-hiatus`, live), so this is LR9.
+- **Measured.** The 15 pictures with reuse on: 98.1% / 31 / 0 → **94.3% / 31 / 62**; every one of the 62 is Pre-Prep or
+  Prod Prep drawn one wide beside Writers (hand-02, -03, -04, -09), now two. Reuse off unchanged (82.3%). That is the
+  ruling, not a regression: LAYOUT-RULES.md rule 15 now says so.
+- **Checks.** New leg `lanefill` (layout-r9, L1-L3 + E0) green, red on the build before; in gate.sh's AFSPEC list after
+  `fillspace`. `npm run check` 42/42. **Full gate (12:36-13:40, beside another session's gate): 4,347 PASS / 24 FAIL**,
+  every export baseline identical (waterfall PDF, workbook, month print + writer), 0 clipped cells. Each failure re-run
+  ALONE on this build and on the build before it (`origin/main` 52a112b): the same eleven legs fail identically on both
+  (autonoterename F1, autonoteview V9, hidewf F3, holidayrename F1, loadcarry C2, mvdragcarry O2/K1/P1/F1, phasearrows
+  N1/M1/F1, wfnotecolors F1 -- save/load identity cases, pre-existing on main, not this change); hdrrow, launchopen,
+  phasecolors, onecol, hdrfile, stickycols, monthwriter (notewrap) green alone; phasesui P1 was a load timeout on one
+  fixture, green on both builds re-run. Not re-run: pilllabel (shootorder) W2 and scenariocompat v1.2.0 (month pills /
+  the frozen v1.2.0 release file; neither reads the waterfall layout).
+
+### ✅ 11 Nov 2026: PREFERENCES › WATERFALL LOSES PAPER AND GRID LINES; DATES GETS FOUR FORMATS. ✅ **LIVE at `ff3eb64`** (pushed `50e4b8e..ff3eb64` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `d4cec324…`, served ~50 s after the push). No version cut, so open app windows learn of it only on a full relaunch past Pages' 10-min cache. Tracker card `prefs-dates-four-formats`.
+- **Ask (owner, a screenshot of the Paper and Grid Lines in Exports rows):** *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and DD/MM/YY"*. Picker: **unpadded** (6 Jan 2025 = 6/1/25 day first; every existing calendar draws as before).
+- **As built:** `Sidebar.jsx` `WaterfallCard` drops `#wf-paper` and `#pref-gridlines` (both still set in the Export PDF dialog, which writes the same `paperSize` key and `gridlines` preference, so Excel follows it; `reflectPaperSize()` / `reflectGridlines()` find no select and no-op). Dates lists `m/d/yyyy` MM/DD/YYYY, `''` MM/DD/YY, `d/m/yyyy`, `d/m/yy`. `app.js`: `WEEK_DATE_FORMATS` gains the two day-first values (⛔ PERMANENT); `fmtWeekDate()` formats all four; `weekDateNumFmt()` returns the value itself as Excel's code (default still `mm-dd-yy`). Nothing frozen edited. An older build's sanitizer drops the new values, so such a file opens there month first.
+- ⭐ **Legs:** a leg that needs a paper or a grid-lines preference now picks it in the dialog: `T.pdfDialogPick(['tabloid', 'dashed'])` (`t/lib.js`) makes the NEXT auto-answered dialog click those segments before Export, and `T.pdfDialog().last` reports what the last dialog opened on (`opened`) and its segments (`values`). Moved: `prefs`, `sharecopy2`, `settingswin` (W13 now asserts both rows gone and the four date options), `papersize` (`setPaper` exports a PDF; the paper is read from the dialog), `pdfdialog`, `notescols`. `hdrrow` gains D6–D8 (day first on screen, Excel `d/m/yyyy`/`d/m/yy`, the PDF, Save/Load). ⚠️ `papersize` now runs past 500 s; its gate timeout is 1000.
+- **Proof:** `hdrrow` 40/40, `settingswin` 21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12, `prefs` PASS, `sharecopy2` pass, `npm run check` 42/42; tried in the pane on `?state=anchorside`. No full gate (nothing frozen; the default output is unchanged).
+
 ### ✅ 11 Nov 2026: BUILD AROUND SEES THE WINTER BREAK ON A NEW CALENDAR'S FIRST RUN. ✅ **LIVE at `50e4b8e`** (commit `751fe02`, origin's HANDOFF-only `62ca02a` merged in; pushed `62ca02a..50e4b8e` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `31402a98…`, at 21:36 UTC). No version cut. Tracker card `build-around-first-run-hiatus`.
 - **Owner's report:** on a new file, a first Build Around with every phase ticked ran Writer's Rm two weeks into Pre-Prep. Reopened, Writer's Rm was unticked; ticked and built again, it chained right.
 - **Cause:** `hiatusRangesForSolve()` (the backward pass and "ends by") took the all-phase hiatuses from `currentSchedule.hiatuses`. `computeSchedule()` returns no `hiatuses` key while no phase has a segment (the `segments.length===0` early return), so on a new calendar the default 12/21/26 break was invisible. Writer's Rm was placed 20 calendar weeks back (12/7/26), the break then paused it, and it ended 5/7/27. The second run had a schedule, so it was right, and the "alongside" rule had unticked the room in between.

@@ -4,12 +4,13 @@
 //   HARNESS_PAGE=/dist/index.html ./run.sh papersize 400
 //
 // Letter is the default and must stay byte-identical (gates 2 and 3 hold that); this leg holds the shapes
-// that prove the setting is inert until chosen, then drives it through Settings ▸ Preferences ▸ Waterfall ▸
-// Paper and reads every output back: the PDF's page box and the size the grid is drawn at, and the workbook's
+// that prove the setting is inert until chosen, then drives it through the Export PDF dialog's Paper (its only
+// control since 11 Nov 2026, when the owner removed Paper from Settings ▸ Preferences ▸ Waterfall) and reads
+// every output back: the PDF's page box and the size the grid is drawn at, and the workbook's
 // paper number and orientation (through the page's own ExcelJS).
 //
-//   I   -- inert: the select (in .prefs-card, three options, Letter selected), no snapshot key, a Letter PDF
-//          page box, Excel paper 1.
+//   I   -- inert: no Paper select in Preferences, the dialog offering three papers and opening on Letter, no
+//          snapshot key, a Letter PDF page box, Excel paper 1.
 //   P   -- Legal and Tabloid: the PDF's page box, Excel's paper number, the PDF and the workbook turning the
 //          same way, the grid drawn larger on bigger paper and never past 100%.
 //   C   -- the calendars: one, two and three year blocks, Single Column, side boxes, Header: Off, each on all
@@ -89,7 +90,14 @@ window.addEventListener('load', function () { (async function () {
     return { paper: ws.pageSetup.paperSize, orient: ws.pageSetup.orientation, top: (ws.pageSetup.margins || {}).top };
   }
   async function both() { var p = await pdf(), x = await xlsx(); return { pdf: p, xlsx: x, agree: p.orient === x.orient }; }
-  async function setPaper(v) { T.set('wf-paper', v); await settle('the grid after Paper ' + (v || 'letter')); }
+  // Paper is chosen in the Export PDF dialog (T.pdfDialogPick), so choosing one exports a PDF on it. Picking a paper moves the
+  // dialog's orientation to that paper's recommended one, so no pageOrientation is ever written here.
+  async function setPaper(v) { T.pdfDialogPick([v || 'letter']); await pdf(); await settle('the grid after Paper ' + (v || 'letter')); }
+  // The calendar's paper, as the dialog opens on it ('' = Letter, the saved value), with the PDF that export wrote.
+  async function pdfAndPaper() {
+    var box = await pdf(), l = T.pdfDialog().last, p = l ? l.opened[0] : null;
+    return { box: box, paper: p === 'letter' ? '' : p };
+  }
 
   // ---- Save and Load through the real paths (hdrrow's shape) -------------------------------------------
   var written = [];
@@ -148,18 +156,18 @@ window.addEventListener('load', function () { (async function () {
     out.pdfDialogMode = T.pdfDialog().mode;
 
     // ===== I: inert ========================================================================================
-    var sel = byId('wf-paper');
-    var opts = sel ? Array.prototype.map.call(sel.options, function (o) { return o.value; }) : [];
     var s0 = JSON.parse(await save());
     var ids0 = Object.keys(s0.fields.byId).sort();
     var b0 = await both();
-    kase('I1', 'inert: the Paper select is in .prefs-card with Letter / Legal / Tabloid, Letter selected; Save writes no paperSize or pageOrientation key; the PDF is a Letter page and the workbook says paper 1; the two agree',
-      !!sel && !!sel.closest('.prefs-card') && sameArr(opts, ['', 'legal', 'tabloid']) && sel.value === '' &&
+    var d0 = T.pdfDialog().last || { values: [], opened: [] };
+    var opts = d0.values.slice(0, 3);
+    kase('I1', 'inert: no Paper select in Preferences (owner, 11 Nov 2026); the Export PDF dialog offers Letter / Legal / Tabloid and opens on Letter; Save writes no paperSize or pageOrientation key; the PDF is a Letter page and the workbook says paper 1; the two agree',
+      !byId('wf-paper') && sameArr(opts, ['letter', 'legal', 'tabloid']) && d0.opened[0] === 'letter' &&
       !('paperSize' in s0) && !('pageOrientation' in s0) && ids0.indexOf('wf-paper') < 0 &&
       ((b0.pdf.w === 612 && b0.pdf.h === 792) || (b0.pdf.w === 792 && b0.pdf.h === 612)) && b0.xlsx.paper === 1 && b0.agree,
       { opts: opts, keys: ['paperSize', 'pageOrientation'].filter(function (k) { return k in s0; }), b0: b0 });
 
-    // ===== P: Legal and Tabloid, through the select =======================================================
+    // ===== P: Legal and Tabloid, through the dialog =======================================================
     var undoWas = undoOff();
     await setPaper('legal');
     var dirtyLegal = /Unsaved/.test((document.querySelector('.save-status') || {}).textContent || '');
@@ -181,21 +189,21 @@ window.addEventListener('load', function () { (async function () {
     await setPaper('');
     var sLetter = JSON.parse(await save());
     await load(JSON.stringify(sT));
-    var afterLoad = byId('wf-paper').value, bLoad = await pdf();
+    var aL = await pdfAndPaper(), afterLoad = aL.paper, bLoad = aL.box;
     var noKey = JSON.parse(JSON.stringify(sT)); delete noKey.paperSize; delete noKey.pageOrientation;
     await load(JSON.stringify(noKey));
-    var afterNoKey = byId('wf-paper').value, bNoKey = await pdf();
+    var aN = await pdfAndPaper(), afterNoKey = aN.paper, bNoKey = aN.box;
     var junk = JSON.parse(JSON.stringify(sT)); junk.paperSize = 'a4'; junk.pageOrientation = 'sideways';
     await load(JSON.stringify(junk));
-    var afterJunk = byId('wf-paper').value, sJunk = JSON.parse(await save());
-    kase('S1', 'Save writes paperSize: "tabloid", and Letter writes no key; Load brings Tabloid back (the select and the PDF); a file with no key opens on Letter, never the previous file\'s paper (M-5); an unknown paper and orientation are dropped',
+    var afterJunk = (await pdfAndPaper()).paper, sJunk = JSON.parse(await save());
+    kase('S1', 'Save writes paperSize: "tabloid", and Letter writes no key; Load brings Tabloid back (the dialog and the PDF); a file with no key opens on Letter, never the previous file\'s paper (M-5); an unknown paper and orientation are dropped',
       sT.paperSize === 'tabloid' && !('paperSize' in sLetter) && afterLoad === 'tabloid' && (bLoad.w === 792 || bLoad.w === 1224) &&
       afterNoKey === '' && (bNoKey.w === 612 || bNoKey.w === 792) && bNoKey.h !== 1008 && bNoKey.h !== 1224 &&
       afterJunk === '' && !('paperSize' in sJunk) && !('pageOrientation' in sJunk),
       { saved: sT.paperSize, letterKey: 'paperSize' in sLetter, afterLoad: afterLoad, loadBox: [bLoad.w, bLoad.h], afterNoKey: afterNoKey,
         noKeyBox: [bNoKey.w, bNoKey.h], afterJunk: afterJunk, junkKeys: ['paperSize', 'pageOrientation'].filter(function (k) { return k in sJunk; }) });
     var idsNow = Object.keys(sT.fields.byId).sort();
-    kase('S2', 'fields.byId gains no id: the Paper select is skipped by the sweep (its id set is the one from before any paper was chosen)',
+    kase('S2', 'fields.byId gains no id: choosing a paper adds none (the id set is the one from before any paper was chosen)',
       sameArr(idsNow, ids0) && idsNow.indexOf('wf-paper') < 0, { added: idsNow.filter(function (k) { return ids0.indexOf(k) < 0; }) });
 
     // One undo step, and redo.
@@ -204,11 +212,11 @@ window.addEventListener('load', function () { (async function () {
     await setPaper('legal');
     await T.sleep(800);
     await undo();
-    var uVal = byId('wf-paper').value, uBox = await pdf();
+    var uA = await pdfAndPaper(), uVal = uA.paper, uBox = uA.box;
     await redo();
-    var rVal = byId('wf-paper').value;
+    var rVal = (await pdfAndPaper()).paper;
     await undo();
-    kase('S3', 'a Paper change is one undo step: undo puts Letter back (the select and the PDF), redo Legal again',
+    kase('S3', 'a Paper change is one undo step: undo puts Letter back (the dialog and the PDF), redo Legal again',
       uVal === '' && uBox.h !== 1008 && uBox.w !== 1008 && rVal === 'legal', { undo: uVal, undoBox: [uBox.w, uBox.h], redo: rVal, undoWasOff: undoWas });
 
     // ===== C: the calendars, each on every paper ===========================================================
@@ -284,10 +292,10 @@ window.addEventListener('load', function () { (async function () {
     T.buildFixture();
     await T.until(function () { return document.querySelectorAll('#table-wrap table.sheet-table tbody tr').length > 10; }, 'the grid after New', 200, 100);
     await settle('the calendar after New');
-    var nBox = await pdf(), nSnap = JSON.parse(await save());
-    kase('N1', 'New starts on Letter: the select, the PDF page box and the snapshot (no key)',
-      byId('wf-paper').value === '' && nBox.h !== 1224 && nBox.w !== 1224 && !('paperSize' in nSnap) && !('pageOrientation' in nSnap),
-      { select: byId('wf-paper').value, box: [nBox.w, nBox.h] });
+    var nA = await pdfAndPaper(), nBox = nA.box, nSnap = JSON.parse(await save());
+    kase('N1', 'New starts on Letter: the dialog, the PDF page box and the snapshot (no key)',
+      nA.paper === '' && nBox.h !== 1224 && nBox.w !== 1224 && !('paperSize' in nSnap) && !('pageOrientation' in nSnap),
+      { paper: nA.paper, box: [nBox.w, nBox.h] });
     out.pdfDialogAnswered = T.pdfDialog().answered;
   } catch (e) { out.EX = String(e && e.stack || e); kase('EX', 'the leg ran to the end', false, { error: out.EX }); }
   out.health = T.appHealth ? T.appHealth() : null;

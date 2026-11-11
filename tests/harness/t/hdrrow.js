@@ -15,7 +15,7 @@
 //          screen and in the print fallback's CSS, no Excel page header and a 0.25in top, no PDF header
 //          text and the grid 18pt down, one undo step, Off over Manual keeps the lines, Save/Load and the
 //          M-5 trap (a file with no key opens with its header on).
-//   D   -- the date format (ruling 4, notes "Keep 1/6/25"): 1/6/2025 on screen, wider THROUGH the width
+//   D   -- the date format (ruling 4, notes "Keep 1/6/25"; D6-D8 day first, 11 Nov 2026): 1/6/2025 on screen, wider THROUGH the width
 //          model with 0 clipped cells, auto notes untouched, Excel's numFmt and real dates, the PDF's text,
 //          one undo step, Save/Load and the M-5 trap.
 //   H   -- column headings, editable ALL THE TIME (HEADINGS-EDITABLE-PLAN.md, owner 22 Oct 2026: "remove the
@@ -408,6 +408,41 @@ window.addEventListener('load', function () { (async function () {
       dPlain.first === '1/5/26' && dPlain.sel === '' && dBack.first === '1/5/2026' && dBack.sel === 'm/d/yyyy' &&
       dM5.first === '1/5/26' && dM5.sel === '',
       { dUndo: dUndo, dRedo: dRedo, dPlain: dPlain, dBack: dBack, dM5: dM5 });
+    await load(fixtureText);
+
+    // ===== D6-D8: day first (owner, 11 Nov 2026: Dates offers MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY; unpadded) =====
+    // Each day-first date is its month-first twin with the first two numbers swapped, row for row.
+    var swapDM = function (d) { var m = /^(\d{1,2})\/(\d{1,2})\/(\d+)/.exec(d); return m ? m[2] + '/' + m[1] + '/' + m[3] : null; };
+    var D2y = dates();
+    T.set('wf-date-format', 'd/m/yyyy');
+    await settle('the grid after DD/MM/YYYY');
+    var DdmY = dates(), clipDmY = T.clippedCells().h;
+    var xdm = await xlsx(), pdm = await pdf();
+    kase('D6', 'DD/MM/YYYY: every date is its 1/6/2025 twin day first (5/1/2026), unpadded, 0 clipped cells; the workbook writes real dates in d/m/yyyy; the PDF draws 5/1/2026 and 4/1/2027',
+      DdmY.length === D1.length && DdmY.every(function (d, i) { return d === swapDM(D1[i]); }) && DdmY[0] === '5/1/2026' &&
+      DdmY.some(function (d) { return /^\d{2}\/\d\//.test(d); }) && clipDmY.length === 0 &&
+      xdm.a2fmt === 'd/m/yyyy' && xdm.a2isDate && sameArr(xdm.row1, x0.row1) &&
+      pdm.strings.indexOf('5/1/2026') !== -1 && pdm.strings.indexOf('4/1/2027') !== -1 && pdm.strings.indexOf('1/5/2026') === -1,
+      { first: DdmY.slice(0, 3), a2fmt: xdm.a2fmt, clipped: clipDmY.slice(0, 3) });
+    T.set('wf-date-format', 'd/m/yy');
+    await settle('the grid after DD/MM/YY');
+    var Ddmy = dates(), clipDmy = T.clippedCells().h;
+    var xdy = await xlsx(), pdy = await pdf();
+    kase('D7', 'DD/MM/YY: every date is its 1/6/25 twin day first (5/1/26), 0 clipped cells; the workbook writes d/m/yy; the PDF draws 5/1/26',
+      Ddmy.length === D2y.length && Ddmy.every(function (d, i) { return d === swapDM(D2y[i]); }) && Ddmy[0] === '5/1/26' && clipDmy.length === 0 &&
+      xdy.a2fmt === 'd/m/yy' && xdy.a2isDate && pdy.strings.indexOf('5/1/26') !== -1 && pdy.strings.indexOf('1/5/26') === -1,
+      { first: Ddmy.slice(0, 3), a2fmt: xdy.a2fmt, clipped: clipDmy.slice(0, 3) });
+    var dmSaved = await save(), dmSnap = JSON.parse(dmSaved);
+    await load(fixtureText);
+    var dmPlain = { first: dates()[0], sel: byId('wf-date-format').value };
+    await load(dmSaved);
+    var dmBack = { first: dates()[0], sel: byId('wf-date-format').value };
+    T.set('wf-date-format', 'd/m/yyyy'); await settle('the grid after DD/MM/YYYY again');
+    var dmY = JSON.parse(await save());
+    kase('D8', 'Save writes dateFormat "d/m/yy" or "d/m/yyyy" (no new field id); Load brings day first back and the select follows; another calendar opens month first',
+      dmSnap.dateFormat === 'd/m/yy' && dmY.dateFormat === 'd/m/yyyy' && sameArr(Object.keys(dmSnap.fields.byId).sort(), ids0) &&
+      dmPlain.first === '1/5/26' && dmPlain.sel === '' && dmBack.first === '5/1/26' && dmBack.sel === 'd/m/yy',
+      { saved: [dmSnap.dateFormat, dmY.dateFormat], dmPlain: dmPlain, dmBack: dmBack });
     await load(fixtureText);
 
     // ===== H: column headings, editable all the time (HEADINGS-EDITABLE-PLAN.md, 22 Oct 2026) ============

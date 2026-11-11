@@ -16,7 +16,11 @@ window.addEventListener('load', function () { (async function () {
     // A real calendar, and a non-default preference (Grid Lines dashed) that must NOT travel.
     T.buildFixture();
     await T.until(function () { return document.querySelectorAll('table.sheet-table tbody tr').length > 10; }, 'the grid', 200, 100);
-    set('pref-gridlines', 'dashed');
+    // Chosen in the Export PDF dialog, its only control since the owner took it out of Preferences (11 Nov 2026).
+    await T.sleep(700);
+    T.pdfDialogPick(['dashed']);
+    await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF with Grid lines Dashed');
+    out.dashedStored = /"gridlines"\s*:\s*"dashed"/.test((function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return ''; } })() || '');
     await T.sleep(700);
 
     // The share control is #share-copy-btn, in the Settings window's Preferences tab since owner ruling 12

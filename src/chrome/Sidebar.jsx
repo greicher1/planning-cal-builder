@@ -461,9 +461,7 @@ export function WaterfallCard() {
           How the waterfall reads, on screen and in Excel and the PDF. Double-click any column heading
           to type your own, or to split or merge headings; Reset puts a heading back. A Notes heading
           can also hide its column on screen and in Excel and the PDF; click its thin strip, or its
-          year below, to bring it back. Paper is the sheet the PDF and the Excel file are laid
-          out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
-          cell borders in Excel and the PDF only; the grid on screen is unchanged.
+          year below, to bring it back. The paper and the grid lines are chosen when you export a PDF.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -504,52 +502,20 @@ export function WaterfallCard() {
         <SettingRow htmlFor="wf-date-format" label="Dates">
           <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
                         title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
-            <option value="">1/6/25</option>
-            <option value="m/d/yyyy">1/6/2025</option>
+            {/* Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
+                picker): MM/DD/YY still draws 1/6/25. The values are the save format: '' is the absent
+                key, the others are permanent (WEEK_DATE_FORMATS in app.js). */}
+            <option value="m/d/yyyy">MM/DD/YYYY</option>
+            <option value="">MM/DD/YY</option>
+            <option value="d/m/yyyy">DD/MM/YYYY</option>
+            <option value="d/m/yy">DD/MM/YY</option>
           </NativeSelect>
         </SettingRow>
         <HiddenNotesRow />
-        {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`
-            snapshot key, so it sits with the calendar settings above Grid Lines, not after it. The same
-            .prefs-card rule as #wf-date-format: the sweep skips the id, and the engine owns the value.
-            ⛔ UNCONTROLLED: reflectPaperSize() writes .value and a delegated 'change' sets it.
-            The option values are the save format: '' (Letter, an absent key), 'legal', 'tabloid'.
-            The Export PDF dialog shows and changes the same value. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="wf-paper" label="Paper">
-          <NativeSelect id="wf-paper" size="xs" w={150} aria-label="Paper"
-                        title="The paper the waterfall PDF and the Excel file are laid out for">
-            <option value="">Letter (8.5 × 11)</option>
-            <option value="legal">Legal (8.5 × 14)</option>
-            <option value="tabloid">Tabloid (11 × 17)</option>
-          </NativeSelect>
-        </SettingRow>
-        {/* ⚠️ THE ONE ROW IN THIS CARD THAT IS A PREFERENCE, kept on this computer (localStorage) and never
-            saved in the calendar -- which is why it is last, and why the Preferences tab's opening line
-            names it in the waterfall.
-            Uncontrolled ON PURPOSE: the engine writes .value in reflectGridlines(), the same
-            contract #tool-anchor-date has. A controlled input would ignore that write.
-            ⛔ Export-only: the owner ruled 3 Sep 2026 that this is "about the pdf export ... not in
-            the live app view". The editor's own gridlines are unchanged by it.
-            ⛔ No separate "Default" entry (owner, 3 Sep 2026): None IS the default, and a Default
-            that merely meant None was a second name for the same output. None is listed first for
-            that reason.
-            ⚠️ "EXPORTS", PLURAL, AND THAT PLURAL IS LOAD-BEARING. This drives SHEET_GRIDLINES, which
-            BOTH writers read -- exportExcel draws the workbook's cell borders from it just as
-            buildWaterfallPdf draws the PDF's. It briefly shipped as "Grid Lines in PDF Export",
-            which was flagged as understating the reach and corrected by the owner the same day.
-            Grid lines is a waterfall setting by what it DOES, not only by ruling: nothing in the
-            month view or exportMonthPdf reads SHEET_GRIDLINES. Hidden in Month view, it still
-            applies to every waterfall export. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="pref-gridlines" label="Grid Lines in Exports">
-          <NativeSelect id="pref-gridlines" size="xs" w={132}
-                        aria-label="Grid Lines in Exports">
-            <option value="none">None</option>
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed (Excel style)</option>
-          </NativeSelect>
-        </SettingRow>
+        {/* ⛔ Paper (#wf-paper) and Grid Lines in Exports (#pref-gridlines) sat here until 11 Nov 2026, when the
+            owner removed them from Preferences. Both are still chosen in the Export PDF dialog, which writes the same
+            `paperSize` key and the same `gridlines` preference, so Excel follows that choice too. The engine's
+            reflectPaperSize() / reflectGridlines() find no select and do nothing. */}
       </div>
     </section>
   )
