@@ -1978,8 +1978,10 @@
   .solve-len-ro.is-unset{color:var(--mantine-color-warn-9); font-weight:600;}
   .solve-row.is-nolen .solve-ch{color:var(--mantine-color-warn-9);}
   .solve-ch{overflow:hidden; text-overflow:ellipsis;}
-  /* Why a phase was left unticked (owner, 10 Nov 2026): one quiet line under Prior / After, only while it applies.
-     The engine writes it and hides it through `hidden`. */
+  /* Why a phase was left unticked (owner, 10 Nov 2026): one quiet line under the list, only while it applies.
+     The engine writes it and hides it through `hidden`. Build Around has no Prior / After row (owner, 10 Nov 2026),
+     so its list box carries the gap that row gave: 10 px to "Pin to a date", 6 px to this line. */
+  #pop-solve .shift-box{margin-bottom:10px;}
   .solve-left{margin:-4px 0 10px; padding:6px 9px; border-radius:var(--mantine-radius-md); font-size:11px; line-height:1.4;
     color:var(--mantine-color-gray-7); background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-2);}
   .solve-note{margin:-2px 0 var(--mantine-spacing-md); padding:6px 9px; border-radius:var(--mantine-radius-md);

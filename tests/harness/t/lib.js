@@ -75,13 +75,13 @@ window.__T = (function(){
   // ticks, so a leg written against the old buttons keeps asserting the same dates. The popover must be
   // open with its phase and date set. ** RE-QUERY each tick: the list is redrawn on every change. The
   // rebuildticks leg is the one that holds what unticked phases do.
-  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list now holds BOTH sides with the pin in its
-  // place, and Before / After (Prior to X / After X since 10 Nov 2026, the same two ids) tick one side by a rule (a
-  // phase running alongside its neighbour starts unticked). So this ticks every phase on the chosen side only (rows
-  // before the pin for -1, after it for 1) and unticks the other side: still exactly the old one-sided, every-phase
-  // rebuild. The buildaround leg holds the defaults.
+  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list holds BOTH sides with the pin in its place,
+  // and it opens with ticks set by a rule (a phase running alongside its neighbour starts unticked). ⛔ There are NO
+  // side buttons since 10 Nov 2026 (owner: Prior to X / After X removed; tool-solve-back / tool-solve-fwd are gone),
+  // so this reaches one side by the boxes alone: it ticks every phase on the chosen side (rows before the pin for
+  // -1, after it for 1) and unticks the other side. Still exactly the old one-sided, every-phase rebuild. The
+  // buildaround leg holds the defaults.
   function rebuildAll(dir){
-    document.getElementById(dir < 0 ? 'tool-solve-back' : 'tool-solve-fwd').click();
     function sideBoxes(want){
       var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
       var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); });
@@ -91,6 +91,22 @@ window.__T = (function(){
     for(var guard = 0, box; guard < 60 && (box = sideBoxes(true).filter(function (b) { return !b.checked; })[0]); guard++) box.click();
     for(guard = 0; guard < 60 && (box = sideBoxes(false).filter(function (b) { return b.checked; })[0]); guard++) box.click();
     document.getElementById('tool-solve-go').click();
+  }
+  // BUILD AROUND, ONE SIDE OF THE PIN BY THE BOXES ALONE (there are no Prior to / After buttons since 10 Nov 2026):
+  // unticks every ticked phase on the OTHER side. dir -1 keeps the phases before the pin, 1 the ones after it. The
+  // kept side's ticks are left as they are (the starting ticks, or the caller's own). Synchronous: a box's click
+  // redraws the list at once, so every pass re-queries.
+  function solveKeepSide(dir){
+    for(var guard = 0; guard < 60; guard++){
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
+      var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); }), box = null;
+      rows.forEach(function (r, i) {
+        var b = r.querySelector('input[type=checkbox][data-key]');
+        if(!box && at >= 0 && b && b.checked && (dir < 0 ? i > at : i < at)) box = b;
+      });
+      if(!box) return;
+      box.click();
+    }
   }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
@@ -845,5 +861,5 @@ window.__T = (function(){
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
-          rebuildAll:rebuildAll};
+          rebuildAll:rebuildAll, solveKeepSide:solveKeepSide};
 })();

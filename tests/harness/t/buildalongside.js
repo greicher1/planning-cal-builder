@@ -22,7 +22,8 @@
 //   A3      Post, starting the day before the wrap, is ticked
 //   A4      Localization, in Post's last week, is left unticked, reads "Stays" and is named on the line
 //   A5      the count and the button: "4 of 5 build", "Build 4 phases"
-//   A6      After Post: the same verdict with Post pinned (Localization against the pin itself)
+//   A6      the same verdict with Post pinned (Localization against the pin itself); the phases before the pin are
+//           ticked. ⚠️ Until 10 Nov 2026 this pressed "After Post": the Prior to / After buttons are gone (owner).
 //   E0      0 console errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -67,12 +68,13 @@ window.addEventListener('load', function () { (async function () {
       count() === '4 of 5 build' && $('tool-solve-go').textContent === 'Build 4 phases', {count: count(), go: $('tool-solve-go').textContent}, '"4 of 5 build", "Build 4 phases"');
 
     await T.solvePress('post', 'row');
-    $('tool-solve-fwd').click(); await T.sleep(450);
     var r6 = rows();
-    add('A6', 'with Post pinned, After Post leaves Localization out for the same reason, judged against the pin itself, and ticks nothing else',
-      $('tool-solve-phase').value === 'post' && $('tool-solve-fwd').textContent === 'After Post' && r6.localization.ticked === false && left() === LOC_LINE
-        && count() === '0 of 5 build' && $('tool-solve-go').textContent === 'Tick a phase to build',
-      {pin: $('tool-solve-phase').value, rows: r6, left: left(), count: count(), go: $('tool-solve-go').textContent}, 'Localization unticked and on the line; "Tick a phase to build"');
+    add('A6', 'with Post pinned (a click on its row), Localization is left out for the same reason, judged against the pin itself; every phase before the pin, the shoot included, is ticked; there are no Prior to / After buttons',
+      $('tool-solve-phase').value === 'post' && r6.post.pin && r6.localization.ticked === false && left() === LOC_LINE
+        && r6.writersRoom.ticked === true && r6.prePrep.ticked === true && r6.prodPrep.ticked === true && r6.production.ticked === true
+        && count() === '4 of 5 build' && !$('tool-solve-back') && !$('tool-solve-fwd') && !pop().querySelector('.shift-side'),
+      {pin: $('tool-solve-phase').value, rows: r6, left: left(), count: count(), go: $('tool-solve-go').textContent,
+       sideBtns: pop().querySelectorAll('.shift-side').length}, 'Post pinned; Localization unticked and on the line; the four before it ticked; no side buttons');
     document.body.click();
     var errs = (window.__ERR || []);
     add('E0', '0 console errors', errs.length === 0, errs.slice(0, 5), '[]');

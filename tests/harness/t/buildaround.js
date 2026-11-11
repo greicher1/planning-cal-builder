@@ -19,6 +19,12 @@
 // overlap the next phases, only sometimes"). On buildFixture that is Localization (it starts in Post's last week:
 // the Christmas hiatus pauses Post to Fri 3/5/27); Writer's Rm ends a week before Pre Prep, so it is ticked.
 //
+// ⚠️ UPDATED AGAIN 10 Nov 2026: NO PRIOR TO / AFTER BUTTONS (owner: "using the build around tool is such a big change
+// that i dont think we need the before and after buttons. I'd say just get rid of them entirly"). The row under the
+// list is gone (tool-solve-back / tool-solve-fwd retired); the box always builds both sides of the pin and what is
+// built is what is ticked. O1 holds that they are gone and that Shift keeps its own pair; S1-S3, Z1 and E5, which
+// pressed them, now reach one side by the ticks alone (a box, a drag).
+//
 // PART 1, A NEW CALENDAR (nothing entered, as the app boots):
 //   N1      the box offers every phase (today's said "No phases scheduled yet"), Production pinned, "Pick a date"
 //   N2      Production's length reads "Not set", read-only, and the Show info line is up
@@ -30,13 +36,15 @@
 // Prep 5/18 x 6, Production 6/29, Post 11/2 x 16, Localization 3/1/27 x 8):
 //   O1-O4   opening: the name and heading, Shift's order of parts, every phase in run order with the pin in its place
 //           and outlined, both sides ticked but Localization (alongside Post, named on the line), Production's cell
-//           "80 days" with no input, the other lengths in boxes, no Close all gaps, no Both button, no row titles
+//           "80 days" with no input, the other lengths in boxes, no Close all gaps, no Both / Prior to / After
+//           button (Shift still has its two), no row titles
 //   H1      the header box: ticks every phase that can be built (Localization too), then shows a minus and clears
-//   K1      a click on a row PINS it (the dropdown and the date follow, both buttons name it); its box ticks and
-//           leaves the pin; a tap on the row pins too
+//   K1      a click on a row PINS it (the dropdown and the date follow); its box ticks and leaves the pin; a tap
+//           on the row pins too
 //   D1      a drag sets a run, passes over the pin, and never moves it; dragging back un-does it
 //   B1-B3   the shoot pinned two weeks later: both sides in one run, the previewed dates delivered, one undo
-//   S1-S3   Prior to / After tick one side by the rule; a phase ticked by hand drops off the line
+//   S1-S3   one side of the pin by the ticks alone (a box, a drag): the line still names an untouched Localization;
+//           a phase ticked by hand drops off the line
 //   L1-L4   Prod Prep typed 8 with the shoot pinned where it is: Prod Prep and Pre Prep pulled 2 wks, the field still
 //           6 until Build; Build saves 8 with the dates; one undo restores both
 //   Z1      a length saved with nothing moved ("Save 1 length")
@@ -80,9 +88,9 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(450);
   }
   function go(){ return $('tool-solve-go'); }
-  // The two buttons under the list, the line that says why a phase was left unticked ('' while hidden), the count
-  // in the strip and its box.
-  function sides(){ return $('tool-solve-back').textContent.trim() + ' | ' + $('tool-solve-fwd').textContent.trim(); }
+  // How many side buttons the box has (none since 10 Nov 2026: Prior to X / After X are gone), the line that says
+  // why a phase was left unticked ('' while hidden), the count in the strip and its box.
+  function sideBtns(){ return pop().querySelectorAll('.shift-side, [data-dir]').length + ($('tool-solve-back') ? 1 : 0) + ($('tool-solve-fwd') ? 1 : 0); }
   function left(){ var n = pop().querySelector('[data-solve-left]'); return n && !n.hidden ? (n.textContent || '').trim() : ''; }
   function count(){ return (pop().querySelector('[data-solve-count]') || {}).textContent; }
   function allBox(){ return pop().querySelector('[data-solve-all]'); }
@@ -149,23 +157,25 @@ window.addEventListener('load', function () { (async function () {
     var btn = $('pop-solve-btn').textContent.trim(), head = (pop().querySelector('.tools-head') || {}).textContent || '';
     var kids = Array.prototype.map.call(pop().children, function (e) { return String(e.className || '').split(' ')[0]; }).join();
     var strip = pop().querySelector('.shift-all'), sbox = pop().querySelector('.shift-box');
-    add('O1', 'the button and the box read "Build Around"; the parts run as Shift\'s do (title, Phases, the box with its strip, Prior / After, the line, Pin to a date, Build); no column header, no Both button, no Close all gaps, no row title',
+    var shiftSides = document.querySelectorAll('#pop-shift .shift-side').length;
+    add('O1', 'the button and the box read "Build Around"; the parts run title, Phases, the box with its strip, the line, Pin to a date, Build; NO Prior to / After row (Shift keeps its two buttons); no column header, no Both button, no Close all gaps, no row title',
       /^Build Around/.test(btn) && head.replace(/\s+/g, ' ').trim() === 'Build Around' && !$('tool-close-gaps') && !/Rebuild/.test(pop().textContent)
-        && kids === 'tools-head,tools-cap,shift-box,tools-row,solve-left,solve-note,tools-cap,tools-row,tools-row,solve-go,tools-msg'
+        && kids === 'tools-head,tools-cap,shift-box,solve-left,solve-note,tools-cap,tools-row,tools-row,solve-go,tools-msg'
+        && sideBtns() === 0 && shiftSides === 2 && !/Prior to|After /.test(pop().textContent)
         && sbox.firstElementChild === strip && strip.nextElementSibling === pop().querySelector('[data-solve-list]')
         && !pop().querySelector('.solve-colhead') && !pop().querySelector('.solve-dir') && !$('tool-solve-both')
         && pop().querySelectorAll('.shift-box [title]').length === 0,
-      {btn: btn, head: head.trim(), kids: kids, colhead: !!pop().querySelector('.solve-colhead'), both: !!$('tool-solve-both'), titles: pop().querySelectorAll('.shift-box [title]').length},
-      'Build Around; Shift\'s order of parts; no column header, Both, Close all gaps or titles');
+      {btn: btn, head: head.trim(), kids: kids, sideBtns: sideBtns(), shiftSides: shiftSides, colhead: !!pop().querySelector('.solve-colhead'), both: !!$('tool-solve-both'), titles: pop().querySelectorAll('.shift-box [title]').length},
+      'Build Around; the parts in order with no side buttons (Shift has 2); no column header, Both, Close all gaps or titles');
     var r0 = rows(), pinRow = rowEl('Production');
-    add('O2', 'every phase in the order it runs, the pinned shoot in its place and outlined; both buttons name it; the dropdown shows its date; it opens on "starts on"',
+    add('O2', 'every phase in the order it runs, the pinned shoot in its place and outlined; the dropdown shows its date; it opens on "starts on"',
       same(r0.map(function (r) { return r.nm; }), ["Writer's Rm", 'Pre Prep', 'Prod Prep', 'Production', 'Post', 'Localization'])
-        && r0[3].pin && pinRow.classList.contains('is-mark') && sides() === 'Prior to Production | After Production'
+        && r0[3].pin && pinRow.classList.contains('is-mark')
         && ($('tool-solve-phase').selectedOptions[0] || {}).textContent === 'Production — 6/29/26'
         && ($('tool-solve-edge').selectedOptions[0] || {}).textContent === 'starts on'
         && val('tool-solve-edge') === 'start' && val('tool-solve-date') === '2026-06-29',
-      {names: r0.map(function (r) { return r.nm; }), sides: sides(), pin: ($('tool-solve-phase').selectedOptions[0] || {}).textContent, edge: val('tool-solve-edge'), date: val('tool-solve-date')},
-      'run order, pin 4th and outlined, "Prior to Production | After Production", "Production — 6/29/26", starts on 6/29/26');
+      {names: r0.map(function (r) { return r.nm; }), pin: ($('tool-solve-phase').selectedOptions[0] || {}).textContent, edge: val('tool-solve-edge'), date: val('tool-solve-date')},
+      'run order, pin 4th and outlined, "Production — 6/29/26", starts on 6/29/26');
     add('O3', 'starting ticks, by the rule: every phase with a length, Writer\'s Rm included (it ends a week before Pre Prep), except Localization, which starts in Post\'s last week and is named on the line; "4 of 5 build"',
       row("Writer's Rm").ticked === true && row("Writer's Rm").ch === 'Pushed 1 wk' && row('Pre Prep').ticked === true && row('Prod Prep').ticked === true
         && row('Post').ticked === true && row('Localization').ticked === false && row('Localization').ch === 'Stays'
@@ -191,7 +201,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- K: a click on a row pins it; its box ticks ----
     await openBox();
     await T.solvePress('prePrep', 'row');
-    var k = {pin: val('tool-solve-phase'), date: val('tool-solve-date'), sides: sides(), pinRow: row('Pre Prep').pin && rowEl('Pre Prep').classList.contains('is-mark'),
+    var k = {pin: val('tool-solve-phase'), date: val('tool-solve-date'), pinRow: row('Pre Prep').pin && rowEl('Pre Prep').classList.contains('is-mark'),
              oldPin: row('Production').ticked, ticked: tickedNames()};
     await T.solvePress('writersRoom', 'box');
     k.boxPin = val('tool-solve-phase'); k.boxTicked = tickedNames();
@@ -199,8 +209,8 @@ window.addEventListener('load', function () { (async function () {
     k.boxBack = tickedNames();
     rowEl('Post').querySelector('.solve-nm').click(); await T.sleep(450);      // a tap: a click no press swallowed
     k.tapPin = val('tool-solve-phase'); k.tapDate = val('tool-solve-date');
-    add('K1', 'a click on the Pre Prep row pins it: the dropdown, the date (its own, 4/6/26) and both buttons follow, its row is the outlined pin, and the shoot gets a tick box; a click on Writer\'s Rm\'s box clears and ticks it and leaves the pin; a tap on the Post row pins Post',
-      k.pin === 'prePrep' && k.date === '2026-04-06' && k.sides === 'Prior to Pre Prep | After Pre Prep' && k.pinRow && k.oldPin === true
+    add('K1', 'a click on the Pre Prep row pins it: the dropdown and the date (its own, 4/6/26) follow, its row is the outlined pin, and the shoot gets a tick box; a click on Writer\'s Rm\'s box clears and ticks it and leaves the pin; a tap on the Post row pins Post',
+      k.pin === 'prePrep' && k.date === '2026-04-06' && k.pinRow && k.oldPin === true
         && k.ticked === "Writer's Rm,Prod Prep,Production,Post" && k.boxPin === 'prePrep' && k.boxTicked === 'Prod Prep,Production,Post'
         && k.boxBack === "Writer's Rm,Prod Prep,Production,Post" && k.tapPin === 'post' && k.tapDate === '2026-11-02',
       k, 'pin Pre Prep 4/6/26; the box leaves the pin; a tap pins Post 11/2/26');
@@ -249,14 +259,15 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     add('B3', 'one undo restores every phase', same(starts(), s0), starts(), s0);
 
-    // ---- S: the shortcuts ----
+    // ---- S: one side of the pin, by the ticks alone (there are no Prior to / After buttons) ----
     await openBox();
-    $('tool-solve-back').click(); await T.sleep(400);
+    tick('Post', false); await T.sleep(400);
     var sb = rows();
-    add('S1', 'Prior to Production: every phase before the shoot ticked, Writer\'s Rm too; Post and Localization not; nothing on the line (Localization is on the other side)',
-      tickedNames() === "Writer's Rm,Pre Prep,Prod Prep" && left() === '' && count() === '3 of 5 build', {rows: sb, left: left()}, 'the three earlier phases only');
-    $('tool-solve-fwd').click(); await T.sleep(400);
-    add('S2', 'After Production: Post ticked, the earlier phases not; Localization, alongside Post, left unticked and named on the line',
+    add('S1', 'the earlier side alone: Post unticked by its box leaves the three phases before the shoot, Writer\'s Rm too; Localization, still untouched, is still named on the line',
+      tickedNames() === "Writer's Rm,Pre Prep,Prod Prep" && left() === LOC_LINE && count() === '3 of 5 build', {rows: sb, left: left()}, 'the three earlier phases only; the line');
+    await T.solveDrag('writersRoom', 'prodPrep');
+    tick('Post', true); await T.sleep(400);
+    add('S2', 'the later side alone: one drag clears the three earlier phases and Post is ticked again; Localization, alongside Post, is still unticked and named on the line',
       tickedNames() === 'Post' && left() === LOC_LINE && count() === '1 of 5 build', {rows: rows(), left: left()}, 'Post only; the line');
     tick('Localization', true); await T.sleep(400);
     // Built in line, Localization follows Post. Post is pulled a week (the week buildFixture leaves after the wrap
@@ -284,7 +295,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- Z: a length saved with nothing moved ----
     await openBox();
-    $('tool-solve-back').click(); await T.sleep(300);
+    tick('Post', false); await T.sleep(300);
     tick("Writer's Rm", false); tick('Pre Prep', false); tick('Prod Prep', false); await T.sleep(300);
     await typeLen('Localization', '9');
     tick('Localization', false); await T.sleep(400);
@@ -324,10 +335,10 @@ window.addEventListener('load', function () { (async function () {
       {go: go().textContent, date: val('tool-solve-date'), rows: rows()}, '2026-10-20; Production "On your date", Prod Prep "No change"');
     // ...and with the earlier phases alone, less the room (whose one-week gap before Pre Prep would close), nothing moves
     // at all: the disabled "No changes".
-    $('tool-solve-back').click(); await T.sleep(400);
+    tick('Post', false); await T.sleep(400);
     var e5a = go().textContent;
     tick("Writer's Rm", false); await T.sleep(400);
-    add('E5', 'Prior to Production alone would only close the room\'s gap ("Build 3 phases"); with the room unticked nothing would move: the disabled "No changes"',
+    add('E5', 'the phases before the shoot alone (Post unticked) would only close the room\'s gap ("Build 3 phases"); with the room unticked nothing would move: the disabled "No changes"',
       e5a === 'Build 3 phases' && go().textContent === 'No changes' && go().disabled,
       {withRoom: e5a, go: go().textContent, rows: rows()}, '"Build 3 phases", then "No changes"');
     closePops(); await T.sleep(200);

@@ -1950,7 +1950,10 @@ done
 # in one run; "ends by"; Production's length read-only ("Not set" + the Show info line); "Save 1 length"; closing
 # forgets; no Close all gaps; no id in the list. Since 10 Nov 2026 (plan §7) it wears Shift's look and feel: the order
 # of parts and no column header, Both button or row title (O1); the header box (H1); a click on a row pins it, its box
-# ticks (K1); a drag sets a run and never moves the pin (D1); Prior to X / After X by the rule (S1-S3).
+# ticks (K1); a drag sets a run and never moves the pin (D1). ⛔ NO Prior to X / After X since the same day (owner: "i
+# dont think we need the before and after buttons"): O1 holds that they are gone and that Shift keeps its two, and one
+# side is reached by the ticks alone (S1-S3; T.solveKeepSide in lib.js for the other legs). Red on a build that still
+# has the buttons: buildaround O1, rebuildticks L2 and D1, buildalongside A6.
 # buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
 # shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
 # week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
