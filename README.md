@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+
+The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
+its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*.
+
+- **The hover prompt** now reads a phase's own hiatus band as part of the phase. Resting beside the band offers
+  **Expand?**, the dashed box runs through the hiatus weeks (one box from Test wk 8 through both Test Hiatus weeks to
+  wk 9, "these 4 weeks"), and the click widens the hiatus weeks with the rest. A widened band offers **Pull back?**.
+  Before, a blank beside a band offered nothing and the box stopped at the band.
+- **The double-click fill** widens the band too when the free column is on its left (⛔ frozen edit LR8 in
+  `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
+  between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
+  the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
+
+**Verified:** see HANDOFF (10 Nov 2026, "A phase's own hiatus is part of the phase").
+
 ### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
 
 Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):

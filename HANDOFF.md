@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally, NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
+- **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
+  including its per phase hiatus should operate as one single block where the expand box would span the length of the
+  entire phase including the hiatus"*. LR8 by picker: *"Yes, make the edit"* (asked with the gate below).
+- **Found in the pane** (fixture `hover-hiatus.sptcal`: Test wk 8, Test Hiatus ×2, Test wk 9 in 7/7-7/28/31, a blank on
+  the left of each): no prompt beside a band; the box beside wk 8 one week tall; the double-click fill widened wk 8 and
+  wk 9 and left both bands one wide (frozen `computePhaseRowLayout`'s left-absorb excluded bands; the rightward walk
+  already honoured the wish for them; LAYOUT-RULES rule 16 says a band is as wide as its phase would be).
+- **Built:** (1) chrome, `isPhaseTd` in the hover prompt takes a band carrying the span contract, so Expand? / Pull back?
+  run through and act on band weeks (`cellSpans` keys a band as it keys its phase's cells); (2) ⛔ **frozen edit LR8**: in
+  the left-absorb branch a band absorbs the empty run on its left only when its phase fills (`fillsFree(n)`), pushed as
+  a band. No wish, or unstamped: unchanged. (3) Help: one sentence at the end of "How far a cell reaches".
+- **Proof so far:** `hoverhiatus` 13/13 on the build; 8/13 (B4a-e red) on the build without LR8, 3/13 on `origin/main`'s.
+  The 15 pictures: all 30 engine dumps byte-identical before / after (98.1% / 31 / 0). Partial gate
+  `tests/harness/partgate-hoverhiatus.zsh` (gate.sh's base / waterfall PDF / seams / Excel sections + offweek + the 20
+  layout fixtures + pointer and band legs; port 8466): waterfall PDF identical, Excel parts identical, 0 clipped,
+  phasefill green. Two FAILs under load average 85 (other sessions' gates): `offweek (offweek)` R12 the known 10 s
+  Load-wait flake (R13 follows it), `layoutrules (layout-r22c)` produced no result. Both need a re-run alone. The gate
+  was still running when the session hit its usage limit: read `tests/harness/partgate-hoverhiatus.log` for the rest.
+  `npm run check` 42/42.
+- ⏭ **Left:** re-run those two legs alone; finish reading the partial gate log; `npm run build` again (the Help
+  sentence in `src/index.html` was added after the gated build; the build was not rebuilt so the gate's dist would not
+  change under it); hand the owner the try link `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
+  `hover-hiatus-8463`); then the commit / push pickers. Not pushed. The pane origin localhost:8463 holds crash backups
+  from my own test clicks: delete them before the owner tries it.
+
 ### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
   button and the size selector ad there is between and the right shift button and Build around button"*, which I first

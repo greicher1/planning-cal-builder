@@ -20962,7 +20962,15 @@ export function initLegacyApp() {
         // empty run (each empty slot is free for that phase's whole run), let that phase
         // left-extend to absorb them -- so a lone phase fills the width even when an earlier
         // (non-overlapping) phase briefly held the column to its left. A per-phase hiatus band
-        // is excluded as an absorb target so it can never widen past its own column.
+        // is excluded as an absorb target so it can never widen past its own column --
+        // ⛔ FROZEN EDIT LR8 (owner sign-off by picker, 10 Nov 2026: "Yes, make the edit"; FILL-INTENT-PLAN.md §12) --
+        // UNLESS its phase fills its free space (LR5's wish). The owner: "an entire phase, including its per phase
+        // hiatus should operate as one single block". The band stands in for its phase in its weeks, and the rightward
+        // walk above already let it fill on the wish; on the left it stayed one wide, so a double-click filled Test wk 8
+        // and wk 9 two wide and left the two Test Hiatus weeks between them one wide. With the wish the band takes the
+        // left run exactly as its phase's cell would (the same branch, the same reach), and stays a band. Without a wish
+        // (and unstamped, where fillsFree is false) the test is what it was, so no other row changes. Gate: leg
+        // phasefill F7, the layout fixtures, the 15 pictures and every export baseline unchanged.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
         const evn = (n < mc) ? evenOf(n) : null;                                                     // LR7
@@ -20982,7 +20990,7 @@ export function initLegacyApp() {
             out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n - from) + span, cell:c, own:n});
           }
           k = n + span;
-        } else if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run
+        } else if(n < mc && bySlot[n] && (bySlot[n].type!=='phaseHiatus' || fillsFree(n)) && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run; LR8: a band too, on its phase's wish
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
@@ -20996,7 +21004,15 @@ export function initLegacyApp() {
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];
-          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:left+span, cell:c, own:n});
+          if(c.type === 'phaseHiatus'){                                                              // LR8: drawn as the band it is
+            const hKey = c.weekIso + '|' + c.key;
+            const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
+            const hCol = hiatusColors[hKey] || HIATUS_COLOR;
+            out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
+                      colspan:left+span, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel, cell:c, own:n});
+          } else {
+            out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:left+span, cell:c, own:n});
+          }
           k = n + span;
         } else {
           // Plain empty run (merge consecutive empty non-SimPost slots).
