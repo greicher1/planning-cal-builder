@@ -32446,10 +32446,9 @@ export function initLegacyApp() {
      .filter(p=>p.btn && p.menu);
     if(!POPS.length) return;
     // Build Around's box (see runSolve). Declared up here because refreshMenuFromCalendar() and openPop() reach it.
-    // All three are forgotten on every opening: the side shortcut (-1 Before, 0 Both, 1 After; it opens on Both), the
-    // ticks changed by hand, and the lengths typed in the list and not saved yet (REBUILD-FROM-LENGTHS-PLAN.md D2).
+    // Both are forgotten on every opening: the ticks changed by hand, and the lengths typed in the list and not saved
+    // yet (REBUILD-FROM-LENGTHS-PLAN.md D2). There is no side shortcut since 10 Nov 2026 (see runSolve).
     const solveMenu = document.getElementById('pop-solve');
-    let solveDir = 0;
     let solveTicks = {};
     let solveLens = {};
     let solveDrag = null;     // a press-and-drag down Build Around's list (see its pointerdown)
@@ -32668,10 +32667,10 @@ export function initLegacyApp() {
       // Before the refresh, which fills the landing phase's list for the choice in force.
       if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
-      // Build Around forgets everything between openings, so each one starts on Both, its default ticks, its starts
-      // date and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
+      // Build Around forgets everything between openings, so each one starts on its default ticks, its starts date
+      // and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
       if(target.menu === solveMenu){
-        solveTicks = {}; solveDir = 0; solveLens = {}; solveDrag = null;
+        solveTicks = {}; solveLens = {}; solveDrag = null;
         const edgeEl = document.getElementById('tool-solve-edge');
         if(edgeEl && edgeEl.value !== 'start'){ edgeEl.value = 'start'; syncSolveDate(); }
         renderSolve();
@@ -33082,15 +33081,17 @@ export function initLegacyApp() {
     //     * ONE LIST, BOTH SIDES. Every phase in the order it runs (phaseSequence), the pinned one in its place.
     //       SHIFT'S LOOK AND FEEL since 10 Nov 2026 (owner: "make Build Around match the same UI look and feel as the
     //       shift tool"; mockups/build-around-like-shift.html): the list first, in Shift's box with its header strip
-    //       (a select-all box and the count); a click on a row PINS it, its box ticks, a drag sets a run; `Prior to X`
-    //       / `After X` under the list; the pin's row ("Pin to a date") under those. solveDir (-1 Prior, 0 both sides
-    //       as it opens, 1 After) picks the default set and a tick changed by hand overrides it (solveTicks). There is
-    //       no Both button (owner: "you can just select all with the top checkbox").
+    //       (a select-all box and the count); a click on a row PINS it, its box ticks, a drag sets a run; the pin's
+    //       row ("Pin to a date") under the list. A tick changed by hand overrides the starting one (solveTicks).
+    //       ⛔ NO SIDE BUTTONS since 10 Nov 2026 (owner: "using the build around tool is such a big change that i dont
+    //       think we need the before and after buttons. I'd say just get rid of them entirly"). Prior to X / After X
+    //       (tool-solve-back / tool-solve-fwd, and the Both button before them) are gone, and solveDir with them: the
+    //       box always builds both sides of the pin, and what is built is what is ticked. Shift keeps its own pair.
     //     * THE STARTING TICKS (owner, 10 Nov 2026: "its just confusing if you click prior to pre prep and then
     //       writers room isn't selected", "writers room doesnt always overlap the next phases, only sometimes"): every
-    //       phase on the chosen side that has a length, EXCEPT one that runs ALONGSIDE the phase it would be built
+    //       phase with a length, EXCEPT one that runs ALONGSIDE the phase it would be built
     //       against (solveAlongside): built in line it would be pulled away from that phase. The line under the
-    //       buttons names it. ⛔ Until then Writer's Rm and every custom phase were always left out (5 Nov / 30 Oct
+    //       list names it. ⛔ Until then Writer's Rm and every custom phase were always left out (5 Nov / 30 Oct
     //       2026), which was wrong whenever the room did not overlap. One thing is still by kind: a CUSTOM phase with
     //       no date yet starts unticked, because nothing on the calendar says where it belongs.
     //       Localization's rule (owner, 30 Oct 2026) still holds because a phase with no length can't be ticked.
@@ -33098,10 +33099,8 @@ export function initLegacyApp() {
     //       menu?"). A box per row, staged in `solveLens` until Build (ruling R2(a)) and then written through the
     //       phase's own field, in the same undo step as the dates. Typing one into a row that had none ticks it.
     //       ⛔ Production's length is READ-ONLY here (ruling R4): Show info's shoot days, or "Not set".
-    //     * Ticks, side, edge and staged lengths are session UI: forgotten on every opening, carried by no id.
-    //     The old direction buttons' ids live on: tool-solve-back is Prior to X, tool-solve-fwd is After X.
+    //     * Ticks, edge and staged lengths are session UI: forgotten on every opening, carried by no id.
     const solveList = solveMenu && solveMenu.querySelector('[data-solve-list]');
-    const solveDirBtns = solveMenu ? Array.from(solveMenu.querySelectorAll('[data-dir]')) : [];
     const SOLVE_PIN_SVG = '<svg class="solve-pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
     // The pin and the phases in run order, read once per draw.
     function solveFrame(){
@@ -33145,11 +33144,10 @@ export function initLegacyApp() {
       return out;
     }
     const solveAlong = f => f.along || (f.along = solveAlongside(f));
-    // The default tick for a phase on a side (dir -1 Prior to the pin, 0 both sides, 1 After it): on, unless it runs
-    // alongside the phase it would be built against, or it is a custom phase with no date yet.
-    function solveDefaultOn(f, p, dir){
-      const side = solveSideOf(f, p);
-      if(side === 0 || !(dir === 0 || side === dir)) return false;
+    // The starting tick for a phase, on either side of the pin: on, unless it runs alongside the phase it would be
+    // built against, or it is a custom phase with no date yet.
+    function solveDefaultOn(f, p){
+      if(solveSideOf(f, p) === 0) return false;
       if(p.key in solveAlong(f)) return false;
       return PHASE_CHAIN.indexOf(p.key) !== -1 || !!phaseStartDate(p.key);
     }
@@ -33159,16 +33157,12 @@ export function initLegacyApp() {
       return phaseHasSpan(p);
     }
     function solveTicked(f, p){
-      return (p.key in solveTicks) ? solveTicks[p.key] : solveDefaultOn(f, p, solveDir);
+      return (p.key in solveTicks) ? solveTicks[p.key] : solveDefaultOn(f, p);
     }
     function solveMoves(f, p){ return solveSideOf(f, p) !== 0 && solveHasLen(p) && solveTicked(f, p); }
-    // Which shortcut the ticks match, or null (the user's own set: none pressed). The one last pressed wins a tie.
-    function solvePressed(f){
-      const others = f.seq.filter(p => solveSideOf(f, p) !== 0 && solveHasLen(p));
-      for(const dir of [solveDir, -1, 0, 1]){
-        if(others.every(p => solveMoves(f, p) === solveDefaultOn(f, p, dir))) return dir;
-      }
-      return null;
+    // True while the ticks are the starting set for this pin (nothing the user has made their own).
+    function solveIsDefault(f){
+      return f.seq.filter(p => solveSideOf(f, p) !== 0 && solveHasLen(p)).every(p => solveMoves(f, p) === solveDefaultOn(f, p));
     }
     // What the solvers leave alone on each side: the phases there that will not move.
     function solveLeaves(f){
@@ -33312,20 +33306,13 @@ export function initLegacyApp() {
         allBox.disabled = !others.length;
         allBox.setAttribute('aria-label', all ? 'Clear every phase' : 'Tick every phase');
       }
-      // Prior to X / After X name the pinned phase.
-      solveDirBtns.forEach(b => {
-        const dir = Number(b.dataset.dir);
-        b.textContent = (dir < 0 ? 'Prior to ' : 'After ') + (pinP ? (pinP.label || 'Phase') : '…');
-        b.disabled = !pinP;
-      });
-      // WHY A PHASE WAS LEFT UNTICKED, in one line under the buttons: the phases on the side in force that run
-      // alongside the phase they would be built against and still have the tick the rule gave them (one the user has
-      // ticked, cleared or dragged over is their own choice, and drops off the line).
+      // WHY A PHASE WAS LEFT UNTICKED, in one line under the list: the phases that run alongside the phase they
+      // would be built against and still have the tick the rule gave them (one the user has ticked, cleared or
+      // dragged over is their own choice, and drops off the line).
       const left = solveMenu.querySelector('[data-solve-left]');
       if(left){
         const along = solveAlong(f);
-        const out = f.seq.filter(p => (p.key in along) && !(p.key in solveTicks) && solveHasLen(p)
-          && (solveDir === 0 || solveSideOf(f, p) === solveDir));
+        const out = f.seq.filter(p => (p.key in along) && !(p.key in solveTicks) && solveHasLen(p));
         let text = '';
         if(out.length === 1) text = (out[0].label || 'Phase') + ' left unticked: it runs alongside ' + along[out[0].key] + '. Tick it to build it in line.';
         else if(out.length){
@@ -33398,13 +33385,6 @@ export function initLegacyApp() {
       if(ov) out += ' ' + ov;
       say(out);
     }
-    // Prior to X / After X fill the ticks: forget any hand-ticked ones and take that side's defaults.
-    solveDirBtns.forEach(b => b.addEventListener('click', ()=>{
-      solveDir = Math.max(-1, Math.min(1, Number(b.dataset.dir) || 0));
-      solveTicks = {};
-      say('');
-      renderSolve();
-    }));
     // A tick changed from the keyboard (Space) or by a tap on its box; the mouse goes through the press below.
     if(solveList) solveList.addEventListener('change', e=>{
       const box = e.target.closest('input[type="checkbox"][data-key]');
@@ -33535,9 +33515,9 @@ export function initLegacyApp() {
       if(go && !go.disabled) go.click();
     });
     // syncSolveDate() is bound first (above), so the list is drawn from the phase's own date. A new pin re-ticks while
-    // a shortcut is pressed, and keeps the user's own set otherwise (Shift's rule).
+    // the ticks are still the starting set, and keeps the user's own set otherwise (Shift's rule).
     document.getElementById('tool-solve-phase').addEventListener('change', ()=>{
-      if(solvePressed(solveFrame()) !== null) solveTicks = {};
+      if(solveIsDefault(solveFrame())) solveTicks = {};
       renderSolve();
     });
     document.getElementById('tool-solve-edge').addEventListener('change', ()=>{ syncSolveDate(); renderSolve(); });

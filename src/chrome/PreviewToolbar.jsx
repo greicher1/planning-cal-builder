@@ -312,13 +312,10 @@ export function PreviewToolbar() {
               </label>
               <div className="solve-list" data-solve-list=""></div>
             </div>
-            {/* Prior to X / After X: that side's phases, in place of the Before / Both / After switch that sat above
-                the list (no Both: the header box ticks everything). ⛔ tool-solve-back / tool-solve-fwd are the old
-                direction buttons' ids, kept so the legs that click them still pick one side. */}
-            <div className="tools-row shift-sides">
-              <button type="button" className="shift-side" id="tool-solve-back" data-dir="-1"></button>
-              <button type="button" className="shift-side" id="tool-solve-fwd" data-dir="1"></button>
-            </div>
+            {/* ⛔ NO Prior to X / After X here (owner, 10 Nov 2026: "using the build around tool is such a big change
+                that i dont think we need the before and after buttons"). The box builds both sides of the pin and
+                what is built is what is ticked. tool-solve-back / tool-solve-fwd are retired with them; Shift keeps
+                its own pair. The line below says why a phase opened unticked. */}
             <p className="solve-left" data-solve-left="" hidden></p>
             {/* Production's length is read-only here (ruling R4); while Show info leaves it unset, this says where. */}
             <p className="solve-note" data-solve-note="" hidden>Production’s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>
