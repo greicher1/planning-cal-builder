@@ -1620,8 +1620,8 @@
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
      the differnt sections is literally all different. It needs to be consistnet"). The view toggle alone at the left
-     edge; Undo / Redo, the text style buttons, the date tools and the page tools packed to the right, each in a grey
-     well. ONE gap between every section, --tb-gap (column-gap here, and between the two wells inside .preview-tools),
+     edge; then, packed to the right in the owner's order of 10 Nov 2026, the date tools (Shift, Build Around), the
+     text style buttons, the page tools and Undo / Redo, the last three in grey wells. ONE gap between every section, --tb-gap (column-gap here, and between the two wells inside .preview-tools),
      and inside every well, the view toggle's included, 2 px of padding, 2 px between buttons and nested corners (a
      9 px well around 7 px buttons): .tb-well below. Read by useStyleBarFit too. The lines below the first (the phase
      map, the stepper, the style bar on its own line) keep their 10 px row gap. */
@@ -1671,7 +1671,7 @@
      style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
      a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
      hang below the well. */
-  .tb-well, .view-toggle-row > .undo-redo-group{
+  .tb-well, .preview-tools > .undo-redo-group{
     display:inline-flex; align-items:center; flex:none; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1); border-radius:calc(var(--mantine-radius-default) + 2px);
   }
@@ -1683,8 +1683,10 @@
      MORE space between the right shift button and build around so it matches the current spacing of the redo button
      and size button gap"), so the two outlined tools read as two sections, 12 px apart like every other pair. */
   .tb-dates{ gap:var(--tb-gap); }
-  /* Undo / Redo come right after the view toggle, and their auto left margin packs every tool to the right. */
-  .view-toggle-row > .undo-redo-group{ margin-left:auto; }
+  /* The date tools come right after the view toggle (owner's reorder, 10 Nov 2026: view | Shift + Build Around | text |
+     page tools | Undo / Redo), and their auto left margin packs every tool to the right. Variation 27 had Undo / Redo
+     first, carrying this margin. */
+  .view-toggle-row > .tb-dates{ margin-left:auto; }
   /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
      the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
      white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */

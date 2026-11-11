@@ -50,8 +50,8 @@ import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
-// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits on the row's first line, between Undo / Redo and the
-// tools (variation 27), while the view toggle, Undo / Redo, the bar and the tools all fit there. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
+// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits on the row's first line, between the date tools and the
+// page tools (the owner's reorder), while the view toggle, the date tools, the bar and the rest all fit there. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
 // on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead, moving Shift and
 // Undo on every narrow window. Measured, not a media query: the tools' width changes with the view (Side Boxes is
 // waterfall only), the Header button's label and the window (Fill Space's label goes at 1300 px).
@@ -74,8 +74,9 @@ function useStyleBarFit() {
     const host = row && row.querySelector('.style-bar-host')
     const toggle = row && row.querySelector('.view-toggle')
     const tools = row && row.querySelector('.preview-tools')
-    const undo = row && row.querySelector('.undo-redo-group')
-    if (!row || !host || !toggle || !tools || !undo || typeof ResizeObserver === 'undefined') return
+    // The date tools sit between the view toggle and the bar since the reorder; Undo / Redo is inside .preview-tools.
+    const dates = row && row.querySelector(':scope > .tb-dates')
+    if (!row || !host || !toggle || !tools || !dates || typeof ResizeObserver === 'undefined') return
     let timer = 0, watchedBar = null
     const fit = () => {
       timer = 0
@@ -85,15 +86,15 @@ function useStyleBarFit() {
       const hl = bar.querySelector('.hf-swatch-hl'), sw = bar.querySelector('.hf-swatch:not(.hf-swatch-hl)')
       const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
       const reserve = hl && hl.hidden && sw ? sw.offsetWidth + (parseFloat(barCs.columnGap) || 0) : 0
-      // One gap between every section (--tb-gap, the row's column-gap). Undo / Redo's auto left margin takes the
+      // One gap between every section (--tb-gap, the row's column-gap). The date tools' auto left margin takes the
       // leftover space and is never counted: a computed auto margin IS the leftover space.
       const gap = parseFloat(rowCs.columnGap) || 0
-      const need = toggle.offsetWidth + gap + undo.offsetWidth + gap + bar.offsetWidth + reserve + gap + tools.offsetWidth
+      const need = toggle.offsetWidth + gap + dates.offsetWidth + gap + bar.offsetWidth + reserve + gap + tools.offsetWidth
       host.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
     }
     const later = () => { if (!timer) timer = setTimeout(fit, 0) }
     const ro = new ResizeObserver(later)
-    ;[row, host, toggle, undo, tools].forEach((el) => ro.observe(el))
+    ;[row, host, toggle, dates, tools].forEach((el) => ro.observe(el))
     // The engine fills the host after React mounts; a mutation says so even on a page that is not painting.
     const mo = new MutationObserver(later)
     mo.observe(host, { childList: true })
@@ -151,29 +152,202 @@ export function PreviewToolbar() {
           (Sidebar.jsx). The owner could not find it beside the view toggle. It kept its id, so the
           engine binding and both gate legs were unaffected by the move. */}
 
-      {/* UNDO / REDO, right after the view toggle (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html:
-          the view toggle alone at the left edge, every tool packed to the right, Undo first). Until then the group was
-          the last thing in .preview-tools. A grey well like every section here; its auto left margin is what packs
-          the tools to the right. The ids, the Tooltips and the bridged disabled state are unchanged. */}
-      <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
-        <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
-          <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                      disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
-        </Tooltip>
-        <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
-          <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                      disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
-        </Tooltip>
-      </Group>
+      {/* Shift is a SPLIT control: the arrows act on one click (much the most-used thing
+          here, so it must not move behind a popover) and the caret beside them opens the
+          Shift form (it read "Shift All" until 4 Nov 2026, when the form learned to move part of
+          the calendar). Each of the other tools gets its own button and its own small
+          popover, so the row names every capability without anything having to be opened. */}
+      {/* Redesigned 29 Aug 2026 (owner): a joined three-part control at the toolbar's shared
+          30px height. The CENTER is now the dropdown trigger -- "Shift All ▾" opens the
+          multi-week form -- so the label stopped being dead text sitting between two arrows and
+          the dropdown stopped being an unreadable sliver. Same three engine ids, same handlers:
+          the engine binds shift-back/fwd by id and pop-shift-btn as the popover trigger, and
+          .shift-label had zero engine references (verified), so folding it into the trigger is
+          markup-only. */}
+      {/* THE DATE TOOLS, FIRST AFTER THE VIEW TOGGLE (owner, 10 Nov 2026: "lets reorder as follows: Month/Waterfall -
+          Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header - undo/redo"). A direct child of the row
+          now (it was the first thing inside .preview-tools), and its auto left margin is what packs every tool to the
+          right of the view toggle. No well of its own ("remove the faint grey box"); Shift and Build Around stand the
+          one section gap apart. A plain div, not positioned and never overflow:hidden, so the two popovers anchor and
+          hang exactly as before. */}
+      <div className="tb-well tb-dates">
+      <div className="shift-group" id="shift-group">
+        <button className="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">← 1 wk</button>
+        <button className="shift-btn shift-main" id="pop-shift-btn" type="button" title="Shift the calendar by a number of weeks or to a date" aria-haspopup="true" aria-expanded="false">Shift <span className="caret" aria-hidden="true">▾</span></button>
+        <button className="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk →</button>
+        {/* The readout is only ever made visible by `.shift-group.flash .shift-readout`, and its
+            pointer-events:none is load-bearing: without it the readout swallowed a click aimed at
+            Reset Notes & Hiatus. */}
+        <span className="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
+
+        {/* ONE SHIFT TOOL (owner, 4 Nov 2026: "Ok im going to vote we go with C, one master shift tool";
+            ANCHOR-TO-DIRECTION-PLAN.md §6, mockups/anchor-to-direction.html tab C). Shift All's form, Shift From
+            and Anchor To all ended in the same shiftCalendar() call and differed in two things only, so they are
+            two choices here: WHAT MOVES (All phases | Phase & before | Phase & after) and HOW FAR (By weeks |
+            To a date). The Shift From and Anchor To buttons went with it.
+            * It opens on All phases, By weeks every time (ruling R2(a)): exactly the old Shift All form.
+            * The phase row shows only when it is needed (owner's picker): hidden for All phases by weeks.
+            * Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for
+              itself; How far only chooses which row is SHOWN. The engine toggles `hidden` on the rows and
+              aria-pressed on the choices, so neither is set here (React renders this once and must not be a
+              second writer).
+            * ⛔ The ids are the ones the legs and the engine know: tool-shift-* (weeks, Earlier, Later) and
+              tool-anchor-* (phase, edge, date, Go). Shift From's tool-ripple-* retired. Every control stays
+              inside .tools-menu, which is what keeps them out of collectFieldValues() and every saved file;
+              the choice buttons carry no id at all.
+            * THE LIST OF PHASES (owner, 5 Nov 2026: "lets go with A", mockups/shift-tick-phases.html tab A;
+              plan §7): Rebuild From's list, filled by the engine (renderShiftList) with a row per scheduled phase:
+              a tick, the colour, the name, its date, and Moves / Stays (by weeks) or the new date and Pushed /
+              Pulled (to a date). The three buttons are SHORTCUTS that fill the ticks in; a tick changed by hand
+              makes the user's own set, and then no button is pressed. Under All phases the list is folded behind
+              "Choose phases…" until opened, so the box opens as short as it did. The ticks carry data-key and no
+              id, inside .tools-menu, so collectFieldValues() never sees them. */}
+        <div className="tools-menu" id="pop-shift" role="dialog" aria-label="Shift">
+          <p className="tools-head">
+            Shift
+            {/* ⛔ Opens ABOVE the title and never flips (owner's spec, 9 Nov 2026, item 8: no panel, popover or
+                floating control may sit over the list's rows at any width). The list is directly under this
+                title now, so the default position ("right", which can flip) would lay the card over its first
+                rows. Above is always clear: the toolbar and the app header are there. */}
+            <InfoHint label="Shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+              Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.
+            </InfoHint>
+          </p>
+          {/* THE LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons
+              (All phases | Phase & before | Phase & after) are gone: the box goes from its title straight to the
+              phases, and the ticks alone say what moves.
+                * The box holds a HEADER STRIP and the rows. The strip is not a column header: a select-all box
+                  in the ticks' own column and the live count beside it. It is a sibling ABOVE the rows'
+                  scroller, never a sticky bar over them (item 8).
+                * The rows are the engine's (renderShiftList); no children here. Press a row and drag to set a
+                  run; the last row touched is outlined.
+                * Prior / After, under the box, name the outlined row; the engine writes their text.
+              ⛔ No id on anything here: ids inside .tools-menu are skipped by the save sweep, but transient
+              chrome does not get ids in this codebase. */}
+          <p className="tools-cap">Phases</p>
+          <div className="shift-box">
+            <label className="shift-all">
+              <input type="checkbox" data-shift-all="" aria-label="Tick every phase" />
+              <span data-shift-count=""></span>
+            </label>
+            <div className="solve-list" data-shift-list=""></div>
+          </div>
+          <div className="tools-row shift-sides">
+            <button type="button" className="shift-side" data-shift-prior=""></button>
+            <button type="button" className="shift-side" data-shift-after=""></button>
+          </div>
+          <p className="tools-cap">How far</p>
+          <div className="tools-seg" role="group" aria-label="How far" data-shift-far="">
+            <button type="button" data-far="weeks">By weeks</button>
+            <button type="button" data-far="date">To a date</button>
+          </div>
+          {/* The phase that LANDS on the date, directly above "starts on" (owner, 5 Nov 2026: the date row must
+              carry its own subject, mockups/shift-date-row.html). To a date only; the engine hides it by weeks.
+              ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this element's innerHTML,
+              and the handlers recover the phase name by splitting the option label on ' — '. Since 9 Nov 2026
+              this is the ONE phase select in the box (the pivot row and its mirror went with the What moves
+              buttons), it offers only the TICKED phases (Whole schedule too while every phase is ticked), and
+              it shows the outlined row's phase: one chosen phase (fillShiftPhase). */}
+          <div className="tools-row" data-shift-phase-row="">
+            <select id="tool-anchor-phase" aria-label="Phase that lands on the date"></select>
+          </div>
+          <div className="tools-row" data-far-row="weeks">
+            <input type="number" id="tool-shift-weeks" min="1" step="1" defaultValue="2" aria-label="Number of weeks to shift" />
+            <span className="tools-unit">wks</span>
+            <Button className="tools-half" id="tool-shift-earlier" type="button" size="xs" variant="default">Earlier</Button>
+            <Button className="tools-half" id="tool-shift-later" type="button" size="xs" variant="default">Later</Button>
+          </div>
+          <div className="tools-row" data-far-row="date">
+            {/* The option VALUES are read directly ('start' / 'end'); do not reword them. Beside the
+                date, not the phase (owner, 4 Nov 2026); the phase is the row above since 5 Nov 2026. */}
+            <select id="tool-anchor-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
+              <option value="start">starts on</option>
+              <option value="end">ends by</option>
+            </select>
+            {/* Native date input, NOT Mantine's DateInput -- syncAnchorDate() writes .value here
+                imperatively every time the popover opens, and a controlled component ignores that. */}
+            <input type="date" id="tool-anchor-date" aria-label="Date" />
+            <Button className="tools-go" id="tool-anchor-go" type="button" size="xs" variant="default">Go</Button>
+          </div>
+          <p className="tools-msg" data-tools-msg=""></p>
+        </div>
+      </div>
+
+      <div className="tools-wrap">
+        {/* BUILD AROUND (Rebuild From until 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B, the name by the
+            owner's picker). ⛔ The ids keep the old names (pop-solve-*, tool-solve-*), as Load kept
+            data-action="open": the engine and the legs reach these controls by id, and only what a user reads
+            changed. Twelve characters, as "Rebuild From" was, so the toolbar wraps no sooner. */}
+        <Button className="tools-btn" id="pop-solve-btn" type="button" size="xs" variant="default"
+                title="Pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
+                rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
+        {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
+            3 wks", and only the name gives way.
+            SHIFT'S LOOK AND FEEL since 10 Nov 2026 (owner: "make Build Around match the same UI look and feel
+            as the shift tool"; mockups/build-around-like-shift.html), top to bottom as in #pop-shift: the title,
+            "Phases", the list in Shift's box with its header strip, Prior to X / After X, the line that says why
+            a phase was left unticked, then "Pin to a date": the phase directly above "starts on", then Build.
+            The list, the count, both buttons' text, the note lines and Build's label are the engine's, so none
+            has children here. ⛔ No new ids: the ticks, the header box and the length boxes carry none, inside
+            .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
+        <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Build around a phase">
+          <p className="tools-head">
+            Build Around
+            {/* ⛔ Opens ABOVE the title and never flips, as Shift's does: the list is directly under it, and
+                nothing may float over its rows. */}
+            <InfoHint label="Build Around" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+              Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.
+            </InfoHint>
+          </p>
+          <p className="tools-cap">Phases</p>
+          <div className="shift-box">
+            <label className="shift-all">
+              <input type="checkbox" data-solve-all="" aria-label="Tick every phase" />
+              <span data-solve-count=""></span>
+            </label>
+            <div className="solve-list" data-solve-list=""></div>
+          </div>
+          {/* Prior to X / After X: that side's phases, in place of the Before / Both / After switch that sat above
+              the list (no Both: the header box ticks everything). ⛔ tool-solve-back / tool-solve-fwd are the old
+              direction buttons' ids, kept so the legs that click them still pick one side. */}
+          <div className="tools-row shift-sides">
+            <button type="button" className="shift-side" id="tool-solve-back" data-dir="-1"></button>
+            <button type="button" className="shift-side" id="tool-solve-fwd" data-dir="1"></button>
+          </div>
+          <p className="solve-left" data-solve-left="" hidden></p>
+          {/* Production's length is read-only here (ruling R4); while Show info leaves it unset, this says where. */}
+          <p className="solve-note" data-solve-note="" hidden>Production’s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>
+          {/* THE PIN, under the list as Shift's date row is: the phase on its own row, directly above "starts on".
+              It is also the row clicked in the list (the engine writes the click into this select). "ends by" is
+              ruling R3: the pin's last workday on or before the date. ⛔ No children on the phase select:
+              fillPhaseSelect() owns its innerHTML. The edge's option VALUES are read directly ('start' / 'end'). */}
+          <p className="tools-cap">Pin to a date</p>
+          <div className="tools-row">
+            <select id="tool-solve-phase" aria-label="Phase to build around"></select>
+          </div>
+          <div className="tools-row">
+            <select id="tool-solve-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
+              <option value="start">starts on</option>
+              <option value="end">ends by</option>
+            </select>
+            <input type="date" id="tool-solve-date" aria-label="Date" />
+          </div>
+          <button type="button" className="solve-go" id="tool-solve-go"></button>
+          <p className="tools-msg" data-tools-msg=""></p>
+        </div>
+      </div>
+
+      </div>
 
       {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026). EMPTY here and filled once by
           the engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once and
           never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside. The engine finds
           it by its class, wherever it sits. ⛔ Inside .view-toggle-row on purpose: a sibling between that row and
           #table-wrap would break the pair the contracts above need. ⛔ No id on anything in it (collectFieldValues).
-          SINCE 10 NOV 2026 IT SITS ON THE FIRST LINE, after Undo / Redo and before Shift (owner: first "move the styling
-          bar to this blank space between Month and the left shift button", then variation 27 of
-          mockups/toolbar-variations.html: every section in a grey well, one gap between them). It was a full-width
+          SINCE 10 NOV 2026 IT SITS ON THE FIRST LINE, after the date tools and before the page tools (owner: first "move
+          the styling bar to this blank space between Month and the left shift button", then variation 27 of
+          mockups/toolbar-variations.html, every section in a grey well with one gap between them, then the reorder
+          "Month/Waterfall - Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header - undo/redo"). It was a full-width
           second line of this row, a boxed bar with a "Text" label and a hint. The well is drawn on the engine's
           .style-bar (width:max-content), never on this host, which grows when the bar has its own line. Where the
           sections no longer fit on one line, the bar alone drops to its own line under them, its old place
@@ -181,189 +355,6 @@ export function PreviewToolbar() {
       <div className="style-bar-host"></div>
 
       <div className="preview-tools">
-        {/* Shift is a SPLIT control: the arrows act on one click (much the most-used thing
-            here, so it must not move behind a popover) and the caret beside them opens the
-            Shift form (it read "Shift All" until 4 Nov 2026, when the form learned to move part of
-            the calendar). Each of the other tools gets its own button and its own small
-            popover, so the row names every capability without anything having to be opened. */}
-        {/* Redesigned 29 Aug 2026 (owner): a joined three-part control at the toolbar's shared
-            30px height. The CENTER is now the dropdown trigger -- "Shift All ▾" opens the
-            multi-week form -- so the label stopped being dead text sitting between two arrows and
-            the dropdown stopped being an unreadable sliver. Same three engine ids, same handlers:
-            the engine binds shift-back/fwd by id and pop-shift-btn as the popover trigger, and
-            .shift-label had zero engine references (verified), so folding it into the trigger is
-            markup-only. */}
-        {/* The date tools' well (variation 27): Shift and Build Around, 2 px apart, as every well holds its buttons. A plain
-            div, not positioned and never overflow:hidden, so the two popovers anchor and hang exactly as before. */}
-        <div className="tb-well tb-dates">
-        <div className="shift-group" id="shift-group">
-          <button className="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">← 1 wk</button>
-          <button className="shift-btn shift-main" id="pop-shift-btn" type="button" title="Shift the calendar by a number of weeks or to a date" aria-haspopup="true" aria-expanded="false">Shift <span className="caret" aria-hidden="true">▾</span></button>
-          <button className="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk →</button>
-          {/* The readout is only ever made visible by `.shift-group.flash .shift-readout`, and its
-              pointer-events:none is load-bearing: without it the readout swallowed a click aimed at
-              Reset Notes & Hiatus. */}
-          <span className="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
-
-          {/* ONE SHIFT TOOL (owner, 4 Nov 2026: "Ok im going to vote we go with C, one master shift tool";
-              ANCHOR-TO-DIRECTION-PLAN.md §6, mockups/anchor-to-direction.html tab C). Shift All's form, Shift From
-              and Anchor To all ended in the same shiftCalendar() call and differed in two things only, so they are
-              two choices here: WHAT MOVES (All phases | Phase & before | Phase & after) and HOW FAR (By weeks |
-              To a date). The Shift From and Anchor To buttons went with it.
-              * It opens on All phases, By weeks every time (ruling R2(a)): exactly the old Shift All form.
-              * The phase row shows only when it is needed (owner's picker): hidden for All phases by weeks.
-              * Earlier/Later always shift by weeks and Go always goes to the date, each reading What moves for
-                itself; How far only chooses which row is SHOWN. The engine toggles `hidden` on the rows and
-                aria-pressed on the choices, so neither is set here (React renders this once and must not be a
-                second writer).
-              * ⛔ The ids are the ones the legs and the engine know: tool-shift-* (weeks, Earlier, Later) and
-                tool-anchor-* (phase, edge, date, Go). Shift From's tool-ripple-* retired. Every control stays
-                inside .tools-menu, which is what keeps them out of collectFieldValues() and every saved file;
-                the choice buttons carry no id at all.
-              * THE LIST OF PHASES (owner, 5 Nov 2026: "lets go with A", mockups/shift-tick-phases.html tab A;
-                plan §7): Rebuild From's list, filled by the engine (renderShiftList) with a row per scheduled phase:
-                a tick, the colour, the name, its date, and Moves / Stays (by weeks) or the new date and Pushed /
-                Pulled (to a date). The three buttons are SHORTCUTS that fill the ticks in; a tick changed by hand
-                makes the user's own set, and then no button is pressed. Under All phases the list is folded behind
-                "Choose phases…" until opened, so the box opens as short as it did. The ticks carry data-key and no
-                id, inside .tools-menu, so collectFieldValues() never sees them. */}
-          <div className="tools-menu" id="pop-shift" role="dialog" aria-label="Shift">
-            <p className="tools-head">
-              Shift
-              {/* ⛔ Opens ABOVE the title and never flips (owner's spec, 9 Nov 2026, item 8: no panel, popover or
-                  floating control may sit over the list's rows at any width). The list is directly under this
-                  title now, so the default position ("right", which can flip) would lay the card over its first
-                  rows. Above is always clear: the toolbar and the app header are there. */}
-              <InfoHint label="Shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
-                Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.
-              </InfoHint>
-            </p>
-            {/* THE LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons
-                (All phases | Phase & before | Phase & after) are gone: the box goes from its title straight to the
-                phases, and the ticks alone say what moves.
-                  * The box holds a HEADER STRIP and the rows. The strip is not a column header: a select-all box
-                    in the ticks' own column and the live count beside it. It is a sibling ABOVE the rows'
-                    scroller, never a sticky bar over them (item 8).
-                  * The rows are the engine's (renderShiftList); no children here. Press a row and drag to set a
-                    run; the last row touched is outlined.
-                  * Prior / After, under the box, name the outlined row; the engine writes their text.
-                ⛔ No id on anything here: ids inside .tools-menu are skipped by the save sweep, but transient
-                chrome does not get ids in this codebase. */}
-            <p className="tools-cap">Phases</p>
-            <div className="shift-box">
-              <label className="shift-all">
-                <input type="checkbox" data-shift-all="" aria-label="Tick every phase" />
-                <span data-shift-count=""></span>
-              </label>
-              <div className="solve-list" data-shift-list=""></div>
-            </div>
-            <div className="tools-row shift-sides">
-              <button type="button" className="shift-side" data-shift-prior=""></button>
-              <button type="button" className="shift-side" data-shift-after=""></button>
-            </div>
-            <p className="tools-cap">How far</p>
-            <div className="tools-seg" role="group" aria-label="How far" data-shift-far="">
-              <button type="button" data-far="weeks">By weeks</button>
-              <button type="button" data-far="date">To a date</button>
-            </div>
-            {/* The phase that LANDS on the date, directly above "starts on" (owner, 5 Nov 2026: the date row must
-                carry its own subject, mockups/shift-date-row.html). To a date only; the engine hides it by weeks.
-                ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this element's innerHTML,
-                and the handlers recover the phase name by splitting the option label on ' — '. Since 9 Nov 2026
-                this is the ONE phase select in the box (the pivot row and its mirror went with the What moves
-                buttons), it offers only the TICKED phases (Whole schedule too while every phase is ticked), and
-                it shows the outlined row's phase: one chosen phase (fillShiftPhase). */}
-            <div className="tools-row" data-shift-phase-row="">
-              <select id="tool-anchor-phase" aria-label="Phase that lands on the date"></select>
-            </div>
-            <div className="tools-row" data-far-row="weeks">
-              <input type="number" id="tool-shift-weeks" min="1" step="1" defaultValue="2" aria-label="Number of weeks to shift" />
-              <span className="tools-unit">wks</span>
-              <Button className="tools-half" id="tool-shift-earlier" type="button" size="xs" variant="default">Earlier</Button>
-              <Button className="tools-half" id="tool-shift-later" type="button" size="xs" variant="default">Later</Button>
-            </div>
-            <div className="tools-row" data-far-row="date">
-              {/* The option VALUES are read directly ('start' / 'end'); do not reword them. Beside the
-                  date, not the phase (owner, 4 Nov 2026); the phase is the row above since 5 Nov 2026. */}
-              <select id="tool-anchor-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
-                <option value="start">starts on</option>
-                <option value="end">ends by</option>
-              </select>
-              {/* Native date input, NOT Mantine's DateInput -- syncAnchorDate() writes .value here
-                  imperatively every time the popover opens, and a controlled component ignores that. */}
-              <input type="date" id="tool-anchor-date" aria-label="Date" />
-              <Button className="tools-go" id="tool-anchor-go" type="button" size="xs" variant="default">Go</Button>
-            </div>
-            <p className="tools-msg" data-tools-msg=""></p>
-          </div>
-        </div>
-
-        <div className="tools-wrap">
-          {/* BUILD AROUND (Rebuild From until 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B, the name by the
-              owner's picker). ⛔ The ids keep the old names (pop-solve-*, tool-solve-*), as Load kept
-              data-action="open": the engine and the legs reach these controls by id, and only what a user reads
-              changed. Twelve characters, as "Rebuild From" was, so the toolbar wraps no sooner. */}
-          <Button className="tools-btn" id="pop-solve-btn" type="button" size="xs" variant="default"
-                  title="Pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
-                  rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
-          {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
-              3 wks", and only the name gives way.
-              SHIFT'S LOOK AND FEEL since 10 Nov 2026 (owner: "make Build Around match the same UI look and feel
-              as the shift tool"; mockups/build-around-like-shift.html), top to bottom as in #pop-shift: the title,
-              "Phases", the list in Shift's box with its header strip, Prior to X / After X, the line that says why
-              a phase was left unticked, then "Pin to a date": the phase directly above "starts on", then Build.
-              The list, the count, both buttons' text, the note lines and Build's label are the engine's, so none
-              has children here. ⛔ No new ids: the ticks, the header box and the length boxes carry none, inside
-              .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
-          <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Build around a phase">
-            <p className="tools-head">
-              Build Around
-              {/* ⛔ Opens ABOVE the title and never flips, as Shift's does: the list is directly under it, and
-                  nothing may float over its rows. */}
-              <InfoHint label="Build Around" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
-                Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.
-              </InfoHint>
-            </p>
-            <p className="tools-cap">Phases</p>
-            <div className="shift-box">
-              <label className="shift-all">
-                <input type="checkbox" data-solve-all="" aria-label="Tick every phase" />
-                <span data-solve-count=""></span>
-              </label>
-              <div className="solve-list" data-solve-list=""></div>
-            </div>
-            {/* Prior to X / After X: that side's phases, in place of the Before / Both / After switch that sat above
-                the list (no Both: the header box ticks everything). ⛔ tool-solve-back / tool-solve-fwd are the old
-                direction buttons' ids, kept so the legs that click them still pick one side. */}
-            <div className="tools-row shift-sides">
-              <button type="button" className="shift-side" id="tool-solve-back" data-dir="-1"></button>
-              <button type="button" className="shift-side" id="tool-solve-fwd" data-dir="1"></button>
-            </div>
-            <p className="solve-left" data-solve-left="" hidden></p>
-            {/* Production's length is read-only here (ruling R4); while Show info leaves it unset, this says where. */}
-            <p className="solve-note" data-solve-note="" hidden>Production’s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>
-            {/* THE PIN, under the list as Shift's date row is: the phase on its own row, directly above "starts on".
-                It is also the row clicked in the list (the engine writes the click into this select). "ends by" is
-                ruling R3: the pin's last workday on or before the date. ⛔ No children on the phase select:
-                fillPhaseSelect() owns its innerHTML. The edge's option VALUES are read directly ('start' / 'end'). */}
-            <p className="tools-cap">Pin to a date</p>
-            <div className="tools-row">
-              <select id="tool-solve-phase" aria-label="Phase to build around"></select>
-            </div>
-            <div className="tools-row">
-              <select id="tool-solve-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
-                <option value="start">starts on</option>
-                <option value="end">ends by</option>
-              </select>
-              <input type="date" id="tool-solve-date" aria-label="Date" />
-            </div>
-            <button type="button" className="solve-go" id="tool-solve-go"></button>
-            <p className="tools-msg" data-tools-msg=""></p>
-          </div>
-        </div>
-
-        </div>
-
         {/* The page tools' well (variation 27): Fill Space, Side Boxes, the Header mode. In the month view Fill Space and
             Side Boxes hide, and the well holds the Header button alone. */}
         <div className="tb-well tb-page">
@@ -434,6 +425,20 @@ export function PreviewToolbar() {
             swap knob takes a click or a drag. The selection's chip on the grid says "Double click to
             expand cells" (owner, 21 Oct 2026); the Help has the swap keys. Their delegated engine listeners went in
             the same change; the engine keeps pushing chrome.gridSelection, which nothing renders. */}
+
+        {/* UNDO / REDO, LAST (owner, 10 Nov 2026, the reorder above). Back at the end of .preview-tools, where it was before
+            variation 27 briefly put it first. A grey well like the text buttons' and the page tools'. The ids, the
+            Tooltips and the bridged disabled state are unchanged. */}
+        <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
+          <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
+            <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
+                        disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
+          </Tooltip>
+          <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
+            <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
+                        disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
+          </Tooltip>
+        </Group>
 
       </div>
 
