@@ -1042,7 +1042,15 @@ export function initLegacyApp() {
   //     blank: one per-cell width each (cellSpans, the shape an edge drag stores), one undo. ⛔ Not the fill wish: the
   //     first build set it, and the owner, on Test weeks 8-10: "clicked expand and then it also expanded test wk 1" --
   //     a wish fills every week with room, and he had pointed at three. Not offered beside a cell with a dragged exact
-  //     width that week, nor for a phase already filling, nor beside a hiatus band.
+  //     width that week, nor for a phase already filling.
+  //   ⭐ A PHASE'S OWN HIATUS IS PART OF THE PHASE (owner, 10 Nov 2026: "We need the expand and pull back to work with per
+  //     phase hiatuses. And arguably, an entire phase, including its per phase hiatus should operate as one single block
+  //     where the expand box would span the length of the entire phase including the hiatus"). Its band stands in for
+  //     the phase in its weeks, so everything below reads it as a cell of that phase (isPhaseTd): a blank beside it
+  //     offers Expand?, the outline runs on through its weeks, its click widens the band too (cellSpans keys a band
+  //     exactly as it keys its phase's cells, and frozen applyCellSpanOverrides grants a band's claim as it grants a
+  //     cell's), and a widened band offers Pull back?. Until then a blank beside a band offered nothing and the outline
+  //     stopped at the band's first week. An all-phase hiatus row is not a phase's, and still ends the run.
   //   - Pull back?  A cell its phase's fill wish widened: the columns it took beyond its own, outlined, and the click turns
   //     the wish off (setPhaseFill(key, null): back to the automatic layout), one undo. Not offered where only the
   //     automatic layout widened the cell (no wish): there is nothing of the user's to take back.
@@ -1081,8 +1089,11 @@ export function initLegacyApp() {
   // An empty slot run in a phase area: renderSpreadsheetView writes it as a bare <td> (no class, no style); Sim Post's
   // cell carries a style, a phase cell or band a class.
   const isBlankTd = td => !!td && td.tagName === 'TD' && !td.hasAttribute('class') && !td.hasAttribute('style') && !td.textContent.trim();
-  const isPhaseTd = td => !!td && td.classList.contains('sheet-phase-cell') && !td.classList.contains('sheet-hiatus-cell');
-  // Which phase a blank belongs to: the phase cell directly left of it (rule 12), else directly right.
+  // A phase cell, or its phase's own hiatus band (it carries .sheet-phase-cell and, like a cell, the span contract
+  // data-own/lmin/rmax/a/b/nphases): see "A PHASE'S OWN HIATUS IS PART OF THE PHASE" above. hasSpanContract, because the
+  // class alone is no proof the contract is there (the note at SEL_KEY).
+  const isPhaseTd = td => !!td && td.classList.contains('sheet-phase-cell') && hasSpanContract(td);
+  // Which phase a blank belongs to: the phase cell (or its band) directly left of it (rule 12), else directly right.
   function blankOwner(td){
     const l = td.previousElementSibling, r = td.nextElementSibling;
     if(isPhaseTd(l)) return { td: l, side: 'L' };
