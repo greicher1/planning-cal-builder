@@ -71,6 +71,10 @@ input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy
 .legend{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:10.5px; color:var(--gray-6); margin-top:10px; }
 .legend span{ display:inline-flex; align-items:center; gap:4px; }
 .legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; border:1px solid rgba(0,0,0,.12); }
+.card.wide{ grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:6px 28px; align-items:start; }
+.card.wide .card-head, .card.wide .why{ grid-column:1; } .card.wide .side{ grid-column:2; grid-row:1 / span 3; margin:0; }
+.hv-head .w, .hv-cell.w{ width:60px; }
+@media (max-width:760px){ .card.wide{ display:block; } .card.wide .side{ margin:12px auto 0; } }
 /* E: phase column */
 .hv-head .p, .hv-cell.p{ width:74px; text-align:left; }
 .hv-cell.p{ font-size:10.5px; line-height:1.25; color:var(--gray-7); }
@@ -81,7 +85,7 @@ input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy
 <body>
 <div class="page">
   <h1>Which phase is each holiday in?</h1>
-  <p class="lead">Five ways for the Holidays list to say it. All five already follow the new Enable rule: the box shows
+  <p class="lead"><b>Top: your pick, C, revised to match the build.</b> Below it, the first five ways for comparison. All of them already follow the new Enable rule: the box shows
     only where switching the holiday off would move a date (inside <b>Production</b>, a phase counted in <b>Days</b>, or
     episode prep), with a faint dash everywhere else. The calendar here is made up: Rigging is a custom phase counted in
     Days, and the winter break is an all-phase hiatus.</p>
@@ -130,7 +134,7 @@ V.push({id:'A', title:'Phase in words', why:'The phase goes on the date line in 
     + '<span>'+where(h).map(k=>'<span class="ph-words" style="color:'+PH[k].text+'">'+PH[k].label+'</span>').join(', ')+'</span>'
     + ' '+shoot(h)+'</span>', h)).join('')});
 // B
-V.push({id:'B', rec:true, title:'Phase chips', why:'A small chip per phase in the <b>same colours as the month bars</b>, so a glance matches a row to the calendar. A Days phase says so, which explains its box.',
+V.push({id:'B', title:'Phase chips', why:'A small chip per phase in the <b>same colours as the month bars</b>, so a glance matches a row to the calendar. A Days phase says so, which explains its box.',
   html: head() + H.map(h => row('<span class="hv-name">'+h.n+'</span><span class="hv-date">'+h.d+' '+where(h).map(chip).join('')+' '+shoot(h)+'</span>', h)).join('')});
 // C
 V.push({id:'C', title:'Grouped by phase', why:'Holidays sit under a heading per phase, in calendar order. <b>Production\'s group is where the boxes are</b>, so the rule explains itself. A holiday in two phases is listed under the first.',
@@ -156,8 +160,41 @@ V.push({id:'E', title:'Phase column', why:'A fourth column, "Phase", beside the 
     + '<span class="hv-cell p">'+where(h).map(k=>'<span style="color:'+PH[k].text+';font-weight:600">'+PH[k].label+'</span>').join('<br>')+'</span>'
     + enCell(h)+notes(h, !h.en)+'</div>').join('') + '</div>'});
 
+// C, REVISED (owner picked C and asked for "Waterfall" in full, 11 Nov 2026). Exactly what branch holiday-enable builds:
+// date order, one heading per stretch (a phase can recur), Production then a Days phase then the earliest start wins a
+// shared day, an all-phase hiatus is its own heading, and the Waterfall column is 60 px.
+const H2 = [
+  {n:'Martin Luther King Jr. Day', d:'Mon 1/19/26', g:'writersRoom'},
+  {n:"Presidents' Day", d:'Mon 2/16/26', g:'writersRoom', also:['prePrep']},
+  {n:'Memorial Day', d:'Mon 5/25/26', g:'prodPrep'},
+  {n:'Juneteenth', d:'Fri 6/19/26', g:'prodPrep'},
+  {n:'Independence Day (Observed)', d:'Fri 7/3/26', g:'production', en:true},
+  {n:'Independence Day', d:'Sat 7/4/26', g:'production'},
+  {n:'Labor Day', d:'Mon 9/7/26', g:'production', en:true, shoot:true},
+  {n:'Thanksgiving', d:'Thu 11/26/26', g:'post'},
+  {n:'Day After Thanksgiving', d:'Fri 11/27/26', g:'rigging', also:['post'], en:true},
+  {n:'Christmas Day', d:'Fri 12/25/26', g:'break', also:['post']},
+  {n:"New Year's Day", d:'Fri 1/1/27', g:'break', also:['post']},
+  {n:'Martin Luther King Jr. Day', d:'Mon 1/18/27', g:'post'},
+  {n:'Good Friday', d:'Fri 3/26/27', g:'localization'},
+];
+const G2 = Object.assign({}, PH, {break:{label:'Winter break', fill:'#FF0000', note:'hiatus'}});
+const note2 = k => k==='production' ? 'counts shoot days' : (G2[k].days ? 'counts days' : (G2[k].note || ''));
+const head2 = '<div class="hv-head"><span class="n">Holiday</span><span>Enable</span><span class="w">Waterfall<br>note</span><span class="m">Month<br>note</span></div>';
+let last = null, rev = '';
+H2.forEach(h=>{
+  if(h.g !== last){ last = h.g;
+    rev += '<div class="grp"><span class="sw" style="background:'+G2[h.g].fill+'"></span>'+G2[h.g].label
+      + (note2(h.g) ? '<span class="why-en">'+note2(h.g)+'</span>' : '') + '</div>'; }
+  rev += '<div class="hv-row"><span class="hv-label"><span class="hv-name">'+h.n+'</span><span class="hv-date">'+h.d
+    + (h.also ? ' <span class="also">· also '+h.also.map(k=>PH[k].label).join(', ')+'</span>' : '')+' '+shoot(h)+'</span></span>'
+    + enCell(h)+'<span class="hv-cell w">'+box(false)+'</span><span class="hv-cell m">'+box()+'</span></div>';
+});
+V.unshift({id:'C', rev:true, title:'Grouped by phase, revised', why:'What the branch now builds. <b>"Waterfall note" in full</b> (its column widens 46 → 60 px, so names get 14 px less). The list stays in <b>date order</b>, so a phase\'s heading comes back after a break (Post, here). A day in two phases goes under Production, then a phase counted in Days, then the earliest start, so every Enable box sits under the phase that explains it; the others read "also …". A holiday inside an all-phase hiatus sits under the hiatus.',
+  html: head2 + rev});
+
 document.getElementById('grid').innerHTML = V.map(v =>
-  '<section class="card'+(v.rec?' rec':'')+'"><div class="card-head"><h2>'+v.id+'. '+v.title+'</h2>'+(v.rec?'<span class="tag">My pick</span>':'')+'</div>'
+  '<section class="card'+(v.rev?' rec wide':'')+'"><div class="card-head"><h2>'+v.id+'. '+v.title+'</h2>'+(v.rev?'<span class="tag">Your pick · as built</span>':'')+'</div>'
   + '<p class="why">'+v.why+'</p><div class="side"><div class="side-title">Holidays</div>'+v.html+'</div></section>').join('');
 </script>
 </body>
