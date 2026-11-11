@@ -4403,6 +4403,8 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
+  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates), owner 11 Nov 2026. */
+  .hv-en-na{ color:var(--mantine-color-gray-4); cursor:default; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
   .hv-dim{ opacity:.45; }
   .hv-tag{

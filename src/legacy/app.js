@@ -13188,7 +13188,9 @@ export function initLegacyApp() {
                    : '';
         const view = (v, text, k)=> ({id: 'hol-' + k + '-' + j, check: true, checked: holidayVisibleIn(h.hid, v), text,
           run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
-        const items = [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}];
+        // Enabled only where it can move a date, or while off (holidayEnableShown, the Holidays list's own rule).
+        const items = holidayEnableShown(currentSchedule, h)
+          ? [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}] : [];
         if(on) items.push(view('month', 'Show in month view', 'month'), view('sheet', 'Show in waterfall', 'sheet'));
         return {id: 'holiday', label: 'Holiday · ' + h.name, items};
       });
@@ -14217,6 +14219,32 @@ export function initLegacyApp() {
   // Auto-generated checklist of every holiday that lands inside a phase, with a Waterfall and a
   // Month checkbox each. Re-rendered on every schedule change so it always matches the phases and
   // the selected country. Hidden when the master switch is off or no holidays fall in any phase.
+  // ⭐ WHERE ENABLE CAN MOVE A DATE (owner, 11 Nov 2026: "Should the enable button even be there for holidays that
+  // do not occur during production? Maybe non-production holidays just have the note options"). Switching a holiday
+  // off only matters to a walk that counts working days and skips ENABLED holidays (isUnitWorkDay, and Production's
+  // own simulation): Production, a custom phase counted in Days, and episode prep. Anywhere else (a Weeks phase, a
+  // weekend, an all-phase hiatus, the phase's own hiatus) off and on give the same dates, and unticking both note
+  // boxes already hides it, so the Enable box is left out there. Read from the schedule's own segments, never a
+  // second copy of the walk. ⚠️ A holiday that is ALREADY off keeps its box wherever it is (the caller's job), or a
+  // calendar saved with one off would leave it stuck off with greyed note boxes. Used by the Holidays list, its
+  // Toggle all, and the month view's day menu, so the three agree.
+  function holidayMovesDates(schedule, iso){
+    const d = parseDateUTC(iso);
+    if(!d || !schedule) return false;
+    const dow = d.getUTCDay();
+    if(dow === 0 || dow === 6) return false;
+    if(isHiatusDate(schedule, d)) return false;
+    return (schedule.segments || []).some(s=>{
+      if(s.prep) return !!s.firstDay && d >= s.firstDay && d <= s.lastDay;
+      if(!(s.key === 'production' || s.unit === 'days')) return false;
+      if(!(d >= s.start && d < s.end)) return false;
+      return !(s.phaseHiatus && d >= s.phaseHiatus.start && d < s.phaseHiatus.end);
+    });
+  }
+  // The box shows where it can move a date, and on any holiday that is off (the way back).
+  function holidayEnableShown(schedule, h){
+    return h.enabled === false || !holidayEnabled(h.hid) || holidayMovesDates(schedule, h.iso || h.date);
+  }
   function renderHolidayVisList(schedule){
     const wrap = document.getElementById('holiday-vis');
     const listEl = document.getElementById('holiday-vis-list');
@@ -14306,14 +14334,18 @@ export function initLegacyApp() {
       const del = '<span class="hv-del-slot">' + (h.custom
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
-      return '<div class="hv-row">'
+      // No Enable box where switching it off would move no date (holidayMovesDates): a faint dash keeps the column.
+      const enCell = holidayEnableShown(schedule, h)
+        ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        : '<span class="hv-cell hv-en-na" title="Changes no dates here: no phase counts working days on this day. Use the note boxes to hide it.">–</span>';
+      return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         +   '</span>'
         + '</span>'
-        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + enCell
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
@@ -28414,9 +28446,13 @@ export function initLegacyApp() {
       const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
       if(!holidays.length) return;
       if(view === 'enabled'){
+        // Only the rows that show the box (holidayEnableShown): Toggle all must never switch off a holiday whose
+        // box is not there, which would then grow one.
+        const hol = holidays.filter(h=> holidayEnableShown(currentSchedule, h));
+        if(!hol.length) return;
         if(!(await confirmHolidayRecompute())) return;
-        const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
-        holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
+        const turnOn = hol.some(h=> !holidayEnabled(h.hid));
+        hol.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
         update();
         return;
       }
