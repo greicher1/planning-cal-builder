@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
+
+**What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo
+step the Date Last Edited its content had. A content first seen with no stamp (a new calendar before its first change)
+is remembered with `null`, and the function wrote that `null` onto the step as `lastEdited`. It now leaves the key off.
+
+**Why.** `sanitizeSnapshot()` counts a `null` there as a value the app does not write, so every undo back to a
+never-edited calendar logged *"1 value(s) in this calendar were not in a form the app writes, and were ignored"* on
+the console. Nothing a user sees was wrong: `applyStateSnapshot()` reads an absent key and an invalid one the same
+(never edited, the header reads today), and the dropped count is read nowhere. It was found by `buildaround`'s K0
+(0 console errors) the first time that leg ran on a build holding Date Last Edited (the merge of 10 Nov): 35/36.
+
+**Verified.** On the build with it (`dist/index.html` sha256 `52407af5…`): `npm run check` 42/42; `buildaround`
+36/36 (K0 green), `lastedited` 21/21, `rebuildticks` 20/20, `anchorside` 39/39, `buildalongside` 8/8, `shiftheld`
+13/13, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `hdrcontrols` 12/12, `undokeys` 11/11. In the browser:
+a new calendar, a title typed, Undo: the title is back to empty and the console is clean. ⚠️ No full gate was run.
+The `lastedited` leg has no case of its own for this (it never watches the console); `buildaround`'s K0 is what holds it.
+
 ### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
 
 Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
