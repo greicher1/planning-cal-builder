@@ -166,7 +166,9 @@ window.addEventListener('load', function () { (async function () {
            same(f.wrap, { title: 'Auto Note · 10/20/26', button: 'Hide Auto-Note', rows: [], day: false, sw: false, hint: 'Renames it wherever it shows · Its date follows the schedule · Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
              && same(f.labor, { title: 'Holiday · 9/7/26', button: 'Hide Holiday', rows: [], day: false, sw: false, hint: 'Renames this holiday wherever it shows · Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
              && same(f.mix, { title: 'Note · 6/29/26', button: '', rows: ['auto Start Principal Photography', 'holiday Independence Day (Observed)'], day: false, sw: false, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
-             && same(f.typed, { title: 'Note · 11/2/26', button: '', rows: ['auto Post Begins'], day: true, sw: true, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
+             // A typed cell has Delete Note at the top right since 10 Nov 2026 (owner: "add Delete Note button to the top right
+             // corner of each popup box"); an empty one has no button.
+             && same(f.typed, { title: 'Note · 11/2/26', button: 'Delete Note', rows: ['auto Post Begins'], day: true, sw: true, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
              && same(f.empty, { title: 'Note · 8/3/26', button: '', rows: [], day: true, sw: true, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' }),
            f);
     });

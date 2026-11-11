@@ -34,12 +34,267 @@
   ignores them: no date). New leg **`holidayenable`** on `anchorside` (in `gate.sh` after `mxholidays`): E1 a Weeks-phase
   holiday has a dash, E2 weekend vs Labor Day, E3 "Marked Working Day" on 7/3, G1 the headings, G2 Christmas under
   Hiatus "also Post", T1 Toggle all, O1 a saved-off Thanksgiving keeps its box. Red on `main` but T1.
-- ⚠️ **Found on the way, not this change:** `holidayrename` F1 and `autonoterename` F1 have been red since `lastEdited`
-  (9 Nov 2026): each lists the keys a Save adds and did not expect `lastEdited`. Both now leave it out (14/14, 24/24).
 - **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. Tried in the pane on `anchorside` and `customunits` (a Days phase).
   No full gate (chrome-side list and menu only; no output, export or saved key changes).
 
 ### ✅ 11 Nov 2026: A PHASE'S ▲ / ▼ STEP OVER A HIATUS WHILE RIPPLE HIATUS IS ON. Committed LOCALLY on `main`, not pushed. Tracker card `phase-arrows-step-over-hiatus`.
+
+### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
+- **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
+  gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;
+  `releases/v1.13.0.html` cmp-identical to the build; `tests/fixtures/v1.13.0-saved.sptcal` a real Save from it,
+  byte-identical to v1.12.1's, so a calendar with no linked note saves exactly as before).
+- **Full gate on the cut (`618d849e…`, 13:58–15:01, alone): 4,489 PASS / 17 FAIL, every baseline identical** (waterfall
+  PDF, Excel parts, restore, `fields.byId` 77, gate 10, all 24 of gate 13 byte for byte). The 17: twelve from six legs
+  red on `main` since Date Last Edited (below), and five timing flakes that pass alone (`launchopen` 16/16,
+  `monthexport` (blocks) 9/9, `holidayrename` M2) or are flaky on `main` too (`pilllabel` (blocksoff) "months 1 vs 18",
+  1 pass in 3 runs; `offweek` (offweek) "the loaded file's name" Load timeouts; an A/B on `origin/main` failed both the
+  same way).
+- ⚠️ **The first gate on the cut (11:45–12:36) was spoiled** by another session's two full gates (11:52–12:40) and is
+  not evidence of anything. An A/B of its 20 failing legs on `origin/main` vs the branch failed identically on both.
+- ✅ **Six legs red on `main` since Date Last Edited (`1507204`, gated then only by a targeted run), fixed here** (the
+  owner: *"Do this task here"*). A diagnostic copy of `phasearrows` / `mvdragcarry` showed `lastEdited` as the ONLY
+  difference, with Production's four marks back in another order (7/11, 7/7, 7/3, 7/6 → 7/7, 7/6, 7/11, 7/3).
+  - **A real bug, fixed in the app** (owner's picker *"Fix it in v1.13.0"*): the Date Last Edited check hashed the
+    calendar as written, so a Production ▼▲ or a drag put back (`endShootDayMove` rebuilds `dayOverrides` natural days
+    first) read as an edit, stamped today, and every undo back took the new stamp. `lastEditedKey` now hashes
+    `lastEditedCanon(snap)`: every object's keys sorted, arrays in order. Session-only; nothing saved changes.
+  - **Re-expected (the stamp is by design):** `wfnotecolors` F1, `holidayrename` F1, `autonoterename` F1,
+    `autonoteview` V9, `hidewf` F3 leave `lastEdited` out of their key / byte checks; `loadcarry` gives each fixture one
+    fixed `mtime` (the fake picker minted "a minute ago" at every open, so one file opened twice got two stamps).
+  - Green on the fixed build (`b046f185…`): `phasearrows` 26/26 and `mvdragcarry` 15/15 UNCHANGED, the six, `lastedited`
+    22, `buildaround` 36, `noteviews` 15, `undokeys` 11, `scenarios` 23, `scenariofacts` 12, `phasekeys` 18, `phasemonth`
+    21. **Partial gate** (base + workbook + restore + gate 10, the header sections `wrapdate` through `hdreditor`, and
+    `monthexport` + gate 13): **497 PASS / 0 FAIL**, every baseline identical.
+- **Last merge** (`origin/main` `7e0e668` + local `main` `44bf492`: lane-fill's Fill Gaps / Sim Post lane, Dates MM/DD and
+  DD/MM with Paper and Grid Lines out of Preferences, ▲ / ▼ stepping over a hiatus with Ripple on; docs conflicts only, a
+  stray body-less "🔨 10 Nov … OWN HIATUS" heading from `main` dropped, its ✅ section kept). README: 40 entries under
+  v1.13.0. **Final build `adc403da…`** = `releases/v1.13.0.html` (cmp); its Save of v1.12.1's fixture is byte-identical
+  to `v1.13.0-saved.sptcal`; `npm run check` 42/42.
+  - **Partial gate on it: 497 PASS / 0 FAIL**, every baseline identical (waterfall PDF, workbook, restore, `fields.byId`,
+    gate 10, all 24 of gate 13 byte for byte, the header sections).
+  - Green on it: `lanefill` 4, `phasearrowsripple` 10, `pdfdialog` 15, `fillspace` 6 (twice; one Save-button timeout
+    first), `sharecopy2`, `hdrrow` 40, `stickycols` 12, `notescols` 49, `prefs` 13/13 (the gate's judge),
+    `phasearrows` 26, `mvdragcarry` 15, `lastedited` 22, the six fixed legs, `phasekeys` 18, `phasemonth` 21,
+    `phasenotes` 21, `noteviews` 15, `buildaround` 36.
+- **Next (the owner's push picker):** right before the push, `git fetch` and confirm `origin/main` is still an ancestor
+  of `phase-notes` (merge again if it moved). Push `phase-notes:main` (a fast-forward) and the tag `v1.13.0`;
+  fast-forward local `main` in the main checkout; check the live `version.json` reads 1.13.0 and the live `index.html` is
+  `adc403da…` byte for byte.
+
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. 🔨 step 5 (the month view) BUILT 10 Nov 2026 (R10(a) ruled, `sheetHidden`), with the owner's popup asks (Delete Note / Hide at the top right, the Day and Stays with boxes aligned); leg `phasemonth` 21/21; full gate 4,226 / 16 with every baseline identical, the 16 timeouts under heavy machine load, every one green alone on 11 Nov (bullet below); the owner tried a test copy (*"looks good"*); COMMITTED on the branch (owner's picker *"Commit now"*, 11 Nov 2026; `git log phase-notes` has the hash). Steps 1–5 ship together; step 6 (picking a shoot day) is not needed to ship ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+- ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
+  R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
+  R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
+  month later; R9(a) one new key `phaseNotes`, no version bump. Plan §2 holds the record.
+- **Branches:** the plan, the mockups and the rulings were on `claude/sharp-mendel-68482d` (`4f70fb3`, `8c9d0f7`), which
+  was never merged into `main`. So `main`'s HANDOFF still says only that a plan-writing session was proposed, until
+  `phase-notes` lands. `phase-notes` was cut from `main` at `f68aa71`, with that branch merged in (`f3a26ad`; HANDOFF
+  the only conflict, both kept). The plan was then refreshed against `main`'s movers: Build Around, the one Shift
+  form, ▲ / ▼, the bar drag and the ripple; Close all gaps is gone. ⚠️ Still open for step 2: A2 has to make room for
+  the waterfall editor's per-line Hide list (live at `ac55bb7`).
+- 🔨 **STEP 1 BUILT** (owner: *"Start step 1"*), engine only, no UI. Plan §9 is the as-built record. It covers:
+  - the store `var phaseNotes` (keys `<phase>@<n>` / `production@day<n>`);
+  - `placePhaseNotes` in `computeSchedule`, giving `schedule.phaseNotePlace`, ABSENT when empty;
+  - `effectiveNoteText` drawing them;
+  - `wfLinkedLook` behind `noteColorFor` / `noteFontSizeFor` / `textStyleOf('note')` / `syncRowHeights`;
+  - capture, sanitize, unconditional restore and the two resets;
+  - `wfLinkedLineEdits` in the note editor's save (keep / rename / delete, then `update()`);
+  - `unlinkPhaseNotesOf` when a custom phase is removed.
+  No frozen edit.
+  - ⚠️ **Found by the leg and fixed:** the pre-10-Sep-2026 row-height MIGRATION in `syncRowHeights` read "index keys
+    + empty by-week map" as an old file, so a linked note's derived height was baked onto the week it had just
+    left. The fixes are `rowHeightsSynced` (skip the map the last sync wrote) and `rowHeightsForFile()` (the file's
+    legacy `rowHeights` leaves out heights a linked note lent). Anything else that ever derives a row height must
+    respect both.
+  - **Proof:**
+    - New leg `phasenotes` 21/21 on the build (fixture `phasenotes.sptcal` = `wfkeys` + five links). It covers
+      every mover (typing a start, Build Around, ▼, Shift All / Phase & after, an all-phase and a phase hiatus,
+      Region → None moving Day 10), Excel + fill, the PDF, the Notes width, the editor, a custom phase removed with
+      undo, Save field order, F1b (the height after Save → Load → move), an older file, hostile entries and errors.
+    - M1 was red before the migration fix, E1 before the `update()` fix.
+    - `npm run check` 40/40; build sha256 `ebac72f4…`.
+    - **Full gate: queued behind another session's** (port 8951, output in this session's scratchpad); result
+      below when it lands.
+  - **Not yet:** the Stays with row (step 2), the look written onto the note by the editor, the bar and a row drag
+    (step 3), Delete / Cut / Paste / drag (step 4), the month view (step 5), picking a shoot day (step 6).
+  - Docs: README Unreleased entry, CLAUDE.md state table row, fixtures README row.
+- ⚠️ **Step 1's full gate was contaminated.** It started at 22:50 on 5 Nov, at the same moment as `shift-held`'s:
+  both were queued behind the same third gate, with the same `while pgrep gate.sh` wait. The two stalled each other
+  for 11+ hours.
+  - Every baseline compare that had run was identical (gates 2, 3 and 10, the restore and `fields.byId`).
+  - It finished at 10:51 on 6 Nov: **3,981 PASS / 27 FAIL**, every one of the 27 already failed by 10:33 while both
+    gates ran. They were "produced no result" and load / ExcelJS timeouts, plus `pilllabel`, `hdrfile`,
+    `simpostbeside`, `pwagate` C1 and `exportrefused` E4 under that load. Gate 13's written month PDFs were
+    byte-identical too.
+  - The clean verdict for steps 1 and 2 together is step 2's full gate, below.
+  - ⛔ **Lesson:** two sessions polling `pgrep gate.sh` start together the moment the gate they wait on ends. The
+    queue needs a lock (e.g. `mkdir /tmp/sptcal-gate.lock`), not a poll.
+- 🔨 **STEP 2 BUILT** (owner, 6 Nov 2026: *"can we start step 2"*). Plan §10 is the as-built record.
+  - **The row:** *Stays with* under the Day picker of today's editor (`.note-link-row`, an id-less
+    `.note-link-select`), from `wfLinkContext`: the week, then each phase cell of the row.
+  - **Hint:** R1's wording, and R3(a)'s amber "waits on its last week".
+  - **R2(a):** a cell whose one note is linked opens on its home. Otherwise it opens on the week and an "Also
+    here" line names the visitors.
+  - **The save** (`commitActiveNoteEditor`):
+    - unchanged: `wfLinkedLineEdits(…, single)`, and the Day becomes `dow` with the stamp stripped (D3);
+    - to a phase: every non-automatic, non-month line becomes one note at that key, with the cell's look
+      (`wfCellLook`); the automatic lines stay the week's;
+    - to the week: the visitors become typed text, their look going to the week where it has none.
+    A colour picked on a linked cell goes on the note.
+  - **Proof:**
+    - New leg `phaselink` 14/14. `phasenotes` 21/21, `noteviews` 15/15, `wfnoteeditor` 13/13, `wfnotecolors`
+      14/14, `holidayrename` 14/14, `autonoterename` 24/24, `autonoteview` 18/18 and `wfkeys` 84/84, all on
+      that build.
+    - The build went to a temporary `dist-step2/` while step 1's gate held `dist/`.
+    - ✅ **FULL GATE on the step-2 build** (dist sha256 `9e018604…`, port 8951, 10:53–11:32 on 6 Nov, no other
+      gate running): **4,206 PASS / 1 FAIL**, every baseline identical: gates 2 and 3, gate 10's print documents,
+      gate 13's written month PDFs, the restore and `fields.byId`.
+      - The one FAIL is `phasesui` (hidewf) P1, a Load timeout on `v1.7.0-saved`, one of 46 fixtures. Rerun alone
+        it is 8/8 with all 46 matching.
+      - `phasenotes` and `phaselink` are both in the gate (generic block) and green there.
+- 🔨 **STEP 3 BUILT** (owner, 6 Nov 2026: *"Start step 3"*). Plan §11 is the as-built record.
+  - **The rule:** every writer of a Notes cell's look asks `wfLinkedLookKey` (the cell's first linked note, when the
+    week has no typed text). It writes on that note and drops the week's own copy of the field.
+  - **The style bar:** `applyLinkedTextStyle`.
+  - **The editor's colour:** now also drops `noteColors[week]`.
+  - ⭐ **The FROZEN row drag and the handle's double-click are OBSERVED, not edited** (sanctioned pattern 3):
+    - a capture `pointerdown` on a row handle copies `rowHeightsByWeek`;
+    - a task after `pointerup` moves a changed height onto the linked note;
+    - a task after the handle's `dblclick`, and `wfResetSize` directly, clear the note's height through
+      `clearLinkedRowHeights` (`rowHeightsLinked` says which rows a note lent).
+  - **Proof:**
+    - new leg `phaselook` 10/10;
+    - `phasenotes` 21, `phaselink` 14, `rowheight` 7, `rowmigrate` PASS, `wfmenu` 39, `zoomresize` 40, `calzoom`
+      26, `notewrap` 16 and `textstyle` 51, all green on the build (sha256 `62a190f2…`);
+    - ✅ **FULL GATE PASSED on the step-3 build** (sha256 `62a190f2…`, port 8951, 13:25–14:04 on 6 Nov, alone):
+      **4,217 PASS / 0 FAIL**, every baseline identical. `phasenotes`, `phaselink` and `phaselook` were all in it.
+      An earlier run was lost when the session restarted.
+  - ⛔ **NOT SHIPPABLE BEFORE STEP 5.** The month view takes a week's typed lines from `userNotes` through
+    frozen `notesForWaterfallDate`, so a note linked here leaves the Month view until step 5 draws
+    `phaseNotePlace` through `mvWfLinesFor`.
+- 🔨 **STEP 4 BUILT** (6 Nov 2026, a side session started from the step-3 session). Plan §12 is the as-built record.
+  - **Delete and Cut** delete the cell's linked notes (`wfClearNote` → `wfLinkedNotesOff`). Until now a linked line
+    survived Delete.
+  - **Copy → Paste** lands as a PLAIN note of the target week, in the look the cell was drawn in (`wfNoteItem` reads
+    `wfLinkedLook`, plus a row height the note lends), re-dated to the same weekday.
+    - A paste over a cell replaces its linked notes. A copy pasted back onto its own cell changes nothing.
+    - Plain text pasted over a linked note keeps the look the note lent the cell (`lend` → `wfLookToWeek`).
+  - **Drag** (`wfNoteParts` / `wfRelinkKey` / `wfPutLinked`): a linked note keeps its phase when the drop week's row
+    draws that phase, re-linked to that week's n. A shoot-day note goes by day. Anywhere else it lands as plain text.
+  - **`wfNoteStep`** now runs `update()` when `phaseNotes` or `rowHeightsByWeek` moved.
+  - **Refactors:** `wfLinkOptions` came out of `wfLinkContext`; `wfLookToWeek` replaced two copies of the same four
+    lines (the editor's to-the-week save, `unlinkPhaseNotesOf`).
+  - No frozen edit, no save-format change. One Help sentence.
+  - ⚠️ **Noticed, not changed:** `wfCleanClipItem` drops `monthHidden`, so a pasted copy of a note with "Show in
+    month view" off comes back with it on. That has been true for plain notes since NOTE-VIEWS; a drag is fine.
+  - **Proof:**
+    - New leg `phasekeys` 18/18 (fixture `phasenotes.sptcal`); 14 of 18 red on the step-3 build.
+    - Green on the build (sha256 `cce7eb42…`): `phasenotes` 21, `phaselink` 14, `phaselook` 10, `wfkeys` 84,
+      `noteviews` 15, `wfnotecolors` 14, `wfnoteeditor` 13, `holidayrename` 14, `autonoterename` 24, `autonoteview`
+      18, `wfmenu` 39, `wfkeysreal` 6, `npm run check` 40/40.
+    - ✅ **Full gate on the step-4 build: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
+  - **Next, step 5:** the month view draws linked notes (`mvWfLinesFor`), gets the editor row (R8(a)) and the line
+    drag (`moveWfLine`, §4.6's last bullet, by day).
+- 🔨 **STEP 5 (the month view) BUILT, 10 Nov 2026** (owner: *"keep going with step 5"*), first as WIP `be5459a` on
+  `phase-notes`, after merging `origin/main` (v1.12.1 + the Shift list + layout rules 22-23) in as `0a3366d`; tried by the
+  owner in the browser, then finished on *"good keep going"*. Plan §13 is the as-built record; README has two Unreleased
+  entries (step 5; the popup buttons and rows).
+  - ✅ **Leg `phasemonth` 21/21** (new; in `gate.sh` as `phasemonth:phasenotes:900`): drawing, both switches, the editor,
+    the drag by day, a removed custom phase, the popup buttons (placement measured), the file. Help: two sentences after
+    the waterfall's Stays with, and Delete Note in the note-editor paragraph.
+  - ⚠️ **A bug the leg found, fixed:** a note hidden from the waterfall dragged (month view) to a day its phase does not
+    run VANISHED. The drag's `apply` rebuilds the landing day's month-note list from the grid and wrote it back without
+    the month note `moveLinkedLine` had just written. It now takes the dragged slot (`mePlain`), and `meEl()` finds it as
+    a day note (`d.at.kind`). Reproduced in the browser before the fix, gone after; one undo restores.
+  - Leg expectations worth knowing: a typed line put back on its week ("This day") is drawn WITH its date in the month
+    view ("Stunt rehearsal 7/6/26"); a shoot-day note can stay in its week when Production moves a week, because the
+    run's holidays change (Day 30 was Mon 8/10, after a one-week move it is Fri 8/14).
+  - **Full gate on the step-5 build (sha256 `ef674fbf…`): 4,226 PASS / 16 FAIL**, port 8957, 17:41–22:27 on 10 Nov
+    (4 h 46 min: four other sessions' partial gates overlapped it, and the machine then ran at a load average of
+    120–140 with Epic Games Launcher, a Time Machine backup and Spotlight indexing). ✅ Every baseline identical: the
+    waterfall PDF, every Excel part, the restore, `fields.byId` (77 ids), gate 10's print documents, and all 24 of gate
+    13's written month PDFs byte for byte. `phasemonth` 21/21 in it.
+  - The 16 are timeouts or legs that never reported. Re-run alone, nine cleared: `wfmenu` 39/39, `mvnotesize` 12/12,
+    `monthexport` (blocksoff) 9/9 and (halfdays) 9/9, `builtindates` 17/17, `episodeprep` 33/33 and (episodeprep) 25/25,
+    `weeknum` 6/6. ✅ The other seven, re-run on 11 Nov once the machine was quiet (load ~10): `onecol` 17/17
+    (the gate's own checks), `autonotephases` 27/27, `offweek` 5/5 and (offweek) 42/42, `hiatusdrag` 14/14,
+    `hiatusripple` 19/19, `wfkeysreal` 6/6, `scenariocompat` on v1.2.0 and v1.8.0. So every one of the 16 is green
+    alone. `offweek`'s Load wait is flaky on both builds: an A/B run gave this build 42/42 and the pre-step-5 build
+    (`0a3366d`) 41/42 (one Load timeout).
+  - ✅ **RULED R10(a)** (owner's picker, 10 Nov 2026, *"Own switch per view"*): a linked note can be hidden from the
+    waterfall, saved as `sheetHidden: true` (a NEW permanent field word, the twin of `monthHidden`). A note linked from
+    the month view starts with it, as a month note starts out of the waterfall. `waterfall` (the plan's earlier word) is
+    unused.
+  - **10 Nov, after trying it** (owner: *"Finish it"*, then two UI asks): the waterfall editor's Day and Stays with boxes
+    line up on their left edge (a fixed-width `.note-row-name`); and each note popup's one action button sits at its
+    top right beside the heading (`.note-pop-head`): Hide Auto-Note / Hide Holiday as before, and a NEW **Delete Note** on
+    a typed note. In the waterfall Delete Note deletes what was typed (own text, linked notes, month notes shown there)
+    and keeps the cell's automatic notes and holidays; in the month view it deletes that one note (a month note, a
+    waterfall line, a linked line). No Hide Holiday was added to the month view (none existed). Tracker card
+    `note-editor-top-buttons`. `wfnoteeditor` E1 now expects Delete Note on a typed cell.
+  - ⚠️ **Preview port clash:** the `phase-notes-8961` launch entry shares 8961 with the hover-expand session's legs, and
+    `run.sh` kills any `srv.js` on its port, so the preview died; `phase-notes-8977` died the same way minutes later (the
+    other session moved to 8978). This branch's preview is now `phase-notes-9197`.
+  - Then (owner): *"move Day so the edge of the y is alligned vertically with the h in with"*: the row names are set to
+    the right of their shared width, so "Day" and "Stays with" end at the same x.
+  - Then (owner): *"make the two selector boxes the same size"*: the Day select fills the rest of its row as Stays with's
+    does (its label and select flex), so both are one size (167 x 30 px in the default panel).
+  - ✅ **Settled by the owner, 10 Nov 2026 (*"thats fine"*):** a phase week holds ONE note with one day, so two notes
+    linked to the same (non-Production) phase week on different days share the first one's day. Production avoids it by
+    following shoot days in the month view (R4(b)). The hint says so before saving. Kept as built.
+- **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
+  note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
+  was not needed, but typing a phase's start date leaves its notes behind.
+- **Found in the code (plan §0):**
+  - Only the Shift tools move a typed note (`shiftCalendarDates` re-keys `userNotes` by week).
+  - Typing a start date, the month body drag and grips, Rebuild From, Close all gaps, a hiatus added inside a phase,
+    and a Region change all move phases and leave notes on their weeks.
+  - Automatic notes never get left behind, because `computeSchedule` derives them on every run.
+- **Proposed:** store the link, not the week. A new snapshot key, `phaseNotes`, keyed `<phase>@<n>`, where n is the
+  phase's own working-week count from `seg.weekNo`.
+  - `computeSchedule` places each note on `schedule.phaseNotePlace`, on the schedule object only (it runs up to 300
+    times in searches).
+  - `effectiveNoteText` draws the notes into the Notes cell, the NOTE-VIEWS path, so the screen, Excel, the waterfall
+    PDF, widths and row count follow. `mvWfLinesFor` draws them in the month view.
+  - Their look goes through `noteColorFor` / `noteFontSizeFor` / `textStyleOf` / `syncRowHeights`.
+  - **No frozen edit, and no code in any mover.**
+  - ⛔ `shiftCalendarDates` gets nothing: linked notes are not in `userNotes`, so it never sees them. Never add a
+    `shiftKeyedMap` call for `phaseNotes`.
+- **The editor:** one row under the text box, *Stays with [Week of 5/9/33 | Production wk 2]*. It lists the phase
+  cells the row draws, opens on the week, and is hidden when no phase runs. A one-line hint says what will happen.
+  The grid gets no mark (D6).
+- **Waiting on the owner: R1–R9** (plan §2). Recommended:
+  - R1 the words "Stays with";
+  - R2 one cell, one home (a visiting note keeps its link while the choice is untouched);
+  - R3 a shorter phase parks the note on its last week, a removed custom phase turns its notes into plain notes;
+  - R4 Production follows its shoot day when the picked day is one;
+  - R5 no offsets outside the phase yet;
+  - R6 with no day, the phase's first drawn day that week;
+  - R7 colour, size, style and row height travel;
+  - R8 both note editors, the month one in a later step;
+  - R9 one new key with no version bump (an older build drops linked notes if it saves).
+- **The mockup** (checked in the browser pane): tab 1 is the editor on a synthetic 2033 waterfall. Tab 2 types
+  Production two weeks later, with Before / After, a Today switch, a weeks stepper (R3's parked note) and a two-note
+  cell (R2). A switch at the top shows R1's three wordings.
+- **Fits:** the Shift tool, the phase week arrows and the hiatus ripple all carry linked notes for free (plan §7).
+- **Then the editor's look** (tracker card `note-editor-overhaul`, requested). Seeing it, the owner asked for *"a few
+  cleaner looking variations of this menu … this would also apply to the same menu in the month view"*.
+  [`mockups/note-editor-look.html`](mockups/note-editor-look.html) draws today's editor and A (one tidy list), B (text
+  first, chips) and C (every choice a button) for all five editors: the waterfall note, and the month view's note,
+  waterfall line, holiday and automatic note. Each keeps exactly today's settings.
+  - Then *"a version of a where the date selector is on the top, then stays with, then color is all the chips not a
+    dropdown, then show in month view"*: that is **A2**, in the same file.
+  - Heights for the waterfall editor: today 311 px, A 298, A2 352, B 194, C 433.
+  - ✅ **RULED: A2**, for both note editors (owner: *"yes A2, but its an "Auto-Note""*). So the month view's
+    automatic-note editor is titled **Auto-Note**, matching its Hide Auto-Note button. Today's title is
+    "5/2/33 · Auto Note", from `openMvNoteEditor`. The order and the build order with this plan are in its §4.4.
+  - No app code yet. Chrome only: both editors are body-level panels (`.note-pop`, `.mv-note-pop`), so nothing frozen
+    changes. But 18 legs drive `.note-pop` / `.mv-note-pop` (among them `noteviews`, `wfkeys`, `mvnotes`,
+    `wfnotecolors`, `autonoterename`, `holidayrename`; `grep -l note-pop tests/harness/t`), so the rebuild has to keep
+    their selectors or move them with it.
+
+### ✅ 11 Nov 2026: A PHASE'S ▲ / ▼ STEP OVER A HIATUS WHILE RIPPLE HIATUS IS ON. ✅ **LIVE at `7e0e668`** (commit `c307094`, origin's lane-fill work merged in as `7e0e668`, conflicts in HANDOFF/README only, both kept; pushed `887f0a7..7e0e668` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `b256a002…`, ~50 s after the push). Re-run on the merged build: `phasearrowsripple` 10/10, `lanefill` 4/4, `phasearrows` 23/26 (the same three), check 42/42. No version cut. Tracker card `phase-arrows-step-over-hiatus`.
 - **Owner:** *"i dont think the bump up and down buttons on individual phases are skipping over the hiatus periods properly. When ripple hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after the hiatus"*. Tried on localhost first, then *"Finish it"*.
 - **Cause:** not a bug in the step-over: the phase arrows were never given it ("The phase card's ▲ / ▼ move one phase one week by design", PHASE-WEEK-ARROWS-PLAN.md), so ▼ from the week before a break went INTO it.
 - **As built:** `nudgePhase` passes `stepHeld: hiatusRippleOn()` to `shiftCalendar`. The arrows' EMPTY week window means `hiatusFatesFor` holds every all-phase hiatus, so every one is stepped over, locked or not. The card's label adds `res.stepped`'s calendar weeks ("Pushed 3 wks" over a 2-week break). Ripple off: one calendar week, unchanged. Nothing frozen, no save-format change.
@@ -69,8 +324,6 @@
   phasecolors, onecol, hdrfile, stickycols, monthwriter (notewrap) green alone; phasesui P1 was a load timeout on one
   fixture, green on both builds re-run. Not re-run: pilllabel (shootorder) W2 and scenariocompat v1.2.0 (month pills /
   the frozen v1.2.0 release file; neither reads the waterfall layout).
-
-### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 
 ### ✅ 11 Nov 2026: PREFERENCES › WATERFALL LOSES PAPER AND GRID LINES; DATES GETS FOUR FORMATS. ✅ **LIVE at `ff3eb64`** (pushed `50e4b8e..ff3eb64` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `d4cec324…`, served ~50 s after the push). No version cut, so open app windows learn of it only on a full relaunch past Pages' 10-min cache. Tracker card `prefs-dates-four-formats`.
 - **Ask (owner, a screenshot of the Paper and Grid Lines in Exports rows):** *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and DD/MM/YY"*. Picker: **unpadded** (6 Jan 2025 = 6/1/25 day first; every existing calendar draws as before).

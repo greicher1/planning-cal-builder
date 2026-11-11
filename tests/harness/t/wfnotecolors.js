@@ -294,7 +294,10 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       savedText = await save();
       var s = JSON.parse(savedText);
-      var keysSame = same(Object.keys(s).sort(), Object.keys(S0).sort()), idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
+      // ⚠️ Date Last Edited (1507204, 9 Nov 2026) writes a top-level lastEdited once a calendar has been edited (or opened from a file with
+      // no stamp, which takes the file's time), so it is left out here, as noteviews does (11 Nov 2026).
+      function noStamp(o) { return Object.keys(o).filter(function (k) { return k !== 'lastEdited'; }).sort(); }
+      var keysSame = same(noStamp(s), noStamp(S0)), idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
       var w0 = repairWarnings();
       await load(savedText);
       var st = noteStyle('2026-08-10'), c = computed(noteTd('2026-08-10'));

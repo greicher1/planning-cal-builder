@@ -345,7 +345,8 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       savedText = await save();
       var s = JSON.parse(savedText);
-      // lastEdited (9 Nov 2026) is written once a calendar is edited, which every step above does: not this leg's key.
+      // ⚠️ Date Last Edited (1507204, 9 Nov 2026) writes a top-level lastEdited once a calendar has been edited (or opened from a file with
+      // no stamp, which takes the file's time), so it is left out here, as noteviews does (11 Nov 2026).
       var added = Object.keys(s).filter(function (k) { return !(k in S0) && k !== 'lastEdited'; }).sort();
       var idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
       var w0 = repairWarnings();
