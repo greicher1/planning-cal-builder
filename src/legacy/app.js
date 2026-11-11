@@ -8908,9 +8908,8 @@ export function initLegacyApp() {
           </div>
           <div class="snap-note"></div>
           ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
-          ${/* The hiatus ripple's switch (HIATUS-RIPPLE-PLAN.md §5): the one preference, shown here too. ⛔ NO id (see the
-               All-phase hiatus card's copy in index.html). reflectHiatusRipple() writes .checked. */''}
-          ${swRow('hiatus-ripple-sw', 'Ripple Hiatus', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Ripple Hiatus: move the phases after this hiatus when it changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as Ripple Hiatus Periods on the All-phase hiatus card. Kept on this computer.')}
+          ${/* The hiatus ripple's switch sat here as "Ripple Hiatus" until 10 Nov 2026; it is in Settings > Preferences
+               alone now (owner, "Settings only"; see reflectHiatusRipple). */''}
         </div>
       </div>`;
   }
@@ -12193,9 +12192,9 @@ export function initLegacyApp() {
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
              : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
       }
-      // The switch's own name where the user flipped it (owner, 4 Nov 2026): Ripple Hiatus Periods on the All-phase
-      // hiatus card, Ripple Hiatus in a phase's Hiatus block.
-      if(rip && rip.changed && rip.text) msg += '\n\n' + (d.h.kind === 'all' ? 'Ripple Hiatus Periods' : 'Ripple Hiatus') + ' is on: ' + rip.text + '.';
+      // The switch by its name and where it is (owner, 10 Nov 2026, "Settings only"): one switch, in Settings, for an
+      // all-phase hiatus and a phase's own alike. Until then this named the card copy the user had seen.
+      if(rip && rip.changed && rip.text) msg += '\n\nRipple Hiatus Periods is on (Settings): ' + rip.text + '.';
       return msg;
     }
 
@@ -25161,6 +25160,40 @@ export function initLegacyApp() {
     }
   }
 
+  // The first day a phase actually WORKS, which is not always its entered start (owner, 10 Nov 2026, on a Compare
+  // window reading "Start pushed 2 wks, end same" for two scenarios whose grids were identical: Post typed into the
+  // Holiday Hiatus week in one, the week after it in the other). A hiatus covering the start PAUSES the phase, it does
+  // not move seg.start, so the waterfall's wk 1 and the month view's first bar sit after the break while the
+  // {<phase>.open} token -- and through it Compare, the key facts band and any header line printing it -- named a day
+  // inside it. Production has read its first real shoot day since 3 Sep 2026 (productionInfo.firstShootDay, below in
+  // buildHeaderCtx); this is the same fix for every other phase.
+  //   - ⛔ Only a start INSIDE a hiatus moves, so every other calendar prints exactly what it printed before.
+  //   - The hiatuses that pause a phase: the all-phase ones (schedule.hiatuses) and its own (seg.phaseHiatus).
+  //   - A Weeks phase steps 7 days, exactly as extendEndForHiatus() counts its delivered weeks -- the walk that sets
+  //     seg.end, so .open and .close come from one rule. A snap-off Wednesday start stays a Wednesday.
+  //   - A Dates phase keeps its typed dates and its days in a break are drawn blank (customUnitSpan, ruling 4): it
+  //     steps a day at a time to the first weekday outside the break.
+  //   - A segment with its own day list (a Days phase, Episodic Prep) already starts where it works, or is not a
+  //     phase the header names: it is left as it is.
+  //   - Never past seg.end: a Dates phase wholly inside a break keeps its entered date.
+  function phaseOpenDay(schedule, seg){
+    if(!seg || !seg.start) return null;
+    if(seg.days instanceof Set) return seg.start;
+    const his = (schedule && schedule.hiatuses) || [];
+    const own = seg.phaseHiatus;
+    const paused = d => his.some(h => d >= h.start && d < h.end) || !!(own && d >= own.start && d < own.end);
+    if(!paused(seg.start)) return seg.start;
+    const byDay = seg.unit === 'dates';
+    let d = seg.start;
+    for(let guard = 0; guard < 4000; guard++){
+      d = addDays(d, byDay ? 1 : 7);
+      if(seg.end && d >= seg.end) return seg.start;
+      const dow = d.getUTCDay();
+      if(!paused(d) && !(byDay && (dow === 0 || dow === 6))) return d;
+    }
+    return seg.start;
+  }
+
   // Every value a token can carry, built ONCE per render and handed to headerLine() on the defaults
   // object. Reads exactly what computeHeaderDefaults() reads: Show Info from the DOM by id, schedule
   // facts from the schedule it is passed, phase names from getAllPhaseDefs().
@@ -25214,7 +25247,8 @@ export function initLegacyApp() {
         t[p.key + '.open'] = ''; t[p.key + '.close'] = ''; t[p.key + '.weeks'] = '';
         return;
       }
-      t[p.key + '.open'] = hdrDate(seg.start, false);
+      // The first day it works: a start inside a hiatus that pauses the phase is not one (phaseOpenDay, 10 Nov 2026).
+      t[p.key + '.open'] = hdrDate(phaseOpenDay(schedule, seg), false);
       // H5: the FRIDAY of the final week. seg.end is the EXCLUSIVE Monday after the last delivered
       // week (extendEndForHiatus counts delivered weeks and returns the Monday following them), so
       // seg.end is itself a day the phase is already over. "Writer's Room closes 3.6.26" has to name
@@ -26169,7 +26203,7 @@ export function initLegacyApp() {
     reflectColMoveNotes();
     reflectHiatusRanges();
     reflectHiatusSwatches();
-    reflectHiatusRipple();   // the switch's copies, phase blocks built since included (HIATUS-RIPPLE-PLAN.md §5)
+    reflectHiatusRipple();   // the Settings switch (HIATUS-RIPPLE-PLAN.md §5; its only place since 10 Nov 2026)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
@@ -29175,7 +29209,9 @@ export function initLegacyApp() {
     // From the first phase's start to the last one's end, in whole weeks.
     const segs = (sch && sch.segments) || [];
     if(segs.length){
-      const a = Math.min.apply(null, segs.map(s => +s.start)), b = Math.max.apply(null, segs.map(s => +s.end));
+      // Each phase from the first day it works, as its own row reads (phaseOpenDay): a first phase typed into a
+      // hiatus counted the break's weeks here too.
+      const a = Math.min.apply(null, segs.map(s => +(phaseOpenDay(sch, s) || s.start))), b = Math.max.apply(null, segs.map(s => +s.end));
       values.weeks = Math.round((b - a) / (7 * 864e5));
     } else values.weeks = null;
     return { values, phases, blocks: isBlocksMode() };
@@ -31081,7 +31117,8 @@ export function initLegacyApp() {
   // The result line lives in the hiatus's own card: the row's body, or the phase's hiatus block. A div with NO id
   // (collectFieldValues sweeps input/select/textarea ids only), cleared on the next hiatus edit, an undo, a Load and New.
   function showRippleNote(h, text){
-    // A removed row has no body left, so its line goes under the card's switch; a phase's goes under its whole hiatus
+    // A removed row has no body left, so its line goes at the top of the card, above the rows (where the card's switch
+    // sat until 10 Nov 2026); a phase's goes under its whole hiatus
     // block, which stays on screen when its switch is turned off.
     // In a row it goes right under the dates (after .snap-note), so the switch rows' :last-child hairline rules still
     // find the last switch.
@@ -31205,17 +31242,18 @@ export function initLegacyApp() {
     return out;
   }
 
-  // ---- THE SWITCH (R1-R3): one preference, shown in three kinds of place ----
+  // ---- THE SWITCH (R1, R3): one preference, in Settings > Preferences > Hiatus only ----
   // prefs.hiatusRipple, absent = ON, written only as false. ⛔ Never in captureSnapshot(): it is how this person edits,
-  // not calendar data. Settings > Preferences holds #pref-hiatus-ripple (inside .prefs-card, so the sweep skips its
-  // id); the All-phase hiatus card's top and each phase's Hiatus block hold an id-less .hiatus-ripple-cb (⛔ an id
-  // there would bake the preference into every saved calendar). Flipping any copy flips them all. Not an undo step
-  // and not an edit: nothing about the calendar changed.
+  // not calendar data. #pref-hiatus-ripple sits inside .prefs-card, so the sweep skips its id. Not an undo step and
+  // not an edit: nothing about the calendar changed.
+  // ⚠️ "SETTINGS ONLY" (owner, 10 Nov 2026, withdrawing ruling R2): until then the same switch was also drawn, id-less as
+  // .hiatus-ripple-cb, at the top of the All-phase hiatus card and in every phase's Hiatus block, all kept in step here.
+  // The owner: one global setting, which "would also remove clutter". A copy added back anywhere outside .prefs-card
+  // must carry NO id, or it bakes this computer's preference into every saved calendar.
   function reflectHiatusRipple(){
     const on = hiatusRippleOn();
     const p = document.getElementById('pref-hiatus-ripple');
     if(p && p.checked !== on) p.checked = on;
-    document.querySelectorAll('.hiatus-ripple-cb').forEach(cb=>{ if(cb.checked !== on) cb.checked = on; });
   }
   function setHiatusRipple(on){
     if(on) delete prefs.hiatusRipple; else prefs.hiatusRipple = false;
@@ -31224,7 +31262,7 @@ export function initLegacyApp() {
   }
   document.addEventListener('change', e=>{
     const t = e.target;
-    if(!t || !(t.id === 'pref-hiatus-ripple' || (t.classList && t.classList.contains('hiatus-ripple-cb')))) return;
+    if(!t || t.id !== 'pref-hiatus-ripple') return;
     setHiatusRipple(!!t.checked);
   });
 

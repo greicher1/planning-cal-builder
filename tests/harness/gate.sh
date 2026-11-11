@@ -2207,6 +2207,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               centrepullback:layout-r13:240 \
               hoverexpand:hover-expand:300 \
               hoverhiatus:hover-hiatus:400 \
+              comparehiatus:compare-hiatus:240 \
               phasesui:hidewf:1500 \
               stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
