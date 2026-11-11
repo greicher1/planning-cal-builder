@@ -1540,10 +1540,11 @@
   .hiatus-pair label.hiatus-weeks-lbl{ flex:0 0 64px; }
   .hiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .hiatus-body > .snap-note{ margin-top:4px; }
-  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §5-6): the switch at the top of the All-phase hiatus card, and the line
-     that says what a ripple moved, under the hiatus that was edited. */
-  .hiatus-ripple-card{ padding:0 12px 6px; }
-  .hiatus-ripple-card > .sw-row{ border-bottom:none; }
+  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §6): the line that says what a ripple moved, under the hiatus that was
+     edited. .hiatus-ripple-card is the line's home for a REMOVED hiatus, at the top of the All-phase hiatus card: empty,
+     and so no height, until then. It held the ripple's switch until 10 Nov 2026 (owner, "Settings only"). */
+  .hiatus-ripple-card{ padding:0 12px; }
+  .hiatus-ripple-card > .ripple-note{ margin:0 0 6px; }
   .ripple-note{ margin-top:4px; padding:4px 6px; border-radius:4px; font-size:var(--mantine-font-size-xs); line-height:1.4;
     color:var(--mantine-color-black); background:color-mix(in srgb, var(--mantine-primary-color-filled) 9%, transparent); }
   .ripple-note[hidden], .ripple-note:empty{ display:none; }

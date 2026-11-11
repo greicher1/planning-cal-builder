@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+
+Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
+rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
+switch is in Settings › Preferences › Hiatus. The result line under an edited hiatus stays; the month drag's question,
+the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
+rewritten for one switch, 19/19; `hiatusdrag.mjs` 14/14; `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`,
+`badyear` green (73); browser check with the switch on and off; `npm run check` 42/42.
+### Unreleased — Compare dates a phase from the first week it works (10 Nov 2026)
+
+The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and
+"1/3/28 – 8/11/28", with **"Start pushed 2 wks, end same"**. Post's typed start in the first was 12/20/27, the first
+week of the Holiday Hiatus. A hiatus PAUSES a phase rather than moving its start, so the grid's Post wk 1 was 1/3/28 in
+both, but Compare (and every `{<phase>.open}` header token, and the key facts band) read the typed date.
+
+- **The token is fixed, not just Compare** (owner: *"Fix the token"*): `phaseOpenDay()` steps a start that sits inside
+  an all-phase hiatus or the phase's own one forward, a week at a time exactly as the phase's weeks are counted
+  (`extendEndForHiatus`), to the first week it works. Production already did this (its first real shoot day). So
+  Compare, the band and any header line printing a phase's start now agree with the grid.
+- **"Weeks, first phase to last"** reads the same first working day, so a calendar whose first phase is typed into a
+  break no longer counts the break's weeks.
+- **Nothing else moves:** a start outside a hiatus prints exactly as before, no typed date is rewritten, and no default
+  header or test fixture prints a phase's start token, so no export baseline can change. The auto header's
+  "Writer's Room Opens" line still reads the typed field on purpose (it is held byte for byte).
+- **Verified:** new leg `comparehiatus` (8 cases on a synthetic three-scenario file; red on the build before the fix at
+  H1–H4 and H6), in `gate.sh`; a partial gate of `hdrtemplate`, `hdreditor`, `scenarios`, `scenariofacts` and
+  `comparehiatus`, 92 PASS / 0 FAIL; `npm run check` 42/42. In the browser, nine hiatus edits (a phase's own break
+  added, lengthened, at its start; an all-phase break moved and lengthened; Ripple Hiatus Periods on and off): Compare's
+  rows matched the grid's first and last weeks every time.
+
 ### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
 
 Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):

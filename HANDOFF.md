@@ -4,6 +4,41 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
+- Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
+- **Stacked on `compare-hiatus-start`** (rebased 11 Nov 2026; only the README / HANDOFF top entries conflicted, both kept). Combined build: `npm run check` 42/42, `comparehiatus` 8/8.
+- **Tests:** partial gate 73 PASS for `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`, `badyear`; on the combined build `hiatusripple.mjs` **19/19** (1 min 38 s) and `hiatusdrag.mjs` **14/14** (1 min 57 s), `comparehiatus` 8/8, `npm run check` 42/42. Earlier timeouts of both scripts were the machine (load average 60-190 overnight, an Epic Games Launcher at ~100% CPU), not the code.
+- ⚠️ **R9 TRAP, found by logging the press (11 Nov 2026):** the shared `click()` scrolls an element into view and measures it at once, and the app's fixed window puts that scroll back before the press. So the Settings switch was measured at y=560 and pressed at y=763's old spot, inside Settings' Automatic notes card (`.autonote-cell`). The card copies hid this, since R9 used to click the card. R9 now measures the switch where it rests (`restAt`, scrolling only when it is off screen), waits for two equal reads, and waits for the flip. **A new leg clicking inside Settings at 1600 x 1200 must do the same.**
+- **Done:** both changes live together (see the header). The branches `compare-hiatus-start` and `ripple-settings-only` are in `origin/main`; their worktrees can go (unlink `node_modules` first).
+### ✅ 10 Nov 2026: COMPARE DATES A PHASE FROM THE FIRST WEEK IT WORKS — `{<phase>.open}` SKIPS A HIATUS OVER THE START. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `compare-hiatus-start` (worktree `.claude/worktrees/compare-hiatus-start`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Targeted partial gate green; not pushed. Tracker card `compare-hiatus-start`.
+- **Asked** (owner, with screenshots): Compare read Post "12/20/27 – 8/11/28" vs "1/3/28 – 8/11/28", "Start pushed 2 wks,
+  end same", on two calendars whose grids were identical. *"There may be a bug in the compare button feature where it
+  doesn't understand hiatuses properly."* Cause: `buildHeaderCtx()` set `t[key + '.open']` from `seg.start`, the ENTERED
+  date. A hiatus covering it pauses the phase (`extendEndForHiatus` counts only working weeks) without moving `seg.start`,
+  so the token named a day inside the break. Production was already right (`productionInfo.firstShootDay`, 3 Sep 2026).
+  The owner picked the token over a Compare-only fix (*"Fix the token"*), so Compare, the key facts band (`wrOpen`) and
+  any header template printing `{<phase>.open}` move together.
+- **Built:** `phaseOpenDay(schedule, seg)` beside `buildHeaderCtx`. Only a start INSIDE an all-phase hiatus
+  (`schedule.hiatuses`) or the phase's own (`seg.phaseHiatus`) moves: a Weeks phase steps 7 days (the delivered-weeks
+  walk, so a snap-off weekday is kept), a Dates phase a day at a time to the first weekday out of the break, a segment
+  with its own day list (Days phases, Episodic Prep) is left alone. `scenarioFacts()`'s "Weeks, first phase to last" reads
+  it too. ⚠️ The auto header's c3 "Writer's Room Opens" and the `writersRoom.opens` compound token still read the typed
+  FIELD, deliberately ("verbatim c3", held byte for byte by `hdrtemplate`); a room typed into a hiatus still prints its
+  typed date there. Not raised with the owner as a change.
+- **How the hiatus edits read now** (worked through for the owner, all in the browser): a break inside a phase pushes
+  its end; one over its start pushes both dates; Ripple Hiatus Periods additionally moves the typed starts of phases
+  starting on or after the break, never the break's own phase, so "a phase's own break at its start, ripple on" is the
+  case that most needed the fix. ⚠️ With ripple ON, MOVING an all-phase break later onto a phase's start pulls that phase's
+  typed start back by the break's length (out-then-in, plan R5): Compare then reads "Start pulled 2 wks, end same", which is
+  what the grid shows. Told to the owner as ripple's design; no ruling asked.
+- **Proof:** leg `t/comparehiatus.js` on `tests/fixtures/compare-hiatus.sptcal` (synthetic: three scenarios, Writer's Rm and
+  Post typed into the 12/21/26 and 12/20/27 breaks, the same typed the week after, and Post's own break over its start),
+  8/8 green, red on the pre-change build at H1–H4 and H6; in `gate.sh`'s generic leg list. Partial gate (hdrtemplate,
+  hdreditor, scenarios, scenariofacts, comparehiatus) 92 PASS / 0 FAIL; `npm run check` 42/42. No full gate: no fixture,
+  default template or baseline prints a phase's `.open` token (grepped), so no byte-compared export can move.
+- ⚠️ **Loading a scenario file by `?state=`** needs top-level `version: 2`, and the CURRENT tab's entry must have no
+  `snapshot` key (`unpackScenarioFile`); a hand-made file without them silently boots blank.
+
 ### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
   button and the size selector ad there is between and the right shift button and Build around button"*, which I first

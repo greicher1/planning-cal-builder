@@ -374,3 +374,25 @@ A 2-week hiatus is added in Writer's Rm before all three, so the ripple pushes A
 - Proof: `hiatusripple.mjs` S1–S4 on `ripplestep.sptcal`, 19/19; live code red in S1, S3, S4; edited-as-obstacle build red
   in R4, R5, S4; 215 neighbouring checks green.
 
+
+## 13. Amended 10 Nov 2026: the switch is in Settings only (ruling R2 withdrawn)
+
+- **Asked** (owner): *"Realistically, would someone ever want some hiatuses to ripple and some to not? I think we should
+  consider moving the 'Ripple Hiatus Periods' Toggle to one global setting under preferences, which would also remove
+  clutter."* It already was one setting (R1, R3): the card and phase-block switches were R2's COPIES of it. Shown the two
+  ways (Settings only, or keep the one at the top of the All-phase card) and the case against a per-hiatus setting (a
+  break whose dates are fixed is Lock in place; "not this time" is one ⌘Z, the ripple being its own undo step), the owner
+  picked **"Settings only"**.
+- **Built:** the `.hiatus-ripple-cb` switch rows at the top of the All-phase hiatus card (`src/index.html`) and in every
+  phase's Hiatus block (`phaseHiatusBlockHtml`) are gone, and `reflectHiatusRipple()` and the delegated listener handle
+  `#pref-hiatus-ripple` alone. `.hiatus-ripple-card` stays, EMPTY (no height), as the home of a removed hiatus's result
+  line (`showRippleNote`). The month drag's question now reads "Ripple Hiatus Periods is on (Settings): …" for both kinds
+  of hiatus (it named the copy the user had seen). The switch's title, the All-phase card's "i" and the help name the one
+  place: Settings › Preferences › Hiatus.
+- **Unchanged:** the preference (`prefs.hiatusRipple`, absent = on), every ripple rule, the result line under the edited
+  hiatus, the two undo steps.
+- **Proof:** `hiatusripple.mjs` R0 now asserts one switch and no copy (the card's spot empty and 0 px high, Pre Prep's
+  block holding Number weeks alone), R9 flips the switch in Settings both ways and across a reload, R11 reads the new
+  wording, R6's title moved. Partial gate: `hiatusdrag`, `hiatusripple`, `settingswin`, `hiatussidebar`, `phiatusnum`,
+  `snapbox`, `badyear`. Browser: no copy anywhere; Writer's Rm's own break 2 → 3 with the switch on pushed the later
+  phases a week with the line under the break; switched off in Settings, 3 → 4 moved nothing and wrote no line.
