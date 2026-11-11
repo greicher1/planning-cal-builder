@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 9 Nov 2026: THE AUTO HEADER'S DATE IS THE **DATE LAST EDITED**, AND `{lastEdited}` IS IN THE TEMPLATE BUILDER. Built in the main checkout on `main`'s working tree (NOT committed, NOT pushed: waiting on the owner's picker). No version cut. Tracker card `header-date-last-edited`.
+### ✅ 9-10 Nov 2026: THE AUTO HEADER'S DATE IS THE **DATE LAST EDITED**, AND `{lastEdited}` IS IN THE TEMPLATE BUILDER. ✅ **PUSHED to `main` on the owner's pickers** (*"Commit on a branch"*, *"Push after commit"*, 10 Nov 2026): committed on branch `last-edited` as `1507204`, `origin/main` (`51ce127`: layout rules 22-23, Fill Space, sticky columns, Shift list first, Ripple step-over) merged in as `1d03278` (conflicts: `captureSnapshot()`, `colKeep` and `lastEdited` both kept; the top entries of README and HANDOFF, both kept), fast-forwarded onto `main`. No version cut. Tracker card `header-date-last-edited`.
 - **Ask (owner):** *"For auto header, can we make the date in the top left corner for waterfall view (and top right corner
   for month view) be the last time the calendar was edited. By edited i mean an actual meaningful change to the
   calendar, basically anything that would change if it was exported to pdf or excel. Then add this "Date Last Edited"
@@ -58,8 +58,10 @@
     Its slice of app.js is stale (pre-existing, not documented before); gate.sh's prover loop does not run it.
   No full gate (header + save path; the targeted gate instead). `npm run check` 40/40. Seen in the browser pane: 10.1.26
   top left on the fixture.
-- **Not done:** not committed, not pushed (owner's pickers pending). Local `main` is `d0dd33b`; `origin/main` moved on to
-  `51ce127` (another session's HANDOFF note), so a commit here needs a branch and that merged in before any push.
+- **On the merged build** (dist sha256 `c55b35a1…`): `npm run check` 41/41, and the same targeted gate re-assembled from
+  the MERGED gate.sh's sections: **283 PASS / 0 FAIL** (lastedited 21/21 inside it, scenarios S15 and scenariofacts F7
+  green this time).
+- **Not done:** no full gate (header + save path; the targeted gate on the merged build instead).
 - ⚠️ `run.sh`'s default port 8231 is shared by every session, and run.sh kills whatever `srv.js 8231` is running: this
   session's first run did that while another session was using it. Pass `HARNESS_PORT=<your own>` (this session: 8392).
 
