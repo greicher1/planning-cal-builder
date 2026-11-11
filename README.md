@@ -56,6 +56,36 @@ uses too). On a build with the buttons put back (`3f99d989…`) the legs go red:
 D1, `buildalongside` A6. In the browser: the box opens with 4 of 5 ticked and the Localization line, a row click
 pins, a box ticks, Build moves the ticked phases and one Undo restores them. ⚠️ No full gate was run: chrome only.
 
+### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
+
+Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
+*"It also needs the reverse to unexpand"*; built 10 Nov on *"Yes, build it"*, with three corrections from the test
+files that day.
+
+- **What.** In the Waterfall of a calendar on the layout rules, resting the pointer on an empty slot beside a phase
+  outlines the weeks where that space sits beside it and shows **Expand?** in the middle of the outline; the click
+  widens the phase across the space in **those weeks only** (owner: *"it also expanded test wk 1"*, on a first build
+  that set the phase's fill wish instead). Resting on a widened cell outlines the space it took and shows **Pull back
+  this week?** or **Pull back?**: the click clears the dragged widths of that run, or turns a fill wish off. One undo
+  step each. Never with cells highlighted, in the Month view or on an unstamped calendar.
+- **Steady, and a little sooner** (owner, later that day: *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"*, *"a tiny bit sooner"*). Once up, the outline and chip stay while the
+  pointer is anywhere on them, across every week of the outline; the first live build redrew them on the next week.
+  They appear 200 ms after the pointer reaches a cell (300 ms before, and restarted by every small movement).
+- **Where the chip sits.** The very centre of the outline, both ways (owner: *"always sit in the very center of the
+  outlined box"*), except on the Swap Column button (*"ok except when these buttons collide"*): the button keeps its
+  place and the chip steps 4 px clear, inside the outline where there is room, else beside the button on the same row.
+- **How.** Chrome on a new overlay layer (`.grid-hover-layer`) inside `.sheet-grid-wrap`, beside the selection layer;
+  nothing frozen changed. Expand writes the per-cell width an edge drag writes (`cellSpans`); Pull back deletes those
+  or calls the fill wish's own setter. Nothing new is saved. Help: "How far a cell reaches".
+- **Verified.** New fixture `hover-expand.sptcal` and leg `hoverexpand` (16 checks, real pointer events) in the gate.
+  Targeted, on this build: `hoverexpand` 16/16; the pointer legs `centrepullback` 12, `phasefill` 13, `colsreset` 8,
+  `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16,
+  `undokeys` 11, `wfmenu` 39, `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass, `noteviews` 15 (its F2
+  Load times out under load on this build and on the live one alike); the gate's whole swap section, `onecol` and
+  `colreuse` under the gate's own judges, 161 PASS / 0 FAIL; `npm run check` 41/41. No full gate: nothing frozen,
+  exported or saved changed.
+
 ### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
 
 **What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo

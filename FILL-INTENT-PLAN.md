@@ -162,3 +162,42 @@ have space for if they are all uniform in width."*
 - **Proof.** Leg `fillspace` (layout-r13: on, Post 2031 is two then three wide and Writers one then two; off, Post two
   and Writers one all year, every phase one width per year). With the switch on, the gate's export baselines and the 15
   pictures must not move — the frozen edit's acceptance gate, agreed with the owner.
+
+## 11. The hover prompt — "Expand?" over a blank, "Pull back?" over what was widened (owner, 6–10 Nov 2026)
+
+*"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*, then *"It also
+needs the reverse to unexpand"*; built on *"Yes, build it"* (10 Nov). Three corrections on the test files the same day:
+*"i rested my cursor over the blank space in test weeks 8-10 and clicked expand and then it also expanded test wk 1"*;
+*"Can the expand button always sit in the very center of the outlined box (top to bottom and left to right)"*; *"ok
+except when these buttons collide"* (the chip on the Swap Column button). Tracker card `blank-space-expand-prompt`.
+
+- **Expand?** Rest the pointer (200 ms; it was 300 until the owner's *"a tiny bit sooner"*, counted from reaching the
+  cell, not from the last move on it) on an empty slot beside a phase cell: the phase directly beside it (between two,
+  the LEFT one, rule 12) and the consecutive weeks where the same blank sits beside the same phase on the same side get
+  one dashed purple box, a faint outline on the phase's cells, and the chip. The click writes a per-cell width
+  (`cellSpans`, the shape an edge drag stores, `{l, r, k}` reaching the far edge of the blank) on **those weeks only**.
+  ⛔ Not the fill wish: the first build set it, and a wish fills every week with room, so Test wk 1 widened too when
+  the owner had pointed at weeks 8–10. Not offered beside a cell with a dragged width that week, for a phase already
+  filling, or beside a hiatus band.
+- **Pull back this week? / Pull back?** Rest on a cell with a per-cell width: the columns it took beyond its own, in
+  amber; the click clears that cell's width, or the whole run of them (same phase, same own column, consecutive weeks).
+  On a cell its phase's fill wish widened: the click turns the wish off (`setPhaseFill(key, null)`, the automatic
+  layout). Not offered where only the automatic layout widened a cell: nothing of the user's to take back.
+- **Where the chip sits.** The very centre of the outlined box, both ways (two boxes, a pull back on both sides: what
+  spans them), clamped into the grid. Except on the Swap Column button, which always sits top right of the column's
+  topmost visible cell: the BUTTON keeps its place and the chip steps aside 4 px clear, to the nearest spot still in the
+  box (below the button on a box of two weeks or more), else beside it on the same row, else above or below. Resting on
+  the chip never summons or moves the button, and the way from the box to a chip that stepped outside it keeps the
+  prompt up (`placeHoverChip`, run again by `drawStintButton`).
+- **Once up, it stays** while the pointer is anywhere on what it outlined (owner, 10 Nov 2026: *"the expand box and
+  button seem to disappear weirdly when you move your cursor after they first pop up"*): any cell of the run, any
+  outline, the chip, the space between outline and chip, read from what is drawn at each move so a scroll changes
+  nothing. v4 keyed it to the one week rested on, so the next week of the same outline redrew it.
+- **Never** on an unstamped calendar, in the Month view, with cells highlighted, or while a drag, resize or swap runs; a
+  re-render takes it down. Each click is one undo step. Chrome on its own layer inside `.sheet-grid-wrap`
+  (`.grid-hover-layer`), the selection layer's seat: it reads the drawn cells and writes nothing into the grid, absent
+  from both print paths. **Nothing new is stored**, so no file-format change.
+- **Proof.** Fixture `hover-expand.sptcal` (the owner's test calendar's shape in 2031: Test with a blank on its right in
+  week 1 only and on its left in its last three weeks). Leg `hoverexpand` H0–H6 + E0, every hover a real pointermove at
+  real coordinates: H2 holds the owner's "it also expanded test wk 1", H4 the collision (red on the build before the
+  step-aside).

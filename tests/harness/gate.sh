@@ -2102,6 +2102,12 @@ done
 # leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
 # then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
 # the fixed build with writeBackup()'s isDirty guard deleted.
+# hoverexpand (owner, 6-10 Nov 2026: "draw a square around them on hover and ask Expand?", "It also needs the reverse to
+# unexpand"; FILL-INTENT-PLAN.md §11) rests a real pointermove on hover-expand.sptcal's blanks: one dashed box over the
+# run, "Expand?" in its centre, the click widening THOSE weeks only (the owner's "it also expanded test wk 1": Test wk 1
+# stays one wide), "Pull back?" clearing a run of per-cell widths or turning a fill wish off, one undo step each, and the
+# chip keeping 4px clear of the Swap Column button on a column's top cell ("ok except when these buttons collide").
+# Never with cells highlighted, in the Month view or on an unstamped calendar. H4 red on the build before the step-aside.
 # newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
 # the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
 # info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
@@ -2191,6 +2197,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               swapholds:swap-holds:400 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
+              hoverexpand:hover-expand:300 \
               phasesui:hidewf:1500 \
               stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

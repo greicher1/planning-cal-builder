@@ -379,6 +379,22 @@ const SPECS = {
       { key: 'post', start: '2031-09-08', weeks: 12 }
     ],
     hiatuses: [Y1]
+  },
+  // The hover prompt (owner, 10 Nov 2026; FILL-INTENT-PLAN.md §11, leg hoverexpand): the owner's test calendar's shape,
+  // shifted to 2031. A 10-week custom "Test" starts in Writers' last week with an empty column on its right that week
+  // only (Prod Prep and Pre-Prep start the week after); once Pre-Prep ends, Test has an empty column on its LEFT for its
+  // last weeks. Two separate blanks beside one phase: Expand? on the second must not widen the first (the owner's
+  // "it also expanded test wk 1"), and the first is the stint's top cell, where the Swap Column button sits.
+  'hover-expand': {
+    stamped: true, simpost: { enabled: false },
+    phases: [
+      { key: 'writersRoom', start: '2031-01-06', weeks: 20 },
+      { key: 'custom1', name: 'Test', start: '2031-05-19', weeks: 10 },
+      { key: 'prePrep', start: '2031-05-26', weeks: 6 },
+      { key: 'prodPrep', start: '2031-05-26', weeks: 10 },
+      { key: 'production', start: '2031-08-04', weeks: 20 }
+    ],
+    hiatuses: [Y1]
   }
 };
 

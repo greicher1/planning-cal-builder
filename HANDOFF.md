@@ -28,6 +28,83 @@
   fixture and a blank calendar) that raised "Recover unsaved work" on every load. I deleted those four from that test
   origin's IndexedDB. Nothing of the owner's was there (all four were written during my own checks that hour).
 
+### 🔨 10 Nov 2026: `noteviews` F1 AND `textstyle` B4 GREEN AGAIN — two legs re-expected, nothing in the app changed. Branch `claude/festive-panini-36a6ae` (worktree `.claude/worktrees/trusting-khayyam-dbbd72`, reset to `origin/main` at `2ab646d`; local `main`'s HANDOFF-only `6e4d0f5` is not in it). Committed on the branch, not pushed. Only `tests/harness/t/noteviews.js` and `t/textstyle.js` changed.
+- **`noteviews` F1** (`keysSame` false) was Date Last Edited, as the hover entry below guessed: `keysAdded` (now in the
+  case's output) is exactly `['lastEdited']`, `keysGone` empty. S0 is saved from the fixture as `?state=` opened it (no
+  file time, so no stamp); the leg's edits stamp it. F1 now leaves `lastEdited` out of BOTH key lists and still fails
+  on any other new or missing top-level key, and on any new `fields.byId` id.
+- **`noteviews` F2** (a second Load, "the loaded file's name in the file menu") is **load timing only, hardened.** The
+  release-layout session's red run reads "(100 polls, 10000ms real)": exactly 100 x 100 ms, so that clock is VIRTUAL,
+  not real (lib.js's `until` calls it "real"; it is not, under `--virtual-time-budget`). Measured by wrapping
+  `Blob.prototype.text` in a throwaway copy of the leg: the app's `file.text()` on the picked file took **7.6 s, 1.0 s
+  and 0 s of virtual time** on three runs of one build, alone at load ~6; F1's Load (no unsaved-work question) 10 ms
+  every time. The page sits idle on real Blob I/O while the poll's timers run virtual time on, so 10 s had about 2 s to
+  spare. `load()` now waits as `calrange`'s does (150 polls for the question, 600 for the name, 60 s bounding a hang).
+- **`textstyle` B4 was never broken, and the style bar's move did not touch it.** The leg needs
+  `HARNESS_STATE=carry-rich` (its header, gate.sh and `partgate-stylebar.zsh` all pass it); the red runs had no state,
+  so there was no Manual header (B4) and no CARRY-NOTE (the G block's `click()` on null). With the fixture this build
+  is 51/51. The leg now checks the fixture first and stops with one failure naming the command (`B-`), and its own
+  `load()` got the same patience as noteviews' (the style-bar session saw it throw there under load).
+- **Verified** on a fresh `npm run build` of `2ab646d` (sha256 `fa9c16d4…`, the hover session's merged build), each
+  leg alone on its own port: `noteviews` (wfkeys) 15/15 three times (8613, 8618, 8619); `textstyle` (carry-rich) 52/52
+  twice (8617, 8620), PASS under gate.sh's own judge; without the fixture, 1 failure and the message. No gate.sh judge
+  changed. No full gate (no app, export or save code changed).
+- ⚠️ **The same 10 s Load wait is in other legs** (`episodeprep`, `offweek`, `settingswin`: 100 polls on the file-menu
+  name). `offweek` already threw there in batch runs (the 5 Nov entry). Not changed here; widen them the same way if
+  they go red.
+
+### ✅ 10 Nov 2026: THE HOVER PROMPT — "EXPAND?" OVER A BLANK, "PULL BACK?" OVER WHAT WAS WIDENED — ✅ **LIVE at `2ab646d`** (owner's pickers *"Commit on the branch"*, *"Merge, re-check, then push"*; pushed `2a61a8c..2ab646d` at 00:56 UTC 11 Nov, a fast-forward; deploy run `42935218265` green; the live `index.html` is the re-checked build byte for byte, sha256 `fa9c16d4…`, `version.json` 1.12.1, no version cut). Built on branch `hover-expand` (worktree `.claude/worktrees/hover-expand`, from the release's local HANDOFF note `98dc947` on top of the live `51ce127`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch (owner's picker *"Commit on the branch"*); push approved by picker (*"Merge, re-check, then push"*): `origin/main` merged in and re-checked first. Tracker card `blank-space-expand-prompt`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §11 (the as-built record).
+- ⭐ **Follow-up, 10 Nov 2026 evening (after it went live):** *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"* and *"a tiny bit sooner"*. The prompt was keyed to the ONE week rested
+  on, so the next week of the same outline took it down and redrew it; now any cell of the run (`hoverPrompt.tds`),
+  any outline, the chip or the space between keeps it, read live from the drawn layer (`insideHoverPrompt`), so a
+  scroll changes nothing. Delay 300 → 200 ms, counted from reaching a cell (`hoverPendingId`): every small move used
+  to restart it. Leg `hoverexpand` H1b + H1c, 18/18. Owner tried test file v5, then *"Commit and push"*.
+- **What.** Rest the pointer 200 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
+  blank sits beside that phase, and **Expand?** in its very centre; the click writes per-cell widths (`cellSpans`) on
+  THOSE weeks only. Rest on a widened cell: **Pull back this week?** / **Pull back?** in amber, clearing a run of
+  per-cell widths or turning the phase's fill wish off. One undo step each; nothing new saved; stamped calendars, the
+  Waterfall, nothing highlighted. Help: one sentence pair at the end of "How far a cell reaches".
+- **The three corrections (owner, 10 Nov, on test files v1–v3):** (1) *"it also expanded test wk 1"* — v1 set the fill
+  WISH, which fills every week with room; Expand now writes per-cell widths on the outlined weeks only. (2) *"always sit
+  in the very center of the outlined box"*. (3) *"ok except when these buttons collide"* — on a column's top cell the
+  centred chip landed on the **Swap Column** button (always top right of the topmost visible cell). The button keeps
+  its place; the chip steps 4 px clear (`placeHoverChip`): inside the box where it fits (below the button on two weeks
+  or more), else beside it on the same row. `drawStintButton` re-runs it when the button appears after the chip, and
+  the button's own hover listener now treats `.grid-hover-chip` like the button itself, so resting on the chip never
+  summons or moves it.
+- ⚠️ **A trap for future legs.** On a STAMPED calendar a `pointermove` with no button held that rests 300 ms on a blank
+  beside a phase, or on a widened cell, now raises a clickable chip (`pointer-events:auto`) in the middle of the
+  outline. A leg that hovers there and then clicks or presses at a point the chip covers hits the chip. None of the
+  existing pointer legs does (list below); a new one that does should press first (`buttons: 1` moves are ignored) or
+  wait on `.grid-hover-chip`.
+- ⚠️ **Do not run legs while another session runs its own.** Three background runs of `hoverexpand` timed out at the
+  same place (the Load of `anchorside.sptcal` in H6) while a sibling session's `rebuildticks` / `buildaround` legs ran
+  (load average ~13); every run alone was 16 / 16.
+- **Checks:** `hoverexpand` 16/16 (every run alone; see above for the three that ran beside another session). The legs that drive
+  the pointer over the grid, on this build: `centrepullback` 12, `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8,
+  `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16, `undokeys` 11, `wfmenu` 39,
+  `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass. gate.sh's swap section (colswap through
+  stintreshape, `stintbtn` among them), `onecol` and `colreuse` x2, assembled from gate.sh with its own judges: 161 PASS /
+  0 FAIL. `npm run check` 41/41. ⚠️ `noteviews` F2 (a second Load in the month view, "the loaded file's name in the file
+  menu", 10 s) failed on 3 of 4 headless runs of this build and passed the 4th, 15/15, and in the pane; the LIVE build
+  (`release-layout`'s `eea8b792`) passed it once and failed it once the same way. A load-timing flake under contention,
+  not this change. No full gate (nothing frozen, exported or saved changed); test files `~/Downloads/SPTCal-test-hover-
+  expand-v1..v4-10Nov.html`.
+- **On the merged build** (`origin/main` merged in twice: `ee1b049` with Date Last Edited, the style bar move and Build
+  Around's look, README / HANDOFF / gate.sh conflicts only, both sides kept; then `96ca1eb` with `2a61a8c`, docs and a
+  leg; the build is sha256 `fa9c16d4…` both times): `npm run check` 42/42; `hoverexpand` 16, `centrepullback` 12,
+  `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `notewrap` 16, `undokeys`
+  11, `wfmenu` 39, and origin's own `stylebarplace` 11, `buildaround` 36, `lastedited` 22; gate.sh's swap section +
+  `onecol` 157 PASS and `colreuse` x2 29/29 under the gate's own judges.
+- ⚠️ **Red on `origin/main` itself, not this change** (built alone at `2a61a8c` in a scratch worktree, the same result):
+  `noteviews` F1 (`keysSame` false: the saved file now carries a top-level key the fixture lacks, by its look
+  `lastEdited`, since Date Last Edited) and `textstyle` B4 (*"Manual header: the in-calendar strip is in the page but
+  hidden"*, then `Cannot read properties of null (reading 'scrollIntoView')`, since the style bar moved into the
+  toolbar). Both legs need re-expecting by the sessions that own those changes; both are in the full gate.
+  ➡️ **Resolved in the entry above:** F1 was `lastEdited`, re-expected; F2 is load timing, hardened; textstyle B4 was
+  the leg run without its fixture (`HARNESS_STATE=carry-rich`), 51/51 with it, not the style bar.
+
 ### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
 
 - **What it was.** `lastEditedForStep()` (Date Last Edited, `1507204`) wrote `snap.lastEdited = null` when the step's
@@ -245,7 +322,7 @@
 - ⚠️ `run.sh`'s default port 8231 is shared by every session, and run.sh kills whatever `srv.js 8231` is running: this
   session's first run did that while another session was using it. Pass `HARNESS_PORT=<your own>` (this session: 8392).
 
-### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
+### ✅ 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN. ✅ **LIVE at `51ce127`** (owner: *"push"*; pushed `3c7b9f6..51ce127` at 15:28 PST 10 Nov, a fast-forward; deploy run `42923707269` green; the live `index.html` is the gated build byte for byte, sha256 `eea8b792…`, with `tb-fill-space-btn` and `tb-cols-reset-btn`). **No version cut** (none was approved): `version.json` stays 1.12.1, so installed users get no update strip. Local `main` in the main checkout was NOT moved (other sessions hold uncommitted edits there); it is behind origin by these commits. (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and
   ripple work (README the only conflict, both kept); `5b58380` rule 22 (a follow-on carries its predecessor's width,
@@ -266,7 +343,7 @@
   98.1% / 31 / 0; check 41/41. ✅ **ONE FULL GATE, 11:05–12:37 PST 10 Nov: 4,329 PASS / 4 FAIL**, the build unchanged
   start to finish, every export baseline byte-identical; the four were load timing and are GREEN re-run alone with the
   gate's judges: `labelsetup (halfdays)` 41/41, `wfnoteeditor (autonoterename)` 13/13, `monthexport (monthscale)` 9/9,
-  `monthexport (mvnotesize-14)` 9/9. Ready for the owner's pickers (version, push).
+  `monthexport (mvnotesize-14)` 9/9. Pushed on the owner's *"push"*; see the heading.
 
 ### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **LIVE at `3c7b9f6`** (owner's picker *"Push now (Recommended)"*; pushed `47eeaea..3c7b9f6` at 02:13:01 UTC on 10 Nov 2026, the evening of 9 Nov Pacific, a fast-forward of the tested build: `origin/main` had not moved; the live `index.html` matched the pushed build `93502865…` byte for byte at 02:14:32, `version.json` 1.12.1, no version cut). (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 

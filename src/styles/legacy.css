@@ -2796,6 +2796,22 @@
      scheduleLiveUpdate, which know nothing about this layer, so hide it rather than let it go
      stale -- reusing the class the frozen code already adds and removes. */
   body.grid-resizing .grid-sel-layer{ display:none; }
+  /* ---------- The hover prompt: "Expand?" / "Pull back?" (10 Nov 2026; tracker card blank-space-expand-prompt) ----------
+     Its own layer beside .grid-sel-layer, z-index 1 so its outlines scroll UNDER the frozen sticky header like the
+     selection's. Purple for Expand (the selection's colour: it becomes a fill), amber for Pull back (the swap layer's
+     colour for taking something back). The chip is the only clickable thing on it. Never printed. */
+  .grid-hover-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .grid-hover-rect{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.8);
+    background:rgba(112,48,160,.07); border-radius:2px; }
+  .grid-hover-rect.is-pull{ border-color:rgba(185,121,26,.9); background:rgba(232,163,61,.10); }
+  .grid-hover-phase{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.45); border-radius:2px; }
+  .grid-hover-chip{ position:absolute; z-index:2; pointer-events:auto; cursor:pointer; white-space:nowrap;
+    font:11px/1.4 'Inter',system-ui,sans-serif; padding:2px 8px; border:0; border-radius:10px;
+    background:rgba(112,48,160,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .grid-hover-chip:hover, .grid-hover-chip:focus-visible{ background:#5A2384; }
+  .grid-hover-chip.is-pull{ background:#B9791A; }
+  .grid-hover-chip.is-pull:hover, .grid-hover-chip.is-pull:focus-visible{ background:#8F5C12; }
+  body.grid-resizing .grid-hover-layer, body.grid-selecting .grid-hover-layer, body.grid-swapping .grid-hover-layer{ display:none; }
   body.grid-selecting{ user-select:none; cursor:cell; }
   body.grid-cell-hover{ cursor:cell; }
 

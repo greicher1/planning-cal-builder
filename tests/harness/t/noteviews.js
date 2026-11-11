@@ -28,8 +28,8 @@
 //   E2  R2: a line taken out in the waterfall's editor switches that month note off; it stays in the month view
 //   K1  R2: Cut on the 8/10 cell empties it and switches its month note off (kept in the month view); undo puts it back
 //   C1  a waterfall line's switch, turned off in the month view, moves it out of the waterfall into a note of its day
-//   F1  Save writes userNotes[9/7].monthHidden and dayNotes[8/12][0].waterfall, both true, with no new key or field id;
-//       Load brings both back with no repair warning
+//   F1  Save writes userNotes[9/7].monthHidden and dayNotes[8/12][0].waterfall, both true, with no new key or field id
+//       (Date Last Edited's top-level lastEdited aside, since 10 Nov 2026); Load brings both back with no repair warning
 //   F2  any other value of either is dropped on Load and counted
 //   E0  no console errors, apart from the one warning F2 is meant to raise
 //
@@ -181,9 +181,15 @@ window.addEventListener('load', function () { (async function () {
   async function load(text) {
     var stem = 'noteviews-load-' + (++loads), name = stem + '.sptcal';
     var p = T.openViaFakePicker('/x.sptcal', name, { text: text, writes: written });
-    for (var i = 0; i < 40; i++) { await T.sleep(100); if (T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
+    // ⚠️ Patient on purpose (10 Nov 2026), as calrange's load() is. F2's Load (the second, after the unsaved-work
+    // question) timed out here on 3 of 4 runs beside other sessions' legs, on old builds and new. Measured alone, by
+    // wrapping Blob.prototype.text: the app's file.text() on the picked file took 7.6 s, 1.0 s and 0 s of VIRTUAL time
+    // on three runs of one build (F1's Load, with no question, took 10 ms every time). The page sits idle on real Blob
+    // I/O while --virtual-time-budget runs this poll's timers on, so a 10 s wait had about 2 s to spare on a quiet
+    // machine. Load timing, not the app: the file always loads. 60 s bounds a genuine hang.
+    for (var i = 0; i < 150; i++) { await T.sleep(100); if (T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
     await p;
-    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded file\'s name in the file menu', 100, 100);
+    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded file\'s name in the file menu', 600, 100);
     await settle();
   }
   function repairWarnings() { return (T.appHealth().errors || []).filter(function (e) { return /were not in a form the app writes/.test(String(e)); }).length; }
@@ -372,7 +378,14 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       savedText = await save();
       var s = JSON.parse(savedText);
-      var keysSame = same(Object.keys(s).sort(), Object.keys(S0).sort()), idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
+      // ⚠️ lastEdited is left out of BOTH key lists (10 Nov 2026). Date Last Edited (1507204) writes it at the top level
+      // once a calendar has an edit stamp: S0 is the fixture as ?state= opened it (no file time, so no stamp), and the
+      // edits since have stamped it, so the file now carries it and S0 never did. It does not come from either note
+      // flag, so it is the one key this case may not count; any other new or missing key still fails, and keysAdded /
+      // keysGone say which.
+      function topKeys(o) { return Object.keys(o).filter(function (k) { return k !== 'lastEdited'; }).sort(); }
+      var keysAdded = Object.keys(s).filter(function (k) { return !(k in S0); }).sort(), keysGone = Object.keys(S0).filter(function (k) { return !(k in s); }).sort();
+      var keysSame = same(topKeys(s), topKeys(S0)), idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
       var w0 = repairWarnings();
       await load(savedText);
       await view('sheet');
@@ -382,7 +395,7 @@ window.addEventListener('load', function () { (async function () {
       kase('F1', 'Save writes userNotes[9/7].monthHidden and dayNotes[8/12][0].waterfall, both true, with no new key or field id; Load brings both back with no repair warning',
            s.userNotes['2026-09-07'].monthHidden === true && s.dayNotes['2026-08-12'][0].waterfall === true && keysSame && idsSame
              && same(cell, ['Cast fittings', 'Network call', 'Crew dinner 8/12/26']) && !d10.some(function (t) { return /Wrap party/.test(t); }) && repairWarnings() === w0,
-           { userNote: s.userNotes['2026-09-07'], dayNote: s.dayNotes['2026-08-12'], keysSame: keysSame, idsSame: idsSame, cell: cell, d10: d10, warnings: repairWarnings() - w0 });
+           { userNote: s.userNotes['2026-09-07'], dayNote: s.dayNotes['2026-08-12'], keysSame: keysSame, keysAdded: keysAdded, keysGone: keysGone, idsSame: idsSame, cell: cell, d10: d10, warnings: repairWarnings() - w0 });
     });
     await step('F2', async function () {
       var s = JSON.parse(savedText);
