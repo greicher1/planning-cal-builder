@@ -183,7 +183,7 @@ window.addEventListener('load', function () { (async function () {
       // correctly comes back with braces. A first cut asserted no braces and failed on correct
       // output, the same mistake the hdrtemplate leg made. The real claim is narrower: no KNOWN
       // token may survive unresolved.
-      var KNOWN = ['{title}','{titleSeason}','{version}','{episodes}','{today}',
+      var KNOWN = ['{title}','{titleSeason}','{version}','{episodes}','{today}','{lastEdited}',
                    '{production.summary}','{production.dates}','{writersRoom.line}'];
       out.unresolvedKnown = Object.keys(rendered).filter(function (hid) {
         return KNOWN.some(function (k) { return (rendered[hid] || '').indexOf(k) >= 0; });

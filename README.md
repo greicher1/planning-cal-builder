@@ -64,6 +64,38 @@ grid fit giving the calendar the height the slimmer toolbar line freed.
 into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
 The class lives on the bar's host instead, which leaves with the row's children.
 
+### Unreleased — the auto header's date is the Date Last Edited (9 Nov 2026)
+
+Owner: *"make the date in the top left corner for waterfall view (and top right corner for month view) be the last time
+the calendar was edited … basically anything that would change if it was exported to pdf or excel. Then add this 'Date
+Last Edited' variable to the template builder."* Until now that date was simply today, so a calendar printed a week
+after its last change claimed to be a week newer than it was.
+
+- **What.** The waterfall header's top left (M.D.YY) and the month header's top right (M.DD.YY), on screen, in Excel and
+  in both PDFs, read the last time the calendar changed. A new token, `{lastEdited}` (with `:long`, `:slash`, `:iso` and
+  `:dotpad`), is listed first among the dates in the template builder, in its own **Date Last Edited** group, each entry
+  showing its live value. The built-in Default template now uses it, so Template mode seeded from the Default matches
+  Auto. A header already in Template mode keeps whatever its lines say, `{today}` included.
+- **What counts as an edit.** The calendar's own content: everything a saved file holds, less the view, the sidebar tab
+  and the Holidays card's add-a-holiday boxes (a form until Add). Preferences are not in the file, so they never count.
+  Switching views, paging months, opening dialogs and exporting change nothing. Switching the header's mode does count
+  (it is a header setting), even when the printed text is the same.
+- **Undo puts the date back.** Each content the calendar has had since it was loaded remembers the time it was first
+  reached, so Undo, Redo, a drag answered Undo, or a value typed back the way it was bring back the date that content
+  had. Each scenario tab keeps its own date.
+- **Saved files.** A new permanent snapshot key, `lastEdited` (an ISO time in UTC), written only once a calendar has a
+  stamp, so a calendar never edited saves byte for byte as before; it is not in the undo history. A file with no stamp
+  (every calendar saved before today) takes the file's own last-modified time when it is loaded, and its next save
+  writes that down. A new calendar has none, and reads today until its first edit. `SNAPSHOT_VERSION` is unchanged:
+  an older build ignores the key and prints today, as it always did.
+- **Verified:** new leg `lastedited` (21 checks): the stamp in both headers and in Excel's header; a view switch, a
+  sidebar tab and the add-a-holiday box don't count; an edit shows today, Undo/Redo and a title typed back bring their
+  own dates; Save As writes the stamp; a pre-stamp file reads (and then saves) its file time; the template builder's
+  group and live values; Template mode's Default; scenario tabs; New. A targeted gate of the header, save, undo and
+  scenario legs (gate.sh's own judges): 281 pass, 3 fail, none from this change (two flakes green alone, one stale
+  prover that fails identically on `main`). The check costs about 0.2 ms per render against a ~20 ms render.
+  `npm run check` 40/40.
+
 ### Unreleased — Shift: the list first (9 Nov 2026)
 
 The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of

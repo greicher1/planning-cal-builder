@@ -2095,6 +2095,12 @@ done
 # newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
 # the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
 # info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
+# lastedited (owner, 9 Nov 2026: the auto header's date is "the last time the calendar was edited ... anything that would
+# change if it was exported to pdf or excel", and a "Date Last Edited" token in the template builder). The fixture is
+# stamped 1 Oct 2026: both headers and Excel's &L read it; a view switch, a sidebar tab and the add-a-holiday box do not
+# count; an edit reads today and Undo / Redo / the title typed back bring their own dates; Save As writes the stamp; a file
+# with no stamp reads its file time (openViaFakePicker's opts.mtime); the builder's group and live values; Template
+# mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2148,6 +2154,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
+              lastedited:lastedited:400 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               holidayrename:holidayrename:400 \
