@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 10 Nov 2026: THE TOOLBAR REGROUPED (VARIATION 27): ONE 12 PX GAP, GREY WELLS, UNDO FIRST; FILL SPACE IS NOW "FILL GAPS". Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`, made from `style-bar-toolbar` with `origin/main` merged in, last at `f5c05a4`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-look-variations`, `fill-gaps-name`.
+### ✅ 10 Nov 2026: THE TOOLBAR REGROUPED (VARIATION 27): ONE 12 PX GAP, GREY WELLS, UNDO FIRST; FILL SPACE IS NOW "FILL GAPS". ✅ **LIVE at `fefe9dc`** (owner's picker "Push to the live site"; pushed `6afd31d..fefe9dc`, a fast-forward of the branch; deploy run `42939857921` green; the live `index.html` is the merged build byte for byte, sha256 `88f2197c…`). Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`, made from `style-bar-toolbar` with `origin/main` merged in, last at `f5c05a4`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-look-variations`, `fill-gaps-name`.
 - **Asks (owner, in order):** *"Mock up a bunch (like 20) differnt variations for how this entire menu bar could like"*
   → `mockups/toolbar-variations.html` (committed; 20 variations + my pick 21, switches for window width, view, editing
   state, star). *"Combine the highlighted features of 4, 8, and 9"* → 22 / 22b (grey wells + Undo after the view toggle +
