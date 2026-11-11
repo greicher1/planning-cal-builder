@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN — finished on branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`, `origin/main` `27b0b5e` merged in cleanly; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not merged into `main`, not pushed. Tracker card `swap-column-only-where-it-swaps`.
+### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN — branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` merged in twice (`27b0b5e`, then `52a112b`: the hover-hiatus work, conflicts in gate.sh, README and HANDOFF only, both sides kept) and local `main`'s unpushed HANDOFF note `6e4d0f5` (the Date Last Edited heading's "LIVE at `5357584`"), then `main` fast-forwarded onto it and pushed on the owner's pickers (*"Merge into main"*, *"Push and deploy"*, 11 Nov 2026). Tracker card `swap-column-only-where-it-swaps`.
 - **The ask (owner, a screenshot):** the hover button "Swap Column" on Production with Simultaneous Post beside it and
   only the Notes column beyond (the purple cells right of Sim Post were automatic notes) — *"this swap column button
   shouldn't show up at all here"*; then *"In fact it shouldn't show up anywhere it doesnt make sense. For example its
@@ -49,8 +49,15 @@
     interleaved, the unmodified leg was red 1 run in 4 on `origin/main` and 2 in 4 on the branch. `load()` now waits
     for the loaded file's name in the file menu first: **4/4 green** on the final build. ⚠️ Any other leg that loads
     through `openViaFakePicker` and then reads the screen after a fixed sleep has the same race.
+- **On the build that was pushed** (both merges, dist sha256 `56555868…`): `npm run check` 42/42; `swapbtnwhere` 7/7,
+  `hoverexpand` 18/18, `hoverhiatus` 15/15, `stintbtn` 15/15 (gate.sh's judge), `noswapbtns` 7/7, `colswappartial` 8/8,
+  `simpostbeside` 19/19, `colswapcache` 9/9, `swapholds` 8/8, `calzoom` 26/26.
+  - ⚠️ **Run legs on their own ports.** Run back to back on ONE port (8451), `simpostbeside` came back 9/19 and
+    `hoverhiatus` timed out on Save; each was green alone on a fresh port. The reused Chrome profile carries a crash
+    backup from the leg before (phasefill's known trap), so a sweep of legs on one port is not evidence either way.
+    A build of `52a112b` itself scored `simpostbeside` 16/19 on a fresh port (W3, T1, T3), so that leg is flaky there too.
 - **Not done:** no full gate (nothing here reaches a grid cell, an export or a saved file: the overlay and which
-  swap is offered). Merge and push wait on the owner's pickers.
+  swap is offered).
 
 ### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
