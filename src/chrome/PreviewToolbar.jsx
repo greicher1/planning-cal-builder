@@ -43,54 +43,64 @@
 //      input would ignore that write. See PreviewToolbar's note in HANDOFF §2b-3 -- this is the
 //      same conflict that governs the whole sidebar, where applyStateSnapshot() writes .value into
 //      every field on restore.
-import { useState, useLayoutEffect } from 'react'
+import { useState, useLayoutEffect, useRef } from 'react'
 import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
-// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits on the row's first line, between the date tools and the
-// page tools (the owner's reorder), while the view toggle, the date tools, the bar and the rest all fit there. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
-// on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead, moving Shift and
-// Undo on every narrow window. Measured, not a media query: the tools' width changes with the view (Side Boxes is
-// waterfall only), the Header button's label and the window (Fill Space's label goes at 1300 px).
-// * None of the three widths depends on where the bar is, so the choice cannot flip-flop: the toggle and the tools
-//   are flex:none at their content width (the tools clamped at the row's, which only happens when nothing fits), and
-//   the bar is width:max-content.
-// * The bar's hidden highlight well counts as shown. It appears for a header or box line, and a toolbar that jumped
-//   to two lines when a header line was clicked would be worse than one that drops a little sooner.
+// THE FIRST LINE'S LAYOUT (owner, 10-11 Nov 2026). Two jobs, one measurement.
+// 1. WHERE THE TEXT STYLE BAR GOES. It sits on the first line, between the date tools and the page tools, while every
+//    section fits there at the smallest gap. Where they don't, the host takes `.style-own-line`, and CSS puts the bar
+//    alone on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead.
+// 2. ONE EQUAL GAP (owner, 11 Nov 2026: once the space either side of the tools was 19 px, "the gap should be the same
+//    as the gaps between all the other buttons"). The first line holds the view toggle, Shift, Build Around, the text
+//    bar, Fill Gaps, Side Boxes (or, in the month view, the stepper in their place), Header and Undo / Redo, with a gap
+//    after each one, Redo's to the toolbar's edge included: eight gaps (a first build counted nine and left the spare
+//    gap's width split between the two ends: 19 px there against 12.6 between the buttons). They are all one value, solved here so the line
+//    exactly fills the row, never under --tb-gap-min (10 px), and written as --tb-gap-fit on .preview-panel, which every
+//    gap on the line reads through --tb-gap. On a wider window every gap grows together.
+// * None of the widths summed depends on the mode or the gap, so neither can flip-flop: the sections are flex:none at
+//   their content width, the bar is width:max-content, Header has a fixed width (useFixedHeaderWidth), Highlight is
+//   always in the bar (greyed where it doesn't apply), Fill Gaps is never display:none, and Fill Gaps and Side Boxes
+//   are measured even in the month view (they keep their place there, hidden by visibility).
 // * Applied in a task of its own (a zero timer): changing the row's height inside the observer's own callback is what
 //   makes Chrome report "ResizeObserver loop completed with undelivered notifications" as a page error, which legs
 //   count. ⛔ Not requestAnimationFrame: a hidden page never gets one, and under the harness's --virtual-time-budget
 //   it may never fire (monthmap.js says the same), so the class would never be set there.
-// * The class is on the HOST, not on .view-toggle-row: the shareable copy is a clone of the page, and its builder empties
-//   the row but keeps the row's own attributes, so a class on the row travelled into every copy's markup (sharecopy2
-//   caught it). The host goes with the row's children. React set the host's className once and never changes that
-//   prop, so it never writes the attribute again and the class survives its re-renders.
+// * The class is on the HOST and the gap on .preview-panel, never on .view-toggle-row: the shareable copy is a clone of
+//   the page whose builder empties the row but keeps the row's own attributes (sharecopy2 caught a class riding there).
+//   .preview-panel already carries the grid fit's --header-h the same way, and a copy solves both again when it opens.
+const TB_GAPS = 8
 function useStyleBarFit() {
   useLayoutEffect(() => {
     const row = document.querySelector('.view-toggle-row')
     const host = row && row.querySelector('.style-bar-host')
     const toggle = row && row.querySelector('.view-toggle')
     const tools = row && row.querySelector('.preview-tools')
-    // The date tools sit between the view toggle and the bar since the reorder; Undo / Redo is inside .preview-tools.
     const dates = row && row.querySelector(':scope > .tb-dates')
+    const panel = row && row.closest('.preview-panel')
     if (!row || !host || !toggle || !tools || !dates || typeof ResizeObserver === 'undefined') return
+    const byId = (id) => row.querySelector('#' + id)
     let timer = 0, watchedBar = null
     const fit = () => {
       timer = 0
       const bar = host.firstElementChild
       if (!bar) { host.classList.remove('style-own-line'); return }
       if (bar !== watchedBar) { ro.observe(bar); watchedBar = bar }
-      const hl = bar.querySelector('.hf-swatch-hl'), sw = bar.querySelector('.hf-swatch:not(.hf-swatch-hl)')
-      const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
-      const reserve = hl && hl.hidden && sw ? sw.offsetWidth + (parseFloat(barCs.columnGap) || 0) : 0
-      // One gap between every section (--tb-gap, the row's column-gap). The date tools' auto left margin takes the
-      // leftover space and is never counted: a computed auto margin IS the leftover space.
-      const gap = parseFloat(rowCs.columnGap) || 0
-      const need = toggle.offsetWidth + gap + dates.offsetWidth + gap + bar.offsetWidth + reserve + gap + tools.offsetWidth
-      host.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
+      const rowCs = getComputedStyle(row)
+      const min = parseFloat(rowCs.getPropertyValue('--tb-gap-min')) || 12
+      const parts = [toggle, byId('shift-group'), byId('pop-solve-btn'), bar, byId('tb-fill-space-btn'), byId('tb-side-boxes-btn'),
+                     byId('tb-hdr-mode-btn'), row.querySelector('.undo-redo-group')]
+      const content = parts.reduce((t, el) => t + (el ? el.getBoundingClientRect().width : 0), 0)
+      const inner = row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0)
+      const own = inner < content + TB_GAPS * min
+      host.classList.toggle('style-own-line', own)
+      if (panel) {
+        if (own) panel.style.removeProperty('--tb-gap-fit')
+        else panel.style.setProperty('--tb-gap-fit', ((inner - content) / TB_GAPS).toFixed(2) + 'px')
+      }
     }
     const later = () => { if (!timer) timer = setTimeout(fit, 0) }
     const ro = new ResizeObserver(later)
@@ -103,6 +113,36 @@ function useStyleBarFit() {
     window.addEventListener('resize', later)
     fit()
     return () => { ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later); if (timer) clearTimeout(timer) }
+  }, [])
+}
+
+// THE HEADER BUTTON'S FIXED WIDTH (owner, 11 Nov 2026: "I don't like the menu changing as you click around"). Its label
+// is Auto, Template, Manual or Off, and the non-Auto ones are semibold, so its natural width changes with the mode. A
+// hidden copy beside it is measured with every label and its state, and the button takes the widest, once the font
+// has loaded. The copy carries no id and is gone before the next paint.
+const HDR_LABELS = [['Header: Auto', false], ['Header: Template', true], ['Header: Manual', true], ['Header: Off', true]]
+function useFixedHeaderWidth(ref, setW) {
+  useLayoutEffect(() => {
+    const measure = () => {
+      const b = ref.current
+      if (!b || !b.parentNode) return
+      const copy = b.cloneNode(true)
+      const label = copy.querySelector('.mantine-Button-label')
+      if (!label) return
+      copy.removeAttribute('id'); copy.removeAttribute('style'); copy.setAttribute('aria-hidden', 'true'); copy.tabIndex = -1
+      Object.assign(copy.style, { position: 'absolute', visibility: 'hidden', left: '-10000px', width: 'auto' })
+      b.parentNode.appendChild(copy)
+      let w = 0
+      HDR_LABELS.forEach(([text, semibold]) => {
+        label.textContent = text
+        copy.classList.toggle('is-manual', semibold)
+        w = Math.max(w, copy.getBoundingClientRect().width)
+      })
+      copy.remove()
+      if (w) setW(Math.ceil(w))
+    }
+    measure()
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure)
   }, [])
 }
 
@@ -123,6 +163,10 @@ export function PreviewToolbar() {
   const [hdr, setHdr] = useState({ view: 'sheet', mode: 'auto' })
   // Fill Space (owner, 9 Nov 2026): pushed by the engine with the view controls. Hidden until the engine says otherwise.
   const [fill, setFill] = useState({ visible: false, on: true })
+  // The Header button's fixed width (useFixedHeaderWidth).
+  const hdrRef = useRef(null)
+  const [hdrW, setHdrW] = useState(null)
+  useFixedHeaderWidth(hdrRef, setHdrW)
 
   useLayoutEffect(() => {
     installChrome({
@@ -352,9 +396,15 @@ export function PreviewToolbar() {
       <div className="style-bar-host"></div>
 
       <div className="preview-tools">
-        {/* The page tools' well (variation 27): Fill Space, Side Boxes, the Header mode. In the month view Fill Space and
-            Side Boxes hide, and the well holds the Header button alone. */}
-        <div className="tb-well tb-page">
+        {/* THE PAGE TOOLS (owner, 11 Nov 2026, card 4b of mockups/toolbar-month-parity.html): each its own grey button, no
+            shared well. The first two places are a SLOT (.tb-slots, a one-cell grid): in the waterfall it shows Fill Gaps and
+            Side Boxes, in the month view the month stepper (it left its own line under the phase map, and its Today button
+            went: "get rid of the today button entirely and just make the stepper larger"). Both sit in the same grid cell,
+            the view not shown kept by visibility, so the cell is one width in both views and Header, Undo and Redo never
+            move when you switch ("the menu should be locked where it is"). */}
+        <div className="tb-page">
+        <div className="tb-slots">
+        <div className="tb-pair">
         {/* Fill Space (owner, 9 Nov 2026: "a toggle to the left of side boxes button that turns on or off expand rows to
             fill empty space"). On, phases widen into the empty columns beside them (the layout as it was); off, every
             phase keeps its own lane. The engine flips it by DELEGATION on this id and pushes {visible, on} back
@@ -362,10 +412,14 @@ export function PreviewToolbar() {
             renders an input with an automatic id, and collectFieldValues() would sweep it into every saved file and
             add phantom undo steps. The switch drawn inside is a span (.fill-switch), not a control. Always rendered,
             visibility by display, as the header's view-following buttons are. */}
-        <Button id="tb-fill-space-btn" className="tools-btn fill-space-btn" type="button" size="xs" variant="default"
+        {/* ⚠️ Since 11 Nov 2026 it is never display:none: where it does not apply yet (a calendar still on the layout it was
+            saved with) it stays in its place, greyed, so the toolbar does not change as you click around (owner). */}
+        <Button id="tb-fill-space-btn" className="tools-btn tb-solo fill-space-btn" type="button" size="xs" variant="default"
                 aria-pressed={fill.on ? 'true' : 'false'}
-                style={{ display: fill.visible ? undefined : 'none' }}
-                title={fill.on
+                disabled={!fill.visible}
+                title={!fill.visible
+                  ? 'Fill Gaps works once this calendar uses the automatic column layout: press Update layout in the notice above.'
+                  : fill.on
                   ? 'Phases widen into the empty columns beside them. Click to keep every phase in its own lane.'
                   : 'Every phase keeps its own lane. Click to let phases widen into the empty columns beside them.'}
                 leftSection={<span className={'fill-switch' + (fill.on ? ' is-on' : '')} aria-hidden="true"><span className="fill-knob" /></span>}>
@@ -379,12 +433,16 @@ export function PreviewToolbar() {
             exactly as it does the header mode menu below, because React owns this node. Waterfall
             view only: legacy.css hides it while #view-month-btn is active. A <button>, never an
             id'd input/select/textarea, so collectFieldValues() cannot sweep it into a saved file. */}
-        <Button id="tb-side-boxes-btn" className="tools-btn" type="button" size="xs" variant="default"
+        <Button id="tb-side-boxes-btn" className="tools-btn tb-solo" type="button" size="xs" variant="default"
                 title="Add a colour key or a text box beside the waterfall"
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
           Side Boxes
         </Button>
+        </div>
+        {/* The month view's occupant of the slot: renders nothing in the waterfall. */}
+        <MonthStepper />
+        </div>
 
         {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
             used to live INSIDE the calendar -- #hdr-mode-btn / #mv-hdr-mode-btn, emitted by the
@@ -397,7 +455,10 @@ export function PreviewToolbar() {
             owner's fallback). This button alone wraps the row below about 1301 px.
             It is a <button>, never an id'd input/select/textarea, so collectFieldValues() cannot
             sweep it into a saved file. */}
-        <Button id="tb-hdr-mode-btn" className={'tools-btn' + (hdr.mode === 'auto' ? '' : ' is-manual')}
+        {/* ⚠️ A FIXED WIDTH, that of its longest label (useFixedHeaderWidth), so switching Auto / Template / Manual / Off
+            never resizes it and the toolbar stays put as you click around (owner, 11 Nov 2026). */}
+        <Button id="tb-hdr-mode-btn" ref={hdrRef} className={'tools-btn tb-solo' + (hdr.mode === 'auto' ? '' : ' is-manual')}
+                style={hdrW ? { width: hdrW } : undefined}
                 type="button" size="xs" variant="default"
                 title={hdr.view === 'month'
                   ? 'Choose how the Month view’s header is written: Auto, Template or Manual, or turn it Off'
@@ -444,14 +505,10 @@ export function PreviewToolbar() {
           component with its own state, so its re-renders never reach this component's engine-owned children. Inside
           this row for the reason the style bar's host is. */}
       <MonthMap />
-      {/* The month stepper's line (MONTH-RAIL-PLAN.md §18, option B, 28 Oct 2026). It shared this line with the text
-          style bar until the bar moved up beside the view toggle (10 Nov 2026), and it keeps the line alone, at its
-          right end. In the waterfall the stepper renders nothing and the empty line takes no room (.style-row:empty).
-          When the bar has had to drop to its own line (a narrow window) it rejoins the stepper here, by flex order
-          only, so the month view looks as it did. */}
-      <div className="style-row">
-        <MonthStepper />
-      </div>
+      {/* The month stepper's old line (MONTH-RAIL-PLAN.md §18, 28 Oct 2026). Since 11 Nov 2026 the stepper sits in the
+          toolbar's slot (above), so this line is always empty and takes no room (.style-row:empty). Kept as the place the
+          text style bar's own line orders against on a narrow window. */}
+      <div className="style-row"></div>
     </>
   )
 }

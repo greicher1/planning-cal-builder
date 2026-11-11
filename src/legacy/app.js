@@ -23457,7 +23457,14 @@ export function initLegacyApp() {
     q('.hf-color').disabled = noColor;
     q('.hf-swatch:not(.hf-swatch-hl)').classList.toggle('is-disabled', noColor);
     q('.hf-swatch:not(.hf-swatch-hl)').title = noColor ? 'A phase, episode or Simultaneous Post bar keeps its own text colour' : 'Text color';
-    q('.hf-swatch-hl').hidden = !(look && look.highlight);
+    // Highlight is ALWAYS in the bar since 11 Nov 2026, greyed (and its picker off) unless the picked text takes a
+    // highlight (header and side-box lines). It used to appear only then, which widened the bar and moved the whole
+    // toolbar as you clicked around (owner: "I don't like the menu changing as you click around").
+    const hlOn = !!(look && look.highlight);
+    q('.hf-swatch-hl').hidden = false;
+    q('.hf-swatch-hl').classList.toggle('is-disabled', !hlOn);
+    q('.hf-hl').disabled = !hlOn;
+    q('.hf-swatch-hl').title = hlOn ? 'Highlight color' : 'Highlight color, for header and side-box lines';
     q('.hf-hl').value = (look && look.hl) || '#ffff00';
     const al = (look && look.align) || 'center';
     const toggle = q('.hf-al-toggle');
