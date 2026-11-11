@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — the note popups: one action button at the top right, Delete Note, and the Day / Stays with boxes line up (10 Nov 2026)
+## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, the toolbar regrouped with the text style buttons in it, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
+
+### the note popups: one action button at the top right, Delete Note, and the Day / Stays with boxes line up (10 Nov 2026)
 
 The owner, trying step 5 on 10 Nov 2026: *"allign these two boxes on their left edge"*, *"move the "Hide Auto-Note",
 "Hide Holiday" and add "Delete Note" button to the top right corner of each popup box"*, *"move "Day so the edge of the
@@ -48,7 +50,7 @@ y is alligned vertically with the "h" in with"*, *"make the two selector boxes t
 - **Proof:** `phasemonth` B1–B3 (placement measured: in the heading row, last, centred on the title, within 16 px of
   the popup's right edge); `wfnoteeditor` E1 now expects Delete Note on a typed cell.
 
-### Unreleased — notes linked to a phase, step 5: the Month view (10 Nov 2026)
+### notes linked to a phase, step 5: the Month view (10 Nov 2026)
 
 Plan §4.2, §4.6's last bullet, R8(a) and R10(a) (`PHASE-LINKED-NOTES-PLAN.md` §13). Until now a note linked to a phase
 left the Month view the moment it was linked: the month view reads a week's typed lines, and a linked note is not one.
@@ -97,7 +99,7 @@ With this step the feature is whole in both views.
     alone. `offweek`'s Load wait is flaky on both builds: an A/B run gave this build 42/42 and the pre-step-5 build
     (`0a3366d`) 41/42 (one Load timeout).
 
-### Unreleased — notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
+### notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
 
 Plan §4.6 (`PHASE-LINKED-NOTES-PLAN.md` §12). The waterfall's editing keys now know about linked notes. Until now a
 linked line survived Delete, and a drag copied it as typed text while the link stayed behind.
@@ -123,7 +125,7 @@ linked line survived Delete, and a drag copied it as typed text while the link s
   - **Full gate: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
 - ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
 
-### Unreleased — notes linked to a phase, step 3: a linked note's look travels with it (6 Nov 2026)
+### notes linked to a phase, step 3: a linked note's look travels with it (6 Nov 2026)
 
 Owner: *"Start step 3"*. Ruling R7(a) (`PHASE-LINKED-NOTES-PLAN.md` §11).
 
@@ -142,7 +144,7 @@ Owner: *"Start step 3"*. Ruling R7(a) (`PHASE-LINKED-NOTES-PLAN.md` §11).
   - **Full gate: 4,217 PASS / 0 FAIL**, every baseline identical.
 - ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
 
-### Unreleased — notes linked to a phase, step 2: "Stays with" in the waterfall note editor (6 Nov 2026)
+### notes linked to a phase, step 2: "Stays with" in the waterfall note editor (6 Nov 2026)
 
 Owner: *"can we start step 2"*. Rulings R1 ("Stays with"), R2(a) (one cell, one home), R3(a), R6(a) and R7(a), in
 `PHASE-LINKED-NOTES-PLAN.md` §4.4–4.5 and §10.
@@ -166,7 +168,7 @@ Owner: *"can we start step 2"*. Rulings R1 ("Stays with"), R2(a) (one cell, one 
 - **Full gate (steps 1 and 2): 4,206 PASS / 1 FAIL, every baseline identical.** The one FAIL is a Load timeout in
   `phasesui`, green alone.
 
-### Unreleased — notes linked to a phase, step 1: the engine (5 Nov 2026)
+### notes linked to a phase, step 1: the engine (5 Nov 2026)
 
 Owner, 4 Nov 2026: *"we do need a way to link certain notes to certain weeks relative to a phase."* Rulings R1–R9 by
 picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md` §2). This is step 1 of 6 and has
@@ -196,7 +198,7 @@ picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md`
 - **Proof:** a new leg, `phasenotes` (fixture `phasenotes.sptcal`), 21/21 on the build. It covers every mover, both
   exports, the Notes width, the editor, a custom phase removed, Save/Load, an older file, hostile entries and undo.
   `npm run check` 40/40. Full gate: see HANDOFF.
-### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+### A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
 
 The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
 its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
@@ -220,7 +222,7 @@ byte for byte as before; the waterfall PDF and the workbook identical to their b
 `phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
 `offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
 42/42. No full gate (a partial gate of gate.sh's sections).
-### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+### Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
 
 Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
 rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
@@ -228,7 +230,7 @@ switch is in Settings › Preferences › Hiatus. The result line under an edite
 the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
 rewritten for one switch, 19/19; `hiatusdrag.mjs` 14/14; `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`,
 `badyear` green (73); browser check with the switch on and off; `npm run check` 42/42.
-### Unreleased — Compare dates a phase from the first week it works (10 Nov 2026)
+### Compare dates a phase from the first week it works (10 Nov 2026)
 
 The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and
 "1/3/28 – 8/11/28", with **"Start pushed 2 wks, end same"**. Post's typed start in the first was 12/20/27, the first
@@ -250,7 +252,7 @@ both, but Compare (and every `{<phase>.open}` header token, and the key facts ba
   added, lengthened, at its start; an all-phase break moved and lengthened; Ripple Hiatus Periods on and off): Compare's
   rows matched the grid's first and last weeks every time.
 
-### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
+### The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
 
 Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):
 
@@ -269,7 +271,7 @@ before it; `monthmap` C0 / B7 now expect the text buttons after Build Around; th
 in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference in any of its 511 values. Driven by hand: both popovers open under their
 buttons, Fill Gaps toggles and Undo undoes it from the far right, the Month view, the 1,440 px fallback.
 
-### Unreleased — Build Around: the Prior to / After buttons are gone (10 Nov 2026)
+### Build Around: the Prior to / After buttons are gone (10 Nov 2026)
 
 **What changed.** The two buttons under Build Around's list, *Prior to X* and *After X*, are removed. The box now
 runs title, Phases, the list, the line that names a phase left unticked, *Pin to a date*, Build. It always builds
@@ -307,7 +309,7 @@ merged without a code conflict). Merged build sha256 `a661415f…`: check 42/42 
 14/14, `overrides` 20/20, `datepick` 17/17, `stylebarplace` 13/13, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle`
 52 checks, `hoverexpand` 18/18, `lastedited` 22/22, `undokeys` 11/11.
 
-### Unreleased — The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
+### The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
 
 The preview toolbar's sections were told apart by gaps that were all different. The owner asked for about twenty
 mocked-up looks (`mockups/toolbar-variations.html`, kept in the repo), combined three of them, asked for Shift in white
@@ -333,7 +335,7 @@ and no well on the date tools, P11 the new name), red on the build before it; `t
 computed styles inside `#table-wrap` against the build before: the only difference, the waterfall's scroll box 4 px shorter at 1,600 px, where the text well has its own line and is 4 px taller than the bare buttons were. Driven by hand: Shift, Build Around, Side Boxes and the
 Header menu each open under their own button; Fill Gaps toggles and Undo undoes it from its new place; Bold applies.
 
-### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
+### rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
 
 Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
 *"It also needs the reverse to unexpand"*; built 10 Nov on *"Yes, build it"*, with three corrections from the test
@@ -363,7 +365,7 @@ files that day.
   `colreuse` under the gate's own judges, 161 PASS / 0 FAIL; `npm run check` 41/41. No full gate: nothing frozen,
   exported or saved changed.
 
-### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
+### Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
 
 **What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo
 step the Date Last Edited its content had. A content first seen with no stamp (a new calendar before its first change)
@@ -386,7 +388,7 @@ and the saved file still has no `lastEdited` key. `lastedited` 22/22 on the live
 (1 warning) on a build with the guard taken out, which is byte for byte the pre-fix merged build (`c0bb3da5…`). Until
 N2, only `buildaround`'s K0 caught this, and only because that leg happens to undo back to its fixture.
 
-### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
+### Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
 
 Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
 look and feel as the shift tool"*; a list of the differences, a mockup, a working build to try, then *"Yes, finish
@@ -422,7 +424,7 @@ through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Thre
 one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
 its tick (`buildaround` D1). No full gate: chrome only.
 
-### Unreleased — The text style buttons move into the toolbar (10 Nov 2026)
+### The text style buttons move into the toolbar (10 Nov 2026)
 
 The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
 colour, alignment, Clear, and Highlight when a header or box line is picked) now sit **on the toolbar's first line,
@@ -457,7 +459,7 @@ grid fit giving the calendar the height the slimmer toolbar line freed.
 into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
 The class lives on the bar's host instead, which leaves with the row's children.
 
-### Unreleased — the auto header's date is the Date Last Edited (9 Nov 2026)
+### the auto header's date is the Date Last Edited (9 Nov 2026)
 
 Owner: *"make the date in the top left corner for waterfall view (and top right corner for month view) be the last time
 the calendar was edited … basically anything that would change if it was exported to pdf or excel. Then add this 'Date
@@ -489,7 +491,7 @@ after its last change claimed to be a week newer than it was.
   prover that fails identically on `main`). The check costs about 0.2 ms per render against a ~20 ms render.
   `npm run check` 40/40.
 
-### Unreleased — Shift: the list first (9 Nov 2026)
+### Shift: the list first (9 Nov 2026)
 
 The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of
 phases**, and the ticks alone say what moves. Built from the owner's eight-point spec (*"build this"*, 9 Nov 2026) and
@@ -529,7 +531,7 @@ through new `T.shiftPress` / `T.shiftDrag` / `T.shiftSide` helpers. Three broken
 row click that flips the tick: M1, D4, W1; a To a date box that ignores the outline, or lists every phase: W1). No full
 gate: chrome only.
 
-### Unreleased — Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
+### Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
 
 Shift learned to step over a locked hiatus on 5 Nov (owner's ruling: count only working weeks, so the gaps between
 phases are kept). Ripple Hiatus still pushed by calendar weeks, so a push could carry a phase's start across a locked
@@ -550,7 +552,7 @@ Owner, by picker: *"Yes, plan it"*, then *"Build it"* and *"Distances only"* for
   `phasearrows`): 215 PASS, its only FAIL S3's expected line order, corrected in the test (pulls are listed smallest
   first, as the line always has). `npm run check` 40/40. Help page: one sentence (Ripple counts working weeks, like Shift).
 
-### Unreleased — Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
+### Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
 
 The owner gave Writer's Rm a 2-week hiatus (which pushed everything after it), then changed it to 3 weeks and saw
 nothing move: *"when i try to adjust it from 2 weeks to 3 weeks it doesnt shift everything down"*. The push did come,
@@ -568,7 +570,7 @@ one-second pause; the owner: *"it should do it immediately not after a second"*.
   merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
   baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
 
-### Unreleased — a follow-on carries its predecessor's width (rule 22, 6 Nov 2026)
+### a follow-on carries its predecessor's width (rule 22, 6 Nov 2026)
 
 [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 22. Owner, on a test calendar: *"i feel like its weird that the last 3 weeks
 of prod prep extend across"*, then a picture, *"this is how it should sort"*, and by picker *"Build it"* (the sign-off
@@ -595,7 +597,7 @@ for a frozen edit).
   `phasefill` 13/13 and `colsreset` 8/8 keep testing the double-click wish (13/13 on the build before too). The 15
   pictures score the same (98.1%, 31 column misses, 0 width misses): none narrows a run.
 
-### Unreleased — the waterfall uses as few columns as it can (rule 23, 6–9 Nov 2026)
+### the waterfall uses as few columns as it can (rule 23, 6–9 Nov 2026)
 
 [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 23. Owner, two screenshots of a test calendar (today three columns, wanted
 two): *"We should always prioritize as few collumns as possible"*; by picker *"Yes, build it"*, *"Fewest columns"* over
@@ -625,7 +627,7 @@ Then, 9 Nov 2026, by picker in that session: *"Give way"*: a moved phase's colum
   `npm run check` 40/40. The 15 pictured calendars were scored on the prototype (byte-identical layouts, 98.1% / 31 /
   0); the owner waived re-scoring the final build.
 
-### Unreleased — Fill Space: a switch for one even width per phase (9 Nov 2026)
+### Fill Space: a switch for one even width per phase (9 Nov 2026)
 
 Owner: *"a toggle to the left of side boxes button that turns on or off expand rows to fill empty space"*; then, on a
 first build that kept every phase one column wide: *"when i say fill space i mean collumsn that fill only a portion of
@@ -651,7 +653,7 @@ still wins; the frozen edit (*"Yes, make the edit"*).
   wish still varying, undo, the Month view, New). With the switch on: the 15 pictures and the layout fixtures, numbers in
   HANDOFF; the full gate's export baselines.
 
-### Unreleased — a phase you move keeps its column (sticky columns, 6 Nov 2026)
+### a phase you move keeps its column (sticky columns, 6 Nov 2026)
 
 [`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three
 screenshots of a test phase nudged a week at a time around Production (right, LEFT in the week the two start together,
@@ -683,7 +685,7 @@ columns"*, then rulings K1–K4 as recommended.
   `colsreset` (now with `colKeep`), `phasefill`, `swapholds`, `simpostdays`, `centrepullback` and the swap legs green;
   `npm run check` 40/40. Full gate 4,270 PASS / 2 FAIL, both load timing and green alone (`pwagate`, `scenariocompat`).
 
-### Unreleased — a phase a few weeks late still follows into the freed column (6 Nov 2026)
+### a phase a few weeks late still follows into the freed column (6 Nov 2026)
 
 [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 2, [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §9. Owner, two screenshots of
 a test calendar: *"what is going on here?"*, then by picker *"up to 4 weeks"*.
@@ -701,7 +703,7 @@ a test calendar: *"what is going on here?"*, then by picker *"up to 4 weeks"*.
   limit. New fixture `layout-r2g`: one, four and five weeks (red on the build before at one and four). All eleven
   other layout fixtures, `swapholds`, `phasefill`, `colsreset` and `centrepullback` green; `npm run check` 40/40.
 
-### Unreleased — a column swap holds when one of its phases moves (6 Nov 2026)
+### a column swap holds when one of its phases moves (6 Nov 2026)
 
 [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §8. Owner: *"so if you swap a column then move one of those column up, it
 should maintain the position its in."*
@@ -721,7 +723,7 @@ should maintain the position its in."*
   swap section, 115 checks, green; `noswapbtns`, `colswappartial` (both fixtures), `swapsplitreuse`, `colswapcache`,
   `colsreset`, `phasefill` green; `npm run check` 40/40.
 
-### Unreleased — Reset Columns: every column back on the automatic layout in one click (6 Nov 2026)
+### Reset Columns: every column back on the automatic layout in one click (6 Nov 2026)
 
 [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §6. Owner, trying the fill wish: *"will there be a way to reset back to
 default algorithm?"* — then *"Add it"*.
@@ -740,7 +742,7 @@ default algorithm?"* — then *"Add it"*.
   the new header ending; `phasefill` 13/13, `centrepullback` 12/12, `noresetall` 5/5, `regionlock` 14/14,
   `mvtextstyle` 23/23, `sharecopy2` passing; `npm run check` 40/40.
 
-### Unreleased — the double-click stores a wish on the phase, not a width on the cell (6 Nov 2026)
+### the double-click stores a wish on the phase, not a width on the cell (6 Nov 2026)
 
 [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md). Owner, after seeing hand-set widths behave oddly once the calendar moved
 under them: *"so theres no way to automate the fix in the background?"* — then *"Yes, build it"*.
@@ -764,7 +766,7 @@ under them: *"so theres no way to automate the fix in the background?"* — then
   its column, the edge handle hands it back, an unstamped file keeps the per-cell double-click, Load applies the key
   and New clears it (13/13); `centrepullback` re-expected to the phase level (12/12); the rest below.
 
-### Unreleased — Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
+### Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
 
 Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and
 [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9; stamped calendars only, like the rest.
