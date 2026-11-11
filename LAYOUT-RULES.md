@@ -92,7 +92,9 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     ordinary column. A phase ALONE still fills it (rule 14: hand-13's Prod Prep is two wide the week before its shoot),
     and a hole between two phases still goes to the left one (12). *(6 Nov 2026: with rule 13 uncapped to the right,
     this is what keeps Prep one wide beside Writers with the lane column empty for months, as hand-02, hand-03,
-    hand-04 and hand-09 draw it.)*
+    hand-04 and hand-09 draw it.)* ⚠️ **Since 11 Nov 2026 only with Fill Gaps OFF** (owner: *"prep should fill the
+    lane only when fill gaps is turned on"*; frozen edit LR9). With Fill Gaps on, Prep beside Writers fills the empty
+    lane column; with it off, `layoutEvenPlan` keeps the lane for a run that shares a row.
 16. **A per-phase hiatus band is as wide as its phase would be that week; an all-phase hiatus spans the block.**
     *(Also with a fill wish: frozen edit LR8, 10 Nov 2026, lets the band take the free columns on its LEFT as its
     phase's cell would; before it a band filled rightward only. FILL-INTENT-PLAN.md §12.)*

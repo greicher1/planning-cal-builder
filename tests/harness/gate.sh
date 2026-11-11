@@ -2218,7 +2218,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               layoutrules:layout-r23:300 layoutrules:layout-r23b:300 layoutrules:layout-r21b:240 layoutrules:layout-r3c:240 \
               phasefill:fill-intent:400 \
               colsreset:fill-intent:300 \
-              fillspace:layout-r13:300 \
+              fillspace:layout-r13:300 lanefill:layout-r9:240 \
               swapholds:swap-holds:400 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
