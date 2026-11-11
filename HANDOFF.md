@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 11 Nov 2026: BUILD AROUND SEES THE WINTER BREAK ON A NEW CALENDAR'S FIRST RUN. Committed on local `main`, NOT pushed. Tracker card `build-around-first-run-hiatus`.
+### ✅ 11 Nov 2026: BUILD AROUND SEES THE WINTER BREAK ON A NEW CALENDAR'S FIRST RUN. ✅ **LIVE at `50e4b8e`** (commit `751fe02`, origin's HANDOFF-only `62ca02a` merged in; pushed `62ca02a..50e4b8e` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `31402a98…`, at 21:36 UTC). No version cut. Tracker card `build-around-first-run-hiatus`.
 - **Owner's report:** on a new file, a first Build Around with every phase ticked ran Writer's Rm two weeks into Pre-Prep. Reopened, Writer's Rm was unticked; ticked and built again, it chained right.
 - **Cause:** `hiatusRangesForSolve()` (the backward pass and "ends by") took the all-phase hiatuses from `currentSchedule.hiatuses`. `computeSchedule()` returns no `hiatuses` key while no phase has a segment (the `segments.length===0` early return), so on a new calendar the default 12/21/26 break was invisible. Writer's Rm was placed 20 calendar weeks back (12/7/26), the break then paused it, and it ended 5/7/27. The second run had a schedule, so it was right, and the "alongside" rule had unticked the room in between.
 - **Fix:** it reads `.hiatus-entry` rows directly, by `computeSchedule`'s own mapping (Monday-snapped, weeks × 7), the way it already read per-phase hiatuses. ⛔ **Lesson:** a solver that runs BEFORE anything is dated must not read `currentSchedule` for inputs; it is `{weeks: []}` there. `unitWorkDayCtx(schedule)` still reads `schedule.hiatuses`, which is safe only because a unit switch needs a dated phase.
