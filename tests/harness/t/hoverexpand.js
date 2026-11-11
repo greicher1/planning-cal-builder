@@ -103,6 +103,12 @@ window.addEventListener('load', function () { (async function () {
     var p = T.openViaFakePicker(url, name, { writes: written });
     for (var i = 0; i < 40; i++) { await T.sleep(100); if (T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
     await p;
+    // ⚠️ `p` settles when the app CALLS the picker, before the file is read and applied, and that can take seconds
+    // here (measured 11 Nov 2026: 0.1 s to over 8 s, on main and on the branch alike). Checking the view after a fixed
+    // 400 ms raced it: the old calendar's waterfall was still up, so Waterfall was not clicked, and then the loaded
+    // calendar arrived in its saved Month view and the grid never settled (red about 1 run in 3). Wait for the loaded
+    // file's name in the file menu first.
+    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded file to land', 300, 100);
     await T.sleep(400);
     if (!document.querySelector('#table-wrap table.sheet-table')) { $('view-sheet-btn').click(); await T.sleep(400); }
     try { await settle(); } catch (e) {

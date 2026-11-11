@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toolbar Spacing Both Views</title>
+<!-- MOCKUP, not the app. The preview toolbar as live at 5b8bac2 (view toggle | Shift + Build Around | text | page tools |
+     Undo / Redo, one 12 px gap) and two owner asks of 11 Nov 2026:
+     1. "the distance between the right edge of the month button and left edge of the left shift button - split that in
+        half so the gap is half the size and there should be an equivalent gap between the right edge of the redo button
+        and the right edge of the viewport. Month view: Do the same thing."
+     2. "recommend me buttons that would be useful in the month view that could take the position of where fill gaps and
+        sideboxes show in the month view so we could match the two bars so they dont jump between views. Only
+        buttons/options that would be genuinely useful."
+     Sizes copy legacy.css / src/theme.js and the live toolbar measured at a 1,720 px window (row 1,251 px wide). The
+     calendar strips are synthetic. Every gap printed on the page is measured from what is drawn, not typed. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-8:#3E3C37; --gray-9:#1E1D1B;
+  --faint:#6E6A62; --edit:#7030A0; --red:#C2410C; --green:#2F6B34;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.08); --shadow-sm:0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --page:#E6E4DE; --ground:#F7F6F3; --bar-w:1251px; --tb-gap:12px;
+}
+*{ box-sizing:border-box; }
+html, body{ margin:0; }
+body{ font-family:'Inter',system-ui,-apple-system,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.45; }
+button{ font:inherit; color:inherit; }
+.page{ max-width:1360px; margin:0 auto; padding:28px 16px 80px; }
+h1{ font-size:24px; letter-spacing:-.015em; margin:0 0 6px; }
+.lead{ margin:0 0 16px; color:var(--gray-7); font-size:14px; max-width:960px; }
+.lead b{ color:var(--gray-9); }
+.card{ background:#fff; border:1px solid var(--gray-3); border-radius:14px; padding:16px 18px 18px; margin:0 0 18px; }
+.card.rec{ border-color:var(--navy-6); box-shadow:0 0 0 1px var(--navy-6); }
+.card-head{ display:flex; align-items:center; gap:10px; margin:0 0 4px; flex-wrap:wrap; }
+.card h2{ font-size:16.5px; margin:0; letter-spacing:-.01em; }
+.tag{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+.tag.rec{ background:var(--navy-6); color:#fff; }
+.tag.moves{ background:#FDECE4; color:var(--red); border:1px solid #F5C7B2; }
+.tag.still{ background:#EEF6EE; color:var(--green); border:1px solid #CFE3CF; }
+.why{ margin:4px 0 12px; font-size:13.5px; color:var(--gray-7); max-width:1060px; }
+.why b{ color:var(--gray-9); font-weight:600; }
+.why ul{ margin:6px 0 0; padding-left:18px; } .why li{ margin:2px 0; }
+.flip{ margin-left:auto; display:inline-flex; background:var(--gray-1); border-radius:8px; padding:2px; gap:2px; }
+.flip button{ border:0; background:transparent; padding:5px 11px; border-radius:6px; font-size:12.5px; font-weight:500; color:var(--gray-7); cursor:pointer; }
+.flip button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); }
+.stage-wrap{ overflow:hidden; border-radius:10px; }
+.stage{ position:relative; width:calc(var(--bar-w) + 40px); background:var(--ground); border:1px solid var(--gray-2); border-radius:10px; padding:30px 20px 0; }
+.rowlabel{ position:absolute; left:20px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); }
+.slot{ position:relative; margin-bottom:22px; }
+.slot + .slot{ margin-top:6px; }
+/* A flip card shows one row at a time in the same place: the second row must not carry the gap the first row lacks
+   (it made the month bar sit 6 px lower, the "slight shift down" the owner saw). */
+.flipdemo .slot + .slot{ margin-top:0; }
+.scaled-note{ font-size:11.5px; color:var(--gray-6); margin-top:6px; }
+/* The calendar's own lines under the toolbar, for the month view's extra lines (phase map, stepper). */
+.mapline{ width:var(--bar-w); height:69px; margin-top:10px; border:1px solid var(--gray-3); border-radius:5px; background:#fff;
+  display:flex; align-items:center; justify-content:center; color:var(--gray-5); font-size:11px; letter-spacing:.04em; }
+.stepline{ width:var(--bar-w); margin-top:10px; display:flex; justify-content:flex-end; }
+.cal-edge{ width:var(--bar-w); margin-top:14px; height:30px; background:#fff; border:1px solid var(--gray-3); border-bottom:0; border-radius:10px 10px 0 0;
+  padding:9px 16px; font-size:10px; color:var(--gray-6); }
+
+/* ---------------- The toolbar as live (legacy.css) ---------------- */
+.bar{ width:var(--bar-w); display:flex; align-items:center; column-gap:var(--tb-gap); font-size:12px; position:relative; }
+.dates{ display:inline-flex; align-items:center; gap:var(--tb-gap); margin-left:auto; flex:none; }
+/* THE ASK: the leftover space split evenly, before Shift and after Redo. The section gap (12 px) that sits before Shift
+   needs a twin after Redo, or the two visible gaps differ by 12: a zero-width last item takes the gap and the second
+   auto margin. (In the app that is .preview-tools::after, with .preview-tools carrying the auto margin.) */
+.bar.split::after{ content:''; flex:none; width:0; margin-right:auto; }
+.vt{ display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:2px; background:var(--gray-1); border-radius:9px; padding:2px; flex:none; }
+.vt-b{ display:flex; align-items:center; justify-content:center; gap:6px; border:0; background:transparent; color:var(--gray-7);
+  font-size:12.5px; font-weight:500; padding:6px 12px; border-radius:7px; white-space:nowrap; }
+.vt-b svg{ width:14px; height:14px; } .vt-b.on{ background:#fff; color:#000; box-shadow:var(--shadow-xs); }
+.well{ display:inline-flex; align-items:center; gap:2px; padding:2px; background:var(--gray-1); border-radius:9px; flex:none; }
+.split3{ display:inline-flex; align-items:stretch; height:30px; border:1px solid var(--navy-6); border-radius:7px; background:#fff; overflow:hidden; }
+.split3 > span{ display:flex; align-items:center; gap:6px; padding:0 12px; font-size:12px; font-weight:500; color:var(--navy-6); white-space:nowrap; }
+.split3 > span + span{ border-left:1px solid var(--navy-2); } .split3 > .main{ font-weight:600; }
+.btn{ display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 10px; border:1px solid transparent; border-radius:7px;
+  background:transparent; color:var(--gray-9); font-size:11px; font-weight:500; white-space:nowrap; flex:none; }
+.btn.navy{ border-color:var(--navy-6); color:var(--navy-6); background:#fff; }
+.caret{ font-size:9px; color:var(--faint); } .btn.navy .caret{ color:var(--navy-6); }
+.sw{ position:relative; display:inline-block; width:22px; height:12px; border-radius:6px; background:var(--navy-6); flex:none; }
+.sw::after{ content:''; position:absolute; top:2px; left:12px; width:8px; height:8px; border-radius:50%; background:#fff; }
+.sw.off{ background:var(--gray-4); } .sw.off::after{ left:2px; }
+.tc{ display:inline-flex; align-items:center; justify-content:center; height:30px; min-width:30px; padding:0 6px; color:var(--gray-7); font-size:14px; opacity:.45; flex:none; }
+.tc.size{ width:66px; justify-content:space-between; font-size:11px; font-weight:500; padding:0 7px 0 8px; }
+.tc.size svg, .tc.align svg{ width:14px; height:14px; } .tc.b{ font-weight:700; } .tc.i{ font-style:italic; font-family:Georgia,serif; font-size:15px; }
+.tc.a{ font-weight:700; } .tc.align{ gap:3px; width:38px; }
+.ic{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; color:var(--gray-7); flex:none; }
+.ic svg{ width:16px; height:16px; } .ic.off{ opacity:.4; }
+/* The two slots Fill Gaps and Side Boxes hold in the waterfall; their region is locked to one width in both views in the
+   proposals, so the Header button and everything after it never move. */
+.slots{ display:inline-flex; align-items:center; gap:2px; flex:none; }
+/* 4b: the page tools as standalone bordered buttons again, no shared well; 12 px apart like Shift and Build Around. */
+/* 4b: Highlight is always in the text group (greyed until a header or side-box line is picked), so the group never
+   changes width; the Header button has the width of its longest label; Template / Manual keep their purple state. */
+.tc.hl .hl-ink{ background:#ffff00; padding:0 2px; border-radius:2px; font-weight:700; font-size:13px; color:var(--gray-8); }
+.pick-grid .bar .tc{ opacity:1; } .pick-grid .bar .tc.hl{ opacity:.35; }
+.pick-header .bar .tc{ opacity:1; }
+.btn.solo.is-manual{ background:var(--edit-bg); color:var(--edit); font-weight:600; }
+.btn.solo.is-manual .caret{ color:var(--edit); }
+.switches{ display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; margin:8px 0 12px; font-size:12px; color:var(--gray-6); }
+.switches .lbl{ font-weight:600; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; margin-right:6px; }
+.seg2{ display:inline-flex; background:var(--gray-1); border-radius:8px; padding:2px; gap:2px; }
+.seg2 button{ border:0; background:transparent; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:500; color:var(--gray-7); cursor:pointer; }
+.seg2 button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); }
+.loose{ display:inline-flex; align-items:center; gap:var(--tb-gap); flex:none; }
+.loose .slots{ gap:var(--tb-gap); }
+/* Grey, not white (owner: "they should have grey backgrounds not white"): each its own box in the wells' grey, no
+   border, 34 px tall like the other grey sections, corners as the wells'. */
+.btn.solo{ height:34px; border-color:transparent; background:var(--gray-1); border-radius:9px; justify-content:center; padding:0 12px; }
+.btn.solo:hover{ background:var(--gray-2); }
+.btn.solo.today{ color:var(--navy-6); font-weight:600; font-size:11.5px; }
+.changer{ display:inline-flex; align-items:stretch; height:34px; border-radius:9px; background:var(--gray-1); overflow:hidden; flex:none; }
+/* Today and the month changer JOINED (owner: "today and the month changer can be conjoined actually"): one grey box,
+   the well's 2 px padding and 2 px gap, Today then ‹ Oct 2026 ›. It takes the width of Fill Gaps + gap + Side Boxes
+   (the slot region is locked to one width in both views and its children share any extra), so Header never moves. */
+.loose .slots > *{ flex:1 1 auto; }
+.joined{ display:inline-flex; align-items:center; gap:2px; padding:2px; height:34px; border-radius:9px; background:var(--gray-1); }
+.joined .btn.today{ height:30px; padding:0 10px; color:var(--navy-6); font-weight:600; font-size:11.5px; }
+.joined .a{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:30px; color:var(--gray-8); }
+.joined .a svg{ width:14px; height:14px; }
+.joined .l{ flex:1; display:inline-flex; align-items:center; justify-content:center; height:30px; font-size:12px; font-weight:600; white-space:nowrap; padding:0 2px; }
+/* WHITE (owner: "can we make the month stepper and today buttons white background?"): the live month stepper's own look
+   (legacy.css .month-step: white, gray-3 border, navy Today text, navy-filled arrows), joined into one control at the
+   toolbar's 30 px button height, the height of the other white controls (Shift, Build Around). */
+.joined.white{ background:#fff; border:1px solid var(--gray-3); border-radius:7px; padding:0; gap:0; height:30px; overflow:hidden; align-items:stretch; }
+.joined.white .btn.today{ height:auto; border-radius:0; padding:0 12px; font-size:12px; border-right:1px solid var(--gray-3); }
+.joined.white .a{ height:auto; width:30px; background:var(--navy-6); color:#fff; }
+.joined.white .l{ height:auto; font-size:13px; }
+/* No Today button (owner: "lets get rid of the today button entirely and just make the stepper larger"): the stepper alone
+   fills the slot region, so the month is written in full again, as the live stepper writes it. */
+.changer > span{ display:inline-flex; align-items:center; justify-content:center; }
+.changer > .a{ width:28px; color:var(--gray-8); } .changer > .a svg{ width:14px; height:14px; }
+.changer > .l{ flex:1; padding:0 4px; font-size:12px; font-weight:600; white-space:nowrap; }
+.nav-label{ display:inline-flex; align-items:center; justify-content:center; height:30px; padding:0 4px; font-size:12px; font-weight:600; color:var(--gray-9); white-space:nowrap; min-width:64px; }
+.btn.today{ color:var(--navy-6); font-weight:600; font-size:11.5px; }
+.ic.nav svg{ width:14px; height:14px; } .ic.nav{ width:26px; color:var(--gray-8); }
+/* the month stepper as live, on its own line */
+.ms{ display:flex; align-items:stretch; gap:6px; height:34px; }
+.ms > .t, .ms > .g{ display:inline-flex; align-items:center; border:1px solid var(--gray-4); border-radius:7px; background:#fff; }
+.ms > .t{ padding:0 12px; font-size:12px; font-weight:600; color:var(--navy-6); }
+.ms > .g > span{ display:inline-flex; align-items:center; justify-content:center; height:100%; }
+.ms > .g > .a{ width:34px; font-size:14px; color:var(--gray-8); } .ms > .g > .l{ width:132px; font-size:12.5px; font-weight:600; border-left:1px solid var(--gray-3); border-right:1px solid var(--gray-3); }
+
+/* ---------------- Measurement overlay ---------------- */
+.dim{ position:absolute; height:0; border-top:1.5px solid var(--red); pointer-events:none; }
+.dim::before, .dim::after{ content:''; position:absolute; top:-6px; width:1.5px; height:11px; background:var(--red); }
+.dim::before{ left:0; } .dim::after{ right:0; }
+.dim span{ position:absolute; left:50%; transform:translateX(-50%); top:-19px; font-size:11px; font-weight:700; color:var(--red);
+  background:var(--ground); padding:0 4px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.guide{ position:absolute; width:0; border-left:1px dashed rgba(44,62,80,.35); pointer-events:none; }
+.guide.off{ border-left:1.5px solid var(--red); }
+.legend{ font-size:12px; color:var(--gray-6); margin:8px 0 0; }
+.legend i{ display:inline-block; width:18px; vertical-align:middle; margin:0 4px 0 10px; }
+.legend .l1{ border-top:1.5px solid var(--red); } .legend .l2{ border-top:1px dashed rgba(44,62,80,.6); }
+.flipdemo .slot.m{ display:none; } .flipdemo.show-m .slot.w{ display:none; } .flipdemo.show-m .slot.m{ display:block; }
+.summary{ background:#fff; border:1px solid var(--gray-3); border-left:4px solid var(--navy-6); border-radius:12px; padding:14px 18px; margin:0 0 18px; font-size:14px; color:var(--gray-8); }
+.summary h2{ font-size:15.5px; margin:0 0 6px; color:var(--gray-9); }
+.summary ul{ margin:6px 0 0; padding-left:18px; } .summary li{ margin:3px 0; }
+.sectiontitle{ font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); margin:26px 0 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Toolbar spacing in both views, and month-view buttons for the empty slots</h1>
+  <p class="lead">Red markers are measured gaps. <b>The rule asked for:</b> take the space between the Month button and
+    Shift, halve it, and put the other half after Redo, so the tools sit centred in the space right of the view toggle.
+    I've taken "the right edge of the viewport" as the toolbar's right edge, which lines up with the calendar's right
+    edge (the window edge is a further ~28 px out; say if you meant that). Drawn at your window, 1,720 px wide.</p>
+
+  <section class="summary">
+    <h2>My recommendation</h2>
+    <ul>
+      <li><b>Spacing:</b> as asked, in both views (cards 1 and 2). On its own it makes the month view jump: Fill Gaps and Side
+        Boxes vanish there, so every tool shifts 93 px when you switch (card 2).</li>
+      <li><b>Fill the two slots in the month view with the month stepper</b>, Today and ‹ Oct 2026 › (card 4). It's the one
+        month control you use every time you're in that view. Moving it into the toolbar removes its separate line, so
+        the month calendar gets about 44 px more height, and with the slot region locked to one width
+        <b>nothing moves when you switch views</b>.</li>
+      <li><b>Alternative, card 3:</b> Day Numbers (a switch, same shape as Fill Gaps) and Labels ▾ (the Production Week, Block
+        and Episode label switches, same shape as Side Boxes). Also no jump, but they're set-and-forget settings, so they
+        earn the space less than navigation does, and the stepper keeps its own line.</li>
+      <li><b>Left out on purpose:</b> Paste notes (you moved it from the toolbar into Settings on 20 Oct), Pause prep on Off
+        days (rare), and phase order (it's the grip on the bars already).</li>
+    </ul>
+  </section>
+
+  <div class="sectiontitle">The spacing rule</div>
+  <article class="card" id="c1">
+    <div class="card-head"><h2>1 · Waterfall</h2></div>
+    <p class="why">Now: 123 px between Month and Shift, nothing after Redo. Proposed: the same space halved, the same
+      half after Redo.</p>
+    <div class="stage-wrap"><div class="stage" data-stage>
+      <div class="slot"><span class="rowlabel" style="top:-22px">Now</span><div class="bar" data-bar="wf" data-measure></div></div>
+      <div class="slot"><span class="rowlabel" style="top:-22px">Proposed</span><div class="bar split" data-bar="wf" data-measure></div>
+        <div class="cal-edge">11.10.26 &nbsp;&nbsp;&nbsp; Sample Show &nbsp;&nbsp;&nbsp; 17-Week Production Span / 8-Day Shooting Schedule</div></div>
+    </div></div><div class="scaled-note" hidden></div>
+  </article>
+
+  <article class="card" id="c2">
+    <div class="card-head"><h2>2 · Month view, the rule alone</h2><span class="tag moves" data-jump-tag>…</span>
+      <span class="flip" data-flip><button type="button" data-v="w" aria-pressed="false">Waterfall</button><button type="button" data-v="m" aria-pressed="true">Month</button></span></div>
+    <p class="why">Now: Fill Gaps and Side Boxes are hidden in the month view, so the space before Shift grows to 308 px. With
+      the rule it's split evenly, but the group is narrower than the waterfall's, so <b>every tool still shifts when you
+      switch views</b>. Use the switch to flip between the two.</p>
+    <div class="stage-wrap"><div class="stage flipdemo show-m" data-stage>
+      <div class="slot n"><span class="rowlabel" style="top:-22px">Now (month)</span><div class="bar" data-bar="m-live" data-measure></div></div>
+      <div class="slot w"><span class="rowlabel" style="top:-22px">Proposed, waterfall</span><div class="bar split" data-bar="wf" data-measure data-ref></div></div>
+      <div class="slot m"><span class="rowlabel" style="top:-22px">Proposed, month</span><div class="bar split" data-bar="m-live" data-measure data-cmp></div>
+        <div class="mapline">phase map</div><div class="stepline"><div class="ms"><span class="t">Today</span><span class="g"><span class="a">‹</span><span class="l">October 2026</span><span class="a">›</span></span></div></div>
+        <div class="cal-edge">month calendar</div></div>
+    </div></div><div class="scaled-note" hidden></div>
+    <p class="legend"><i class="l1"></i>measured gap <i class="l2"></i>where the waterfall's sections sit (a red line where the month's don't match)</p>
+  </article>
+
+  <div class="sectiontitle">Month-view buttons for Fill Gaps' and Side Boxes' place</div>
+  <article class="card" id="c3">
+    <div class="card-head"><h2>3 · Day Numbers + Labels ▾</h2><span class="tag still" data-jump-tag>…</span>
+      <span class="flip" data-flip><button type="button" data-v="w" aria-pressed="false">Waterfall</button><button type="button" data-v="m" aria-pressed="true">Month</button></span></div>
+    <div class="why">Same shapes as the waterfall's pair, so the bar reads the same in both views:
+      <ul>
+        <li><b>Day Numbers</b> (a switch, like Fill Gaps): "Day 12" on every shoot day, on screen and in the month PDF. Today it's
+          "Number Production Days" in Settings › Preferences.</li>
+        <li><b>Labels ▾</b> (a menu, like Side Boxes): the three grey labels inside Production's bars, Production Week, Block and
+          Episode, each a switch. Today they're three switches in Settings.</li>
+      </ul>
+      The two slots are locked to one width in both views, so the Header button and Undo / Redo stay put.</div>
+    <div class="stage-wrap"><div class="stage flipdemo show-m" data-stage>
+      <div class="slot w"><span class="rowlabel" style="top:-22px">Waterfall</span><div class="bar split" data-bar="wf-lock-a" data-measure data-ref></div></div>
+      <div class="slot m"><span class="rowlabel" style="top:-22px">Month</span><div class="bar split" data-bar="m-a" data-measure data-cmp></div>
+        <div class="mapline">phase map</div><div class="stepline"><div class="ms"><span class="t">Today</span><span class="g"><span class="a">‹</span><span class="l">October 2026</span><span class="a">›</span></span></div></div>
+        <div class="cal-edge">month calendar</div></div>
+    </div></div><div class="scaled-note" hidden></div>
+  </article>
+
+  <article class="card rec" id="c4">
+    <div class="card-head"><h2>4 · Today + ‹ Oct 2026 › (the month stepper, moved up)</h2><span class="tag rec">My pick</span><span class="tag still" data-jump-tag>…</span>
+      <span class="flip" data-flip><button type="button" data-v="w" aria-pressed="false">Waterfall</button><button type="button" data-v="m" aria-pressed="true">Month</button></span></div>
+    <div class="why">The month stepper leaves its own line under the phase map and takes the two slots: <b>Today</b> in Fill
+      Gaps' place, <b>‹ Oct 2026 ›</b> in Side Boxes'. The month is written short ("Oct 2026") so the pair fits the slots.
+      <ul>
+        <li>Navigation is the month control used every time you're in that view, now in the same fixed bar as everything else.</li>
+        <li>The month calendar starts about 44 px higher: the stepper's line goes.</li>
+        <li>The pair fits inside the width Fill Gaps + Side Boxes take, and the slot region is locked to that one width in
+          both views, so nothing moves when you switch.</li>
+      </ul></div>
+    <div class="stage-wrap"><div class="stage flipdemo show-m" data-stage>
+      <div class="slot w"><span class="rowlabel" style="top:-22px">Waterfall</span><div class="bar split" data-bar="wf-lock-b" data-measure data-ref></div></div>
+      <div class="slot m"><span class="rowlabel" style="top:-22px">Month</span><div class="bar split" data-bar="m-b" data-measure data-cmp></div>
+        <div class="mapline">phase map</div>
+        <div class="cal-edge">month calendar (no stepper line above it)</div></div>
+    </div></div><div class="scaled-note" hidden></div>
+  </article>
+
+  <article class="card rec" id="c5">
+    <div class="card-head"><h2>4b · Card 4 with the page buttons standing alone</h2><span class="tag rec">New</span><span class="tag still" data-jump-tag>…</span><span class="tag still" data-move-tag>Click around to check</span>
+      <span class="flip" data-flip><button type="button" data-v="w" aria-pressed="false">Waterfall</button><button type="button" data-v="m" aria-pressed="true">Month</button></span></div>
+    <div class="why">Card 4 without the shared grey box: <b>Fill Gaps, Side Boxes and Header</b> in the waterfall, each its own
+      grey button (the wells' grey, no border), 12 px apart like Shift and Build Around; in the month view <b>the month
+      stepper, ‹ October 2026 ›</b>, alone and larger (no Today button), in the live stepper's look (white, navy arrows), then
+      <b>Header</b> on its own. The text buttons and Undo / Redo keep their
+      wells.
+      <ul>
+        <li>The stepper takes exactly the width Fill Gaps, the gap and Side Boxes take in the waterfall, so Header and
+          everything after it stay put: nothing moves when you switch. That room lets the month be written in full.</li>
+        <li>The stepper's own line still goes, so the month calendar still starts about 44 px higher.</li>
+        <li><b>The menu never changes as you click around.</b> Highlight is always in the text group, greyed until you pick a
+          header or side-box line (the colour button already greys this way for bars), so the group never widens. The Header
+          button is as wide as its longest label, so Auto / Template / Manual / Off never resizes it. Try the switches below:
+          the second tag reports the largest movement of any shared button over everything you click.</li>
+      </ul></div>
+    <div class="switches">
+      <span><span class="lbl">Picked</span><span class="seg2" data-pick><button type="button" data-v="none" aria-pressed="true">Nothing</button><button type="button" data-v="grid" aria-pressed="false">Grid text</button><button type="button" data-v="header" aria-pressed="false">A header line</button></span></span>
+      <span><span class="lbl">Header</span><span class="seg2" data-hdr><button type="button" data-v="Auto" aria-pressed="true">Auto</button><button type="button" data-v="Template" aria-pressed="false">Template</button><button type="button" data-v="Manual" aria-pressed="false">Manual</button><button type="button" data-v="Off" aria-pressed="false">Off</button></span></span>
+    </div>
+    <div class="stage-wrap"><div class="stage flipdemo show-m" data-stage>
+      <div class="slot w"><span class="rowlabel" style="top:-22px">Waterfall</span><div class="bar split" data-bar="wf-loose" data-measure data-ref></div></div>
+      <div class="slot m"><span class="rowlabel" style="top:-22px">Month</span><div class="bar split" data-bar="m-loose" data-measure data-cmp></div>
+        <div class="mapline">phase map</div>
+        <div class="cal-edge">month calendar (no stepper line above it)</div></div>
+    </div></div><div class="scaled-note" hidden></div>
+  </article>
+</div>
+
+<script>
+(function () {
+  var S = function (d) { return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
+  var I = {
+    rows: S('<rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6.2h12M2 9.9h12"/>'),
+    cal: S('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3"/>'),
+    undo: S('<path d="M6.5 3 3 6.5 6.5 10"/><path d="M3 6.5h6.5a3.25 3.25 0 0 1 0 6.5H7"/>'),
+    redo: S('<path d="M9.5 3 13 6.5 9.5 10"/><path d="M13 6.5H6.5a3.25 3.25 0 0 0 0 6.5H9"/>'),
+    chev: S('<path d="M4.5 6.5 8 10l3.5-3.5"/>'),
+    align: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4h12"/><path d="M4.5 8h7"/><path d="M3 12h10"/></svg>',
+    left: S('<path d="M10 3.5 5.5 8l4.5 4.5"/>'), right: S('<path d="M6 3.5 10.5 8 6 12.5"/>')
+  };
+  var caret = '<span class="caret">▾</span>';
+  function view(month){ return '<div class="vt" data-sec="view"><span class="vt-b' + (month ? '' : ' on') + '">' + I.rows + 'Waterfall</span><span class="vt-b' + (month ? ' on' : '') + '">' + I.cal + 'Month</span></div>'; }
+  function dates(){ return '<div class="dates" data-sec="dates"><span class="split3"><span>← 1 wk</span><span class="main">Shift ' + caret + '</span><span>1 wk →</span></span><span class="btn navy">Build Around ' + caret + '</span></div>'; }
+  function text(){ return '<div class="well" data-sec="text"><span class="tc size">Size' + I.chev + '</span><span class="tc b">B</span><span class="tc i">I</span><span class="tc a">A</span><span class="tc align">' + I.align + caret + '</span><span class="tc">&#8709;</span></div>'; }
+  function textHl(){ return '<div class="well" data-sec="text"><span class="tc size" data-k="size">Size' + I.chev + '</span><span class="tc b" data-k="b">B</span><span class="tc i" data-k="i">I</span><span class="tc a" data-k="a">A</span><span class="tc hl" data-k="hl" title="Highlight colour: for header and side-box lines"><span class="hl-ink">A</span></span><span class="tc align" data-k="align">' + I.align + caret + '</span><span class="tc" data-k="clear">&#8709;</span></div>'; }
+  function page(slotsHtml){ return '<div class="well" data-sec="page">' + (slotsHtml === null ? '' : '<span class="slots" data-slots>' + slotsHtml + '</span>') + '<span class="btn" data-sec="header">Header: Auto ' + caret + '</span></div>'; }
+  function pageLoose(slotsHtml){ return '<div class="loose" data-sec="page"><span class="slots" data-slots>' + slotsHtml + '</span><span class="btn solo" data-sec="header">Header: Auto ' + caret + '</span></div>'; }
+  function undo(){ return '<div class="well undo" data-sec="undo"><span class="ic">' + I.undo + '</span><span class="ic">' + I.redo + '</span></div>'; }
+  var SLOTS = {
+    wf: '<span class="btn"><span class="sw"></span>Fill Gaps</span><span class="btn">Side Boxes ' + caret + '</span>',
+    a: '<span class="btn"><span class="sw"></span>Day Numbers</span><span class="btn">Labels ' + caret + '</span>',
+    b: '<span class="btn today">Today</span><span class="ic nav">' + I.left + '</span><span class="nav-label">Oct 2026</span><span class="ic nav">' + I.right + '</span>',
+    wfLoose: '<span class="btn solo"><span class="sw"></span>Fill Gaps</span><span class="btn solo">Side Boxes ' + caret + '</span>',
+    bLoose: '<span class="joined white"><span class="a">' + I.left + '</span><span class="l">October 2026</span><span class="a">' + I.right + '</span></span>'
+  };
+  var BARS = {
+    'wf': function () { return view(false) + dates() + text() + page(SLOTS.wf) + undo(); },
+    'm-live': function () { return view(true) + dates() + text() + page(null) + undo(); },
+    'wf-lock-a': function () { return view(false) + dates() + text() + page(SLOTS.wf) + undo(); },
+    'm-a': function () { return view(true) + dates() + text() + page(SLOTS.a) + undo(); },
+    'wf-lock-b': function () { return view(false) + dates() + text() + page(SLOTS.wf) + undo(); },
+    'm-b': function () { return view(true) + dates() + text() + page(SLOTS.b) + undo(); },
+    'wf-loose': function () { return view(false) + dates() + textHl() + pageLoose(SLOTS.wfLoose) + undo(); },
+    'm-loose': function () { return view(true) + dates() + textHl() + pageLoose(SLOTS.bLoose) + undo(); }
+  };
+  document.querySelectorAll('[data-bar]').forEach(function (b) { b.innerHTML = BARS[b.dataset.bar](); });
+
+  // Lock each proposal's slot region to the wider of its two views, so the Header button never moves.
+  function lockSlots(card){
+    // Standalone buttons (4b): each month button takes the box of the waterfall button it replaces (the wider of the
+    // two), so the 12 px gaps stay 12 and nothing after them moves.
+    var per = card.querySelectorAll('[data-slot]');
+    if(per.length){
+      ['1', '2'].forEach(function (n) {
+        var xs = Array.prototype.slice.call(card.querySelectorAll('[data-slot="' + n + '"]'));
+        xs.forEach(function (x) { x.style.width = ''; });
+        var w = Math.max.apply(null, xs.map(function (x) { return x.getBoundingClientRect().width; }));
+        xs.forEach(function (x) { x.style.width = w + 'px'; });
+      });
+      return;
+    }
+    var s = Array.prototype.slice.call(card.querySelectorAll('[data-slots]'));
+    if(s.length < 2) return;
+    s.forEach(function (x) { x.style.width = ''; });
+    var w = Math.max.apply(null, s.map(function (x) { return x.getBoundingClientRect().width; }));
+    s.forEach(function (x) { x.style.width = w + 'px'; });
+  }
+  // 4b: the Header button takes the width of its longest label, so changing mode never resizes it.
+  var HDR_MODES = ['Auto', 'Template', 'Manual', 'Off'];
+  function fixHeaderWidth(){
+    var c5 = document.getElementById('c5'), st = c5.querySelector('.flipdemo'), m = st.classList.contains('show-m');
+    st.classList.remove('flipdemo');
+    var hs = Array.prototype.slice.call(c5.querySelectorAll('[data-sec="header"]')), keep = hs.map(function (h) { return h.innerHTML; });
+    hs.forEach(function (h) { h.style.width = ''; });
+    var w = 0;
+    HDR_MODES.forEach(function (mode) { hs.forEach(function (h) { h.innerHTML = 'Header: ' + mode + ' ' + caret; w = Math.max(w, h.getBoundingClientRect().width); }); });
+    hs.forEach(function (h, i) { h.innerHTML = keep[i]; h.style.width = Math.ceil(w) + 'px'; });
+    st.classList.add('flipdemo'); if(m) st.classList.add('show-m');
+  }
+  fixHeaderWidth();
+  ['c3', 'c4', 'c5'].forEach(function (id) {
+    var c = document.getElementById(id);
+    // Both bars must be laid out to be measured: show both for a moment.
+    var st = c.querySelector('.flipdemo'); st.classList.remove('flipdemo');
+    lockSlots(c);
+    st.classList.add('flipdemo');
+  });
+
+  function z(el){ return parseFloat(el.closest('.stage').style.zoom) || 1; }
+  function rect(el, base, k){ var r = el.getBoundingClientRect(), b = base.getBoundingClientRect(); return {l: (r.left - b.left) / k, r: (r.right - b.left) / k, t: (r.top - b.top) / k, b: (r.bottom - b.top) / k, w: r.width / k}; }
+  function dim(stage, x1, x2, y){
+    var d = document.createElement('div'); d.className = 'dim'; d.dataset.overlay = '1';
+    d.style.left = x1 + 'px'; d.style.width = Math.max(0, x2 - x1) + 'px'; d.style.top = y + 'px';
+    d.innerHTML = '<span>' + Math.round(x2 - x1) + ' px</span>'; stage.appendChild(d);
+  }
+  function measureAll(){
+    document.querySelectorAll('[data-overlay]').forEach(function (e) { e.remove(); });
+    document.querySelectorAll('.card').forEach(function (card) {
+      var wrap = card.querySelector('.stage-wrap'), stage = card.querySelector('.stage');
+      stage.style.zoom = 1;
+      var k = Math.min(1, wrap.clientWidth / stage.offsetWidth);
+      stage.style.zoom = k;
+      var note = card.querySelector('.scaled-note'); note.hidden = k >= 0.999; note.textContent = 'Shown at ' + Math.round(k * 100) + '% to fit this window; widen it for real size.';
+      // Gap markers on every shown bar: Month -> Shift, and Redo -> the toolbar's right edge.
+      card.querySelectorAll('[data-measure]').forEach(function (bar) {
+        if(!bar.offsetParent) return;
+        var v = rect(bar.querySelector('[data-sec="view"]'), stage, k), d = rect(bar.querySelector('[data-sec="dates"]'), stage, k), u = rect(bar.querySelector('[data-sec="undo"]'), stage, k), br = rect(bar, stage, k);
+        dim(stage, v.r, d.l, v.t - 7); dim(stage, u.r, br.r, u.t - 7);
+      });
+      // Guides: where the waterfall's sections sit, drawn through the month bar; red where they differ.
+      var ref = card.querySelector('[data-ref]'), cmp = card.querySelector('[data-cmp]');
+      if(ref && cmp){
+        var showM = stage.classList.contains('show-m');
+        stage.classList.remove('flipdemo');
+        // Left edges are read with both bars showing (stacking moves them only vertically); the guides are placed
+        // after the hidden one is hidden again, so they cross the month bar where it really is.
+        var keys = ['dates', 'text', 'page', 'header', 'undo'], worst = 0, lines = [];
+        keys.forEach(function (key) {
+          var r1 = rect(ref.querySelector('[data-sec="' + key + '"]'), stage, k), r2 = rect(cmp.querySelector('[data-sec="' + key + '"]'), stage, k);
+          var delta = Math.abs(r1.l - r2.l); worst = Math.max(worst, delta); lines.push({x: r1.l, off: delta > 1});
+        });
+        stage.classList.add('flipdemo');
+        if(showM){
+          var a = rect(cmp, stage, k);
+          lines.forEach(function (ln) {
+            var g = document.createElement('div'); g.className = 'guide' + (ln.off ? ' off' : ''); g.dataset.overlay = '1';
+            g.style.left = ln.x + 'px'; g.style.top = (a.t - 4) + 'px'; g.style.height = (a.b - a.t + 8) + 'px'; stage.appendChild(g);
+          });
+        }
+        if(!showM) stage.classList.remove('show-m');
+        var tag = card.querySelector('[data-jump-tag]');
+        if(tag){
+          tag.className = 'tag ' + (worst > 1 ? 'moves' : 'still');
+          tag.textContent = worst > 1 ? 'Tools move ' + Math.round(worst) + ' px when you switch views' : 'Nothing moves when you switch views';
+        }
+      }
+    });
+  }
+  // 4b's click-around check: before and after every click (a view switch, a pick, a Header mode), the position of every
+  // control both bars share is read; the largest move seen this visit is what the tag says.
+  var moveMax = 0, moveCount = 0;
+  function snap(card){
+    var stage = card.querySelector('.stage'), k = parseFloat(stage.style.zoom) || 1, out = {};
+    var bar = Array.prototype.filter.call(card.querySelectorAll('.bar'), function (b) { return b.offsetParent; })[0];
+    if(!bar) return out;
+    ['view', 'dates', 'text', 'header', 'undo'].forEach(function (key) { var r = rect(bar.querySelector('[data-sec="' + key + '"]'), stage, k); out[key] = r; });
+    bar.querySelectorAll('[data-k]').forEach(function (el) { out['k:' + el.dataset.k] = rect(el, stage, k); });
+    out.bar = rect(bar, stage, k);
+    return out;
+  }
+  function afterChange(card, before){
+    var after = snap(card), worst = 0;
+    Object.keys(before).forEach(function (key) {
+      if(!after[key]) return;
+      worst = Math.max(worst, Math.abs(after[key].l - before[key].l), Math.abs(after[key].t - before[key].t), Math.abs(after[key].w - before[key].w));
+    });
+    moveMax = Math.max(moveMax, worst); moveCount++;
+    var tag = card.querySelector('[data-move-tag]');
+    if(tag){
+      tag.className = 'tag ' + (moveMax > 0.5 ? 'moves' : 'still');
+      tag.textContent = moveMax > 0.5 ? 'Clicking around moved something ' + Math.round(moveMax) + ' px' : 'Clicking around: nothing moved (' + moveCount + ' clicks checked)';
+    }
+  }
+  function setPick(card, v){
+    card.classList.toggle('pick-grid', v === 'grid'); card.classList.toggle('pick-header', v === 'header');
+  }
+  function setHeader(card, mode){
+    card.querySelectorAll('[data-sec="header"]').forEach(function (h) {
+      h.innerHTML = 'Header: ' + mode + ' ' + caret; h.classList.toggle('is-manual', mode === 'Template' || mode === 'Manual');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-flip] button, [data-pick] button, [data-hdr] button'); if(!b) return;
+    var card = b.closest('.card'), before = card.id === 'c5' ? snap(card) : null;
+    if(b.closest('[data-flip]')){
+      var stage = card.querySelector('.flipdemo');
+      stage.classList.toggle('show-m', b.dataset.v === 'm');
+    } else if(b.closest('[data-pick]')) setPick(card, b.dataset.v);
+    else setHeader(card, b.dataset.v);
+    b.parentNode.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    measureAll();
+    if(before) afterChange(card, before);
+  });
+  window.addEventListener('resize', measureAll);
+  measureAll();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fixHeaderWidth(); ['c3', 'c4', 'c5'].forEach(function (id) { var c = document.getElementById(id), st = c.querySelector('.flipdemo'); var m = st.classList.contains('show-m'); st.classList.remove('flipdemo'); lockSlots(c); st.classList.add('flipdemo'); if(m) st.classList.add('show-m'); }); measureAll(); });
+})();
+</script>
+</body>
+</html>

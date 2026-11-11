@@ -39,9 +39,10 @@
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
 //       the month strip is retired the same way (hidden); Auto from the toolbar leaves nothing above
 //       the month header; back in the Waterfall the label is the waterfall's again
-//   N0  the app header ends with a divider and "Reset Notes" (Waterfall) / "Reset Month Notes"
+//   N0  the app header ends with a divider and "Reset Waterfall Notes" ("Reset Notes" until 11 Nov 2026) (Waterfall) / "Reset Month Notes"
 //       (Month), and each tooltip says what it clears. Since 6 Nov 2026 (owner: Reset Columns, "Add it") the
-//       Waterfall's ends divider, Reset Notes, Reset Columns; the Month view hides Reset Columns, so it ends as before
+//       Waterfall's ends divider, Reset Notes, Reset Columns; since 11 Nov 2026 the Month view ends divider, Reset Month
+//       Notes, Reset Bar Order, and Export PDF and both resets occupy the same boxes in both views (fixed slots)
 //   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views)
 //   N2  "Reset Notes" clears the waterfall note and its colour; the hiatus band and a holiday's
 //       Waterfall-note tick (holidayView) are left alone
@@ -227,18 +228,24 @@ window.addEventListener('load', function () { (async function () {
       var kids = Array.prototype.filter.call(bar.children, function (k) { return getComputedStyle(k).display !== 'none'; });
       return kids.slice(-3).map(function (k) { return k.classList.contains('app-toolbar-div') ? 'div' : (k.id || k.className); });
     };
+    // The fixed slots (owner, 11 Nov 2026: the header must not shift between the views): Export PDF, the notes reset and
+    // the last button occupy the same box in both views.
+    var slots = function (ids) { return ids.map(function (id) { var r = document.getElementById(id).getBoundingClientRect();
+      return Math.round(r.left * 10) / 10 + '-' + Math.round(r.right * 10) / 10; }); };
     var rb = resetBtn();
-    var n0 = {sheetTail: tail(), sheetLabel: rb ? rb.textContent.trim() : null, sheetTitle: rb ? rb.getAttribute('title') : null};
+    var n0 = {sheetSlots: slots(['export-wf-pdf-btn', 'tb-notes-reset-btn', 'tb-cols-reset-btn']), sheetTail: tail(), sheetLabel: rb ? rb.textContent.trim() : null, sheetTitle: rb ? rb.getAttribute('title') : null};
     await view('month');
-    n0.monthTail = tail().slice(-2);
+    n0.monthTail = tail();
+    n0.monthSlots = slots(['export-btn', 'tb-notes-reset-btn', 'tb-order-reset-btn']);
     n0.monthLabel = resetBtn() ? resetBtn().textContent.trim() : null;
     n0.monthTitle = resetBtn() ? resetBtn().getAttribute('title') : null;
-    add('N0', 'the app header ends with a divider and the notes reset (then Reset Columns, in the Waterfall), labelled for the view, each tooltip saying what it clears',
+    add('N0', 'the app header ends with a divider, the notes reset and Reset Columns (Waterfall) / Reset Bar Order (Month), labelled for the view, each tooltip saying what it clears, Export PDF and both resets in the same place in both views',
       JSON.stringify(n0.sheetTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-cols-reset-btn'])
-        && n0.sheetLabel === 'Reset Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
-        && JSON.stringify(n0.monthTail) === JSON.stringify(['div', 'tb-notes-reset-btn'])
+        && n0.sheetLabel === 'Reset Waterfall Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
+        && JSON.stringify(n0.monthTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-order-reset-btn'])
+        && JSON.stringify(n0.sheetSlots) === JSON.stringify(n0.monthSlots)
         && n0.monthLabel === 'Reset Month Notes' && /Waterfall notes stay/.test(n0.monthTitle || ''),
-      n0, 'divider + Reset Notes + Reset Columns / divider + Reset Month Notes');
+      n0, 'divider + Reset Notes + Reset Columns / divider + Reset Month Notes + Reset Bar Order, the same slots');
 
     // ---- N1: the month's own reset, in the Month view --------------------------------------------
     await goTo('January 2028');

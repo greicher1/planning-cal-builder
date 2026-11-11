@@ -23,6 +23,30 @@ else:
   print(('  PASS  ' if a.get('pass') is True else '  FAIL  ')+l+': '+('pass' if a.get('pass') is True else json.dumps(a)[:300]))
 PY
 }
+if [[ "$1" == card4b ]]; then
+  run stylebarplace fill-intent 300
+  run monthmap mvnotes 180
+  run monthmap colreuse 180
+  run monthmap offweek 180
+  run textstyle carry-rich 400
+  run mvtextstyle - 900
+  run mvtextstyle mvtextstyle 400
+  run hdrcontrols carry-rich 170
+  run fillspace layout-r13 300
+  run sideboxes sideboxes 900
+  run calzoom mvnotes 300
+  run sharecopy2 - 180
+  run anchorside anchorside 400
+  run buildaround - 600
+  run mvnotesize mvnotes 900
+  run lastedited lastedited 400
+  run hoverexpand hover-expand 300
+  rm -f fence.json; HARNESS_PAGE=/tests/harness/old-stylebar.html ./run.sh fence 40 >/dev/null 2>&1; cp -f fence.json fence-old-card4b.json
+  rm -f fence.json; ./run.sh fence 40 >/dev/null 2>&1; cp -f fence.json fence-new-card4b.json
+  rm -f stylebarplace.json; HARNESS_PAGE=/tests/harness/old-stylebar.html HARNESS_STATE=fill-intent ./run.sh stylebarplace 300 >/dev/null 2>&1
+  python3 -c "import json; a=json.load(open('stylebarplace.json')); print('OLD BUILD stylebarplace:', ' '.join(('ok:' if c['pass'] else 'RED:')+c['id'] for c in a.get('cases',[])))" >> $LOG
+  echo DONE >> $LOG; exit 0
+fi
 if [[ "$1" == reorder ]]; then
   run stylebarplace fill-intent 300
   run monthmap mvnotes 180

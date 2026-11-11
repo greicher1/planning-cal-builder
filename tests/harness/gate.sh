@@ -1957,6 +1957,10 @@ done
 # buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
 # shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
 # week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
+# buildaroundfresh (owner's report, 11 Nov 2026) is Build Around's FIRST run on a brand-new calendar: nothing dated,
+# so computeSchedule returns no `hiatuses`, and the backward pass must still count the default winter break
+# (hiatusRangesForSolve reads the rows). Writer's Rm 20 wks before Pre Prep 4/26/27 = 11/23/26; red (F1-F3) on the old
+# build, which gave 12/7/26 and ran the room two weeks into Pre Prep until a second Build.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2108,6 +2112,12 @@ done
 # stays one wide), "Pull back?" clearing a run of per-cell widths or turning a fill wish off, one undo step each, and the
 # chip keeping 4px clear of the Swap Column button on a column's top cell ("ok except when these buttons collide").
 # Never with cells highlighted, in the Month view or on an unstamped calendar. H4 red on the build before the step-aside.
+# swapbtnwhere (owner, 10 Nov 2026, a screenshot of Swap Column on Production beside Sim Post: "it shouldn't show up
+# anywhere it doesnt make sense", e.g. "only one collumn for a phase's entire span") hovers every kind of block on
+# swapbtn-simpost-shared.sptcal: Writer's Rm alone in its column, Production beside Sim Post with only Notes beyond, 2027's
+# lone Post (no button on any), Prep sharing two weeks with Design (button, and its click draws a knob), then Production's
+# block selected by hand (no knob: the old "Move Production into the free column" swapped Design and Prep instead).
+# W1, W2 and W5 red on the build before (stintOffers, followRunFor's Production step-over and follow-stays).
 # hoverhiatus (owner, 10 Nov 2026: "an entire phase, including its per phase hiatus should operate as one single block
 # where the expand box would span the length of the entire phase including the hiatus"; frozen edit LR8 by picker;
 # FILL-INTENT-PLAN.md §12) on hover-hiatus.sptcal (Test wk 8, Test Hiatus x2, Test wk 9, a blank on the left of each):
@@ -2177,6 +2187,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               buildaround:-:600 \
               anchorside:anchorside:400 \
               buildalongside:anchorside:200 \
+              buildaroundfresh:-:120 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
@@ -2211,6 +2222,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
               hoverexpand:hover-expand:300 \
+              swapbtnwhere:swapbtn-simpost-shared:120 \
               hoverhiatus:hover-hiatus:400 \
               comparehiatus:compare-hiatus:240 \
               phasesui:hidewf:1500 \
@@ -2859,6 +2871,8 @@ PYPE
 # date rewritten (M4), a waterfall line into another week's waterfall note (M5), an auto-note moved a day (M6); a
 # holiday stays (M7); out and back (M8) and a drop off the grid (M10) bank nothing; no anchor on an untouched calendar
 # (M9). On the 23 Oct live build (d2ac914e) M1-M6 and M8 are red.
+# ⭐ GREW 11 Nov 2026: O9, the header's Reset Bar Order -- grey with no order, live after a grip drag, a real click puts
+# date order back and greys it, ONE Ctrl+Z brings the order back.
 node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile, mvdrag)" <<'PYMO' || FAIL=1
 import json,sys
@@ -2873,6 +2887,28 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYMO
+
+# ---- mvordersp: Simultaneous Post takes a place in the month view's order ---------------------------------
+# ⭐ ADDED 11 Nov 2026 (owner: "we should be able to reorder the position of phases including sim post, without sim post
+# having to stick to production"; frozen edit SO1, owner-approved by picker "Approve with that gate"). mvorder's
+# plumbing on colswap-simpost-refuse: Sim Post's grip (P1), dragged to the top in every week (P2), one undo (P3), saved
+# as "simpost" in mvPhaseOrder (P4), the WRITTEN month PDF stacks it the same way (P5), Back to date order (P6), between
+# two phases (P7), another phase's reorder leaves it at the bottom (P8), Escape (P9). Red on the build before SO1 (it
+# finds no Sim Post grip at all). ⛔ Gates 10 and 13 are what prove SO1 inert where Sim Post was never moved.
+node "$HERE/mvordersp.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvordersp.json" "mvordersp (colswap-simpost-refuse)" <<'PYMOS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMOS
 
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same

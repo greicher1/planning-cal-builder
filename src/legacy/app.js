@@ -7555,8 +7555,14 @@ export function initLegacyApp() {
     const mine = stintTds(year, phaseKey);
     if(!mine.length) return null;
     const lane = simLaneOf(year);
-    let slot = +mine[0].dataset.own + dir;
-    if(lane && lane.inserted && slot === lane.slot) slot += dir;   // Sim Post's own column (simLaneOf)
+    const own = +mine[0].dataset.own;
+    let slot = own + dir;
+    // Sim Post's own column (simLaneOf) is stepped over. For PRODUCTION it is stepped over even when the lane is
+    // shared with a phase from before the shoot: it is Production's own column then (frozen SP1 glues the lane to
+    // Production's slot + 1), never a free one to move into. Not stepping over offered "Move Production into the
+    // free column, after Prep" beside Sim Post, and the trial honoured it by swapping two earlier phases while
+    // Production stayed put (owner's screenshot, 10 Nov 2026).
+    if(lane && slot === lane.slot && (lane.inserted || phaseKey === 'production')) slot += dir;
     const blocks = computeYearBlocks(sched.weeks);        // FROZEN, read-only
     const bi = blocks.findIndex(b => b.year === year);
     if(bi < 0) return null;
@@ -7585,6 +7591,20 @@ export function initLegacyApp() {
     try { trial = computeSchedule(readState()); } finally { colFollow = saved; }
     const v = trial && trial.colMoves && trial.colMoves[phaseKey];
     if(!v || !v.ok) return Object.assign(base, { reason:'follow-busy', blocker: (v && v.blocker) || follows });
+    // ⛔ A move must MOVE the phase. The placement can honour the follow by rearranging other phases instead, and a
+    // knob that says "Move X" and leaves X where it is makes no sense (owner, 10 Nov 2026). Read where the trial
+    // puts the phase's first week of this block; the same column as now is no move.
+    const tBlocks = computeYearBlocks(trial.weeks);       // FROZEN, read-only
+    const tbi = tBlocks.findIndex(b => b.year === year);
+    if(tbi >= 0){
+      const tb = tBlocks[tbi], tMap = computeBlockLayout(trial, tBlocks).blockSlotMaps[tbi];   // FROZEN, read-only
+      let landed = null;
+      for(let i = tb.startIdx; i < tb.startIdx + tb.count && landed === null; i++){
+        const c = trial.weeks[i].cells.find(x => x.key === phaseKey && x.col !== undefined);
+        if(c && tMap.has(c.col)) landed = tMap.get(c.col);
+      }
+      if(landed === own) return Object.assign(base, { reason:'follow-stays' });
+    }
     return Object.assign(base, { ok:true, follows,
       label: 'Move ' + phaseLabelFor(phaseKey) + ' into the free column, after ' + phaseLabelFor(follows) });
   }
@@ -7638,6 +7658,8 @@ export function initLegacyApp() {
       return phaseLabelFor(v.blocker) + ' uses that column while ' + phaseLabelFor(v.phaseKey) + ' runs.';
     if(v.reason === 'follow-nobody')
       return 'A phase can only move into a column after another phase there has finished.';
+    if(v.reason === 'follow-stays')
+      return phaseLabelFor(v.phaseKey) + ' would stay in its column, so there is nothing to move.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];
     return 'Can’t swap: ' + (SWAP_REASON_TEXT[v.reason] || v.reason) + '.';
   }
@@ -7679,7 +7701,6 @@ export function initLegacyApp() {
   function swapCandKey(){
     const seed = swapSeed();
     if(!seed) return '';
-    const wk = (currentSchedule && currentSchedule.weeks) || [];
     // The MODE first: the same seed means a different swap once the selection covers the whole stint
     // (swapSelectionMode), and a block swap changes gridStintSwaps rather than gridColSwaps.
     const mode = swapSelectionMode();
@@ -7687,13 +7708,21 @@ export function initLegacyApp() {
       // The selection itself, not just its size: the per-week candidate walks every selected cell of the
       // seed's phase (weekSwapEval), so two selections of one size and one seed can differ.
       + '|' + [...gridSel].sort().join(',')
+      + '|' + seed.weekIso + '|' + seed.phaseKey
+      + '|' + swapLayoutKey();
+  }
+  // Everything a verdict depends on apart from the selection: shared by the knob's cache above and the
+  // Swap Column button's (stintOffers), so the button can never disagree with the knob it leads to.
+  function swapLayoutKey(){
+    const wk = (currentSchedule && currentSchedule.weeks) || [];
+    return ''
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
       + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + (fillSpaceOff ? 'lanes' : 'fill')
-      + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
+      + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
       // VALUES, not just keys. The D4 refusal turns on a cell span's l/r, and a double-click fill
@@ -8150,6 +8179,32 @@ export function initLegacyApp() {
   // names Show Info's shooting blocks, BLOCKS-PLAN.md, which this button has nothing to do with).
   let stintHover = null;           // { year, phaseKey } while the pointer is over a stint or its button
   const sameStint = (a, b) => (!a && !b) || (!!a && !!b && a.year === b.year && a.phaseKey === b.phaseKey);
+  // ⭐ WOULD ITS CLICK OFFER A SWAP? (owner, 10 Nov 2026). The button's click selects the whole block, and the knob
+  // then appears only for a direction swapEvalDir passes. So this asks swapEvalDir itself, with that same selection
+  // put in place for the question and the user's own put back: one evaluator, so the button shows exactly where a
+  // knob will follow it. A verdict costs trial schedules, so it is cached against the block and swapLayoutKey()
+  // (the knob cache's key less the selection), and computed only when the pointer reaches a block it has not
+  // judged since the layout last changed; every repaint after that is a lookup.
+  const _stintOffer = new Map();
+  function stintOffers(year, phaseKey){
+    // Single Column in the key too: it changes what one block IS (every year, or one), while the start year and
+    // every week's cells can stay the same.
+    const key = year + '|' + phaseKey + '|' + (singleColumn ? 'one' : 'years') + '|' + swapLayoutKey();
+    if(_stintOffer.has(key)) return _stintOffer.get(key);
+    const tds = stintTds(year, phaseKey);
+    let ok = false;
+    if(tds.length){
+      const savedSel = gridSel, savedAnchor = gridSelAnchor;
+      try {
+        gridSel = new Set(tds.map(SEL_KEY));
+        gridSelAnchor = SEL_KEY(tds[0]);
+        ok = [-1, 1].some(dir => { const v = swapEvalDir(dir); return !!(v && v.ok); });
+      } finally { gridSel = savedSel; gridSelAnchor = savedAnchor; }
+    }
+    if(_stintOffer.size > 200) _stintOffer.clear();
+    _stintOffer.set(key, ok);
+    return ok;
+  }
   // ⚠️ Visible while the pointer is over ANY cell of the stint or the button itself -- never scoped to
   // the first week. A button that appears fourteen rows above the cell you are on and vanishes the
   // moment you move toward it is the classic broken hover target; since it sits at the top of the
@@ -8187,6 +8242,10 @@ export function initLegacyApp() {
     if(!tds.length) return;
     // Do not offer it where nothing can move: a block with one phase column has nothing to swap with.
     if(!document.querySelector('#table-wrap table.sheet-table colgroup col[data-ckey="y' + stintHover.year + ':s1"]')) return;
+    // ...and nowhere its click would lead to no knob (owner, 10 Nov 2026: "it shouldn't show up anywhere it doesnt
+    // make sense"). A second column in the year was not enough: it showed on a phase alone in its column for its
+    // whole run, and on Production beside Sim Post, whose own lane was the year's second column.
+    if(!stintOffers(stintHover.year, stintHover.phaseKey)) return;
     if(headerBottom === undefined){
       const thead = document.querySelector('#table-wrap table.sheet-table thead');
       headerBottom = thead ? (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z : 0;
@@ -10177,7 +10236,10 @@ export function initLegacyApp() {
     if(!wrap) return;
     const GRIP_W = 12, EDGE_W = 10, MIN_BAR_W = 46;
     let grip = null, shownFor = null, drag = null;
-    const effectiveOrder = ()=> mvLaneOrder((currentSchedule && currentSchedule.segments) || []).map(s=> s.key);
+    // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
+    const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
+    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
     function gripEl(){
       if(grip) return grip;
       grip = document.createElement('div');
@@ -10213,7 +10275,7 @@ export function initLegacyApp() {
       if(grip && t === grip) return;
       if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hide(); return; }
       // Resting on an edge grip keeps this one: the grips sit side by side on the same bar.
-      let pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      let pill = t && t.closest && t.closest(BAR_SEL);
       if(!pill && t && t.classList && t.classList.contains('phase-edge-handle')) pill = t._pill || null;
       if(!pill || !wrap.contains(pill)){ hide(); return; }
       if(pill !== shownFor) showFor(pill);
@@ -10227,7 +10289,7 @@ export function initLegacyApp() {
       if(e.button !== 0 || isMacCtrlClick(e) || viewMode !== 'month') return;
       const pill = grip && grip._pill;
       if(!pill || !wrap.contains(pill)) return;
-      const key = pill.getAttribute('data-ph');
+      const key = barKey(pill);
       const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), pill.closest('.mv-week'));
       if(!key || wi < 0) return;
       e.preventDefault();
@@ -10249,8 +10311,8 @@ export function initLegacyApp() {
       if(!week) return null;
       // Each phase in this row: the columns it covers and its topmost bar's box (it may have several pieces).
       const info = new Map();
-      week.querySelectorAll('.mv-pill[data-ph]').forEach(p=>{
-        const k = p.getAttribute('data-ph'), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
+      week.querySelectorAll(BAR_SEL).forEach(p=>{
+        const k = barKey(p), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
         const cur = info.get(k);
         if(!cur){ info.set(k, {cols: new Set(cols), top: r.top, bottom: r.bottom}); return; }
         cols.forEach(c=> cur.cols.add(c));
@@ -12890,12 +12952,10 @@ export function initLegacyApp() {
       }
       // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set, and LEFT OUT when the
       // order set happens to BE date order (dragged back), where it could change nothing (ruling T3).
-      if(mvPhaseOrder.length){
-        const segs = (currentSchedule && currentSchedule.segments) || [];
-        const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
-        if(!same) items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
+      // The test is mvOrderIsCustom(), shared with the header's Reset Bar Order (11 Nov 2026).
+      if(mvOrderIsCustom())
+        items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
           run: resetMvPhaseOrder});
-      }
       // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4; kept by ruling
       // T2). Last, as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
       // such item.
@@ -12956,12 +13016,7 @@ export function initLegacyApp() {
     }
 
     // One undo step, as every item that changes the calendar.
-    function resetMvPhaseOrder(){
-      pushUndoSnapshot();
-      mvPhaseOrder = [];
-      update();
-      pushUndoSnapshot();
-    }
+    function resetMvPhaseOrder(){ resetMonthPhaseOrder(); }
 
     // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
     function showPhaseRow(key){
@@ -15400,7 +15455,15 @@ export function initLegacyApp() {
 
       // One rounded pill per phase per contiguous run of covered days. Phases keep their lane
       // order so a phase sits at the same height all month.
-      laneSegs.forEach(s=>{
+      // ⛔ FROZEN EDIT SO1 (owner-approved 11 Nov 2026 by picker, "Approve with that gate": a calendar where Sim Post
+      // has not been moved draws and prints exactly as before, gates 10 and 13 byte-identical). Sim Post's bars are
+      // placed by placeSimPost(), the old block below unchanged in what it places, either right before the phase
+      // mvSimPostSlot() names (the user dragged Sim Post into the order) or, at -1, after every phase where they always
+      // were. On screen only (printingCursor null, as NS1) the bar carries data-sp so the reorder grip can find it; the
+      // print rollback and the month-PDF writer never see the attribute.
+      const spSlot = mvSimPostSlot(laneSegs);
+      laneSegs.forEach((s, si)=>{
+        if(si === spSlot) placeSimPost();
         // ⛔ FROZEN EDIT E4 (owner-approved 23 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §9):
         // where this phase's own bars begin in the row, so the notes dragged UNDER it on a day can be placed right
         // after them (the placeNotes call at the end of this loop), before the phases below it take their lines.
@@ -15515,6 +15578,10 @@ export function initLegacyApp() {
       // returns the Monday of the PREVIOUS week -- the week that ended the day this row starts --
       // so the band was drawn a week late, and the first sim-post week never appeared in the month
       // that actually contains it. The row's working days are Mon-Fri, so look up from its Monday.
+      // ⛔ FROZEN EDIT SO1: this block is placeSimPost(), a hoisted function declaration (it runs from the phase loop
+      // above when Sim Post has a place in the order), and runs here only when it has none (spSlot -1).
+      if(spSlot < 0) placeSimPost();
+      function placeSimPost(){
       const rowMonday = addDays(weekStart, 1);
       const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(rowMonday)));
       if(wkRec && wkRec.simPost){
@@ -15541,8 +15608,9 @@ export function initLegacyApp() {
         const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
           place(r.startCol, r.endCol, 'mv-bar mv-pill',
-            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, '');
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, printingCursor ? '' : 'data-sp="1"');
         });
+      }
       }
 
       // Notes last, so they sit under the phase pills.
@@ -18322,6 +18390,34 @@ export function initLegacyApp() {
     byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
       .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
     return out;
+  }
+  // ⭐ SIMULTANEOUS POST TAKES A PLACE IN THE SAME ORDER (owner, 11 Nov 2026: "we should be able to reorder the position
+  // of phases including sim post, without sim post having to stick to production"; frozen edit SO1, approved by picker
+  // "Approve with that gate"). Sim Post is not a segment, so it is named in mvPhaseOrder by the reserved key
+  // MV_SIMPOST_KEY (no phase can have it: built-ins are fixed words, custom phases are custom<n>). An older build keeps
+  // the key (the sanitizer keeps unknown keys) and never meets it, so it draws Sim Post where it always did.
+  //  - NOT NAMED (every calendar ever saved, and any order dragged before this): frozen renderMonthView places it AFTER
+  //    every phase, exactly as before. mvSimPostSlot() returns -1 and SO1 takes that old path, which is what keeps gates
+  //    10 and 13 byte-identical.
+  //  - NAMED: it goes right before the first phase the order names BELOW it (a phase the order does not name stays
+  //    with the named phase it follows, as mvLaneOrder places it), or after every phase when none is below it.
+  const MV_SIMPOST_KEY = 'simpost';
+  function mvSimPostSlot(laneSegs){
+    if(mvRefMode) return -1;
+    const at = mvPhaseOrder.indexOf(MV_SIMPOST_KEY);
+    if(at < 0) return -1;
+    const below = new Set(mvPhaseOrder.slice(at + 1));
+    return laneSegs.findIndex(s=> below.has(s.key));
+  }
+  // The month view's whole top-to-bottom order as keys, Sim Post included where SO1 draws it (only on a calendar that
+  // has Sim Post). What the reorder grip reads and writes.
+  function mvOrderKeys(segs, sch){
+    const keys = mvLaneOrder(segs).map(s=> s.key);
+    const hasSp = ((sch && sch.weeks) || []).some(w=> w && w.simPost);
+    if(!hasSp) return keys;
+    const laneSegs = mvLaneOrder(segs), slot = mvSimPostSlot(laneSegs);
+    keys.splice(slot < 0 ? keys.length : slot, 0, MV_SIMPOST_KEY);
+    return keys;
   }
 
   // Where a NOTE sits on its day (MONTH-ORDER-PLAN.md §3.2 and §9). A note is in one of three GROUPS, each placed
@@ -24121,7 +24217,14 @@ export function initLegacyApp() {
     q('.hf-color').disabled = noColor;
     q('.hf-swatch:not(.hf-swatch-hl)').classList.toggle('is-disabled', noColor);
     q('.hf-swatch:not(.hf-swatch-hl)').title = noColor ? 'A phase, episode or Simultaneous Post bar keeps its own text colour' : 'Text color';
-    q('.hf-swatch-hl').hidden = !(look && look.highlight);
+    // Highlight is ALWAYS in the bar since 11 Nov 2026, greyed (and its picker off) unless the picked text takes a
+    // highlight (header and side-box lines). It used to appear only then, which widened the bar and moved the whole
+    // toolbar as you clicked around (owner: "I don't like the menu changing as you click around").
+    const hlOn = !!(look && look.highlight);
+    q('.hf-swatch-hl').hidden = false;
+    q('.hf-swatch-hl').classList.toggle('is-disabled', !hlOn);
+    q('.hf-hl').disabled = !hlOn;
+    q('.hf-swatch-hl').title = hlOn ? 'Highlight color' : 'Highlight color, for header and side-box lines';
     q('.hf-hl').value = (look && look.hl) || '#ffff00';
     const al = (look && look.align) || 'center';
     const toggle = q('.hf-al-toggle');
@@ -26469,7 +26572,7 @@ export function initLegacyApp() {
     chrome.notesResetBtn({ view: mv ? 'month' : 'sheet' });
     // Reset Columns: the Waterfall's only, greyed while every column is automatic. Every way a column store changes
     // ends in render() rebuilding #table-wrap, so this observer sees it (and the click re-checks regardless).
-    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist() });
+    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist(), orderAny: mv && mvOrderIsCustom() });
     // Fill Space: the Waterfall of a stamped calendar only (an unstamped one keeps its old widths until Update layout).
     chrome.fillSpaceBtn({ visible: !mv && layoutStamped(), on: !fillSpaceOff });
   }
@@ -28159,6 +28262,33 @@ export function initLegacyApp() {
     const t = e.target.closest && e.target.closest('#tb-cols-reset-btn');
     if(!t || viewMode === 'month') return;
     resetColumns();
+  });
+  // ---------- Reset Bar Order (owner, 11 Nov 2026) ----------
+  // The Month view's twin of Reset Columns, in the same header slot (#tb-order-reset-btn, Header.jsx): every bar back
+  // in date order, which is the bar menu's "Back to date order" (MONTH-ORDER-PLAN.md §3.1). mvOrderIsCustom() is that
+  // item's own test, moved here so the menu and the button cannot disagree: an order set but dragged back into date
+  // order counts as no order (ruling T3), and Sim Post counts (SO1): an order that only moved Sim Post is not date
+  // order. One undo step, bracketed as the menu item always was.
+  function mvOrderIsCustom(){
+    if(!mvPhaseOrder.length) return false;
+    const segs = (currentSchedule && currentSchedule.segments) || [];
+    const keys = mvOrderKeys(segs, currentSchedule);
+    const dateKeys = segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key);
+    if(keys.indexOf(MV_SIMPOST_KEY) >= 0) dateKeys.push(MV_SIMPOST_KEY);
+    return keys.join('|') !== dateKeys.join('|');
+  }
+  function resetMonthPhaseOrder(){
+    if(!mvPhaseOrder.length) return false;
+    pushUndoSnapshot();
+    mvPhaseOrder = [];
+    update();
+    pushUndoSnapshot();
+    return true;
+  }
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-order-reset-btn');
+    if(!t || viewMode !== 'month' || !mvOrderIsCustom()) return;
+    resetMonthPhaseOrder();
   });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
@@ -32510,11 +32640,24 @@ export function initLegacyApp() {
     return (w > 0) ? w : null;
   }
 
-  // Hiatus ranges as computeSchedule builds them, but readable from outside it: the global list off
-  // the last computed schedule, and the per-phase ones straight from their fields (a phase with no
-  // start date yet has no segment to read them from).
+  // Hiatus ranges as computeSchedule builds them, but readable from outside it: the global list and
+  // the per-phase ones both straight from their rows, by computeSchedule's own rule (start, weeks > 0,
+  // a parseable date; Monday-snapped, weeks * 7 days).
+  // ⛔ NOT off currentSchedule.hiatuses (fixed 11 Nov 2026, owner's report). computeSchedule returns
+  // no `hiatuses` at all while no phase has a date, so on a NEW calendar the first Build Around's
+  // backward pass saw no winter break: Writer's Rm was placed 20 calendar weeks before Pre-Prep, the
+  // break then paused it, and it ran two weeks into Pre-Prep. A second Build (the calendar now
+  // computed) came out right, which is what made it look like a first-use-only fault.
   function hiatusRangesForSolve(){
-    const global = ((currentSchedule && currentSchedule.hiatuses) || []).slice();
+    const global = [];
+    document.querySelectorAll('.hiatus-entry').forEach(el=>{
+      const sEl = el.querySelector('.hiatus-start'), wEl = el.querySelector('.hiatus-weeks');
+      const pd = sEl ? parseDateUTC(sEl.value) : null;
+      const wk = wEl ? parseInt(wEl.value, 10) : NaN;
+      if(!pd || !(wk > 0)) return;
+      const start = mondayOf(pd);
+      global.push({start, end: addDays(start, wk * 7)});
+    });
     const own = {};
     getAllPhaseDefs().forEach(p=>{
       const en = document.getElementById('phiatus-en-' + p.key);
@@ -37712,12 +37855,12 @@ export function initLegacyApp() {
       };
       const T = P.bigTag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
       const lw = wOf(label);
-      // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line. ⚠️ A bar whose size is
-      // styled carries M1's `line-height:15px`, which the tag INHERITS as a length (not as 1.5 x its own 9 px), so then its
-      // line box is the bar's 15 px and its baseline sits that much lower (W2; the monthemit leg measured 1 px).
-      // At 11 and 13 px the bar's line-height is a LENGTH too (legacy.css writes 16px / 19px), so the tag inherits it as
-      // it inherits M1's, and its line box is the bar's.
-      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, (F.size || B.line != null) ? mvlBarLine(B, P) : T.size * P.lineHeight).base;
+      // vertical-align:top sets the grey tag's line box at the top of the bar's line, and since frozen edit TC1
+      // (11 Nov 2026, owner: the tag centred on the label) that box is ALWAYS the bar's own line (legacy.css gives
+      // .mv-pill-block the bar's line-height as a length at every bar size, as M1's styled size already did), so the
+      // two texts centre on one line. Until then an unstyled bar's tag had its own 1.5 x 9 px = 13.5 px box and rode
+      // 0.6-1.8 px high.
+      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, mvlBarLine(B, P)).base;
       if(it.lines){
         // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6): its first two lines as the model broke them,
         // and when there are more, the second cut as -webkit-line-clamp cuts it -- the line as laid out, then the
