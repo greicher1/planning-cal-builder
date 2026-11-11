@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
+
+The preview toolbar's sections were told apart by gaps that were all different. The owner asked for about twenty
+mocked-up looks (`mockups/toolbar-variations.html`, kept in the repo), combined three of them, asked for Shift in white
+and for **one consistent spacing**, and picked **variation 27**, then took the grey box away from Shift and Build Around:
+
+- **The view toggle sits alone at the left edge; every tool is packed to the right**: Undo / Redo first (they were the
+  last thing on the bar), then the text style buttons, Shift and Build Around, then Fill Gaps, Side Boxes and Header.
+- **One gap between every section: 12 px**, from one value (`--tb-gap`). Build Around's extra 16 px margin is gone.
+- **Grey wells** like the Waterfall | Month toggle around Undo / Redo, the text buttons and the page tools, all the same:
+  2 px of padding, 2 px between buttons, corners that nest. Their buttons have no border until hovered or open, then show
+  as a raised white button; a pressed style (Bold on) is that raised button in purple. Shift and Build Around keep their
+  white ground and navy outline and have no well.
+- **Fill Space is now "Fill Gaps"** (owner). Words only: the button's id and the saved calendar key keep the old name,
+  so every saved file and everything wired to it is unaffected. The Help says Fill Gaps too.
+- Every control kept its id; the engine did not change.
+
+On a window narrower than about 1,640 px (with Fill Gaps showing) the text buttons drop to their own line at the left,
+as before, and every other section stays on the first line, still 12 px apart.
+
+**Verified:** `stylebarplace` rewritten for the new sections (P0 order, P2 the 12 px gaps on one line, P10 one well look
+and no well on the date tools, P11 the new name), red on the build before it; `textstyle` B2, `hdrcontrols` T1 and
+`fillspace` S1 updated; the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence's
+computed styles inside `#table-wrap` against the build before: the only difference, the waterfall's scroll box 4 px shorter at 1,600 px, where the text well has its own line and is 4 px taller than the bare buttons were. Driven by hand: Shift, Build Around, Side Boxes and the
+Header menu each open under their own button; Fill Gaps toggles and Undo undoes it from its new place; Bold applies.
+
 ### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
 
 Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
