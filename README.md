@@ -29,6 +29,89 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
+
+Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having
+to stick to production, it should be able to be reanarangged just like any other phase"*. Sim Post's month bar now has
+the six-dot reorder grip, and a drag puts it above, between or below the phases, in every week, on screen and in the
+month PDF; one undo, Escape and Back to date order behave as for any phase. It is named in the saved order
+(`mvPhaseOrder`) by the reserved key `simpost`. Frozen edit SO1 in `renderMonthView` (owner-approved by picker, *"Approve
+with that gate"*): Sim Post's bars are placed at its place in the order, or, where it was never moved, after every phase
+exactly as before; on screen only its bar carries `data-sp` for the grip. An older build keeps the key and draws Sim Post
+at the bottom. Verified: new leg `mvordersp` 11/11 (red on the build before the edit), gate 10 and gate 13 byte-identical
+on every month calendar (24 written PDFs, gate 10 print documents), `mvorder` and the Sim Post legs green.
+
+### Unreleased — Swap Column shows only where a swap can happen (11 Nov 2026)
+
+Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't
+show up at all here"*, then *"it shouldn't show up anywhere it doesnt make sense"*, e.g. *"places where theres only one
+collumn for a phase's entire span"*. The hover button was drawn whenever the year had a second column, and next to
+Production that column was Sim Post's own; a phase alone in its column for its whole run passed the same test. Now the
+button asks the swap knob's own evaluator, with the block selected, whether either direction would offer a swap
+(`stintOffers`, cached per block against the layout), so it appears exactly where its click leads to a knob. Found on
+the way: the knob itself offered *"Move Production into the free column, after Prep"* into Sim Post's column, and the
+move left Production where it was and swapped Design and Prep instead. Production now steps over its own Sim Post lane
+even when that lane is shared, and a move whose trial leaves the phase in its column is refused. One sentence in the
+Help. Verified: new leg `swapbtnwhere` 7/7 (W1, W2, W5 red on the build before); `calzoom` W6 now hovers a block that
+swaps and measures from its first cell, 26/26; the swap sections of `gate.sh` (colswap through stintreshape, onecol,
+colreuse, and the Sim Post / swap legs of the generic list) on the final build 371 / 1, the one `hoverexpand`, whose
+`load()` raced the file landing (red 1 in 4 on main too): it now waits for the file's name, 4/4; `npm run check`
+42/42; browser check with the real pointer.
+
+### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+
+The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
+its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*.
+
+- **The hover prompt** now reads a phase's own hiatus band as part of the phase. Resting beside the band offers
+  **Expand?**, the dashed box runs through the hiatus weeks (one box from Test wk 8 through both Test Hiatus weeks to
+  wk 9, "these 4 weeks"), and the click widens the hiatus weeks with the rest. A widened band offers **Pull back?**.
+  Before, a blank beside a band offered nothing and the box stopped at the band.
+- **The double-click fill** widens the band too when the free column is on its left (⛔ frozen edit LR8 in
+  `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
+  between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
+  the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- **Expand? on both sides** (owner, trying it: *"once i expand one side, the box no longer pops up on the other side
+  empty space"*): a cell already widened to one side still offers Expand? on the blank on its other side, and the click
+  keeps the side it has. Before, the first Expand? took the other side's offer away.
+- Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
+
+**Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out
+byte for byte as before; the waterfall PDF and the workbook identical to their baselines; the 20 layout fixtures,
+`phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
+`offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
+42/42. No full gate (a partial gate of gate.sh's sections).
+### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+
+Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
+rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
+switch is in Settings › Preferences › Hiatus. The result line under an edited hiatus stays; the month drag's question,
+the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
+rewritten for one switch, 19/19; `hiatusdrag.mjs` 14/14; `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`,
+`badyear` green (73); browser check with the switch on and off; `npm run check` 42/42.
+### Unreleased — Compare dates a phase from the first week it works (10 Nov 2026)
+
+The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and
+"1/3/28 – 8/11/28", with **"Start pushed 2 wks, end same"**. Post's typed start in the first was 12/20/27, the first
+week of the Holiday Hiatus. A hiatus PAUSES a phase rather than moving its start, so the grid's Post wk 1 was 1/3/28 in
+both, but Compare (and every `{<phase>.open}` header token, and the key facts band) read the typed date.
+
+- **The token is fixed, not just Compare** (owner: *"Fix the token"*): `phaseOpenDay()` steps a start that sits inside
+  an all-phase hiatus or the phase's own one forward, a week at a time exactly as the phase's weeks are counted
+  (`extendEndForHiatus`), to the first week it works. Production already did this (its first real shoot day). So
+  Compare, the band and any header line printing a phase's start now agree with the grid.
+- **"Weeks, first phase to last"** reads the same first working day, so a calendar whose first phase is typed into a
+  break no longer counts the break's weeks.
+- **Nothing else moves:** a start outside a hiatus prints exactly as before, no typed date is rewritten, and no default
+  header or test fixture prints a phase's start token, so no export baseline can change. The auto header's
+  "Writer's Room Opens" line still reads the typed field on purpose (it is held byte for byte).
+- **Verified:** new leg `comparehiatus` (8 cases on a synthetic three-scenario file; red on the build before the fix at
+  H1–H4 and H6), in `gate.sh`; a partial gate of `hdrtemplate`, `hdreditor`, `scenarios`, `scenariofacts` and
+  `comparehiatus`, 92 PASS / 0 FAIL; `npm run check` 42/42. In the browser, nine hiatus edits (a phase's own break
+  added, lengthened, at its start; an all-phase break moved and lengthened; Ripple Hiatus Periods on and off): Compare's
+  rows matched the grid's first and last weeks every time.
+
 ### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
 
 Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):

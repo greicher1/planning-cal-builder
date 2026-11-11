@@ -177,8 +177,8 @@ except when these buttons collide"* (the chip on the Swap Column button). Tracke
   one dashed purple box, a faint outline on the phase's cells, and the chip. The click writes a per-cell width
   (`cellSpans`, the shape an edge drag stores, `{l, r, k}` reaching the far edge of the blank) on **those weeks only**.
   ⛔ Not the fill wish: the first build set it, and a wish fills every week with room, so Test wk 1 widened too when
-  the owner had pointed at weeks 8–10. Not offered beside a cell with a dragged width that week, for a phase already
-  filling, or beside a hiatus band.
+  the owner had pointed at weeks 8–10. Not offered for a phase already filling. (Until §12 it was not offered beside a phase's own
+  hiatus band either, and until 11 Nov 2026 not beside a cell that already had a per-cell width that week: see §12.)
 - **Pull back this week? / Pull back?** Rest on a cell with a per-cell width: the columns it took beyond its own, in
   amber; the click clears that cell's width, or the whole run of them (same phase, same own column, consecutive weeks).
   On a cell its phase's fill wish widened: the click turns the wish off (`setPhaseFill(key, null)`, the automatic
@@ -201,3 +201,52 @@ except when these buttons collide"* (the chip on the Swap Column button). Tracke
   week 1 only and on its left in its last three weeks). Leg `hoverexpand` H0–H6 + E0, every hover a real pointermove at
   real coordinates: H2 holds the owner's "it also expanded test wk 1", H4 the collision (red on the build before the
   step-aside).
+
+## 12. A phase's own hiatus is part of the phase (owner, 10 Nov 2026)
+
+*"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including its per
+phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*. Frozen edit LR8 by picker: *"Yes, make the edit"*. Tracker card `expand-pullback-phase-hiatus`.
+
+**What was wrong** (reproduced in the pane on `hover-hiatus.sptcal`: Test wk 8, Test Hiatus ×2, Test wk 9, a blank on
+the left of each):
+- The hover prompt read only phase cells (`isPhaseTd` excluded `.sheet-hiatus-cell`). A blank beside a band offered
+  nothing, and the dashed box beside wk 8 covered wk 8 alone: the band's weeks broke the run.
+- The double-click fill (the wish) widened wk 8 and wk 9 two wide and left both band weeks one wide. In frozen
+  `computePhaseRowLayout` the rightward walk already honoured the wish for a band (`fillsFree` reads the band's
+  phase key), but the left-absorb branch excluded bands outright (`bySlot[n].type !== 'phaseHiatus'`, from 1 Sep 2026,
+  before the wish existed). LAYOUT-RULES rule 16 says a band is as wide as its phase would be that week, so the
+  branch was out of step with the rule.
+
+**As built:**
+- **Hover prompt (chrome).** `isPhaseTd` takes a band that carries the span contract (`hasSpanContract`). So a blank
+  beside a band offers Expand?, the outline runs on through the band's weeks (one box over all four in the fixture,
+  "these 4 weeks"), the click writes a per-cell width on the band's weeks too (`cellSpans` keys a band
+  `<week>|<phase>`, exactly as its phase's cells, and frozen `applyCellSpanOverrides` grants a band's claim), and a
+  widened band offers Pull back? / Pull back this week?, run included. An all-phase hiatus row is not a phase's and
+  still ends a run.
+- **⛔ Frozen edit LR8** (left-absorb branch of `computePhaseRowLayout`): a band may absorb the empty run on its left
+  when, and only when, its phase fills its free space (`fillsFree(n)`), and is pushed as the band it is
+  (`kind:'phaseHiatus'`, its own label and colour, as the even-run branch already did). Without a wish, and on an
+  unstamped calendar (`fillsFree` is false there), the test is exactly what it was.
+- **Not changed:** the double-click on a band still opens its editor (TEXT-STYLE-BAR-PLAN D5). The automatic layout
+  (no wish) keeps rule 16's own terms for a band.
+
+**Proof** (build `dist/index.html`, 10 Nov 2026):
+- New leg `hoverhiatus` (fixture `hover-hiatus.sptcal` = `hover-expand` + a two-week Test hiatus from 7/14/31), 13/13:
+  B1 the box over all four weeks from beside the band or beside wk 8; B2 Expand writes four widths, band weeks
+  included, one undo; B3 Pull back from a widened band; B4 the wish widens the bands (LR8), the workbook merges them two
+  wide, Pull back? from a band turns the wish off, one undo each way; B5 the other side (the hiatus in Test's first week,
+  a blank on its right). Red where it should be: on the build without LR8, B4a–B4e (8/13); on `origin/main`'s build,
+  B1–B5 (3/13).
+- The 15 pictured calendars: every engine dump byte-identical before and after (30 dumps, 98.1% / 31 / 0). None
+  carries a fill wish, which LR8 needs.
+- The month view never calls `computePhaseRowLayout`, so the month PDFs (gates 10 and 13) cannot move.
+
+**Follow-up, 11 Nov 2026** (owner, on Test wk 1 with a blank on each side: *"the expand box pops up on either side in the
+empty gaps but once i expand one side, the box no longer pops up on the other side empty space"*). The prompt refused any
+blank beside a cell that already had a per-cell width that week, and its run stopped at one, so the first Expand? took
+the other side's away. Both guards are gone: the click already keeps the side a cell has taken (read off the drawn cell,
+`a` / `b`) and reaches across the new blank, so the two sides add up (`{l: 1, r: 1}`). A dragged width keeps its own
+side the same way. Leg `hoverhiatus` B6 (Prod Prep 7 weeks and Test kept to its column, so the hiatus weeks and wk 9
+have a blank each side): red on the build before (no chip on the right), 15/15 after.

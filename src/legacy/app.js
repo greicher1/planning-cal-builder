@@ -1041,8 +1041,20 @@ export function initLegacyApp() {
   //     the same phase, a faint outline on that phase's cell, and a chip. The click widens THOSE WEEKS ONLY, across the
   //     blank: one per-cell width each (cellSpans, the shape an edge drag stores), one undo. ⛔ Not the fill wish: the
   //     first build set it, and the owner, on Test weeks 8-10: "clicked expand and then it also expanded test wk 1" --
-  //     a wish fills every week with room, and he had pointed at three. Not offered beside a cell with a dragged exact
-  //     width that week, nor for a phase already filling, nor beside a hiatus band.
+  //     a wish fills every week with room, and they had pointed at three. Not offered for a phase already filling.
+  //     ⭐ A cell that already has a per-cell width still offers Expand? on any blank left beside it (owner, 11 Nov 2026,
+  //     on Test wk 1 with a blank on each side: "the expand box pops up on either side in the empty gaps but once i expand
+  //     one side, the box no longer pops up on the other side empty space"). The first build refused any cell with a
+  //     width that week, so expanding one side took the other side's offer away. The click keeps the side already taken
+  //     (its claim is read off the drawn cell, `a` / `b`) and reaches across the new blank, so the two sides add up.
+  //   ⭐ A PHASE'S OWN HIATUS IS PART OF THE PHASE (owner, 10 Nov 2026: "We need the expand and pull back to work with per
+  //     phase hiatuses. And arguably, an entire phase, including its per phase hiatus should operate as one single block
+  //     where the expand box would span the length of the entire phase including the hiatus"). Its band stands in for
+  //     the phase in its weeks, so everything below reads it as a cell of that phase (isPhaseTd): a blank beside it
+  //     offers Expand?, the outline runs on through its weeks, its click widens the band too (cellSpans keys a band
+  //     exactly as it keys its phase's cells, and frozen applyCellSpanOverrides grants a band's claim as it grants a
+  //     cell's), and a widened band offers Pull back?. Until then a blank beside a band offered nothing and the outline
+  //     stopped at the band's first week. An all-phase hiatus row is not a phase's, and still ends the run.
   //   - Pull back?  A cell its phase's fill wish widened: the columns it took beyond its own, outlined, and the click turns
   //     the wish off (setPhaseFill(key, null): back to the automatic layout), one undo. Not offered where only the
   //     automatic layout widened the cell (no wish): there is nothing of the user's to take back.
@@ -1081,8 +1093,11 @@ export function initLegacyApp() {
   // An empty slot run in a phase area: renderSpreadsheetView writes it as a bare <td> (no class, no style); Sim Post's
   // cell carries a style, a phase cell or band a class.
   const isBlankTd = td => !!td && td.tagName === 'TD' && !td.hasAttribute('class') && !td.hasAttribute('style') && !td.textContent.trim();
-  const isPhaseTd = td => !!td && td.classList.contains('sheet-phase-cell') && !td.classList.contains('sheet-hiatus-cell');
-  // Which phase a blank belongs to: the phase cell directly left of it (rule 12), else directly right.
+  // A phase cell, or its phase's own hiatus band (it carries .sheet-phase-cell and, like a cell, the span contract
+  // data-own/lmin/rmax/a/b/nphases): see "A PHASE'S OWN HIATUS IS PART OF THE PHASE" above. hasSpanContract, because the
+  // class alone is no proof the contract is there (the note at SEL_KEY).
+  const isPhaseTd = td => !!td && td.classList.contains('sheet-phase-cell') && hasSpanContract(td);
+  // Which phase a blank belongs to: the phase cell (or its band) directly left of it (rule 12), else directly right.
   function blankOwner(td){
     const l = td.previousElementSibling, r = td.nextElementSibling;
     if(isPhaseTd(l)) return { td: l, side: 'L' };
@@ -1104,7 +1119,7 @@ export function initLegacyApp() {
       const o = blankOwner(td);
       if(!o) return null;
       const pk = o.td.dataset.pkey;
-      if(phaseFillOn(pk) || cellSpans[o.td.dataset.week + '|' + pk] !== undefined) return null;
+      if(phaseFillOn(pk)) return null;
       return { id: 'x|' + pk + '|' + o.td.dataset.week + '|' + o.side, kind: 'expand', pkey: pk, td, owner: o };
     }
     if(isPhaseTd(td) && (td.colSpan || 1) > 1){
@@ -1132,7 +1147,7 @@ export function initLegacyApp() {
         let tr = rowOf(c.td)[dir];
         while(tr){
           const t = hoverSameBoxTd(tr, b, g), o = t && sameOwner(t);
-          if(!o || cellSpans[o.td.dataset.week + '|' + c.pkey] !== undefined) break;
+          if(!o) break;
           rects.push(tdBox(t, g)); phaseBoxes.push(tdBox(o.td, g)); cells.push({ td: o.td, side: o.side }); runTds.add(t).add(o.td);
           tr = tr[dir];
         }
@@ -7514,8 +7529,14 @@ export function initLegacyApp() {
     const mine = stintTds(year, phaseKey);
     if(!mine.length) return null;
     const lane = simLaneOf(year);
-    let slot = +mine[0].dataset.own + dir;
-    if(lane && lane.inserted && slot === lane.slot) slot += dir;   // Sim Post's own column (simLaneOf)
+    const own = +mine[0].dataset.own;
+    let slot = own + dir;
+    // Sim Post's own column (simLaneOf) is stepped over. For PRODUCTION it is stepped over even when the lane is
+    // shared with a phase from before the shoot: it is Production's own column then (frozen SP1 glues the lane to
+    // Production's slot + 1), never a free one to move into. Not stepping over offered "Move Production into the
+    // free column, after Prep" beside Sim Post, and the trial honoured it by swapping two earlier phases while
+    // Production stayed put (owner's screenshot, 10 Nov 2026).
+    if(lane && slot === lane.slot && (lane.inserted || phaseKey === 'production')) slot += dir;
     const blocks = computeYearBlocks(sched.weeks);        // FROZEN, read-only
     const bi = blocks.findIndex(b => b.year === year);
     if(bi < 0) return null;
@@ -7544,6 +7565,20 @@ export function initLegacyApp() {
     try { trial = computeSchedule(readState()); } finally { colFollow = saved; }
     const v = trial && trial.colMoves && trial.colMoves[phaseKey];
     if(!v || !v.ok) return Object.assign(base, { reason:'follow-busy', blocker: (v && v.blocker) || follows });
+    // ⛔ A move must MOVE the phase. The placement can honour the follow by rearranging other phases instead, and a
+    // knob that says "Move X" and leaves X where it is makes no sense (owner, 10 Nov 2026). Read where the trial
+    // puts the phase's first week of this block; the same column as now is no move.
+    const tBlocks = computeYearBlocks(trial.weeks);       // FROZEN, read-only
+    const tbi = tBlocks.findIndex(b => b.year === year);
+    if(tbi >= 0){
+      const tb = tBlocks[tbi], tMap = computeBlockLayout(trial, tBlocks).blockSlotMaps[tbi];   // FROZEN, read-only
+      let landed = null;
+      for(let i = tb.startIdx; i < tb.startIdx + tb.count && landed === null; i++){
+        const c = trial.weeks[i].cells.find(x => x.key === phaseKey && x.col !== undefined);
+        if(c && tMap.has(c.col)) landed = tMap.get(c.col);
+      }
+      if(landed === own) return Object.assign(base, { reason:'follow-stays' });
+    }
     return Object.assign(base, { ok:true, follows,
       label: 'Move ' + phaseLabelFor(phaseKey) + ' into the free column, after ' + phaseLabelFor(follows) });
   }
@@ -7597,6 +7632,8 @@ export function initLegacyApp() {
       return phaseLabelFor(v.blocker) + ' uses that column while ' + phaseLabelFor(v.phaseKey) + ' runs.';
     if(v.reason === 'follow-nobody')
       return 'A phase can only move into a column after another phase there has finished.';
+    if(v.reason === 'follow-stays')
+      return phaseLabelFor(v.phaseKey) + ' would stay in its column, so there is nothing to move.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];
     return 'Can’t swap: ' + (SWAP_REASON_TEXT[v.reason] || v.reason) + '.';
   }
@@ -7638,7 +7675,6 @@ export function initLegacyApp() {
   function swapCandKey(){
     const seed = swapSeed();
     if(!seed) return '';
-    const wk = (currentSchedule && currentSchedule.weeks) || [];
     // The MODE first: the same seed means a different swap once the selection covers the whole stint
     // (swapSelectionMode), and a block swap changes gridStintSwaps rather than gridColSwaps.
     const mode = swapSelectionMode();
@@ -7646,13 +7682,21 @@ export function initLegacyApp() {
       // The selection itself, not just its size: the per-week candidate walks every selected cell of the
       // seed's phase (weekSwapEval), so two selections of one size and one seed can differ.
       + '|' + [...gridSel].sort().join(',')
+      + '|' + seed.weekIso + '|' + seed.phaseKey
+      + '|' + swapLayoutKey();
+  }
+  // Everything a verdict depends on apart from the selection: shared by the knob's cache above and the
+  // Swap Column button's (stintOffers), so the button can never disagree with the knob it leads to.
+  function swapLayoutKey(){
+    const wk = (currentSchedule && currentSchedule.weeks) || [];
+    return ''
       // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
       // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
       + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(colKeep).sort().map(k => k + '>' + colKeep[k]).join(',')   // ...and so do sticky columns
       + '|' + Object.keys(gridStintSwaps).sort().map(k => k + ':' + (gridStintSwaps[k] || {}).left).join(',')
       + '|' + (fillSpaceOff ? 'lanes' : 'fill')
-      + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
+      + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
       + '|' + Object.keys(gridColSwaps).sort().join(',')
       // VALUES, not just keys. The D4 refusal turns on a cell span's l/r, and a double-click fill
@@ -8109,6 +8153,32 @@ export function initLegacyApp() {
   // names Show Info's shooting blocks, BLOCKS-PLAN.md, which this button has nothing to do with).
   let stintHover = null;           // { year, phaseKey } while the pointer is over a stint or its button
   const sameStint = (a, b) => (!a && !b) || (!!a && !!b && a.year === b.year && a.phaseKey === b.phaseKey);
+  // ⭐ WOULD ITS CLICK OFFER A SWAP? (owner, 10 Nov 2026). The button's click selects the whole block, and the knob
+  // then appears only for a direction swapEvalDir passes. So this asks swapEvalDir itself, with that same selection
+  // put in place for the question and the user's own put back: one evaluator, so the button shows exactly where a
+  // knob will follow it. A verdict costs trial schedules, so it is cached against the block and swapLayoutKey()
+  // (the knob cache's key less the selection), and computed only when the pointer reaches a block it has not
+  // judged since the layout last changed; every repaint after that is a lookup.
+  const _stintOffer = new Map();
+  function stintOffers(year, phaseKey){
+    // Single Column in the key too: it changes what one block IS (every year, or one), while the start year and
+    // every week's cells can stay the same.
+    const key = year + '|' + phaseKey + '|' + (singleColumn ? 'one' : 'years') + '|' + swapLayoutKey();
+    if(_stintOffer.has(key)) return _stintOffer.get(key);
+    const tds = stintTds(year, phaseKey);
+    let ok = false;
+    if(tds.length){
+      const savedSel = gridSel, savedAnchor = gridSelAnchor;
+      try {
+        gridSel = new Set(tds.map(SEL_KEY));
+        gridSelAnchor = SEL_KEY(tds[0]);
+        ok = [-1, 1].some(dir => { const v = swapEvalDir(dir); return !!(v && v.ok); });
+      } finally { gridSel = savedSel; gridSelAnchor = savedAnchor; }
+    }
+    if(_stintOffer.size > 200) _stintOffer.clear();
+    _stintOffer.set(key, ok);
+    return ok;
+  }
   // ⚠️ Visible while the pointer is over ANY cell of the stint or the button itself -- never scoped to
   // the first week. A button that appears fourteen rows above the cell you are on and vanishes the
   // moment you move toward it is the classic broken hover target; since it sits at the top of the
@@ -8146,6 +8216,10 @@ export function initLegacyApp() {
     if(!tds.length) return;
     // Do not offer it where nothing can move: a block with one phase column has nothing to swap with.
     if(!document.querySelector('#table-wrap table.sheet-table colgroup col[data-ckey="y' + stintHover.year + ':s1"]')) return;
+    // ...and nowhere its click would lead to no knob (owner, 10 Nov 2026: "it shouldn't show up anywhere it doesnt
+    // make sense"). A second column in the year was not enough: it showed on a phase alone in its column for its
+    // whole run, and on Production beside Sim Post, whose own lane was the year's second column.
+    if(!stintOffers(stintHover.year, stintHover.phaseKey)) return;
     if(headerBottom === undefined){
       const thead = document.querySelector('#table-wrap table.sheet-table thead');
       headerBottom = thead ? (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z : 0;
@@ -8893,9 +8967,8 @@ export function initLegacyApp() {
           </div>
           <div class="snap-note"></div>
           ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
-          ${/* The hiatus ripple's switch (HIATUS-RIPPLE-PLAN.md §5): the one preference, shown here too. ⛔ NO id (see the
-               All-phase hiatus card's copy in index.html). reflectHiatusRipple() writes .checked. */''}
-          ${swRow('hiatus-ripple-sw', 'Ripple Hiatus', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Ripple Hiatus: move the phases after this hiatus when it changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as Ripple Hiatus Periods on the All-phase hiatus card. Kept on this computer.')}
+          ${/* The hiatus ripple's switch sat here as "Ripple Hiatus" until 10 Nov 2026; it is in Settings > Preferences
+               alone now (owner, "Settings only"; see reflectHiatusRipple). */''}
         </div>
       </div>`;
   }
@@ -10136,7 +10209,10 @@ export function initLegacyApp() {
     if(!wrap) return;
     const GRIP_W = 12, EDGE_W = 10, MIN_BAR_W = 46;
     let grip = null, shownFor = null, drag = null;
-    const effectiveOrder = ()=> mvLaneOrder((currentSchedule && currentSchedule.segments) || []).map(s=> s.key);
+    // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
+    const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
+    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
     function gripEl(){
       if(grip) return grip;
       grip = document.createElement('div');
@@ -10172,7 +10248,7 @@ export function initLegacyApp() {
       if(grip && t === grip) return;
       if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hide(); return; }
       // Resting on an edge grip keeps this one: the grips sit side by side on the same bar.
-      let pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      let pill = t && t.closest && t.closest(BAR_SEL);
       if(!pill && t && t.classList && t.classList.contains('phase-edge-handle')) pill = t._pill || null;
       if(!pill || !wrap.contains(pill)){ hide(); return; }
       if(pill !== shownFor) showFor(pill);
@@ -10186,7 +10262,7 @@ export function initLegacyApp() {
       if(e.button !== 0 || isMacCtrlClick(e) || viewMode !== 'month') return;
       const pill = grip && grip._pill;
       if(!pill || !wrap.contains(pill)) return;
-      const key = pill.getAttribute('data-ph');
+      const key = barKey(pill);
       const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), pill.closest('.mv-week'));
       if(!key || wi < 0) return;
       e.preventDefault();
@@ -10208,8 +10284,8 @@ export function initLegacyApp() {
       if(!week) return null;
       // Each phase in this row: the columns it covers and its topmost bar's box (it may have several pieces).
       const info = new Map();
-      week.querySelectorAll('.mv-pill[data-ph]').forEach(p=>{
-        const k = p.getAttribute('data-ph'), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
+      week.querySelectorAll(BAR_SEL).forEach(p=>{
+        const k = barKey(p), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
         const cur = info.get(k);
         if(!cur){ info.set(k, {cols: new Set(cols), top: r.top, bottom: r.bottom}); return; }
         cols.forEach(c=> cur.cols.add(c));
@@ -12178,9 +12254,9 @@ export function initLegacyApp() {
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
              : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
       }
-      // The switch's own name where the user flipped it (owner, 4 Nov 2026): Ripple Hiatus Periods on the All-phase
-      // hiatus card, Ripple Hiatus in a phase's Hiatus block.
-      if(rip && rip.changed && rip.text) msg += '\n\n' + (d.h.kind === 'all' ? 'Ripple Hiatus Periods' : 'Ripple Hiatus') + ' is on: ' + rip.text + '.';
+      // The switch by its name and where it is (owner, 10 Nov 2026, "Settings only"): one switch, in Settings, for an
+      // all-phase hiatus and a phase's own alike. Until then this named the card copy the user had seen.
+      if(rip && rip.changed && rip.text) msg += '\n\nRipple Hiatus Periods is on (Settings): ' + rip.text + '.';
       return msg;
     }
 
@@ -12851,7 +12927,10 @@ export function initLegacyApp() {
       // order set happens to BE date order (dragged back), where it could change nothing (ruling T3).
       if(mvPhaseOrder.length){
         const segs = (currentSchedule && currentSchedule.segments) || [];
-        const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
+        // Sim Post counts (SO1): an order that only moved Sim Post off the bottom is not date order.
+        const dateKeys = segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key);
+        if(mvOrderKeys(segs, currentSchedule).indexOf(MV_SIMPOST_KEY) >= 0) dateKeys.push(MV_SIMPOST_KEY);
+        const same = mvOrderKeys(segs, currentSchedule).join('|') === dateKeys.join('|');
         if(!same) items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
           run: resetMvPhaseOrder});
       }
@@ -15357,7 +15436,15 @@ export function initLegacyApp() {
 
       // One rounded pill per phase per contiguous run of covered days. Phases keep their lane
       // order so a phase sits at the same height all month.
-      laneSegs.forEach(s=>{
+      // ⛔ FROZEN EDIT SO1 (owner-approved 11 Nov 2026 by picker, "Approve with that gate": a calendar where Sim Post
+      // has not been moved draws and prints exactly as before, gates 10 and 13 byte-identical). Sim Post's bars are
+      // placed by placeSimPost(), the old block below unchanged in what it places, either right before the phase
+      // mvSimPostSlot() names (the user dragged Sim Post into the order) or, at -1, after every phase where they always
+      // were. On screen only (printingCursor null, as NS1) the bar carries data-sp so the reorder grip can find it; the
+      // print rollback and the month-PDF writer never see the attribute.
+      const spSlot = mvSimPostSlot(laneSegs);
+      laneSegs.forEach((s, si)=>{
+        if(si === spSlot) placeSimPost();
         // ⛔ FROZEN EDIT E4 (owner-approved 23 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §9):
         // where this phase's own bars begin in the row, so the notes dragged UNDER it on a day can be placed right
         // after them (the placeNotes call at the end of this loop), before the phases below it take their lines.
@@ -15472,6 +15559,10 @@ export function initLegacyApp() {
       // returns the Monday of the PREVIOUS week -- the week that ended the day this row starts --
       // so the band was drawn a week late, and the first sim-post week never appeared in the month
       // that actually contains it. The row's working days are Mon-Fri, so look up from its Monday.
+      // ⛔ FROZEN EDIT SO1: this block is placeSimPost(), a hoisted function declaration (it runs from the phase loop
+      // above when Sim Post has a place in the order), and runs here only when it has none (spSlot -1).
+      if(spSlot < 0) placeSimPost();
+      function placeSimPost(){
       const rowMonday = addDays(weekStart, 1);
       const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(rowMonday)));
       if(wkRec && wkRec.simPost){
@@ -15498,8 +15589,9 @@ export function initLegacyApp() {
         const spCss = mvSimPostCss(schedule, wkRec);
         spRuns.forEach(r=>{
           place(r.startCol, r.endCol, 'mv-bar mv-pill',
-            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, '');
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};` + spCss, spLabel, spLabel, printingCursor ? '' : 'data-sp="1"');
         });
+      }
       }
 
       // Notes last, so they sit under the phase pills.
@@ -18138,6 +18230,34 @@ export function initLegacyApp() {
     byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
       .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
     return out;
+  }
+  // ⭐ SIMULTANEOUS POST TAKES A PLACE IN THE SAME ORDER (owner, 11 Nov 2026: "we should be able to reorder the position
+  // of phases including sim post, without sim post having to stick to production"; frozen edit SO1, approved by picker
+  // "Approve with that gate"). Sim Post is not a segment, so it is named in mvPhaseOrder by the reserved key
+  // MV_SIMPOST_KEY (no phase can have it: built-ins are fixed words, custom phases are custom<n>). An older build keeps
+  // the key (the sanitizer keeps unknown keys) and never meets it, so it draws Sim Post where it always did.
+  //  - NOT NAMED (every calendar ever saved, and any order dragged before this): frozen renderMonthView places it AFTER
+  //    every phase, exactly as before. mvSimPostSlot() returns -1 and SO1 takes that old path, which is what keeps gates
+  //    10 and 13 byte-identical.
+  //  - NAMED: it goes right before the first phase the order names BELOW it (a phase the order does not name stays
+  //    with the named phase it follows, as mvLaneOrder places it), or after every phase when none is below it.
+  const MV_SIMPOST_KEY = 'simpost';
+  function mvSimPostSlot(laneSegs){
+    if(mvRefMode) return -1;
+    const at = mvPhaseOrder.indexOf(MV_SIMPOST_KEY);
+    if(at < 0) return -1;
+    const below = new Set(mvPhaseOrder.slice(at + 1));
+    return laneSegs.findIndex(s=> below.has(s.key));
+  }
+  // The month view's whole top-to-bottom order as keys, Sim Post included where SO1 draws it (only on a calendar that
+  // has Sim Post). What the reorder grip reads and writes.
+  function mvOrderKeys(segs, sch){
+    const keys = mvLaneOrder(segs).map(s=> s.key);
+    const hasSp = ((sch && sch.weeks) || []).some(w=> w && w.simPost);
+    if(!hasSp) return keys;
+    const laneSegs = mvLaneOrder(segs), slot = mvSimPostSlot(laneSegs);
+    keys.splice(slot < 0 ? keys.length : slot, 0, MV_SIMPOST_KEY);
+    return keys;
   }
 
   // Where a NOTE sits on its day (MONTH-ORDER-PLAN.md §3.2 and §9). A note is in one of three GROUPS, each placed
@@ -20951,7 +21071,15 @@ export function initLegacyApp() {
         // empty run (each empty slot is free for that phase's whole run), let that phase
         // left-extend to absorb them -- so a lone phase fills the width even when an earlier
         // (non-overlapping) phase briefly held the column to its left. A per-phase hiatus band
-        // is excluded as an absorb target so it can never widen past its own column.
+        // is excluded as an absorb target so it can never widen past its own column --
+        // ⛔ FROZEN EDIT LR8 (owner sign-off by picker, 10 Nov 2026: "Yes, make the edit"; FILL-INTENT-PLAN.md §12) --
+        // UNLESS its phase fills its free space (LR5's wish). The owner: "an entire phase, including its per phase
+        // hiatus should operate as one single block". The band stands in for its phase in its weeks, and the rightward
+        // walk above already let it fill on the wish; on the left it stayed one wide, so a double-click filled Test wk 8
+        // and wk 9 two wide and left the two Test Hiatus weeks between them one wide. With the wish the band takes the
+        // left run exactly as its phase's cell would (the same branch, the same reach), and stays a band. Without a wish
+        // (and unstamped, where fillsFree is false) the test is what it was, so no other row changes. Gate: leg
+        // phasefill F7, the layout fixtures, the 15 pictures and every export baseline unchanged.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
         const evn = (n < mc) ? evenOf(n) : null;                                                     // LR7
@@ -20971,7 +21099,7 @@ export function initLegacyApp() {
             out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n - from) + span, cell:c, own:n});
           }
           k = n + span;
-        } else if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run
+        } else if(n < mc && bySlot[n] && (bySlot[n].type!=='phaseHiatus' || fillsFree(n)) && !keepsNarrow(n) && !evn && (fillsFree(n) || freeForRunSpan(n, k, n-1))){   // LR5: the wish takes the run whole, or none of it; LR7: never an even run; LR8: a band too, on its phase's wish
           // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
           // but never past its even share, and taking from the LEFT first so the run stays
           // flush against whatever is to its left rather than leaving a one-column island.
@@ -20985,7 +21113,15 @@ export function initLegacyApp() {
           // Anything the cap stopped it taking is still empty and gets its own run.
           if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];
-          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:left+span, cell:c, own:n});
+          if(c.type === 'phaseHiatus'){                                                              // LR8: drawn as the band it is
+            const hKey = c.weekIso + '|' + c.key;
+            const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
+            const hCol = hiatusColors[hKey] || HIATUS_COLOR;
+            out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
+                      colspan:left+span, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel, cell:c, own:n});
+          } else {
+            out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:left+span, cell:c, own:n});
+          }
           k = n + span;
         } else {
           // Plain empty run (merge consecutive empty non-SimPost slots).
@@ -25130,6 +25266,40 @@ export function initLegacyApp() {
     }
   }
 
+  // The first day a phase actually WORKS, which is not always its entered start (owner, 10 Nov 2026, on a Compare
+  // window reading "Start pushed 2 wks, end same" for two scenarios whose grids were identical: Post typed into the
+  // Holiday Hiatus week in one, the week after it in the other). A hiatus covering the start PAUSES the phase, it does
+  // not move seg.start, so the waterfall's wk 1 and the month view's first bar sit after the break while the
+  // {<phase>.open} token -- and through it Compare, the key facts band and any header line printing it -- named a day
+  // inside it. Production has read its first real shoot day since 3 Sep 2026 (productionInfo.firstShootDay, below in
+  // buildHeaderCtx); this is the same fix for every other phase.
+  //   - ⛔ Only a start INSIDE a hiatus moves, so every other calendar prints exactly what it printed before.
+  //   - The hiatuses that pause a phase: the all-phase ones (schedule.hiatuses) and its own (seg.phaseHiatus).
+  //   - A Weeks phase steps 7 days, exactly as extendEndForHiatus() counts its delivered weeks -- the walk that sets
+  //     seg.end, so .open and .close come from one rule. A snap-off Wednesday start stays a Wednesday.
+  //   - A Dates phase keeps its typed dates and its days in a break are drawn blank (customUnitSpan, ruling 4): it
+  //     steps a day at a time to the first weekday outside the break.
+  //   - A segment with its own day list (a Days phase, Episodic Prep) already starts where it works, or is not a
+  //     phase the header names: it is left as it is.
+  //   - Never past seg.end: a Dates phase wholly inside a break keeps its entered date.
+  function phaseOpenDay(schedule, seg){
+    if(!seg || !seg.start) return null;
+    if(seg.days instanceof Set) return seg.start;
+    const his = (schedule && schedule.hiatuses) || [];
+    const own = seg.phaseHiatus;
+    const paused = d => his.some(h => d >= h.start && d < h.end) || !!(own && d >= own.start && d < own.end);
+    if(!paused(seg.start)) return seg.start;
+    const byDay = seg.unit === 'dates';
+    let d = seg.start;
+    for(let guard = 0; guard < 4000; guard++){
+      d = addDays(d, byDay ? 1 : 7);
+      if(seg.end && d >= seg.end) return seg.start;
+      const dow = d.getUTCDay();
+      if(!paused(d) && !(byDay && (dow === 0 || dow === 6))) return d;
+    }
+    return seg.start;
+  }
+
   // Every value a token can carry, built ONCE per render and handed to headerLine() on the defaults
   // object. Reads exactly what computeHeaderDefaults() reads: Show Info from the DOM by id, schedule
   // facts from the schedule it is passed, phase names from getAllPhaseDefs().
@@ -25183,7 +25353,8 @@ export function initLegacyApp() {
         t[p.key + '.open'] = ''; t[p.key + '.close'] = ''; t[p.key + '.weeks'] = '';
         return;
       }
-      t[p.key + '.open'] = hdrDate(seg.start, false);
+      // The first day it works: a start inside a hiatus that pauses the phase is not one (phaseOpenDay, 10 Nov 2026).
+      t[p.key + '.open'] = hdrDate(phaseOpenDay(schedule, seg), false);
       // H5: the FRIDAY of the final week. seg.end is the EXCLUSIVE Monday after the last delivered
       // week (extendEndForHiatus counts delivered weeks and returns the Monday following them), so
       // seg.end is itself a day the phase is already over. "Writer's Room closes 3.6.26" has to name
@@ -26138,7 +26309,7 @@ export function initLegacyApp() {
     reflectColMoveNotes();
     reflectHiatusRanges();
     reflectHiatusSwatches();
-    reflectHiatusRipple();   // the switch's copies, phase blocks built since included (HIATUS-RIPPLE-PLAN.md §5)
+    reflectHiatusRipple();   // the Settings switch (HIATUS-RIPPLE-PLAN.md §5; its only place since 10 Nov 2026)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
@@ -29144,7 +29315,9 @@ export function initLegacyApp() {
     // From the first phase's start to the last one's end, in whole weeks.
     const segs = (sch && sch.segments) || [];
     if(segs.length){
-      const a = Math.min.apply(null, segs.map(s => +s.start)), b = Math.max.apply(null, segs.map(s => +s.end));
+      // Each phase from the first day it works, as its own row reads (phaseOpenDay): a first phase typed into a
+      // hiatus counted the break's weeks here too.
+      const a = Math.min.apply(null, segs.map(s => +(phaseOpenDay(sch, s) || s.start))), b = Math.max.apply(null, segs.map(s => +s.end));
       values.weeks = Math.round((b - a) / (7 * 864e5));
     } else values.weeks = null;
     return { values, phases, blocks: isBlocksMode() };
@@ -31050,7 +31223,8 @@ export function initLegacyApp() {
   // The result line lives in the hiatus's own card: the row's body, or the phase's hiatus block. A div with NO id
   // (collectFieldValues sweeps input/select/textarea ids only), cleared on the next hiatus edit, an undo, a Load and New.
   function showRippleNote(h, text){
-    // A removed row has no body left, so its line goes under the card's switch; a phase's goes under its whole hiatus
+    // A removed row has no body left, so its line goes at the top of the card, above the rows (where the card's switch
+    // sat until 10 Nov 2026); a phase's goes under its whole hiatus
     // block, which stays on screen when its switch is turned off.
     // In a row it goes right under the dates (after .snap-note), so the switch rows' :last-child hairline rules still
     // find the last switch.
@@ -31174,17 +31348,18 @@ export function initLegacyApp() {
     return out;
   }
 
-  // ---- THE SWITCH (R1-R3): one preference, shown in three kinds of place ----
+  // ---- THE SWITCH (R1, R3): one preference, in Settings > Preferences > Hiatus only ----
   // prefs.hiatusRipple, absent = ON, written only as false. ⛔ Never in captureSnapshot(): it is how this person edits,
-  // not calendar data. Settings > Preferences holds #pref-hiatus-ripple (inside .prefs-card, so the sweep skips its
-  // id); the All-phase hiatus card's top and each phase's Hiatus block hold an id-less .hiatus-ripple-cb (⛔ an id
-  // there would bake the preference into every saved calendar). Flipping any copy flips them all. Not an undo step
-  // and not an edit: nothing about the calendar changed.
+  // not calendar data. #pref-hiatus-ripple sits inside .prefs-card, so the sweep skips its id. Not an undo step and
+  // not an edit: nothing about the calendar changed.
+  // ⚠️ "SETTINGS ONLY" (owner, 10 Nov 2026, withdrawing ruling R2): until then the same switch was also drawn, id-less as
+  // .hiatus-ripple-cb, at the top of the All-phase hiatus card and in every phase's Hiatus block, all kept in step here.
+  // The owner: one global setting, which "would also remove clutter". A copy added back anywhere outside .prefs-card
+  // must carry NO id, or it bakes this computer's preference into every saved calendar.
   function reflectHiatusRipple(){
     const on = hiatusRippleOn();
     const p = document.getElementById('pref-hiatus-ripple');
     if(p && p.checked !== on) p.checked = on;
-    document.querySelectorAll('.hiatus-ripple-cb').forEach(cb=>{ if(cb.checked !== on) cb.checked = on; });
   }
   function setHiatusRipple(on){
     if(on) delete prefs.hiatusRipple; else prefs.hiatusRipple = false;
@@ -31193,7 +31368,7 @@ export function initLegacyApp() {
   }
   document.addEventListener('change', e=>{
     const t = e.target;
-    if(!t || !(t.id === 'pref-hiatus-ripple' || (t.classList && t.classList.contains('hiatus-ripple-cb')))) return;
+    if(!t || t.id !== 'pref-hiatus-ripple') return;
     setHiatusRipple(!!t.checked);
   });
 
