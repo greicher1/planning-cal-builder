@@ -8893,9 +8893,8 @@ export function initLegacyApp() {
           </div>
           <div class="snap-note"></div>
           ${swRow('phiatus-wknum', 'Number weeks', '<input type="checkbox" class="phiatus-wknum-cb">', 'On: this hiatus&#39;s band reads &quot;Name wk 1, wk 2...&quot; in every view and export.')}
-          ${/* The hiatus ripple's switch (HIATUS-RIPPLE-PLAN.md §5): the one preference, shown here too. ⛔ NO id (see the
-               All-phase hiatus card's copy in index.html). reflectHiatusRipple() writes .checked. */''}
-          ${swRow('hiatus-ripple-sw', 'Ripple Hiatus', '<input type="checkbox" class="hiatus-ripple-cb" checked aria-label="Ripple Hiatus: move the phases after this hiatus when it changes">', 'On: when this hiatus changes, every other phase that starts on or after it moves by the same weeks. The same switch as Ripple Hiatus Periods on the All-phase hiatus card. Kept on this computer.')}
+          ${/* The hiatus ripple's switch sat here as "Ripple Hiatus" until 10 Nov 2026; it is in Settings > Preferences
+               alone now (owner, "Settings only"; see reflectHiatusRipple). */''}
         </div>
       </div>`;
   }
@@ -12178,9 +12177,9 @@ export function initLegacyApp() {
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
              : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
       }
-      // The switch's own name where the user flipped it (owner, 4 Nov 2026): Ripple Hiatus Periods on the All-phase
-      // hiatus card, Ripple Hiatus in a phase's Hiatus block.
-      if(rip && rip.changed && rip.text) msg += '\n\n' + (d.h.kind === 'all' ? 'Ripple Hiatus Periods' : 'Ripple Hiatus') + ' is on: ' + rip.text + '.';
+      // The switch by its name and where it is (owner, 10 Nov 2026, "Settings only"): one switch, in Settings, for an
+      // all-phase hiatus and a phase's own alike. Until then this named the card copy the user had seen.
+      if(rip && rip.changed && rip.text) msg += '\n\nRipple Hiatus Periods is on (Settings): ' + rip.text + '.';
       return msg;
     }
 
@@ -26173,7 +26172,7 @@ export function initLegacyApp() {
     reflectColMoveNotes();
     reflectHiatusRanges();
     reflectHiatusSwatches();
-    reflectHiatusRipple();   // the switch's copies, phase blocks built since included (HIATUS-RIPPLE-PLAN.md §5)
+    reflectHiatusRipple();   // the Settings switch (HIATUS-RIPPLE-PLAN.md §5; its only place since 10 Nov 2026)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
@@ -31087,7 +31086,8 @@ export function initLegacyApp() {
   // The result line lives in the hiatus's own card: the row's body, or the phase's hiatus block. A div with NO id
   // (collectFieldValues sweeps input/select/textarea ids only), cleared on the next hiatus edit, an undo, a Load and New.
   function showRippleNote(h, text){
-    // A removed row has no body left, so its line goes under the card's switch; a phase's goes under its whole hiatus
+    // A removed row has no body left, so its line goes at the top of the card, above the rows (where the card's switch
+    // sat until 10 Nov 2026); a phase's goes under its whole hiatus
     // block, which stays on screen when its switch is turned off.
     // In a row it goes right under the dates (after .snap-note), so the switch rows' :last-child hairline rules still
     // find the last switch.
@@ -31211,17 +31211,18 @@ export function initLegacyApp() {
     return out;
   }
 
-  // ---- THE SWITCH (R1-R3): one preference, shown in three kinds of place ----
+  // ---- THE SWITCH (R1, R3): one preference, in Settings > Preferences > Hiatus only ----
   // prefs.hiatusRipple, absent = ON, written only as false. ⛔ Never in captureSnapshot(): it is how this person edits,
-  // not calendar data. Settings > Preferences holds #pref-hiatus-ripple (inside .prefs-card, so the sweep skips its
-  // id); the All-phase hiatus card's top and each phase's Hiatus block hold an id-less .hiatus-ripple-cb (⛔ an id
-  // there would bake the preference into every saved calendar). Flipping any copy flips them all. Not an undo step
-  // and not an edit: nothing about the calendar changed.
+  // not calendar data. #pref-hiatus-ripple sits inside .prefs-card, so the sweep skips its id. Not an undo step and
+  // not an edit: nothing about the calendar changed.
+  // ⚠️ "SETTINGS ONLY" (owner, 10 Nov 2026, withdrawing ruling R2): until then the same switch was also drawn, id-less as
+  // .hiatus-ripple-cb, at the top of the All-phase hiatus card and in every phase's Hiatus block, all kept in step here.
+  // The owner: one global setting, which "would also remove clutter". A copy added back anywhere outside .prefs-card
+  // must carry NO id, or it bakes this computer's preference into every saved calendar.
   function reflectHiatusRipple(){
     const on = hiatusRippleOn();
     const p = document.getElementById('pref-hiatus-ripple');
     if(p && p.checked !== on) p.checked = on;
-    document.querySelectorAll('.hiatus-ripple-cb').forEach(cb=>{ if(cb.checked !== on) cb.checked = on; });
   }
   function setHiatusRipple(on){
     if(on) delete prefs.hiatusRipple; else prefs.hiatusRipple = false;
@@ -31230,7 +31231,7 @@ export function initLegacyApp() {
   }
   document.addEventListener('change', e=>{
     const t = e.target;
-    if(!t || !(t.id === 'pref-hiatus-ripple' || (t.classList && t.classList.contains('hiatus-ripple-cb')))) return;
+    if(!t || t.id !== 'pref-hiatus-ripple') return;
     setHiatusRipple(!!t.checked);
   });
 

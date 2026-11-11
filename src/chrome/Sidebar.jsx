@@ -932,11 +932,12 @@ function HeaderPresets() {
 
 // ⭐ "Ripple Hiatus Periods" (HIATUS-RIPPLE-PLAN.md §5; named by the owner 4 Nov 2026, "Ripple Hiatus" in a phase's
 // Hiatus block; owner rulings R1-R3, 4 Nov 2026: one on/off
-// switch, ON by default, kept on this computer, in Preferences and also on the hiatus cards). Both views, so it is no
-// .pref-view-* card. ⛔ A PREFERENCE (prefs.hiatusRipple, absent = on), never calendar data: inside .prefs-card, so
-// collectFieldValues() skips its id and fields.byId does not move. ⛔ UNCONTROLLED: the engine writes .checked in
-// reflectHiatusRipple() (every update()), and takes a flip by delegation on the id, as #pref-mv-week. Its twins on the
-// All-phase hiatus card and in each phase's Hiatus block carry no id at all (they sit outside .prefs-card).
+// switch, ON by default, kept on this computer). Both views, so it is no .pref-view-* card. ⛔ A PREFERENCE
+// (prefs.hiatusRipple, absent = on), never calendar data: inside .prefs-card, so collectFieldValues() skips its id and
+// fields.byId does not move. ⛔ UNCONTROLLED: the engine writes .checked in reflectHiatusRipple() (every update()), and
+// takes a flip by delegation on the id, as #pref-mv-week.
+// ⭐ ITS ONLY PLACE since 10 Nov 2026 (owner, "Settings only"): the id-less copies on the All-phase hiatus card and in
+// each phase's Hiatus block (ruling R2) are gone, to remove clutter.
 export function HiatusPrefsCard() {
   return (
     <section className="card prefs-card">
@@ -952,7 +953,7 @@ export function HiatusPrefsCard() {
         <SettingRow htmlFor="pref-hiatus-ripple" label="Ripple Hiatus Periods">
           <Switch id="pref-hiatus-ripple" size="md" defaultChecked
                   aria-label="Ripple Hiatus Periods: move the phases after a hiatus when it changes"
-                  title="Kept on this computer. The same switch is on the All-phase hiatus card, and in each phase’s Hiatus block as Ripple Hiatus" />
+                  title="Kept on this computer. Applies to all-phase hiatuses and each phase’s own hiatus" />
         </SettingRow>
       </div>
     </section>
