@@ -1,8 +1,8 @@
 // hiatusripple.mjs -- a hiatus change moves the phases after it (HIATUS-RIPPLE-PLAN.md; owner, 4 Nov 2026: "editing a
 // hiatus (either all phase or per phase) can automatically ripple the whole calendar to adjust all the phases. It should be
 // very clear how to turn it on or off"). Rulings by picker the same day: R1 one on/off switch, no question, ON by
-// default; R2 also on the hiatus cards; R3 kept on this computer; R4 a phase's own hiatus moves every phase starting on
-// or after it; R5 a moved hiatus is followed.
+// default; R2 also on the hiatus cards (WITHDRAWN 10 Nov 2026: the owner's "Settings only"); R3 kept on this computer;
+// R4 a phase's own hiatus moves every phase starting on or after it; R5 a moved hiatus is followed.
 //
 //   node hiatusripple.mjs [--page /dist/index.html] [--port 8234]
 //   node hiatusripple.mjs --record        writes tests/fixtures/hiatusripple.sptcal (run once, on a build with the feature)
@@ -24,8 +24,10 @@
 //   notes: "Undated note" on the week of 5/18/26 (moves); "Wrap party 6/10/26" on the week of 6/8/26 with its Day set to
 //   Wed 6/10 (a note carrying a date: stays)
 //
-//   R0  the switch: ON with no preference stored; its three copies (Settings, the All-phase card, Pre Prep's Hiatus block)
-//       checked, and named as the owner named them (4 Nov 2026): Ripple Hiatus Periods, Ripple Hiatus Periods, Ripple Hiatus; the two sidebar copies carry no id; a Save holds no ripple key and the same fields.byId ids as the fixture
+//   R0  the switch: ON with no preference stored; ONE switch, Settings > Preferences > Hiatus, checked and named Ripple
+//       Hiatus Periods, in a .prefs-card; no copy anywhere else (owner, 10 Nov 2026: "Settings only" -- until then the
+//       All-phase card and every phase's Hiatus block carried one); a Save holds no ripple key and the same fields.byId ids
+//       as the fixture
 //   R1  Break's Weeks 2 -> 3 by ArrowUp pushes AT ONCE, focus still in the box (owner, 5 Nov 2026: "it should do it
 //       immediately"): Production, Post, Summer Break and the undated note 1 wk; Pre Prep, the dated note and the locked
 //       breaks stay; the line under the Break reads "Pushed 1 wk: Production, Post · Wrap 6/12/26". Tab onto Lock in
@@ -41,17 +43,16 @@
 //       still coming); 3 pulls 2 wks back; Enter then moves nothing and keeps the line; ONE undo takes back that pull alone
 //       (Weeks 3 kept, Production 4/6), though it came inside the 500 ms undo debounce
 //   R6  the row's ×, answered Remove: Production 3/2, Post 4/13, Summer Break 8/3, the undated note 5/4; the line goes
-//       under the card's switch, "Pulled 2 wks: Production, Post · Wrap 5/22/26"
+//       at the top of the All-phase card (.hiatus-ripple-card), "Pulled 2 wks: Production, Post · Wrap 5/22/26"
 //   R7  a phase starting INSIDE the hiatus (Post typed 2/23, in the Break) lands the break's 2 weeks before where it really
 //       started: 2/16, not 2/9
 //   R8  Pre Prep's own hiatus (R4): its switch on (nothing yet, no date), a date PICKED in the popover (Mon 2/2/26):
 //       Production 3/30, Post 5/11, the unlocked Break 3/2, Pre Prep held on 1/5; the line in Pre Prep's block. Its Weeks
 //       2 -> 3 by ArrowUp pushes 1 wk at once (the owner's case, 5 Nov 2026). Its switch off: everything back, "Pulled 3 wks"
-//   R9  the switch off from the All-phase card: all three copies off, the preference false, Weeks 2 -> 3 moves nothing and
-//       writes no line, ONE undo takes back Weeks 3 (the flip banked no step); on again from Settings: the preference gone,
-//       all three on; it survives a reload both ways
+//   R9  the switch off in Settings: the preference false, Weeks 2 -> 3 moves nothing and writes no line, ONE undo takes
+//       back Weeks 3 (the flip banked no step); on again: the preference gone; it survives a reload both ways
 //   R10 code writes never ripple: Weeks set by script (no focus), and the fixture's own load
-//   R11 the month view's drag, START grip up a row, Keep: the question says "Ripple Hiatus Periods is on: Pushed 1 wk:
+//   R11 the month view's drag, START grip up a row, Keep: the question says "Ripple Hiatus Periods is on (Settings): Pushed 1 wk:
 //       Production, Post"; Production 3/23; ONE undo -> the drag without its push (Break 2/9 x 3, Production 3/16), a
 //       second -> Break 2/16 x 2
 //   R12 the same drag, Undo: every date back as at the press, the undo button as it was
@@ -266,8 +267,8 @@ try {
       ppNote: ((($('phiatus-fields-prePrep') || {}).parentElement || document).querySelector(':scope > .ripple-note:not([hidden])') || {}).textContent || '',
       notes: Array.from(document.querySelectorAll('.ripple-note:not([hidden])')).map(n => n.textContent),
       pref: Object.prototype.hasOwnProperty.call(pref, 'hiatusRipple') ? pref.hiatusRipple : 'absent',
-      sw: { settings: ($('pref-hiatus-ripple') || {}).checked, card: (document.querySelector('.hiatus-ripple-card .hiatus-ripple-cb') || {}).checked,
-            pp: (document.querySelector('#phiatus-fields-prePrep .hiatus-ripple-cb') || {}).checked },
+      // The one switch, and how many copies of it are drawn anywhere else (none since 10 Nov 2026, "Settings only").
+      sw: { settings: ($('pref-hiatus-ripple') || {}).checked, copies: document.querySelectorAll('.hiatus-ripple-cb, .hiatus-ripple-sw').length },
       active: (document.activeElement && (document.activeElement.className || document.activeElement.tagName)) || '',
       undoOff: off(u), redoOff: off(rd),
       question: Array.from(document.querySelectorAll('.mantine-Modal-content')).map(d => d.innerText.replace(/\\s+/g, ' ').trim()).join(' || ') }; })()`);
@@ -280,23 +281,24 @@ try {
   const winter = s => s.rows.filter(r => !r.name).map(r => r.start + '/' + r.weeks + (r.locked ? 'L' : '')).join(',');
   const WINTER = '2026-12-21/2L,2027-12-20/2L,2028-12-18/2L,2029-12-17/2L';
 
-  // ---- R0: the switch's copies, ids, and the file -----------------------------------------------------------------------
+  // ---- R0: the one switch, no copies, and the file ----------------------------------------------------------------------
   await load();
   const fixture = JSON.parse(fs.readFileSync(FIXTURE, 'utf8'));
   {
     const s = await st();
-    const ids = await ev(`({ cb: document.querySelectorAll('.hiatus-ripple-cb[id]').length, n: document.querySelectorAll('.hiatus-ripple-cb').length,
-      settings: !!document.getElementById('pref-hiatus-ripple'), inPrefsCard: !!(document.getElementById('pref-hiatus-ripple') || { closest: () => null }).closest('.prefs-card'),
-      names: { settings: ((document.querySelector('label[for="pref-hiatus-ripple"]') || {}).textContent || '').trim(),
-               card: ((document.querySelector('.hiatus-ripple-card .sw-label') || {}).textContent || '').trim(),
-               pp: ((document.getElementById('phiatus-fields-prePrep') || document).querySelector('.hiatus-ripple-sw .sw-label') || {}).textContent || '' } })`);
+    const ids = await ev(`({ settings: !!document.getElementById('pref-hiatus-ripple'), inPrefsCard: !!(document.getElementById('pref-hiatus-ripple') || { closest: () => null }).closest('.prefs-card'),
+      name: ((document.querySelector('label[for="pref-hiatus-ripple"]') || {}).textContent || '').trim(),
+      // The All-phase card's spot is only the home of a removed hiatus's line now: empty, no height.
+      card: (() => { const c = document.querySelector('.hiatus-ripple-card'); return c ? { kids: c.children.length, h: c.getBoundingClientRect().height } : null; })(),
+      // Pre Prep's Hiatus block's own switches: Number weeks alone.
+      ppSwitches: Array.from((document.getElementById('phiatus-fields-prePrep') || document.createElement('div')).querySelectorAll('.sw-label')).map(e => e.textContent.trim()) })`);
     const sv = await saved();
     const keys = Object.keys(sv.fields.byId), fkeys = Object.keys(fixture.fields.byId);
     out.R0 = { s, ids, keys: keys.length, fkeys: fkeys.length, json: JSON.stringify(sv).match(/hiatusRipple|ripple-note|hiatus-ripple/g) };
-    kase('R0', 'ON with no preference stored: Settings, the All-phase card and Pre Prep\'s Hiatus block all checked, named Ripple Hiatus Periods, Ripple Hiatus Periods and Ripple Hiatus; the sidebar copies carry no id (Settings\' sits in a .prefs-card); a Save holds no ripple key and exactly the fixture\'s fields.byId ids',
-         s.pref === 'absent' && s.sw.settings === true && s.sw.card === true && s.sw.pp === true
-         && ids.cb === 0 && ids.n >= 2 && ids.settings && ids.inPrefsCard
-         && ids.names.settings === 'Ripple Hiatus Periods' && ids.names.card === 'Ripple Hiatus Periods' && ids.names.pp.trim() === 'Ripple Hiatus'
+    kase('R0', 'ON with no preference stored: ONE switch, Settings > Preferences > Hiatus, checked, named Ripple Hiatus Periods, in a .prefs-card; no copy on the All-phase card (its spot empty, 0 px) or in Pre Prep\'s Hiatus block (Number weeks alone) -- "Settings only", 10 Nov 2026; a Save holds no ripple key and exactly the fixture\'s fields.byId ids',
+         s.pref === 'absent' && s.sw.settings === true && s.sw.copies === 0
+         && ids.settings && ids.inPrefsCard && ids.name === 'Ripple Hiatus Periods'
+         && ids.card && ids.card.kids === 0 && ids.card.h === 0 && JSON.stringify(ids.ppSwitches) === '["Number weeks"]'
          && !out.R0.json && JSON.stringify(keys) === JSON.stringify(fkeys)
          && s.prod === '2026-03-16' && s.by.Break === '2026-02-16/2', out.R0);
   }
@@ -412,7 +414,7 @@ try {
     const after = await st();
     const sv = await saved();
     out.R6 = { after, notes: notesOf(sv) };
-    kase('R6', 'the row\'s × answered Remove: Production 3/2, Post 4/13, Summer Break 8/3, the undated note 5/4; the line under the card\'s switch, "Pulled 2 wks: Production, Post · Wrap 5/22/26"',
+    kase('R6', 'the row\'s × answered Remove: Production 3/2, Post 4/13, Summer Break 8/3, the undated note 5/4; the line at the top of the All-phase card, "Pulled 2 wks: Production, Post · Wrap 5/22/26"',
          !after.by.Break && after.prod === '2026-03-02' && after.post === '2026-04-13' && after.by['Summer Break'] === '2026-08-03/1'
          && winter(after) === WINTER && after.cardNote === 'Pulled 2 wks: Production, Post · Wrap 5/22/26'
          && out.R6.notes.join('|') === '2026-05-04:Undated note|2026-06-08:Wrap party 6/10/26', out.R6);
@@ -468,36 +470,76 @@ try {
          && off.prod === '2026-03-16' && off.post === '2026-04-27' && off.by.Break === '2026-02-16/2' && /^Pulled 3 wks: Production, Post/.test(off.ppNote), out.R8);
   }
 
-  // ---- R9: the switch ---------------------------------------------------------------------------------------------------------
+  // ---- R9: the switch, in Settings (its only place since 10 Nov 2026) --------------------------------------------------------
+  // ⚠️ Each flip WAITS for the switch to be on screen and then for the click to land. A fixed sleep after opening Settings
+  // was enough while the switch had a copy on the All-phase card to click instead; on a loaded machine (load average 170,
+  // 10 Nov 2026) every Settings click landed before the window was drawn, missed, and the case ran on with ripple ON.
+  const SW_TRACK = `(document.getElementById('pref-hiatus-ripple').closest('.mantine-Switch-root').querySelector('.mantine-Switch-track'))`;
+  // ⛔ MEASURED WHERE IT RESTS, NEVER RIGHT AFTER A scrollIntoView (found 11 Nov 2026 by logging the press): the app's fixed
+  // window puts back a scroll that scrollIntoView makes, so the shared click() measured the switch at y=560 and pressed
+  // there after it had gone back to y=763 -- into Settings' Automatic notes card. At this window size the switch is on
+  // screen as it opens; it is scrolled to only when it is not, and then read again after the window has settled.
+  const restAt = async sel => {
+    const m = () => ev(`(() => { const e = ${sel}; if (!e) return null; const r = e.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, vh: innerHeight }; })()`);
+    let b = await m();
+    if (b && (b.y < 0 || b.y > b.vh)) { await ev(`(${sel}).scrollIntoView({ block: 'center' }), true`); await sleep(600); b = await m(); }
+    return b;
+  };
+  // Shown = on screen and the TOP element at its own centre: Settings stays mounted while closed, so the track keeps its
+  // size then, and a size test alone passed with the window shut.
+  const swShown = `(() => { const t = ${SW_TRACK}; if (!t) return false; const r = t.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0) || r.top < 0 || r.bottom > innerHeight) return false;
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!at && t.closest('.mantine-Switch-root').contains(at); })()`;
+  const openSettings = async () => {
+    if (!(await ev(swShown))) await click('.side-settings-btn');
+    await until(swShown, 'the Settings switch on screen', 20000); await sleep(500);
+  };
+  const closeSettings = async () => {
+    if (await ev(swShown)) await click('.side-settings-btn');
+    await until(`!${swShown}`, 'Settings closed', 20000); await sleep(300);
+  };
+  // Clicked once it has held one place for two reads (Settings' cards finish drawing after the window opens).
+  const flipRipple = async want => {
+    let prev = null, b = null;
+    for (let i = 0; i < 50; i++) {
+      b = await restAt(SW_TRACK);
+      if (prev && b && Math.abs(b.x - prev.x) < 0.5 && Math.abs(b.y - prev.y) < 0.5) break;
+      prev = b; await sleep(250);
+    }
+    if (!b) throw new Error('no Settings switch to click');
+    await clickAt(b.x, b.y);
+    await until(`(document.getElementById('pref-hiatus-ripple') || {}).checked === ${want}`, 'the switch ' + (want ? 'on' : 'off'), 10000);
+    await sleep(300);
+  };
   await load();
   {
-    await click('.hiatus-ripple-card .hiatus-ripple-sw');
-    await sleep(400);
+    await openSettings(); await flipRipple(false);
     const off = await st();
+    await closeSettings();
+    await toPhases();
     await click(inRow('Break', '.hiatus-weeks'));
     await press('ArrowUp'); await press('Tab'); await sleep(700);
     const edited = await st();
     await undoBtn();
     const undone = await st();
     // On again, from Settings.
-    await click('.side-settings-btn'); await sleep(500);
-    await click('label[for="pref-hiatus-ripple"]'); await sleep(400);
+    await openSettings(); await flipRipple(true);
     const onAgain = await st();
-    await click('.side-settings-btn'); await sleep(400);
-    // Off, kept across a reload; then on, kept across a reload.
-    await toPhases();
-    await click('.hiatus-ripple-card .hiatus-ripple-sw'); await sleep(300);
+    // Off, kept across a reload; then on, kept across a reload. Settings is still open for the first flip.
+    await flipRipple(false);
     await ev(`sessionStorage.setItem('ripple.keep', '1'), true`);
     await load();
     const reloadedOff = await st();
-    await click('.hiatus-ripple-card .hiatus-ripple-sw'); await sleep(300);
+    await openSettings(); await flipRipple(true);
     await ev(`sessionStorage.setItem('ripple.keep', '1'), true`);
     await load();
     const reloadedOn = await st();
     out.R9 = { off: [off.pref, off.sw], edited: [edited.prod, edited.by.Break, edited.notes], undone: [undone.prod, undone.by.Break],
                onAgain: [onAgain.pref, onAgain.sw], reloadedOff: [reloadedOff.pref, reloadedOff.sw], reloadedOn: [reloadedOn.pref, reloadedOn.sw] };
-    const all = (sw, v) => sw.settings === v && sw.card === v && sw.pp === v;
-    kase('R9', 'off from the All-phase card: all three copies off, the preference false; Weeks 2 -> 3 then moves nothing and writes no line; ONE undo takes back Weeks 3 (the flip banked no step); on again from Settings: the preference gone, all three on; off and on each survive a reload',
+    const all = (sw, v) => sw.settings === v && sw.copies === 0;
+    kase('R9', 'off in Settings: the preference false; Weeks 2 -> 3 then moves nothing and writes no line; ONE undo takes back Weeks 3 (the flip banked no step); on again: the preference gone; off and on each survive a reload; no copy of the switch drawn anywhere',
          off.pref === false && all(off.sw, false)
          && edited.prod === '2026-03-16' && edited.by.Break === '2026-02-16/3' && edited.notes.length === 0
          && undone.by.Break === '2026-02-16/2' && undone.prod === '2026-03-16'
@@ -572,8 +614,8 @@ try {
     await undoBtn(); const u2 = await st();
     out.R11 = { question: asked.question, asked: [asked.prod, asked.by.Break], kept: [kept.prod, kept.post, kept.by.Break, kept.by['Summer Break']],
                 u1: [u1.prod, u1.by.Break], u2: [u2.prod, u2.by.Break], preUndoOff: pre.undoOff };
-    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Ripple Hiatus Periods is on: Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> Break 2/9 x 3 with Production 3/16; a second -> 2/16 x 2',
-         /Ripple Hiatus Periods is on: Pushed 1 wk: Production, Post/.test(asked.question) && asked.prod === '2026-03-23'
+    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Ripple Hiatus Periods is on (Settings): Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> Break 2/9 x 3 with Production 3/16; a second -> 2/16 x 2',
+         /Ripple Hiatus Periods is on \(Settings\): Pushed 1 wk: Production, Post/.test(asked.question) && asked.prod === '2026-03-23'
          && kept.prod === '2026-03-23' && kept.post === '2026-05-04' && kept.by.Break === '2026-02-09/3' && kept.by['Summer Break'] === '2026-08-24/1'
          && u1.prod === '2026-03-16' && u1.by.Break === '2026-02-09/3' && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2', out.R11);
   }

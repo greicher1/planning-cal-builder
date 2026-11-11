@@ -94,6 +94,8 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     this is what keeps Prep one wide beside Writers with the lane column empty for months, as hand-02, hand-03,
     hand-04 and hand-09 draw it.)*
 16. **A per-phase hiatus band is as wide as its phase would be that week; an all-phase hiatus spans the block.**
+    *(Also with a fill wish: frozen edit LR8, 10 Nov 2026, lets the band take the free columns on its LEFT as its
+    phase's cell would; before it a band filled rightward only. FILL-INTENT-PLAN.md §12.)*
 17. **Lanes: in Single Column mode nothing spreads** — every phase stays one column wide. *(Single Column only,
     ruled R-F, 5 Nov 2026: typed column headings do NOT make lanes, so typing a heading never changes a width.)*
 18. **A hiatus week does not split a phase's run** for these rules: the weeks before a band do not widen on their

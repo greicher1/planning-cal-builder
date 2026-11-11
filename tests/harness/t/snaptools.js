@@ -106,14 +106,15 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-solve-phase', 'post');
     await T.sleep(150);
     T.set('tool-solve-date', '2026-11-16');
-    document.getElementById('tool-solve-fwd').click();
+    T.solveKeepSide(1);   // the phases after Post alone (no After button since 10 Nov 2026)
     await T.sleep(250);
     var go15 = document.getElementById('tool-solve-go');
     var rows15 = Array.prototype.map.call(document.querySelectorAll('#pop-solve .solve-row'), function (r) { return (r.textContent || '').replace(/\s+/g, ' ').trim(); });
     go15.click();
     await settle();
-    // ⚠️ Build Around (5 Nov 2026): one list holds both sides, so with After pressed the phases BEFORE Post could still be
-    // ticked, and the button says "Tick a phase to build" rather than "Nothing to rebuild". It still can't be pressed.
+    // ⚠️ Build Around (5 Nov 2026): one list holds both sides, so with the later side alone the phases BEFORE Post could
+    // still be ticked, and the button says "Tick a phase to build" rather than "Nothing to rebuild". It still can't be
+    // pressed. (10 Nov 2026: the After button is gone; the earlier side is unticked by its boxes.)
     add('L15', 'Build Around with nothing to place can\'t be pressed, says why, and moves nothing',
       val('start-post') === '2026-11-02' && go15.disabled && /tick a phase to build/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
       {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Tick a phase to build" disabled, a "No length" row');

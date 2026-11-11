@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toolbar Variations</title>
+<!-- MOCKUP, not the app. The preview toolbar as live on 10 Nov 2026 (view toggle, the text style buttons beside Shift,
+     Shift, Build Around, Fill Space, Side Boxes, Header, Undo / Redo) and 20 ways it could look. Owner, 10 Nov 2026,
+     with a screenshot of the live toolbar: "Mock up a bunch (like 20) differnt variations for how this entire menu bar
+     could like. Move around spacing, change colors, do whatever necessary to come up with a version that looks the best
+     and is the easiest to understand at a glance."
+     Every variation draws the same controls from the same builders, so they differ only in what each card says. Sizes
+     and colours copy legacy.css and src/theme.js (30 px controls, 7 px radius, navy-6 #2C3E50 outline on the date tools,
+     gray-4 #C4C1B6 borders, the gray-1 well of the view toggle, Inter). The calendar strip under each bar is synthetic.
+     Nothing here is wired to the app: clicks only switch the mockup's own states. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-3:#8E9EAD; --navy-5:#4A6479; --navy-6:#2C3E50; --navy-7:#1C2833; --navy-8:#141C24;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-8:#3E3C37; --gray-9:#1E1D1B;
+  --faint:#6E6A62; --edit:#7030A0; --edit-bg:#f6effb; --edit-line:#e3d3f0;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.08); --shadow-sm:0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --page:#E6E4DE; --ground:#F7F6F3;
+  --bar-w:1250px;
+}
+*{ box-sizing:border-box; }
+html, body{ margin:0; }
+body{ font-family:'Inter',system-ui,-apple-system,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.45; }
+button{ font:inherit; color:inherit; }
+
+/* ---------------- The page around the mockups ---------------- */
+.page{ max-width:1360px; margin:0 auto; padding:28px 16px 80px; }
+.page-head h1{ font-size:24px; letter-spacing:-.015em; margin:0 0 6px; }
+.page-head p{ margin:0 0 6px; color:var(--gray-7); font-size:14px; max-width:920px; }
+.controls{ position:sticky; top:0; z-index:20; display:flex; flex-wrap:wrap; gap:10px 22px; align-items:center;
+  margin:18px 0 22px; padding:10px 14px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px);
+  border:1px solid var(--gray-3); border-radius:12px; box-shadow:var(--shadow-sm); font-size:13px; }
+.controls .lbl{ color:var(--gray-6); font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase; margin-right:6px; }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:8px; padding:2px; gap:2px; }
+.seg button{ border:0; background:transparent; padding:5px 10px; border-radius:6px; font-size:12.5px; font-weight:500; color:var(--gray-7); cursor:pointer; }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); }
+.chk{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:var(--gray-8); }
+.jump{ margin-left:auto; color:var(--navy-6); font-weight:600; text-decoration:none; }
+.pick{ background:#fff; border:1px solid var(--gray-3); border-left:4px solid var(--navy-6); border-radius:12px;
+  padding:14px 18px; margin:0 0 22px; font-size:14px; color:var(--gray-8); }
+.pick h2{ font-size:15px; margin:0 0 6px; color:var(--gray-9); }
+.pick ul{ margin:6px 0 0; padding-left:18px; }
+.pick li{ margin:2px 0; }
+
+.card{ background:#fff; border:1px solid var(--gray-3); border-radius:14px; padding:14px 16px 16px; margin:0 0 16px; }
+.card.is-pick{ border-color:var(--navy-6); box-shadow:0 0 0 1px var(--navy-6); }
+.card-head{ display:flex; align-items:center; gap:10px; }
+.num{ display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px; padding:0 7px; border-radius:7px;
+  background:var(--gray-1); font-weight:700; font-size:13px; color:var(--gray-8); }
+.is-pick .num{ background:var(--navy-6); color:#fff; }
+.card h2{ font-size:15.5px; margin:0; letter-spacing:-.005em; }
+.tag{ font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; }
+.tag.wraps{ background:#FEF6E7; color:#7A5B14; border:1px solid #F0D9A8; }
+.tag.fits{ background:#EEF6EE; color:#2F6B34; border:1px solid #CFE3CF; }
+.tag.mine{ background:var(--navy-6); color:#fff; }
+.star{ margin-left:auto; border:1px solid var(--gray-3); background:#fff; border-radius:8px; padding:3px 10px; cursor:pointer;
+  font-size:13px; color:var(--gray-7); }
+.star[aria-pressed="true"]{ background:#FEF6E7; border-color:#E0A800; color:#7A5B14; font-weight:600; }
+.why{ margin:6px 0 12px; font-size:13.5px; color:var(--gray-7); max-width:1000px; }
+.why b{ color:var(--gray-9); font-weight:600; }
+.stage-wrap{ overflow:hidden; border-radius:10px; }
+.stage{ width:calc(var(--bar-w) + 40px); background:var(--ground); border:1px solid var(--gray-2); border-radius:10px; padding:16px 20px 0; }
+.scaled-note{ font-size:11.5px; color:var(--gray-6); margin-top:6px; }
+.cal-edge{ margin-top:14px; height:36px; background:#fff; border:1px solid var(--gray-3); border-bottom:0; border-radius:10px 10px 0 0;
+  display:flex; align-items:flex-start; gap:0; padding:10px 18px; font-size:10px; color:var(--gray-7); }
+.cal-edge span:nth-child(1){ width:200px; }
+.cal-edge span:nth-child(2){ width:210px; font-weight:700; color:var(--gray-9); }
+.cal-edge span:nth-child(3){ font-weight:700; color:var(--gray-9); }
+body.starred-only .card:not(.starred){ display:none; }
+
+/* ---------------- The toolbar's controls (today's look, legacy.css) ---------------- */
+.bar{ width:var(--bar-w); display:flex; align-items:center; flex-wrap:wrap; gap:10px; row-gap:8px; font-size:12px; color:var(--gray-9); }
+.g{ display:flex; flex-direction:column; flex:none; }
+.gi{ display:flex; align-items:center; flex-wrap:nowrap; }
+.g-text .gi{ gap:4px; } .g-dates .gi{ gap:10px; } .g-page .gi{ gap:10px; } .g-history .gi{ gap:6px; }
+.push{ margin-left:auto; }
+.spacer{ flex:1 1 0; min-width:0; }
+.glabel{ font-size:9.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--gray-6); margin:0 0 3px 2px; white-space:nowrap; }
+.sep{ flex:none; width:1px; height:22px; background:var(--gray-3); }
+svg{ display:block; }
+
+.vt{ display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:2px; background:var(--gray-1); border-radius:7px; padding:2px; }
+.vt-b{ display:flex; align-items:center; justify-content:center; gap:6px; border:0; background:transparent; color:var(--gray-7);
+  font-size:12.5px; font-weight:500; padding:6px 12px; border-radius:5px; cursor:pointer; white-space:nowrap; }
+.vt-b svg{ width:14px; height:14px; }
+.vt-b.on{ background:#fff; color:#000; box-shadow:var(--shadow-xs); }
+.vt-b:not(.on):hover{ color:#000; }
+
+.btn{ display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 10px; border:1px solid var(--gray-4); border-radius:7px;
+  background:#fff; color:var(--gray-9); font-size:11px; font-weight:500; white-space:nowrap; cursor:pointer; }
+.btn:hover{ background:var(--gray-0); }
+.btn svg{ width:14px; height:14px; color:var(--gray-6); }
+.caret{ font-size:9px; color:var(--faint); }
+.btn.navy{ border-color:var(--navy-6); color:var(--navy-6); }
+.btn.navy .caret, .btn.navy svg{ color:var(--navy-6); }
+.split{ display:inline-flex; align-items:stretch; height:30px; border:1px solid var(--navy-6); border-radius:7px; background:#fff; overflow:hidden; flex:none; }
+.split > button{ display:flex; align-items:center; gap:6px; border:0; background:transparent; padding:0 12px; font-size:12px; font-weight:500;
+  color:var(--navy-6); white-space:nowrap; cursor:pointer; }
+.split > button + button{ border-left:1px solid var(--gray-3); }
+.split > .main{ font-weight:600; }
+.split > .main .caret{ color:var(--navy-6); }
+.split > button:hover{ background:var(--gray-0); }
+.split svg{ width:14px; height:14px; }
+.sw{ position:relative; display:inline-block; width:22px; height:12px; border-radius:6px; background:var(--gray-4); flex:none; transition:background .12s; }
+.sw::after{ content:''; position:absolute; top:2px; left:2px; width:8px; height:8px; border-radius:50%; background:#fff; transition:left .12s; }
+.sw.on{ background:var(--navy-6); }
+.sw.on::after{ left:12px; }
+.ic{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--gray-4); border-radius:7px;
+  background:#fff; color:var(--gray-7); cursor:pointer; flex:none; }
+.ic svg{ width:16px; height:16px; }
+.ic:hover{ background:var(--gray-0); }
+.tc{ display:inline-flex; align-items:center; justify-content:center; height:30px; min-width:30px; padding:0 6px; border:1px solid var(--gray-4);
+  border-radius:7px; background:#fff; color:var(--gray-7); font-size:14px; cursor:pointer; flex:none; }
+.tc:hover{ background:var(--gray-0); color:#000; }
+.tc.size{ width:66px; justify-content:space-between; padding:0 7px 0 8px; font-size:12px; font-weight:500; }
+.tc.size svg{ width:14px; height:14px; color:var(--gray-6); }
+.tc.align{ gap:3px; padding:0 6px 0 7px; }
+.tc.align svg{ width:16px; height:16px; }
+.tc.align .caret{ font-size:8px; }
+.tc.b{ font-weight:700; } .tc.i{ font-style:italic; font-family:Georgia,serif; font-size:15px; }
+.tc.a{ font-weight:700; }
+.tc.clear{ font-size:14px; }
+.tc.on{ background:var(--edit-bg); border-color:var(--edit); color:var(--edit); }
+.tj{ display:inline-flex; align-items:stretch; height:30px; border:1px solid var(--gray-4); border-radius:7px; background:#fff; overflow:hidden; flex:none; }
+.tj .tc{ height:auto; border:0; border-radius:0; }
+.tj .tc + .tc{ border-left:1px solid var(--gray-3); }
+.tj .tc.on{ box-shadow:inset 0 0 0 1px var(--edit); }
+
+/* The two states the page switches between: fresh (nothing picked, nothing to undo: the screenshot) and editing. */
+body[data-state="fresh"] .bar .tc, body[data-state="fresh"] .bar .tj, body[data-state="fresh"] .bar .needs-pick{ opacity:.45; pointer-events:none; }
+body[data-state="fresh"] .bar .tj .tc{ opacity:1; }
+body[data-state="fresh"] .bar .hist{ opacity:.4; pointer-events:none; }
+body[data-view="month"] .bar .only-sheet{ display:none !important; }
+
+/* ---------------- Per-variation looks ---------------- */
+/* 1 Today */
+.v-today .g-text{ margin-right:16px; } .v-today .g-dates{ margin-right:16px; }
+
+/* 2 Hairlines */
+.v-hair .bar, .v-hair{ }
+.v-hair .sep{ margin:0 6px; }
+
+/* 3 Group labels */
+.v-labels{ align-items:flex-end; }
+.v-labels .sep{ height:30px; margin:0 6px; align-self:flex-end; }
+
+/* 4 Grey wells */
+.v-wells .well{ display:flex; align-items:center; gap:2px; background:var(--gray-1); border-radius:9px; padding:2px; }
+.v-wells .well .btn, .v-wells .well .ic, .v-wells .well .tc{ border-color:transparent; background:transparent; height:30px; }
+.v-wells .well .btn:hover, .v-wells .well .ic:hover, .v-wells .well .tc:hover{ background:#fff; box-shadow:var(--shadow-xs); }
+/* A pressed style (Bold on) inside a well is the raised white chip of the active Waterfall segment, in the edit purple. */
+.v-wells .well .tc.on{ background:#fff; box-shadow:var(--shadow-xs); color:var(--edit); }
+.v-wells .well .split{ border-color:transparent; background:transparent; }
+.v-wells .well .split > button + button{ border-left-color:var(--gray-3); }
+.v-wells .well .split > button:hover{ background:#fff; }
+.v-wells .well .btn.navy, .v-wells .well .split > button{ color:var(--navy-6); }
+.v-wells .vt-b{ padding:7px 12px; }
+.v-wells .g + .g:not(.push){ margin-left:6px; }
+
+/* 5 White card */
+.v-card{ background:#fff; border:1px solid var(--gray-3); border-radius:10px; padding:4px 6px; box-shadow:var(--shadow-xs); gap:6px; }
+.v-card .btn, .v-card .ic, .v-card .tc{ border-color:transparent; background:transparent; }
+.v-card .btn:hover, .v-card .ic:hover, .v-card .tc:hover{ background:var(--gray-1); }
+.v-card .split{ border-color:transparent; }
+.v-card .split > button + button{ border-left-color:transparent; }
+.v-card .split > button:hover{ background:var(--gray-1); }
+.v-card .btn.navy, .v-card .split > button{ color:var(--navy-6); }
+.v-card .sep{ height:20px; margin:0 6px; }
+.v-card .vt{ padding:2px; }
+.v-card .vt-b{ padding:5px 12px; }
+
+/* 6 Shift centred */
+.v-centre .g-dates .split{ box-shadow:var(--shadow-xs); }
+
+/* 7 Dates first */
+.v-dfirst .g-dates{ margin-left:16px; } .v-dfirst .g-text{ margin-left:16px; }
+
+/* 8 History left */
+.v-hleft .g-history{ margin-left:6px; } .v-hleft .g-text{ margin-left:16px; } .v-hleft .g-dates{ margin-right:16px; }
+
+/* 9 Primary Shift */
+.v-primary .g-text{ margin-right:16px; } .v-primary .g-dates{ margin-right:16px; }
+.v-primary .split{ background:var(--navy-6); }
+.v-primary .split > button{ color:#fff; }
+.v-primary .split > .main .caret{ color:#fff; }
+.v-primary .split > button + button{ border-left-color:var(--navy-5); }
+.v-primary .split > button:hover{ background:var(--navy-7); }
+
+/* 10 Joined text */
+.v-jtext .g-text{ margin-right:16px; } .v-jtext .g-dates{ margin-right:16px; }
+
+/* 11 Joined everything */
+.v-jall .g + .g{ margin-left:8px; }
+.v-jall .jn{ display:inline-flex; align-items:stretch; height:30px; border:1px solid var(--gray-4); border-radius:7px; background:#fff; overflow:hidden; }
+.v-jall .jn.navy{ border-color:var(--navy-6); }
+.v-jall .jn > *{ border:0 !important; border-radius:0 !important; height:auto !important; }
+.v-jall .jn > * + *{ border-left:1px solid var(--gray-3) !important; }
+.v-jall .jn .split{ border:0; border-radius:0; }
+
+/* 12 / 13 / 14 menus */
+.aa{ font-weight:700; font-size:13px; letter-spacing:-.02em; color:var(--gray-8); }
+.v-aa .g-text{ margin-right:16px; } .v-aa .g-dates{ margin-right:16px; }
+.v-page .g-text{ margin-right:16px; } .v-page .g-dates{ margin-right:16px; }
+.v-min .g-text{ margin-right:10px; } .v-min .g-dates{ margin-right:16px; }
+.pg-state{ color:var(--gray-6); font-weight:400; }
+
+/* 15 Icon + label */
+.v-icons .g-text{ margin-right:16px; } .v-icons .g-dates{ margin-right:16px; }
+.v-icons .btn{ gap:4px; } .v-icons .btn svg{ width:13px; height:13px; }
+
+/* 16 Captions */
+.v-caps{ align-items:stretch; gap:4px; }
+.v-caps .cap{ display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:46px; height:46px; padding:0 6px;
+  border:1px solid transparent; border-radius:8px; background:transparent; color:var(--gray-8); cursor:pointer; font-size:10.5px; font-weight:500; white-space:nowrap; }
+.v-caps .cap:hover{ background:#fff; border-color:var(--gray-3); }
+.v-caps .cap .gl{ height:18px; display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--gray-7); }
+.v-caps .cap .gl svg{ width:17px; height:17px; }
+.v-caps .cap.navy{ color:var(--navy-6); } .v-caps .cap.navy .gl{ color:var(--navy-6); }
+.v-caps .sep{ height:36px; align-self:center; margin:0 6px; }
+.v-caps .vt{ align-self:center; }
+.v-caps .gi{ height:100%; gap:2px; }
+body[data-state="fresh"] .v-caps .cap.tcap{ opacity:.45; }
+body[data-state="fresh"] .v-caps .cap.hist{ opacity:.4; }
+
+/* 17 Navy band */
+.v-band{ background:var(--navy-6); border-radius:10px; padding:7px 10px; }
+.v-band .vt{ background:var(--navy-7); }
+.v-band .vt-b{ color:var(--navy-2); }
+.v-band .vt-b.on{ background:#fff; color:var(--navy-7); }
+.v-band .vt-b:not(.on):hover{ color:#fff; }
+.v-band .btn, .v-band .ic, .v-band .tc, .v-band .split{ background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.22); color:#fff; }
+.v-band .btn:hover, .v-band .ic:hover, .v-band .tc:hover, .v-band .split > button:hover{ background:rgba(255,255,255,.16); }
+.v-band .split > button{ color:#fff; }
+.v-band .split > button + button{ border-left-color:rgba(255,255,255,.22); }
+.v-band .split > .main .caret, .v-band .caret, .v-band .btn svg, .v-band .tc.size svg{ color:var(--navy-2); }
+.v-band .tc{ color:#fff; }
+.v-band .btn.navy, .v-band .btn.navy svg{ color:#fff; }
+.v-band .btn.navy .caret{ color:var(--navy-2); }
+.v-band .tc.on{ background:#fff; color:var(--edit); border-color:#fff; }
+.v-band .sw{ background:rgba(255,255,255,.3); }
+.v-band .sw.on{ background:#fff; }
+.v-band .sw.on::after{ background:var(--navy-6); }
+.v-band .g-text{ margin-right:16px; } .v-band .g-dates{ margin-right:16px; }
+
+/* 18 Tinted wells */
+.v-tint .well{ display:flex; align-items:center; gap:4px; border-radius:9px; padding:3px; border:1px solid transparent; }
+.v-tint .g-text .well{ background:var(--edit-bg); border-color:var(--edit-line); }
+.v-tint .g-dates .well{ background:var(--navy-0); border-color:var(--navy-1); }
+.v-tint .g-page .well{ background:var(--gray-1); border-color:var(--gray-2); }
+.v-tint .g-dates .gi{ gap:6px; } .v-tint .g-page .gi{ gap:6px; }
+.v-tint .g + .g{ margin-left:4px; }
+.v-tint .vt{ padding:3px; }
+.v-tint .vt-b{ padding:6px 12px; }
+
+/* 19 Compact */
+.v-compact{ gap:6px; }
+.v-compact .btn, .v-compact .ic, .v-compact .tc, .v-compact .split, .v-compact .tj{ height:26px; }
+.v-compact .ic, .v-compact .tc{ min-width:26px; width:auto; }
+.v-compact .ic{ width:26px; }
+.v-compact .btn, .v-compact .split > button{ font-size:11.5px; padding:0 8px; }
+.v-compact .tc.size{ width:58px; font-size:11.5px; }
+.v-compact .tc{ font-size:13px; }
+.v-compact .vt-b{ padding:4px 10px; font-size:12.5px; }
+.v-compact .g-text .gi, .v-compact .g-history .gi{ gap:3px; } .v-compact .g-dates .gi, .v-compact .g-page .gi{ gap:6px; }
+.v-compact .g-text{ margin-right:12px; } .v-compact .g-dates{ margin-right:12px; }
+
+/* 20 Pills */
+.v-pill{ gap:10px; }
+.v-pill .btn, .v-pill .split, .v-pill .tc, .v-pill .ic, .v-pill .vt, .v-pill .vt-b, .v-pill .tj{ border-radius:999px; }
+.v-pill .btn{ padding:0 12px; }
+.v-pill .split > button{ padding:0 13px; }
+.v-pill .tc.size{ width:70px; padding:0 9px 0 11px; }
+.v-pill .g-text .gi{ gap:5px; }
+.v-pill .g-text{ margin-right:16px; } .v-pill .g-dates{ margin-right:16px; }
+
+/* 21 My pick */
+.v-mine .vt{ padding:2px; }
+.v-mine .vt-b{ padding:5px 12px; }
+.v-mine .sep{ margin:0 8px 5px; height:20px; align-self:flex-end; }
+.v-mine .hj{ display:inline-flex; align-items:stretch; height:30px; border:1px solid var(--gray-4); border-radius:7px; background:#fff; overflow:hidden; }
+.v-mine .hj .ic{ border:0; border-radius:0; height:auto; }
+.v-mine .hj .ic + .ic{ border-left:1px solid var(--gray-3); }
+.v-mine .glabel{ margin-bottom:2px; }
+
+/* 22 Your combination: 4 (grey wells) + 8 (Undo on the left) + 9 (Shift as the main button) */
+.v-combo .g + .g.g-text:not(.push){ margin-left:16px; }  /* 26 px from Undo / Redo: the families' gap today (outranks the wells' 6 px) */
+.v-combo .g-dates{ margin-right:10px; }               /* 26 px before the page tools (10 + the wells' 6 + the gap), as after Build Around today */
+.v-combo .well .split{ background:var(--navy-6); border-color:var(--navy-6); }
+.v-combo .well .split > button{ color:#fff; }
+.v-combo .well .split > button + button{ border-left-color:var(--navy-5); }
+.v-combo .well .split > button:hover{ background:var(--navy-7); box-shadow:none; }
+.v-combo .well .split > .main .caret{ color:#fff; }
+.v-combo .g-dates .well{ gap:4px; }
+.v-combo .well .btn.navy{ border-color:var(--navy-6); background:#fff; color:var(--navy-6); }
+.v-combo .well .btn.navy:hover{ background:var(--navy-0); box-shadow:none; }
+/* 22b: Build Around as the wells' other buttons (no outline, navy words) */
+.v-combo.ba-plain .well .btn.navy{ border-color:transparent; background:transparent; }
+.v-combo.ba-plain .well .btn.navy:hover{ background:#fff; box-shadow:var(--shadow-xs); }
+/* 23-27 White Shift, even spacing (owner, 10 Nov 2026: "Lets try making the whole shift tool also just white background
+   color like build around. Also the spacing between the differnt sections is literally all different. It needs to be
+   consistnet."). ONE rule everywhere: --sec-gap between every section, and inside every well (the view toggle's
+   included) 2 px of padding and 2 px between buttons, radii concentric (9 px well, 7 px buttons). Only where the
+   leftover space goes differs between the cards. */
+:root{ --sec-gap:12px; }
+.bar.v-even{ gap:var(--sec-gap); row-gap:8px; }
+.v-even .g + .g:not(.push){ margin-left:0; }
+.v-even .well, .v-even .vt{ gap:2px; padding:2px; border-radius:9px; }
+.v-even .vt-b{ border-radius:7px; padding:6px 12px; }
+.v-even .g-dates .gi, .v-even .g-page .gi, .v-even .g-text .gi, .v-even .g-history .gi{ gap:0; }
+.v-even .well .split{ background:#fff; border-color:var(--navy-6); }
+.v-even .well .split > button{ color:var(--navy-6); }
+.v-even .well .split > button + button{ border-left-color:var(--gray-3); }
+.v-even .well .split > button:hover{ background:var(--gray-0); box-shadow:none; }
+.v-even .well .split > .main .caret{ color:var(--navy-6); }
+.v-even .well .btn.navy{ border-color:var(--navy-6); background:#fff; color:var(--navy-6); }
+.v-even .well .btn.navy:hover{ background:var(--gray-0); box-shadow:none; }
+.v-even.spread{ justify-content:space-between; }
+.v-even.centre{ justify-content:center; }
+.gaps{ font-size:11.5px; color:var(--gray-6); margin-top:6px; font-variant-numeric:tabular-nums; }
+.gaps b{ color:var(--gray-9); font-weight:600; }
+.card.is-even{ border-color:var(--navy-6); }
+.is-even .num{ background:var(--navy-6); color:#fff; }
+.combo-head{ display:flex; align-items:baseline; gap:12px; margin:0 0 10px; }
+.combo-head h2{ font-size:17px; margin:0; letter-spacing:-.01em; }
+.combo-head p{ margin:0; color:var(--gray-7); font-size:13.5px; }
+.card.is-combo{ border-color:#E0A800; box-shadow:0 0 0 1px #E0A800; }
+.is-combo .num{ background:#E0A800; color:#fff; }
+.tag.yours{ background:#FEF6E7; color:#7A5B14; border:1px solid #F0D9A8; }
+.others-head{ font-size:15px; margin:26px 0 10px; color:var(--gray-8); }
+</style>
+</head>
+<body data-view="sheet" data-state="fresh">
+<div class="page">
+  <header class="page-head">
+    <h1>The preview toolbar: white Shift with even spacing, your combination, 20 variations and my pick</h1>
+    <p>Every variation has the same controls as today's toolbar (unless its note says it folds some into a menu), drawn at
+      real size from the app's own colours and sizes. Card 1 is today's toolbar, for comparison. Use the switches to see each one
+      at a narrower window, in the Month view (Side Boxes and Fill Space go), and while you are editing (text picked, Undo
+      available). Star the ones you like, then <b>Starred only</b> to compare them side by side.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Mockup switches">
+    <span><span class="lbl">Window</span><span class="seg" data-ctl="width">
+      <button type="button" data-v="1250" aria-pressed="true">Yours (≈1,720 px)</button>
+      <button type="button" data-v="1060" aria-pressed="false">≈1,530 px</button>
+      <button type="button" data-v="900" aria-pressed="false">≈1,370 px</button></span></span>
+    <span><span class="lbl">View</span><span class="seg" data-ctl="view">
+      <button type="button" data-v="sheet" aria-pressed="true">Waterfall</button>
+      <button type="button" data-v="month" aria-pressed="false">Month</button></span></span>
+    <span><span class="lbl">State</span><span class="seg" data-ctl="state">
+      <button type="button" data-v="fresh" aria-pressed="true">Nothing picked</button>
+      <button type="button" data-v="editing" aria-pressed="false">Editing</button></span></span>
+    <span><span class="lbl">Section gap</span><span class="seg" data-ctl="gap">
+      <button type="button" data-v="8" aria-pressed="false">8</button>
+      <button type="button" data-v="12" aria-pressed="true">12</button>
+      <button type="button" data-v="16" aria-pressed="false">16</button>
+      <button type="button" data-v="24" aria-pressed="false">24 px</button></span></span>
+    <label class="chk"><input type="checkbox" id="starred-only"> Starred only</label>
+    <a class="jump" href="#v21">Jump to my pick (21) ↓</a>
+  </div>
+
+  <section id="even-sec">
+    <div class="combo-head"><h2>White Shift, even spacing</h2>
+      <p>Your combination with Shift white and navy-outlined like Build Around, and ONE spacing rule: the same gap between
+        every section (the <b>Section gap</b> switch sets it), and inside every grey well, the view toggle’s included, 2 px of
+        padding and 2 px between buttons. The cards differ only in where the leftover space goes. Each prints its measured gaps.</p></div>
+    <div id="even"></div>
+  </section>
+
+  <section id="combo-sec" style="margin-top:22px">
+    <div class="combo-head"><h2>Your combination: 4 + 8 + 9</h2>
+      <p>Grey wells for every family (4), Undo / Redo right after the view toggle (8), Shift filled navy as the main button (9).</p></div>
+    <div id="combo"></div>
+  </section>
+
+  <h2 class="others-head">The 21 it came from</h2>
+  <section class="pick" id="pick-summary">
+    <h2>My pick: 21, “Four labelled families”</h2>
+    Today’s toolbar is already close; what makes it slow to read is that its four families of tools are told apart only by
+    gaps, the view toggle is a different height from everything else, and the six text buttons read as six separate things.
+    21 fixes exactly those and nothing more:
+    <ul>
+      <li><b>Hairline dividers</b> between the families (view, text, dates, page, history), so the eye groups them without reading.</li>
+      <li><b>The text buttons joined into one strip</b>, like every word processor’s formatting bar, so they read as one tool.</li>
+      <li><b>Small labels over the three tool families</b> (Text, Move dates, Page), the only words added, for anyone new.</li>
+      <li><b>Everything one height</b> (the view toggle shrinks from 34 to 30 px to match), and Undo / Redo joined as a pair.</li>
+      <li>Keeps what already works: the navy outline that marks the date tools (your pick of 21 Oct), the text beside Shift,
+        and every button where it is today.</li>
+    </ul>
+  </section>
+
+  <div id="list"></div>
+</div>
+
+<script>
+(function () {
+  // ---------------- Icons: the app's own (src/chrome/icons.jsx, alignIcon in app.js) plus a few for the icon variants ----------------
+  var S = function (d, extra) { return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + d + '</svg>'; };
+  var I = {
+    rows: S('<rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6.2h12M2 9.9h12"/>'),
+    cal: S('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3"/>'),
+    undo: S('<path d="M6.5 3 3 6.5 6.5 10"/><path d="M3 6.5h6.5a3.25 3.25 0 0 1 0 6.5H7"/>'),
+    redo: S('<path d="M9.5 3 13 6.5 9.5 10"/><path d="M13 6.5H6.5a3.25 3.25 0 0 0 0 6.5H9"/>'),
+    align: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4h12"/><path d="M4.5 8h7"/><path d="M3 12h10"/></svg>',
+    chev: S('<path d="M4.5 6.5 8 10l3.5-3.5"/>'),
+    left: S('<path d="M10 3.5 5.5 8l4.5 4.5"/>'),
+    right: S('<path d="M6 3.5 10.5 8 6 12.5"/>'),
+    pin: S('<path d="M8 14V9"/><path d="M5 2.5h6l-1 3.2 2 2.3H4l2-2.3z"/>'),
+    fill: S('<path d="M2.5 8h11"/><path d="M5 5.5 2.5 8 5 10.5M11 5.5 13.5 8 11 10.5"/>'),
+    side: S('<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M10 3v10"/>'),
+    head: S('<rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6h12"/><path d="M4.5 4.3h4"/>'),
+    page: S('<path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.3 1.8V5h3.2"/><path d="M6 8h4.5M6 10.5h4.5"/>')
+  };
+  var caret = '<span class="caret" aria-hidden="true">▾</span>';
+
+  // ---------------- Builders: one per family, each with the forms the variations use ----------------
+  function viewToggle(){
+    return '<div class="vt">' +
+      '<button type="button" class="vt-b" data-view="sheet">' + I.rows + '<span>Waterfall</span></button>' +
+      '<button type="button" class="vt-b" data-view="month">' + I.cal + '<span>Month</span></button></div>';
+  }
+  function textCtl(){
+    return [
+      '<span class="tc size" title="Text size">Size' + I.chev + '</span>',
+      '<span class="tc b" title="Bold">B</span>',
+      '<span class="tc i" title="Italic">I</span>',
+      '<span class="tc a" title="Text colour">A</span>',
+      '<span class="tc align" title="Alignment">' + I.align + caret + '</span>',
+      '<span class="tc clear" title="Clear formatting">&#8709;</span>'
+    ];
+  }
+  function textGroup(form){
+    if(form === 'joined') return '<div class="tj" role="group" aria-label="Text style">' + textCtl().join('') + '</div>';
+    if(form === 'menu') return '<button type="button" class="btn needs-pick"><span class="aa">Aa</span> Text style ' + caret + '</button>';
+    if(form === 'caption') return [
+      '<span class="cap tcap"><span class="gl" style="font-size:14px;font-weight:600">Aa</span>Size ▾</span>',
+      '<span class="cap tcap"><span class="gl" style="font-weight:700">B</span>Bold</span>',
+      '<span class="cap tcap"><span class="gl" style="font-style:italic;font-family:Georgia,serif">I</span>Italic</span>',
+      '<span class="cap tcap"><span class="gl" style="font-weight:700">A</span>Colour</span>',
+      '<span class="cap tcap"><span class="gl">' + I.align + '</span>Align</span>',
+      '<span class="cap tcap"><span class="gl">&#8709;</span>Clear</span>'].join('');
+    return textCtl().join('');
+  }
+  function shiftCtl(form){
+    return '<div class="split"><button type="button">← 1 wk</button><button type="button" class="main">Shift ' + caret + '</button><button type="button">1 wk →</button></div>';
+  }
+  function buildAround(form){
+    return '<button type="button" class="btn navy">' + (form === 'icons' ? I.pin : '') + 'Build Around ' + caret + '</button>';
+  }
+  function datesGroup(form){
+    if(form === 'caption') return [
+      '<span class="cap navy"><span class="gl">' + I.left + '</span>1 wk earlier</span>',
+      '<span class="cap navy"><span class="gl" style="font-size:13px;font-weight:600">Shift ▾</span>Shift</span>',
+      '<span class="cap navy"><span class="gl">' + I.right + '</span>1 wk later</span>',
+      '<span class="cap navy"><span class="gl">' + I.pin + '</span>Build Around</span>'].join('');
+    return shiftCtl(form) + buildAround(form);
+  }
+  function fillSpace(form){
+    // No icon in the icon variant: the switch already is one.
+    return '<button type="button" class="btn only-sheet fill"><span class="sw on"></span>Fill Space</button>';
+  }
+  function sideBoxes(form){ return '<button type="button" class="btn only-sheet">' + (form === 'icons' ? I.side : '') + 'Side Boxes ' + caret + '</button>'; }
+  function headerBtn(form){ return '<button type="button" class="btn">' + (form === 'icons' ? I.head : '') + 'Header: Auto ' + caret + '</button>'; }
+  function pageGroup(form){
+    if(form === 'menu') return '<button type="button" class="btn">' + I.page + 'Page <span class="pg-state">· Header Auto</span> ' + caret + '</button>';
+    if(form === 'caption') return [
+      '<span class="cap only-sheet fill"><span class="gl"><span class="sw on"></span></span>Fill Space</span>',
+      '<span class="cap only-sheet"><span class="gl">' + I.side + '</span>Side Boxes ▾</span>',
+      '<span class="cap"><span class="gl">' + I.head + '</span>Header: Auto ▾</span>'].join('');
+    return fillSpace(form) + sideBoxes(form) + headerBtn(form);
+  }
+  function historyGroup(form){
+    if(form === 'caption') return '<span class="cap hist"><span class="gl">' + I.undo + '</span>Undo</span><span class="cap hist"><span class="gl">' + I.redo + '</span>Redo</span>';
+    if(form === 'joined') return '<div class="hj"><span class="ic hist" title="Undo">' + I.undo + '</span><span class="ic hist" title="Redo">' + I.redo + '</span></div>';
+    return '<span class="ic hist" title="Undo">' + I.undo + '</span><span class="ic hist" title="Redo">' + I.redo + '</span>';
+  }
+  var BUILD = { view: viewToggle, text: textGroup, dates: datesGroup, page: pageGroup, history: historyGroup };
+
+  // ---------------- The variations ----------------
+  // order: the families left to right; '|' a hairline; '~' a flexible space. push: the family whose LEFT takes the free
+  // space (no '~' needed). forms: which form each family takes. labels: small captions over families. wrapIn: a well.
+  var DEF = { text: 'separate', dates: 'split', page: 'separate', history: 'separate' };
+  var V = [
+    { n: 1, cls: 'v-today', name: 'Today', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      why: 'The live toolbar, for comparison: the families told apart by spacing alone (26 px before Shift and after Build Around, 10 px elsewhere).' },
+    { n: 2, cls: 'v-hair', name: 'Hairline dividers', order: ['view', 'text', '|', 'dates', '|', 'page', '|', 'history'], push: 'text',
+      why: 'Today’s buttons and order, with a thin line between each family. <b>The cheapest change that makes the grouping readable at a glance</b>; nothing moves.' },
+    { n: 3, cls: 'v-labels', name: 'Group labels', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      labels: { text: 'Text', dates: 'Move dates', page: 'Page' },
+      why: 'A tiny caption over each family says what it is for. <b>Easiest for someone new</b>; costs about 14 px of height over today.' },
+    { n: 4, cls: 'v-wells', name: 'Grey wells', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', wrapIn: ['text', 'dates', 'page', 'history'],
+      why: 'Each family sits in the same grey well as the Waterfall | Month toggle, its buttons borderless until hovered. <b>One visual language across the bar</b>, everything 34 px tall; the date tools keep navy text but lose their outline.' },
+    { n: 5, cls: 'v-card', name: 'One white toolbar', order: ['view', '|', 'text', '|', 'dates', '|', 'page', '|', 'history'], push: 'text',
+      why: 'The whole bar becomes one white card with borderless buttons and dividers, like a word processor’s toolbar. <b>Calm, very tidy</b>; buttons only show their edges on hover, so it reads a little less “clickable”.' },
+    { n: 6, cls: 'v-centre', name: 'Shift in the middle', order: ['view', 'text', '~', 'dates', '~', 'page', 'history'],
+      why: 'The date tools, the ones used most, sit in the centre of the bar; text stays left beside the view, page tools and history go right. <b>Balanced</b>, but the text buttons move away from Shift.' },
+    { n: 7, cls: 'v-dfirst', name: 'Dates first', order: ['view', 'dates', 'text', 'page', 'history'], push: 'page',
+      why: 'Shift and Build Around move up next to the view toggle, where the eye starts; text follows, page tools and history on the right. <b>The most-used tools nearest the start.</b>' },
+    { n: 8, cls: 'v-hleft', name: 'Undo on the left', order: ['view', 'history', 'text', 'dates', 'page'], push: 'dates',
+      why: 'Undo / Redo sit right after the view toggle, as in Excel and Google Docs; the date and page tools take the right-hand end. <b>Familiar to spreadsheet users.</b>' },
+    { n: 9, cls: 'v-primary', name: 'Shift as the main button', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      why: 'The Shift control is filled navy, the app’s one dark “main action”; Build Around keeps its navy outline. <b>Says where to start.</b> A DARK fill reads as primary, unlike the light fill you turned down on 21 Oct, which read as selected.' },
+    { n: 10, cls: 'v-jtext', name: 'Text as one strip', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', forms: { text: 'joined' },
+      why: 'The six text buttons join into one bordered strip, the way Shift’s three parts already do. <b>Reads as one formatting tool</b> instead of six loose squares, and is 20 px narrower.' },
+    { n: 11, cls: 'v-jall', name: 'Every family joined', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      forms: { text: 'joined' }, join: ['dates', 'page', 'history'],
+      why: 'Every family becomes one joined control: five units in all. <b>The fewest shapes to take in</b>; the page tools lose some separation from each other.' },
+    { n: 12, cls: 'v-aa', name: 'Text style behind one button', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', forms: { text: 'menu' },
+      why: 'The text buttons fold into one “Aa Text style ▾” button that opens them in a small panel. <b>Saves about 190 px</b>, so the bar stays on one line down to roughly a 1,500 px window; costs one click per style.' },
+    { n: 13, cls: 'v-page', name: 'Page tools behind one button', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', forms: { page: 'menu' },
+      why: 'Fill Space, Side Boxes and the Header mode fold into one “Page ▾” menu that also says the header’s mode. <b>Leaves only what you use every day on the bar</b>; Side Boxes and the header take two clicks.' },
+    { n: 14, cls: 'v-min', name: 'Minimal', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', forms: { text: 'menu', page: 'menu' },
+      why: 'Both folds at once: view, Text style, the date tools, Page, history. <b>The calmest bar</b>, and it fits small windows easily; the most clicks of any.' },
+    { n: 15, cls: 'v-icons', name: 'Icons beside the words', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      forms: { dates: 'icons', page: 'icons' },
+      why: 'Each action keeps its word and gains a small icon: a pin for Build Around, panels for Side Boxes and Header (Fill Space’s switch already is one, and Shift has its arrows). <b>Faster to spot once learned</b>; about 50 px wider.' },
+    { n: 16, cls: 'v-caps', name: 'Captions under icons', order: ['view', '|', 'text', '|', 'dates', '|', 'page', '|', 'history'], push: 'text', forms: { text: 'caption', dates: 'caption', page: 'caption', history: 'caption' },
+      why: 'Every control is an icon with its name underneath, like a ribbon. <b>Nothing needs a tooltip</b>; about 16 px taller and wider, and noticeably busier.' },
+    { n: 17, cls: 'v-band', name: 'Navy band', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      why: 'The toolbar sits on a navy band with light controls, like the app header in many tools. <b>Separates the controls from the calendar completely</b>; a lot of dark on screen, and the date tools no longer stand out from the rest.' },
+    { n: 18, cls: 'v-tint', name: 'Tinted families', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text', wrapIn: ['text', 'dates', 'page'],
+      why: 'Each family sits on a faint tint that matches its meaning: lilac for text (the highlight’s colour), blue-grey for dates, grey for page. The buttons stay white, so the tint reads as a group, not as “on”. <b>Colour does the grouping</b>; one more colour idea to learn.' },
+    { n: 19, cls: 'v-compact', name: 'Compact', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      why: 'Everything at 26 px with tighter gaps and slightly smaller type. <b>Fits narrower windows and gives the calendar 4 px</b>; harder to hit, and denser to read.' },
+    { n: 20, cls: 'v-pill', name: 'Pills', order: ['view', 'text', 'dates', 'page', 'history'], push: 'text',
+      why: 'Fully rounded buttons with a touch more padding. <b>Friendlier, more modern</b>; the round text buttons lose some of their “button” feel, and it is a little wider than today.' },
+    { n: 21, cls: 'v-mine', name: 'Four labelled families (my pick)', mine: true,
+      order: ['view', 'text', '|', 'dates', '|', 'page', '|', 'history'], push: 'text',
+      forms: { text: 'joined', history: 'joined' }, labels: { text: 'Text', dates: 'Move dates', page: 'Page' }, slimView: true,
+      why: 'Today’s order and colours, plus: hairlines between the families, the text buttons as one strip, small labels over the three tool families, Undo / Redo as a pair, and the view toggle at the same 30 px as everything else. <b>Reads in one glance, adds no clicks, moves nothing.</b>' }
+  ];
+
+  function renderBar(v){
+    var forms = Object.assign({}, DEF, v.forms || {});
+    var hasLabels = !!v.labels;
+    var html = v.order.map(function (k) {
+      if(k === '|') return '<span class="sep" aria-hidden="true"></span>';
+      if(k === '~') return '<span class="spacer" aria-hidden="true"></span>';
+      var inner = BUILD[k](forms[k]);
+      if(v.join && v.join.indexOf(k) >= 0) inner = '<div class="jn' + (k === 'dates' ? ' navy' : '') + '">' + inner + '</div>';
+      if(v.wrapIn && v.wrapIn.indexOf(k) >= 0) inner = '<div class="well">' + inner + '</div>';
+      var label = hasLabels ? '<span class="glabel">' + (v.labels[k] || '&nbsp;') + '</span>' : '';
+      return '<div class="g g-' + k + (v.push === k ? ' push' : '') + '">' + label + '<div class="gi">' + inner + '</div></div>';
+    }).join('');
+    return '<div class="bar ' + v.cls + (hasLabels ? ' v-labels' : '') + '"' + (v.slimView ? ' data-slim="1"' : '') + '>' + html + '</div>';
+  }
+
+  // Your combination (owner, 10 Nov 2026: "Combine the highlighted features of 4, 8, and 9"): 4's wells around every
+  // family with borderless buttons, 8's order (Undo / Redo right after the view toggle, the date and page tools at the
+  // right-hand end), 9's navy-filled Shift with Build Around keeping its navy outline. 22b settles the one place 4 and 9
+  // disagree: inside a well 4 has no outlines, 9 keeps Build Around's.
+  var COMBO = [
+    { n: '22', cls: 'v-wells v-combo', name: 'Your combination', combo: true,
+      order: ['view', 'history', 'text', 'dates', 'page'], push: 'dates', wrapIn: ['history', 'text', 'dates', 'page'],
+      why: '<b>Every family in a grey well</b> like Waterfall | Month, its buttons borderless until hovered, everything 34 px tall (4). ' +
+           '<b>Undo / Redo right after the view toggle</b>, the text tools next, the date and page tools at the right-hand end (8). ' +
+           '<b>Shift filled navy</b>, the one dark button on the bar, so it says where to start; Build Around keeps its navy outline, so the two still read as the date tools (9).' },
+    { n: '22b', cls: 'v-wells v-combo ba-plain', name: 'The same, Build Around without its outline', combo: true,
+      order: ['view', 'history', 'text', 'dates', 'page'], push: 'dates', wrapIn: ['history', 'text', 'dates', 'page'],
+      why: 'Where 4 and 9 disagree: 4 drops every outline inside the wells, 9 keeps Build Around’s. Here it follows 4, navy words with no border, so the navy Shift is the only outlined shape on the bar. <b>Quieter</b>; Build Around reads a little less like Shift’s partner.' }
+  ];
+  // White Shift, even spacing (23-27). Same families and order as 22; `layout` says where the leftover space goes.
+  var EVEN_BASE = { order: ['view', 'history', 'text', 'dates', 'page'], wrapIn: ['history', 'text', 'dates', 'page'], even: true };
+  var EVEN = [
+    { n: '23', name: 'Even gaps, packed left', layout: 'packed',
+      why: 'Every section one gap apart, all from the left; the leftover space is at the right end. <b>Strictly one spacing</b>, and the eye reads it as one row of tools; Undo sits far from the page tools at the other end of the bar.' },
+    { n: '24', name: 'Two clusters', layout: 'clusters', push: 'dates',
+      why: 'The view, Undo and the text tools on the left, the date and page tools on the right, every section inside a cluster one gap apart. <b>Today’s shape with consistent gaps</b>: the one big space separates “what you look at and edit” from “what moves and lays out the calendar”.' },
+    { n: '25', name: 'Spread evenly', layout: 'spread',
+      why: 'The leftover space is shared out equally, so every gap is the same, and wide (about 40 px at your window). <b>Fills the bar edge to edge</b>; the gaps change size with the window, and the families read as five separate islands.' },
+    { n: '26', name: 'Centred', layout: 'centre',
+      why: 'One gap everywhere and the whole set centred, with equal space at both ends. <b>Symmetrical and calm</b>; the view toggle no longer starts at the left edge where the calendar starts.' },
+    { n: '27', name: 'View alone, tools right', layout: 'clusters', push: 'history',
+      why: 'The view toggle stays at the left edge; every tool, Undo first, is packed to the right with one gap between them. <b>Separates “which view” from “what to do”</b>; the text tools move away from the left, where you start reading.' }
+  ].map(function (v) { return Object.assign({}, EVEN_BASE, v, { cls: 'v-wells v-even' + (v.layout === 'spread' ? ' spread' : v.layout === 'centre' ? ' centre' : '') }); });
+  function cardHtml(v){
+    return '<article class="card' + (v.mine ? ' is-pick' : '') + (v.combo ? ' is-combo' : '') + (v.even ? ' is-even' : '') + '" id="v' + v.n + '" data-n="' + v.n + '">' +
+      '<div class="card-head"><span class="num">' + v.n + '</span><h2>' + v.name + '</h2>' +
+      (v.mine ? '<span class="tag mine">My pick</span>' : '') + (v.combo ? '<span class="tag yours">4 + 8 + 9</span>' : '') +
+      '<span class="tag wraps" hidden>Wraps to two lines here</span><span class="tag fits" hidden>One line</span>' +
+      '<button type="button" class="star" aria-pressed="false">☆ Star</button></div>' +
+      '<p class="why">' + v.why + '</p>' +
+      '<div class="stage-wrap"><div class="stage">' + renderBar(v) +
+      '<div class="cal-edge"><span>11.10.26</span><span>Sample Show</span><span>17-Week Production Span / 8-Day Shooting Schedule</span></div>' +
+      '</div></div>' + (v.even ? '<div class="gaps"></div>' : '') + '<div class="scaled-note" hidden></div></article>';
+  }
+  document.getElementById('even').innerHTML = EVEN.map(cardHtml).join('');
+  document.getElementById('combo').innerHTML = COMBO.map(cardHtml).join('');
+  document.getElementById('list').innerHTML = V.map(cardHtml).join('');
+
+  // The slim view toggle (21): 30 px tall like the rest.
+  document.querySelectorAll('.bar[data-slim] .vt-b').forEach(function (b) { b.style.padding = '4px 12px'; });
+
+  // ---------------- State ----------------
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  var stars = {};
+  try { stars = JSON.parse(store.get('tbvar.stars') || '{}') || {}; } catch (e) { stars = {}; }
+  function paintStars(){
+    document.querySelectorAll('.card').forEach(function (c) {
+      var on = !!stars[c.dataset.n], b = c.querySelector('.star');
+      c.classList.toggle('starred', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? '★ Starred' : '☆ Star';
+    });
+  }
+  function setView(view){
+    document.body.dataset.view = view;
+    document.querySelectorAll('.vt-b').forEach(function (b) { b.classList.toggle('on', b.dataset.view === view); });
+    document.querySelectorAll('[data-ctl="view"] button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === view ? 'true' : 'false'); });
+    measure();
+  }
+  function setState(st){
+    document.body.dataset.state = st;
+    document.querySelectorAll('.bar .tc.b').forEach(function (b) { b.classList.toggle('on', st === 'editing'); });
+    document.querySelectorAll('[data-ctl="state"] button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === st ? 'true' : 'false'); });
+  }
+  function setWidth(w){
+    document.documentElement.style.setProperty('--bar-w', w + 'px');
+    document.querySelectorAll('[data-ctl="width"] button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === String(w) ? 'true' : 'false'); });
+    measure();
+  }
+  // Fit each stage into the page (scaled down when the window is narrower than the toolbar), and say whether it wraps.
+  function measure(){
+    document.querySelectorAll('.card').forEach(function (c) {
+      var wrap = c.querySelector('.stage-wrap'), stage = c.querySelector('.stage'), bar = c.querySelector('.bar');
+      stage.style.zoom = 1;
+      var natural = stage.offsetWidth, avail = wrap.clientWidth, z = Math.min(1, avail / natural);
+      stage.style.zoom = z;
+      var note = c.querySelector('.scaled-note');
+      note.hidden = z >= 0.999;
+      note.textContent = 'Shown at ' + Math.round(z * 100) + '% to fit this window; widen it for real size.';
+      // Two lines when some item starts below where another ends (spacers and hairlines, which have no height of their
+      // own to speak of, are left out).
+      var kids = Array.prototype.filter.call(bar.children, function (k) {
+        var r = k.getBoundingClientRect(); return k.offsetParent !== null && r.width > 0 && r.height > 24 * z; });
+      var rs = kids.map(function (k) { return k.getBoundingClientRect(); });
+      var wraps = rs.length > 1 && Math.max.apply(null, rs.map(function (r) { return r.top; })) >= Math.min.apply(null, rs.map(function (r) { return r.bottom; })) - 1;
+      c.querySelector('.tag.wraps').hidden = !wraps;
+      c.querySelector('.tag.fits').hidden = !!wraps;
+      var gl = c.querySelector('.gaps');
+      if(gl){
+        // Edge to edge between neighbouring sections on the first line, unscaled; the leftover space is named.
+        var secs = Array.prototype.filter.call(bar.querySelectorAll(':scope > .g'), function (g) { return g.getBoundingClientRect().width > 0; });
+        var sg = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sec-gap'));
+        var parts = [];
+        for(var i = 1; i < secs.length; i++){
+          var d = Math.round((secs[i].getBoundingClientRect().left - secs[i - 1].getBoundingClientRect().right) / z);
+          parts.push(d > sg * 3 && !bar.classList.contains('spread') ? '<span>(space ' + d + ')</span>' : '<b>' + d + '</b>');
+        }
+        var inner = Array.prototype.map.call(bar.querySelectorAll('.well, .vt'), function (w) { return getComputedStyle(w).paddingTop + '/' + getComputedStyle(w).columnGap; });
+        var same = inner.every(function (x) { return x === inner[0]; });
+        gl.innerHTML = 'Between sections: ' + parts.join(' · ') + ' px &nbsp;·&nbsp; inside every well: ' + (same ? '<b>' + inner[0].replace('/', ' padding, ') + ' between buttons</b>' : 'differs: ' + inner.join(', '));
+      }
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button, .tc, .ic, .cap');
+    if(!t) return;
+    var seg = t.closest('.seg');
+    if(seg){
+      var ctl = seg.dataset.ctl, v = t.dataset.v;
+      if(ctl === 'width') setWidth(Number(v)); else if(ctl === 'view') setView(v); else if(ctl === 'state') setState(v);
+      else if(ctl === 'gap'){
+        document.documentElement.style.setProperty('--sec-gap', v + 'px');
+        seg.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === t ? 'true' : 'false'); });
+        measure();
+      }
+      return;
+    }
+    if(t.classList.contains('vt-b')) return setView(t.dataset.view);
+    if(t.classList.contains('star')){
+      var n = t.closest('.card').dataset.n;
+      if(stars[n]) delete stars[n]; else stars[n] = 1;
+      store.set('tbvar.stars', JSON.stringify(stars)); paintStars(); return;
+    }
+    if(t.classList.contains('fill')){ var sw = t.querySelector('.sw'); if(sw) sw.classList.toggle('on'); }
+  });
+  document.getElementById('starred-only').addEventListener('change', function (e) { document.body.classList.toggle('starred-only', e.target.checked); measure(); });
+  window.addEventListener('resize', measure);
+
+  // ?view=month / ?st=editing / ?width=900 open the page on those switches (for screenshots and links). Not ?state=:
+  // the harness server reads that as a calendar fixture's name.
+  var qs = new URLSearchParams(location.search);
+  paintStars(); setState(qs.get('st') === 'editing' ? 'editing' : 'fresh'); setView(qs.get('view') === 'month' ? 'month' : 'sheet');
+  if(/^(1250|1060|900)$/.test(qs.get('width') || '')) setWidth(Number(qs.get('width')));
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,21 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh rebuildticks 300
 //
+// ⚠️ UPDATED 10 Nov 2026 for SHIFT'S LOOK AND FEEL and THE OVERLAP RULE (owner: "make Build Around match the same UI
+// look and feel as the shift tool"; "writers room doesnt always overlap the next phases, only sometimes"). Before /
+// After are "Prior to X" / "After X" under the list (the same two ids), there is no Both button, the count reads
+// "N of M build", and the STARTING TICKS no longer leave Writer's Rm and custom phases out by kind: a phase is left
+// unticked only when it runs ALONGSIDE the phase it would be built against (five shared days or more), and a line
+// under the buttons names it. On this calendar that is Casting (beside Prod Prep) and Localization (it starts in
+// Post's last week: the Christmas hiatus pauses Post for two weeks, to Fri 3/5/27); Writer's Rm ends a week before
+// Pre Prep, so it is ticked and built like any other phase.
+//
+// ⚠️ UPDATED AGAIN 10 Nov 2026: NO PRIOR TO / AFTER BUTTONS (owner: "using the build around tool is such a big change
+// that i dont think we need the before and after buttons. I'd say just get rid of them entirly"). The box always
+// opens on both sides, so the line names BOTH phases the rule leaves out here (Casting and Localization), and this
+// leg reaches one side by the boxes alone (keepSide). The "Prior to Production" / "After Production" wording below
+// now means "with the other side unticked".
+//
 // The owner's question: "what if you dont want localization added by rebuild From or you do want a custom
 // phase moved by rebuild from. How does it know which phases to affect?" The direction now picks a side, the
 // list names its phases with the start each would get, and Rebuild moves only the ticked ones. An unticked
@@ -16,24 +31,27 @@
 // "Casting", 6 weeks from Mon 4/27/26, running ALONGSIDE Pre Prep and Prod Prep:
 //   Writer's Rm 1/5/26 x 12 wk (it ends 3/30, a week before Pre Prep), Pre Prep 4/6 x 6, Prod Prep 5/18 x 6,
 //   Production 6/29, Post 11/2 x 16, Localization 3/1/27 x 8.
-// Production pinned two weeks later, Mon 7/13, Before at the starting ticks (built-ins ticked except Writer's Rm,
-// custom phases not): Prod Prep 6/1, Pre Prep 4/20 (6 and 6 weeks back, end to end); Writer's Rm and Casting stay.
-// With Casting ticked it is chained between them instead, and pushes everything before it six weeks earlier: the
-// bug the default avoids.
+// Production pinned two weeks later, Mon 7/13, Prior to Production at the starting ticks: Prod Prep 6/1, Pre Prep
+// 4/20, Writer's Rm 1/26 (6, 6 and 12 weeks back, end to end: the room's one-week gap closes, so it is pushed 3);
+// Casting, alongside Prod Prep, stays. With Casting ticked it is chained between them instead, and pulls everything
+// before it six weeks earlier: the move the starting ticks avoid.
 //
 //   T0      truth guard: the calendar as built
-//   L1-L3   the list backwards from Production: rows in the order the phases run, the starting ticks, the
-//           count and the button, and every row's date and "Pushed / Pulled / Stays"
+//   L1-L3   the list from Production: rows in the order the phases run, the starting ticks on both sides (and no
+//           side buttons), then the earlier side alone: the count and the button, and every row's date and
+//           "Pushed / Pulled / Stays"
 //   P1      drawing the preview moved nothing (it runs the real solvers and puts them back)
 //   G1-G3   Rebuild: exactly the previewed dates, Casting untouched, the result line, one undo restores
 //   R1      reopened, the ticks are back at their defaults
-//   C1      Casting ticked: chained in, and the phases before it pulled earlier by its length
-//   F1-F4   forwards with Localization unticked: Post lands on the previewed date, Localization keeps 3/1/27,
-//           the phases before the pin do not move, one undo restores
-//   D1      the box opens on Both every time (Build Around; the direction was kept across openings until then)
+//   C1      Casting ticked: chained in, and the phases before it pulled earlier by its length; the line drops it
+//   F1-F4   the later side alone: Post ticked, Localization left unticked by the rule (it starts in Post's last week)
+//           and named on the line; Post lands on the previewed date, Localization keeps 3/1/27, the phases before
+//           the pin do not move, one undo restores
+//   D1      reopened, the ticks changed by hand are forgotten: both sides at the starting ticks, no side buttons
 //   I1      no tick carries an id (collectFieldValues() must never sweep one into a saved file)
-//   U1-U2   Localization starts unticked unless its weeks were entered (owner, 30 Oct 2026); a start date
-//           alone gives it no length, so its row reads "No length"
+//   U1-U3   Localization with no weeks reads "No length" and cannot be ticked (owner, 30 Oct 2026); with its weeks
+//           entered it is ticked when it starts after Post ends (3/8/27), and left unticked, with the line, when it
+//           starts in Post's last week (3/1/27)
 //   E0      0 console errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -62,6 +80,18 @@ window.addEventListener('load', function () { (async function () {
     if(box && box.checked !== on) box.click();
   }
   function go(){ return $('tool-solve-go'); }
+  // ONE SIDE OF THE PIN, BY THE BOXES ALONE (there are no Prior to / After buttons since 10 Nov 2026): every ticked
+  // phase on the other side is unticked (T.solveKeepSide in lib.js). dir -1 keeps the phases before the pin, 1 the
+  // ones after it.
+  function keepSide(dir){ T.solveKeepSide(dir); }
+  function tickedNames(){ return rows().filter(function (r) { return r.ticked === true; }).map(function (r) { return r.nm; }).join(); }
+  function sideBtns(){ return $('pop-solve').querySelectorAll('.shift-side, [data-dir]').length + ($('tool-solve-back') ? 1 : 0) + ($('tool-solve-fwd') ? 1 : 0); }
+  var CAST_LINE = 'Casting left unticked: it runs alongside Prod Prep. Tick it to build it in line.';
+  var LOC_LINE = 'Localization left unticked: it runs alongside Post. Tick it to build it in line.';
+  var BOTH_LINE = 'Casting and Localization left unticked: each runs alongside the phase next to it. Tick them to build them in line.';
+  // The line under the list that says why a phase was left unticked ('' while it is hidden).
+  function left(){ var n = $('pop-solve').querySelector('[data-solve-left]'); return n && !n.hidden ? (n.textContent || '').trim() : ''; }
+  function count(){ return ($('pop-solve').querySelector('[data-solve-count]') || {}).textContent; }
   var KEYS = ['writersRoom', 'prePrep', 'prodPrep', 'production', 'post', 'localization', 'custom1'];
   function starts(){ var o = {}; KEYS.forEach(function (k) { o[k] = val('start-' + k); }); return o; }
   function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
@@ -82,70 +112,76 @@ window.addEventListener('load', function () { (async function () {
       s0.writersRoom === '2026-01-05' && s0.prePrep === '2026-04-06' && s0.prodPrep === '2026-05-18' && s0.production === '2026-06-29'
         && s0.post === '2026-11-02' && s0.localization === '2027-03-01' && s0.custom1 === '2026-04-27', s0, 'buildFixture + Casting 4/27');
 
-    // ---- Backwards from Production, pinned to 7/13, at the starting ticks ----
+    // ---- From Production, pinned to 7/13: the starting ticks on both sides, then the earlier side alone ----
     await openSolve();
-    $('tool-solve-back').click(); await T.sleep(150);
     T.set('tool-solve-phase', 'production'); await T.sleep(150);
     var gridBefore = $('table-wrap').innerHTML;
     T.set('tool-solve-date', '2026-07-13'); await T.sleep(400);
+    var open = {ticked: tickedNames(), count: count(), left: left(), go: go().textContent, sideBtns: sideBtns()};
+    keepSide(-1); await T.sleep(300);
     var r1 = rows();
     add('L1', 'every phase in the order it runs, the pin in its place',
       same(r1.map(function (r) { return r.nm; }), ["Writer's Rm", 'Pre Prep', 'Casting', 'Prod Prep', 'Production', 'Post', 'Localization']) && r1[4].pin,
       r1.map(function (r) { return r.nm; }), "Writer's Rm, Pre Prep, Casting, Prod Prep, Production (pinned), Post, Localization");
-    add('L2', 'Before\'s ticks: the built-ins before the pin except Writer\'s Rm, no custom phase; "2 of 6 ticked", "Build 2 phases"',
-      row("Writer's Rm").ticked === false && row('Pre Prep').ticked === true && row('Prod Prep').ticked === true && row('Casting').ticked === false
-        && row('Post').ticked === false
-        && ($('pop-solve').querySelector('[data-solve-count]').textContent === '2 of 6 ticked')
-        && go().textContent === 'Build 2 phases' && !go().disabled,
-      {rows: r1, count: $('pop-solve').querySelector('[data-solve-count]').textContent, go: go().textContent}, 'Pre Prep and Prod Prep ticked');
-    add('L3', 'each row shows its new start and how it moves, in the owner\'s words',
-      row("Writer's Rm").dt === '1/5/26' && row("Writer's Rm").ch === 'Stays'
+    add('L2', 'the starting ticks, both sides and no side buttons: every phase with a length, Writer\'s Rm included, except Casting (alongside Prod Prep) and Localization (alongside Post), both named on the line; "4 of 6 build". With Post unticked, the earlier side alone: "3 of 6 build", "Build 3 phases", the line unchanged',
+      open.ticked === "Writer's Rm,Pre Prep,Prod Prep,Post" && open.count === '4 of 6 build' && open.left === BOTH_LINE && open.go === 'Build 4 phases' && open.sideBtns === 0
+        && row("Writer's Rm").ticked === true && row('Pre Prep').ticked === true && row('Prod Prep').ticked === true && row('Casting').ticked === false
+        && row('Post').ticked === false && count() === '3 of 6 build' && left() === BOTH_LINE
+        && go().textContent === 'Build 3 phases' && !go().disabled,
+      {open: open, rows: r1, count: count(), left: left(), go: go().textContent}, "opens with WR, Pre Prep, Prod Prep and Post; then Writer's Rm, Pre Prep and Prod Prep; Casting and Localization on the line");
+    add('L3', 'each row shows its new start and how it moves, in the owner\'s words (the room\'s one-week gap before Pre Prep closes, so it is pushed 3)',
+      row("Writer's Rm").dt === '1/26/26' && row("Writer's Rm").ch === 'Pushed 3 wks'
         && row('Pre Prep').dt === '4/20/26' && row('Pre Prep').ch === 'Pushed 2 wks'
         && row('Casting').dt === '4/27/26' && row('Casting').ch === 'Stays'
         && row('Prod Prep').dt === '6/1/26' && row('Prod Prep').ch === 'Pushed 2 wks'
         && row('Production').dt === '7/13/26' && row('Production').ch === 'Pushed 2 wks',
-      r1, 'WR 1/5 Stays, Pre Prep 4/20 Pushed 2 wks, Casting 4/27 Stays, Prod Prep 6/1 Pushed 2 wks, Production 7/13 Pushed 2 wks');
+      r1, 'WR 1/26 Pushed 3 wks, Pre Prep 4/20 Pushed 2 wks, Casting 4/27 Stays, Prod Prep 6/1 Pushed 2 wks, Production 7/13 Pushed 2 wks');
     add('P1', 'drawing the preview moved nothing: every start and the grid are as they were',
       same(starts(), s0) && $('table-wrap').innerHTML === gridBefore, {starts: starts(), gridSame: $('table-wrap').innerHTML === gridBefore}, s0);
 
     go().click(); await settle();
     var s1 = starts();
-    add('G1', 'Build delivers exactly the previewed dates, and Casting and Writer\'s Rm keep their own',
-      s1.writersRoom === '2026-01-05' && s1.prePrep === '2026-04-20' && s1.prodPrep === '2026-06-01' && s1.production === '2026-07-13'
+    add('G1', 'Build delivers exactly the previewed dates, and Casting keeps its own',
+      s1.writersRoom === '2026-01-26' && s1.prePrep === '2026-04-20' && s1.prodPrep === '2026-06-01' && s1.production === '2026-07-13'
         && s1.custom1 === '2026-04-27' && s1.post === s0.post && s1.localization === s0.localization,
-      s1, 'WR 1/5, Pre Prep 4/20, Prod Prep 6/1, Production 7/13, Casting 4/27, Post and Localization unmoved');
-    add('G2', 'the result line names the pin and the far end', /^Production starts 7\/13\/26\. 2 phases built around it\./.test(msg()) && /Pre Prep starts 4\/20\/26/.test(msg()),
-      {msg: msg()}, '"Production starts 7/13/26. 2 phases built around it. Pre Prep starts 4/20/26."');
+      s1, 'WR 1/26, Pre Prep 4/20, Prod Prep 6/1, Production 7/13, Casting 4/27, Post and Localization unmoved');
+    add('G2', 'the result line names the pin and the far end', /^Production starts 7\/13\/26\. 3 phases built around it\./.test(msg()) && /Writer's Rm starts 1\/26\/26/.test(msg()),
+      {msg: msg()}, '"Production starts 7/13/26. 3 phases built around it. Writer\'s Rm starts 1/26/26."');
     await undo();
     add('G3', 'one undo restores every phase', same(starts(), s0), starts(), s0);
 
     // ---- Reopened: the ticks are back at their defaults. Tick Casting and watch the chain change ----
     await openSolve();
-    $('tool-solve-back').click(); await T.sleep(150);
     T.set('tool-solve-phase', 'production'); await T.sleep(150);
     T.set('tool-solve-date', '2026-07-13'); await T.sleep(400);
-    add('R1', 'reopened, the ticks start from the defaults again (Casting unticked)', row('Casting').ticked === false && row('Pre Prep').ticked === true,
-      rows(), 'Casting unticked');
+    add('R1', 'reopened, the ticks start from the defaults again (Casting unticked, and Post, unticked by hand last time, ticked)',
+      row('Casting').ticked === false && row('Pre Prep').ticked === true && row('Post').ticked === true && count() === '4 of 6 build',
+      rows(), 'Casting unticked, Post ticked, "4 of 6 build"');
+    keepSide(-1);
     tick('Casting', true); await T.sleep(250);
     var rc = rows();
-    add('C1', 'Casting ticked: chained in before Prod Prep, so Pre Prep is pulled earlier by its 6 weeks; Writer\'s Rm stays',
+    add('C1', 'Casting ticked (the earlier side alone): chained in before Prod Prep, so Pre Prep and Writer\'s Rm are pulled earlier by its 6 weeks; the line no longer names it (Localization, untouched, is still on it)',
       row('Casting').dt === '4/20/26' && row('Casting').ch === 'Pulled 1 wk'
         && row('Pre Prep').dt === '3/9/26' && row('Pre Prep').ch === 'Pulled 4 wks'
-        && row("Writer's Rm").dt === '1/5/26' && row("Writer's Rm").ch === 'Stays'
-        && go().textContent === 'Build 3 phases' && same(starts(), s0),
-      {rows: rc, go: go().textContent, unmoved: same(starts(), s0)}, 'Casting 4/20, Pre Prep 3/9, WR stays; nothing moved yet');
+        && row("Writer's Rm").dt === '12/15/25' && row("Writer's Rm").ch === 'Pulled 3 wks'
+        && left() === LOC_LINE && go().textContent === 'Build 4 phases' && same(starts(), s0),
+      {rows: rc, left: left(), go: go().textContent, unmoved: same(starts(), s0)}, 'Casting 4/20, Pre Prep 3/9, WR 12/15/25; the line names Localization only; nothing moved yet');
     tick('Casting', false); await T.sleep(250);
 
-    // ---- Forwards from Production, Localization unticked ----
-    $('tool-solve-fwd').click(); await T.sleep(250);
+    // ---- The later side alone, Localization unticked ----
+    keepSide(1);
+    tick('Post', true); await T.sleep(250);
     var rf = rows();
-    var ok1 = rf[4].pin && row('Post').ticked === true && row('Localization').ticked === true
-      && row('Pre Prep').ticked === false && row('Prod Prep').ticked === false;
-    tick('Localization', false); await T.sleep(250);
-    var postPreview = row('Post').dt, locRow = row('Localization');
-    add('F1', 'After: the phases after the pin ticked, the ones before it not; Localization unticked reads "Stays" on 3/1/27 and the button counts 1',
-      ok1 && locRow.ch === 'Stays' && locRow.dt === '3/1/27' && go().textContent === 'Build 1 phase' && /^Pushed /.test(row('Post').ch),
-      {rows: rows(), go: go().textContent}, 'Post (Pushed …), Localization Stays 3/1/27; "Build 1 phase"');
+    // Localization starts Mon 3/1/27, in Post's LAST week: Post's 16 weeks pause for the two-week Christmas hiatus,
+    // so it works to Fri 3/5/27. Five shared days: alongside, so the rule leaves it unticked and says so.
+    var ok1 = rf[4].pin && row('Post').ticked === true && row('Localization').ticked === false
+      && row('Pre Prep').ticked === false && row('Prod Prep').ticked === false && row("Writer's Rm").ticked === false;
+    var postMeta = (($('meta-post') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+    var postPreview = row('Post').dt, locRow = row('Localization'), leftF = left();
+    add('F1', 'the later side alone (the phases before the pin unticked by their boxes): Post ticked, the phases before the pin not; Localization, which starts in Post\'s last week, is left unticked, reads "Stays" on 3/1/27 and is named on the line; the button counts 1',
+      ok1 && locRow.ch === 'Stays' && locRow.dt === '3/1/27' && go().textContent === 'Build 1 phase' && /^Pushed /.test(row('Post').ch)
+        && leftF === LOC_LINE && /3\/5\/27/.test(postMeta),
+      {rows: rows(), go: go().textContent, left: leftF, post: postMeta}, 'Post (Pushed …), Localization Stays 3/1/27 and on the line; Post ends 3/5/27; "Build 1 phase"');
     go().click(); await settle();
     var s2 = starts();
     add('F2', 'Post lands on the previewed date; Localization keeps 3/1/27',
@@ -156,11 +192,12 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     add('F4', 'one undo restores every phase', same(starts(), s0), starts(), s0);
 
-    // ---- The direction lasts the session; nothing in the list has an id ----
+    // ---- Nothing ticked by hand lasts past the opening; nothing in the list has an id ----
     await openSolve();
-    add('D1', 'reopened, the box is back on Both (it opens on Both every time)',
-      $('tool-solve-both').getAttribute('aria-pressed') === 'true' && $('tool-solve-fwd').getAttribute('aria-pressed') === 'false',
-      {both: $('tool-solve-both').getAttribute('aria-pressed'), fwd: $('tool-solve-fwd').getAttribute('aria-pressed')}, 'Both pressed');
+    add('D1', 'reopened after a one-sided build, the box is back at its starting ticks on both sides: the phases before the pin are ticked again; there is no Both, Prior to or After button',
+      row('Pre Prep').ticked === true && row('Prod Prep').ticked === true && row("Writer's Rm").ticked === true && row('Post').ticked === true
+        && !$('tool-solve-both') && sideBtns() === 0 && count() === '4 of 6 build',
+      {rows: rows(), both: !!$('tool-solve-both'), sideBtns: sideBtns(), count: count()}, 'both sides ticked; no side buttons; "4 of 6 build"');
     var boxes = document.querySelectorAll('#pop-solve .solve-list input');
     add('I1', 'no tick or length box carries an id, and every one sits inside .tools-menu',
       boxes.length > 0 && !document.querySelector('#pop-solve .solve-list input[id]')
@@ -174,18 +211,32 @@ window.addEventListener('load', function () { (async function () {
     //      "No length". A start date alone gives it no length, so it still cannot be placed. ----
     T.set('weeks-localization', ''); await settle();
     await openSolve();
-    $('tool-solve-fwd').click(); T.set('tool-solve-phase', 'production'); await T.sleep(400);
+    T.set('tool-solve-phase', 'production'); await T.sleep(400);
+    keepSide(1); await T.sleep(300);
     var locNo = row('Localization'), goNo = go().textContent;
-    add('U1', 'Localization with a start date but no weeks starts unticked and reads "No length"; Build counts only Post',
+    add('U1', 'Localization with a start date but no weeks starts unticked and reads "No length"; with the earlier side unticked, Build counts only Post',
       locNo.ticked === false && locNo.ch === 'No length' && val('start-localization') === '2027-03-01' && goNo === 'Build 1 phase',
       {row: locNo, go: goNo, start: val('start-localization')}, 'unticked, "No length", "Build 1 phase"');
     closePops(); await T.sleep(150);
-    T.set('weeks-localization', '8'); await settle();
+    // With its weeks entered it can be ticked, and the rule decides: ticked when it starts after Post has ended...
+    T.set('weeks-localization', '8'); T.set('start-localization', '2027-03-08'); await settle();
     await openSolve();
-    $('tool-solve-fwd').click(); await T.sleep(400);
-    var locYes = row('Localization');
-    add('U2', 'with its weeks entered, Localization starts ticked', locYes.ticked === true && go().textContent === 'Build 2 phases',
-      {row: locYes, go: go().textContent}, 'ticked, "Build 2 phases"');
+    await T.sleep(400);
+    var locYes = row('Localization'), leftYes = left();
+    keepSide(1); await T.sleep(300);
+    add('U2', 'with its weeks entered and a start after Post ends (3/8/27), Localization starts ticked and is not on the line (only Casting is); the later side alone is "Build 2 phases"',
+      locYes.ticked === true && leftYes === CAST_LINE && go().textContent === 'Build 2 phases',
+      {row: locYes, go: go().textContent, left: leftYes}, 'ticked, the line names Casting only, "Build 2 phases"');
+    closePops(); await T.sleep(150);
+    // ...and left unticked when it starts in Post's last week.
+    T.set('start-localization', '2027-03-01'); await settle();
+    await openSolve();
+    await T.sleep(400);
+    var locBeside = row('Localization'), leftBeside = left();
+    keepSide(1); await T.sleep(300);
+    add('U3', 'with its weeks entered but starting in Post\'s last week (3/1/27), Localization starts unticked and is named on the line (beside Casting); the later side alone is "Build 1 phase"',
+      locBeside.ticked === false && locBeside.ch === 'Stays' && leftBeside === BOTH_LINE && go().textContent === 'Build 1 phase',
+      {row: locBeside, go: go().textContent, left: leftBeside}, 'unticked, the line names both, "Build 1 phase"');
     closePops();
     var errs = (window.__ERR || []);
     add('E0', '0 console errors', errs.length === 0, errs.slice(0, 5), '[]');

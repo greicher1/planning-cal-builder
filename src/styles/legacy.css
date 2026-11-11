@@ -1540,10 +1540,11 @@
   .hiatus-pair label.hiatus-weeks-lbl{ flex:0 0 64px; }
   .hiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .hiatus-body > .snap-note{ margin-top:4px; }
-  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §5-6): the switch at the top of the All-phase hiatus card, and the line
-     that says what a ripple moved, under the hiatus that was edited. */
-  .hiatus-ripple-card{ padding:0 12px 6px; }
-  .hiatus-ripple-card > .sw-row{ border-bottom:none; }
+  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §6): the line that says what a ripple moved, under the hiatus that was
+     edited. .hiatus-ripple-card is the line's home for a REMOVED hiatus, at the top of the All-phase hiatus card: empty,
+     and so no height, until then. It held the ripple's switch until 10 Nov 2026 (owner, "Settings only"). */
+  .hiatus-ripple-card{ padding:0 12px; }
+  .hiatus-ripple-card > .ripple-note{ margin:0 0 6px; }
   .ripple-note{ margin-top:4px; padding:4px 6px; border-radius:4px; font-size:var(--mantine-font-size-xs); line-height:1.4;
     color:var(--mantine-color-black); background:color-mix(in srgb, var(--mantine-primary-color-filled) 9%, transparent); }
   .ripple-note[hidden], .ripple-note:empty{ display:none; }
@@ -1618,8 +1619,15 @@
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
-  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
-    flex-wrap:wrap; margin-bottom:14px;}
+  /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
+     the differnt sections is literally all different. It needs to be consistnet"). The view toggle alone at the left
+     edge; then, packed to the right in the owner's order of 10 Nov 2026, the date tools (Shift, Build Around), the
+     text style buttons, the page tools and Undo / Redo, the last three in grey wells. ONE gap between every section, --tb-gap (column-gap here, and between the two wells inside .preview-tools),
+     and inside every well, the view toggle's included, 2 px of padding, 2 px between buttons and nested corners (a
+     9 px well around 7 px buttons): .tb-well below. Read by useStyleBarFit too. The lines below the first (the phase
+     map, the stepper, the style bar on its own line) keep their 10 px row gap. */
+  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; column-gap:var(--tb-gap); row-gap:10px;
+    flex-wrap:wrap; margin-bottom:14px; --tb-gap:12px;}
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1630,14 +1638,15 @@
     display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr;
     gap:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1);
-    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);
+    /* A 9 px well around 7 px segments, as every toolbar well (variation 27); was md around sm. */
+    border-radius:calc(var(--mantine-radius-default) + 2px); padding:var(--mantine-spacing-xxs);
   }
   .view-toggle-btn{
     display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
     border:none; background:transparent; color:var(--mantine-color-gray-7);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-lg);
-    border-radius:var(--mantine-radius-sm); cursor:pointer;
+    border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:color .12s ease, background .12s ease;
   }
   .vt-ic{ width:14px; height:14px; flex:none; }
@@ -1657,11 +1666,37 @@
      max-width:100% caps the max-content size at the container's width, which is what lets the
      children wrap; row-gap keeps the wrapped lines apart. On a wide window max-content is under
      100%, nothing wraps, and the appearance is byte-identical to before. */
-  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;
+  .preview-tools{display:inline-flex; align-items:center; column-gap:var(--tb-gap); flex:none;
     flex-wrap:wrap; row-gap:8px; max-width:100%;}
-  .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
+  /* THE WELLS (variation 27). The view toggle's grey ground, padding and gap, around each section's buttons. The text
+     style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
+     a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
+     hang below the well. */
+  .tb-well, .preview-tools > .undo-redo-group{
+    display:inline-flex; align-items:center; flex:none; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
+    background:var(--mantine-color-gray-1); border-radius:calc(var(--mantine-radius-default) + 2px);
+  }
+  /* The date tools have NO well (owner, 10 Nov 2026: "remove the faint grey box surrounding the shift and build around
+     buttons"): their own navy outlines are their edge. No padding either, so the gap you see from those outlines to
+     the wells beside them is the one section gap, 12 px, as between every other pair. */
+  .tb-dates{ background:transparent; padding:0; }
+  /* ...and Shift and Build Around stand apart by the one section gap, not 2 px (owner, 10 Nov 2026: "there should be
+     MORE space between the right shift button and build around so it matches the current spacing of the redo button
+     and size button gap"), so the two outlined tools read as two sections, 12 px apart like every other pair. */
+  .tb-dates{ gap:var(--tb-gap); }
+  /* The date tools come right after the view toggle (owner's reorder, 10 Nov 2026: view | Shift + Build Around | text |
+     page tools | Undo / Redo), and their auto left margin packs every tool to the right. Variation 27 had Undo / Redo
+     first, carrying this margin. */
+  .view-toggle-row > .tb-dates{ margin-left:auto; }
+  /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
+     the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
+     white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */
+  .undo-redo-group .icon-btn, .tb-page > .tools-btn{ border-color:transparent; background:transparent; }
+  .undo-redo-group .icon-btn:hover:not(:disabled), .tb-page > .tools-btn:hover, .tb-page > .tools-btn[aria-expanded="true"]{
+    background:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs);
+  }
   .undo-redo-group .icon-btn{font-size:16px;}
-  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
+  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:transparent;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
   /* A joined three-part control at the toolbar's shared 30px control height -- the Mantine UI
@@ -1763,7 +1798,8 @@
      From's wrapper, NOT on the Header button: .preview-tools wraps on a narrow window, and the Header
      button is what moves to the new line (measured at a 600 px viewport), where a margin-left would
      indent it. A trailing margin at the end of a line is invisible. */
-  .tools-wrap:has(> #pop-solve-btn){ margin-right:16px; }
+  /* ⛔ That margin is GONE since 10 Nov 2026 (variation 27): the date tools and the page tools are separate wells now,
+     with the one section gap (--tb-gap) between them, so a margin here would make that one gap different again. */
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
@@ -1827,7 +1863,10 @@
        * The rows are pressed and dragged, so their text is not selectable. */
   .shift-box{border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-md); overflow:hidden;
     margin-bottom:6px;}
-  #pop-shift .shift-box .solve-list{border:0; border-radius:0; margin:0; -webkit-user-select:none; user-select:none;}
+  #pop-shift .shift-box .solve-list, #pop-solve .shift-box .solve-list{border:0; border-radius:0; margin:0;
+    -webkit-user-select:none; user-select:none;}
+  /* Build Around's length boxes are typed in, so they stay selectable inside its list. */
+  #pop-solve .shift-box .solve-list input{-webkit-user-select:text; user-select:text;}
   .shift-all{display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:7px; margin:0;
     padding:5px 9px; background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-2);
     font-size:11.5px; line-height:1.4; color:var(--mantine-color-gray-7); cursor:pointer;
@@ -1848,7 +1887,7 @@
   .shift-all input[type=checkbox]:disabled:checked{background-color:var(--mantine-color-gray-4); border-color:var(--mantine-color-gray-4);}
   /* The last row clicked, ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge
      and the row lines never clip it. It is the row Prior / After name. */
-  #pop-shift .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
+  #pop-shift .solve-row.is-mark, #pop-solve .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
   /* To a date, the phase that lands: Build Around's pinned-row tint, on a row that keeps its tick box (it is the
      outlined row's phase whenever that row is ticked, so it changes with a click and must stay clearable). */
   #pop-shift .solve-row.is-land{background:var(--mantine-color-navy-0);}
@@ -1940,6 +1979,12 @@
   .solve-len-ro.is-unset{color:var(--mantine-color-warn-9); font-weight:600;}
   .solve-row.is-nolen .solve-ch{color:var(--mantine-color-warn-9);}
   .solve-ch{overflow:hidden; text-overflow:ellipsis;}
+  /* Why a phase was left unticked (owner, 10 Nov 2026): one quiet line under the list, only while it applies.
+     The engine writes it and hides it through `hidden`. Build Around has no Prior / After row (owner, 10 Nov 2026),
+     so its list box carries the gap that row gave: 10 px to "Pin to a date", 6 px to this line. */
+  #pop-solve .shift-box{margin-bottom:10px;}
+  .solve-left{margin:-4px 0 10px; padding:6px 9px; border-radius:var(--mantine-radius-md); font-size:11px; line-height:1.4;
+    color:var(--mantine-color-gray-7); background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-2);}
   .solve-note{margin:-2px 0 var(--mantine-spacing-md); padding:6px 9px; border-radius:var(--mantine-radius-md);
     font-size:11px; line-height:1.4; color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
     border:1px solid var(--mantine-color-warn-2);}
@@ -2782,6 +2827,22 @@
      scheduleLiveUpdate, which know nothing about this layer, so hide it rather than let it go
      stale -- reusing the class the frozen code already adds and removes. */
   body.grid-resizing .grid-sel-layer{ display:none; }
+  /* ---------- The hover prompt: "Expand?" / "Pull back?" (10 Nov 2026; tracker card blank-space-expand-prompt) ----------
+     Its own layer beside .grid-sel-layer, z-index 1 so its outlines scroll UNDER the frozen sticky header like the
+     selection's. Purple for Expand (the selection's colour: it becomes a fill), amber for Pull back (the swap layer's
+     colour for taking something back). The chip is the only clickable thing on it. Never printed. */
+  .grid-hover-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .grid-hover-rect{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.8);
+    background:rgba(112,48,160,.07); border-radius:2px; }
+  .grid-hover-rect.is-pull{ border-color:rgba(185,121,26,.9); background:rgba(232,163,61,.10); }
+  .grid-hover-phase{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.45); border-radius:2px; }
+  .grid-hover-chip{ position:absolute; z-index:2; pointer-events:auto; cursor:pointer; white-space:nowrap;
+    font:11px/1.4 'Inter',system-ui,sans-serif; padding:2px 8px; border:0; border-radius:10px;
+    background:rgba(112,48,160,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .grid-hover-chip:hover, .grid-hover-chip:focus-visible{ background:#5A2384; }
+  .grid-hover-chip.is-pull{ background:#B9791A; }
+  .grid-hover-chip.is-pull:hover, .grid-hover-chip.is-pull:focus-visible{ background:#8F5C12; }
+  body.grid-resizing .grid-hover-layer, body.grid-selecting .grid-hover-layer, body.grid-swapping .grid-hover-layer{ display:none; }
   body.grid-selecting{ user-select:none; cursor:cell; }
   body.grid-cell-hover{ cursor:cell; }
 
@@ -3232,34 +3293,77 @@
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
-  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools.
-     Since 28 Oct 2026 that line is .style-row, which it shares with the month stepper in the month view
-     (MONTH-RAIL-PLAN.md §18). In the waterfall the stepper renders nothing and the host fills the line, as before.
-     The host keeps 260 px, its controls' width, so on a narrow window the stepper wraps under it instead. */
+  /* SINCE 10 NOV 2026 (owner: "move the styling bar to this blank space between Month and the left shift button. It
+     should only be the buttons ... not the surrounding box, text, etc"): the host sits on the row's FIRST line,
+     between the view toggle and the tools, and the bar is its bare buttons. No box, no "Text" label (::before), no
+     "Highlight any text…" hint (::after); the engine puts that hint in the bar's title while nothing is picked.
+     BESIDE SHIFT (owner, the same day, after a first pass centred it: "the same size gap between the right edge of
+     the styling menu and the left shift button as there is between build around and fill space button"): the auto
+     left margin takes the line's free space, and the gap to Shift is the row's 10 px plus --tools-group-gap, as
+     after Build Around. A highlight well appearing (a header or box line picked) widens it to the left; nothing
+     else moves.
+     Before, the host was a full-width second line (.style-row), a boxed bar shared with the month stepper. */
+  /* VARIATION 27 (owner, later the same day): the host follows Undo / Redo with the one section gap, and the bar is a
+     grey well like every section (.style-bar below). No margins of its own. */
+  .view-toggle-row > .style-bar-host{ flex:none; }
+  /* Where the three no longer fit on one line (PreviewToolbar.jsx, useStyleBarFit), the bar alone drops to a line
+     under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
+     owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
+     it did. */
+  .view-toggle-row > .style-bar-host.style-own-line{ order:1; flex:1 1 260px; min-width:0; margin:0; }
+  .view-toggle-row > .style-bar-host.style-own-line ~ .style-row{ order:2; flex:0 1 auto; }
+  /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
+     so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
+  .view-toggle-row:not(:has(> .month-map)) > .style-bar-host.style-own-line{ flex-basis:100%; }
+  /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
+     not even the row's gap above it. */
   .view-toggle-row > .style-row{
     flex:1 1 100%; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--mantine-spacing-xs);
   }
-  .style-row > .style-bar-host{ flex:1 1 260px; min-width:0; }
+  .view-toggle-row > .style-row:empty{ display:none; }
   .style-bar{
-    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
-    min-width:0;
-    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-sm);
+    display:flex; align-items:center; gap:var(--mantine-spacing-xxs); flex-wrap:nowrap; box-sizing:border-box;
+    /* Its own width, never its line's: the fit measures it, and it must not change with where the bar sits. */
+    width:max-content;
+    /* A toolbar well (variation 27), on the bar and not the host, so it stays around the buttons on its own line. */
+    padding:var(--mantine-spacing-xxs); background:var(--mantine-color-gray-1);
+    border-radius:calc(var(--mantine-radius-default) + 2px);
   }
-  .style-bar::before{
-    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
-    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  /* THE TOOLBAR'S BUTTONS (owner, 10 Nov 2026: "make the buttons tall enough to match the look and style of the other
+     buttons in the menu"): the .hf-* controls are the header strip's 22 px ones, so here they take the toolbar's
+     30 px height, white ground, gray-4 border and default radius, read from Undo / Side Boxes. B, I, A and Clear are
+     30 px squares like Undo; the glyphs grow with them. Scoped to .style-bar: the header editor keeps its own copy of
+     these controls at 22 px. */
+  /* Inside the well (variation 27) they are borderless until hovered, then the raised white chip. */
+  .style-bar .hf-ctl{
+    height:var(--input-height-xs, 30px); box-sizing:border-box;
+    border:1px solid transparent; border-radius:var(--mantine-radius-default);
+    background-color:transparent; color:var(--mantine-color-gray-7);
+    font-size:var(--mantine-font-size-xs); font-weight:500;
   }
-  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  /* background-COLOR: the shorthand would also clear the Size box's drawn arrow on hover. */
+  .style-bar .hf-ctl:hover{ background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--mantine-color-black); }
+  .style-bar .hf-btn{ min-width:var(--input-height-xs, 30px); padding:0 6px; font-size:14px; }
+  /* Its arrow drawn, not Chrome's: the UA arrow sat against the right border (owner, 10 Nov 2026: "move the downward
+     carrot over a little in the size box so it doesnt hit the right edge") and padding does not move it. The tool
+     popovers' selects' chevron (.tools-menu select), 8 px in from the edge. Still a real <select>: syncStyleBar
+     writes its options. */
+  .style-bar .hf-size{
+    width:66px; padding:0 24px 0 8px;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
+  }
+  .style-bar .hf-swatch{ width:var(--input-height-xs, 30px); }
+  .style-bar .hf-swatch .hf-swatch-ink{ font-size:14px; }
+  .style-bar .hf-al-toggle{ gap:3px; padding:0 6px 0 7px; }
+  .style-bar .hf-al-toggle svg{ width:16px; height:16px; }
+  /* Pressed (Bold on): the raised white chip of the view toggle's active segment, in the edit purple. */
+  .style-bar .hf-btn.is-on{
+    background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--edit-accent); font-weight:700;
+  }
+  /* Nothing picked: dimmed and inert (the strip's empty-state rule, 21 Sep 2026). */
   .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
-  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
-     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
-     below it. */
-  .style-bar:not(.has-target)::after{
-    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
-    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
-  }
   .style-bar .hf-swatch[hidden]{ display:none; }
   /* A highlight that is part one look and part another: outlined in the accent, not filled. */
   .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }

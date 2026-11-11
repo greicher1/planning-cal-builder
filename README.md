@@ -196,6 +196,298 @@ picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md`
 - **Proof:** a new leg, `phasenotes` (fixture `phasenotes.sptcal`), 21/21 on the build. It covers every mover, both
   exports, the Notes width, the editor, a custom phase removed, Save/Load, an older file, hostile entries and undo.
   `npm run check` 40/40. Full gate: see HANDOFF.
+### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+
+The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
+its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*.
+
+- **The hover prompt** now reads a phase's own hiatus band as part of the phase. Resting beside the band offers
+  **Expand?**, the dashed box runs through the hiatus weeks (one box from Test wk 8 through both Test Hiatus weeks to
+  wk 9, "these 4 weeks"), and the click widens the hiatus weeks with the rest. A widened band offers **Pull back?**.
+  Before, a blank beside a band offered nothing and the box stopped at the band.
+- **The double-click fill** widens the band too when the free column is on its left (⛔ frozen edit LR8 in
+  `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
+  between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
+  the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- **Expand? on both sides** (owner, trying it: *"once i expand one side, the box no longer pops up on the other side
+  empty space"*): a cell already widened to one side still offers Expand? on the blank on its other side, and the click
+  keeps the side it has. Before, the first Expand? took the other side's offer away.
+- Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
+
+**Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out
+byte for byte as before; the waterfall PDF and the workbook identical to their baselines; the 20 layout fixtures,
+`phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
+`offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
+42/42. No full gate (a partial gate of gate.sh's sections).
+### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+
+Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
+rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
+switch is in Settings › Preferences › Hiatus. The result line under an edited hiatus stays; the month drag's question,
+the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
+rewritten for one switch, 19/19; `hiatusdrag.mjs` 14/14; `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`,
+`badyear` green (73); browser check with the switch on and off; `npm run check` 42/42.
+### Unreleased — Compare dates a phase from the first week it works (10 Nov 2026)
+
+The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and
+"1/3/28 – 8/11/28", with **"Start pushed 2 wks, end same"**. Post's typed start in the first was 12/20/27, the first
+week of the Holiday Hiatus. A hiatus PAUSES a phase rather than moving its start, so the grid's Post wk 1 was 1/3/28 in
+both, but Compare (and every `{<phase>.open}` header token, and the key facts band) read the typed date.
+
+- **The token is fixed, not just Compare** (owner: *"Fix the token"*): `phaseOpenDay()` steps a start that sits inside
+  an all-phase hiatus or the phase's own one forward, a week at a time exactly as the phase's weeks are counted
+  (`extendEndForHiatus`), to the first week it works. Production already did this (its first real shoot day). So
+  Compare, the band and any header line printing a phase's start now agree with the grid.
+- **"Weeks, first phase to last"** reads the same first working day, so a calendar whose first phase is typed into a
+  break no longer counts the break's weeks.
+- **Nothing else moves:** a start outside a hiatus prints exactly as before, no typed date is rewritten, and no default
+  header or test fixture prints a phase's start token, so no export baseline can change. The auto header's
+  "Writer's Room Opens" line still reads the typed field on purpose (it is held byte for byte).
+- **Verified:** new leg `comparehiatus` (8 cases on a synthetic three-scenario file; red on the build before the fix at
+  H1–H4 and H6), in `gate.sh`; a partial gate of `hdrtemplate`, `hdreditor`, `scenarios`, `scenariofacts` and
+  `comparehiatus`, 92 PASS / 0 FAIL; `npm run check` 42/42. In the browser, nine hiatus edits (a phase's own break
+  added, lengthened, at its start; an all-phase break moved and lengthened; Ripple Hiatus Periods on and off): Compare's
+  rows matched the grid's first and last weeks every time.
+
+### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
+
+Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):
+
+- **A new order** (*"Month/Waterfall - Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header -
+  undo/redo"*): after the view toggle come Shift and Build Around, then the text style buttons, then Fill Gaps / Side
+  Boxes / Header, with Undo / Redo back at the far right. Everything after the view toggle is still packed to the right.
+- **Build Around stands 12 px from Shift** (*"there should be MORE space between the right shift button and build around
+  so it matches the current spacing of the redo button and size button gap"*), not 2 px, so every neighbouring pair on
+  the bar is now the same 12 px apart.
+
+Every control kept its id and the engine did not change. On a window narrower than about 1,640 px (with Fill Gaps
+showing) the text buttons drop to their own line at the left, as before, and every other section stays on the first line.
+
+**Verified:** `stylebarplace` rewritten for the order (every gap 12 px, Shift to Build Around included), red on the build
+before it; `monthmap` C0 / B7 now expect the text buttons after Build Around; the toolbar's neighbouring legs green (list
+in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference in any of its 511 values. Driven by hand: both popovers open under their
+buttons, Fill Gaps toggles and Undo undoes it from the far right, the Month view, the 1,440 px fallback.
+
+### Unreleased — Build Around: the Prior to / After buttons are gone (10 Nov 2026)
+
+**What changed.** The two buttons under Build Around's list, *Prior to X* and *After X*, are removed. The box now
+runs title, Phases, the list, the line that names a phase left unticked, *Pin to a date*, Build. It always builds
+both sides of the pinned phase, and what gets built is exactly what is ticked. It opens with the same ticks as before.
+To build only one side, untick the other: a box, or a drag down those rows. The Shift box keeps its own *Prior to* /
+*After*.
+
+- `src/chrome/PreviewToolbar.jsx`: the row is out of `#pop-solve` (`tool-solve-back` / `tool-solve-fwd` retired).
+- `src/legacy/app.js`: `solveDir`, `solveDirBtns` and their handler are gone; `solveDefaultOn()` lost its side
+  argument; `solvePressed()` became `solveIsDefault()`, so a new pin re-ticks only while the ticks are untouched. The
+  line that names an unticked phase lists every phase the rule left out, on either side.
+- `src/styles/legacy.css`: Build Around's list box carries the gap the row gave (10 px to *Pin to a date*).
+- Help (*Adjusting dates*): the sentence about the two buttons is replaced.
+
+**Why.** The owner, the day the redesigned box went live: *"Arguably using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*. Built to try in the
+browser first, then *"Yes, finish it"*.
+
+**Verified** on `dist/index.html` sha256 `233e3898…`: `npm run check` 42/42. Legs, 14 runs, 0 failures:
+`buildaround` 36/36 (O1 now holds that the buttons are gone and that Shift still has two), `rebuildticks` 20/20,
+`buildalongside` 8/8, `shiftheld` 13/13, `snaptools` 14/14, `overrides` 20/20, `anchorside` 39/39, `customunits`
+(both states), `builtindates` (both states), `datepick` 17/17, `lastedited` 22/22, `undokeys` 11/11. Five legs pressed
+the buttons and now reach one side by the ticks alone (`T.solveKeepSide(dir)` in `t/lib.js`, which `T.rebuildAll`
+uses too). On a build with the buttons put back (`3f99d989…`) the legs go red: `buildaround` O1, `rebuildticks` L2 and
+D1, `buildalongside` A6. In the browser: the box opens with 4 of 5 ticked and the Localization line, a row click
+pins, a box ticks, Build moves the ticked phases and one Undo restores them. ⚠️ No full gate was run: chrome only.
+
+**Re-checked after merging `origin/main`** (`6afd31d`, the hover prompt) on the merged build, sha256 `182b363b…`:
+check 42/42; the same legs green again, plus the merged-in work's own: `hoverexpand` 18/18, `noteviews` 15/15,
+`textstyle` (with its `carry-rich` fixture) 52 checks. ⚠️ `hoverexpand` timed out once waiting for the grid when run
+first in a batch of eight; green on two re-runs alone, so recorded as a flake under load, not a failure.
+
+**And again after `origin/main` moved to `fefe9dc`** (the toolbar regroup, which edits the same toolbar file; it
+merged without a code conflict). Merged build sha256 `a661415f…`: check 42/42 and 15 leg runs, 0 failures:
+`buildaround` 36/36, `rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `shiftheld` 13/13, `snaptools`
+14/14, `overrides` 20/20, `datepick` 17/17, `stylebarplace` 13/13, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle`
+52 checks, `hoverexpand` 18/18, `lastedited` 22/22, `undokeys` 11/11.
+
+### Unreleased — The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
+
+The preview toolbar's sections were told apart by gaps that were all different. The owner asked for about twenty
+mocked-up looks (`mockups/toolbar-variations.html`, kept in the repo), combined three of them, asked for Shift in white
+and for **one consistent spacing**, and picked **variation 27**, then took the grey box away from Shift and Build Around:
+
+- **The view toggle sits alone at the left edge; every tool is packed to the right**: Undo / Redo first (they were the
+  last thing on the bar), then the text style buttons, Shift and Build Around, then Fill Gaps, Side Boxes and Header.
+- **One gap between every section: 12 px**, from one value (`--tb-gap`). Build Around's extra 16 px margin is gone.
+- **Grey wells** like the Waterfall | Month toggle around Undo / Redo, the text buttons and the page tools, all the same:
+  2 px of padding, 2 px between buttons, corners that nest. Their buttons have no border until hovered or open, then show
+  as a raised white button; a pressed style (Bold on) is that raised button in purple. Shift and Build Around keep their
+  white ground and navy outline and have no well.
+- **Fill Space is now "Fill Gaps"** (owner). Words only: the button's id and the saved calendar key keep the old name,
+  so every saved file and everything wired to it is unaffected. The Help says Fill Gaps too.
+- Every control kept its id; the engine did not change.
+
+On a window narrower than about 1,640 px (with Fill Gaps showing) the text buttons drop to their own line at the left,
+as before, and every other section stays on the first line, still 12 px apart.
+
+**Verified:** `stylebarplace` rewritten for the new sections (P0 order, P2 the 12 px gaps on one line, P10 one well look
+and no well on the date tools, P11 the new name), red on the build before it; `textstyle` B2, `hdrcontrols` T1 and
+`fillspace` S1 updated; the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence's
+computed styles inside `#table-wrap` against the build before: the only difference, the waterfall's scroll box 4 px shorter at 1,600 px, where the text well has its own line and is 4 px taller than the bare buttons were. Driven by hand: Shift, Build Around, Side Boxes and the
+Header menu each open under their own button; Fill Gaps toggles and Undo undoes it from its new place; Bold applies.
+
+### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
+
+Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
+*"It also needs the reverse to unexpand"*; built 10 Nov on *"Yes, build it"*, with three corrections from the test
+files that day.
+
+- **What.** In the Waterfall of a calendar on the layout rules, resting the pointer on an empty slot beside a phase
+  outlines the weeks where that space sits beside it and shows **Expand?** in the middle of the outline; the click
+  widens the phase across the space in **those weeks only** (owner: *"it also expanded test wk 1"*, on a first build
+  that set the phase's fill wish instead). Resting on a widened cell outlines the space it took and shows **Pull back
+  this week?** or **Pull back?**: the click clears the dragged widths of that run, or turns a fill wish off. One undo
+  step each. Never with cells highlighted, in the Month view or on an unstamped calendar.
+- **Steady, and a little sooner** (owner, later that day: *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"*, *"a tiny bit sooner"*). Once up, the outline and chip stay while the
+  pointer is anywhere on them, across every week of the outline; the first live build redrew them on the next week.
+  They appear 200 ms after the pointer reaches a cell (300 ms before, and restarted by every small movement).
+- **Where the chip sits.** The very centre of the outline, both ways (owner: *"always sit in the very center of the
+  outlined box"*), except on the Swap Column button (*"ok except when these buttons collide"*): the button keeps its
+  place and the chip steps 4 px clear, inside the outline where there is room, else beside the button on the same row.
+- **How.** Chrome on a new overlay layer (`.grid-hover-layer`) inside `.sheet-grid-wrap`, beside the selection layer;
+  nothing frozen changed. Expand writes the per-cell width an edge drag writes (`cellSpans`); Pull back deletes those
+  or calls the fill wish's own setter. Nothing new is saved. Help: "How far a cell reaches".
+- **Verified.** New fixture `hover-expand.sptcal` and leg `hoverexpand` (16 checks, real pointer events) in the gate.
+  Targeted, on this build: `hoverexpand` 16/16; the pointer legs `centrepullback` 12, `phasefill` 13, `colsreset` 8,
+  `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16,
+  `undokeys` 11, `wfmenu` 39, `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass, `noteviews` 15 (its F2
+  Load times out under load on this build and on the live one alike); the gate's whole swap section, `onecol` and
+  `colreuse` under the gate's own judges, 161 PASS / 0 FAIL; `npm run check` 41/41. No full gate: nothing frozen,
+  exported or saved changed.
+
+### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
+
+**What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo
+step the Date Last Edited its content had. A content first seen with no stamp (a new calendar before its first change)
+is remembered with `null`, and the function wrote that `null` onto the step as `lastEdited`. It now leaves the key off.
+
+**Why.** `sanitizeSnapshot()` counts a `null` there as a value the app does not write, so every undo back to a
+never-edited calendar logged *"1 value(s) in this calendar were not in a form the app writes, and were ignored"* on
+the console. Nothing a user sees was wrong: `applyStateSnapshot()` reads an absent key and an invalid one the same
+(never edited, the header reads today), and the dropped count is read nowhere. It was found by `buildaround`'s K0
+(0 console errors) the first time that leg ran on a build holding Date Last Edited (the merge of 10 Nov): 35/36.
+
+**Verified.** On the build with it (`dist/index.html` sha256 `52407af5…`): `npm run check` 42/42; `buildaround`
+36/36 (K0 green), `lastedited` 21/21, `rebuildticks` 20/20, `anchorside` 39/39, `buildalongside` 8/8, `shiftheld`
+13/13, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `hdrcontrols` 12/12, `undokeys` 11/11. In the browser:
+a new calendar, a title typed, Undo: the title is back to empty and the console is clean. ⚠️ No full gate was run.
+
+**The leg that holds it** (added the same day, on the owner's *"Yes, add it"*): `lastedited` N2. After New it types a
+title, presses Undo, and Saves As: the title is back, no "value ignored" warning was logged (counted before and after),
+and the saved file still has no `lastEdited` key. `lastedited` 22/22 on the live build (`52407af5…`); 21/22 with N2 red
+(1 warning) on a build with the guard taken out, which is byte for byte the pre-fix merged build (`c0bb3da5…`). Until
+N2, only `buildaround`'s K0 caught this, and only because that leg happens to undo back to its fixture.
+
+### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
+
+Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
+look and feel as the shift tool"*; a list of the differences, a mockup, a working build to try, then *"Yes, finish
+it"*; REBUILD-FROM-LENGTHS-PLAN.md §7, `mockups/build-around-like-shift.html`).
+
+- **The list first**, in the same box as Shift's: a header strip with a box that ticks every phase (and, once every
+  phase is ticked, shows a minus and clears them) and the count, in place of the column header.
+- **Click a row to pin that phase; its tick box ticks; drag to tick or clear a run.** A click on a row used to flip
+  its tick. Ticking never moves the pin.
+- **Prior to … / After …** under the list, in place of the *← Before · Both · After →* switch above it. There is no
+  Both button: the box at the top ticks everything (owner's ruling).
+- **Pin to a date** sits under the list, the phase directly above "starts on", as in Shift.
+- The hint opens upward and rows have no hover tooltips, so nothing floats over the list.
+
+**Which phases start unticked has changed.** Until now the Writer's Room and every custom phase were always left out.
+Owner: *"its just confusing if you click prior to pre prep and then writers room isn't selected"*, and *"writers room
+doesnt always overlap the next phases, only sometimes"*. Now a phase is left unticked **only when it runs alongside
+the phase it would be built against** (five shared days or more: built in line, it would be pulled away from it), and
+a line under the buttons says so by name: *"Writer's Rm left unticked: it runs alongside Pre Prep. Tick it to build
+it in line."* A Writer's Room that ends before Pre-Prep starts is ticked and built like any other phase. It applies
+to how the box opens and to Prior / After. A custom phase with no date yet still starts unticked.
+
+**Help** ("Adjusting dates") now describes Build Around: it still said "Rebuild From … Work backwards … Close all
+gaps", and held that paragraph twice.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, everything is inside `.tools-menu`,
+and the solvers (`buildAround`, `trialBuild`) are untouched. Verified: `npm run check` 42/42 (a new check holds Build
+Around's hint opening upward); `buildaround` 36/36 (updated, with new cases for the order of parts, the header box,
+pinning by a click, the drag); `rebuildticks` 20/20 (updated: Casting beside Prod Prep left out and named, the room
+ticked, Localization out while it starts in Post's last week and ticked once it starts after it); new leg
+`buildalongside` 8/8 on a calendar where phases touch by two days (they stay ticked); the legs that use Build Around
+through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Three broken builds turn the legs red:
+one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
+its tick (`buildaround` D1). No full gate: chrome only.
+
+### Unreleased — The text style buttons move into the toolbar (10 Nov 2026)
+
+The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
+colour, alignment, Clear, and Highlight when a header or box line is picked) now sit **on the toolbar's first line,
+just left of Shift**. The calendar gains that line's height. Built and adjusted in three passes with the owner trying
+each in the browser: *"move the styling bar to this blank space between Month and the left shift button. It should only
+be the buttons ... not the surrounding box, text, etc"*, then *"make the buttons tall enough to match the look and
+style of the other buttons in the menu"*, then *"the same size gap between the right edge of the styling menu and the
+left shift button as there is between build around and fill space"*, then the Size box's arrow moved in from the edge.
+
+- **Bare buttons**: no box, no "TEXT" label, no "Highlight any text…" line. That hint is now the buttons' tooltip
+  while nothing is picked.
+- **The toolbar's look**: every control is 30 px tall with the white ground, grey border and rounded corners of Undo
+  and Side Boxes; Bold, Italic, the colour and Clear are 30 px squares like Undo. The Size box draws its own arrow 8 px
+  in from its edge (the browser's sat against the border). The header editor's own copy of these controls is unchanged.
+- **The gap before Shift is Build Around's gap** (26 px): one shared value, so the two cannot drift apart.
+- **On a narrower window** (below about 1,690 px with Fill Space showing, about 1,580 px without; less in the month
+  view, which has no Side Boxes), the buttons cannot fit beside Shift, so they alone drop to their old line under the
+  toolbar, and in the month view share it with the month arrows as before. Shift and Undo never move to a second line.
+  The fit is measured (it counts the Highlight button as shown, so picking a header line never flips it).
+- Picking a header line adds the Highlight button on the left of the group; nothing else moves.
+
+Chrome only: nothing in the calendar, the exports or saved files changes. The month arrows keep their line in the
+month view. **Verified:** a new leg `stylebarplace` (11 cases: the markup, the 30 px controls and the Size arrow, the
+first-line geometry and the 26 px gap, the header pick, the narrow fallback in both views, no flip-flop, the tooltip,
+the shared value, the toolbar row left classless, no console error), red on the build before it in all 8 placement
+cases; `textstyle` B2, `hdrcontrols` T1 and `monthmap` C0 / B7 updated to the new place; the neighbouring legs green
+(list in HANDOFF); `npm run check` 41/41. The fence's computed styles inside `#table-wrap` against the build before:
+511 values, the only difference the waterfall's scroll box 4 px taller (789 → 793 px at 1600 × 1200), which is the
+grid fit giving the calendar the height the slimmer toolbar line freed.
+
+**Found on the way:** the first cut put its narrow-window class on the toolbar row, and `sharecopy2` caught it riding
+into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
+The class lives on the bar's host instead, which leaves with the row's children.
+
+### Unreleased — the auto header's date is the Date Last Edited (9 Nov 2026)
+
+Owner: *"make the date in the top left corner for waterfall view (and top right corner for month view) be the last time
+the calendar was edited … basically anything that would change if it was exported to pdf or excel. Then add this 'Date
+Last Edited' variable to the template builder."* Until now that date was simply today, so a calendar printed a week
+after its last change claimed to be a week newer than it was.
+
+- **What.** The waterfall header's top left (M.D.YY) and the month header's top right (M.DD.YY), on screen, in Excel and
+  in both PDFs, read the last time the calendar changed. A new token, `{lastEdited}` (with `:long`, `:slash`, `:iso` and
+  `:dotpad`), is listed first among the dates in the template builder, in its own **Date Last Edited** group, each entry
+  showing its live value. The built-in Default template now uses it, so Template mode seeded from the Default matches
+  Auto. A header already in Template mode keeps whatever its lines say, `{today}` included.
+- **What counts as an edit.** The calendar's own content: everything a saved file holds, less the view, the sidebar tab
+  and the Holidays card's add-a-holiday boxes (a form until Add). Preferences are not in the file, so they never count.
+  Switching views, paging months, opening dialogs and exporting change nothing. Switching the header's mode does count
+  (it is a header setting), even when the printed text is the same.
+- **Undo puts the date back.** Each content the calendar has had since it was loaded remembers the time it was first
+  reached, so Undo, Redo, a drag answered Undo, or a value typed back the way it was bring back the date that content
+  had. Each scenario tab keeps its own date.
+- **Saved files.** A new permanent snapshot key, `lastEdited` (an ISO time in UTC), written only once a calendar has a
+  stamp, so a calendar never edited saves byte for byte as before; it is not in the undo history. A file with no stamp
+  (every calendar saved before today) takes the file's own last-modified time when it is loaded, and its next save
+  writes that down. A new calendar has none, and reads today until its first edit. `SNAPSHOT_VERSION` is unchanged:
+  an older build ignores the key and prints today, as it always did.
+- **Verified:** new leg `lastedited` (21 checks): the stamp in both headers and in Excel's header; a view switch, a
+  sidebar tab and the add-a-holiday box don't count; an edit shows today, Undo/Redo and a title typed back bring their
+  own dates; Save As writes the stamp; a pre-stamp file reads (and then saves) its file time; the template builder's
+  group and live values; Template mode's Default; scenario tabs; New. A targeted gate of the header, save, undo and
+  scenario legs (gate.sh's own judges): 281 pass, 3 fail, none from this change (two flakes green alone, one stale
+  prover that fails identically on `main`). The check costs about 0.2 ms per render against a ~20 ms render.
+  `npm run check` 40/40.
 
 ### Unreleased — Shift: the list first (9 Nov 2026)
 

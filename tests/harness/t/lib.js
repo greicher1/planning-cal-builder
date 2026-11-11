@@ -75,12 +75,13 @@ window.__T = (function(){
   // ticks, so a leg written against the old buttons keeps asserting the same dates. The popover must be
   // open with its phase and date set. ** RE-QUERY each tick: the list is redrawn on every change. The
   // rebuildticks leg is the one that holds what unticked phases do.
-  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list now holds BOTH sides with the pin in its
-  // place, Before / After are shortcuts, and Writer's Rm starts unticked. So this ticks every phase on the chosen
-  // side only (rows before the pin for -1, after it for 1) and unticks the other side: still exactly the old one-sided,
-  // every-phase rebuild. The buildaround leg holds the new defaults.
+  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list holds BOTH sides with the pin in its place,
+  // and it opens with ticks set by a rule (a phase running alongside its neighbour starts unticked). ⛔ There are NO
+  // side buttons since 10 Nov 2026 (owner: Prior to X / After X removed; tool-solve-back / tool-solve-fwd are gone),
+  // so this reaches one side by the boxes alone: it ticks every phase on the chosen side (rows before the pin for
+  // -1, after it for 1) and unticks the other side. Still exactly the old one-sided, every-phase rebuild. The
+  // buildaround leg holds the defaults.
   function rebuildAll(dir){
-    document.getElementById(dir < 0 ? 'tool-solve-back' : 'tool-solve-fwd').click();
     function sideBoxes(want){
       var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
       var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); });
@@ -90,6 +91,22 @@ window.__T = (function(){
     for(var guard = 0, box; guard < 60 && (box = sideBoxes(true).filter(function (b) { return !b.checked; })[0]); guard++) box.click();
     for(guard = 0; guard < 60 && (box = sideBoxes(false).filter(function (b) { return b.checked; })[0]); guard++) box.click();
     document.getElementById('tool-solve-go').click();
+  }
+  // BUILD AROUND, ONE SIDE OF THE PIN BY THE BOXES ALONE (there are no Prior to / After buttons since 10 Nov 2026):
+  // unticks every ticked phase on the OTHER side. dir -1 keeps the phases before the pin, 1 the ones after it. The
+  // kept side's ticks are left as they are (the starting ticks, or the caller's own). Synchronous: a box's click
+  // redraws the list at once, so every pass re-queries.
+  function solveKeepSide(dir){
+    for(var guard = 0; guard < 60; guard++){
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
+      var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); }), box = null;
+      rows.forEach(function (r, i) {
+        var b = r.querySelector('input[type=checkbox][data-key]');
+        if(!box && at >= 0 && b && b.checked && (dir < 0 ? i > at : i < at)) box = b;
+      });
+      if(!box) return;
+      box.click();
+    }
   }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
@@ -316,7 +333,9 @@ window.__T = (function(){
   async function openViaFakePicker(url, name, opts){
     opts = opts || {};
     var txt = (typeof opts.text === 'string') ? opts.text : await (await fetch(url)).text();
-    var mtime = Date.now() - 60000;
+    // opts.mtime (9 Nov 2026, the lastedited leg): the file's last-modified time, which a file with no Date Last
+    // Edited stamp stands in with. Default: a minute ago, as before.
+    var mtime = (typeof opts.mtime === 'number') ? opts.mtime : Date.now() - 60000;
     var called = false;
     var handle = {
       name: name,
@@ -784,35 +803,45 @@ window.__T = (function(){
   //   shiftDrag(from, to, where)    press on `from`, drag over each row in `to` (a key, or keys in order), release
   //   shiftSide('prior'|'after', key)  choose the row, then press "Prior to X" / "After X": what Phase & before /
   //                                 Phase & after on that phase used to set
+  // ⭐ BUILD AROUND'S LIST is pressed the same way since 10 Nov 2026 (it took Shift's look and feel): solveRow /
+  // solvePress / solveDrag are these helpers on #pop-solve. There a press on the row itself PINS the phase.
+  var listSel = '#pop-shift [data-shift-list]';
+  function onList(sel, fn){ var was = listSel; listSel = sel; try { return fn(); } finally { listSel = was; } }
   function shiftRow(key){
-    var rows = document.querySelectorAll('#pop-shift [data-shift-list] .solve-row[data-key]');
+    var rows = document.querySelectorAll(listSel + ' .solve-row[data-key]');
     for(var i = 0; i < rows.length; i++) if(rows[i].dataset.key === key) return rows[i];
-    throw new Error('no Shift row for ' + key);
+    throw new Error('no row for ' + key + ' in ' + listSel);
   }
   function shiftPoint(key, where){
     var row = shiftRow(key), el = where === 'box' ? row.querySelector('input[type=checkbox]') : row.querySelector('.solve-nm');
-    if(!el) throw new Error('no ' + where + ' in the Shift row for ' + key);
+    if(!el) throw new Error('no ' + where + ' in the row for ' + key);
     var r = el.getBoundingClientRect();
-    if(!r.height) throw new Error('the Shift box is not open');
+    if(!r.height) throw new Error('the box is not open (' + listSel + ')');
     return {el: el, x: r.left + r.width / 2, y: r.top + r.height / 2};
   }
   function shiftPointer(type, target, x, y){
     target.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1,
       pointerId: 1, pointerType: 'mouse', isPrimary: true, clientX: x, clientY: y}));
   }
-  async function shiftPress(key, where){
+  function pressNow(key, where){
     var p = shiftPoint(key, where || 'row');
     shiftPointer('pointerdown', p.el, p.x, p.y); shiftPointer('pointerup', document, p.x, p.y);
-    await sleep(80);
   }
-  async function shiftDrag(from, to, where){
+  function dragNow(from, to, where){
     var a = shiftPoint(from, where || 'row'), last = a;
     shiftPointer('pointerdown', a.el, a.x, a.y);
     // Each point is read AFTER the step before it: the list is redrawn as the drag goes.
     (Array.isArray(to) ? to : [to]).forEach(function(k){ last = shiftPoint(k, 'row'); shiftPointer('pointermove', document, last.x, last.y); });
     shiftPointer('pointerup', document, last.x, last.y);
-    await sleep(80);
   }
+  async function shiftPress(key, where){ pressNow(key, where); await sleep(80); }
+  async function shiftDrag(from, to, where){ dragNow(from, to, where); await sleep(80); }
+  var SOLVE_LIST = '#pop-solve [data-solve-list]';
+  function solveRow(key){ return onList(SOLVE_LIST, function(){ return shiftRow(key); }); }
+  // A press on a Build Around row pins it (the dropdown's own change redraws the list, which runs the solvers), so
+  // these wait longer than Shift's.
+  async function solvePress(key, where){ onList(SOLVE_LIST, function(){ pressNow(key, where); }); await sleep(450); }
+  async function solveDrag(from, to, where){ onList(SOLVE_LIST, function(){ dragNow(from, to, where); }); await sleep(450); }
   async function shiftSide(side, key){
     await shiftPress(key, 'row');
     var b = document.querySelector('#pop-shift ' + (side === 'prior' ? '[data-shift-prior]' : '[data-shift-after]'));
@@ -821,7 +850,8 @@ window.__T = (function(){
     await sleep(120);
   }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
-  return {set:set,sleep:sleep,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
+  return {set:set,sleep:sleep,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,
+          solveRow:solveRow,solvePress:solvePress,solveDrag:solveDrag,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
@@ -831,5 +861,5 @@ window.__T = (function(){
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
-          rebuildAll:rebuildAll};
+          rebuildAll:rebuildAll, solveKeepSide:solveKeepSide};
 })();

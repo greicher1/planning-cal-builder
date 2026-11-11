@@ -275,3 +275,78 @@ While Production has no length, the line that says so adds about 50 px.
 
 **Left alone:** Pre-Prep's own "Start after previous phase" button also chains after the room, wrong on every seed
 with a Pre-Prep, but it is one click on purpose and it names the phase it chains from. Shift is unchanged.
+
+## 7. Shift's look and feel, and the overlap rule (owner, 9–10 Nov 2026) — ✅ RULED, ✅ BUILT
+
+After the Shift box became the list first (ANCHOR-TO-DIRECTION-PLAN.md §7.6), the owner: *"now we need to try to make
+Build Around match the same UI look and feel as the shift tool. Make a list of everything we could change"*, then
+*"give me a mockup"* ([`mockups/build-around-like-shift.html`](mockups/build-around-like-shift.html): Shift, the
+proposal and today's box, live on one made-up calendar), then *"Yes, build it"* and, after trying the working build,
+*"Yes, finish it"*.
+
+**What changed in the box** (the list's items 1 to 12):
+
+1. A header strip in the list (a select-all box and the count) in place of the column header.
+2. "Phases" as the caption; the count reads "N of M build".
+3. A click on a row no longer flips its tick: it **pins** that phase. The box ticks.
+4. A drag ticks or clears a run; the pin and rows with no length are passed over.
+5. The pinned row wears Shift's outline.
+6. No hover titles on rows.
+7. The hint opens upward and never flips.
+8. "starts on"; the title reads "Build Around".
+9. The pin's dropdown follows a row click (and shows the phase's date, as Shift's does).
+10. The pin's row sits under the list: "Pin to a date", the phase above "starts on".
+11. `Prior to X` / `After X` under the list, in place of the `← Before · Both · After →` switch above it.
+    ⚠️ **Removed the same day** (§7.1).
+
+**Rulings:**
+
+- **R14, no Both button** (*"we can get rid of the both button because you can just select all with the top
+  checkbox"*). Flagged at the time: the top box ticks every phase that can be built, which is more than Both ticked.
+  The box still opens on both sides.
+- **R13, which phases start unticked.** The owner on the old rule (Writer's Rm and custom phases always out): *"wait
+  why wouldnt writers room and custom phases be included"*, *"its just confusing if you click prior to pre prep and
+  then writers room isn't selected"*, asked for an honest view, then: *"but writers room doesnt always overlap the
+  next phases, only sometimes"*. That last fact decided it: a rule by kind is wrong whenever the room does not
+  overlap. **Ruled (*"Yes, mock that up"*, *"Yes, build it"*): a phase is left unticked only when it runs alongside
+  the phase it would be built against, and a line under the buttons names it.** It applies to how the box opens and to
+  Prior / After.
+- **R15, width**: not ruled; left at 400 px (at 340 the longer phase names are cut).
+
+**Decisions made in building it** (each told to the owner before *"Yes, finish it"*):
+
+- **"Alongside" is five shared days or more** (`SOLVE_ALONGSIDE_DAYS`), a full working week. A phase working two days
+  into the next one's first week, or a wrap the day after Post starts, is how dates fall. So a ONE-WEEK overlap
+  counts: on `buildFixture()` Localization (3/1/27) starts in Post's last week (the Christmas hiatus pauses Post to
+  Fri 3/5/27) and is left out.
+- **Each phase is judged against the last phase taken into the chain**, walking outward from the pin. So a Casting
+  beside Pre Prep does not make the Writer's Room before it "overlap": the room is judged against Pre Prep.
+- **A custom phase with no date yet still starts unticked**: nothing on the calendar says where it belongs.
+- **Ticking never moves the pin** (in Shift the outline follows every tick): the pin sets the date and the preview.
+- **The line lists only phases still at the tick the rule gave them**; one the user has ticked, cleared or dragged
+  over is their own choice.
+- **The pin is kept between openings**, as before; the ticks, the side and typed lengths are forgotten.
+
+HANDOFF has the as-built record. Legs: `buildaround` (36 cases), `rebuildticks` (20), `buildalongside` (8).
+
+### 7.1 No Prior to / After buttons (owner, 10 Nov 2026) — ✅ RULED, ✅ BUILT
+
+The day §7 went live, the owner: *"using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*. Built to try in the browser first, then *"Yes, finish it"*.
+
+- **What went:** the `Prior to X` / `After X` row under the list (`tool-solve-back` / `tool-solve-fwd`, retired), and
+  in the engine `solveDir`, `solveDirBtns` and their handler. `solveDefaultOn()` lost its side argument;
+  `solvePressed()` became `solveIsDefault()` (a new pin re-ticks only while the ticks are untouched).
+- **What the box does now:** it always builds both sides of the pin, and what is built is what is ticked. It opens
+  with the same ticks as before (R13's rule). To build one side, untick the other: a box, a drag down the rows, or the
+  header box and then the rows wanted. Told to the owner with the working build.
+- **The line that names an unticked phase** now sits directly under the list and lists every phase the rule left
+  out, on either side (with the buttons it listed the chosen side's only).
+- **Shift keeps its own Prior to / After.** There they replace the ticks around the outlined row, which is how Shift
+  From and Phase & before are reached; Build Around has no such forms to reach.
+- **R13's last sentence no longer applies** (*"It applies to how the box opens and to Prior / After"*): the rule
+  decides how the box opens.
+
+Legs: `buildaround` O1 holds that the buttons are gone and that Shift still has two; S1-S3, Z1 and E5 reach one side
+by the ticks. `rebuildticks` (L2, R1, C1, F1, D1, U1-U3) and `buildalongside` A6 likewise. `shiftheld` B1,
+`snaptools` L15 and `T.rebuildAll` use the new `T.solveKeepSide(dir)` in `t/lib.js`.
+

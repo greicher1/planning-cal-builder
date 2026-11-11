@@ -1,5 +1,6 @@
 // textstyle -- the text style bar (TEXT-STYLE-BAR-PLAN.md; owner rulings D1-D5 and the F1-F4 frozen-edit
-// sign-off, 21 Oct 2026): one bar under the preview toolbar that styles any text in the waterfall -- what is
+// sign-off, 21 Oct 2026): one bar in the preview toolbar (under it until 10 Nov 2026, beside Shift since, as its bare
+// buttons; its placement is stylebarplace's) that styles any text in the waterfall -- what is
 // highlighted in the grid (Excel's highlight, D2), a header line in any mode (D3) or view (D4), a side box's
 // line -- and double-click / Enter / typing to open a note (D5).
 //
@@ -79,9 +80,12 @@ window.addEventListener('load', function () { (async function () {
   async function load(text){
     var stem = 'textstyle-load-' + (++loads), name = stem + '.sptcal';
     var p = T.openViaFakePicker('/x.sptcal', name, { text: text, writes: written });
-    for(var i = 0; i < 60; i++){ await T.sleep(100); if(T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
+    // ⚠️ Patient on purpose (10 Nov 2026): this wait threw ("the loaded calendar") in a batch run beside other sessions'
+    // legs. After the unsaved-work question the app's file.text() can sit 7.6 s of VIRTUAL time on real Blob I/O
+    // (measured in noteviews' load(), which has the full note), so a 10 s wait had about 2 s to spare. 60 s bounds a hang.
+    for(var i = 0; i < 150; i++){ await T.sleep(100); if(T.clickModalButton('Load') || menuLabel().indexOf(stem) !== -1) break; }
     await p;
-    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded calendar', 100, 100);
+    await T.until(function () { return menuLabel().indexOf(stem) !== -1; }, 'the loaded calendar', 600, 100);
     await T.sleep(800);
   }
   async function view(mode){
@@ -116,6 +120,14 @@ window.addEventListener('load', function () { (async function () {
   try {
     await T.appReady();
     if(!q('#view-sheet-btn').classList.contains('active')) await view('sheet');
+    // ⛔ THE FIXTURE OR NOTHING (10 Nov 2026). Run without HARNESS_STATE=carry-rich (as gate.sh and partgate-stylebar.zsh
+    // never do), there is no Manual header, no CARRY-NOTE and no CARRY-HIATUS: B4 failed and the G block's click() threw
+    // on a null note cell, and that read as the style bar's move into the toolbar for a day. With the fixture this build
+    // was 51/51. So a run without it stops here and says why.
+    var haveFixture = false;
+    try { await T.until(function(){ return !!noteTd() && !!bandTd(); }, 'the carry-rich fixture', 50, 100); haveFixture = true; } catch(e){}
+    if(!check(haveFixture, 'B- the carry-rich fixture is on screen (CARRY-NOTE, CARRY-HIATUS)'))
+      throw new Error('no carry-rich fixture on screen: run this leg as HARNESS_STATE=carry-rich ./run.sh textstyle 400');
     // Sim Post on, so every kind of grid text is on the page.
     var sp = $('simpost-enabled'); if(sp && !sp.checked){ sp.click(); await T.sleep(900); }
     var savedBefore = await save();
@@ -124,7 +136,14 @@ window.addEventListener('load', function () { (async function () {
     var b = bar(), tw = $('table-wrap');
     check(b && q('.view-toggle-row').nextElementSibling === tw, 'B0 the bar is in the toolbar row\'s host; .view-toggle-row -> #table-wrap stays the sibling pair');
     check(b && !qa('[id]', b).length, 'B1 no id anywhere in the bar');
-    check(b && !armed() && /Highlight any text/.test(getComputedStyle(b, '::after').content), 'B2 nothing picked: dimmed, and it says how to start');
+    // Since 10 Nov 2026 the bar is its buttons in a toolbar well (owner: first the bare buttons, then variation 27): no
+    // border, no "Text" label, no hint line, the view toggle's grey ground. The hint is the bar's tooltip while nothing
+    // is picked, and goes once something is.
+    var bcs = b && getComputedStyle(b);
+    check(b && !armed() && /Highlight any text/.test(b.title) && Number(getComputedStyle(q('.hf-b', b)).opacity) < 1 &&
+          getComputedStyle(b, '::after').content === 'none' && getComputedStyle(b, '::before').content === 'none' &&
+          bcs.borderTopWidth === '0px' && bcs.backgroundColor === getComputedStyle(q('.view-toggle')).backgroundColor,
+          'B2 nothing picked: dimmed, and its tooltip says how to start; a well like the view toggle, no label or hint text');
     check(b && b.getBoundingClientRect().bottom <= tw.getBoundingClientRect().top + 0.5, 'B3 above the calendar (' + Math.round(b.getBoundingClientRect().height) + 'px tall)');
     var strip = q('#table-wrap .hdr-tools .hdr-fmt');
     check(strip && getComputedStyle(strip).display === 'none', 'B4 Manual header: the in-calendar strip is in the page but hidden');
