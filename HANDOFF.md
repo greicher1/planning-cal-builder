@@ -24,6 +24,11 @@
 - **Verified** on `dist/index.html` sha256 `233e3898…`: check 42/42; 14 leg runs, 0 failures (README has the list); a
   build with the buttons put back turns `buildaround` O1, `rebuildticks` L2 + D1 and `buildalongside` A6 red; tried in
   the browser. No full gate (chrome only). Help's *Adjusting dates* paragraph is updated.
+- **Merged with `origin/main` at `6afd31d`** (the hover prompt; README and HANDOFF conflicted, both sides kept) and
+  re-checked on the merged build, sha256 `182b363b…`: check 42/42, the same legs green, plus `hoverexpand` 18/18,
+  `noteviews` 15/15, `textstyle` 52 checks. ⚠️ `hoverexpand` timed out once ("a settled grid") when it ran first in a
+  batch of eight legs, and was green on two re-runs alone: a flake under load. ⚠️ And `textstyle` MUST be run as
+  `HARNESS_STATE=carry-rich`; a grep of gate.sh for `textstyle:` picks up other legs' specs and runs it bare.
 - **Housekeeping from the try-build:** my scripted checks on `localhost:8796` left four crash backups (the synthetic
   fixture and a blank calendar) that raised "Recover unsaved work" on every load. I deleted those four from that test
   origin's IndexedDB. Nothing of the owner's was there (all four were written during my own checks that hour).

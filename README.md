@@ -56,6 +56,11 @@ uses too). On a build with the buttons put back (`3f99d989…`) the legs go red:
 D1, `buildalongside` A6. In the browser: the box opens with 4 of 5 ticked and the Localization line, a row click
 pins, a box ticks, Build moves the ticked phases and one Undo restores them. ⚠️ No full gate was run: chrome only.
 
+**Re-checked after merging `origin/main`** (`6afd31d`, the hover prompt) on the merged build, sha256 `182b363b…`:
+check 42/42; the same legs green again, plus the merged-in work's own: `hoverexpand` 18/18, `noteviews` 15/15,
+`textstyle` (with its `carry-rich` fixture) 52 checks. ⚠️ `hoverexpand` timed out once waiting for the grid when run
+first in a batch of eight; green on two re-runs alone, so recorded as a flake under load, not a failure.
+
 ### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
 
 Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
