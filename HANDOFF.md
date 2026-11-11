@@ -4,6 +4,39 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: SIM POST REORDERS LIKE ANY PHASE IN THE MONTH VIEW (frozen edit SO1). Branch `mv-order-simpost` (worktree `.claude/worktrees/mv-order-simpost`, from local `main` at `6434d4f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `mv-order-simpost-8471` in the main checkout's `.claude/launch.json`; harness ports 8473 / 8474. Committed on the branch, NOT merged, NOT pushed. Tracker card `month-reorder-simpost`.
+- **The ask (owner):** *"in month view, we should be able to reorder the position of phases including sim post, without
+  sim post having to stick to production, it should be able to be reanarangged just like any other phase"*. Frozen edit
+  approved by picker: *"Approve with that gate"* (an unmoved Sim Post draws and prints as before; gates 10 and 13
+  byte-identical). The owner tried the working build in the pane, then *"Finish it"*.
+- **Why it could not move:** frozen `renderMonthView` placed Sim Post's bars in their own block AFTER the phase loop, so
+  first-fit put it under every phase that shared its days, outside `mvPhaseOrder`; and its bar had no `data-ph`, so the
+  grip never showed on it.
+- ⭐ **As built (`app.js`):**
+  - `MV_SIMPOST_KEY = 'simpost'` names Sim Post in `mvPhaseOrder` (no phase can have that key; the sanitizer already
+    keeps unknown keys, so an older build keeps it and draws Sim Post at the bottom). PERMANENT.
+  - `mvSimPostSlot(laneSegs)`: -1 unless the order names Sim Post (and always -1 under `mvRefMode`); else the index of
+    the first lane segment the order names BELOW it, or -1 when none is.
+  - **SO1** in `renderMonthView`: the Sim Post block became a hoisted `placeSimPost()`, called at `spSlot` inside the
+    phase loop, or after the loop at -1, exactly where it ran before. Its bar carries `data-sp="1"` only while
+    `printingCursor` is null (NS1's pattern), so the print rollback and the writer never see it.
+  - `mvOrderKeys(segs, sch)`: the whole order as keys, Sim Post included where SO1 draws it (only on a calendar that has
+    Sim Post). The reorder grip reads and writes it (`BAR_SEL` / `barKey` take `.mv-pill[data-sp]` as `simpost`).
+    "Back to date order" counts an order that only moved Sim Post.
+  - Dragging any OTHER phase now writes `simpost` at the end of the order, which places it after every phase: the same
+    layout as before.
+- **Not done:** Sim Post has no body drag, edge grips or day-menu entries of its own (it has no dates of its own).
+  The phase map (`MonthMap.jsx`) does not show Sim Post.
+- **Proof:** new leg **`mvordersp` 11/11** (`tests/harness/mvordersp.mjs`, after `mvorder` in gate.sh) on
+  `colswap-simpost-refuse`: grip, drag to top in every week, one undo / redo, save, the WRITTEN month PDF (Sim Post's
+  label above every "Post Week N"), Back to date order, between two phases, another phase's drag leaves it at the
+  bottom, Escape. Red on the build without SO1 (no Sim Post grip to find). A partial gate from gate.sh's own sections
+  on port 8473: **gate 13 24/24 byte-identical**, gate 10 identical on every calendar (dayoverrides produced no file in
+  the run and was identical alone), `mvorder` all green, `simpostlabel` / `simpostdays` / `simpostbeside` / `monthlayout`
+  (colswap-simpost-refuse) green. Flakes, each green alone: `monthexport` X4-X6 (activation and soft-hyphen timing,
+  rotating between runs: 7/9, 8/9, then 9/9 on this build; 9/9 once on the build without SO1), `simpostname` F2/F3 (Load timeout, 14/14 alone).
+  `npm run check` 42/42. Seen in the pane with the real mouse.
+
 ### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN. ✅ **LIVE at `4d15eaa`** (pushed `52a112b..4d15eaa`; deploy run `43090025014` succeeded; the live `index.html` is the tested build byte for byte, sha256 `56555868…`, the new Help sentence present). No version cut. Branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` merged in twice (`27b0b5e`, then `52a112b`: the hover-hiatus work, conflicts in gate.sh, README and HANDOFF only, both sides kept) and local `main`'s unpushed HANDOFF note `6e4d0f5` (the Date Last Edited heading's "LIVE at `5357584`"), then `main` fast-forwarded onto it and pushed on the owner's pickers (*"Merge into main"*, *"Push and deploy"*, 11 Nov 2026). Tracker card `swap-column-only-where-it-swaps`.
 - **The ask (owner, a screenshot):** the hover button "Swap Column" on Production with Simultaneous Post beside it and
   only the Notes column beyond (the purple cells right of Sim Post were automatic notes) — *"this swap column button

@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
+
+Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having
+to stick to production, it should be able to be reanarangged just like any other phase"*. Sim Post's month bar now has
+the six-dot reorder grip, and a drag puts it above, between or below the phases, in every week, on screen and in the
+month PDF; one undo, Escape and Back to date order behave as for any phase. It is named in the saved order
+(`mvPhaseOrder`) by the reserved key `simpost`. Frozen edit SO1 in `renderMonthView` (owner-approved by picker, *"Approve
+with that gate"*): Sim Post's bars are placed at its place in the order, or, where it was never moved, after every phase
+exactly as before; on screen only its bar carries `data-sp` for the grip. An older build keeps the key and draws Sim Post
+at the bottom. Verified: new leg `mvordersp` 11/11 (red on the build before the edit), gate 10 and gate 13 byte-identical
+on every month calendar (24 written PDFs, gate 10 print documents), `mvorder` and the Sim Post legs green.
+
 ### Unreleased — Swap Column shows only where a swap can happen (11 Nov 2026)
 
 Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't
