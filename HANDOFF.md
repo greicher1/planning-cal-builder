@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". Branch `holiday-enable` (worktree `.claude/worktrees/holiday-enable`, cut from `main` at `9be8a10`, `origin/main` merged in at `7e0e668`). Committed on the branch, NOT merged into `main`, NOT pushed. ⏳ **Owner's call (picker): ship AFTER v1.13.0**, which another session (Notes editor redesign) had committed on local `main`, unpushed, when this was ready: once it is on `origin/main`, merge that in, re-run `holidayenable` + the holiday legs + `npm run check`, then push. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
+### ✅ 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". ✅ **LIVE at `e1e447c`** (branch `holiday-enable`, worktree `.claude/worktrees/holiday-enable`, shipped AFTER v1.13.0 by the owner's picker: `origin/main` merged in at `5f1b67a`, pushed `5f1b67a..e1e447c` on the owner's *"ok can we push now?"*; the live `index.html` is the tested build byte for byte, sha256 `dff379c6…`, ~50 s after the push). No version cut. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
 - **Asks (owner, 11 Nov, in order):** *"Should the enable button even be there for holidays that do not occur during
   production? Maybe non-production holidays just have the note options"*; told that a Days custom phase and episode prep
   count holidays too, *"Yes, build it with that rule. But also i think we need to make it more clear what phase each
