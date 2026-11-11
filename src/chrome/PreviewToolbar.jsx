@@ -50,8 +50,8 @@ import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
-// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits between the view toggle and the tools while all three
-// fit on the row's first line. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
+// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits on the row's first line, between Undo / Redo and the
+// tools (variation 27), while the view toggle, Undo / Redo, the bar and the tools all fit there. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
 // on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead, moving Shift and
 // Undo on every narrow window. Measured, not a media query: the tools' width changes with the view (Side Boxes is
 // waterfall only), the Header button's label and the window (Fill Space's label goes at 1300 px).
@@ -74,7 +74,8 @@ function useStyleBarFit() {
     const host = row && row.querySelector('.style-bar-host')
     const toggle = row && row.querySelector('.view-toggle')
     const tools = row && row.querySelector('.preview-tools')
-    if (!row || !host || !toggle || !tools || typeof ResizeObserver === 'undefined') return
+    const undo = row && row.querySelector('.undo-redo-group')
+    if (!row || !host || !toggle || !tools || !undo || typeof ResizeObserver === 'undefined') return
     let timer = 0, watchedBar = null
     const fit = () => {
       timer = 0
@@ -84,16 +85,15 @@ function useStyleBarFit() {
       const hl = bar.querySelector('.hf-swatch-hl'), sw = bar.querySelector('.hf-swatch:not(.hf-swatch-hl)')
       const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
       const reserve = hl && hl.hidden && sw ? sw.offsetWidth + (parseFloat(barCs.columnGap) || 0) : 0
+      // One gap between every section (--tb-gap, the row's column-gap). Undo / Redo's auto left margin takes the
+      // leftover space and is never counted: a computed auto margin IS the leftover space.
       const gap = parseFloat(rowCs.columnGap) || 0
-      // The space after the bar, before Shift. Read from the row's custom property, never the host's computed margin:
-      // the margin is 0 on its own line, and a need that changed with the mode would flip it back and forth.
-      const trail = parseFloat(rowCs.getPropertyValue('--tools-group-gap')) || 0
-      const need = toggle.offsetWidth + gap + bar.offsetWidth + reserve + trail + gap + tools.offsetWidth
+      const need = toggle.offsetWidth + gap + undo.offsetWidth + gap + bar.offsetWidth + reserve + gap + tools.offsetWidth
       host.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
     }
     const later = () => { if (!timer) timer = setTimeout(fit, 0) }
     const ro = new ResizeObserver(later)
-    ;[row, host, toggle, tools].forEach((el) => ro.observe(el))
+    ;[row, host, toggle, undo, tools].forEach((el) => ro.observe(el))
     // The engine fills the host after React mounts; a mutation says so even on a page that is not painting.
     const mo = new MutationObserver(later)
     mo.observe(host, { childList: true })
@@ -151,16 +151,33 @@ export function PreviewToolbar() {
           (Sidebar.jsx). The owner could not find it beside the view toggle. It kept its id, so the
           engine binding and both gate legs were unaffected by the move. */}
 
+      {/* UNDO / REDO, right after the view toggle (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html:
+          the view toggle alone at the left edge, every tool packed to the right, Undo first). Until then the group was
+          the last thing in .preview-tools. A grey well like every section here; its auto left margin is what packs
+          the tools to the right. The ids, the Tooltips and the bridged disabled state are unchanged. */}
+      <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
+        <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
+          <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
+                      disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
+        </Tooltip>
+        <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
+          <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
+                      disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
+        </Tooltip>
+      </Group>
+
       {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026). EMPTY here and filled once by
           the engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once and
           never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside. The engine finds
           it by its class, wherever it sits. ⛔ Inside .view-toggle-row on purpose: a sibling between that row and
           #table-wrap would break the pair the contracts above need. ⛔ No id on anything in it (collectFieldValues).
-          SINCE 10 NOV 2026 IT SITS HERE, between Waterfall | Month and Shift, as the bare buttons (owner: "move the
-          styling bar to this blank space between Month and the left shift button. It should only be the buttons ...
-          not the surrounding box, text, etc"). It was a full-width second line of this row, a boxed bar with a "Text"
-          label and a hint. Where the three no longer fit on one line, the bar alone drops to its own line under them,
-          its old place (useStyleBarFit below), so a narrow window looks as it did and Shift and Undo never move. */}
+          SINCE 10 NOV 2026 IT SITS ON THE FIRST LINE, after Undo / Redo and before Shift (owner: first "move the styling
+          bar to this blank space between Month and the left shift button", then variation 27 of
+          mockups/toolbar-variations.html: every section in a grey well, one gap between them). It was a full-width
+          second line of this row, a boxed bar with a "Text" label and a hint. The well is drawn on the engine's
+          .style-bar (width:max-content), never on this host, which grows when the bar has its own line. Where the
+          sections no longer fit on one line, the bar alone drops to its own line under them, its old place
+          (useStyleBarFit below), so a narrow window keeps every other tool where it is. */}
       <div className="style-bar-host"></div>
 
       <div className="preview-tools">
@@ -176,6 +193,9 @@ export function PreviewToolbar() {
             the engine binds shift-back/fwd by id and pop-shift-btn as the popover trigger, and
             .shift-label had zero engine references (verified), so folding it into the trigger is
             markup-only. */}
+        {/* The date tools' well (variation 27): Shift and Build Around, 2 px apart, as every well holds its buttons. A plain
+            div, not positioned and never overflow:hidden, so the two popovers anchor and hang exactly as before. */}
+        <div className="tb-well tb-dates">
         <div className="shift-group" id="shift-group">
           <button className="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">← 1 wk</button>
           <button className="shift-btn shift-main" id="pop-shift-btn" type="button" title="Shift the calendar by a number of weeks or to a date" aria-haspopup="true" aria-expanded="false">Shift <span className="caret" aria-hidden="true">▾</span></button>
@@ -342,6 +362,11 @@ export function PreviewToolbar() {
           </div>
         </div>
 
+        </div>
+
+        {/* The page tools' well (variation 27): Fill Space, Side Boxes, the Header mode. In the month view Fill Space and
+            Side Boxes hide, and the well holds the Header button alone. */}
+        <div className="tb-well tb-page">
         {/* Fill Space (owner, 9 Nov 2026: "a toggle to the left of side boxes button that turns on or off expand rows to
             fill empty space"). On, phases widen into the empty columns beside them (the layout as it was); off, every
             phase keeps its own lane. The engine flips it by DELEGATION on this id and pushes {visible, on} back
@@ -356,7 +381,9 @@ export function PreviewToolbar() {
                   ? 'Phases widen into the empty columns beside them. Click to keep every phase in its own lane.'
                   : 'Every phase keeps its own lane. Click to let phases widen into the empty columns beside them.'}
                 leftSection={<span className={'fill-switch' + (fill.on ? ' is-on' : '')} aria-hidden="true"><span className="fill-knob" /></span>}>
-          Fill Space
+          {/* "Fill Gaps", not "Fill Space" (owner, 10 Nov 2026). Only the words changed: the id, the engine's
+              fillSpaceOff and the saved key keep the old name, as Load kept data-action="open". */}
+          Fill Gaps
         </Button>
 
         {/* Side boxes (owner ruling 7 + Q7, 20 Oct 2026; SIDE-BOXES-PLAN.md): adds a colour key or a
@@ -394,6 +421,8 @@ export function PreviewToolbar() {
             : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>
 
+        </div>
+
         {/* Paste notes… lived here (MONTH-NOTES-PLAN.md §5) until the owner moved it into the Settings
             window's Calendar tab, Month view card (20 Oct 2026, "put paste notes into settings"). Same id,
             same engine listener: see CalendarMonthCard in Sidebar.jsx. */}
@@ -406,16 +435,6 @@ export function PreviewToolbar() {
             expand cells" (owner, 21 Oct 2026); the Help has the swap keys. Their delegated engine listeners went in
             the same change; the engine keeps pushing chrome.gridSelection, which nothing renders. */}
 
-        <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
-          <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
-            <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                        disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
-          </Tooltip>
-          <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
-            <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                        disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
-          </Tooltip>
-        </Group>
       </div>
 
       {/* The phase map (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+): a full-width line of this row in the month

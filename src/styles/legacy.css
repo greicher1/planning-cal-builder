@@ -1618,11 +1618,15 @@
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
-  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
-    flex-wrap:wrap; margin-bottom:14px;
-    /* The extra space that sets a group of tools apart, on top of the 10 px gap: after Build Around, and after the
-       text style bar's buttons (10 Nov 2026). Read by useStyleBarFit too. */
-    --tools-group-gap:16px;}
+  /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
+     the differnt sections is literally all different. It needs to be consistnet"). The view toggle alone at the left
+     edge; Undo / Redo, the text style buttons, the date tools and the page tools packed to the right, each in a grey
+     well. ONE gap between every section, --tb-gap (column-gap here, and between the two wells inside .preview-tools),
+     and inside every well, the view toggle's included, 2 px of padding, 2 px between buttons and nested corners (a
+     9 px well around 7 px buttons): .tb-well below. Read by useStyleBarFit too. The lines below the first (the phase
+     map, the stepper, the style bar on its own line) keep their 10 px row gap. */
+  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; column-gap:var(--tb-gap); row-gap:10px;
+    flex-wrap:wrap; margin-bottom:14px; --tb-gap:12px;}
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1633,14 +1637,15 @@
     display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr;
     gap:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1);
-    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);
+    /* A 9 px well around 7 px segments, as every toolbar well (variation 27); was md around sm. */
+    border-radius:calc(var(--mantine-radius-default) + 2px); padding:var(--mantine-spacing-xxs);
   }
   .view-toggle-btn{
     display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
     border:none; background:transparent; color:var(--mantine-color-gray-7);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-lg);
-    border-radius:var(--mantine-radius-sm); cursor:pointer;
+    border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:color .12s ease, background .12s ease;
   }
   .vt-ic{ width:14px; height:14px; flex:none; }
@@ -1660,11 +1665,27 @@
      max-width:100% caps the max-content size at the container's width, which is what lets the
      children wrap; row-gap keeps the wrapped lines apart. On a wide window max-content is under
      100%, nothing wraps, and the appearance is byte-identical to before. */
-  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;
+  .preview-tools{display:inline-flex; align-items:center; column-gap:var(--tb-gap); flex:none;
     flex-wrap:wrap; row-gap:8px; max-width:100%;}
-  .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
+  /* THE WELLS (variation 27). The view toggle's grey ground, padding and gap, around each section's buttons. The text
+     style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
+     a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
+     hang below the well. */
+  .tb-well, .view-toggle-row > .undo-redo-group{
+    display:inline-flex; align-items:center; flex:none; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
+    background:var(--mantine-color-gray-1); border-radius:calc(var(--mantine-radius-default) + 2px);
+  }
+  /* Undo / Redo come right after the view toggle, and their auto left margin packs every tool to the right. */
+  .view-toggle-row > .undo-redo-group{ margin-left:auto; }
+  /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
+     the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
+     white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */
+  .undo-redo-group .icon-btn, .tb-page > .tools-btn{ border-color:transparent; background:transparent; }
+  .undo-redo-group .icon-btn:hover:not(:disabled), .tb-page > .tools-btn:hover, .tb-page > .tools-btn[aria-expanded="true"]{
+    background:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs);
+  }
   .undo-redo-group .icon-btn{font-size:16px;}
-  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
+  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:transparent;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
   /* A joined three-part control at the toolbar's shared 30px control height -- the Mantine UI
@@ -1766,9 +1787,8 @@
      From's wrapper, NOT on the Header button: .preview-tools wraps on a narrow window, and the Header
      button is what moves to the new line (measured at a 600 px viewport), where a margin-left would
      indent it. A trailing margin at the end of a line is invisible. */
-  /* The 16 px is --tools-group-gap (on .view-toggle-row) since 10 Nov 2026, when the text style bar moved up beside
-     Shift with the same gap before it (owner). One value, so the two gaps cannot drift apart. */
-  .tools-wrap:has(> #pop-solve-btn){ margin-right:var(--tools-group-gap); }
+  /* ⛔ That margin is GONE since 10 Nov 2026 (variation 27): the date tools and the page tools are separate wells now,
+     with the one section gap (--tb-gap) between them, so a margin here would make that one gap different again. */
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
@@ -3270,7 +3290,9 @@
      after Build Around. A highlight well appearing (a header or box line picked) widens it to the left; nothing
      else moves.
      Before, the host was a full-width second line (.style-row), a boxed bar shared with the month stepper. */
-  .view-toggle-row > .style-bar-host{ flex:none; margin-left:auto; margin-right:var(--tools-group-gap); }
+  /* VARIATION 27 (owner, later the same day): the host follows Undo / Redo with the one section gap, and the bar is a
+     grey well like every section (.style-bar below). No margins of its own. */
+  .view-toggle-row > .style-bar-host{ flex:none; }
   /* Where the three no longer fit on one line (PreviewToolbar.jsx, useStyleBarFit), the bar alone drops to a line
      under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
      owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
@@ -3287,23 +3309,27 @@
   }
   .view-toggle-row > .style-row:empty{ display:none; }
   .style-bar{
-    display:flex; align-items:center; gap:4px; flex-wrap:nowrap; box-sizing:border-box;
+    display:flex; align-items:center; gap:var(--mantine-spacing-xxs); flex-wrap:nowrap; box-sizing:border-box;
     /* Its own width, never its line's: the fit measures it, and it must not change with where the bar sits. */
     width:max-content;
+    /* A toolbar well (variation 27), on the bar and not the host, so it stays around the buttons on its own line. */
+    padding:var(--mantine-spacing-xxs); background:var(--mantine-color-gray-1);
+    border-radius:calc(var(--mantine-radius-default) + 2px);
   }
   /* THE TOOLBAR'S BUTTONS (owner, 10 Nov 2026: "make the buttons tall enough to match the look and style of the other
      buttons in the menu"): the .hf-* controls are the header strip's 22 px ones, so here they take the toolbar's
      30 px height, white ground, gray-4 border and default radius, read from Undo / Side Boxes. B, I, A and Clear are
      30 px squares like Undo; the glyphs grow with them. Scoped to .style-bar: the header editor keeps its own copy of
      these controls at 22 px. */
+  /* Inside the well (variation 27) they are borderless until hovered, then the raised white chip. */
   .style-bar .hf-ctl{
     height:var(--input-height-xs, 30px); box-sizing:border-box;
-    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default);
-    background:var(--mantine-color-white); color:var(--mantine-color-gray-7);
+    border:1px solid transparent; border-radius:var(--mantine-radius-default);
+    background-color:transparent; color:var(--mantine-color-gray-7);
     font-size:var(--mantine-font-size-xs); font-weight:500;
   }
   /* background-COLOR: the shorthand would also clear the Size box's drawn arrow on hover. */
-  .style-bar .hf-ctl:hover{ background-color:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .style-bar .hf-ctl:hover{ background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--mantine-color-black); }
   .style-bar .hf-btn{ min-width:var(--input-height-xs, 30px); padding:0 6px; font-size:14px; }
   /* Its arrow drawn, not Chrome's: the UA arrow sat against the right border (owner, 10 Nov 2026: "move the downward
      carrot over a little in the size box so it doesnt hit the right edge") and padding does not move it. The tool
@@ -3319,8 +3345,9 @@
   .style-bar .hf-swatch .hf-swatch-ink{ font-size:14px; }
   .style-bar .hf-al-toggle{ gap:3px; padding:0 6px 0 7px; }
   .style-bar .hf-al-toggle svg{ width:16px; height:16px; }
+  /* Pressed (Bold on): the raised white chip of the view toggle's active segment, in the edit purple. */
   .style-bar .hf-btn.is-on{
-    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:700;
+    background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--edit-accent); font-weight:700;
   }
   /* Nothing picked: dimmed and inert (the strip's empty-state rule, 21 Sep 2026). */
   .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
