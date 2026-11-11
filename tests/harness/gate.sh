@@ -2114,6 +2114,8 @@ done
 # count; an edit reads today and Undo / Redo / the title typed back bring their own dates; Save As writes the stamp; a file
 # with no stamp reads its file time (openViaFakePicker's opts.mtime); the builder's group and live values; Template
 # mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
+# N2 (10 Nov 2026): New, one edit, Undo logs no "value ignored" warning and leaves the saved file with no stamp. Red on a
+# build without the guard in lastEditedForStep() (3e09ce9), where the undo step carried `lastEdited: null`.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
