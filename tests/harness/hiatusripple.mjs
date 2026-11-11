@@ -475,10 +475,21 @@ try {
   // was enough while the switch had a copy on the All-phase card to click instead; on a loaded machine (load average 170,
   // 10 Nov 2026) every Settings click landed before the window was drawn, missed, and the case ran on with ripple ON.
   const SW_TRACK = `(document.getElementById('pref-hiatus-ripple').closest('.mantine-Switch-root').querySelector('.mantine-Switch-track'))`;
-  // Shown = scrolled to, and the TOP element at its own centre: Settings stays mounted while closed, so the track keeps its
-  // size then, and a size test alone passed with the window shut (the first try at this, 10 Nov 2026).
-  const swShown = `(() => { const t = ${SW_TRACK}; if (!t) return false; t.scrollIntoView({ block: 'center', inline: 'nearest' });
-    const r = t.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+  // ⛔ MEASURED WHERE IT RESTS, NEVER RIGHT AFTER A scrollIntoView (found 11 Nov 2026 by logging the press): the app's fixed
+  // window puts back a scroll that scrollIntoView makes, so the shared click() measured the switch at y=560 and pressed
+  // there after it had gone back to y=763 -- into Settings' Automatic notes card. At this window size the switch is on
+  // screen as it opens; it is scrolled to only when it is not, and then read again after the window has settled.
+  const restAt = async sel => {
+    const m = () => ev(`(() => { const e = ${sel}; if (!e) return null; const r = e.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, vh: innerHeight }; })()`);
+    let b = await m();
+    if (b && (b.y < 0 || b.y > b.vh)) { await ev(`(${sel}).scrollIntoView({ block: 'center' }), true`); await sleep(600); b = await m(); }
+    return b;
+  };
+  // Shown = on screen and the TOP element at its own centre: Settings stays mounted while closed, so the track keeps its
+  // size then, and a size test alone passed with the window shut.
+  const swShown = `(() => { const t = ${SW_TRACK}; if (!t) return false; const r = t.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0) || r.top < 0 || r.bottom > innerHeight) return false;
     const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     return !!at && t.closest('.mantine-Switch-root').contains(at); })()`;
   const openSettings = async () => {
@@ -489,8 +500,16 @@ try {
     if (await ev(swShown)) await click('.side-settings-btn');
     await until(`!${swShown}`, 'Settings closed', 20000); await sleep(300);
   };
+  // Clicked once it has held one place for two reads (Settings' cards finish drawing after the window opens).
   const flipRipple = async want => {
-    await click(SW_TRACK);
+    let prev = null, b = null;
+    for (let i = 0; i < 50; i++) {
+      b = await restAt(SW_TRACK);
+      if (prev && b && Math.abs(b.x - prev.x) < 0.5 && Math.abs(b.y - prev.y) < 0.5) break;
+      prev = b; await sleep(250);
+    }
+    if (!b) throw new Error('no Settings switch to click');
+    await clickAt(b.x, b.y);
     await until(`(document.getElementById('pref-hiatus-ripple') || {}).checked === ${want}`, 'the switch ' + (want ? 'on' : 'off'), 10000);
     await sleep(300);
   };
