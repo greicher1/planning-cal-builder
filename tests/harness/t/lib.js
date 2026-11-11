@@ -317,7 +317,9 @@ window.__T = (function(){
   async function openViaFakePicker(url, name, opts){
     opts = opts || {};
     var txt = (typeof opts.text === 'string') ? opts.text : await (await fetch(url)).text();
-    var mtime = Date.now() - 60000;
+    // opts.mtime (9 Nov 2026, the lastedited leg): the file's last-modified time, which a file with no Date Last
+    // Edited stamp stands in with. Default: a minute ago, as before.
+    var mtime = (typeof opts.mtime === 'number') ? opts.mtime : Date.now() - 60000;
     var called = false;
     var handle = {
       name: name,

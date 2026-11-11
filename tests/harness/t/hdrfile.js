@@ -129,7 +129,7 @@ window.addEventListener('load', function () { (async function () {
     // ⭐ ...and the same must be true of the month section, or a shared preset would hand over the
     // sender's episode count and today's date frozen into someone else's calendar.
     out.fileMonthHasTemplates = !!out.fileMonthLines &&
-                                out.fileMonthLines.today === '{today:dotpad}' &&
+                                out.fileMonthLines.today === '{lastEdited:dotpad}' &&   // the Default's date since 9 Nov 2026 (Date Last Edited)
                                 out.fileMonthLines.title.indexOf('{titleSeason}') >= 0;
 
     // ---- 3. IMPORT the very same text -- identity, but a fresh id --------------------------------

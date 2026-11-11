@@ -65,6 +65,73 @@ through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Thre
 one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
 its tick (`buildaround` D1). No full gate: chrome only.
 
+### Unreleased — The text style buttons move into the toolbar (10 Nov 2026)
+
+The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
+colour, alignment, Clear, and Highlight when a header or box line is picked) now sit **on the toolbar's first line,
+just left of Shift**. The calendar gains that line's height. Built and adjusted in three passes with the owner trying
+each in the browser: *"move the styling bar to this blank space between Month and the left shift button. It should only
+be the buttons ... not the surrounding box, text, etc"*, then *"make the buttons tall enough to match the look and
+style of the other buttons in the menu"*, then *"the same size gap between the right edge of the styling menu and the
+left shift button as there is between build around and fill space"*, then the Size box's arrow moved in from the edge.
+
+- **Bare buttons**: no box, no "TEXT" label, no "Highlight any text…" line. That hint is now the buttons' tooltip
+  while nothing is picked.
+- **The toolbar's look**: every control is 30 px tall with the white ground, grey border and rounded corners of Undo
+  and Side Boxes; Bold, Italic, the colour and Clear are 30 px squares like Undo. The Size box draws its own arrow 8 px
+  in from its edge (the browser's sat against the border). The header editor's own copy of these controls is unchanged.
+- **The gap before Shift is Build Around's gap** (26 px): one shared value, so the two cannot drift apart.
+- **On a narrower window** (below about 1,690 px with Fill Space showing, about 1,580 px without; less in the month
+  view, which has no Side Boxes), the buttons cannot fit beside Shift, so they alone drop to their old line under the
+  toolbar, and in the month view share it with the month arrows as before. Shift and Undo never move to a second line.
+  The fit is measured (it counts the Highlight button as shown, so picking a header line never flips it).
+- Picking a header line adds the Highlight button on the left of the group; nothing else moves.
+
+Chrome only: nothing in the calendar, the exports or saved files changes. The month arrows keep their line in the
+month view. **Verified:** a new leg `stylebarplace` (11 cases: the markup, the 30 px controls and the Size arrow, the
+first-line geometry and the 26 px gap, the header pick, the narrow fallback in both views, no flip-flop, the tooltip,
+the shared value, the toolbar row left classless, no console error), red on the build before it in all 8 placement
+cases; `textstyle` B2, `hdrcontrols` T1 and `monthmap` C0 / B7 updated to the new place; the neighbouring legs green
+(list in HANDOFF); `npm run check` 41/41. The fence's computed styles inside `#table-wrap` against the build before:
+511 values, the only difference the waterfall's scroll box 4 px taller (789 → 793 px at 1600 × 1200), which is the
+grid fit giving the calendar the height the slimmer toolbar line freed.
+
+**Found on the way:** the first cut put its narrow-window class on the toolbar row, and `sharecopy2` caught it riding
+into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
+The class lives on the bar's host instead, which leaves with the row's children.
+
+### Unreleased — the auto header's date is the Date Last Edited (9 Nov 2026)
+
+Owner: *"make the date in the top left corner for waterfall view (and top right corner for month view) be the last time
+the calendar was edited … basically anything that would change if it was exported to pdf or excel. Then add this 'Date
+Last Edited' variable to the template builder."* Until now that date was simply today, so a calendar printed a week
+after its last change claimed to be a week newer than it was.
+
+- **What.** The waterfall header's top left (M.D.YY) and the month header's top right (M.DD.YY), on screen, in Excel and
+  in both PDFs, read the last time the calendar changed. A new token, `{lastEdited}` (with `:long`, `:slash`, `:iso` and
+  `:dotpad`), is listed first among the dates in the template builder, in its own **Date Last Edited** group, each entry
+  showing its live value. The built-in Default template now uses it, so Template mode seeded from the Default matches
+  Auto. A header already in Template mode keeps whatever its lines say, `{today}` included.
+- **What counts as an edit.** The calendar's own content: everything a saved file holds, less the view, the sidebar tab
+  and the Holidays card's add-a-holiday boxes (a form until Add). Preferences are not in the file, so they never count.
+  Switching views, paging months, opening dialogs and exporting change nothing. Switching the header's mode does count
+  (it is a header setting), even when the printed text is the same.
+- **Undo puts the date back.** Each content the calendar has had since it was loaded remembers the time it was first
+  reached, so Undo, Redo, a drag answered Undo, or a value typed back the way it was bring back the date that content
+  had. Each scenario tab keeps its own date.
+- **Saved files.** A new permanent snapshot key, `lastEdited` (an ISO time in UTC), written only once a calendar has a
+  stamp, so a calendar never edited saves byte for byte as before; it is not in the undo history. A file with no stamp
+  (every calendar saved before today) takes the file's own last-modified time when it is loaded, and its next save
+  writes that down. A new calendar has none, and reads today until its first edit. `SNAPSHOT_VERSION` is unchanged:
+  an older build ignores the key and prints today, as it always did.
+- **Verified:** new leg `lastedited` (21 checks): the stamp in both headers and in Excel's header; a view switch, a
+  sidebar tab and the add-a-holiday box don't count; an edit shows today, Undo/Redo and a title typed back bring their
+  own dates; Save As writes the stamp; a pre-stamp file reads (and then saves) its file time; the template builder's
+  group and live values; Template mode's Default; scenario tabs; New. A targeted gate of the header, save, undo and
+  scenario legs (gate.sh's own judges): 281 pass, 3 fail, none from this change (two flakes green alone, one stale
+  prover that fails identically on `main`). The check costs about 0.2 ms per render against a ~20 ms render.
+  `npm run check` 40/40.
+
 ### Unreleased — Shift: the list first (9 Nov 2026)
 
 The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of

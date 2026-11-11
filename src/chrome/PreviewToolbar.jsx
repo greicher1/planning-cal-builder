@@ -50,7 +50,63 @@ import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
+// WHERE THE TEXT STYLE BAR GOES (owner, 10 Nov 2026). It sits between the view toggle and the tools while all three
+// fit on the row's first line. Where they don't, the host takes `.style-own-line`, and CSS puts the bar alone
+// on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead, moving Shift and
+// Undo on every narrow window. Measured, not a media query: the tools' width changes with the view (Side Boxes is
+// waterfall only), the Header button's label and the window (Fill Space's label goes at 1300 px).
+// * None of the three widths depends on where the bar is, so the choice cannot flip-flop: the toggle and the tools
+//   are flex:none at their content width (the tools clamped at the row's, which only happens when nothing fits), and
+//   the bar is width:max-content.
+// * The bar's hidden highlight well counts as shown. It appears for a header or box line, and a toolbar that jumped
+//   to two lines when a header line was clicked would be worse than one that drops a little sooner.
+// * Applied in a task of its own (a zero timer): changing the row's height inside the observer's own callback is what
+//   makes Chrome report "ResizeObserver loop completed with undelivered notifications" as a page error, which legs
+//   count. ⛔ Not requestAnimationFrame: a hidden page never gets one, and under the harness's --virtual-time-budget
+//   it may never fire (monthmap.js says the same), so the class would never be set there.
+// * The class is on the HOST, not on .view-toggle-row: the shareable copy is a clone of the page, and its builder empties
+//   the row but keeps the row's own attributes, so a class on the row travelled into every copy's markup (sharecopy2
+//   caught it). The host goes with the row's children. React set the host's className once and never changes that
+//   prop, so it never writes the attribute again and the class survives its re-renders.
+function useStyleBarFit() {
+  useLayoutEffect(() => {
+    const row = document.querySelector('.view-toggle-row')
+    const host = row && row.querySelector('.style-bar-host')
+    const toggle = row && row.querySelector('.view-toggle')
+    const tools = row && row.querySelector('.preview-tools')
+    if (!row || !host || !toggle || !tools || typeof ResizeObserver === 'undefined') return
+    let timer = 0, watchedBar = null
+    const fit = () => {
+      timer = 0
+      const bar = host.firstElementChild
+      if (!bar) { host.classList.remove('style-own-line'); return }
+      if (bar !== watchedBar) { ro.observe(bar); watchedBar = bar }
+      const hl = bar.querySelector('.hf-swatch-hl'), sw = bar.querySelector('.hf-swatch:not(.hf-swatch-hl)')
+      const barCs = getComputedStyle(bar), rowCs = getComputedStyle(row)
+      const reserve = hl && hl.hidden && sw ? sw.offsetWidth + (parseFloat(barCs.columnGap) || 0) : 0
+      const gap = parseFloat(rowCs.columnGap) || 0
+      // The space after the bar, before Shift. Read from the row's custom property, never the host's computed margin:
+      // the margin is 0 on its own line, and a need that changed with the mode would flip it back and forth.
+      const trail = parseFloat(rowCs.getPropertyValue('--tools-group-gap')) || 0
+      const need = toggle.offsetWidth + gap + bar.offsetWidth + reserve + trail + gap + tools.offsetWidth
+      host.classList.toggle('style-own-line', row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0) < need)
+    }
+    const later = () => { if (!timer) timer = setTimeout(fit, 0) }
+    const ro = new ResizeObserver(later)
+    ;[row, host, toggle, tools].forEach((el) => ro.observe(el))
+    // The engine fills the host after React mounts; a mutation says so even on a page that is not painting.
+    const mo = new MutationObserver(later)
+    mo.observe(host, { childList: true })
+    // A ResizeObserver reports only at a rendering opportunity, which a hidden page never gets (the grid fit in app.js
+    // found that); a window resize arrives regardless.
+    window.addEventListener('resize', later)
+    fit()
+    return () => { ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later); if (timer) clearTimeout(timer) }
+  }, [])
+}
+
 export function PreviewToolbar() {
+  useStyleBarFit()
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
   // from [data-disabled] alone -- there is no :disabled rule in its CSS -- so the engine's
   // `u.disabled = !undoStack.length` would disable the buttons functionally while leaving them
@@ -94,6 +150,18 @@ export function PreviewToolbar() {
       {/* ⚠️ "One column" LIVED HERE until 10 Sep 2026 and now sits in the Preferences card
           (Sidebar.jsx). The owner could not find it beside the view toggle. It kept its id, so the
           engine binding and both gate legs were unaffected by the move. */}
+
+      {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026). EMPTY here and filled once by
+          the engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once and
+          never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside. The engine finds
+          it by its class, wherever it sits. ⛔ Inside .view-toggle-row on purpose: a sibling between that row and
+          #table-wrap would break the pair the contracts above need. ⛔ No id on anything in it (collectFieldValues).
+          SINCE 10 NOV 2026 IT SITS HERE, between Waterfall | Month and Shift, as the bare buttons (owner: "move the
+          styling bar to this blank space between Month and the left shift button. It should only be the buttons ...
+          not the surrounding box, text, etc"). It was a full-width second line of this row, a boxed bar with a "Text"
+          label and a hint. Where the three no longer fit on one line, the bar alone drops to its own line under them,
+          its old place (useStyleBarFit below), so a narrow window looks as it did and Shift and Undo never move. */}
+      <div className="style-bar-host"></div>
 
       <div className="preview-tools">
         {/* Shift is a SPLIT control: the arrows act on one click (much the most-used thing
@@ -351,21 +419,16 @@ export function PreviewToolbar() {
       </div>
 
       {/* The phase map (MONTH-RAIL-PLAN.md, owner, 27 Oct 2026, option 3d+): a full-width line of this row in the month
-          view only, ABOVE the style bar, so the style bar sits on the calendar it styles. Its own component with its own
-          state, so its re-renders never reach this component's engine-owned children. Inside this row for the reason
-          the style bar's host is. */}
+          view only, under the toggle and the tools (and, since 10 Nov 2026, the style bar's buttons beside them). Its own
+          component with its own state, so its re-renders never reach this component's engine-owned children. Inside
+          this row for the reason the style bar's host is. */}
       <MonthMap />
-      {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026): a full-width second line
-          of this row, under the toggle and the tools, outside the calendar. EMPTY here and filled once by the
-          engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once
-          and never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside.
-          ⛔ Inside .view-toggle-row on purpose: a sibling between that row and #table-wrap would break the pair
-          the contracts above need. ⛔ No id on anything in it (collectFieldValues).
-          Since 28 Oct 2026 it shares a line with the month stepper (MONTH-RAIL-PLAN.md §18, option B): .style-row is
-          that line, full width as the host was. The engine finds the host by its class, so the wrapper changes
-          nothing for it, and the host still gets no React children. In the waterfall the stepper renders nothing. */}
+      {/* The month stepper's line (MONTH-RAIL-PLAN.md §18, option B, 28 Oct 2026). It shared this line with the text
+          style bar until the bar moved up beside the view toggle (10 Nov 2026), and it keeps the line alone, at its
+          right end. In the waterfall the stepper renders nothing and the empty line takes no room (.style-row:empty).
+          When the bar has had to drop to its own line (a narrow window) it rejoins the stepper here, by flex order
+          only, so the month view looks as it did. */}
       <div className="style-row">
-        <div className="style-bar-host"></div>
         <MonthStepper />
       </div>
     </>
