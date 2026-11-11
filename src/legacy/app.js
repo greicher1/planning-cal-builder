@@ -38867,11 +38867,12 @@ export function initLegacyApp() {
       return Array.from(wrap.querySelectorAll('.mv-week')).map((w, wi)=> ({el: w, start: start ? addDays(start, wi * 7) : null}));
     }
     // The dragged note's element in the CURRENT grid (each redraw replaces it).
+    // A linked line that became a month note of the day (d.at.kind 'day') is found as one.
     function meEl(){
-      const d = drag;
-      const els = wrap.querySelectorAll('.mv-note-block[data-note-day="' + d.at.iso + '"][data-note-kind="' + d.kind + '"]');
+      const d = drag, kind = d.at.kind || d.kind;
+      const els = wrap.querySelectorAll('.mv-note-block[data-note-day="' + d.at.iso + '"][data-note-kind="' + kind + '"]');
       for(const el of els){
-        if(d.kind === 'day' ? el.getAttribute('data-note-index') === String(d.at.index) : el.textContent === d.at.text) return el;
+        if(kind === 'day' ? el.getAttribute('data-note-index') === String(d.at.index) : el.textContent === d.at.text) return el;
       }
       return null;
     }
@@ -38984,7 +38985,7 @@ export function initLegacyApp() {
       restore();
       if(t.key === d.key0) return true;
       const to = t.iso;
-      let meEntry = null, meText = null;
+      let meEntry = null, meText = null, mePlain = null;
       if(d.kind === 'day'){
         const list = (d.dayNotes0[from] || []).slice();
         meEntry = deep(list[d.base.index]);
@@ -39001,7 +39002,11 @@ export function initLegacyApp() {
           if(d.linked){
             const r = moveLinkedLine(d.linked, from, to);
             if(!r){ restore(); return false; }
-            meText = r.plain ? null : r.text;   // a month note of the day now: it takes the day's default place
+            // A month note of the day now (one hidden from the waterfall, R10(a)): phaseNoteToDayNote put it last in
+            // the day's list, which is rebuilt below, so it takes its place there as a dragged month note does. Left to
+            // that rebuild alone, the list was written back without it and the note was lost.
+            if(r.plain){ const l = dayNotes[to] || []; mePlain = deep(l[l.length - 1]); }
+            meText = r.plain ? null : r.text;
           } else {
             meText = mvRetimeWfLine(d.base.text, from, to);
             if(!moveWfLine(d.base.text, from, meText, to)){ restore(); return false; }
@@ -39041,6 +39046,7 @@ export function initLegacyApp() {
         const own = e=>{ list.push(flag(e)); groupCount[g.group] = (groupCount[g.group] || 0) + 1; };
         if(it.me){
           if(d.kind === 'day'){ own(meEntry); perm.push('me'); }
+          else if(mePlain){ own(mePlain); perm.push('me'); }
           else if(meText) placeWf(meText);
           return;
         }
@@ -39067,7 +39073,8 @@ export function initLegacyApp() {
       });
       if(list.length) dayNotes[to] = list; else delete dayNotes[to];
       d.perm[to] = perm;
-      d.at = d.kind === 'day' ? {iso: to, index: perm.indexOf('me'), text: meEntry.text} : {iso: to, text: meText};
+      d.at = d.kind === 'day' ? {iso: to, index: perm.indexOf('me'), text: meEntry.text}
+           : mePlain ? {iso: to, index: perm.indexOf('me'), text: mePlain.text, kind: 'day'} : {iso: to, text: meText};
       return true;
     }
     window.addEventListener('mousemove', e=>{

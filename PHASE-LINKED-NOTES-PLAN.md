@@ -1,12 +1,12 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
-**Status: RULED; STEPS 1–4 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`, step 3
-`647690b`; step 4 on 6 Nov 2026, Delete / copy / paste / drag), steps 5–6 not started. R1–R9 all ruled 5 Nov 2026 by
-picker, every one the recommendation (§2). The note editor's LOOK is ruled: A2 (below). §9–§12 are the as-built
-records.**
-- ⛔ **Do not ship steps 2–4 without step 5.** Linking a typed note takes it out of `userNotes`, and the month view
-  reads a week's typed lines from `userNotes` through frozen `notesForWaterfallDate`; until step 5 draws linked notes
-  there (through `mvWfLinesFor`), a note leaves the Month view the moment it is linked.
+**Status: RULED; STEPS 1–5 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`, step 3
+`647690b`, step 4 `6b1bd58`; step 5, the month view, on 10 Nov 2026), step 6 not started. R1–R9 all ruled 5 Nov 2026
+by picker, every one the recommendation, and R10 on 10 Nov 2026 (§2). The note editor's LOOK is ruled: A2 (below).
+§9–§13 are the as-built records.**
+- ✅ **Step 5 is built (§13), so steps 1–5 can ship together.** Until it, linking a typed note took it out of
+  `userNotes`, which the month view reads through frozen `notesForWaterfallDate`, so a note left the Month view the
+  moment it was linked. Step 6 (picking a shoot day) is not needed to ship.
 - ✅ **Refreshed against `main`** (5 Nov 2026, on `phase-notes`): Rebuild From became **Build Around**, **Close all
   gaps is gone**, Shift From / Anchor To are choices inside the one Shift form, and ▲ / ▼, the bar drag and the
   ripple are new movers (§0, §1.1, §1.3, step 1). ⚠️ Still open for the A2 overhaul (card `note-editor-overhaul`): the
@@ -701,3 +701,62 @@ frozen edit, no save-format change. All in `src/legacy/app.js`, plus one Help se
     `moveWfLine` (step 5);
   - picking a shoot day (step 6).
 
+---
+
+## 13. Step 5 as built (10 Nov 2026, branch `phase-notes`)
+
+§4.2's month half, §4.6's last bullet (the line drag, by day), R8(a)'s month editor row and R10(a). Built on the owner's
+*"keep going with step 5"*, tried in the browser as WIP (`be5459a`), finished on *"good keep going"*. No frozen edit.
+All in `src/legacy/app.js`, plus Help in `src/index.html` and the row CSS in `src/styles/legacy.css`.
+
+- **R10(a), ruled the same day** (*"Own switch per view"*): `sheetHidden: true` on a note keeps it out of the waterfall,
+  the twin of `monthHidden`. `phaseNoteCopy` writes it after `monthHidden`; the sanitizer accepts it only as `true`.
+  `wfLinkedLinesFor` leaves such a note out, so `effectiveNoteText` (the screen, Excel, the waterfall PDF, the widths)
+  never sees it.
+- **Drawing:** `mvWfLinesFor` is now the week's typed lines (`mvWfTypedLinesFor`, the old body) plus
+  `mvLinkedLinesOn(schedule, iso)`: each line of each linked note placed on that day, unless `monthHidden`. It reads the
+  schedule being drawn, never module state, so a print builds from its own.
+  - `mvLinkedLineInfo(schedule, iso, text)` names a drawn line as a linked note's, `{text, key, index, lines, e}`. A
+    line the week's typed note also draws on that day, word for word, is the week's, as it comes first.
+  - `mvDayNotePlan`: the linked lines are the last ones of the day's waterfall lines, and set `b.color` (frozen edit
+    H1's slot) to the note's colour when it has one.
+- **The editor (`openMvNoteEditor`, kind `'linked'`):** found through `mvLinkedLineInfo`, after the holiday and the
+  automatic note. The box holds the stored line, with no date (the date is drawn fresh after every move), and the
+  colour is the note's.
+  - **Stays with** (`.note-link-row`, an id-less `.note-link-select`, so `collectFieldValues` never sweeps it): "This day
+    (Mon 7/6)", then `mvLinkOptions(dayIso)`, each phase with a working week there in the waterfall row's column
+    order. Production on a shoot day is offered as `production@day<m>`, "Production · Day m" (R4(b)). A linked note's
+    own key is added when the day no longer offers it, with "(waits on its last week)" when parked.
+  - The hint (`sayLink`) says where the note will go, and warns when the chosen phase week already holds a note on
+    another day: the new line joins it there (`addPhaseNote` joins lines; one week, one day).
+  - **Show in waterfall** reads `!sheetHidden` for a linked note.
+  - **The save** (`writeLinkedMvNote`): the same key edits the line, colour and switch in place; another phase moves the
+    line there with the note's look and the new day as `dow`; "This day" puts it back as a plain note
+    (`lineToWeekNote`: a dated line of its week, the note's look handed to a week with no typed text, or, when hidden
+    from the waterfall, `phaseNoteToDayNote`: a month note of the day).
+  - A **month note** or a **waterfall line** linked from this row (`writeActiveMvNote`): out of its day's list or its
+    week's typed note, into the linked note, with its colour, place and month style (`carryDayNoteLook`). A note linked
+    from the month view starts `sheetHidden` unless its switch is turned on.
+- **The drag (`moveLinkedLine`, called by the month drag's `apply`):** the line keeps its phase when that phase has a
+  working week in the target week (a shoot day for Production), re-keyed there with the target day as its weekday; the
+  same key only changes `dow`. Anywhere else it becomes a plain note of the day: `lineToWeekNote`, or
+  `phaseNoteToDayNote` when hidden from the waterfall. The drag's `begin` / `restore` now also snapshot `phaseNotes`,
+  `noteFontSize`, `textStyle.note` and `rowHeightsByWeek`, and a linked drag redraws through `update()`, since the
+  placement is `computeSchedule`'s.
+  - ⚠️ **Fixed while writing the leg (D4):** the plain month note `phaseNoteToDayNote` wrote was lost, because `apply`
+    then rebuilds the landing day's month-note list from the grid and wrote it back without it. It now takes the
+    dragged slot in that list (`mePlain`), and `meEl()` finds it as a day note (`d.at.kind`).
+- **`unlinkPhaseNotesOf`** (a custom phase removed, R3(a)): a `sheetHidden` note becomes a month note of its day; the
+  look goes to the week only for the first note the waterfall draws there.
+- **The popup buttons and the rows** (owner's asks after trying it, 10 Nov 2026): each popup's one action button sits in
+  a `.note-pop-head` beside its heading (Hide Auto-Note, Hide Holiday, and a new Delete Note on a typed note); the Day
+  and Stays with row names share a right-aligned width (`.note-row-name`, 4.9em), and both selects flex to one size.
+- **Proof:** new leg `phasemonth` 21/21 on the build; in `gate.sh` as `phasemonth:phasenotes:900`. `wfnoteeditor` E1 now
+  expects Delete Note on a typed cell. Full gate on the step-5 build: 4,226 PASS / 16 FAIL, every baseline identical (gates 2, 3, 10, 13, the restore,
+  `fields.byId`); the 16 are timeouts under heavy machine load, nine cleared alone, seven to re-run on a quiet machine
+  (HANDOFF.md has the list).
+- ✅ **Settled by the owner, 10 Nov 2026 (*"thats fine"*):** a phase week holds ONE note with one day, so two notes
+  linked to the same non-Production week on different days share the first one's day. The hint warns before saving.
+  Production avoids it by following shoot days. Kept as built.
+- **Noticed, not changed (from step 4):** `wfCleanClipItem` drops `monthHidden`, so a pasted copy of a note with "Show in
+  month view" off comes back on. A drag is unaffected.

@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. NEXT: step 5 (the month view), which steps 2–4 must not ship without. ⛔ NOT SHIPPABLE BEFORE STEP 5 (a linked note leaves the Month view until then) ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
+### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. 🔨 step 5 (the month view) BUILT 10 Nov 2026 (R10(a) ruled, `sheetHidden`), with the owner's popup asks (Delete Note / Hide at the top right, the Day and Stays with boxes aligned); leg `phasemonth` 21/21; full gate 4,226 / 16 with every baseline identical, the 16 timeouts under heavy machine load, seven legs still to see green on a quiet machine (bullet below); COMMITTED on the branch (owner's picker *"Commit now"*, 11 Nov 2026; `git log phase-notes` has the hash). Steps 1–5 ship together; step 6 (picking a shoot day) is not needed to ship ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
   R3(a) a shorter phase parks the note on its last week; R4(b) Production follows its shoot day; R5(a) no offsets yet;
   R6(a) no day = the phase's first drawn day; R7(a) colour, size, style and row height travel; R8(a) both editors,
@@ -118,10 +118,30 @@
     - ✅ **Full gate on the step-4 build: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
   - **Next, step 5:** the month view draws linked notes (`mvWfLinesFor`), gets the editor row (R8(a)) and the line
     drag (`moveWfLine`, §4.6's last bullet, by day).
-- 🔨 **STEP 5 (the month view) BUILT AS WIP, 10 Nov 2026** (owner: *"keep going with step 5"*), commit `be5459a` on
-  `phase-notes`, after merging `origin/main` (v1.12.1 + the Shift list + layout rules 22-23) in as `0a3366d`. Handed to the
-  owner to try at `http://localhost:8961/dist/index.html?state=phasenotes` (launch entry `phase-notes-8961`); legs, Help,
-  docs and the full gate wait for *"finish it"* (memory: try in the browser before finishing).
+- 🔨 **STEP 5 (the month view) BUILT, 10 Nov 2026** (owner: *"keep going with step 5"*), first as WIP `be5459a` on
+  `phase-notes`, after merging `origin/main` (v1.12.1 + the Shift list + layout rules 22-23) in as `0a3366d`; tried by the
+  owner in the browser, then finished on *"good keep going"*. Plan §13 is the as-built record; README has two Unreleased
+  entries (step 5; the popup buttons and rows).
+  - ✅ **Leg `phasemonth` 21/21** (new; in `gate.sh` as `phasemonth:phasenotes:900`): drawing, both switches, the editor,
+    the drag by day, a removed custom phase, the popup buttons (placement measured), the file. Help: two sentences after
+    the waterfall's Stays with, and Delete Note in the note-editor paragraph.
+  - ⚠️ **A bug the leg found, fixed:** a note hidden from the waterfall dragged (month view) to a day its phase does not
+    run VANISHED. The drag's `apply` rebuilds the landing day's month-note list from the grid and wrote it back without
+    the month note `moveLinkedLine` had just written. It now takes the dragged slot (`mePlain`), and `meEl()` finds it as
+    a day note (`d.at.kind`). Reproduced in the browser before the fix, gone after; one undo restores.
+  - Leg expectations worth knowing: a typed line put back on its week ("This day") is drawn WITH its date in the month
+    view ("Stunt rehearsal 7/6/26"); a shoot-day note can stay in its week when Production moves a week, because the
+    run's holidays change (Day 30 was Mon 8/10, after a one-week move it is Fri 8/14).
+  - **Full gate on the step-5 build (sha256 `ef674fbf…`): 4,226 PASS / 16 FAIL**, port 8957, 17:41–22:27 on 10 Nov
+    (4 h 46 min: four other sessions' partial gates overlapped it, and the machine then ran at a load average of
+    120–140 with Epic Games Launcher, a Time Machine backup and Spotlight indexing). ✅ Every baseline identical: the
+    waterfall PDF, every Excel part, the restore, `fields.byId` (77 ids), gate 10's print documents, and all 24 of gate
+    13's written month PDFs byte for byte. `phasemonth` 21/21 in it.
+  - The 16 are timeouts or legs that never reported. Re-run alone, nine cleared: `wfmenu` 39/39, `mvnotesize` 12/12,
+    `monthexport` (blocksoff) 9/9 and (halfdays) 9/9, `builtindates` 17/17, `episodeprep` 33/33 and (episodeprep) 25/25,
+    `weeknum` 6/6. ⚠️ Seven still time out under that load, NOT YET SEEN GREEN on this build: `onecol`,
+    `autonotephases`, `offweek`, `hiatusdrag`, `hiatusripple`, `wfkeysreal`, `scenariocompat`. The last runs only
+    `/releases/v1.2.0.html`, which holds none of this branch's code. Re-run them on a quiet machine.
   - ✅ **RULED R10(a)** (owner's picker, 10 Nov 2026, *"Own switch per view"*): a linked note can be hidden from the
     waterfall, saved as `sheetHidden: true` (a NEW permanent field word, the twin of `monthHidden`). A note linked from
     the month view starts with it, as a month note starts out of the waterfall. `waterfall` (the plan's earlier word) is
@@ -140,9 +160,9 @@
     the right of their shared width, so "Day" and "Stays with" end at the same x.
   - Then (owner): *"make the two selector boxes the same size"*: the Day select fills the rest of its row as Stays with's
     does (its label and select flex), so both are one size (167 x 30 px in the default panel).
-  - ⚠️ **Open, to raise with the owner:** a phase week holds ONE note with one day, so two month notes linked to the same
-    (non-Production) phase week on different days share the first one's day. Production avoids it by following shoot
-    days in the month view (R4(b)). The hint says so when it happens.
+  - ✅ **Settled by the owner, 10 Nov 2026 (*"thats fine"*):** a phase week holds ONE note with one day, so two notes
+    linked to the same (non-Production) phase week on different days share the first one's day. Production avoids it by
+    following shoot days in the month view (R4(b)). The hint says so before saving. Kept as built.
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.

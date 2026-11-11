@@ -29,6 +29,72 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the note popups: one action button at the top right, Delete Note, and the Day / Stays with boxes line up (10 Nov 2026)
+
+The owner, trying step 5 on 10 Nov 2026: *"allign these two boxes on their left edge"*, *"move the "Hide Auto-Note",
+"Hide Holiday" and add "Delete Note" button to the top right corner of each popup box"*, *"move "Day so the edge of the
+y is alligned vertically with the "h" in with"*, *"make the two selector boxes the same size"*.
+
+- **One action button at each note popup's top right**, beside its heading: Hide Auto-Note and Hide Holiday as before,
+  and a new **Delete Note** on a note that was typed. One undo brings it back.
+  - **Waterfall:** it deletes what was typed in the cell (its own text, notes that stay with a phase, month notes shown
+    there) and keeps the cell's automatic notes and holidays, which have their own Hide.
+  - **Month view:** it deletes the one note clicked (a month note, a waterfall line, a note that stays with a phase). A
+    new note (a "+"), a holiday and an automatic note have none.
+- **The waterfall editor's Day and Stays with rows:** the names are set right in one width, so "Day" ends where "Stays
+  with" does, and the two boxes start at one x and are one size (167 × 30 px in the default panel). The month editor's
+  Stays with row uses the same width.
+- **Help:** the note-editor paragraph says where the buttons are and what Delete Note keeps.
+- **Proof:** `phasemonth` B1–B3 (placement measured: in the heading row, last, centred on the title, within 16 px of
+  the popup's right edge); `wfnoteeditor` E1 now expects Delete Note on a typed cell.
+
+### Unreleased — notes linked to a phase, step 5: the Month view (10 Nov 2026)
+
+Plan §4.2, §4.6's last bullet, R8(a) and R10(a) (`PHASE-LINKED-NOTES-PLAN.md` §13). Until now a note linked to a phase
+left the Month view the moment it was linked: the month view reads a week's typed lines, and a linked note is not one.
+With this step the feature is whole in both views.
+
+- **Drawn:** each linked note shows on its day in the Month view and both month PDFs, after the week's own lines, in
+  its colour. That is its picked weekday, else its phase's first drawn day that week (for Production, its first shoot
+  day), and a shoot-day note's own shoot day. "Show in month view" off keeps it out.
+- **Its own editor.** Clicking it in the Month view edits that note: its line, its colour, **Show in waterfall** and
+  **Stays with**. It used to open as a waterfall line, and saving would have written it into its week's typed note,
+  where it stayed when the phase moved.
+  - **Stays with** is the waterfall editor's row, under the text box: "This day (Mon 7/6)", or a phase whose working
+    week this is. On a shoot day Production is offered by shoot day, "Production · Day 7", and the note follows that
+    shoot day wherever holidays, Off days or a new start put it.
+  - Every typed note's editor in the Month view has the row, so a month note or a waterfall line can be linked there.
+  - A phase week holds one note on one day. A second note linked to the same week joins the first on its day, and the
+    hint says so before you save: "… already has a note (“Tech scout”) on Wed. This one joins it there."
+- **Show in waterfall** (owner's picker, R10(a), *"Own switch per view"*): a linked note can be kept in the Month view
+  only. A note linked from the Month view starts with it off, as a month note starts out of the waterfall. Unlinked
+  ("This day"), dragged where its phase does not run, or left by a removed custom phase, such a note becomes a month
+  note of its day.
+- **The drag:** a linked note dragged to another day keeps its phase when the phase has a working week there
+  (re-linked, the new day as its weekday, or its shoot day for Production). Anywhere else it becomes a plain note of
+  that day, in its colour: a dated line of its week's waterfall note, or a month note when it was hidden from the
+  waterfall. One undo puts it back.
+- **Format:** `sheetHidden: true` is a new PERMANENT field word on a `phaseNotes` entry, the twin of `monthHidden`,
+  written only as `true`; any other value is dropped on Load and counted. No new key, no version bump.
+- **No frozen edit:** the month view and both month PDFs read `mvWfLinesFor`, and the colour goes through frozen edit
+  H1's existing `b.color`.
+- **Help:** two sentences after the waterfall's Stays with.
+- **Fixed while writing the leg:** a note hidden from the waterfall, dragged to a day its phase does not run, vanished.
+  The drag rebuilt that day's month notes without the one it had just written. It now takes its place among them, as
+  a dragged month note does.
+- **Proof:** a new leg, `phasemonth`, 21/21 on the build: drawing and both switches (P1–P3), the editor (E1–E6), the
+  drag (D1, DU, D2–D4), a removed custom phase (C1), the popup buttons (B1–B3), the file (F1, F2) and E0.
+  - **Full gate on the step-5 build (sha256 `ef674fbf…`): 4,226 PASS / 16 FAIL**, port 8957, 17:41–22:27 on 10 Nov
+    (4 h 46 min: four other sessions' partial gates overlapped it, and the machine then ran at a load average of
+    120–140 with Epic Games Launcher, a Time Machine backup and Spotlight indexing). ✅ Every baseline identical: the
+    waterfall PDF, every Excel part, the restore, `fields.byId` (77 ids), gate 10's print documents, and all 24 of gate
+    13's written month PDFs byte for byte. `phasemonth` 21/21 in it.
+  - The 16 are timeouts or legs that never reported. Re-run alone, nine cleared: `wfmenu` 39/39, `mvnotesize` 12/12,
+    `monthexport` (blocksoff) 9/9 and (halfdays) 9/9, `builtindates` 17/17, `episodeprep` 33/33 and (episodeprep) 25/25,
+    `weeknum` 6/6. ⚠️ Seven still time out under that load, NOT YET SEEN GREEN on this build: `onecol`,
+    `autonotephases`, `offweek`, `hiatusdrag`, `hiatusripple`, `wfkeysreal`, `scenariocompat`. The last runs only
+    `/releases/v1.2.0.html`, which holds none of this branch's code. Re-run them on a quiet machine.
+
 ### Unreleased — notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
 
 Plan §4.6 (`PHASE-LINKED-NOTES-PLAN.md` §12). The waterfall's editing keys now know about linked notes. Until now a
