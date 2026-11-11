@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
+### ✅ 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. ✅ **LIVE at `5b8bac2`** (owner's picker "Push to the live site"; pushed `938577a..5b8bac2`, a fast-forward of the branch; deploy run `42942636153` green; the live `index.html` is the build byte for byte, sha256 `a6abaffa…`). Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
   button and the size selector ad there is between and the right shift button and Build around button"*, which I first
   read the wrong way (Redo and Size joined at 2 px; built, never committed) until *"no no, there should be MORE space
