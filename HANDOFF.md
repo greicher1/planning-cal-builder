@@ -126,6 +126,15 @@
     waterfall, saved as `sheetHidden: true` (a NEW permanent field word, the twin of `monthHidden`). A note linked from
     the month view starts with it, as a month note starts out of the waterfall. `waterfall` (the plan's earlier word) is
     unused.
+  - **10 Nov, after trying it** (owner: *"Finish it"*, then two UI asks): the waterfall editor's Day and Stays with boxes
+    line up on their left edge (a fixed-width `.note-row-name`); and each note popup's one action button sits at its
+    top right beside the heading (`.note-pop-head`): Hide Auto-Note / Hide Holiday as before, and a NEW **Delete Note** on
+    a typed note. In the waterfall Delete Note deletes what was typed (own text, linked notes, month notes shown there)
+    and keeps the cell's automatic notes and holidays; in the month view it deletes that one note (a month note, a
+    waterfall line, a linked line). No Hide Holiday was added to the month view (none existed). Tracker card
+    `note-editor-top-buttons`. `wfnoteeditor` E1 now expects Delete Note on a typed cell.
+  - ⚠️ **Preview port clash:** the `phase-notes-8961` launch entry shares 8961 with the hover-expand session's legs, and
+    `run.sh` kills any `srv.js` on its port, so the preview died. This branch's preview is now `phase-notes-8977`.
   - ⚠️ **Open, to raise with the owner:** a phase week holds ONE note with one day, so two month notes linked to the same
     (non-Production) phase week on different days share the first one's day. Production avoids it by following shoot
     days in the month view (R4(b)). The hint says so when it happens.

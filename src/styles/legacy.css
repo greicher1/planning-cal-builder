@@ -3515,6 +3515,14 @@
     cursor:pointer;
   }
   .note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
+  /* The popup's heading row: the title on the left, its one action (Hide Auto-Note, Hide Holiday, Delete Note) at the
+     top right (owner, 10 Nov 2026). The button's padding is taken back with negative margins, so the row is the title's
+     height and the button's text lines up with the panel's right padding. Both note editors; chrome only. */
+  .note-pop-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--mantine-spacing-sm);
+    margin-bottom:var(--mantine-spacing-sm); }
+  .note-pop-head .note-pop-title, .note-pop-head .mv-note-pop-day{ margin-bottom:0; min-width:0; }
+  .note-pop .note-pop-head .note-pop-delete, .mv-note-pop .note-pop-head .note-pop-delete{
+    flex:none; margin:-4px -8px -4px 0; white-space:nowrap; }
   .wf-note-items{ margin-top:var(--mantine-spacing-sm); }
   .wf-note-items-head{
     font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
@@ -3731,6 +3739,9 @@
      line, then a one-line hint (amber while the note waits on a phase's last week, R3(a)) and R2(a)'s "Also here"
      line. Chrome only: .note-pop is a body-level panel, never in #table-wrap or #print-root. The select has no id. */
   .note-link-row{ margin-top:var(--mantine-spacing-xs); }
+  /* The row's name (Day, Stays with) in one fixed width, so the two selects start at the same left edge (owner, 10 Nov
+     2026: "allign these two boxes on their left edge"). The width fits "Stays with" at this size; em, so zoom keeps it. */
+  .note-day-row .note-row-name, .note-link-row .note-row-name{ flex:none; width:4.9em; }
   .note-link-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
   .note-link-select{ flex:1; min-width:0; font-weight:600; }

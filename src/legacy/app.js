@@ -16873,7 +16873,7 @@ export function initLegacyApp() {
     // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
     // in activeNoteEditor below, never touched now, so a commit writes no size.
     const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
-      <label>Day <select class="note-day-select">
+      <label><span class="note-row-name">Day</span><select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>${linkSingle ? 'First day (default)' : 'Mon (default)'}</option>
         ${dayOpts}
       </select></label>
@@ -16884,7 +16884,7 @@ export function initLegacyApp() {
     // the other linked notes drawn here. ⛔ The select has NO id: collectFieldValues() sweeps select[id], and this is a
     // note's own setting, never a calendar field. Shown with the Day row: for typed text (a linked note's included).
     const linkRow = !link ? '' : `<div class="note-link-row"${typedShown ? '' : ' style="display:none"'}>
-      <label>Stays with <select class="note-link-select" title="What this note stays with when phases move">
+      <label><span class="note-row-name">Stays with</span><select class="note-link-select" title="What this note stays with when phases move">
         <option value=""${link.sel0 ? '' : ' selected'}>Week of ${escHtml(fmtShort(link.week))}</option>
         ${link.opts.map(o=> `<option value="${escHtml(o.value)}"${o.value === link.sel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')}
       </select></label>
@@ -16902,8 +16902,17 @@ export function initLegacyApp() {
       : (autoNoteShownIn(n.kind, 'month')
           ? 'Hides it from the Waterfall, Excel and the waterfall PDF. It stays in the month view. Tick its Waterfall box in Settings \u25b8 Automatic notes to bring it back.'
           : 'Hides it from the Waterfall, Excel and the waterfall PDF. The month view does not show it either, so it is switched off. Tick it in Settings \u25b8 Automatic notes to bring it back.');
-    const itemsHtml = isHiatus ? '' : singleItem
+    // ⭐ The one action button sits at the top right, beside the heading (owner, 10 Nov 2026: "move the Hide Auto-Note,
+    // Hide Holiday and add Delete Note button to the top right corner of each popup box"): a cell that is one automatic
+    // note or one holiday keeps its Hide; a cell holding typed text -- the week's own, a linked note, a month note shown
+    // here -- gets Delete Note, which deletes what was typed and leaves its automatic notes and holidays (each keeps its
+    // own Hide in the list under the box). An empty cell, or a hiatus band, has none.
+    const typedHere = !isHiatus && !singleItem
+      && (wfOwnTyped(weekKey) || wfLinkedLinesFor(weekKey).length > 0 || wfMonthLinesFor(weekKey).length > 0);
+    const headBtn = isHiatus ? '' : singleItem
       ? `<button type="button" class="note-pop-delete wf-note-hide" data-i="0" title="${escHtml(hideTitle(singleItem))}">${singleItem.holiday ? 'Hide Holiday' : 'Hide Auto-Note'}</button>`
+      : typedHere ? `<button type="button" class="note-pop-delete wf-note-delete" title="Deletes what was typed in this cell. Its automatic notes and holidays stay (each has its own Hide). One undo brings it back.">Delete Note</button>` : '';
+    const itemsHtml = isHiatus ? '' : singleItem ? ''
       : (cellItems.length ? `<div class="wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
           `<div class="wf-note-item" title="${escHtml(autoNoteLine(n))}"><span class="wf-note-mark wf-note-mark-${n.holiday ? 'holiday' : 'auto'}" aria-hidden="true"></span>`
           + `<span class="wf-note-item-name">${escHtml(n.label)}</span>`
@@ -16923,7 +16932,7 @@ export function initLegacyApp() {
     const popHint = (singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows \u00b7 '
                                                       : 'Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 ') : '')
                   + 'Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel';
-    pop.innerHTML = `<div class="note-pop-title">${escHtml(popTitle)}</div>
+    pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-title">${escHtml(popTitle)}</div>${headBtn}</div>
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
@@ -17049,6 +17058,21 @@ export function initLegacyApp() {
     }
     // Hide (R2(b)): the note's line leaves the box, the note is hidden from the waterfall, and the editor saves what else
     // is in it, as Tab would, and closes. One gesture, one undo step (the commit's update()).
+    // Delete Note: the box keeps only the cell's automatic notes and holidays, and saves -- the editor's own path, so a
+    // linked note goes (wfLinkedLineEdits), a month note shown here is switched off for the waterfall, the typed text
+    // goes and the week returns to automatic, all in one undo step. Stays with is put back, so nothing is linked.
+    const delNoteBtn = pop.querySelector('.wf-note-delete');
+    if(delNoteBtn){
+      delNoteBtn.addEventListener('mousedown', e=> e.preventDefault());
+      delNoteBtn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(!activeNoteEditor || activeNoteEditor.pop !== pop) return;
+        textarea.value = cellItems.map(autoNoteLine).join('\n');
+        const ls = pop.querySelector('.note-link-select');
+        if(ls && activeNoteEditor.link) ls.value = activeNoteEditor.link.sel0;
+        commitActiveNoteEditor();
+      });
+    }
     pop.querySelectorAll('.wf-note-hide').forEach(btn=>{
       btn.addEventListener('mousedown', e=> e.preventDefault());   // keep the box's focus, as the swatches do
       btn.addEventListener('click', e=>{
@@ -38465,7 +38489,7 @@ export function initLegacyApp() {
     }
     const dayD = parseDateUTC(dayIso);
     const dayName = dayD ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayD.getUTCDay()] + ' ' + (dayD.getUTCMonth() + 1) + '/' + dayD.getUTCDate() : '';
-    const linkRow = !linkOpts.length ? '' : `<div class="note-link-row"><label>Stays with <select class="note-link-select">`
+    const linkRow = !linkOpts.length ? '' : `<div class="note-link-row"><label><span class="note-row-name">Stays with</span><select class="note-link-select">`
       + `<option value=""${linkSel0 ? '' : ' selected'}>This day (${escHtml(dayName)})</option>`
       + linkOpts.map(o=> `<option value="${escHtml(o.value)}"${o.value === linkSel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')
       + `</select></label><div class="note-link-hint"></div></div>`;
@@ -38477,18 +38501,23 @@ export function initLegacyApp() {
     // Waterfall box is ticked. Its date is the note's own.
     const autoStd = (isAuto && autoNote.label !== autoNote.origLabel)
       ? ` \u00b7 Standard name: \u201c${escHtml(autoNote.origLabel)}\u201d` : '';
+    // ⭐ The one action button at the top right, beside the heading (owner, 10 Nov 2026): an automatic note's Hide
+    // Auto-Note, or Delete Note on a note that was typed (a month note, a waterfall line, a linked note), which deletes
+    // that one note as emptying its box does. A new note (a "+") and a holiday have none.
+    const canDelete = (isWf || isLinked || (kind === 'day' && editIdx !== null)) && !!String(curText || '').trim();
+    const delNoteHtml = canDelete ? `<button type="button" class="note-pop-delete mv-note-delete" title="Deletes this note. One undo brings it back.">Delete Note</button>` : '';
     pop.innerHTML = isAuto
-      ? `<div class="mv-note-pop-day">${fmtShort(autoNote.date)} \u00b7 Auto Note</div>
+      ? `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(autoNote.date)} \u00b7 Auto Note</div>
+      <button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings \u25b8 Automatic notes to bring it back.">Hide Auto-Note</button></div>
       <textarea rows="2" placeholder="Clear to hide this auto note">${curText.replace(/</g,'&lt;')}</textarea>
       ${notePaletteRowsHtml(curColor)}
-      <button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings \u25b8 Automatic notes to bring it back.">Hide Auto-Note</button>
       <div class="mv-note-pop-hint">Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 Colour is for the month view${autoStd} \u00b7 Enter to save \u00b7 Esc to cancel</div>`
       : isHol
       ? `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))} \u00b7 Holiday</div>
       <textarea rows="2" placeholder="Clear to go back to \u201c${escHtml(holiday.origName)}\u201d">${curText.replace(/</g,'&lt;')}</textarea>
       ${notePaletteRowsHtml(curColor)}
       <div class="mv-note-pop-hint">Renames this holiday wherever it shows \u00b7 Colour is for the month view \u00b7 Enter to save \u00b7 Esc to cancel</div>`
-      : `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
+      : `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>${delNoteHtml}</div>
       <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       ${linkRow}
       ${notePaletteRowsHtml(curColor)}
@@ -38605,8 +38634,20 @@ export function initLegacyApp() {
       sayLink();
       linkSelEl.addEventListener('change', sayLink);
     }
+    // Delete Note: what emptying the box does, as one click; Stays with put back first, so nothing is linked on the way.
+    const delNote = pop.querySelector('.mv-note-delete');
+    if(delNote){
+      delNote.addEventListener('mousedown', e=>e.preventDefault());
+      delNote.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(!activeMvNote) return;
+        textarea.value = '';
+        if(activeMvNote.linkSel) activeMvNote.linkSel.value = activeMvNote.linkSel0 || '';
+        commitMvNoteEditor();
+      });
+    }
     // Hide Auto-Note: what clearing the box does (ruling 4, R4), as one click. Its class keeps the old word.
-    const delBtn = pop.querySelector('.note-pop-delete');
+    const delBtn = pop.querySelector('.note-pop-delete:not(.mv-note-delete)');
     if(delBtn){
       delBtn.addEventListener('mousedown', e=>e.preventDefault());
       delBtn.addEventListener('click', e=>{
