@@ -1677,9 +1677,12 @@
   }
   /* The date tools have NO well (owner, 10 Nov 2026: "remove the faint grey box surrounding the shift and build around
      buttons"): their own navy outlines are their edge. No padding either, so the gap you see from those outlines to
-     the wells beside them is the one section gap, 12 px, as between every other pair. The 2 px between the two
-     buttons stays, the rule inside every section. */
+     the wells beside them is the one section gap, 12 px, as between every other pair. */
   .tb-dates{ background:transparent; padding:0; }
+  /* ...and Shift and Build Around stand apart by the one section gap, not 2 px (owner, 10 Nov 2026: "there should be
+     MORE space between the right shift button and build around so it matches the current spacing of the redo button
+     and size button gap"), so the two outlined tools read as two sections, 12 px apart like every other pair. */
+  .tb-dates{ gap:var(--tb-gap); }
   /* Undo / Redo come right after the view toggle, and their auto left margin packs every tool to the right. */
   .view-toggle-row > .undo-redo-group{ margin-left:auto; }
   /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
