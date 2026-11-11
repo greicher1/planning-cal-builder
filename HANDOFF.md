@@ -4,6 +4,39 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: THE HOVER PROMPT — "EXPAND?" OVER A BLANK, "PULL BACK?" OVER WHAT WAS WIDENED — built on branch `hover-expand` (worktree `.claude/worktrees/hover-expand`, from the release's local HANDOFF note `98dc947` on top of the live `51ce127`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch (owner's picker *"Commit on the branch"*); push approved by picker (*"Merge, re-check, then push"*): `origin/main` merged in and re-checked first. Tracker card `blank-space-expand-prompt`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §11 (the as-built record).
+- **What.** Rest the pointer 300 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
+  blank sits beside that phase, and **Expand?** in its very centre; the click writes per-cell widths (`cellSpans`) on
+  THOSE weeks only. Rest on a widened cell: **Pull back this week?** / **Pull back?** in amber, clearing a run of
+  per-cell widths or turning the phase's fill wish off. One undo step each; nothing new saved; stamped calendars, the
+  Waterfall, nothing highlighted. Help: one sentence pair at the end of "How far a cell reaches".
+- **The three corrections (owner, 10 Nov, on test files v1–v3):** (1) *"it also expanded test wk 1"* — v1 set the fill
+  WISH, which fills every week with room; Expand now writes per-cell widths on the outlined weeks only. (2) *"always sit
+  in the very center of the outlined box"*. (3) *"ok except when these buttons collide"* — on a column's top cell the
+  centred chip landed on the **Swap Column** button (always top right of the topmost visible cell). The button keeps
+  its place; the chip steps 4 px clear (`placeHoverChip`): inside the box where it fits (below the button on two weeks
+  or more), else beside it on the same row. `drawStintButton` re-runs it when the button appears after the chip, and
+  the button's own hover listener now treats `.grid-hover-chip` like the button itself, so resting on the chip never
+  summons or moves it.
+- ⚠️ **A trap for future legs.** On a STAMPED calendar a `pointermove` with no button held that rests 300 ms on a blank
+  beside a phase, or on a widened cell, now raises a clickable chip (`pointer-events:auto`) in the middle of the
+  outline. A leg that hovers there and then clicks or presses at a point the chip covers hits the chip. None of the
+  existing pointer legs does (list below); a new one that does should press first (`buttons: 1` moves are ignored) or
+  wait on `.grid-hover-chip`.
+- ⚠️ **Do not run legs while another session runs its own.** Three background runs of `hoverexpand` timed out at the
+  same place (the Load of `anchorside.sptcal` in H6) while a sibling session's `rebuildticks` / `buildaround` legs ran
+  (load average ~13); every run alone was 16 / 16.
+- **Checks:** `hoverexpand` 16/16 (every run alone; see above for the three that ran beside another session). The legs that drive
+  the pointer over the grid, on this build: `centrepullback` 12, `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8,
+  `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16, `undokeys` 11, `wfmenu` 39,
+  `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass. gate.sh's swap section (colswap through
+  stintreshape, `stintbtn` among them), `onecol` and `colreuse` x2, assembled from gate.sh with its own judges: 161 PASS /
+  0 FAIL. `npm run check` 41/41. ⚠️ `noteviews` F2 (a second Load in the month view, "the loaded file's name in the file
+  menu", 10 s) failed on 3 of 4 headless runs of this build and passed the 4th, 15/15, and in the pane; the LIVE build
+  (`release-layout`'s `eea8b792`) passed it once and failed it once the same way. A load-timing flake under contention,
+  not this change. No full gate (nothing frozen, exported or saved changed); test files `~/Downloads/SPTCal-test-hover-
+  expand-v1..v4-10Nov.html`.
+
 ### ✅ 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN. ✅ **LIVE at `51ce127`** (owner: *"push"*; pushed `3c7b9f6..51ce127` at 15:28 PST 10 Nov, a fast-forward; deploy run `42923707269` green; the live `index.html` is the gated build byte for byte, sha256 `eea8b792…`, with `tb-fill-space-btn` and `tb-cols-reset-btn`). **No version cut** (none was approved): `version.json` stays 1.12.1, so installed users get no update strip. Local `main` in the main checkout was NOT moved (other sessions hold uncommitted edits there); it is behind origin by these commits. (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and

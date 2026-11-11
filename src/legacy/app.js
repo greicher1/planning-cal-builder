@@ -1032,6 +1032,269 @@ export function initLegacyApp() {
   // paint over the sidebar, is absent from both print paths, and needs no buildSavedHtml strip
   // entry. installGridResizers() clears its OWN layer only, so ours survives -- but the whole
   // wrap is replaced on render, hence the observer below.
+  // ---------- THE HOVER PROMPT: "Expand?" over a blank, "Pull back?" over what a wish took ----------
+  // Owner, 6 Nov 2026 (forked session): "could the system recognise blank spaces ... draw a square around them on hover
+  // and ask Expand?", and "It also needs the reverse to unexpand"; "remind me about building it after the intent based
+  // thing is done"; built 10 Nov 2026 on "Yes, build it". Tracker card blank-space-expand-prompt; FILL-INTENT-PLAN.md §11.
+  //   - Expand?  A blank beside a phase cell (an empty slot run, the phase directly beside it in the row; between two
+  //     phases the LEFT one, rule 12) gets a dashed outline over the consecutive weeks where the same blank sits beside
+  //     the same phase, a faint outline on that phase's cell, and a chip. The click widens THOSE WEEKS ONLY, across the
+  //     blank: one per-cell width each (cellSpans, the shape an edge drag stores), one undo. ⛔ Not the fill wish: the
+  //     first build set it, and the owner, on Test weeks 8-10: "clicked expand and then it also expanded test wk 1" --
+  //     a wish fills every week with room, and he had pointed at three. Not offered beside a cell with a dragged exact
+  //     width that week, nor for a phase already filling, nor beside a hiatus band.
+  //   - Pull back?  A cell its phase's fill wish widened: the columns it took beyond its own, outlined, and the click turns
+  //     the wish off (setPhaseFill(key, null): back to the automatic layout), one undo. Not offered where only the
+  //     automatic layout widened the cell (no wish): there is nothing of the user's to take back.
+  //   - Pull back this week? / Pull back?  A cell with a per-cell width (an edge drag, or an Expand? above): that cell's
+  //     override cleared, or, where the weeks around it carry one too for the same phase in the same column, the whole
+  //     run of them ("Pull back?"), one undo.
+  // Stamped calendars only (the wish exists there), the Waterfall only, never while cells are highlighted, dragged,
+  // resized or swapped. Chrome on its own overlay layer inside .sheet-grid-wrap, the selection layer's sanctioned seat:
+  // it reads the drawn cells and writes nothing into the grid, and is absent from both print paths. The chip is the one
+  // clickable thing on it; its pointerdown stops at the chip so no grid drag starts underneath. NOTHING NEW IS STORED.
+  const HOVER_PROMPT_DELAY_MS = 300;
+  let hoverTimer = 0, hoverPrompt = null;   // {id, rects: [client rects], action}
+  let hoverChipBox = null;   // {chip, ux0, uy0, ux1, uy1 (wrap px), bridge}: see placeHoverChip()
+  function ensureHoverLayer(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    if(!wrap) return null;
+    let layer = wrap.querySelector(':scope > .grid-hover-layer');
+    if(layer) return layer;
+    layer = document.createElement('div');
+    layer.className = 'grid-hover-layer';
+    wrap.appendChild(layer);
+    return layer;
+  }
+  function clearHoverPrompt(){
+    clearTimeout(hoverTimer); hoverTimer = 0; hoverPrompt = null; hoverChipBox = null;
+    document.querySelectorAll('.grid-hover-layer').forEach(l => { l.textContent = ''; });
+  }
+  function hoverPromptAllowed(){
+    const b = document.body.classList;
+    return layoutStamped() && viewMode !== 'month' && !gridSel.size
+      && !b.contains('grid-selecting') && !b.contains('grid-resizing') && !b.contains('grid-swapping');
+  }
+  // An empty slot run in a phase area: renderSpreadsheetView writes it as a bare <td> (no class, no style); Sim Post's
+  // cell carries a style, a phase cell or band a class.
+  const isBlankTd = td => !!td && td.tagName === 'TD' && !td.hasAttribute('class') && !td.hasAttribute('style') && !td.textContent.trim();
+  const isPhaseTd = td => !!td && td.classList.contains('sheet-phase-cell') && !td.classList.contains('sheet-hiatus-cell');
+  // Which phase a blank belongs to: the phase cell directly left of it (rule 12), else directly right.
+  function blankOwner(td){
+    const l = td.previousElementSibling, r = td.nextElementSibling;
+    if(isPhaseTd(l)) return { td: l, side: 'L' };
+    if(isPhaseTd(r)) return { td: r, side: 'R' };
+    return null;
+  }
+  // The same-box cell in another row (one <tr> holds every year block side by side, so a box is the address).
+  function hoverSameBoxTd(tr, b, g){
+    if(!tr) return null;
+    for(const td of tr.cells){
+      const c = tdBox(td, g);
+      if(c && Math.abs(c.wrapLeft - b.wrapLeft) < 1.5 && Math.abs(c.wrapWidth - b.wrapWidth) < 1.5) return td;
+    }
+    return null;
+  }
+  // What the prompt would offer for this cell, or null. Cheap: runs on pointermove.
+  function hoverPromptFor(td){
+    if(isBlankTd(td)){
+      const o = blankOwner(td);
+      if(!o) return null;
+      const pk = o.td.dataset.pkey;
+      if(phaseFillOn(pk) || cellSpans[o.td.dataset.week + '|' + pk] !== undefined) return null;
+      return { id: 'x|' + pk + '|' + o.td.dataset.week + '|' + o.side, kind: 'expand', pkey: pk, td, owner: o };
+    }
+    if(isPhaseTd(td) && (td.colSpan || 1) > 1){
+      const pk = td.dataset.pkey, key = td.dataset.week + '|' + pk;
+      if(cellSpans[key] !== undefined) return { id: 'c|' + key, kind: 'pullCell', pkey: pk, key, td };
+      if(phaseFillOn(pk)) return { id: 'w|' + pk + '|' + blockYearOf(td.dataset.week), kind: 'pullWish', pkey: pk, td };
+    }
+    return null;
+  }
+  function showHoverPrompt(c){
+    const layer = ensureHoverLayer(), g = selGeom();
+    if(!layer || !g || !hoverPromptAllowed()) return;
+    layer.textContent = '';
+    const rects = [];   // wrap-space boxes to outline
+    let phaseBoxes = [];
+    const rowOf = td => td.parentElement;
+    const cells = [];   // what the click acts on: [{td, side}] for Expand, [key, ...] for a per-cell pull back
+    if(c.kind === 'expand'){
+      const b = tdBox(c.td, g);
+      rects.push(b); phaseBoxes.push(tdBox(c.owner.td, g)); cells.push({ td: c.owner.td, side: c.owner.side });
+      // The consecutive weeks where the same blank sits beside the same phase, on the same side.
+      const sameOwner = td => { if(!isBlankTd(td)) return null; const o = blankOwner(td); return (o && o.side === c.owner.side && o.td.dataset.pkey === c.pkey) ? o : null; };
+      for(const dir of ['previousElementSibling', 'nextElementSibling']){
+        let tr = rowOf(c.td)[dir];
+        while(tr){
+          const t = hoverSameBoxTd(tr, b, g), o = t && sameOwner(t);
+          if(!o || cellSpans[o.td.dataset.week + '|' + c.pkey] !== undefined) break;
+          rects.push(tdBox(t, g)); phaseBoxes.push(tdBox(o.td, g)); cells.push({ td: o.td, side: o.side });
+          tr = tr[dir];
+        }
+      }
+    } else {
+      // The columns taken beyond the phase's own: this row only for an exact drag; for a wish, every row of this
+      // year block where the phase is wider than its own column, consecutive with this one.
+      const extra = td => {
+        const b = tdBox(td, g), o = ownSlotBox(td, g);
+        if(!b || !o) return [];
+        const out = [];
+        if(o.wrapLeft - b.wrapLeft > 1) out.push({ wrapLeft: b.wrapLeft, wrapTop: b.wrapTop, wrapWidth: o.wrapLeft - b.wrapLeft, wrapHeight: b.wrapHeight });
+        const bR = b.wrapLeft + b.wrapWidth, oR = o.wrapLeft + o.wrapWidth;
+        if(bR - oR > 1) out.push({ wrapLeft: oR, wrapTop: b.wrapTop, wrapWidth: bR - oR, wrapHeight: b.wrapHeight });
+        return out;
+      };
+      extra(c.td).forEach(r => rects.push(r));
+      if(c.kind === 'pullCell'){
+        // The run of per-cell widths around this one: same phase, same own column, a width stored on each.
+        cells.push(c.key);
+        const own = c.td.dataset.own, y = blockYearOf(c.td.dataset.week);
+        for(const dir of ['previousElementSibling', 'nextElementSibling']){
+          let tr = rowOf(c.td)[dir];
+          while(tr){
+            const t = [...tr.cells].find(x => isPhaseTd(x) && x.dataset.pkey === c.pkey && x.dataset.own === own && blockYearOf(x.dataset.week) === y);
+            const k = t && (t.dataset.week + '|' + c.pkey);
+            if(!t || cellSpans[k] === undefined) break;
+            cells.push(k); extra(t).forEach(r => rects.push(r));
+            tr = tr[dir];
+          }
+        }
+      }
+      if(c.kind === 'pullWish'){
+        const own = c.td.dataset.own, y = blockYearOf(c.td.dataset.week);
+        for(const dir of ['previousElementSibling', 'nextElementSibling']){
+          let tr = rowOf(c.td)[dir];
+          while(tr){
+            const t = [...tr.cells].find(x => isPhaseTd(x) && x.dataset.pkey === c.pkey && x.dataset.own === own && blockYearOf(x.dataset.week) === y);
+            if(!t || (t.colSpan || 1) < 2) break;
+            extra(t).forEach(r => rects.push(r));
+            tr = tr[dir];
+          }
+        }
+      }
+      if(!rects.length) return;
+    }
+    const pull = c.kind !== 'expand';
+    const draw = (b, cls) => {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.style.left = b.wrapLeft + 'px'; d.style.top = b.wrapTop + 'px';
+      d.style.width = b.wrapWidth + 'px'; d.style.height = b.wrapHeight + 'px';
+      layer.appendChild(d);
+    };
+    // One rectangle per column run: rows that touch, at the same left and width, merge into a single box.
+    const merged = list => {
+      const out = [];
+      list.filter(Boolean).slice().sort((a, b) => (a.wrapLeft - b.wrapLeft) || (a.wrapWidth - b.wrapWidth) || (a.wrapTop - b.wrapTop)).forEach(b=>{
+        const last = out[out.length - 1];
+        if(last && Math.abs(last.wrapLeft - b.wrapLeft) < 1.5 && Math.abs(last.wrapWidth - b.wrapWidth) < 1.5
+           && b.wrapTop <= last.wrapTop + last.wrapHeight + 1.5){
+          const bottom = Math.max(last.wrapTop + last.wrapHeight, b.wrapTop + b.wrapHeight);
+          last.wrapTop = Math.min(last.wrapTop, b.wrapTop); last.wrapHeight = bottom - last.wrapTop;
+        } else out.push(Object.assign({}, b));
+      });
+      return out;
+    };
+    const boxes = merged(rects);
+    merged(phaseBoxes).forEach(b => draw(b, 'grid-hover-phase'));
+    boxes.forEach(b => draw(b, 'grid-hover-rect' + (pull ? ' is-pull' : '')));
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'grid-hover-chip' + (pull ? ' is-pull' : '');
+    const n = cells.length;
+    chip.textContent = c.kind === 'expand' ? 'Expand?' : (c.kind === 'pullCell' && n === 1) ? 'Pull back this week?' : 'Pull back?';
+    chip.title = c.kind === 'expand' ? 'Widen ' + phaseLabelFor(c.pkey) + ' across this space, ' + (n === 1 ? 'this week' : 'these ' + n + ' weeks') + ' only'
+               : c.kind === 'pullCell' ? (n === 1 ? 'Undo the width set on this one cell' : 'Undo the widths set on these ' + n + ' weeks')
+               : 'Turn off ' + phaseLabelFor(c.pkey) + '’s fill: back to the automatic layout';
+    layer.appendChild(chip);
+    // Centred on the outlined box (placeHoverChip), stepping aside for the Swap Column button.
+    hoverChipBox = { chip, ux0: Math.min(...boxes.map(b => b.wrapLeft)), uy0: Math.min(...boxes.map(b => b.wrapTop)),
+                     ux1: Math.max(...boxes.map(b => b.wrapLeft + b.wrapWidth)), uy1: Math.max(...boxes.map(b => b.wrapTop + b.wrapHeight)),
+                     bridge: null };
+    chip.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+    chip.addEventListener('dblclick', e => { e.stopPropagation(); e.preventDefault(); });
+    chip.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault();
+      pushUndoSnapshot();
+      if(c.kind === 'expand'){
+        // Each outlined week: its cell's claim reaches the far edge of the blank (lmin / rmax are the empty slots beside
+        // it), its other side as it is. Relative to its own column, with the row's phase count, as an edge drag stores it.
+        cells.forEach(({td, side})=>{
+          const own = +td.dataset.own;
+          const l = side === 'R' ? own - (+td.dataset.lmin) : own - (+td.dataset.a);
+          const r = side === 'L' ? (+td.dataset.rmax) - own : (+td.dataset.b) - own;
+          cellSpans[td.dataset.week + '|' + td.dataset.pkey] = { l, r, k: +td.dataset.nphases || 1 };
+        });
+      }
+      else if(c.kind === 'pullWish') setPhaseFill(c.pkey, null);
+      else cells.forEach(k => { delete cellSpans[k]; });
+      clearHoverPrompt();
+      render(currentSchedule);
+      markDirty();
+    });
+    // What keeps the prompt up while the pointer travels from the cell to the chip: every outlined box, the chip.
+    const toClient = b => ({ l: g.wrapRect.left + b.wrapLeft * g.z, t: g.wrapRect.top + b.wrapTop * g.z,
+                             r: g.wrapRect.left + (b.wrapLeft + b.wrapWidth) * g.z, b: g.wrapRect.top + (b.wrapTop + b.wrapHeight) * g.z });
+    hoverPrompt = { id: c.id, rects: rects.filter(Boolean).concat(phaseBoxes.filter(Boolean)).map(toClient) };
+    placeHoverChip();
+  }
+  // Where the chip sits: the very centre of the outlined box, both ways (owner, 10 Nov 2026: "Can the expand button
+  // always sit in the very center of the outlined box (top to bottom and left to right)"). Two boxes (a pull back on both
+  // sides) centre on what spans them. Clamped into the layer only, so a box at the grid's edge keeps its chip in view.
+  // ⭐ EXCEPT where it would land on the Swap Column button (owner, same day, a "Pull back this week?" chip on top of
+  // one: "ok except when these buttons collide"). That button always sits top right of the topmost visible cell of the
+  // column under the pointer, so on that cell the two met. The BUTTON keeps its place (it has had it since Oct 2026) and
+  // the chip steps aside, 4 px clear: to the nearest spot still inside the outlined box; else beside the button on the
+  // same row, so a one-week chip stays on its week; else above or below it. Run again by drawStintButton(), since the
+  // button can appear after the chip; resting on the chip itself never summons or moves the button (see its listener).
+  // hoverChipBox.bridge (client px) is the box and the chip together, so the pointer's way to a chip that stepped
+  // outside the box never crosses a cell that would close the prompt.
+  function placeHoverChip(){
+    const hc = hoverChipBox;
+    if(!hc || !hc.chip.isConnected) return;
+    const { chip, ux0, uy0, ux1, uy1 } = hc, layer = chip.parentNode;
+    const cw = chip.offsetWidth, ch = chip.offsetHeight, lw = layer.clientWidth, lh = layer.clientHeight;
+    const home = { x: Math.max(0, Math.min((ux0 + ux1 - cw) / 2, lw - cw)), y: Math.max(0, Math.min((uy0 + uy1 - ch) / 2, lh - ch)) };
+    let at = home;
+    const btn = document.querySelector('.sheet-grid-wrap > .grid-swap-layer > .grid-stint-btn');
+    if(btn){
+      const GAP = 4;
+      const bx0 = parseFloat(btn.style.left) || 0, by0 = parseFloat(btn.style.top) || 0;
+      const bx1 = bx0 + btn.offsetWidth, by1 = by0 + btn.offsetHeight;
+      const hits = p => p.x < bx1 + GAP && p.x + cw > bx0 - GAP && p.y < by1 + GAP && p.y + ch > by0 - GAP;
+      if(hits(home)){
+        const across = [{ x: bx0 - GAP - cw, y: home.y }, { x: bx1 + GAP, y: home.y }];
+        const upDown = [{ x: home.x, y: by1 + GAP }, { x: home.x, y: by0 - GAP - ch }];
+        const inBox = p => p.x >= ux0 - 0.5 && p.x + cw <= ux1 + 0.5 && p.y >= uy0 - 0.5 && p.y + ch <= uy1 + 0.5;
+        const inLayer = p => p.x >= 0 && p.x + cw <= lw && p.y >= 0 && p.y + ch <= lh;
+        const nearest = list => list.sort((a, b) => (Math.abs(a.x - home.x) + Math.abs(a.y - home.y)) - (Math.abs(b.x - home.x) + Math.abs(b.y - home.y)))[0];
+        at = nearest(across.concat(upDown).filter(inBox)) || nearest(across.filter(inLayer)) || nearest(upDown.filter(inLayer)) || home;
+      }
+    }
+    chip.style.left = at.x + 'px'; chip.style.top = at.y + 'px';
+    const g = selGeom();
+    hc.bridge = !g ? null : { l: g.wrapRect.left + Math.min(ux0, at.x) * g.z, t: g.wrapRect.top + Math.min(uy0, at.y) * g.z,
+                              r: g.wrapRect.left + Math.max(ux1, at.x + cw) * g.z, b: g.wrapRect.top + Math.max(uy1, at.y + ch) * g.z };
+  }
+  const inClientRect = (e, r) => !!r && e.clientX >= r.l && e.clientX <= r.r && e.clientY >= r.t && e.clientY <= r.b;
+  const insideHoverPrompt = e => !!hoverPrompt && (hoverPrompt.rects.some(r => inClientRect(e, r)) || inClientRect(e, hoverChipBox && hoverChipBox.bridge));
+  document.addEventListener('pointermove', e=>{
+    if(!hoverPromptAllowed()){ if(hoverPrompt || hoverTimer) clearHoverPrompt(); return; }
+    if(e.buttons) return;                                            // a drag in progress: leave it alone
+    if(e.target.closest && e.target.closest('.grid-hover-chip')) return;
+    const td = e.target.closest && e.target.closest('#table-wrap table.sheet-table tbody td');
+    const c = td ? hoverPromptFor(td) : null;
+    if(c && hoverPrompt && hoverPrompt.id === c.id) return;
+    if(!c && insideHoverPrompt(e)) return;                           // still over what it outlined
+    if(hoverPrompt || hoverTimer) clearHoverPrompt();
+    if(!c) return;
+    hoverTimer = setTimeout(()=>{ hoverTimer = 0; const again = hoverPromptFor(c.td); if(again && again.id === c.id && c.td.isConnected) showHoverPrompt(again); }, HOVER_PROMPT_DELAY_MS);
+  });
+  document.addEventListener('pointerleave', clearHoverPrompt);
+  // A re-render replaces .sheet-grid-wrap (and the layer with it): forget the prompt, as the selection layer does.
+  new MutationObserver(()=>{ if(hoverPrompt || hoverTimer) clearHoverPrompt(); }).observe(document.getElementById('table-wrap'), { childList: true });
+
   function ensureSelLayer(){
     const wrap = document.querySelector('.sheet-grid-wrap');
     if(!wrap) return null;
@@ -7843,7 +8106,8 @@ export function initLegacyApp() {
     const cls = document.body.classList;
     const busy = swapDrag || cls.contains('grid-selecting') || cls.contains('grid-resizing') || cls.contains('grid-swapping');
     if(viewMode === 'sheet' && !busy){
-      if(e.target && e.target.closest && e.target.closest('.grid-stint-btn, .grid-swap-knob')) next = stintHover;
+      // The hover prompt's chip too (10 Nov 2026): resting on it must not summon or move this button onto it.
+      if(e.target && e.target.closest && e.target.closest('.grid-stint-btn, .grid-swap-knob, .grid-hover-chip')) next = stintHover;
       else {
         const td = hitCell(e.clientX, e.clientY);
         if(td) next = { year: blockYearOf(td.dataset.week), phaseKey: td.dataset.pkey };
@@ -7892,6 +8156,7 @@ export function initLegacyApp() {
     const bw = btn.offsetWidth;
     btn.style.left = Math.max(box.wrapLeft + 2, box.wrapLeft + box.wrapWidth - bw - 13) + 'px';
     btn.style.top = Math.max(headerBottom + 1, box.wrapTop + 1) + 'px';
+    placeHoverChip();   // a hover prompt's chip under the new button steps aside
   }
 
   // Capture phase and stopped: the button sits inside #table-wrap, whose own click listeners are for
