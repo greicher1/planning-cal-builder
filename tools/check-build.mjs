@@ -105,9 +105,12 @@ check('ExcelJS loader present', /exceljs/i.test(src));
 // Mantine HoverCard (it ignores dispatched events), so the setting itself is asserted here, in the built file:
 // the Shift hint's props, as the bundler writes them (quotes or backticks, false or !1).
 const Q = '[`"\']';
-const shiftHint = new RegExp('label:' + Q + 'Shift' + Q + '[^{}]{0,80}position:' + Q + 'top-start' + Q + '[^{}]{0,40}middlewares:\\{[^{}]*flip:(?:!1|false)').test(src);
-check('the Shift box\'s hint opens above its title and never flips (nothing may float over the phase list)', shiftHint,
-  shiftHint ? '' : 'PreviewToolbar.jsx: <InfoHint label="Shift" position="top-start" middlewares={{ flip: false }}>');
+// Build Around's list sits under its title too since 10 Nov 2026 (it took Shift's look and feel), so both hints.
+for (const [label, what] of [['Shift', 'the Shift box'], ['Build Around', 'Build Around']]) {
+  const hint = new RegExp('label:' + Q + label + Q + '[^{}]{0,80}position:' + Q + 'top-start' + Q + '[^{}]{0,40}middlewares:\\{[^{}]*flip:(?:!1|false)').test(src);
+  check(what + '\'s hint opens above its title and never flips (nothing may float over the phase list)', hint,
+    hint ? '' : 'PreviewToolbar.jsx: <InfoHint label="' + label + '" position="top-start" middlewares={{ flip: false }}>');
+}
 
 // --- 5. The update check and its marker agree ---------------------------------------------
 // The app polls version.json and compares it to its own baked-in version. If the two ever

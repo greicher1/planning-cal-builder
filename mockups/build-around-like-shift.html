@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Around Like Shift</title>
+<!-- MOCKUP, not the app. Build Around redrawn to match the list-first Shift box (live since 9 Nov 2026). Owner,
+     9 Nov 2026: "we need to try to make Build Around match the same UI look and feel as the shift tool. Make a list
+     of everything we could change about Build Around", then, on that list, "give me a mockup of this new versions".
+     Three boxes on ONE made-up calendar, all live:
+       * Shift, as it is live (for reference: the look being matched);
+       * Build Around, PROPOSED (items 1 to 12 of the list): "Phases" and the box with a header strip (a select-all
+         box and the count) in place of the column header; a click on a row pins it, its box ticks, a drag sets a
+         run; Prior to X / After X as buttons under the list (NO Both button: owner, 10 Nov 2026, "we can get rid
+         of the both button because you can just select all with the top checkbox"); the pin's row under the list ("Pin to a date":
+         the phase above "starts on", as in Shift); the hint opens upward; no hover titles on rows;
+       * Build Around, as it is today, showing the same pin, date and ticks in today's layout.
+     R13, PROPOSED 10 Nov 2026 (owner: "its just confusing if you click prior to pre prep and then writers room
+     isn't selected", then "writers room doesnt always overlap the next phases, only sometimes", then "Yes, mock
+     that up"): a phase is left unticked ONLY when it runs alongside the phase it would be built against, on THIS
+     calendar, and a line under the buttons says so by name. Writer's Rm and custom phases are no longer special.
+     It applies to how the box opens and to Prior / After. Two made-up calendars show both cases: on A the room
+     runs a week into Pre Prep, on B it ends as Pre Prep starts. The alternative, "tick every row", is a switch.
+     R14 (does Both keep a button) is RULED: no. R15 (the box's width) is still a switch.
+     Kept different on purpose: the Length column, the pin icon (the pinned phase is fixed to the date, it has no
+     tick), the dark Build button whose label says what will happen, and the opening ticks (Writer's Rm and custom
+     phases start unticked: the owner's ruling of 5 Nov 2026).
+     The popovers copy the live ones (legacy.css .tools-menu; .shift-box / .shift-all / .shift-side; .solve-list
+     rows; src/theme.js tokens). Dates are whole weeks; holidays, hiatuses and notes are left out, so the arithmetic
+     is simpler than the app's. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-3:#8E9EAD; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B; --warn-0:#FFF6E0; --warn-5:#E0A800; --warn-9:#8A5A00;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6; --mark:#E0A800;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1300px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.info{ display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin:14px 0; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul, .info ol{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } }
+.cases{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 0; align-items:center; }
+.cases .lbl{ font-size:12px; color:var(--gray-6); margin-right:4px; }
+.case{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 13px; font-size:12.5px; font-weight:600;
+       cursor:pointer; color:var(--gray-9); }
+.case:hover{ background:var(--gray-0); }
+.case[aria-pressed="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.opts{ margin:12px 0 0; font-size:12.5px; color:var(--gray-7); display:grid; gap:6px; }
+.opts .q{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.opts .q > b{ min-width:250px; font-weight:600; color:var(--gray-9); }
+.opts label{ display:inline-flex; align-items:center; gap:5px; cursor:pointer; }
+.reset{ border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; padding:0; }
+
+/* ---------- Three popovers on a stand-in for the preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.08); margin-top:14px; }
+/* The three boxes sit side by side on a wide window; on a narrower one today's box wraps under the other two, so
+   Shift and the proposed box are always next to each other. */
+.cols{ display:flex; flex-wrap:wrap; gap:26px 36px; padding:16px 18px 22px; align-items:flex-start; }
+.col{ flex:0 0 400px; max-width:100%; }
+.col.is-shift{ flex-basis:340px; }
+.col h2{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-6); margin:0 0 4px; font-weight:600; }
+.col h2 .tag{ text-transform:none; letter-spacing:0; font-weight:600; font-size:11px; padding:1px 7px; border-radius:999px; margin-left:6px;
+              background:var(--mark); color:#1E1D1B; }
+.col .why{ font-size:12.5px; color:var(--gray-7); margin:0 0 46px; min-height:38px; }
+.col.is-today .pop{ opacity:.82; }
+
+/* ---------- The popover (legacy.css .tools-menu: lg radius, md shadow) ---------- */
+.pop{ position:relative; width:340px; background:#fff; border:1px solid var(--gray-3); border-radius:var(--r-lg);
+      box-shadow:var(--shadow-md); padding:16px; text-align:left; }
+.pop.build{ width:400px; }
+.pop.build.w340{ width:340px; }
+.head{ position:relative; margin:0 0 8px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6);
+       display:flex; align-items:center; gap:6px; }
+.head .count{ margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500; }
+.head .i{ display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid var(--gray-5); border-radius:50%;
+          font-size:8.5px; color:var(--gray-6); text-transform:none; letter-spacing:0; cursor:help; }
+.tip{ display:none; position:absolute; left:0; width:300px; background:#fff; color:var(--gray-7); font-size:11.5px; border:1px solid var(--gray-3);
+      line-height:1.45; padding:9px 11px; border-radius:var(--r-md); text-transform:none; letter-spacing:0; font-weight:400; z-index:6;
+      box-shadow:var(--shadow-md); }
+.tip.up{ bottom:20px; }                 /* opens ABOVE the title: nothing floats over the rows */
+.tip.side{ top:-6px; left:150px; }      /* today's: opens to the right, over the top of the box */
+.head .i:hover + .tip, .head .i:focus + .tip{ display:block; }
+.cap{ margin:0 0 3px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6); }
+.row{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.row[hidden]{ display:none; }
+.unit{ font-size:11.5px; color:var(--gray-6); flex:none; }
+.ctl{ height:30px; border:1px solid var(--gray-3); border-radius:var(--r-md); background:#fff; font-size:12.5px; color:var(--gray-9);
+      padding:0 8px; }
+select.ctl{ flex:1; min-width:0; -webkit-appearance:none; appearance:none; padding-right:28px; cursor:pointer;
+  background:#fff url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 8px center/14px 14px; }
+select.ctl.edge{ flex:none; width:96px; }
+input.ctl[type=date]{ flex:1; min-width:0; }
+input.ctl[type=date]::-webkit-calendar-picker-indicator{ opacity:.5; }
+input.ctl.num{ width:52px; flex:none; }
+.gobtn{ height:30px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff; font-size:11.5px; font-weight:600;
+        padding:0 12px; cursor:pointer; color:var(--gray-9); }
+.gobtn:hover:not(:disabled){ background:var(--gray-0); }
+.gobtn.half{ flex:1; min-width:0; padding:0 4px; }
+/* The choices: .tools-seg / .solve-dir. */
+.seg{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; margin:2px 0 8px; }
+.seg button{ flex:1; min-width:0; border:0; background:none; height:26px; border-radius:var(--r-sm); font-size:11.5px; font-weight:500;
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.seg button:hover{ color:var(--gray-9); }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+/* The list's box: a header strip, then the rows (legacy.css .shift-box / .shift-all / .solve-list). */
+.sbox{ border:1px solid var(--gray-2); border-radius:var(--r-md); overflow:hidden; margin-bottom:6px; }
+.strip{ display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:7px; padding:5px 9px; background:var(--gray-0);
+        border-bottom:1px solid var(--gray-2); font-size:11.5px; line-height:1.4; color:var(--gray-7); cursor:pointer; user-select:none; }
+.list{ max-height:290px; overflow-y:auto; user-select:none; -webkit-user-select:none; }
+.list.bordered{ border:1px solid var(--gray-2); border-radius:var(--r-md); margin-bottom:6px; }
+.lrow{ display:grid; grid-template-columns:16px 8px minmax(0,1fr) 54px 84px; align-items:center; gap:7px;
+       padding:5px 9px; font-size:12px; line-height:1.4; border-top:1px solid var(--gray-1); cursor:pointer; margin:0; }
+.lrow:first-child{ border-top:0; }
+.lrow:hover{ background:var(--gray-0); }
+.build .lrow{ grid-template-columns:16px 8px minmax(0,1fr) 62px 52px 78px; }
+.build.w340 .lrow{ grid-template-columns:16px 8px minmax(0,1fr) 52px 48px 66px; }
+.cb{ width:16px; height:16px; border:1px solid var(--gray-4); border-radius:4px; background:#fff; display:block; cursor:pointer; }
+.cb:hover{ border-color:var(--gray-5); }
+.cb.on{ background:var(--navy-6) url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E") no-repeat center/62% auto;
+        border-color:var(--navy-6); }
+.cb.minus{ background:var(--navy-6) url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='4' width='7' height='2' rx='1' fill='white'/%3E%3C/svg%3E") no-repeat center/62% auto;
+           border-color:var(--navy-6); }
+.cb.dis{ background:var(--gray-1); border-color:var(--gray-3); cursor:not-allowed; }
+.dot{ width:8px; height:8px; border-radius:2px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }
+.nm{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dt{ text-align:right; font-variant-numeric:tabular-nums; }
+.ch{ text-align:right; font-size:11px; color:var(--gray-6); white-space:nowrap; }
+.lrow.off .nm, .lrow.off .dt{ color:var(--gray-6); }
+.lrow.moving .ch{ color:var(--navy-6); font-weight:500; }
+.lrow.land, .lrow.pin{ background:var(--navy-0); }
+.lrow.land .nm, .lrow.pin .nm{ font-weight:600; }
+.lrow.land .ch, .lrow.pin .ch{ color:var(--navy-7); font-weight:500; }
+.lrow.mark{ box-shadow:inset 0 0 0 1.5px var(--navy-3); }       /* the chosen row: Shift's outline */
+.lrow.empty{ display:block; color:var(--gray-6); cursor:default; padding:9px; }
+.pin-ic{ width:14px; height:14px; color:var(--navy-6); justify-self:center; }
+/* Build Around's length cell (legacy.css .solve-len). */
+.len{ display:flex; align-items:center; justify-content:flex-end; gap:4px; }
+.lenin{ width:34px; height:22px; padding:0 5px; text-align:right; font-size:12px; border:1px solid var(--gray-3); border-radius:5px; background:#fff; color:var(--gray-9); }
+.lenin:hover{ border-color:var(--gray-5); }
+.lenin:focus{ border-color:var(--navy-6); outline:2px solid var(--navy-1); outline-offset:0; }
+.lenin.unset{ border-style:dashed; border-color:var(--warn-5); background:var(--warn-0); }
+.lenin.staged{ border-color:var(--navy-6); background:var(--navy-0); }
+.len .u{ font-size:10.5px; color:var(--gray-6); width:22px; }
+.w340 .lenin{ width:28px; } .w340 .len .u{ width:18px; }
+.len .ro{ font-size:11.5px; color:var(--gray-7); white-space:nowrap; }
+/* Today's column header row. */
+.lrow.colhead{ padding-top:5px; padding-bottom:3px; cursor:default; background:var(--gray-0); font-size:9.5px; font-weight:600; letter-spacing:.05em;
+               text-transform:uppercase; color:var(--gray-5); }
+.lrow.colhead span{ text-align:left; } .lrow.colhead .r{ text-align:right; }
+/* Prior / After (legacy.css .shift-side): big, one line, cut with an ellipsis. */
+.sides{ gap:6px; margin-bottom:10px; }
+.side{ flex:1 1 0; min-width:0; height:34px; padding:0 10px; border:1px solid var(--gray-4); border-radius:var(--r-md); background:#fff;
+       font-size:12px; font-weight:600; color:var(--gray-9); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.side:hover:not(:disabled){ background:var(--gray-0); }
+.side:active:not(:disabled){ background:var(--gray-1); }
+.side:disabled{ color:var(--gray-5); border-color:var(--gray-3); cursor:default; }
+/* Build Around's own button: dark, full width, its label says what will happen (kept). */
+.build-go{ display:block; width:100%; height:30px; border:0; border-radius:var(--r-md); background:var(--navy-6); color:#fff; font-size:12px;
+           font-weight:600; cursor:pointer; margin-top:4px; }
+.build-go:hover:not(:disabled){ background:var(--navy-7); }
+.build-go:disabled{ background:var(--gray-1); color:var(--gray-6); cursor:default; }
+.new{ outline:2px dashed var(--mark); outline-offset:3px; border-radius:var(--r-md); }
+.strip.new{ outline-offset:-2px; border-radius:0; }      /* inside the box, which clips what is outside it */
+.msg{ margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--gray-6); }
+/* Why a phase was left unticked: one line, under the buttons, only while it applies. */
+.leftnote{ margin:-4px 0 10px; padding:6px 9px; border-radius:var(--r-md); background:var(--gray-0); border:1px solid var(--gray-2);
+           font-size:11px; line-height:1.4; color:var(--gray-7); }
+.msg:empty{ display:none; }
+.dead{ pointer-events:none; }
+
+/* ---------- The timeline under the frame ---------- */
+.explain{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 18px 16px; margin-top:14px; }
+.explain h2{ font-size:14px; margin:0 0 2px; }
+.explain .sub{ font-size:12.5px; color:var(--gray-6); margin:0 0 12px; }
+.tl-scroll{ overflow-x:auto; }
+.tl{ position:relative; min-width:760px; }
+.tl-months{ display:grid; margin-left:110px; font-size:10px; color:var(--gray-6); border-bottom:1px solid var(--gray-2); padding-bottom:3px; }
+.tl-row{ display:grid; grid-template-columns:110px 1fr; align-items:center; height:24px; }
+.tl-row .lbl2{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+.tl-row.pick .lbl2{ font-weight:600; }
+.tl-track{ position:relative; height:100%; border-left:1px solid var(--gray-1); }
+.bar{ position:absolute; top:5px; height:14px; border-radius:3px; }
+.bar.was{ border:1.5px dashed var(--gray-5); background:transparent; }
+.bar.to{ opacity:.9; box-shadow:inset 0 0 0 1px rgba(0,0,0,.25); }
+.legend{ display:flex; gap:16px; font-size:11.5px; color:var(--gray-6); margin-top:10px; flex-wrap:wrap; align-items:center; }
+.legend i{ display:inline-block; width:22px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+.legend i.dash{ outline:2px dashed var(--mark); outline-offset:-1px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Build Around, with Shift's look and feel</h1>
+    <p>The middle box is Build Around redrawn the way the new Shift box works: the phases first, in a box with a header strip; click a row to choose it, click its box to tick, drag to tick a run; two big buttons under the list; the date row at the bottom with the phase right above "starts on". Shift is on the left for reference, and today's Build Around on the right shows the same pin, date and ticks in today's layout.</p>
+    <p>All three are live on one made-up calendar. Try in the middle box: click <b>Post</b> to pin it, drag down a few rows, press <b>After …</b>, type a length, press Build.</p>
+    <p><b>New: which phases start unticked.</b> A phase is left out only when it runs alongside the phase it would be built against, and a line under the buttons says so. Switch between the two calendars, then click <b>Pre Prep</b> and press <b>Prior to Pre Prep</b> on each.</p>
+  </div>
+
+  <div class="cases" id="cases">
+    <span class="lbl">Calendar:</span>
+    <button class="case" type="button" data-cal="A" aria-pressed="true">A · the Writer's Room runs a week into Pre Prep</button>
+    <button class="case" type="button" data-cal="B" aria-pressed="false">B · the Writer's Room ends as Pre Prep starts</button>
+  </div>
+
+  <div class="frame"><div class="cols">
+    <div class="col is-shift">
+      <h2>Shift, as it is live</h2>
+      <p class="why">The look being matched. It keeps the gaps between phases; Build Around closes them.</p>
+      <div class="pop shift" id="pop-shift"></div>
+    </div>
+    <div class="col">
+      <h2>Build Around <span class="tag">proposed</span></h2>
+      <p class="why">Same parts in the same order as Shift. Dashed outlines mark what changed from today.</p>
+      <div class="pop build" id="pop-new"></div>
+    </div>
+    <div class="col is-today">
+      <h2>Build Around, as it is today</h2>
+      <p class="why">The same pin, date and ticks in today's layout. Not clickable here; it follows the middle box.</p>
+      <div class="pop build dead" id="pop-today"></div>
+    </div>
+  </div></div>
+
+  <div class="opts">
+    <div class="q"><b>R13 · Which phases are left unticked:</b>
+      <label><input type="radio" name="r13" value="overlap" checked> only one that runs alongside its neighbour, with a line saying so (proposed)</label>
+      <label><input type="radio" name="r13" value="every"> none: Prior / After tick every row, always</label></div>
+    <div class="q"><b>R15 · Width:</b>
+      <label><input type="radio" name="r15" value="400" checked> 400 px, as today (recommended)</label>
+      <label><input type="radio" name="r15" value="340"> 340 px, as Shift</label></div>
+    <div class="q"><button class="reset" id="reset" type="button">Reset the calendar</button>
+      <span><i style="display:inline-block;width:22px;height:10px;border-radius:2px;outline:2px dashed #E0A800;outline-offset:-1px;vertical-align:-1px;margin-right:6px"></i>Changed from today</span></div>
+  </div>
+
+  <div class="explain">
+    <h2>What Build would do</h2>
+    <p class="sub" id="tlsub"></p>
+    <div class="tl-scroll"><div class="tl" id="tl"></div></div>
+    <div class="legend">
+      <span><i style="border:1.5px dashed #A5A197"></i>Where it is now</span>
+      <span><i style="background:#2C3E50;opacity:.3"></i>Where Build would put it</span>
+    </div>
+  </div>
+
+  <div class="info">
+    <div>
+      <h3>What changed, against the list</h3>
+      <ol>
+        <li><b>Header strip</b> with a select-all box and the count, in place of the column header.</li>
+        <li><b>"Phases"</b> as the caption; the count moved into the strip ("4 of 6 build").</li>
+        <li><b>A click on a row no longer flips its tick.</b> The box ticks.</li>
+        <li><b>Drag</b> to tick or clear a run. Rows with no length are skipped.</li>
+        <li><b>The outline</b> on the chosen row, as in Shift.</li>
+        <li><b>No hover tooltips</b> on rows.</li>
+        <li><b>The hint opens upward.</b></li>
+        <li><b>"starts on"</b>, and the title reads "Build Around".</li>
+        <li><b>The pin is the row you click</b>; the dropdown under the list follows, and picks it too.</li>
+        <li><b>The date row is under the list</b>, the phase directly above "starts on".</li>
+        <li><b>Prior to … / After …</b> as buttons under the list, in place of the switch above it. <b>Both is gone</b> (your ruling): the box at the top of the list ticks every phase.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Different from Shift, on purpose</h3>
+      <ul>
+        <li><b>Ticking a box does not move the pin.</b> In Shift the outline follows every tick; here the pin sets the date and the whole preview, so only a click on the row moves it.</li>
+        <li><b>The pinned row has a pin, not a tick.</b> It is fixed to the date; there is nothing to untick.</li>
+        <li><b>The Length column</b>, typed in the list as today.</li>
+        <li><b>The dark Build button.</b> Its label says what will happen, and nothing changes until it is pressed.</li>
+        <li><b>How it opens:</b> both sides ticked, less any phase that runs alongside its neighbour. That is a change from today, where Writer's Rm and custom phases always start unticked.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Your calls (the switches above)</h3>
+      <ul>
+        <li><b>R13</b> (proposed): a phase is left unticked only when it runs alongside the phase it would be built against, by a full week or more, and the line under the buttons names it. It changes how the box opens today, too. The other choice is the switch: tick every row, always.</li>
+        <li><b>R14</b>: ruled, 10 Nov 2026. No Both button.</li>
+        <li><b>R15</b>: 400 or 340 px. At 340 the names get about 65 px, and the longer ones are cut: Writer's Rm, Production, Localization.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var DAY = 864e5, WEEK = 7 * DAY, WHOLE = '__whole';
+  function ms(iso){ return iso ? Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10)) : null; }
+  function isoOf(v){ return v == null ? '' : new Date(v).toISOString().slice(0,10); }
+  function short(v){ if(v == null) return '—'; var d = new Date(v); return (d.getUTCMonth()+1) + '/' + d.getUTCDate() + '/' + String(d.getUTCFullYear()).slice(2); }
+  function monday(v){ var wd = (new Date(v).getUTCDay() + 6) % 7; return v - wd * DAY; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function $(id){ return document.getElementById(id); }
+  var PIN_SVG = '<svg class="pin-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 13.5 6l-2.2 1-2.6 2.6.3 3.2-1.4.7L5.2 11.1 2.5 13.5M4.4 7.6 7.6 4.4l1-2.2"/></svg>';
+
+  // Two made-up calendars, whole weeks from a Monday. Casting is a custom phase that runs beside Pre Prep; Delivery
+  // has no length and no date yet; Post starts a week after the wrap and Localization two weeks after Post ends, so
+  // Build has gaps to close. They differ in ONE thing: on A the Writer's Room (14 weeks) runs a week into Pre Prep,
+  // on B (13 weeks) it ends the day Pre Prep starts.
+  function seed(roomWeeks){ return [
+    {key:'writers',    name:"Writer's Rm",  start:'2026-01-05', len:roomWeeks, unit:'wks', color:'#FFF2CC', builtin:true},
+    {key:'casting',    name:'Casting',      start:'2026-03-16', len:5,  unit:'wks',  color:'#E4DFEC', builtin:false},
+    {key:'preprep',    name:'Pre Prep',     start:'2026-04-06', len:6,  unit:'wks',  color:'#DCE6F1', builtin:true},
+    {key:'prodprep',   name:'Prod Prep',    start:'2026-05-18', len:6,  unit:'wks',  color:'#D9D9D9', builtin:true},
+    {key:'production', name:'Production',   start:'2026-06-29', len:18, unit:'days', color:'#E2EFDA', builtin:true, ro:'80 days'},
+    {key:'post',       name:'Post',         start:'2026-11-09', len:16, unit:'wks',  color:'#FCE4D6', builtin:true},
+    {key:'local',      name:'Localization', start:'2027-03-15', len:8,  unit:'wks',  color:'#EDEDED', builtin:true},
+    {key:'delivery',   name:'Delivery',     start:'',           len:0,  unit:'wks',  color:'#DDEBF7', builtin:true}
+  ]; }
+  var SEEDS = {A: seed(14), B: seed(13)}, CAL = 'A';
+  function andList(n){ return n.length <= 1 ? n.join('') : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1]; }
+  var PH, S, B;
+  function byKey(k){ for(var i = 0; i < PH.length; i++) if(PH[i].key === k) return PH[i]; return null; }
+  // Every phase in the order it runs; the undated ones last, as they are listed.
+  function runOrder(){ return PH.filter(function(p){ return p.start != null; }).sort(function(a, b){ return a.start - b.start; }).concat(PH.filter(function(p){ return p.start == null; })); }
+  function endOf(p, len){ return p.start + (len == null ? p.len : len) * WEEK - 3 * DAY; }     // the Friday of its last week
+  function words(now, to){
+    if(now == null) return 'New';
+    var n = Math.round((to - now) / WEEK);
+    if(!n) return 'No change';
+    return (n > 0 ? 'Pushed ' : 'Pulled ') + Math.abs(n) + (Math.abs(n) === 1 ? ' wk' : ' wks');
+  }
+
+  // ====================== SHIFT (as live) ======================
+  function shiftRows(){ return runOrder().filter(function(p){ return p.start != null; }); }
+  function shiftAll(){ var r = shiftRows(); return r.length > 0 && r.every(function(p){ return S.ticks[p.key]; }); }
+  function shiftLand(){
+    var rows = shiftRows(), all = shiftAll();
+    if(S.land === WHOLE && all && S.far === 'date') return WHOLE;
+    if(S.ticks[S.mark]) return S.mark;
+    if(S.land !== WHOLE && S.ticks[S.land]) return S.land;
+    if(S.ticks.production) return 'production';
+    var f = rows.filter(function(p){ return S.ticks[p.key]; })[0];
+    return f ? f.key : '';
+  }
+  function shiftDateFor(key){
+    if(!key) return '';
+    if(key === WHOLE){ var r = shiftRows(); return isoOf(S.edge === 'start' ? r[0].start : Math.max.apply(null, r.map(function(p){ return endOf(p); }))); }
+    var p = byKey(key); return isoOf(S.edge === 'start' ? p.start : endOf(p));
+  }
+  function shiftDelta(){
+    var land = shiftLand(); if(!land || !S.date) return 0;
+    var cur = ms(shiftDateFor(land));
+    return Math.round((monday(ms(S.date)) - monday(cur)) / WEEK);
+  }
+  function renderShift(){
+    var rows = shiftRows(), land = shiftLand(), toDate = S.far === 'date', whole = toDate && land === WHOLE;
+    if(land !== S.land){ S.land = land; S.date = shiftDateFor(land); }
+    var n = toDate ? shiftDelta() : 0, all = shiftAll(), mk = byKey(S.mark);
+    var h = '<p class="head">Shift <span class="i" tabindex="0">i</span><span class="tip up">Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.</span></p>';
+    h += '<p class="cap">Phases</p><div class="sbox"><div class="strip" data-all=""><span class="cb' + (all ? ' minus' : '') + (whole ? ' dis' : '') + '"></span><span>' +
+         rows.filter(function(p){ return S.ticks[p.key]; }).length + ' of ' + rows.length + ' move</span></div><div class="list" data-list="">';
+    rows.forEach(function(p){
+      var on = !!S.ticks[p.key], lands = toDate && !whole && on && p.key === land, to = (on && n) ? p.start + n * WEEK : p.start;
+      var w = (!toDate || !n) ? (lands ? 'On your date' : on ? 'Moves' : 'Stays') : (on ? words(p.start, to) : 'Stays');
+      h += '<div class="lrow' + (on ? (n ? ' moving' : '') : ' off') + (lands ? ' land' : '') + (p.key === S.mark ? ' mark' : '') + '" data-key="' + p.key + '">' +
+           '<span class="cb' + (on ? ' on' : '') + (whole ? ' dis' : '') + '"></span><span class="dot" style="background:' + p.color + '"></span>' +
+           '<span class="nm">' + esc(p.name) + '</span><span class="dt">' + short(to) + '</span><span class="ch">' + w + '</span></div>';
+    });
+    h += '</div></div><div class="row sides"><button type="button" class="side" data-side="-1"' + (whole ? ' disabled' : '') + '>Prior to ' + esc(mk ? mk.name : '…') + '</button>' +
+         '<button type="button" class="side" data-side="1"' + (whole ? ' disabled' : '') + '>After ' + esc(mk ? mk.name : '…') + '</button></div>';
+    h += '<p class="cap">How far</p><div class="seg"><button type="button" data-far="weeks" aria-pressed="' + (!toDate) + '">By weeks</button>' +
+         '<button type="button" data-far="date" aria-pressed="' + toDate + '">To a date</button></div>';
+    if(toDate){
+      var opts = rows.filter(function(p){ return S.ticks[p.key]; }).map(function(p){ return '<option value="' + p.key + '"' + (p.key === land ? ' selected' : '') + '>' + esc(p.name) + ' — ' + short(p.start) + '</option>'; });
+      if(all) opts.push('<option value="' + WHOLE + '"' + (land === WHOLE ? ' selected' : '') + '>Whole schedule (all phases)</option>');
+      h += '<div class="row"><select class="ctl" data-land="">' + (opts.length ? opts.join('') : '<option value="">Tick a phase first</option>') + '</select></div>' +
+           '<div class="row"><select class="ctl edge" data-edge=""><option value="start"' + (S.edge === 'start' ? ' selected' : '') + '>starts on</option><option value="end"' + (S.edge === 'end' ? ' selected' : '') + '>ends by</option></select>' +
+           '<input class="ctl" type="date" data-date="" value="' + S.date + '"><button type="button" class="gobtn" data-go="">Go</button></div>';
+    } else {
+      h += '<div class="row"><input class="ctl num" type="number" min="1" step="1" value="' + S.weeks + '" data-weeks=""><span class="unit">wks</span>' +
+           '<button type="button" class="gobtn half" data-by="-1">Earlier</button><button type="button" class="gobtn half" data-by="1">Later</button></div>';
+    }
+    h += '<p class="msg">' + esc(S.msg) + '</p>';
+    $('pop-shift').innerHTML = h;
+  }
+  function shiftMove(n){
+    var moved = shiftRows().filter(function(p){ return S.ticks[p.key]; });
+    if(!moved.length){ S.msg = 'Tick a phase to move.'; return; }
+    if(!n){ S.msg = 'Nothing to shift.'; return; }
+    moved.forEach(function(p){ p.start += n * WEEK; });
+    S.msg = 'Shifted ' + Math.abs(n) + (Math.abs(n) === 1 ? ' week ' : ' weeks ') + (n < 0 ? 'earlier' : 'later') + '. ' + moved.length + ' of ' + shiftRows().length + ' phases moved.';
+    S.date = shiftDateFor(S.land);
+    buildRefill();
+  }
+
+  // ====================== BUILD AROUND ======================
+  function lenOf(p){ return (p.key in B.lens) ? B.lens[p.key] : p.len; }
+  function canTick(p){ return p.key !== B.pin && lenOf(p) > 0; }
+  // TODAY'S RULE, kept for today's box (which button its switch shows pressed) and for the "tick every row" switch's
+  // opening ticks: Writer's Rm and custom phases are always left out.
+  function usualSet(side){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), t = {};
+    rows.forEach(function(p, i){
+      if(!canTick(p)) return;
+      t[p.key] = (side === 0 || (side < 0 ? i < pi : i > pi)) && p.builtin && p.key !== 'writers';
+    });
+    return t;
+  }
+  // ⭐ THE PROPOSED RULE (R13): a phase is left unticked ONLY when it runs ALONGSIDE the phase it would be built
+  // against, by a full week or more. Built in line, it would be pulled away from that phase; left out, it stays
+  // beside it. Walk outward from the pin, each way: a phase that overlaps the last phase taken into the chain is
+  // left out (and named, with that neighbour); any other joins the chain and becomes the next one to build against.
+  // No phase is special: Writer's Rm and custom phases are ticked whenever they sit in line.
+  function alongside(){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), out = {}, i, p, anchor;
+    if(pi < 0) return out;
+    anchor = rows[pi];
+    for(i = pi - 1; i >= 0; i--){
+      p = rows[i]; if(!canTick(p)) continue;
+      if(p.start != null && anchor.start != null && (p.start + lenOf(p) * WEEK) - anchor.start >= WEEK) out[p.key] = anchor.name; else anchor = p;
+    }
+    anchor = rows[pi];
+    for(i = pi + 1; i < rows.length; i++){
+      p = rows[i]; if(!canTick(p)) continue;
+      var aEnd = (anchor.start != null && lenOf(anchor) > 0) ? anchor.start + lenOf(anchor) * WEEK : null;
+      if(p.start != null && aEnd != null && aEnd - p.start >= WEEK) out[p.key] = anchor.name; else anchor = p;
+    }
+    return out;
+  }
+  // The ticks for a side (0 both, as the box opens; -1 Prior to the pin; 1 After it), and the phases left out of it
+  // for running alongside a neighbour. Under the "tick every row" switch Prior / After take every row, and the box
+  // opens as it does today.
+  function ruleSet(side){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), along = alongside(), t = {}, left = [];
+    if(B.r13 === 'every' && side === 0) return {ticks: usualSet(0), left: []};
+    rows.forEach(function(p, i){
+      if(!canTick(p)) return;
+      var onSide = side === 0 || (side < 0 ? i < pi : i > pi), out = B.r13 !== 'every' && (p.key in along);
+      t[p.key] = onSide && !out;
+      if(onSide && out) left.push(p.key);
+    });
+    return {ticks: t, left: left};
+  }
+  function applyRule(side){ var r = ruleSet(side); B.ticks = r.ticks; B.left = r.left; B.side = side; }
+  // The line under the buttons: the phases the rule left out that are still unticked, and the phase each runs beside.
+  function leftNote(){
+    var along = alongside(), keys = B.left.filter(function(k){ return !B.ticks[k] && (k in along); });
+    if(!keys.length) return '';
+    var names = keys.map(function(k){ return byKey(k).name; }), nb = keys.map(function(k){ return along[k]; });
+    if(keys.length === 1) return names[0] + ' left unticked: it runs alongside ' + nb[0] + '. Tick it to build it in line.';
+    var same = nb.every(function(n){ return n === nb[0]; });
+    return andList(names) + ' left unticked: ' + (same ? 'they run alongside ' + nb[0] : 'each runs alongside the phase next to it') + '. Tick them to build them in line.';
+  }
+  function buildDateFor(key){
+    var p = byKey(key); if(!p || p.start == null) return '';
+    return isoOf(B.edge === 'start' ? p.start : endOf(p, lenOf(p) || 1));
+  }
+  function buildRefill(){ B.date = buildDateFor(B.pin); }
+  // Where Build would put the pin and every ticked phase: before the pin backwards, after it forwards, end to end.
+  function trial(){
+    var rows = runOrder(), pi = rows.findIndex(function(p){ return p.key === B.pin; }), pin = rows[pi], out = {};
+    if(!pin || !B.date) return {out: out, ok: false};
+    var plen = lenOf(pin), pstart;
+    if(B.edge === 'start') pstart = monday(ms(B.date));
+    else { if(!plen) return {out: out, ok: false, needLen: true}; pstart = monday(ms(B.date)) - (plen - 1) * WEEK; }
+    out[pin.key] = pstart;
+    var cur = pstart, j, p;
+    for(j = pi - 1; j >= 0; j--){ p = rows[j]; if(B.ticks[p.key] && canTick(p)){ cur -= lenOf(p) * WEEK; out[p.key] = cur; } }
+    if(plen){ cur = pstart + plen * WEEK; for(j = pi + 1; j < rows.length; j++){ p = rows[j]; if(B.ticks[p.key] && canTick(p)){ out[p.key] = cur; cur += lenOf(p) * WEEK; } } }
+    return {out: out, ok: true, afterBlocked: !plen, pi: pi};
+  }
+  function buildFacts(){
+    var rows = runOrder(), t = trial(), pin = byKey(B.pin), staged = Object.keys(B.lens).length;
+    var others = rows.filter(canTick), n = others.filter(function(p){ return B.ticks[p.key]; }).length, moving = 0, placed = 0;
+    rows.forEach(function(p){ if(p.key in t.out){ if(p.key !== B.pin) placed++; if(p.start == null || Math.round((t.out[p.key] - p.start) / WEEK)) moving++; } });
+    var label, off = true;
+    if(!pin) label = 'Nothing to build';
+    else if(t.needLen) label = 'Give ' + pin.name + ' a length';
+    else if(!B.date) label = 'Pick a date';
+    else if(!n && !staged) label = 'Tick a phase to build';
+    else if(!moving && !staged) label = 'No changes';
+    else if(!placed && staged){ label = 'Save ' + staged + (staged === 1 ? ' length' : ' lengths'); off = false; }
+    else { label = 'Build ' + placed + ' phase' + (placed === 1 ? '' : 's'); off = !placed && !moving; }
+    return {rows: rows, t: t, pin: pin, others: others, n: n, label: label, off: off, all: others.length > 0 && n === others.length};
+  }
+  function lenCell(p){
+    if(p.ro) return '<span class="len"><span class="ro">' + p.ro + '</span></span>';
+    var staged = p.key in B.lens, v = lenOf(p);
+    return '<span class="len"><input type="text" inputmode="numeric" maxlength="3" class="lenin' + (staged ? ' staged' : '') + (v ? '' : ' unset') + '" data-len="' + p.key + '" value="' + (v || '') + '"><span class="u">' + p.unit + '</span></span>';
+  }
+  // One row's cells, shared by the proposed box and today's.
+  function buildRow(p, f, today){
+    var t = f.t, isPin = p.key === B.pin, now = p.start;
+    if(isPin){
+      var to = (p.key in t.out) ? t.out[p.key] : now, w = t.needLen ? 'Needs a length' : (now != null && Math.round((to - now) / WEEK) === 0 ? (today ? 'No change' : 'On your date') : words(now, to));
+      return '<div class="lrow pin' + (today ? '' : ' mark') + '" data-key="' + p.key + '">' + PIN_SVG + '<span class="dot" style="background:' + p.color + '"></span><span class="nm">' + esc(p.name) + '</span>' +
+             lenCell(p) + '<span class="dt">' + short(to) + '</span><span class="ch">' + w + '</span></div>';
+    }
+    if(!(lenOf(p) > 0))
+      return '<div class="lrow off" data-key="' + p.key + '"><span class="cb dis"></span><span class="dot" style="background:' + p.color + '"></span><span class="nm">' + esc(p.name) + '</span>' +
+             lenCell(p) + '<span class="dt">' + short(now) + '</span><span class="ch">No length</span></div>';
+    var on = !!B.ticks[p.key];
+    if(!on)
+      return '<div class="lrow off" data-key="' + p.key + '"><span class="cb"></span><span class="dot" style="background:' + p.color + '"></span><span class="nm">' + esc(p.name) + '</span>' +
+             lenCell(p) + '<span class="dt">' + short(now) + '</span><span class="ch">' + (now == null ? 'Not dated' : 'Stays') + '</span></div>';
+    var placed = p.key in t.out, to2 = placed ? t.out[p.key] : now, w2 = placed ? words(now, to2) : (t.ok ? 'Can’t place' : '');
+    return '<div class="lrow' + (placed && w2 !== 'No change' ? ' moving' : '') + '" data-key="' + p.key + '"><span class="cb on"></span><span class="dot" style="background:' + p.color + '"></span><span class="nm">' + esc(p.name) + '</span>' +
+           lenCell(p) + '<span class="dt">' + short(to2) + '</span><span class="ch">' + w2 + '</span></div>';
+  }
+  var HINT = 'Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.';
+  function pinOptions(withDates){
+    return runOrder().map(function(p){ return '<option value="' + p.key + '"' + (p.key === B.pin ? ' selected' : '') + '>' + esc(p.name) + (withDates ? ' — ' + (p.start == null ? 'no date yet' : short(p.start)) : '') + '</option>'; }).join('');
+  }
+  function edgeSelect(first){
+    return '<select class="ctl edge" data-edge=""><option value="start"' + (B.edge === 'start' ? ' selected' : '') + '>' + first + '</option><option value="end"' + (B.edge === 'end' ? ' selected' : '') + '>ends by</option></select>';
+  }
+  function renderNew(){
+    var f = buildFacts(), pin = f.pin, pop = $('pop-new');
+    // Keep the caret in a length box across the redraw.
+    var act = document.activeElement, fk = act && pop.contains(act) && act.dataset ? act.dataset.len : null, caret = fk ? act.selectionStart : null;
+    pop.classList.toggle('w340', B.r15 === '340');
+    var h = '<p class="head"><span class="new">Build Around</span> <span class="i" tabindex="0">i</span><span class="tip up">' + HINT + '</span></p>';
+    h += '<p class="cap"><span class="new">Phases</span></p><div class="sbox"><div class="strip new" data-all=""><span class="cb' + (f.all ? ' minus' : '') + '"></span><span>' + f.n + ' of ' + f.others.length + ' build</span></div><div class="list" data-list="">';
+    f.rows.forEach(function(p){ h += buildRow(p, f, false); });
+    h += '</div></div>';
+    h += '<div class="row sides new"><button type="button" class="side" data-side="-1">Prior to ' + esc(pin ? pin.name : '…') + '</button>' +
+         '<button type="button" class="side" data-side="1">After ' + esc(pin ? pin.name : '…') + '</button></div>';
+    var note = leftNote();
+    if(note) h += '<p class="leftnote new">' + esc(note) + '</p>';
+    h += '<p class="cap"><span class="new">Pin to a date</span></p><div class="row new"><select class="ctl" data-pin="">' + pinOptions(true) + '</select></div>' +
+         '<div class="row">' + edgeSelect('starts on') + '<input class="ctl" type="date" data-date="" value="' + B.date + '"></div>';
+    h += '<button type="button" class="build-go" data-go=""' + (f.off ? ' disabled' : '') + '>' + esc(f.label) + '</button><p class="msg">' + esc(B.msg) + '</p>';
+    pop.innerHTML = h;
+    if(fk){ var el = pop.querySelector('input[data-len="' + fk + '"]'); if(el){ el.focus(); if(caret != null) el.setSelectionRange(caret, caret); } }
+  }
+  // Today's layout, drawn from the same pin, date and ticks.
+  function renderToday(){
+    var f = buildFacts(), pressed = null;
+    [-1, 0, 1].forEach(function(s){ var d = usualSet(s); if(pressed === null && f.others.every(function(p){ return !!d[p.key] === !!B.ticks[p.key]; })) pressed = s; });
+    if(pressed !== null && pressed !== 0){ var d0 = usualSet(0); if(f.others.every(function(p){ return !!d0[p.key] === !!B.ticks[p.key]; })) pressed = 0; }
+    var h = '<p class="head">Build around a phase <span class="i">i</span></p>';
+    h += '<div class="row"><select class="ctl">' + pinOptions(false) + '</select>' + edgeSelect('starts').replace('class="ctl edge"', 'class="ctl edge" style="width:84px"') + '<input class="ctl" type="date" value="' + B.date + '" style="flex:none;width:124px"></div>';
+    h += '<p class="head" style="margin-top:8px">Phases to build<span class="count">' + f.n + ' of ' + f.others.length + ' ticked</span></p>';
+    h += '<div class="seg" style="margin-bottom:12px"><button type="button" aria-pressed="' + (pressed === -1) + '">← Before</button><button type="button" aria-pressed="' + (pressed === 0) + '">Both</button><button type="button" aria-pressed="' + (pressed === 1) + '">After →</button></div>';
+    h += '<div class="list bordered"><div class="lrow colhead"><span></span><span></span><span>Phase</span><span class="r">Length</span><span class="r">Starts</span><span></span></div>';
+    f.rows.forEach(function(p){ h += buildRow(p, f, true); });
+    h += '</div><button type="button" class="build-go"' + (f.off ? ' disabled' : '') + '>' + esc(f.label) + '</button>';
+    $('pop-today').innerHTML = h;
+  }
+  function runBuild(){
+    var f = buildFacts(), t = f.t, moved = [];
+    Object.keys(B.lens).forEach(function(k){ byKey(k).len = B.lens[k]; });
+    B.lens = {};
+    f.rows.forEach(function(p){ if(p.key in t.out){ if(p.key !== B.pin) moved.push(p.name); p.start = t.out[p.key]; } });
+    var stay = f.others.filter(function(p){ return !B.ticks[p.key]; }).map(function(p){ return p.name; });
+    B.msg = 'Built ' + moved.length + ' phase' + (moved.length === 1 ? '' : 's') + ' around ' + f.pin.name + '.' + (stay.length ? ' ' + stay.join(', ') + ' stayed.' : '');
+    S.date = shiftDateFor(S.land);
+  }
+
+  // ====================== The timeline ======================
+  function renderTimeline(){
+    var f = buildFacts(), t = f.t, lo = Infinity, hi = -Infinity;
+    f.rows.forEach(function(p){
+      [p.start, t.out[p.key]].forEach(function(s){ if(s != null){ lo = Math.min(lo, s); hi = Math.max(hi, s + Math.max(lenOf(p), 1) * WEEK); } });
+    });
+    lo = monday(lo) - 2 * WEEK; hi = hi + 2 * WEEK;
+    var span = hi - lo, months = [], d = new Date(lo); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+    while(d.getTime() < hi){ months.push(d.getTime()); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); }
+    var MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h = '<div class="tl-months" style="grid-template-columns:repeat(' + months.length + ',1fr)">' + months.map(function(m){ var x = new Date(m); return '<span>' + MN[x.getUTCMonth()] + (x.getUTCMonth() === 0 ? ' ’' + String(x.getUTCFullYear()).slice(2) : '') + '</span>'; }).join('') + '</div>';
+    var m0 = months[0], mspan = (months[months.length - 1] + 31 * DAY) - m0;
+    function pct(v){ return ((v - m0) / mspan * 100).toFixed(2) + '%'; }
+    f.rows.forEach(function(p){
+      var len = Math.max(lenOf(p), 0), w = (len * WEEK / mspan * 100).toFixed(2) + '%';
+      h += '<div class="tl-row' + (p.key === B.pin ? ' pick' : '') + '"><span class="lbl2">' + esc(p.name) + '</span><div class="tl-track">' +
+           (p.start != null && len ? '<span class="bar was" style="left:' + pct(p.start) + ';width:' + w + '"></span>' : '') +
+           ((p.key in t.out) && len ? '<span class="bar to" style="left:' + pct(t.out[p.key]) + ';width:' + w + ';background:' + p.color + '"></span>' : '') + '</div></div>';
+    });
+    $('tl').innerHTML = h;
+    var moving = f.rows.filter(function(p){ return (p.key in t.out) && (p.start == null || Math.round((t.out[p.key] - p.start) / WEEK)); }).map(function(p){ return p.name; });
+    $('tlsub').textContent = !f.pin ? '' : (f.pin.name + ' ' + (B.edge === 'start' ? 'starts on ' : 'ends by ') + (B.date ? short(ms(B.date)) : '(no date)') + '. ' +
+      (moving.length ? 'Build would move ' + moving.join(', ') + '.' : 'Nothing would move.'));
+  }
+  function renderAll(){ renderShift(); renderNew(); renderToday(); renderTimeline(); }
+
+  // ====================== Press, drag, click (one handler shape for both lists) ======================
+  function rowAtY(list, y){
+    var els = list.querySelectorAll('.lrow[data-key]');
+    for(var i = 0; i < els.length; i++) if(y < els[i].getBoundingClientRect().bottom) return els[i].dataset.key;
+    return els.length ? els[els.length - 1].dataset.key : '';
+  }
+  function wire(popId, api){
+    var pop = $(popId), drag = null;
+    function paint(to){
+      var keys = api.keys(), a = keys.indexOf(drag.from), b = keys.indexOf(to), next = {};
+      Object.keys(drag.base).forEach(function(k){ next[k] = drag.base[k]; });
+      if(a !== b || drag.box) for(var i = Math.min(a, b); i <= Math.max(a, b); i++) if(api.canTick(keys[i])) next[keys[i]] = drag.value;
+      api.setTicks(next);
+    }
+    pop.addEventListener('pointerdown', function(e){
+      if(e.button !== 0 || e.target.closest('input, select, button')) return;
+      var row = e.target.closest('.lrow[data-key]');
+      if(!row || !row.closest('[data-list]') || api.locked()) return;
+      var key = row.dataset.key, box = !!e.target.closest('.cb');
+      if(box && !api.canTick(key)) return;
+      e.preventDefault();
+      drag = {from: key, at: key, box: box, moved: false, value: !api.isOn(key), base: api.copyTicks()};
+      paint(key);
+      api.touched(key);
+      renderAll();
+    });
+    document.addEventListener('pointermove', function(e){
+      if(!drag) return;
+      var list = pop.querySelector('[data-list]'), key = rowAtY(list, e.clientY);
+      if(!key || key === drag.at) return;
+      drag.at = key; if(key !== drag.from) drag.moved = true;
+      paint(key);
+      api.touched(key);
+      renderAll();
+    });
+    function end(){ if(!drag) return; var d = drag; drag = null; if(!d.box && !d.moved) api.clicked(d.from); renderAll(); }
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+  }
+  // Shift: a click on a row chooses it (the outline); its box ticks; the outline follows a tick and a drag.
+  wire('pop-shift', {
+    keys: function(){ return shiftRows().map(function(p){ return p.key; }); },
+    canTick: function(){ return true; },
+    isOn: function(k){ return !!S.ticks[k]; },
+    copyTicks: function(){ var o = {}; Object.keys(S.ticks).forEach(function(k){ o[k] = S.ticks[k]; }); return o; },
+    setTicks: function(t){ S.ticks = t; },
+    locked: function(){ return S.far === 'date' && S.land === WHOLE; },
+    touched: function(k){ S.mark = k; S.msg = ''; },
+    clicked: function(){}
+  });
+  // Build Around: a click on a row PINS it; its box ticks; a tick or a drag leaves the pin where it is.
+  wire('pop-new', {
+    keys: function(){ return runOrder().map(function(p){ return p.key; }); },
+    canTick: function(k){ return canTick(byKey(k)); },
+    isOn: function(k){ return k === B.pin || !!B.ticks[k]; },
+    copyTicks: function(){ var o = {}; Object.keys(B.ticks).forEach(function(k){ o[k] = B.ticks[k]; }); return o; },
+    // A tick changed by hand: the set is the user's own now (a new pin keeps it), and a phase the rule left out
+    // drops off the note once it is ticked.
+    setTicks: function(t){
+      var same = Object.keys(t).concat(Object.keys(B.ticks)).every(function(k){ return !!t[k] === !!B.ticks[k]; });
+      B.ticks = t;
+      if(!same){ B.side = null; B.left = B.left.filter(function(k){ return !t[k]; }); }
+    },
+    locked: function(){ return false; },
+    touched: function(){ B.msg = ''; },
+    clicked: function(k){ setPin(k); }
+  });
+  // A new pin: while the ticks are still a side's own set, that side is worked out again for the new pin; a set
+  // changed by hand is kept, and the phase that was pinned gets the tick the rule would give it.
+  function setPin(k){
+    if(k === B.pin) return;
+    var was = byKey(B.pin);
+    B.pin = k;
+    if(B.side !== null) applyRule(B.side);
+    else {
+      delete B.ticks[k];
+      B.left = B.left.filter(function(x){ return x !== k; });
+      if(was && lenOf(was) > 0 && !(was.key in B.ticks)) B.ticks[was.key] = B.r13 === 'every' ? true : !(was.key in alongside());
+    }
+    buildRefill(); B.msg = '';
+  }
+
+  $('pop-shift').addEventListener('click', function(e){
+    var b = e.target.closest('button'), rows = shiftRows();
+    if(e.target.closest('[data-all]') && !(S.far === 'date' && S.land === WHOLE)){
+      var all = shiftAll(); S.ticks = {}; if(!all) rows.forEach(function(p){ S.ticks[p.key] = true; }); S.msg = ''; renderAll(); return;
+    }
+    if(!b) return;
+    if(b.dataset.side){ var i = rows.findIndex(function(p){ return p.key === S.mark; }); if(i < 0) return; S.ticks = {};
+      (b.dataset.side === '-1' ? rows.slice(0, i + 1) : rows.slice(i)).forEach(function(p){ S.ticks[p.key] = true; }); S.msg = ''; }
+    else if(b.dataset.far){ S.far = b.dataset.far; S.msg = ''; if(S.far === 'date') S.date = shiftDateFor(shiftLand()); }
+    else if(b.dataset.by){ var w = parseInt($('pop-shift').querySelector('[data-weeks]').value, 10); S.weeks = w > 0 ? w : 2; shiftMove(+b.dataset.by * S.weeks); }
+    else if(b.hasAttribute('data-go')){
+      var land = shiftLand(); if(!land){ S.msg = 'Tick a phase to move.'; }
+      else { var n = shiftDelta(), nm = land === WHOLE ? 'The schedule' : byKey(land).name; if(!n) S.msg = nm + ' already ' + (S.edge === 'start' ? 'starts' : 'ends') + ' that week.'; else shiftMove(n); }
+    }
+    renderAll();
+  });
+  $('pop-shift').addEventListener('change', function(e){
+    var el = e.target;
+    if(el.hasAttribute('data-land')){ S.land = el.value; if(el.value && el.value !== WHOLE) S.mark = el.value; S.date = shiftDateFor(el.value); }
+    else if(el.hasAttribute('data-edge')){ S.edge = el.value; S.date = shiftDateFor(shiftLand()); }
+    else if(el.hasAttribute('data-date')){ S.date = el.value; }
+    else if(el.hasAttribute('data-weeks')){ S.weeks = parseInt(el.value, 10) || 2; return; }
+    renderAll();
+  });
+
+  $('pop-new').addEventListener('click', function(e){
+    var b = e.target.closest('button');
+    if(e.target.closest('[data-all]')){
+      var f = buildFacts(), all = f.all; f.others.forEach(function(p){ B.ticks[p.key] = !all; }); B.left = []; B.side = null; B.msg = ''; renderAll(); return;
+    }
+    if(!b) return;
+    if(b.dataset.side){ applyRule(+b.dataset.side); B.msg = ''; }
+    else if(b.hasAttribute('data-go')) runBuild();
+    renderAll();
+  });
+  $('pop-new').addEventListener('change', function(e){
+    var el = e.target;
+    if(el.hasAttribute('data-pin')) setPin(el.value);
+    else if(el.hasAttribute('data-edge')){ B.edge = el.value; buildRefill(); }
+    else if(el.hasAttribute('data-date')) B.date = el.value;
+    else return;
+    B.msg = ''; renderAll();
+  });
+  // A typed length: staged, shown once the typing settles. Typing one into a row that had none ticks it.
+  var lenTimer = null;
+  $('pop-new').addEventListener('input', function(e){
+    var el = e.target; if(!el.dataset || !el.dataset.len) return;
+    var p = byKey(el.dataset.len), digits = el.value.replace(/[^0-9]/g, ''), had = lenOf(p) > 0, n = digits ? parseInt(digits, 10) : 0;
+    if(digits !== el.value) el.value = digits;
+    if(!(n > 0) || n === p.len) delete B.lens[p.key]; else B.lens[p.key] = n;
+    if(!had && lenOf(p) > 0) B.ticks[p.key] = true;
+    B.msg = '';
+    clearTimeout(lenTimer); lenTimer = setTimeout(renderAll, 350);
+  });
+  $('pop-new').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.len) return;
+    e.preventDefault(); clearTimeout(lenTimer); renderAll();
+    var go = $('pop-new').querySelector('[data-go]'); if(go && !go.disabled) go.click();
+  });
+
+  ['r13', 'r15'].forEach(function(name){
+    document.querySelectorAll('input[name=' + name + ']').forEach(function(r){ r.addEventListener('change', function(){
+      B[name] = r.value;
+      if(name === 'r13') applyRule(0);
+      renderAll();
+    }); });
+  });
+  function reset(){
+    PH = SEEDS[CAL].map(function(p){ var o = {}; Object.keys(p).forEach(function(k){ o[k] = p[k]; }); o.start = ms(p.start); return o; });
+    var keep = B ? {r13: B.r13, r15: B.r15} : {r13: 'overlap', r15: '400'};
+    S = {ticks: {}, mark: 'production', far: 'weeks', land: 'production', edge: 'start', date: '', weeks: 2, msg: ''};
+    shiftRows().forEach(function(p){ S.ticks[p.key] = true; });
+    B = {pin: 'production', edge: 'start', date: '', ticks: {}, left: [], side: 0, lens: {}, msg: '', r13: keep.r13, r15: keep.r15};
+    applyRule(0); buildRefill(); S.date = shiftDateFor('production');
+    document.querySelectorAll('.case').forEach(function(c){ c.setAttribute('aria-pressed', String(c.dataset.cal === CAL)); });
+    renderAll();
+  }
+  $('cases').addEventListener('click', function(e){ var c = e.target.closest('.case'); if(!c) return; CAL = c.dataset.cal; reset(); });
+  $('reset').addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>

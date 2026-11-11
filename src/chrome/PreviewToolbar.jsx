@@ -287,44 +287,56 @@ export function PreviewToolbar() {
                   title="Pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
                   rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
           {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
-              3 wks", and only the name gives way. */}
+              3 wks", and only the name gives way.
+              SHIFT'S LOOK AND FEEL since 10 Nov 2026 (owner: "make Build Around match the same UI look and feel
+              as the shift tool"; mockups/build-around-like-shift.html), top to bottom as in #pop-shift: the title,
+              "Phases", the list in Shift's box with its header strip, Prior to X / After X, the line that says why
+              a phase was left unticked, then "Pin to a date": the phase directly above "starts on", then Build.
+              The list, the count, both buttons' text, the note lines and Build's label are the engine's, so none
+              has children here. ⛔ No new ids: the ticks, the header box and the length boxes carry none, inside
+              .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
           <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Build around a phase">
             <p className="tools-head">
-              Build around a phase
-              <InfoHint label="Build around a phase" width={300}>
-                Pin one phase to a date and build the others around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the spacing between them.
+              Build Around
+              {/* ⛔ Opens ABOVE the title and never flips, as Shift's does: the list is directly under it, and
+                  nothing may float over its rows. */}
+              <InfoHint label="Build Around" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+                Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.
               </InfoHint>
             </p>
-            {/* The first row reads as a sentence: [Production ▾] [starts ▾] [6/14/2027]. The phase list names the
-                phase alone (its date is in the box beside it). "ends by" is ruling R3: the pin's last workday on
-                or before the date. ⛔ No children on the phase select: fillPhaseSelect() owns its innerHTML. The
-                edge's option VALUES are read directly ('start' / 'end'). */}
-            <div className="tools-row">
-              <select id="tool-solve-phase" aria-label="Phase to build around"></select>
-              <select id="tool-solve-edge" className="tools-edge tools-edge-solve" aria-label="Its start or its end" defaultValue="start">
-                <option value="start">starts</option>
-                <option value="end">ends by</option>
-              </select>
-              <input type="date" id="tool-solve-date" className="tools-date-fixed" aria-label="Date" />
+            <p className="tools-cap">Phases</p>
+            <div className="shift-box">
+              <label className="shift-all">
+                <input type="checkbox" data-solve-all="" aria-label="Tick every phase" />
+                <span data-solve-count=""></span>
+              </label>
+              <div className="solve-list" data-solve-list=""></div>
             </div>
-            {/* Shortcuts that fill in the ticks, as Shift's three buttons do: Before ticks the default set on the
-                pin's earlier side, After its later side, Both both. A tick changed by hand leaves none pressed.
-                tool-solve-back / tool-solve-fwd are the old direction buttons' ids, kept so the legs that click
-                them still pick one side. Plain <button>s with aria-pressed, which the engine sets. The list, its
-                count, the note and the button's label are all written by the engine, so none has children here;
-                the ticks and the length boxes it writes carry no id, inside .tools-menu besides, so
-                collectFieldValues() can never sweep them into a saved file. */}
-            <p className="tools-head">
-              Phases to build<span className="solve-count" data-solve-count=""></span>
-            </p>
-            <div className="solve-dir" role="group" aria-label="Which phases to build">
-              <button type="button" id="tool-solve-back" data-dir="-1">← Before</button>
-              <button type="button" id="tool-solve-both" data-dir="0">Both</button>
-              <button type="button" id="tool-solve-fwd" data-dir="1">After →</button>
+            {/* Prior to X / After X: that side's phases, in place of the Before / Both / After switch that sat above
+                the list (no Both: the header box ticks everything). ⛔ tool-solve-back / tool-solve-fwd are the old
+                direction buttons' ids, kept so the legs that click them still pick one side. */}
+            <div className="tools-row shift-sides">
+              <button type="button" className="shift-side" id="tool-solve-back" data-dir="-1"></button>
+              <button type="button" className="shift-side" id="tool-solve-fwd" data-dir="1"></button>
             </div>
-            <div className="solve-list" data-solve-list=""></div>
+            <p className="solve-left" data-solve-left="" hidden></p>
             {/* Production's length is read-only here (ruling R4); while Show info leaves it unset, this says where. */}
             <p className="solve-note" data-solve-note="" hidden>Production’s length comes from Show info. Set its episodes and shooting days there, and the phases after it can be placed.</p>
+            {/* THE PIN, under the list as Shift's date row is: the phase on its own row, directly above "starts on".
+                It is also the row clicked in the list (the engine writes the click into this select). "ends by" is
+                ruling R3: the pin's last workday on or before the date. ⛔ No children on the phase select:
+                fillPhaseSelect() owns its innerHTML. The edge's option VALUES are read directly ('start' / 'end'). */}
+            <p className="tools-cap">Pin to a date</p>
+            <div className="tools-row">
+              <select id="tool-solve-phase" aria-label="Phase to build around"></select>
+            </div>
+            <div className="tools-row">
+              <select id="tool-solve-edge" className="tools-edge" aria-label="Its start or its end" defaultValue="start">
+                <option value="start">starts on</option>
+                <option value="end">ends by</option>
+              </select>
+              <input type="date" id="tool-solve-date" aria-label="Date" />
+            </div>
             <button type="button" className="solve-go" id="tool-solve-go"></button>
             <p className="tools-msg" data-tools-msg=""></p>
           </div>

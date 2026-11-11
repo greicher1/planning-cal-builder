@@ -4,6 +4,147 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: THE HOVER PROMPT — "EXPAND?" OVER A BLANK, "PULL BACK?" OVER WHAT WAS WIDENED — built on branch `hover-expand` (worktree `.claude/worktrees/hover-expand`, from the release's local HANDOFF note `98dc947` on top of the live `51ce127`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch (owner's picker *"Commit on the branch"*); push approved by picker (*"Merge, re-check, then push"*): `origin/main` merged in and re-checked first. Tracker card `blank-space-expand-prompt`. Plan: [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §11 (the as-built record).
+- **What.** Rest the pointer 300 ms on an empty slot beside a phase: one dashed box over the consecutive weeks where that
+  blank sits beside that phase, and **Expand?** in its very centre; the click writes per-cell widths (`cellSpans`) on
+  THOSE weeks only. Rest on a widened cell: **Pull back this week?** / **Pull back?** in amber, clearing a run of
+  per-cell widths or turning the phase's fill wish off. One undo step each; nothing new saved; stamped calendars, the
+  Waterfall, nothing highlighted. Help: one sentence pair at the end of "How far a cell reaches".
+- **The three corrections (owner, 10 Nov, on test files v1–v3):** (1) *"it also expanded test wk 1"* — v1 set the fill
+  WISH, which fills every week with room; Expand now writes per-cell widths on the outlined weeks only. (2) *"always sit
+  in the very center of the outlined box"*. (3) *"ok except when these buttons collide"* — on a column's top cell the
+  centred chip landed on the **Swap Column** button (always top right of the topmost visible cell). The button keeps
+  its place; the chip steps 4 px clear (`placeHoverChip`): inside the box where it fits (below the button on two weeks
+  or more), else beside it on the same row. `drawStintButton` re-runs it when the button appears after the chip, and
+  the button's own hover listener now treats `.grid-hover-chip` like the button itself, so resting on the chip never
+  summons or moves it.
+- ⚠️ **A trap for future legs.** On a STAMPED calendar a `pointermove` with no button held that rests 300 ms on a blank
+  beside a phase, or on a widened cell, now raises a clickable chip (`pointer-events:auto`) in the middle of the
+  outline. A leg that hovers there and then clicks or presses at a point the chip covers hits the chip. None of the
+  existing pointer legs does (list below); a new one that does should press first (`buttons: 1` moves are ignored) or
+  wait on `.grid-hover-chip`.
+- ⚠️ **Do not run legs while another session runs its own.** Three background runs of `hoverexpand` timed out at the
+  same place (the Load of `anchorside.sptcal` in H6) while a sibling session's `rebuildticks` / `buildaround` legs ran
+  (load average ~13); every run alone was 16 / 16.
+- **Checks:** `hoverexpand` 16/16 (every run alone; see above for the three that ran beside another session). The legs that drive
+  the pointer over the grid, on this build: `centrepullback` 12, `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8,
+  `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16, `undokeys` 11, `wfmenu` 39,
+  `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass. gate.sh's swap section (colswap through
+  stintreshape, `stintbtn` among them), `onecol` and `colreuse` x2, assembled from gate.sh with its own judges: 161 PASS /
+  0 FAIL. `npm run check` 41/41. ⚠️ `noteviews` F2 (a second Load in the month view, "the loaded file's name in the file
+  menu", 10 s) failed on 3 of 4 headless runs of this build and passed the 4th, 15/15, and in the pane; the LIVE build
+  (`release-layout`'s `eea8b792`) passed it once and failed it once the same way. A load-timing flake under contention,
+  not this change. No full gate (nothing frozen, exported or saved changed); test files `~/Downloads/SPTCal-test-hover-
+  expand-v1..v4-10Nov.html`.
+- **On the merged build** (`origin/main` merged in twice: `ee1b049` with Date Last Edited, the style bar move and Build
+  Around's look, README / HANDOFF / gate.sh conflicts only, both sides kept; then `96ca1eb` with `2a61a8c`, docs and a
+  leg; the build is sha256 `fa9c16d4…` both times): `npm run check` 42/42; `hoverexpand` 16, `centrepullback` 12,
+  `phasefill` 13, `colsreset` 8, `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `notewrap` 16, `undokeys`
+  11, `wfmenu` 39, and origin's own `stylebarplace` 11, `buildaround` 36, `lastedited` 22; gate.sh's swap section +
+  `onecol` 157 PASS and `colreuse` x2 29/29 under the gate's own judges.
+- ⚠️ **Red on `origin/main` itself, not this change** (built alone at `2a61a8c` in a scratch worktree, the same result):
+  `noteviews` F1 (`keysSame` false: the saved file now carries a top-level key the fixture lacks, by its look
+  `lastEdited`, since Date Last Edited) and `textstyle` B4 (*"Manual header: the in-calendar strip is in the page but
+  hidden"*, then `Cannot read properties of null (reading 'scrollIntoView')`, since the style bar moved into the
+  toolbar). Both legs need re-expecting by the sessions that own those changes; both are in the full gate.
+
+### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
+
+- **What it was.** `lastEditedForStep()` (Date Last Edited, `1507204`) wrote `snap.lastEdited = null` when the step's
+  content had been remembered with no stamp (a new calendar before its first change: `lastEditedRemember(key, null)`).
+  `sanitizeSnapshot()` counts that as a value the app does not write and warns on the console. Console only: an absent
+  key and an invalid one restore the same, and `lastSanitizeDropped` is read nowhere.
+- **The fix.** `if(stamp) snap.lastEdited = stamp; else delete snap.lastEdited;`. Commit `3e09ce9`.
+- **How it was found.** The Build Around push's re-check on the merged build: `buildaround` K0 (0 console errors) went
+  35/36. That leg undoes back to its fixture, which is built with no stamp. It had never run on a build holding Date
+  Last Edited. ⚠️ **Lesson: a leg's "0 console errors" case is a real check on OTHER features, so a red one after a
+  merge is not noise.**
+- **The leg that holds it at its source: `lastedited` N2** (added 10 Nov on the owner's *"Yes, add it"*; local, not
+  pushed). New, a typed title, Undo, Save As: the title is back, no "value ignored" warning (counted before and after,
+  so an earlier warning in the leg cannot pass or fail it), no `lastEdited` key in the file. 22/22 on the live build;
+  21/22 with N2 red on a build with the guard taken out (`c0bb3da5…`, byte for byte the pre-fix merged build).
+- **Verified** on `dist/index.html` sha256 `52407af5…`: check 42/42 and 11 legs green (README has the list); in the
+  browser a new calendar, a typed title and Undo leave the console clean. No full gate.
+
+### ✅ 10 Nov 2026: BUILD AROUND TAKES SHIFT'S LOOK AND FEEL, AND STOPS LEAVING THE WRITER'S ROOM OUT BY RULE — ✅ **LIVE at `32e19a2`** (pushed 10 Nov 2026, 00:24 UTC on the 11th, on the owner's picker *"Build Around + the fix (Recommended)"*; the live page matched the build byte for byte at 00:25:05 UTC, sha256 `52407af5…`; `version.json` still 1.12.1, no version cut) (owner, 9–10 Nov: *"make Build Around match the same UI look and feel as the shift tool. Make a list of everything we could change"*; *"give me a mockup"*; three rulings on the mockup; *"Yes, build it"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2`, with `origin/main` (`51ce127`) merged in. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7 has the list, the rulings and the decisions; [`mockups/build-around-like-shift.html`](mockups/build-around-like-shift.html) is the mockup (Shift, the proposal and the old box, live on one made-up calendar). Tracker card `build-around-match-shift`
+
+**As built:**
+- **The box, top to bottom** (`PreviewToolbar.jsx`, `#pop-solve`, 400 px): the title "Build Around" and its hint;
+  `p.tools-cap` "Phases"; `.shift-box` = the strip (`label.shift-all` > `input[data-solve-all]` +
+  `span[data-solve-count]`) then `.solve-list[data-solve-list]` (the engine's rows); `.shift-sides` =
+  `button.shift-side#tool-solve-back[data-dir="-1"]` / `#tool-solve-fwd[data-dir="1"]` (the engine writes "Prior to X"
+  / "After X"); `p.solve-left[data-solve-left]`; `p.solve-note` (Production's length); `p.tools-cap` "Pin to a date";
+  a row with `#tool-solve-phase`; a row with `#tool-solve-edge` ("starts on" / "ends by") and `#tool-solve-date`;
+  `#tool-solve-go`; the message. GONE: the column header row (`.solve-colhead`), the `.solve-dir` switch,
+  `#tool-solve-both`, every `title` in the list, the pin's row at the top.
+- **The engine reuses its own model** (`app.js`, the tools IIFE): `solveDir` (-1 Prior, 0 both sides as it opens,
+  1 After) picks the default set and `solveTicks` holds the ticks changed by hand, which override it. So the two
+  buttons are still "set `solveDir`, forget the overrides", and the header box writes an override for every phase.
+- ⭐ **THE RULE, `solveAlongside(f)` → `{key: neighbour's name}`.** Walk outward from the pin, each way, over the
+  phases that have a length (`solveHasLen`). A phase that shares `SOLVE_ALONGSIDE_DAYS` (5) or more days with the
+  last phase taken into the chain is alongside it and is left out; any other joins and is the next one to build
+  against. Days shared = last workday (`phaseLastWorkday(seg)`) minus the other's start, plus one. Read from
+  `currentSchedule.segments`, the calendar as it stands, never from a length typed in the list. Cached per draw on
+  the frame (`solveAlong(f)`). `solveDefaultOn(f, p, dir)`: on the side in force, not alongside, and not a custom
+  phase with no date. ⛔ The old rule (`PHASE_CHAIN` only, never `writersRoom`) is gone.
+  - ⚠️ **A ONE-WEEK overlap counts.** `buildFixture()`: Post is 16 weeks from 11/2/26, paused two by the default
+    Christmas hiatus, so it works to **Fri 3/5/27**; Localization starts Mon 3/1/27. Five shared days: left out,
+    with the line. Before, Localization opened ticked and the room unticked; now the reverse. Told to the owner
+    before *"Yes, finish it"*.
+  - **Two days do not count** (`buildalongside`, on anchorside.sptcal): Pre Prep works to Tue 5/19 with Prod Prep
+    from Mon 5/18; the shoot wraps Tue 11/3 with Post from Mon 11/2. Both stay ticked.
+- **The line** (`[data-solve-left]`, in `renderSolve`): the alongside phases on the side in force that have NO
+  override in `solveTicks`. One phase: *"X left unticked: it runs alongside Y. Tick it to build it in line."*; several
+  with one neighbour: *"X and Z left unticked: they run alongside Y. …"*; else *"each runs alongside the phase next
+  to it"*. Ticking, clearing or dragging over a phase gives it an override, so it drops off; the header box gives
+  every phase one, so the line goes.
+- **Pinning**: `solvePin(key)` sets `#tool-solve-phase` and dispatches its `change`, so the two handlers already
+  there run (`syncSolveDate`, then the re-tick-if-a-default-set-is-in-force and the redraw). The dropdown shows
+  "Production — 6/29/26" now (`fillPhaseSelect` without `bare`), as Shift's does. ⚠️ The pin is KEPT between
+  openings, as before (only ticks, side and typed lengths are forgotten): a leg that pins must put it back.
+- **The press** (`solveList` `pointerdown`, mouse and pen): `solveDrag = {from, at, box, moved, value, base}`. A press
+  inside a length box is typing and is left alone. On a box it flips at once; on the row itself nothing changes
+  until the drag reaches another row; `pointerup` with no row crossed and not on a box pins. The range is redone
+  from `base`; the pin and rows with no length are passed over; a redraw happens only when the ticks changed (each
+  draw runs the solvers). A tap, or a click made by code, on the row pins too (`click` listener: the label's own
+  tick is prevented).
+- **`pressClickGuard` is hoisted** to the tools IIFE and shared by both lists (Shift's block registers the three
+  document listeners; Build Around's drag end only arms it).
+- **Words:** the pinned row says "On your date" where it said "No change"; the count is "N of M build".
+- **CSS** (`legacy.css`): `.shift-box .solve-list` and `.solve-row.is-mark` now name `#pop-solve` too; length boxes
+  stay text-selectable inside the list; `.solve-left` (a quiet gray note). `.solve-colhead` / `.solve-dir` rules are
+  left in place (`.solve-dir` shares its rule with `.tools-seg`).
+- **Help** ("Adjusting dates"): a new Build Around paragraph. ⚠️ It still said "Rebuild From … Work backwards …
+  Close all gaps", in TWO copies of one paragraph (a merge on 5 Nov), and the section's opening line named Rebuild
+  From. All three fixed; "Rebuild From" is no longer in the Help.
+- **`tools/check-build.mjs`**: the hint check loops over Shift and Build Around (`npm run check` 42/42).
+- **The harness:** `t/lib.js` gains `T.solveRow`, `T.solvePress`, `T.solveDrag` (Shift's helpers pointed at
+  `#pop-solve [data-solve-list]`; they wait 450 ms, a pin runs the solvers). `T.rebuildAll` needed no change.
+  - `buildaround` **36/36** (was 33): O1 the order of parts and what is gone; O2 the pin outlined, both buttons,
+    the dropdown's text; O3 the starting ticks by the rule and the line; **H1** the header box; **K1** a click pins,
+    the box does not, a tap pins; **D1** the drag; B1/B2 the room built (1/26/26); S1–S3 Prior / After by the rule
+    and a hand tick; E5 and Z1 untick the room first; P1 three placed.
+  - `rebuildticks` **20/20** (was 19): L2/L3/G1/G2/C1 with the room ticked and Casting on the line; F1 Localization
+    left out and named (and Post's end, 3/5/27, asserted); D1 without the Both button; U2 ticked from 3/8/27, new U3
+    left out from 3/1/27.
+  - New `buildalongside` **8/8** on `HARNESS_STATE=anchorside`, in gate.sh after `anchorside`.
+  - Unchanged and green: `datepick`, `snaptools`, `overrides`, `shiftheld`, `builtindates` and `customunits` (both
+    states), `hdrcontrols`: they reach Build Around by its ids.
+- **Verified** on build `7508104e…`: `npm run check` 42/42; the three legs above; `anchorside` 39/39, `calrange`,
+  `rowheight`, `stalebandkey`, `phasearrows`, `mvdragcarry`, `halfworked`, `episodeprep`, `hiatusripple` green (21
+  runs, 0 failures). By hand in the pane with real clicks: pin by a row click, Prior, a box, a drag, the header
+  box, After straight after a pin (the click guard), Build and one Undo; Shift's box after the guard was hoisted.
+  **No full gate** (chrome only: no frozen code, no writer, no save format; `buildAround` / `trialBuild` untouched).
+- **The new cases bite.** Three broken builds, the three Build Around legs on each:
+  - one shared day counts as alongside → `buildalongside` red on A2, A3, A4, A5 (Pre Prep and Post left out); the
+    other two do not notice, which is why that leg exists;
+  - the old rule (Writer's Rm and custom phases always out) → `buildalongside` red on A1, A4, A6; `rebuildticks` on
+    L2, L3, G1, G2, C1, F1, F2, D1; `buildaround` on O3, K1, D1, B1, B2, S1, S2, S3;
+  - a press on a row flips its tick → `buildaround` red on D1 only. K1 cannot see it: the pressed row becomes the
+    pin, which has no tick, so the flip shows only when the release does not pin (the drag back in D1).
+  Real build restored (`7508104e…`, the one verified above).
+- ⏭ **Not done:** not pushed (needs the owner's picker). Width (R15) not ruled: left at 400 px.
+
 ### ✅ 10 Nov 2026: THE TEXT STYLE BAR'S BUTTONS MOVE INTO THE TOOLBAR ROW, BESIDE SHIFT. ✅ **LIVE at `57c9e55`** (owner's picker "Push to the live site"; pushed `5357584..57c9e55`, a fast-forward of the branch after merging `origin/main`; deploy run `42928422227` green; the live `index.html` is the merged build byte for byte, sha256 `8cc0d12b…`). Branch `style-bar-toolbar` (worktree `.claude/worktrees/style-bar-toolbar`, from `origin/main` at `51ce127`; its `node_modules` is a symlink: unlink it before `git worktree remove`). Pane server `style-bar-toolbar-8419` in the main checkout's `.claude/launch.json`; harness port 8422. Chrome only, no version cut. Tracker card `style-bar-in-toolbar`.
 - **Asks (owner, four passes, each tried in the browser):** *"can we move the styling bar to this blank space between
   "Month" and the left shift button. It should only be the buttons in the 2nd image, not the surrounding box, text,
@@ -123,7 +264,7 @@
 - ⚠️ `run.sh`'s default port 8231 is shared by every session, and run.sh kills whatever `srv.js 8231` is running: this
   session's first run did that while another session was using it. Pass `HARNESS_PORT=<your own>` (this session: 8392).
 
-### 🚂 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
+### ✅ 10 Nov 2026: RELEASE BRANCH `release/layout-rules-22-23` — EVERYTHING FROM THE LAYOUT WORK SINCE v1.12.1, ON TOP OF MAIN. ✅ **LIVE at `51ce127`** (owner: *"push"*; pushed `3c7b9f6..51ce127` at 15:28 PST 10 Nov, a fast-forward; deploy run `42923707269` green; the live `index.html` is the gated build byte for byte, sha256 `eea8b792…`, with `tb-fill-space-btn` and `tb-cols-reset-btn`). **No version cut** (none was approved): `version.json` stays 1.12.1, so installed users get no update strip. Local `main` in the main checkout was NOT moved (other sessions hold uncommitted edits there); it is behind origin by these commits. (worktree `.claude/worktrees/release-layout`, from `origin/main` at `3c7b9f6`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Owner: *"Yes, prepare it"* (one release branch, one full gate). Not pushed.
 - **What is on it, in order:** `cb5ece9` merges `dc8482b` (Sim Post never steps aside, Production leftmost, the fill
   wish, Reset Columns, swaps kept as an order, the four-week follow-on, sticky columns) into main's Shift list and
   ripple work (README the only conflict, both kept); `5b58380` rule 22 (a follow-on carries its predecessor's width,
@@ -144,9 +285,9 @@
   98.1% / 31 / 0; check 41/41. ✅ **ONE FULL GATE, 11:05–12:37 PST 10 Nov: 4,329 PASS / 4 FAIL**, the build unchanged
   start to finish, every export baseline byte-identical; the four were load timing and are GREEN re-run alone with the
   gate's judges: `labelsetup (halfdays)` 41/41, `wfnoteeditor (autonoterename)` 13/13, `monthexport (monthscale)` 9/9,
-  `monthexport (mvnotesize-14)` 9/9. Ready for the owner's pickers (version, push).
+  `monthexport (mvnotesize-14)` 9/9. Pushed on the owner's *"push"*; see the heading.
 
-### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
+### ✅ 9 Nov 2026: SHIFT — THE LIST FIRST (drag to select, Prior / After; the What moves buttons are gone) — ✅ **LIVE at `3c7b9f6`** (owner's picker *"Push now (Recommended)"*; pushed `47eeaea..3c7b9f6` at 02:13:01 UTC on 10 Nov 2026, the evening of 9 Nov Pacific, a fast-forward of the tested build: `origin/main` had not moved; the live `index.html` matched the pushed build `93502865…` byte for byte at 02:14:32, `version.json` 1.12.1, no version cut). (owner: an eight-point spec, *"build this"*; *"once you have a working version, give it to me to try in the browser"*; three corrections after trying it; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7` in worktree `.claude/worktrees/sharp-stonebraker-8d2cd2` (the worktree's old branch `shift-tool` still exists at `f2be138`, one HANDOFF-only commit that never reached `main`; its content is in this entry and the corrected heading of the 5 Nov date-row entry). [`ANCHOR-TO-DIRECTION-PLAN.md`](ANCHOR-TO-DIRECTION-PLAN.md) §7.6 has the spec word for word, the corrections and the decisions. Tracker card `shift-list-first`
 
 **As built:**
 - **The form, top to bottom** (`PreviewToolbar.jsx`, `#pop-shift`): the title and its hint; `p.tools-cap` "Phases";
@@ -224,7 +365,8 @@
   every phase → red on W1. Real build restored (`93502865…`), 39/39 again.
 - ⚠️ `episodeprep` (fixture state) threw once at its R11 file-load step, which does not touch the Shift box; 25/25
   re-run alone. The load-timeout flake seen all month.
-- ⏭ **Not done:** not pushed (needs the owner's picker). Local `main` not moved.
+- ⏭ **Not done:** local `main` not moved (this worktree's branch was pushed straight to `origin/main`). No version
+  cut: it rides in the next one.
 - 🧹 **Seen, not fixed (not this change's):** the Help's Build Around paragraph still reads "**Rebuild From** …
   Work backwards … Close all gaps", and it is in `src/index.html` TWICE (a merge duplicated it on 5 Nov).
 

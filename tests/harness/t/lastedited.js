@@ -17,6 +17,7 @@
 //   T1-T4  Template mode's Default reads {lastEdited}; the template builder lists the "Date Last Edited" tokens
 //   C1-C2  scenarios: a copy keeps its tab's date, an edit stamps only that tab, flipping back shows the other's
 //   N1     New: today, and no stamp in the saved file
+//   N2     New, one edit, Undo: no "value ignored" warning on the console, and still no stamp in the saved file
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -187,6 +188,23 @@ window.addEventListener('load', function () { (async function () {
     var s5 = await saveAs();
     add('N1', 'New: a blank calendar has no stamp, so its saved file carries none (and its header, once drawn, reads today)',
       !('lastEdited' in s5) && (wfLeft() === null || wfLeft() === NOW), {left: wfLeft(), stamp: s5.lastEdited}, 'no key');
+
+    // N2 (10 Nov 2026): Undo back to a calendar that has NEVER been edited. Its content is remembered with no stamp,
+    // and until 3e09ce9 lastEditedForStep() wrote that onto the undo step as `lastEdited: null`, which the file checker
+    // (sanitizeSnapshot) counts as a value the app does not write: a console warning on every such undo. The warnings
+    // are counted before and after, so one from earlier in this leg can neither pass nor fail it. Until this case only
+    // buildaround's K0 (0 console errors) caught it, and only because that leg happens to undo back to its fixture.
+    function ignored(){ return (window.__ERR || []).filter(function(m){ return /not in a form the app writes/.test(m); }).length; }
+    var t0 = $('show-title').value, w0 = ignored();
+    await typeTitle('Undo Probe');
+    var typed = $('show-title').value, canUndo = !undoOff();
+    $('undo-btn').click(); await T.sleep(900);
+    var s6 = await saveAs();
+    add('N2', 'New, one edit, Undo: the title is back, no "value ignored" warning, and the saved file still has no stamp',
+      typed === 'Undo Probe' && canUndo && $('show-title').value === t0 && ignored() === w0 && !('lastEdited' in s6),
+      {typed: typed, canUndo: canUndo, title: $('show-title').value, warnings: ignored() - w0, stamp: s6.lastEdited,
+       last: (window.__ERR || []).slice(-2)},
+      'undo on, the title back to ' + JSON.stringify(t0) + ', 0 warnings, no key');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'lastedited', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

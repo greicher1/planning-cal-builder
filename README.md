@@ -29,6 +29,91 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
+
+Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
+*"It also needs the reverse to unexpand"*; built 10 Nov on *"Yes, build it"*, with three corrections from the test
+files that day.
+
+- **What.** In the Waterfall of a calendar on the layout rules, resting the pointer on an empty slot beside a phase
+  outlines the weeks where that space sits beside it and shows **Expand?** in the middle of the outline; the click
+  widens the phase across the space in **those weeks only** (owner: *"it also expanded test wk 1"*, on a first build
+  that set the phase's fill wish instead). Resting on a widened cell outlines the space it took and shows **Pull back
+  this week?** or **Pull back?**: the click clears the dragged widths of that run, or turns a fill wish off. One undo
+  step each. Never with cells highlighted, in the Month view or on an unstamped calendar.
+- **Where the chip sits.** The very centre of the outline, both ways (owner: *"always sit in the very center of the
+  outlined box"*), except on the Swap Column button (*"ok except when these buttons collide"*): the button keeps its
+  place and the chip steps 4 px clear, inside the outline where there is room, else beside the button on the same row.
+- **How.** Chrome on a new overlay layer (`.grid-hover-layer`) inside `.sheet-grid-wrap`, beside the selection layer;
+  nothing frozen changed. Expand writes the per-cell width an edge drag writes (`cellSpans`); Pull back deletes those
+  or calls the fill wish's own setter. Nothing new is saved. Help: "How far a cell reaches".
+- **Verified.** New fixture `hover-expand.sptcal` and leg `hoverexpand` (16 checks, real pointer events) in the gate.
+  Targeted, on this build: `hoverexpand` 16/16; the pointer legs `centrepullback` 12, `phasefill` 13, `colsreset` 8,
+  `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16,
+  `undokeys` 11, `wfmenu` 39, `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass, `noteviews` 15 (its F2
+  Load times out under load on this build and on the live one alike); the gate's whole swap section, `onecol` and
+  `colreuse` under the gate's own judges, 161 PASS / 0 FAIL; `npm run check` 41/41. No full gate: nothing frozen,
+  exported or saved changed.
+
+### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
+
+**What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo
+step the Date Last Edited its content had. A content first seen with no stamp (a new calendar before its first change)
+is remembered with `null`, and the function wrote that `null` onto the step as `lastEdited`. It now leaves the key off.
+
+**Why.** `sanitizeSnapshot()` counts a `null` there as a value the app does not write, so every undo back to a
+never-edited calendar logged *"1 value(s) in this calendar were not in a form the app writes, and were ignored"* on
+the console. Nothing a user sees was wrong: `applyStateSnapshot()` reads an absent key and an invalid one the same
+(never edited, the header reads today), and the dropped count is read nowhere. It was found by `buildaround`'s K0
+(0 console errors) the first time that leg ran on a build holding Date Last Edited (the merge of 10 Nov): 35/36.
+
+**Verified.** On the build with it (`dist/index.html` sha256 `52407af5…`): `npm run check` 42/42; `buildaround`
+36/36 (K0 green), `lastedited` 21/21, `rebuildticks` 20/20, `anchorside` 39/39, `buildalongside` 8/8, `shiftheld`
+13/13, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `hdrcontrols` 12/12, `undokeys` 11/11. In the browser:
+a new calendar, a title typed, Undo: the title is back to empty and the console is clean. ⚠️ No full gate was run.
+
+**The leg that holds it** (added the same day, on the owner's *"Yes, add it"*): `lastedited` N2. After New it types a
+title, presses Undo, and Saves As: the title is back, no "value ignored" warning was logged (counted before and after),
+and the saved file still has no `lastEdited` key. `lastedited` 22/22 on the live build (`52407af5…`); 21/22 with N2 red
+(1 warning) on a build with the guard taken out, which is byte for byte the pre-fix merged build (`c0bb3da5…`). Until
+N2, only `buildaround`'s K0 caught this, and only because that leg happens to undo back to its fixture.
+
+### Unreleased — Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
+
+Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
+look and feel as the shift tool"*; a list of the differences, a mockup, a working build to try, then *"Yes, finish
+it"*; REBUILD-FROM-LENGTHS-PLAN.md §7, `mockups/build-around-like-shift.html`).
+
+- **The list first**, in the same box as Shift's: a header strip with a box that ticks every phase (and, once every
+  phase is ticked, shows a minus and clears them) and the count, in place of the column header.
+- **Click a row to pin that phase; its tick box ticks; drag to tick or clear a run.** A click on a row used to flip
+  its tick. Ticking never moves the pin.
+- **Prior to … / After …** under the list, in place of the *← Before · Both · After →* switch above it. There is no
+  Both button: the box at the top ticks everything (owner's ruling).
+- **Pin to a date** sits under the list, the phase directly above "starts on", as in Shift.
+- The hint opens upward and rows have no hover tooltips, so nothing floats over the list.
+
+**Which phases start unticked has changed.** Until now the Writer's Room and every custom phase were always left out.
+Owner: *"its just confusing if you click prior to pre prep and then writers room isn't selected"*, and *"writers room
+doesnt always overlap the next phases, only sometimes"*. Now a phase is left unticked **only when it runs alongside
+the phase it would be built against** (five shared days or more: built in line, it would be pulled away from it), and
+a line under the buttons says so by name: *"Writer's Rm left unticked: it runs alongside Pre Prep. Tick it to build
+it in line."* A Writer's Room that ends before Pre-Prep starts is ticked and built like any other phase. It applies
+to how the box opens and to Prior / After. A custom phase with no date yet still starts unticked.
+
+**Help** ("Adjusting dates") now describes Build Around: it still said "Rebuild From … Work backwards … Close all
+gaps", and held that paragraph twice.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, everything is inside `.tools-menu`,
+and the solvers (`buildAround`, `trialBuild`) are untouched. Verified: `npm run check` 42/42 (a new check holds Build
+Around's hint opening upward); `buildaround` 36/36 (updated, with new cases for the order of parts, the header box,
+pinning by a click, the drag); `rebuildticks` 20/20 (updated: Casting beside Prod Prep left out and named, the room
+ticked, Localization out while it starts in Post's last week and ticked once it starts after it); new leg
+`buildalongside` 8/8 on a calendar where phases touch by two days (they stay ticked); the legs that use Build Around
+through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Three broken builds turn the legs red:
+one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
+its tick (`buildaround` D1). No full gate: chrome only.
+
 ### Unreleased — The text style buttons move into the toolbar (10 Nov 2026)
 
 The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
