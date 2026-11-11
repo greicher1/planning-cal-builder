@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
+
+Owner: *"Should the enable button even be there for holidays that do not occur during production? Maybe non-production
+holidays just have the note options"*, then *"make it more clear what phase each holiday is in"* (picked mockup C of
+`mockups/holiday-phase-label.html`, grouped by phase). Switching a holiday off only matters to a count that skips
+holidays: Production's shoot, a custom phase counted in Days, and episode prep. So the Holidays list (Settings › Region),
+its Toggle all and the month view's day menu now show Enable only on a weekday holiday inside one of those and outside
+any hiatus, or on a holiday that is already off (the way back on). Elsewhere a faint dash stands in, and the two note
+boxes are all a holiday needs. The list is grouped under a heading per phase in date order (a phase recurs after a
+break): an all-phase hiatus, else the phase the day falls in (Production, then a Days phase, then the earliest start),
+else "Outside the phases"; the other phases it falls in read "also …" on its date line. A Production holiday marked
+Work this day keeps its box and now says so: **Marked Working Day** (owner's wording). Nothing saved changes and nothing
+frozen is touched. New leg `holidayenable` (E1–E3, G1, G2, T1, O1; red on `main` but for T1); `caholidays`,
+`mxholidays`, `settingswin` and `mvmenu` (H5, V5: Christmas, inside the winter hiatus, has no Enabled now) updated.
+Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. `holidayrename` and `autonoterename` F1 had been red since 9 Nov (their list of
+new saved keys predates `lastEdited`); they now leave that key out. No full gate: nothing frozen, exported or saved changes.
+
 ### Unreleased — Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
 
 Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and

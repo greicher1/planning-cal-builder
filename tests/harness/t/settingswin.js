@@ -203,8 +203,9 @@ window.addEventListener('load', function () { (async function () {
     hitClick(el('custom-hol-add'), 'Add');
     await answer(/Recompute/, 'Continue');
     await settle();
-    // The first built-in holiday: off, and on in the Waterfall.
-    var row0 = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return !r.querySelector('.hv-del'); });
+    // The first built-in holiday with an Enable box (one it can move a date on, since 11 Nov 2026): off, and on in
+    // the Waterfall. Off, it keeps the box wherever it is, so W7 can read it back.
+    var row0 = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return !r.querySelector('.hv-del') && r.querySelector('.hv-en'); });
     // A row's name is .hv-name's FIRST text node: a custom or out-of-range tag follows it in the same span.
     function nameOf(r){ var n = r.querySelector('.hv-name'); return n && n.firstChild ? n.firstChild.textContent.trim() : ''; }
     var hName = row0 ? nameOf(row0) : '';

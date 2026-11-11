@@ -210,7 +210,8 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       savedText = await save();
       var s = JSON.parse(savedText);
-      var added = Object.keys(s).filter(function (k) { return !(k in S0); }).sort();
+      // lastEdited (9 Nov 2026) is written once a calendar is edited, which every step above does: not this leg's key.
+      var added = Object.keys(s).filter(function (k) { return !(k in S0) && k !== 'lastEdited'; }).sort();
       var idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
       var w0 = repairWarnings();
       await load(JSON.stringify(S0));                     // the fixture opens in the waterfall: page back to the month

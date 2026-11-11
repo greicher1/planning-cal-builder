@@ -4,6 +4,41 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". Branch `holiday-enable` (worktree `.claude/worktrees/holiday-enable`, cut from `main` at `9be8a10`). Committed on the branch, NOT merged, NOT pushed. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
+- **Asks (owner, 11 Nov, in order):** *"Should the enable button even be there for holidays that do not occur during
+  production? Maybe non-production holidays just have the note options"*; told that a Days custom phase and episode prep
+  count holidays too, *"Yes, build it with that rule. But also i think we need to make it more clear what phase each
+  holiday is in from that menu. Mockup a few ways"* (`mockups/holiday-phase-label.html`, five: words, chips, grouped,
+  stripe, column; picked **C, grouped by phase**); *"Waterfall"* in full, then *"lets switch back to W'Fall Note"*;
+  why 7/3 had a box but no "Costs a shoot day" (it is marked Work this day) → the tag, worded *"Marked Working Day"*.
+- **As built (`app.js` beside `renderHolidayVisList`; nothing frozen, nothing saved changes, no new id):**
+  - `holidayMovesDates(schedule, iso)`: a weekday, not in an all-phase hiatus, inside Production's segment or a
+    `unit: 'days'` segment (outside its own hiatus) or episode prep's `firstDay..lastDay`. Read off the schedule's
+    segments, never a second copy of the walk. `holidayEnableShown(schedule, h)` adds "or already off": ⛔ a holiday
+    off outside the shoot must keep its box, or it is stuck off with greyed note boxes.
+  - Used by the list's Enable cell (else `.hv-en-na`, a faint dash with a title), **Toggle all: Enable** (only the
+    boxed rows, so no dashed row is switched off and grows a box) and the month day menu's `holidaySections` (no
+    Enabled item where the list has no box; the two Show items as before).
+  - Grouping: `rowHtml(h, also)` is the old row; headings `.hv-grp` (swatch in the phase fill, name, "counts shoot
+    days" / "counts days"). Home = the all-phase hiatus (by index, named by its first week's band text), else the
+    phase it falls in ranked Production › Days phase › earliest start (so a box sits under the phase that explains it),
+    else "Outside the phases". Other phases: `.hv-also` "· also Post". Date order is kept, so a heading recurs after a
+    break. Episode prep is not a heading (its segment starts with Production's). Rows now carry `data-hid`.
+  - "Marked Working Day": a grey `.hv-tag` on a Production holiday that is on, costs no day, and is marked `on` /
+    `onhalf` in `dayOverrides`.
+  - `Sidebar.jsx`: the ⓘ text explains the dash. The header stays "W’fall note" (a "Waterfall" header needed a 60 px
+    column; the owner reverted it).
+- ⚠️ **Legs:** anything that read a holiday's id off `.hv-en` reads the row's `data-hid` now (`caholidays`,
+  `mxholidays`); `settingswin` picks the first built-in row WITH a box; `mvmenu` H5/V5 expect Christmas (inside the
+  winter hiatus) to have no Enabled. A leg that walks `#holiday-vis-list > *` meets `.hv-grp` headings (`wrapdate`
+  ignores them: no date). New leg **`holidayenable`** on `anchorside` (in `gate.sh` after `mxholidays`): E1 a Weeks-phase
+  holiday has a dash, E2 weekend vs Labor Day, E3 "Marked Working Day" on 7/3, G1 the headings, G2 Christmas under
+  Hiatus "also Post", T1 Toggle all, O1 a saved-off Thanksgiving keeps its box. Red on `main` but T1.
+- ⚠️ **Found on the way, not this change:** `holidayrename` F1 and `autonoterename` F1 have been red since `lastEdited`
+  (9 Nov 2026): each lists the keys a Save adds and did not expect `lastEdited`. Both now leave it out (14/14, 24/24).
+- **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. Tried in the pane on `anchorside` and `customunits` (a Days phase).
+  No full gate (chrome-side list and menu only; no output, export or saved key changes).
+
 ### ✅ 11 Nov 2026: PREFERENCES › WATERFALL LOSES PAPER AND GRID LINES; DATES GETS FOUR FORMATS. ✅ **LIVE at `ff3eb64`** (pushed `50e4b8e..ff3eb64` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `d4cec324…`, served ~50 s after the push). No version cut, so open app windows learn of it only on a full relaunch past Pages' 10-min cache. Tracker card `prefs-dates-four-formats`.
 - **Ask (owner, a screenshot of the Paper and Grid Lines in Exports rows):** *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and DD/MM/YY"*. Picker: **unpadded** (6 Jan 2025 = 6/1/25 day first; every existing calendar draws as before).
 - **As built:** `Sidebar.jsx` `WaterfallCard` drops `#wf-paper` and `#pref-gridlines` (both still set in the Export PDF dialog, which writes the same `paperSize` key and `gridlines` preference, so Excel follows it; `reflectPaperSize()` / `reflectGridlines()` find no select and no-op). Dates lists `m/d/yyyy` MM/DD/YYYY, `''` MM/DD/YY, `d/m/yyyy`, `d/m/yy`. `app.js`: `WEEK_DATE_FORMATS` gains the two day-first values (⛔ PERMANENT); `fmtWeekDate()` formats all four; `weekDateNumFmt()` returns the value itself as Excel's code (default still `mm-dd-yy`). Nothing frozen edited. An older build's sanitizer drops the new values, so such a file opens there month first.

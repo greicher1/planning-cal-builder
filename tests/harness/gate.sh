@@ -2138,6 +2138,9 @@ done
 # mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
 # N2 (10 Nov 2026): New, one edit, Undo logs no "value ignored" warning and leaves the saved file with no stamp. Red on a
 # build without the guard in lastEditedForStep() (3e09ce9), where the undo step carried `lastEdited: null`.
+# holidayenable (11 Nov 2026, owner): the Holidays list shows Enable only where switching a holiday off moves a date
+# (Production, a Days phase, episode prep; or the holiday is already off), groups its rows by phase, and tags a Production
+# holiday marked Work this day "Marked Working Day". Red on main before it (E1-E3, G1, G2, O1).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2165,6 +2168,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
+              holidayenable:anchorside:200 \
               papersize:-:1000 \
               pdfdialog:-:500 \
               phasefold:-:300 \

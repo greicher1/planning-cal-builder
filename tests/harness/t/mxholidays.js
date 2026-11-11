@@ -41,7 +41,7 @@ window.addEventListener('load', function () { (async function () {
   function rows(year) {
     var o = {};
     [].slice.call(document.querySelectorAll('#holiday-vis-list .hv-row')).forEach(function (r) {
-      var en = r.querySelector('.hv-en'), hid = en ? en.getAttribute('data-hid') : '';
+      var hid = r.getAttribute('data-hid') || '';   // the row's: a row with no Enable box has none to read
       if (hid.slice(-5) !== '@' + year) return;
       o[hid.slice(0, -5)] = { costs: !!r.querySelector('.hv-shoot') };
     });
@@ -71,7 +71,7 @@ window.addEventListener('load', function () { (async function () {
     kase('M1', '2030 lists Art. 74\'s seven days, the election Sunday and the inauguration: nine',
       JSON.stringify(got) === JSON.stringify(want), { observed: got, expected: want });
 
-    var observed = [].slice.call(document.querySelectorAll('#holiday-vis-list .hv-en')).map(function (e) { return e.getAttribute('data-hid'); })
+    var observed = [].slice.call(document.querySelectorAll('#holiday-vis-list .hv-row[data-hid]')).map(function (e) { return e.getAttribute('data-hid'); })
       .filter(function (h) { return h.indexOf('-observed') !== -1; });
     kase('M2', 'nothing is "(Observed)": a weekend holiday is not moved', observed.length === 0, { observed: observed });
 
