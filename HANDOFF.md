@@ -31,9 +31,21 @@
     22, `buildaround` 36, `noteviews` 15, `undokeys` 11, `scenarios` 23, `scenariofacts` 12, `phasekeys` 18, `phasemonth`
     21. **Partial gate** (base + workbook + restore + gate 10, the header sections `wrapdate` through `hdreditor`, and
     `monthexport` + gate 13): **497 PASS / 0 FAIL**, every baseline identical.
-- **Next:** merge `main` once more (it gained lane-fill, date formats MM/DD + DD/MM, the arrows stepping over a hiatus),
-  re-run the partial gate and the new legs, then ask the owner about the push. After an approved push: tag `v1.13.0`,
-  fast-forward local `main`, check the live `version.json` reads 1.13.0.
+- **Last merge** (`origin/main` `7e0e668` + local `main` `44bf492`: lane-fill's Fill Gaps / Sim Post lane, Dates MM/DD and
+  DD/MM with Paper and Grid Lines out of Preferences, ▲ / ▼ stepping over a hiatus with Ripple on; docs conflicts only, a
+  stray body-less "🔨 10 Nov … OWN HIATUS" heading from `main` dropped, its ✅ section kept). README: 40 entries under
+  v1.13.0. **Final build `adc403da…`** = `releases/v1.13.0.html` (cmp); its Save of v1.12.1's fixture is byte-identical
+  to `v1.13.0-saved.sptcal`; `npm run check` 42/42.
+  - **Partial gate on it: 497 PASS / 0 FAIL**, every baseline identical (waterfall PDF, workbook, restore, `fields.byId`,
+    gate 10, all 24 of gate 13 byte for byte, the header sections).
+  - Green on it: `lanefill` 4, `phasearrowsripple` 10, `pdfdialog` 15, `fillspace` 6 (twice; one Save-button timeout
+    first), `sharecopy2`, `hdrrow` 40, `stickycols` 12, `notescols` 49, `prefs` 13/13 (the gate's judge),
+    `phasearrows` 26, `mvdragcarry` 15, `lastedited` 22, the six fixed legs, `phasekeys` 18, `phasemonth` 21,
+    `phasenotes` 21, `noteviews` 15, `buildaround` 36.
+- **Next (the owner's push picker):** right before the push, `git fetch` and confirm `origin/main` is still an ancestor
+  of `phase-notes` (merge again if it moved). Push `phase-notes:main` (a fast-forward) and the tag `v1.13.0`;
+  fast-forward local `main` in the main checkout; check the live `version.json` reads 1.13.0 and the live `index.html` is
+  `adc403da…` byte for byte.
 
 ### 🔨 4–5 Nov 2026: LINK A NOTE TO A PHASE (IT MOVES WITH THE PHASE) — ✅ R1–R9 ALL RULED 5 Nov 2026 (every one the recommendation); 🔨 STEPS 1–2 OF 6 BUILT on branch `phase-notes` (worktree `.claude/worktrees/angry-mclean-b408af`, from `main` at `f68aa71` with the plan branch merged in): step 1 (the engine) COMMITTED `e13bf95`, step 2 ("Stays with" in the waterfall note editor) COMMITTED `733a037` after its full gate (4,206 / 1, the 1 a flake green alone; owner's picker *"Commit step 2"*); step 3 (the look travels) COMMITTED `647690b` after its full gate (4,217 PASS / 0 FAIL; owner's picker *"Commit step 3"*); 🔨 step 4 (Delete / Cut / Copy / Paste / drag) BUILT 6 Nov 2026 in a side session, leg `phasekeys` 18/18, ✅ FULL GATE 4,235 PASS / 0 FAIL, COMMITTED on the branch (owner's picker *"Commit step 4"*; `git log phase-notes` has the hash); NOT merged, NOT pushed. 🔨 step 5 (the month view) BUILT 10 Nov 2026 (R10(a) ruled, `sheetHidden`), with the owner's popup asks (Delete Note / Hide at the top right, the Day and Stays with boxes aligned); leg `phasemonth` 21/21; full gate 4,226 / 16 with every baseline identical, the 16 timeouts under heavy machine load, every one green alone on 11 Nov (bullet below); the owner tried a test copy (*"looks good"*); COMMITTED on the branch (owner's picker *"Commit now"*, 11 Nov 2026; `git log phase-notes` has the hash). Steps 1–5 ship together; step 6 (picking a shoot day) is not needed to ship ([`PHASE-LINKED-NOTES-PLAN.md`](PHASE-LINKED-NOTES-PLAN.md), [`mockups/phase-linked-notes.html`](mockups/phase-linked-notes.html)). Tracker card `notes-linked-to-phase`
 - ✅ **RULED 5 Nov 2026 by the owner's pickers, all nine as recommended:** R1(a) *Stays with*; R2(a) one cell, one home;
