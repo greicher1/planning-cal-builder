@@ -138,6 +138,8 @@
     other session moved to 8978). This branch's preview is now `phase-notes-9197`.
   - Then (owner): *"move Day so the edge of the y is alligned vertically with the h in with"*: the row names are set to
     the right of their shared width, so "Day" and "Stays with" end at the same x.
+  - Then (owner): *"make the two selector boxes the same size"*: the Day select fills the rest of its row as Stays with's
+    does (its label and select flex), so both are one size (167 x 30 px in the default panel).
   - ⚠️ **Open, to raise with the owner:** a phase week holds ONE note with one day, so two month notes linked to the same
     (non-Production) phase week on different days share the first one's day. Production avoids it by following shoot
     days in the month view (R4(b)). The hint says so when it happens.

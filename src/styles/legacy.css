@@ -3747,6 +3747,10 @@
   .note-link-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
   .note-link-select{ flex:1; min-width:0; font-weight:600; }
+  /* ...and the Day select fills the rest of its row the same way, so the two boxes are one size (owner, 10 Nov 2026:
+     "make the two selector boxes the same size"). */
+  .note-day-row label{ flex:1; min-width:0; }
+  .note-day-row .note-day-select{ flex:1; min-width:0; }
   .note-link-hint{ margin-top:3px; font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--text-muted); }
   .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
   .note-link-also{ margin-top:4px; padding:5px 7px; border-radius:var(--mantine-radius-sm);
