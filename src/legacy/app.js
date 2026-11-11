@@ -20821,7 +20821,22 @@ export function initLegacyApp() {
         runs.push({ s, r0, r1, from: s, to: s });
       });
     }
-    const freeOn = (n, R) => { for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
+    // The lane (owner, 11 Nov 2026: "prep should fill the lane only when fill gaps is turned on"). With the switch off a
+    // run that SHARES a row with another phase never takes the Sim Post column while a marker row lies at or after its
+    // first row: rule 15's lane, which Fill Gaps on no longer keeps (LR4 (a) behind `fillSpaceOff`). So Prod Prep beside
+    // Writers' Rm stays one wide, the same width every week. A run alone still fills it (rule 14).
+    const laneSlot = occupancy.findIndex(m => m && [...m.values()].indexOf(LAYOUT_SIM_KEY) >= 0);
+    const laneHeld = (n, R) => {
+      if(n !== laneSlot) return false;
+      let ahead = false; occupancy[laneSlot].forEach((key, r) => { if(r >= R.r0 && key === LAYOUT_SIM_KEY) ahead = true; });
+      if(!ahead) return false;
+      for(let w = R.r0; w <= R.r1; w++) for(let j = 0; j < mc && j < occupancy.length; j++){
+        if(j === R.s || j === laneSlot || !occupancy[j]) continue;
+        const k = occupancy[j].get(w); if(k !== undefined && k !== LAYOUT_SIM_KEY) return true;
+      }
+      return false;
+    };
+    const freeOn = (n, R) => { if(laneHeld(n, R)) return false; for(let w = R.r0; w <= R.r1; w++) if(occupancy[n] && occupancy[n].has(w)) return false; return true; };
     runs.forEach(R=>{ let t = R.s; while(t + 1 < mc && freeOn(t + 1, R)) t++; R.to = t; });
     const heldBy = (n, R) => runs.some(X => X !== R && X.from <= n && n <= X.to && X.r0 <= R.r1 && R.r0 <= X.r1);
     runs.forEach(R=>{ let f = R.s; while(f - 1 >= 0 && freeOn(f - 1, R) && !heldBy(f - 1, R)) f--; R.from = f; });
@@ -20873,7 +20888,12 @@ export function initLegacyApp() {
     // Prod Prep is two wide the week before its shoot), and a hole BETWEEN two phases still goes to the left one
     // (R-E). The even share still caps a LEFTWARD extension (hand-08 keeps Post one wide beside a freed column on its
     // left) and every hand-dragged width (applyCellSpanOverrides). Unstamped, every line is what it was.
+    // ⛔ FROZEN EDIT LR8 (owner, 11 Nov 2026, by picker "Prep fills the lane", then "prep should fill the lane only when
+    // fill gaps is turned on"). LR4 (a)'s lane is kept only with Fill Gaps OFF (`fillSpaceOff`), where layoutEvenPlan
+    // keeps it too; with it on, a phase sharing its row fills the empty lane column like any other (Prod Prep beside
+    // Writers' Rm two wide). Before, on kept the lane and off filled it, the reverse of what the switch says.
     const laneReserved = (n) => {
+      if(!fillSpaceOff) return false;   // LR8
       if(!stamped || !occupancy || fixedSimSlot === undefined || fixedSimSlot < 0 || n !== fixedSimSlot) return false;
       let ahead = false; occupancy[fixedSimSlot].forEach((key, r) => { if(r >= localWeek && key === LAYOUT_SIM_KEY) ahead = true; });
       return ahead;
