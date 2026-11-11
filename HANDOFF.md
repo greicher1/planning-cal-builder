@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. Branch `holiday-enable` on top of `bd29c58`; committed, not pushed.
+### ✅ 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. ✅ **LIVE at `d5f9bff`** (pushed `bd29c58..d5f9bff` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `33811618…`, ~50 s after the push). No version cut.
 - **Owner:** *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. In
   `renderHolidayVisList`'s grouping, the hiatus branch now sets `also = []`; a phase heading keeps its "also …".
   `holidayenable` G2 asserts no "also" on Christmas. Proof: `holidayenable` 7/7, `npm run check` 42/42, tried in the pane.
