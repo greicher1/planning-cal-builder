@@ -4,6 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
+- **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
+  button and the size selector ad there is between and the right shift button and Build around button"*, which I first
+  read the wrong way (Redo and Size joined at 2 px; built, never committed) until *"no no, there should be MORE space
+  between the right shift button and build around so it matches the current spacing of the redo button and size button
+  gap"*. Then *"lets reorder as follows: Month/Waterfall - Shift tool/Build Around - Styling Menu - Fill gaps/side
+  boxes/header - undo/redo"*, then *"Yes, finish it"*.
+- **As built (no engine change, every id unchanged):**
+  - `.tb-dates{ gap:var(--tb-gap) }`: Shift to Build Around is the one section gap.
+  - `PreviewToolbar.jsx`: the date tools' div (`.tb-well.tb-dates`, Shift and Build Around with both popovers) left
+    `.preview-tools` and is the row's child right after `.view-toggle`; the Undo / Redo `Group` went back to the END of
+    `.preview-tools`, after `.tb-page`. Row order: view-toggle | tb-dates | style-bar-host | preview-tools [tb-page,
+    undo-redo-group] | MonthMap | style-row. `useStyleBarFit` measures the date tools where it measured Undo / Redo.
+  - `legacy.css`: the packing `margin-left:auto` moved from `.view-toggle-row > .undo-redo-group` to
+    `.view-toggle-row > .tb-dates`; the well rule's selector is `.preview-tools > .undo-redo-group`.
+  - ⚠️ The merge with `938577a` conflicted in PreviewToolbar.jsx only because the date tools block moved while the other
+    session removed Build Around's Prior to / After buttons inside it: resolved by keeping the move and carrying their
+    edit into the moved block (`tool-solve-back` / `tool-solve-fwd` are gone from the build, checked).
+- **Fit:** one line from about a 1,642 px window on `fill-intent`; narrower, the text well takes its own line at the left
+  and line 1 keeps the view toggle, the date tools and the rest 12 px apart. When a header line adds the Highlight well,
+  the bar grows left and the date tools step left into the free space (the page tools and Undo never move).
+- **Proof:** `stylebarplace` rewritten again (P0 the new row / tools order, P2 Shift → Build Around → text → page → Undo
+  all 12, P3 the page tools stay put, P4 line 1 with the date tools, P8 the date tools' gap too); `monthmap` C0 / B7 (the
+  bar after Build Around). Partial gate `partgate-stylebar.zsh reorder` (port 8422, on the build, one Chrome at a time): `stylebarplace` 13/13 (12/13 in the batch: P0 compared the Group's whole class list, and Mantine adds generated classes after ours; fixed to read the naming class, 13/13), `monthmap` 20/20 ×3, `textstyle` 52/52, `hdrcontrols` 12/12, `fillspace` 6/6, `calzoom` 26/26, `sharecopy2` pass, `anchorside` 39/39, `buildaround` 36/36, `rebuildticks` 20/20, `sideboxes` 78/78, `mvtextstyle` 23/23, `mvnotesize` 12/12, `lastedited` 22/22, `hoverexpand` 18/18. `stylebarplace` red on `origin/main`'s build (P0, then it cannot find the date tools at the row's top level). Fence against `origin/main`'s build: 511 values, NO difference. `npm run check` 42/42. Driven by
+  hand at 1,720 px: both popovers open under their buttons inside the window, Fill Gaps toggles, Undo undoes it from the
+  far right, Month view gaps 12 with Header alone in the page well, 1,440 px fallback.
+
 ### ✅ 10 Nov 2026: BUILD AROUND LOSES ITS PRIOR TO / AFTER BUTTONS — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner, the day the redesigned box went live: *"Arguably using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7`. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7.1. Tracker card `build-around-no-side-buttons`
 
 - **As built.** `#pop-solve` runs `tools-head, tools-cap, shift-box, solve-left, solve-note, tools-cap, tools-row,

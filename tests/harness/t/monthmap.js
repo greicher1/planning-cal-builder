@@ -28,14 +28,15 @@
 //   B5  no taller than the slimmer rows allow
 //   B6  this month's dot, and no id or form field anywhere in it
 //   PART C, §18: the month stepper (MonthStepper in MonthMap.jsx)
-//   C0  it sits alone on its line (.style-row), at its right end. The text style bar moved up beside Shift on 10 Nov
-//       2026; where it cannot fit there (.style-own-line, a narrow window) it comes back to this line, left of the stepper
+//   C0  it sits alone on its line (.style-row), at its right end. The text style bar moved up to the first line on 10 Nov
+//       2026 (after Shift and Build Around since the owner's reorder); where it cannot fit there (.style-own-line, a narrow
+//       window) it comes back to this line, left of the stepper
 //   C1  its label is always the month band's month: stepping › through every month, and after every map click
 //   C2  its ‹ and › are real clicks one month each way, disabled at the two ends
 //   C3  Today goes to this month and is then disabled; outside the calendar it is disabled and says so
 //   C4  no id or form field anywhere in it
-//   B7  in the waterfall the map and the stepper are gone, the stepper's line takes no room, and the style bar is beside
-//       Shift on the first line, or (.style-own-line) a whole line of its own under the tools
+//   B7  in the waterfall the map and the stepper are gone, the stepper's line takes no room, and the style bar is after
+//       Build Around on the first line, or (.style-own-line) a whole line of its own under the tools
 //   E0  no console errors over every render above, in both views
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -297,10 +298,11 @@ window.addEventListener('load', function () { (async function () {
     var shR = document.querySelector('.shift-group').getBoundingClientRect();
     var stR = stp() ? stp().getBoundingClientRect() : null;
     var cy = function (r) { return r.top + r.height / 2; };
-    add('C0', "the stepper sits alone on its line, at its right end; the style bar is beside Shift, or (own line) left of the stepper",
+    var R0 = function (el) { return el.getBoundingClientRect(); };
+    add('C0', "the stepper sits alone on its line, at its right end; the style bar is on the first line after Build Around, or (own line) left of the stepper",
         !!stR && JSON.stringify(rowKids) === JSON.stringify(['month-step']) && Math.abs(stR.right - rowR.right) < 1 &&
           (ownLine ? Math.abs(cy(barR) - cy(stR)) < 1 && barR.right <= stR.left
-                   : Math.abs(cy(barR) - cy(shR)) < 1 && barR.right < shR.left && barR.bottom <= rowR.top),
+                   : Math.abs(cy(barR) - cy(shR)) < 1 && barR.left > R0(document.getElementById('pop-solve-btn')).right && barR.bottom <= rowR.top),
         {kids: rowKids, ownLine: ownLine, step: stR && [Math.round(stR.left), Math.round(stR.top), Math.round(stR.right), Math.round(stR.height)],
          bar: [Math.round(barR.left), Math.round(barR.top), Math.round(barR.right), Math.round(barR.height)], rowRight: Math.round(rowR.right)},
         'month-step alone, ending at the row\'s right edge; the bar level with Shift (or with the stepper on its own line)');
@@ -361,11 +363,11 @@ window.addEventListener('load', function () { (async function () {
     var wfBar = document.querySelector('.style-bar').getBoundingClientRect(), wfShift = document.querySelector('.shift-group').getBoundingClientRect();
     var wfTools = document.querySelector('.preview-tools').getBoundingClientRect(), wfRowR = document.querySelector('.view-toggle-row').getBoundingClientRect();
     var vmid = function (r) { return r.top + r.height / 2; };
-    add('B7', "in the waterfall the map and the stepper are gone, the stepper's empty line takes no room, and the style bar sits beside Shift (or on its own line under the tools)",
+    add('B7', "in the waterfall the map and the stepper are gone, the stepper's empty line takes no room, and the style bar sits after Build Around (or on its own line under the tools)",
         !document.querySelector('.month-map') && !document.querySelector('.month-step') && wfLine.children.length === 0 &&
           getComputedStyle(wfLine).display === 'none' &&
           (wfOwn ? wfBar.top >= wfTools.bottom && Math.abs(wfBar.left - wfRowR.left) < 1
-                 : Math.abs(vmid(wfBar) - vmid(wfShift)) < 1 && wfBar.right < wfShift.left),
+                 : Math.abs(vmid(wfBar) - vmid(wfShift)) < 1 && wfBar.left > document.getElementById('pop-solve-btn').getBoundingClientRect().right),
         {kids: wfKids, ownLine: wfOwn, lineDisplay: getComputedStyle(wfLine).display, bar: [Math.round(wfBar.left), Math.round(wfBar.top), Math.round(wfBar.right)],
          shift: [Math.round(wfShift.left), Math.round(wfShift.top)]}, 'style-row empty and display:none; the bar level with Shift, or a line of its own under the tools');
     await new Promise(function (r) { setTimeout(r, 50); });

@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
+
+Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):
+
+- **A new order** (*"Month/Waterfall - Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header -
+  undo/redo"*): after the view toggle come Shift and Build Around, then the text style buttons, then Fill Gaps / Side
+  Boxes / Header, with Undo / Redo back at the far right. Everything after the view toggle is still packed to the right.
+- **Build Around stands 12 px from Shift** (*"there should be MORE space between the right shift button and build around
+  so it matches the current spacing of the redo button and size button gap"*), not 2 px, so every neighbouring pair on
+  the bar is now the same 12 px apart.
+
+Every control kept its id and the engine did not change. On a window narrower than about 1,640 px (with Fill Gaps
+showing) the text buttons drop to their own line at the left, as before, and every other section stays on the first line.
+
+**Verified:** `stylebarplace` rewritten for the order (every gap 12 px, Shift to Build Around included), red on the build
+before it; `monthmap` C0 / B7 now expect the text buttons after Build Around; the toolbar's neighbouring legs green (list
+in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference in any of its 511 values. Driven by hand: both popovers open under their
+buttons, Fill Gaps toggles and Undo undoes it from the far right, the Month view, the 1,440 px fallback.
+
 ### Unreleased — Build Around: the Prior to / After buttons are gone (10 Nov 2026)
 
 **What changed.** The two buttons under Build Around's list, *Prior to X* and *After X*, are removed. The box now

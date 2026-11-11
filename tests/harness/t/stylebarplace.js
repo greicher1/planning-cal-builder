@@ -1,10 +1,11 @@
 // stylebarplace -- the preview toolbar's sections and where the text style bar sits (owner, 10 Nov 2026). The bar was a
 // full-width boxed line under the toolbar ("TEXT", the buttons, a hint). Since variation 27 of
 // mockups/toolbar-variations.html (owner: "Lets go with 27", then "remove the faint grey box surrounding the shift and
-// build around buttons") the view toggle sits alone at the left edge, and Undo / Redo, the text style buttons, the date
-// tools and the page tools are packed to the right, one gap (--tb-gap, 12 px) between every section; Undo / Redo, the
-// text buttons and the page tools sit in grey wells like the view toggle's (2 px padding, 2 px between buttons, 9 px
-// corners), Shift and Build Around in none. Where the sections no longer fit on one line the text bar alone drops to its
+// build around buttons", then "MORE space between the right shift button and build around" and the order "Month/Waterfall
+// - Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header - undo/redo") the view toggle sits alone at the
+// left edge, and Shift, Build Around, the text style buttons, the page tools and Undo / Redo are packed to the right,
+// one gap (--tb-gap, 12 px) between every neighbouring pair; the text buttons, the page tools and Undo / Redo sit in
+// grey wells like the view toggle's (2 px padding, 2 px between buttons, 9 px corners), Shift and Build Around in none. Where the sections no longer fit on one line the text bar alone drops to its
 // old line (PreviewToolbar.jsx, useStyleBarFit: `.style-own-line` on the host).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=fill-intent ./run.sh stylebarplace 300
@@ -14,22 +15,22 @@
 // fit (the row is what the fit measures) and puts it back at the end.
 //
 // CASES
-//   P0  the row reads view toggle | Undo / Redo | the style bar's host | the tools, and the tools hold the date tools'
-//       section (Shift, Build Around) then the page tools' well (Fill Gaps, Side Boxes, Header); no id in the host;
-//       row -> #table-wrap kept
+//   P0  the row reads view toggle | the date tools (Shift, Build Around) | the style bar's host | the tools, and the tools
+//       hold the page tools' well (Fill Gaps, Side Boxes, Header) then Undo / Redo; no id in the host; row -> #table-wrap
 //   P1  the buttons are the toolbar's: every shown control 30 px tall (Shift's height), the Size box draws its own
 //       arrow 8 px in from the edge
-//   P2  room for everything: all five sections on the first line, centred on it; Undo -> text, text -> Shift and Build
-//       Around -> the page tools each exactly --tb-gap (12 px); the free space between the view toggle and Undo
-//   P3  a header line picked: the Highlight well appears, the bar grows to the left, and nothing else moves (the fit
-//       counts the well as shown, so the line does not flip)
-//   P4  no room: the bar alone drops to a line of its own under the tools, at the row's left edge; the toggle, Undo and
-//       the tools keep the first line, unwrapped, 12 px apart
+//   P2  room for everything: every section on the first line, centred on it; Shift -> Build Around -> text -> page tools ->
+//       Undo each exactly --tb-gap (12 px); the free space between the view toggle and Shift
+//   P3  a header line picked: the Highlight well appears, the bar grows to the left (the date tools step left into the
+//       free space), and its right edge and the page tools stay put (the fit counts the well as shown, so the line does
+//       not flip)
+//   P4  no room: the bar alone drops to a line of its own under the tools, at the row's left edge; the toggle, the date
+//       tools and the rest keep the first line, unwrapped, 12 px apart
 //   P5  it holds still: the class does not flip back and forth after it settles, on either side of the fit
 //   P6  the month view, no room: the bar shares the stepper's line, left of the stepper, as before 10 Nov 2026
 //   P7  the hint is the bar's tooltip while nothing is picked, and goes once something is
-//   P8  the gap is one value: --tb-gap (12 px) is the row's column gap and the tools' own; nothing adds a margin of its
-//       own (Build Around's old 16 px, the bar's old margins)
+//   P8  the gap is one value: --tb-gap (12 px) is the row's column gap, the tools' own and the date tools' (Shift to
+//       Build Around); nothing adds a margin of its own (Build Around's old 16 px, the bar's old margins)
 //   P9  the row itself never takes a class, on either side of the fit: the shareable copy is a clone that keeps the row's
 //       attributes (sharecopy2 wants `<div class="view-toggle-row"></div>`), so the fit's class lives on the host
 //   P10 the wells are one look: the view toggle, Undo / Redo, the style bar and the page tools each 2 px padding, 2 px
@@ -45,14 +46,14 @@ window.addEventListener('load', function () { (async function () {
   function R(el){ return el.getBoundingClientRect(); }
   function mid(r){ return r.top + r.height / 2; }
   function rnd(r){ return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)]; }
-  var row, host, bar, tog, tools, undo;
+  var row, host, bar, tog, tools, undo, dates;
   function own(){ return host.classList.contains('style-own-line'); }
   // What the fit needs, worked out here on its own terms: the four sections, the row's three gaps, and the Highlight
   // well's slot when it is hidden.
   function need(){
     var sw = q('.hf-swatch:not(.hf-swatch-hl)', bar), hl = q('.hf-swatch-hl', bar);
     var gap = parseFloat(getComputedStyle(row).columnGap);
-    return tog.offsetWidth + gap + undo.offsetWidth + gap + bar.offsetWidth +
+    return tog.offsetWidth + gap + dates.offsetWidth + gap + bar.offsetWidth +
       (hl.hidden ? sw.offsetWidth + parseFloat(getComputedStyle(bar).columnGap) : 0) + gap + tools.offsetWidth;
   }
   async function setRowWidth(w){
@@ -66,20 +67,22 @@ window.addEventListener('load', function () { (async function () {
     await T.appReady();
     await T.until(function () { return !!q('.view-toggle-row .style-bar-host .style-bar'); }, 'the style bar', 60, 100);
     row = q('.view-toggle-row'); host = q('.style-bar-host', row); bar = q('.style-bar', host);
-    tog = q('.view-toggle', row); tools = q('.preview-tools', row); undo = q('.undo-redo-group', row);
+    tog = q('.view-toggle', row); tools = q('.preview-tools', row); undo = q('.undo-redo-group', row); dates = q(':scope > .tb-dates', row);
     if(!q('#view-sheet-btn').classList.contains('active')){ q('#view-sheet-btn').click(); await T.sleep(600); }
 
     // ---- P0: where it is in the markup ----
     var kids = Array.from(row.children).map(function (e) { return e.className.split(' ')[0]; });
-    var tkids = Array.from(tools.children).map(function (e) { return e.className.split(' ').slice(0, 2).join(' '); });
-    var dates = q('.tb-dates', tools), page = q('.tb-page', tools);
+    // Named by the class that says what each is: Mantine adds its own generated classes to the Group after ours.
+    var tkids = Array.from(tools.children).map(function (e) {
+      return e.classList.contains('tb-page') ? 'tb-well tb-page' : e.classList.contains('undo-redo-group') ? 'undo-redo-group' : e.className; });
+    var page = q('.tb-page', tools);
     var datesHold = !!dates && !!q('#shift-group', dates) && !!q('#pop-solve-btn', dates);
     var pageHold = !!page && ['tb-fill-space-btn', 'tb-side-boxes-btn', 'tb-hdr-mode-btn'].every(function (id) { return !!q('#' + id, page); });
-    add('P0', 'the row reads view toggle | Undo / Redo | the style bar | the tools (the date tools, then the page tools\' well); no id in the host',
-        kids.indexOf('undo-redo-group') === kids.indexOf('view-toggle') + 1 && kids.indexOf('style-bar-host') === kids.indexOf('undo-redo-group') + 1 &&
-          kids.indexOf('preview-tools') === kids.indexOf('style-bar-host') + 1 && JSON.stringify(tkids) === JSON.stringify(['tb-well tb-dates', 'tb-well tb-page']) &&
-          datesHold && pageHold && !qa('[id]', host).length && row.nextElementSibling === document.getElementById('table-wrap'),
-        {row: kids, tools: tkids, datesHold: datesHold, pageHold: pageHold}, 'view-toggle | undo-redo-group | style-bar-host | preview-tools [tb-dates, tb-page] | …');
+    add('P0', 'the row reads view toggle | the date tools | the style bar | the tools (the page tools\' well, then Undo / Redo); no id in the host',
+        kids.indexOf('tb-well') === kids.indexOf('view-toggle') + 1 && kids.indexOf('style-bar-host') === kids.indexOf('tb-well') + 1 &&
+          kids.indexOf('preview-tools') === kids.indexOf('style-bar-host') + 1 && JSON.stringify(tkids) === JSON.stringify(['tb-well tb-page', 'undo-redo-group']) &&
+          datesHold && pageHold && !!q('#undo-btn', tools) && !qa('[id]', host).length && row.nextElementSibling === document.getElementById('table-wrap'),
+        {row: kids, tools: tkids, datesHold: datesHold, pageHold: pageHold}, 'view-toggle | tb-dates | style-bar-host | preview-tools [tb-page, undo-redo-group] | …');
 
     // ---- P1: the toolbar's buttons ----
     var shiftH = Math.round(R(q('.shift-group')).height);
@@ -99,13 +102,14 @@ window.addEventListener('load', function () { (async function () {
     var s2 = await steady(), rowClassWide = row.className;
     var bR = R(bar), shR = R(q('.shift-group')), tR = R(tog), uR = R(undo), baR = R(q('#pop-solve-btn')), pgR = R(q('.tb-page'));
     var tbGap = parseFloat(getComputedStyle(row).getPropertyValue('--tb-gap'));
-    var gp = {undoToText: +(bR.left - uR.right).toFixed(2), textToShift: +(shR.left - bR.right).toFixed(2), buildAroundToPage: +(pgR.left - baR.right).toFixed(2)};
-    var mids = [tR, uR, bR, shR, pgR].map(mid);
-    add('P2', 'room for everything: five sections on one line, centred on it; Undo -> text, text -> Shift, Build Around -> page tools each the one 12 px gap; the free space left of Undo',
+    var gp = {shiftToBuildAround: +(baR.left - shR.right).toFixed(2), buildAroundToText: +(bR.left - baR.right).toFixed(2),
+              textToPage: +(pgR.left - bR.right).toFixed(2), pageToUndo: +(uR.left - pgR.right).toFixed(2)};
+    var mids = [tR, shR, baR, bR, pgR, uR].map(mid);
+    add('P2', 'room for everything: every section on one line, centred on it; Shift -> Build Around -> text -> page tools -> Undo each the one 12 px gap; the free space left of Shift',
         !own() && s2 && tbGap === 12 && Object.keys(gp).every(function (k) { return Math.abs(gp[k] - tbGap) < 0.5; }) &&
-          Math.max.apply(null, mids) - Math.min.apply(null, mids) < 1 && uR.left - tR.right > 30,
-        Object.assign({own: own(), tbGap: tbGap, leftSpace: Math.round(uR.left - tR.right), midsSpread: +(Math.max.apply(null, mids) - Math.min.apply(null, mids)).toFixed(2)}, gp),
-        {own: false, tbGap: 12, undoToText: 12, textToShift: 12, buildAroundToPage: 12});
+          Math.max.apply(null, mids) - Math.min.apply(null, mids) < 1 && shR.left - tR.right > 30,
+        Object.assign({own: own(), tbGap: tbGap, leftSpace: Math.round(shR.left - tR.right), midsSpread: +(Math.max.apply(null, mids) - Math.min.apply(null, mids)).toFixed(2)}, gp),
+        {own: false, tbGap: 12, shiftToBuildAround: 12, buildAroundToText: 12, textToPage: 12, pageToUndo: 12});
 
     // ---- P10: the wells are one look ----
     var look = function (el) { var c = getComputedStyle(el); return [c.paddingTop, c.columnGap, c.borderTopLeftRadius, c.backgroundColor].join(' '); };
@@ -118,16 +122,16 @@ window.addEventListener('load', function () { (async function () {
         {wells: wells, dates: dcs.paddingTop + ' ' + dcs.backgroundColor, heights: heights}, {every: '2px 2px 9px <grey>', dates: '0px transparent', heights: 34});
 
     // ---- P3: a header line picked ----
-    var shiftLeft0 = shR.left, barRight0 = bR.right, barW0 = bR.width;
+    var pageLeft0 = pgR.left, barRight0 = bR.right, barW0 = bR.width;
     var line = q('#table-wrap .cal-header-bar .hdr-line[data-hid="c2"]') || q('#table-wrap .cal-header-bar .hdr-line');
     if(line){ line.click(); await T.sleep(400); }
     var hlShown = !q('.hf-swatch-hl', bar).hidden, s3 = await steady();
-    var bR3 = R(bar), shR3 = R(q('.shift-group'));
-    add('P3', 'a header line picked: the Highlight well appears, the bar grows to the left, and Shift, the bar\'s right edge and the line stay put',
-        !!line && hlShown && !own() && s3 && bR3.width > barW0 + 20 && Math.abs(bR3.right - barRight0) < 0.5 && Math.abs(shR3.left - shiftLeft0) < 0.5,
+    var bR3 = R(bar), pgR3 = R(q('.tb-page'));
+    add('P3', 'a header line picked: the Highlight well appears, the bar grows to the left, and its right edge, the page tools and the line stay put',
+        !!line && hlShown && !own() && s3 && bR3.width > barW0 + 20 && Math.abs(bR3.right - barRight0) < 0.5 && Math.abs(pgR3.left - pageLeft0) < 0.5,
         {line: !!line, highlightShown: hlShown, own: own(), widthBefore: Math.round(barW0), widthAfter: Math.round(bR3.width),
-         rightMoved: +(bR3.right - barRight0).toFixed(2), shiftMoved: +(shR3.left - shiftLeft0).toFixed(2)},
-        {highlightShown: true, own: false, rightMoved: 0, shiftMoved: 0});
+         rightMoved: +(bR3.right - barRight0).toFixed(2), pageMoved: +(pgR3.left - pageLeft0).toFixed(2)},
+        {highlightShown: true, own: false, rightMoved: 0, pageMoved: 0});
 
     // ---- P7 (second half): armed, the tooltip goes ----
     var hintArmed = bar.title;
@@ -143,8 +147,8 @@ window.addEventListener('load', function () { (async function () {
     var bR4 = R(bar), tlR = R(tools), tgR = R(tog), rowR = R(row);
     add('P4', 'no room: the bar alone drops to a line of its own under the tools, at the row\'s left edge; the toggle and the tools keep the first line, unwrapped',
         own() && bR4.top >= tlR.bottom && Math.abs(bR4.left - rowR.left) < 1 && Math.abs(mid(tgR) - mid(tlR)) < 1 &&
-          Math.abs(mid(R(undo)) - mid(tlR)) < 1 && Math.round(tlR.height) === 34 && Math.abs(tlR.left - R(undo).right - 12) < 0.5,
-        {own: own(), bar: rnd(bR4), tools: rnd(tlR), undo: rnd(R(undo)), toggle: rnd(tgR), rowLeft: Math.round(rowR.left)}, 'bar under the tools at the row\'s left');
+          Math.abs(mid(R(dates)) - mid(tlR)) < 1 && Math.round(tlR.height) === 34 && Math.abs(tlR.left - R(dates).right - 12) < 0.5,
+        {own: own(), bar: rnd(bR4), tools: rnd(tlR), dates: rnd(R(dates)), toggle: rnd(tgR), rowLeft: Math.round(rowR.left)}, 'bar under the tools at the row\'s left');
     add('P5', 'it holds still: the class does not change once settled, on either side of the fit',
         s2 && s3 && s4, {wide: s2, header: s3, narrow: s4}, {wide: true, header: true, narrow: true});
 
@@ -165,11 +169,12 @@ window.addEventListener('load', function () { (async function () {
     // ---- P8: one value ----
     var tg = getComputedStyle(row).getPropertyValue('--tb-gap').trim();
     var g8 = {var: tg, rowGap: getComputedStyle(row).columnGap, toolsGap: getComputedStyle(tools).columnGap,
+              datesGap: getComputedStyle(dates).columnGap,
               afterBuildAround: getComputedStyle(q('#pop-solve-btn').closest('.tools-wrap')).marginRight,
               hostMargins: getComputedStyle(host).marginLeft + ' ' + getComputedStyle(host).marginRight};
     add('P8', 'the gap is one value: --tb-gap (12 px) is the row\'s and the tools\' column gap; no section adds a margin of its own',
-        tg === '12px' && g8.rowGap === '12px' && g8.toolsGap === '12px' && g8.afterBuildAround === '0px' && g8.hostMargins === '0px 0px',
-        g8, {var: '12px', rowGap: '12px', toolsGap: '12px', afterBuildAround: '0px', hostMargins: '0px 0px'});
+        tg === '12px' && g8.rowGap === '12px' && g8.toolsGap === '12px' && g8.datesGap === '12px' && g8.afterBuildAround === '0px' && g8.hostMargins === '0px 0px',
+        g8, {var: '12px', rowGap: '12px', toolsGap: '12px', datesGap: '12px', afterBuildAround: '0px', hostMargins: '0px 0px'});
     var fg = q('#tb-fill-space-btn');
     add('P11', 'the switch reads "Fill Gaps", its id still tb-fill-space-btn',
         !!fg && fg.textContent.trim() === 'Fill Gaps', fg && fg.textContent.trim(), 'Fill Gaps');
