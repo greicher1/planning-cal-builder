@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Build Around: the Prior to / After buttons are gone (10 Nov 2026)
+
+**What changed.** The two buttons under Build Around's list, *Prior to X* and *After X*, are removed. The box now
+runs title, Phases, the list, the line that names a phase left unticked, *Pin to a date*, Build. It always builds
+both sides of the pinned phase, and what gets built is exactly what is ticked. It opens with the same ticks as before.
+To build only one side, untick the other: a box, or a drag down those rows. The Shift box keeps its own *Prior to* /
+*After*.
+
+- `src/chrome/PreviewToolbar.jsx`: the row is out of `#pop-solve` (`tool-solve-back` / `tool-solve-fwd` retired).
+- `src/legacy/app.js`: `solveDir`, `solveDirBtns` and their handler are gone; `solveDefaultOn()` lost its side
+  argument; `solvePressed()` became `solveIsDefault()`, so a new pin re-ticks only while the ticks are untouched. The
+  line that names an unticked phase lists every phase the rule left out, on either side.
+- `src/styles/legacy.css`: Build Around's list box carries the gap the row gave (10 px to *Pin to a date*).
+- Help (*Adjusting dates*): the sentence about the two buttons is replaced.
+
+**Why.** The owner, the day the redesigned box went live: *"Arguably using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*. Built to try in the
+browser first, then *"Yes, finish it"*.
+
+**Verified** on `dist/index.html` sha256 `233e3898…`: `npm run check` 42/42. Legs, 14 runs, 0 failures:
+`buildaround` 36/36 (O1 now holds that the buttons are gone and that Shift still has two), `rebuildticks` 20/20,
+`buildalongside` 8/8, `shiftheld` 13/13, `snaptools` 14/14, `overrides` 20/20, `anchorside` 39/39, `customunits`
+(both states), `builtindates` (both states), `datepick` 17/17, `lastedited` 22/22, `undokeys` 11/11. Five legs pressed
+the buttons and now reach one side by the ticks alone (`T.solveKeepSide(dir)` in `t/lib.js`, which `T.rebuildAll`
+uses too). On a build with the buttons put back (`3f99d989…`) the legs go red: `buildaround` O1, `rebuildticks` L2 and
+D1, `buildalongside` A6. In the browser: the box opens with 4 of 5 ticked and the Localization line, a row click
+pins, a box ticks, Build moves the ticked phases and one Undo restores them. ⚠️ No full gate was run: chrome only.
+
 ### Unreleased — Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
 
 **What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo

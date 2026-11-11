@@ -297,6 +297,7 @@ proposal and today's box, live on one made-up calendar), then *"Yes, build it"* 
 9. The pin's dropdown follows a row click (and shows the phase's date, as Shift's does).
 10. The pin's row sits under the list: "Pin to a date", the phase above "starts on".
 11. `Prior to X` / `After X` under the list, in place of the `← Before · Both · After →` switch above it.
+    ⚠️ **Removed the same day** (§7.1).
 
 **Rulings:**
 
@@ -327,4 +328,25 @@ proposal and today's box, live on one made-up calendar), then *"Yes, build it"* 
 - **The pin is kept between openings**, as before; the ticks, the side and typed lengths are forgotten.
 
 HANDOFF has the as-built record. Legs: `buildaround` (36 cases), `rebuildticks` (20), `buildalongside` (8).
+
+### 7.1 No Prior to / After buttons (owner, 10 Nov 2026) — ✅ RULED, ✅ BUILT
+
+The day §7 went live, the owner: *"using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*. Built to try in the browser first, then *"Yes, finish it"*.
+
+- **What went:** the `Prior to X` / `After X` row under the list (`tool-solve-back` / `tool-solve-fwd`, retired), and
+  in the engine `solveDir`, `solveDirBtns` and their handler. `solveDefaultOn()` lost its side argument;
+  `solvePressed()` became `solveIsDefault()` (a new pin re-ticks only while the ticks are untouched).
+- **What the box does now:** it always builds both sides of the pin, and what is built is what is ticked. It opens
+  with the same ticks as before (R13's rule). To build one side, untick the other: a box, a drag down the rows, or the
+  header box and then the rows wanted. Told to the owner with the working build.
+- **The line that names an unticked phase** now sits directly under the list and lists every phase the rule left
+  out, on either side (with the buttons it listed the chosen side's only).
+- **Shift keeps its own Prior to / After.** There they replace the ticks around the outlined row, which is how Shift
+  From and Phase & before are reached; Build Around has no such forms to reach.
+- **R13's last sentence no longer applies** (*"It applies to how the box opens and to Prior / After"*): the rule
+  decides how the box opens.
+
+Legs: `buildaround` O1 holds that the buttons are gone and that Shift still has two; S1-S3, Z1 and E5 reach one side
+by the ticks. `rebuildticks` (L2, R1, C1, F1, D1, U1-U3) and `buildalongside` A6 likewise. `shiftheld` B1,
+`snaptools` L15 and `T.rebuildAll` use the new `T.solveKeepSide(dir)` in `t/lib.js`.
 

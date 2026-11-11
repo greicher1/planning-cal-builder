@@ -90,11 +90,11 @@ window.addEventListener('load', function () { (async function () {
     // ---- B1: the plan rebuilt from scratch, the reference ----
     document.body.click(); await T.sleep(150); $('pop-solve-btn').click(); await T.sleep(300);
     T.set('tool-solve-phase', 'prePrep'); await T.sleep(200);
-    $('tool-solve-fwd').click(); await T.sleep(200);
+    T.solveKeepSide(1); await T.sleep(200);   // the phases after the pin alone (no After button since 10 Nov 2026)
     T.set('tool-solve-date', '2026-08-10'); await T.sleep(300);
     $('tool-solve-go').click(); await settle();
     var mB = metas(), stB = starts();
-    add('B1', 'Build Around Pre Prep 8/10/26, After: Production 11/30/26, wrap 5/5/27, Post 5/10/27',
+    add('B1', 'Build Around Pre Prep 8/10/26, the phases after it alone: Production 11/30/26, wrap 5/5/27, Post 5/10/27',
       stB.production === '2026-11-30' && /11\/30\/26 → 5\/5\/27/.test(mB.production) && stB.post === '2027-05-10' && stB.localization === '2027-11-08',
       {starts: stB, metas: mB}, 'Production 2026-11-30, wrap 5/5/27');
     await undo();

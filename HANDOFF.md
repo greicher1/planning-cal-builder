@@ -4,6 +4,30 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 10 Nov 2026: BUILD AROUND LOSES ITS PRIOR TO / AFTER BUTTONS — ✅ **BUILT, targeted legs green, committed locally, NOT pushed** (owner, the day the redesigned box went live: *"Arguably using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*; tried the working build; *"Yes, finish it"*). Branch `claude/keen-agnesi-4c74c7`. [`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md) §7.1. Tracker card `build-around-no-side-buttons`
+
+- **As built.** `#pop-solve` runs `tools-head, tools-cap, shift-box, solve-left, solve-note, tools-cap, tools-row,
+  tools-row, solve-go, tools-msg`: no `.shift-sides` row. `tool-solve-back` / `tool-solve-fwd` are RETIRED (they were
+  buttons inside `.tools-menu`, never in `fields.byId`, so no saved file knows them). In the engine `solveDir`,
+  `solveDirBtns` and their click handler are gone, `solveDefaultOn(f, p)` has no side argument, and
+  `solvePressed()` is `solveIsDefault()`. The box always builds both sides and what is built is what is ticked.
+- **What a user does for one side now:** unticks the other side (a box, a drag). Said to the owner with the try-build.
+- **The line under the list** (`[data-solve-left]`) now names every phase the rule left out on EITHER side, because
+  there is no side in force. On `buildFixture()` + Casting it reads *"Casting and Localization left unticked: each
+  runs alongside the phase next to it. Tick them to build them in line."*
+- **Spacing:** `#pop-solve .shift-box{margin-bottom:10px}` replaces the gap the buttons' row gave. Shift's own
+  `.shift-box` is untouched.
+- ⚠️ **Legs that pressed the buttons** now go through `T.solveKeepSide(dir)` (`t/lib.js`): it unticks every ticked
+  phase on the other side of the pin. `T.rebuildAll(dir)` (used by `builtindates`, `customunits`, `snaptools`,
+  `overrides`) no longer clicks a button first; it already forced the exact ticks. A new leg that wants a
+  one-sided build uses one of those two.
+- **Verified** on `dist/index.html` sha256 `233e3898…`: check 42/42; 14 leg runs, 0 failures (README has the list); a
+  build with the buttons put back turns `buildaround` O1, `rebuildticks` L2 + D1 and `buildalongside` A6 red; tried in
+  the browser. No full gate (chrome only). Help's *Adjusting dates* paragraph is updated.
+- **Housekeeping from the try-build:** my scripted checks on `localhost:8796` left four crash backups (the synthetic
+  fixture and a blank calendar) that raised "Recover unsaved work" on every load. I deleted those four from that test
+  origin's IndexedDB. Nothing of the owner's was there (all four were written during my own checks that hour).
+
 ### ✅ 10 Nov 2026: UNDO BACK TO A NEVER-EDITED CALENDAR WROTE `lastEdited: null` ONTO THE STEP — fixed in one line, ✅ **LIVE at `32e19a2`** with the Build Around push (owner's picker, 10 Nov: *"Build Around + the fix (Recommended)"*)
 
 - **What it was.** `lastEditedForStep()` (Date Last Edited, `1507204`) wrote `snap.lastEdited = null` when the step's
