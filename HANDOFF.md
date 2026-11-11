@@ -19,7 +19,14 @@
   Prod Prep drawn one wide beside Writers (hand-02, -03, -04, -09), now two. Reuse off unchanged (82.3%). That is the
   ruling, not a regression: LAYOUT-RULES.md rule 15 now says so.
 - **Checks.** New leg `lanefill` (layout-r9, L1-L3 + E0) green, red on the build before; in gate.sh's AFSPEC list after
-  `fillspace`. `npm run check` 42/42. Full gate: queued behind another session's gate; result written here when done.
+  `fillspace`. `npm run check` 42/42. **Full gate (12:36-13:40, beside another session's gate): 4,347 PASS / 24 FAIL**,
+  every export baseline identical (waterfall PDF, workbook, month print + writer), 0 clipped cells. Each failure re-run
+  ALONE on this build and on the build before it (`origin/main` 52a112b): the same eleven legs fail identically on both
+  (autonoterename F1, autonoteview V9, hidewf F3, holidayrename F1, loadcarry C2, mvdragcarry O2/K1/P1/F1, phasearrows
+  N1/M1/F1, wfnotecolors F1 -- save/load identity cases, pre-existing on main, not this change); hdrrow, launchopen,
+  phasecolors, onecol, hdrfile, stickycols, monthwriter (notewrap) green alone; phasesui P1 was a load timeout on one
+  fixture, green on both builds re-run. Not re-run: pilllabel (shootorder) W2 and scenariocompat v1.2.0 (month pills /
+  the frozen v1.2.0 release file; neither reads the waterfall layout).
 
 ### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
