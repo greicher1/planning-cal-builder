@@ -25,6 +25,44 @@
   `noresetall` 5/5, `calzoom` 1/1, `npm run check` 42/42; measured in the pane at 1100/1121/1201/1281/1321/1440 px:
   identical boxes, no overflow. No full gate (chrome only, memory rule).
 
+### 🔨 11 Nov 2026: A TOOLBAR THAT NEVER MOVES — THE MONTH STEPPER IN THE TOOLBAR (NO TODAY), GREY PAGE BUTTONS, ONE EQUAL GAP, NAVY HEADER STATES. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in, last at `2613eb4`). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `month-toolbar-slots`, `toolbar-centre-tools`, `toolbar-fixed-while-clicking`, `header-state-navy-border`.
+- **Asks (owner, 11 Nov, in order):** split the Month→Shift space with an equal gap after Redo, both views; recommend month
+  buttons for Fill Gaps' / Side Boxes' place so the bars don't jump (mockup `mockups/toolbar-month-parity.html`: card 4, the
+  month stepper there, my pick; 4b, the page buttons standing alone, grey; Today + changer joined, then white, then Today
+  removed and the stepper larger); *"the menu should be locked where it is"*; *"is there anyway we can make it so the menu
+  also stays the same when you click into the header and the highlight tool is added?"*; then, the end gaps at 19 px, *"the
+  gap should be the same as the gaps between all the other buttons"*; mid-build *"when header is on template or manual it
+  should have the blue border around it"*; *"Yes, finish it"*.
+- **As built (every id unchanged; the engine changed in one place):**
+  - `PreviewToolbar.jsx`: `.tb-page` (no well) holds `.tb-slots` (a one-cell grid: `.tb-pair` [Fill Gaps, Side Boxes] and
+    `<MonthStepper />` stacked in it, the view not shown kept by visibility) then Header. `MonthStepper` left `.style-row`
+    (always empty now, kept for the narrow fallback's order). Fill Gaps is never `display:none` (disabled with a title where
+    `fill.visible` is false). `useFixedHeaderWidth` measures a hidden id-less copy of the Header button with each label (and
+    `is-manual` for the semibold ones) after fonts load and fixes the widest. `useStyleBarFit` now also SOLVES THE GAP: 8 items
+    (toggle, Shift, Build Around, bar, Fill Gaps, Side Boxes, Header, Undo) + 8 gaps (Redo's to the edge via
+    `.preview-tools::after`); gap = (row − items) / 8, written as `--tb-gap-fit` on `.preview-panel`; own line when
+    row < items + 8 × `--tb-gap-min` (10 px). ⚠️ A first build counted 9 gaps: the spare gap split into the end margins (19 px
+    against 12.6). ⛔ Never write it on the row (the shareable copy clones the row's attributes; sharecopy2).
+  - `MonthMap.jsx`: no Today button (no `data-mvgo` on the stepper any more).
+  - `legacy.css`: `--tb-gap: var(--tb-gap-fit, var(--tb-gap-min))` on the row; `.tb-solo` grey 34 px, radius 9, padding 10,
+    hover/open gray-2, `[data-disabled]` .45; `.tb-slots` grid; month view `.tb-pair{visibility:hidden}` (the old
+    `#tb-side-boxes-btn{display:none}` in the month view is gone: it would collapse the slot); the stepper restyled for the
+    slot (30 px, radius 7, arrows 30 px, label flex); `#tb-hdr-mode-btn.is-manual` = navy border + text on the grey (was the
+    purple chip); own-line order: host 1, `.month-map` 2, `.style-row` 3, so the bar's own line sits under the first in both views.
+  - `app.js` `syncStyleBar()`: Highlight never hidden; `is-disabled` + the picker disabled unless `look.highlight`.
+- **Measured at a 1,720 px window:** one line; every gap 14.2 px (±0.1) in both views; 0 px movement between views, on Header
+  Manual, on a header-line pick; the stepper exactly over Fill Gaps' + Side Boxes' span (193.9 px); month calendar top 254 → 210.
+  Below ~1,697 px the text bar drops to its own line.
+- **My calls (flag if the owner disagrees):** Off wears the navy outline too; the gap floor 10 px (12 did not fit the
+  owner's window with Highlight always shown and Header at its widest); grey buttons' padding back to 10 px.
+- **Proof:** `stylebarplace` rewritten, 14/14 on the build, red on `origin/main`'s (P0 P1 P2, then it cannot find the slot).
+  Partial gate `partgate-stylebar.zsh card4b` (port 8422, one Chrome at a time, on the build merged with `2613eb4`): `monthmap`
+  20/20 ×3, `textstyle` 52/52, `mvtextstyle` 23/23 + 6/6, `hdrcontrols` 12/12, `fillspace` 6/6, `sideboxes` 78/78, `calzoom`
+  26/26, `sharecopy2` pass, `anchorside` 39/39, `buildaround` 36/36, `lastedited` 22/22, `hoverexpand` 18/18, `mvnotesize` 12/12
+  alone (11/12 in the batch, N4, the Save / Load flake it showed on 10 Nov too). Fence against `origin/main`'s build: 511
+  values, no difference.
+  `npm run check` 42/42.
+
 ### 🔨 11 Nov 2026: SIM POST REORDERS LIKE ANY PHASE IN THE MONTH VIEW (frozen edit SO1). Branch `mv-order-simpost` (worktree `.claude/worktrees/mv-order-simpost`, from local `main` at `6434d4f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `mv-order-simpost-8471` in the main checkout's `.claude/launch.json`; harness ports 8473 / 8474. Committed on the branch, NOT merged, NOT pushed. Tracker card `month-reorder-simpost`.
 - **The ask (owner):** *"in month view, we should be able to reorder the position of phases including sim post, without
   sim post having to stick to production, it should be able to be reanarangged just like any other phase"*. Frozen edit
@@ -204,7 +242,7 @@
 - ⚠️ **Loading a scenario file by `?state=`** needs top-level `version: 2`, and the CURRENT tab's entry must have no
   `snapshot` key (`unpackScenarioFile`); a hand-made file without them silently boots blank.
 
-### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
+### ✅ 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. ✅ **LIVE at `5b8bac2`** (owner's picker "Push to the live site"; pushed `938577a..5b8bac2`, a fast-forward of the branch; deploy run `42942636153` green; the live `index.html` is the build byte for byte, sha256 `a6abaffa…`). Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
   button and the size selector ad there is between and the right shift button and Build around button"*, which I first
   read the wrong way (Redo and Size joined at 2 px; built, never committed) until *"no no, there should be MORE space

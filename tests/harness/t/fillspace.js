@@ -37,7 +37,9 @@ window.addEventListener('load', function () { (async function () {
   };
   var varying = function (w) { return Object.keys(w).filter(function (k) { return w[k].indexOf('/') >= 0; }); };
   function btn() { return $('tb-fill-space-btn'); }
-  function shown() { var b = btn(); return !!b && getComputedStyle(b).display !== 'none'; }
+  // Shown = visible. Since 11 Nov 2026 the switch is never display:none: the month view hides it by visibility (the month
+  // stepper takes its place), and where it does not apply yet it is greyed, not removed.
+  function shown() { var b = btn(); return !!b && getComputedStyle(b).display !== 'none' && getComputedStyle(b).visibility !== 'hidden'; }
   var written = [];
   var saveHandle = { name: 'fillspace.sptcal', kind: 'file',
     queryPermission: async function () { return 'granted'; }, requestPermission: async function () { return 'granted'; },

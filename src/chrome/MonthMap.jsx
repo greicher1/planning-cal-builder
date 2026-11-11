@@ -2,9 +2,9 @@
 // calendar with the phases drawn over them as named bars. Click a month to go there, click a phase to go to the
 // month it starts in. In the month view only; in the waterfall it renders nothing.
 //
-// MonthStepper, below, is its twin on the line under the map (owner, 28 Oct 2026, option B of
-// mockups/month-arrows.html; MONTH-RAIL-PLAN.md §18; it shared the text style bar's row until the bar moved up beside
-// Shift on 10 Nov 2026): Today and ‹ October 2026 ›, directly above the calendar. It
+// MonthStepper, below, is its twin (owner, 28 Oct 2026, option B of mockups/month-arrows.html; MONTH-RAIL-PLAN.md §18):
+// ‹ October 2026 ›. It sat on a line of its own under the map until 11 Nov 2026, when it moved into the toolbar's slot
+// (card 4b of mockups/toolbar-month-parity.html) and lost its Today button. It
 // replaced the map's own two small arrows, so there is one set of month buttons.
 //
 // It DRAWS what the engine pushes (`monthMap`, app.js "THE PHASE MAP": monthMapModel's output) and decides nothing:
@@ -143,10 +143,9 @@ export function MonthMap() {
   )
 }
 
-// Today and ‹ October 2026 ›, at the right end of its own line (the text style bar's row until 10 Nov 2026), in the
-// month view only (§18). Like the
-// map it decides nothing: the label is the model's month on screen, and the buttons hand data-mvstep / data-mvgo to
-// the engine's document listener (goToMonth, the frozen arrows' range rule).
+// ‹ October 2026 ›, in the toolbar's slot since 11 Nov 2026 (Today, and its own line under the map, went then), in the
+// month view only (§18). Like the map it decides nothing: the label is the model's month on screen, and the arrows hand
+// data-mvstep to the engine's document listener (goToMonth, the frozen arrows' range rule).
 // ⛔ No id on anything (collectFieldValues).
 export function MonthStepper() {
   const [model, setModel] = useState(null)
@@ -160,14 +159,12 @@ export function MonthStepper() {
   const onIdx = months.findIndex((m) => m.on)
   if (onIdx < 0) return null
   const prev = months[onIdx - 1], next = months[onIdx + 1]
-  const today = months.find((m) => m.today)
-  const todayTip = !today ? 'This month is outside the calendar'
-    : months[onIdx].today ? 'This month is on screen' : 'Go to this month (' + monthName(today.key) + ')'
 
+  // ⚠️ NO TODAY BUTTON since 11 Nov 2026 (owner: "get rid of the today button entirely and just make the stepper
+  // larger"). The stepper sits in the toolbar now, in the slot Fill Gaps and Side Boxes hold in the waterfall
+  // (PreviewToolbar.jsx, .tb-slots), and stretches to that slot. The phase map's month boxes still jump to any month.
   return (
     <nav className="month-step" aria-label="Step through the months">
-      <button type="button" className="ms-today" data-mvgo={today ? today.key : undefined}
-        disabled={!today || months[onIdx].today} title={todayTip}>Today</button>
       <span className="ms-group">
         <button type="button" className="ms-arrow" data-mvstep="-1" disabled={!prev} aria-label="Previous month"
           title={prev ? 'Previous month (' + monthName(prev.key) + ')' : 'This is the first month'}>‹</button>

@@ -482,7 +482,8 @@
      repaginates the month PDF (MANTINE-SEAM §5.3; the sideboxes leg holds it to the pixel). */
   .side-col[hidden]{ display:none !important; }
   body:has(#view-month-btn.active) .side-col{ display:none !important; }
-  body:has(#view-month-btn.active) #tb-side-boxes-btn{ display:none; }
+  /* ⚠️ Side Boxes is NOT display:none in the month view since 11 Nov 2026: it keeps its place in the toolbar's slot,
+     hidden by visibility with Fill Gaps (`.tb-pair`), so the month stepper takes the same width and nothing moves. */
   .side-col{ display:flex; align-items:flex-start; min-width:0; }
   /* The width handle sits on the INNER edge, the one beside the grid. */
   .side-col.side-right{ flex-direction:row-reverse; }
@@ -1631,8 +1632,12 @@
      and inside every well, the view toggle's included, 2 px of padding, 2 px between buttons and nested corners (a
      9 px well around 7 px buttons): .tb-well below. Read by useStyleBarFit too. The lines below the first (the phase
      map, the stepper, the style bar on its own line) keep their 10 px row gap. */
+  /* ⭐ ONE EQUAL GAP since 11 Nov 2026 (owner: once the space either side of the tools was 19 px, "the gap should be the
+     same as the gaps between all the other buttons"): --tb-gap is --tb-gap-fit, which PreviewToolbar's useStyleBarFit
+     solves so the first line exactly fills the row (eight gaps, Redo's to the edge included) and writes on
+     .preview-panel; never under --tb-gap-min. Until it is solved, and while the text bar has its own line, the minimum. */
   .view-toggle-row{display:flex; align-items:center; justify-content:space-between; column-gap:var(--tb-gap); row-gap:10px;
-    flex-wrap:wrap; margin-bottom:14px; --tb-gap:12px;}
+    flex-wrap:wrap; margin-bottom:14px; --tb-gap-min:10px; --tb-gap:var(--tb-gap-fit, var(--tb-gap-min));}
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1673,6 +1678,11 @@
      100%, nothing wraps, and the appearance is byte-identical to before. */
   .preview-tools{display:inline-flex; align-items:center; column-gap:var(--tb-gap); flex:none;
     flex-wrap:wrap; row-gap:8px; max-width:100%;}
+  /* The gap after Redo, to the toolbar's edge: a zero-width last item takes one --tb-gap (11 Nov 2026). The auto margin
+     after it pairs with the date tools' before Shift; with the gap solved they are ~0, and while the text bar has its
+     own line they split what is left evenly either side of the tools (owner, 11 Nov 2026). */
+  .preview-tools::after{ content:''; flex:none; width:0; }
+  .view-toggle-row > .preview-tools{ margin-right:auto; }
   /* THE WELLS (variation 27). The view toggle's grey ground, padding and gap, around each section's buttons. The text
      style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
      a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
@@ -1696,10 +1706,27 @@
   /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
      the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
      white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */
-  .undo-redo-group .icon-btn, .tb-page > .tools-btn{ border-color:transparent; background:transparent; }
-  .undo-redo-group .icon-btn:hover:not(:disabled), .tb-page > .tools-btn:hover, .tb-page > .tools-btn[aria-expanded="true"]{
-    background:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs);
+  .undo-redo-group .icon-btn{ border-color:transparent; background:transparent; }
+  .undo-redo-group .icon-btn:hover:not(:disabled){ background:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); }
+  /* THE PAGE TOOLS STAND ALONE (owner, 11 Nov 2026, card 4b: "their own buttons again and not connected together", then
+     "they should have grey backgrounds not white"): Fill Gaps, Side Boxes and Header each a grey button the wells'
+     height and corners, no border, --tb-gap apart; hover or open, a shade darker. Fill Gaps greys where it doesn't apply
+     yet rather than leaving (its place never empties). Header: Manual / Template keeps its purple (an id rule). */
+  .tb-page{ display:inline-flex; align-items:center; gap:var(--tb-gap); flex:none; }
+  .tb-page .tb-solo{
+    height:34px; border-color:transparent; background:var(--mantine-color-gray-1);
+    border-radius:calc(var(--mantine-radius-default) + 2px); padding:0 10px !important;
+    justify-content:center;   /* Header's fixed width is its longest label's: a shorter one sits centred in it */
   }
+  .tb-page .tb-solo:hover:not([data-disabled]), .tb-page .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-2); }
+  .tb-page .tb-solo[data-disabled]{ opacity:.45; cursor:default; background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  /* THE SLOT: Fill Gaps + Side Boxes in the waterfall, the month stepper in the month view, in ONE grid cell, so the
+     cell is the wider of the two in both views and Header, Undo and Redo never move when you switch (owner, 11 Nov
+     2026: "the menu should be locked where it is"). The view not shown keeps its size, hidden by visibility. */
+  .tb-slots{ display:grid; flex:none; align-items:center; }
+  .tb-slots > *{ grid-area:1 / 1; }
+  .tb-pair{ display:inline-flex; align-items:center; gap:var(--tb-gap); }
+  body:has(#view-month-btn.active) .tb-pair{ visibility:hidden; }
   .undo-redo-group .icon-btn{font-size:16px;}
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:transparent;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
@@ -1793,10 +1820,11 @@
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
      as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
      outranks Mantine's layered Button background without !important. */
-  #tb-hdr-mode-btn.is-manual{
-    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:600;
-  }
-  #tb-hdr-mode-btn.is-manual:hover{ background:var(--edit-accent); color:var(--mantine-color-white); }
+  /* Since 11 Nov 2026 the states wear the date tools' NAVY OUTLINE on the button's own grey (owner: "when header is on
+     template or manual it should have the blue border around it"); Off too, the other non-Auto state. Until then they
+     were the purple edit-accent chip. The border was always there, transparent, so the state changes no size. */
+  #tb-hdr-mode-btn.is-manual{ border-color:var(--mantine-color-navy-6); color:var(--mantine-color-navy-6); font-weight:600; }
+  #tb-hdr-mode-btn.is-manual:hover, #tb-hdr-mode-btn.is-manual[aria-expanded="true"]{ background:var(--mantine-color-gray-2); }
   #tb-hdr-mode-btn.is-manual .caret{ color:inherit; }
   /* Extra space between the shifting tools and the Header button, so the four tools read as one
      group and the Header button as something else (owner, 30 Sep 2026). It is a margin on Rebuild
@@ -3232,28 +3260,29 @@
   .month-map .mm-month.on.today::after{ background:#fff; }
   .month-map button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
 
-  /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): Today and ‹ October 2026 › at the right
-     end of the style bar's line, in the month view only. The map's own small arrows went with it. As tall as the
+  /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): ‹ October 2026 ›, in the month view only
+     (until 11 Nov 2026 Today and ‹ October 2026 › on a line of their own under the map). The map's own small arrows went with it. As tall as the
      style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move.
      The arrows are filled with the header's Export PDF navy (owner, 30 Oct 2026: the colour only, the shape stays),
      with its hover shade and a white arrow; their focus ring is white so it shows on the navy. */
-  .month-step{ flex:none; display:flex; align-items:stretch; gap:6px; height:34px; margin-left:auto; }
-  .month-step .ms-today, .month-step .ms-group{
-    box-sizing:border-box; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
-    background:#fff;
+  /* ⚠️ SINCE 11 NOV 2026 it sits in the toolbar's slot (.tb-slots, card 4b of mockups/toolbar-month-parity.html) and
+     stretches to it: the width Fill Gaps, the gap and Side Boxes take in the waterfall. Today went (owner: "get rid of
+     the today button entirely and just make the stepper larger"), and so did its own line. 30 px tall, the height of
+     the toolbar's other white controls (Shift, Build Around). */
+  .month-step{ display:flex; align-items:stretch; height:var(--input-height-xs, 30px); min-width:0; }
+  .tb-slots > .month-step{ justify-self:stretch; align-self:center; }
+  .month-step .ms-group{
+    flex:1 1 auto; min-width:0; display:inline-flex; align-items:stretch; overflow:hidden; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default); background:#fff;
   }
-  .month-step .ms-today{ padding:0 12px; font-size:12px; font-weight:600; color:var(--accent); cursor:pointer; }
-  .month-step .ms-group{ display:inline-flex; align-items:stretch; overflow:hidden; }
   .month-step .ms-arrow{
-    width:34px; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    width:30px; flex:none; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
     font-size:19px; line-height:1; cursor:pointer;
   }
   .month-step .ms-label{
-    min-width:132px; padding:0 10px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+    flex:1 1 auto; min-width:0; padding:0 8px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
-    border-left:1px solid var(--mantine-color-gray-2); border-right:1px solid var(--mantine-color-gray-2);
   }
-  .month-step .ms-today:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
   .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
   .month-step button:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
@@ -3332,7 +3361,10 @@
      owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
      it did. */
   .view-toggle-row > .style-bar-host.style-own-line{ order:1; flex:1 1 260px; min-width:0; margin:0; }
-  .view-toggle-row > .style-bar-host.style-own-line ~ .style-row{ order:2; flex:0 1 auto; }
+  /* The phase map and the (empty) stepper line come after it, so the text bar's own line sits directly under the first
+     line in BOTH views (11 Nov 2026: the stepper is in the toolbar now, and the bar must not move between views). */
+  .view-toggle-row > .month-map{ order:2; }
+  .view-toggle-row > .style-row{ order:3; }
   /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
      so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
   .view-toggle-row:not(:has(> .month-map)) > .style-bar-host.style-own-line{ flex-basis:100%; }

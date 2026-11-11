@@ -41,6 +41,33 @@ undo step, grey while the bars are already in date order. The menu item and the 
 12/12 with N0 now comparing the three slots' boxes across views, `mvordersp`, `colsreset`, `noresetall`, `calzoom` and
 `npm run check` green; no header overflow at 1100–1440 px.
 
+### Unreleased — A toolbar that never moves: the month stepper in the toolbar, one equal gap (11 Nov 2026)
+
+The owner asked for the toolbar to stay put: *"the menu should be locked where it is and all buttons that are the same
+should stay exactly where they are"*, and *"I don't like the menu changing as you click around"*. Built from card 4b of
+`mockups/toolbar-month-parity.html` (kept in the repo) after several rounds there.
+
+- **The month stepper moves into the toolbar.** In the month view, ‹ October 2026 › sits where Fill Gaps and Side Boxes sit
+  in the waterfall, exactly as wide, so nothing to its right moves when you switch views. Its own line under the phase map
+  is gone (the month calendar starts about 44 px higher), and so is its Today button (owner: *"get rid of the today button
+  entirely and just make the stepper larger"*); the phase map's months still jump straight to any month.
+- **Fill Gaps, Side Boxes and Header are each their own grey button** again, no shared box.
+- **One equal gap.** Every gap on the first line is the same, Month to Shift and Redo to the edge included, and together they
+  fill the toolbar (about 14 px on a 1,720 px window; on a wider window they all grow together; never under 10 px).
+- **Nothing changes size as you click around.** Highlight is always in the text buttons, greyed until you pick a header or
+  side-box line; the Header button keeps the width of its longest label whatever its mode; Fill Gaps greys out where it
+  doesn't apply yet instead of disappearing.
+- **Header on Template, Manual or Off wears the navy outline** (owner: *"it should have the blue border around it"*),
+  replacing the purple.
+
+Below about a 1,700 px window the text buttons drop to their own line directly under the first, in both views.
+
+**Verified:** `stylebarplace` rewritten (14 cases: the order, eight equal gaps, nothing moving on a header-line pick, on
+Header Manual or between views, the stepper over the slot with no Today, the narrow fallback in both views, the looks),
+red on the build before it; `monthmap` C0 / C3, `textstyle` H1, `mvtextstyle` B1, `sideboxes` M1 and `fillspace` updated;
+the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference. Measured by hand at 1,720 px: every gap
+14.2 px in both views, 0 px of movement across view switches, Header modes and picks.
+
 ### Unreleased — Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
 
 Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having

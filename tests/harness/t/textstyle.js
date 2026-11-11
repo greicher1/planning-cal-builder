@@ -332,7 +332,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- H: header lines ----------------------------------------------------------------------------
     var c2 = q('#table-wrap .cal-header-bar .hdr-line[data-hid="c2"]') || q('#table-wrap .cal-header-bar .hdr-line[data-hid="c1"]');
     c2.click(); await settle();
-    check(armed() && hiCount() === 0 && !q('.hf-swatch-hl', b).hidden, 'H1 a header line arms the bar, clears the grid highlight, and offers Highlight');
+    check(armed() && hiCount() === 0 && !q('.hf-swatch-hl', b).hidden && !q('.hf-swatch-hl', b).classList.contains('is-disabled'), 'H1 a header line arms the bar, clears the grid highlight, and offers Highlight (no longer greyed)');
     var hopts = qa('.hf-size option', b).map(function(o){ return o.value; }).join(',');
     check(hopts === ',8,9,10,11,12,13,14,16,18,22', 'H2 a waterfall header line keeps its own size list (' + hopts + ')');
     await press('.hf-i');
