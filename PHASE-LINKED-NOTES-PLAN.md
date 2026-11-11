@@ -253,6 +253,14 @@ Each has a recommendation. The mockup shows R1, R2, R3 and R7 working.
 
 ---
 
+- **R10. A linked note shown in the month view only** (asked 10 Nov 2026, step 5: the plan never said how a linked note
+  remembers "Month view only"). ✅ **RULED (a), owner's picker, *"Own switch per view"*:** one switch per view, saved as
+  `sheetHidden: true` (hidden from the waterfall), the twin of `monthHidden`. The month editor's "Show in waterfall" and
+  the waterfall editor's "Show in month view" both work on any linked note. A note linked from the month view starts
+  with `sheetHidden`. (b), "linked = both views" with no new word, was not taken.
+
+---
+
 ## 3. Defaults taken (no ruling needed; say if any should change)
 
 - **D1. n is the phase's own working-week count from 1, not its label's number.** They differ only for Post while Sim

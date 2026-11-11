@@ -118,6 +118,17 @@
     - ✅ **Full gate on the step-4 build: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
   - **Next, step 5:** the month view draws linked notes (`mvWfLinesFor`), gets the editor row (R8(a)) and the line
     drag (`moveWfLine`, §4.6's last bullet, by day).
+- 🔨 **STEP 5 (the month view) BUILT AS WIP, 10 Nov 2026** (owner: *"keep going with step 5"*), commit `be5459a` on
+  `phase-notes`, after merging `origin/main` (v1.12.1 + the Shift list + layout rules 22-23) in as `0a3366d`. Handed to the
+  owner to try at `http://localhost:8961/dist/index.html?state=phasenotes` (launch entry `phase-notes-8961`); legs, Help,
+  docs and the full gate wait for *"finish it"* (memory: try in the browser before finishing).
+  - ✅ **RULED R10(a)** (owner's picker, 10 Nov 2026, *"Own switch per view"*): a linked note can be hidden from the
+    waterfall, saved as `sheetHidden: true` (a NEW permanent field word, the twin of `monthHidden`). A note linked from
+    the month view starts with it, as a month note starts out of the waterfall. `waterfall` (the plan's earlier word) is
+    unused.
+  - ⚠️ **Open, to raise with the owner:** a phase week holds ONE note with one day, so two month notes linked to the same
+    (non-Production) phase week on different days share the first one's day. Production avoids it by following shoot
+    days in the month view (R4(b)). The hint says so when it happens.
 - **Asked:** *"we do need a way to link certain notes to certain weeks relative to a phase. So basically link a certain
   note you write to a certain phase. Thoughts?"* It came out of the one Shift tool: a "This phase only" Shift choice
   was not needed, but typing a phase's start date leaves its notes behind.
