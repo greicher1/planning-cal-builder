@@ -2108,6 +2108,12 @@ done
 # stays one wide), "Pull back?" clearing a run of per-cell widths or turning a fill wish off, one undo step each, and the
 # chip keeping 4px clear of the Swap Column button on a column's top cell ("ok except when these buttons collide").
 # Never with cells highlighted, in the Month view or on an unstamped calendar. H4 red on the build before the step-aside.
+# swapbtnwhere (owner, 10 Nov 2026, a screenshot of Swap Column on Production beside Sim Post: "it shouldn't show up
+# anywhere it doesnt make sense", e.g. "only one collumn for a phase's entire span") hovers every kind of block on
+# swapbtn-simpost-shared.sptcal: Writer's Rm alone in its column, Production beside Sim Post with only Notes beyond, 2027's
+# lone Post (no button on any), Prep sharing two weeks with Design (button, and its click draws a knob), then Production's
+# block selected by hand (no knob: the old "Move Production into the free column" swapped Design and Prep instead).
+# W1, W2 and W5 red on the build before (stintOffers, followRunFor's Production step-over and follow-stays).
 # newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
 # the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
 # info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
@@ -2198,6 +2204,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               stickycols:sticky-cols:400 \
               centrepullback:layout-r13:240 \
               hoverexpand:hover-expand:300 \
+              swapbtnwhere:swapbtn-simpost-shared:120 \
               comparehiatus:compare-hiatus:240 \
               phasesui:hidewf:1500 \
               stylebarplace:fill-intent:300; do

@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Swap Column shows only where a swap can happen (11 Nov 2026)
+
+Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't
+show up at all here"*, then *"it shouldn't show up anywhere it doesnt make sense"*, e.g. *"places where theres only one
+collumn for a phase's entire span"*. The hover button was drawn whenever the year had a second column, and next to
+Production that column was Sim Post's own; a phase alone in its column for its whole run passed the same test. Now the
+button asks the swap knob's own evaluator, with the block selected, whether either direction would offer a swap
+(`stintOffers`, cached per block against the layout), so it appears exactly where its click leads to a knob. Found on
+the way: the knob itself offered *"Move Production into the free column, after Prep"* into Sim Post's column, and the
+move left Production where it was and swapped Design and Prep instead. Production now steps over its own Sim Post lane
+even when that lane is shared, and a move whose trial leaves the phase in its column is refused. One sentence in the
+Help. Verified: new leg `swapbtnwhere` 7/7 (W1, W2, W5 red on the build before); `calzoom` W6 now hovers a block that
+swaps and measures from its first cell, 26/26; the swap sections of `gate.sh` (colswap through stintreshape, onecol,
+colreuse, and the Sim Post / swap legs of the generic list) on the final build 371 / 1, the one `hoverexpand`, whose
+`load()` raced the file landing (red 1 in 4 on main too): it now waits for the file's name, 4/4; `npm run check`
+42/42; browser check with the real pointer.
+
 ### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
 
 Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch

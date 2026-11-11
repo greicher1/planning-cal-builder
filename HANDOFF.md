@@ -4,6 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN — finished on branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`, `origin/main` `27b0b5e` merged in cleanly; its `node_modules` is a symlink, unlink it before `git worktree remove`). Not merged into `main`, not pushed. Tracker card `swap-column-only-where-it-swaps`.
+- **The ask (owner, a screenshot):** the hover button "Swap Column" on Production with Simultaneous Post beside it and
+  only the Notes column beyond (the purple cells right of Sim Post were automatic notes) — *"this swap column button
+  shouldn't show up at all here"*; then *"In fact it shouldn't show up anywhere it doesnt make sense. For example its
+  also showing up in places where theres only one collumn for a phase's entire span."*
+- **Why it showed:** `drawStintButton` tested only that the year had an `s1` column. Sim Post's lane is that column
+  beside Production, and a phase alone (full width) for its whole run passes the same test.
+- ⭐ **As built (`app.js`, none of it frozen):**
+  - `stintOffers(year, phaseKey)`: puts the block's cells in `gridSel` (anchor its first week), asks `swapEvalDir(-1)`
+    and `(1)` — the knob's own evaluator, fallbacks and column-reuse moves included — and restores the user's
+    selection in a `finally`. The button shows iff either passes, so it shows exactly where a knob follows its click.
+    Cached in `_stintOffer` against `year | phaseKey | singleColumn | swapLayoutKey()`; 200 entries, then cleared.
+  - `swapLayoutKey()` is `swapCandKey()`'s selection-free half, split out so the knob cache and the button cache share
+    one definition of "the layout changed".
+  - Cost, measured in the pane: 2-9 ms the first time the pointer reaches a block after a change (a render is ~20 ms),
+    then a lookup. The first hovers after a load ran 23-142 ms while the code warmed up. Synchronous on purpose, like
+    the hover handler: a timer would also break legs that check the button 80 ms after a hover (`stintbtn`).
+  - ⚠️ **Found on the way, in `followRunFor`:** with Sim Post's lane SHARED (a phase from before the shoot used that
+    column), the knob offered *"Move Production into the free column, after Prep"* into the lane, and the placement
+    honoured the follow by swapping Design and Prep while Production stayed put (the blue knob in the owner's
+    screenshot). Now Production steps over its own lane whether or not it is `inserted`, and a move whose trial puts
+    the phase's first week of the block in its current column is refused, reason `follow-stays` ("X would stay in its
+    column, so there is nothing to move").
+- **Help:** one sentence in "Swapping two phases' columns": hover a phase and click Swap Column at the top of its run;
+  the button appears only on a phase that has something to swap with.
+- **Proof:** new leg **`swapbtnwhere` 7/7** on the synthetic `tests/fixtures/swapbtn-simpost-shared.sptcal` (in
+  gate.sh's generic list), W1, W2 and W5 red on a build of `27b0b5e` without the fix. `calzoom` W6 hovered the 5th
+  phase cell on `mvnotes`, which is Writer's Rm alone in its column (the owner's second example): it now walks to the
+  first cell whose block draws the button and stays on screen at 150%, and measures the button from that block's
+  first cell (the rows above re-wrap at 150%), 26/26. The swap sections of gate.sh assembled into one run (colswap
+  through stintreshape, onecol, colreuse, calzoom, and noswapbtns, colswappartial x2, swapsplitreuse, spanhint,
+  monthlayout on colswap-simpost-refuse, simpostdays, colswapcache, simpostbeside, phasefill, colsreset, swapholds,
+  stickycols, centrepullback, hoverexpand, layoutrules r20 + r3b) on port 8419: **357 PASS / 3 FAIL** — `phasefill`
+  and `hoverexpand` timed out under load and are 13/13 and 18/18 alone; `calzoom` W6 is the re-expectation above.
+  Seen in the browser pane with the real pointer: no button on Production or Writer's Rm, the button on Prep.
+- **On the final build** (`origin/main` `27b0b5e` merged in, the Help sentence, dist sha256 `33005613…`):
+  `npm run check` 42/42; the same swap sections re-assembled from the updated gate.sh, `swapbtnwhere` included, port
+  8437: **371 PASS / 1 FAIL**, the one `hoverexpand` H6 timing out in `load()`.
+  - ⚠️ **`hoverexpand` had a race of its own, now fixed in the leg.** `T.openViaFakePicker` settles when the app CALLS
+    the picker, before the file is read and applied, which took 0.1 s to over 8 s in headless Chrome. `load()` checked
+    the view after a fixed 400 ms, so the old calendar's waterfall could still be up; Waterfall was not clicked, the
+    loaded `anchorside` calendar then arrived in its saved Month view, and the grid never settled. Measured
+    interleaved, the unmodified leg was red 1 run in 4 on `origin/main` and 2 in 4 on the branch. `load()` now waits
+    for the loaded file's name in the file menu first: **4/4 green** on the final build. ⚠️ Any other leg that loads
+    through `openViaFakePicker` and then reads the screen after a fixed sleep has the same race.
+- **Not done:** no full gate (nothing here reaches a grid cell, an export or a saved file: the overlay and which
+  swap is offered). Merge and push wait on the owner's pickers.
+
 ### ✅ 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
 - Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
 - **Stacked on `compare-hiatus-start`** (rebased 11 Nov 2026; only the README / HANDOFF top entries conflicted, both kept). Combined build: `npm run check` 42/42, `comparehiatus` 8/8.
