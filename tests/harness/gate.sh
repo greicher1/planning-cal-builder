@@ -1957,6 +1957,10 @@ done
 # buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
 # shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
 # week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
+# buildaroundfresh (owner's report, 11 Nov 2026) is Build Around's FIRST run on a brand-new calendar: nothing dated,
+# so computeSchedule returns no `hiatuses`, and the backward pass must still count the default winter break
+# (hiatusRangesForSolve reads the rows). Writer's Rm 20 wks before Pre Prep 4/26/27 = 11/23/26; red (F1-F3) on the old
+# build, which gave 12/7/26 and ran the room two weeks into Pre Prep until a second Build.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2183,6 +2187,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               buildaround:-:600 \
               anchorside:anchorside:400 \
               buildalongside:anchorside:200 \
+              buildaroundfresh:-:120 \
               phasearrows:phasearrows:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \

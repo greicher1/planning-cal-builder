@@ -31811,11 +31811,24 @@ export function initLegacyApp() {
     return (w > 0) ? w : null;
   }
 
-  // Hiatus ranges as computeSchedule builds them, but readable from outside it: the global list off
-  // the last computed schedule, and the per-phase ones straight from their fields (a phase with no
-  // start date yet has no segment to read them from).
+  // Hiatus ranges as computeSchedule builds them, but readable from outside it: the global list and
+  // the per-phase ones both straight from their rows, by computeSchedule's own rule (start, weeks > 0,
+  // a parseable date; Monday-snapped, weeks * 7 days).
+  // ⛔ NOT off currentSchedule.hiatuses (fixed 11 Nov 2026, owner's report). computeSchedule returns
+  // no `hiatuses` at all while no phase has a date, so on a NEW calendar the first Build Around's
+  // backward pass saw no winter break: Writer's Rm was placed 20 calendar weeks before Pre-Prep, the
+  // break then paused it, and it ran two weeks into Pre-Prep. A second Build (the calendar now
+  // computed) came out right, which is what made it look like a first-use-only fault.
   function hiatusRangesForSolve(){
-    const global = ((currentSchedule && currentSchedule.hiatuses) || []).slice();
+    const global = [];
+    document.querySelectorAll('.hiatus-entry').forEach(el=>{
+      const sEl = el.querySelector('.hiatus-start'), wEl = el.querySelector('.hiatus-weeks');
+      const pd = sEl ? parseDateUTC(sEl.value) : null;
+      const wk = wEl ? parseInt(wEl.value, 10) : NaN;
+      if(!pd || !(wk > 0)) return;
+      const start = mondayOf(pd);
+      global.push({start, end: addDays(start, wk * 7)});
+    });
     const own = {};
     getAllPhaseDefs().forEach(p=>{
       const en = document.getElementById('phiatus-en-' + p.key);

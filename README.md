@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
+
+Owner's report: on a new file, Build Around with every phase ticked put Writer's Rm two weeks into Pre-Prep, but only
+the first time. The second time Writer's Rm opened unticked, and ticked and built again it chained correctly. The
+backward pass, which places the phases before the pin, read the all-phase hiatuses off the last computed schedule, and
+a calendar with no phase dated has no schedule. So the first run never saw the default 12/21/26 break: Writer's Rm got
+20 plain weeks before Pre-Prep (12/7/26), the break then paused it, and it ended 5/7/27. `hiatusRangesForSolve()` now
+reads the hiatus rows directly, by the scheduler's own rule, as it already did for each phase's own hiatus. "Ends by"
+shares the function and is fixed with it; Production was never affected (it runs the real scheduler). New leg
+`buildaroundfresh` (in the gate): Writer's Rm 20 wks before Pre-Prep 4/26/27 lands 11/23/26 → 4/23/27 on the first
+Build and the preview says so; red F1–F3 on the old build. Verified: `buildaroundfresh` 5/5, `buildaround` 36/36,
+`rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `overrides` 20/20 and `snaptools` 14/14
+(`dayoverrides`), `customunits` and `builtindates` live and restored.
+
 ### Unreleased — "Reset Notes" reads "Reset Waterfall Notes" (11 Nov 2026)
 
 Owner: *"make it say "Reset Waterfall Notes""*. The Waterfall's notes reset now names its view, as the Month view's
