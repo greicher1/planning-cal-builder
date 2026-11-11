@@ -46,6 +46,30 @@ colreuse, and the Sim Post / swap legs of the generic list) on the final build 3
 `load()` raced the file landing (red 1 in 4 on main too): it now waits for the file's name, 4/4; `npm run check`
 42/42; browser check with the real pointer.
 
+### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+
+The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
+its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*.
+
+- **The hover prompt** now reads a phase's own hiatus band as part of the phase. Resting beside the band offers
+  **Expand?**, the dashed box runs through the hiatus weeks (one box from Test wk 8 through both Test Hiatus weeks to
+  wk 9, "these 4 weeks"), and the click widens the hiatus weeks with the rest. A widened band offers **Pull back?**.
+  Before, a blank beside a band offered nothing and the box stopped at the band.
+- **The double-click fill** widens the band too when the free column is on its left (⛔ frozen edit LR8 in
+  `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
+  between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
+  the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- **Expand? on both sides** (owner, trying it: *"once i expand one side, the box no longer pops up on the other side
+  empty space"*): a cell already widened to one side still offers Expand? on the blank on its other side, and the click
+  keeps the side it has. Before, the first Expand? took the other side's offer away.
+- Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
+
+**Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out
+byte for byte as before; the waterfall PDF and the workbook identical to their baselines; the 20 layout fixtures,
+`phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
+`offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
+42/42. No full gate (a partial gate of gate.sh's sections).
 ### Unreleased — Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
 
 Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch

@@ -52,6 +52,41 @@
 - **Not done:** no full gate (nothing here reaches a grid cell, an export or a saved file: the overlay and which
   swap is offered). Merge and push wait on the owner's pickers.
 
+### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
+- **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
+  including its per phase hiatus should operate as one single block where the expand box would span the length of the
+  entire phase including the hiatus"*. LR8 by picker: *"Yes, make the edit"* (asked with the gate below).
+- **Found in the pane** (fixture `hover-hiatus.sptcal`: Test wk 8, Test Hiatus ×2, Test wk 9 in 7/7-7/28/31, a blank on
+  the left of each): no prompt beside a band; the box beside wk 8 one week tall; the double-click fill widened wk 8 and
+  wk 9 and left both bands one wide (frozen `computePhaseRowLayout`'s left-absorb excluded bands; the rightward walk
+  already honoured the wish for them; LAYOUT-RULES rule 16 says a band is as wide as its phase would be).
+- **Built:** (1) chrome, `isPhaseTd` in the hover prompt takes a band carrying the span contract, so Expand? / Pull back?
+  run through and act on band weeks (`cellSpans` keys a band as it keys its phase's cells); (2) ⛔ **frozen edit LR8**: in
+  the left-absorb branch a band absorbs the empty run on its left only when its phase fills (`fillsFree(n)`), pushed as
+  a band. No wish, or unstamped: unchanged. (3) Help: one sentence at the end of "How far a cell reaches".
+- **Proof** (final build `dist/index.html` sha256 `0cf76e32…`, Help sentence included):
+  - `hoverhiatus` 13/13; 8/13 (B4a-e red) on the build without LR8, 3/13 on `origin/main`'s build.
+  - The 15 pictures: all 30 engine dumps byte-identical before / after (98.1% / 31 / 0). None carries a fill wish.
+  - Partial gate `tests/harness/partgate-hoverhiatus.zsh` (gate.sh's base / waterfall PDF / seams / Excel sections +
+    offweek + the 20 layout fixtures + phasefill, colsreset, fillspace, swapholds, stickycols, centrepullback,
+    hoverexpand, hoverhiatus, phiatusnum, hiatusripple; port 8466), run on the build before the Help sentence, load
+    average 85-110 from other sessions' gates: **284 PASS / 11 FAIL**. Waterfall PDF identical to its baseline (date
+    stamp only), Excel parts identical, no seams, 0 clipped. The 11 were all load: `offweek (offweek)` R12 (10 s Load
+    wait) + the six R13 after it, `layout-r22c` and `colsreset` no result, `fillspace` EX, `phiatusnum` H14 (Load wait).
+  - **Re-run alone on the final build: all green**: `layoutrules (layout-r22c)` 3/3, `colsreset` 8/8, `fillspace` 6/6,
+    `phiatusnum` 18/18 (an earlier alone run at load 172 timed out on Save / Load waits only, H11 H13-H16; the
+    `origin/main` control run under that load produced no result at all), `offweek (offweek)` 42/42, `hoverhiatus` 13/13.
+  - `npm run check` 42/42. The month view never calls `computePhaseRowLayout`: gates 10 / 13 not run.
+- **No full gate** (a partial gate assembled from gate.sh's sections instead, as for v1.11.0).
+- ⭐ **Follow-up, 11 Nov 2026** (owner, trying the build, on Test wk 1 with a blank each side: *"once i expand one side,
+  the box no longer pops up on the other side empty space"*): `hoverPromptFor` refused a blank beside a cell with a
+  per-cell width, and the run broke at one. Both guards removed; the click keeps the side already taken. Leg
+  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right). Re-checked on the new build: `hoverexpand`
+  18/18 (on a fresh port; on port 8466 it threw in H6's Load twice, and the build BEFORE the fix throws there the same
+  way, so not this change), `centrepullback` 12/12, `phasefill` 13/13, `npm run check` 42/42.
+- ⏭ **Left:** the owner tries `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
+  `hover-hiatus-8463`; its origin's crash backups from my test clicks are deleted); then the push picker. Not pushed;
+  local `main` not moved.
 ### ✅ 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
 - Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
 - **Stacked on `compare-hiatus-start`** (rebased 11 Nov 2026; only the README / HANDOFF top entries conflicted, both kept). Combined build: `npm run check` 42/42, `comparehiatus` 8/8.
