@@ -45,6 +45,124 @@ again: two wide), red on the build before it, in the gate's AFSPEC list. `npm ru
 pictures go from 98.1% to 94.3% with Fill Gaps on (62 width misses, all Pre-Prep / Prod Prep beside Writer's Rm in
 hand-02, -03, -04 and -09, which draw it one wide): the change the owner asked for. Full gate: see HANDOFF.
 
+### Unreleased — Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
+
+Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and
+DD/MM/YY"*. Settings › Preferences › Waterfall now holds Single Column Mode, Dates and Hidden Notes columns. Paper and
+Grid Lines in Exports are chosen only in the Export PDF dialog, which already set the same saved paper and the same
+grid-lines preference, so Export to Excel follows it as before. Dates lists the four formats in the owner's order,
+named by pattern; the output stays unpadded (owner's picker), so MM/DD/YY is still the default 1/6/25 and every
+existing calendar looks as it did. Day first reads 6/1/25 or 6/1/2025 on screen, in the PDF, and in Excel as real
+dates in `d/m/yy` / `d/m/yyyy`. Two new permanent `dateFormat` values, `d/m/yyyy` and `d/m/yy`; an older build drops
+them and opens the calendar month first. The legs that drove the removed menus now go through the dialog
+(`T.pdfDialogPick` in `t/lib.js`), and `hdrrow` gains D6–D8 for day first. Verified: `hdrrow` 40/40, `settingswin`
+21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12 (its gate timeout raised to 1000 s: choosing a paper now exports a PDF), `prefs`, `sharecopy2`,
+`npm run check` 42/42. No full gate: nothing frozen, and the default output is unchanged.
+
+### Unreleased — Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
+
+Owner's report: on a new file, Build Around with every phase ticked put Writer's Rm two weeks into Pre-Prep, but only
+the first time. The second time Writer's Rm opened unticked, and ticked and built again it chained correctly. The
+backward pass, which places the phases before the pin, read the all-phase hiatuses off the last computed schedule, and
+a calendar with no phase dated has no schedule. So the first run never saw the default 12/21/26 break: Writer's Rm got
+20 plain weeks before Pre-Prep (12/7/26), the break then paused it, and it ended 5/7/27. `hiatusRangesForSolve()` now
+reads the hiatus rows directly, by the scheduler's own rule, as it already did for each phase's own hiatus. "Ends by"
+shares the function and is fixed with it; Production was never affected (it runs the real scheduler). New leg
+`buildaroundfresh` (in the gate): Writer's Rm 20 wks before Pre-Prep 4/26/27 lands 11/23/26 → 4/23/27 on the first
+Build and the preview says so; red F1–F3 on the old build. Verified: `buildaroundfresh` 5/5, `buildaround` 36/36,
+`rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `overrides` 20/20 and `snaptools` 14/14
+(`dayoverrides`), `customunits` and `builtindates` live and restored.
+
+### Unreleased — "Reset Notes" reads "Reset Waterfall Notes" (11 Nov 2026)
+
+Owner: *"make it say "Reset Waterfall Notes""*. The Waterfall's notes reset now names its view, as the Month view's
+"Reset Month Notes" does; what it clears is unchanged. The button keeps one width in both views (its hidden twin label
+updated), and the header still fits at 1100–1321 px with no overflow. Verified: `hdrcontrols` 12/12, `noresetall`,
+`calzoom`, `npm run check` 42/42.
+
+### Unreleased — The header holds still between the views; Reset Bar Order (11 Nov 2026)
+
+Owner: *"I also want this top menu not to shift around when you toggle between waterfall/month view"*. Export PDF, the
+notes reset and the last button now sit in the same box in both views: each view-dependent button is as wide as the
+wider of its two labels (a hidden `::after` ghost of the other label, so no label's text changes), and the Month view's
+Export PDF keeps its label at every width as the Waterfall's does. The Month view gets **Reset Bar Order** (the owner's
+name, picked from four) in Reset Columns' slot: every bar back in date order, the bar menu's "Back to date order", one
+undo step, grey while the bars are already in date order. The menu item and the button share one test
+(`mvOrderIsCustom()`). Verified: `mvorder` 31/31 with new case O9 (a real drag, a real click, one undo), `hdrcontrols`
+12/12 with N0 now comparing the three slots' boxes across views, `mvordersp`, `colsreset`, `noresetall`, `calzoom` and
+`npm run check` green; no header overflow at 1100–1440 px.
+
+### Unreleased — A toolbar that never moves: the month stepper in the toolbar, one equal gap (11 Nov 2026)
+
+The owner asked for the toolbar to stay put: *"the menu should be locked where it is and all buttons that are the same
+should stay exactly where they are"*, and *"I don't like the menu changing as you click around"*. Built from card 4b of
+`mockups/toolbar-month-parity.html` (kept in the repo) after several rounds there.
+
+- **The month stepper moves into the toolbar.** In the month view, ‹ October 2026 › sits where Fill Gaps and Side Boxes sit
+  in the waterfall, exactly as wide, so nothing to its right moves when you switch views. Its own line under the phase map
+  is gone (the month calendar starts about 44 px higher), and so is its Today button (owner: *"get rid of the today button
+  entirely and just make the stepper larger"*); the phase map's months still jump straight to any month.
+- **Fill Gaps, Side Boxes and Header are each their own grey button** again, no shared box.
+- **One equal gap.** Every gap on the first line is the same, Month to Shift and Redo to the edge included, and together they
+  fill the toolbar (about 14 px on a 1,720 px window; on a wider window they all grow together; never under 10 px).
+- **Nothing changes size as you click around.** Highlight is always in the text buttons, greyed until you pick a header or
+  side-box line; the Header button keeps the width of its longest label whatever its mode; Fill Gaps greys out where it
+  doesn't apply yet instead of disappearing.
+- **Header on Template, Manual or Off wears the navy outline** (owner: *"it should have the blue border around it"*),
+  replacing the purple.
+
+Below about a 1,700 px window the text buttons drop to their own line directly under the first, in both views.
+
+**Verified:** `stylebarplace` rewritten (14 cases: the order, eight equal gaps, nothing moving on a header-line pick, on
+Header Manual or between views, the stepper over the slot with no Today, the narrow fallback in both views, the looks),
+red on the build before it; `monthmap` C0 / C3, `textstyle` H1, `mvtextstyle` B1, `sideboxes` M1 and `fillspace` updated;
+the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference. Measured by hand at 1,720 px: every gap
+14.2 px in both views, 0 px of movement across view switches, Header modes and picks.
+
+### Unreleased — Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
+
+Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having
+to stick to production, it should be able to be reanarangged just like any other phase"*. Sim Post's month bar now has
+the six-dot reorder grip, and a drag puts it above, between or below the phases, in every week, on screen and in the
+month PDF; one undo, Escape and Back to date order behave as for any phase. It is named in the saved order
+(`mvPhaseOrder`) by the reserved key `simpost`. Frozen edit SO1 in `renderMonthView` (owner-approved by picker, *"Approve
+with that gate"*): Sim Post's bars are placed at its place in the order, or, where it was never moved, after every phase
+exactly as before; on screen only its bar carries `data-sp` for the grip. An older build keeps the key and draws Sim Post
+at the bottom. Verified: new leg `mvordersp` 11/11 (red on the build before the edit), gate 10 and gate 13 byte-identical
+on every month calendar (24 written PDFs, gate 10 print documents), `mvorder` and the Sim Post legs green.
+
+### Unreleased — The month bar's grey text is centred on its label (11 Nov 2026)
+
+Owner, with a screenshot of a Blocks bar: *"S2- production week 4...etc not centered properly"*, then *"Yes, PDF too"*.
+The grey tag beside a Production bar's label ("Block 1 · Production Week 4 · Ep. 201, 202") was pinned to the top of the
+bar's line with a shorter line of its own, so it sat above the label: 0.6 px at Standard and Large, 1.8 px at Extra
+large. A bar with a month text style size was already right, since it hands the tag its line as a length. Frozen edit
+**TC1** gives every tag the bar's own line height (`.mv-pill-block`, in em of the tag's size so a month shrunk to fit
+scales it; a first version in px grew the shrunk months' bars, caught by monthwriter A3/A4), on screen and in the print
+rollback, and the month PDF writer's `tagBase` now always takes the bar's line. Still `vertical-align:top` with a line no
+taller than the bar's, so no bar, lane or "…" moves. **Verified:** on screen the tag's middle is within 0.4 px of the
+label's at all five bar sizes, bar heights unchanged (17/20/22/23/25); the month sections of gate.sh green (gate 10
+identical, monthwriter A3 to 0.03 px) but gate 13 and the load-flaky monthexport X6; **gate 13 re-cut on the owner's
+yes**, 21 files, every change a grey-tag run 0.75 pt lower and nothing else (baseline README has the table);
+`mvnotesize-mixed` byte-identical.
+
+### Unreleased — Swap Column shows only where a swap can happen (11 Nov 2026)
+
+Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't
+show up at all here"*, then *"it shouldn't show up anywhere it doesnt make sense"*, e.g. *"places where theres only one
+collumn for a phase's entire span"*. The hover button was drawn whenever the year had a second column, and next to
+Production that column was Sim Post's own; a phase alone in its column for its whole run passed the same test. Now the
+button asks the swap knob's own evaluator, with the block selected, whether either direction would offer a swap
+(`stintOffers`, cached per block against the layout), so it appears exactly where its click leads to a knob. Found on
+the way: the knob itself offered *"Move Production into the free column, after Prep"* into Sim Post's column, and the
+move left Production where it was and swapped Design and Prep instead. Production now steps over its own Sim Post lane
+even when that lane is shared, and a move whose trial leaves the phase in its column is refused. One sentence in the
+Help. Verified: new leg `swapbtnwhere` 7/7 (W1, W2, W5 red on the build before); `calzoom` W6 now hovers a block that
+swaps and measures from its first cell, 26/26; the swap sections of `gate.sh` (colswap through stintreshape, onecol,
+colreuse, and the Sim Post / swap legs of the generic list) on the final build 371 / 1, the one `hoverexpand`, whose
+`load()` raced the file landing (red 1 in 4 on main too): it now waits for the file's name, 4/4; `npm run check`
+42/42; browser check with the real pointer.
+
 ### Unreleased — A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
 
 The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including

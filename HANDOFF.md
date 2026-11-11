@@ -29,6 +29,191 @@
   the frozen v1.2.0 release file; neither reads the waterfall layout).
 
 ### 🔨 10 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
+
+### ✅ 11 Nov 2026: PREFERENCES › WATERFALL LOSES PAPER AND GRID LINES; DATES GETS FOUR FORMATS. **Committed on local `main`, NOT pushed.** Tracker card `prefs-dates-four-formats`.
+- **Ask (owner, a screenshot of the Paper and Grid Lines in Exports rows):** *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and DD/MM/YY"*. Picker: **unpadded** (6 Jan 2025 = 6/1/25 day first; every existing calendar draws as before).
+- **As built:** `Sidebar.jsx` `WaterfallCard` drops `#wf-paper` and `#pref-gridlines` (both still set in the Export PDF dialog, which writes the same `paperSize` key and `gridlines` preference, so Excel follows it; `reflectPaperSize()` / `reflectGridlines()` find no select and no-op). Dates lists `m/d/yyyy` MM/DD/YYYY, `''` MM/DD/YY, `d/m/yyyy`, `d/m/yy`. `app.js`: `WEEK_DATE_FORMATS` gains the two day-first values (⛔ PERMANENT); `fmtWeekDate()` formats all four; `weekDateNumFmt()` returns the value itself as Excel's code (default still `mm-dd-yy`). Nothing frozen edited. An older build's sanitizer drops the new values, so such a file opens there month first.
+- ⭐ **Legs:** a leg that needs a paper or a grid-lines preference now picks it in the dialog: `T.pdfDialogPick(['tabloid', 'dashed'])` (`t/lib.js`) makes the NEXT auto-answered dialog click those segments before Export, and `T.pdfDialog().last` reports what the last dialog opened on (`opened`) and its segments (`values`). Moved: `prefs`, `sharecopy2`, `settingswin` (W13 now asserts both rows gone and the four date options), `papersize` (`setPaper` exports a PDF; the paper is read from the dialog), `pdfdialog`, `notescols`. `hdrrow` gains D6–D8 (day first on screen, Excel `d/m/yyyy`/`d/m/yy`, the PDF, Save/Load). ⚠️ `papersize` now runs past 500 s; its gate timeout is 1000.
+- **Proof:** `hdrrow` 40/40, `settingswin` 21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12, `prefs` PASS, `sharecopy2` pass, `npm run check` 42/42; tried in the pane on `?state=anchorside`. No full gate (nothing frozen; the default output is unchanged).
+
+### ✅ 11 Nov 2026: BUILD AROUND SEES THE WINTER BREAK ON A NEW CALENDAR'S FIRST RUN. ✅ **LIVE at `50e4b8e`** (commit `751fe02`, origin's HANDOFF-only `62ca02a` merged in; pushed `62ca02a..50e4b8e` on the owner's picker *"Push and deploy"*; the live `index.html` is the tested build byte for byte, sha256 `31402a98…`, at 21:36 UTC). No version cut. Tracker card `build-around-first-run-hiatus`.
+- **Owner's report:** on a new file, a first Build Around with every phase ticked ran Writer's Rm two weeks into Pre-Prep. Reopened, Writer's Rm was unticked; ticked and built again, it chained right.
+- **Cause:** `hiatusRangesForSolve()` (the backward pass and "ends by") took the all-phase hiatuses from `currentSchedule.hiatuses`. `computeSchedule()` returns no `hiatuses` key while no phase has a segment (the `segments.length===0` early return), so on a new calendar the default 12/21/26 break was invisible. Writer's Rm was placed 20 calendar weeks back (12/7/26), the break then paused it, and it ended 5/7/27. The second run had a schedule, so it was right, and the "alongside" rule had unticked the room in between.
+- **Fix:** it reads `.hiatus-entry` rows directly, by `computeSchedule`'s own mapping (Monday-snapped, weeks × 7), the way it already read per-phase hiatuses. ⛔ **Lesson:** a solver that runs BEFORE anything is dated must not read `currentSchedule` for inputs; it is `{weeks: []}` there. `unitWorkDayCtx(schedule)` still reads `schedule.hiatuses`, which is safe only because a unit switch needs a dated phase.
+- **Leg `buildaroundfresh`** (in `gate.sh` after `buildalongside`, no state = a new calendar): F1 the preview, F2 the first Build lands 11/23/26 → 4/23/27, F3 reopened the room is ticked and a second Build changes nothing. Red F1–F3 on the pre-fix build, green after. Also green on the fixed build: `buildaround` 36/36, `rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `overrides` and `snaptools` (`dayoverrides`), `customunits` and `builtindates` (live and restored). No full gate (nothing frozen, exported or saved changed).
+
+### ✅ 11 Nov 2026: "Reset Notes" → **"Reset Waterfall Notes"** (owner). ✅ **LIVE at `c837dfc`** (live index.html = build `d50201d5`). `Header.jsx` label + the Month face's `data-ghost`; `hdrcontrols` N0 expects it. The button is now 157 px, so at 1100–1281 px the save status sits at its 78 px floor (no overflow, measured): ⚠️ the header has NO spare room left at those rungs; anything added there must collapse something first. Legs: hdrcontrols 12/12, noresetall, calzoom, check 42/42.
+- ⚠️ **"It isn't live" (owner, after the push above):** the server WAS serving the build; the owner's app window was not. No version bump → no update notice, and Pages' `max-age=600` serves a relaunch within 10 min from cache. Fully quit and reopen, or Cmd+Shift+R. Only a version cut tells open windows.
+
+### ✅ 11 Nov 2026: THE HEADER HOLDS STILL BETWEEN THE VIEWS; RESET BAR ORDER. ✅ **LIVE at `5043477`** (commit `f013ada`, merged with origin/main's toolbar-wells work, pushed `9bf7a98..5043477` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `017fbf4b…`). Legs re-run on the merged build: hdrcontrols 12/12, mvorder 31/31, mvordersp 11/11, noresetall 5/5, calzoom 1/1, colsreset 8/8 (one load-timeout flake, then green twice), check 42/42. Tracker card `header-fixed-slots`.
+- **Ask (owner, a screenshot of the header's right end):** *"I also want this top menu not to shift around when you toggle
+  between waterfall/month view. Lets make the export pdf button land in the same place on both, put the reset notes
+  button in the same place, and put a "Reset Phase Order" where reset collumns is. Make all corresponding buttons the
+  same size."* Name picked from four: *"Reset Bar Order"*.
+- **Why it shifted:** the export group is right-aligned (`ml="auto"`), and in the Month view Reset Columns hid, the notes
+  reset read the longer "Reset Month Notes", and `#export-btn` (which IS Export PDF there) carried `btn-collapse`.
+- ⭐ **As built:** `Header.jsx` wraps each view-dependent label in `.tb-slot-label` with `data-ghost` = the other view's
+  label; `legacy.css` stacks a hidden zero-height `::after{content:attr(data-ghost)}` under it, so the button is as wide
+  as the wider label and `textContent` is unchanged (legs read labels). `#export-btn` drops `btn-collapse` while
+  `exp.primary`. New `#tb-order-reset-btn` (Reset Bar Order), display-toggled, `btn-collapse btn-collapse-early` like
+  Reset Columns, greyed by `data-disabled` from `colsResetBtn`'s new `orderAny`. Engine (`app.js`, beside
+  `resetColumns`): `mvOrderIsCustom()` (the bar menu's "Back to date order" test, moved out so both agree, Sim Post
+  counted) and `resetMonthPhaseOrder()` (one bracketed undo step; the menu's `resetMvPhaseOrder` now calls it), and a
+  delegated click on the id. Nothing frozen touched; no new id is an input, so nothing enters `fields.byId`.
+- ⚠️ Rightmost three boxes are equal ONLY because of the ghosts: a new label for either face must update its twin's
+  `data-ghost`. `hdrcontrols` N0 compares the boxes and goes red if not.
+- **Proof:** `mvorder` 31/31 (new O9), `hdrcontrols` 12/12 (N0 extended), `mvordersp` 11/11, `colsreset` 8/8,
+  `noresetall` 5/5, `calzoom` 1/1, `npm run check` 42/42; measured in the pane at 1100/1121/1201/1281/1321/1440 px:
+  identical boxes, no overflow. No full gate (chrome only, memory rule).
+
+### 🔨 11 Nov 2026: A TOOLBAR THAT NEVER MOVES — THE MONTH STEPPER IN THE TOOLBAR (NO TODAY), GREY PAGE BUTTONS, ONE EQUAL GAP, NAVY HEADER STATES. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in, last at `2613eb4`). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `month-toolbar-slots`, `toolbar-centre-tools`, `toolbar-fixed-while-clicking`, `header-state-navy-border`.
+- **Asks (owner, 11 Nov, in order):** split the Month→Shift space with an equal gap after Redo, both views; recommend month
+  buttons for Fill Gaps' / Side Boxes' place so the bars don't jump (mockup `mockups/toolbar-month-parity.html`: card 4, the
+  month stepper there, my pick; 4b, the page buttons standing alone, grey; Today + changer joined, then white, then Today
+  removed and the stepper larger); *"the menu should be locked where it is"*; *"is there anyway we can make it so the menu
+  also stays the same when you click into the header and the highlight tool is added?"*; then, the end gaps at 19 px, *"the
+  gap should be the same as the gaps between all the other buttons"*; mid-build *"when header is on template or manual it
+  should have the blue border around it"*; *"Yes, finish it"*.
+- **As built (every id unchanged; the engine changed in one place):**
+  - `PreviewToolbar.jsx`: `.tb-page` (no well) holds `.tb-slots` (a one-cell grid: `.tb-pair` [Fill Gaps, Side Boxes] and
+    `<MonthStepper />` stacked in it, the view not shown kept by visibility) then Header. `MonthStepper` left `.style-row`
+    (always empty now, kept for the narrow fallback's order). Fill Gaps is never `display:none` (disabled with a title where
+    `fill.visible` is false). `useFixedHeaderWidth` measures a hidden id-less copy of the Header button with each label (and
+    `is-manual` for the semibold ones) after fonts load and fixes the widest. `useStyleBarFit` now also SOLVES THE GAP: 8 items
+    (toggle, Shift, Build Around, bar, Fill Gaps, Side Boxes, Header, Undo) + 8 gaps (Redo's to the edge via
+    `.preview-tools::after`); gap = (row − items) / 8, written as `--tb-gap-fit` on `.preview-panel`; own line when
+    row < items + 8 × `--tb-gap-min` (10 px). ⚠️ A first build counted 9 gaps: the spare gap split into the end margins (19 px
+    against 12.6). ⛔ Never write it on the row (the shareable copy clones the row's attributes; sharecopy2).
+  - `MonthMap.jsx`: no Today button (no `data-mvgo` on the stepper any more).
+  - `legacy.css`: `--tb-gap: var(--tb-gap-fit, var(--tb-gap-min))` on the row; `.tb-solo` grey 34 px, radius 9, padding 10,
+    hover/open gray-2, `[data-disabled]` .45; `.tb-slots` grid; month view `.tb-pair{visibility:hidden}` (the old
+    `#tb-side-boxes-btn{display:none}` in the month view is gone: it would collapse the slot); the stepper restyled for the
+    slot (30 px, radius 7, arrows 30 px, label flex); `#tb-hdr-mode-btn.is-manual` = navy border + text on the grey (was the
+    purple chip); own-line order: host 1, `.month-map` 2, `.style-row` 3, so the bar's own line sits under the first in both views.
+  - `app.js` `syncStyleBar()`: Highlight never hidden; `is-disabled` + the picker disabled unless `look.highlight`.
+- **Measured at a 1,720 px window:** one line; every gap 14.2 px (±0.1) in both views; 0 px movement between views, on Header
+  Manual, on a header-line pick; the stepper exactly over Fill Gaps' + Side Boxes' span (193.9 px); month calendar top 254 → 210.
+  Below ~1,697 px the text bar drops to its own line.
+- **My calls (flag if the owner disagrees):** Off wears the navy outline too; the gap floor 10 px (12 did not fit the
+  owner's window with Highlight always shown and Header at its widest); grey buttons' padding back to 10 px.
+- **Proof:** `stylebarplace` rewritten, 14/14 on the build, red on `origin/main`'s (P0 P1 P2, then it cannot find the slot).
+  Partial gate `partgate-stylebar.zsh card4b` (port 8422, one Chrome at a time, on the build merged with `2613eb4`): `monthmap`
+  20/20 ×3, `textstyle` 52/52, `mvtextstyle` 23/23 + 6/6, `hdrcontrols` 12/12, `fillspace` 6/6, `sideboxes` 78/78, `calzoom`
+  26/26, `sharecopy2` pass, `anchorside` 39/39, `buildaround` 36/36, `lastedited` 22/22, `hoverexpand` 18/18, `mvnotesize` 12/12
+  alone (11/12 in the batch, N4, the Save / Load flake it showed on 10 Nov too). Fence against `origin/main`'s build: 511
+  values, no difference.
+  `npm run check` 42/42.
+
+### 🔨 11 Nov 2026: SIM POST REORDERS LIKE ANY PHASE IN THE MONTH VIEW (frozen edit SO1). Branch `mv-order-simpost` (worktree `.claude/worktrees/mv-order-simpost`, from local `main` at `6434d4f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `mv-order-simpost-8471` in the main checkout's `.claude/launch.json`; harness ports 8473 / 8474. Committed on the branch, NOT merged, NOT pushed. Tracker card `month-reorder-simpost`.
+- **The ask (owner):** *"in month view, we should be able to reorder the position of phases including sim post, without
+  sim post having to stick to production, it should be able to be reanarangged just like any other phase"*. Frozen edit
+  approved by picker: *"Approve with that gate"* (an unmoved Sim Post draws and prints as before; gates 10 and 13
+  byte-identical). The owner tried the working build in the pane, then *"Finish it"*.
+- **Why it could not move:** frozen `renderMonthView` placed Sim Post's bars in their own block AFTER the phase loop, so
+  first-fit put it under every phase that shared its days, outside `mvPhaseOrder`; and its bar had no `data-ph`, so the
+  grip never showed on it.
+- ⭐ **As built (`app.js`):**
+  - `MV_SIMPOST_KEY = 'simpost'` names Sim Post in `mvPhaseOrder` (no phase can have that key; the sanitizer already
+    keeps unknown keys, so an older build keeps it and draws Sim Post at the bottom). PERMANENT.
+  - `mvSimPostSlot(laneSegs)`: -1 unless the order names Sim Post (and always -1 under `mvRefMode`); else the index of
+    the first lane segment the order names BELOW it, or -1 when none is.
+  - **SO1** in `renderMonthView`: the Sim Post block became a hoisted `placeSimPost()`, called at `spSlot` inside the
+    phase loop, or after the loop at -1, exactly where it ran before. Its bar carries `data-sp="1"` only while
+    `printingCursor` is null (NS1's pattern), so the print rollback and the writer never see it.
+  - `mvOrderKeys(segs, sch)`: the whole order as keys, Sim Post included where SO1 draws it (only on a calendar that has
+    Sim Post). The reorder grip reads and writes it (`BAR_SEL` / `barKey` take `.mv-pill[data-sp]` as `simpost`).
+    "Back to date order" counts an order that only moved Sim Post.
+  - Dragging any OTHER phase now writes `simpost` at the end of the order, which places it after every phase: the same
+    layout as before.
+- **Not done:** Sim Post has no body drag, edge grips or day-menu entries of its own (it has no dates of its own).
+  The phase map (`MonthMap.jsx`) does not show Sim Post.
+- **Proof:** new leg **`mvordersp` 11/11** (`tests/harness/mvordersp.mjs`, after `mvorder` in gate.sh) on
+  `colswap-simpost-refuse`: grip, drag to top in every week, one undo / redo, save, the WRITTEN month PDF (Sim Post's
+  label above every "Post Week N"), Back to date order, between two phases, another phase's drag leaves it at the
+  bottom, Escape. Red on the build without SO1 (no Sim Post grip to find). A partial gate from gate.sh's own sections
+  on port 8473: **gate 13 24/24 byte-identical**, gate 10 identical on every calendar (dayoverrides produced no file in
+  the run and was identical alone), `mvorder` all green, `simpostlabel` / `simpostdays` / `simpostbeside` / `monthlayout`
+  (colswap-simpost-refuse) green. Flakes, each green alone: `monthexport` X4-X6 (activation and soft-hyphen timing,
+  rotating between runs: 7/9, 8/9, then 9/9 on this build; 9/9 once on the build without SO1), `simpostname` F2/F3 (Load timeout, 14/14 alone).
+  `npm run check` 42/42. Seen in the pane with the real mouse.
+
+### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. On `main`'s working tree, NOT committed, NOT pushed. Tracker card `month-pill-tag-centred`.
+- **Ask (owner):** a screenshot of "Block 1  S2 - Production Week 4 · Ep. 201, 202", *"not centered properly"*; after the
+  screen fix, *"Yes, PDF too"*; after the classification and a 600 dpi before/after crop, *"Yes, cut them"* (gate 13).
+- **Cause:** `.mv-pill-block` is `vertical-align:top` and inherited the unitless 1.5, so its line box was 1.5 × its OWN
+  smaller size (13.5 px at Standard) hung from the top of the bar's 15 px line: the letters rode 0.6 px high (Standard,
+  Large), 1.8 px (Extra large). At 11 / 13 px and on a bar with a month text style size the bar's line-height is a
+  LENGTH, which the tag inherits, so those were already right (`mvnotesize-mixed`, 13 px bars, is byte-identical).
+- **Fix:** `legacy.css`, after the 11/13 px bar rules: `.mv-pill-block{ line-height:calc(15em / 9) }` and per
+  `body.mv-bar-*` (16/10, 18/11, 19/12, 21/12 em), UNSCOPED so `#table-wrap` and `#print-root` agree; `app.js`
+  `mvlPaintBar` `tagBase` always `mvlBarLine(B, P)`. In Inter the cap middle is the line's centre, so equal line boxes
+  centre the two texts.
+  ⛔ **em, never px.** The first version was px; monthwriter A3/A4 (Chrome's layout of a SHRUNK month restyles every font
+  at the factor) went red, the bars growing 3.5–8 px, because a px line does not shrink.
+- **Proof:** on screen tag-vs-label middle within 0.4 px at all five sizes, bar heights 17/20/22/23/25 unchanged. A
+  partial gate assembled from gate.sh's month sections (gate 10, mvnotes written PDF, monthemit, bar size, note size,
+  mvtextstyle, monthwriter, monthexport, gate 13), port 8393, load 20–39: everything green but gate 13 (re-cut, see
+  `tests/baselines/2026-10-05-monthwriter/README.md` §RE-CUT 11 Nov) and monthexport X6, which failed on a different
+  calendar each run and passed alone (same calendar passed and failed, byte-identical PDFs). `npm run check` green.
+- **Not done:** no full gate (the screen legs were not run; the change cannot move a box, and A3 holds the writer to
+  Chrome). The assembled script was a scratch file and is deleted.
+
+### ✅ 10-11 Nov 2026: SWAP COLUMN SHOWS ONLY WHERE A SWAP CAN HAPPEN. ✅ **LIVE at `4d15eaa`** (pushed `52a112b..4d15eaa`; deploy run `43090025014` succeeded; the live `index.html` is the tested build byte for byte, sha256 `56555868…`, the new Help sentence present). No version cut. Branch `swapcol-simpost` (worktree `.claude/worktrees/swapcol-simpost`, cut from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` merged in twice (`27b0b5e`, then `52a112b`: the hover-hiatus work, conflicts in gate.sh, README and HANDOFF only, both sides kept) and local `main`'s unpushed HANDOFF note `6e4d0f5` (the Date Last Edited heading's "LIVE at `5357584`"), then `main` fast-forwarded onto it and pushed on the owner's pickers (*"Merge into main"*, *"Push and deploy"*, 11 Nov 2026). Tracker card `swap-column-only-where-it-swaps`.
+- **The ask (owner, a screenshot):** the hover button "Swap Column" on Production with Simultaneous Post beside it and
+  only the Notes column beyond (the purple cells right of Sim Post were automatic notes) — *"this swap column button
+  shouldn't show up at all here"*; then *"In fact it shouldn't show up anywhere it doesnt make sense. For example its
+  also showing up in places where theres only one collumn for a phase's entire span."*
+- **Why it showed:** `drawStintButton` tested only that the year had an `s1` column. Sim Post's lane is that column
+  beside Production, and a phase alone (full width) for its whole run passes the same test.
+- ⭐ **As built (`app.js`, none of it frozen):**
+  - `stintOffers(year, phaseKey)`: puts the block's cells in `gridSel` (anchor its first week), asks `swapEvalDir(-1)`
+    and `(1)` — the knob's own evaluator, fallbacks and column-reuse moves included — and restores the user's
+    selection in a `finally`. The button shows iff either passes, so it shows exactly where a knob follows its click.
+    Cached in `_stintOffer` against `year | phaseKey | singleColumn | swapLayoutKey()`; 200 entries, then cleared.
+  - `swapLayoutKey()` is `swapCandKey()`'s selection-free half, split out so the knob cache and the button cache share
+    one definition of "the layout changed".
+  - Cost, measured in the pane: 2-9 ms the first time the pointer reaches a block after a change (a render is ~20 ms),
+    then a lookup. The first hovers after a load ran 23-142 ms while the code warmed up. Synchronous on purpose, like
+    the hover handler: a timer would also break legs that check the button 80 ms after a hover (`stintbtn`).
+  - ⚠️ **Found on the way, in `followRunFor`:** with Sim Post's lane SHARED (a phase from before the shoot used that
+    column), the knob offered *"Move Production into the free column, after Prep"* into the lane, and the placement
+    honoured the follow by swapping Design and Prep while Production stayed put (the blue knob in the owner's
+    screenshot). Now Production steps over its own lane whether or not it is `inserted`, and a move whose trial puts
+    the phase's first week of the block in its current column is refused, reason `follow-stays` ("X would stay in its
+    column, so there is nothing to move").
+- **Help:** one sentence in "Swapping two phases' columns": hover a phase and click Swap Column at the top of its run;
+  the button appears only on a phase that has something to swap with.
+- **Proof:** new leg **`swapbtnwhere` 7/7** on the synthetic `tests/fixtures/swapbtn-simpost-shared.sptcal` (in
+  gate.sh's generic list), W1, W2 and W5 red on a build of `27b0b5e` without the fix. `calzoom` W6 hovered the 5th
+  phase cell on `mvnotes`, which is Writer's Rm alone in its column (the owner's second example): it now walks to the
+  first cell whose block draws the button and stays on screen at 150%, and measures the button from that block's
+  first cell (the rows above re-wrap at 150%), 26/26. The swap sections of gate.sh assembled into one run (colswap
+  through stintreshape, onecol, colreuse, calzoom, and noswapbtns, colswappartial x2, swapsplitreuse, spanhint,
+  monthlayout on colswap-simpost-refuse, simpostdays, colswapcache, simpostbeside, phasefill, colsreset, swapholds,
+  stickycols, centrepullback, hoverexpand, layoutrules r20 + r3b) on port 8419: **357 PASS / 3 FAIL** — `phasefill`
+  and `hoverexpand` timed out under load and are 13/13 and 18/18 alone; `calzoom` W6 is the re-expectation above.
+  Seen in the browser pane with the real pointer: no button on Production or Writer's Rm, the button on Prep.
+- **On the final build** (`origin/main` `27b0b5e` merged in, the Help sentence, dist sha256 `33005613…`):
+  `npm run check` 42/42; the same swap sections re-assembled from the updated gate.sh, `swapbtnwhere` included, port
+  8437: **371 PASS / 1 FAIL**, the one `hoverexpand` H6 timing out in `load()`.
+  - ⚠️ **`hoverexpand` had a race of its own, now fixed in the leg.** `T.openViaFakePicker` settles when the app CALLS
+    the picker, before the file is read and applied, which took 0.1 s to over 8 s in headless Chrome. `load()` checked
+    the view after a fixed 400 ms, so the old calendar's waterfall could still be up; Waterfall was not clicked, the
+    loaded `anchorside` calendar then arrived in its saved Month view, and the grid never settled. Measured
+    interleaved, the unmodified leg was red 1 run in 4 on `origin/main` and 2 in 4 on the branch. `load()` now waits
+    for the loaded file's name in the file menu first: **4/4 green** on the final build. ⚠️ Any other leg that loads
+    through `openViaFakePicker` and then reads the screen after a fixed sleep has the same race.
+- **On the build that was pushed** (both merges, dist sha256 `56555868…`): `npm run check` 42/42; `swapbtnwhere` 7/7,
+  `hoverexpand` 18/18, `hoverhiatus` 15/15, `stintbtn` 15/15 (gate.sh's judge), `noswapbtns` 7/7, `colswappartial` 8/8,
+  `simpostbeside` 19/19, `colswapcache` 9/9, `swapholds` 8/8, `calzoom` 26/26.
+  - ⚠️ **Run legs on their own ports.** Run back to back on ONE port (8451), `simpostbeside` came back 9/19 and
+    `hoverhiatus` timed out on Save; each was green alone on a fresh port. The reused Chrome profile carries a crash
+    backup from the leg before (phasefill's known trap), so a sweep of legs on one port is not evidence either way.
+    A build of `52a112b` itself scored `simpostbeside` 16/19 on a fresh port (W3, T1, T3), so that leg is flaky there too.
+- **Not done:** no full gate (nothing here reaches a grid cell, an export or a saved file: the overlay and which
+  swap is offered).
+
+### ✅ 10-11 Nov 2026: A PHASE'S OWN HIATUS IS PART OF THE PHASE, FOR EXPAND / PULL BACK AND THE DOUBLE-CLICK FILL (frozen edit LR8). ✅ **LIVE at `52a112b`** (owner, 11 Nov 2026, after trying it: *"works now, commit and push it"*; `origin/main` (`27b0b5e`: Ripple in Settings only, the Compare hiatus fix) merged in as `52a112b`, only gate.sh's leg list and the README / HANDOFF top entries conflicting, both sides kept; pushed `27b0b5e..52a112b`; the live `index.html` matched the tested merged build byte for byte at 19:31:21 UTC, sha256 `5e09a93e…`). On the merged build: `npm run check` 42/42, `hoverhiatus` 15/15, `hoverexpand` 18/18, `phasefill` 13/13, `centrepullback` 12/12, `comparehiatus` 8/8, `layoutrules` r13 13/13 and r22 8/8. No version cut. Branch `hover-hiatus` (worktree `.claude/worktrees/hover-hiatus`, from `origin/main` at `5b8bac2`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `hover-hiatus-8463`, harness ports 8466 / 8467. Committed locally (`1acb360`, `8869de4` + the proof commit), NOT pushed. Tracker card `expand-pullback-phase-hiatus`. [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §12.
 - **Ask (owner):** *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase,
   including its per phase hiatus should operate as one single block where the expand box would span the length of the
   entire phase including the hiatus"*. LR8 by picker: *"Yes, make the edit"* (asked with the gate below).
@@ -57,12 +242,14 @@
 - ⭐ **Follow-up, 11 Nov 2026** (owner, trying the build, on Test wk 1 with a blank each side: *"once i expand one side,
   the box no longer pops up on the other side empty space"*): `hoverPromptFor` refused a blank beside a cell with a
   per-cell width, and the run broke at one. Both guards removed; the click keeps the side already taken. Leg
-  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right). Re-checked on the new build: `hoverexpand`
+  `hoverhiatus` B6 (15/15; B6a red on the build before, no chip on the right).
+- ⚠️ **LEARNED: do not run several legs that Load a file on ONE reused `HARNESS_PORT`.** `hoverexpand` (H6) and
+  `phasefill` (F5) both load `anchorside.sptcal` through the fake picker; run after other legs on the same port (one
+  Chrome profile), the page stayed in the Month view after the Load and both threw "a settled grid". Each on a fresh port:
+  18/18 and 13/13, on `origin/main`'s build and on this one alike. Give each such leg its own port when re-running. Re-checked on the new build: `hoverexpand`
   18/18 (on a fresh port; on port 8466 it threw in H6's Load twice, and the build BEFORE the fix throws there the same
   way, so not this change), `centrepullback` 12/12, `phasefill` 13/13, `npm run check` 42/42.
-- ⏭ **Left:** the owner tries `http://localhost:8463/dist/index.html?state=hover-hiatus` (pane server
-  `hover-hiatus-8463`; its origin's crash backups from my test clicks are deleted); then the push picker. Not pushed;
-  local `main` not moved.
+- Local `main` not moved (it carries a HANDOFF-only commit `6e4d0f5` of its own and is far behind `origin/main`).
 ### ✅ 10 Nov 2026: RIPPLE HIATUS PERIODS IN SETTINGS ONLY. ✅ **LIVE at `4f9a083`** (11 Nov 2026, on the owner's picker *"Push and deploy"*; pushed `5b8bac2..4f9a083`, deploy run `43085174382` succeeded, the live `index.html` is the tested build byte for byte, sha256 `18ddf4a2…`). Branch `ripple-settings-only` (worktree `.claude/worktrees/ripple-settings-only`, from `origin/main` at `5b8bac2`; `node_modules` is a symlink). Not pushed. Tracker card `ripple-toggle-settings-only`. Full story: HIATUS-RIPPLE-PLAN.md §13.
 - Owner withdrew ruling R2 (*"Settings only"*): the card and phase-block copies are removed; `.hiatus-ripple-card` stays empty as a removed hiatus's note host. CLAUDE.md and UI-CONVENTIONS updated.
 - **Stacked on `compare-hiatus-start`** (rebased 11 Nov 2026; only the README / HANDOFF top entries conflicted, both kept). Combined build: `npm run check` 42/42, `comparehiatus` 8/8.
@@ -98,7 +285,7 @@
 - ⚠️ **Loading a scenario file by `?state=`** needs top-level `version: 2`, and the CURRENT tab's entry must have no
   `snapshot` key (`unpackScenarioFile`); a hand-made file without them silently boots blank.
 
-### 🔨 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
+### ✅ 10 Nov 2026: THE TOOLBAR IN THE OWNER'S ORDER (VIEW | SHIFT + BUILD AROUND | TEXT | PAGE TOOLS | UNDO), BUILD AROUND 12 PX FROM SHIFT. ✅ **LIVE at `5b8bac2`** (owner's picker "Push to the live site"; pushed `938577a..5b8bac2`, a fast-forward of the branch; deploy run `42942636153` green; the live `index.html` is the build byte for byte, sha256 `a6abaffa…`). Branch `toolbar-wells` (worktree `.claude/worktrees/style-bar-toolbar`; `origin/main` merged in at `938577a`, Build Around without Prior to / After). Pane server `style-bar-toolbar-8419`, harness port 8422. Chrome only, no version cut. Tracker cards `toolbar-redo-size-gap`, `toolbar-reorder`.
 - **Asks (owner, after variation 27 went live at `fefe9dc`):** *"there should be same distance in spacing between the redo
   button and the size selector ad there is between and the right shift button and Build around button"*, which I first
   read the wrong way (Redo and Size joined at 2 px; built, never committed) until *"no no, there should be MORE space
@@ -430,7 +617,7 @@
     threw in `load()` ("the loaded calendar", the Load race) in the second batch, 51/51 alone; `sharecopy2` produced
     no JSON in the second batch, pass alone at a 180 s budget.
 
-### ✅ 9-10 Nov 2026: THE AUTO HEADER'S DATE IS THE **DATE LAST EDITED**, AND `{lastEdited}` IS IN THE TEMPLATE BUILDER. ✅ **PUSHED to `main` on the owner's pickers** (*"Commit on a branch"*, *"Push after commit"*, 10 Nov 2026): committed on branch `last-edited` as `1507204`, `origin/main` (`51ce127`: layout rules 22-23, Fill Space, sticky columns, Shift list first, Ripple step-over) merged in as `1d03278` (conflicts: `captureSnapshot()`, `colKeep` and `lastEdited` both kept; the top entries of README and HANDOFF, both kept), fast-forwarded onto `main`. No version cut. Tracker card `header-date-last-edited`.
+### ✅ 9-10 Nov 2026: THE AUTO HEADER'S DATE IS THE **DATE LAST EDITED**, AND `{lastEdited}` IS IN THE TEMPLATE BUILDER. ✅ **PUSHED to `main` on the owner's pickers** (*"Commit on a branch"*, *"Push after commit"*, 10 Nov 2026): committed on branch `last-edited` as `1507204`, `origin/main` (`51ce127`: layout rules 22-23, Fill Space, sticky columns, Shift list first, Ripple step-over) merged in as `1d03278` (conflicts: `captureSnapshot()`, `colKeep` and `lastEdited` both kept; the top entries of README and HANDOFF, both kept), fast-forwarded onto `main`. ✅ **LIVE at `5357584`** (pushed `51ce127..5357584`; deploy run `42928175368` succeeded; the live `index.html` is the tested build byte for byte, sha256 `c55b35a1…`, "Date Last Edited" present). No version cut. Tracker card `header-date-last-edited`.
 - **Ask (owner):** *"For auto header, can we make the date in the top left corner for waterfall view (and top right corner
   for month view) be the last time the calendar was edited. By edited i mean an actual meaningful change to the
   calendar, basically anything that would change if it was exported to pdf or excel. Then add this "Date Last Edited"

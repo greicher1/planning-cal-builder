@@ -238,8 +238,8 @@ window.addEventListener('load', function () { (async function () {
       var ep = pill(/201/), wfn = note('wf', /Principal Photography/), day = note('day', /Crew lunch/);
       await click(ep);
       var b1 = {armed: armed(), boxes: boxes(), bold: lit('.hf-b'), colorOff: q('.hf-color', bar()).disabled, sizes: sizes(),
-                ids: qa('[id]', bar()).length, hl: q('.hf-swatch-hl', bar()).hidden};
-      add('B1', "a click on an episode bar picks it: the bar armed, one outline (body-level), B lit (600), the colour greyed (N1), sizes 6-11, no highlight, no id on any control",
+                ids: qa('[id]', bar()).length, hl: q('.hf-swatch-hl', bar()).classList.contains('is-disabled') && !q('.hf-swatch-hl', bar()).hidden};
+      add('B1', "a click on an episode bar picks it: the bar armed, one outline (body-level), B lit (600), the colour greyed (N1), sizes 6-11, the highlight greyed (always shown since 11 Nov 2026), no id on any control",
         b1.armed && b1.boxes >= 1 && b1.bold && b1.colorOff && b1.sizes === '6,7,8,9,10,11' && b1.ids === 0 && b1.hl, b1, 'armed, greyed, 6-11');
       await click(wfn, {metaKey: true});
       var g2 = {boxes: boxes(), colorOff: q('.hf-color', bar()).disabled, sizes: sizes()};

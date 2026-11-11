@@ -71,12 +71,10 @@ window.addEventListener('load', function () { (async function () {
       return cs.borderTopStyle + ' ' + cs.borderTopColor;
     };
 
-    var sel = document.getElementById('pref-gridlines');
-    out.controlFound = !!sel;
-    if (!sel) throw new Error('no #pref-gridlines');
-    out.insideExcludedCard = !!sel.closest('.prefs-card');
-    out.optionValues = Array.prototype.map.call(sel.options, function (o) { return o.value; }).join(',');
-    out.valueAtBoot = sel.value;   // 'none' IS the default; there is no separate Default entry
+    // ⭐ 11 Nov 2026 (owner): Grid Lines in Exports left Preferences. The Export PDF dialog is now its only control,
+    // so the preference is chosen here through it (T.pdfDialogPick) and the Preferences select must be GONE.
+    out.controlGone = !document.getElementById('pref-gridlines');
+    async function choose(v) { await T.sleep(900); T.pdfDialogPick([v]); return pdfStream(); }
     out.storeAtBoot = (function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return 'THREW: ' + e.name; } })();
 
     // 1. Unset: no interior rules in the PDF at all.
@@ -84,17 +82,17 @@ window.addEventListener('load', function () { (async function () {
     var pdfNone = await pdfStream();
     out.pdfNoneLen = pdfNone.length;
     out.pdfNoneInterior = strokes(pdfNone, DASH_RG);
+    var d0 = T.pdfDialog().last;
+    out.optionValues = d0 ? d0.values.slice(-3).join(',') : null;   // the dialog's Grid lines segments
+    out.valueAtBoot = d0 ? d0.opened[2] : null;   // 'none' IS the default; there is no separate Default entry
     out.inertAtBoot = out.valueAtBoot === 'none' && out.storeAtBoot === null && out.pdfNoneInterior <= 1;
 
-    // 2. Choose Dashed through the real change event; the PDF must gain interior lines.
-    sel.value = 'dashed';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    // ⚠️ 900ms, not 200: the export button is wrapped in reClickGuard(600), so a second export
+    // 2. Choose Dashed in the Export PDF dialog; that export must gain interior lines.
+    // ⚠️ choose() waits 900ms, not 200: the export button is wrapped in reClickGuard(600), so a second export
     // fired too soon is SWALLOWED and the test reads it as "no blob" on a perfectly good export.
-    await T.sleep(900);
+    var pdfDashed = await choose('dashed');
     out.storedAfter = (function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return 'THREW: ' + e.name; } })();
     out.persisted = /"gridlines"\s*:\s*"dashed"/.test(out.storedAfter || '') && /"version"\s*:\s*1/.test(out.storedAfter || '');
-    var pdfDashed = await pdfStream();
     out.pdfDashedInterior = strokes(pdfDashed, DASH_RG);
     // One interior rule per body row: the fixture has ~50, so require a decisive jump rather than
     // any increase at all.
@@ -111,18 +109,11 @@ window.addEventListener('load', function () { (async function () {
     out.hasVerticals = out.dashedVerticals > 0;
 
     // 2b. Solid: its own colour, and NO dash operator at all.
-    await T.sleep(800);
-    sel.value = 'solid';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    await T.sleep(900);
-    var pdfSolid = await pdfStream();
+    var pdfSolid = await choose('solid');
     out.pdfSolidInterior = strokes(pdfSolid, SOLID_RG);
     out.pdfSolidDashOps = (pdfSolid.match(/\[1\.5 1\] 0 d/g) || []).length;
     out.solidDistinct = out.pdfSolidInterior >= 20 && out.pdfSolidDashOps === 0;
-    await T.sleep(800);
-    sel.value = 'dashed';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    await T.sleep(400);
+    await choose('dashed');
 
     // 3. ⭐ Never travels: export a real shareable copy and read its snapshot.
     await T.sleep(700);                       // clear the export button's re-click guard again
@@ -147,15 +138,13 @@ window.addEventListener('load', function () { (async function () {
 
     // 5. Back to None removes the key rather than storing 'none': absent and 'none' are the same
     //    output, so the store never holds an entry that changes nothing.
-    sel.value = 'none';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    await T.sleep(200);
+    await choose('none');
     out.storedAfterReset = (function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return 'THREW'; } })();
     out.resetClean = !/gridlines/.test(out.storedAfterReset || '');
 
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
-    out.PASS = out.controlFound && out.insideExcludedCard && out.optionValues === 'none,solid,dashed' &&
+    out.PASS = out.controlGone && out.optionValues === 'none,solid,dashed' &&
                out.inertAtBoot && out.persisted && out.reachesPdf && out.reallyDashed &&
                out.hasVerticals && out.solidDistinct && out.neverTravels &&
                out.editorUntouched && out.noBodyClass && out.resetClean &&
