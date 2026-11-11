@@ -12925,15 +12925,10 @@ export function initLegacyApp() {
       }
       // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set, and LEFT OUT when the
       // order set happens to BE date order (dragged back), where it could change nothing (ruling T3).
-      if(mvPhaseOrder.length){
-        const segs = (currentSchedule && currentSchedule.segments) || [];
-        // Sim Post counts (SO1): an order that only moved Sim Post off the bottom is not date order.
-        const dateKeys = segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key);
-        if(mvOrderKeys(segs, currentSchedule).indexOf(MV_SIMPOST_KEY) >= 0) dateKeys.push(MV_SIMPOST_KEY);
-        const same = mvOrderKeys(segs, currentSchedule).join('|') === dateKeys.join('|');
-        if(!same) items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
+      // The test is mvOrderIsCustom(), shared with the header's Reset Bar Order (11 Nov 2026).
+      if(mvOrderIsCustom())
+        items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
           run: resetMvPhaseOrder});
-      }
       // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4; kept by ruling
       // T2). Last, as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
       // such item.
@@ -12994,12 +12989,7 @@ export function initLegacyApp() {
     }
 
     // One undo step, as every item that changes the calendar.
-    function resetMvPhaseOrder(){
-      pushUndoSnapshot();
-      mvPhaseOrder = [];
-      update();
-      pushUndoSnapshot();
-    }
+    function resetMvPhaseOrder(){ resetMonthPhaseOrder(); }
 
     // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
     function showPhaseRow(key){
@@ -25778,7 +25768,7 @@ export function initLegacyApp() {
     chrome.notesResetBtn({ view: mv ? 'month' : 'sheet' });
     // Reset Columns: the Waterfall's only, greyed while every column is automatic. Every way a column store changes
     // ends in render() rebuilding #table-wrap, so this observer sees it (and the click re-checks regardless).
-    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist() });
+    chrome.colsResetBtn({ view: mv ? 'month' : 'sheet', any: columnEditsExist(), orderAny: mv && mvOrderIsCustom() });
     // Fill Space: the Waterfall of a stamped calendar only (an unstamped one keeps its old widths until Update layout).
     chrome.fillSpaceBtn({ visible: !mv && layoutStamped(), on: !fillSpaceOff });
   }
@@ -27447,6 +27437,33 @@ export function initLegacyApp() {
     const t = e.target.closest && e.target.closest('#tb-cols-reset-btn');
     if(!t || viewMode === 'month') return;
     resetColumns();
+  });
+  // ---------- Reset Bar Order (owner, 11 Nov 2026) ----------
+  // The Month view's twin of Reset Columns, in the same header slot (#tb-order-reset-btn, Header.jsx): every bar back
+  // in date order, which is the bar menu's "Back to date order" (MONTH-ORDER-PLAN.md §3.1). mvOrderIsCustom() is that
+  // item's own test, moved here so the menu and the button cannot disagree: an order set but dragged back into date
+  // order counts as no order (ruling T3), and Sim Post counts (SO1): an order that only moved Sim Post is not date
+  // order. One undo step, bracketed as the menu item always was.
+  function mvOrderIsCustom(){
+    if(!mvPhaseOrder.length) return false;
+    const segs = (currentSchedule && currentSchedule.segments) || [];
+    const keys = mvOrderKeys(segs, currentSchedule);
+    const dateKeys = segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key);
+    if(keys.indexOf(MV_SIMPOST_KEY) >= 0) dateKeys.push(MV_SIMPOST_KEY);
+    return keys.join('|') !== dateKeys.join('|');
+  }
+  function resetMonthPhaseOrder(){
+    if(!mvPhaseOrder.length) return false;
+    pushUndoSnapshot();
+    mvPhaseOrder = [];
+    update();
+    pushUndoSnapshot();
+    return true;
+  }
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-order-reset-btn');
+    if(!t || viewMode !== 'month' || !mvOrderIsCustom()) return;
+    resetMonthPhaseOrder();
   });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes

@@ -158,6 +158,11 @@
     color:var(--mantine-color-gray-9); white-space:nowrap;
   }
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
+  /* Fixed header slots (owner, 11 Nov 2026, Header.jsx): a view-dependent button is as wide as the wider of its two
+     labels. The real label and a hidden zero-height ghost of the other stack in one grid column; the ghost is ::after
+     content, so it is never textContent and never read aloud. Centred, so the shorter label sits mid-slot. */
+  .tb-slot-label{ display:inline-grid; justify-items:center; }
+  .tb-slot-label::after{ content:attr(data-ghost); visibility:hidden; height:0; overflow:hidden; }
   /* ---------- The header's responsive ladder (owner, round 6: "must work at different screen
      dimensions") ----------
      THE BUG THIS FIXES: nothing overflowed and nothing wrapped — the flex items SHRANK, so at

@@ -14,7 +14,7 @@
 import { useState, useLayoutEffect, useCallback } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns } from './icons.jsx'
+import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns, IconRows } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
@@ -35,7 +35,7 @@ export function Header() {
   // The notes reset's view (owner ruling 4): its label and tooltip say which notes it clears.
   const [notesReset, setNotesReset] = useState({ view: 'sheet' })
   // Reset Columns (owner, 6 Nov 2026): the Waterfall's only; `any` says whether a column choice exists to clear.
-  const [colsReset, setColsReset] = useState({ view: 'sheet', any: false })
+  const [colsReset, setColsReset] = useState({ view: 'sheet', any: false, orderAny: false })
   // The recents filter. React-local on purpose: the engine pushes the full list through the
   // bridge and never needs to know a filter exists. The input carries NO id -- collectFieldValues
   // sweeps input[id] document-wide, and this box must never enter a saved file or the undo stack.
@@ -323,7 +323,10 @@ export function Header() {
       <Button
         {...BTN}
         id="export-btn"
-        className="btn-collapse"
+        /* Only the Excel face collapses: in the Month view this button IS Export PDF, and it must sit exactly where
+           #export-wf-pdf-btn sits in the Waterfall (owner, 11 Nov 2026: the header must not shift between views),
+           so it keeps its label at every width as that one does. */
+        className={exp.primary ? undefined : 'btn-collapse'}
         title={exp.label}
         ml="auto"
         variant={exp.primary ? 'filled' : 'default'}
@@ -376,12 +379,20 @@ export function Header() {
       {/* Title Case and an icon like its neighbours New / Save / Export (owner, 30 Sep 2026). The
           engine resolves the click with closest(), so a click on the icon still lands; the SVG has
           no text, so the hdrcontrols leg's textContent read still gets the bare label. */}
+      {/* ⭐ FIXED SLOTS (owner, 11 Nov 2026: "I also want this top menu not to shift around when you toggle between
+          waterfall/month view"). The group is right-aligned, so a slot stays put when every slot to its right keeps
+          its width. Each view-dependent button is sized to the WIDER of its two faces by a hidden ghost of the other
+          label (.tb-slot-label's ::after, content from data-ghost: pseudo content is not textContent, so the legs'
+          label reads are unchanged). The Export PDF slot holds #export-wf-pdf-btn in the Waterfall and #export-btn in
+          the Month view: the same label and icon, both filled, neither collapsing. */}
       <Button {...BTN} id="tb-notes-reset-btn" variant="default" fw={500}
         leftSection={<IconRotateCcw className="btn-ic" />}
         title={notesReset.view === 'month'
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
           : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
-        {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
+        <span className="tb-slot-label" data-ghost={notesReset.view === 'month' ? 'Reset Notes' : 'Reset Month Notes'}>
+          {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
+        </span>
       </Button>
       {/* Reset Columns (owner, 6 Nov 2026: "will there be a way to reset back to default algorithm?" -> "Add it").
           Every column back on the automatic layout: fill and pull-back wishes, dragged widths, swapped and moved
@@ -396,7 +407,20 @@ export function Header() {
         title={colsReset.any
           ? 'Put every column back on the automatic layout: each phase’s fill or pull-back, every dragged width, every swapped or moved column. Dates, notes and row heights stay. Undo brings it all back.'
           : 'Every column is already on the automatic layout.'}>
-        Reset Columns
+        <span className="tb-slot-label" data-ghost="Reset Bar Order">Reset Columns</span>
+      </Button>
+      {/* Reset Bar Order (owner, 11 Nov 2026), Reset Columns' slot in the Month view: every bar back in date order,
+          the bar menu's "Back to date order" (resetMonthPhaseOrder() in the engine, delegated on this id). Always
+          rendered, display-toggled, greyed by data-disabled while the bars are already in date order. Same collapse
+          rung as Reset Columns, so the two stay one width at every window size. */}
+      <Button {...BTN} id="tb-order-reset-btn" className="btn-collapse btn-collapse-early" variant="default" fw={500}
+        leftSection={<IconRows className="btn-ic" />}
+        data-disabled={!colsReset.orderAny || undefined}
+        style={{ display: colsReset.view === 'month' ? undefined : 'none' }}
+        title={colsReset.orderAny
+          ? 'Put the month view’s bars back in date order, undoing every phase dragged up or down by its grip. Dates and notes stay. Undo brings the order back.'
+          : 'The bars are already in date order.'}>
+        <span className="tb-slot-label" data-ghost="Reset Columns">Reset Bar Order</span>
       </Button>
     </Group>
   )

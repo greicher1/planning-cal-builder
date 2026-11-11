@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The header holds still between the views; Reset Bar Order (11 Nov 2026)
+
+Owner: *"I also want this top menu not to shift around when you toggle between waterfall/month view"*. Export PDF, the
+notes reset and the last button now sit in the same box in both views: each view-dependent button is as wide as the
+wider of its two labels (a hidden `::after` ghost of the other label, so no label's text changes), and the Month view's
+Export PDF keeps its label at every width as the Waterfall's does. The Month view gets **Reset Bar Order** (the owner's
+name, picked from four) in Reset Columns' slot: every bar back in date order, the bar menu's "Back to date order", one
+undo step, grey while the bars are already in date order. The menu item and the button share one test
+(`mvOrderIsCustom()`). Verified: `mvorder` 31/31 with new case O9 (a real drag, a real click, one undo), `hdrcontrols`
+12/12 with N0 now comparing the three slots' boxes across views, `mvordersp`, `colsreset`, `noresetall`, `calzoom` and
+`npm run check` green; no header overflow at 1100–1440 px.
+
 ### Unreleased — Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
 
 Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having

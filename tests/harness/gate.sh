@@ -2861,6 +2861,8 @@ PYPE
 # date rewritten (M4), a waterfall line into another week's waterfall note (M5), an auto-note moved a day (M6); a
 # holiday stays (M7); out and back (M8) and a drop off the grid (M10) bank nothing; no anchor on an untouched calendar
 # (M9). On the 23 Oct live build (d2ac914e) M1-M6 and M8 are red.
+# ⭐ GREW 11 Nov 2026: O9, the header's Reset Bar Order -- grey with no order, live after a grip drag, a real click puts
+# date order back and greys it, ONE Ctrl+Z brings the order back.
 node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile, mvdrag)" <<'PYMO' || FAIL=1
 import json,sys

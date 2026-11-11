@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: THE HEADER HOLDS STILL BETWEEN THE VIEWS; RESET BAR ORDER. On `main`'s working tree, uncommitted at the time of writing (see git). Tracker card `header-fixed-slots`.
+- **Ask (owner, a screenshot of the header's right end):** *"I also want this top menu not to shift around when you toggle
+  between waterfall/month view. Lets make the export pdf button land in the same place on both, put the reset notes
+  button in the same place, and put a "Reset Phase Order" where reset collumns is. Make all corresponding buttons the
+  same size."* Name picked from four: *"Reset Bar Order"*.
+- **Why it shifted:** the export group is right-aligned (`ml="auto"`), and in the Month view Reset Columns hid, the notes
+  reset read the longer "Reset Month Notes", and `#export-btn` (which IS Export PDF there) carried `btn-collapse`.
+- ⭐ **As built:** `Header.jsx` wraps each view-dependent label in `.tb-slot-label` with `data-ghost` = the other view's
+  label; `legacy.css` stacks a hidden zero-height `::after{content:attr(data-ghost)}` under it, so the button is as wide
+  as the wider label and `textContent` is unchanged (legs read labels). `#export-btn` drops `btn-collapse` while
+  `exp.primary`. New `#tb-order-reset-btn` (Reset Bar Order), display-toggled, `btn-collapse btn-collapse-early` like
+  Reset Columns, greyed by `data-disabled` from `colsResetBtn`'s new `orderAny`. Engine (`app.js`, beside
+  `resetColumns`): `mvOrderIsCustom()` (the bar menu's "Back to date order" test, moved out so both agree, Sim Post
+  counted) and `resetMonthPhaseOrder()` (one bracketed undo step; the menu's `resetMvPhaseOrder` now calls it), and a
+  delegated click on the id. Nothing frozen touched; no new id is an input, so nothing enters `fields.byId`.
+- ⚠️ Rightmost three boxes are equal ONLY because of the ghosts: a new label for either face must update its twin's
+  `data-ghost`. `hdrcontrols` N0 compares the boxes and goes red if not.
+- **Proof:** `mvorder` 31/31 (new O9), `hdrcontrols` 12/12 (N0 extended), `mvordersp` 11/11, `colsreset` 8/8,
+  `noresetall` 5/5, `calzoom` 1/1, `npm run check` 42/42; measured in the pane at 1100/1121/1201/1281/1321/1440 px:
+  identical boxes, no overflow. No full gate (chrome only, memory rule).
+
 ### 🔨 11 Nov 2026: SIM POST REORDERS LIKE ANY PHASE IN THE MONTH VIEW (frozen edit SO1). Branch `mv-order-simpost` (worktree `.claude/worktrees/mv-order-simpost`, from local `main` at `6434d4f`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Pane server `mv-order-simpost-8471` in the main checkout's `.claude/launch.json`; harness ports 8473 / 8474. Committed on the branch, NOT merged, NOT pushed. Tracker card `month-reorder-simpost`.
 - **The ask (owner):** *"in month view, we should be able to reorder the position of phases including sim post, without
   sim post having to stick to production, it should be able to be reanarangged just like any other phase"*. Frozen edit
