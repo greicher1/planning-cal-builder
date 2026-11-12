@@ -4448,6 +4448,20 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
+  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates). The cell is empty, kept for
+     the column (owner, 11 Nov 2026). */
+  .hv-en-na{ cursor:default; }
+  /* One list, a strip per counting phase (renderHolidayVisList, owner 11 Nov 2026, option 6): the rows of a phase that
+     counts days sit beside a strip in its own colours, its name sideways. Every row shares a 22 px gutter while any
+     strip is drawn, so the names stay in one line; the header's "Holiday" moves with them. */
+  #holiday-vis-list.hv-has-strips > .hv-row{ padding-left:24px; }
+  #holiday-vis:has(#holiday-vis-list.hv-has-strips) .hv-head-name{ padding-left:22px; }
+  .hv-run{ display:flex; }
+  .hv-strip{ width:16px; flex:none; margin:4px 6px 4px 0; border:1px solid rgba(0,0,0,.08); border-radius:4px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:default; }
+  .hv-strip span{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:9.5px; font-weight:700; letter-spacing:.09em;
+    text-transform:uppercase; white-space:nowrap; max-height:100%; overflow:hidden; text-overflow:ellipsis; }
+  .hv-run-rows{ flex:1; min-width:0; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
   .hv-dim{ opacity:.45; }
   .hv-tag{

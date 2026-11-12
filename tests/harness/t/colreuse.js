@@ -158,6 +158,14 @@ window.addEventListener('load', function () { (async function () {
       var snapNew = await snapshot();
       out.newSnapSaysOn = !!snapNew && snapNew.colReuse === true;
       out.noStripOnNew = !stripUp();
+      // Fill Gaps ON, as every new calendar was when this leg was written: a new calendar starts with it off since
+      // 11 Nov 2026 (owner), and off draws a phase one even width from its first week, so the "wk 1" label cells this
+      // leg reads the workbook's columns from can sit one column to the left of the phase's own. The tests/fixtures/
+      // colreuse.sptcal RESTORE run opens was cut from this run's snapshot with Fill Gaps on (no fillSpaceOff key).
+      await T.until(function () { return !!document.getElementById('tb-fill-space-btn'); }, 'the Fill Gaps switch', 100, 100);
+      if (document.getElementById('tb-fill-space-btn').getAttribute('aria-pressed') !== 'true') document.getElementById('tb-fill-space-btn').click();
+      await T.sleep(800); await settle('Fill Gaps on');   // past reClickGuard(600), which every document click resets
+      out.fillGapsOn = document.getElementById('tb-fill-space-btn').getAttribute('aria-pressed') === 'true';
 
       // ---- 1. the rules ------------------------------------------------------------------------------
       var on = out.on = columns();

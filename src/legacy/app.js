@@ -13215,7 +13215,9 @@ export function initLegacyApp() {
                    : '';
         const view = (v, text, k)=> ({id: 'hol-' + k + '-' + j, check: true, checked: holidayVisibleIn(h.hid, v), text,
           run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
-        const items = [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}];
+        // Enabled only where it can move a date, or while off (holidayEnableShown, the Holidays list's own rule).
+        const items = holidayEnableShown(currentSchedule, h)
+          ? [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}] : [];
         if(on) items.push(view('month', 'Show in month view', 'month'), view('sheet', 'Show in waterfall', 'sheet'));
         return {id: 'holiday', label: 'Holiday · ' + h.name, items};
       });
@@ -14246,6 +14248,32 @@ export function initLegacyApp() {
   // Auto-generated checklist of every holiday that lands inside a phase, with a Waterfall and a
   // Month checkbox each. Re-rendered on every schedule change so it always matches the phases and
   // the selected country. Hidden when the master switch is off or no holidays fall in any phase.
+  // ⭐ WHERE ENABLE CAN MOVE A DATE (owner, 11 Nov 2026: "Should the enable button even be there for holidays that
+  // do not occur during production? Maybe non-production holidays just have the note options"). Switching a holiday
+  // off only matters to a walk that counts working days and skips ENABLED holidays (isUnitWorkDay, and Production's
+  // own simulation): Production, a custom phase counted in Days, and episode prep. Anywhere else (a Weeks phase, a
+  // weekend, an all-phase hiatus, the phase's own hiatus) off and on give the same dates, and unticking both note
+  // boxes already hides it, so the Enable box is left out there. Read from the schedule's own segments, never a
+  // second copy of the walk. ⚠️ A holiday that is ALREADY off keeps its box wherever it is (the caller's job), or a
+  // calendar saved with one off would leave it stuck off with greyed note boxes. Used by the Holidays list, its
+  // Toggle all, and the month view's day menu, so the three agree.
+  function holidayMovesDates(schedule, iso){
+    const d = parseDateUTC(iso);
+    if(!d || !schedule) return false;
+    const dow = d.getUTCDay();
+    if(dow === 0 || dow === 6) return false;
+    if(isHiatusDate(schedule, d)) return false;
+    return (schedule.segments || []).some(s=>{
+      if(s.prep) return !!s.firstDay && d >= s.firstDay && d <= s.lastDay;
+      if(!(s.key === 'production' || s.unit === 'days')) return false;
+      if(!(d >= s.start && d < s.end)) return false;
+      return !(s.phaseHiatus && d >= s.phaseHiatus.start && d < s.phaseHiatus.end);
+    });
+  }
+  // The box shows where it can move a date, and on any holiday that is off (the way back).
+  function holidayEnableShown(schedule, h){
+    return h.enabled === false || !holidayEnabled(h.hid) || holidayMovesDates(schedule, h.iso || h.date);
+  }
   function renderHolidayVisList(schedule){
     const wrap = document.getElementById('holiday-vis');
     const listEl = document.getElementById('holiday-vis-list');
@@ -14296,7 +14324,8 @@ export function initLegacyApp() {
     const costsDay = {};
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
-    listEl.innerHTML = shown.map(h=>{
+    const prodSeg = ((schedule && schedule.segments) || []).find(s=> s.key === 'production');
+    const rowHtml = h=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
       // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
@@ -14335,19 +14364,69 @@ export function initLegacyApp() {
       const del = '<span class="hv-del-slot">' + (h.custom
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
-      return '<div class="hv-row">'
+      // No Enable box where switching it off would move no date (holidayMovesDates). The cell stays, EMPTY, to keep the
+      // column (owner, 11 Nov 2026: "only holidays that need an enable button get one").
+      const enCell = holidayEnableShown(schedule, h)
+        ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        : '<span class="hv-cell hv-en-na"></span>';
+      return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
+        // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
+        // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
+        // overrides the holiday. The box stays, since removing the mark makes it cost a day again.
+        +     ((!costsDay[h.iso] && on && (dayOverrides[h.iso] === 'on' || dayOverrides[h.iso] === 'onhalf') && prodSeg && h.date >= prodSeg.start && h.date < prodSeg.end)
+                 ? ' <span class="hv-tag" title="Marked Work this day in the month view, so Production shoots it. Remove the mark and it costs a shoot day.">Marked Working Day</span>' : '')
         +   '</span>'
         + '</span>'
-        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + enCell
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
-    }).join('');
+    };
+    // ⭐ ONE LIST, A STRIP PER COUNTING PHASE (owner, 11 Nov 2026, option 6 of mockups/holiday-list-layouts.html: "looks
+    // like the original version (tho only holidays that need an enable button get one) but days during production have a
+    // green strip on the left side with the word production (written sideways)", and "do both" of my two suggestions: a
+    // strip for a phase counted in Days too, and a short label where a strip is one row tall). It replaced option 5
+    // (phase headings, then Notes only), which replaced a list grouped by every phase.
+    //   - Date order, no headings, no phase words. Only the rows that can move a date have an Enable box.
+    //   - Every holiday inside a phase that COUNTS days (Production, a phase counted in Days, episode prep: the walks that
+    //     skip holidays) sits beside that phase's strip, in its fill and text colours, its name set sideways. Inside the
+    //     phase's span, so a weekend holiday in the shoot (Sat 7/4) is beside Production's strip with its "(Observed)"
+    //     twin. Overlaps: Production, then a Days phase, then episode prep, then the earliest start. Consecutive rows of
+    //     one phase share one strip; a phase whose rows are split by another's gets a strip per stretch.
+    //   - A strip one row tall reads "Prod" for Production; any other name is cut with an ellipsis (CSS), its full name
+    //     in the title.
+    //   - The strip sits in a 22 px gutter every row shares (`.hv-has-strips`), so the names stay aligned; with no strip
+    //     at all the gutter is not there.
+    // No id, no input in the markup added here, so nothing reaches fields.byId; rows keep every class and data-
+    // attribute the delegated handlers and the legs match on (rows are now nested in `.hv-run` wrappers: query rows as
+    // `#holiday-vis-list .hv-row`, never as its direct children).
+    const segs = ((schedule && schedule.segments) || []).filter(s=> s.start && s.end && (s.key === 'production' || s.unit === 'days' || s.prep));
+    const rank = s=> s.key === 'production' ? 3 : (s.unit === 'days' ? 2 : 1);
+    const startOf = s=> s.prep ? (s.firstDay || s.start) : s.start;
+    const covers = (s, d)=> s.prep ? (!!s.firstDay && d >= s.firstDay && d <= s.lastDay) : (d >= s.start && d < s.end);
+    const nameOf = s=> String(s.label || phaseLabelFor(s.key));
+    const runs = [];
+    shown.forEach(h=>{
+      const seg = segs.filter(s=> covers(s, h.date)).sort((a,b)=> (rank(b) - rank(a)) || (startOf(a) - startOf(b)))[0] || null;
+      const last = runs[runs.length - 1];
+      if(last && last.seg === seg) last.rows.push(h); else runs.push({seg, rows: [h]});
+    });
+    let html = '';
+    runs.forEach(r=>{
+      if(!r.seg){ r.rows.forEach(h=> html += rowHtml(h)); return; }
+      const name = nameOf(r.seg);
+      const label = (r.rows.length === 1 && r.seg.key === 'production') ? 'Prod' : name;
+      html += '<div class="hv-run"><div class="hv-strip" title="'+escHtml(name)+'" style="background:'+escHtml(r.seg.color || '#EDEDED')
+        + ';color:'+escHtml(r.seg.textColor || textColorFor(r.seg.color || '#EDEDED'))+'"><span>'+escHtml(label)+'</span></div>'
+        + '<div class="hv-run-rows">' + r.rows.map(rowHtml).join('') + '</div></div>';
+    });
+    listEl.classList.toggle('hv-has-strips', runs.some(r=> !!r.seg));
+    listEl.innerHTML = html;
   }
 
   // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
@@ -19853,7 +19932,7 @@ export function initLegacyApp() {
   //   - Read only through phaseFillOn(); written only through setPhaseFill().
   let phaseFill = {};
   function phaseFillOn(key){ return phaseFill[key] === true; }
-  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default) = the layout as it was: a phase
+  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default until 11 Nov 2026) = the layout as it was: a phase
   // widens into the columns beside it from the week they are free (rule 13's rest of the run), so its width can step up
   // partway through. Off = NO PARTIAL FILLS: every phase has ONE width per year block, the widest that is free on every
   // row of its run there (layoutEvenPlan, frozen edit LR7). The owner, correcting a first build that kept every phase
@@ -19864,7 +19943,10 @@ export function initLegacyApp() {
   // over it. CALENDAR DATA, since the exports follow: captureSnapshot's `fillSpaceOff`, written only as true (absent =
   // on, every calendar before it); PERMANENT. Stamped calendars only, never in Single Column (rule 17). Reset Columns
   // leaves it alone: it is a setting, like Single Column Mode, not a column choice.
-  let fillSpaceOff = false;
+  //   - ⭐ A NEW CALENDAR STARTS WITH IT OFF (owner, 11 Nov 2026: "I think fill gaps should be disabled by default"): the
+  //     page's first calendar and New. A SAVED file is untouched: absent still means on, because every file without the
+  //     key was saved with it on, so a new calendar now writes fillSpaceOff: true from its first save.
+  let fillSpaceOff = true;
   function phaseFillOff(key){ return phaseFill[key] === false; }
   function setFillSpace(on){
     const off = !on;
@@ -29252,9 +29334,13 @@ export function initLegacyApp() {
       const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
       if(!holidays.length) return;
       if(view === 'enabled'){
+        // Only the rows that show the box (holidayEnableShown): Toggle all must never switch off a holiday whose
+        // box is not there, which would then grow one.
+        const hol = holidays.filter(h=> holidayEnableShown(currentSchedule, h));
+        if(!hol.length) return;
         if(!(await confirmHolidayRecompute())) return;
-        const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
-        holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
+        const turnOn = hol.some(h=> !holidayEnabled(h.hid));
+        hol.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
         update();
         return;
       }
@@ -29422,7 +29508,7 @@ export function initLegacyApp() {
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     phaseFill = {};                           // ...and no phase fills its free space (FILL-INTENT-PLAN.md)
-    fillSpaceOff = false;                     // ...and Fill Space back on
+    fillSpaceOff = true;                      // ...and Fill Gaps off, a new calendar's default (owner, 11 Nov 2026)
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();
