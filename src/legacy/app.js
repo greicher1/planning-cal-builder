@@ -14324,9 +14324,8 @@ export function initLegacyApp() {
     const costsDay = {};
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
-    // `word`: the phase a Notes only row falls in, one grey word on its date line (below); '' under a phase heading.
     const prodSeg = ((schedule && schedule.segments) || []).find(s=> s.key === 'production');
-    const rowHtml = (h, word)=>{
+    const rowHtml = h=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
       // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
@@ -14366,7 +14365,7 @@ export function initLegacyApp() {
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
       // No Enable box where switching it off would move no date (holidayMovesDates). The cell stays, EMPTY, to keep the
-      // column; the "Notes only" heading over those rows says why (owner, 11 Nov 2026: option 5, no dashes).
+      // column (owner, 11 Nov 2026: "only holidays that need an enable button get one").
       const enCell = holidayEnableShown(schedule, h)
         ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         : '<span class="hv-cell hv-en-na"></span>';
@@ -14374,7 +14373,6 @@ export function initLegacyApp() {
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
-        +     (word ? ' · <span class="hv-ph">'+escHtml(word)+'</span>' : '')
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
         // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
@@ -14389,50 +14387,45 @@ export function initLegacyApp() {
         + del
         + '</div>';
     };
-    // ⭐ PHASE HEADINGS, THEN NOTES ONLY (owner, 11 Nov 2026, option 5 of mockups/holiday-list-layouts.html: "your pick
-    // but it lables by phase for phases that can move shoot days instead of writing can move dates. Then keep the notes
-    // only section how it is"). It replaced a list grouped by every phase in date order, whose headings recurred and grew
-    // "also …" lines wherever phases overlapped (owner: "this menu is getting confusing … avoid visual clutter").
-    //   - A holiday with an Enable box (holidayEnableShown) sits under the phase that COUNTS it: Production, then a
-    //     phase counted in Days, then episode prep, then the earliest start. One heading per phase, in phase order (start
-    //     date), rows in date order, and no phase word on the row: the heading says it.
-    //   - Every other holiday is under ONE "Notes only" heading, in date order, its phase as one grey word on the date
-    //     line (an all-phase hiatus by its band name; none for a custom holiday outside every phase). Its Enable cell is
-    //     empty. A holiday switched OFF outside the counting phases keeps its box there: the way back on.
-    //   - ⚠️ A weekend holiday in the shoot (Sat 7/4) is Notes only, "· Production", while its weekday "(Observed)" twin
-    //     sits under Production: it can move no date. Owner shown this with the mockup and built it as is.
-    // Headings carry no id and no input, so nothing here reaches fields.byId; the rows keep every class and data-
-    // attribute the delegated handlers and the legs match on.
-    const segs = ((schedule && schedule.segments) || []).filter(s=> s.start && s.end);
-    const counts = s=> s.key === 'production' || s.unit === 'days' || !!s.prep;
-    const rank = s=> s.key === 'production' ? 3 : (s.unit === 'days' ? 2 : (s.prep ? 1 : 0));
+    // ⭐ ONE LIST, A STRIP PER COUNTING PHASE (owner, 11 Nov 2026, option 6 of mockups/holiday-list-layouts.html: "looks
+    // like the original version (tho only holidays that need an enable button get one) but days during production have a
+    // green strip on the left side with the word production (written sideways)", and "do both" of my two suggestions: a
+    // strip for a phase counted in Days too, and a short label where a strip is one row tall). It replaced option 5
+    // (phase headings, then Notes only), which replaced a list grouped by every phase.
+    //   - Date order, no headings, no phase words. Only the rows that can move a date have an Enable box.
+    //   - Every holiday inside a phase that COUNTS days (Production, a phase counted in Days, episode prep: the walks that
+    //     skip holidays) sits beside that phase's strip, in its fill and text colours, its name set sideways. Inside the
+    //     phase's span, so a weekend holiday in the shoot (Sat 7/4) is beside Production's strip with its "(Observed)"
+    //     twin. Overlaps: Production, then a Days phase, then episode prep, then the earliest start. Consecutive rows of
+    //     one phase share one strip; a phase whose rows are split by another's gets a strip per stretch.
+    //   - A strip one row tall reads "Prod" for Production; any other name is cut with an ellipsis (CSS), its full name
+    //     in the title.
+    //   - The strip sits in a 22 px gutter every row shares (`.hv-has-strips`), so the names stay aligned; with no strip
+    //     at all the gutter is not there.
+    // No id, no input in the markup added here, so nothing reaches fields.byId; rows keep every class and data-
+    // attribute the delegated handlers and the legs match on (rows are now nested in `.hv-run` wrappers: query rows as
+    // `#holiday-vis-list .hv-row`, never as its direct children).
+    const segs = ((schedule && schedule.segments) || []).filter(s=> s.start && s.end && (s.key === 'production' || s.unit === 'days' || s.prep));
+    const rank = s=> s.key === 'production' ? 3 : (s.unit === 'days' ? 2 : 1);
     const startOf = s=> s.prep ? (s.firstDay || s.start) : s.start;
     const covers = (s, d)=> s.prep ? (!!s.firstDay && d >= s.firstDay && d <= s.lastDay) : (d >= s.start && d < s.end);
     const nameOf = s=> String(s.label || phaseLabelFor(s.key));
-    const grpHtml = (name, color)=> '<div class="hv-grp">'
-      + (color ? '<span class="hv-grp-sw" style="background:'+escHtml(color)+'"></span>' : '')
-      + '<span class="hv-grp-name">'+escHtml(name)+'</span></div>';
-    const groups = [], notesOnly = [];
+    const runs = [];
     shown.forEach(h=>{
-      const d = h.date;
-      const inSegs = segs.filter(s=> covers(s, d)).sort((a,b)=> (rank(b) - rank(a)) || (startOf(a) - startOf(b)));
-      const home = holidayEnableShown(schedule, h) ? inSegs.find(counts) : null;
-      if(home){
-        let g = groups.find(x=> x.seg === home);
-        if(!g) groups.push(g = {seg: home, rows: []});
-        g.rows.push(h);
-        return;
-      }
-      const hi = ((schedule && schedule.hiatuses) || []).findIndex(x=> d >= x.start && d < x.end);
-      const word = hi >= 0
-        ? (String(hiatusTextFor(isoOf(mondayOf(schedule.hiatuses[hi].start))) || '').split('\n')[0].trim() || 'Hiatus')
-        : (inSegs.length ? nameOf(inSegs[0]) : '');
-      notesOnly.push({h, word});
+      const seg = segs.filter(s=> covers(s, h.date)).sort((a,b)=> (rank(b) - rank(a)) || (startOf(a) - startOf(b)))[0] || null;
+      const last = runs[runs.length - 1];
+      if(last && last.seg === seg) last.rows.push(h); else runs.push({seg, rows: [h]});
     });
-    groups.sort((a,b)=> startOf(a.seg) - startOf(b.seg));
     let html = '';
-    groups.forEach(g=>{ html += grpHtml(nameOf(g.seg), g.seg.color || '#EDEDED'); g.rows.forEach(h=> html += rowHtml(h, '')); });
-    if(notesOnly.length){ html += grpHtml('Notes only', ''); notesOnly.forEach(x=> html += rowHtml(x.h, x.word)); }
+    runs.forEach(r=>{
+      if(!r.seg){ r.rows.forEach(h=> html += rowHtml(h)); return; }
+      const name = nameOf(r.seg);
+      const label = (r.rows.length === 1 && r.seg.key === 'production') ? 'Prod' : name;
+      html += '<div class="hv-run"><div class="hv-strip" title="'+escHtml(name)+'" style="background:'+escHtml(r.seg.color || '#EDEDED')
+        + ';color:'+escHtml(r.seg.textColor || textColorFor(r.seg.color || '#EDEDED'))+'"><span>'+escHtml(label)+'</span></div>'
+        + '<div class="hv-run-rows">' + r.rows.map(rowHtml).join('') + '</div></div>';
+    });
+    listEl.classList.toggle('hv-has-strips', runs.some(r=> !!r.seg));
     listEl.innerHTML = html;
   }
 

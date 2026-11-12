@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Holidays list: one list, a strip per counting phase (11 Nov 2026)
+
+Owner: *"mock up a version that looks like the original version (tho only holidays that need an enable button get one) but
+days during production have a green strip on the left side with the word production (written sideways)"*, then option 6 of
+`mockups/holiday-list-layouts.html` with both suggestions (a strip for a phase counted in Days too, a short label on a
+one-row strip). The Holidays list is one list in date order again, with no headings and no phase words. Every holiday inside
+a phase that counts days (Production, a phase counted in Days, episode prep) sits beside a strip in that phase's own colours
+with its name set sideways, weekend holidays in the shoot included, so Sat 7/4 sits with its "(Observed)" Friday. A strip one
+row tall reads "Prod" for Production; any other name is cut short with its full name on hover. Only the rows that can move a
+date have an Enable box. It replaces option 5 (phase headings, then Notes only), live earlier the same day. Nothing saved or
+frozen changes. `holidayenable` rewritten (S1–S3 on `anchorside`, D1–D2 on `customunits`, both runs in `gate.sh`).
+Verified: `holidayenable` 8/8 (anchorside) and 2/2 (customunits), `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside`, `customunits` and a one-episode shoot ("Prod"). No full gate: nothing frozen, exported or saved changes.
+
 ### Unreleased — Holidays list: phase headings, then Notes only (11 Nov 2026)
 
 Owner, after the grouped list went live: *"since phases overlap maybe we do need a differnt way to arrange them since this

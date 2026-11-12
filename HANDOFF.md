@@ -4,6 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: HOLIDAYS LIST — ONE LIST, A STRIP PER COUNTING PHASE (option 6; replaces option 5 below). Branch `holiday-enable` on top of `8666628`; committed, not pushed. Tracker card `holiday-list-production-strip`.
+- **Owner:** *"mock up a version that looks like the original version (tho only holidays that need an enable button get
+  one) but days during production have a green strip on the left side with the word production (written sideways)"*;
+  then *"sure do both those suggestings and build option 6"*: a strip for a phase counted in Days too, and a short label
+  when a strip is one row tall.
+- **As built (`renderHolidayVisList`, after `rowHtml`):** rows in date order, no headings, no phase words. Each row's
+  strip phase = the counting segment covering its date (Production, `unit: 'days'`, episode prep by `firstDay..lastDay`),
+  ranked Production › Days › prep › earliest start; by SPAN, so a weekend or hiatus holiday inside the phase gets the strip
+  too. Consecutive rows of one phase share one `.hv-run` (`.hv-strip` + `.hv-run-rows`); a phase split by another's rows
+  gets a strip per stretch. Strip colours = the segment's `color` / `textColor`. One row tall: Production reads "Prod";
+  other names are cut by CSS ellipsis, full name in `title`. `#holiday-vis-list.hv-has-strips` gives every row a 22 px
+  gutter (and `:has()` moves the header's "Holiday"), so names align; no strip, no gutter. `.hv-grp` / `.hv-ph` gone.
+- ⚠️ **Rows are nested now** (inside `.hv-run`): query `#holiday-vis-list .hv-row`, never its direct children.
+- **Proof:** `holidayenable` 8/8 (anchorside) and 2/2 (customunits), `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside`, `customunits` and a one-episode shoot ("Prod"). No full gate.
+
 ### ✅ 11 Nov 2026: HOLIDAYS LIST — PHASE HEADINGS, THEN "NOTES ONLY" (replaces the grouped-by-every-phase list). ✅ **LIVE at `4fe0848`** (branch `holiday-enable`, `origin/main`'s Fill Gaps change `d20e235` merged in; pushed `d20e235..4fe0848` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `08a6896d…`, ~60 s after the push; `colreuse` live + restore and `fillspace` re-run green on the merge). No version cut. Tracker card `holiday-list-simpler`.
 - **Owner:** the live grouped list was *"getting confusing"* where phases overlap (Post heading twice, Rigging cutting in,
   "also …" lines); *"avoid visual clutter at all costs"*. Mockup `mockups/holiday-list-layouts.html` (live, 1 two sections
