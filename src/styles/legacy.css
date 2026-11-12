@@ -1860,21 +1860,22 @@
      box no longer clips it and it can sit over the sidebar). A drag lasts until the panel closes.
      ⭐ It is a GREY BAR across the panel's top (owner, same day: "make the bar at the top of the menus grey so its
      clear its a grabable window"): pulled out over the panel's padding to its edges, the panel's own top corners,
-     a hairline under it. A shade darker under the pointer and while dragging. */
+     a hairline under it. Its grey is How far's control's (`.tools-seg`, gray-1; owner's screenshot of "To a date"),
+     a shade darker under the pointer and while dragging. */
   .tools-menu .tools-head{ cursor:grab; -webkit-user-select:none; user-select:none; touch-action:none;
     margin:calc(-1 * var(--mantine-spacing-lg)) calc(-1 * var(--mantine-spacing-lg)) var(--mantine-spacing-md);
-    padding:7px 10px 7px var(--mantine-spacing-lg); background:var(--mantine-color-gray-2);
-    border-bottom:1px solid var(--mantine-color-gray-4);
+    padding:7px 10px 7px var(--mantine-spacing-lg); background:var(--mantine-color-gray-1);
+    border-bottom:1px solid var(--mantine-color-gray-3);
     border-radius:calc(var(--mantine-radius-lg) - 1px) calc(var(--mantine-radius-lg) - 1px) 0 0; }
-  .tools-menu .tools-head:hover{ background:var(--mantine-color-gray-3); }
-  .tools-menu.is-dragging .tools-head{ cursor:grabbing; background:var(--mantine-color-gray-3); }
+  .tools-menu .tools-head:hover{ background:var(--mantine-color-gray-2); }
+  .tools-menu.is-dragging .tools-head{ cursor:grabbing; background:var(--mantine-color-gray-2); }
   .tools-grip{ flex:none; width:8px; height:12px; margin-right:7px; opacity:.7;
     background-image:radial-gradient(circle, var(--mantine-color-gray-6) 1.1px, transparent 1.3px);
     background-size:4px 4px; background-position:0 0; }
   .tools-head-btns{ margin-left:auto; display:inline-flex; align-items:center; gap:2px; text-transform:none; letter-spacing:0; }
   .tools-head-btns button{ border:0; background:transparent; cursor:pointer; color:var(--mantine-color-gray-6);
     border-radius:var(--mantine-radius-sm); height:22px; padding:0 6px; font-size:11.5px; font-weight:500; line-height:22px; }
-  .tools-head-btns button:hover{ background:var(--mantine-color-gray-4); color:var(--mantine-color-gray-9); }
+  .tools-head-btns button:hover{ background:var(--mantine-color-gray-3); color:var(--mantine-color-gray-9); }
   .tools-head-btns .tools-close{ width:22px; padding:0; font-size:12px; }
   .tools-menu.is-floating{ position:fixed; right:auto; top:auto; box-shadow:var(--mantine-shadow-lg, var(--mantine-shadow-md)); }
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
