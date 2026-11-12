@@ -501,7 +501,7 @@
   rotating between runs: 7/9, 8/9, then 9/9 on this build; 9/9 once on the build without SO1), `simpostname` F2/F3 (Load timeout, 14/14 alone).
   `npm run check` 42/42. Seen in the pane with the real mouse.
 
-### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. On `main`'s working tree, NOT committed, NOT pushed. Tracker card `month-pill-tag-centred`.
+### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. ✅ **LIVE at `2613eb4`** (commit `d8d8a3a`, merged with origin's Sim Post reorder; pushed `41d92fd..2613eb4` on the owner's picker *"Push and deploy"*. Its own deploy run sat queued and later pushes deployed it; the live build carries TC1's rule, minified as `line-height:1.66667em` etc.). Gate 13 baselines re-cut on the owner's yes (21 files). Tracker card `month-pill-tag-centred`.
 - **Ask (owner):** a screenshot of "Block 1  S2 - Production Week 4 · Ep. 201, 202", *"not centered properly"*; after the
   screen fix, *"Yes, PDF too"*; after the classification and a 600 dpi before/after crop, *"Yes, cut them"* (gate 13).
 - **Cause:** `.mv-pill-block` is `vertical-align:top` and inherited the unitless 1.5, so its line box was 1.5 × its OWN
