@@ -248,6 +248,7 @@ export function PreviewToolbar() {
               id, inside .tools-menu, so collectFieldValues() never sees them. */}
         <div className="tools-menu" id="pop-shift" role="dialog" aria-label="Shift">
           <p className="tools-head">
+            <span className="tools-grip" aria-hidden="true"></span>
             Shift
             {/* ⛔ Opens ABOVE the title and never flips (owner's spec, 9 Nov 2026, item 8: no panel, popover or
                 floating control may sit over the list's rows at any width). The list is directly under this
@@ -256,6 +257,14 @@ export function PreviewToolbar() {
             <InfoHint label="Shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
               Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.
             </InfoHint>
+            {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
+                the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
+                "Put back" shows only while it floats; the cross closes it, since a click on the grid no longer does.
+                ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
+            <span className="tools-head-btns">
+              <button type="button" className="tools-putback" data-tools-putback="">Put back</button>
+              <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
+            </span>
           </p>
           {/* THE LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons
               (All phases | Phase & before | Phase & after) are gone: the box goes from its title straight to the
@@ -336,12 +345,21 @@ export function PreviewToolbar() {
             .tools-menu besides, so collectFieldValues() can never sweep them into a saved file. */}
         <div className="tools-menu tools-menu-solve" id="pop-solve" role="dialog" aria-label="Build around a phase">
           <p className="tools-head">
+            <span className="tools-grip" aria-hidden="true"></span>
             Build Around
             {/* ⛔ Opens ABOVE the title and never flips, as Shift's does: the list is directly under it, and
                 nothing may float over its rows. */}
             <InfoHint label="Build Around" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
               Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.
             </InfoHint>
+            {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
+                the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
+                "Put back" shows only while it floats; the cross closes it, since a click on the grid no longer does.
+                ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
+            <span className="tools-head-btns">
+              <button type="button" className="tools-putback" data-tools-putback="">Put back</button>
+              <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
+            </span>
           </p>
           <p className="tools-cap">Phases</p>
           <div className="shift-box">

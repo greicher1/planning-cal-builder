@@ -1855,6 +1855,25 @@
   .tools-head{margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xxs);
     letter-spacing:.05em; text-transform:uppercase; font-weight:600;
     color:var(--mantine-color-gray-6);}
+  /* THE PANEL MOVES (owner, 11 Nov 2026: Shift covered the dates being read). The title row is a grip; the
+     panel floats where it is dropped (`is-floating`: position:fixed, set by the engine, so the preview's scroll
+     box no longer clips it and it can sit over the sidebar). "Put back" shows only while it floats. The row is
+     pulled up into the panel's top padding a little and stretched to its edges so the whole strip is grabbable. */
+  .tools-menu .tools-head{ cursor:grab; margin:-6px -6px var(--mantine-spacing-sm); padding:4px 6px; border-radius:var(--mantine-radius-md);
+    -webkit-user-select:none; user-select:none; touch-action:none; }
+  .tools-menu .tools-head:hover{ background:var(--mantine-color-gray-0); }
+  .tools-menu.is-dragging .tools-head{ cursor:grabbing; background:var(--mantine-color-gray-1); }
+  .tools-grip{ flex:none; width:8px; height:12px; margin-right:7px; opacity:.55;
+    background-image:radial-gradient(circle, var(--mantine-color-gray-6) 1.1px, transparent 1.3px);
+    background-size:4px 4px; background-position:0 0; }
+  .tools-head-btns{ margin-left:auto; display:inline-flex; align-items:center; gap:2px; text-transform:none; letter-spacing:0; }
+  .tools-head-btns button{ border:0; background:transparent; cursor:pointer; color:var(--mantine-color-gray-6);
+    border-radius:var(--mantine-radius-sm); height:22px; padding:0 6px; font-size:11.5px; font-weight:500; line-height:22px; }
+  .tools-head-btns button:hover{ background:var(--mantine-color-gray-2); color:var(--mantine-color-gray-9); }
+  .tools-head-btns .tools-close{ width:22px; padding:0; font-size:12px; }
+  .tools-putback{ display:none; }
+  .tools-menu.is-floating .tools-putback{ display:inline-block; }
+  .tools-menu.is-floating{ position:fixed; right:auto; top:auto; box-shadow:var(--mantine-shadow-lg, var(--mantine-shadow-md)); }
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
   .tools-row:last-child{margin-bottom:0;}
   .tools-edge{flex:none !important; width:92px;}

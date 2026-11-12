@@ -34032,9 +34032,86 @@ export function initLegacyApp() {
       const over = minLeft - menu.getBoundingClientRect().left;
       if(over > 0) menu.style.right = (-over) + 'px';
     }
+    // ---------- A panel can be moved out of the way (owner, 11 Nov 2026) ----------
+    // "shift popup covers the waterfall ... its covering dates or portions of the calendar". Drag a panel by its
+    // title row and it FLOATS where it is dropped: `is-floating` + position:fixed with left/top. Fixed, not the
+    // absolute offset it opens with, because the preview panel is a scroll container that clips (keepPopInPanel's
+    // note): a fixed panel escapes it and can sit over the sidebar. Where each panel was left is remembered for the
+    // session (`popPos`, by the panel's element, never saved) and reused on every opening; "Put back" forgets it.
+    const popPos = new Map();
+    let popDrag = null;   // {menu, dx, dy, id} while a title row is being dragged
+    function clampPopPos(menu, left, top){
+      // Keep the whole panel on screen where it fits, and always its title row, so it can be grabbed again.
+      const w = menu.offsetWidth || 340, h = menu.offsetHeight || 0;
+      const maxLeft = Math.max(8, window.innerWidth - w - 8);
+      const maxTop = Math.max(8, window.innerHeight - Math.min(h, window.innerHeight - 16) - 8, 8);
+      return { left: Math.min(Math.max(8, left), maxLeft), top: Math.min(Math.max(8, top), maxTop) };
+    }
+    function floatPop(menu, left, top){
+      const pos = clampPopPos(menu, left, top);
+      menu.classList.add('is-floating');
+      menu.style.right = '';
+      menu.style.left = pos.left + 'px';
+      menu.style.top = pos.top + 'px';
+      return pos;
+    }
+    function dockPop(menu){
+      menu.classList.remove('is-floating', 'is-dragging');
+      menu.style.left = ''; menu.style.top = '';
+      if(menu.classList.contains('open')) keepPopInPanel(menu);
+    }
+    // Where an opening panel goes: where it was left this session, else under its button as always.
+    function placePop(menu){
+      const at = popPos.get(menu);
+      if(at) popPos.set(menu, floatPop(menu, at.left, at.top));
+      else { dockPop(menu); keepPopInPanel(menu); }
+    }
+    POPS.forEach(p=>{
+      const head = p.menu.querySelector('.tools-head');
+      if(!head) return;
+      head.addEventListener('pointerdown', e=>{
+        if(e.button !== 0) return;
+        // The hint's "i" and the row's own buttons are not the grip.
+        if(e.target.closest('button, a, input, select, .info-hint')) return;
+        const r = p.menu.getBoundingClientRect();
+        popDrag = { menu: p.menu, dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+        floatPop(p.menu, r.left, r.top);
+        p.menu.classList.add('is-dragging');
+        try{ head.setPointerCapture(e.pointerId); }catch(_){}
+        e.preventDefault();
+      });
+      head.addEventListener('pointermove', e=>{
+        if(!popDrag || popDrag.menu !== p.menu) return;
+        floatPop(p.menu, e.clientX - popDrag.dx, e.clientY - popDrag.dy);
+      });
+      const endDrag = e=>{
+        if(!popDrag || popDrag.menu !== p.menu) return;
+        const r = p.menu.getBoundingClientRect();
+        popPos.set(p.menu, { left: r.left, top: r.top });
+        p.menu.classList.remove('is-dragging');
+        popDrag = null;
+        try{ head.releasePointerCapture(e.pointerId); }catch(_){}
+      };
+      head.addEventListener('pointerup', endDrag);
+      head.addEventListener('pointercancel', endDrag);
+      // A double-click on the grip puts the panel back, as "Put back" does.
+      head.addEventListener('dblclick', e=>{
+        if(e.target.closest('button, a, input, select, .info-hint')) return;
+        popPos.delete(p.menu); dockPop(p.menu);
+      });
+      p.menu.addEventListener('click', e=>{
+        if(e.target.closest('[data-tools-putback]')){ popPos.delete(p.menu); dockPop(p.menu); return; }
+        if(e.target.closest('[data-tools-close]')) closeAllPops();
+      });
+    });
     window.addEventListener('resize', ()=>{
       const open = POPS.find(p=>p.menu.classList.contains('open'));
-      if(open) keepPopInPanel(open.menu);
+      if(!open) return;
+      if(open.menu.classList.contains('is-floating')){
+        const r = open.menu.getBoundingClientRect();
+        const pos = floatPop(open.menu, r.left, r.top);
+        if(popPos.has(open.menu)) popPos.set(open.menu, pos);
+      } else keepPopInPanel(open.menu);
     });
     // Opening one closes the others: only ever one popover on screen, so they can't overlap each
     // other or leave two stale result lines showing.
@@ -34055,24 +34132,47 @@ export function initLegacyApp() {
         renderSolve();
       }
       target.menu.classList.add('open');
-      keepPopInPanel(target.menu);
+      placePop(target.menu);
       target.btn.setAttribute('aria-expanded','true');
+      seenSchedule = currentSchedule;
     }
     POPS.forEach(p=>{
       p.btn.addEventListener('click', e=>{ e.stopPropagation(); openPop(p); });
       // Clicks inside a popover must not reach the click-away handler below.
       p.menu.addEventListener('click', e=> e.stopPropagation());
     });
-    document.addEventListener('click', e=>{
-      // .date-pop is EXCLUDED because it is a body-level panel (src/chrome/DatePop.jsx), so a
-      // click on a day in the pop-out calendar is a click 'outside' the tool popover that
-      // opened it -- and closing the popover mid-edit threw the edit away. Reported by the
-      // owner on all three date tools (round 6). .select-pop needs no entry: it portals INSIDE
-      // .tools-menu, so it is already inside .tools-wrap.
-      if(!e.target.closest('.tools-wrap') && !e.target.closest('.shift-group')
-         && !e.target.closest('.date-pop')) closeAllPops();
+    // ⭐ NO CLICK-AWAY (owner, 11 Nov 2026, option 2: "keep it open while you use the grid"). A panel used to close
+    // on any click outside the toolbar, so the calendar it quotes could not be clicked, checked or scrolled to while
+    // it was up. It now closes only on its ✕, on its button again, on Escape, or when the other tool opens. (The
+    // handler that did this also had to exclude .date-pop, whose day clicks are "outside"; nothing to exclude now.)
+    // Escape closes it only when the key is not someone else's: focus inside a tool panel, or on nothing. A note
+    // editor's Escape would otherwise close the Shift panel along with it.
+    document.addEventListener('keydown', e=>{
+      if(e.key !== 'Escape') return;
+      const a = document.activeElement;
+      if(!a || a === document.body || a.closest('.tools-menu, .shift-group, .tools-wrap')) closeAllPops();
     });
-    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
+    // The panel stays up while the calendar changes under it (an edit in the grid, Undo, a sidebar field), and every
+    // row in it quotes live dates. So re-read the calendar into it whenever a NEW schedule has been drawn: observing
+    // #table-wrap, CLAUDE.md's sanctioned pattern 3, never a hook inside render(). Not while the user is working
+    // in the panel (a typed date would be overwritten) or dragging down its list. A tool's own run refreshes the
+    // panel itself (asOneUndoStep), which the identity check then skips.
+    let seenSchedule = null;
+    let refreshQueued = false;
+    const tableWrapEl = document.getElementById('table-wrap');
+    if(tableWrapEl) new MutationObserver(()=>{
+      if(refreshQueued) return;
+      refreshQueued = true;
+      requestAnimationFrame(()=>{
+        refreshQueued = false;
+        const open = POPS.find(p=>p.menu.classList.contains('open'));
+        if(!open || currentSchedule === seenSchedule) return;
+        const a = document.activeElement;
+        if(shiftDrag || solveDrag || (a && a.closest && a.closest('.tools-menu, .date-pop'))) return;
+        seenSchedule = currentSchedule;
+        refreshMenuFromCalendar();
+      });
+    }).observe(tableWrapEl, { childList: true });
 
     // A pick made in the box CHOOSES that phase: its row is outlined, so Prior / After name it too (fillShiftPhase:
     // one chosen phase). Whole schedule is no phase, so the outline stays where it was.
