@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🟡 11 Nov 2026: THE SHIFT / BUILD AROUND PANELS DRAG AND STAY OPEN. Branch `shift-panel-float` (worktree `.claude/worktrees/shift-dock`, its `node_modules` a symlink: unlink before `git worktree remove`), `origin/main` `638b113` merged in at `d2a13a4`. NOT merged into `main`, NOT pushed. No version cut. Tracker card `shift-popup-covers-grid`.
+### ✅ 11 Nov 2026: THE SHIFT / BUILD AROUND PANELS DRAG AND STAY OPEN, WITH A GREY TITLE BAR. ✅ **LIVE at `bf339f5`** (owner's picker "Merge and push", 12 Nov; `origin/main` merged in at `cfa9100`; pushed `5e68b59..bf339f5`, deploy run `43281898776` green, the live `index.html` is the tested build byte for byte, sha256 `4a973b99…`). Branch `shift-panel-float` (worktree `.claude/worktrees/shift-dock`, its `node_modules` a symlink: unlink before `git worktree remove`). Local `main` was NOT moved (another session's checkout). No version cut. Tracker card `shift-popup-covers-grid`.
 - **Owner:** *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering
   dates or portions of the calendar"*. Four options offered (drag; keep open while using the grid; dock beside the grid;
   fade while looking). Three were BUILT as try-outs and tried by the owner: 1+2 (`shift-panel-float`), 3 docked
@@ -27,7 +27,9 @@
 - ⚠️ **Legs:** a page click no longer closes a panel, and the next press of its button then CLOSES it. `T.closePops()`
   (lib.js) presses each open panel's ✕ and still clicks the page; 13 legs use it now. New leg `paneldrag`
   (anchorside, 9 cases, in `gate.sh`'s list). `buildaround` O1 reads the title without the row's ✕.
-- **Proof on the merged build (`d2a13a4`):** `npm run check` 42/42; `paneldrag` 9/9 and the legs that open these panels
+- **Final build (`bf339f5`):** check 42/42; `paneldrag` 5/5 runs at 9/9 after the timer fix; `anchorside` 39, `buildaround` 36,
+  `rebuildticks` 20, `shiftheld` 13.
+- **Proof on the earlier merged build (`d2a13a4`):** `npm run check` 42/42; `paneldrag` 9/9 and the legs that open these panels
   green: `anchorside` 39, `buildalongside` 8, `buildaround` 36, `buildaroundfresh` 5, `builtindates` (both), `calrange`
   18, `datepick` 17, `customunits` (both), `episodeprep` (all three), `hdrcontrols` 12, `halfworked` 24, `monthmap` 20,
   `overrides` 20, `phasenotes` 21, `phaselink` 14, `phaselook` 10, `rowheight` 7, `rebuildticks` 20, `shiftheld` 13,
