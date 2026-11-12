@@ -10,6 +10,46 @@
 - ⚠️ **For legs:** a leg that BUILDS a calendar through the UI now gets Fill Gaps off. A leg written for the old default must switch it on (`colreuse` live does, after its first snapshot, then sleeps 800 ms: `reClickGuard(600)` on Share is reset by EVERY document click, so a Share right after the toolbar click is swallowed and the leg times out on "the shareable copy"). `fillspace` S5 now enters New with the switch on and expects it off and `fillSpaceOff: true` in the file.
 - **Checks:** full gate 4,515 / 5 FAIL, export baselines identical; `colreuse` (live) was this change (its fix above, 29/29 both runs); `stintbtn`, `mvhdroff`, `pilllabel` carry-rich and `scenariocompat` (v1.2.0) were load timeouts, green alone, and the first three gave the same JSON on the build without this change. `fillspace` 6/6, `npm run check` 42/42.
 
+### ✅ 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. ✅ **LIVE at `d5f9bff`** (pushed `bd29c58..d5f9bff` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `33811618…`, ~50 s after the push). No version cut.
+- **Owner:** *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. In
+  `renderHolidayVisList`'s grouping, the hiatus branch now sets `also = []`; a phase heading keeps its "also …".
+  `holidayenable` G2 asserts no "also" on Christmas. Proof: `holidayenable` 7/7, `npm run check` 42/42, tried in the pane.
+
+### ✅ 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". ✅ **LIVE at `e1e447c`** (branch `holiday-enable`, worktree `.claude/worktrees/holiday-enable`, shipped AFTER v1.13.0 by the owner's picker: `origin/main` merged in at `5f1b67a`, pushed `5f1b67a..e1e447c` on the owner's *"ok can we push now?"*; the live `index.html` is the tested build byte for byte, sha256 `dff379c6…`, ~50 s after the push). No version cut. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
+- **Asks (owner, 11 Nov, in order):** *"Should the enable button even be there for holidays that do not occur during
+  production? Maybe non-production holidays just have the note options"*; told that a Days custom phase and episode prep
+  count holidays too, *"Yes, build it with that rule. But also i think we need to make it more clear what phase each
+  holiday is in from that menu. Mockup a few ways"* (`mockups/holiday-phase-label.html`, five: words, chips, grouped,
+  stripe, column; picked **C, grouped by phase**); *"Waterfall"* in full, then *"lets switch back to W'Fall Note"*;
+  why 7/3 had a box but no "Costs a shoot day" (it is marked Work this day) → the tag, worded *"Marked Working Day"*.
+- **As built (`app.js` beside `renderHolidayVisList`; nothing frozen, nothing saved changes, no new id):**
+  - `holidayMovesDates(schedule, iso)`: a weekday, not in an all-phase hiatus, inside Production's segment or a
+    `unit: 'days'` segment (outside its own hiatus) or episode prep's `firstDay..lastDay`. Read off the schedule's
+    segments, never a second copy of the walk. `holidayEnableShown(schedule, h)` adds "or already off": ⛔ a holiday
+    off outside the shoot must keep its box, or it is stuck off with greyed note boxes.
+  - Used by the list's Enable cell (else `.hv-en-na`, a faint dash with a title), **Toggle all: Enable** (only the
+    boxed rows, so no dashed row is switched off and grows a box) and the month day menu's `holidaySections` (no
+    Enabled item where the list has no box; the two Show items as before).
+  - Grouping: `rowHtml(h, also)` is the old row; headings `.hv-grp` (swatch in the phase fill, name, "counts shoot
+    days" / "counts days"). Home = the all-phase hiatus (by index, named by its first week's band text), else the
+    phase it falls in ranked Production › Days phase › earliest start (so a box sits under the phase that explains it),
+    else "Outside the phases". Other phases: `.hv-also` "· also Post". Date order is kept, so a heading recurs after a
+    break. Episode prep is not a heading (its segment starts with Production's). Rows now carry `data-hid`.
+  - "Marked Working Day": a grey `.hv-tag` on a Production holiday that is on, costs no day, and is marked `on` /
+    `onhalf` in `dayOverrides`.
+  - `Sidebar.jsx`: the ⓘ text explains the dash. The header stays "W’fall note" (a "Waterfall" header needed a 60 px
+    column; the owner reverted it).
+- ⚠️ **Legs:** anything that read a holiday's id off `.hv-en` reads the row's `data-hid` now (`caholidays`,
+  `mxholidays`); `settingswin` picks the first built-in row WITH a box; `mvmenu` H5/V5 expect Christmas (inside the
+  winter hiatus) to have no Enabled. A leg that walks `#holiday-vis-list > *` meets `.hv-grp` headings (`wrapdate`
+  ignores them: no date). New leg **`holidayenable`** on `anchorside` (in `gate.sh` after `mxholidays`): E1 a Weeks-phase
+  holiday has a dash, E2 weekend vs Labor Day, E3 "Marked Working Day" on 7/3, G1 the headings, G2 Christmas under
+  Hiatus "also Post", T1 Toggle all, O1 a saved-off Thanksgiving keeps its box. Red on `main` but T1.
+- **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. Tried in the pane on `anchorside` and `customunits` (a Days phase).
+  No full gate (chrome-side list and menu only; no output, export or saved key changes).
+
+### ✅ 11 Nov 2026: A PHASE'S ▲ / ▼ STEP OVER A HIATUS WHILE RIPPLE HIATUS IS ON. Committed LOCALLY on `main`, not pushed. Tracker card `phase-arrows-step-over-hiatus`.
+
 ### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
 - **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
   gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;

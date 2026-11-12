@@ -953,8 +953,9 @@ export function HolidaysCard() {
       <h2>
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
         <InfoHint label="Holidays" width={280}>
-          Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
-          Production a shoot day and stops appearing as a note. The two note columns control where an
+          Un-tick <strong>Enable</strong> to work a holiday: it stops costing a day and stops appearing
+          as a note. It only shows where that moves a date — inside Production, a phase counted in Days,
+          or episode prep. Elsewhere a dash stands in, and the note boxes are all you need. The two note columns control where an
           enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
           during Production, on a day the shoot would otherwise have worked.
         </InfoHint>

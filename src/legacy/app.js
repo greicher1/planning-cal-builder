@@ -13215,7 +13215,9 @@ export function initLegacyApp() {
                    : '';
         const view = (v, text, k)=> ({id: 'hol-' + k + '-' + j, check: true, checked: holidayVisibleIn(h.hid, v), text,
           run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
-        const items = [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}];
+        // Enabled only where it can move a date, or while off (holidayEnableShown, the Holidays list's own rule).
+        const items = holidayEnableShown(currentSchedule, h)
+          ? [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}] : [];
         if(on) items.push(view('month', 'Show in month view', 'month'), view('sheet', 'Show in waterfall', 'sheet'));
         return {id: 'holiday', label: 'Holiday · ' + h.name, items};
       });
@@ -14246,6 +14248,32 @@ export function initLegacyApp() {
   // Auto-generated checklist of every holiday that lands inside a phase, with a Waterfall and a
   // Month checkbox each. Re-rendered on every schedule change so it always matches the phases and
   // the selected country. Hidden when the master switch is off or no holidays fall in any phase.
+  // ⭐ WHERE ENABLE CAN MOVE A DATE (owner, 11 Nov 2026: "Should the enable button even be there for holidays that
+  // do not occur during production? Maybe non-production holidays just have the note options"). Switching a holiday
+  // off only matters to a walk that counts working days and skips ENABLED holidays (isUnitWorkDay, and Production's
+  // own simulation): Production, a custom phase counted in Days, and episode prep. Anywhere else (a Weeks phase, a
+  // weekend, an all-phase hiatus, the phase's own hiatus) off and on give the same dates, and unticking both note
+  // boxes already hides it, so the Enable box is left out there. Read from the schedule's own segments, never a
+  // second copy of the walk. ⚠️ A holiday that is ALREADY off keeps its box wherever it is (the caller's job), or a
+  // calendar saved with one off would leave it stuck off with greyed note boxes. Used by the Holidays list, its
+  // Toggle all, and the month view's day menu, so the three agree.
+  function holidayMovesDates(schedule, iso){
+    const d = parseDateUTC(iso);
+    if(!d || !schedule) return false;
+    const dow = d.getUTCDay();
+    if(dow === 0 || dow === 6) return false;
+    if(isHiatusDate(schedule, d)) return false;
+    return (schedule.segments || []).some(s=>{
+      if(s.prep) return !!s.firstDay && d >= s.firstDay && d <= s.lastDay;
+      if(!(s.key === 'production' || s.unit === 'days')) return false;
+      if(!(d >= s.start && d < s.end)) return false;
+      return !(s.phaseHiatus && d >= s.phaseHiatus.start && d < s.phaseHiatus.end);
+    });
+  }
+  // The box shows where it can move a date, and on any holiday that is off (the way back).
+  function holidayEnableShown(schedule, h){
+    return h.enabled === false || !holidayEnabled(h.hid) || holidayMovesDates(schedule, h.iso || h.date);
+  }
   function renderHolidayVisList(schedule){
     const wrap = document.getElementById('holiday-vis');
     const listEl = document.getElementById('holiday-vis-list');
@@ -14296,7 +14324,9 @@ export function initLegacyApp() {
     const costsDay = {};
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
-    listEl.innerHTML = shown.map(h=>{
+    // `also`: the other phases the day falls in, named on the date line under its group (below).
+    const prodSeg = ((schedule && schedule.segments) || []).find(s=> s.key === 'production');
+    const rowHtml = (h, also)=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
       // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
@@ -14335,19 +14365,74 @@ export function initLegacyApp() {
       const del = '<span class="hv-del-slot">' + (h.custom
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
-      return '<div class="hv-row">'
+      // No Enable box where switching it off would move no date (holidayMovesDates): a faint dash keeps the column.
+      const enCell = holidayEnableShown(schedule, h)
+        ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        : '<span class="hv-cell hv-en-na" title="Changes no dates here: no phase counts working days on this day. Use the note boxes to hide it.">–</span>';
+      return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
+        +     (also && also.length ? ' <span class="hv-also">· also '+also.map(escHtml).join(', ')+'</span>' : '')
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
+        // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
+        // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
+        // overrides the holiday. The box stays, since removing the mark makes it cost a day again.
+        +     ((!costsDay[h.iso] && on && (dayOverrides[h.iso] === 'on' || dayOverrides[h.iso] === 'onhalf') && prodSeg && h.date >= prodSeg.start && h.date < prodSeg.end)
+                 ? ' <span class="hv-tag" title="Marked Work this day in the month view, so Production shoots it. Remove the mark and it costs a shoot day.">Marked Working Day</span>' : '')
         +   '</span>'
         + '</span>'
-        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + enCell
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
-    }).join('');
+    };
+    // ⭐ GROUPED BY PHASE (owner, 11 Nov 2026, mockup C of mockups/holiday-phase-label.html: "make it more clear what
+    // phase each holiday is in"). Each holiday sits under ONE heading:
+    //   - an all-phase hiatus, when the day is in one (named by its band text), since nothing counts there;
+    //   - else the phase it falls in, preferring Production, then a phase counted in Days, then the earliest start,
+    //     so a row with an Enable box sits under the phase that explains the box;
+    //   - else "Outside the phases" (a custom holiday the list keeps anyway).
+    // Any other phase the day falls in is named on its date line ("also Post"), except under a hiatus heading. Headings come in the order of their
+    // first holiday, and a heading recurs if its holidays are split by another group's, so the list stays in date
+    // order. Episode prep is left out: its segment starts with Production's, so Production covers it. Headings carry
+    // no id and no input, so nothing here reaches fields.byId; the rows keep every class and data- attribute the
+    // delegated handlers and the legs match on.
+    const segs = ((schedule && schedule.segments) || []).filter(s=> !s.prep && s.start && s.end);
+    const rank = s=> s.key === 'production' ? 2 : (s.unit === 'days' ? 1 : 0);
+    const grpHtml = g=> '<div class="hv-grp"><span class="hv-grp-sw" style="background:'+escHtml(g.color)+'"></span>'
+      + '<span class="hv-grp-name">'+escHtml(g.name)+'</span>'
+      + (g.note ? '<span class="hv-grp-note">'+escHtml(g.note)+'</span>' : '') + '</div>';
+    let lastKey = null, html = '';
+    shown.forEach(h=>{
+      const d = h.date;
+      const inSegs = segs.filter(s=> d >= s.start && d < s.end)
+        .sort((a,b)=> (rank(b) - rank(a)) || (a.start - b.start));
+      const nameOf = s=> String(s.label || phaseLabelFor(s.key));
+      let g, also;
+      const hi = ((schedule && schedule.hiatuses) || []).findIndex(x=> d >= x.start && d < x.end);
+      if(hi >= 0){
+        // Keyed by the hiatus, not the week, so a break of several weeks is one heading; named by its first week's band.
+        const wkKey = isoOf(mondayOf(schedule.hiatuses[hi].start));
+        const name = String(hiatusTextFor(wkKey) || '').split('\n')[0].trim() || 'Hiatus';
+        g = {key: 'hiatus:' + hi, name, color: hiatusColorFor(wkKey), note: /hiatus/i.test(name) ? '' : 'hiatus'};
+        // No "also …" under a hiatus (owner, 11 Nov 2026: "I dont think all phase hiatuses need to say Also Post"): an
+        // all-phase hiatus pauses every phase, so naming the ones around it says nothing.
+        also = [];
+      } else if(inSegs.length){
+        const s = inSegs[0];
+        g = {key: s.key, name: nameOf(s), color: s.color || '#EDEDED',
+             note: s.key === 'production' ? 'counts shoot days' : (s.unit === 'days' ? 'counts days' : '')};
+        also = inSegs.slice(1).map(nameOf);
+      } else {
+        g = {key: 'outside', name: 'Outside the phases', color: 'transparent', note: ''};
+        also = [];
+      }
+      if(g.key !== lastKey){ html += grpHtml(g); lastKey = g.key; }
+      html += rowHtml(h, also);
+    });
+    listEl.innerHTML = html;
   }
 
   // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
@@ -29255,9 +29340,13 @@ export function initLegacyApp() {
       const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
       if(!holidays.length) return;
       if(view === 'enabled'){
+        // Only the rows that show the box (holidayEnableShown): Toggle all must never switch off a holiday whose
+        // box is not there, which would then grow one.
+        const hol = holidays.filter(h=> holidayEnableShown(currentSchedule, h));
+        if(!hol.length) return;
         if(!(await confirmHolidayRecompute())) return;
-        const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
-        holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
+        const turnOn = hol.some(h=> !holidayEnabled(h.hid));
+        hol.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
         update();
         return;
       }

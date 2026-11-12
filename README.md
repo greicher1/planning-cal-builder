@@ -48,6 +48,31 @@ starts with **Fill Gaps off**: each phase keeps one even width per year instead 
   alone on this build: `stintbtn` 15/15, `mvhdroff` 9/9, `pilllabel` (carry-rich) 29/29, `scenariocompat` (v1.2.0,
   an old release file this change cannot reach). The Help sentence was edited after the gate (text only).
 
+### Unreleased — Holidays list: no "also …" under a hiatus (11 Nov 2026)
+
+Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an
+all-phase hiatus heading no longer names the phases around it (the hiatus pauses all of them); "also …" stays under a
+phase heading. Leg `holidayenable` G2 now asserts its absence. Verified: `holidayenable` 7/7, `npm run check` 42/42,
+tried in the pane on `anchorside`.
+
+### Unreleased — Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
+
+Owner: *"Should the enable button even be there for holidays that do not occur during production? Maybe non-production
+holidays just have the note options"*, then *"make it more clear what phase each holiday is in"* (picked mockup C of
+`mockups/holiday-phase-label.html`, grouped by phase). Switching a holiday off only matters to a count that skips
+holidays: Production's shoot, a custom phase counted in Days, and episode prep. So the Holidays list (Settings › Region),
+its Toggle all and the month view's day menu now show Enable only on a weekday holiday inside one of those and outside
+any hiatus, or on a holiday that is already off (the way back on). Elsewhere a faint dash stands in, and the two note
+boxes are all a holiday needs. The list is grouped under a heading per phase in date order (a phase recurs after a
+break): an all-phase hiatus, else the phase the day falls in (Production, then a Days phase, then the earliest start),
+else "Outside the phases"; the other phases it falls in read "also …" on its date line. A Production holiday marked
+Work this day keeps its box and now says so: **Marked Working Day** (owner's wording). Nothing saved changes and nothing
+frozen is touched. New leg `holidayenable` (E1–E3, G1, G2, T1, O1; red on `main` but for T1); `caholidays`,
+`mxholidays`, `settingswin` and `mvmenu` (H5, V5: Christmas, inside the winter hiatus, has no Enabled now) updated.
+Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. No full gate: nothing frozen, exported or saved changes.
+
+### Unreleased — A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+
 ## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
 ### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)
