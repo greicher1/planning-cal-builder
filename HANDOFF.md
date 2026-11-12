@@ -22,6 +22,8 @@
   title), its button, Esc (only when focus is in a panel or on nothing), or the other tool. A `MutationObserver` on
   `#table-wrap` (pattern 3) re-reads a NEW `currentSchedule` into an open panel via `refreshMenuFromCalendar()`, unless
   focus is in a panel or `.date-pop`, or a list drag is on. Nothing in the grid, the writers or the save format moved.
+  ⚠️ That refresh runs on a zero-delay TIMER, not requestAnimationFrame: with rAF, `paneldrag` R1 (the panel after an
+  Undo) failed 1 run in 5 in headless Chrome, whose virtual time can hold a frame back; with the timer, 5 of 5.
 - ⚠️ **Legs:** a page click no longer closes a panel, and the next press of its button then CLOSES it. `T.closePops()`
   (lib.js) presses each open panel's ✕ and still clicks the page; 13 legs use it now. New leg `paneldrag`
   (anchorside, 9 cases, in `gate.sh`'s list). `buildaround` O1 reads the title without the row's ✕.

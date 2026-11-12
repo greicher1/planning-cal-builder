@@ -34240,13 +34240,16 @@ export function initLegacyApp() {
     // #table-wrap, CLAUDE.md's sanctioned pattern 3, never a hook inside render(). Not while the user is working
     // in the panel (a typed date would be overwritten) or dragging down its list. A tool's own run refreshes the
     // panel itself (asOneUndoStep), which the identity check then skips.
+    // ⚠️ A zero-delay TIMER, not requestAnimationFrame: it runs once the task that redrew the grid has finished, in
+    // every setting. A frame can lag where nothing is painting (headless Chrome on virtual time), and there the
+    // panel kept Shift's date after an Undo, 1 run in 5 of paneldrag R1.
     let seenSchedule = null;
     let refreshQueued = false;
     const tableWrapEl = document.getElementById('table-wrap');
     if(tableWrapEl) new MutationObserver(()=>{
       if(refreshQueued) return;
       refreshQueued = true;
-      requestAnimationFrame(()=>{
+      setTimeout(()=>{
         refreshQueued = false;
         const open = POPS.find(p=>p.menu.classList.contains('open'));
         if(!open || currentSchedule === seenSchedule) return;
