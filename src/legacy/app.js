@@ -19939,7 +19939,7 @@ export function initLegacyApp() {
   //   - Read only through phaseFillOn(); written only through setPhaseFill().
   let phaseFill = {};
   function phaseFillOn(key){ return phaseFill[key] === true; }
-  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default) = the layout as it was: a phase
+  // ⭐ FILL SPACE, the switch left of Side Boxes (owner, 9 Nov 2026). On (the default until 11 Nov 2026) = the layout as it was: a phase
   // widens into the columns beside it from the week they are free (rule 13's rest of the run), so its width can step up
   // partway through. Off = NO PARTIAL FILLS: every phase has ONE width per year block, the widest that is free on every
   // row of its run there (layoutEvenPlan, frozen edit LR7). The owner, correcting a first build that kept every phase
@@ -19950,7 +19950,10 @@ export function initLegacyApp() {
   // over it. CALENDAR DATA, since the exports follow: captureSnapshot's `fillSpaceOff`, written only as true (absent =
   // on, every calendar before it); PERMANENT. Stamped calendars only, never in Single Column (rule 17). Reset Columns
   // leaves it alone: it is a setting, like Single Column Mode, not a column choice.
-  let fillSpaceOff = false;
+  //   - ⭐ A NEW CALENDAR STARTS WITH IT OFF (owner, 11 Nov 2026: "I think fill gaps should be disabled by default"): the
+  //     page's first calendar and New. A SAVED file is untouched: absent still means on, because every file without the
+  //     key was saved with it on, so a new calendar now writes fillSpaceOff: true from its first save.
+  let fillSpaceOff = true;
   function phaseFillOff(key){ return phaseFill[key] === false; }
   function setFillSpace(on){
     const off = !on;
@@ -29512,7 +29515,7 @@ export function initLegacyApp() {
     mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     phaseHidden = {}; reflectPhaseHidden();   // every phase back in the waterfall (PHASES-TAB-PLAN.md §2.3)
     phaseFill = {};                           // ...and no phase fills its free space (FILL-INTENT-PLAN.md)
-    fillSpaceOff = false;                     // ...and Fill Space back on
+    fillSpaceOff = true;                      // ...and Fill Gaps off, a new calendar's default (owner, 11 Nov 2026)
     phaseEnds = {};                           // ...and held by its start again (Ends; the cards follow on update())
     productionEnds = null; prodEndsForward = false;   // ...Production too (Ends for Production)
     reflectPrepSwatch();

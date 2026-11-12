@@ -40,6 +40,25 @@ date order, its phase as a single grey word on the date line ("1/19/26 · Writer
 cell empty (no dash). No heading repeats and no row says "also …". A weekend holiday in the shoot can move no date, so it is
 Notes only ("· Production"). Nothing saved or frozen changes. `holidayenable` G1/G2 rewritten for it. Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate: nothing frozen, exported or saved changes.
 
+### Unreleased — Fill Gaps starts off on a new calendar (11 Nov 2026)
+
+Owner: *"I think fill gaps should be disabled by default"*. A new calendar, the one the app opens on and every New, now
+starts with **Fill Gaps off**: each phase keeps one even width per year instead of widening partway through its run.
+
+- **Saved calendars are untouched.** The setting is the saved key `fillSpaceOff`, written only as `true`, and absent still
+  means on, because every file without it was saved while on was the default. So every existing calendar, shareable
+  copy and fixture opens exactly as before; a new calendar writes `fillSpaceOff: true` from its first save. No format
+  change, no `SNAPSHOT_VERSION` bump, nothing frozen edited (the default is the engine's starting value and `resetAll()`).
+- **Help** now says a new calendar starts with it off, and how to switch it on.
+- **Verified:** `fillspace` 6/6, its S5 rewritten so New must turn a switched-on Fill Gaps OFF and the file must say so;
+  a fresh page starts with it off. `npm run check` 42/42. **Full gate: 4,515 PASS / 5 FAIL**, every export baseline
+  identical. One failure was this change: `colreuse` (live) reads each phase's column from its "wk 1" label cell in the
+  workbook, and with Fill Gaps off Mix is one even width from its first week, so its label sat a column left of Loc's
+  (the phase's column itself had not moved). The leg now switches Fill Gaps on, as every new calendar was when it was
+  written (its fixture was cut that way): 29/29 on both runs. The other four failed for time under load and are green
+  alone on this build: `stintbtn` 15/15, `mvhdroff` 9/9, `pilllabel` (carry-rich) 29/29, `scenariocompat` (v1.2.0,
+  an old release file this change cannot reach). The Help sentence was edited after the gate (text only).
+
 ### Unreleased — Holidays list: no "also …" under a hiatus (11 Nov 2026)
 
 Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an
