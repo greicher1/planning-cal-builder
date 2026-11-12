@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 11 Nov 2026: HOLIDAYS LIST — PHASE HEADINGS, THEN "NOTES ONLY" (replaces the grouped-by-every-phase list). Branch `holiday-enable` on top of `56ead7c`; committed, not pushed. Tracker card `holiday-list-simpler`.
+### ✅ 11 Nov 2026: HOLIDAYS LIST — PHASE HEADINGS, THEN "NOTES ONLY" (replaces the grouped-by-every-phase list). ✅ **LIVE at `4fe0848`** (branch `holiday-enable`, `origin/main`'s Fill Gaps change `d20e235` merged in; pushed `d20e235..4fe0848` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `08a6896d…`, ~60 s after the push; `colreuse` live + restore and `fillspace` re-run green on the merge). No version cut. Tracker card `holiday-list-simpler`.
 - **Owner:** the live grouped list was *"getting confusing"* where phases overlap (Post heading twice, Rigging cutting in,
   "also …" lines); *"avoid visual clutter at all costs"*. Mockup `mockups/holiday-list-layouts.html` (live, 1 two sections
   by effect, 2 one list, 3 each phase once, 4 notes folded); the owner's own idea became **option 5** and was picked.
