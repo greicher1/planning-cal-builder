@@ -66,6 +66,14 @@ input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy
 .grp .sw{ width:10px; height:10px; border-radius:3px; border:1px solid rgba(0,0,0,.12); }
 .grp .note{ margin-left:auto; font-weight:500; letter-spacing:0; text-transform:none; color:var(--gray-5); font-size:10.5px; }
 .sub{ font-size:11px; color:var(--gray-5); padding:0 2px 4px; }
+/* Option 6: a gutter every row shares; the Production strip fills it beside the shoot's rows. */
+.g6 .hv-head, .g6 .pplain{ padding-left:22px; }
+.g6 .prun{ display:flex; }
+.g6 .pstrip{ width:16px; flex:none; margin:4px 6px 4px 0; background:#E2F0D9; border:1px solid #C9DFBA; border-radius:4px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.g6 .pstrip span{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:9.5px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:#375623; white-space:nowrap; }
+.g6 .prows{ flex:1; min-width:0; }
 /* The fold in option 4. */
 .fold{ display:flex; align-items:center; gap:6px; width:100%; border:0; background:none; padding:12px 2px 6px; cursor:pointer;
   font:inherit; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--gray-7); text-align:left; }
@@ -79,10 +87,9 @@ input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy
 <body>
 <div class="page">
   <h1>Holidays list: simpler layouts</h1>
-  <p class="lead">The live list (first card) repeats headings when phases overlap or a break interrupts one, and the
-    "also …" lines add noise. Calmer ways to lay out the same holidays, your idea (5) first. <b>None of them repeat a heading or say
-    "also …"</b>; each holiday names one phase at most, in plain grey text on its date line. The calendar is made up:
-    Rigging is a custom phase counted in Days that overlaps Post.</p>
+  <p class="lead"><b>Newest first: your Production strip (6).</b> Then option 5, which is live now, the grouped list it
+    replaced (marked Earlier), and the other layouts. The calendar is made up: Rigging is a custom phase counted in Days that
+    overlaps Post, and the winter break is an all-phase hiatus.</p>
   <div class="grid" id="grid"></div>
 </div>
 <script>
@@ -131,7 +138,7 @@ const grp = (label, opts) => '<div class="grp">'+(opts&&opts.sw?'<span class="sw
 const V = [];
 
 // LIVE: grouped by phase in date order, headings recur, also-lines under phase headings.
-V.push({id:'Now', live:true, title:'Live: grouped by phase', why:'What users have today. Headings follow the dates, so <b>Post appears twice</b> and Rigging cuts in between; overlaps add "also …".',
+V.push({id:'Now', live:true, tagText:'Earlier', title:'Before: grouped by phase', why:'What users had until option 5 went live. Headings follow the dates, so <b>Post appears twice</b> and Rigging cuts in between; overlaps add "also …".',
   html: head + (()=>{ let last=null, out=''; H.forEach(h=>{ if(h.g!==last){ last=h.g; out+=grp(PH[h.g].label,{sw:PH[h.g].fill, note:PH[h.g].note}); } out+=row(h,{also:true}); }); return out; })()});
 
 // 1: two sections by effect.
@@ -158,14 +165,33 @@ V.push({id:'4', title:'Two sections, notes folded', why:'Option 1 with the "Note
 // of writing can move dates. Then keep the notes only section how it is." The top part is headed by each phase that
 // counts days (Production, a Days phase, episode prep), in phase order; its rows need no phase word, the heading says it.
 const COUNTING = PHASE_ORDER.filter(k=> moves.some(h=>h.g===k));
-V.splice(1, 0, {id:'5', rec:true, title:'Phase headings, then Notes only', why:'Your idea. Holidays that can move dates sit under <b>the phase that counts them</b> (Production, Rigging): each heading once, the rows need no phase word. Everything else stays in <b>Notes only</b>, as in 1.',
+V.splice(1, 0, {id:'5', tagText:'Live now', tagCls:'now', title:'Phase headings, then Notes only', why:'Live at 4fe0848. Holidays that can move dates sit under <b>the phase that counts them</b> (Production, Rigging): each heading once, the rows need no phase word. Everything else stays in <b>Notes only</b>, as in 1.',
   html: head + COUNTING.map(k=> grp(PH[k].label,{sw:PH[k].fill}) + moves.filter(h=>h.g===k).map(h=>row(h,{enMode:'blank'})).join('')).join('')
              + grp('Notes only') + notes.map(h=>row(h,{phase:'word', enMode:'blank'})).join('')});
 V.forEach(v=>{ if(v.id==='1') v.rec = false; });
 
+// 6 (owner, 11 Nov 2026): "mock up a version that looks like the original version (tho only holidays that need an enable
+// button get one) but days during production have a green strip on the left side with the word production (written
+// sideways) in the green strip". One list in date order, no headings and no phase words. Every holiday during the shoot,
+// a weekend one included, sits beside one strip in Production's own fill, the word set sideways. The strip lives in a
+// gutter every row shares, so the names stay in one line down the list. Only the rows that can move a date have a box.
+const run6 = (()=>{
+  let out = '<div class="g6">' + head, i = 0;
+  while(i < H.length){
+    if(H[i].g === 'production'){
+      const run = []; while(i < H.length && H[i].g === 'production') run.push(H[i++]);
+      out += '<div class="prun"><div class="pstrip"><span>Production</span></div><div class="prows">'
+        + run.map(h=>row(h,{enMode:'blank'})).join('') + '</div></div>';
+    } else out += '<div class="pplain">' + row(H[i++],{enMode:'blank'}) + '</div>';
+  }
+  return out + '</div>';
+})();
+V.unshift({id:'6', rec:true, tagText:'Your idea', title:'One list, a Production strip', why:'The list as it was before any grouping, in date order, with <b>no headings and no phase words</b>. The holidays during the shoot, Sat 7/4 included, sit beside one green <b>Production</b> strip. Only the rows that can move a date have a box.',
+  html: run6});
+
 document.getElementById('grid').innerHTML = V.map(v =>
   '<section class="card'+(v.rec?' rec':'')+(v.live?' live':'')+'"><div class="card-head"><h2>'+(v.live?'':v.id+'. ')+v.title+'</h2>'
-  +(v.rec?'<span class="tag">Your idea</span>':'')+(v.live?'<span class="tag now">Now</span>':'')+'</div>'
+  +(v.tagText?'<span class="tag'+(v.tagCls||v.live?' now':'')+'">'+v.tagText+'</span>':'')+'</div>'
   + '<p class="why">'+v.why+'</p><div class="side">'+v.html+'</div></section>').join('');
 document.querySelectorAll('.fold').forEach(b=> b.addEventListener('click', ()=>{
   const open = b.getAttribute('aria-expanded') !== 'true';
