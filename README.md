@@ -29,6 +29,17 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Holidays list: phase headings, then Notes only (11 Nov 2026)
+
+Owner, after the grouped list went live: *"since phases overlap maybe we do need a differnt way to arrange them since this
+menu is getting confusing … avoid visual clutter at all costs"*, then option 5 of `mockups/holiday-list-layouts.html` (their
+own idea: *"lables by phase for phases that can move shoot days … keep the notes only section how it is"*). The holidays
+with an Enable box are listed under the phase that counts them (Production, a phase counted in Days, episode prep), one
+heading per phase in phase order, with no phase word on the row. Every other holiday is under one **Notes only** heading in
+date order, its phase as a single grey word on the date line ("1/19/26 · Writer's Rm", "12/25/26 · Hiatus"), its Enable
+cell empty (no dash). No heading repeats and no row says "also …". A weekend holiday in the shoot can move no date, so it is
+Notes only ("· Production"). Nothing saved or frozen changes. `holidayenable` G1/G2 rewritten for it. Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate: nothing frozen, exported or saved changes.
+
 ### Unreleased — Holidays list: no "also …" under a hiatus (11 Nov 2026)
 
 Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an

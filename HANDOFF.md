@@ -4,6 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 11 Nov 2026: HOLIDAYS LIST — PHASE HEADINGS, THEN "NOTES ONLY" (replaces the grouped-by-every-phase list). Branch `holiday-enable` on top of `56ead7c`; committed, not pushed. Tracker card `holiday-list-simpler`.
+- **Owner:** the live grouped list was *"getting confusing"* where phases overlap (Post heading twice, Rigging cutting in,
+  "also …" lines); *"avoid visual clutter at all costs"*. Mockup `mockups/holiday-list-layouts.html` (live, 1 two sections
+  by effect, 2 one list, 3 each phase once, 4 notes folded); the owner's own idea became **option 5** and was picked.
+- **As built (`renderHolidayVisList`, after `rowHtml`):** a holiday whose Enable box shows (`holidayEnableShown`) goes under
+  the phase that COUNTS it, ranked Production › Days phase › episode prep (its `firstDay..lastDay`) › earliest start; one
+  `.hv-grp` heading per such phase, sorted by start, rows in date order, no phase word. Everything else goes under one
+  "Notes only" heading (no swatch), date order, one grey `.hv-ph` word: the hiatus band name if in an all-phase hiatus, else
+  the top-ranked phase it falls in, none outside every phase. Its Enable cell is `.hv-en-na`, now EMPTY (the dash is gone).
+  A holiday switched off outside the counting phases keeps its box there (the way back on). `.hv-also` and `.hv-grp-note`
+  are gone. ⓘ text in `Sidebar.jsx` rewritten.
+- ⚠️ A weekend holiday in the shoot (Sat 7/4) is Notes only "· Production" while its "(Observed)" twin is under Production.
+  Shown to the owner with the mockup; built as is.
+- **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate.
+
 ### ✅ 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. ✅ **LIVE at `d5f9bff`** (pushed `bd29c58..d5f9bff` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `33811618…`, ~50 s after the push). No version cut.
 - **Owner:** *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. In
   `renderHolidayVisList`'s grouping, the hiatus branch now sets `also = []`; a phase heading keeps its "also …".

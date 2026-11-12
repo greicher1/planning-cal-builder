@@ -14324,9 +14324,9 @@ export function initLegacyApp() {
     const costsDay = {};
     ((schedule && schedule.productionInfo && schedule.productionInfo.holidaysHit) || [])
       .forEach(x=> costsDay[isoOf(x.date)] = true);
-    // `also`: the other phases the day falls in, named on the date line under its group (below).
+    // `word`: the phase a Notes only row falls in, one grey word on its date line (below); '' under a phase heading.
     const prodSeg = ((schedule && schedule.segments) || []).find(s=> s.key === 'production');
-    const rowHtml = (h, also)=>{
+    const rowHtml = (h, word)=>{
       const on = h.enabled !== false;
       // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
       // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
@@ -14365,15 +14365,16 @@ export function initLegacyApp() {
       const del = '<span class="hv-del-slot">' + (h.custom
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '') + '</span>';
-      // No Enable box where switching it off would move no date (holidayMovesDates): a faint dash keeps the column.
+      // No Enable box where switching it off would move no date (holidayMovesDates). The cell stays, EMPTY, to keep the
+      // column; the "Notes only" heading over those rows says why (owner, 11 Nov 2026: option 5, no dashes).
       const enCell = holidayEnableShown(schedule, h)
         ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
-        : '<span class="hv-cell hv-en-na" title="Changes no dates here: no phase counts working days on this day. Use the note boxes to hide it.">–</span>';
+        : '<span class="hv-cell hv-en-na"></span>';
       return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
-        +     (also && also.length ? ' <span class="hv-also">· also '+also.map(escHtml).join(', ')+'</span>' : '')
+        +     (word ? ' · <span class="hv-ph">'+escHtml(word)+'</span>' : '')
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
         // indep day has the enable button but doesnt cost a shoot day?"): the day is marked Work this day, which
@@ -14388,50 +14389,50 @@ export function initLegacyApp() {
         + del
         + '</div>';
     };
-    // ⭐ GROUPED BY PHASE (owner, 11 Nov 2026, mockup C of mockups/holiday-phase-label.html: "make it more clear what
-    // phase each holiday is in"). Each holiday sits under ONE heading:
-    //   - an all-phase hiatus, when the day is in one (named by its band text), since nothing counts there;
-    //   - else the phase it falls in, preferring Production, then a phase counted in Days, then the earliest start,
-    //     so a row with an Enable box sits under the phase that explains the box;
-    //   - else "Outside the phases" (a custom holiday the list keeps anyway).
-    // Any other phase the day falls in is named on its date line ("also Post"), except under a hiatus heading. Headings come in the order of their
-    // first holiday, and a heading recurs if its holidays are split by another group's, so the list stays in date
-    // order. Episode prep is left out: its segment starts with Production's, so Production covers it. Headings carry
-    // no id and no input, so nothing here reaches fields.byId; the rows keep every class and data- attribute the
-    // delegated handlers and the legs match on.
-    const segs = ((schedule && schedule.segments) || []).filter(s=> !s.prep && s.start && s.end);
-    const rank = s=> s.key === 'production' ? 2 : (s.unit === 'days' ? 1 : 0);
-    const grpHtml = g=> '<div class="hv-grp"><span class="hv-grp-sw" style="background:'+escHtml(g.color)+'"></span>'
-      + '<span class="hv-grp-name">'+escHtml(g.name)+'</span>'
-      + (g.note ? '<span class="hv-grp-note">'+escHtml(g.note)+'</span>' : '') + '</div>';
-    let lastKey = null, html = '';
+    // ⭐ PHASE HEADINGS, THEN NOTES ONLY (owner, 11 Nov 2026, option 5 of mockups/holiday-list-layouts.html: "your pick
+    // but it lables by phase for phases that can move shoot days instead of writing can move dates. Then keep the notes
+    // only section how it is"). It replaced a list grouped by every phase in date order, whose headings recurred and grew
+    // "also …" lines wherever phases overlapped (owner: "this menu is getting confusing … avoid visual clutter").
+    //   - A holiday with an Enable box (holidayEnableShown) sits under the phase that COUNTS it: Production, then a
+    //     phase counted in Days, then episode prep, then the earliest start. One heading per phase, in phase order (start
+    //     date), rows in date order, and no phase word on the row: the heading says it.
+    //   - Every other holiday is under ONE "Notes only" heading, in date order, its phase as one grey word on the date
+    //     line (an all-phase hiatus by its band name; none for a custom holiday outside every phase). Its Enable cell is
+    //     empty. A holiday switched OFF outside the counting phases keeps its box there: the way back on.
+    //   - ⚠️ A weekend holiday in the shoot (Sat 7/4) is Notes only, "· Production", while its weekday "(Observed)" twin
+    //     sits under Production: it can move no date. Owner shown this with the mockup and built it as is.
+    // Headings carry no id and no input, so nothing here reaches fields.byId; the rows keep every class and data-
+    // attribute the delegated handlers and the legs match on.
+    const segs = ((schedule && schedule.segments) || []).filter(s=> s.start && s.end);
+    const counts = s=> s.key === 'production' || s.unit === 'days' || !!s.prep;
+    const rank = s=> s.key === 'production' ? 3 : (s.unit === 'days' ? 2 : (s.prep ? 1 : 0));
+    const startOf = s=> s.prep ? (s.firstDay || s.start) : s.start;
+    const covers = (s, d)=> s.prep ? (!!s.firstDay && d >= s.firstDay && d <= s.lastDay) : (d >= s.start && d < s.end);
+    const nameOf = s=> String(s.label || phaseLabelFor(s.key));
+    const grpHtml = (name, color)=> '<div class="hv-grp">'
+      + (color ? '<span class="hv-grp-sw" style="background:'+escHtml(color)+'"></span>' : '')
+      + '<span class="hv-grp-name">'+escHtml(name)+'</span></div>';
+    const groups = [], notesOnly = [];
     shown.forEach(h=>{
       const d = h.date;
-      const inSegs = segs.filter(s=> d >= s.start && d < s.end)
-        .sort((a,b)=> (rank(b) - rank(a)) || (a.start - b.start));
-      const nameOf = s=> String(s.label || phaseLabelFor(s.key));
-      let g, also;
-      const hi = ((schedule && schedule.hiatuses) || []).findIndex(x=> d >= x.start && d < x.end);
-      if(hi >= 0){
-        // Keyed by the hiatus, not the week, so a break of several weeks is one heading; named by its first week's band.
-        const wkKey = isoOf(mondayOf(schedule.hiatuses[hi].start));
-        const name = String(hiatusTextFor(wkKey) || '').split('\n')[0].trim() || 'Hiatus';
-        g = {key: 'hiatus:' + hi, name, color: hiatusColorFor(wkKey), note: /hiatus/i.test(name) ? '' : 'hiatus'};
-        // No "also …" under a hiatus (owner, 11 Nov 2026: "I dont think all phase hiatuses need to say Also Post"): an
-        // all-phase hiatus pauses every phase, so naming the ones around it says nothing.
-        also = [];
-      } else if(inSegs.length){
-        const s = inSegs[0];
-        g = {key: s.key, name: nameOf(s), color: s.color || '#EDEDED',
-             note: s.key === 'production' ? 'counts shoot days' : (s.unit === 'days' ? 'counts days' : '')};
-        also = inSegs.slice(1).map(nameOf);
-      } else {
-        g = {key: 'outside', name: 'Outside the phases', color: 'transparent', note: ''};
-        also = [];
+      const inSegs = segs.filter(s=> covers(s, d)).sort((a,b)=> (rank(b) - rank(a)) || (startOf(a) - startOf(b)));
+      const home = holidayEnableShown(schedule, h) ? inSegs.find(counts) : null;
+      if(home){
+        let g = groups.find(x=> x.seg === home);
+        if(!g) groups.push(g = {seg: home, rows: []});
+        g.rows.push(h);
+        return;
       }
-      if(g.key !== lastKey){ html += grpHtml(g); lastKey = g.key; }
-      html += rowHtml(h, also);
+      const hi = ((schedule && schedule.hiatuses) || []).findIndex(x=> d >= x.start && d < x.end);
+      const word = hi >= 0
+        ? (String(hiatusTextFor(isoOf(mondayOf(schedule.hiatuses[hi].start))) || '').split('\n')[0].trim() || 'Hiatus')
+        : (inSegs.length ? nameOf(inSegs[0]) : '');
+      notesOnly.push({h, word});
     });
+    groups.sort((a,b)=> startOf(a.seg) - startOf(b.seg));
+    let html = '';
+    groups.forEach(g=>{ html += grpHtml(nameOf(g.seg), g.seg.color || '#EDEDED'); g.rows.forEach(h=> html += rowHtml(h, '')); });
+    if(notesOnly.length){ html += grpHtml('Notes only', ''); notesOnly.forEach(x=> html += rowHtml(x.h, x.word)); }
     listEl.innerHTML = html;
   }
 

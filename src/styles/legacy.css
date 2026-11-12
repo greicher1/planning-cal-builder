@@ -4431,16 +4431,16 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
-  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates), owner 11 Nov 2026. */
-  .hv-en-na{ color:var(--mantine-color-gray-4); cursor:default; }
-  /* Grouped by phase (renderHolidayVisList, owner 11 Nov 2026, mockup C): a heading per phase, its swatch in the
-     phase's fill, and what that phase counts; the other phases a day falls in on its date line. */
+  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates). The cell is empty, kept for
+     the column; the "Notes only" heading over it says why (owner, 11 Nov 2026). */
+  .hv-en-na{ cursor:default; }
+  /* Phase headings, then Notes only (renderHolidayVisList, owner 11 Nov 2026, option 5): a heading per phase that counts
+     days (swatch in its fill), one "Notes only" heading (no swatch), and a Notes only row's phase as one grey word. */
   .hv-grp{ display:flex; align-items:center; gap:6px; padding:var(--mantine-spacing-sm) 2px 4px;
     font-size:var(--mantine-font-size-xxs); font-weight:700; letter-spacing:.05em; text-transform:uppercase;
     color:var(--mantine-color-gray-7); }
   .hv-grp-sw{ width:10px; height:10px; border-radius:3px; border:1px solid rgba(0,0,0,.12); flex:none; }
-  .hv-grp-note{ margin-left:auto; font-weight:500; letter-spacing:0; text-transform:none; color:var(--text-faint); }
-  .hv-also{ color:var(--text-faint); }
+  .hv-ph{ color:var(--mantine-color-gray-7); font-weight:500; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
   .hv-dim{ opacity:.45; }
   .hv-tag{

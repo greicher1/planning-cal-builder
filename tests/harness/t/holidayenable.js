@@ -1,16 +1,16 @@
 // holidayenable -- the Holidays list (Settings › Region) shows Enable only where switching a holiday off moves a date,
-// groups its rows by phase, and says why a Production holiday with a box costs no shoot day (owner, 11 Nov 2026).
+// lists those under the phase that counts them and the rest under "Notes only" (option 5 of
+// mockups/holiday-list-layouts.html), and says why a Production holiday with a box costs no shoot day (owner, 11 Nov 2026).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=anchorside ./run.sh holidayenable 200
 //
 // On anchorside.sptcal (US Area Standards; Production from Mon 6/29/26, 80 shoot days; Fri 7/3/26 marked Work this
 // day; the default winter hiatus over Christmas and New Year's; Post after the shoot):
-//   E1  a holiday in a Weeks phase (Thanksgiving, in Post) has no Enable box, a dash, and still its data-hid and notes
+//   E1  a holiday in a Weeks phase (Thanksgiving, in Post) has no Enable box (an empty cell), and still its data-hid and notes
 //   E2  a weekend holiday in the shoot (Sat 7/4/26) has no box; Labor Day, a weekday in the shoot, has one
 //   E3  Fri 7/3/26 keeps its box and reads "Marked Working Day", not "Costs a shoot day"; Labor Day the other way round
-//   G1  the headings, in date order: Writer's Rm, Prod Prep, Production, Post, the hiatus, Post again, Localization;
-//       Production's says "counts shoot days"
-//   G2  Christmas sits under the hiatus with no "also …" on its date line (owner, 11 Nov 2026: not necessary there)
+//   G1  exactly two headings, Production then Notes only; Production holds 7/3 and Labor Day, with no phase word
+//   G2  Christmas is under Notes only reading "· Hiatus", Thanksgiving "· Post", Sat 7/4 "· Production"; no "also" anywhere
 //   T1  Toggle all: Enable switches off ONLY the boxed rows, and no dashed row grows a box
 //   O1  a holiday saved OFF outside the shoot (Thanksgiving) keeps its box, unticked, so it can be turned back on
 // Red on main before 11 Nov 2026: every row there has a box and the list has no headings.
@@ -46,8 +46,8 @@ window.addEventListener('load', function () { (async function () {
     await settle();
 
     var thx = row('Thanksgiving', '11/26/26');
-    add('E1', 'Thanksgiving, in Post (a Weeks phase), has no Enable box but a dash, and keeps its data-hid and both note boxes',
-      thx && !thx.box && thx.dash && thx.hid === 'thanksgiving@2026' && thx.notes === 2, thx, 'no box, a dash, its hid, two note boxes');
+    add('E1', 'Thanksgiving, in Post (a Weeks phase), has no Enable box (an empty cell), and keeps its data-hid and both note boxes',
+      thx && !thx.box && thx.dash && thx.hid === 'thanksgiving@2026' && thx.notes === 2, thx, 'no box (empty cell), its hid, two note boxes');
 
     var sat = row('Independence Day', '7/4/26'), lab = row('Labor Day', '9/7/26');
     add('E2', 'Sat 7/4/26 (a weekend in the shoot) has no box; Labor Day (a weekday in the shoot) has one, ticked',
@@ -57,20 +57,26 @@ window.addEventListener('load', function () { (async function () {
     add('E3', 'Fri 7/3/26, marked Work this day, keeps its box and reads "Marked Working Day", not "Costs a shoot day"; Labor Day costs a day and has no such tag',
       obs && obs.box && obs.worked && !obs.costs && lab && lab.costs && !lab.worked, {observed: obs, labor: lab}, 'tag on 7/3 only');
 
-    var h = heads(), names = h.map(function (x) { return x.name; });
-    var prod = h.filter(function (x) { return x.name === 'Production'; })[0];
-    var wantNames = ["Writer's Rm", 'Prod Prep', 'Production', 'Post', 'Hiatus', 'Post', 'Localization'];
-    add('G1', 'headings in date order, one per stretch: ' + wantNames.join(', ') + '; Production\'s says "counts shoot days"',
-      JSON.stringify(names) === JSON.stringify(wantNames) && prod && prod.note === 'counts shoot days', h, wantNames.join(', '));
-
-    var xmas = row('Christmas Day', '12/25/26');
-    var xmasHead = (function () {
-      var el = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return r.getAttribute('data-hid') === 'christmas-day@2026'; });
+    // Each row's heading: the nearest .hv-grp above it.
+    function headOf(hid){
+      var el = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return r.getAttribute('data-hid') === hid; });
       for (var p = el && el.previousElementSibling; p; p = p.previousElementSibling) if (p.classList.contains('hv-grp')) return txt(p.querySelector('.hv-grp-name'));
       return null;
-    })();
-    add('G2', 'Christmas sits under the hiatus heading with no "also …" on its date line (an all-phase hiatus pauses every phase), and no box',
-      xmas && xmasHead === 'Hiatus' && !/also/.test(xmas.date) && !xmas.box, {row: xmas, head: xmasHead}, 'Hiatus; no also; dash');
+    }
+    var names = heads().map(function (x) { return x.name; });
+    var g1 = {heads: names, obs: headOf('independence-day-observed@2026'), labor: headOf('labor-day@2026'),
+              laborDate: lab && lab.date, obsDate: obs && obs.date};
+    add('G1', 'exactly two headings, Production then Notes only; 7/3 and Labor Day are under Production with no phase word on their date lines',
+      JSON.stringify(names) === JSON.stringify(['Production', 'Notes only']) && g1.obs === 'Production' && g1.labor === 'Production'
+        && !/·/.test(g1.laborDate || '') && !/·/.test(g1.obsDate || ''), g1, 'Production, Notes only');
+
+    var xmas = row('Christmas Day', '12/25/26');
+    var g2 = {xmas: xmas && xmas.date, xmasHead: headOf('christmas-day@2026'), thx: thx && thx.date, thxHead: headOf('thanksgiving@2026'),
+              sat: sat && sat.date, satHead: headOf('independence-day@2026'),
+              also: /also/.test(txt(document.getElementById('holiday-vis-list')))};
+    add('G2', 'Notes only rows carry one phase word: Christmas "· Hiatus", Thanksgiving "· Post", Sat 7/4 "· Production"; no "also" anywhere',
+      g2.xmasHead === 'Notes only' && /· Hiatus$/.test(g2.xmas || '') && g2.thxHead === 'Notes only' && /· Post$/.test(g2.thx || '')
+        && g2.satHead === 'Notes only' && /· Production$/.test(g2.sat || '') && !g2.also, g2, 'one word each, no also');
 
     // T1: Toggle all: Enable. The fixture holds notes, so the recompute question may come: Continue.
     var before = rowsOf();
