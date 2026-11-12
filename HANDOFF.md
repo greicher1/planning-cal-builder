@@ -4,6 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🟡 11 Nov 2026: THE SHIFT / BUILD AROUND PANELS DRAG AND STAY OPEN. Branch `shift-panel-float` (worktree `.claude/worktrees/shift-dock`, its `node_modules` a symlink: unlink before `git worktree remove`), `origin/main` `638b113` merged in at `d2a13a4`. NOT merged into `main`, NOT pushed. No version cut. Tracker card `shift-popup-covers-grid`.
+- **Owner:** *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering
+  dates or portions of the calendar"*. Four options offered (drag; keep open while using the grid; dock beside the grid;
+  fade while looking). Three were BUILT as try-outs and tried by the owner: 1+2 (`shift-panel-float`), 3 docked
+  (`shift-panel-docked`, worktree `shift-docked`: the panel docks right of the grid by narrowing `#table-wrap`'s
+  CONTAINER margin, and with side boxes past the right-hand column), and a side float (`shift-panel-side-float`,
+  worktree `shift-sidefloat`: opens 30 px right of the calendar's edge, measured once per opening). **Picked:** *"1+2
+  where it pops up like normal but you can drag it whereever you want. no put back button"*; *"keep it open"* (asked
+  whether a click outside should close it). The other two branches are unmerged references; delete them once this ships.
+- **As built (engine, the shift-tools IIFE beside `keepPopInPanel`):** the `.tools-head` is a grip (`.tools-grip`, grab
+  cursor); pointerdown on it (not on its buttons or the hint) floats the panel (`floatPop`: `is-floating`,
+  position:fixed, `clampPopPos` keeps it on screen) and pointer capture drags it. `popPos` holds the drop only until
+  `closeAllPops()`, which clears it, so `placePop()` opens it under its button every time. **No click-away:** the
+  document click handler is gone; a panel closes on its ✕ (`[data-tools-close]`, in `.tools-head-btns`, no id, no
+  title), its button, Esc (only when focus is in a panel or on nothing), or the other tool. A `MutationObserver` on
+  `#table-wrap` (pattern 3) re-reads a NEW `currentSchedule` into an open panel via `refreshMenuFromCalendar()`, unless
+  focus is in a panel or `.date-pop`, or a list drag is on. Nothing in the grid, the writers or the save format moved.
+- ⚠️ **Legs:** a page click no longer closes a panel, and the next press of its button then CLOSES it. `T.closePops()`
+  (lib.js) presses each open panel's ✕ and still clicks the page; 13 legs use it now. New leg `paneldrag`
+  (anchorside, 9 cases, in `gate.sh`'s list). `buildaround` O1 reads the title without the row's ✕.
+- **Proof on the merged build (`d2a13a4`):** `npm run check` 42/42; `paneldrag` 9/9 and the legs that open these panels
+  green: `anchorside` 39, `buildalongside` 8, `buildaround` 36, `buildaroundfresh` 5, `builtindates` (both), `calrange`
+  18, `datepick` 17, `customunits` (both), `episodeprep` (all three), `hdrcontrols` 12, `halfworked` 24, `monthmap` 20,
+  `overrides` 20, `phasenotes` 21, `phaselink` 14, `phaselook` 10, `rowheight` 7, `rebuildticks` 20, `shiftheld` 13,
+  `snaptools` 14, `stalebandkey` 9, `stylebarplace` 14. `sideboxes`: 78/78 on 2 of 4 runs; the other two (one in the batch, one alone) timed out at F12 waiting for the hostile file to LOAD (`health` showed the old calendar still up), with every earlier check identical. `origin/main` built alone passed 3 of 3. In the pane at the headless size the branch loads it fine. Read as Load timing, not the panels (nothing in that step opens one), but ⚠️ re-run it first if the gate trips there. No full gate (chrome only:
+  nothing in `#table-wrap`, `#print-root`, the writers or the save path; both print paths hide the toolbar).
+
 ### ✅ 11 Nov 2026: HOLIDAYS LIST — ONE LIST, A STRIP PER COUNTING PHASE (option 6; replaces option 5 below). ✅ **LIVE at `3ecd2f3`** (branch `holiday-enable`; pushed `8666628..3ecd2f3` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `a9f297a0…`, ~40 s after the push). No version cut. Tracker card `holiday-list-production-strip`.
 - **Owner:** *"mock up a version that looks like the original version (tho only holidays that need an enable button get
   one) but days during production have a green strip on the left side with the word production (written sideways)"*;

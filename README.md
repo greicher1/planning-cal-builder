@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Shift and Build Around panels can be dragged out of the way, and stay open while you use the grid (11 Nov 2026)
+
+Owner: *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering dates
+or portions of the calendar"*. Of the options tried (a panel docked beside the grid, a panel that opened at the side), the
+owner picked: *"1+2 where it pops up like normal but you can drag it whereever you want. no put back button"*, and *"keep
+it open"*.
+
+- **Drag it anywhere.** The panel's title row is a grip (a small dotted handle, a grab cursor): drag it and the panel
+  floats where it is dropped, over the grid or the sidebar, and is kept on screen. It still opens under its button every
+  time; a drag lasts until the panel closes, which is the way back (there is no Put back).
+- **It stays open while you use the calendar.** A click or a scroll in the grid no longer closes it. It closes on its new
+  **✕**, on its button, on **Esc**, or when the other tool opens. Esc pressed in a field or a note editor belongs to that
+  field, so it no longer closes the Shift panel too.
+- **Its dates stay current.** While it is open it re-reads the calendar whenever the grid is redrawn (an edit, Undo, a
+  sidebar change), unless you are typing in it. This watches the grid from outside (CLAUDE.md's sanctioned pattern 3);
+  nothing in the grid, the exports or the save format changed.
+- **Tests:** a new leg, `paneldrag` (9 cases, in the gate's list): opens under the button, the title row, a drag over the
+  sidebar, a grid click and scroll, the refresh on 1 wk → and Undo, ✕ then reopen, the two kinds of Esc, Build Around kept
+  on screen. Thirteen legs that closed these panels with a click on the page now press the panel's ✕ (`T.closePops()` in
+  `lib.js`), and `buildaround` O1 reads the title without the close.
+
 ### Unreleased — Holidays list: one list, a strip per counting phase (11 Nov 2026)
 
 Owner: *"mock up a version that looks like the original version (tho only holidays that need an enable button get one) but
