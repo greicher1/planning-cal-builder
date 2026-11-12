@@ -17379,9 +17379,11 @@ export function initLegacyApp() {
     const popTitle = singleItem
       ? (singleItem.holiday ? 'Holiday' : 'Auto Note') + ' \u00b7 ' + fmtShort(singleItem.date)
       : (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
-    const popHint = (singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows \u00b7 '
-                                                      : 'Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 ') : '')
-                  + 'Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel';
+    // The keys line ("Tab or Ctrl/Cmd-Enter to save · Esc to cancel") is gone (owner, 12 Nov 2026: "Delete this text
+    // in all places"). A single automatic note or holiday keeps the line saying what saving does; any other cell's
+    // editor has no hint line at all, rather than an empty one holding its margin.
+    const popHint = singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows'
+                                                     : 'Renames it wherever it shows \u00b7 Its date follows the schedule') : '';
     pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-title">${escHtml(popTitle)}</div>${headBtn}</div>
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
@@ -17391,7 +17393,7 @@ export function initLegacyApp() {
       ${viewRow}
       ${itemsHtml}
       </div>
-      <div class="note-pop-hint">${popHint}</div>`;
+      ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}`;
     document.body.appendChild(pop);
     // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
     // its own pane, so a popover placed once and left alone slides away from its cell.
@@ -39542,7 +39544,6 @@ export function initLegacyApp() {
       + `<option value=""${linkSel0 ? '' : ' selected'}>This day (${escHtml(dayName)})</option>`
       + linkOpts.map(o=> `<option value="${escHtml(o.value)}"${o.value === linkSel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')
       + `</select></label><div class="note-link-hint"></div></div>`;
-    const lineHint = (isWf || isLinked) ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     // A holiday's editor says what it is and what saving does: the NAME, wherever the holiday shows. Its date is in
     // the heading (it is the holiday's, not text to edit), and an empty box says what clearing it brings back.
     // An automatic note's says the same of its name, and offers its hide as a button, which says where it comes back
@@ -39570,8 +39571,10 @@ export function initLegacyApp() {
       <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       ${linkRow}
       ${notePaletteRowsHtml(curColor)}
-      ${viewRow}
-      <div class="mv-note-pop-hint">${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      ${viewRow}`;
+    // ⛔ No hint line on a typed month note (owner, 12 Nov 2026: "Delete this text in all places", of "Up to 3 lines ·
+    // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). The keys
+    // still work; the placeholder still says Enter makes a new line, up to 3.
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';

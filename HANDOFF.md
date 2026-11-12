@@ -4,6 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 12 Nov 2026: THE NOTE EDITORS' KEYS LINE IS GONE. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry; `git log -1 -- HANDOFF.md`), from branch `no-key-hints` (worktree `.claude/worktrees/no-key-hints`, cut from `origin/main` at `bc30b0c`; `node_modules` is a symlink, unlink it before `git worktree remove`). No version cut. Tracker card `remove-note-editor-keys-hint`.
+- **Owner:** *"Delete this text in all places"*: "Up to 3 lines · Enter for a new line · Tab or Ctrl/Cmd‑Enter to save ·
+  Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
+- **Done:** `openNoteEditor`'s `popHint` keeps only the single auto note's / holiday's "Renames …" line, and the
+  `.note-pop-hint` div is left out when empty; the month editor's typed-note branch has no `.mv-note-pop-hint` at all
+  (`lineHint` deleted). Leg `wfnoteeditor` E1 re-expected. Changelog under Unreleased.
+- ⛔ **Left alone by the owner's ruling** (12 Nov 2026, *"No, leave it"*): "Enter to save · Esc to cancel" on the month
+  auto-note and holiday editors and the heading editor, and Paste notes' keys line. Don't remove them unasked.
+- ⚠️ Local `main` in the main checkout was 35 commits behind `origin/main` (a plain ancestor) with another session's
+  uncommitted HANDOFF edit, so this branch was cut from `origin/main` rather than built there.
+
 ### ✅ 11 Nov 2026: THE SHIFT / BUILD AROUND PANELS DRAG AND STAY OPEN, WITH A GREY TITLE BAR. ✅ **LIVE at `bf339f5`** (owner's picker "Merge and push", 12 Nov; `origin/main` merged in at `cfa9100`; pushed `5e68b59..bf339f5`, deploy run `43281898776` green, the live `index.html` is the tested build byte for byte, sha256 `4a973b99…`). Branch `shift-panel-float` (worktree `.claude/worktrees/shift-dock`, its `node_modules` a symlink: unlink before `git worktree remove`). Local `main` was NOT moved (another session's checkout). No version cut. Tracker card `shift-popup-covers-grid`.
 - **Owner:** *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering
   dates or portions of the calendar"*. Four options offered (drag; keep open while using the grid; dock beside the grid;

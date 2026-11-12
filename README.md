@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the note editors no longer show the keys line (12 Nov 2026)
+
+Owner: *"Delete this text in all places"*, of "Up to 3 lines · Enter for a new line · Tab or Ctrl/Cmd‑Enter to save ·
+Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
+
+- **Gone from three editors:** the waterfall's note editor, the month view's day-note editor, and the month view's editor
+  for a waterfall line or a note that stays with a phase. Where nothing else was on that line, the line itself is gone
+  (no empty margin under the last control). The keys still work exactly as before.
+- **Kept:** a single automatic note's or holiday's line saying what saving does in the waterfall ("Renames it wherever
+  it shows · Its date follows the schedule", "Renames this holiday wherever it shows"), now without the keys. The
+  placeholder "Note text — Enter for a new line, up to 3" is unchanged.
+- **Kept on purpose (owner: *"No, leave it"*):** "Enter to save · Esc to cancel" on the month view's automatic-note and holiday
+  editors and on the column-heading editor, and Paste notes' "⌘/Ctrl-Enter to add · Esc to cancel".
+- **Verified:** `npm run check` 42/42; legs `wfnoteeditor` 13/13 (E1's expected hints updated), `mvnotes` 14/14,
+  `phasemonth` 21/21; both editors opened on localhost with no hint line. Chrome only (popovers), so no gate baseline
+  can move.
+
 ### Unreleased — the Shift and Build Around panels can be dragged out of the way, and stay open while you use the grid (11 Nov 2026)
 
 Owner: *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering dates
