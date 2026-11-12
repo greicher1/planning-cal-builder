@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Fill Gaps starts off on a new calendar (11 Nov 2026)
+
+Owner: *"I think fill gaps should be disabled by default"*. A new calendar, the one the app opens on and every New, now
+starts with **Fill Gaps off**: each phase keeps one even width per year instead of widening partway through its run.
+
+- **Saved calendars are untouched.** The setting is the saved key `fillSpaceOff`, written only as `true`, and absent still
+  means on, because every file without it was saved while on was the default. So every existing calendar, shareable
+  copy and fixture opens exactly as before; a new calendar writes `fillSpaceOff: true` from its first save. No format
+  change, no `SNAPSHOT_VERSION` bump, nothing frozen edited (the default is the engine's starting value and `resetAll()`).
+- **Help** now says a new calendar starts with it off, and how to switch it on.
+- **Verified:** `fillspace` 6/6, its S5 rewritten so New must turn a switched-on Fill Gaps OFF and the file must say so;
+  a fresh page starts with it off. `npm run check` 42/42. **Full gate: 4,515 PASS / 5 FAIL**, every export baseline
+  identical. One failure was this change: `colreuse` (live) reads each phase's column from its "wk 1" label cell in the
+  workbook, and with Fill Gaps off Mix is one even width from its first week, so its label sat a column left of Loc's
+  (the phase's column itself had not moved). The leg now switches Fill Gaps on, as every new calendar was when it was
+  written (its fixture was cut that way): 29/29 on both runs. The other four failed for time under load and are green
+  alone on this build: `stintbtn` 15/15, `mvhdroff` 9/9, `pilllabel` (carry-rich) 29/29, `scenariocompat` (v1.2.0,
+  an old release file this change cannot reach). The Help sentence was edited after the gate (text only).
+
 ## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
 ### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)

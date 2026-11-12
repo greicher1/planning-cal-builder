@@ -4,6 +4,12 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 11 Nov 2026: FILL GAPS STARTS OFF ON A NEW CALENDAR. Branch `fill-gaps-off` (worktree `.claude/worktrees/fill-gaps-off`, from `main` at `5f1b67a` = v1.13.0, live; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed locally, NOT merged, NOT pushed. No version cut. Tracker card `fill-gaps-off-by-default`.
+- **Owner:** *"I think fill gaps should be disabled by default"*, then *"Finish it"*.
+- **As built:** `let fillSpaceOff = true` and `resetAll()` sets `true` (the page's first calendar and New). `applyStateSnapshot()` is UNCHANGED: absent `fillSpaceOff` still = on, because every file without the key was saved while on was the default. So no saved calendar, fixture or shareable copy changes; a new calendar writes `fillSpaceOff: true` from its first save. Help (`src/index.html`, "How far a cell reaches") now says a new calendar starts with it off.
+- ⚠️ **For legs:** a leg that BUILDS a calendar through the UI now gets Fill Gaps off. A leg written for the old default must switch it on (`colreuse` live does, after its first snapshot, then sleeps 800 ms: `reClickGuard(600)` on Share is reset by EVERY document click, so a Share right after the toolbar click is swallowed and the leg times out on "the shareable copy"). `fillspace` S5 now enters New with the switch on and expects it off and `fillSpaceOff: true` in the file.
+- **Checks:** full gate 4,515 / 5 FAIL, export baselines identical; `colreuse` (live) was this change (its fix above, 29/29 both runs); `stintbtn`, `mvhdroff`, `pilllabel` carry-rich and `scenariocompat` (v1.2.0) were load timeouts, green alone, and the first three gave the same JSON on the build without this change. `fillspace` 6/6, `npm run check` 42/42.
+
 ### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
 - **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
   gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;
