@@ -17204,8 +17204,18 @@ export function initLegacyApp() {
       if(boxLines.length === 1 && cellItems.length === 1) singleItem = cellItems[0];
     }
     // A typed line in the box (or an empty box, about to get one): what the Day picker and the switch are for.
+    // ⭐ A RENAME IS NOT A TYPED LINE (owner, 12 Nov 2026: "when you start editing an auto note, the regular note editor
+    // menu opens up"). In a cell that is one automatic note or one holiday, one line typed over it is saved as a RENAME
+    // (wfLineEdits, "one line typed straight over one line"), so Day, Stays with and "Show in month view" do not apply
+    // and stay hidden; picking a Day there would stamp a second date onto the note's line (D4). Until now the first
+    // keystroke showed them, because the test was only "is this line, word for word, one the cell already holds". The
+    // same exception as wfLineEdits' rename(): a line ending in ANOTHER date is a note, not a rename, and shows them. An
+    // emptied box stays hidden too, so clearing the text to retype it does not flash the rows.
+    const renameOfSingle = ls => !!singleItem && ls.length <= 1
+      && (!ls.length || !/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(stripHolidayDate(ls[0], singleItem.date)));
     const typedIn = text => {
       const ls = String(text || '').split('\n').map(l=> l.trim()).filter(Boolean);
+      if(renameOfSingle(ls)) return false;
       return !ls.length || ls.some(l=> !cellKnown.has(l));
     };
     const typedShown = isHiatus || typedIn(textVal);
