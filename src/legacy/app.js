@@ -34010,6 +34010,7 @@ export function initLegacyApp() {
     }
     function closeAllPops(){
       shiftDrag = null; solveDrag = null;   // a drag down either list ends with its box
+      popPos.clear();                       // a dragged panel opens under its button again next time
       POPS.forEach(p=>{
         p.menu.classList.remove('open');
         p.btn.setAttribute('aria-expanded','false');
@@ -34036,8 +34037,10 @@ export function initLegacyApp() {
     // "shift popup covers the waterfall ... its covering dates or portions of the calendar". Drag a panel by its
     // title row and it FLOATS where it is dropped: `is-floating` + position:fixed with left/top. Fixed, not the
     // absolute offset it opens with, because the preview panel is a scroll container that clips (keepPopInPanel's
-    // note): a fixed panel escapes it and can sit over the sidebar. Where each panel was left is remembered for the
-    // session (`popPos`, by the panel's element, never saved) and reused on every opening; "Put back" forgets it.
+    // note): a fixed panel escapes it and can sit over the sidebar. Where it was dropped (`popPos`, by the panel's
+    // element, never saved) holds only until it closes: every opening drops down from its button as it always did
+    // (owner, 11 Nov 2026: "where it pops up like normal but you can drag it whereever you want. no put back
+    // button"). Closing is the way back, so there is no Put back.
     const popPos = new Map();
     let popDrag = null;   // {menu, dx, dy, id} while a title row is being dragged
     function clampPopPos(menu, left, top){
@@ -34094,13 +34097,7 @@ export function initLegacyApp() {
       };
       head.addEventListener('pointerup', endDrag);
       head.addEventListener('pointercancel', endDrag);
-      // A double-click on the grip puts the panel back, as "Put back" does.
-      head.addEventListener('dblclick', e=>{
-        if(e.target.closest('button, a, input, select, .info-hint')) return;
-        popPos.delete(p.menu); dockPop(p.menu);
-      });
       p.menu.addEventListener('click', e=>{
-        if(e.target.closest('[data-tools-putback]')){ popPos.delete(p.menu); dockPop(p.menu); return; }
         if(e.target.closest('[data-tools-close]')) closeAllPops();
       });
     });

@@ -259,10 +259,9 @@ export function PreviewToolbar() {
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
                 the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
-                "Put back" shows only while it floats; the cross closes it, since a click on the grid no longer does.
+                It opens under its button every time, and a drag lasts until it closes (no Put back); the cross closes it, since a click on the grid no longer does.
                 ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
             <span className="tools-head-btns">
-              <button type="button" className="tools-putback" data-tools-putback="">Put back</button>
               <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
             </span>
           </p>
@@ -354,10 +353,9 @@ export function PreviewToolbar() {
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
                 the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
-                "Put back" shows only while it floats; the cross closes it, since a click on the grid no longer does.
+                It opens under its button every time, and a drag lasts until it closes (no Put back); the cross closes it, since a click on the grid no longer does.
                 ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
             <span className="tools-head-btns">
-              <button type="button" className="tools-putback" data-tools-putback="">Put back</button>
               <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
             </span>
           </p>
