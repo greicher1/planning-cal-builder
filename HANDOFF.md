@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 11 Nov 2026: HOLIDAYS LIST — ONE LIST, A STRIP PER COUNTING PHASE (option 6; replaces option 5 below). Branch `holiday-enable` on top of `8666628`; committed, not pushed. Tracker card `holiday-list-production-strip`.
+### ✅ 11 Nov 2026: HOLIDAYS LIST — ONE LIST, A STRIP PER COUNTING PHASE (option 6; replaces option 5 below). ✅ **LIVE at `3ecd2f3`** (branch `holiday-enable`; pushed `8666628..3ecd2f3` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `a9f297a0…`, ~40 s after the push). No version cut. Tracker card `holiday-list-production-strip`.
 - **Owner:** *"mock up a version that looks like the original version (tho only holidays that need an enable button get
   one) but days during production have a green strip on the left side with the word production (written sideways)"*;
   then *"sure do both those suggestings and build option 6"*: a strip for a phase counted in Days too, and a short label
