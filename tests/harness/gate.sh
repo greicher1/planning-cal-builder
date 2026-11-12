@@ -2193,6 +2193,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               anchorside:anchorside:400 \
               buildalongside:anchorside:200 \
               buildaroundfresh:-:120 \
+              paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \
               mvdragcarry:mvdragcarry:400 \

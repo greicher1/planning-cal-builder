@@ -60,7 +60,7 @@ window.addEventListener('load', function () { (async function () {
   function $(id){ return document.getElementById(id); }
   function val(id){ return ($(id) || {}).value; }
   function msg(){ return (($('pop-solve').querySelector('[data-tools-msg]') || {}).textContent || '').trim(); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openSolve(){ closePops(); await T.sleep(150); $('pop-solve-btn').click(); await T.sleep(300); }
   async function settle(){ await T.sleep(700); }
   function rows(){

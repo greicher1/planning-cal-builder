@@ -106,7 +106,7 @@ window.addEventListener('load', function () { (async function () {
   function lands(){ var r = q('[data-shift-list] .solve-row.is-land'); return r ? r.dataset.key : ''; }
   // A tick's own change: what Space on the focused box, or a tap on it, does.
   function tick(key, on){ var b = boxOf(key); if(!b) throw new Error('no tick for ' + key); if(b.checked !== on){ b.checked = on; b.dispatchEvent(new Event('change', {bubbles: true})); } }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openShift(){ closePops(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
   async function far(f){ q('[data-far="' + f + '"]').click(); await T.sleep(150); }
   async function settle(){ await T.sleep(900); }

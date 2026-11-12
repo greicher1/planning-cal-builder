@@ -72,7 +72,7 @@ window.addEventListener('load', function () { (async function () {
   // rest, as it did.
   function closePops(){
     document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
-    document.body.click();
+    T.closePops();   // the tool panels close only on their ✕ since 11 Nov 2026
   }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }
 

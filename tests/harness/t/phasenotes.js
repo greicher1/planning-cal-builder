@@ -67,7 +67,7 @@ window.addEventListener('load', function () { (async function () {
       st = (n === last && n > 0) ? st + 1 : 0; last = n; return st >= 3;
     }, 'the grid to settle', 150, 100);
   }
-  function closePops() { document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
 
   // ---- the waterfall ------------------------------------------------------------------------------------------------
   function noteTd(wk) { return q('#table-wrap td.sheet-note-cell[data-week="' + wk + '"]'); }

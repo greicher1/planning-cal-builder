@@ -65,7 +65,7 @@ window.addEventListener('load', function () { (async function () {
   function val(id){ return ($(id) || {}).value; }
   var pop = function () { return $('pop-solve'); };
   function msg(){ return ((pop().querySelector('[data-tools-msg]') || {}).textContent || '').trim(); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openBox(){ closePops(); await T.sleep(150); $('pop-solve-btn').click(); await T.sleep(400); }
   async function settle(){ await T.sleep(800); }
   function rowEls(){ return Array.prototype.filter.call(pop().querySelectorAll('.solve-row'), function (r) { return !r.classList.contains('solve-colhead'); }); }
@@ -154,7 +154,10 @@ window.addEventListener('load', function () { (async function () {
       && s0.post === '2026-11-02' && l0.prodPrep === '6', {s: s0, l: l0}, 'buildFixture');
 
     await openBox();
-    var btn = $('pop-solve-btn').textContent.trim(), head = (pop().querySelector('.tools-head') || {}).textContent || '';
+    var btn = $('pop-solve-btn').textContent.trim();
+    // The title's own text: since 11 Nov 2026 the title row also holds the panel's close (✕), which is not the title.
+    var headEl = pop().querySelector('.tools-head'), head = '';
+    if(headEl){ var hc = headEl.cloneNode(true); Array.prototype.forEach.call(hc.querySelectorAll('.tools-head-btns'), function (n) { n.remove(); }); head = hc.textContent || ''; }
     var kids = Array.prototype.map.call(pop().children, function (e) { return String(e.className || '').split(' ')[0]; }).join();
     var strip = pop().querySelector('.shift-all'), sbox = pop().querySelector('.shift-box');
     var shiftSides = document.querySelectorAll('#pop-shift .shift-side').length;

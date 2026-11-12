@@ -69,7 +69,7 @@ window.addEventListener('load', function () { (async function () {
   }
   async function setRange(s, e) { T.set('cal-range-start', s); T.set('cal-range-end', e); await T.sleep(400); await settle(); }
   async function view(mode) { $('view-' + mode + '-btn').click(); await T.sleep(500); await settle('the ' + mode + ' view'); }
-  function closePops() { document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openPop(btn) { closePops(); await T.sleep(150); $(btn).click(); await T.sleep(250); }
   async function undo(n) { for (var i = 0; i < (n || 1); i++) { $('undo-btn').click(); await T.sleep(900); } }
   async function walkMonths() {
