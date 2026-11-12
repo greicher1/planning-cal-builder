@@ -14,7 +14,8 @@
   where it pops up like normal but you can drag it whereever you want. no put back button"*; *"keep it open"* (asked
   whether a click outside should close it). The other two branches are unmerged references; delete them once this ships.
 - **As built (engine, the shift-tools IIFE beside `keepPopInPanel`):** the `.tools-head` is a grip (`.tools-grip`, grab
-  cursor); pointerdown on it (not on its buttons or the hint) floats the panel (`floatPop`: `is-floating`,
+  cursor), drawn as a GREY BAR across the panel's top (gray-2, gray-3 under the pointer and while dragging; owner: *"make
+  the bar at the top of the menus grey so its clear its a grabable window"*); pointerdown on it (not on its buttons or the hint) floats the panel (`floatPop`: `is-floating`,
   position:fixed, `clampPopPos` keeps it on screen) and pointer capture drags it. `popPos` holds the drop only until
   `closeAllPops()`, which clears it, so `placePop()` opens it under its button every time. **No click-away:** the
   document click handler is gone; a panel closes on its ✕ (`[data-tools-close]`, in `.tools-head-btns`, no id, no

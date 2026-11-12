@@ -37,7 +37,9 @@ owner picked: *"1+2 where it pops up like normal but you can drag it whereever y
 it open"*.
 
 - **Drag it anywhere.** The panel's title row is a grip (a small dotted handle, a grab cursor): drag it and the panel
-  floats where it is dropped, over the grid or the sidebar, and is kept on screen. It still opens under its button every
+  floats where it is dropped, over the grid or the sidebar, and is kept on screen. The title row is a grey bar across the
+  panel's top (owner: *"make the bar at the top of the menus grey so its clear its a grabable window"*), a shade darker
+  under the pointer. It still opens under its button every
   time; a drag lasts until the panel closes, which is the way back (there is no Put back).
 - **It stays open while you use the calendar.** A click or a scroll in the grid no longer closes it. It closes on its new
   **✕**, on its button, on **Esc**, or when the other tool opens. Esc pressed in a field or a note editor belongs to that
