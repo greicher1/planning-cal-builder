@@ -80,7 +80,7 @@ input[type=checkbox]{ width:15px; height:15px; margin:0; accent-color:var(--navy
 <div class="page">
   <h1>Holidays list: simpler layouts</h1>
   <p class="lead">The live list (first card) repeats headings when phases overlap or a break interrupts one, and the
-    "also …" lines add noise. Four calmer ways to lay out the same holidays. <b>None of them repeat a heading or say
+    "also …" lines add noise. Calmer ways to lay out the same holidays, your idea (5) first. <b>None of them repeat a heading or say
     "also …"</b>; each holiday names one phase at most, in plain grey text on its date line. The calendar is made up:
     Rigging is a custom phase counted in Days that overlaps Post.</p>
   <div class="grid" id="grid"></div>
@@ -154,9 +154,18 @@ V.push({id:'4', title:'Two sections, notes folded', why:'Option 1 with the "Note
     + '<button type="button" class="fold" aria-expanded="false"><span class="chev">›</span>Notes only <span class="count">('+notes.length+')</span></button>'
     + '<div class="folded">' + notes.map(h=>row(h,{phase:'word', enMode:'blank'})).join('') + '</div>'});
 
+// 5 (owner, 11 Nov 2026): "what if it was your pick but it lables by phase for phases that can move shoot days instead
+// of writing can move dates. Then keep the notes only section how it is." The top part is headed by each phase that
+// counts days (Production, a Days phase, episode prep), in phase order; its rows need no phase word, the heading says it.
+const COUNTING = PHASE_ORDER.filter(k=> moves.some(h=>h.g===k));
+V.splice(1, 0, {id:'5', rec:true, title:'Phase headings, then Notes only', why:'Your idea. Holidays that can move dates sit under <b>the phase that counts them</b> (Production, Rigging): each heading once, the rows need no phase word. Everything else stays in <b>Notes only</b>, as in 1.',
+  html: head + COUNTING.map(k=> grp(PH[k].label,{sw:PH[k].fill}) + moves.filter(h=>h.g===k).map(h=>row(h,{enMode:'blank'})).join('')).join('')
+             + grp('Notes only') + notes.map(h=>row(h,{phase:'word', enMode:'blank'})).join('')});
+V.forEach(v=>{ if(v.id==='1') v.rec = false; });
+
 document.getElementById('grid').innerHTML = V.map(v =>
   '<section class="card'+(v.rec?' rec':'')+(v.live?' live':'')+'"><div class="card-head"><h2>'+(v.live?'':v.id+'. ')+v.title+'</h2>'
-  +(v.rec?'<span class="tag">My pick</span>':'')+(v.live?'<span class="tag now">Now</span>':'')+'</div>'
+  +(v.rec?'<span class="tag">Your idea</span>':'')+(v.live?'<span class="tag now">Now</span>':'')+'</div>'
   + '<p class="why">'+v.why+'</p><div class="side">'+v.html+'</div></section>').join('');
 document.querySelectorAll('.fold').forEach(b=> b.addEventListener('click', ()=>{
   const open = b.getAttribute('aria-expanded') !== 'true';
