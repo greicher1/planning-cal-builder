@@ -36,7 +36,7 @@ Chrome is found in this order: the `CHROME` environment variable, then the platf
 `windows-legs.yml` runs only on a push to the branch `windows-test` and by hand (`workflow_dispatch`). It never runs on
 main or on a pull request, and it holds no secrets.
 
-It runs one job twice: on `windows-latest`, and on `macos-latest` as a like-for-like control. Each job does this:
+It runs the list in five parts (`win`, the Windows-only legs, then `a` to `d`), each on `windows-latest` and on `macos-latest` as a like-for-like control: ten jobs. Each job uploads its own artifact, `legs-<os>-<part>`; put one OS's five folders into one folder and run `xgate.mjs --summarize --out <folder>` to get that OS's summary. Each job does this:
 
 1. Sets `git config --global core.autocrlf false` before checkout, so the tree is byte for byte the committed one.
 2. Checks out and sets up Node 22, with actions pinned to the SHAs `deploy.yml` uses. Then it runs `npm ci`,
@@ -100,7 +100,7 @@ by `gate.sh`'s own scripts, so xgate only records them. The workflow's `macos-la
 same commit and is the control to compare the Windows job against. A leg that fails in BOTH jobs is a real-clock
 limit of this runner, not a Windows finding.
 
-**Time.** Each leg runs one after another on the real clock. The job's timeout is 300 minutes. If it is reached, the
+**Time.** Each leg runs one after another on the real clock. Each part's timeout is 150 minutes. If it is reached, the
 `Summarize whatever ran` step still rebuilds `summary.json` from the legs that finished, and the artifact is uploaded.
 
 ## Comparing a Windows run with macOS

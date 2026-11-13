@@ -17,13 +17,21 @@ concurrency:
 
 jobs:
   legs:
-    name: Legs on ${{ matrix.os }}
+    name: Legs on ${{ matrix.os }} (${{ matrix.part.name }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 300
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
+        # The list in five parts, so no job runs for hours and the Windows-only legs report first.
+        # --from / --to count the list's non-comment lines; --only matches a leg's output name.
+        part:
+          - { name: win, args: '--only ^win-' }
+          - { name: a, args: '--from 1 --to 85' }
+          - { name: b, args: '--from 86 --to 170' }
+          - { name: c, args: '--from 171 --to 255' }
+          - { name: d, args: '--from 256 --to 9999' }
     defaults:
       run:
         shell: bash
@@ -56,7 +64,7 @@ jobs:
         run: node -e "const c=require('crypto'),b=require('fs').readFileSync('dist/index.html');for(const a of ['sha256','sha1'])console.log(a+'  '+c.createHash(a).update(b).digest('hex')+'  dist/index.html  '+b.length+' bytes')"
 
       - name: Run the legs
-        run: node tests/harness/xgate.mjs --out xgate-out --cap 600
+        run: node tests/harness/xgate.mjs --out xgate-out --cap 600 ${{ matrix.part.args }}
 
       # summary.json is written only when xgate finishes; if the job hits its timeout, rebuild it from the legs that ran.
       - name: Summarize whatever ran
@@ -67,7 +75,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: legs-${{ matrix.os }}
+          name: legs-${{ matrix.os }}-${{ matrix.part.name }}
           path: xgate-out
           retention-days: 3
           if-no-files-found: warn
