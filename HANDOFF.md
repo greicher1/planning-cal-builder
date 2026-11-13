@@ -4,6 +4,19 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS — branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
+- **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
+  then *"Finish it"*.
+- **Cause:** the waterfall note editor's `typedIn()` showed Day / Stays with / Show in month view whenever a box line was
+  not word for word one the cell held, so a rename counted as typed text. Save (`wfLineEdits`) reads one line over one
+  line as a rename, where those rows do not apply (D4: a Day would stamp a second date on the line).
+- **Fix:** `renameOfSingle(ls)` beside `typedIn`: in a `singleItem` cell, a box of at most one line whose line does not
+  end in ANOTHER date (the same test as `wfLineEdits`' `rename()`, via `stripHolidayDate`) keeps the rows hidden.
+  Chrome only, no save-format change. The month view's Auto-Note editor never had the problem.
+- ⚠️ **Keep the two tests in step:** if `wfLineEdits`' rename rule changes, `renameOfSingle` must follow, or the popup
+  will again disagree with what Save does. Leg `wfnoteeditor` E4 holds the popup's side.
+- **Proof:** tried in the browser; on the build `wfnoteeditor` 14/14 (E4 new), `autonoterename` 24/24, `autonoteview` 18/18, `holidayrename` 14/14, `noteviews` 15/15, `wfnotecolors` 14/14, `phaselink` 14/14, `wfkeys` 84/84; `npm run check` 42/42. No full gate (popup only, nothing frozen).
+
 ### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
 - **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
   gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;

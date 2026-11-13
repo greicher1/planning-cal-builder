@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
+
+Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
+keystroke in a cell's one automatic note (or one holiday) brought up **Day**, **Stays with** and **Show in month view**,
+the rows for a note you type yourself. The editor showed them whenever a line in the box was not, word for word, a line
+the cell already held, so any rename counted. Save never agreed: one line typed over one line is a RENAME
+(`wfLineEdits`), and those rows do not apply to it. Picking a Day there could stamp a second date onto the note's line,
+which is why they were hidden in the first place (WATERFALL-NOTE-EDITOR-PLAN D4).
+
+- **Now** they stay hidden while the box is one line over the cell's single automatic note or holiday, with or without
+  its date, and while the box is emptied to retype it (`renameOfSingle`, beside `typedIn` in the editor). A line ending
+  in ANOTHER date, or a second line, is typed text, as Save reads it, and brings them as before.
+- Popup only: nothing frozen, nothing saved differently. The month view's Auto-Note editor never showed them.
+- **Proof:** tried in the browser on `autonoterename.sptcal` (five cases; a saved rename reopens as "Auto Note" with Hide
+  Auto-Note); new case `wfnoteeditor` E4; on the build: `wfnoteeditor` 14/14, `autonoterename` 24/24, `autonoteview` 18/18, `holidayrename` 14/14, `noteviews` 15/15, `wfnotecolors` 14/14, `phaselink` 14/14, `wfkeys` 84/84; `npm run check` 42/42.
+
 ## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
 ### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)

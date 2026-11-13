@@ -193,6 +193,28 @@ window.addEventListener('load', function () { (async function () {
            same(typed, { day: true, sw: true }) && same(back, { day: false, sw: false }), { typed: typed, back: back });
     });
 
+    // E4 (owner, 12 Nov 2026: "when you start editing an auto note, the regular note editor menu opens up"): one line typed
+    // over a cell's single automatic note or holiday is saved as a RENAME, so the typed-note rows stay hidden while it is
+    // one; a line ending in another date, or a second line, is typed text and brings them.
+    await step('E4', async function () {
+      function rows(p) { return { day: shown(q('.note-day-row', p)), sw: shown(q('.note-view-row', p)), link: !q('.note-link-row', p) || shown(q('.note-link-row', p)) }; }
+      var f = {}, p = await openEditor('2026-10-19');
+      setBox(p, 'Wrap 10/20/26'); f.rename = rows(p);
+      setBox(p, 'Wrap'); f.noDate = rows(p);
+      setBox(p, ''); f.empty = rows(p);
+      setBox(p, 'Wrap party 10/23/26'); f.otherDate = rows(p);
+      setBox(p, 'Wrap 10/20/26\nTable read'); f.twoLines = rows(p);
+      await closeEditor();
+      p = await openEditor('2026-09-07');
+      setBox(p, 'Labour Day 9/7/26'); f.holiday = rows(p);
+      await closeEditor();
+      var s = await save();
+      var off = { day: false, sw: false, link: false }, on = { day: true, sw: true, link: true };
+      kase('E4', 'renaming a cell\'s one automatic note or holiday keeps Day, Stays with and Show in month view hidden (with or without its date, or the box emptied); a line ending in another date, or a second line, shows them; Esc saves nothing',
+           same(f.rename, off) && same(f.noDate, off) && same(f.empty, off) && same(f.holiday, off)
+             && same(f.otherDate, on) && same(f.twoLines, on) && same(s, S0), { f: f, identical: same(s, S0) });
+    });
+
     await step('H1', async function () {
       var p = await openEditor('2026-10-19');
       await clickHide(q('.note-pop-delete', p));
