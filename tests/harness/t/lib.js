@@ -333,11 +333,18 @@ window.__T = (function(){
   // file is opened. That was the first attempt at this fix and it timed out for a reason that
   // looks identical to the bug it was fixing. It is the right probe for base.js, which builds a
   // fixture first; it is the wrong one here.
+  // ⚠️ LATCHED (13 Nov 2026, the loadsparse leg). The hiatus rows are the sign that the engine BOOTED, and a boot
+  // always builds the four default ones. They are not a fact about every calendar: one with no all-phase hiatus has
+  // no row, and openViaFakePicker() calls this before every load, so the load AFTER such a calendar waited out the
+  // whole 20 s and threw. Once the boot has been seen it stays seen.
+  var appBooted = false;
   async function appReady(){
+    if(appBooted) return;
     await until(function(){
       return !!document.getElementById('start-production') &&
              document.querySelectorAll('#hiatus-list .hiatus-entry').length > 0;
     }, 'the engine to build the sidebar (IndexedDB-free; see the note above)', 200, 100);
+    appBooted = true;
   }
   // opts (optional, added 25 Sep 2026 for the audit-fix legs):
   //   opts.writes -- an array. The handle then gets a createWritable() that RECORDS every write as

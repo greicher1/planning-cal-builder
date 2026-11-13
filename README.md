@@ -29,6 +29,72 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
+
+Two data-safety fixes from the November audit, findings AUD2-004 and AUD2-005. Both are rare: neither can be reached
+with a file or a backup this version of the app wrote itself. Both ended with wrong data written into a saved file and
+nothing on screen saying so.
+
+- **Recover unsaved work, when the backup cannot be opened.** At launch the app offers to recover work a closed window
+  left unsaved. If that backup could not be applied (it was written by a newer version and the app was then rolled
+  back, one of its scenario tabs was damaged, or applying it failed partway), Recover carried on as if it had worked.
+  The screen kept the blank calendar the app starts with, and that blank calendar was linked to the backup's file,
+  marked unsaved, and backed up in place of the real work, which was deleted. Ten minutes later autosave wrote the
+  blank calendar over the saved file (measured: 5,170 bytes over a 6.3 KB calendar), with no click where Chrome still
+  held permission to write.
+  - **Now** Recover says so, in one of two messages: *"That unsaved work was saved by a newer version of SPTCal, so
+    this version can't open it. It has been kept: update the app, and it will be offered again."* or *"That unsaved
+    work couldn't be opened. It may be damaged. Nothing was changed, and the backup has been kept."* The backup is
+    kept, no file is linked, nothing is marked unsaved, and nothing is written.
+  - `restoreSavedState()` now returns what happened, and `offerBackupRecovery()` stops unless that is `'ok'`.
+- **A calendar file that leaves fields out.** A file written by a tool outside the app, repaired by hand or damaged,
+  or a scenario tab that names only some fields, kept whatever the calendar before it had left in memory wherever
+  the file was silent. Loaded after another show, it took that show's all-phase hiatuses (so its own dates moved:
+  measured, Production wrapping 11/3/26 for 10/20/26), its phase dates, Simultaneous Post, Production's own break,
+  episodes, extra month lanes, view and sidebar tab, and the next Save wrote the mix into the second file.
+  - **Now** a file opens with its own values or a default, the project's own rule ("a missing key falls back to a
+    default, never to whatever is in memory"), which had been applied one feature at a time. Every saved field the
+    file does not name gets a new calendar's value (`savedFieldDefault()`, over exactly the fields the save sweep
+    saves, `isSweptField()`). A file with no hiatus list has no all-phase hiatus; with no episode list, the episodes
+    its Show info gives; with no view or sidebar tab, the waterfall and Show info.
+  - ⚠️ **One thing opens differently in a fresh window:** a file with NO hiatus list. It used to keep a new
+    calendar's four default winter breaks (they were simply still on screen), and now opens with none. Everything
+    else about a fresh-window load is byte for byte what it was. Every file the app has ever written carries its
+    hiatus list and names every field, so no saved calendar, release fixture or shareable copy opens differently.
+- **Save format:** no key added, renamed or removed. Nothing frozen was touched.
+- **Proof.** Two new legs, both in `gate.sh`, both red on the build before the fix.
+  - `recoverfail`, four runs: a backup one version ahead, a damaged scenario tab, an apply that throws partway, and a
+    good two-tab backup as the control. Before: no message, the backup deleted, the blank calendar written over the
+    file after one autosave tick. Now 7/7, 7/7, 8/8 and 3/3.
+  - `loadsparse`, six runs: one file loaded fresh, then again after a calendar with almost every store in use
+    (`carry-heavy.sptcal`) and with every saved field on the page changed in between; fields, hiatus rows, phase lines
+    and the Save text must match to the byte. Without a hiatus list, with a null one, without the six keys the load
+    path used to restore only when present, a six-field generated file (`sparse-generated.sptcal`), a file naming no
+    field at all (it must open as a new calendar's fields: the guard for a field added later with no default), and
+    a two-tab file whose parked tab is the six-field one. Now 8/8 in each of the first five and 7/7 in the last.
+    A mutation run backs the last guard: with one default deleted (`phiatus-weeks`), the `bare` run is red at N1.
+  - 22 real files, each loaded through the real Load on the build before the fix and on this one: the seventeen
+    saved-release fixtures (v1.0.0 to v1.13.0) and `show-a`, `blocks`, `carry-rich`, `scenarios-3`, `customunits`.
+    What each saves and its grid are identical on the two builds, and on this build each saves the same after
+    `carry-heavy.sptcal` as loaded fresh.
+  - Existing legs on this build (sha256 `ea9bd9cf…`): `restore` matches its baseline (rows, cells, width, bytes, grid
+    signature, the 77 field ids); `loadcarry` 6/6, `loadfail` 6/6, `hiatusblank` 4/4, `hostile` 13/13, `sharecopy2`,
+    `legacyparse` 7/7, `backupslots` 5/5, `backuplink` 5/5, `backuplinkstale` 3/3, `conflict` 9/9, `filekeys` 16/16,
+    `undokeys` 11/11, `nofsa` 7/7, `newtab` 6/6, `noresetall` 5/5, `autonote` 9/9, `numclamp` 6/6, `cmdprint` 6/6,
+    `hdroverrides` 4/4, `retiredplaces` 8/8, `regionlock` 14/14, `regionmirror` 9/9, `lastedited` 22/22, `seasons`
+    15/15, `phiatusnum` 18/18, `calrange` 18/18, `hidewf` 19/19, `phasefold` 11/11, `hiatusfold` 11/11,
+    `comparehiatus` 8/8, `snapoff` x3, `rowheight` 7/7, `caps` 5/5, `dlgkeys` 16/16, `prepreptitle` 7/7, `mvhdroff`
+    9/9, `hdrrow` 40/40, `labelsetup` 41/41, `settingswin` 21/21, `scenarios` 23/23, `scenariofacts` 12/12,
+    `sideboxes`, `hiatuscolour` 14/14, `hiatussidebar` 16/16, `simpostname` 14/14, `customunits`, `builtindates`.
+    `stintcollide`, `stintgroup` and `stintmulti` (their fixtures have no episode list) give the same result on both
+    builds. `npm run check` 42/42.
+  - `launchopen` was 12/13 once, in that batch: its read-only launch step timed out while other work was running on
+    the machine. Alone it is 16/16 three times on this build, and 16/16 on the build before the fix.
+  - Tried in the browser on the built app with a real IndexedDB backup one version ahead: the message shows, the
+    backup is still there, the file menu still reads Untitled.
+  - Not run: the full gate (one run is planned for the whole audit batch), and a real window's close and reopen (the
+    legs stand in a fake file handle and an in-memory IndexedDB, as `backuplink` does).
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first

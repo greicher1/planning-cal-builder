@@ -215,3 +215,20 @@ The 3/9 week's waterfall note is "Wardrobe 3/10/26" + "Props 3/12/26". No order 
 the untouched layout. Production starts Mon 6/29/26, for the auto-note case. On the live build of 23 Oct
 (`d2ac914e`), M1, M2 and M3 are red.
 
+
+## A file that leaves fields out, and the calendar loaded before it (13 Nov 2026)
+
+Both are read by the `loadsparse` leg (in `gate.sh`), which holds the rule that a file opens with ITS OWN values or a
+default, never with what the calendar before it left in memory.
+
+`carry-heavy.sptcal` is the calendar loaded BEFORE the file under test: synthetic ("CARRY-TITLE", US General, made-up
+2026 to 2028 dates), written by script with almost every store in use, so that anything able to carry has something
+to carry. It holds an UNLOCKED two-week all-phase hiatus named "CARRY-BREAK" from 8/3/26 (inside the shoot, so it
+moves the wrap), Simultaneous Post on, Production's own break from 11/23/26, two custom phases, 22 episodes (counter
+22), an extra month lane (`mvExtraLanes`), a legacy day-note colour (`dayNoteColors`), the month view and the Phases
+tab, plus 41 week notes, 40 day notes, text styles, side boxes, a made-up Location and Legal paper.
+
+`sparse-generated.sptcal` is the shape of a file a tool outside the app would write: `fields.byId` holds six ids (a
+title, Season 1, 8 episodes x 8 days, US General, Production from Mon 3/1/27) and `fields.hiatuses` one two-week break
+from 12/20/27. Nothing else is named. It must open as Production alone, 64 shoot days, 3/1/27 to 5/28/27. No file the
+app has ever written looks like this: every one names every field.

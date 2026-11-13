@@ -4,6 +4,81 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 13 Nov 2026: AUDIT BATCH 1, ITEM 1.2 — RECOVER CAN NO LONGER BLANK A SAVED FILE; A FILE THAT LEAVES FIELDS OUT OPENS WITH ITS OWN VALUES (AUD2-004, AUD2-005). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/blissful-leakey-82c876` (worktree `.claude/worktrees/blissful-leakey-82c876`, cut from `origin/main` at `2089aa5`). Tracker card `audit-recover-and-sparse-load`
+- **Where it comes from:** the November production-readiness audit (run on `2089aa5`), Batch 1 "before more users",
+  item 1.2: two verified, rare, P0 data-safety findings that need no owner decision. The audit's own files are kept
+  outside the repo on purpose; only the two finding ids are named here. The batch plan is ONE full gate, in the
+  session that finishes the last Batch 1 item, then one push on the owner's yes. ⛔ So this is not gated yet.
+- **AUD2-004, as built** (`src/legacy/app.js`): `restoreSavedState()` returns what happened: `'ok'`, `'none'`,
+  `'newer'`, `'damaged'` (nothing touched) or `'failed'` (the apply threw and was rolled back). It returned nothing,
+  and `offerBackupRecovery()` went on regardless: with a backup that could not be applied it linked the backup's file
+  to the blank launch calendar, set `isDirty`, wrote that blank calendar as this page's backup and deleted the source
+  slot, and the next autosave tick wrote 5,170 blank bytes over the saved file.
+  - Now, on anything but `'ok'`: `#saved-state`'s text is put back, `refreshAfterRestore()` runs only after a
+    rollback, `suppressDirty` is cleared, one `uiAlert` says which (a newer version, or could not be opened), and it
+    returns. The file link, `isDirty`, this page's slot and the source slot are untouched.
+  - ⛔ Nothing in that branch awaits (a double-clicked file may be waiting on the question; see the 4 Nov entry).
+  - `adoptScenarios()` has its own try again: a throw there, with the calendar already applied, still counts as `'ok'`.
+  - ⚠️ Left as it was: the kept slot is offered again at every launch, and a truly damaged one can never be opened or
+    thrown away from the UI. That belongs with the audit's later crash-recovery findings, not here.
+- **AUD2-005, as built** (`applyStateSnapshot`):
+  - Every saved field the file does not name gets a new calendar's value: one pass before step 3's replay, over the
+    fields `isSweptField(el)` saves (the save sweep's four exclusions, moved out of `collectFieldValues()` so the two
+    cannot drift), less `#custom-phase-rows` (built fresh in step 1), with values from `savedFieldDefault(el)`.
+    The older per-feature absent-default blocks above it are kept as they were; they set the same values.
+  - `fields.hiatuses` absent or of the wrong type: NO all-phase hiatus (the rows are always rebuilt).
+  - `episodeDefs` absent: `[]` and a counter of 0, so Show info derives the list (`syncEpisodesFromShowInfo`). Present
+    without a counter: the counter starts at 0, and is never left below the highest `ep<n>` id in use.
+  - `mvExtraLanes`, `dayNoteColors`: `{}` when absent. `sidebarTab`: Show info. `viewMode`: the waterfall.
+  - Undo, redo, a scenario flip, the probe and the atomic rollback apply this build's own snapshots (or write the
+    view and tab in first), so none of them is moved by any of this.
+- ⚠️ **The one thing that opens differently in a FRESH window:** a file with no hiatus list opens with none. It used to
+  keep a new calendar's four default winter breaks, because they were still on screen. Measured on the six test
+  files: that is the only difference between a fresh-window save before and after the fix. No file the app has
+  written lacks the list. Checked on every calendar in `tests/fixtures/`, parked tabs included (151 before this
+  change): none lacks the hiatus list. Four script-made ones lack something else (`stintswap-collide`, `-group`
+  and `-multi` have no episode list; `hiatusdrag` lacks the two add-a-holiday boxes), and all four open the same
+  from a fresh window.
+- ⚠️ **For a new id'd field:** if its new-calendar value is not `''` (or, for a box, unticked) it needs a line in
+  `savedFieldDefault()`. `loadsparse`'s `bare` run goes red at N1 without one (mutation-checked, below).
+- ⚠️ **For legs:** `T.appReady()` is LATCHED now (`tests/harness/t/lib.js`). It waits for the boot's hiatus rows, and
+  `openViaFakePicker()` calls it before every load, so the load after a calendar with no all-phase hiatus used to
+  wait out 20 s and throw. Once the boot has been seen it stays seen.
+- **New legs, both in `gate.sh`** (their own block after the audit-fix loop, each run picked by `HARNESS_QUERY`):
+  - `recoverfail` `mode=newer | damaged | throws | scen` (900 s virtual: it waits out an autosave tick).
+  - `loadsparse` `v=nohiatus | badhiatus | sixkeys | sixids | bare | scen` (240 s).
+  - Fixtures `carry-heavy.sptcal` (the calendar loaded first: almost every store in use) and
+    `sparse-generated.sptcal` (six field ids), both synthetic, described in `tests/fixtures/README.md`.
+- **Proof** (build sha256 `ea9bd9cf…`, private port 8647):
+  - Red before the fix, on the build of `2089aa5`: `recoverfail` F1, F2, F3, F4, F6 in all three failing modes
+    (control green); `loadsparse` B2 and B3 in five of six runs, B1 in `sixids`, `bare` and `scen`, D1 / D2 / N1.
+  - Green after: `recoverfail` 7/7, 7/7, 8/8, 3/3; `loadsparse` 8/8 x5 and 7/7.
+  - 22 real files (the 17 saved-release fixtures v1.0.0 to v1.13.0, `show-a`, `blocks`, `carry-rich`, `scenarios-3`,
+    `customunits`), each loaded through the real Load on the build before the fix and on the fixed one: the Save text
+    and the grid signature are identical, and on the fixed build each saves the same after `carry-heavy` as fresh.
+  - Mutation: `savedFieldDefault()` without its `phiatus-weeks` line is red at `loadsparse` `bare` N1 (six boxes
+    read "" for "2"), green everywhere else. The source restored builds to the same sha.
+  - Existing legs, all green on that build: `restore` against its baseline (77 ids), `loadcarry` 6, `loadfail` 6,
+    `hiatusblank` 4, `hostile` 13, `sharecopy2`, `legacyparse` 7, `backupslots` 5, `backuplink` 5, `backuplinkstale` 3,
+    `conflict` 9, `filekeys` 16, `undokeys` 11, `nofsa` 7, `newtab` 6, `noresetall` 5, `autonote` 9, `numclamp` 6,
+    `cmdprint` 6, `hdroverrides` 4, `retiredplaces` 8, `regionlock` 14, `regionmirror` 9, `lastedited` 22, `seasons`
+    15, `phiatusnum` 18, `calrange` 18, `hidewf` 19, `phasefold` 11, `hiatusfold` 11, `comparehiatus` 8, `snapoff` x3,
+    `rowheight` 7, `caps` 5, `dlgkeys` 16, `prepreptitle` 7, `mvhdroff` 9, `hdrrow` 40, `labelsetup` 41,
+    `settingswin` 21, `scenarios` 23, `scenariofacts` 12, `sideboxes`, `hiatuscolour` 14, `hiatussidebar` 16,
+    `simpostname` 14, `customunits`, `builtindates`. `stintcollide` / `stintgroup` / `stintmulti` (fixtures with no
+    episode list): the same result JSON on the build before and after. `npm run check` 42/42.
+  - ⚠️ `launchopen` was 12/13 ONCE, in that batch (L12, "the read-only file to load", 6 s), while the Browser pane and
+    other work ran beside it. Alone: 16/16 three times on the fixed build, 16/16 twice on the build before. Read as
+    the leg's fixed 1.5 s wait after a Save under load, not this change. Re-run it first if the gate trips there.
+  - In the Browser pane, the built app with a REAL IndexedDB: a seeded backup one version ahead, Recover, the message,
+    the slot still there, the file menu still Untitled, nothing unsaved. (The seeded slot was removed afterwards.)
+- **Not verified:** the full gate (deliberately not run: the batch plan); a real window's close and reopen with a real
+  file handle (the legs fake the handle and the IndexedDB, as `backuplink` does); a real autosave write under a real
+  permission grant. A file produced by a tool outside the app was not opened: the six-id fixture stands in for one.
+
+⏭ **Next:** the remaining Batch 1 items (the audit's playbook, outside the repo, has the order and the decisions
+they wait on), then ONE full gate and the owner's yes before any push.
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.

@@ -2260,6 +2260,43 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- recoverfail + loadsparse: a backup that cannot be applied, and a file that leaves fields out ---------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-004 and AUD2-005, both data loss, both rare). Each run is one page load,
+# picked by HARNESS_QUERY, because each needs a FRESH window: recovery is offered once, at launch, and "loaded fresh"
+# means the first file a window loads.
+# recoverfail: Recover on a crash backup that cannot be applied -- one snapshot version ahead (newer), a parked scenario
+# tab holding no calendar (damaged), a good backup whose apply throws partway (throws) -- says so, KEEPS the backup, leaves
+# the file it names unlinked and untouched through an autosave tick (11 virtual minutes) and a Save click. `scen` is the
+# control: a good two-tab backup recovers into its file as before. On the build before the fix F1-F4 and F6 were red in
+# all three failing modes: no message, the slot deleted, and a blank 5,170-byte calendar written over the saved file.
+# loadsparse: one file B loaded fresh, then again after carry-heavy.sptcal with EVERY saved field on the page changed in
+# between; its fields, hiatus rows, phase lines and Save text must match to the byte. B is v1.13.0-saved without its
+# hiatus list (nohiatus), with a null one (badhiatus), without the six keys the load path used to restore only when
+# present (sixkeys), sparse-generated.sptcal's six field ids (sixids), a file naming no field at all (bare, which must
+# open as a new calendar's fields: the guard for a field added later with no default), and a two-tab file whose parked
+# tab is the six-id snapshot (scen). On the build before the fix B2 and B3 were red in every run (the first calendar's
+# CARRY-BREAK hiatus stayed and Production wrapped 11/3/26 for 10/20/26), and B1 wherever B names fewer ids than the page.
+for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
+              "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
+              "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240"; do
+  RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
+  rm -f "$HERE/$RSLEG.json"
+  HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1
+  python3 - "$HERE/$RSLEG.json" "$RSLEG ($RSQ)" <<'PYRS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRS
+done
+
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
 # ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
 # by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut
