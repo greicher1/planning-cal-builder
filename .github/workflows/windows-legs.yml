@@ -1,0 +1,73 @@
+# Windows legs: run the harness legs in headless Chrome on a GitHub-hosted Windows runner (and the same list on macOS
+# as a like-for-like control). TEST BRANCH ONLY: it runs on a push to `windows-test` and by hand, never on main and
+# never on a pull request, and it deploys nothing. See tests/harness/WINDOWS.md.
+name: Windows legs
+
+on:
+  push:
+    branches: [windows-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-legs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  legs:
+    name: Legs on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Before checkout, so the working tree is byte for byte what macOS has (Windows' git would write CRLF).
+      - name: Keep line endings as committed
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Kept going on a failure so the legs still run; a red check here is itself a Windows finding.
+      - name: Check the build
+        continue-on-error: true
+        run: npm run check
+
+      - name: Hash the build (compare with the macOS build; sha1 is what macOS's shasum prints)
+        run: node -e "const c=require('crypto'),b=require('fs').readFileSync('dist/index.html');for(const a of ['sha256','sha1'])console.log(a+'  '+c.createHash(a).update(b).digest('hex')+'  dist/index.html  '+b.length+' bytes')"
+
+      - name: Run the legs
+        run: node tests/harness/xgate.mjs --out xgate-out --cap 600
+
+      # summary.json is written only when xgate finishes; if the job hits its timeout, rebuild it from the legs that ran.
+      - name: Summarize whatever ran
+        if: always()
+        run: node tests/harness/xgate.mjs --summarize --out xgate-out
+
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: legs-${{ matrix.os }}
+          path: xgate-out
+          retention-days: 3
+          if-no-files-found: warn
