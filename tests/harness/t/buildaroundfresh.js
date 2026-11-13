@@ -35,7 +35,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-solve-phase', 'prePrep'); await T.sleep(500);
     T.set('tool-solve-date', '2027-04-26'); await T.sleep(500);
   }
-  async function press(){ $('tool-solve-go').click(); await T.sleep(1200); document.body.click(); await T.sleep(300); }
+  async function press(){ $('tool-solve-go').click(); await T.sleep(1200); T.closePops(); await T.sleep(300); }
   try {
     await T.appReady(); await T.sleep(1000);
     var s0 = starts();

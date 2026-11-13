@@ -670,8 +670,10 @@ window.addEventListener('load', function () { (async function () {
     key('Escape');
     var h5 = await rclick('2026-12-25', 'mid');
     var i5 = menuInfo();
-    var ITEMS_25DEC = ['phase-week', 'hiatus', 'band-remove-0', 'hol-en-0', 'hol-month-0', 'hol-sheet-0', 'waterfall'];
-    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; EXACTLY 22 Dec\'s items with Christmas Day\'s three (ruling Q6, kept by T2) before the way out: 13 lines before the trim, 8 after it, 7 since Colour… went (4 Nov 2026)',
+    // No hol-en-0 since 11 Nov 2026: Christmas is inside the winter hiatus, where switching it off moves no date
+    // (holidayMovesDates), so its section holds only the two Show items.
+    var ITEMS_25DEC = ['phase-week', 'hiatus', 'band-remove-0', 'hol-month-0', 'hol-sheet-0', 'waterfall'];
+    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; EXACTLY 22 Dec\'s items with Christmas Day\'s two Show items (no Enabled inside a hiatus, 11 Nov 2026) before the way out',
       h5.inBody && h5.prevented && i5 && i5.day === '2026-12-25' && /Hiatus/.test(i5.ctx) && /Christmas Day/.test(i5.ctx)
         && eq(i5.items.map(function (x) { return x.id; }), ITEMS_25DEC) && i5.items.every(function (x) { return !x.disabled; }),
       i5, ITEMS_25DEC.join(', '));
@@ -1330,11 +1332,11 @@ window.addEventListener('load', function () { (async function () {
       return b ? String(b.checked) : null;
     }
     var x5 = {en: listBox('Christmas Day', 'en'), month: listBox('Christmas Day', 'month'), sheet: listBox('Christmas Day', 'sheet')};
-    add('V5', 'Fri 25 Dec: This day, the hiatus, then "Holiday · Christmas Day" (ruling Q6) with Enabled, Show in month view and Show in waterfall, each checked exactly as the holiday list\'s own box is',
+    add('V5', 'Fri 25 Dec: This day, the hiatus, then "Holiday · Christmas Day" (ruling Q6) with Show in month view and Show in waterfall, each checked exactly as the holiday list\'s own box is, and NO Enabled in the menu or the list (inside the hiatus it moves no date, 11 Nov 2026)',
       eq(v5.sections, ['day', 'hiatus', 'holiday', 'out']) && v5.hol.length === 1 && v5.hol[0].label === 'Holiday · Christmas Day'
         && eq(v5.hol[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.text, x.disabled]; }),
-              [['hol-en', 'menuitemcheckbox', 'Enabled', false], ['hol-month', 'menuitemcheckbox', 'Show in month view', false], ['hol-sheet', 'menuitemcheckbox', 'Show in waterfall', false]])
-        && x5.en === v5.hol[0].items[0].checked && x5.month === v5.hol[0].items[1].checked && x5.sheet === v5.hol[0].items[2].checked,
+              [['hol-month', 'menuitemcheckbox', 'Show in month view', false], ['hol-sheet', 'menuitemcheckbox', 'Show in waterfall', false]])
+        && x5.en === null && x5.month === v5.hol[0].items[0].checked && x5.sheet === v5.hol[0].items[1].checked,
       {menu: v5, list: x5}, 'the list\'s own checks');
 
     // V6-V8 in July: Fri 3 Jul, Independence Day (Observed), a weekday holiday inside the shoot.

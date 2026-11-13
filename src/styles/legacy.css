@@ -1855,6 +1855,29 @@
   .tools-head{margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xxs);
     letter-spacing:.05em; text-transform:uppercase; font-weight:600;
     color:var(--mantine-color-gray-6);}
+  /* THE PANEL MOVES (owner, 11 Nov 2026: Shift covered the dates being read). The title row is a grip; the
+     panel floats where it is dropped (`is-floating`: position:fixed, set by the engine, so the preview's scroll
+     box no longer clips it and it can sit over the sidebar). A drag lasts until the panel closes.
+     ⭐ It is a GREY BAR across the panel's top (owner, same day: "make the bar at the top of the menus grey so its
+     clear its a grabable window"): pulled out over the panel's padding to its edges, the panel's own top corners,
+     a hairline under it. Its grey is How far's control's (`.tools-seg`, gray-1; owner's screenshot of "To a date"),
+     a shade darker under the pointer and while dragging. */
+  .tools-menu .tools-head{ cursor:grab; -webkit-user-select:none; user-select:none; touch-action:none;
+    margin:calc(-1 * var(--mantine-spacing-lg)) calc(-1 * var(--mantine-spacing-lg)) var(--mantine-spacing-md);
+    padding:7px 10px 7px var(--mantine-spacing-lg); background:var(--mantine-color-gray-1);
+    border-bottom:1px solid var(--mantine-color-gray-3);
+    border-radius:calc(var(--mantine-radius-lg) - 1px) calc(var(--mantine-radius-lg) - 1px) 0 0; }
+  .tools-menu .tools-head:hover{ background:var(--mantine-color-gray-2); }
+  .tools-menu.is-dragging .tools-head{ cursor:grabbing; background:var(--mantine-color-gray-2); }
+  .tools-grip{ flex:none; width:8px; height:12px; margin-right:7px; opacity:.7;
+    background-image:radial-gradient(circle, var(--mantine-color-gray-6) 1.1px, transparent 1.3px);
+    background-size:4px 4px; background-position:0 0; }
+  .tools-head-btns{ margin-left:auto; display:inline-flex; align-items:center; gap:2px; text-transform:none; letter-spacing:0; }
+  .tools-head-btns button{ border:0; background:transparent; cursor:pointer; color:var(--mantine-color-gray-6);
+    border-radius:var(--mantine-radius-sm); height:22px; padding:0 6px; font-size:11.5px; font-weight:500; line-height:22px; }
+  .tools-head-btns button:hover{ background:var(--mantine-color-gray-3); color:var(--mantine-color-gray-9); }
+  .tools-head-btns .tools-close{ width:22px; padding:0; font-size:12px; }
+  .tools-menu.is-floating{ position:fixed; right:auto; top:auto; box-shadow:var(--mantine-shadow-lg, var(--mantine-shadow-md)); }
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
   .tools-row:last-child{margin-bottom:0;}
   .tools-edge{flex:none !important; width:92px;}
@@ -4431,6 +4454,20 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
+  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates). The cell is empty, kept for
+     the column (owner, 11 Nov 2026). */
+  .hv-en-na{ cursor:default; }
+  /* One list, a strip per counting phase (renderHolidayVisList, owner 11 Nov 2026, option 6): the rows of a phase that
+     counts days sit beside a strip in its own colours, its name sideways. Every row shares a 22 px gutter while any
+     strip is drawn, so the names stay in one line; the header's "Holiday" moves with them. */
+  #holiday-vis-list.hv-has-strips > .hv-row{ padding-left:24px; }
+  #holiday-vis:has(#holiday-vis-list.hv-has-strips) .hv-head-name{ padding-left:22px; }
+  .hv-run{ display:flex; }
+  .hv-strip{ width:16px; flex:none; margin:4px 6px 4px 0; border:1px solid rgba(0,0,0,.08); border-radius:4px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:default; }
+  .hv-strip span{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:9.5px; font-weight:700; letter-spacing:.09em;
+    text-transform:uppercase; white-space:nowrap; max-height:100%; overflow:hidden; text-overflow:ellipsis; }
+  .hv-run-rows{ flex:1; min-width:0; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
   .hv-dim{ opacity:.45; }
   .hv-tag{

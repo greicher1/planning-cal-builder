@@ -60,7 +60,7 @@ window.addEventListener('load', function () { (async function () {
     return got.state;
   }
   async function settle(){ await T.sleep(600); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openPop(btn){ closePops(); await T.sleep(150); document.getElementById(btn).click(); await T.sleep(200); }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }
   var r0;

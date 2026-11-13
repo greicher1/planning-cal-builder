@@ -58,7 +58,7 @@ window.addEventListener('load', function () { (async function () {
   var MENU = function () { return $('pop-shift'); };
   function q(sel){ return MENU().querySelector(sel); }
   function tick(key, on){ var b = q('input[data-key="' + key + '"]'); if(!b) throw new Error('no tick for ' + key); if(b.checked !== on){ b.checked = on; b.dispatchEvent(new Event('change', {bubbles: true})); } }
-  async function openShift(){ document.body.click(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
+  async function openShift(){ T.closePops(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
   function canon(o){
     if(Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
     if(o && typeof o === 'object') return '{' + Object.keys(o).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(o[k]); }).join(',') + '}';

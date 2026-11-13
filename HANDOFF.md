@@ -17,6 +17,125 @@
   will again disagree with what Save does. Leg `wfnoteeditor` E4 holds the popup's side.
 - **Proof:** tried in the browser; on the build `wfnoteeditor` 14/14 (E4 new), `autonoterename` 24/24, `autonoteview` 18/18, `holidayrename` 14/14, `noteviews` 15/15, `wfnotecolors` 14/14, `phaselink` 14/14, `wfkeys` 84/84; `npm run check` 42/42. No full gate (popup only, nothing frozen).
 
+### ✅ 12 Nov 2026: THE NOTE EDITORS' KEYS LINE IS GONE. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry; `git log -1 -- HANDOFF.md`), from branch `no-key-hints` (worktree `.claude/worktrees/no-key-hints`, cut from `origin/main` at `bc30b0c`; `node_modules` is a symlink, unlink it before `git worktree remove`). No version cut. Tracker card `remove-note-editor-keys-hint`.
+- **Owner:** *"Delete this text in all places"*: "Up to 3 lines · Enter for a new line · Tab or Ctrl/Cmd‑Enter to save ·
+  Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
+- **Done:** `openNoteEditor`'s `popHint` keeps only the single auto note's / holiday's "Renames …" line, and the
+  `.note-pop-hint` div is left out when empty; the month editor's typed-note branch has no `.mv-note-pop-hint` at all
+  (`lineHint` deleted). Leg `wfnoteeditor` E1 re-expected. Changelog under Unreleased.
+- ⛔ **Left alone by the owner's ruling** (12 Nov 2026, *"No, leave it"*): "Enter to save · Esc to cancel" on the month
+  auto-note and holiday editors and the heading editor, and Paste notes' keys line. Don't remove them unasked.
+- ⚠️ Local `main` in the main checkout was 35 commits behind `origin/main` (a plain ancestor) with another session's
+  uncommitted HANDOFF edit, so this branch was cut from `origin/main` rather than built there.
+
+### ✅ 11 Nov 2026: THE SHIFT / BUILD AROUND PANELS DRAG AND STAY OPEN, WITH A GREY TITLE BAR. ✅ **LIVE at `bf339f5`** (owner's picker "Merge and push", 12 Nov; `origin/main` merged in at `cfa9100`; pushed `5e68b59..bf339f5`, deploy run `43281898776` green, the live `index.html` is the tested build byte for byte, sha256 `4a973b99…`). Branch `shift-panel-float` (worktree `.claude/worktrees/shift-dock`, its `node_modules` a symlink: unlink before `git worktree remove`). Local `main` was NOT moved (another session's checkout). No version cut. Tracker card `shift-popup-covers-grid`.
+- **Owner:** *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering
+  dates or portions of the calendar"*. Four options offered (drag; keep open while using the grid; dock beside the grid;
+  fade while looking). Three were BUILT as try-outs and tried by the owner: 1+2 (`shift-panel-float`), 3 docked
+  (`shift-panel-docked`, worktree `shift-docked`: the panel docks right of the grid by narrowing `#table-wrap`'s
+  CONTAINER margin, and with side boxes past the right-hand column), and a side float (`shift-panel-side-float`,
+  worktree `shift-sidefloat`: opens 30 px right of the calendar's edge, measured once per opening). **Picked:** *"1+2
+  where it pops up like normal but you can drag it whereever you want. no put back button"*; *"keep it open"* (asked
+  whether a click outside should close it). The other two branches are unmerged references; delete them once this ships.
+- **As built (engine, the shift-tools IIFE beside `keepPopInPanel`):** the `.tools-head` is a grip (`.tools-grip`, grab
+  cursor), drawn as a GREY BAR across the panel's top (gray-1, How far's `.tools-seg` grey, by the owner's screenshot; gray-2 under the pointer and while dragging; owner: *"make
+  the bar at the top of the menus grey so its clear its a grabable window"*); pointerdown on it (not on its buttons or the hint) floats the panel (`floatPop`: `is-floating`,
+  position:fixed, `clampPopPos` keeps it on screen) and pointer capture drags it. `popPos` holds the drop only until
+  `closeAllPops()`, which clears it, so `placePop()` opens it under its button every time. **No click-away:** the
+  document click handler is gone; a panel closes on its ✕ (`[data-tools-close]`, in `.tools-head-btns`, no id, no
+  title), its button, Esc (only when focus is in a panel or on nothing), or the other tool. A `MutationObserver` on
+  `#table-wrap` (pattern 3) re-reads a NEW `currentSchedule` into an open panel via `refreshMenuFromCalendar()`, unless
+  focus is in a panel or `.date-pop`, or a list drag is on. Nothing in the grid, the writers or the save format moved.
+  ⚠️ That refresh runs on a zero-delay TIMER, not requestAnimationFrame: with rAF, `paneldrag` R1 (the panel after an
+  Undo) failed 1 run in 5 in headless Chrome, whose virtual time can hold a frame back; with the timer, 5 of 5.
+- ⚠️ **Legs:** a page click no longer closes a panel, and the next press of its button then CLOSES it. `T.closePops()`
+  (lib.js) presses each open panel's ✕ and still clicks the page; 13 legs use it now. New leg `paneldrag`
+  (anchorside, 9 cases, in `gate.sh`'s list). `buildaround` O1 reads the title without the row's ✕.
+- **Final build (`bf339f5`):** check 42/42; `paneldrag` 5/5 runs at 9/9 after the timer fix; `anchorside` 39, `buildaround` 36,
+  `rebuildticks` 20, `shiftheld` 13.
+- **Proof on the earlier merged build (`d2a13a4`):** `npm run check` 42/42; `paneldrag` 9/9 and the legs that open these panels
+  green: `anchorside` 39, `buildalongside` 8, `buildaround` 36, `buildaroundfresh` 5, `builtindates` (both), `calrange`
+  18, `datepick` 17, `customunits` (both), `episodeprep` (all three), `hdrcontrols` 12, `halfworked` 24, `monthmap` 20,
+  `overrides` 20, `phasenotes` 21, `phaselink` 14, `phaselook` 10, `rowheight` 7, `rebuildticks` 20, `shiftheld` 13,
+  `snaptools` 14, `stalebandkey` 9, `stylebarplace` 14. `sideboxes`: 78/78 on 2 of 4 runs; the other two (one in the batch, one alone) timed out at F12 waiting for the hostile file to LOAD (`health` showed the old calendar still up), with every earlier check identical. `origin/main` built alone passed 3 of 3. In the pane at the headless size the branch loads it fine. Read as Load timing, not the panels (nothing in that step opens one), but ⚠️ re-run it first if the gate trips there. No full gate (chrome only:
+  nothing in `#table-wrap`, `#print-root`, the writers or the save path; both print paths hide the toolbar).
+
+### ✅ 11 Nov 2026: HOLIDAYS LIST — ONE LIST, A STRIP PER COUNTING PHASE (option 6; replaces option 5 below). ✅ **LIVE at `3ecd2f3`** (branch `holiday-enable`; pushed `8666628..3ecd2f3` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `a9f297a0…`, ~40 s after the push). No version cut. Tracker card `holiday-list-production-strip`.
+- **Owner:** *"mock up a version that looks like the original version (tho only holidays that need an enable button get
+  one) but days during production have a green strip on the left side with the word production (written sideways)"*;
+  then *"sure do both those suggestings and build option 6"*: a strip for a phase counted in Days too, and a short label
+  when a strip is one row tall.
+- **As built (`renderHolidayVisList`, after `rowHtml`):** rows in date order, no headings, no phase words. Each row's
+  strip phase = the counting segment covering its date (Production, `unit: 'days'`, episode prep by `firstDay..lastDay`),
+  ranked Production › Days › prep › earliest start; by SPAN, so a weekend or hiatus holiday inside the phase gets the strip
+  too. Consecutive rows of one phase share one `.hv-run` (`.hv-strip` + `.hv-run-rows`); a phase split by another's rows
+  gets a strip per stretch. Strip colours = the segment's `color` / `textColor`. One row tall: Production reads "Prod";
+  other names are cut by CSS ellipsis, full name in `title`. `#holiday-vis-list.hv-has-strips` gives every row a 22 px
+  gutter (and `:has()` moves the header's "Holiday"), so names align; no strip, no gutter. `.hv-grp` / `.hv-ph` gone.
+- ⚠️ **Rows are nested now** (inside `.hv-run`): query `#holiday-vis-list .hv-row`, never its direct children.
+- **Proof:** `holidayenable` 8/8 (anchorside) and 2/2 (customunits), `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside`, `customunits` and a one-episode shoot ("Prod"). No full gate.
+
+### ✅ 11 Nov 2026: HOLIDAYS LIST — PHASE HEADINGS, THEN "NOTES ONLY" (replaces the grouped-by-every-phase list). ✅ **LIVE at `4fe0848`** (branch `holiday-enable`, `origin/main`'s Fill Gaps change `d20e235` merged in; pushed `d20e235..4fe0848` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `08a6896d…`, ~60 s after the push; `colreuse` live + restore and `fillspace` re-run green on the merge). No version cut. Tracker card `holiday-list-simpler`.
+- **Owner:** the live grouped list was *"getting confusing"* where phases overlap (Post heading twice, Rigging cutting in,
+  "also …" lines); *"avoid visual clutter at all costs"*. Mockup `mockups/holiday-list-layouts.html` (live, 1 two sections
+  by effect, 2 one list, 3 each phase once, 4 notes folded); the owner's own idea became **option 5** and was picked.
+- **As built (`renderHolidayVisList`, after `rowHtml`):** a holiday whose Enable box shows (`holidayEnableShown`) goes under
+  the phase that COUNTS it, ranked Production › Days phase › episode prep (its `firstDay..lastDay`) › earliest start; one
+  `.hv-grp` heading per such phase, sorted by start, rows in date order, no phase word. Everything else goes under one
+  "Notes only" heading (no swatch), date order, one grey `.hv-ph` word: the hiatus band name if in an all-phase hiatus, else
+  the top-ranked phase it falls in, none outside every phase. Its Enable cell is `.hv-en-na`, now EMPTY (the dash is gone).
+  A holiday switched off outside the counting phases keeps its box there (the way back on). `.hv-also` and `.hv-grp-note`
+  are gone. ⓘ text in `Sidebar.jsx` rewritten.
+- ⚠️ A weekend holiday in the shoot (Sat 7/4) is Notes only "· Production" while its "(Observed)" twin is under Production.
+  Shown to the owner with the mockup; built as is.
+- **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate.
+
+### ✅ 11 Nov 2026: FILL GAPS STARTS OFF ON A NEW CALENDAR. ✅ **LIVE at `df69b59`** (owner's picker "Merge and push"; origin/main merged in at `df69b59`, conflicts in HANDOFF/README only, both kept; re-checked on the merged build: `fillspace` 6/6, `colreuse` both runs, `lanefill` 4/4, check 42/42; pushed `56ead7c..df69b59`, deploy run `43131620484` green, the live `index.html` is the tested build byte for byte, sha256 `ceff944e…`). Branch `fill-gaps-off` (worktree `.claude/worktrees/fill-gaps-off`; its `node_modules` is a symlink, unlink it before `git worktree remove`). No version cut. Tracker card `fill-gaps-off-by-default`.
+- **Owner:** *"I think fill gaps should be disabled by default"*, then *"Finish it"*.
+- **As built:** `let fillSpaceOff = true` and `resetAll()` sets `true` (the page's first calendar and New). `applyStateSnapshot()` is UNCHANGED: absent `fillSpaceOff` still = on, because every file without the key was saved while on was the default. So no saved calendar, fixture or shareable copy changes; a new calendar writes `fillSpaceOff: true` from its first save. Help (`src/index.html`, "How far a cell reaches") now says a new calendar starts with it off.
+- ⚠️ **For legs:** a leg that BUILDS a calendar through the UI now gets Fill Gaps off. A leg written for the old default must switch it on (`colreuse` live does, after its first snapshot, then sleeps 800 ms: `reClickGuard(600)` on Share is reset by EVERY document click, so a Share right after the toolbar click is swallowed and the leg times out on "the shareable copy"). `fillspace` S5 now enters New with the switch on and expects it off and `fillSpaceOff: true` in the file.
+- **Checks:** full gate 4,515 / 5 FAIL, export baselines identical; `colreuse` (live) was this change (its fix above, 29/29 both runs); `stintbtn`, `mvhdroff`, `pilllabel` carry-rich and `scenariocompat` (v1.2.0) were load timeouts, green alone, and the first three gave the same JSON on the build without this change. `fillspace` 6/6, `npm run check` 42/42.
+
+### ✅ 11 Nov 2026: HOLIDAYS LIST — NO "ALSO …" UNDER A HIATUS HEADING. ✅ **LIVE at `d5f9bff`** (pushed `bd29c58..d5f9bff` on the owner's picker; the live `index.html` is the tested build byte for byte, sha256 `33811618…`, ~50 s after the push). No version cut.
+- **Owner:** *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. In
+  `renderHolidayVisList`'s grouping, the hiatus branch now sets `also = []`; a phase heading keeps its "also …".
+  `holidayenable` G2 asserts no "also" on Christmas. Proof: `holidayenable` 7/7, `npm run check` 42/42, tried in the pane.
+
+### ✅ 11 Nov 2026: HOLIDAYS — ENABLE ONLY WHERE IT MOVES A DATE; THE LIST GROUPED BY PHASE; "MARKED WORKING DAY". ✅ **LIVE at `e1e447c`** (branch `holiday-enable`, worktree `.claude/worktrees/holiday-enable`, shipped AFTER v1.13.0 by the owner's picker: `origin/main` merged in at `5f1b67a`, pushed `5f1b67a..e1e447c` on the owner's *"ok can we push now?"*; the live `index.html` is the tested build byte for byte, sha256 `dff379c6…`, ~50 s after the push). No version cut. Tracker cards `holiday-enable-where-it-counts`, `holiday-phase-label`.
+- **Asks (owner, 11 Nov, in order):** *"Should the enable button even be there for holidays that do not occur during
+  production? Maybe non-production holidays just have the note options"*; told that a Days custom phase and episode prep
+  count holidays too, *"Yes, build it with that rule. But also i think we need to make it more clear what phase each
+  holiday is in from that menu. Mockup a few ways"* (`mockups/holiday-phase-label.html`, five: words, chips, grouped,
+  stripe, column; picked **C, grouped by phase**); *"Waterfall"* in full, then *"lets switch back to W'Fall Note"*;
+  why 7/3 had a box but no "Costs a shoot day" (it is marked Work this day) → the tag, worded *"Marked Working Day"*.
+- **As built (`app.js` beside `renderHolidayVisList`; nothing frozen, nothing saved changes, no new id):**
+  - `holidayMovesDates(schedule, iso)`: a weekday, not in an all-phase hiatus, inside Production's segment or a
+    `unit: 'days'` segment (outside its own hiatus) or episode prep's `firstDay..lastDay`. Read off the schedule's
+    segments, never a second copy of the walk. `holidayEnableShown(schedule, h)` adds "or already off": ⛔ a holiday
+    off outside the shoot must keep its box, or it is stuck off with greyed note boxes.
+  - Used by the list's Enable cell (else `.hv-en-na`, a faint dash with a title), **Toggle all: Enable** (only the
+    boxed rows, so no dashed row is switched off and grows a box) and the month day menu's `holidaySections` (no
+    Enabled item where the list has no box; the two Show items as before).
+  - Grouping: `rowHtml(h, also)` is the old row; headings `.hv-grp` (swatch in the phase fill, name, "counts shoot
+    days" / "counts days"). Home = the all-phase hiatus (by index, named by its first week's band text), else the
+    phase it falls in ranked Production › Days phase › earliest start (so a box sits under the phase that explains it),
+    else "Outside the phases". Other phases: `.hv-also` "· also Post". Date order is kept, so a heading recurs after a
+    break. Episode prep is not a heading (its segment starts with Production's). Rows now carry `data-hid`.
+  - "Marked Working Day": a grey `.hv-tag` on a Production holiday that is on, costs no day, and is marked `on` /
+    `onhalf` in `dayOverrides`.
+  - `Sidebar.jsx`: the ⓘ text explains the dash. The header stays "W’fall note" (a "Waterfall" header needed a 60 px
+    column; the owner reverted it).
+- ⚠️ **Legs:** anything that read a holiday's id off `.hv-en` reads the row's `data-hid` now (`caholidays`,
+  `mxholidays`); `settingswin` picks the first built-in row WITH a box; `mvmenu` H5/V5 expect Christmas (inside the
+  winter hiatus) to have no Enabled. A leg that walks `#holiday-vis-list > *` meets `.hv-grp` headings (`wrapdate`
+  ignores them: no date). New leg **`holidayenable`** on `anchorside` (in `gate.sh` after `mxholidays`): E1 a Weeks-phase
+  holiday has a dash, E2 weekend vs Labor Day, E3 "Marked Working Day" on 7/3, G1 the headings, G2 Christmas under
+  Hiatus "also Post", T1 Toggle all, O1 a saved-off Thanksgiving keeps its box. Red on `main` but T1.
+- **Proof:** `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. Tried in the pane on `anchorside` and `customunits` (a Days phase).
+  No full gate (chrome-side list and menu only; no output, export or saved key changes).
+
+### ✅ 11 Nov 2026: A PHASE'S ▲ / ▼ STEP OVER A HIATUS WHILE RIPPLE HIATUS IS ON. Committed LOCALLY on `main`, not pushed. Tracker card `phase-arrows-step-over-hiatus`.
+
 ### 🚂 11 Nov 2026: v1.13.0 RELEASE ON `phase-notes` — notes that stay with a phase (steps 1–5) + everything since v1.12.1. NOT tagged, `main` NOT moved, NOT pushed (owner's picker *"Merge and gate"*; the push is asked separately). Worktree `.claude/worktrees/angry-mclean-b408af`
 - **What it is:** `phase-notes` with `origin/main` and local `main` merged in (three times: `main` kept moving while it
   gated), cut as v1.13.0 (`APP_VERSION`, `version.json`, `package.json`; every Unreleased entry under a v1.13.0 heading;
@@ -410,7 +529,7 @@
   rotating between runs: 7/9, 8/9, then 9/9 on this build; 9/9 once on the build without SO1), `simpostname` F2/F3 (Load timeout, 14/14 alone).
   `npm run check` 42/42. Seen in the pane with the real mouse.
 
-### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. On `main`'s working tree, NOT committed, NOT pushed. Tracker card `month-pill-tag-centred`.
+### ✅ 11 Nov 2026: THE MONTH BAR'S GREY TAG IS CENTRED ON ITS LABEL (frozen edit TC1), screen + print + month PDF. ✅ **LIVE at `2613eb4`** (commit `d8d8a3a`, merged with origin's Sim Post reorder; pushed `41d92fd..2613eb4` on the owner's picker *"Push and deploy"*. Its own deploy run sat queued and later pushes deployed it; the live build carries TC1's rule, minified as `line-height:1.66667em` etc.). Gate 13 baselines re-cut on the owner's yes (21 files). Tracker card `month-pill-tag-centred`.
 - **Ask (owner):** a screenshot of "Block 1  S2 - Production Week 4 · Ep. 201, 202", *"not centered properly"*; after the
   screen fix, *"Yes, PDF too"*; after the classification and a 600 dpi before/after crop, *"Yes, cut them"* (gate 13).
 - **Cause:** `.mv-pill-block` is `vertical-align:top` and inherited the unitless 1.5, so its line box was 1.5 × its OWN

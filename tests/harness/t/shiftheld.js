@@ -48,9 +48,9 @@ window.addEventListener('load', function () { (async function () {
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(e, v);
   }
   async function settle(){ await T.sleep(1100); }
-  async function openShift(){ document.body.click(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
+  async function openShift(){ T.closePops(); await T.sleep(150); $('pop-shift-btn').click(); await T.sleep(250); }
   async function far(f){ q('[data-far="' + f + '"]').click(); await T.sleep(150); }
-  async function undo(){ document.body.click(); await T.sleep(150); $('undo-btn').click(); await settle(); }
+  async function undo(){ T.closePops(); await T.sleep(150); $('undo-btn').click(); await settle(); }
   function listRows(){ return Array.prototype.map.call(MENU().querySelectorAll('[data-shift-list] .solve-row'), function (r) { return (r.innerText || r.textContent || '').replace(/\s+/g, ' ').trim(); }); }
   var KEYS = ['writersRoom', 'prePrep', 'prodPrep', 'production', 'post', 'localization'];
   function metas(){ var o = {}; KEYS.forEach(function (k) { o[k] = txt('meta-' + k); }); return o; }
@@ -88,7 +88,7 @@ window.addEventListener('load', function () { (async function () {
       {starts: st0, metas: m0, notes: notesOf(s0)}, 'the fixture');
 
     // ---- B1: the plan rebuilt from scratch, the reference ----
-    document.body.click(); await T.sleep(150); $('pop-solve-btn').click(); await T.sleep(300);
+    T.closePops(); await T.sleep(150); $('pop-solve-btn').click(); await T.sleep(300);
     T.set('tool-solve-phase', 'prePrep'); await T.sleep(200);
     T.solveKeepSide(1); await T.sleep(200);   // the phases after the pin alone (no After button since 10 Nov 2026)
     T.set('tool-solve-date', '2026-08-10'); await T.sleep(300);
@@ -128,7 +128,7 @@ window.addEventListener('load', function () { (async function () {
     add('U1', 'one Undo restores the calendar', same(starts(), st0) && same(metas(), m0), {starts: starts()}, 'T0');
 
     // ---- A1: the toolbar arrows ----
-    document.body.click(); await T.sleep(150);
+    T.closePops(); await T.sleep(150);
     $('shift-back-btn').click(); await settle();
     var a1a = starts().production;
     $('shift-back-btn').click(); await T.sleep(400);

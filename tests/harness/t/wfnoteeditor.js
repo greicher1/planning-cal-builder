@@ -163,13 +163,13 @@ window.addEventListener('load', function () { (async function () {
       f.typed = editorFacts(await openEditor('2026-11-02')); await closeEditor();
       f.empty = editorFacts(await openEditor('2026-08-03')); await closeEditor();
       kase('E1', 'the headings name a cell holding one automatic note ("Auto Note · 10/20/26", Hide Auto-Note) or one holiday ("Holiday · 9/7/26", Hide Holiday); a mixed cell lists both with their marks; the Day picker and the switch show only where a typed line is (or the cell is empty)',
-           same(f.wrap, { title: 'Auto Note · 10/20/26', button: 'Hide Auto-Note', rows: [], day: false, sw: false, hint: 'Renames it wherever it shows · Its date follows the schedule · Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
-             && same(f.labor, { title: 'Holiday · 9/7/26', button: 'Hide Holiday', rows: [], day: false, sw: false, hint: 'Renames this holiday wherever it shows · Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
-             && same(f.mix, { title: 'Note · 6/29/26', button: '', rows: ['auto Start Principal Photography', 'holiday Independence Day (Observed)'], day: false, sw: false, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
+           same(f.wrap, { title: 'Auto Note · 10/20/26', button: 'Hide Auto-Note', rows: [], day: false, sw: false, hint: 'Renames it wherever it shows · Its date follows the schedule' })
+             && same(f.labor, { title: 'Holiday · 9/7/26', button: 'Hide Holiday', rows: [], day: false, sw: false, hint: 'Renames this holiday wherever it shows' })
+             && same(f.mix, { title: 'Note · 6/29/26', button: '', rows: ['auto Start Principal Photography', 'holiday Independence Day (Observed)'], day: false, sw: false, hint: '' })
              // A typed cell has Delete Note at the top right since 10 Nov 2026 (owner: "add Delete Note button to the top right
              // corner of each popup box"); an empty one has no button.
-             && same(f.typed, { title: 'Note · 11/2/26', button: 'Delete Note', rows: ['auto Post Begins'], day: true, sw: true, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' })
-             && same(f.empty, { title: 'Note · 8/3/26', button: '', rows: [], day: true, sw: true, hint: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel' }),
+             && same(f.typed, { title: 'Note · 11/2/26', button: 'Delete Note', rows: ['auto Post Begins'], day: true, sw: true, hint: '' })
+             && same(f.empty, { title: 'Note · 8/3/26', button: '', rows: [], day: true, sw: true, hint: '' }),
            f);
     });
 

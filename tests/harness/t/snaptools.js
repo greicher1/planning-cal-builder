@@ -24,7 +24,7 @@ window.addEventListener('load', function () { (async function () {
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: pass, observed: observed, expected: expected}); }
   function val(id){ return (document.getElementById(id) || {}).value; }
   function msg(pop){ return ((document.querySelector('#' + pop + ' [data-tools-msg]') || {}).textContent || '').trim(); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openPop(btn){ closePops(); await T.sleep(150); document.getElementById(btn).click(); await T.sleep(250); }
   async function settle(){ await T.sleep(700); }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }

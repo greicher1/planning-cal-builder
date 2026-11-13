@@ -871,8 +871,16 @@ window.__T = (function(){
     b.click();
     await sleep(120);
   }
+  // closePops(): close every open tool panel (Shift, Build Around) and any menu that closes on a click outside.
+  // ⚠️ Since 11 Nov 2026 a tool panel does NOT close on a click outside it (owner: "keep it open"), so a leg's old
+  // `document.body.click()` left it up, and the next press of its button then CLOSED it instead of opening it. Press
+  // each open panel's ✕ instead; the page click stays for everything else.
+  function closePops(){
+    document.querySelectorAll('.tools-menu.open [data-tools-close]').forEach(function(b){ b.click(); });
+    document.body.click();
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
-  return {set:set,sleep:sleep,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,
+  return {set:set,sleep:sleep,closePops:closePops,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,
           solveRow:solveRow,solvePress:solvePress,solveDrag:solveDrag,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
