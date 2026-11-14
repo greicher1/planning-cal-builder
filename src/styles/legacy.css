@@ -252,6 +252,12 @@
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
      which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  /* The file menu's "Unsaved work" (audit AUD2-056, 14 Nov 2026): kept crash backups, each its name over the day and
+     time it was written. Two short lines, so a long name ellipsis-cuts rather than wrapping the 280 px menu. */
+  .file-menu .fm-backup .fm-name, .file-menu .fm-backup .fm-when{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-menu .fm-backup .fm-when{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-dimmed); }
+  /* Several windows closed unsaved over time leave several: the section scrolls on its own, as .fm-list does. */
+  .fm-backups{ max-height:180px; overflow-y:auto; }
   /* The right-click menu on a loaded file (Header.jsx, "Show in folder…", 4 Nov 2026). Its label is the file's name,
      cut to one line: a long show title must not wrap the 240 px menu into a tall box. */
   .fm-ctx .fm-ctx-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -268,21 +274,21 @@
      has a newer version". Sharing the structural rules and varying only the hue keeps them
      reading as one family -- this app already has more warning looks than it should
      (HANDOFF §6), and a second strip built from scratch would have made that worse. */
-  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice{
+  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #backup-notice, #storage-notice{
     display:flex; align-items:center; gap:9px; padding:8px 28px;
     border-bottom:1px solid; font-size:12px;
   }
   #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
-  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden], #layout-notice[hidden]{ display:none; }
+  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden], #layout-notice[hidden], #backup-notice[hidden], #storage-notice[hidden]{ display:none; }
   /* A paused column order is a state to notice, not a failure: amber like the legacy strip
      rather than red, because nothing is broken and no data is at risk -- the override is still
      stored and resumes by itself when the schedule allows it again. */
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
-  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon{ font-size:13px; flex:none; }
-  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text{ flex:1; min-width:0; }
-  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong{ font-weight:600; }
-  #legacy-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep{
+  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon, #backup-notice .ln-icon, #storage-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{ flex:1; min-width:0; }
+  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong, #backup-notice .ln-text strong, #storage-notice .ln-text strong{ font-weight:600; }
+  #legacy-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep, #backup-notice .ln-go{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
     background:#fff; border:1px solid; border-radius:7px; cursor:pointer;
   }
@@ -299,7 +305,7 @@
   #layout-notice .ln-keep:hover{ background:rgba(0,0,0,.05); }
   #layout-notice .ln-x{ color:#5A8CC4; }
   #layout-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
-  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x, #layout-notice .ln-x{
+  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x, #layout-notice .ln-x, #backup-notice .ln-x, #storage-notice .ln-x{
     flex:none; border:none; background:none; font-size:16px; line-height:1;
     cursor:pointer; padding:0 2px; border-radius:4px;
   }
@@ -321,6 +327,17 @@
   #browser-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
   #browser-notice .ln-x{ color:#6D93BF; }
   #browser-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-075: site data refused. The Chrome/Edge strip's blue: both are about the browser. */
+  #storage-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
+  #storage-notice .ln-x{ color:#6D93BF; }
+  #storage-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-076: unsaved work kept for another calendar. The legacy strip's amber: something about your work
+     is not where you expected it, and nothing has failed. */
+  #backup-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #backup-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #backup-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #backup-notice .ln-x{ color:#A98B3D; }
+  #backup-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
 
   /* Fill the available width at any window size (no artificial cap), so the calendar gets
      as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
