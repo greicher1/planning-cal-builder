@@ -34,8 +34,10 @@ const COL_MIN = 168     // a scenario's column, inside its padding; "Pulled 12 d
 const COL_EST = 184     // a column's whole width, for the first sizing before the table is measured
 
 const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return { y, m, d, t: Date.UTC(y, m - 1, d) } }
-// Exported for the scenario band (ScenarioTabs.jsx), so its dates read exactly as this table's do.
-export const fmt = (s) => { const o = parse(s); return o.m + '/' + o.d + '/' + String(o.y).slice(2) }
+// Exported for the scenario band (ScenarioTabs.jsx), so its dates read exactly as this table's do. `dayFirst`: the
+// calendar on screen's Dates setting is DD/MM (audit item 2.4, the owner's decision D3 (a)), sent by the engine with
+// the window's model and the band's; month first otherwise, exactly as before.
+export const fmt = (s, dayFirst) => { const o = parse(s); return (dayFirst ? o.d + '/' + o.m : o.m + '/' + o.d) + '/' + String(o.y).slice(2) }
 const days = (a, b) => Math.round((parse(b).t - parse(a).t) / 864e5)
 const sign = (n) => (n > 0 ? '+' : '−') + Math.abs(n)
 // A date that moved is PUSHED (later) or PULLED (earlier), never "+" or "−" (owner, 23 Oct 2026: "lets use pushed
@@ -47,28 +49,28 @@ const missing = (v) => v == null || v === ''
 
 // One cell against the one on screen: {text, diff, delta, none}. A value one of them lacks (a phase only one
 // scenario has, an unset count) is a dash, and a difference, with nothing to subtract.
-function cell(row, value, ref) {
+function cell(row, value, ref, df) {
   if (missing(value) || missing(ref)) {
-    return { text: missing(value) ? '—' : show(row, value), diff: missing(value) !== missing(ref), delta: '', none: missing(value) }
+    return { text: missing(value) ? '—' : show(row, value, df), diff: missing(value) !== missing(ref), delta: '', none: missing(value) }
   }
   if (row.type === 'date') {
     const n = days(ref, value)
-    return { text: fmt(value), diff: n !== 0, delta: n ? moved(n) : '' }
+    return { text: fmt(value, df), diff: n !== 0, delta: n ? moved(n) : '' }
   }
   if (row.type === 'range') {
     const a = days(ref[0], value[0]), b = days(ref[1], value[1])
     const delta = a || b ? (a === b ? moved(a) : 'Start ' + (a ? lower(moved(a)) : 'same') + ', end ' + (b ? lower(moved(b)) : 'same')) : ''
-    return { text: show(row, value), diff: !!(a || b), delta }
+    return { text: show(row, value, df), diff: !!(a || b), delta }
   }
   if (row.type === 'number') {
     const n = Math.round((value - ref) * 10) / 10
-    return { text: show(row, value), diff: n !== 0, delta: n ? sign(n) + (row.unit || '') : '' }
+    return { text: show(row, value, df), diff: n !== 0, delta: n ? sign(n) + (row.unit || '') : '' }
   }
   return { text: String(value), diff: value !== ref, delta: '' }
 }
-function show(row, v) {
-  if (row.type === 'date') return fmt(v)
-  if (row.type === 'range') return fmt(v[0]) + ' – ' + fmt(v[1])
+function show(row, v, df) {
+  if (row.type === 'date') return fmt(v, df)
+  if (row.type === 'range') return fmt(v[0], df) + ' – ' + fmt(v[1], df)
   if (row.type === 'number') return v + (row.unit || '')
   return String(v)
 }
@@ -149,7 +151,7 @@ export function CompareDialog() {
 
   const table = rows.map((r) => {
     const cells = cols.map((s) => {
-      const c = cell(r, s.values[r.key], ref.values[r.key])
+      const c = cell(r, s.values[r.key], ref.values[r.key], dlg.dayFirst)
       c.holidays = r.hols && c.delta ? holidayDelta(s.values, ref.values) : ''
       return c
     })

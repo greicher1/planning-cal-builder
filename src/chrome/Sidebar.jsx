@@ -501,8 +501,10 @@ export function WaterfallCard() {
         <Divider my="sm" />
         <SettingRow htmlFor="wf-date-format" label="Dates">
           <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
-                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
-            {/* Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
+                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF. DD/MM puts every date in the calendar day first, notes and header included, and reads dates you type or paste day first">
+            {/* Since 13 Nov 2026 (audit item 2.4, the owner's decision D3 (a)) DD/MM is the calendar's ORDER: every
+                date the app writes or reads follows it (datesDayFirst in app.js). MM/DD/YYYY is the Date column only.
+                Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
                 picker): MM/DD/YY still draws 1/6/25. The values are the save format: '' is the absent
                 key, the others are permanent (WEEK_DATE_FORMATS in app.js). */}
             <option value="m/d/yyyy">MM/DD/YYYY</option>
