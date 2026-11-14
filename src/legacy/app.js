@@ -32669,7 +32669,13 @@ export function initLegacyApp() {
     const el = document.getElementById('start-production');
     if(!el) return null;
     const prev = el.value, prevOverrides = dayOverrides;
+    // Build Around's own searches (searchCarried) try each start with Production's own hiatus where that start would
+    // carry it, as the build leaves it (audit AUD2-009; carriedHiatusIso). Every other search leaves it where it is.
+    const hEl = buildCarrySearch ? document.getElementById('phiatus-start-production') : null;
+    const hTo = hEl ? carriedHiatusIso('production', startIso) : null;
+    const hPrev = hEl ? hEl.value : null;
     el.value = startIso;
+    if(hTo) hEl.value = hTo;
     let sch = null;
     try {
       // Inside a move the day overrides travel with the shoot (asShootDayMove), so each candidate
@@ -32678,7 +32684,7 @@ export function initLegacyApp() {
       if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
       sch = computeSchedule(readState());
     } catch(e){ /* treat an unschedulable candidate as "doesn't fit" */ }
-    finally { dayOverrides = prevOverrides; el.value = prev; }
+    finally { dayOverrides = prevOverrides; el.value = prev; if(hTo) hEl.value = hPrev; }
     return sch;
   }
   function productionEndFor(startIso){
@@ -32782,6 +32788,26 @@ export function initLegacyApp() {
     }
     return null;
   }
+  // Build Around's "ends by" for a SNAPPED Production (audit AUD2-010, 13 Nov 2026): the latest MONDAY whose last shoot
+  // day is on or before `targetIso`, walked back from the date's own week as productionStartEndingBy walks (so a start
+  // that crosses a break and one that does not are both tried, whatever the break does to the wrap). ⛔ Not
+  // solveProductionEndsStart: that searches start DAYS, and with Snap to Mon on every trial day collapses to its Monday,
+  // so its last step ("one shoot day later while the wrap still fits") stalls inside the week. Just before the
+  // Christmas break it stopped two weeks short: "ends by Fri 12/18/26" started the shoot 8/10/26 and wrapped it 12/2/26,
+  // where 8/24/26 wraps 12/16/26, the date Shift's own "ends by" gives. Production's own Ends (syncProductionEndsStart)
+  // is to the day and turns Snap off first, so it never had the fault; nor does a snap-off pin here, which still uses
+  // the day search.
+  function productionMondayEndingBy(targetIso){
+    const target = parseDateUTC(targetIso || '');
+    if(!target) return null;
+    let s = mondayOf(target), safety = 0;
+    while(safety++ < 300){
+      const r = productionShootTrial(isoOf(s));
+      if(r && r.last <= targetIso) return s;
+      s = addDays(s, -7);
+    }
+    return null;
+  }
 
   // How many calendar-eligible weeks a phase needs. Production returns null -- it has no week count
   // and is placed by productionStartEndingBy() instead.
@@ -32842,6 +32868,146 @@ export function initLegacyApp() {
     return cur;
   }
 
+  // ---------- ⭐ BUILD AROUND CARRIES EACH PHASE'S OWN HIATUS (audit AUD2-009, Nov 2026 audit item 2.2, 13 Nov 2026) ----------
+  // Until now the build wrote start-<key> and nothing else (setPhaseStart). A moved phase's own hiatus
+  // (phiatus-start-<key>) and every store keyed "<week>|<key>" (its band's label, colour and size, its phase-cell
+  // styles, its hand-widened cells, its column swaps) stayed on the old weeks. Carried past its own break, Post lost the
+  // break in the waterfall and the workbook and ended a week early, with nothing said, while Shift, the card's ▲ / ▼ and
+  // the month drag all carry them ("per-phase hiatuses always travel: they belong to their phase's work").
+  //
+  // So each phase the build places takes them along by the weeks its start moved (the Monday difference, as the month
+  // drag counts it: phaseDragWeeks), through the arrows' own mover with an empty week window (nudgePhase's
+  // shiftCalendar `part`, with carryOnly because the start is already written), inside the build's undo step and its
+  // asShootDayMove binding. And the solvers place each phase with its hiatus where it will LAND, or a phase placed back
+  // from the next one would be solved without its break and then overlap it by a week once the break arrived:
+  //   Weeks       startForWeeksEndingAtCarried    Days        customStartEndingByCarried
+  //   Production  productionTrial, inside searchCarried (the backward walk and both "ends by" searches)
+  // A trial (the preview) carries only the hiatus FIELDS, which its schedule reads; trialBuild puts them back.
+  // Typed week notes stay on their weeks, as documented (PROJECT-CONTEXT §7a; owner-approved default with the audit's
+  // go-ahead): a note follows a phase only when linked to it. The result line says how many stayed (notesStayed).
+  // `var`, not `let`: productionTrial reads them, and can run before this line during the IIFE's own start-up.
+  var buildCarry = null;        // {trial, pre, phases: {key: {from, hiatus, to, carried}}} while buildAround runs
+  var buildCarrySearch = false; // true inside Build Around's own Production searches (searchCarried)
+  function beginBuildCarry(trial){
+    const phases = {};
+    getAllPhaseDefs().forEach(p=>{
+      const from = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
+      const hEl = document.getElementById('phiatus-start-' + p.key);
+      // A phase with no date yet has nowhere to carry from: its hiatus stays where it was typed.
+      if(from) phases[p.key] = {from, hiatus: hEl && parseDateUTC(hEl.value || '') ? hEl.value : null, to: null, carried: 0};
+    });
+    // Each phase's run before the build, for the typed notes it leaves behind (real runs only).
+    const pre = trial ? null : ((wholeCalendar(currentSchedule) || {}).segments || []).map(s => ({key: s.key, from: mondayOf(s.start), to: s.end}));
+    return {trial: !!trial, pre, phases};
+  }
+  // The weeks a phase whose start is `iso` has moved since the build began. 0 when it had no date.
+  function buildCarryWeeks(key, iso){
+    const c = buildCarry && buildCarry.phases[key], to = parseDateUTC(iso || '');
+    if(!c || !to) return 0;
+    return phaseDragWeeks(key, c.from, Math.round((to - c.from) / DAY_MS));
+  }
+  // Where the phase's own hiatus is when its start is `iso`: as many weeks on as the start, so it keeps its place in the
+  // phase. null when it has no hiatus date to carry.
+  function carriedHiatusIso(key, iso){
+    const c = buildCarry && buildCarry.phases[key];
+    if(!c || !c.hiatus) return null;
+    return isoOf(addDays(parseDateUTC(c.hiatus), buildCarryWeeks(key, iso) * 7));
+  }
+  function carriesOwnHiatus(key){
+    const c = buildCarry && buildCarry.phases[key];
+    return !!(c && c.hiatus);
+  }
+  // The build's writer: setPhaseStart, noting where the phase went for carryBuilt.
+  function placeBuilt(key, iso){
+    if(!setPhaseStart(key, iso)) return false;
+    const c = buildCarry && buildCarry.phases[key];
+    if(c) c.to = iso;
+    return true;
+  }
+  // Carry what these placed phases own by the weeks each has moved and not yet carried (the pin is placed twice when
+  // both sides run, and carried once). Phases moved by the same weeks go in one call. Returns true when the mover ran,
+  // which ends in refreshAfterRestore() and so in update().
+  function carryBuilt(keys){
+    const bc = buildCarry;
+    if(!bc) return false;
+    const groups = new Map();
+    keys.forEach(k=>{
+      const c = bc.phases[k];
+      if(!c || !c.to) return;
+      const inc = buildCarryWeeks(k, c.to) - c.carried;
+      if(!inc) return;
+      c.carried += inc;
+      if(!groups.has(inc)) groups.set(inc, []);
+      if(groups.get(inc).indexOf(k) < 0) groups.get(inc).push(k);
+    });
+    if(!groups.size) return false;
+    groups.forEach((ks, inc)=>{
+      if(bc.trial) ks.forEach(k => shiftDateFieldValue(document.getElementById('phiatus-start-' + k), inc * 7));
+      else shiftCalendar(inc, null, {part: Object.assign({phases: ks}, NUDGE_NO_WEEKS), keepView: true, carryOnly: true});
+    });
+    return !bc.trial;
+  }
+  // The typed week notes inside the runs of the phases the build moved, which stayed on their weeks.
+  function buildNotesStayed(){
+    const bc = buildCarry;
+    if(!bc || !bc.pre) return 0;
+    const runs = bc.pre.filter(r => { const c = bc.phases[r.key]; return c && c.carried; });
+    if(!runs.length) return 0;
+    return Object.keys(userNotes).filter(k=>{
+      const d = parseDateUTC(k);
+      if(!d || !noteValueText(userNotes[k]).trim()) return false;
+      const w = mondayOf(d);
+      return runs.some(r => w >= r.from && w < r.to);
+    }).length;
+  }
+  function searchCarried(fn){
+    const was = buildCarrySearch;
+    buildCarrySearch = true;
+    try { return fn(); } finally { buildCarrySearch = was; }
+  }
+  // startForWeeksEndingAt with the phase's own hiatus carried with the answer: the latest start whose run, its hiatus
+  // where that start puts it, ends by `endExclusive`. Searched, not inverted, because the hiatus moves with the start:
+  // from the latest start the run could have WITHOUT its hiatus (which only ever lengthens it), back a week at a time,
+  // each checked by extendEndForHiatus's own walk. A phase with no own hiatus to carry is startForWeeksEndingAt exactly.
+  function startForWeeksEndingAtCarried(endExclusive, weeks, phaseKey, ranges){
+    const own = ranges.own[phaseKey];
+    if(!own || !carriesOwnHiatus(phaseKey)) return startForWeeksEndingAt(endExclusive, weeks, phaseKey, ranges);
+    const span = own.end - own.start;
+    let s = startForWeeksEndingAt(endExclusive, weeks, null, ranges);
+    for(let i = 0; i < MAX_WEEKS; i++, s = addDays(s, -7)){
+      const h = mondayOf(parseDateUTC(carriedHiatusIso(phaseKey, isoOf(s))));
+      const ownHi = {start: h, end: new Date(h.getTime() + span)};
+      let delivered = 0, cur = s, safety = 0;
+      while(delivered < weeks && safety++ < 2000){
+        if(!(ranges.global.some(g => cur >= g.start && cur < g.end) || (cur >= ownHi.start && cur < ownHi.end))) delivered++;
+        cur = addDays(cur, 7);
+      }
+      if(cur <= endExclusive) return s;
+    }
+    return startForWeeksEndingAt(endExclusive, weeks, phaseKey, ranges);
+  }
+  // customStartEndingBy, the same way, for a DAYS phase with its own hiatus (a Dates phase's hiatus never moves its
+  // dates, so it needs none): the latest working day from which its N working days, its hiatus carried with that
+  // start, are done before `cursor`. Each candidate is walked forward by isUnitWorkDay, the scheduler's own rule.
+  function customStartEndingByCarried(key, cursor, ranges){
+    const own = ranges.own[key];
+    if(customPhaseUnit(key) !== 'days' || !own || !carriesOwnHiatus(key)) return customStartEndingBy(key, cursor, ranges);
+    const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
+    let s = customStartEndingBy(key, cursor, {global: ranges.global, own: {}});
+    if(!s || !(n > 0)) return customStartEndingBy(key, cursor, ranges);
+    const span = own.end - own.start;
+    const holidayIsos = new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date));
+    for(let i = 0; i < MAX_WEEKS * 7; i++, s = addDays(s, -1)){
+      if(!isUnitWorkDay(s, {holidayIsos, hiatuses: ranges.global, ownHi: null})) continue;
+      const h = mondayOf(parseDateUTC(carriedHiatusIso(key, isoOf(s))));
+      const ctx = {holidayIsos, hiatuses: ranges.global, ownHi: {start: h, end: new Date(h.getTime() + span)}};
+      let d = s, counted = 0, last = null, guard = 0;
+      while(counted < n && guard++ < MAX_WEEKS * 7 + 7){ if(isUnitWorkDay(d, ctx)){ counted++; last = d; } d = addDays(d, 1); }
+      if(last && counted === n && last < cursor) return s;
+    }
+    return customStartEndingBy(key, cursor, ranges);
+  }
+
   // Pin `key` to `targetIso` and rebuild every phase BEFORE it so they run consecutively, ending
   // where the next one begins. Returns a summary, or {error} describing why it stopped. The day
   // overrides travel by shoot-day number (asShootDayMove) -- including through the Production
@@ -32885,12 +33051,12 @@ export function initLegacyApp() {
         // The shoot is placed by searching the real simulation, not by subtracting weeks -- it has
         // no week count, and how many weeks it occupies depends on the holidays it lands on.
         if(!showInfoStatus().complete){ skipped.push(p.label || p.key); return; }
-        start = productionStartEndingBy(cursor);
+        start = searchCarried(()=> productionStartEndingBy(cursor));   // its own hiatus carried with each try
         if(!start){ skipped.push(p.label || p.key); return; }
       } else if(customPhaseUnit(p.key) !== 'weeks'){
         // A Days or Dates custom phase (CUSTOM-PHASE-UNITS-PLAN §8): placed by its own length, to
         // the day. It can leave the cursor mid-week for the phase before it -- see just below.
-        start = customStartEndingBy(p.key, cursor, ranges);
+        start = customStartEndingByCarried(p.key, cursor, ranges);
         if(!start){ skipped.push(p.label || p.key); return; }
       } else {
         const weeks = phaseWeeksFor(p);
@@ -32900,13 +33066,13 @@ export function initLegacyApp() {
         // be mid-week too, and the scheduler would snap it back to its Monday regardless -- this
         // writes that Monday instead of a date the field would then show as "Snapped to Mon".
         // Identical for every Monday cursor, so every existing rebuild is unchanged.
-        start = startForWeeksEndingAt(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
+        start = startForWeeksEndingAtCarried(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
       }
       // Keep the previous date: on a calendar that is already fully dated this tool OVERWRITES
       // rather than fills, and absorbing several weeks of deliberate slack would otherwise be an
       // invisible side effect of pinning one date.
       const prevIso = el.value;
-      setPhaseStart(p.key, isoOf(start));   // the one writer: a Dates phase's end moves with it
+      placeBuilt(p.key, isoOf(start));   // setPhaseStart, the one writer: a Dates phase's end moves with it
       written.push({key: p.key, label: p.label || p.key, start, wasBlank: !prevIso, prevIso});
       cursor = start;   // the next phase back must end where this one begins
     });
@@ -32916,7 +33082,10 @@ export function initLegacyApp() {
     // shoot day and the wrap with it. The phases rebuilt before it still end by that week's Monday:
     // cursor above is anchorMonday either way, so a snapped predecessor lands on a Monday as before.
     const anchorDay = phaseSnapped(key) ? anchorMonday : target;
-    setPhaseStart(key, isoOf(anchorDay));
+    placeBuilt(key, isoOf(anchorDay));
+    // Each placed phase's own hiatus and "<week>|<key>" stores, now (AUD2-009): no update() runs inside this pass, so
+    // this is before the hiatus-name sync can claim the band's new weeks ahead of its own label.
+    carryBuilt(written.map(w => w.key).concat([key]));
     return {written, skipped, anchor: anchorDay};
   }
 
@@ -32950,8 +33119,11 @@ export function initLegacyApp() {
     }
     // The pinned phase keeps the typed day when its snap is off (audit M-11; see rebuildBackwards).
     const anchorDay = phaseSnapped(key) ? mondayOf(target) : target;
-    setPhaseStart(key, isoOf(anchorDay));
-    step();   // so the anchor's own computed end is available to place the next phase
+    placeBuilt(key, isoOf(anchorDay));
+    // Its own hiatus and stores go with it (AUD2-009; a no-op when the backward pass already carried it), and THEN the
+    // recompute, so the anchor's own computed end -- its hiatus counted -- is available to place the next phase. The
+    // carry's mover ends in update() itself.
+    if(!carryBuilt([key])) step();
 
     const written = [], skipped = [];
     // The phase each new one hands off from is the last one actually PLACED, not the previous entry
@@ -32979,10 +33151,12 @@ export function initLegacyApp() {
       // the waterfall a week row holding only its blank weekend.
       if(customPhaseUnit(p.key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       const prevIso = el.value;   // see the note in workBackwardsFrom: overwrites must be visible
-      setPhaseStart(p.key, isoOf(d));   // the one writer: a Dates phase's end moves with it
+      placeBuilt(p.key, isoOf(d));   // setPhaseStart, the one writer: a Dates phase's end moves with it
       written.push({key: p.key, label: p.label || p.key, start: d, wasBlank: !prevIso, prevIso});
       prevKey = p.key;
-      step();   // recompute so the NEXT phase reads this one's real end
+      // Its own hiatus first (AUD2-009), then the recompute, so the NEXT phase reads this one's real end, its break
+      // counted. Before the carry, Post's break stayed behind and Localization chained off an end a week early.
+      if(!carryBuilt([p.key])) step();
     });
     return {written, skipped, anchor: anchorDay};
   }
@@ -32995,7 +33169,8 @@ export function initLegacyApp() {
   // preview that disagreed with the rebuild it promises would be worse than none.
   //
   // What makes a run undoable without the undo stack: the solvers write nothing but start-<key> and
-  // end-<key> (setPhaseStart, the one writer), and the day overrides (asShootDayMove). The forward
+  // end-<key> (setPhaseStart, the one writer), the day overrides (asShootDayMove), and since 13 Nov 2026
+  // phiatus-start-<key> (a trial's carryBuilt moves only that field, never a store). The forward
   // pass's update() becomes trialSchedule() below, so nothing renders, nothing is marked dirty and no
   // undo step is banked -- the same footing productionEndFor() has always searched on.
   function trialSchedule(){
@@ -33015,6 +33190,13 @@ export function initLegacyApp() {
   // Returns {written, skipped, anchor, afterBlocked} or {error}. `afterBlocked` = the after side was wanted but the
   // pin has no length to end it with (Production with Show info incomplete), so it was not run.
   function buildAround(key, targetIso, opts){
+    // Every phase's start and own hiatus as the build finds them, which each carry is measured from (AUD2-009).
+    const outer = buildCarry;
+    buildCarry = beginBuildCarry(opts.trial);
+    try { return buildAroundRun(key, targetIso, opts); }
+    finally { buildCarry = outer; }
+  }
+  function buildAroundRun(key, targetIso, opts){
     return asShootDayMove(()=>{
       let startIso = targetIso;
       if(opts.edge === 'end'){
@@ -33043,6 +33225,8 @@ export function initLegacyApp() {
       // result line can quote it. Only in a trial: a real run with nothing to place never comes here (the button is
       // disabled, or it only saves lengths).
       if(!out.anchor) out.anchor = parseDateUTC(startIso) && (phaseSnapped(key) ? mondayOf(parseDateUTC(startIso)) : parseDateUTC(startIso));
+      // The typed notes the moved phases left on their weeks, for the result line (a real run only).
+      if(!opts.trial) out.notesStayed = buildNotesStayed();
       return out;
     });
   }
@@ -33063,23 +33247,27 @@ export function initLegacyApp() {
     }
     const fail = {error: 'Couldn’t fit ' + (p.label || 'that phase') + ' before that date.'};
     if(key === 'production'){
+      // Snap to Mon on (the default): whole Mondays (audit AUD2-010, productionMondayEndingBy). Off: to the day.
+      // Either way its own hiatus is carried with each start tried (AUD2-009).
+      if(phaseSnapped('production')) return searchCarried(()=> productionMondayEndingBy(endIso)) || fail;
       const warm = prodEndsWarm(endIso);
-      const r = warm ? solveProductionEndsStart(endIso, warm) : null;
+      const r = warm ? searchCarried(()=> solveProductionEndsStart(endIso, warm)) : null;
       return r ? parseDateUTC(r.start) : fail;
     }
     const ranges = hiatusRangesForSolve();
-    if(customPhaseUnit(key) !== 'weeks') return customStartEndingBy(key, addDays(end, 1), ranges) || fail;
+    if(customPhaseUnit(key) !== 'weeks') return customStartEndingByCarried(key, addDays(end, 1), ranges) || fail;
     const weeks = phaseWeeksFor(p);
     if(!weeks) return fail;
     const endEx = phaseSnapped(key) ? mondayOf(addDays(end, 3)) : addDays(end, 1);
-    return startForWeeksEndingAt(endEx, weeks, key, ranges);
+    return startForWeeksEndingAtCarried(endEx, weeks, key, ranges);
   }
   // The preview's run (trialRebuild until 5 Nov 2026), now with LENGTHS: `lens` maps a phase key to a length typed in
   // the box and not yet saved (plan D2, ruling R2(a)). They are written into the phase's own field for the trial and
   // put back with everything else, so the solvers read them exactly as they will after Build saves them.
   function trialBuild(key, targetIso, opts, lens){
     const fields = [];
-    getAllPhaseDefs().forEach(p=> ['start-', 'end-', 'weeks-', 'days-'].forEach(pre=>{
+    // phiatus-start-: the build carries each placed phase's own hiatus (AUD2-009), in a trial by its field alone.
+    getAllPhaseDefs().forEach(p=> ['start-', 'end-', 'weeks-', 'days-', 'phiatus-start-'].forEach(pre=>{
       const el = document.getElementById(pre + p.key);
       if(el) fields.push([el, el.value]);
     }));
@@ -34958,6 +35146,8 @@ export function initLegacyApp() {
       if(far) out += ' ' + far.label + ' starts ' + fmtShort(far.start) + '.';
       if(res.afterBlocked) out += ' The phases after Production wait for its length in Show info.';
       if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no length).';
+      // Typed week notes stay on their weeks (AUD2-009's default, as documented): say how many the build left there.
+      if(res.notesStayed) out += ' ' + res.notesStayed + (res.notesStayed === 1 ? ' typed note stayed on its week.' : ' typed notes stayed on their weeks.');
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       say(out);
