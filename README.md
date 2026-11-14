@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
+
+The November audit's AUD2-011, AUD2-014 and AUD2-015 (Batch 2 item 2.3), fixed with their approved defaults. A Notes
+cell can show, besides your own lines, an automatic note's line ("Start Principal Photography 6/29/26"), a holiday's, a
+month note shown in the waterfall ("Table read 7/15/26") and a note that "Stays with" a phase. Each has its own date or
+home, and the waterfall's editor and keys treated them as your typed text:
+
+- **The Day picker re-dated the wrong line (AUD2-011).** It stamped the box's last line. With a month or linked note in
+  the cell that line was never yours: the month note was doubled in the month view, the linked note had the date frozen
+  into it and showed it in other weeks. With your line above the start note, "Start Principal Photography" printed the
+  picked day in every output. **Now** the Day goes on the last line you typed; the others keep their dates. A box of
+  their lines only stamps nothing.
+- **A rename with a line added was read as a delete (AUD2-015).** Change a linked note's words and add a line in the
+  same save, and the note lost its link (it stayed on the old week after the phase moved); a month note stayed in the
+  month view beside its edited copy. **Now** both matchers align the box by content, as the automatic lines' matcher
+  already did: a changed line pairs with the line in its place (or, where lines were added there, the one that reads as
+  an edit of it: it keeps its date, or shares a word). Unrelated lines typed in its place still delete it, as before.
+- **A month line re-dated in its own week (AUD2-015's default):** the month note **moves** to that day. A date outside
+  the week still takes the line out of the waterfall, as before.
+- **Cut and Paste, and the drag, doubled notes (AUD2-014).** They carried month, holiday and automatic lines along as
+  typed text, with their old date, so the month view and its PDF showed the event twice. **Now** (the approved
+  defaults): a Cut leaves a month note in the month view as before, and a paste leaves month, holiday and automatic
+  lines out of what it writes, saying "Holidays, automatic notes and month notes stay on their own dates" (the clipboard
+  keeps the whole cell for Excel; a copy pasted back onto the very cell it came from is unchanged). A paste of a cell
+  that is only such lines writes nothing and leaves the week as it was. A **drag** moves a month note itself to the same
+  weekday of the new week, never as a copy; a holiday stays where it is ("Holidays stay on their own dates"; a cell that
+  is only a holiday does not move); an automatic note's line lands dated in its new week, as the month view's drag has
+  always done.
+- **Save format:** no key added, renamed or removed; nothing frozen touched (notesForWaterfallDate's N1/N2 untouched).
+  The clipboard's own SPTCal data gains an `own` text (session data, never saved).
+- **Proof.** New leg `wfnotelines` (in `gate.sh`, six runs, `g=day|link|link2|month|cut|drag`): 15 checks red on the build
+  before the fix, 29/29 green after, the controls green on both. The audit's own repro legs (`audit-r3a-mwf`,
+  `audit-r3a-link`) on this build: every case reads once, on its own day, in the waterfall and the month view. The
+  nearest legs green (HANDOFF lists them), `base` identical to its baseline, `npm run check` 42/42. Re-expected:
+  `wfkeys` G17, a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6 (it read 6/29/26 there). Not run:
+  the full gate (one run for the audit batch); not tried by hand in a browser.
+
 ### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
 
 The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes

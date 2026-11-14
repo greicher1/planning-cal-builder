@@ -2285,10 +2285,23 @@ done
 # then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
 # milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
 # D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
+# wfnotelines (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.3: AUD2-011, AUD2-014, AUD2-015, their approved
+# defaults): in a Notes cell the lines that are not the user's own -- an automatic note's, a holiday's, a month note shown
+# in the waterfall, a note linked to a phase -- keep their own day. g=day the Day picker stamps the user's line, never
+# theirs (D1 the start, D2 a month note, D4 a cell of their lines only; D3 the typed-only control); g=link a linked line
+# renamed with a line added below it keeps its link (L1), and the Day beside it goes on the user's line (L2); g=link2 the
+# line added ABOVE (L3) and the control, unrelated lines typed in its place (L4); g=month a month line re-dated inside its
+# week moves its note (M1, one Undo M2), renamed with a line added renames it (M3), the plain rename control (M4); g=cut
+# Cut and Paste leaves month, automatic and holiday lines out of what lands (C1, C2, C4; C3 the typed-only control);
+# g=drag the drag moves a month note itself (R1, one Undo R2), re-dates the start's line into its new week (R3), and
+# leaves a holiday where it is (R4, R5). On the build before the fix D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3,
+# R4 and R5 were red; the controls (D3, L0, L4, M2, M4, C3, R2) green on both.
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
               "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
-              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240"; do
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240" \
+              "wfnotelines:g=day:300" "wfnotelines:g=link:300" "wfnotelines:g=link2:300" "wfnotelines:g=month:300" \
+              "wfnotelines:g=cut:300" "wfnotelines:g=drag:300"; do
   RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
   rm -f "$HERE/$RSLEG.json"
   HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1

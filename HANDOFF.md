@@ -4,6 +4,64 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 13 Nov 2026: AUDIT BATCH 2, ITEM 2.3 — A NOTES CELL'S OTHER LINES KEEP THEIR OWN DAY: THE DAY PICKER, A RENAME WITH AN ADDED LINE, CUT AND PASTE, THE DRAG (AUD2-011, AUD2-014, AUD2-015; their approved defaults, built overnight on the owner's "finish all of them"). **COMMITTED LOCALLY on `audit-2-3` (cut from `audit-1-1`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.**
+- **What it was.** A waterfall Notes cell shows the user's own lines plus, possibly, automatic notes' lines, holidays',
+  month notes' ("Show in waterfall") and linked notes' ("Stays with"). The editor and keys treated them as typed text:
+  the Day picker stamped the box's LAST line (AUD2-011: a month note doubled, a linked note frozen with a date, and with
+  the user's line above it "Start Principal Photography" re-dated in every output); `wfLinkedLineEdits` and
+  `wfMonthLineEdits` read a rename as a delete whenever the box's line count changed (AUD2-015: a linked note lost its
+  link, a month note stayed beside its edited copy), and a month line re-dated by hand left the note behind; Cut/Paste
+  and the drag carried month, holiday and automatic lines as typed text with their old date (AUD2-014: the month view
+  and its PDF showed the event twice).
+- **As built** (`src/legacy/app.js`, nothing frozen, no save-format change):
+  - **Day picker** (`openNoteEditor`, `dayForeign`): stamps the LAST line not in `cellKnown`, not any automatic or
+    holiday line of the week in any view (`wfWeekAutoItems`), and not a linked line unless the cell IS that one linked
+    note (`linkSingle`, whose day the picker sets, D3). A box of only such lines stamps nothing (an empty box still takes
+    the date alone). `commitActiveNoteEditor` drops `ownDate` when the own text has no line beyond the automatic text.
+  - **Matchers:** `wfLineGaps` (wfLineEdits' LCS alignment, now shared; wfLineEdits refactored onto it, same logic) and
+    `wfEditPairs` / `wfLooksLikeEdit`: an even gap pairs in order (the old same-count rule); an uneven one pairs a changed
+    line with the first line there that reads as its edit (keeps its own date, or shares a word of 3+ letters). Used by
+    `wfLinkedLineEdits` and `wfMonthLineEdits`. Unrelated lines typed in its place still delete (the `wfnotelines` L4
+    control).
+  - **Month line re-dated inside its week** (`wfMonthLineEdits`, AUD2-015's default): the note MOVES to that day
+    (`moveDayNoteEntry`: the entry object itself, every field with it), renamed too if its words changed. A date outside
+    the week: taken out, as before.
+  - **Cut / Paste** (`wfNoteItem`'s `own`, `wfNoteOwnLines`, `wfPutNote`): AUD2-014's default. The item keeps `text` whole
+    (the clipboard, for Excel) and `own` = the text less month, holiday and automatic lines. A paste writes `own` unless
+    the target still shows exactly `text` (pasted back onto itself). All-foreign `own` writes NOTHING and leaves the
+    target as it was (it used to empty it). The paste says `WF_KEEP_DAY_MSG`. `wfCleanClipItem` keeps `own` (clipboard
+    data only, never saved). Cut itself is unchanged (R2: Copy then Delete; the month note stays in the month view).
+  - **Drag** (`wfNoteDragEnd`, `wfDragPlan`, `wfLiftNote`; `wfClearNote`'s `moving` flag is gone, the drag was its only
+    user): month notes are taken off their days, held, and put on the same weekday of the drop week AFTER the cells land
+    (so no landing cell switches them off), `waterfall` kept, text retimed (`mvRetimeNote`), the dragged cell's look kept
+    when it was month notes only. Holidays stay in the source cell (a holiday-only cell does not move; the grid says
+    `WF_KEEP_HOLIDAY_MSG`); a holiday the typed text had left out is still hidden there (no week blank, ruling 6).
+    Automatic lines are carried, switched off in both views as before, and RE-DATED to the drop week's same weekday
+    (`mvRetimeWfLine`, the month view drag's own rule). The Day-pinned typed line's date moves with it. Linked notes:
+    `wfPutLinked` as before, given the carried text and `month: []`, `ownDate: ''`.
+- **Defaults and choices applied** (none asked; owner asleep): the three approved defaults above (Cut leaves the month
+  note; a paste leaves month/holiday/automatic lines out; a drag moves the day note; an in-week re-date moves it).
+  Chosen here, each an open question for the owner: (1) a dragged AUTOMATIC note's line is re-dated into its new week
+  ("Start Principal Photography 7/6/26"), as the month view's drag does; the alternative was leaving it in place like a
+  holiday. (2) A holiday line in a dragged cell stays, shown; the alternative was hiding it from the waterfall as Delete
+  does. (3) An uneven-gap rename needs a shared word or the kept date; the alternative was pairing in order regardless.
+  (4) A paste/drag that left lines behind says so in the grid's one-line chip (two new sentences).
+- **Help:** the Day dropdown and the copy/drag paragraphs each gained one sentence (`src/index.html`).
+- **Proof.** New leg `wfnotelines` (`gate.sh`, the audit-fix block, six runs `g=day|link|link2|month|cut|drag`): 15 cases
+  red on the build before the fix (D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3, R4, R5), 29/29 green after; the
+  controls (D3, L0, L4, M2, M4, C3, R2) green on both. The audit's repro legs (`audit-r3a-mwf`, `audit-r3a-link`, every
+  s=) re-run on this build: each event once, on its own day, in both views. Nearest legs, all green: on the FINAL build
+  (`eeb91dc5…`) wfnotelines ×6 29/29, wfkeys 84/84, wfmenu 39/39, mvnotes 30/30, autonotekinds 16/16, autonotefollow ×4
+  24/24, phasekeys 18/18, noteviews 15/15, wfnoteeditor 14/14, phaselink 14/14, and `base` identical to its baseline
+  (noteCells, sig, widths; 0 clipped); on the build one Day-picker line earlier (`dayForeign` then lacked the
+  all-views automatic lines) phasenotes 21/21, phasemonth 21/21, phaselook 10/10, autonoterename 24/24, autonoteview
+  18/18, wfnotecolors 14/14, holidayrename 14/14, mvdragcarry 15/15, wfkeysreal 6/6, hiatusripple 19/19.
+  `npm run check` 42/42. **Re-expected:** `wfkeys` G17 (a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6, not
+  6/29/26), for AUD2-014's "a line must not arrive carrying a date outside its new week".
+- **Not verified:** the full gate; Excel and the PDFs were not read for these cases by the new leg (they read
+  `effectiveNoteText` and the month view's blocks, which the leg does read); real (trusted) mouse and keys beyond
+  `wfkeysreal`; not tried by hand in a browser.
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
 - **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
   release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both
