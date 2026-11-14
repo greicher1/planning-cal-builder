@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — One Undo takes back a hiatus change and its push together (audit AUD2-038, 14 Nov 2026)
+
+Owner's decision D2 = b on the November audit: *"the edit and its push are one Undo"*. With Ripple Hiatus Periods on
+(the default), every hiatus change banked TWO undo steps: the change, then the push of the phases after it. So the
+first Cmd/Ctrl+Z took back only the push. After dragging a break in the month view and answering Keep, that first press
+changed nothing you could see when the break had been dropped on a phase's first week (the break stayed where it was
+dropped). After the month day menu's Add hiatus, it put Post back while the new break stayed, so Post started while
+Production was still shooting, a plan that never existed. A second press was always needed.
+
+- **Now** a hiatus change and its push are ONE step, wherever the change is made: the month view's band drag (Keep),
+  the month and waterfall day menus' Add hiatus (all phases or one phase) and Remove hiatus…, the sidebar's ×, its
+  Weeks box and its Starts box, and a phase's own Hiatus switch. Redo brings back both. The drag question's own Undo
+  button is unchanged (it already put back everything).
+- **What changes for you:** one Cmd/Ctrl+Z used to mean "keep my hiatus change, but don't push the rest this time".
+  It now takes back the whole change. To change a hiatus without moving anything else, switch Ripple Hiatus Periods off
+  first (Settings › Preferences › Hiatus). The switch's "i" and the help say so.
+- How: `bankRippleWithEdit()` replaces `bankStepAt()` in the undo section. If the change is still waiting to be banked
+  (a Weeks change pushes at once), one push banks both; if it was already banked (a typed date with a pause, or the day
+  menus, which bracket their change), the push joins that step (`foldIntoBankedStep`). The month drag's Keep banks the
+  press-to-push state as one step. No frozen code, no save-format change, no new id.
+- AUD2-016 and AUD2-037 (what a ripple does with day marks and notes, the rest of D2) are untouched: undecided.
+- **Proof:** new leg `rippleundo` (in `gate.sh`, on `rippleundo.sptcal`, the audit's synthetic fixture), nine edits each
+  held to one Cmd+Z = the calendar before (as saved, byte for byte), Shift+Cmd+Z = after: 29/29 on the build, every run;
+  on the build before, all 18 undo / redo cases red, each needing exactly one more Cmd+Z.
+  `hiatusripple.mjs` 19/19 with R2, R3, R5, R11 and S2 re-expected for the one step (all five red on the build before,
+  the other 14 green). Green: `hiatusdrag` 14/14, `undokeys` 11/11, `dlgkeys` 16/16, `monthdragundo` (one step),
+  `phasearrowsripple` 10/10, `hiatussidebar` 16/16, `mvmenu` 81/81, `wfmenu` 39/39, `settingswin` 21/21, `snapbox`
+  12/12, `phiatuspick` 12/12; `npm run check` 42/42. Not merged, not pushed: it waits for the release train's one gate.
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first

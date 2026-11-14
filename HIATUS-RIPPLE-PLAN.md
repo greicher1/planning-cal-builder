@@ -209,10 +209,14 @@ With the switch off, every path behaves exactly as it does today. That is a test
   `asOneUndoStep()` banks a tool. So one ⌘Z is "not this time", and a second takes back the hiatus edit too. ⚠️
   My call, not a ruling: the other choice is one step for both. Raise it with the owner in the build's first
   screenshot.
+  ⛔ **SUPERSEDED 14 Nov 2026: ONE step** (audit finding AUD2-038, owner decision D2 = b, *"the edit and its push are
+  one Undo"*). `bankRippleWithEdit()` replaced `bankStepAt()`: one ⌘Z takes back the hiatus edit AND its push, redo
+  brings both back, wherever the edit is made. "Not this time" is now: switch Ripple Hiatus Periods off first (the
+  switch's "i" and the help say so). Leg `rippleundo`; `hiatusripple.mjs` R2, R3, R5, R11, S2 re-expected.
 - **The month-view drag** applies the ripple on release, then asks its existing question. The question gains one
   sentence, e.g. *"It also pushed Post and Localization 2 weeks later."* **Undo** puts back the whole pre-drag
   state, push included (the snapshot banked at the press, rather than `writeTo()`'s hiatus-only restore). **Keep**
-  banks the same two steps as every other path. Persistence stays held until the answer, as now.
+  banks the same two steps as every other path. (Since 14 Nov 2026, AUD2-038: Keep banks ONE step, press to push.) Persistence stays held until the answer, as now.
 
 ## 7. What does NOT change
 
