@@ -41,7 +41,8 @@ const ORIENTS = [
 // A segment's two lines. The second line always renders (a no-break space when empty), so the two
 // orientation segments stay the same height whichever one is recommended. A paper segment passes `tag` as
 // well, a third line that is always there for the same reason, holding "Recommended" on Letter or Legal.
-function SegLabel({ main, sub, strong, tag }) {
+// Shared with the month view's dialog (MonthPdfDialog.jsx), so the two Export PDF dialogs read alike.
+export function SegLabel({ main, sub, strong, tag }) {
   return (
     <Stack gap={0} align="center">
       <Text size="sm" fw={500} lh={1.3}>{main}</Text>
@@ -51,7 +52,7 @@ function SegLabel({ main, sub, strong, tag }) {
   )
 }
 
-function Row({ label, children }) {
+export function Row({ label, children }) {
   return (
     <div>
       <Text size="sm" fw={600} mb={6}>{label}</Text>
