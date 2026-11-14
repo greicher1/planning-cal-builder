@@ -260,7 +260,8 @@ window.addEventListener('load', function () { (async function () {
       await undo(); check(same(), 'one undo restores every date after Rebuild forwards');
 
       // Rebuild From BACKWARDS from Rigging, pinned to Mon 3/1/27:
-      //   Stage Build ends the day before (Sun 2/28), keeping 13 days: Mon 2/15;
+      //   Stage Build ends on the last weekday before it (Fri 2/26), keeping its 10 weekdays: Mon 2/15. (Until the audit's
+      //   AUD2-068, 14 Nov 2026, it ended the day before, Sun 2/28, keeping 13 calendar days: a Sunday end.)
       //   Read-through counts 6 working days back from Sun 2/14: Fri 2/5 .. Fri 2/12;
       //   Scout (Weeks, Snap off) 2 weeks back from Fri 2/5: Fri 1/22;
       //   Pre Prep (snapped) 4 working weeks back from 1/18, the 12/21/26 winter hiatus skipped: 12/7/26.
@@ -268,7 +269,7 @@ window.addEventListener('load', function () { (async function () {
       T.set('tool-solve-phase', 'custom4'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(-1); await settle();
       out.movers.back = dates(); out.movers.backHint2 = meta('custom2');
-      check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-28', 'Rebuild backwards: a Dates phase ends the day before the next, keeping its length');
+      check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-26', 'Rebuild backwards: a Dates phase ends on the last weekday before the next, keeping its weekdays');
       check(out.movers.back.s2 === '2027-02-05' && out.movers.backHint2.indexOf('Fri 2/5/27 \u2192 Fri 2/12/27') !== -1,
             'Rebuild backwards: a Days phase ends by the next phase start (checked against the scheduler)');
       check(out.movers.back.s1 === '2027-01-22' && out.movers.back.pre === '2026-12-07' && out.movers.back.s4 === '2027-03-01',

@@ -9668,12 +9668,37 @@ export function initLegacyApp() {
     return !!phaseWeeksFor(p);
   }
 
+  // A Dates phase's length as Build Around keeps it (AUD2-068): the weekdays (Mon-Fri) from its typed start to its typed
+  // end, both counted. 0 when it has no valid range or holds no weekday.
+  function datesWeekdays(key){
+    const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
+    const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
+    if(!s || !e || e < s) return 0;
+    let n = 0;
+    for(let d = s, g = 0; d <= e && g < MAX_WEEKS * 7 + 7; d = addDays(d, 1), g++){ const w = d.getUTCDay(); if(w !== 0 && w !== 6) n++; }
+    return n;
+  }
+  // The n-th weekday (n >= 1) counting from `d`, which counts when it is one: forwards for dir 1, backwards for -1.
+  function nthWeekday(d, n, dir){
+    let counted = 0;
+    for(let g = 0; g < n * 2 + 14; g++, d = addDays(d, dir)){
+      const w = d.getUTCDay();
+      if(w !== 0 && w !== 6 && ++counted === n) return d;
+    }
+    return null;
+  }
+
   // Rebuild From, backwards, for a Days or Dates phase: the latest start that still ENDS by `cursor`
   // (exclusive), or null.
-  //   Dates  keeps its calendar length and ends the day before the cursor, back to back, exactly as
-  //          Rebuild forwards starts one the day the previous phase ends; setPhaseStart() then moves
-  //          its end by the same delta. (Ending it on the last WEEKDAY instead was tried: a Wed-Tue
-  //          range then began on a Saturday, an empty week row in the waterfall.)
+  //   Dates  keeps its number of WEEKDAYS (datesWeekdays) and ends on the last weekday before the cursor: it starts that
+  //          many weekdays back, and placeBuilt() ends it that many weekdays on, so it ends on that weekday (audit
+  //          AUD2-068, item 3.2, 14 Nov 2026). ⛔ Until then it kept its CALENDAR length and ended the day before the
+  //          cursor: before a Monday that is a Sunday, so a Mon-Fri phase became Wed-Sun, lost its first two working days
+  //          from the waterfall, and the phase before it was built to end on the Tuesday. (Ending it on the last weekday
+  //          while still keeping the calendar length had been tried earlier: a Wed-Tue range then began on a Saturday.
+  //          Counting weekdays at both ends can't land on a weekend.) Weekdays, not working days: a Dates phase is its
+  //          two dates, which no holiday or hiatus shortens, so a span typed across Christmas keeps its length elsewhere.
+  //          A range of weekend days only (no weekday at all) keeps the calendar rule, as it has nothing else to keep.
   //   Days   counts its N working days BACK from the day before the cursor, with isUnitWorkDay() --
   //          the scheduler's own predicate, so the forward walk from the start found here counts
   //          exactly those N days and ends by the cursor. (The plan proposed searching the
@@ -9687,7 +9712,8 @@ export function initLegacyApp() {
       const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
       const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
       if(!s || !e || e < s) return null;
-      return addDays(last, -Math.round((e - s) / DAY_MS));
+      const wd = datesWeekdays(key);
+      return wd ? nthWeekday(last, wd, -1) : addDays(last, -Math.round((e - s) / DAY_MS));
     }
     const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
     if(!(n > 0)) return null;
@@ -32918,8 +32944,17 @@ export function initLegacyApp() {
     return !!(c && c.hiatus);
   }
   // The build's writer: setPhaseStart, noting where the phase went for carryBuilt.
+  // ⭐ A DATES PHASE KEEPS ITS WEEKDAYS (audit AUD2-068, item 3.2, 14 Nov 2026): its end goes the same number of weekdays
+  // on from the start written (datesWeekdays, nthWeekday), through setPhaseStart's own `endTo`, so it never ends on a
+  // weekend and a Mon-Fri phase stays Mon-Fri wherever the build puts it: before the pin (customStartEndingBy counted
+  // back from the last weekday before the next phase), after it (rebuildForwards starts it on the next weekday), and
+  // the pin itself ("starts on" a Wednesday ends on a Tuesday; "ends by" ends on its date, or the weekday before it). Before, setPhaseStart moved
+  // the end by the start's calendar distance: a Mon-Fri phase built after a Monday finish became Tue-Sat.
   function placeBuilt(key, iso){
-    if(!setPhaseStart(key, iso)) return false;
+    const wd = customPhaseUnit(key) === 'dates' ? datesWeekdays(key) : 0;
+    const to = wd ? parseDateUTC(iso) : null;
+    const end = to ? nthWeekday(to, wd, 1) : null;
+    if(!setPhaseStart(key, iso, end ? (()=> end) : null)) return false;
     const c = buildCarry && buildCarry.phases[key];
     if(c) c.to = iso;
     return true;
@@ -34131,6 +34166,21 @@ export function initLegacyApp() {
     let shiftTicks = new Set();
     let shiftMark = '';
     let shiftDrag = null;
+    // ⭐ A PANEL LEFT OPEN DOES NOT GO STALE (audit AUD2-049, the Nov 2026 audit's item 3.2, 14 Nov 2026). Since 11 Nov
+    // 2026 both panels stay open while the grid and the sidebar are used, and every new schedule re-reads the calendar
+    // into them (the #table-wrap observer below). Two things that re-read used to throw away:
+    //   * A DATE THE USER TYPED (Build Around's box, Shift's To a date box). syncSolveDate / syncAnchorDate refilled it
+    //     from the phase's current date, so after any edit underneath Build built around the OLD date. A typed date now
+    //     stays until the user changes what it is FOR (another pin or landing phase, the other edge), closes the panel,
+    //     or runs the panel's own tool. `{key, edge}` it was typed for, or null while the box follows the calendar.
+    //   * A PHASE THAT APPEARS while Shift is open (one dated in the sidebar). The ticks were a fixed set filled on
+    //     opening, so it came in unticked ("6 of 7 move") and the whole-calendar move the panel showed became a part
+    //     move that left the new phase, its notes and the range behind. `shiftKnown` is the rows the ticks were last
+    //     reconciled with (syncShiftTicks): while every one of them is ticked, a new row is ticked too. A hand-picked
+    //     set keeps a new row unticked, as the user left the set.
+    let solveDateTyped = null;
+    let anchorDateTyped = null;
+    let shiftKnown = null;
 
     // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
@@ -34253,6 +34303,9 @@ export function initLegacyApp() {
     // edits from there rather than typing into a blank box.
     function syncAnchorDate(){
       const {key, edge, current} = anchorSelection();
+      // A date the user typed for this landing phase and edge stays (AUD2-049, above); anything else follows the calendar.
+      if(anchorDateTyped && anchorDateTyped.key === key && anchorDateTyped.edge === edge) return;
+      anchorDateTyped = null;
       // A start is Monday-snapped like every other start in this tool -- unless the phase's own Snap to
       // Mon is off, when the field shows its REAL start (audit M-11). The whole schedule's start is
       // the earliest segment's, which computeSchedule has already snapped or not. An end is a real
@@ -34271,8 +34324,13 @@ export function initLegacyApp() {
     }
     function syncSolveDate(){
       const key = (document.getElementById('tool-solve-phase')||{}).value;
+      const edge = (document.getElementById('tool-solve-edge') || {}).value === 'end' ? 'end' : 'start';
+      // A date the user typed for this pin and edge stays (AUD2-049, above): an edit underneath must not swap it for the
+      // pin's current date. A new pin or the other edge refills it, as before.
+      if(solveDateTyped && solveDateTyped.key === key && solveDateTyped.edge === edge) return;
+      solveDateTyped = null;
       // "Ends by" (ruling R3) starts from where the phase ends now: its last workday, Shift's own landmark.
-      if((document.getElementById('tool-solve-edge') || {}).value === 'end'){
+      if(edge === 'end'){
         const last = key ? landmarkDate(key, 'end') : null;
         document.getElementById('tool-solve-date').value = last ? isoOf(last) : '';
         return;
@@ -34296,6 +34354,7 @@ export function initLegacyApp() {
     }
     function closeAllPops(){
       shiftDrag = null; solveDrag = null;   // a drag down either list ends with its box
+      solveDateTyped = null; anchorDateTyped = null;   // a typed date lasts while its panel is open (AUD2-049)
       popPos.clear();                       // a dragged panel opens under its button again next time
       POPS.forEach(p=>{
         p.menu.classList.remove('open');
@@ -34404,7 +34463,7 @@ export function initLegacyApp() {
       if(wasOpen) return;
       // R2(a): the Shift form opens with every phase ticked, By weeks, every time, and no row touched yet.
       // Before the refresh, which fills the landing phase's list for the choice in force.
-      if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); }
+      if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); shiftKnown = new Set(shiftTicks); }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       // Build Around forgets everything between openings, so each one starts on its default ticks, its starts date
       // and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
@@ -34505,6 +34564,7 @@ export function initLegacyApp() {
     // is ticked.
     function shiftPlan(){
       const rows = shiftRows();
+      syncShiftTicks(rows);   // a phase dated since the list was drawn (AUD2-049): read live, so the move agrees
       const moving = rows.filter(r => shiftTicks.has(r.key));
       if(moving.length === rows.length) return {move: 'all', pivot: null, moving, staying: [], part: null};
       if(!moving.length) return null;
@@ -34518,17 +34578,69 @@ export function initLegacyApp() {
     }
     // The result line's tail for a part-calendar move (plan §1, §7). Every phase ticked adds nothing, so its line is
     // the old Shift All / Anchor To line word for word.
-    function moveTail(res, plan){
+    // ⭐ A HIATUS THE MOVE CARRIED (audit AUD2-069, the Nov 2026 audit's item 3.2, 14 Nov 2026). A part move carries
+    // every UNLOCKED all-phase hiatus inside a ticked phase's weeks (rule T2, kept as ruled), and that hiatus also
+    // pauses the unticked phases running through it: one it leaves ends earlier, one it lands on starts later. The line
+    // used to say they all "stayed where they were". `before` is phaseRunsNow() taken just before the move: an unticked
+    // phase whose first or last working day changed is named with where it is now and the owner's words for the move
+    // ("Music now ends 12/25/26 (pulled 2 wks)"), and left out of the "stayed" sentence, which keeps its place and
+    // wording so a line with nothing carried reads exactly as before. The hiatus sentence comes last.
+    function moveTail(res, plan, before){
       if(!res || !plan || plan.move === 'all') return '';
+      const after = before ? phaseRunsNow() : null;
+      const changed = [];
+      const stay = plan.staying.filter(r => {
+        const t = before ? runChangeText(r.label, before[r.key], after[r.key]) : '';
+        if(t) changed.push(t);
+        return !t;
+      }).map(r => r.label);
+      let out;
       if(plan.move === 'custom'){
-        const stay = plan.staying.map(r => r.label);
-        return ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
+        out = ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
           + (stay.length ? ' ' + andList(stay) + (stay.length === 1 ? ' stayed where it was.' : ' stayed where they were.') : '');
+      } else {
+        out = ' ' + plan.pivot.label + ' and everything ' + plan.move + ' it moved (' + res.movedPhases
+          + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
+        const nStay = Math.max(0, res.stayedPhases - changed.length);
+        if(nStay) out += ' ' + nStay + ' stayed where ' + (nStay === 1 ? 'it was' : 'they were') + '.';
       }
-      let out = ' ' + plan.pivot.label + ' and everything ' + plan.move + ' it moved (' + res.movedPhases
-        + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
-      if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
+      const carried = res.movedHiatuses
+        ? ' ' + res.movedHiatuses + (res.movedHiatuses === 1 ? ' hiatus' : ' hiatuses') + ' moved with ' + (plan.moving.length === 1 ? 'it' : 'them')
+        : '';
+      if(carried) out += carried + (changed.length ? ', so ' + andList(changed) : '') + '.';
+      else if(changed.length) out += ' ' + andList(changed) + '.';
       return out;
+    }
+    // Every phase's first and last WORKING day as the calendar draws it now, by key: the first and last week it works
+    // (seg.weekNo: the weeks no hiatus pauses), on its own start or last workday when that falls in the week, else that
+    // week's Monday or Friday. The whole calendar, not the range's rows; prep is not a phase here.
+    function phaseRunsNow(){
+      const out = {};
+      ((wholeCalendar(currentSchedule) || {}).segments || []).forEach(s => {
+        if(!s.key || s.key === PREP_KEY) return;
+        const wks = Object.keys(s.weekNo || {}).sort();
+        if(!wks.length) return;
+        const firstWk = parseDateUTC(wks[0]), lastWk = parseDateUTC(wks[wks.length - 1]);
+        const last = phaseLastWorkday(s);
+        out[s.key] = {
+          start: mondayOf(s.start).getTime() === firstWk.getTime() ? s.start : firstWk,
+          end: (last && mondayOf(last).getTime() === lastWk.getTime()) ? last : addDays(lastWk, 4)
+        };
+      });
+      return out;
+    }
+    // "Music now ends 12/25/26 (pulled 2 wks)", "Titles now runs 1/18/27 to 2/12/27 (pushed 2 wks)", or '' when the
+    // phase's run did not change. Moved dates in the owner's words (solveMovedWords), never + or -.
+    function runChangeText(label, b, a){
+      if(!b || !a) return '';
+      const ds = Math.round((a.start - b.start) / DAY_MS), de = Math.round((a.end - b.end) / DAY_MS);
+      if(!ds && !de) return '';
+      const moved = (from, to) => solveMovedWords(from, to).toLowerCase();
+      if(ds && ds === de) return label + ' now runs ' + fmtShort(a.start) + ' to ' + fmtShort(a.end) + ' (' + moved(b.start, a.start) + ')';
+      if(ds && de) return label + ' now starts ' + fmtShort(a.start) + ' (' + moved(b.start, a.start) + ') and ends '
+        + fmtShort(a.end) + ' (' + moved(b.end, a.end) + ')';
+      return ds ? label + ' now starts ' + fmtShort(a.start) + ' (' + moved(b.start, a.start) + ')'
+                : label + ' now ends ' + fmtShort(a.end) + ' (' + moved(b.end, a.end) + ')';
     }
     // How far To a date would move the landmark right now (the Go handler's own arithmetic), or 0.
     // Counted in WORKING weeks (the step-over, stepOverHeld): the held hiatuses' weeks are not counted, so the landmark
@@ -34544,6 +34656,18 @@ export function initLegacyApp() {
     function heldForMove(){
       const plan = shiftPlan();
       return shiftHeldWeeks(plan ? plan.part : null);
+    }
+    // The ticks against the rows as they are now (AUD2-049): a row that left takes its tick with it; a row that came
+    // since the last reconcile is ticked while every row that was there before is ticked (the panel means the whole
+    // calendar), and left unticked under a hand-picked set.
+    function syncShiftTicks(rows){
+      const have = new Set(rows.map(r => r.key));
+      if(shiftKnown){
+        const fresh = rows.filter(r => !shiftKnown.has(r.key));
+        if(fresh.length && [...shiftKnown].filter(k => have.has(k)).every(k => shiftTicks.has(k))) fresh.forEach(r => shiftTicks.add(r.key));
+      }
+      shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+      shiftKnown = have;
     }
     // The phase that LANDS on the date (#tool-anchor-phase, Anchor To's select by id; it shows only To a date, on the
     // row above "starts on"). Refilled on every sync, because it follows the list (owner, 9 Nov 2026, on a screenshot
@@ -34565,8 +34689,7 @@ export function initLegacyApp() {
       if(!sel) return false;
       const was = sel.value;
       const rows = shiftRows();
-      const have = new Set(rows.map(r => r.key));
-      shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+      syncShiftTicks(rows);
       const ticked = rows.filter(r => shiftTicks.has(r.key));
       const offerWhole = shiftFar === 'date' && rows.length > 0 && ticked.length === rows.length;
       fillPhaseSelect('tool-anchor-phase', scheduledPhases().filter(x => shiftTicks.has(x.p.key)), 'production', offerWhole);
@@ -34761,8 +34884,12 @@ export function initLegacyApp() {
       let shiftDateTimer = null;
       const dateEl = document.getElementById('tool-anchor-date');
       if(dateEl){
-        dateEl.addEventListener('input', ()=>{ clearTimeout(shiftDateTimer); shiftDateTimer = setTimeout(renderShiftList, 250); });
-        dateEl.addEventListener('change', ()=>{ clearTimeout(shiftDateTimer); renderShiftList(); });
+        // Typed (or picked: the date picker fires the same events) for the landing phase and edge in the boxes now. The
+        // code that refills the box writes .value, which fires nothing, so only the user's own date is marked (AUD2-049).
+        const typed = ()=>{ anchorDateTyped = {key: (document.getElementById('tool-anchor-phase') || {}).value,
+                                               edge: (document.getElementById('tool-anchor-edge') || {}).value}; };
+        dateEl.addEventListener('input', ()=>{ typed(); clearTimeout(shiftDateTimer); shiftDateTimer = setTimeout(renderShiftList, 250); });
+        dateEl.addEventListener('change', ()=>{ typed(); clearTimeout(shiftDateTimer); renderShiftList(); });
       }
       document.getElementById('tool-anchor-edge').addEventListener('change', renderShiftList);
     }
@@ -34776,13 +34903,15 @@ export function initLegacyApp() {
       if(!n) return say('Enter a number of weeks.', true);
       const plan = shiftPlan();
       if(!plan) return say('Tick a phase to move.', true);
+      anchorDateTyped = null;   // the panel's own tool ran: To a date's box follows the calendar again (AUD2-049)
       // Every phase ticked: the old Shift All form -- the same call, the same result line.
       if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true}))));
       // The bottom of the list from one phase is the old Shift From; the top down to one its mirror; any other set
       // the user's own.
+      const runsBefore = phaseRunsNow();
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, plan)));
+      say(describeShift(res, moveTail(res, plan, runsBefore)));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
@@ -34826,6 +34955,8 @@ export function initLegacyApp() {
           : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
       }
       if(!plan) return say(label + ' has no start date to move.', true);
+      anchorDateTyped = null;   // Go used it: the box follows the calendar again, as it always did after a run (AUD2-049)
+      const runsBefore = part ? phaseRunsNow() : null;
       const res = asOneUndoStep(()=> part ? shiftCalendar(delta, null, {part, stepHeld: true}) : shiftCalendar(delta, null, {stepHeld: true}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
@@ -34835,7 +34966,7 @@ export function initLegacyApp() {
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, plan));
+        + moveTail(res, plan, runsBefore));
       say(out, overshot);
     });
 
@@ -35118,6 +35249,7 @@ export function initLegacyApp() {
       const edge = solveEdge();
       const lv = solveLeaves(f);
       const lens = Object.assign({}, solveLens);
+      solveDateTyped = null;   // Build used it: the box follows the calendar again, as it always did after a run
       const res = asOneUndoStep(()=>{
         // The lengths first, so the solvers place each phase by the length it is saved with (ruling R2(a): saved on
         // Build, in the same undo step as the dates, and every one of them, even for a phase that can't be placed yet).
@@ -35291,6 +35423,8 @@ export function initLegacyApp() {
     // A typed date fires `input` per keystroke: draw once it settles, not once per digit.
     let solveDateTimer = null;
     ['input', 'change'].forEach(t => document.getElementById('tool-solve-date').addEventListener(t, ()=>{
+      // The user's own date, for this pin and edge (AUD2-049: syncSolveDate keeps it). A refill writes .value, silently.
+      solveDateTyped = {key: (document.getElementById('tool-solve-phase') || {}).value, edge: solveEdge()};
       clearTimeout(solveDateTimer);
       solveDateTimer = setTimeout(renderSolve, 120);
     }));
