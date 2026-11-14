@@ -4799,6 +4799,44 @@ export function initLegacyApp() {
     if(sel && sel[view] !== undefined) return !!sel[view];
     return !!HOLIDAY_VIEW_DEFAULT[view];
   }
+  // ⭐ A HOLIDAY THAT ENTERS THE CALENDAR FOLLOWS THE CALENDAR'S CHOICE (audit AUD2-050, the Nov 2026 audit's item 3.3,
+  // 14 Nov 2026; the finding's default, "yes"). holidayView is per holiday, and showing every holiday in a view (the
+  // list's Toggle all, or one tick at a time) writes an entry for the holidays in the calendar AT THAT MOMENT. A holiday
+  // that entered later -- the season rolled forward a year, a longer plan -- had no entry and fell back to
+  // HOLIDAY_VIEW_DEFAULT, so the new season's holidays were silently missing from the waterfall, Excel and the PDF
+  // while last season's still showed. THE RULE: while every holiday the calendar held a moment ago is shown in a view,
+  // a holiday that enters it is shown there too.
+  //   * NOTHING NEW IS SAVED. The newcomer gets the same per-holiday entry its tick would write, so the file format is
+  //     unchanged and an older build reads the result exactly as this one draws it.
+  //   * Written only where the newcomer would otherwise NOT show, and never over a choice it already carries. The month
+  //     view shows every holiday by default, so a calendar nobody touched never gains an entry (it saves as before).
+  //   * Hidden ones are not followed: the finding asked for "shown" only (the waterfall's default is hidden already).
+  //   * `holidayIdsSeen` is session state, never saved. Every restore, Undo / Redo, New, Load and scenario switch runs
+  //     with suppressDirty, and there it is REBASED, never acted on, so another calendar's holidays never count as
+  //     arrivals and an Undo restores holidayView exactly. A calendar with no holidays for a moment (a date half typed)
+  //     keeps the last set, so the holidays coming back are judged against the calendar the user had.
+  // Called by update() between computeSchedule and render(): holidayView is display-only, so the schedule is unchanged
+  // and the render draws the newcomers. `var` and a declaration: update() reaches it.
+  var holidayIdsSeen = null;
+  function followHolidayViews(sch){
+    const hols = (sch && !sch.error && sch.phaseHolidays) || [];
+    if(suppressDirty){ holidayIdsSeen = hols.length ? hols.map(h => h.hid) : null; return; }
+    if(!hols.length) return;
+    const seen = holidayIdsSeen;
+    holidayIdsSeen = hols.map(h => h.hid);
+    if(!seen || !seen.length) return;
+    const was = new Set(seen);
+    const fresh = hols.filter(h => !was.has(h.hid));
+    if(!fresh.length) return;
+    ['sheet', 'month'].forEach(view=>{
+      if(!seen.every(hid => holidayVisibleIn(hid, view))) return;
+      fresh.forEach(h=>{
+        const cur = holidayView[h.hid];
+        if((cur && cur[view] !== undefined) || holidayVisibleIn(h.hid, view)) return;
+        holidayView[h.hid] = Object.assign({}, cur, {[view]: true});
+      });
+    });
+  }
 
   // ---- Holiday identity -------------------------------------------------------------------
   // A holiday's id used to be its ISO date, which was fragile: switching region kept the date but
@@ -27208,6 +27246,9 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // A holiday that entered the calendar with this edit follows the calendar's choice (AUD2-050, followHolidayViews).
+    // Before render() and every writer: holidayView is display-only, so the schedule just computed stands.
+    followHolidayViews(currentSchedule);
     // ⭐ THE CALENDAR RANGE CUTS THE WATERFALL, EXCEL AND THE WATERFALL PDF, NEVER THE MONTH VIEW (owner
     // ruling 3, 20 Oct 2026). computeSchedule hands back the waterfall's rows, so in the month view this
     // puts the whole calendar back. Picked here, per view, because frozen render() hands its schedule to
@@ -31873,6 +31914,114 @@ export function initLegacyApp() {
   function shiftHeldWeeks(part){
     return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
   }
+  // ---------- ⭐ THE YEAR-KEYED STORES FOLLOW A WHOLE-YEAR MOVE (audit AUD2-052, the Nov 2026 audit's item 3.3) ----------
+  // Six stores name a waterfall column by its YEAR BLOCK ("y2026:s0", "y2026:date", "y2027:notes"): the typed headings
+  // and their splits (headerRowLabels, headerRowSplits), the headings' text styles (textStyle.heading), the dragged
+  // widths of both layouts (colWidths, colWidthsAlt) and the hidden Notes columns (hiddenNotesCols). The shift re-keys
+  // week-keyed stores only, so rolling a season forward a year left all six on the old years: the 2027 block (now
+  // Writer's Room to Post) was headed with last year's "POST", and the 2026 heading's style and width sat on a year the
+  // calendar no longer has. Undone by shifting back, never lost, but nothing said so.
+  // THE RULE (the item's default): when a WHOLE-CALENDAR move (every phase, no cutoff: the Shift form with every phase
+  // ticked, the toolbar arrows) leaves the waterfall's year blocks exactly as they were, each one a whole number of
+  // years later or earlier with the same phases in the same columns (yearShapeDelta), the six stores move by that many
+  // years, as moveSlotKeys moves them for the Sim Post lane. Any other whole-calendar move that changes the years
+  // leaves them on their years, and the Shift line says so (describeShift, `yearKeysStayed`).
+  //   * Measured by CALLING the frozen layout (computeSchedule, computeYearBlocks, computeBlockLayout) on the
+  //     waterfall's own rows, read-only, never re-derived: simLaneMovedYears' arrangement. colWidthsAlt is the OTHER
+  //     layout's set (Single Column on / off), so it is judged on that layout's own blocks.
+  //   * Only keys on a year the calendar had BEFORE the move travel. A key on any other year is left as it is; where
+  //     a moved key lands on one (a heading left on 2028 by an older build), the moved key wins: it is the one on
+  //     screen. gridStintSwaps keeps its year: owner ruling E5, untouched.
+  //   * Nothing new is saved, and a calendar with no year key pays nothing (yearKeyedStoresUsed).
+  // ⛔ Function declarations only (update() and captureSnapshot() rules, as for slotKeyParts above).
+  function yearKeyParts(k){ return /^y(\d{4}):(.+)$/.exec(k); }
+  function hasYearKey(o){ return !!o && Object.keys(o).some(k => !!yearKeyParts(k)); }
+  function yearKeyedStoresUsed(){
+    return hasYearKey(colWidths) || hasYearKey(colWidthsAlt) || hasYearKey(headerRowLabels) || hasYearKey(headerRowSplits)
+        || hasYearKey(textStyle.heading) || hasYearKey(hiddenNotesCols);
+  }
+  // The waterfall's year blocks as the frozen layout places them now: [{year, cols}] where `cols` says which phases
+  // sit in which column of the block (and how many columns, and Sim Post's), or null when there is no waterfall.
+  // `alt`: the other layout's (Single Column flipped), for colWidthsAlt.
+  function yearBlockShape(alt){
+    const keepOne = singleColumn;
+    try {
+      if(alt) singleColumn = !singleColumn;
+      const sch = computeSchedule(readState());
+      if(!sch || sch.error || !sch.weeks || !sch.weeks.length) return null;
+      const blocks = computeYearBlocks(sch.weeks);      // FROZEN, read-only
+      const bl = computeBlockLayout(sch, blocks);       // FROZEN, read-only
+      return blocks.map((b, bi)=>{
+        const map = bl.blockSlotMaps[bi], at = new Set();
+        for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+          (sch.weeks[i].cells || []).forEach(c=>{ if(c.key && c.col !== undefined && map.has(c.col)) at.add(c.key + '@' + map.get(c.col)); });
+        }
+        return {year: b.year, cols: bl.blockMaxConcurrent[bi] + '|' + bl.blockSimSlot[bi] + '|' + Array.from(at).sort().join(',')};
+      });
+    } catch(e){ console.error(e); return null; }
+    finally { singleColumn = keepOne; }
+  }
+  // How many years `after` is `before` moved by: the same number of blocks, each the same number of years on with the
+  // same columns. 0 when it is not a whole-year move (or no move at all).
+  function yearShapeDelta(before, after){
+    if(!before || !after || !before.length || before.length !== after.length) return 0;
+    const d = after[0].year - before[0].year;
+    if(!d) return 0;
+    return before.every((b, i)=> after[i].year === b.year + d && after[i].cols === b.cols) ? d : 0;
+  }
+  // One store's keys on `years` moved by `d` years. A fresh object when anything moved (moveSlotKeys' rule), the same
+  // object otherwise.
+  function moveYearKeys(store, years, d){
+    if(!store || !d) return store;
+    const out = {}, arrivals = [];
+    Object.keys(store).forEach(k=>{
+      const m = yearKeyParts(k);
+      if(m && years.has(+m[1])) arrivals.push(['y' + (+m[1] + d) + ':' + m[2], store[k]]);
+      else out[k] = store[k];
+    });
+    if(!arrivals.length) return store;
+    arrivals.forEach(([k, v])=>{ out[k] = v; });
+    return out;
+  }
+  // What a whole-calendar move needs from before it runs: the blocks of both layouts. Null when no store holds a year
+  // key, so the move costs nothing extra.
+  function yearKeysBeforeMove(){
+    if(!yearKeyedStoresUsed()) return null;
+    return {shape: yearBlockShape(false), alt: hasYearKey(colWidthsAlt) ? yearBlockShape(true) : null};
+  }
+  // After the move (its update() has run): move the six stores when the blocks moved by whole years. Returns
+  // {moved: d} when they moved, {stayed: {kinds, years}} when the years changed and the user's own keys on them stayed
+  // (for the Shift line), or null. The caller redraws when they moved.
+  function yearKeysAfterMove(before){
+    if(!before || !before.shape) return null;
+    const after = yearBlockShape(false);
+    const d = yearShapeDelta(before.shape, after);
+    const years = new Set(before.shape.map(b => b.year));
+    if(before.alt){
+      const altAfter = yearBlockShape(true), da = yearShapeDelta(before.alt, altAfter);
+      if(da) colWidthsAlt = moveYearKeys(colWidthsAlt, new Set(before.alt.map(b => b.year)), da);
+    }
+    if(d){
+      colWidths       = moveYearKeys(colWidths, years, d);
+      headerRowLabels = moveYearKeys(headerRowLabels, years, d);
+      headerRowSplits = moveYearKeys(headerRowSplits, years, d);
+      hiddenNotesCols = moveYearKeys(hiddenNotesCols, years, d);
+      const h = moveYearKeys(textStyle.heading, years, d);
+      if(h !== textStyle.heading) textStyle = Object.assign({}, textStyle, { heading: h });
+      return {moved: d};
+    }
+    const yearsAfter = (after || []).map(b => b.year);
+    if(before.shape.map(b => b.year).join() === yearsAfter.join()) return null;   // the same years: nothing to say
+    const on = o => !!o && Object.keys(o).some(k => { const m = yearKeyParts(k); return !!m && years.has(+m[1]); });
+    const kinds = [];
+    if(on(headerRowLabels) || on(headerRowSplits) || on(textStyle.heading)) kinds.push('column headings');
+    if(on(colWidths)) kinds.push('column widths');
+    if(on(hiddenNotesCols)) kinds.push('hidden Notes columns');
+    if(!kinds.length) return null;
+    const used = Array.from(years).filter(y => [headerRowLabels, headerRowSplits, textStyle.heading, colWidths, hiddenNotesCols]
+      .some(o => !!o && Object.keys(o).some(k => { const m = yearKeyParts(k); return !!m && +m[1] === y; }))).sort((a, b)=> a - b);
+    return {stayed: {kinds, years: used}};
+  }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
   //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
   //           arrows and the hiatus ripple pass it; the phase arrows pass it while Ripple Hiatus is on (nudgePhase);
@@ -31896,6 +32045,9 @@ export function initLegacyApp() {
     const move = stepHeld ? stepOverHeld(n, hf.obstacles) : days;
     // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
     const startsBefore = {};
+    // A WHOLE-CALENDAR move (every phase, no cutoff, no ripple): the year blocks before it, for the year-keyed stores
+    // (AUD2-052, yearKeysAfterMove below). Null when no store holds a year key.
+    const yearKeysBefore = (!part && !fromIso && !except && !opts.carryOnly) ? yearKeysBeforeMove() : null;
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
@@ -31935,8 +32087,20 @@ export function initLegacyApp() {
     // lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
     const stayingHiatusWeeks = hf.held;
     const movingHiatusWeeks = hf.moving;
-    hf.fates.forEach(({startEl, fate})=>{
+    // Every band this move holds (locked, or outside its windows), with its name and weeks, for the Shift line: the ones
+    // the moved phases no longer run through are named there (AUD2-051, heldLeftText). The ripple's own hiatus is not
+    // one (it is the reason for the push). Read before anything moves; a held band's dates do not change.
+    const heldBands = [];
+    hf.fates.forEach(({row, startEl, fate})=>{
       if(fate === 'locked') lockedHiatuses++;
+      if(fate !== 'move' && !(except && except.kind === 'all' && except.row === row)){
+        const s = startEl && startEl.value ? parseDateUTC(startEl.value) : null;
+        if(s){
+          const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10) || 1));
+          heldBands.push({name: ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL,
+                          start: s, first: mondayOf(s), last: addDays(mondayOf(s), wks * 7 - 1)});
+        }
+      }
       if(fate === 'move' && shiftDateFieldValue(startEl, move)) movedHiatuses++;
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
@@ -32058,6 +32222,10 @@ export function initLegacyApp() {
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, move)) render(currentSchedule);
+    // The year-keyed stores follow a whole-year move (AUD2-052): measured on the layout the update() above placed, then
+    // drawn by one more. Inside the caller's undo bracket, like everything above.
+    const yearKeys = yearKeysBefore ? yearKeysAfterMove(yearKeysBefore) : null;
+    if(yearKeys && yearKeys.moved) update();
     // Audit L-14: an all-phase hiatus row is ONE band across the whole block, the notes column
     // included, so a note moved onto such a week is hidden in the waterfall, Excel and the PDF. It is
     // not lost -- it comes back when the hiatus or the note moves off -- but the user has to be told.
@@ -32096,6 +32264,7 @@ export function initLegacyApp() {
 
     return {
       weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus, stepped, steppedHiatuses,
+      heldBands, yearKeysStayed: (yearKeys && yearKeys.stayed) || null,
       productionWrap: productionWrapText()
     };
   }
@@ -34207,14 +34376,29 @@ export function initLegacyApp() {
     }
     // `tail` is the caller's own sentence; the note about Production's day marks (a worked holiday
     // that no longer falls on one, say -- see asShootDayMove) always comes last.
-    function describeShift(res, tail){
+    // `before`: phaseRunsNow() taken just before the move, so the held breaks the moved phases left behind can be named.
+    // ⭐ THE SHIFT IS COUNTED IN WORKING WEEKS AND THE LINE SAYS SO (audit AUD2-051, the Nov 2026 audit's item 3.3, the
+    // finding's default). The step-over (stepOverHeld, owner's ruling, 5 Nov 2026, kept) moves every date N WORKING weeks,
+    // so a season rolled forward "52 weeks" past two locked Christmas breaks lands 54-55 calendar weeks on, and To a date
+    // a year on read "Shifted 49 weeks later". Now: (1) the headline says "working weeks" whenever the step-over made a
+    // phase go further than N calendar weeks (otherwise the two are the same and it reads as before); (2) a held break a
+    // moved phase ran through and no phase runs through now is NAMED ("Hiatus 8/10/26 stayed on its dates, so no phase
+    // pauses for it now."), so a summer break left in last year is said, not silent. How a new hiatus starts (locked)
+    // is unchanged.
+    function describeShift(res, tail, before){
       if(!res) return 'Nothing to shift.';
       const n = Math.abs(res.weeks);
-      let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
+      const unit = (res.stepped && res.stepped.length) ? ' working week' : ' week';
+      let out = 'Shifted ' + n + unit + (n === 1 ? ' ' : 's ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
+      out += heldLeftText(res, before);
       out += steppedText(res);
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
+      // A whole-calendar move into other years that is not a whole-year move: the year-keyed stores stayed (AUD2-052).
+      if(res.yearKeysStayed){
+        out += ' The ' + andList(res.yearKeysStayed.kinds) + ' you set stayed on ' + andList(res.yearKeysStayed.years.map(String)) + '.';
+      }
       if(res.notesOnHiatus){
         out += res.notesOnHiatus === 1
           ? ' A note moved onto a hiatus week, where the hiatus band covers it: it won’t show in the waterfall or the exports until one of them moves.'
@@ -34238,6 +34422,20 @@ export function initLegacyApp() {
       return ' ' + groups.map(g => andList(g.names) + (g.names.length > 1 ? ' were ' : ' was ')
           + (g.weeks > 0 ? 'pushed ' : 'pulled ') + rippleWks(Math.abs(g.weeks))).join(' and ')
         + ' to step over ' + (res.steppedHiatuses > 1 ? 'held hiatuses.' : 'a held hiatus.');
+    }
+    // The held breaks the move left behind (AUD2-051): a band this move held (res.heldBands, shiftCalendarDates) that some
+    // phase ran through before it and none runs through now. "Runs through" is the phase's first to last WORKING day
+    // (phaseRunsNow), which spans a break that pauses it. A break that was already outside the calendar, or that an
+    // unmoved phase still runs through, is not named. '' when there is nothing to say.
+    function heldLeftText(res, before){
+      const bands = (res && res.heldBands) || [];
+      if(!before || !bands.length) return '';
+      const after = phaseRunsNow();
+      const through = (runs, b) => Object.keys(runs).some(k => runs[k].start <= b.last && runs[k].end >= b.first);
+      const left = bands.filter(b => through(before, b) && !through(after, b)).sort((a, b)=> a.start - b.start);
+      if(!left.length) return '';
+      return ' ' + andList(left.map(b => b.name + ' ' + fmtShort(b.start)))
+        + (left.length === 1 ? ' stayed on its dates, so no phase pauses for it now.' : ' stayed on their dates, so no phase pauses for them now.');
     }
     function readWeeks(id){
       const v = Math.round(Number((document.getElementById(id) || {}).value));
@@ -34904,14 +35102,16 @@ export function initLegacyApp() {
       const plan = shiftPlan();
       if(!plan) return say('Tick a phase to move.', true);
       anchorDateTyped = null;   // the panel's own tool ran: To a date's box follows the calendar again (AUD2-049)
+      // Every phase's run before the move: the line names the held breaks it leaves behind (AUD2-051) and, on a part
+      // move, the unticked phases a carried hiatus changed (AUD2-069).
+      const runsBefore = phaseRunsNow();
       // Every phase ticked: the old Shift All form -- the same call, the same result line.
-      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true}))));
+      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true})), '', runsBefore));
       // The bottom of the list from one phase is the old Shift From; the top down to one its mirror; any other set
       // the user's own.
-      const runsBefore = phaseRunsNow();
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, plan, runsBefore)));
+      say(describeShift(res, moveTail(res, plan, runsBefore), runsBefore));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
@@ -34956,7 +35156,7 @@ export function initLegacyApp() {
       }
       if(!plan) return say(label + ' has no start date to move.', true);
       anchorDateTyped = null;   // Go used it: the box follows the calendar again, as it always did after a run (AUD2-049)
-      const runsBefore = part ? phaseRunsNow() : null;
+      const runsBefore = phaseRunsNow();   // every move: the held breaks it leaves behind are named (AUD2-051)
       const res = asOneUndoStep(()=> part ? shiftCalendar(delta, null, {part, stepHeld: true}) : shiftCalendar(delta, null, {stepHeld: true}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
@@ -34966,7 +35166,7 @@ export function initLegacyApp() {
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, plan, runsBefore));
+        + moveTail(res, plan, runsBefore), runsBefore);
       say(out, overshot);
     });
 
