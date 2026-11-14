@@ -1978,11 +1978,54 @@ export function initLegacyApp() {
   // its own separate bucket -- preferences do not travel between the two, and cannot be made to.
   const PREFS_KEY = 'sptcal.prefs';
   let prefs = {};
+  // ⛔ CHECKED WHEN READ, NOT TRUSTED (audit AUD2-078, 14 Nov 2026). This store outlives every build and is written by
+  // whatever ran on this origin before, so it may hold anything. It used to be checked only for being an object: a
+  // header preset whose name was an object went straight to React's <option>{name}</option>, the chrome threw while
+  // drawing, and the app opened as a blank window on EVERY launch, because the value stays. So each preference this
+  // build knows is held to the TYPE it writes, and a value of another type is left out (as if never set). A key this
+  // build does not know is kept untouched (a newer build's preference survives a rollback), and nothing is reshaped:
+  // a good preset is passed through as stored (normalizeHeaderPreset still migrates on read). The repair reaches the
+  // store with the next savePrefs(). The chrome also has an error boundary now (main.jsx) for anything this misses.
+  // ⚠️ Runs at evaluation time, before most of the IIFE's consts exist: nothing in here may name one (the TDZ would
+  // throw, the catch below would return {}, and every preference would be lost). Hence the literal key names.
+  const PREF_TYPES = {
+    version:'number', gridlines:'string', mvNoteColor:'string', calZoom:'object',
+    hiatusRipple:'boolean', mvWeek:'boolean', mvEpisodes:'boolean', mvBlocks:'boolean',
+    holidayFixNoticeSeen:'boolean', holidayFixNoticeSeen2:'boolean',
+  };
+  function cleanPrefs(o){
+    const out = {};
+    Object.keys(o).forEach(k=>{
+      if(k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+      const v = o[k];
+      if(k === 'headerPresets'){
+        if(!Array.isArray(v)) return;
+        const list = usableHeaderPresets(v, '__default');   // HDR_PRESET_DEFAULT_ID, not declared yet here (see above)
+        if(list.length) out[k] = list;
+        return;
+      }
+      const t = PREF_TYPES[k];
+      if(t === 'object'){ if(!v || typeof v !== 'object' || Array.isArray(v)) return; }
+      else if(t && typeof v !== t) return;
+      out[k] = v;
+    });
+    return out;
+  }
+  // One stored header preset, or null to leave it out: an object with a text id. A name that is a number reads as its
+  // digits; any other non-text name reads "Unnamed preset" (it was "[object Object]" in the Delete question). Only a
+  // bad name makes a copy; a good entry is returned as it was stored.
+  function storedHeaderPreset(p){
+    if(!p || typeof p !== 'object' || Array.isArray(p)) return null;
+    if(typeof p.id !== 'string' || !p.id) return null;
+    if(typeof p.name === 'string') return p;
+    const name = (typeof p.name === 'number' && isFinite(p.name)) ? String(p.name) : 'Unnamed preset';
+    return Object.assign({}, p, { name });
+  }
   function loadPrefs(){
     try {
       const raw = localStorage.getItem(PREFS_KEY);
       const o = raw ? JSON.parse(raw) : null;
-      return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+      return (o && typeof o === 'object' && !Array.isArray(o)) ? cleanPrefs(o) : {};
     } catch(_){ return {}; }
   }
   // Returns whether it stuck, so a caller can tell the user their choice will not survive a reload
@@ -25387,18 +25430,36 @@ export function initLegacyApp() {
   // they fold into `sheet` and the month section is absent, which means "leave the month header
   // alone". Migrating on read rather than in place means a preset the user never opens is never
   // touched, and the migration cannot half-finish. Same shape migrateRegionSnapshot() models.
+  // ⛔ AND IT CHECKS WHAT IT PASSES ON (audit AUD2-078, 14 Nov 2026): loadPrefs() already left out a preset with no text
+  // id and named the rest as text (storedHeaderPreset), and this holds the same line for anything that reaches it, then
+  // keeps a section only when it is an object, so applyHeaderPreset() never reads `.lines` off a string. A preset with
+  // no section left is left out: Save and Import never write one, and it could only ever answer "no header lines".
   function normalizeHeaderPreset(p){
-    if(!p || typeof p !== 'object') return null;
+    p = storedHeaderPreset(p);
+    if(!p) return null;
+    const sec = s => (s && typeof s === 'object' && !Array.isArray(s)) ? s : null;
+    const fmt = f => (f && typeof f === 'object' && !Array.isArray(f)) ? f : {};
+    let sheet, month;
     if(p.sheet || p.month){
-      return { id:p.id, name:p.name, createdAt:p.createdAt,
-               sheet: p.sheet || null, month: p.month || null };
+      sheet = sec(p.sheet); month = sec(p.month);
+    } else {
+      sheet = sec(p.lines) ? { lines:p.lines, format:fmt(p.format) } : null; month = null;
     }
-    return { id:p.id, name:p.name, createdAt:p.createdAt,
-             sheet: p.lines ? { lines:p.lines, format:p.format || {} } : null, month: null };
+    if(sheet && !sec(sheet.lines)) sheet = null;
+    if(month && !sec(month.lines)) month = null;
+    if(!sheet && !month) return null;
+    return { id:p.id, name:p.name, createdAt:p.createdAt, sheet, month };
+  }
+  // The stored presets that can be used, AS STORED (loadPrefs keeps these and no others): each one normalizeHeaderPreset
+  // accepts, less the built-in Default's id and a second preset under an id already listed, because React keys the
+  // list by id and Apply, Rename and Delete find a preset by it.
+  function usableHeaderPresets(list, defaultId){
+    const seen = new Set([defaultId]);
+    return list.map(storedHeaderPreset).filter(p=> p && normalizeHeaderPreset(p) && !seen.has(p.id) && seen.add(p.id));
   }
   function headerPresetsStore(){
-    return (Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [])
-      .map(normalizeHeaderPreset).filter(Boolean);
+    return usableHeaderPresets(Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [], HDR_PRESET_DEFAULT_ID)
+      .map(normalizeHeaderPreset);
   }
   function writeHeaderPresets(list){
     // ⛔ An empty list REMOVES the key rather than storing []. Same rule the gridlines preference
@@ -33401,6 +33462,13 @@ export function initLegacyApp() {
     e.returnValue = '';
     return '';
   });
+  // ⛔ A BACKUP IS KEPT ONLY WHILE THERE IS UNSAVED WORK (a shareable-copy hardening fix, 14 Nov 2026). A page closing,
+  // reloading or navigating away with nothing unsaved deletes its own slot, in case an earlier delete never landed: a
+  // slot nobody needs is never left in this browser's storage. A page closing WITH unsaved work keeps it, which is the
+  // backup's whole job (the beforeunload above has just written it). Its own slot only, as everywhere (SAVE-7).
+  window.addEventListener('pagehide', ()=>{
+    if(!isDirty) idbSet(BACKUP_SLOT, undefined);
+  });
 
   // ---------- Crash recovery: the backups other pages left ----------
   // Every backup kept in this browser that no OPEN window owns, newest first, as [{key, b}]: the old single slot, if a
@@ -34048,6 +34116,10 @@ export function initLegacyApp() {
     // the file from this moment, and an autosave tick landing inside that await must not see the
     // loaded calendar as unsaved work -- markClean() in saveToFile() is ordered the same way.
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
+    // ...and this page's crash backup goes with the work it held (a shareable-copy hardening fix, 14 Nov 2026): that
+    // work was saved, or the user let it go at "Your unsaved changes will be lost". It used to stay in the slot and come
+    // back at the next launch as "Recover unsaved work". The next edit writes a fresh one, as New's does (SAVE-7).
+    idbSet(BACKUP_SLOT, undefined);
     await persistRecents();
     refreshSaveBtn();
     renderRecents();

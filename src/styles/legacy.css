@@ -338,6 +338,19 @@
   #backup-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
   #backup-notice .ln-x{ color:#A98B3D; }
   #backup-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-078: the chrome's error boundary (main.jsx). It covers the window, so nothing half-drawn shows behind
+     it. The app's own :root tokens and never Mantine's: it stands in for the MantineProvider, whose variables leave
+     with it. Hidden in print with the rest of #react-root (body.printing-* > *:not(#print-root)). */
+  .chrome-failed{ position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center;
+    padding:24px 16px; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .chrome-failed-box{ max-width:420px; background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:24px 24px 20px; box-shadow:0 8px 28px rgba(0,0,0,.08); }
+  .chrome-failed-title{ font-size:16px; font-weight:600; margin-bottom:8px; }
+  .chrome-failed-text{ font-size:13px; line-height:1.5; color:var(--text-muted); margin:0 0 18px; }
+  .chrome-failed-btn{ font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border:none;
+    border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  .chrome-failed-btn:hover{ background:var(--accent-hover); }
 
   /* Fill the available width at any window size (no artificial cap), so the calendar gets
      as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
