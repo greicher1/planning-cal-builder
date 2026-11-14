@@ -4,6 +4,51 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026: THE MOVING TOOLS' LEFTOVERS: OPEN PANELS KEEP A TYPED DATE AND TICK NEW PHASES, DATES PHASES KEEP THEIR WEEKDAYS, SHIFT NAMES WHAT A CARRIED HIATUS MOVED (audit AUD2-049, AUD2-068, AUD2-069). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-2` (worktree `.claude/worktrees/audit-3-2`, cut from `audit-2-2` at `dd69b01`, so it carries item 2.2; `node_modules` is a clone copy, not a symlink). The November 2026 audit's item 3.2, owner-approved on the feature tracker. ⛔ AUD2-047 and AUD2-048 were REJECTED by the owner: untouched.
+- **AUD2-049, panels left open:** a date typed (or picked) into Build Around's box or Shift's To a date box now survives
+  the `#table-wrap` observer's refresh: `solveDateTyped` / `anchorDateTyped` hold the `{key, edge}` it was typed for,
+  and `syncSolveDate` / `syncAnchorDate` keep it while they match. Cleared by another pin / landing phase, the other
+  edge, closing the panel (`closeAllPops`), and the panel's own tool running (Build, Go, Earlier / Later), after which
+  the box follows the calendar as before. Shift's ticks: `syncShiftTicks(rows)` (from `fillShiftPhase` and
+  `shiftPlan`) ticks a row that appeared since the last reconcile (`shiftKnown`) while every known row was ticked, so a
+  phase dated with the panel open keeps "every phase" meaning the whole calendar; a hand-picked set leaves it unticked.
+- **AUD2-068, Dates phases:** Build Around keeps a Dates phase's number of WEEKDAYS (Mon–Fri, holidays and hiatuses not
+  subtracted: the phase is its two dates). Before the pin, `customStartEndingBy` counts them back from the last weekday
+  before the next phase; `placeBuilt` ends every Dates phase it writes (after the pin, and the pin itself) that many
+  weekdays after its start, via `setPhaseStart`'s existing `endTo`. Helpers `datesWeekdays`, `nthWeekday`.
+- **AUD2-069, the Shift line:** `moveTail(res, plan, before)` with `before = phaseRunsNow()` (each phase's first and
+  last WORKING day, from `seg.weekNo`) names each unticked phase whose run changed and ends: *"1 hiatus moved with it,
+  so Music now ends 12/25/26 (pulled 2 wks) and Titles now runs 1/18/27 to 2/12/27 (pushed 2 wks)."* The "stayed"
+  sentence keeps its place and wording and lists only the rest, so a move carrying nothing reads as before. The carry
+  itself (T2) is unchanged.
+- **Defaults applied:** AUD2-069's own default (keep the ruled T2 carry; fix only the line). D1–D8 do not touch this
+  item. **Chosen here** (also in the structured result): (1) the typed-date rule covers Shift's To a date box too, not
+  only Build Around's (same bug, same refresh); (2) a typed date is dropped when the panel's own tool runs, as the box
+  always refilled after a run; (3) Dates phases count WEEKDAYS, not working days, so a range typed across Christmas
+  keeps its length elsewhere; a Mon–Fri phase stays Mon–Fri and no end lands on a weekend, but an odd pattern (Wed–Tue)
+  can become Mon–Fri; (4) the Dates rule also covers the PIN itself ("starts on" a Wednesday ends on a Tuesday), since
+  "ends by" would otherwise disagree with its own solver; (5) the line says "hiatus", the app's word, and counts them
+  ("1 hiatus moved with it"), it does not name their dates; (6) the new sentence comes LAST, after "stayed".
+- ⚠️ **Re-expected, as the approved Dates rule requires:** `customunits` (restore run): Stage Build built back from Mon
+  3/1/27 ends Fri 2/26/27, not Sun 2/28/27; `builtindates` (restore run): Pre Prep ends Fri 2/26/27, not Sun 2/28/27, and
+  Post built forward ends Fri 5/7/27, not Sun 5/9/27. Every start is unchanged. `CUSTOM-PHASE-UNITS-PLAN.md` carries a
+  superseded note on the old rule.
+- **Proof (build `ef873c6d…` sha1):** new legs `panelstale` 16/16, `builddates` 9/9, `shiftbandline` 10/10, in `gate.sh`'s
+  audit-fix list, red on item 2.2's build `894ae9f1` (panelstale A1-A4 D1 D2 B1-B3; builddates B2 F2 P1 P2;
+  shiftbandline L1-L4 G1 P1). Green: `customunits` live 23 + restore 28, `builtindates` live 17 + restore 15, `buildcarry`
+  17, `buildendsby` 21, `buildaround` 36, `rebuildticks` 20, `buildalongside` 8, `buildaroundfresh` 5, `anchorside` 39,
+  `paneldrag` 9, `phasearrows` 26, `phasearrowsripple` 10, `shiftheld` 13, `mvdragcarry` 15, `stalebandkey` 9,
+  `datepick` 17, `endsdate` 17, `prodends` 14, `snaptools` 14, `overrides` 20, `calrange` 18, `hdrcontrols` 12,
+  `stylebarplace` 14, `phasenotes` 21, `phaselink` 14; `npm run check` 42/42. No full gate.
+- ⚠️ **Seen, not fixed (not this item):** Build Around pinning a CUSTOM phase to a date past the phases after it (VFX
+  12/7/26 pinned "starts on" 3/3/27, with Localization and Music at 3/1/27) gives "Can't place" on the pin and "Build 0
+  phases", seen on the build before this item (894ae9f1) too. Most likely (read from the code, not traced): the
+  backward pass writes the pin first, `phaseSequence()` re-slots a custom phase by its new date, and the forward pass
+  then finds nothing after it ("Nothing runs after that phase.").
+  Close to AUD2-048's class (rejected), so left alone; `builddates` pins to 2/3/27 to stay clear of it.
+- **Not verified:** a Dates phase with only weekend days (falls back to the calendar span) has no case; Shift's line
+  with two or more carried hiatuses has no case; nothing tried in a real browser window.
+
 ### 🩹 13 Nov 2026: BUILD AROUND CARRIES A MOVED PHASE'S OWN BREAK; "ENDS BY" A SNAPPED SHOOT SEARCHES MONDAYS (audit AUD2-009, AUD2-010). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-2` (worktree `.claude/worktrees/audit-2-2`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.2; started on the owner's *"Yes, start both"*.
 - **AUD2-009:** `buildAround` wrote `start-<key>` only, so a moved phase's own hiatus and its `<week>|<key>` stores
   stayed behind (Post carried past its own break lost it in the waterfall and the workbook and ended a week early).

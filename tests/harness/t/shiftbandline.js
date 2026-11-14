@@ -22,6 +22,7 @@
 //   L4     the "stayed" list keeps only the phases that did not change (no Music, no Titles)
 //   U1     Undo brings the calendar back
 //   N1     a part move that carries no hiatus keeps its line word for word ("1 ticked phase moved. … stayed where they were.")
+//   G1     To a date (Post alone starts on 11/16/26): the Go button's line, the same sentence
 //   P1     Prior to / After: "After Post" carries the same break; the line names Music and says the hiatus moved
 //   E0     no console errors
 window.__T.memoryIDB();
@@ -94,6 +95,19 @@ window.addEventListener('load', function () { (async function () {
     add('N1', 'a part move that carries no hiatus keeps its line word for word',
       /^Shifted 1 week later\./.test(m2) && /1 ticked phase moved\. Writer's Rm, Pre Prep, Prod Prep, Music, Post, Titles and Localization stayed where they were\./.test(m2)
         && !/hiatus moved/.test(m2) && !/ now /.test(m2), m2, '"Shifted 1 week later. 1 ticked phase moved. Writer\'s Rm, … stayed where they were."');
+    await undo();
+
+    // To a date (the Go button's line): Post alone, starts on 11/16/26, is the same move.
+    await openShift(); await onlyTick('post');
+    q('#pop-shift [data-far="date"]').click(); await T.sleep(200);
+    var g0 = {phase: val('tool-anchor-phase')};
+    T.set('tool-anchor-edge', 'start'); await T.sleep(150); T.set('tool-anchor-date', '2026-11-16'); await T.sleep(400);
+    $('tool-anchor-go').click(); await settled();
+    var mg = txt(q('#pop-shift [data-tools-msg]')); out.mg = mg;
+    add('G1', 'To a date (Post alone starts on 11/16/26): the Go line says the hiatus moved and names Music and Titles',
+      g0.phase === 'post' && val('start-post') === '2026-11-16' && /Post starts 11\/16\/26\./.test(mg)
+        && /stayed where they were\. 1 hiatus moved with it, so Music now ends 12\/25\/26 \(pulled 2 wks\) and Titles now runs 1\/18\/27 to 2\/12\/27 \(pushed 2 wks\)\.$/.test(mg),
+      {phase: g0.phase, post: val('start-post'), line: mg}, '"… Post starts 11/16/26. … 1 hiatus moved with it, so Music now ends 12/25/26 (pulled 2 wks) and Titles now runs …"');
     await undo();
 
     // After Post: the bottom of the list from Post carries the same break.

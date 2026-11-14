@@ -1973,6 +1973,19 @@ done
 # buildendsby (audit AUD2-010, same item) is Build Around's "Production ends by" with Snap to Mon on: the LATEST MONDAY
 # whose wrap is on or before the date. Red on 2089aa5 at B0 (12/18/26: 8/10/26 wrapping 12/2/26 for 8/24/26 wrapping
 # 12/16/26) and B1 (12/17/27), the two targets just before the Christmas break; snap off stays to the day (S0, S1).
+# panelstale (audit AUD2-049, the Nov 2026 audit's item 3.2, 14 Nov 2026) is a tool panel left open while the calendar
+# changes under it: a date typed into Build Around or Shift's To a date stays through edits underneath and is the date
+# built / landed on (A1-A4, D1, D2); a new pin, the other edge and reopening refill it as before (A5-A7); a phase dated
+# while Shift is open with every phase ticked comes in ticked, so 1 wk later is still the whole-calendar move (B1-B3),
+# and a hand-picked set keeps it out (B4). Red on audit-2-2's build (894ae9f1) at A1-A4 D1 D2 B1-B3.
+# builddates (audit AUD2-068, same item) is Build Around placing a custom phase given by DATES: it keeps its number of
+# weekdays, so a Mon-Fri phase built before the pin is Mon-Fri ending the weekday before the next phase (B2), built after
+# it ends on a weekday (F2), and pinned itself "starts on" a Wednesday ends on a Tuesday and "ends by" lands on its date
+# (P1, P2). Red on 894ae9f1 at B2 (Wed-Sun), F2 (Tue-Sat), P1 (Wed-Sun), P2 (a Saturday start).
+# shiftbandline (audit AUD2-069, same item) is the Shift result line after a part move that carried an unlocked
+# all-phase hiatus (rule T2, kept): it says the hiatus moved and names each unticked phase whose dates it changed, in
+# the owner's pushed / pulled words, and the "stayed" list keeps only the rest (L1-L4; To a date's Go line G1; After X
+# P1); a part move that carries no hiatus reads word for word as before (N1). Red on 894ae9f1 at L1-L4, G1 and P1.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2211,6 +2224,9 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               buildaroundfresh:-:120 \
               buildcarry:buildcarry:600 \
               buildendsby:-:900 \
+              panelstale:-:400 \
+              builddates:-:600 \
+              shiftbandline:-:400 \
               paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \

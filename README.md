@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
+
+The November 2026 audit, item 3.2 (AUD2-049, AUD2-068, AUD2-069; each reproduced here before the fix). AUD2-047 and
+AUD2-048 were rejected by the owner and are untouched.
+
+- **A panel left open keeps the date you typed.** Build Around's date box, and Shift's To a date box, were refilled
+  from the calendar after any edit underneath (a sidebar field, the grid, Undo), so Build then built around the OLD
+  date: typed 9/7/26 for Production, changed Post's weeks, pressed Build, got 6/29/26. A typed (or picked) date now
+  stays until you pin another phase or pick another landing phase, switch starts / ends by, close the panel, or run the
+  tool. Each of those refills it from the calendar, as before.
+- **A phase dated while Shift is open is ticked when every phase is.** The ticks were fixed when the panel opened, so
+  a new phase came in unticked ("6 of 7 move") and 1 wk later quietly became a part move that left it, its notes and
+  the range behind. Now a panel with every phase ticked ticks it too ("7 of 7 move"); a set you picked by hand keeps it
+  unticked.
+- **Build Around keeps a Dates phase's weekdays.** A custom phase given by Dates, built before the pin, ended the
+  calendar day before the next phase (a Sunday) and kept its calendar span, so Mon 12/7/26–Fri 1/15/27 built before a
+  Monday became Wed 3/3/27–Sun 4/11/27; built after the pin it became Tue–Sat. It now keeps its number of weekdays
+  (Mon–Fri): before the pin it ends on the last weekday before the next phase (Mon 3/1/27–Fri 4/9/27), after it, or as
+  the pin, it ends that many weekdays after its start. No end lands on a weekend. Holidays and hiatuses don't shorten
+  it: a Dates phase is its two dates.
+- **Shift's result line says what a carried hiatus did.** Moving some phases carries an unlocked all-phase hiatus inside
+  their weeks (as ruled), and that hiatus also pauses the unticked phases running through it. The line said those
+  "stayed where they were". It now ends: "1 hiatus moved with it, so Music now ends 12/25/26 (pulled 2 wks) and Titles
+  now runs 1/18/27 to 2/12/27 (pushed 2 wks)", and the "stayed" list keeps only the phases that really stayed. A move
+  that carries no hiatus reads exactly as before.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `panelstale` (16 cases), `builddates` (9) and `shiftbandline` (10), red on item 2.2's build
+  (`894ae9f1`: panelstale A1-A4, D1, D2, B1-B3; builddates B2, F2, P1, P2; shiftbandline L1-L4, G1, P1) and green on this
+  one. `customunits` and `builtindates` re-expected for the new rule (a Dates phase built back from a Monday now ends Fri
+  2/26/27, not Sun 2/28/27; built forward, Fri 5/7/27, not Sun 5/9/27). The nearest legs green (listed in HANDOFF.md);
+  `npm run check` 42/42. Not yet through the full gate.
+
 ### Unreleased — Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
 
 The November 2026 audit, item 2.2 (AUD2-009, AUD2-010; both reproduced by a second agent, and again here before the
