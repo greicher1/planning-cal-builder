@@ -53,6 +53,13 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const monthOf = (t) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) }
+// TODAY is the user's LOCAL calendar day, expressed as that day's UTC midnight so it compares with every other date
+// here. ⛔ Never iso(Date.now()) or monthOf(Date.now()): those read the UTC date of the instant, which from 16:00
+// Pacific (19:00 Eastern) is TOMORROW and on a Tokyo or Auckland morning is YESTERDAY. That rang the wrong day as
+// today, a click on the ring entered it, and on a month's last afternoon an empty field opened on next month (the
+// second audit's AUD2-007, 13 Nov 2026; leg datetoday). The engine's own today (hdrDate, the save name) reads the
+// local date the same way.
+const todayUtc = () => { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) }
 
 const POP_W = 252
 const POP_H = 286
@@ -156,7 +163,7 @@ export function DatePop() {
     const inWin = win && v != null && mondayOf(v) >= win.first && mondayOf(v) <= win.last
     // Clamped to the phase's months: a Monday just before a mid-week start (Snap off) is the
     // phase's first week, and its month's grid shows it.
-    let base = monthOf(win && !inWin ? win.minMonth : (v ?? Date.now()))
+    let base = monthOf(win && !inWin ? win.minMonth : (v ?? todayUtc()))
     if (win) base = Math.min(Math.max(base, win.minMonth), win.maxMonth)
     setTarget(el)
     setValue(v)
@@ -254,7 +261,7 @@ export function DatePop() {
   const d0 = new Date(month)
   const y = d0.getUTCFullYear(), m = d0.getUTCMonth()
   const gridStart = mondayOf(month)
-  const todayIso = iso(Date.now())
+  const todayIso = iso(todayUtc())
   const selWeek = weekMode && value != null ? mondayOf(value) : null
   const hoverWeek = weekMode && hover != null ? mondayOf(hover) : null
   // The one day shown as picked when there is no band. On a Monday-only field it is the Monday the
