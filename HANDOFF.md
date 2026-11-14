@@ -4,6 +4,68 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 13 Nov 2026: AUDIT BATCH 2, ITEM 2.8 — THE EXCEL AND OUTLOOK KEYS ON NOTES: ENTER SAVES, ESC KEEPS WHAT WAS TYPED, A PICKED MONTH NOTE TAKES DELETE / ⌘C / ⌘X / ⌘V (AUD2-021, AUD2-040; the owner's decision D6 (a); built overnight on the owner's "finish all of them"). **COMMITTED LOCALLY on `audit-2-8` (cut from `audit-2-3`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.**
+- **What it was.** AUD2-040: in both note editors plain Enter added a line and Esc threw the note away (a NEW one too, with
+  no undo); since the keys line went (12 Nov) nothing said Tab or Ctrl/Cmd+Enter saved. AUD2-021: a picked month note
+  ignored Delete, Backspace, ⌘C, ⌘X and ⌘V (the waterfall's keys, WATERFALL-KEYS-PLAN.md, never got a month twin).
+- **As built** (`src/legacy/app.js`, nothing frozen, no save-format change, no id, no setting):
+  - **The editors' keys.** Waterfall: the document keydown listener after `closeWithoutSaving` (comment block "THE EXCEL
+    AND OUTLOOK KEYS"); month: the typed-note textarea listener at the end of `openMvNoteEditor`. Enter saves (only in the
+    text box: Enter on the Day list or a button is theirs); Shift+Enter or Alt+Enter inserts one line break
+    (`noteNewline`: `execCommand('insertText')`, so the box's own ⌘Z takes it back, else `setRangeText`; a month day note
+    stops at 3 lines; measured with trusted keys: Chrome on macOS inserts NOTHING for a real Alt+Enter, so it must be
+    ours); Tab and Ctrl/Cmd+Enter unchanged; nothing during an IME composition (`isComposing` / keyCode 229).
+  - **Esc** (`noteTextChanged`, `escBase`): saves when the box's text differs from `escBase` and is not empty; else
+    closes as before. `escBase` is what the box opened with, PLUS the key that opened it when typing opened it (both
+    typed-open paths set it), so a stray key then Esc leaves the note as it was (`textstyle` D5 holds that). ⛔ Not
+    `activeMvNote.initialText`: `writeActiveMvNote` compares a waterfall line with THAT to decide whether to write, so it
+    must stay what the editor opened with. The month holiday and automatic-note editors keep Enter-saves / Esc-cancels
+    (their hint says so; owner's 12 Nov "No, leave it").
+  - **Month picks** (block after the pick's scroll/resize listeners, "A picked month note takes Delete, ⌘C, ⌘X and ⌘V"):
+    Delete/Backspace in the pick's keydown → `mvNotesDelete` (day notes spliced from the end of each day's list; Waterfall
+    lines and linked notes through their own editor's Delete Note, opened and closed unseen, last on screen first; one
+    undo step: `pushUndoSnapshot` / `update()` / `pushUndoSnapshot` / `markDirty`). Holidays, automatic notes and bars
+    are not deletable (`mvDeletablePicks`), so the key is not taken. ⌘C/⌘X → `mvNotesCopy` in WF_CLIP_TYPE's shape
+    (`wfClipWrite`, `tsvCell`; items `{text, color?, fmt?, day}`; also kept in the shared `wfNoteClip`). ⌘V →
+    `mvNotesPaste` onto `mvPasteDay`, the day under the last click (capture `click` with the pick's slop, and
+    `contextmenu`; `mvDayUnder` → `dayAtPoint` inside the visible `.mv-body`), only while that day is on screen
+    (`mvDayOnScreen`); a date naming the item's old day is re-dated (`mvRetimeNote`), 3 lines max, colour and `fmt`
+    cleaned (`mvCleanClipItem`, which takes a waterfall item's `own`); pasted notes are picked. Focus must be on
+    `<body>` (`mvClipReady`), or for ⌘V inside the open day menu (`mvPasteTarget`), which the paste closes with its own
+    Escape (`mvCloseDayMenu`). beforecopy/beforecut/beforepaste mirror the waterfall's insurance.
+  - **Text:** placeholders "Note text (Shift+Enter for a new line)" (waterfall, month line) and "Note text — Shift+Enter
+    for a new line, up to 3" (month day note); the Help's editor-keys sentence and the month order paragraph (whose "A
+    click that doesn't move still opens the note" was stale since R1) are rewritten.
+- **Defaults and choices applied** (none asked; owner asleep): D6 (a) as written; ⌘V pastes onto the day last clicked
+  (D6's default); no new right-click item. Chosen here, each an open question for the owner: (1) Esc keeps CHANGED text
+  (the orchestrator's pick of the finding's "keep it (or ask once)"); an unchanged or EMPTIED box on Esc closes without
+  saving (so Esc can never delete a note); a colour picked alone is dropped by Esc. (2) The key that opened an editor
+  counts as unchanged for Esc. (3) Delete leaves a picked holiday or automatic note (they have Hide, not Delete Note);
+  the alternative was Hide (the waterfall's Delete hides them from its view). (4) Paste re-dates a date naming the note's
+  old day (the month drag's rule) and lands as a month-only note with no place (top/under/bottom); text from elsewhere is
+  ONE note of up to 3 lines, more joined into the third. (5) A note shown on several days (one wfnote pick) is copied
+  once but Delete takes every outlined copy. (6) ⌘V also works with the day menu open (it closes it). (7) The holiday /
+  automatic-note editors keep Esc = cancel.
+- **Proof.** New leg `t/mvkeys.js` (`g=pick` 18, `g=enter` 16; `g=mint` writes `tests/fixtures/mvkeys.sptcal`, new,
+  synthetic) and `mvkeysreal.mjs` (8 cases, TRUSTED keys and clipboard over CDP, port 8238), both in `gate.sh` (the
+  audit-fix loop, then a block of its own). Before the fix (the build saved as `tests/harness/pre-2-8.html`, ignored):
+  red P1 P3 P4 P5 P6 P8 P9 P10 P12 P13 P15, M1 M3 M4 M5 M9 W1 W2 W3 W5 W6; mvkeysreal 0/8. After: 34/34, 8/8. Nearest legs
+  green on the FINAL build (`dist/index.html` sha256 `843e45b2…`, rebuilt byte-identical): wfkeys 84/84, wfkeysreal 6/6,
+  wfnoteeditor 14/14 (re-expected, below), textstyle 52/52, mvtextstyle LIVE 23/23, mvbarsize 13/13, wfnotelines ×6
+  29/29, autonotefollow ×4 24/24, mvnotes 30/30, noteviews 15/15, phasemonth 21/21, wfnotecolors 14/14, mvmenu 81/81,
+  wfmenu 39/39, undokeys 11/11; on the build one step earlier (before `escBase`, textstyle D5 then red) also
+  autonoterename 24/24, autonoteview 18/18, holidayrename 14/14, monthnotes 8/8, phaselink 14/14, phaselook 10/10,
+  phasenotes 21/21, phasekeys 18/18, hiatussidebar 16/16, hdrrow 40/40, regionlock 14/14, mvtextstyle RESTORE 6/6,
+  mvdragcarry 15/15, autonotekinds 16/16. `npm run check` 42/42. **Re-expected:** `wfnoteeditor` E4 typed in the box and
+  pressed Esc expecting nothing saved (and the H cases compare with the start state); it now puts the box back as it
+  opened before each Esc. Not run: the full gate; not tried by hand.
+- ⚠️ **Incident, for the session on `audit-2-8`'s neighbour `audit-2-9`:** the scratchpad folder is SHARED by the
+  overnight sessions, and another session overwrote the leg-runner script I had put there with its own (hard-wired to
+  `audit-2-9`, port 8831). One background run of mine then ran a few of my legs (textstyle, wfnoteeditor, mvtextstyle at
+  most) inside `audit-2-9/tests/harness` on port 8831 for a few minutes (≈21:25–21:31, 13 Nov) before I stopped it. Any
+  `audit-2-9` leg that "produced no result" or lost its .json in that window should be re-run. Keep scripts in a
+  uniquely named subfolder.
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 2, ITEM 2.3 — A NOTES CELL'S OTHER LINES KEEP THEIR OWN DAY: THE DAY PICKER, A RENAME WITH AN ADDED LINE, CUT AND PASTE, THE DRAG (AUD2-011, AUD2-014, AUD2-015; their approved defaults, built overnight on the owner's "finish all of them"). **COMMITTED LOCALLY on `audit-2-3` (cut from `audit-1-1`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.**
 - **What it was.** A waterfall Notes cell shows the user's own lines plus, possibly, automatic notes' lines, holidays',
   month notes' ("Show in waterfall") and linked notes' ("Stays with"). The editor and keys treated them as typed text:

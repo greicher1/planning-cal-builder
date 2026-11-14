@@ -29,6 +29,48 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Excel and Outlook keys on notes: Enter saves, Esc keeps what you typed, and a picked month note takes Delete, Copy, Cut and Paste (13 Nov 2026)
+
+The November audit's AUD2-021 and AUD2-040 (Batch 2 item 2.8), built to the owner's decision D6 (a): *"Enter saves a
+note, Shift+Enter or Alt+Enter starts a new line; a picked month note takes Delete, Copy, Cut and Paste. No new
+right-click items."*
+
+- **Enter saves a note, in both note editors (AUD2-040).** Plain Enter used to add a line, and since the keys line went
+  (12 Nov 2026) nothing said that Tab or Ctrl/Cmd+Enter saved. **Now** Enter saves and closes the editor, as the app's
+  holiday, automatic-note and heading editors already did; **Shift+Enter** or **Alt+Enter** starts a new line (a month
+  day note still holds three). Tab and Ctrl/Cmd+Enter still save; an input method's Enter (choosing a word) never does;
+  Enter on the editor's Day list or a button is still theirs. The placeholders say "Shift+Enter for a new line".
+- **Esc keeps what you typed (AUD2-040).** Esc threw away whatever had been typed, a new note included, and Undo could
+  not bring it back. **Now** Esc saves a note whose text changed (the finding's "keep the typed text"); on a note left as
+  it opened, or one whose box was emptied, Esc just closes it and writes nothing, so Esc can never delete a note. The
+  key that opened the editor (typing on a picked or highlighted note adds it at the end) counts as what it opened with,
+  so a stray key and Esc still leave the note as it was; type on, and Esc keeps it all. A colour picked with no text
+  changed is still dropped by Esc. The month view's holiday and automatic-note editors keep
+  "Enter to save · Esc to cancel", as their hint says (the owner's ruling of 12 Nov 2026 left those lines).
+- **A picked month note takes the waterfall's keys (AUD2-021).** It ignored Delete and the clipboard, so a note was
+  deleted by double-click and Delete Note and copied only by typing it again. **Now**, with a note picked (one click):
+  **Delete** or **Backspace** does what its editor's Delete Note does (a day's own note, a Waterfall line, a note that
+  stays with a phase), several picked notes in one undo step; a holiday and an automatic note stay (their editors have
+  Hide), as a bar does. **⌘C / ⌘X** copy or cut the notes, as plain text for Excel or an email plus SPTCal's own data
+  with each note's colour and month style. **⌘V puts them on the day you clicked last** (a note, a bar, a "+" or the
+  day's number; with the day menu open there, the paste closes it): each a new note of that day with its colour and
+  style, and a date in it naming its old day becomes the new day's, as the month drag does. Text from anywhere else
+  pastes as one note. The same data crosses views: a month note pasted into the Waterfall's Notes column brings its
+  colour, and a copied Notes cell pastes here as its typed text. **No right-click item was added** (D6 (a)). The keys
+  are the browser's again whenever an editor, a field or a dialog has focus, or the day clicked is not on screen.
+- **Help:** the note-editor keys sentence and the month view's note paragraph are rewritten for the new keys (and the
+  stale "A click that doesn't move still opens the note": a click picks it, a double-click opens it).
+- **Save format:** no key added, renamed or removed; no id; nothing frozen touched. The clipboard's SPTCal data gains a
+  month note's `fmt` and `day` (session data, never saved).
+- **Proof.** New leg `mvkeys` (in `gate.sh`, `g=pick` 18 checks and `g=enter` 16): on the build before the fix P1, P3,
+  P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all 34 green after; the
+  controls (P0, P11, P14, M6, M7, M8, W4) green on both. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
+  `gate.sh`): 0/8 before the fix, 8/8 after; it also showed a real Alt+Enter inserting nothing natively, which is why
+  the editors insert the line themselves. New fixture `tests/fixtures/mvkeys.sptcal` (synthetic, minted by `mvkeys
+  g=mint`). Re-expected: `wfnoteeditor` E4, which typed in the box and pressed Esc expecting nothing saved; it now puts
+  the box back as it opened before its Esc. Nearest legs green (HANDOFF lists them); `npm run check`. Not run: the full
+  gate (one run for the audit batch); not tried by hand in a browser.
+
 ### Unreleased — editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
 
 The November audit's AUD2-011, AUD2-014 and AUD2-015 (Batch 2 item 2.3), fixed with their approved defaults. A Notes
