@@ -2295,7 +2295,9 @@ done
 # Cut and Paste leaves month, automatic and holiday lines out of what lands (C1, C2, C4; C3 the typed-only control);
 # g=drag the drag moves a month note itself (R1, one Undo R2), re-dates the start's line into its new week (R3), and
 # leaves a holiday where it is (R4, R5). On the build before the fix D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3,
-# R4 and R5 were red; the controls (D3, L0, L4, M2, M4, C3, R2) green on both.
+# R4 and R5 were red; the controls (D3, L0, L4, M2, M4, C3, R2) green on both. The review (14 Nov 2026) added g=drag R6
+# (a block dragged over itself lands its note BESIDE a holiday that stays, which stays shown), R6b and R7 (a holiday-only
+# cell in the block: no question); R6 and R7 red on the reviewed build.
 # mvkeys (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.8: AUD2-021, AUD2-040, the owner's decision D6 (a)):
 # the Excel and Outlook keys on notes. g=pick a picked month note takes Delete and Backspace (one Undo), ⌘C (its colour
 # and month style travel as SPTCal's own data), ⌘X and ⌘V onto the day last clicked (a date naming its old day moves
@@ -2306,6 +2308,8 @@ done
 # opening Enter save nothing, Tab and Ctrl/Cmd+Enter still save, and a stray key that opened an editor then Esc leaves
 # the note as it was (M9, W6). On the build before the fix P1, P3-P6, P8-P10, P12, P13 (its ⌘C half) and P15, and M1,
 # M3, M4, M5, M9, W1, W2, W3, W5 (its save) and W6 were red; the controls (P0, P11, P14, M6, M7, M8, W4) green on both.
+# The review (14 Nov 2026) added P16-P18: a holiday or automatic note among the picks stays out of ⌘C / ⌘X (only typed
+# notes travel; a pick of only those copies nothing and says so); P16, P17, P18 red on the reviewed build.
 # mvkeysreal.mjs, after this loop, is the same with TRUSTED keys.
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \

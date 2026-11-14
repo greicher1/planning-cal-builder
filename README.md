@@ -54,17 +54,24 @@ right-click items."*
   Hide), as a bar does. **⌘C / ⌘X** copy or cut the notes, as plain text for Excel or an email plus SPTCal's own data
   with each note's colour and month style. **⌘V puts them on the day you clicked last** (a note, a bar, a "+" or the
   day's number; with the day menu open there, the paste closes it): each a new note of that day with its colour and
-  style, and a date in it naming its old day becomes the new day's, as the month drag does. Text from anywhere else
+  style, and a date in it naming its old day becomes the new day's, as the month drag does. **A holiday or an automatic
+  note keeps its own day** (the waterfall's rule, item 2.3, AUD2-014): picked with typed notes it stays out of the copy
+  or cut, and a pick of nothing else copies nothing, the grid saying "Holidays and automatic notes stay on their own
+  dates" (repaired on review, 14 Nov 2026: a picked holiday went on the clipboard and the paste re-dated it into a new
+  day note, "Independence Day (Observed) 7/15/26"). Text from anywhere else
   pastes as one note. The same data crosses views: a month note pasted into the Waterfall's Notes column brings its
   colour, and a copied Notes cell pastes here as its typed text. **No right-click item was added** (D6 (a)). The keys
   are the browser's again whenever an editor, a field or a dialog has focus, or the day clicked is not on screen.
 - **Help:** the note-editor keys sentence and the month view's note paragraph are rewritten for the new keys (and the
-  stale "A click that doesn't move still opens the note": a click picks it, a double-click opens it).
+  stale "A click that doesn't move still opens the note": a click picks it, a double-click opens it). Its holiday
+  sentence now says what is true: Delete leaves holidays and automatic notes, and a copy or cut leaves them out.
 - **Save format:** no key added, renamed or removed; no id; nothing frozen touched. The clipboard's SPTCal data gains a
   month note's `fmt` and `day` (session data, never saved).
-- **Proof.** New leg `mvkeys` (in `gate.sh`, `g=pick` 18 checks and `g=enter` 16): on the build before the fix P1, P3,
-  P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all 34 green after; the
-  controls (P0, P11, P14, M6, M7, M8, W4) green on both. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
+- **Proof.** New leg `mvkeys` (in `gate.sh`, `g=pick` 22 checks and `g=enter` 16): on the build before the fix P1, P3,
+  P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all green after; the
+  controls (P0, P11, P14, M6, M7, M8, W4) green on both. The review's repair (14 Nov 2026) added P16 (the reported cut
+  and paste with a holiday picked), P16b, P17 (a holiday alone) and P18 (an automatic note alone): P16, P17 and P18 red
+  on the reviewed build, 22/22 and 16/16 after. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
   `gate.sh`): 0/8 before the fix, 8/8 after; it also showed a real Alt+Enter inserting nothing natively, which is why
   the editors insert the line themselves. New fixture `tests/fixtures/mvkeys.sptcal` (synthetic, minted by `mvkeys
   g=mint`). Re-expected: `wfnoteeditor` E4, which typed in the box and pressed Esc expecting nothing saved; it now puts
@@ -98,11 +105,14 @@ home, and the waterfall's editor and keys treated them as your typed text:
   that is only such lines writes nothing and leaves the week as it was. A **drag** moves a month note itself to the same
   weekday of the new week, never as a copy; a holiday stays where it is ("Holidays stay on their own dates"; a cell that
   is only a holiday does not move); an automatic note's line lands dated in its new week, as the month view's drag has
-  always done.
+  always done. A block dragged over its own place lands a note on a cell whose holiday stays: the note lands **beside**
+  the holiday, which stays shown, and a holiday-only cell of the block is not asked about (repaired on review, 14 Nov
+  2026: the landing hid the holiday from the waterfall while the grid said it stayed).
 - **Save format:** no key added, renamed or removed; nothing frozen touched (notesForWaterfallDate's N1/N2 untouched).
   The clipboard's own SPTCal data gains an `own` text (session data, never saved).
 - **Proof.** New leg `wfnotelines` (in `gate.sh`, six runs, `g=day|link|link2|month|cut|drag`): 15 checks red on the build
-  before the fix, 29/29 green after, the controls green on both. The audit's own repro legs (`audit-r3a-mwf`,
+  before the fix, 29/29 green after, the controls green on both. The review's repair (14 Nov 2026) added `g=drag` R6 (the
+  reported block drag), R6b and R7 (a holiday-only cell in the block): R6 and R7 red on the reviewed build, 32/32 after. The audit's own repro legs (`audit-r3a-mwf`,
   `audit-r3a-link`) on this build: every case reads once, on its own day, in the waterfall and the month view. The
   nearest legs green (HANDOFF lists them), `base` identical to its baseline, `npm run check` 42/42. Re-expected:
   `wfkeys` G17, a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6 (it read 6/29/26 there). Not run:
