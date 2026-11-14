@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the date picker's "today" is your own day, in every time zone (13 Nov 2026)
+
+The November audit's AUD2-007 (Batch 1, item 1.5, P1). The pop-out date picker worked out "today" as the date in UTC
+rather than on the user's own clock. So every afternoon from 16:00 Pacific (19:00 Eastern; an hour later in summer) it
+ringed TOMORROW as today, and a click on the ring entered tomorrow's date. On a month's last afternoon an empty date
+field opened on NEXT month (on New Year's Eve, on next January). In Tokyo and Auckland it ringed yesterday every morning.
+
+- **Now** "today" is the user's local calendar day, for both the ring and the month an empty field opens on
+  (`todayUtc()` in `src/chrome/DatePop.jsx`), as the header date and the save name already were.
+- **Unchanged:** a field that already holds a date opens on that date's month, as before. No stored, saved, printed or
+  exported date was ever affected, and none moves. Nothing frozen was touched, and the save format did not change.
+- **Proof.**
+  - New leg `datetoday` (in `gate.sh`, four runs, each under its own `TZ` with the local clock faked): Los Angeles 17:30
+    on 30 Nov, Tokyo 08:00 on 1 Dec, New York 20:30 on 31 Dec, and Los Angeles at noon as the control. Before the fix
+    the picker opened on the wrong month, ringed the wrong day and a click on the ring wrote it, in the first three; the
+    control was green. Now 6/6 in all four.
+  - The audit's own repro (`audit-vtz-journey`, kept with the audit): its picker check red in Los Angeles and Tokyo
+    before, green after in Los Angeles, Tokyo and Auckland.
+  - Related legs on this build, run on a real Los Angeles evening: `datepick` 17/17, `phiatuspick` 12/12, `snapbox`
+    12/12, `endsdate` 17/17, `prodends` 14/14.
+  - Tried in the browser at 18:18 Pacific on 13 Nov (already the 14th in UTC): an empty Starts box rings Fri 13 Nov.
+    The owner was handed this build on localhost and said "Yes, finish it".
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
 ### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
 
 The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":

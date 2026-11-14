@@ -4,9 +4,45 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.5 — THE DATE PICKER'S "TODAY" IS THE USER'S LOCAL DAY (AUD2-007, P1, no decision needed). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/recursing-cray-993c31` (worktree `.claude/worktrees/recursing-cray-993c31`), a fast-forward of `audit-1-1` at `fa4e5d9`, so it holds items 1.2, 1.1 and 1.5 in that order. The owner was handed the build on localhost and said *"Yes, finish it"*. Tracker card `audit-1-5`
+- **The batch now:** 1.1, 1.2 and 1.5 built (1.5 on this branch, on top of `audit-1-1`, so merging it into `audit-1-1` is
+  a fast-forward). **1.3** (AUD2-013) was being built in its own session at the same time; **1.4** (AUD2-006) waits for
+  the owner's **D7**. Then the ONE full gate and one push on the owner's yes.
+- **What it was:** `src/chrome/DatePop.jsx` took today as `iso(Date.now())` and an empty field's opening month as
+  `monthOf(Date.now())`, the UTC date of the instant. From 16:00 Pacific / 19:00 Eastern (17:00 / 20:00 in summer) that
+  is tomorrow: the ring sat on it, a click on the ring entered it, and on a month's last afternoon an empty field opened
+  on next month (on 31 Dec, on January). Tokyo and Auckland mornings rang yesterday. No stored, saved, printed or exported
+  date was affected (the audit checked all of them in six zones), only the picker.
+- **As built:** `todayUtc()` beside the file's other date helpers: the LOCAL calendar day as that day's UTC midnight
+  (`Date.UTC(getFullYear(), getMonth(), getDate())`), used for both the ring and the opening month. Every other date in
+  the picker is already a UTC midnight, so they compare. ⛔ Never `Date.now()` for "today" anywhere a date is a UTC
+  midnight. The engine's own today (the header date, the save name) reads local getters already; DatePop was the only
+  slip the audit found. A field holding a date still opens on its own month. Nothing frozen, no save-format change.
+- **New leg `datetoday`** (`gate.sh`, its own block after the batch's audit-fix loop, four runs). A page cannot set its
+  time zone, so each run is launched under its own `TZ` (Chrome inherits it) and the leg fakes the LOCAL wall clock from
+  `?clock=YYYY-MM-DDTHH:MM`, before the app loads (the audit repro's shim). `?tz=` names the zone the run expects: Z0
+  fails a run whose `TZ` did not reach Chrome, which would otherwise test this machine's zone. Today's date is read off
+  the query, never computed by the code under test. Runs: `la` Los Angeles 17:30 on 30 Nov 2026, `tokyo` 08:00 on 1 Dec,
+  `ny` New York 20:30 on 31 Dec, `noon` Los Angeles 12:00 (the control). Checks: an empty hiatus start and an empty
+  custom-holiday date open on the local month with only the local day ringed (T1, T2), a click on the ring writes the
+  local day (T3), a field holding a date opens on its month (T4).
+  - ⚠️ To run it alone: `TZ=America/Los_Angeles HARNESS_PAGE=/dist/index.html HARNESS_QUERY="tz=America/Los_Angeles&clock=2026-11-30T17:30" ./run.sh datetoday 150`.
+- **Proof** (build sha256 `9bdff6a1…`, private ports 8693 and 8695):
+  - `datetoday`: T1, T2, T3 red in `la`, `tokyo` and `ny` on the build before the fix (`83bdd7ef…`, item 1.1's final),
+    and T4's ring where today was in view; `noon` green. After: 6/6 in all four, and 24/24 through the `gate.sh` block
+    extracted and run alone.
+  - The audit's repro `audit-vtz-journey` (copied in for the runs, removed; it lives in the audit folder): P1 red in Los
+    Angeles and Tokyo before, green after in Los Angeles, Tokyo and Auckland. Its H1 fails in Tokyo and Auckland on both
+    builds: the leg expects a zero-padded `12.01.26` and the header correctly reads `12.1.26`. A leg artifact, not a bug.
+  - Related legs on the fixed build, run at a real Los Angeles evening hour (after 18:00 PST, already the next day in
+    UTC): `datepick` 17/17, `phiatuspick` 12/12, `snapbox` 12/12, `endsdate` 17/17, `prodends` 14/14.
+  - Tried in the Browser pane with real clicks at 18:18 PST on 13 Nov (UTC 14 Nov): Writer's Rm's empty Starts box opens
+    on November with Fri 13 ringed.
+  - `npm run check` 42/42 on the final build. Not run: the full gate (the batch's, at the end).
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`), cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`, so it holds both items. The owner tried it on localhost and said *"Yes, finish it"*. Tracker card `audit-typed-notes-follow-calendar`
 - **The batch, where it stands:** 1.1 and 1.2 built (this branch). **1.3** (AUD2-013, crafted files) and **1.5** (AUD2-007,
-  the date picker's "today") need no decision and are not started. **1.4** (AUD2-006, the rollback note) waits for the
+  the date picker's "today") need no decision; 1.5 is now built too (the entry above). **1.4** (AUD2-006, the rollback note) waits for the
   owner's **D7**. Then ONE full gate for the batch and one push on the owner's yes (PLAYBOOK §2). Build each next item on
   this branch (or a branch cut from it), so the batch stays one line.
   - ⚠️ A second session, "Audit fixes: core functionality", rebuilt item 1.2 in worktree `audit-batch-1` (its commit

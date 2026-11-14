@@ -2307,6 +2307,36 @@ sys.exit(1 if bad else 0)
 PYRS
 done
 
+# ---- datetoday: the date picker's "today" is the user's LOCAL day, in four time zones ------------------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-007, Batch 1 item 1.5). DatePop.jsx took today as the UTC date of the
+# instant, so from 16:00 Pacific (19:00 Eastern) it rang TOMORROW, a click on the ring entered it, and on a month's last
+# afternoon an empty date field opened on next month; Tokyo and Auckland mornings saw yesterday. Each run is its own page
+# load under its own TZ (a page cannot set its zone; Chrome inherits it), with the LOCAL wall clock faked by the leg from
+# the query. `tz=` names the zone the run expects, so a run whose TZ did not reach Chrome fails Z0 rather than testing
+# this machine's zone. la: Los Angeles 17:30 on Mon 30 Nov 2026 (a month's last afternoon); tokyo: Tokyo 08:00 on
+# Tue 1 Dec; ny: New York 20:30 on Thu 31 Dec (the year's last evening); noon: Los Angeles at 12:00, the control, where
+# the UTC and local dates agree. On the build before the fix T1-T3 were red in la, tokyo and ny, and noon was green.
+for DTSPEC in "la:America/Los_Angeles:2026-11-30T17:30" "tokyo:Asia/Tokyo:2026-12-01T08:00" \
+              "ny:America/New_York:2026-12-31T20:30" "noon:America/Los_Angeles:2026-11-30T12:00"; do
+  DTRUN="${DTSPEC%%:*}"; DTREST="${DTSPEC#*:}"; DTTZ="${DTREST%%:*}"; DTCLOCK="${DTREST#*:}"
+  rm -f "$HERE/datetoday.json"
+  ( export TZ="$DTTZ"
+    HARNESS_PAGE="$PAGE" HARNESS_QUERY="tz=$DTTZ&clock=$DTCLOCK" "$HERE/run.sh" datetoday 150 >/dev/null 2>&1 )
+  python3 - "$HERE/datetoday.json" "datetoday ($DTRUN)" <<'PYDT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYDT
+done
+
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
 # ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
 # by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut
