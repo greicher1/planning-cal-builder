@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
+
+The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced here before the fix).
+
+- **A holiday that comes into the calendar follows your choice.** With every holiday shown in the waterfall, rolling
+  the season forward a year (Shift, To a date or By weeks 52) or making the plan longer brought the new year's holidays
+  in as month-view-only, so Independence Day, Labor Day and Thanksgiving 2027 were missing from the waterfall, Excel and
+  the PDF while 2026's still showed. Now, while every holiday in the calendar is shown in a view, a holiday that comes
+  in is shown there too. Untick one and new ones come in as before. Nothing new is saved: each newcomer gets the same
+  choice its own tick gives it, and Undo takes it back with the move.
+- **Shift's line says "working weeks" and names the breaks it left behind.** Shift counts working weeks and steps over
+  locked hiatuses (the 5 Nov 2026 ruling, unchanged), so a season moved to Writer's Room 1/4/27 read "Shifted 49 weeks
+  later" and a locked summer break stayed in 2026 with nothing said. It now reads "Shifted 49 working weeks later. 5
+  locked hiatuses held. Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now. …"
+  "Working" appears only when a phase stepped over a held break; a break is named only when a moved phase ran through
+  it before and no phase runs through it now. How a new hiatus starts (locked) is unchanged.
+- **Typed headings, their styles, column widths and hidden Notes columns move with a whole-year move.** They belong to
+  their year's columns, and a shift moved only dates, so after By weeks 52 the 2027 columns (now Writer's Room to Post)
+  read last year's "POST" and the 2026 heading's bold red style and width were left on a year that was gone. Now, when
+  moving every phase leaves each year's columns exactly as they were, just a whole number of years later or earlier,
+  all of them move by that many years. Any other move that changes the years leaves them, and the line says so: "The
+  column headings, column widths and hidden Notes columns you set stayed on 2026 and 2027."
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `seasonroll` (17 cases, on `v1.13.0-saved`) and `yearroll` (9), red on item 3.2's build
+  (`ef873c6d`: seasonroll H1-H4, R1, L1-L3; yearroll K1, K2, K5) and green on this one. `shiftheld` re-expected at S4 for
+  the new wording ("Shifted 4 working weeks earlier."). The nearest legs green (listed in HANDOFF.md), and the gate's
+  base section by hand; `npm run check` 42/42. Not yet through the full gate.
+
 ### Unreleased — The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
 
 The November 2026 audit, item 3.2 (AUD2-049, AUD2-068, AUD2-069; each reproduced here before the fix). AUD2-047 and

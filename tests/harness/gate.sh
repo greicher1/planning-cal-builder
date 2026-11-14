@@ -1986,6 +1986,16 @@ done
 # all-phase hiatus (rule T2, kept): it says the hiatus moved and names each unticked phase whose dates it changed, in
 # the owner's pushed / pulled words, and the "stayed" list keeps only the rest (L1-L4; To a date's Go line G1; After X
 # P1); a part move that carries no hiatus reads word for word as before (N1). Red on 894ae9f1 at L1-L4, G1 and P1.
+# seasonroll (audit AUD2-050, AUD2-051, the Nov 2026 audit's item 3.3, 14 Nov 2026) is a season rolled forward a year
+# (Shift, To a date Writer's Rm 1/4/27, and By weeks 52) with a locked summer break the user added: with every holiday
+# shown in the waterfall the new year's holidays come in shown (H1-H3, the Holidays list ticked, one Undo exact, Redo),
+# and so do a longer plan's (H4, U4); with one unticked, or none shown, nothing is written (N1, N2). The line says
+# "working weeks" (L1, L3; "weeks" when nothing stepped, L4) and names the held breaks the moved phases left (L2).
+# Red on audit-3-2's build (ef873c6d) at H1-H4, R1, L1-L3. On v1.13.0-saved.sptcal.
+# yearroll (audit AUD2-052, same item) is typed headings, a heading style, a dragged width and a hidden Notes column
+# against a whole-calendar move: By weeks 52 moves all of them a year with their columns (K1, K2) and back (K4); By
+# weeks 40, which changes the years without a whole-year move, leaves them and the line says so (K5). Red on ef873c6d
+# at K1, K2, K5.
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2227,6 +2237,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               panelstale:-:400 \
               builddates:-:600 \
               shiftbandline:-:400 \
+              seasonroll:v1.13.0-saved:400 \
+              yearroll:-:400 \
               paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \

@@ -4,6 +4,60 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026: ROLLING A SEASON FORWARD A YEAR: NEW HOLIDAYS FOLLOW THE CALENDAR'S CHOICE, SHIFT SAYS "WORKING WEEKS" AND NAMES THE BREAKS IT LEFT, YEAR-KEYED HEADINGS AND WIDTHS MOVE WITH A WHOLE-YEAR MOVE (audit AUD2-050, AUD2-051, AUD2-052). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-3` (worktree `.claude/worktrees/audit-3-3`, cut from `audit-3-2` at `f362ebb`, so it carries items 2.2 and 3.2; `node_modules` is a clone copy). The November 2026 audit's item 3.3, owner-approved on the feature tracker.
+- **AUD2-050, holidays:** `followHolidayViews(sch)`, called by `update()` between `computeSchedule` and `render()`. While
+  every holiday the calendar held a moment ago (`holidayIdsSeen`, session only) is shown in a view, a holiday that
+  enters the calendar gets `holidayView[hid][view] = true`, the entry its own tick writes. NO new stored value. Never
+  over a choice the newcomer carries, and only where it would not show anyway, so an untouched calendar never gains an
+  entry (the month view shows all by default). Under `suppressDirty` (every restore, Undo / Redo, New, Load, scenario
+  switch, the scenario probe) it only REBASES. A calendar with no holidays for a moment keeps the last set.
+- **AUD2-051, the Shift line:** `describeShift(res, tail, before)`: "Shifted 49 WORKING weeks later." whenever
+  `res.stepped` is non-empty (else "weeks", as before), and `heldLeftText` names each held band (`res.heldBands`, new
+  from `shiftCalendarDates`: locked, or outside a part move's windows, never the ripple's own) that some phase ran
+  through before the move (`phaseRunsNow()`, now taken before EVERY Shift form move) and none runs through after:
+  "Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now." Shift's step-over (5 Nov
+  2026 ruling) and the locked default of a hiatus added from the sidebar are untouched. The toolbar arrows' readout is
+  unchanged.
+- **AUD2-052, year-keyed stores:** a WHOLE-calendar move (`!part && !fromIso && !except && !carryOnly`: the Shift form
+  with every phase ticked, the toolbar arrows) with any `y<year>:` key in `colWidths`, `colWidthsAlt`,
+  `headerRowLabels`, `headerRowSplits`, `textStyle.heading` or `hiddenNotesCols` measures the waterfall's year blocks
+  before and after (`yearBlockShape`: frozen `computeSchedule` / `computeYearBlocks` / `computeBlockLayout`, called
+  read-only, as `simLaneMovedYears` does; `colWidthsAlt` on the other layout's own blocks). Every block a whole number of
+  years on with the same phases in the same columns (`yearShapeDelta`) moves the keys on the old years by that many
+  (`moveYearKeys`; a moved key wins over a dormant key on its new year), then one more `update()`. Any other whole move
+  that changes the years leaves them and returns `yearKeysStayed`: "The column headings, column widths and hidden Notes
+  columns you set stayed on 2026 and 2027." `gridStintSwaps` keeps its year (E5). ⚠️ In Single Column mode the one
+  block is keyed by the FIRST week's year, so a whole move that carries the first week across New Year now re-keys too
+  (the same rule; no leg covers it).
+- **Defaults applied:** AUD2-050's own default ("yes": when every holiday is shown in a view, holidays that enter later
+  are shown there too; the finding's question "Should Toggle all set a default for holidays that enter the calendar
+  later?" was answered with its recommendation, chosen for the owner). AUD2-051's ("keep Shift as ruled; the result
+  line names the breaks that stayed and says working weeks; no change to how a new hiatus starts"). AUD2-052's, as the
+  item gave it: re-key on a whole-year move, otherwise say so in the line (the finding's own text says "accept and
+  document" only). D1–D8 do not touch this item. **Chosen here** (also in the structured result): (1) no new key: the
+  finding's "store a per-view default beside holidayView" would be a new saved value, so the rule acts at the moment a
+  holiday arrives instead; (2) "shown" only: a view whose holidays are ALL HIDDEN does not hide newcomers (the month
+  view's mirror case), as the default names "shown"; (3) a newcomer that already carries a choice (it was in the
+  calendar before, ticked or unticked) keeps it; (4) "working" is said only when a phase stepped over a held break;
+  (5) a break is named only when a moved phase ran through it before and none does after, so the far-off winter breaks
+  are not listed (the 2026 Christmas break IS named on a year roll: the new season's own Christmas break is a different
+  row); (6) the year re-key needs the SAME phases in the same columns in every block, so a move that only changes some
+  columns' contents re-keys nothing; (7) the line says nothing when the keys moved, or when the years did not change.
+- **Proof (build `a9ace495…` sha1):** new legs `seasonroll` 17/17 (on `v1.13.0-saved`) and `yearroll` 9/9, in `gate.sh`'s
+  audit-fix list, red on item 3.2's build `ef873c6d` (seasonroll H1 H2 H3 H4 R1 L1 L2 L3; yearroll K1 K2 K5).
+  ⚠️ **Re-expected:** `shiftheld` S4 now reads "Shifted 4 working weeks earlier." (the approved wording): 13/13. Green:
+  `anchorside` 39, `shiftbandline` 10, `panelstale` 16, `paneldrag` 9, `stalebandkey` 9, `phasearrows` 26,
+  `phasearrowsripple` 10, `hdrrow` 40, `holidayenable` 8 + 2, `calrange` 18, `rowheight` 7, `snaptools` 14, `overrides`
+  20, `hidewf` 19, `colsreset` 8, `colswapcache` 9, `buildaround` 36, `buildcarry` 17, `wfnoteeditor` 14,
+  `autonoteview` 18, `hdrcontrols` 12, `mvmenu` 81, `notescols` 49, `simpostbeside` 19, `mvdragcarry` 15,
+  `rebuildticks` 20, `textstyle` 52, `lastedited` 22, `seasons` 15, `autonotekinds` 16, `hiatusripple` 19; gate.sh's
+  base section by hand (grid identical, waterfall PDF identical apart from the date stamp, Excel parts identical);
+  `npm run check` 42/42. No full gate.
+- **Not verified:** Single Column mode's re-key (above); `colWidthsAlt` re-keyed on the other layout (no leg); a
+  dormant key colliding with a moved one; Build Around (not a whole-calendar move: untouched); the region changing
+  with every holiday shown (the new region's holidays come in shown, by the same rule: reasoned, not run); nothing
+  tried in a real browser window.
+
 ### 🩹 14 Nov 2026: THE MOVING TOOLS' LEFTOVERS: OPEN PANELS KEEP A TYPED DATE AND TICK NEW PHASES, DATES PHASES KEEP THEIR WEEKDAYS, SHIFT NAMES WHAT A CARRIED HIATUS MOVED (audit AUD2-049, AUD2-068, AUD2-069). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-2` (worktree `.claude/worktrees/audit-3-2`, cut from `audit-2-2` at `dd69b01`, so it carries item 2.2; `node_modules` is a clone copy, not a symlink). The November 2026 audit's item 3.2, owner-approved on the feature tracker. ⛔ AUD2-047 and AUD2-048 were REJECTED by the owner: untouched.
 - **AUD2-049, panels left open:** a date typed (or picked) into Build Around's box or Shift's To a date box now survives
   the `#table-wrap` observer's refresh: `solveDateTyped` / `anchorDateTyped` hold the `{key, edge}` it was typed for,
