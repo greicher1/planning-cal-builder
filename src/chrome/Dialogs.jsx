@@ -13,7 +13,9 @@
 // `body.printing-* > *:not(#print-root)` selectors already hide it.
 //
 // Escape and outside-click both CANCEL a confirm — for a destructive decision, every ambiguous
-// dismissal must be the safe answer. For an alert they acknowledge.
+// dismissal must be the safe answer. For an alert they acknowledge. An outside click within
+// DOUBLE_CLICK_MS of opening is ignored: it is the second press of the double-click that raised
+// the dialog (modalGuard.js, audit AUD2-061).
 //
 // kind:'choice' (29 Sep 2026, audit M-6): { message, choices:[{value, label, danger?}] } resolves the
 // chosen `value`, or null for Cancel / Escape / outside-click -- again the safe answer, since the one
@@ -21,6 +23,7 @@
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Button, Text, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { useOutsideCloseGuard } from './modalGuard.js'
 
 export function Dialogs() {
   const [dlg, setDlg] = useState(null) // { kind, title, message, confirmLabel, cancelLabel, danger }
@@ -45,6 +48,9 @@ export function Dialogs() {
     setDlg(null)
     if (r) r(answer)
   }, [])
+  // The safe answer on a click outside, as Escape gives, except the second press of the double-click whose first
+  // click raised this question (modalGuard.js, AUD2-061): "New" double-clicked on an edited calendar asks and STAYS.
+  const outside = useOutsideCloseGuard(dlg, () => finish(dlg && dlg.kind === 'choice' ? null : !(dlg && dlg.kind === 'confirm')))
 
   if (!dlg) return null
 
@@ -54,6 +60,7 @@ export function Dialogs() {
     <Modal
       opened
       onClose={() => finish(isChoice ? null : !isConfirm)}
+      closeOnClickOutside={false}
       withinPortal={false}
       centered
       /* A choice carries up to four buttons; at the default width the last one wrapped onto a line
@@ -63,7 +70,7 @@ export function Dialogs() {
       shadow="xl"
       title={dlg.title || (isConfirm ? 'Are you sure?' : 'Notice')}
       styles={{ title: { fontWeight: 600 } }}
-      overlayProps={{ backgroundOpacity: 0.35 }}
+      overlayProps={{ backgroundOpacity: 0.35, onClick: outside }}
     >
       {/* pre-line: the engine's existing messages carry \n\n paragraph breaks and • lists. */}
       <Text size="sm" style={{ whiteSpace: 'pre-line' }}>

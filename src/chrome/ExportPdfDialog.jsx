@@ -4,7 +4,8 @@
 // HOW THE ENGINE CALLS IT. The Export PDF click handler awaits `chrome.pdfExportDialog(opts)`, where opts is
 //   { paper: 'letter'|'legal'|'tabloid', orientation: ''|'portrait'|'landscape', gridlines,
 //     papers: [{value, label, size}], fits: { <paper>: {recommended, portrait, landscape} } }
-// and it resolves { paper, orientation, gridlines } for Export, or null for Cancel / Escape / outside-click.
+// and it resolves { paper, orientation, gridlines } for Export, or null for Cancel / Escape / outside-click (an
+// outside click within DOUBLE_CLICK_MS of opening is the double-click that opened it, and is ignored: modalGuard.js).
 // The engine applies the answer; this component only shows it.
 //  - `fits` is the ENGINE'S answer for every paper, worked out before the dialog opens by frozen
 //    sheetPageOrientation() (the rule both exports use), so a paper clicked here needs no call back into the
@@ -27,6 +28,7 @@
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Button, Text, Group, Stack, SegmentedControl } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { useOutsideCloseGuard } from './modalGuard.js'
 
 const GRID_OPTIONS = [
   { value: 'none', label: 'None' },
@@ -89,6 +91,8 @@ export function ExportPdfDialog() {
     setDlg(null)
     if (r) r(answer)
   }, [])
+  // A click outside cancels, except the second press of the double-click that opened it (modalGuard.js, AUD2-061).
+  const outside = useOutsideCloseGuard(dlg, () => finish(null))
 
   if (!dlg) return null
 
@@ -113,6 +117,7 @@ export function ExportPdfDialog() {
       key={dlg.n}
       opened
       onClose={() => finish(null)}
+      closeOnClickOutside={false}
       withinPortal={false}
       centered
       size="md"
@@ -121,7 +126,7 @@ export function ExportPdfDialog() {
       title="Export PDF"
       className="export-pdf-dlg"
       styles={{ title: { fontWeight: 600 } }}
-      overlayProps={{ backgroundOpacity: 0.35 }}
+      overlayProps={{ backgroundOpacity: 0.35, onClick: outside }}
     >
       <div onKeyDown={onKey}>
         <Stack gap="md">

@@ -24,6 +24,7 @@
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Table, Text, Badge, Button, Group, Chip, Stack, Switch } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { useOutsideCloseGuard } from './modalGuard.js'
 
 const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); more than fit scroll sideways
 // Columns are as wide as what they hold, never narrower than these (owner, 23 Oct 2026: "the window needs to scale
@@ -132,6 +133,8 @@ export function CompareDialog() {
   useLayoutEffect(() => {
     installChrome({ compareDialog: (opts) => { setCopied(false); setDlg(opts) } })
   }, [])
+  // A click outside closes it, except the second press of the double-click that opened it (modalGuard.js, AUD2-061).
+  const outside = useOutsideCloseGuard(dlg, () => setDlg(null))
 
   if (!dlg) return null
   const { scenarios, currentId, rows } = dlg
@@ -177,6 +180,7 @@ export function CompareDialog() {
     <Modal
       opened
       onClose={() => setDlg(null)}
+      closeOnClickOutside={false}
       withinPortal={false}
       centered
       size={'min(' + Math.max(660, tableW + 48) + 'px, calc(100vw - 48px))'}
@@ -188,7 +192,7 @@ export function CompareDialog() {
       title="Compare scenarios"
       className="compare-dlg"
       styles={{ title: { fontWeight: 600 } }}
-      overlayProps={{ backgroundOpacity: 0.35 }}
+      overlayProps={{ backgroundOpacity: 0.35, onClick: outside }}
     >
       <Stack gap="lg">
         <Group justify="space-between" align="flex-start" wrap="nowrap" gap="lg">

@@ -3,6 +3,13 @@
 // flip to it, double-click to rename, right-click (or the ▾ on the tab on screen) for its menu, drag to reorder.
 // "+" duplicates the tab on screen; with one scenario the strip holds nothing but "+ Scenario".
 //
+// ⭐ TABS THAT DO NOT FIT (audit AUD2-060, 14 Nov 2026). The tabs scroll sideways with no scrollbar, so with 10-20
+// scenarios most were out of sight (at 1,600 px, 7 of 20) with nothing to say so or reach them but a wheel. Now, only
+// while some tab is cut off: the strip FADES the edge it cuts at, and a list button right after the tabs ("All
+// scenarios") names every scenario in tab order, the one on screen ticked; a click there switches to it, and its tab
+// scrolls into view clear of the fade. Excel's sheet list, as the finding recommends. With every tab in view (2 or 3
+// scenarios on most screens) neither shows, so the strip is exactly as it was.
+//
 // The engine owns the tabs (scenarioTabs in app.js) and pushes them here through the bridge; every action goes back
 // as a 'sptcal-scenario' DOM event, the way the zoom control hands back its zoom. So this holds no tab state of its
 // own beyond what is being typed or dragged.
@@ -126,6 +133,24 @@ function IconCaret(props) {
     </svg>
   )
 }
+function IconList(props) {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}>
+      <path d="M6 4h7.5M6 8h7.5M6 12h7.5" /><path d="M2.75 4h.01M2.75 8h.01M2.75 12h.01" strokeWidth="2.2" />
+    </svg>
+  )
+}
+function IconCheck(props) {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}>
+      <path d="M3 8.5 6.5 12 13 4.5" />
+    </svg>
+  )
+}
+// How far the cut edge fades (legacy.css .sc-tabs.is-cut-*); a tab scrolled into view keeps clear of it.
+const FADE = 24
 function IconCompare(props) {
   return (
     <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6"
@@ -142,7 +167,26 @@ export function ScenarioTabs() {
   const [drag, setDrag] = useState(null)            // the tab being dragged
   const [left, setLeft] = useState(28)
   const [right, setRight] = useState(28)   // the band's right edge: where the calendar ends
+  const [cut, setCut] = useState({ l: false, r: false })   // tabs cut off at the strip's left / right edge
   const stripRef = useRef(null)
+  const listRef = useRef(null)
+  // Which edges cut a tab off, read off the strip as drawn. The same object back when nothing changed, so React skips
+  // the render (this runs after every render and on every scroll and resize of the strip).
+  const measureCut = () => {
+    const el = stripRef.current
+    const l = !!el && el.scrollLeft > 1
+    const r = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setCut((p) => (p.l === l && p.r === r ? p : { l, r }))
+  }
+  useLayoutEffect(measureCut)
+  const many0 = st.visible && st.tabs.length > 1
+  useEffect(() => {
+    const el = stripRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(measureCut)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [many0])
 
   useLayoutEffect(() => {
     installChrome({ scenarios: (s) => setSt((p) => ({ ...p, ...s })) })
@@ -169,10 +213,14 @@ export function ScenarioTabs() {
   // A fresh copy's name opens ready to type over (the engine asks with a new editSeq).
   useEffect(() => { if (st.edit) setEditing(st.edit) }, [st.editSeq])
 
-  // The tab on screen stays in view when the strip scrolls sideways.
+  // The tab on screen stays in view when the strip scrolls sideways, clear of a faded edge. The strip's own
+  // scrollLeft, never scrollIntoView(), which also scrolls every ancestor (the app shell's window must not scroll).
   useEffect(() => {
-    const el = stripRef.current && stripRef.current.querySelector('.sc-tab.is-current')
-    if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    const s = stripRef.current, el = s && s.querySelector('.sc-tab.is-current')
+    if (!el) return
+    const sr = s.getBoundingClientRect(), r = el.getBoundingClientRect()
+    if (r.left < sr.left + FADE) s.scrollLeft -= sr.left + FADE - r.left
+    else if (r.right > sr.right - FADE) s.scrollLeft += r.right - (sr.right - FADE)
   }, [st.current, st.tabs.length])
 
   if (!st.visible || !st.tabs.length) return null
@@ -205,7 +253,8 @@ export function ScenarioTabs() {
     <>
     {st.band && <FactsBand band={st.band} left={left} right={right} />}
     <div className="sc-strip" style={{ left }} role="group" aria-label="Scenarios">
-      <div className="sc-tabs" ref={stripRef} role="tablist" aria-label="Scenarios"
+      <div className={'sc-tabs' + (cut.l ? ' is-cut-l' : '') + (cut.r ? ' is-cut-r' : '')} ref={stripRef} role="tablist"
+           aria-label="Scenarios" onScroll={measureCut}
            onWheel={(e) => { if (e.deltaY && stripRef.current) stripRef.current.scrollLeft += e.deltaY }}>
         {st.tabs.map((t, i) => {
           const on = t.id === st.current
@@ -249,6 +298,39 @@ export function ScenarioTabs() {
           )
         })}
       </div>
+      {/* Every scenario, while some tab is cut off (AUD2-060). Upward, like the tab menu: the strip is at the bottom. */}
+      {(cut.l || cut.r) && (
+        <Menu position="top-end" withinPortal={false} width={260} closeOnItemClick returnFocus={false}
+              onOpen={() => {
+                // The one on screen in view in a long list: the dropdown's own scrollTop, as the strip's above. The
+                // dropdown mounts through its opening transition, so wait for it (a few tries, then give up).
+                const centre = (n) => {
+                  const box = listRef.current, on = box && box.querySelector('.sc-list-item[aria-current="true"]')
+                  if (on) box.scrollTop = Math.max(0, on.offsetTop - (box.clientHeight - on.offsetHeight) / 2)
+                  else if (n < 10) setTimeout(() => centre(n + 1), 30)
+                }
+                setTimeout(() => centre(0), 0)
+              }}>
+          <Menu.Target>
+            <ActionIcon variant="subtle" color="gray" size="sm" radius="md" aria-label="All scenarios" title="All scenarios">
+              <IconList />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown ref={listRef} className="sc-list">
+            <Menu.Label>{st.tabs.length} scenarios</Menu.Label>
+            {st.tabs.map((t) => {
+              const on = t.id === st.current
+              return (
+                <Menu.Item key={t.id} className="sc-list-item" aria-current={on ? 'true' : undefined}
+                           leftSection={<span className="sc-list-tick">{on && <IconCheck />}</span>}
+                           onClick={() => { if (!on) send({ op: 'switch', id: t.id }) }}>
+                  <span className="sc-list-name">{t.name}</span>
+                </Menu.Item>
+              )
+            })}
+          </Menu.Dropdown>
+        </Menu>
+      )}
       <ActionIcon variant="subtle" color="gray" size="sm" radius="md" onClick={() => send({ op: 'add' })} disabled={full}
                   aria-label="Duplicate this scenario" title={full ? 'A calendar holds at most ' + st.max + ' scenarios' : 'Duplicate this scenario'}>
         <IconPlus width={12} height={12} />
