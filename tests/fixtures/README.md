@@ -215,3 +215,16 @@ The 3/9 week's waterfall note is "Wardrobe 3/10/26" + "Props 3/12/26". No order 
 the untouched layout. Production starts Mon 6/29/26, for the auto-note case. On the live build of 23 Oct
 (`d2ac914e`), M1, M2 and M3 are red.
 
+
+## Compare's hiatus row, its Baseline, and the export names (audit 2026-11 item 2.10, 13 Nov 2026)
+
+`compare-send.sptcal` is `scenarios-3.sptcal` rewritten by script (synthetic, nothing else changed): "Harbor Test",
+Season 3, Version `v2`, U.S. Area Standards, the layout stamp (`colReuse`) so no layout strip shows, and three
+scenarios, "Scenario A" on screen, each with its own `lastEdited` at 12:00 UTC:
+- "Scenario A" (10/1/26): two locked all-phase hiatuses, 12/21/26 and 12/20/27, two weeks each;
+- "3-wk Xmas break" (10/5/26): the same with the first one three weeks;
+- "Var 9 long descriptive name" (10/3/26): the same as A plus a two-week break mid-shoot, from 8/10/26.
+
+Read by `t/comparebreaks.js` (Compare's "All-phase hiatus" row and its chips, both exports, Copy table, the Baseline
+heading, the PDF's column names at one size up to twelve columns) and `t/exportnames.js` (every export's name). Both
+red on `2089aa5`'s build.

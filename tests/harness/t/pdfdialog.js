@@ -384,7 +384,7 @@ window.addEventListener('load', function () { (async function () {
     try { await T.until(function () { return sp.files.length > 0; }, 'the month PDF written', 200, 100); } catch (e) {}
     mo.disconnect(); sp.restore();
     kase('D10', 'the month view\'s Export PDF never opens the dialog and writes the month PDF straight away',
-      !sawDialog && sp.files.length === 1 && /Month Calendar\.pdf/.test(sp.files[0].name || ''), { sawDialog: sawDialog, files: sp.files.length });
+      !sawDialog && sp.files.length === 1 && /Month Calendar .*\d{4}-\d{2}-\d{2}.*\.pdf$/.test(sp.files[0].name || ''), { sawDialog: sawDialog, files: sp.files.length });
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });
