@@ -18,6 +18,8 @@
 //   W4  the waterfall PDF holds it too
 //   W5  the month view: none in December 2026; 1/4/27 holds "Writer's Room Opens 1/4/27"
 //   W6  Snap to Mon OFF, typed Wed 12/23/26: the same, 1/4/27 note and header (the step a day at a time)
+//   C2  control, Snap off, typed SATURDAY 1/10/26 (no hiatus): the note stays dated 1/10/26 in the 1/5/26 row, beside
+//       the room's wk 1, and the header reads 1.5.26, as before (red on the first fix, which dated it Mon 1/12/26)
 //   C1  control, the room back at 1/5/26 (not in a break): the note in the 1/5/26 cell and the header 1.5.26, as before
 //   E0  no console errors, no native alert
 var T = window.__T, cases = [];
@@ -82,6 +84,14 @@ window.addEventListener('load', function () { (async function () {
     var w6 = {note: noteAt('2027-01-04'), any: opensCells(), hdr: hdr(), snap: sw ? sw.checked : 'none'};
     add('W6', 'Snap off, typed Wed 12/23/26: the note and the header name 1/4/27',
         /Writer's Room Opens 1\/4\/27/.test(w6.note || '') && w6.any.length === 1 && w6.hdr.length === 1 && /1\.4\.27$/.test(w6.hdr[0]), w6, '1/4/27');
+    // C2: a snap-off room typed on a SATURDAY outside any hiatus keeps the note on that Saturday, in the row holding its
+    // wk 1, as before (the review of the first fix: dated on the first drawn day, it went to the next row, 1/12/26).
+    T.set('start-writersRoom', '2026-01-10'); T.set('weeks-writersRoom', '12'); await settle();
+    var c2 = {note: noteAt('2026-01-05'), any: opensCells(), hdr: hdr(),
+      row: Array.prototype.map.call(document.querySelectorAll('#table-wrap td[data-week="2026-01-05"]'), tx).join(' | ')};
+    add('C2', 'control, Snap off, typed Sat 1/10/26: the note stays "Writer\'s Room Opens 1/10/26" in the 1/5/26 row; header 1.5.26',
+        /Writer's Room Opens 1\/10\/26/.test(c2.note || '') && /Writer's Rm wk 1/.test(c2.row) && c2.any.length === 1 && c2.hdr.length === 1 && /1\.5\.26$/.test(c2.hdr[0]),
+        c2, 'the 1/5/26 row, dated 1/10/26');
     if (sw && !sw.checked) sw.click();
     T.set('start-writersRoom', '2026-01-05'); T.set('weeks-writersRoom', '12'); await settle();
     var c1 = {note: noteAt('2026-01-05'), hdr: hdr()};

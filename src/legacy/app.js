@@ -6144,13 +6144,14 @@ export function initLegacyApp() {
       return null;
     };
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    // ⛔ Dated on the room's FIRST DRAWN DAY (the second audit's AUD2-072, 14 Nov 2026), as each phase's Begins note is,
-    // never on seg.start. A room typed to start inside a hiatus is paused and works from the week after it; dated on its
-    // typed Monday the note sat on an all-phase hiatus row, which has no Notes cell, so it vanished from the waterfall,
-    // Excel and the waterfall PDF while the month view put it on a hiatus day. For a start on a weekday the room works
-    // (every snapped room outside a break) this is seg.start: same date, same week, same order. A snap-off room typed on
-    // a Saturday or Sunday opens on the Monday its bar starts, as its Begins note always has.
-    if(wrSeg) addAutoNote(drawn(wrSeg, wrSeg.start, 1) || wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
+    // ⛔ A room whose start is INSIDE A HIATUS is dated on its FIRST DRAWN DAY (the second audit's AUD2-072, 14 Nov 2026),
+    // as each phase's Begins note is. It is paused and works from the week after the break; dated on its typed Monday
+    // the note sat on an all-phase hiatus row, which has no Notes cell, so it vanished from the waterfall, Excel and the
+    // waterfall PDF while the month view put it on a hiatus day. Any other start keeps seg.start, as always, which is
+    // the header's rule too (wrHeaderOpenDay: only a paused start moves). ⚠️ Not drawn() for every room: a snap-off room
+    // typed on a Saturday or Sunday would then open on the next Monday, in the row AFTER the one holding its wk 1.
+    const wrPaused = wrSeg && (hiatuses.some(h=> wrSeg.start >= h.start && wrSeg.start < h.end) || isPhaseHiatusDate(wrSeg, wrSeg.start));
+    if(wrSeg) addAutoNote((wrPaused && drawn(wrSeg, wrSeg.start, 1)) || wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
     // Each phase's start and end (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
     // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES, and each custom phase's pair (autoNoteEdgeDefs, 2 Nov
     // 2026). ⛔ OFF until ticked (autoNoteKindShown), so every
@@ -31501,7 +31502,8 @@ export function initLegacyApp() {
   //     from Mon 1/4 (the week the break ends, from its first day); keeping the Wednesday moved its work 1 wk + 2 days
   //     and +1 then -1 left it two days late. Every other date keeps its weekday (a Dates phase's END, a hiatus start),
   //     and a snapped start is a Monday either way. The Shift form's list passes it too, so its preview agrees.
-  //     (The calendar range never comes here from inside a held break: it stays with the break, shiftCalendarDates 2b.)
+  //     (The calendar range never comes here from inside a held break: a range with a date there stays where it is,
+  //     both dates, shiftCalendarDates 2b.)
   //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
   //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
   //     The phase card's ▲ / ▼ opt in too, but only while Ripple Hiatus is on (owner, 11 Nov 2026: "When ripple
@@ -32135,17 +32137,22 @@ export function initLegacyApp() {
     //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
     //     is on or after the cutoff (on a Shift form part move, inside its week window).
     //     Rebuild From never comes here, so it leaves them, as ruled.
-    //     ⛔ Under the step-over a range date on a HELD break's week stays with the break, as a note under a held band does
-    //     (step 3's onHeldBand), never pushed out of it (the second audit's AUD2-055, 14 Nov 2026). A calendar-year range
-    //     ends 12/31, inside the locked Christmas break: stepOverHeld counts a date there from the week the break ends,
-    //     which is right for a phase typed there (it works from that week) but not for a range edge. +1 wk took the end
-    //     to 1/14/27 and -1 wk brought it back only to 1/7/27, so the waterfall, Excel and both PDFs gained the week of
-    //     1/4/27. Held, +N then -N is exactly where it was. A range date anywhere else moves N working weeks, as before.
+    //     ⛔ Under the step-over a range with a date that would move on a HELD break's week stays where it is, BOTH of its
+    //     dates, as the break does (the second audit's AUD2-055 and its review, 14 Nov 2026). A calendar-year range ends
+    //     12/31, inside the locked Christmas break: stepOverHeld counts a date there from the week the break ends, which
+    //     is right for a phase typed there (it works from that week) but not for a range edge. +1 wk took the end to
+    //     1/14/27 and -1 wk brought it back only to 1/7/27, so the waterfall, Excel and both PDFs gained the week of 1/4/27.
+    //     ⚠️ Holding only the date in the break (the first fix) let its partner keep moving: the window narrowed a week per
+    //     press and, pressed far enough, its start passed its end (11/2/26 - 12/31/26 read 1/18/27 - 12/31/26 after nine
+    //     presses, an invalid range, and the waterfall fell back to every week). Moving that date by its partner's distance
+    //     keeps the width but cannot come back: the step-over maps a working week to a working week, so after +1 the date
+    //     sits in an ordinary week and -1 has no way to know it came from the break (1/1 - 12/31 returned as 1/1 - 12/17).
+    //     Holding both is the one rule that keeps the width AND makes +N then -N exact. A range with neither date in a held
+    //     break moves N working weeks, as before; a date the move does not reach (a ripple's cutoff) stays, as before.
     const rangeOnHeldBand = iso => { const d = parseDateUTC(iso); return !!d && hf.obstacles.has(isoOf(mondayOf(d))); };
-    ['cal-range-start', 'cal-range-end'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el && el.value && inRange(el.value) && !(stepHeld && rangeOnHeldBand(el.value))) shiftDateFieldValue(el, move);
-    });
+    const rangeMoving = ['cal-range-start', 'cal-range-end'].map(id => document.getElementById(id))
+      .filter(el => el && el.value && inRange(el.value));
+    if(!(stepHeld && rangeMoving.some(el => rangeOnHeldBand(el.value)))) rangeMoving.forEach(el => shiftDateFieldValue(el, move));
 
     // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
     //    a note's colour keys off the same week as the note, so it must make the same stay-or-go
