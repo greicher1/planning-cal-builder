@@ -281,6 +281,31 @@
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
   #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon{ font-size:13px; flex:none; }
   #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text{ flex:1; min-width:0; }
+  /* ⭐ ONE LINE, ONE STRIP, ONE VIEW (audit 2.14, AUD2-035). On a 1280 x 800 laptop two strips stacked over the month
+     view (the holiday list's three lines, then the column question) and left under two weeks of the month in view.
+     - ONE LINE: a strip's text never wraps. Where it is cut short, the engine adds Details after it (app.js, "THE
+       NOTICE STRIPS: ONE LINE EACH"), which opens the strip to its full text (.ln-open) and reads Less while open.
+     - ONE AT A TIME, in this document order: legacy, holiday, layout, update, colswap, calrange, browser. A strip
+       after one on show waits (display:none, never `hidden`, which is the engine's and means "not raised"), and
+       shows the moment the one before it is dismissed. Pure CSS off `hidden`, so the grid fit, which watches each
+       strip's `hidden`, sees the change in the same mutation.
+     - THE COLUMN QUESTION IS THE WATERFALL'S: #layout-notice is about the waterfall's columns, so the month view never
+       shows it, and it does not hold a strip behind it there. It is still raised (not `hidden`) and is back on the
+       waterfall. */
+  #legacy-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text{
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice).ln-open .ln-text{
+    white-space:normal; overflow:visible; }
+  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more{
+    flex:none; font-family:inherit; font-size:11.5px; font-weight:600; line-height:inherit; padding:0 4px; margin-left:-4px;
+    border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; border-radius:4px; }
+  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more:hover{ background:rgba(0,0,0,.05); }
+  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
+  :is(#legacy-notice, #holiday-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice):not([hidden])
+    ~ :is(#legacy-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:not(:has(#view-month-btn.active)) > #layout-notice:not([hidden])
+    ~ :is(#legacy-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:has(#view-month-btn.active) > #layout-notice{ display:none; }
   #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong{ font-weight:600; }
   #legacy-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
@@ -1270,12 +1295,34 @@
   .form-panel .sw-row > input[type=checkbox]:hover:not(:disabled){ border:0; }
   .form-panel .sw-row > input[type=checkbox]:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
 
+  /* ⭐ MORE OPTIONS (audit 2.14, AUD2-036; app.js "MORE OPTIONS ON EVERY PHASE CARD"). A card's rarely used switches
+     show only while SET (away from a new phase's own value) or while the card's More options is open: Snap to Monday
+     and Number weeks while off, Hide in waterfall, Hiatus and Simultaneous Post while on. Off each switch's own
+     :checked, so a value the engine writes without an event is followed at once. Hidden, never removed: every id
+     stays in the document. Then the card's last line, the More options button (no id), a quiet text button like
+     "Start after previous phase". */
+  .phase-row:not(.more-open) > .phase-switches > :is(.phase-snap, .phase-wknum):has(> input:checked),
+  .phase-row:not(.more-open) > .phase-switches > .phase-hidewf:not(:has(> input:checked)),
+  .phase-row:not(.more-open) > .phase-hiatus > .phase-hiatus-toggle:not(:has(> input:checked)),
+  .phase-row:not(.more-open) > .simpost-panel > .simpost-toggle:not(:has(> input:checked)){ display:none; }
+  .phase-more-btn{
+    display:inline-flex; align-items:center; gap:4px; margin:6px 12px 2px; padding:1px 0; background:none; border:none;
+    font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); cursor:pointer;
+  }
+  .phase-more-btn::after{
+    content:''; width:0; height:0; border-left:3.5px solid transparent; border-right:3.5px solid transparent;
+    border-top:4.5px solid currentColor; opacity:.8; transition:transform 150ms ease;
+  }
+  .phase-more-btn[aria-expanded="true"]::after{ transform:rotate(180deg); }
+  .phase-more-btn:hover{ color:var(--mantine-color-black); text-decoration:underline; }
+  .phase-more-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+
   /* ---- An optional block (a phase's hiatus, Sim Post): a switch row that opens its fields underneath, indented
      and ruled in the phase colour. The hiatus's fields are shown by the engine (style.display), Sim Post's by CSS
      off its own box below, so neither can disagree with its switch. */
   .phase-hiatus{ padding:0 12px; }
   /* The last row of a card has no hairline: the hiatus's switch while it is off, the block's last row when on. */
-  .phase-row > .phase-hiatus:last-child > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
+  .phase-row > .phase-hiatus:is(:last-child, :has(+ .phase-more-btn:last-child)) > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
   .phase-hiatus-fields{
     flex-direction:column; gap:8px; margin:2px 0 8px 2px; padding:6px 0 0 12px;
     border-left:3px solid var(--phase-color);
@@ -1859,6 +1906,11 @@
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
+  /* ⚠️ ...on a desktop window. On a short laptop window (657 px for a 1080p Windows laptop at 150%) Build Around ran
+     past the preview panel's bottom, which clips it, and its pin date and Build sat out of sight (audit 2.14, WIN-4).
+     The engine fits an open panel to the window (app.js, "A panel's foot stays on screen"): its phase list gives way,
+     as an inline max-height under .solve-list's own 276 px cap, and a panel still cut off by the preview panel floats
+     where it is. No rule here changed. */
   /* ⛔ NOT a Mantine Popover, and it must not become one. Popover portals by default, which moves
      these panels out from under .tools-menu -- the single ancestor test that keeps their eight
      id'd controls out of every saved file -- and it mounts from an effect, so the panels would not
@@ -3316,7 +3368,12 @@
      the today button entirely and just make the stepper larger"), and so did its own line. 30 px tall, the height of
      the toolbar's other white controls (Shift, Build Around). */
   .month-step{ display:flex; align-items:stretch; height:var(--input-height-xs, 30px); min-width:0; }
-  .tb-slots > .month-step{ justify-self:stretch; align-self:center; }
+  /* ⭐ NO WIDTH OF ITS OWN (audit 2.14, AUD2-034). `container-type:inline-size` gives the stepper inline-size
+     containment, so it adds nothing to the slot's width: the slot is Fill Gaps + gap + Side Boxes in BOTH views, and
+     the first line wraps (or not) at the same point whichever view is on screen. It was wider than the pair at 1300 px
+     and below, where Fill Gaps runs as its bare switch, so at 1280 px Shift, Header and Undo / Redo jumped when Month
+     was clicked, and again as the month's name changed length. Where the full name does not fit, the short one shows. */
+  .tb-slots > .month-step{ justify-self:stretch; align-self:center; container-type:inline-size; }
   .month-step .ms-group{
     flex:1 1 auto; min-width:0; display:inline-flex; align-items:stretch; overflow:hidden; box-sizing:border-box;
     border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default); background:#fff;
@@ -3328,6 +3385,15 @@
   .month-step .ms-label{
     flex:1 1 auto; min-width:0; padding:0 8px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
+  }
+  /* The short month (AUD2-034, above): after the label's own rule, so the narrow form's padding wins. */
+  .month-step .ms-short{ display:none; }
+  @container (max-width:184px){
+    .month-step .ms-label{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; padding:0; }
+    .month-step .ms-short{
+      flex:1 1 auto; min-width:0; padding:0 4px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+      font-size:13px; font-weight:600; color:var(--text);
+    }
   }
   .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
@@ -3413,7 +3479,11 @@
   .view-toggle-row > .style-row{ order:3; }
   /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
      so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
-  .view-toggle-row:not(:has(> .month-map)) > .style-bar-host.style-own-line{ flex-basis:100%; }
+  /* ⚠️ In BOTH views since 13 Nov 2026 (audit 2.14, AUD2-034): below about 1150 px the tools themselves wrap to a second
+     line, and in the month view the bar (basis 260 px) then sat beside them, right of Undo, while in the waterfall it
+     had a line of its own, so it jumped when Month was clicked. Where the tools fit on one line nothing changes: the
+     bar was alone on its line there anyway, the phase map taking the next. */
+  .view-toggle-row > .style-bar-host.style-own-line{ flex-basis:100%; }
   /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
      not even the row's gap above it. */
   .view-toggle-row > .style-row{

@@ -8335,6 +8335,39 @@ export function initLegacyApp() {
     if(on) collapsedPhaseKeys.add(key); else collapsedPhaseKeys.delete(key);
     reflectPhaseCollapse();
   }
+  // ⭐ MORE OPTIONS ON EVERY PHASE CARD (audit 2.14, AUD2-036). Every card repeated the same rarely used switches
+  // (Snap to Monday, Number weeks, Hide in waterfall, Hiatus, and on Production Simultaneous Post), so the Phases tab
+  // was a wall of controls and three cards filled a laptop screen. A switch now shows on its card only while it is
+  // SET, away from what a new phase starts with (Snap to Monday or Number weeks off; Hide in waterfall, Hiatus or
+  // Simultaneous Post on), so nothing a calendar has switched on is ever out of sight; the rest wait behind the card's
+  // last line, "More options", which shows them all and reads "Fewer options" while open.
+  //   - Which switch shows is PURE CSS off each switch's own :checked (legacy.css, "More options"), so a switch the
+  //     engine flips without an event (Snap to Monday coming off under a month-view drag) follows at once.
+  //   - ⛔ NOT STATE, exactly as the caret: which cards have More open is session UI, keyed by phase key, never in
+  //     captureSnapshot() and never an undo step. The button is a <button> with NO id. Every switch keeps its id,
+  //     its place in the document and its value: hidden is display:none, never removed and never cleared.
+  //   - A Load, a recovery or New is a different calendar and closes them all, beside collapsedPhaseKeys.clear().
+  const phaseMoreOpen = new Set();
+  const PHASE_MORE_BTN = '<button type="button" class="phase-more-btn" aria-expanded="false">More options</button>';
+  function reflectPhaseMore(){
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const on = phaseMoreOpen.has(phaseRowKey(row));
+      if(row.classList.contains('more-open') !== on) row.classList.toggle('more-open', on);
+      const btn = row.querySelector(':scope > .phase-more-btn');
+      if(!btn) return;
+      const want = on ? 'true' : 'false', label = on ? 'Fewer options' : 'More options';
+      if(btn.getAttribute('aria-expanded') !== want) btn.setAttribute('aria-expanded', want);
+      if(btn.textContent !== label) btn.textContent = label;
+    });
+  }
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest && e.target.closest('.phase-more-btn');
+    if(!btn) return;
+    const key = phaseRowKey(btn.closest('.phase-row'));
+    if(!key) return;
+    if(phaseMoreOpen.has(key)) phaseMoreOpen.delete(key); else phaseMoreOpen.add(key);
+    reflectPhaseMore();
+  });
   document.addEventListener('click', e=>{
     const btn = e.target.closest && e.target.closest('.phase-collapse-btn');
     if(!btn) return;
@@ -8703,6 +8736,7 @@ export function initLegacyApp() {
             <label class="simpost-count-row sw-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1."><span class="sw-label">Number these weeks and continue Post&rsquo;s count</span><input type="checkbox" id="simpost-count"></label>
           </div>
         </div>` : ''}
+        ${PHASE_MORE_BTN}
       `;
       // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
       // come before production phase in the left side bar"), where prep falls in time. It was under
@@ -9300,6 +9334,7 @@ export function initLegacyApp() {
         ${HIDEWF_HTML}
       </div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
+      ${PHASE_MORE_BTN}
     `;
     // ⭐ CUSTOM-PHASE-UNITS-PLAN.md: a custom phase's length is Weeks (as always), Days or Dates.
     // ⛔ `unit-<key>`, `days-<key>` and `end-<key>` are SAVE FORMAT from the first calendar saved with
@@ -10011,6 +10046,13 @@ export function initLegacyApp() {
     });
   }
   function unfoldAllHiatuses(){ hiatusRowsNow().forEach(row => setHiatusCollapsed(row, false)); }
+  // ⭐ FOLDED WHEN A CALENDAR OPENS (audit 2.14, AUD2-036). A new calendar holds four winter breaks, 2026 to 2029, and
+  // each was an open card (Starts, Weeks, Lock in place, Number weeks): most of the Phases tab's length for dates
+  // most users never change. So every all-phase hiatus card starts folded to its head, which already says its dates
+  // and length ("12/21/26 → 1/3/27 (2 wk)"): on New and at boot (addDefaultHiatuses), and on a Load, a recovery or a
+  // calendar opening itself. One the user adds (+ Add hiatus period, the month view's Add hiatus) opens unfolded,
+  // being edited, and undo, redo and a scenario switch still carry each card's fold across (carryHiatusFolds).
+  function foldAllHiatuses(){ hiatusRowsNow().forEach(row => setHiatusCollapsed(row, true)); }
   document.addEventListener('click', e=>{
     const btn = e.target.closest && e.target.closest('.hiatus-collapse-btn');
     if(!btn) return;
@@ -10097,7 +10139,7 @@ export function initLegacyApp() {
   ];
   function addDefaultHiatuses(){
     document.getElementById('hiatus-list').innerHTML = '';
-    DEFAULT_HIATUSES.forEach(([s,w]) => addHiatusRow(s,w));
+    DEFAULT_HIATUSES.forEach(([s,w]) => setHiatusCollapsed(addHiatusRow(s,w), true));   // folded (AUD2-036)
   }
 
   // "Snapped to Mon …" hint for any date field. Dates in this tool always snap to the Monday of
@@ -13274,6 +13316,7 @@ export function initLegacyApp() {
       addCustomPhaseRow();
       const key = customPhaseDefs[customPhaseDefs.length - 1].key;
       collapsedPhaseKeys.delete(key);   // a new phase opens unfolded (see #add-phase-btn)
+      phaseMoreOpen.delete(key); reflectPhaseMore();
       const field = id=> document.getElementById(id + '-' + key);
       if(len === 'day'){
         field('unit').value = 'dates';
@@ -29516,6 +29559,8 @@ export function initLegacyApp() {
     // A new phase opens unfolded, even on a key an undone phase was folded under (an undo can lower
     // customPhaseCounter, so the next Add mints that key again).
     collapsedPhaseKeys.delete(customPhaseDefs[customPhaseDefs.length - 1].key);
+    phaseMoreOpen.delete(customPhaseDefs[customPhaseDefs.length - 1].key);   // ...with More options closed
+    reflectPhaseMore();
     update();
   });
   // The actual reset. New is its only caller since Reset All went (owner ruling 3, 30 Sep 2026):
@@ -29523,6 +29568,7 @@ export function initLegacyApp() {
   function resetAll(){
     monthCursorRecheck = true;   // a different (empty) calendar: see update() (L-17)
     collapsedPhaseKeys.clear(); reflectPhaseCollapse();   // every phase card unfolded
+    phaseMoreOpen.clear(); reflectPhaseMore();             // ...with its More options closed (AUD2-036)
     hideLegacyNotice();
     phaseColorOverride = {};
     PHASES.forEach(p=>{
@@ -29826,6 +29872,10 @@ export function initLegacyApp() {
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
+    // ...and a strip's Details button and open state (audit 2.14, "THE NOTICE STRIPS: ONE LINE EACH"), which are this
+    // window's: the copy's own engine adds the button again where a strip it raises is cut short.
+    clone.querySelectorAll('[id$="-notice"] > .ln-more').forEach(el=> el.remove());
+    clone.querySelectorAll('[id$="-notice"].ln-open').forEach(el=>{ el.classList.remove('ln-open'); if(!el.classList.length) el.removeAttribute('class'); });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -33275,7 +33325,8 @@ export function initLegacyApp() {
     restoreSavedState();
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
-    unfoldAllHiatuses();         // ...and every all-phase hiatus card (their rows carried the old folds across)
+    phaseMoreOpen.clear();       // ...with its More options closed (AUD2-036)
+    foldAllHiatuses();           // ...and every all-phase hiatus card folds to its one-line head (AUD2-036)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
@@ -33466,6 +33517,70 @@ export function initLegacyApp() {
     el.hidden = false;
     el.querySelector('.ln-x').addEventListener('click', ()=>{ el.hidden = true; });
   })();
+
+  // ---------- THE NOTICE STRIPS: ONE LINE EACH (audit 2.14, AUD2-035) ----------
+  // A strip's text never wraps (legacy.css, "ONE LINE, ONE STRIP, ONE VIEW"): on a laptop the holiday list's strip
+  // took three lines over the month view. Where the line is cut short, a Details button follows the text and opens
+  // the strip to its full text (.ln-open), reading Less while open. Nothing else changes: the engine still raises a
+  // strip with `hidden` and writes its .ln-text, and the strips' own buttons are untouched.
+  //   - The button is ADDED only while the text is cut short (or the strip is open), and REMOVED otherwise, so a strip
+  //     whose text fits reads exactly as it did. It goes right after .ln-text, before the strip's own buttons.
+  //   - It has NO id: collectFieldValues() never sees it, and a shareable copy's clone drops it (buildSavedHtml).
+  //   - A new message, or the strip going away, closes it again.
+  //   - Watched by mutation (the strips' `hidden` and text, and the view switch, which shows or hides the column
+  //     question), by a ResizeObserver on each text and by the window: a strip that was waiting behind another has
+  //     no width until it shows, so whether it is cut short is only known then.
+  (function wireStripDetails(){
+    const IDS = ['legacy-notice','holiday-notice','layout-notice','update-notice','colswap-notice','calrange-notice','browser-notice'];
+    const strips = IDS.map(id => document.getElementById(id)).filter(Boolean);
+    if(!strips.length) return;
+    function fitStrip(el){
+      const txt = el.querySelector(':scope > .ln-text');
+      if(!txt) return;
+      if(el.hidden && el.classList.contains('ln-open')) el.classList.remove('ln-open');
+      const open = el.classList.contains('ln-open');
+      // A strip not on screen (not raised, or waiting behind another) measures 0 and is never "cut short".
+      const cut = open || (txt.clientWidth > 0 && txt.scrollWidth > txt.clientWidth + 1);
+      let more = el.querySelector(':scope > .ln-more');
+      if(cut && !more){
+        more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'ln-more';
+        txt.after(more);
+      } else if(!cut && more){ more.remove(); more = null; }
+      if(more){
+        const label = open ? 'Less' : 'Details';
+        if(more.textContent !== label) more.textContent = label;
+        const exp = open ? 'true' : 'false';
+        if(more.getAttribute('aria-expanded') !== exp) more.setAttribute('aria-expanded', exp);
+      }
+    }
+    let timer = 0;
+    function fitAll(){ timer = 0; strips.forEach(fitStrip); }
+    function later(){ if(!timer) timer = setTimeout(fitAll, 0); }
+    strips.forEach(el=>{
+      // A new message closes the strip: it is about something else now.
+      new MutationObserver(recs=>{
+        if(recs.some(r => r.type !== 'attributes' && r.target !== el && el.querySelector(':scope > .ln-text') &&
+                          el.querySelector(':scope > .ln-text').contains(r.target))) el.classList.remove('ln-open');
+        later();
+      }).observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
+      const txt = el.querySelector(':scope > .ln-text');
+      if(txt && typeof ResizeObserver !== 'undefined') new ResizeObserver(later).observe(txt);
+      el.addEventListener('click', e=>{
+        if(!(e.target.closest && e.target.closest('.ln-more'))) return;
+        el.classList.toggle('ln-open');
+        fitStrip(el);
+      });
+    });
+    // The view switch shows or hides the column question, and a strip waiting behind it.
+    ['view-sheet-btn', 'view-month-btn'].forEach(id=>{
+      const b = document.getElementById(id);
+      if(b) new MutationObserver(later).observe(b, { attributes: true, attributeFilter: ['class'] });
+    });
+    window.addEventListener('resize', later);
+    later();
+  })();
   (function wireLegacyNotice(){
     const el = document.getElementById('legacy-notice');
     if(!el) return;
@@ -33651,7 +33766,8 @@ export function initLegacyApp() {
     adoptScenarios(parsed.scenarios);   // the file's tabs (one tab for a one-calendar file)
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
-    unfoldAllHiatuses();         // ...and every all-phase hiatus card (their rows carried the old folds across)
+    phaseMoreOpen.clear();       // ...with its More options closed (AUD2-036)
+    foldAllHiatuses();           // ...and every all-phase hiatus card folds to its one-line head (AUD2-036)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // opening a different file starts a fresh undo history
@@ -34262,6 +34378,7 @@ export function initLegacyApp() {
         p.menu.classList.remove('is-dragging');
         popDrag = null;
         try{ head.releasePointerCapture(e.pointerId); }catch(_){}
+        fitPopToScreen(p.menu);   // dropped higher or lower: the list takes the room there (WIN-4)
       };
       head.addEventListener('pointerup', endDrag);
       head.addEventListener('pointercancel', endDrag);
@@ -34277,7 +34394,49 @@ export function initLegacyApp() {
         const pos = floatPop(open.menu, r.left, r.top);
         if(popPos.has(open.menu)) popPos.set(open.menu, pos);
       } else keepPopInPanel(open.menu);
+      fitPopToScreen(open.menu);
     });
+    // ---------- A panel's foot stays on screen (audit 2.14, WIN-4) ----------
+    // On a laptop the app window is short: 657 px for a 1080p Windows laptop at 150%, 697 for a 1366 x 768 one. Build
+    // Around opened 560 px tall from just under its button, and the preview panel (a scroll box: keepPopInPanel's
+    // note) cut it off at its own bottom, so the pin date and Build sat out of sight with nothing to say the panel went
+    // on; Shift's To a date row and Go just as well. Two steps, both only above 960 px, where the app is a fixed
+    // window (below it the page scrolls, and a panel's foot is always reachable):
+    //   1. The phase list gives way: it is the one part that scrolls on its own, so it takes the shortfall, down to
+    //      POP_LIST_MIN (three rows). Never taller than its CSS cap (276 px), and only ever an inline max-height on
+    //      the list, so a panel that fits is exactly as it was.
+    //   2. A panel still open under its button that would be cut off by the preview panel floats AT THE SAME SPOT
+    //      (floatPop: fixed, so only the window's edge cuts it). Nothing moves on screen; it just escapes the clip, as
+    //      a dragged panel does. popPos is not touched, so the next opening drops from its button again.
+    // Idempotent (it sets the list's cap only when the value changes), so its own ResizeObserver settles at once.
+    const POP_LIST_MIN = 96, POP_LIST_MAX = 276, POP_FOOT_GAP = 8;
+    function fitPopToScreen(menu){
+      if(!menu || !menu.classList.contains('open') || popDrag) return;
+      const list = menu.querySelector('.shift-box .solve-list');
+      if(window.innerWidth <= 960){ if(list && list.style.maxHeight) list.style.maxHeight = ''; return; }
+      const mr = menu.getBoundingClientRect();
+      if(list){
+        const lh = list.getBoundingClientRect().height;
+        const natural = Math.min(POP_LIST_MAX, list.scrollHeight + (list.offsetHeight - list.clientHeight));
+        const full = mr.height - lh + natural;                 // the panel with its list at its own height
+        const room = window.innerHeight - POP_FOOT_GAP - mr.top;
+        const want = full > room ? Math.max(POP_LIST_MIN, Math.floor(natural - (full - room))) + 'px' : '';
+        if(list.style.maxHeight !== want) list.style.maxHeight = want;
+      }
+      if(!menu.classList.contains('is-floating')){
+        const pp = menu.closest('.preview-panel'), r = menu.getBoundingClientRect();
+        if(pp && r.bottom > pp.getBoundingClientRect().bottom - 1) floatPop(menu, r.left, r.top);
+      }
+    }
+    // Re-fit when a panel's own content changes height (a tick, the left-unticked line, To a date's row).
+    if(typeof ResizeObserver !== 'undefined'){
+      let popFitTimer = 0;
+      const popRO = new ResizeObserver(()=>{
+        if(popFitTimer) return;
+        popFitTimer = setTimeout(()=>{ popFitTimer = 0; POPS.forEach(p=> fitPopToScreen(p.menu)); }, 0);
+      });
+      POPS.forEach(p=> popRO.observe(p.menu));
+    }
     // Opening one closes the others: only ever one popover on screen, so they can't overlap each
     // other or leave two stale result lines showing.
     function openPop(target){
@@ -34298,6 +34457,7 @@ export function initLegacyApp() {
       }
       target.menu.classList.add('open');
       placePop(target.menu);
+      fitPopToScreen(target.menu);   // its foot on screen on a short window (WIN-4)
       target.btn.setAttribute('aria-expanded','true');
       seenSchedule = currentSchedule;
     }
@@ -40557,6 +40717,7 @@ export function initLegacyApp() {
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load
+    reflectPhaseMore();       // ...and each card's More options (AUD2-036), the same way
     reflectPhaseHidden();     // the Hide in waterfall ticks and tags onto every row (PHASES-TAB-PLAN.md §2.3)
     refreshEpisodesUI();
     refreshSimPostUI();
@@ -41996,6 +42157,7 @@ export function initLegacyApp() {
   // recovered backup replaces it with its own `colReuse`, and absent means OFF there.
   colReuse = true; reflectColReuse();
   restoreSavedState();
+  foldAllHiatuses();   // a calendar opening itself: its hiatus cards folded, as a Load's (AUD2-036)
   refreshAfterRestore();
   maybeShowLayoutNotice();   // a shareable copy or a recovered backup without the layout stamp is offered it
   pushScenarioChrome();   // the strip under the calendar (one tab, unless a shareable copy or backup brought more)
