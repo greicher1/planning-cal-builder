@@ -197,7 +197,10 @@ window.addEventListener('load', function () { (async function () {
     await press('ArrowDown'); await press('ArrowDown');
     await press('Enter');
     var pop = q('.note-pop');
-    check(pop && /8\/17\/26/.test(q('.note-pop-title', pop).textContent), 'K24 Enter opens the note the keys moved to (' + (pop ? q('.note-pop-title', pop).textContent : 'no editor') + ')');
+    // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026; notelook): the week is in the heading's grey half
+    // ("Note" then "Week of 8/17/26"), so the whole heading is read.
+    var k24h = pop ? (q('.note-pop-heading', pop) || q('.note-pop-title', pop)).textContent : 'no editor';
+    check(pop && /8\/17\/26/.test(k24h), 'K24 Enter opens the note the keys moved to (' + k24h + ')');
     key('Escape'); await settle();
     await press('ArrowDown');
     check(hiIs(['*note:2026-08-24']), 'K25 after Escape closes the editor, the arrows go on from the same cell (' + hi().join(' ') + ')');

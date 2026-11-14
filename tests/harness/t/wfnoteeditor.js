@@ -89,7 +89,7 @@ window.addEventListener('load', function () { (async function () {
   }
   function editorFacts(p) {
     return {
-      title: txt(q('.note-pop-title', p)),
+      title: txt(q('.note-pop-heading', p)),       // A2: the name, then the day (notelook)
       button: txt(q('.note-pop-delete', p)),
       rows: qa('.wf-note-item', p).map(function (r) { return (q('.wf-note-mark-auto', r) ? 'auto ' : q('.wf-note-mark-holiday', r) ? 'holiday ' : '? ') + txt(q('.wf-note-item-name', r)); }),
       day: shown(q('.note-day-row', p)), sw: shown(q('.note-view-row', p)),
@@ -162,14 +162,18 @@ window.addEventListener('load', function () { (async function () {
       f.mix = editorFacts(await openEditor('2026-06-29')); await closeEditor();
       f.typed = editorFacts(await openEditor('2026-11-02')); await closeEditor();
       f.empty = editorFacts(await openEditor('2026-08-03')); await closeEditor();
-      kase('E1', 'the headings name a cell holding one automatic note ("Auto Note · 10/20/26", Hide Auto-Note) or one holiday ("Holiday · 9/7/26", Hide Holiday); a mixed cell lists both with their marks; the Day picker and the switch show only where a typed line is (or the cell is empty)',
-           same(f.wrap, { title: 'Auto Note · 10/20/26', button: 'Hide Auto-Note', rows: [], day: false, sw: false, hint: 'Renames it wherever it shows · Its date follows the schedule' })
-             && same(f.labor, { title: 'Holiday · 9/7/26', button: 'Hide Holiday', rows: [], day: false, sw: false, hint: 'Renames this holiday wherever it shows' })
-             && same(f.mix, { title: 'Note · 6/29/26', button: '', rows: ['auto Start Principal Photography', 'holiday Independence Day (Observed)'], day: false, sw: false, hint: '' })
+      // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; notelook holds the
+      // rest of the look): the heading is the NAME ("Auto-Note", "Holiday", "Note"), then the day in grey ("Tue 10/20/26",
+      // "Week of 6/29/26"), and the line under a single item's box is in sentences. It read "Auto Note · 10/20/26" and
+      // "Renames it wherever it shows · Its date follows the schedule".
+      kase('E1', 'the headings name a cell holding one automatic note ("Auto-Note Tue 10/20/26", Hide Auto-Note) or one holiday ("Holiday Mon 9/7/26", Hide Holiday); a mixed cell lists both with their marks; the Day picker and the switch show only where a typed line is (or the cell is empty)',
+           same(f.wrap, { title: 'Auto-Note Tue 10/20/26', button: 'Hide Auto-Note', rows: [], day: false, sw: false, hint: 'Renames it wherever it shows. Its date follows the schedule.' })
+             && same(f.labor, { title: 'Holiday Mon 9/7/26', button: 'Hide Holiday', rows: [], day: false, sw: false, hint: 'Renames this holiday wherever it shows.' })
+             && same(f.mix, { title: 'Note Week of 6/29/26', button: '', rows: ['auto Start Principal Photography', 'holiday Independence Day (Observed)'], day: false, sw: false, hint: '' })
              // A typed cell has Delete Note at the top right since 10 Nov 2026 (owner: "add Delete Note button to the top right
              // corner of each popup box"); an empty one has no button.
-             && same(f.typed, { title: 'Note · 11/2/26', button: 'Delete Note', rows: ['auto Post Begins'], day: true, sw: true, hint: '' })
-             && same(f.empty, { title: 'Note · 8/3/26', button: '', rows: [], day: true, sw: true, hint: '' }),
+             && same(f.typed, { title: 'Note Week of 11/2/26', button: 'Delete Note', rows: ['auto Post Begins'], day: true, sw: true, hint: '' })
+             && same(f.empty, { title: 'Note Week of 8/3/26', button: '', rows: [], day: true, sw: true, hint: '' }),
            f);
     });
 

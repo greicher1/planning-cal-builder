@@ -17332,8 +17332,15 @@ export function initLegacyApp() {
     // was 6-16, and 13 and up cut the text in a standard row (plan §4.1); the bar's is 6-12 (owner ruling D1).
     // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
     // in activeNoteEditor below, never touched now, so a commit writes no size.
-    const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
-      <label><span class="note-row-name">Day</span><select class="note-day-select">
+    // ⭐ THE LOOK IS A2 (owner, 4 Nov 2026, mockups/note-editor-look.html: "yes A2, but its an "Auto-Note""; card
+    // `note-editor-overhaul`; PHASE-LINKED-NOTES-PLAN.md §4.4). One list of rows under the text box, a name on the left and
+    // its value on the right, a hairline between: Day, Stays with (its one-line hint under it), Colour (the picked
+    // colour's name at the right, all 18 of the note palette always out, ten then eight), Show in month view, and the
+    // cell's automatic notes and holidays with their Hide (WATERFALL-NOTE-EDITOR-PLAN.md R3(a), folded in as the list's
+    // last row). Then a foot with Save. Every row keeps the class the code and the legs find it by (.note-day-row,
+    // .note-link-row, .note-color-row, .note-view-row, .wf-note-items); each is a `.note-item` of `.note-list`.
+    const dayRow = isHiatus ? '' : `<div class="note-item note-day-row"${typedShown ? '' : ' style="display:none"'}>
+      <label class="note-line"><span class="note-row-name">Day</span><select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>${linkSingle ? 'First day (default)' : 'Mon (default)'}</option>
         ${dayOpts}
       </select></label>
@@ -17343,8 +17350,8 @@ export function initLegacyApp() {
     // The row: "Stays with [Week of 7/6/26 | Production wk 2 | ...]", a one-line hint under it, and (R2(a)) a line naming
     // the other linked notes drawn here. ⛔ The select has NO id: collectFieldValues() sweeps select[id], and this is a
     // note's own setting, never a calendar field. Shown with the Day row: for typed text (a linked note's included).
-    const linkRow = !link ? '' : `<div class="note-link-row"${typedShown ? '' : ' style="display:none"'}>
-      <label><span class="note-row-name">Stays with</span><select class="note-link-select" title="What this note stays with when phases move">
+    const linkRow = !link ? '' : `<div class="note-item note-link-row"${typedShown ? '' : ' style="display:none"'}>
+      <label class="note-line"><span class="note-row-name">Stays with</span><select class="note-link-select" title="What this note stays with when phases move">
         <option value=""${link.sel0 ? '' : ' selected'}>Week of ${escHtml(fmtShort(link.week))}</option>
         ${link.opts.map(o=> `<option value="${escHtml(o.value)}"${o.value === link.sel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')}
       </select></label>
@@ -17373,37 +17380,47 @@ export function initLegacyApp() {
       ? `<button type="button" class="note-pop-delete wf-note-hide" data-i="0" title="${escHtml(hideTitle(singleItem))}">${singleItem.holiday ? 'Hide Holiday' : 'Hide Auto-Note'}</button>`
       : typedHere ? `<button type="button" class="note-pop-delete wf-note-delete" title="Deletes what was typed in this cell. Its automatic notes and holidays stay (each has its own Hide). One undo brings it back.">Delete Note</button>` : '';
     const itemsHtml = isHiatus ? '' : singleItem ? ''
-      : (cellItems.length ? `<div class="wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
+      : (cellItems.length ? `<div class="note-item wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
           `<div class="wf-note-item" title="${escHtml(autoNoteLine(n))}"><span class="wf-note-mark wf-note-mark-${n.holiday ? 'holiday' : 'auto'}" aria-hidden="true"></span>`
           + `<span class="wf-note-item-name">${escHtml(n.label)}</span>`
           + `<button type="button" class="wf-note-hide" data-i="${i}" title="${escHtml(hideTitle(n))}" aria-label="Hide ${escHtml(n.label)} from the Waterfall">Hide</button></div>`).join('')}</div>` : '');
     // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
     // exactly the shape it had before the click.
     const pop = document.createElement('div');
-    pop.className = 'note-pop';
+    // `note-a2` scopes A2's look (legacy.css): the heading editor is a .note-pop too, and keeps its own.
+    pop.className = 'note-pop note-a2';
     // A per-phase hiatus key is "<week>|<phase>", which is not a date, so take the week part and
     // fall back to the raw key if it still will not parse.
     const popWeek = parseDateUTC(splitWeekKey(weekKey).iso);
-    // The heading names a cell holding one automatic note or one holiday, by ITS date (owner, 30 Oct 2026: "why does this
-    // still show as Note in the waterfall"); anything else is the week's Note, by its Monday, as before.
-    const popTitle = singleItem
-      ? (singleItem.holiday ? 'Holiday' : 'Auto Note') + ' \u00b7 ' + fmtShort(singleItem.date)
-      : (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
-    // The keys line ("Tab or Ctrl/Cmd-Enter to save · Esc to cancel") is gone (owner, 12 Nov 2026: "Delete this text
-    // in all places"). A single automatic note or holiday keeps the line saying what saving does; any other cell's
-    // editor has no hint line at all, rather than an empty one holding its margin.
-    const popHint = singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows'
-                                                     : 'Renames it wherever it shows \u00b7 Its date follows the schedule') : '';
-    pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-title">${escHtml(popTitle)}</div>${headBtn}</div>
+    // The heading names a cell holding one automatic note or one holiday (owner, 30 Oct 2026: "why does this still show
+    // as Note in the waterfall"), by ITS day; anything else is the week's Note, by its Monday. A2 (owner, 4 Nov 2026)
+    // splits it in two: the name, in the panel's own type ("Note", "Holiday", and "Auto-Note", the owner's spelling: "yes
+    // A2, but its an "Auto-Note""), then the day in grey. The one action button stays at the top right (10 Nov 2026).
+    const popName = singleItem ? (singleItem.holiday ? 'Holiday' : 'Auto-Note') : (isHiatus ? 'Hiatus' : 'Note');
+    const popWhen = singleItem ? noteDayLabel(singleItem.date) : (popWeek ? 'Week of ' + fmtShort(popWeek) : weekKey);
+    // The keys line ("Tab or Ctrl/Cmd-Enter to save, Esc to cancel") is gone (owner, 12 Nov 2026: "Delete this text in
+    // all places"). A single automatic note or holiday keeps the line saying what saving does, right under the text box
+    // (A2's place for it); any other cell's editor has none, rather than an empty one holding its margin.
+    const popHint = singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows.'
+                                                     : 'Renames it wherever it shows. Its date follows the schedule.') : '';
+    // Colour, the list's third row: its name, the picked colour's name at the right, then the swatches (a hiatus band's
+    // standard ten, a note's whole palette in two rows, ten then eight).
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+      + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${swatchRows}</div>`;
+    pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-heading"><span class="note-pop-title">${escHtml(popName)}</span>`
+      + ` <span class="note-pop-when">${escHtml(popWhen)}</span></div>${headBtn}</div>
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (Shift+Enter for a new line)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}
+      <div class="note-list">
       ${dayRow}
       ${linkRow}
-      ${swatchRows}
+      ${colourRow}
       ${viewRow}
       ${itemsHtml}
       </div>
-      ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}`;
+      </div>
+      <div class="note-pop-foot"><button type="button" class="note-pop-save">Save</button></div>`;
     document.body.appendChild(pop);
     // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
     // its own pane, so a popover placed once and left alone slides away from its cell.
@@ -17520,9 +17537,21 @@ export function initLegacyApp() {
           td.style.background = c;
           td.style.color = textColorFor(c);
           pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+          const nm = pop.querySelector('.note-colour-name');
+          if(nm) nm.textContent = noteColourName(c);
         }
       });
     });
+    // Save (A2's foot): what Tab, Enter or a click away already did, as a button (AUD2-040: "the note editors have no Save
+    // button"). It keeps the text box's focus until it saves, as the swatches do.
+    const saveBtn = pop.querySelector('.note-pop-save');
+    if(saveBtn){
+      saveBtn.addEventListener('mousedown', e=> e.preventDefault());
+      saveBtn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(activeNoteEditor && activeNoteEditor.pop === pop) commitActiveNoteEditor();
+      });
+    }
     // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save. Read on commit.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
@@ -19618,7 +19647,8 @@ export function initLegacyApp() {
   // The switch row both note editors carry under their colours (`label`: what it shows the note in). The checkbox has
   // NO id: collectFieldValues() sweeps input[id], and this is a note's own setting, never a calendar field.
   function noteViewSwitchHtml(label, on, title){
-    return `<label class="note-view-row" title="${escHtml(title)}"><span class="note-view-label">${escHtml(label)}</span>`
+    // A row of the note editors' A2 list (`note-item`, legacy.css), as Day, Stays with and Colour are.
+    return `<label class="note-item note-view-row" title="${escHtml(title)}"><span class="note-view-label">${escHtml(label)}</span>`
          + `<input type="checkbox" class="note-view-cb"${on ? ' checked' : ''}></label>`;
   }
 
@@ -21558,6 +21588,19 @@ export function initLegacyApp() {
     const swatch = p => `<span class="color-swatch${isMvNoFill(p.color) ? ' is-nofill' : ''}${p.color.toUpperCase() === cur ? ' selected' : ''}" data-color="${p.color}" title="${p.name}"${isMvNoFill(p.color) ? '' : ` style="background:${p.color};"`}></span>`;
     return `<div class="note-color-row note-palette-row" title="Highlight color">${MV_NOTE_PALETTE.slice(1, 11).map(swatch).join('')}</div>`
       + `<div class="note-color-row note-palette-row" title="Highlight color">${[MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(swatch).join('')}</div>`;
+  }
+  // The note editors' A2 look (owner, 4 Nov 2026; mockups/note-editor-look.html): the Colour row names the picked colour
+  // at its right, from the palette's own names (a hiatus band's red is the palette's "Red" too). A colour the palette
+  // does not hold (an old file's) names nothing, rather than a hex code.
+  function noteColourName(c){
+    const cur = String(c || '').toUpperCase();
+    const hit = MV_NOTE_PALETTE.find(function(p){ return p.color.toUpperCase() === cur; });
+    return hit ? hit.name : '';
+  }
+  // A day as the note editors' headings write it: "Tue 10/20/26".
+  function noteDayLabel(d){
+    const dt = (d instanceof Date) ? d : parseDateUTC(String(d || ''));
+    return dt ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getUTCDay()] + ' ' + fmtShort(dt) : '';
   }
   // The colour a NEW day note opens on: the one last committed from the editor (prefs.mvNoteColor, per user,
   // never in a saved calendar), or the default purple. Only a palette colour is honoured, so a hand-edited
@@ -40229,7 +40272,7 @@ export function initLegacyApp() {
     // waterfall-owned note kept the standard ten until 28 Oct 2026, when its writers learned No fill (X1, P1).
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
-    pop.className = 'mv-note-pop';
+    pop.className = 'mv-note-pop note-a2';   // `note-a2`: the note editors' A2 look (legacy.css)
     // ⭐ "Show in waterfall", right below the colours (owner, 4 Nov 2026; see dayNoteWfLine). Typed notes only (R4): a
     // holiday and an automatic note keep their own settings, so their editors have none. A note typed here starts OFF
     // (the owner: "hide by default for notes entered into the month view"); a waterfall note's line is ON, and switching
@@ -40251,7 +40294,7 @@ export function initLegacyApp() {
     }
     const dayD = parseDateUTC(dayIso);
     const dayName = dayD ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayD.getUTCDay()] + ' ' + (dayD.getUTCMonth() + 1) + '/' + dayD.getUTCDate() : '';
-    const linkRow = !linkOpts.length ? '' : `<div class="note-link-row"><label><span class="note-row-name">Stays with</span><select class="note-link-select">`
+    const linkRow = !linkOpts.length ? '' : `<div class="note-item note-link-row"><label class="note-line"><span class="note-row-name">Stays with</span><select class="note-link-select">`
       + `<option value=""${linkSel0 ? '' : ' selected'}>This day (${escHtml(dayName)})</option>`
       + linkOpts.map(o=> `<option value="${escHtml(o.value)}"${o.value === linkSel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')
       + `</select></label><div class="note-link-hint"></div></div>`;
@@ -40261,28 +40304,48 @@ export function initLegacyApp() {
     // (ruling 5). Since 4 Nov 2026 it hides the note from the month view only (R4); the waterfall keeps it while its
     // Waterfall box is ticked. Its date is the note's own.
     const autoStd = (isAuto && autoNote.label !== autoNote.origLabel)
-      ? ` \u00b7 Standard name: \u201c${escHtml(autoNote.origLabel)}\u201d` : '';
+      ? ` Standard name: “${escHtml(autoNote.origLabel)}”.` : '';
     // ⭐ The one action button at the top right, beside the heading (owner, 10 Nov 2026): an automatic note's Hide
     // Auto-Note, or Delete Note on a note that was typed (a month note, a waterfall line, a linked note), which deletes
     // that one note as emptying its box does. A new note (a "+") and a holiday have none.
     const canDelete = (isWf || isLinked || (kind === 'day' && editIdx !== null)) && !!String(curText || '').trim();
     const delNoteHtml = canDelete ? `<button type="button" class="note-pop-delete mv-note-delete" title="Deletes this note. One undo brings it back.">Delete Note</button>` : '';
+    // ⭐ THE LOOK IS A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; mockups/note-editor-look.html), the waterfall
+    // editor's (openNoteEditor): the heading's name and its day in grey (the old ".mv-note-pop-day" wraps both, so it still
+    // names the heading), the text box, what saving does under it (a holiday and an automatic note), then the one list --
+    // Stays with, Colour, Show in waterfall -- and a foot with Save. The holiday and Auto-Note editors keep "Enter to save
+    // · Esc to cancel" in the foot (owner, 12 Nov 2026, "No, leave it"); a typed note's has none (the same day: "Delete
+    // this text in all places"), and Esc keeps what was typed there (AUD2-040), so A2's "Esc to cancel" would be wrong.
+    const mvName = isAuto ? 'Auto-Note' : isHol ? 'Holiday' : isWf ? 'Waterfall line' : 'Note';
+    const mvWhen = noteDayLabel(isAuto ? autoNote.date : dayIso);
+    const headHtml = `<div class="note-pop-head"><div class="note-pop-heading mv-note-pop-day"><span class="note-pop-title">${escHtml(mvName)}</span>`
+      + ` <span class="note-pop-when">${escHtml(mvWhen)}</span></div>`
+      + (isAuto ? `<button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings ▸ Automatic notes to bring it back.">Hide Auto-Note</button>`
+                : isHol ? '' : delNoteHtml) + `</div>`;
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+      + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${notePaletteRowsHtml(curColor)}</div>`;
+    const footHtml = `<div class="note-pop-foot">${(isAuto || isHol) ? '<span class="note-pop-keys">Enter to save · Esc to cancel</span>' : ''}`
+      + `<button type="button" class="note-pop-save">Save</button></div>`;
     pop.innerHTML = isAuto
-      ? `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(autoNote.date)} \u00b7 Auto Note</div>
-      <button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings \u25b8 Automatic notes to bring it back.">Hide Auto-Note</button></div>
+      ? `${headHtml}
       <textarea rows="2" placeholder="Clear to hide this auto note">${curText.replace(/</g,'&lt;')}</textarea>
-      ${notePaletteRowsHtml(curColor)}
-      <div class="mv-note-pop-hint">Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 Colour is for the month view${autoStd} \u00b7 Enter to save \u00b7 Esc to cancel</div>`
+      <div class="mv-note-pop-hint">Renames it wherever it shows. Its date follows the schedule. Colour is for the month view.${autoStd}</div>
+      <div class="note-list">${colourRow}</div>
+      ${footHtml}`
       : isHol
-      ? `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))} \u00b7 Holiday</div>
-      <textarea rows="2" placeholder="Clear to go back to \u201c${escHtml(holiday.origName)}\u201d">${curText.replace(/</g,'&lt;')}</textarea>
-      ${notePaletteRowsHtml(curColor)}
-      <div class="mv-note-pop-hint">Renames this holiday wherever it shows \u00b7 Colour is for the month view \u00b7 Enter to save \u00b7 Esc to cancel</div>`
-      : `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>${delNoteHtml}</div>
-      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (Shift+Enter for a new line)':' \u2014 Shift+Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
+      ? `${headHtml}
+      <textarea rows="2" placeholder="Clear to go back to “${escHtml(holiday.origName)}”">${curText.replace(/</g,'&lt;')}</textarea>
+      <div class="mv-note-pop-hint">Renames this holiday wherever it shows. Colour is for the month view.</div>
+      <div class="note-list">${colourRow}</div>
+      ${footHtml}`
+      : `${headHtml}
+      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (Shift+Enter for a new line)':' — Shift+Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
+      <div class="note-list">
       ${linkRow}
-      ${notePaletteRowsHtml(curColor)}
-      ${viewRow}`;
+      ${colourRow}
+      ${viewRow}
+      </div>
+      ${footHtml}`;
     // ⛔ No hint line on a typed month note (owner, 12 Nov 2026: "Delete this text in all places", of "Up to 3 lines ·
     // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). Since 13 Nov 2026
     // (AUD2-040, D6 (a)) Enter saves, so the placeholder says Shift+Enter makes a new line, up to 3.
@@ -40364,8 +40427,16 @@ export function initLegacyApp() {
         if(!activeMvNote) return;
         activeMvNote.pendingColor = sw.dataset.color;
         pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+        const nm = pop.querySelector('.note-colour-name');
+        if(nm) nm.textContent = noteColourName(sw.dataset.color);
       });
     });
+    // Save (A2's foot): what Tab, Enter or a click away already did, as a button (AUD2-040). It keeps the box's focus.
+    const saveBtn = pop.querySelector('.note-pop-save');
+    if(saveBtn){
+      saveBtn.addEventListener('mousedown', e=> e.preventDefault());
+      saveBtn.addEventListener('click', e=>{ e.stopPropagation(); if(activeMvNote) commitMvNoteEditor(); });
+    }
     // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>e.preventDefault());
