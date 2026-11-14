@@ -12341,12 +12341,13 @@ export function initLegacyApp() {
       // ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §6): applied on release, BEFORE the question, so Keep is asked about
       // what the user will actually get. Nothing is banked yet: the press banked the state before the drag
       // (lastPushedSnapshotJSON, the drag cancels every push in between), which is what Undo goes back to. Keep then
-      // banks the drag and its push as two steps, as every other hiatus edit does.
-      let rip = null, preJSON = null, editJSON = null;
+      // banks the drag and its push as ONE step, as every other hiatus edit does (audit AUD2-038, owner decision D2 = b,
+      // Nov 2026: one gesture and one Keep are one Cmd+Z; until then they were two, and the first Cmd+Z left the break
+      // where it was dropped).
+      let rip = null, preJSON = null;
       if(changed && hiatusRippleOn()){
         cancelPendingUndoPush();
         preJSON = lastPushedSnapshotJSON;
-        editJSON = undoStateJSON();
         const h = d.h.kind === 'all' ? {kind: 'all', row: d.h.sEl.closest('.hiatus-entry')} : {kind: 'phase', key: d.h.key};
         clearRippleNotes();
         try { rip = rippleAfterHiatusEdit(h, original(d), {start: d.cur.start, weeks: d.cur.weeks}, {noUndo: true}); }
@@ -12371,8 +12372,9 @@ export function initLegacyApp() {
         }
       }
       releasePersistence();
-      // ⛔ THE TRAILING PUSH IS THE STEP, as the phase handles'. A drag that ends where it began banks none.
-      if(changed){ if(rip) bankStepAt(editJSON); pushUndoSnapshot(); markDirty(); }
+      // ⛔ THE TRAILING PUSH IS THE STEP, as the phase handles'. A drag that ends where it began banks none. With a
+      // ripple, the baseline is still the press, so this one push holds the drag and its push together.
+      if(changed){ pushUndoSnapshot(); markDirty(); }
     }
 
     window.addEventListener('mousemove', e=>{
@@ -13106,7 +13108,8 @@ export function initLegacyApp() {
 
     // Exactly what the sidebar's "+ Add hiatus" does, with the start filled in: a row two weeks long,
     // locked in place (addHiatusRow's default), then update(). One undo step, bracketed.
-    // With the hiatus ripple on, the phases after it are then pushed two weeks: a second undo step (HIATUS-RIPPLE-PLAN.md).
+    // With the hiatus ripple on, the phases after it are then pushed two weeks, folded into the same undo step (audit
+    // AUD2-038, owner decision D2 = b: one Cmd+Z takes back the new hiatus and its push; it was a second step until then).
     function addHiatusHere(ctx){
       pushUndoSnapshot();
       const row = addHiatusRow(isoOf(mondayOf(ctx.date)), 2);
@@ -31270,21 +31273,23 @@ export function initLegacyApp() {
     if(undoStack.length && undoStack[undoStack.length - 1] === now){ undoStack.pop(); refreshUndoRedoUI(); }
     lastPushedSnapshotJSON = now;
   }
-  // ⭐ MAKE `json` A STEP OF ITS OWN between the baseline and the present (the hiatus ripple, HIATUS-RIPPLE-PLAN.md §6).
-  // `json` is undoStateJSON() of the user's own edit, taken just before the ripple that follows it; the caller pushes
-  // the rippled state next, so one Cmd+Z takes back the push and keeps the edit ("not this time"), and a second takes
-  // back the edit. Equal to the baseline, the edit was already banked (a pause past UNDO_DEBOUNCE_MS, or a caller that
-  // brackets with pushUndoSnapshot()), and nothing is added.
-  function bankStepAt(json){
-    if(applyingUndoRedo || suppressDirty || !json || json === lastPushedSnapshotJSON) return;
-    cancelPendingUndoPush();
-    if(lastPushedSnapshotJSON !== null){
-      undoStack.push(lastPushedSnapshotJSON);
-      if(undoStack.length > UNDO_LIMIT) undoStack.shift();
-    }
-    lastPushedSnapshotJSON = json;
-    redoStack = [];
-    refreshUndoRedoUI();
+  // ⭐ A HIATUS EDIT AND ITS RIPPLE ARE ONE UNDO STEP (owner, Nov 2026 audit decision D2 = b, finding AUD2-038: "the edit
+  // and its push are one Undo"). `editJSON` is undoStateJSON() of the user's own edit, taken just before the ripple that
+  // follows it (rippleAfterHiatusEdit). Two ways the edit can stand when the push lands, one step either way:
+  //   * still PENDING (a Weeks change pushes at once, inside UNDO_DEBOUNCE_MS; a one-shot edit with no bracket): the
+  //     baseline is the calendar before the edit, so one push banks the edit and its push together.
+  //   * already BANKED (a typed date that paused past the debounce before its box was left; the day menus, which
+  //     bracket their edit with pushUndoSnapshot()): editJSON is the baseline, so the push joins that step
+  //     (foldIntoBankedStep), and one Cmd+Z goes back to before the edit.
+  // ⚠️ Until this audit fix the edit and its push were TWO steps (bankStepAt, removed): one Cmd+Z took back the push and
+  // kept the edit ("not this time", a session's call, HIATUS-RIPPLE-PLAN.md §6). After a month-view band drag answered
+  // Keep, that first Cmd+Z changed nothing a user could see (the break stayed where it was dropped); after the day
+  // menu's Add hiatus it left Post starting while Production still shot. To change a hiatus without the push now,
+  // switch Ripple Hiatus Periods off first (Settings > Preferences > Hiatus), as its "i" says.
+  function bankRippleWithEdit(editJSON){
+    if(applyingUndoRedo || suppressDirty) return;
+    if(editJSON === lastPushedSnapshotJSON){ foldIntoBankedStep(editJSON); redoStack = []; refreshUndoRedoUI(); }
+    pushUndoSnapshot();   // the pending case; after a fold the baseline is already the present, so nothing is pushed
   }
   // Discards all undo/redo history and re-baselines on the current state. Called whenever a
   // different document replaces what's on screen (New, Open, a recent file, backup recovery, or
@@ -32172,8 +32177,9 @@ export function initLegacyApp() {
   }
   // THE ENTRY POINT. `before` and `after` are rippleSpan() results taken before and after the user's edit. Returns
   // null when nothing ran (the switch off, no change, an unreadable date), {refused: true} when a step is past
-  // MAX_SHIFT_WEEKS (nothing moves), else {changed, moves, text}. opts.noUndo: the caller banks the steps itself (the
-  // month-view drag, which can still be answered Undo). Otherwise the edit and its push are TWO undo steps (plan §6).
+  // MAX_SHIFT_WEEKS (nothing moves), else {changed, moves, text}. opts.noUndo: the caller banks the step itself (the
+  // month-view drag, which can still be answered Undo). Otherwise the edit and its push are ONE undo step
+  // (bankRippleWithEdit; audit AUD2-038, owner decision D2 = b, Nov 2026; they were two until then, plan §6).
   function rippleAfterHiatusEdit(h, before, after, opts){
     opts = opts || {};
     if(!hiatusRippleOn() || applyingUndoRedo || suppressDirty) return null;
@@ -32214,7 +32220,7 @@ export function initLegacyApp() {
     const changed = undoStateJSON() !== editJSON;
     const text = changed ? rippleReadout(moves, results) : '';
     if(text) showRippleNote(h, text);
-    if(changed && !opts.noUndo){ bankStepAt(editJSON); pushUndoSnapshot(); }
+    if(changed && !opts.noUndo) bankRippleWithEdit(editJSON);
     return {changed, moves, text};
   }
   // The result line lives in the hiatus's own card: the row's body, or the phase's hiatus block. A div with NO id
@@ -32247,7 +32253,7 @@ export function initLegacyApp() {
   // when the edit SETTLES, measured against that.
   // ⭐ A WEEKS CHANGE SETTLES THE MOMENT IT IS MADE (owner, 5 Nov 2026: "it should do it immediately not after a
   // second"). Every whole number the box takes -- a spinner click, an arrow key, a typed digit -- pushes at once and
-  // begins the next edit, focus kept: 2 -> 3 -> 4 is two pushes of 1 week, each its own pair of undo steps. Until then
+  // begins the next edit, focus kept: 2 -> 3 -> 4 is two pushes of 1 week, each its own undo step. Until then
   // a Weeks change waited for focus to leave, so the hiatus's band grew while the phases after it sat still, which
   // read as "Ripple Hiatus did nothing". An emptied box (or 0) mid-typing waits; leaving it empty settles as before.
   // ⛔ A TYPED START DATE STILL WAITS: a date box fires 'input' for each digit of a year (0002, 0020, 0202, 2026), each
