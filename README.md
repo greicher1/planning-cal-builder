@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Switching between the Waterfall and the Month view no longer marks a file "Unsaved changes" (13 Nov 2026)
+
+The November 2026 audit, item 2.9 (AUD2-022; reproduced here before the fix). Open a saved calendar, click Month view
+(or Month and back), and the status read **Unsaved changes**: closing the window asked "Leave site?", and ten minutes
+later autosave rewrote a file nobody had edited, which could then raise "File changed on disk" for a colleague working
+in it. Paging months, a sidebar tab, Settings and Excel export never did this; only the view switch did, because the
+view is part of the saved calendar and the switch re-drew it through the same path as an edit.
+
+- **Now** (the audit's default, approved by the owner): a view switch on a calendar with nothing unsaved is not an
+  edit. The status stays as it was, there is no leave warning, no crash backup is written, autosave has nothing to
+  write, and Load or New does not ask about unsaved changes. The Date Last Edited never moved for a switch, and still
+  does not.
+- **The view is still saved with the next real save**: Save, Save As, or an autosave after any real edit records the
+  view on screen, as before. ⚠️ So a calendar that was **only** switched to the other view and then closed reopens in
+  the view it was saved in.
+- With unsaved work already on the page, a switch behaves exactly as before (the crash backup records the view).
+- Engine only, in `setViewMode` (the view buttons and both "Show this … in the …" menu items): nothing frozen, nothing
+  saved differently, no new setting.
+- **Proof:** new leg `viewclean` (7 cases: V1, V2 and A1 red on `2089aa5`, the audited build; green after), in the
+  gate's audit-fix list; nearest legs green on the build (listed in HANDOFF); `npm run check` 42/42.
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
