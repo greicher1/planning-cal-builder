@@ -4,6 +4,29 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **BUILT, WIP COMMITS ONLY** (`4abfe22`, `68d5eae`) on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`, cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`). Waiting for the owner to try it on localhost (`audit-1-1-8655` in `.claude/launch.json`, `/dist/index.html?state=autonotefollow`) and say "finish it". NOT gated, NOT pushed. Tracker card `audit-typed-notes-follow-calendar`
+- **D7 is still unanswered** (item 1.4). Items 1.3 and 1.5 need no decision and are not started. A duplicate 1.2 build by the
+  session "Audit fixes: core functionality" (worktree `audit-batch-1`, commit `86ada17`) was stopped on the owner's word;
+  its worktree and commit were left as they were. The batch still needs ONE branch and ONE full gate at the end.
+- **As built** (`src/legacy/app.js`, `followAutoNotes` beside `rewriteMovedAutoNotes`): AUTONOTE-FOLLOW-PLAN.md's ruled
+  hook, widened by D1 (a). Every typed note is rebuilt, after every `update()` and every `markDirty()`, from the note AS
+  LEFT against its week's automatic lines then and now, matched by kind / holiday id: re-dated or renamed in place,
+  taken out when gone (moved, switched off, hidden, removed, another Region), added when arrived; a line the user took
+  out stays out; the user's lines stay on their week (plan Q2). Memory: a session-only WeakMap on the note object (a
+  Shift's re-key carries it; `shiftCalendarDates` primes it first), cleared on every restore. `autoNoteBaseline()` is
+  inert (plan §3.4). `carryRenamedLine` carries the memory; a line renamed in the waterfall editor is also known by its
+  new text (`alt`). No frozen code, no save-format change. Nothing is rewritten on Load: a stale line already saved in
+  a file stays until that note is edited and something moves.
+- **Proof so far** (build `8774f0d8…`): new leg `autonotefollow` (groups `g=a|c|e|g`, `g=m` mints the fixture
+  `autonotefollow.sptcal`): 12 checks red on the build before the fix (`ea9bd9cf…`), 22/22 green after. The audit's own
+  repro legs (vr01 nudge/tickin/ripple/other, vr03 dates/eps/region/custrm, vr04 shift/nudge above/below) all show the
+  right lines in the waterfall, month view, Excel, both PDFs and the saved file. Re-expected for D1 (a):
+  `autonotekinds` A3/A4/A9/A12 (a switched-off kind's line now leaves a typed cell) and `phasekeys` C1 (the wrap moved
+  into a pasted note's week now shows beside it). A first targeted run of ~55 note / mover legs: only those six red,
+  plus `autonoteview` T5, which found the rename gap (fixed). A clean re-run on the final build is in progress.
+- **Not done:** README changelog, CLAUDE.md state-table note on `userNotes`, AUTONOTE-FOLLOW-PLAN status line, Help text
+  check, `gate.sh` wiring for `autonotefollow`, fixtures README row, the batch's full gate.
+
 ### 🔨 13 Nov 2026: AUDIT BATCH 1, ITEM 1.2 — RECOVER CAN NO LONGER BLANK A SAVED FILE; A FILE THAT LEAVES FIELDS OUT OPENS WITH ITS OWN VALUES (AUD2-004, AUD2-005). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/blissful-leakey-82c876` (worktree `.claude/worktrees/blissful-leakey-82c876`, cut from `origin/main` at `2089aa5`). Tracker card `audit-recover-and-sparse-load`
 - **Where it comes from:** the November production-readiness audit (run on `2089aa5`), Batch 1 "before more users",
   item 1.2: two verified, rare, P0 data-safety findings that need no owner decision. The audit's own files are kept
