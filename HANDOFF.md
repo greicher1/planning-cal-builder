@@ -4,6 +4,41 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🛑 14 Nov 2026: THE NOTES RESETS ASK FIRST, AND EACH CLEARS THE NOTES ITS OWN VIEW SHOWS (audit item 3.5, AUD2-054 + AUD2-070). **NOT merged, NOT pushed; waits for the release train's one full gate.** Branch `audit-3-5` (worktree `.claude/worktrees/audit-3-5`, from `origin/main` at `2089aa5`, `node_modules` a copy). Built overnight on the owner's tracker approval; nothing frozen, no save-format change.
+- **Bugs (both reproduced, red on `2089aa5`):** AUD2-054, the header's Reset Waterfall Notes / Reset Month Notes cleared
+  every note on one press with no question (New, Load, Delete scenario and Reset holidays all ask). AUD2-070,
+  `resetWaterfallNotes` set `phaseNotes = {}` (PHASE-LINKED-NOTES-PLAN D8, from before month-only linked notes), so a
+  note linked from the Month view (`sheetHidden`) was deleted by the waterfall's reset and survived the month's.
+- **Built (engine, beside `resetWaterfallNotes`):** the delegated `#tb-notes-reset-btn` click saves an open note editor
+  first (as any click away does; the month editor's own click-away runs after this listener), then
+  `askResetWaterfallNotes()` / `askResetMonthNotes()`: count (`waterfallNotesToReset`, `monthNotesToReset`), skip when
+  nothing, else `uiConfirm` (danger, title = the button's name, confirm "Reset"), then the old reset. The resets split
+  linked notes by `linkedNoteIsMonths(v)` (`sheetHidden === true`) through `keepLinkedNotes`. Help text updated.
+- **Defaults applied (from the findings, no decision needed):** ask first through `uiConfirm`, danger style, the number
+  of notes in the text, as Reset holidays; skip the question when there is nothing to clear; each reset clears the
+  linked notes its own view shows (waterfall: every linked note without `sheetHidden`, `monthHidden` ones included as
+  before; month: `sheetHidden === true`).
+- **Choices made overnight (owner may change):**
+  - Nothing to clear = the press does NOTHING (no render, no unsaved flag), rather than running a no-op reset that marked
+    the file "Unsaved changes".
+  - The waterfall count is each week holding anything of its own (typed text, an old file's cleared-auto-note
+    tombstone, a colour, a size, a text style) plus each linked note it shows. The month count is the notes it DELETES
+    (day notes with text + month-only linked notes); with none, the restyled ones (a holiday's or automatic note's
+    month colour, a waterfall line's month place/style) get "Return N notes … Nothing is deleted."; with neither (only
+    an extra week row, an empty leftover key or a legacy colour) it clears without asking, as before, since nothing
+    typed goes and "lane" is an engine word.
+  - An open editor is SAVED before the question (the old reset discarded it): so Cancel keeps what was typed.
+  - The hidden frozen-renderer original `#notes-reset-btn` (scripted clicks only; MANTINE-SEAM "Constrained") was left
+    as it is: it still resets at once. The hiatus bands' reset and Reset Columns / Reset Bar Order do not ask (not in
+    this item).
+  - ⚠️ This supersedes "Kept as today, not asked: the resets clear at once" in the 30 Sep 2026 notes-reset section below.
+- **Proof:** new leg `notesreset` (13 cases, in `gate.sh`'s audit-fix list), red on `2089aa5` at Q0 W1 W2 W3 W4 M1 M2
+  M4. Re-expected because the click now opens a question (each answers Reset and asserts it asked): `hdrcontrols`
+  N1/N2 (the old leg goes red at N1/N2 on this build), `regionlock` L3, `autonoterename` R1, `mvtextstyle` K2. Green on
+  the build, one at a time on port 8851: `notesreset` 13/13, `hdrcontrols` 12/12, `regionlock` 14/14, `noresetall`
+  5/5, `dlgkeys` 16/16, `autonoterename` 24/24, `mvtextstyle` 23/23 + 6/6, `phasenotes` 21/21, `phasemonth` 21/21,
+  `sharecopy2` pass; `npm run check` 42/42. NOT run: the full gate, the legs not named here, a try in the browser pane.
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.
@@ -12866,6 +12901,8 @@ reaches them with the next cut, and the README entry stays `Unreleased` until th
      the Enable checkbox). "This only affects the Holidays section." leaves Reset holidays' text.
   - Kept as today, not asked: the resets clear at once and are undoable (⌘Z), like "Reset Notes &
     Hiatus".
+    ⚠️ **Superseded 14 Nov 2026 (audit item 3.5, AUD2-054, owner-approved on the tracker):** both notes resets now ask
+    first, naming how many notes go, and ask nothing when there is nothing to clear.
 - **Build order**, chosen so every commit is coherent: 3 (Reset All) → 6 (the Region prompt,
   which drops the three "Reset Notes & Hiatus first" strings before that button goes) → 7 → 1+4+5
   (the header controls leave the calendar) → 2 (Expand/Swap).

@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the notes resets ask first, and each clears the notes its own view shows (14 Nov 2026)
+
+Audit item 3.5 (AUD2-054, AUD2-070), approved on the tracker. **Reset Waterfall Notes** and **Reset Month Notes** sit in
+the app header beside Export PDF, and one press cleared every note at once with no word (44 waterfall notes to 4 on
+the audit's calendar), while New, Load, Delete scenario and Reset holidays all ask first. Autosave then wrote the wiped
+calendar ten minutes later. And a note linked to a phase from the Month view ("Stays with: Production", shown there
+only) was deleted by Reset Waterfall Notes, where it never showed, and left behind by Reset Month Notes.
+
+- **Now** both ask first, as Reset holidays does (a red Reset, Cancel focused), naming how many notes go: "Reset 2
+  waterfall notes to automatic text, colour and size? This clears them in the Month view too. Undo brings them back.",
+  "Delete 2 notes added in the Month view? Waterfall notes stay. Undo brings them back.", or, with only month colours
+  and places to clear, "Return 1 note in the Month view to automatic colours and places? Nothing is deleted."
+- **With nothing to clear** the press asks nothing and does nothing. Before, a press on an empty calendar still marked
+  the file "Unsaved changes".
+- **Each reset clears the linked notes its own view shows:** a note linked to a phase that shows in the Month view
+  only goes with Reset Month Notes; every other linked note with Reset Waterfall Notes, as before.
+- An open note editor is saved first, as any click away saves it, so Cancel keeps what was typed. One Undo still brings
+  a reset back. The hiatus bands' reset is unchanged. Help updated. Nothing frozen, nothing saved differently.
+- **Proof:** new leg `notesreset` (13 cases), red on `2089aa5` at Q0 W1 W2 W3 W4 M1 M2 M4 and green on the build;
+  re-expected because the click now opens a question (each answers Reset and holds it): `hdrcontrols` N1/N2,
+  `regionlock` L3, `autonoterename` R1, `mvtextstyle` K2. On the build: `hdrcontrols` 12/12, `regionlock` 14/14,
+  `noresetall` 5/5, `dlgkeys` 16/16, `autonoterename` 24/24, `mvtextstyle` 23/23 and 6/6, `phasenotes` 21/21,
+  `phasemonth` 21/21, `sharecopy2` pass; `npm run check` 42/42. No full gate yet (the release train's).
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
