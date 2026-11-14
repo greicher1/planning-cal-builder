@@ -159,7 +159,9 @@ break that, ruled Q5); a phase's *run* is its weeks in a block.
     pick, so a calendar the rules already lay out in the fewest columns is unchanged (all 15 pictures, byte for byte).
     R-D still bounds the choices; a hand move and a remembered predecessor (rule 10) are not choices. **A moved phase's
     column of its own gives way when it costs a column** (owner, 9 Nov 2026, "Give way"): it is kept only when that adds
-    no column, and otherwise the phase takes the rules' column; a tie keeps its own. The owner's case: Prod Prep
+    no column, and otherwise the phase takes the rules' column; a tie keeps its own. Since 14 Nov 2026 (audit AUD2-057)
+    **every** remembered column gives way the same way, a remembered predecessor's too: it is ignored for a layout when
+    ignoring it leaves fewer columns, and kept on a tie. The owner's case: Prod Prep
     took Pre-Prep's handed-off column, so Casting, starting beside it and not following on, opened a third column; with
     Prod Prep following Writers into its column (freed three weeks earlier), Casting takes Pre-Prep's and the year needs
     two. Two consequences, both ruled: **Post may start under Production instead of continuing the Sim Post lane** when

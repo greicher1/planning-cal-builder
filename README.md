@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a waterfall adjusted in the app no longer grows wider, and typed headings follow their phase (14 Nov 2026)
+
+Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the findings' defaults.
+
+- **Only a phase you move on its own keeps its column.** Sticky columns (rulings K1–K5) remembered a column for every
+  phase whose start or end changed: each length typed while a calendar was built, every phase on a whole-calendar Shift,
+  a phase a break lengthened. A calendar typed into the app ended with nearly every phase remembered, and after an
+  ordinary edit its waterfall carried an extra, narrower column per year that the same dates laid out fresh did not (the
+  audit's ten-phase calendar: 2026 in six columns against four). Now a phase is remembered only when its own start moved
+  and no other phase's did: its ▲ / ▼, dragging its bar, a re-typed start, a Shift of that one phase. A length, a break
+  (Ripple Hiatus pushing one phase across it included), Build Around or a Shift of several phases remember nothing.
+- **Every remembered column gives way when it costs a column.** The owner's "Give way" (K5) covered a column of the
+  phase's own; a remembered predecessor always won. Now any memory is ignored for a layout when ignoring it leaves fewer
+  columns, and kept on a tie, so a nudge that costs nothing still holds. Files that already remember many phases lay out
+  in the fewest columns again; nothing is removed from them.
+- **Typed column headings follow their phase** when Update layout or Reset Columns rearranges a year's columns, on
+  screen, in Excel and in the PDF. Before, they stayed on their positions, so a heading typed over one phase printed over
+  another, and one whose column went away stayed in the file, never drawn. Where two phases now share one column, the
+  heading of the phase that leads it stays and the other is removed, named in a one-line strip above the calendar; Undo
+  brings it back.
+- Nothing frozen changed; no new or renamed save-file key. The help's "Where a phase goes" and "Column headings" say so.
+- **Proof:** new legs `keepcols` 9/9 (red on `2089aa5` at KC0–KC7) and `headingsfollow` 5/5 on two calendars (red at
+  H1, H2, H4 and H1), both in `gate.sh`; `stickycols`, `colsreset`, `swapholds`, `phasefill`, every `layoutrules`
+  fixture, `colreuse`, `hdrrow`, `hdrcontrols`, `simpostbeside`, the swap legs, the movers and `hiatusripple` /
+  `hiatusdrag` green; gates 1–3 by hand (the waterfall PDF and every Excel part identical to the baseline);
+  `npm run check` 42/42. Not merged, not pushed: waits for the release train's one full gate.
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first

@@ -52,6 +52,15 @@ while the calendar was being typed in, in typing order — Production placed bef
 the rules would never give it. Keeping only what the user moved limits the memory to the phases they have handled,
 which is also what they are watching.
 
+⚠️ **Narrowed 14 Nov 2026 (audit AUD2-057, the Nov 2026 audit's item 3.8; the finding's default).** As built, the list
+above was exactly the freeze this paragraph warns against: every length typed while a calendar was built and every
+phase on a whole-calendar Shift was "moved", so a calendar made in the app remembered nearly every phase and carried an
+extra column the rules would not use. Now a phase is remembered only when its **given start** (`enteredDate`, which a
+holiday or a break never moves) changed and it is the **only** placed phase whose start changed in that edit: its
+▲ / ▼, a drag of its bar, a start re-typed once it is on the calendar, a Shift or Build Around of that one phase. A
+length, a break (including the one Ripple Hiatus pushes a single phase across, `colKeepQuiet`) and a move of several
+phases remember nothing. Entries already in files stay; §4's give-way (K5, widened the same day) keeps them harmless.
+
 ## 4. Placement (`placeSegmentsByRules`, not frozen)
 
 In start order, for each phase:
@@ -143,3 +152,9 @@ gives way when it costs a column — it keeps its own column only when that adds
 Found on the owner's test calendar (Writers from 3/16, Casting moved to 8/10: three columns where two would do;
 `layout-r22b`). The original nudge case is untouched (there both sides are two columns). Built with fewest columns
 (rule 23, branch `fewest-cols`), whose trial placement it needs — not on this branch.
+
+**K5 widened, 14 Nov 2026 (audit AUD2-057; the finding's default, "let any remembered column give way when it costs a
+column"):** a remembered PREDECESSOR (and the lane token) gives way too. After rule 23's placement, each memory is tried
+ignored (its reservation and same-week priority with it), in placement order; fewer columns without it and it is
+ignored for that layout, a tie keeps it, and the entry stays in the file (K2). Measured: about 1 ms per update on the
+audit's ten-phase calendar with eight memories (27 ms against 26 ms with none, real Chrome). Leg `keepcols`.
