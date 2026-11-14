@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Number of Episodes and Number of Blocks apply when you leave the box (13 Nov 2026)
+
+Audit item 2.1 (AUD2-008, owner-approved). Both boxes acted on every keystroke, so typing 12 over 10 passed through
+"1": at that keystroke every episode after the first was dropped (their names, day counts, prep days and shooting order),
+new episodes were made at "12", Production's length and wrap moved, and the panel said the count had been lowered. In
+Blocks mode the new episodes all landed in the last block and nothing was said. Typing 10 blocks over 5 did the same to
+a block's own day count.
+
+- **Now** a count you type is applied when you press Enter or leave the box (Tab, or a click anywhere else). While you
+  type, the calendar stays as it is. Typing 12 over 10 keeps all ten episodes as they were and adds 211 and 212; in
+  Blocks mode every block keeps its episodes and the two new ones join the last block.
+- Arrow keys in the box apply the same way, so the box and the calendar can no longer disagree.
+- Lowering the count for real still removes the episodes past it and names any you had edited; Undo brings them back,
+  and the line goes away on Undo or Redo.
+- A Save made while a count is still being typed saves the calendar on screen.
+- Nothing saved differently: no new key, no new control with an id. Nothing frozen touched.
+- **Proof:** new leg `epcount` (16 cases, `blocks.sptcal`), 16/16; on the build before it B1, B2, B4, E1, E2, E4, E7
+  and E8 were red. Nearest legs green: `numclamp`, `caps`, `wholenum`, `halfdays`, `undokeys`, `dlgkeys`, `filekeys`,
+  `labelsetup`, `buildaround`, `mvtextstyle`, `autonotekinds`, `seasons`, and gate sections `blocks`, `wrapdate`,
+  `epnames`, `episodeprep`, `scenarios`; `npm run check` 42/42. Typed with real keys in the browser on localhost.
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
