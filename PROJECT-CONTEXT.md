@@ -644,8 +644,9 @@ id, everything is inside `.tools-menu`, never saved.
   small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
   the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be
   open, and carry every note). So the phase's own hiatus and every `<week>|<key>` store travel; typed notes, all-phase
-  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. An edited automatic note sheds its standard
-  line, as on the month drag (`autoNoteBaseline`, from the burst's first click). The gaps either side change.
+  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. A typed note's automatic lines follow the
+  calendar, as on every mover since 13 Nov 2026 (`followAutoNotes`, below; `autoNoteBaseline` is inert). The gaps either
+  side change.
   - **A burst is one undo step**, ended by a 1.6 s pause or any other press or key (capture listeners), and its
     label reads "Pushed 2 wks" / "Pulled 1 wk" / "Back where it was".
   - **Production's day marks are bound for the whole burst** (`beginShootDayMove()` at the first click, ended by
@@ -713,10 +714,14 @@ in the result line. ⚠️ Half/off round-trip exactly; a worked day off need no
 or holiday at the matching place). Typing a start date is not a mover. `'onhalf'` (a weekend or
 holiday worked as a half day, 29 Sep 2026) pins and travels exactly as a worked day does.
 
-**An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
-that still opens with the auto text of the week it left has that text swapped for the new week's
-(`weekAutoTexts` → `rewriteMovedAutoNotes`), keeping the user's own lines. Only a shift re-keys notes
-at all; Build Around and the month drag leave every note on its week, as before.
+**A typed note's automatic and holiday lines follow the calendar** (13 Nov 2026, the November audit's AUD2-001/002/003,
+owner's decision D1 (a); widens v1.3.1's R5 / audit M-10). After every `update()` and `markDirty()`, `followAutoNotes`
+rebuilds each typed note from the note as the user left it, against its week's automatic lines then and now, matched by
+kind or holiday id: re-dated in place, taken out when gone, added when arrived, a line the user took out stays out, the
+user's own lines kept on their week. This covers every mover (Shift, the arrows, the ripple, Build Around, the month
+drags, a typed date) and every switch (a holiday's boxes, the Automatic notes card, the Region). Only a shift re-keys
+notes at all, and the memory rides on the note object through it. `rewriteMovedAutoNotes` (R5's opens-with rule) still
+runs after a shift and now finds nothing left to do.
 
 | Stays put | Why |
 |---|---|

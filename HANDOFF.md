@@ -4,28 +4,70 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **BUILT, WIP COMMITS ONLY** (`4abfe22`, `68d5eae`) on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`, cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`). Waiting for the owner to try it on localhost (`audit-1-1-8655` in `.claude/launch.json`, `/dist/index.html?state=autonotefollow`) and say "finish it". NOT gated, NOT pushed. Tracker card `audit-typed-notes-follow-calendar`
-- **D7 is still unanswered** (item 1.4). Items 1.3 and 1.5 need no decision and are not started. A duplicate 1.2 build by the
-  session "Audit fixes: core functionality" (worktree `audit-batch-1`, commit `86ada17`) was stopped on the owner's word;
-  its worktree and commit were left as they were. The batch still needs ONE branch and ONE full gate at the end.
-- **As built** (`src/legacy/app.js`, `followAutoNotes` beside `rewriteMovedAutoNotes`): AUTONOTE-FOLLOW-PLAN.md's ruled
-  hook, widened by D1 (a). Every typed note is rebuilt, after every `update()` and every `markDirty()`, from the note AS
-  LEFT against its week's automatic lines then and now, matched by kind / holiday id: re-dated or renamed in place,
-  taken out when gone (moved, switched off, hidden, removed, another Region), added when arrived; a line the user took
-  out stays out; the user's lines stay on their week (plan Q2). Memory: a session-only WeakMap on the note object (a
-  Shift's re-key carries it; `shiftCalendarDates` primes it first), cleared on every restore. `autoNoteBaseline()` is
-  inert (plan §3.4). `carryRenamedLine` carries the memory; a line renamed in the waterfall editor is also known by its
-  new text (`alt`). No frozen code, no save-format change. Nothing is rewritten on Load: a stale line already saved in
-  a file stays until that note is edited and something moves.
-- **Proof so far** (build `8774f0d8…`): new leg `autonotefollow` (groups `g=a|c|e|g`, `g=m` mints the fixture
-  `autonotefollow.sptcal`): 12 checks red on the build before the fix (`ea9bd9cf…`), 22/22 green after. The audit's own
-  repro legs (vr01 nudge/tickin/ripple/other, vr03 dates/eps/region/custrm, vr04 shift/nudge above/below) all show the
-  right lines in the waterfall, month view, Excel, both PDFs and the saved file. Re-expected for D1 (a):
-  `autonotekinds` A3/A4/A9/A12 (a switched-off kind's line now leaves a typed cell) and `phasekeys` C1 (the wrap moved
-  into a pasted note's week now shows beside it). A first targeted run of ~55 note / mover legs: only those six red,
-  plus `autonoteview` T5, which found the rename gap (fixed). A clean re-run on the final build is in progress.
-- **Not done:** README changelog, CLAUDE.md state-table note on `userNotes`, AUTONOTE-FOLLOW-PLAN status line, Help text
-  check, `gate.sh` wiring for `autonotefollow`, fixtures README row, the batch's full gate.
+### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`), cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`, so it holds both items. The owner tried it on localhost and said *"Yes, finish it"*. Tracker card `audit-typed-notes-follow-calendar`
+- **The batch, where it stands:** 1.1 and 1.2 built (this branch). **1.3** (AUD2-013, crafted files) and **1.5** (AUD2-007,
+  the date picker's "today") need no decision and are not started. **1.4** (AUD2-006, the rollback note) waits for the
+  owner's **D7**. Then ONE full gate for the batch and one push on the owner's yes (PLAYBOOK §2). Build each next item on
+  this branch (or a branch cut from it), so the batch stays one line.
+  - ⚠️ A second session, "Audit fixes: core functionality", rebuilt item 1.2 in worktree `audit-batch-1` (its commit
+    `86ada17`, its own `recoverfail` leg). It was stopped on the owner's word ("tell the other chat to stop") and told
+    why; its worktree and commit were left as they were. That branch is a DUPLICATE: do not merge it. Removing it
+    deletes work, so ask the owner first.
+- **What it was:** the editor opens a Notes cell on its week's automatic lines, so a typed note stored them as text and
+  froze them. A milestone moved into a typed week, or a holiday ticked into the waterfall, was swallowed in every output,
+  the month view included (AUD2-001); a moved, re-dated or switched-off line stayed printed (AUD2-002); a line under the
+  user's own was never re-dated, because R5's `rewriteMovedAutoNotes` matched only a note that OPENS with it (AUD2-003).
+- **As built** (`src/legacy/app.js`, `followAutoNotes` and its helpers beside `rewriteMovedAutoNotes`):
+  AUTONOTE-FOLLOW-PLAN.md's ruled hook (19 Oct 2026), widened by D1 (a). Each typed note is rebuilt from the note AS LEFT
+  against its week's automatic lines THEN and NOW (`followLiveLines`: waterfall-shown `s` and month-shown `m`), matched by
+  id (`followLineId`: `k:<kind>`, `h:<hid>`): re-dated or renamed in place; taken out when gone from the week (a line
+  that was month-only then is kept while the month view still shows it); added when it ARRIVED (an id the waterfall did
+  not show then), placed among the week's other automatic lines, else at the top; a line the user took out while the
+  week showed it stays out. Back to plain automatic when only the week's own lines are left (saveNoteEdit's rule).
+  - **Runs from** `update()` (before the column-swap gate and `render()`, `followAutoNotes(sch, false)`: a note changed
+    since is remembered against the last follow's lines) and `markDirty()` (`true`: against the lines on screen now;
+    re-renders only when a note changed). The holiday Waterfall / Month boxes and Toggle all only repaint, so
+    `markDirty()` is what reaches them. ⛔ A new path that changes a week's automatic lines with neither must call it.
+  - **Memory** (`followMem`): a session-only WeakMap keyed by the stored note OBJECT, `{orig, s, m, written}`, never
+    saved. `shiftKeyedMap` keeps the objects, so a Shift's re-key carries it; `shiftCalendarDates` primes it before the
+    re-key (a note loaded and never edited has none yet). Every restore (`update()` under `suppressDirty` /
+    `applyingUndoRedo`: Load, Undo, recovery, scenario switch, New, the scenario probe) forgets it and takes the restored
+    calendar's lines as the baseline (`followRestored`). `followSuppressed()` guards the boot's update(), which runs
+    before those two `let`s are declared.
+  - **Renames:** `carryRenamedLine` renames the memory with the note. A line renamed in the WATERFALL editor arrives as a
+    new note object, so `followRemember` also knows each line by its text after the edit (`alt`, same week, same id).
+    Without it the renamed line read as the user's own and stopped following (`autonoteview` T5 caught it).
+  - `autoNoteBaseline()` is INERT (plan §3.4): the month drags', the day menu's and the card arrows' press copies would
+    otherwise be put back after the hook and win. `rewriteMovedAutoNotes` still runs after a shift and finds nothing.
+  - ⚠️ `var` for the two stores: `update()` runs during the IIFE's evaluation (the colKeep trap).
+  - Nothing is rewritten on Load: a stale line already in a saved file stays until deleted by hand. A legacy bare-string
+    note or `{notes:[…]}` list is not followed (R5 still treats them as before). No frozen code; no save-format change.
+- **Help:** one sentence in the Notes paragraph ("Add your own lines to a cell and its automatic notes and holidays still
+  follow the schedule…").
+- **Proof** (final build sha256 `83bdd7ef…`, `autonotefollow` 24/24 on it again):
+  - New leg `autonotefollow` (`gate.sh`, the recoverfail / loadsparse loop, four runs `g=a|c|e|g`; `g=m` mints the
+    fixture `autonotefollow.sptcal`, not a gate run): A1, A2, B1, B2, C1, C2, D0, E1, E2, E4, E5, E6 red on the build
+    before the fix (`ea9bd9cf…`), 22/22 green after.
+  - The audit's repro legs, copied in for one run and removed (they live in the audit folder): `audit-vr01-notecollide`
+    nudge / tickin / ripple / other, `audit-vr03-baked` dates / eps / region / custrm, `audit-vr04-autoorder` Shift and
+    the arrow, the user's line above and below: every line right in the waterfall, the month view, Excel, the waterfall
+    PDF, the month PDF and the saved file.
+  - **Re-expected for D1 (a)** (each held the old behaviour): `autonotekinds` A3, A4, A9, A12 (a switched-off kind's line
+    leaves a typed cell; A10, every box ticked back, still saves byte-identical); `phasekeys` C1 and `hiatusripple` R1
+    (the wrap moved into a pasted / pinned typed note's week shows beside it).
+  - **Targeted regression, a clean run on the final engine** (`8774f0d8…`; the Help sentence came after and changes no
+    behaviour), private ports: **903 PASS / 2 FAIL** (the two below, green alone). In it: `autonote`, `monthnotes`, `regionlock`, `holidayenable`, `undokeys`,
+    `mvmenu`, `wfmenu`, `mvnotes` x2, `autonotekinds`, `autonotephases`, `calrange`, `hidewf`, `rebuildticks`,
+    `buildaround`, `anchorside`, `buildalongside`, `phasearrows`, `phasearrowsripple`, `mvdragcarry`, `stalebandkey`,
+    `shiftheld`, `lastedited`, `wfnotecolors`, `noteviews`, `phasenotes`, `phaselink`, `phaselook`, `phasekeys`,
+    `phasemonth`, `holidayrename`, `autonoterename`, `autonoteview`, `wfnoteeditor`, `mvtextstyle`, `monthmap`,
+    `loadcarry`, `hiatuslabel`, `notewrap`, `rowheight`, `snaptools`, `overrides`, `caholidays`, `retiredplaces`,
+    `regionmirror`, `wfkeys`, `pilldrag`, `phaseedge`, `hiatusdrag`, `hiatusripple`, `wfkeysreal`. `lastedited` (harness
+    EX) and `holidayrename` M2 (the month-PDF write timeout HANDOFF already lists as a flake) failed while a second run
+    shared the machine; alone, 22/22 and 14/14.
+  - Tried by hand in the Browser pane (real clicks): Production's ▼ on the minted calendar.
+  - `npm run check` 42/42 on the final build. `tools/check-refs.py`: 0 stale symbols; its 6 prose line numbers are older HANDOFF text.
+  - Not run: the full gate (the batch's, at the end).
 
 ### 🔨 13 Nov 2026: AUDIT BATCH 1, ITEM 1.2 — RECOVER CAN NO LONGER BLANK A SAVED FILE; A FILE THAT LEAVES FIELDS OUT OPENS WITH ITS OWN VALUES (AUD2-004, AUD2-005). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/blissful-leakey-82c876` (worktree `.claude/worktrees/blissful-leakey-82c876`, cut from `origin/main` at `2089aa5`). Tracker card `audit-recover-and-sparse-load`
 - **Where it comes from:** the November production-readiness audit (run on `2089aa5`), Batch 1 "before more users",

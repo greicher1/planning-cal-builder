@@ -29,6 +29,60 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
+
+The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":
+the holiday and automatic lines in a typed cell always follow the calendar). Typing in a Notes cell froze the week's
+automatic lines as text, because the editor opens on them. From then on they no longer followed the calendar, on screen,
+in Excel, in both PDFs and in the month view, with no warning:
+
+- **A line that arrived was swallowed (AUD2-001).** Move Production onto a week with a typed note (the card's ▼, Shift,
+  Build Around, the ripple, a typed date) and "Start Principal Photography" was printed nowhere. Tick holidays into the
+  waterfall after typing notes, and Labor Day and Thanksgiving left the waterfall, Excel, the waterfall PDF, and even the
+  month view and the month PDF, which had shown them a moment before.
+- **A line that changed or left stayed printed (AUD2-002).** Add "Cast arrives" under the start note, then type a new
+  start or change the episode count: both the old and the new Start and Wrap lines printed. Switch a holiday off, change
+  the Region, remove a custom holiday, or untick an automatic note: its line stayed printed, alone and plausible.
+- **A line under the user's own was never re-dated (AUD2-003).** Put "Table read" above the start note and Shift the
+  calendar a week: every output printed only the old start and wrap dates.
+
+**Now** every typed note is rebuilt after each change from the note as you left it, against the automatic lines its
+week showed then and shows now, matched by what each line is (its kind, or its holiday), wherever it sits in the note:
+
+- a line still in the week is re-dated (or renamed) in its place;
+- a line that has left (moved, switched off, hidden from the waterfall, removed, another Region) is taken out;
+- a line that has arrived (moved in, ticked into the waterfall, switched on) is added among the week's other automatic
+  lines, or at the top;
+- a line you took out of the note stays out, and your own lines stay exactly as typed, on their week.
+
+It is rebuilt from the note as left, never from the last step, so typing a date (which passes through other dates on
+the way) or a drag out and back lands exactly where it started. One Undo takes back the change and its notes together.
+This is AUTONOTE-FOLLOW-PLAN.md's hook, ruled on 19 Oct 2026, built and widened.
+
+- **What changes for a user, on purpose:** switching an automatic note off in Settings › Preferences › Automatic notes
+  now also takes its line out of a cell you typed in (and ticking it back brings it back); a milestone or a waterfall
+  holiday that moves into a typed week now shows beside your text. Help's Notes paragraph says so.
+- **Limits:** nothing is rewritten when a calendar is loaded, so a stale line already saved in a file stays until you
+  delete it. A note stored in a legacy shape (a bare string, or an old multi-note list) is left as before.
+- **Save format:** no key added, renamed or removed; the memory is session only. Nothing frozen was touched: every
+  reader (the screen, both writers, the month view's frozen notesForWaterfallDate) reads the same note text it always did.
+- **Proof.**
+  - New leg `autonotefollow` (in `gate.sh`, four runs, `g=a|c|e|g`): 12 checks red on the build before the fix, 22/22
+    green after. `g=m` mints `tests/fixtures/autonotefollow.sptcal`, a synthetic calendar to try it on.
+  - The audit's own repro legs on this build (not committed; kept with the audit): the start note, holidays, switched-off
+    and removed holidays, another Region, a typed date, an episode count, and a user line above the milestone, each read
+    back from the waterfall, the month view, Excel, the waterfall PDF, the month PDF and the saved file: all right.
+  - Re-expected for D1 (a), each a leg that had held the old behaviour: `autonotekinds` A3, A4, A9, A12 (a switched-off
+    kind's line now leaves a typed cell; ticking it back is still byte-identical), `phasekeys` C1 and `hiatusripple` R1
+    (the wrap moved into a typed or pasted note's week now shows beside it).
+  - ~55 related legs, 903 checks, green on the final engine (`8774f0d8…`; two that timed out while another run shared
+    the machine are green alone), the note editors, the month notes, every mover and drag, the ripple, renames,
+    per-view automatic notes, linked notes, undo and Load among them (HANDOFF lists them). A first run found one real gap,
+    fixed: a line renamed in the waterfall editor stopped following (`autonoteview` T5).
+  - Tried by hand in the browser: Production's ▼ on the minted calendar moves the start out from under "Table read" and
+    in above "Dailies review"; the owner tried it ("Yes, finish it").
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
 ### Unreleased — Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
 
 Two data-safety fixes from the November audit, findings AUD2-004 and AUD2-005. Both are rare: neither can be reached

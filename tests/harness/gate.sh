@@ -2276,9 +2276,19 @@ done
 # open as a new calendar's fields: the guard for a field added later with no default), and a two-tab file whose parked
 # tab is the six-id snapshot (scen). On the build before the fix B2 and B3 were red in every run (the first calendar's
 # CARRY-BREAK hiatus stayed and Production wrapped 11/3/26 for 10/20/26), and B1 wherever B names fewer ids than the page.
+# autonotefollow (⭐ ADDED 13 Nov 2026, the second audit's AUD2-001, -002 and -003, the owner's decision D1 (a)): the
+# automatic and holiday lines inside a Notes cell the user has typed in follow the calendar (followAutoNotes). One group
+# per page, so no group's typed notes reach another's weeks: g=a a start moved onto a typed week by the card arrow (the
+# line arrives; one Undo) and Labor Day ticked into the waterfall beside "Camera test" (arrives, and the month view keeps
+# it; unticked, it leaves); g=c the start typed later (it leaves "Cast arrives" on 6/29), away and back (exactly as
+# typed: never chained) and a holiday ticked in and out of an edited week; g=e the user's line ABOVE the start and wrap,
+# then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
+# milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
+# D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
-              "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240"; do
+              "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240"; do
   RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
   rm -f "$HERE/$RSLEG.json"
   HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1
