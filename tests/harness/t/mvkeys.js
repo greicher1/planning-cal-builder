@@ -26,6 +26,10 @@
 //   P13 ⌘C with no note picked, ⌘V with the note editor open, and ⌘V when the day clicked is not on screen are left to
 //       the browser (controls); P14 the keys do nothing while a sidebar field has focus (control)
 //   P15 Delete on a picked note that stays with a phase deletes it in both views; one Undo brings it back
+//   P16 ⌘X / ⌘V with a holiday among the picked notes: only the typed note travels (the waterfall's rule, item 2.3,
+//       AUD2-014), and the grid says why; P16b two Undos put it back
+//   P17 a holiday picked alone, P18 an automatic note picked alone: ⌘C / ⌘X copy nothing and say why
+//   (P16-P18 added by the 14 Nov 2026 review: before it, a pasted holiday was re-dated into a new day note)
 // g=enter:
 //   M1  month: Enter saves a new note and closes the editor; M2 one Undo takes it back
 //   M3  Shift+Enter and Alt+Enter add a line (up to the note's 3), Enter then saves all three
@@ -334,6 +338,56 @@ window.addEventListener('load', function () { (async function () {
         fTook === false && fCopy.handled === false && same(texts('2026-07-08', 'day'), ['Production Mtg 9am']),
         {handled: fTook, copy: fCopy.handled, jul8: texts('2026-07-08', 'day')}, 'nothing');
       bodyFocus();
+
+      // P16-P18 (the 14 Nov 2026 review of item 2.8): a holiday or an automatic note keeps its own day, as in the
+      // waterfall (item 2.3, AUD2-014). Before the repair a picked holiday went on the clipboard and a paste re-dated it,
+      // inventing "Independence Day (Observed) 7/15/26" as a day note on 7/15.
+      var KEEP = /Holidays and automatic notes stay on their own dates/;
+      function chipNow(){ var c = q('.text-sel-chip'); return c ? txt(c) : ''; }
+      await click(block('2026-07-09', /Costume test/));
+      var hol2 = blocks('2026-07-03', 'wf')[0], hol2Text = hol2 && txt(hol2);
+      if(hol2) await click(hol2, {metaKey: true});
+      var picks16 = selBoxes();
+      var c16 = clip('cut'); await settle();
+      var said16 = chipNow();
+      await click(block('2026-07-15', /Crew call/));
+      var p16 = clip('paste', {'text/plain': c16.text, 'application/x-sptcal-notes': c16.rich}); await settle();
+      var jul15 = texts('2026-07-15', 'day'), jul9 = texts('2026-07-09', 'day'), jul3 = texts('2026-07-03', 'wf');
+      add('P16', '⌘X on "Costume test" with "Independence Day (Observed)" also picked: only the typed note travels; the paste on 7/15 adds "Costume test" and no holiday, 7/3 keeps its holiday, and the grid says why',
+        !!hol2 && picks16 === 2 && c16.handled && c16.text === 'Costume test\n' && !!c16.parsed && c16.parsed.items.length === 1
+          && p16.handled && same(jul15, ['Crew call', 'Costume test']) && same(jul9, []) && same(jul3, [hol2Text]) && KEEP.test(said16),
+        {holiday: hol2Text, picks: picks16, cut: c16.text, items: c16.parsed && c16.parsed.items, said: said16, jul15: jul15, jul9: jul9, jul3: jul3},
+        'clipboard "Costume test" only; 7/15 Crew call + Costume test; holiday stays on 7/3');
+      await undo(); await undo();
+      var back16 = {jul9: texts('2026-07-09', 'day'), jul15: texts('2026-07-15', 'day')};
+      add('P16b', 'two Undos (the paste, then the cut) put both days back', same(back16.jul9, ['Costume test']) && same(back16.jul15, ['Crew call']),
+        back16, 'jul9 Costume test, jul15 Crew call');
+
+      // P17 a holiday picked alone: ⌘C and ⌘X copy nothing, leave the clipboard to the browser, and say why.
+      var hol3 = blocks('2026-07-03', 'wf')[0];
+      if(hol3) await click(hol3);
+      var c17 = clip('copy'), said17 = chipNow();
+      var x17 = clip('cut'); await settle();
+      add('P17', 'a holiday picked alone: ⌘C and ⌘X put nothing on the clipboard, the holiday stays, and the grid says "Holidays and automatic notes stay on their own dates"',
+        !!hol3 && c17.handled === false && c17.text === '' && x17.handled === false && x17.text === '' && same(texts('2026-07-03', 'wf'), [hol2Text]) && KEEP.test(said17),
+        {copy: c17, cut: x17, said: said17, jul3: texts('2026-07-03', 'wf')}, 'nothing copied, the message');
+      key('Escape'); bodyFocus();
+
+      // P18 an automatic note picked alone (the first one the calendar shows from June 2026 on): the same.
+      var autoEl = null, autoMonth = '';
+      for(var am = 0; am < 3 && !autoEl; am++){
+        autoMonth = ['June 2026', 'July 2026', 'August 2026'][am];
+        await toMonth(autoMonth); bodyFocus();
+        autoEl = q('#table-wrap .mv-note-block.mv-note-mark-auto');
+      }
+      var autoText = autoEl && txt(autoEl), autoDay = autoEl && autoEl.getAttribute('data-note-day');
+      if(autoEl) await click(autoEl);
+      var c18 = clip('copy'), said18 = chipNow();
+      add('P18', 'an automatic note picked alone (' + (autoText || 'none found') + '): ⌘C puts nothing on the clipboard and says why',
+        !!autoEl && c18.handled === false && c18.text === '' && KEEP.test(said18),
+        {month: autoMonth, note: autoText, day: autoDay, copy: c18, said: said18}, 'nothing copied, the message');
+      key('Escape'); bodyFocus();
+      await toMonth('July 2026');
     }
 
     if(G === 'enter'){

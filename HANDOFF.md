@@ -12,7 +12,8 @@
   - **The editors' keys.** Waterfall: the document keydown listener after `closeWithoutSaving` (comment block "THE EXCEL
     AND OUTLOOK KEYS"); month: the typed-note textarea listener at the end of `openMvNoteEditor`. Enter saves (only in the
     text box: Enter on the Day list or a button is theirs); Shift+Enter or Alt+Enter inserts one line break
-    (`noteNewline`: `execCommand('insertText')`, so the box's own ⌘Z takes it back, else `setRangeText`; a month day note
+    (`noteNewline`: `execCommand('insertText')`, else `setRangeText`. ⚠️ CORRECTED on review, 14 Nov 2026: this said
+    the box's own ⌘Z takes the line back; a trusted-key test showed it does NOT (Backspace does). A month day note
     stops at 3 lines; measured with trusted keys: Chrome on macOS inserts NOTHING for a real Alt+Enter, so it must be
     ours); Tab and Ctrl/Cmd+Enter unchanged; nothing during an IME composition (`isComposing` / keyCode 229).
   - **Esc** (`noteTextChanged`, `escBase`): saves when the box's text differs from `escBase` and is not empty; else
@@ -30,12 +31,21 @@
     `mvNotesPaste` onto `mvPasteDay`, the day under the last click (capture `click` with the pick's slop, and
     `contextmenu`; `mvDayUnder` → `dayAtPoint` inside the visible `.mv-body`), only while that day is on screen
     (`mvDayOnScreen`); a date naming the item's old day is re-dated (`mvRetimeNote`), 3 lines max, colour and `fmt`
-    cleaned (`mvCleanClipItem`, which takes a waterfall item's `own`); pasted notes are picked. Focus must be on
+    cleaned (`mvCleanClipItem`, which takes a waterfall item's `own`); pasted notes are picked. ⭐ **REPAIRED on review,
+    14 Nov 2026:** a holiday or automatic note among the picks went on the clipboard (`mvNoteClipItem` took every
+    `wfnote` pick) and the paste re-dated it into a typed day note, a holiday invented on another day ("Independence Day
+    (Observed) 7/15/26" on 7/15). Now `mvNotesCopy` leaves out every pick `mvPickKeepsDay` names (`mvLineInfo` kind
+    `holiday` or `auto`), the waterfall's AUD2-014 rule; a pick of nothing else returns null (the browser's own copy of
+    no selection runs, so the clipboard keeps what it held) and either way the grid says `MV_KEEP_DAY_MSG` ("Holidays
+    and automatic notes stay on their own dates") through `flashMvSel`: the waterfall's chip (`.text-sel-chip`, plus
+    `.month-sel-chip`, fixed, z-index 49, a new chrome rule beside `.month-sel-box`), drawn by `drawMvSel` over the
+    active pick, or where it was once a cut cleared the pick, for 4.2 s. Focus must be on
     `<body>` (`mvClipReady`), or for ⌘V inside the open day menu (`mvPasteTarget`), which the paste closes with its own
     Escape (`mvCloseDayMenu`). beforecopy/beforecut/beforepaste mirror the waterfall's insurance.
   - **Text:** placeholders "Note text (Shift+Enter for a new line)" (waterfall, month line) and "Note text — Shift+Enter
     for a new line, up to 3" (month day note); the Help's editor-keys sentence and the month order paragraph (whose "A
-    click that doesn't move still opens the note" was stale since R1) are rewritten.
+    click that doesn't move still opens the note" was stale since R1) are rewritten. Its holiday sentence (repair, 14 Nov)
+    now reads: holidays and automatic notes keep their own day, Delete leaves them, a copy or cut leaves them out.
 - **Defaults and choices applied** (none asked; owner asleep): D6 (a) as written; ⌘V pastes onto the day last clicked
   (D6's default); no new right-click item. Chosen here, each an open question for the owner: (1) Esc keeps CHANGED text
   (the orchestrator's pick of the finding's "keep it (or ask once)"); an unchanged or EMPTIED box on Esc closes without
@@ -46,6 +56,10 @@
   ONE note of up to 3 lines, more joined into the third. (5) A note shown on several days (one wfnote pick) is copied
   once but Delete takes every outlined copy. (6) ⌘V also works with the day menu open (it closes it). (7) The holiday /
   automatic-note editors keep Esc = cancel.
+- **Repair proof (14 Nov 2026, the review).** `mvkeys` `g=pick` gained P16 (the reported Cmd+X / Cmd+V with a holiday
+  picked), P16b, P17 (a holiday alone: Copy and Cut copy nothing, the message) and P18 (an automatic note alone): P16,
+  P17, P18 red on the reviewed build (`843e45b2…`), `g=pick` 22/22 and `g=enter` 16/16 after, `mvkeysreal` 8/8; with
+  item 2.3's repair on the same build `wfnotelines` ×6 32/32, `wfkeys` 84/84, `wfnoteeditor` 14/14, `npm run check` 42/42.
 - **Proof.** New leg `t/mvkeys.js` (`g=pick` 18, `g=enter` 16; `g=mint` writes `tests/fixtures/mvkeys.sptcal`, new,
   synthetic) and `mvkeysreal.mjs` (8 cases, TRUSTED keys and clipboard over CDP, port 8238), both in `gate.sh` (the
   audit-fix loop, then a block of its own). Before the fix (the build saved as `tests/harness/pre-2-8.html`, ignored):
@@ -101,6 +115,15 @@
     Automatic lines are carried, switched off in both views as before, and RE-DATED to the drop week's same weekday
     (`mvRetimeWfLine`, the month view drag's own rule). The Day-pinned typed line's date moves with it. Linked notes:
     `wfPutLinked` as before, given the carried text and `month: []`, `ownDate: ''`.
+    ⭐ **REPAIRED on review, 14 Nov 2026: a block dragged over ITSELF hid a holiday meant to stay.** Pick 8/31 ("Prep A")
+    and 9/7 ("Crew X" + Labor Day), drag down a week: `wfLiftNote` kept Labor Day in 9/7, then `wfPutNote` landed "Prep A"
+    there and `wfSwitchOffLines` hid the holiday from the waterfall, while the grid said "Holidays stay on their own
+    dates". Now `wfNoteDragEnd` reads every block cell's `stay` (`stayAt`, a holiday-only cell's too) before the lift and
+    passes it as `wfPutNote`'s new `keep` (through `wfPutLinked`'s `p.keep` too): those holidays are not switched off
+    (`wfSwitchOffLines(wk, keep)`), and the cell's text becomes what lands, then their lines (typed, so item 1.1 keeps
+    them following the holiday; text that lands empty leaves it automatic). Every cell of the block counts as leaving
+    (`leaving = new Set(d.weeks)`), so a holiday-only cell of the block is no longer asked "Replace it?": the note lands
+    beside its holiday. Chosen here, an open question for the owner: the order (what lands, then the holiday).
 - **Defaults and choices applied** (none asked; owner asleep): the three approved defaults above (Cut leaves the month
   note; a paste leaves month/holiday/automatic lines out; a drag moves the day note; an in-week re-date moves it).
   Chosen here, each an open question for the owner: (1) a dragged AUTOMATIC note's line is re-dated into its new week
@@ -109,6 +132,10 @@
   does. (3) An uneven-gap rename needs a shared word or the kept date; the alternative was pairing in order regardless.
   (4) A paste/drag that left lines behind says so in the grid's one-line chip (two new sentences).
 - **Help:** the Day dropdown and the copy/drag paragraphs each gained one sentence (`src/index.html`).
+- **Repair proof (14 Nov 2026, the review).** `wfnotelines` `g=drag` gained R6 (the reported block drag: 9/7 reads
+  "Prep A / Labor Day 9/7/26", 9/14 "Crew X", Labor Day shown once in both views), R6b (one Undo) and R7 (a holiday-only
+  cell in the block: no question, "Prep A" lands beside Labor Day). R6 and R7 red on the reviewed build, the six runs
+  32/32 after; `wfkeys` 84/84, `wfnoteeditor` 14/14 (the rest is in item 2.8's repair proof, same build).
 - **Proof.** New leg `wfnotelines` (`gate.sh`, the audit-fix block, six runs `g=day|link|link2|month|cut|drag`): 15 cases
   red on the build before the fix (D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3, R4, R5), 29/29 green after; the
   controls (D3, L0, L4, M2, M4, C3, R2) green on both. The audit's repro legs (`audit-r3a-mwf`, `audit-r3a-link`, every

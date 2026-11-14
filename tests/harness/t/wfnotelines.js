@@ -17,6 +17,9 @@
 // lines out; a drag moves a month note ITSELF to the same weekday of the drop week; a holiday stays where it is; a month
 // line re-dated inside its week moves its note to that day.
 //
+// g=drag R6 / R7 (added by the 14 Nov 2026 review): a block dragged down over ITSELF, where a cell of the block keeps a
+// holiday, lands its note BESIDE the holiday, which stays shown; before the repair the landing hid the holiday.
+//
 // The waterfall cells (what Excel and the waterfall PDF write: effectiveNoteText) and the month view's note blocks
 // (what both month PDFs draw) are read for every case.
 window.__T.memoryIDB();
@@ -139,9 +142,16 @@ window.addEventListener('load', function () { (async function () {
     var said = chip(); await settle(); bodyFocus();
     return {clip: c.text, said: said};
   }
-  async function drag(fromWk, toWk){
+  // `rows` (default 1): the highlight stretched down that many Notes cells (Shift+ArrowDown) before the press, so a block
+  // of cells moves together.
+  async function drag(fromWk, toWk, rows){
     await view('sheet'); var from = noteTd(fromWk), to = noteTd(toWk);
-    await wclick(from); from.scrollIntoView({block: 'center'}); await T.sleep(100);
+    await wclick(from);
+    for(var r = 1; r < (rows || 1); r++){
+      document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', shiftKey: true, bubbles: true, cancelable: true})); await T.sleep(80);
+    }
+    if((rows || 1) > 1){ await settle(); from = noteTd(fromWk); to = noteTd(toWk); }
+    from.scrollIntoView({block: 'center'}); await T.sleep(100);
     var a = mid(from), b = mid(to); pe('pointerdown', a);
     for(var k = 1; k <= 8; k++){ pe('pointermove', {x: a.x + (b.x - a.x) * k / 8, y: a.y + (b.y - a.y) * k / 8}); await T.sleep(40); }
     pe('pointerup', b); await T.sleep(150);
@@ -371,6 +381,34 @@ window.addEventListener('load', function () { (async function () {
       add('R5', 'a cell that is only a holiday does not move, and the grid says why',
         same(cell('2026-09-07'), ['Labor Day 9/7/26']) && same(cell('2026-10-05'), []) && /Holidays stay on their own dates/.test(d4.said) && !d4.modal,
         {c907: cell('2026-09-07'), c1005: cell('2026-10-05'), said: d4.said, modal: d4.modal}, 'nothing moves');
+      // ---- R6 / R7 (the 14 Nov 2026 review of item 2.3): a block dragged down over ITSELF, where a cell of the block keeps
+      // a holiday. Before the repair the note landing on that cell replaced the holiday's line and hid it from the waterfall
+      // (wfPutNote switched it off), while the grid said "Holidays stay on their own dates". ----
+      await typeWf('2026-08-31', 'Prep A');
+      var c914 = cell('2026-09-14');
+      // R7: the block's second cell is only the holiday. It stays; "Prep A" lands beside it, with no question to answer.
+      var d7 = await drag('2026-08-31', '2026-09-07', 2);
+      var r7 = {c831: cell('2026-08-31'), c907: cell('2026-09-07'), c914: cell('2026-09-14'), wf: wfFind('Labor Day')};
+      var mvL7 = await mvFind('Labor Day', ['2026-09-07']);
+      add('R7', 'a block of "Prep A" (8/31) and a holiday-only cell (9/7) dragged down a week: "Prep A" lands on 9/7 BESIDE Labor Day, which stays shown in both views; nothing is asked, and the grid says so',
+        same(r7.c831, []) && same(r7.c907, ['Prep A', 'Labor Day 9/7/26']) && same(r7.c914, c914) && same(r7.wf, ['2026-09-07 | Labor Day 9/7/26'])
+          && same(mvL7, ['2026-09-07 | Labor Day 9/7/26 | wf']) && !d7.modal && /Holidays stay on their own dates/.test(d7.said),
+        {cells: r7, c914Before: c914, mv: mvL7, said: d7.said, modal: d7.modal}, '8/31 empty; 9/7 "Prep A / Labor Day 9/7/26"; no question');
+      await undo();
+      // R6: the reviewers' case. 9/7 holds "Crew X" above Labor Day; the block moves down a week over its own place.
+      await typeAbove('2026-09-07', 'Crew X');
+      var start6 = {c831: cell('2026-08-31'), c907: cell('2026-09-07'), c914: cell('2026-09-14')};
+      var d6 = await drag('2026-08-31', '2026-09-07', 2);
+      var r6 = {c831: cell('2026-08-31'), c907: cell('2026-09-07'), c914: cell('2026-09-14'), wf: wfFind('Labor Day')};
+      var mvL6 = await mvFind('Labor Day', ['2026-09-07']);
+      add('R6', 'a block of "Prep A" (8/31) and "Crew X / Labor Day 9/7/26" (9/7) dragged down a week: 9/7 reads "Prep A / Labor Day 9/7/26", 9/14 "Crew X", and Labor Day stays shown in both views',
+        same(start6.c831, ['Prep A']) && same(start6.c907, ['Crew X', 'Labor Day 9/7/26'])
+          && same(r6.c831, []) && same(r6.c907, ['Prep A', 'Labor Day 9/7/26']) && same(r6.c914, ['Crew X']) && same(r6.wf, ['2026-09-07 | Labor Day 9/7/26'])
+          && same(mvL6, ['2026-09-07 | Labor Day 9/7/26 | wf']) && /Holidays stay on their own dates/.test(d6.said),
+        {before: start6, cells: r6, mv: mvL6, said: d6.said, modal: d6.modal}, '8/31 empty; 9/7 "Prep A / Labor Day 9/7/26"; 9/14 "Crew X"');
+      await undo();
+      var back6 = {c831: cell('2026-08-31'), c907: cell('2026-09-07'), c914: cell('2026-09-14')};
+      add('R6b', 'one Undo puts the block back as it was', same(back6, start6), {after: back6, before: start6}, 'as before the drag');
     }
 
     var h = T.appHealth();

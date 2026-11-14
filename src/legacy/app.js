@@ -17962,8 +17962,10 @@ export function initLegacyApp() {
     const now = String(textarea ? textarea.value : '').trim();
     return !!now && now !== String(initial == null ? '' : initial).trim();
   }
-  // A line break at the caret, for Shift+Enter and Alt+Enter in a note editor. execCommand keeps the box's own undo
-  // (⌘Z inside the box takes the line back); where it does nothing, the text is set directly and the box told.
+  // A line break at the caret, for Shift+Enter and Alt+Enter in a note editor: execCommand('insertText') where it works
+  // (the browser's own insertion, firing the box's input event), else the text set directly and the box told.
+  // ⚠️ It does NOT give the box an undo step for the line: a test with TRUSTED keys (the 14 Nov 2026 review of item 2.8)
+  // found ⌘Z inside the box does not take the inserted line back (Backspace does, as for any character).
   function noteNewline(textarea){
     const before = textarea.value;
     let done = false;
@@ -23801,11 +23803,12 @@ export function initLegacyApp() {
   // The automatic lines a week's Notes cell shows, each taken out by what it is: an automatic note hidden from the
   // waterfall (rulings 4-6 as amended by AUTO-NOTES-PER-VIEW-PLAN.md R4: it stays in the month view while that view
   // shows it, and is switched off when it does not), a holiday hidden from the waterfall only (it stays in the month
-  // view and stays a day off). True when one was.
-  function wfSwitchOffLines(wk){
+  // view and stays a day off). True when one was. `keep` (the note drag's only, wfPutNote): holiday lines that stay shown.
+  function wfSwitchOffLines(wk, keep){
+    const kept = new Set(keep || []);
     let moved = false;
     sheetAutoNotesFor(wk).forEach(n=>{
-      if(n.holiday && n.hid){ hideHolidayInWaterfall(n.hid); moved = true; }
+      if(n.holiday && n.hid){ if(kept.has(autoNoteLine(n))) return; hideHolidayInWaterfall(n.hid); moved = true; }
       else if(isKindNote(n)){
         hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
         moved = true;
@@ -23881,7 +23884,12 @@ export function initLegacyApp() {
   // AUD2-014) writes only the rest: those notes keep their own day. A copy pasted back onto a cell still showing exactly
   // that text keeps it whole (the rules below). One whose every line is such a line writes nothing, and leaves the week
   // as it is rather than emptying it. Returns true when lines were left out, so the paste can say so.
-  function wfPutNote(wk, it, look){
+  // ⭐ `keep` (the note drag's only; the 14 Nov 2026 review of item 2.3): the lines of holidays that STAY in this cell
+  // because the cell is part of the dragged block (wfDragPlan's `stay`), so a block dragged over itself lands on one.
+  // They are not switched off, and the note lands beside them: what lands, then the holidays' lines, as the cell's typed
+  // text (item 1.1 keeps such a line following its holiday). Before, the landing hid the holiday the grid said stayed.
+  function wfPutNote(wk, it, look, keep){
+    const stays = (keep || []).filter(l=> String(l || '').trim());
     let left = false;
     if(typeof it.own === 'string' && String(it.text || '').trim() !== effectiveNoteText(wk, sheetAutoNotesFor(wk)).trim()){
       left = true;
@@ -23909,7 +23917,7 @@ export function initLegacyApp() {
       }
     }
     let auto = sheetAutoNotesFor(wk);
-    if(auto.length && String(it.text || '').trim() !== autoNotesText(auto).trim() && wfSwitchOffLines(wk)) auto = sheetAutoNotesFor(wk);
+    if(auto.length && String(it.text || '').trim() !== autoNotesText(auto).trim() && wfSwitchOffLines(wk, stays)) auto = sheetAutoNotesFor(wk);
     let text = it.text, date = '';
     const w = parseDateUTC(wk);
     if(text && it.dow !== undefined && w){
@@ -23917,6 +23925,7 @@ export function initLegacyApp() {
       date = isoOf(d);
       if(it.stamp && text.endsWith(it.stamp)) text = text.slice(0, text.length - it.stamp.length) + fmtShort(d);
     }
+    if(stays.length) text = [text].concat(stays).filter(s=> String(s || '').trim()).join('\n');
     saveNoteEdit(wk, text, auto, date);
     if(lend){
       wfLookToWeek(wk, lend);
@@ -24226,7 +24235,9 @@ export function initLegacyApp() {
     const from = d.weeks.filter((w, i)=> go[i]), to = drop.to.filter((w, i)=> go[i]);
     const src = items.filter((it, i)=> go[i]);
     if(!from.length){ flashTextSel(WF_KEEP_HOLIDAY_MSG); return; }
-    const leaving = new Set(from);
+    // Every cell of the block counts as its own, a holiday-only one too: a note landing there lands BESIDE the holiday
+    // (wfPutNote's `keep`, below) and replaces nothing, so it is not asked about (14 Nov 2026 review of item 2.3).
+    const leaving = new Set(d.weeks);
     const hit = to.filter(w => !leaving.has(w) && wfNoteShows(w));
     if(hit.length){
       const ok = await uiConfirm(hit.length === 1 ? 'That week already has a note. Replace it?'
@@ -24242,12 +24253,18 @@ export function initLegacyApp() {
       // Read before anything changes: every cell's plan and linked notes, then lift them all, then land them all (a
       // block dragged down by one lands on its own cells).
       const plans = from.map((w, i)=> wfDragPlan(w, to[i])), parts = from.map(wfNoteParts);
+      // ⭐ The holidays that stay in each cell of the block (a moving cell's and a holiday-only cell's alike), by week. A
+      // block dragged over itself lands a note on such a cell: it lands beside them, and they stay shown (the 14 Nov 2026
+      // review of item 2.3: the landing used to switch them off, so the holiday vanished from the waterfall while the grid
+      // said "Holidays stay on their own dates").
+      const stayAt = new Map();
+      d.weeks.forEach((w, i)=>{ const st = wfDragPlan(w, drop.to[i]).stay; if(st.length) stayAt.set(w, st); });
       const held = from.map((w, i)=> wfLiftNote(w, plans[i]));
       to.forEach((w, i)=>{
         const put = Object.assign({}, src[i], {text: plans[i].carry});
         delete put.own; delete put.stamp;   // the pinned day's date is already moved (wfDragPlan)
-        if(parts[i]) wfPutLinked(w, put, Object.assign({}, parts[i], {own: plans[i].carry, ownDate: '', month: []}));
-        else wfPutNote(w, put, true);
+        if(parts[i]) wfPutLinked(w, put, Object.assign({}, parts[i], {own: plans[i].carry, ownDate: '', month: [], keep: stayAt.get(w)}));
+        else wfPutNote(w, put, true, stayAt.get(w));
       });
       // The month notes last, so no landing cell takes them for its own and switches them off.
       held.forEach((list, i)=> list.forEach(m=>{
@@ -24384,7 +24401,7 @@ export function initLegacyApp() {
       return lines.join('\n');
     });
     put.text = [own].concat(flatLines, p.month).filter(s=> String(s || '').trim()).join('\n');
-    wfPutNote(wk, put, true);
+    wfPutNote(wk, put, true, p.keep);   // p.keep: the holidays staying in the drop cell (wfNoteDragEnd's stayAt)
     if(!stay.length) return;
     // In the drop week's column order, as the cell will draw them: the first is the one that lends it its look.
     const at = s => opts.findIndex(o=> o.phase === s.k.key.split('@')[0]);
@@ -24895,8 +24912,9 @@ export function initLegacyApp() {
   function drawMvSel(){
     mvSelBoxes.forEach(b=> b.remove());
     mvSelBoxes = [];
-    if(!mvSel.size || viewMode !== 'month') return;
-    const idx = mvSelIndex();
+    if(viewMode !== 'month') return;
+    const idx = mvSel.size ? mvSelIndex() : new Map();
+    let at = null;
     mvSel.forEach(k=>{
       (idx.get(k) || []).forEach(el=>{
         const v = visibleRect(el);
@@ -24907,8 +24925,35 @@ export function initLegacyApp() {
         b.style.width = (v.right - v.left) + 'px'; b.style.height = (v.bottom - v.top) + 'px';
         document.body.appendChild(b);
         mvSelBoxes.push(b);
+        if(!at || k === mvSelActive) at = v;
       });
     });
+    drawMvSelFlash(at);
+  }
+  // ---- The grid's one short message, in the month view (the waterfall's flashTextSel, drawn there by redrawTextSel):
+  // why a copy left a picked note out (mvNotesCopy). The same chip (.text-sel-chip), body-level and fixed like the pick's
+  // outlines (.month-sel-chip), above the active pick; with the pick gone (a cut), where that pick was. Session UI. ----
+  let mvSelFlash = null;          // {msg, at}: the text, and the last rect it was drawn over
+  let _mvSelFlashTimer = 0;
+  function flashMvSel(msg, ms){
+    if(_mvSelFlashTimer) clearTimeout(_mvSelFlashTimer);
+    mvSelFlash = msg ? { msg, at: null } : null;
+    _mvSelFlashTimer = mvSelFlash ? setTimeout(()=>{ _mvSelFlashTimer = 0; mvSelFlash = null; drawMvSel(); }, ms || 4200) : 0;
+    drawMvSel();
+  }
+  function drawMvSelFlash(at){
+    if(!mvSelFlash) return;
+    if(at) mvSelFlash.at = at;
+    const r = mvSelFlash.at;
+    if(!r) return;
+    const chip = document.createElement('div');
+    chip.className = 'text-sel-chip month-sel-chip';
+    chip.textContent = mvSelFlash.msg;
+    chip.style.left = Math.max(0, r.left) + 'px';
+    document.body.appendChild(chip);
+    mvSelBoxes.push(chip);
+    const top = r.top - chip.offsetHeight - 4;
+    chip.style.top = (top >= 2 ? top : r.bottom + 4) + 'px';
   }
   // A pick: alone, or added/removed with ⌘ or Shift.
   function pickMvText(el, add){
@@ -25148,8 +25193,22 @@ export function initLegacyApp() {
     if(/^\d{4}-\d\d-\d\d$/.test(day || '')) it.day = day;
     return it;
   }
+  // ⭐ A HOLIDAY OR AN AUTOMATIC NOTE KEEPS ITS OWN DAY (the waterfall's rule, item 2.3 / AUD2-014; the 14 Nov 2026 review
+  // of item 2.8). Picked with typed notes, it stays out of a copy or a cut: on the clipboard it was re-dated by the paste
+  // (mvRetimeNote) and landed as a typed day note, a holiday invented on another day ("Independence Day (Observed)
+  // 7/15/26"). Only typed notes travel: day notes, Waterfall lines, notes that stay with a phase. A pick of nothing else
+  // copies nothing (the browser's own copy runs, on no selection, so the clipboard keeps what it held), and the grid's
+  // short message says why, as the waterfall's paste does when it leaves such lines out.
+  const MV_KEEP_DAY_MSG = 'Holidays and automatic notes stay on their own dates';
+  function mvPickKeepsDay(p){
+    if(mvSelKind(p.key) === 'daynote') return false;
+    const k = (mvLineInfo(p.els[0]) || {}).kind;
+    return k === 'holiday' || k === 'auto';
+  }
   function mvNotesCopy(){
-    const items = mvPickedNotes().map(mvNoteClipItem).filter(Boolean);
+    const picks = mvPickedNotes(), keep = picks.filter(mvPickKeepsDay);
+    const items = picks.filter(p=> !keep.includes(p)).map(mvNoteClipItem).filter(Boolean);
+    if(keep.length) flashMvSel(MV_KEEP_DAY_MSG);
     if(!items.length) return null;
     wfNoteClip = { text: items.map(it=> tsvCell(it.text) + '\n').join(''), items };
     return wfNoteClip;

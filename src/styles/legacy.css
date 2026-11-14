@@ -4888,6 +4888,9 @@
 .month-sel-box{ position:fixed; z-index:48; box-sizing:border-box; pointer-events:none; border-radius:3px;
   border:1.5px solid rgba(255,255,255,.95); box-shadow:0 0 0 1.5px #7030A0; background:rgba(112,48,160,.10); }
 .month-sel-box.is-active{ box-shadow:0 0 0 2.5px #7030A0; }
+/* The grid's short message in the month view (drawMvSelFlash): the waterfall's .text-sel-chip, body-level and fixed like
+   the outlines above, and over them. */
+.text-sel-chip.month-sel-chip{ position:fixed; z-index:49; }
 /* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
 .style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
 /* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */
