@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
+
+The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes
+"redeploy the previous release"). No app code changed.
+
+- **What it was.** The documented way to pull a bad release (the header of `.github/workflows/deploy.yml`, CLAUDE.md,
+  HANDOFF) was to switch Settings › Pages › Source to "Deploy from a branch", which serves the root `index.html`: the
+  v1.2.0 legacy app, eleven versions back. Measured by the audit: it does not know the Region, so every Production wrap
+  date moves (10/20/26 to 10/16/26 on the reference calendar); its Save writes 28 top-level keys instead of 82 and drops
+  every later setting and every scenario but one, permanently; and it has no install gate, no Content-Security-Policy
+  and no snapshot sanitizer. It has never been used.
+- **Now** "Build and deploy" takes a `release` when run by hand on `main` (Actions › Build and deploy › Run workflow,
+  release `v1.12.1`, say). The deploy job then publishes `releases/<that version>.html`, the byte-identical copy every
+  version cut keeps, as the site, with a `version.json` naming it, and builds nothing, so it works when `main` itself
+  will not build. It refuses a name that is not a version, a release that is not in the repo, a file that does not state
+  that version, and anything before v1.4.1 (no install gate). A push to `main` and a plain re-deploy work exactly as
+  before. The old Pages-source flip is written down as never to be used.
+- **Docs:** the rollback note in `deploy.yml`, CLAUDE.md's Project note and two HANDOFF passages now say the same thing.
+- **Proof:** the workflow parses (Ruby's YAML); its rollback step run locally against the real release copies publishes
+  `v1.12.1` byte for byte with `{ "version": "1.12.1" }`, and refuses `v1.2.0` (no version literal), `v1.3.1` (no
+  install gate), `v9.9.9` (no file) and two injection attempts. Not run on GitHub: that needs a push, and the batch
+  goes out together. ⚠️ Pushing a workflow file needs the GitHub token's `workflow` scope (HANDOFF).
+
 ### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
 
 The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":

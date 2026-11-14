@@ -4,11 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
+- **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
+  release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both
+  Batch 2 item 2.7), and the owner's own proof run on a studio Windows PC (verdict condition 3). Only the rollback is
+  Batch 1, and it is this entry.
+- **As built** (`.github/workflows/deploy.yml`, no app code): `workflow_dispatch` takes a `release` input. Dispatched on
+  `main` with it set, the deploy job skips the build and publishes `releases/<release>.html` as `dist/index.html` with a
+  matching `dist/version.json`, after checking the name (`^v\d+\.\d+\.\d+$`, read from `env`, never interpolated into the
+  script), that the file exists, that it states that version (the build's `` `X.Y.Z` `` literal), and that it has the
+  install gate (`app-gate`, v1.4.1 on). The deploy job's `if` is `always()` plus: a push or a plain re-deploy needs
+  `needs.build.result == 'success'` (as `needs` implied before); a rollback does not, so a main that will not build
+  cannot block it. The `main`-only ref test (audit N-7) is kept for all three.
+- The rollback note in the workflow's header, CLAUDE.md's Project note and two older HANDOFF passages (§1's
+  "instant rollback", §2b-3 row 7) are corrected; the Pages-source flip is written down as never to be used.
+- **Proof:** parsed with Ruby's YAML; the rollback step's script, run locally on a copy of `releases/`: `v1.12.1`
+  publishes byte for byte with `{ "version": "1.12.1" }`; `v1.2.0`, `v1.3.1`, `v9.9.9`, `v1.12.1; echo pwned` and `../x`
+  are refused with their reasons. ⚠️ Not exercised on GitHub (needs a push). After the batch's push, a dry run is
+  possible only as a real rollback, so do not "test" it on the live site; the next real use is the test.
+- ⚠️ The push of this change needs the token's `workflow` scope (§2b-3 row 7's note, below).
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`), cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`, so it holds both items. The owner tried it on localhost and said *"Yes, finish it"*. Tracker card `audit-typed-notes-follow-calendar`
-- **The batch, where it stands:** 1.1 and 1.2 built (this branch). **1.3** (AUD2-013, crafted files) and **1.5** (AUD2-007,
-  the date picker's "today") need no decision and are not started. **1.4** (AUD2-006, the rollback note) waits for the
-  owner's **D7**. Then ONE full gate for the batch and one push on the owner's yes (PLAYBOOK §2). Build each next item on
-  this branch (or a branch cut from it), so the batch stays one line.
+- **The batch, where it stands:** 1.1, 1.2 and 1.4 built (this branch; 1.4's entry is above, D7 (a)). **1.3** (AUD2-013,
+  crafted files) and **1.5** (AUD2-007, the date picker's "today") are being built in their own sessions, started by the
+  owner on 13 Nov 2026, each in a worktree fast-forwarded onto `audit-1-1` (before 1.4's commit). The owner chose (13 Nov
+  2026, picker) to push the WHOLE batch once: when 1.3 and 1.5 land, merge their branches into `audit-1-1` (HANDOFF and
+  README will conflict: keep every entry), run ONE full gate, then ask the push picker.
   - ⚠️ A second session, "Audit fixes: core functionality", rebuilt item 1.2 in worktree `audit-batch-1` (its commit
     `86ada17`, its own `recoverfail` leg). It was stopped on the owner's word ("tell the other chat to stop") and told
     why; its worktree and commit were left as they were. That branch is a DUPLICATE: do not merge it. Removing it
@@ -15175,8 +15196,9 @@ change — see §5d.
 to `main` — cutover 31 Aug 2026, owner-approved (§2b-3 row 7). Verified 2 Sep 2026: the live page is
 byte-identical to a local `npm run build` at `2a75929`. The root `index.html` (~10,344 lines /
 ~667 KB, one file, no build step) is **no longer what users get**; it stays in the repo as the v1.2.0
-legacy app, byte-identical to `releases/v1.2.0.html`, and is the instant rollback (Pages Source →
-"Deploy from a branch", main, `/`).
+legacy app, byte-identical to `releases/v1.2.0.html`. ⛔ *(Corrected 13 Nov 2026, audit AUD2-006, D7 (a).)* It is NOT the
+rollback any more: the rollback is "Build and deploy" dispatched on `main` with `release` = the previous version, which
+publishes that release's stored copy (header of `deploy.yml`). Serving this v1.2.0 file moved every wrap date.
 
 ### ✅ CORRECTED 2 Sep 2026 — this section used to say "v1.2.0 IS BUILT BUT NOT DEPLOYED — the live site is still v1.0.0"
 
@@ -16250,9 +16272,10 @@ Logged before building at the owner's instruction, then built and gated. State o
    `main` as well as on manual dispatch — the repo already auto-deployed before this, so
    manual-only would have silently changed the deploy model; the gate remains the "never push
    unasked" rule in `CLAUDE.md`.
-   **ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"
-   (`main`, `/`). That restores the root `index.html` — the known-good v1.2.0 legacy app —
-   instantly, with no revert, no rebuild and no waiting on CI.
+   ~~**ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"~~ ⛔ **WITHDRAWN 13 Nov 2026**
+   (audit AUD2-006, owner's D7 (a)): that served the v1.2.0 legacy app, which drops the Region and strips newer settings
+   on Save. The rollback is now "Build and deploy" dispatched on `main` with `release` = the previous version (the
+   header of `deploy.yml`).
    ⚠️ One thing that bit on the way, worth keeping: pushing anything under `.github/workflows/`
    needs the token's **`workflow`** scope. Without it the push is rejected, and the Contents API
    is blocked identically but answers **404, not 403**, which reads as a missing repo.

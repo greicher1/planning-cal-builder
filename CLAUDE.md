@@ -360,7 +360,8 @@ format change, a decision about how something should work.
      exist; `APP_VERSION` alone makes a real update invisible. This is the update-delivery contract
      (README v1.2.0), not bookkeeping. ⚠️ **CORRECTED at the v1.3.0 cut (28 Sep 2026):** this rule
      used to say "`APP_VERSION` in `index.html`, in `src/legacy/app.js` and in `version.json`, all
-     three together." But the root `index.html` is the frozen legacy rollback and **must stay
+     three together." But the root `index.html` is the frozen legacy app (no longer the rollback since 13 Nov 2026:
+     see the deploy note below) and **must stay
      byte-identical to `releases/v1.2.0.html`** (§"Never touch the grid…" / the deploy note), and
      `src/index.html` carries no `APP_VERSION` at all — so the root file's copy is deliberately left
      at `1.2.0` and only the two above are bumped. The rule predated the build cutover; do not bump
@@ -396,7 +397,10 @@ long sessions — it is easy to forget precisely when it matters most.
 > header, preview toolbar and static sidebar cards are React now — and **since 31 Aug 2026
 > (owner-approved cutover) `.github/workflows/deploy.yml` publishes that build to Pages on every
 > push to `main`.** The root `index.html` stays in the repo untouched, byte-identical to
-> `releases/v1.2.0.html`, as the legacy app and the instant rollback. Read [`HANDOFF.md`](HANDOFF.md)
+> `releases/v1.2.0.html`, as the legacy app. ⛔ **It is NOT the rollback** (owner's decision D7 (a), 13 Nov 2026, audit
+> AUD2-006): serving it puts every user on v1.2.0, which drops the Region (every wrap date moves) and strips newer settings
+> and scenarios on Save. To pull a bad release, run "Build and deploy" on `main` with `release` set to the previous
+> version: it publishes `releases/<version>.html` (header of `deploy.yml`). Read [`HANDOFF.md`](HANDOFF.md)
 > §1 and §2b-3 for what exists, and note that the product is still ONE self-contained file — that is
 > what the build produces. *(Corrected 2 Sep 2026; this note said "nothing has been deployed" for two
 > days after the cutover, and a push went out on that belief.)*
