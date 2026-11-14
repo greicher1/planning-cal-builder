@@ -6506,6 +6506,52 @@ export function initLegacyApp() {
     return groups;
   }
 
+  // ⭐ SINGLE COLUMN MODE READS EVERY YEAR'S SWAPS (audit AUD2-058, owner decision D5 b: keep swapping, and a swap
+  // holds). gridStintSwaps is keyed '<year>|<phase>', the year block the swap was made in. Single Column Mode has ONE
+  // block, labelled with the calendar's FIRST year (computeYearBlocks), and reading only that year lost every swap
+  // made in a later year, and every swap at all the moment the first week crossed New Year (<- 1 wk from 1/6/31 to
+  // 12/30/30, or an earlier Writers' Room date) -- on screen, in Excel and in the PDF, with nothing said and the store
+  // still holding them. A phase has one column for its whole run there, so a swap from ANY year of the store is read,
+  // as long as both sides are on the calendar (stintSwapGroupsForBlock's own checks, against the one block's cells):
+  //   * the block's own year first, exactly as before, so every swap that showed still shows, the same way;
+  //   * then every other year, earliest first. A group naming a phase an earlier group already placed is the same
+  //     swap again when it names exactly the same phases (skipped quietly: the earlier year's order stands), and
+  //     otherwise a second order for that phase, which one column cannot show: collected in `clashes`, and refused as
+  //     'one-order' (which the swap notice reads, reflectStintNotice) unless the order it asks for holds anyway
+  //     (applyStintSwaps, once the block is drawn).
+  // ⛔ With Single Column Mode off this is stintSwapGroupsForBlock(b.year) and nothing else, so year blocks, and ruling
+  // E5 there (a stint pushed into a new year takes that year's natural order), are untouched. In Single Column Mode
+  // the block never changes, which is why E5 has nothing to say about it.
+  // ⛔ Nothing is written: every swap stays under the year it was made in, so with the mode off each year shows its
+  // own again. No snapshot key, and no frozen line: frozen computeBlockLayout still asks stintOrderFor for the one
+  // block's order, and the exchange is the same cell-for-cell col write it always was.
+  // `homes` collects the groups read from another year, so the gesture can find a swap's entries (stintStoreYearOf).
+  function resolveStintGroups(b, cellsByKey, clashes, homes){
+    const groups = stintSwapGroupsForBlock(b.year, cellsByKey);
+    if(!singleColumn) return groups;
+    const years = [...new Set(Object.keys(gridStintSwaps).map(k => +k.slice(0, k.indexOf('|'))))]
+      .filter(y => Number.isFinite(y) && y !== b.year).sort((x, y) => x - y);
+    if(!years.length) return groups;
+    const placedBy = new Map();
+    groups.forEach(gp => gp.a.concat(gp.b).forEach(k => placedBy.set(k, b.year)));
+    const sameKeys = (x, y) => x.length === y.length && x.every(k => y.indexOf(k) >= 0);
+    years.forEach(y => stintSwapGroupsForBlock(y, cellsByKey).forEach(gp=>{
+      const keys = gp.a.concat(gp.b);
+      const clash = keys.filter(k => placedBy.has(k));
+      if(!clash.length){
+        gp.storeYear = y;
+        groups.push(gp);
+        homes.push({ keys, storeYear: y });
+        keys.forEach(k => placedBy.set(k, y));
+        return;
+      }
+      if(groups.some(g => sameKeys(g.a.concat(g.b), keys))) return;
+      gp.storeYear = y;
+      clashes.push({ gp, key: clash[0], year: placedBy.get(clash[0]) });
+    }));
+    return groups;
+  }
+
   // Exchange two columns' stints, per BLOCK, and record the order the block had first.
   //
   // ⛔ TWO HALVES, and this is only the first. On its own it is INVISIBLE: frozen blockSlotMaps
@@ -6521,7 +6567,7 @@ export function initLegacyApp() {
   function applyStintSwaps(weeks, ruleOrders){
     // Zero cost when unused -- unless a stamped calendar's rule-9 order has to reach stintOrderFor anyway.
     if(!Object.keys(gridStintSwaps).length) return ruleOrders ? { orders: ruleOrders, applied: [], refused: [] } : null;
-    const orders = [], applied = [], refused = [];
+    const orders = [], applied = [], refused = [], homes = [];
     const derived = (b, bi) => ruleOrders ? ruleOrders[bi] : blockColOrder(weeks, b);
     computeYearBlocks(weeks).forEach((b, bi)=>{
       const cellsByKey = new Map();
@@ -6542,18 +6588,38 @@ export function initLegacyApp() {
       // with mixed ones (a swap saved before 6 Nov 2026, or a hand-edited file), is exchanged, as it always was.
       const before = derived(b, bi);
       const at = col => Array.isArray(before) ? before.indexOf(col) : -1;
-      const sideOf = list => {
-        const v = list.map(k => (gridStintSwaps[b.year + '|' + k] || {}).left);
+      // A group's entries live under the year it was stored in: the block's own year, or (Single Column Mode, below)
+      // another year of the store.
+      const yearOfGroup = gp => gp.storeYear !== undefined ? gp.storeYear : b.year;
+      const sideOf = (list, yr) => {
+        const v = list.map(k => (gridStintSwaps[yr + '|' + k] || {}).left);
         return v.every(x => x === true) ? true : v.every(x => x === false) ? false : null;
       };
-      const groups = stintSwapGroupsForBlock(b.year, cellsByKey).filter(gp=>{
-        const aWants = sideOf(gp.a), bWants = sideOf(gp.b);
+      const clashes = [];
+      const groups = resolveStintGroups(b, cellsByKey, clashes, homes).filter(gp=>{
+        const yr = yearOfGroup(gp);
+        const aWants = sideOf(gp.a, yr), bWants = sideOf(gp.b, yr);
         if(aWants === null || bWants === null || aWants === bWants) return true;
         const ia = at(gp.colA), ib = at(gp.colB);
         if(ia < 0 || ib < 0) return true;
         return (ia < ib) !== aWants;
       });
-      if(!groups.length){ orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
+      // A Single Column clash is refused, for the notice, only when the order it asks for does not hold once the block
+      // is drawn: a group read as an ORDER (both sides say which side they took) whose a-side ends up left, or right,
+      // as it asks, is shown by the swaps that did apply and says nothing. One without sides is an exchange and is
+      // always refused. Run on every way out of this block, after any col has moved.
+      const reportClashes = ()=> clashes.forEach(cl=>{
+        const gp = cl.gp, aWants = sideOf(gp.a, gp.storeYear), bWants = sideOf(gp.b, gp.storeYear);
+        if(aWants !== null && bWants !== null && aWants !== bWants){
+          const pos = k => at(cellsByKey.get(k)[0].col);
+          const known = gp.a.concat(gp.b).every(k => pos(k) >= 0);
+          const aLeftNow = gp.a.every(ka => gp.b.every(kb => pos(ka) < pos(kb)));
+          const bLeftNow = gp.b.every(kb => gp.a.every(ka => pos(kb) < pos(ka)));
+          if(known && (aWants ? aLeftNow : bLeftNow)) return;
+        }
+        refused.push({ year: b.year, storeYear: gp.storeYear, keys: gp.a.concat(gp.b), reason: 'one-order', at: { key: cl.key, year: cl.year } });
+      });
+      if(!groups.length){ reportClashes(); orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
 
       // ⛔ WOULD THIS LOSE A CELL? Refuse the group outright if so. With the gesture building the
       // group from every occupant of both columns (stintRunFor), this is reached only by DRIFT -- a
@@ -6583,7 +6649,8 @@ export function initLegacyApp() {
         }
         return null;
       };
-      const refuse = (gp, reason, at)=> refused.push({ year:b.year, keys:gp.a.concat(gp.b), reason, at });
+      const refuse = (gp, reason, at)=> refused.push(Object.assign({ year:b.year, keys:gp.a.concat(gp.b), reason, at },
+        gp.storeYear !== undefined ? { storeYear: gp.storeYear } : null));
 
       // ⛔ Validate EVERY group before mutating ANY of them, then apply. Applying as we validate would
       // half-apply a block whose second group turns out to be illegal -- the same reason
@@ -6610,17 +6677,24 @@ export function initLegacyApp() {
           if(at) refuse(gp, 'collide', at); else legal = legal.concat([gp]);
         });
       }
-      if(!legal.length){ orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
+      if(!legal.length){ reportClashes(); orders.push(ruleOrders ? ruleOrders[bi] : null); return; }
       const all = newColFor(legal);
 
       orders.push(derived(b, bi));    // ⛔ BEFORE a single col moves
       all.forEach((col, c)=>{ c.col = col; });
+      reportClashes();
       // aLeft: after the exchange the `a` side sits in colB's place, so it is left when colB was. Read by
       // recordStintSwapSides() to write an old swap's sides down; null when the order does not say.
-      legal.forEach(gp => applied.push({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB,
-        aLeft: (at(gp.colA) < 0 || at(gp.colB) < 0) ? null : at(gp.colB) < at(gp.colA) }));
+      // ⛔ Null too for a group Single Column Mode read from ANOTHER year (`storeYear`): its sides must come from that
+      // year's own block, never from the one-column order, or opening an old file in Single Column Mode would
+      // rewrite what that year shows with the mode off.
+      legal.forEach(gp => applied.push(Object.assign({ year:b.year, a:gp.a, b:gp.b, from:gp.colA, to:gp.colB,
+        aLeft: (gp.storeYear !== undefined || at(gp.colA) < 0 || at(gp.colB) < 0) ? null : at(gp.colB) < at(gp.colA) },
+        gp.storeYear !== undefined ? { storeYear: gp.storeYear } : null)));
     });
-    return { orders, applied, refused };
+    // `homes` only when Single Column Mode read a swap from another year, so every other schedule's stintOrder carries
+    // exactly the keys it always did.
+    return homes.length ? { orders, applied, refused, homes } : { orders, applied, refused };
   }
 
   // The second half, and the ONLY thing the frozen hook asks for. Returns the order to pin for this
@@ -6756,6 +6830,9 @@ export function initLegacyApp() {
     'collateral-wide': 'other weeks would shift by more than one column',
     'simpost':         'Simultaneous Post stays beside Production, which moves only as a whole column',
     'collide':         'two phases would need the same column in the same week',
+    // Single Column Mode only (resolveStintGroups, AUD2-058): a phase's swaps from two years that one column cannot
+    // both show. The notice and swapWhy name the phase and the year whose swap comes first.
+    'one-order':       'in Single Column Mode a phase has one column for its whole run, and another year\u2019s swap already sets it',
   };
 
   // G4, the check with the real teeth: in every week a pair claims, the two phases must ACTUALLY
@@ -6866,10 +6943,55 @@ export function initLegacyApp() {
 
   // The notice. No action button: there is nothing safe to do automatically -- fixing it means
   // changing the schedule back or clearing the column order, both the user's call.
+  // ⭐ TWO SOURCES, ONE STRIP (audit AUD2-059, 14 Nov 2026). The per-week gate's verdict arrives here (runColSwapGate,
+  // on a cache miss); a block swap's refusal arrives through reflectStintNotice() on every update(). A block swap
+  // refused at draw time used to be read only by the gesture (canSwapStint), so a phase added into one of its two
+  // columns -- or, in Single Column Mode, two swaps one phase cannot both follow -- undid the swap on screen, in Excel
+  // and in the PDF with nothing said, while the file kept it. Each source keeps its last word, and the strip shows the
+  // per-week refusal first (its wording unchanged), then a block swap's, then the per-week widening.
+  let swapNoticeWeek = { rejected: [], widened: [] }, swapNoticeStint = [];
   function reflectSwapNotice(res){
+    swapNoticeWeek = res || { rejected: [], widened: [] };
+    paintSwapNotice(true);
+  }
+  // Every update(): the block swaps the waterfall refused this time. Waterfall only, since a swap is the waterfall's;
+  // the month view hides that part of the strip.
+  function reflectStintNotice(schedule){
+    const st = schedule && schedule.stintOrder;
+    swapNoticeStint = (viewMode === 'sheet' && st && Array.isArray(st.refused)) ? st.refused : [];
+    paintSwapNotice(false);
+  }
+  // A block swap's refusal in plain words (no engine words: a stint is a phase's run, a slot a column). It names the
+  // phase that is in the way, since that is the one the user can move, and what to do about it.
+  function stintRefusalText(list){
+    const r = list[0];
+    const names = r.keys.map(phaseLabelFor);
+    const pair = names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    const more = list.length > 1 ? ' ' + list.length + ' swaps affected.' : '';
+    if(r.reason === 'one-order' && r.at){
+      const who = phaseLabelFor(r.at.key);
+      return 'Column order paused for ' + pair + ' (their ' + r.storeYear + ' swap): in Single Column Mode ' + who
+        + ' has one column for its whole run, and its ' + r.at.year + ' swap comes first.' + more
+        + ' Turn Single Column Mode off to see each year\u2019s swaps.';
+    }
+    const other = r.at && [r.at.a, r.at.b].find(k => k && r.keys.indexOf(k) < 0);
+    const when = r.at && r.at.weekIso ? ' (' + fmtShort(parseDateUTC(r.at.weekIso)) + ')' : '';
+    if(r.reason === 'collide' && other){
+      const o = phaseLabelFor(other);
+      return 'Column order paused for ' + pair + ': ' + o + ' now runs in a column the swap needs' + when + '.' + more
+        + ' Swap Column again to take ' + o + ' along, or the swap comes back by itself once ' + o + ' moves.';
+    }
+    return 'Column order paused for ' + pair + when + ': ' + (SWAP_REASON_TEXT[r.reason] || r.reason) + '.' + more
+      + ' It will apply again by itself once the schedule allows it.';
+  }
+  // `always`: the per-week path wrote the strip on every call before, so it still does; the block-swap path runs on
+  // every update() and touches the strip only when its message or visibility changes (a notice strip changing
+  // re-measures the app shell's grid fit).
+  function paintSwapNotice(always){
     const el = document.getElementById('colswap-notice');
     if(!el) return;
     const txt = el.querySelector('.ln-text');
+    const res = swapNoticeWeek;
     let msg = '';
     if(res.rejected.length){
       const r = res.rejected[0];
@@ -6878,11 +7000,14 @@ export function initLegacyApp() {
           + ': ' + (SWAP_REASON_TEXT[r.reason] || r.reason) + '.'
           + (res.rejected.length > 1 ? ' ' + res.rejected.length + ' swaps affected.' : '')
           + ' It will apply again by itself once the schedule allows it.';
+    } else if(swapNoticeStint.length){
+      msg = stintRefusalText(swapNoticeStint);
     } else if(res.widened.length){
       msg = 'Column order applied. ' + res.widened.length
           + (res.widened.length === 1 ? ' other week' : ' other weeks')
           + ' changed width to fit.';
     }
+    if(!always && msg === swapNoticeState.text) return;
     swapNoticeState.text = msg;
     // Dismissal is per MESSAGE, so a different problem later still speaks up.
     if(!msg || swapNoticeState.dismissed === msg){ el.hidden = true; return; }
@@ -7423,15 +7548,25 @@ export function initLegacyApp() {
       && ap.a.length + ap.b.length === want.size && ap.a.concat(ap.b).every(k => want.has(k))));
   }
 
+  // The year whose entries hold this run's swap. Always the run's own year block, except in Single Column Mode, where
+  // resolveStintGroups may have read the swap on screen from another year (AUD2-058): the gesture then edits THAT
+  // year's entries, so a swap back deletes what is showing and a new order replaces it in place, rather than writing
+  // a second copy under the first year that would outrank it and stay behind in the store.
+  function stintStoreYearOf(run){
+    const st = singleColumn && currentSchedule && currentSchedule.stintOrder;
+    const home = st && (st.homes || []).find(h => h.keys.indexOf(run.phaseKey) >= 0);
+    return home ? home.storeYear : run.year;
+  }
   // The store this run would produce -- used by BOTH the trial and the commit, so a verdict can never
   // describe a different write than the one that lands. Every partner points at the stint; the stint
   // and anything moving with it point at the first partner: one connected component, two columns.
   function stintStoreAfter(run){
     const next = Object.assign({}, gridStintSwaps);
-    const pre = run.year + '|', memberSet = new Set(run.members);
+    const year = stintStoreYearOf(run);
+    const pre = year + '|', memberSet = new Set(run.members);
     // Swapping a block back over exactly the group it is stored and APPLIED with DELETES the entries
     // rather than storing an identity: natural order returns and a saved file carries no no-ops.
-    const stored = stintGroupInStore(next, run.year, run.phaseKey);
+    const stored = stintGroupInStore(next, year, run.phaseKey);
     const reversing = stored.size === memberSet.size && [...stored].every(k => memberSet.has(k))
       && stintGroupApplied(run.year, run.members);
     Object.keys(next).forEach(k=>{
@@ -7821,6 +7956,10 @@ export function initLegacyApp() {
       return phaseLabelFor(v.collideAt.a) + ' and ' + phaseLabelFor(v.collideAt.b)
            + ' would both need the same column in the week of '
            + fmtShort(parseDateUTC(v.collideAt.weekIso)) + '.';
+    // Single Column Mode (AUD2-058): the phase's place is already set by another year's swap, which comes first.
+    if(v.reason === 'one-order' && v.collideAt && v.collideAt.key)
+      return 'In Single Column Mode ' + phaseLabelFor(v.collideAt.key) + ' has one column for its whole run, and its '
+           + v.collideAt.year + ' swap already sets it. Swap that one back first, or turn Single Column Mode off.';
     if(v.reason === 'simpost')
       return simPostDisplayName() + ' stays beside ' + phaseLabelFor('production')
            + ', so ' + phaseLabelFor('production') + ' swaps only as a whole column: use Swap Column.';
@@ -27415,6 +27554,9 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // A block swap the waterfall could not apply this time says so (AUD2-059): it only reads the list
+    // applyStintSwaps already returns, so it costs nothing and runs on every update().
+    reflectStintNotice(currentSchedule);
     // ⭐ THE CALENDAR RANGE CUTS THE WATERFALL, EXCEL AND THE WATERFALL PDF, NEVER THE MONTH VIEW (owner
     // ruling 3, 20 Oct 2026). computeSchedule hands back the waterfall's rows, so in the month view this
     // puts the whole calendar back. Picked here, per view, because frozen render() hands its schedule to
