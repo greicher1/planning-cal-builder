@@ -53,14 +53,14 @@ window.addEventListener('load', function () { (async function () {
     window.showOpenFilePicker = async function () { called = true; return [h]; };
     await menuItem('[data-action="open"]').then(function (e) { e.click(); });
     for (var i = 0; i < 60 && !called; i++) { await T.sleep(100); if (/Load another calendar/.test(T.modalText())) T.clickModalButton('Load'); }
-    await T.until(function () { return label() === h.name; }, 'Load ' + h.name, 100, 100);
+    await T.until(function () { return label() === h.name; }, 'Load ' + h.name, 200, 100);
     await T.sleep(1200);
   }
   // The file menu's dropdown mounts on its first opening (then stays mounted): open it once, then click inside it.
   async function menuItem(sel) {
     if (!document.querySelector('#file-menu')) {
       document.querySelector('.file-menu-btn').click();
-      await T.until(function () { return !!document.querySelector('#file-menu .file-menu-item[data-action="open"]'); }, 'the file menu', 60, 100);
+      await T.until(function () { return !!document.querySelector('#file-menu .file-menu-item[data-action="open"]'); }, 'the file menu', 200, 100);
     }
     return document.querySelector('#file-menu .file-menu-item' + sel);
   }
@@ -70,12 +70,12 @@ window.addEventListener('load', function () { (async function () {
   }
   async function saveFree() {
     await T.sleep(1400);   // flashSaveBtn holds the button for 1.2 s
-    await T.until(function () { var b = byId('save-file-btn'); return b && !b.disabled; }, 'the Save button', 60, 100);
+    await T.until(function () { var b = byId('save-file-btn'); return b && !b.disabled; }, 'the Save button', 200, 100);
   }
   // Waits for A dialog, not for the expected one, so a wrong dialog is recorded as the case's observation (and fails
   // it) rather than timing out with nothing to show. `re` only says what the leg is waiting for.
-  async function modal(re, what) { await T.until(function () { return !!T.modalText(); }, what + ' (' + re + ')', 60, 100); await T.sleep(200); return T.modalText(); }
-  async function answer(lbl) { T.clickModalButton(lbl); await T.until(function () { return !T.modalText(); }, 'the dialog to close', 40, 100); await T.sleep(400); }
+  async function modal(re, what) { await T.until(function () { return !!T.modalText(); }, what + ' (' + re + ')', 200, 100); await T.sleep(200); return T.modalText(); }
+  async function answer(lbl) { T.clickModalButton(lbl); await T.until(function () { return !T.modalText(); }, 'the dialog to close', 100, 100); await T.sleep(400); }
   var RAW = /requested file or directory|not allowed by the user agent|Something went wrong/;
   try {
     await T.appReady();
@@ -107,7 +107,7 @@ window.addEventListener('load', function () { (async function () {
       {weeksPost: weeksPost(), writes: A.writes.length, pickerCalls: pick.calls.length, status: status()}, '10; nothing written; Autosave needs a file');
     await saveFree();
     byId('save-file-btn').click();
-    await T.until(function () { return pick.files.length === 1; }, 'the Save picker write', 60, 100);
+    await T.until(function () { return pick.files.length === 1; }, 'the Save picker write', 200, 100);
     await T.sleep(800);
     var f1 = new TextDecoder().decode(pick.files[0].bytes);
     add('G4', 'the next Save goes straight to the Save dialog (nothing is linked) and keeps the work',
@@ -122,7 +122,7 @@ window.addEventListener('load', function () { (async function () {
     byId('save-file-btn').click();
     await modal(/File not found/, 'the dialog for Pier Nine');
     T.clickModalButton('Save As…');
-    await T.until(function () { return pick.files.length === 2; }, 'the Save As write', 60, 100);
+    await T.until(function () { return pick.files.length === 2; }, 'the Save As write', 200, 100);
     await T.sleep(1000);
     var f2 = new TextDecoder().decode(pick.files[1].bytes);
     add('S1', 'Save As from the dialog suggests the lost file\'s own name and writes the calendar there',
@@ -131,7 +131,7 @@ window.addEventListener('load', function () { (async function () {
     await saveFree();
     T.set('weeks-post', '8'); await T.sleep(1200);
     byId('save-file-btn').click();
-    await T.until(function () { return pick.files.length === 3; }, 'Save into the new file', 60, 100);
+    await T.until(function () { return pick.files.length === 3; }, 'Save into the new file', 200, 100);
     await T.sleep(600);
     // ⚠️ fakeSavePicker's handle keeps ONE parts list for every writer, so a second write to it holds both bodies:
     // read the last chunk written (saveToFile writes the file as one string).
@@ -148,7 +148,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('weeks-post', '7'); await T.sleep(1200);
     C.perm = 'prompt'; C.answer = 'granted';
     byId('save-file-btn').click();
-    await T.until(function () { return C.writes.length === 1; }, 'Save after asking for permission', 60, 100);
+    await T.until(function () { return C.writes.length === 1; }, 'Save after asking for permission', 200, 100);
     await T.sleep(600);
     add('P1', 'permission lost: Save asks for it once (a Save is a click) and writes, with no dialog of its own',
       C.asked === 1 && written(C.writes[0]) === '7' && !T.modalText() && pick.calls.length === 2,
@@ -172,7 +172,7 @@ window.addEventListener('load', function () { (async function () {
     await pickRecent('Old Draft.sptcal');
     await modal(/Load another calendar/, 'the unsaved-work question');
     T.clickModalButton('Load');   // the notice follows at once, so the screen is never empty in between
-    await T.until(function () { return !/Load another calendar/.test(T.modalText()) && !!T.modalText(); }, 'the vanished-recent notice', 60, 100);
+    await T.until(function () { return !/Load another calendar/.test(T.modalText()) && !!T.modalText(); }, 'the vanished-recent notice', 200, 100);
     var m3 = T.modalText();
     add('R1', 'a recent whose file is gone: says so, and takes it off the list',
       /“Old Draft\.sptcal” can’t be found/.test(m3) && /taken off your recent files/.test(m3) && recents().indexOf('Old Draft.sptcal') === -1,
@@ -184,7 +184,7 @@ window.addEventListener('load', function () { (async function () {
     await pickRecent('Corner Store.sptcal');
     await modal(/Load another calendar/, 'the unsaved-work question (2)');
     T.clickModalButton('Load');
-    await T.until(function () { return !/Load another calendar/.test(T.modalText()) && !!T.modalText(); }, 'the unreadable-file notice', 60, 100);
+    await T.until(function () { return !/Load another calendar/.test(T.modalText()) && !!T.modalText(); }, 'the unreadable-file notice', 200, 100);
     var m4 = T.modalText();
     add('R3', 'a recent that cannot be read for another reason (a lock) keeps its entry and its link',
       recents().indexOf('Corner Store.sptcal') !== -1 && label() === 'Corner Store.sptcal', {modal: m4, recents: recents(), label: label()}, 'kept');

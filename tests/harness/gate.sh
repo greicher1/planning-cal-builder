@@ -2111,6 +2111,14 @@ done
 # leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
 # then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
 # the fixed build with writeBackup()'s isDirty guard deleted.
+# savegone + launchtemp (audit AUD2-039 / AUD2-017, the Nov 2026 audit's item 2.6, 13 Nov 2026). savegone: the linked
+# file vanishes (NotFoundError) or loses its write permission (NotAllowedError), and the user clicks Save as the status
+# line says: Save explains in plain words and offers Save As with the file's own name, never the raw browser error (G1,
+# P2); a gone file leaves Recents and is unlinked (G2-G4); permission is asked once on the Save click (P1); a gone
+# recent is taken off the list, a locked one is not (R1-R3). One 10-minute autosave tick, fast-forwarded. launchtemp: a
+# double-clicked (launchQueue) calendar raises the "opened from another app" strip once per load, the first Save still
+# writes back with no dialog, the strip goes on x / Load / New / Save As and travels hidden in a shareable copy, and a
+# purged attachment gets Save's Save As. Red on 2089aa5 at savegone G1 G2 and launchtemp L1.
 # hoverexpand (owner, 6-10 Nov 2026: "draw a square around them on hover and ask Expand?", "It also needs the reverse to
 # unexpand"; FILL-INTENT-PLAN.md §11) rests a real pointermove on hover-expand.sptcal's blanks: one dashed box over the
 # run, "Expand?" in its centre, the click widening THOSE weeks only (the owner's "it also expanded test wk 1": Test wk 1
@@ -2182,6 +2190,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               hiatussidebar:-:300 \
               mvbarcard:-:300 \
               backuplink:-:120 backuplinkstale:-:120 \
+              savegone:-:900 launchtemp:-:240 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \

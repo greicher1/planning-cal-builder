@@ -4,6 +4,50 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 13 Nov 2026: WHEN THE LINKED FILE IS GONE, SAVE SAYS SO AND OFFERS SAVE AS; A DOUBLE-CLICKED CALENDAR SAYS WHERE SAVE WRITES (audit AUD2-039, AUD2-017). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-6` (worktree `.claude/worktrees/audit-2-6`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.6, built overnight on the owner's "finish all of them".
+- **AUD2-039 (reproduced first: the audit's `a5-gone` leg was red at S1 S2 R1 on `2089aa5`, its perm=1 variant at S1
+  S2):** `saveToFile` now catches a failed write to an EXISTING linked file (not one the picker just made, not a
+  cancel). NotAllowedError / SecurityError: it calls `requestPermission` once (Save is a click) and writes again. Still
+  failing: `linkedFileUnwritable` says why in plain words and offers **Save As…** (`uiConfirm`, then `saveAsFile(name)`,
+  which takes an optional suggested name now; `sptcalName` gives the file's own name as .sptcal). NotFoundError also
+  runs `forgetMissingFile` FIRST: off Recents, unlinked, `autosaveFailed` cleared and `autosaveNeedsFile` set, so a
+  Cancel leaves an Untitled calendar whose next Save opens the picker. A refused or locked file stays linked and listed.
+  `openRecentFile`'s read catch is ONE line now (`recentUnreadable`): NotFoundError prunes the entry and says so;
+  anything else keeps it and the old message. ⚠️ Item 2.13 (another branch) also edits `openRecentFile`: this branch
+  touched only that catch line, so a merge conflict there is one line.
+- **AUD2-017 (reproduced: `vr16-launchtmp2` showed no "where" text and B3 the raw error twice, 0 picker calls):**
+  `openLaunchedFiles` raises `#launch-notice` (`showLaunchNotice`) after a successful double-click load: *"<file> was
+  opened from another app, and Save writes back to that copy. If it came from an email, that copy may be temporary: use
+  Save As to keep your own."* with Save As… (the file's own name) and ×. `launchNoticeHandle` (declared beside
+  `savedFileHandle`, ahead of `renderRecents`, which reads it) is the file it speaks of; `renderRecents` hides it the
+  moment anything else is linked. Static markup after `#legacy-notice`, buttons only (no id inside, nothing
+  `collectFieldValues` sweeps), the legacy strip's amber, re-hidden in `buildSavedHtml`'s clone, observed by the
+  shell's grid fit. Nothing frozen, no snapshot key, no save-format change, no inline handler (CSP).
+- **Defaults applied (approved; the finding's own "Default (no decision needed)" and the item's defaults):** the first
+  Save of a double-clicked file still writes back with NO extra dialog; a one-time strip instead. On a missing or moved
+  file Save explains in plain words and offers Save As; the dead file leaves Recents.
+- **Chosen tonight (open questions for the owner):** (1) "one-time" = once per double-click load, until ×, Save As, or
+  another calendar; not "once ever on this computer" (a remembered dismissal). (2) Any OTHER failure writing the linked
+  file (a lock, a full disk) also gets the plain message and Save As, not the raw error; the old raw alert stays only for
+  a file the picker just made. (3) A gone file is unlinked as soon as Save finds it gone, not only after a Save As, so a
+  Cancel leaves the calendar Untitled. (4) The strip offers Save As only, not "Show in folder…" (the file menu's
+  right-click still has it). (5) Autosave's own status line is unchanged ("Autosave failed — click Save"); Save now
+  delivers what its tooltip promises.
+- **Proof (build `96a951ed…` sha1):** new legs `savegone` 14/14 and `launchtemp` 12/12, both in `gate.sh`'s audit-fix
+  list beside backuplink; red on `2089aa5` (savegone G1 G2 then threw; launchtemp L1, no strip). The gate block run by
+  hand for the two: 26/26. Nearest legs green: `launchopen` 16, `loadfail` 6, `backuplink` 5, `backuplinkstale` 3,
+  `backupslots` 5, `conflict` 9, `sharecopy2`, `showfolder` 7, `legacyparse` 7, `nofsa` 7, `filekeys` 16, `dlgkeys` 16,
+  `hostile` 13, `lastedited` 22; `cspproof` 15/15; `npm run check` 42/42. The strip looked right on localhost (forced up
+  by hand; a real launch cannot be made headless or in the pane).
+  ⚠️ `launchtemp` failed 5 of about 145 early runs while the machine's load average was ~8 (other sessions' Chrome),
+  each time a different 6-8 s wait (a launch's load, the Save As write); its waits were lengthened to 20 s and it then
+  passed 25/25. Watch it in the full gate.
+  ⚠️ `t/sharecopy.js` (NOT in the gate) is stale and red on any current build: it looks for the share item in the file
+  menu, which moved to Export App With Data long ago. Not this item's.
+- **Not verified:** a real double-click launch, a real mail app's attachment folder, Chrome's real permission prompt
+  after a revoke, and whether the transient activation of the Save click survives to `requestPermission` after the
+  stamp read (if not, it throws, and the Save As offer follows; the legs stub all of these).
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.

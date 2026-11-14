@@ -41,7 +41,7 @@ window.__T.memoryIDB();
 })();
 
 window.addEventListener('load', function () { (async function () {
-  var T = window.__T, cases = [];
+  var T = window.__T, cases = [], out = {};
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: pass === true, observed: observed, expected: expected}); }
   function byId(id){ return document.getElementById(id); }
   function txt(e){ return ((e && e.textContent) || '').replace(/\s+/g, ' ').trim(); }
@@ -54,12 +54,12 @@ window.addEventListener('load', function () { (async function () {
   async function noModal(ms){ for(var i = 0; i < ms / 100; i++){ await T.sleep(100); var m = T.modalText(); if(m) return m; } return ''; }
   async function saveFree(){
     await T.sleep(1400);   // flashSaveBtn holds the button for 1.2 s
-    await T.until(function(){ var b = byId('save-file-btn'); return b && !b.disabled; }, 'the Save button', 60, 100);
+    await T.until(function(){ var b = byId('save-file-btn'); return b && !b.disabled; }, 'the Save button', 200, 100);
   }
   async function menuItem(sel){
     if(!document.querySelector('#file-menu')){
       document.querySelector('.file-menu-btn').click();
-      await T.until(function(){ return !!document.querySelector('#file-menu .file-menu-item[data-action="open"]'); }, 'the file menu', 60, 100);
+      await T.until(function(){ return !!document.querySelector('#file-menu .file-menu-item[data-action="open"]'); }, 'the file menu', 200, 100);
     }
     return document.querySelector('#file-menu .file-menu-item' + sel);
   }
@@ -69,7 +69,7 @@ window.addEventListener('load', function () { (async function () {
     var pick = T.fakeSavePicker();   // the OS Save dialog, for the whole leg
 
     // ---- L1: the cold launch raises the strip -----------------------------------------------------------------
-    await T.until(function(){ return title() === 'Test Show' && strip().up; }, 'the launched calendar and its strip', 100, 100);
+    await T.until(function(){ return title() === 'Test Show' && strip().up; }, 'the launched calendar and its strip', 200, 100);
     var during = await noModal(1500);
     var s1 = strip(), el = byId('launch-notice');
     add('L1', 'a double-clicked calendar loads with a strip saying where Save writes, and offering Save As; no dialog',
@@ -83,7 +83,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- L2: the first Save writes back, as before: no picker, no extra dialog ------------------------------------
     T.set('weeks-post', '14'); await T.sleep(800);
     byId('save-file-btn').click();
-    await T.until(function(){ return window.__H.A.writes.length > 0; }, 'Save to write the launched file', 60, 100);
+    await T.until(function(){ return window.__H.A.writes.length > 0; }, 'Save to write the launched file', 200, 100);
     var ask = await noModal(800);
     add('L2', 'the first Save writes straight back to the double-clicked file: no picker, no dialog; the strip stays',
       pick.calls.length === 0 && written(window.__H.A.writes[0]) === '14' && !ask && strip().up,
@@ -96,7 +96,7 @@ window.addEventListener('load', function () { (async function () {
     await saveFree();
     var hB = window.__mkHandle('Show A.sptcal', 'B');
     window.__launch([hB]);
-    await T.until(function(){ return title() === 'SHOW A' && strip().up; }, 'the second launch and its strip', 80, 100);
+    await T.until(function(){ return title() === 'SHOW A' && strip().up; }, 'the second launch and its strip', 200, 100);
     add('L4', 'once per double-click: the next launched file raises it again, naming that file',
       /Show A\.sptcal was opened from another app/.test(strip().text), {strip: strip()}, 'names Show A.sptcal');
 
@@ -112,13 +112,13 @@ window.addEventListener('load', function () { (async function () {
     // ---- L6: Load... and New put it away -------------------------------------------------------------------------
     window.showOpenFilePicker = async function(){ return [window.__mkHandle('Loaded.sptcal', 'A')]; };
     (await menuItem('[data-action="open"]')).click();
-    await T.until(function(){ return label() === 'Loaded.sptcal'; }, 'Load... to finish', 80, 100);
+    await T.until(function(){ return label() === 'Loaded.sptcal'; }, 'Load... to finish', 200, 100);
     await T.sleep(600);
     var afterLoad = strip().up;
     window.__launch([window.__mkHandle('Again.sptcal', 'B')]);
-    await T.until(function(){ return label() === 'Again.sptcal' && strip().up; }, 'a launch after Load', 80, 100);
+    await T.until(function(){ return label() === 'Again.sptcal' && strip().up; }, 'a launch after Load', 200, 100);
     byId('new-file-btn').click();
-    await T.until(function(){ return label() === 'Untitled'; }, 'New', 60, 100);
+    await T.until(function(){ return label() === 'Untitled'; }, 'New', 200, 100);
     await T.sleep(400);
     add('L6', 'loading another calendar (Load...) or New takes the strip away', afterLoad === false && !strip().up,
       {afterLoad: afterLoad, afterNew: strip().up}, 'gone after each');
@@ -126,10 +126,10 @@ window.addEventListener('load', function () { (async function () {
     // ---- L7: the strip's Save As... ------------------------------------------------------------------------------
     var hC = window.__mkHandle('Invented Show.sptcal', 'A');
     window.__launch([hC]);
-    await T.until(function(){ return label() === 'Invented Show.sptcal' && strip().up; }, 'a third launch', 80, 100);
+    await T.until(function(){ return label() === 'Invented Show.sptcal' && strip().up; }, 'a third launch', 200, 100);
     T.set('weeks-post', '13'); await T.sleep(800);
     byId('launch-notice').querySelector('.ln-go').click();
-    await T.until(function(){ return pick.files.length === 1; }, 'the strip\'s Save As to write', 60, 100);
+    await T.until(function(){ return pick.files.length === 1; }, 'the strip\'s Save As to write', 200, 100);
     await T.sleep(800);
     var f1 = new TextDecoder().decode(pick.files[0].bytes);
     add('L7', 'the strip\'s Save As offers the file\'s own name, writes the calendar there, and the strip goes',
@@ -138,7 +138,7 @@ window.addEventListener('load', function () { (async function () {
     await saveFree();
     T.set('weeks-post', '12'); await T.sleep(800);
     byId('save-file-btn').click();
-    await T.until(function(){ return pick.files.length === 2; }, 'Save into the kept copy', 60, 100);
+    await T.until(function(){ return pick.files.length === 2; }, 'Save into the kept copy', 200, 100);
     await T.sleep(600);
     var last = pick.files[1].parts[pick.files[1].parts.length - 1];   // fakeSavePicker's handle keeps one parts list
     add('L7b', 'from then on Save writes to the kept copy, never to the attachment', written(typeof last === 'string' ? last : '') === '12' && hC.writes.length === 0 && pick.calls.length === 1,
@@ -148,19 +148,21 @@ window.addEventListener('load', function () { (async function () {
     await saveFree();
     var hD = window.__mkHandle('Purged.sptcal', 'A');
     window.__launch([hD]);
-    await T.until(function(){ return label() === 'Purged.sptcal' && strip().up; }, 'a fourth launch', 80, 100);
+    await T.until(function(){ return label() === 'Purged.sptcal' && strip().up; }, 'a fourth launch', 200, 100);
     T.set('weeks-post', '11'); await T.sleep(800);
     hD.gone = true;
     byId('save-file-btn').click();
-    await T.until(function(){ return !!T.modalText(); }, 'Save\'s answer', 60, 100);
+    await T.until(function(){ return !!T.modalText(); }, 'Save\'s answer', 200, 100);
     await T.sleep(200);
     var m = T.modalText();
     add('L8', 'the double-clicked file is gone: Save says so in plain words and offers Save As; the dead file leaves Recents and the strip goes',
       /File not found/.test(m) && /“Purged\.sptcal” can’t be found/.test(m) && /Save As/.test(m) && !/requested file or directory|Something went wrong/.test(m) &&
       recents().indexOf('Purged.sptcal') === -1 && !strip().up,
       {modal: m, recents: recents(), strip: strip().up}, 'File not found; Save As; Purged gone from Recents; strip hidden');
-    T.clickModalButton('Save As…');
-    await T.until(function(){ return pick.files.length === 3; }, 'Save As after the purge', 60, 100);
+    var clicked = T.clickModalButton('Save As…');
+    try { await T.until(function(){ return pick.files.length === 3; }, 'Save As after the purge', 200, 100); }
+    catch(e){ out.diag = {clicked: clicked, modalNow: T.modalText(), calls: pick.calls.length, files: pick.files.length, status: status(), label: label(),
+      btns: Array.prototype.map.call(document.querySelectorAll('.mantine-Modal-content button'), function(b){ return txt(b); }), errs: T.appHealth().errors}; throw e; }
     await T.sleep(600);
     add('L8b', '...and Save As keeps the work, suggesting the lost file\'s name',
       pick.calls[pick.calls.length - 1].suggestedName === 'Purged.sptcal' && written(new TextDecoder().decode(pick.files[2].bytes)) === '11' && /^Saved/.test(status()),
@@ -169,5 +171,6 @@ window.addEventListener('load', function () { (async function () {
     var errs = T.appHealth().errors.filter(function(e){ return e.indexOf('warn:') !== 0; });
     add('E0', 'no console errors or exceptions (warnings are the expected diagnostics)', errs.length === 0, {errors: T.appHealth().errors.slice(0, 8)}, '[]');
   } catch (e) { cases.push({id: 'EX', title: 'the leg threw', pass: false, observed: String(e && e.stack || e).slice(0, 600)}); }
-  T.done({test: 'launchtemp', cases: cases, modal: T.modalText()});
+  out.test = 'launchtemp'; out.cases = cases; out.modal = T.modalText();
+  T.done(out);
 })(); });
