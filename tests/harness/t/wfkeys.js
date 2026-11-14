@@ -441,12 +441,15 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     // An automatic note dragged away is REPLACED by the typed copy it travels as (ruling 6): it is switched off, and its
     // week is left with no blank (until 2 Nov 2026 it left the explicit clear, which hid what landed there next).
+    // ⚠️ RE-EXPECTED 13 Nov 2026 (November 2026 audit, AUD2-014: "a line must not arrive carrying a date outside its new
+    // week"): the copy lands dated on the same weekday of its new week, 7/6/26, as the month view's drag has always
+    // re-dated it (mvRetimeWfLine). It read "6/29/26" in week 7/6 until then.
     await click(noteTd('2026-06-29'));
     await grab(noteTd('2026-06-29'));
     await moveTo(noteTd('2026-07-06'));
     await letGo();
     var S6 = await snap();
-    check(noteText('2026-07-06') === 'Start Principal Photography 6/29/26' && noteText('2026-06-29') === '' &&
+    check(noteText('2026-07-06') === 'Start Principal Photography 7/6/26' && noteText('2026-06-29') === '' &&
           !('2026-06-29' in (S6.userNotes || {})) && (S6.autoNotesOff || {}).principalStart === true,
           'G17 an automatic note dragged away leaves its week empty: switched off, no week blank');
     await undo();

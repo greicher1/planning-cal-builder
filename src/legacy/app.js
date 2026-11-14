@@ -17427,20 +17427,38 @@ export function initLegacyApp() {
     // like anything else typed -- rather than being auto-appended at render time, so what's in
     // the box is exactly what gets saved.
     const daySel = pop.querySelector('.note-day-select');
+    // ⭐ THE LINE THE DAY IS STAMPED ON (November 2026 audit, AUD2-011, 13 Nov 2026): the LAST line the user typed, never
+    // an automatic note's, a holiday's, a month note's or (unless the cell is that one linked note, whose day this is) a
+    // linked note's. Until then it was the box's last line, whatever it was: the box lists the week's own text, then its
+    // linked notes, then its month notes, so with either in the cell the date went onto THEIR line (a month note doubled
+    // in the month view, a linked note with a date frozen into it), and with the user's line above "Start Principal
+    // Photography 6/29/26" the start itself was re-dated in every output. Their dates are their own (plan D4's reason).
+    const dayForeign = new Set(cellKnown);
+    if(!isHiatus) wfWeekAutoItems(weekKey).forEach(n=> dayForeign.add(autoNoteLine(n)));   // a month-only one a note kept too
+    if(link && !linkSingle) link.visitors.forEach(e=> split0(e.line).forEach(l=> dayForeign.add(l)));
     if(daySel){
       daySel.addEventListener('mousedown', e=>e.stopPropagation());
       daySel.addEventListener('click', e=>e.stopPropagation());
       daySel.addEventListener('change', e=>{
         e.stopPropagation();
         const iso = daySel.value;
-        const cur = textarea.value;
-        // Replace any date this control previously stamped, so switching days doesn't stack
-        // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
-        // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
-        // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
-        // strip -- switching days would then stack a second date on the end.
-        const stripped = cur.replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
-        textarea.value = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
+        const ls = textarea.value.split('\n');
+        let at = -1;
+        for(let i = ls.length - 1; i >= 0 && at < 0; i--){ const t = ls[i].trim(); if(t && !dayForeign.has(t)) at = i; }
+        if(at < 0){
+          // An empty box takes the date alone, as it always did. A box holding only other notes' lines has no line of
+          // the user's to stamp: each keeps its own date.
+          if(!ls.some(l=> l.trim())) textarea.value = iso ? fmtShort(parseDateUTC(iso)) : '';
+        } else {
+          // Replace any date this control previously stamped, so switching days doesn't stack
+          // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
+          // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
+          // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
+          // strip -- switching days would then stack a second date on the end.
+          const stripped = ls[at].replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
+          ls[at] = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
+          textarea.value = ls.join('\n');
+        }
         textarea.focus();
       });
     }
@@ -17703,6 +17721,12 @@ export function initLegacyApp() {
           wfLookToWeek(weekKey, look);
         }
       }
+      // A Day picked with no line of the user's own left to pin (the cell's other lines keep their own dates, AUD2-011)
+      // pins nothing: the week's automatic text is not frozen with a date.
+      if(ownDate){
+        const autoLines = new Set(split0(autoNotesText(autoIn)));
+        if(!split0(own).some(l=> !autoLines.has(l))) ownDate = '';
+      }
       if(!own.trim()){
         // The week's own lines only: a month line still in the box stays, so this is not Delete's wfClearNote.
         if(wfClearOwnNote(weekKey)) renamed = true;
@@ -17795,6 +17819,25 @@ export function initLegacyApp() {
     // Until then this ran only when the count was the same (renames, line for line) or lines were only taken out
     // (hides), so a rename and an added line in one save lost the rename, and a line taken out with another typed in
     // was neither hidden nor kept (it came back after a move).
+    wfLineGaps(b, a).forEach(([left, came])=>{
+      left.forEach((bi, t)=>{
+        const nt = noteOf(b[bi]);
+        if(!nt || labels.has(nt) || gone.has(nt)) return;
+        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
+        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+      });
+    });
+    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
+    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
+    if(!labels.size && !gone.size) return null;
+    return {text: a.join('\n'),
+            autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};
+  }
+  // The box's lines against the cell's (both trimmed, blank ones out), aligned BY CONTENT: their longest common run is
+  // what the box kept, and between two kept lines [left, came] are the indices of the lines that left `b` and the lines
+  // that came into `a` there. A line that only MOVED is in neither (it is in both lists of lines). wfLineEdits' alignment
+  // (WATERFALL-NOTE-EDITOR-PLAN.md D2, 4 Nov 2026), shared since 13 Nov 2026 with the linked and month lines' matchers.
+  function wfLineGaps(b, a){
     const n = b.length, m = a.length;
     const had = new Set(b), has = new Set(a);
     const L = Array.from({length: n + 1}, ()=> new Array(m + 1).fill(0));
@@ -17810,20 +17853,35 @@ export function initLegacyApp() {
     while(i < n) gb.push(i++);
     while(j < m) ga.push(j++);
     gaps.push([gb, ga]);
-    gaps.forEach(([gl, gc])=>{
-      const left = gl.filter(bi=> !has.has(b[bi])), came = gc.filter(aj=> !had.has(a[aj]));
-      left.forEach((bi, t)=>{
-        const nt = noteOf(b[bi]);
-        if(!nt || labels.has(nt) || gone.has(nt)) return;
-        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
-        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+    return gaps.map(([gl, gc])=> [gl.filter(bi=> !has.has(b[bi])), gc.filter(aj=> !had.has(a[aj]))]);
+  }
+  // ⭐ WHICH LINE BECAME WHICH, for a note's lines that are not the week's own (November 2026 audit, AUD2-015): a linked
+  // note's (wfLinkedLineEdits) or a month note's (wfMonthLineEdits). Map: index in `b` -> index in `a` of the line that
+  // took its place. Where as many lines left as came, they pair in order (the rule these matchers always had, when the
+  // box kept its line count). Where the box gained or lost lines at that spot, a line pairs with the first line there
+  // that reads as an EDIT of it (wfLooksLikeEdit): so "Wardrobe fitting" changed to "Wardrobe fitting cast" with
+  // "Catering" added below it, in one save, is still its note's rename. Until now an added line anywhere in the box made
+  // the change a delete plus a typed copy: the linked note lost its link, the month note was left beside its copy.
+  // `dayOf(bi)`: the date that line carries as its own (a month note's day, a dated linked note's), or null.
+  function wfEditPairs(b, a, dayOf){
+    const out = new Map();
+    wfLineGaps(b, a).forEach(([left, came])=>{
+      if(left.length === came.length){ left.forEach((bi, t)=> out.set(bi, came[t])); return; }
+      const free = came.slice();
+      left.forEach(bi=>{
+        const k = free.findIndex(aj=> wfLooksLikeEdit(b[bi], a[aj], dayOf ? dayOf(bi) : null));
+        if(k >= 0) out.set(bi, free.splice(k, 1)[0]);
       });
     });
-    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
-    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
-    if(!labels.size && !gone.size) return null;
-    return {text: a.join('\n'),
-            autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};
+    return out;
+  }
+  // Does `now` read as an edit of `was`? It keeps `was`'s own date (wfLineEdits' test for a dated line), or the two
+  // share a word of three letters or more (dates and bare numbers aside). A line typed afresh shares neither.
+  function wfLooksLikeEdit(was, now, day){
+    if(day && stripHolidayDate(now, day) !== String(now || '').replace(/\s+/g, ' ').trim()) return true;
+    const words = s => (String(s || '').toLowerCase().match(/[\p{L}\p{N}'’]{3,}/gu) || []).filter(w=> !/^\d+$/.test(w));
+    const ws = new Set(words(was));
+    return words(now).some(w=> ws.has(w));
   }
 
   function closeWithoutSaving(){
@@ -19334,13 +19392,20 @@ export function initLegacyApp() {
   // is the week's own text, returned for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the week's own
   // text as the editor opened on it (wfOwnNoteText); the editor showed it, then the month lines (effectiveNoteText).
   //  - A month line still in the text, anywhere, is kept as it is.
-  //  - One missing, with the editor holding as many lines as it opened with, where a line now stands that is neither
-  //    the week's own as it was nor another date: a rename. The month note takes that text, its date taken out (it is
-  //    added back on the waterfall's line), on one line.
+  //  - One missing, where a line now stands in its place (wfEditPairs: in order where the box kept its count there,
+  //    else the line that reads as an edit of it) that is not the week's own as it was: a rename. The month note takes
+  //    that text, its date taken out (it is added back on the waterfall's line), on one line. ⭐ Since 13 Nov 2026
+  //    (November 2026 audit, AUD2-015) a line added elsewhere in the same save no longer turns a rename into "taken
+  //    out": until then this needed the box to hold exactly as many lines as it opened with.
+  //  - ⭐ One given ANOTHER date INSIDE THIS WEEK (AUD2-015's default, no decision needed): the month note MOVES to that
+  //    day, renamed as above if its words changed too. Until then the note stayed on its old day in the month view and
+  //    the line became a typed copy on the new one: the same event twice. A date outside the week is still "taken out".
   //  - Any other missing one was taken out: switched off for the waterfall. The note stays in the month view.
   function wfMonthLineEdits(weekKey, ownBefore, after){
     const ml = wfMonthLinesFor(weekKey);
     if(!ml.length) return after;
+    // The entries themselves, before any moves: a move takes one out of its day's list, and the indices shift.
+    ml.forEach(m=>{ m.e = dayNoteList(m.iso)[m.index]; });
     const own = String(ownBefore || '').split('\n').map(l => l.trim()).filter(Boolean);
     const before = own.concat(ml.map(m => m.line));
     const a = String(after || '').split('\n').map(l => l.trim()).filter(Boolean);
@@ -19349,27 +19414,52 @@ export function initLegacyApp() {
       const k = a.findIndex((l, i)=> !used.has(i) && l === m.line);
       if(k >= 0) used.add(k); else missing.push(m);
     });
-    const gone = [];
+    const pairs = wfEditPairs(before, a, bi=> bi >= own.length ? parseDateUTC(ml[bi - own.length].iso) : null);
+    const wk = parseDateUTC(weekKey);
+    const gone = [], moves = [];
     missing.forEach(m=>{
-      const i = before.indexOf(m.line);
-      const now = (a.length === before.length && i >= 0 && !used.has(i)) ? a[i] : null;
+      const j = pairs.get(own.length + ml.indexOf(m));
+      const now = (j !== undefined && !used.has(j)) ? a[j] : null;
       const day = parseDateUTC(m.iso);
-      const name = (now && own.indexOf(now) < 0) ? stripHolidayDate(now, day) : '';
-      if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given another date
-      used.add(i);
-      const e = dayNoteList(m.iso)[m.index];
+      let name = (now && own.indexOf(now) < 0) ? stripHolidayDate(now, day) : '';
+      let to = null;
+      const dm = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(name);
+      if(dm && wk){
+        // Given another date: inside this week, the note moves there (its date taken out, as its own is above).
+        const y = dm[3].length === 2 ? 2000 + parseInt(dm[3], 10) : parseInt(dm[3], 10);
+        const nd = new Date(Date.UTC(y, parseInt(dm[1], 10) - 1, parseInt(dm[2], 10)));
+        const off = Math.round((nd - wk) / DAY_MS);
+        if(nd.getUTCMonth() === parseInt(dm[1], 10) - 1 && off >= 0 && off <= 6){ to = isoOf(nd); name = stripTrailingDate(name, nd); }
+      }
+      if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given a date outside the week
+      used.add(j);
+      const e = m.e;
       // Unchanged but for how the date was written: keep the note's own text, line breaks and all.
       if(e && name !== String(e.text || '').split('\n').map(l => l.trim()).filter(Boolean).join(' ')) e.text = name;
+      if(e && to && to !== m.iso) moves.push({e, from: m.iso, to});
     });
-    gone.forEach(m=>{ const e = dayNoteList(m.iso)[m.index]; if(e) delete e.waterfall; });
+    gone.forEach(m=>{ if(m.e) delete m.e.waterfall; });
+    moves.forEach(mv=> moveDayNoteEntry(mv.e, mv.from, mv.to));
     return a.filter((l, i)=> !used.has(i)).join('\n');
+  }
+  // One month note (the entry object itself) taken off day `from` and put last on day `to`, as it is: its text, colour,
+  // style, place and "Show in waterfall" go with it. The two days' lists are rewritten as arrays (dayNoteList reads an
+  // older single-note shape too, whose list is a fresh copy). False when it is not on `from`.
+  function moveDayNoteEntry(e, from, to){
+    const src = dayNoteList(from).slice(), k = src.indexOf(e);
+    if(k < 0 || !parseDateUTC(to)) return false;
+    src.splice(k, 1);
+    if(src.length) dayNotes[from] = src; else delete dayNotes[from];
+    dayNotes[to] = dayNoteList(to).concat([e]);
+    return true;
   }
   // The waterfall note editor's text, saved, for the notes LINKED TO A PHASE drawn in this week (PHASE-LINKED-NOTES-
   // PLAN.md §4.5, the choice left alone; wfMonthLineEdits' shape, line by line, since a linked note may hold several):
   //  - a linked line still in the box, anywhere, is kept;
-  //  - one missing, with the box holding as many lines as it opened with, where a line now stands that is not one of
-  //    the week's own: renamed in place. A dated note's last line has its drawn date taken out (it is drawn fresh); one
-  //    given ANOTHER date is no rename, and the line stays in the box as the week's own text;
+  //  - one missing, where a line now stands in its place (wfEditPairs; since 13 Nov 2026 whatever was added elsewhere in
+  //    the box, AUD2-015) that is not one of the week's own: renamed in place. A dated note's last line has its drawn
+  //    date taken out (it is drawn fresh); one given ANOTHER date is no rename, and the line stays in the box as the
+  //    week's own text;
   //  - any other missing line is taken out of its note, and a note left with no line is deleted.
   // Returns what is left: the week's own text, for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the
   // week's own text as the editor opened on it; the box showed it, then these notes' lines.
@@ -19394,10 +19484,17 @@ export function initLegacyApp() {
       const k = a.findIndex((l, i)=> !used.has(i) && l === p.line);
       if(k >= 0){ used.add(k); p.now = p.stored; }
     });
+    // Which box line stands in each changed line's place: wfEditPairs, so a line added elsewhere in the same save keeps
+    // a rename a rename (November 2026 audit, AUD2-015). Until 13 Nov 2026 this needed the box to hold exactly as many
+    // lines as it opened with, and otherwise deleted the note: its text stayed as the week's own, its link gone.
+    const pairs = wfEditPairs(before, a, bi=>{
+      const p = parts[bi - own.length];
+      return (p && p.last && p.e.dated) ? parseDateUTC(p.e.dayIso) : null;
+    });
     parts.forEach((p, j)=>{
       if(p.now !== null) return;
-      const i = own.length + j;
-      const now = (a.length === before.length && !used.has(i)) ? a[i] : null;
+      const i = pairs.get(own.length + j);
+      const now = (i !== undefined && !used.has(i)) ? a[i] : null;
       if(!now || own.indexOf(now) >= 0) return;
       // A last line drops its drawn date, and on the cell's one note the date the Day picker stamped; a last line left
       // ending in ANOTHER date is no rename, and stays in the box as the week's own text.
@@ -23598,15 +23695,14 @@ export function initLegacyApp() {
   // switch moved, so a caller outside wfNoteStep knows to run update().
   // ⭐ A month note the cell shows ("Show in waterfall", owner 4 Nov 2026, ruling R2) goes too: switched off for the
   // waterfall, kept in the month view, which is where it lives.
-  // `moving` (the note drag, wfNoteDragEnd): the note travels on as the user's own typed text, shown in BOTH views, so
-  // an automatic note it carried is switched off altogether rather than hidden from the waterfall: hidden only, the
-  // month view would show it twice, on its own day and as the moved copy (moveWfLine's rule, the month view's drag).
+  // (The note drag used to come through here too, with a `moving` flag; since 13 Nov 2026 it lifts its cells with
+  // wfLiftNote, which moves month notes as themselves and leaves holidays where they are: AUD2-014.)
   // ⭐ ...and a note LINKED TO A PHASE the cell shows (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4) is deleted, with the
   // look it carried. Left in the store, it would stay in the emptied cell and follow its phase wherever it went.
-  function wfClearNote(wk, moving){
+  function wfClearNote(wk){
     wfMonthLinesOff(wk);
     wfLinkedNotesOff(wk);
-    const moved = wfClearOwnNote(wk, moving);
+    const moved = wfClearOwnNote(wk);
     delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
     return moved;
   }
@@ -23618,8 +23714,8 @@ export function initLegacyApp() {
   }
   // The week's OWN lines only, emptied: its automatic lines switched off by what they are, its typed text gone. The note
   // editor's path when its box is left holding only month notes' lines (or nothing).
-  function wfClearOwnNote(wk, moving){
-    const moved = wfSwitchOffLines(wk, moving);
+  function wfClearOwnNote(wk){
+    const moved = wfSwitchOffLines(wk);
     saveNoteEdit(wk, '', sheetAutoNotesFor(wk), '');   // what is left: nothing, unless a line of no kind (none today)
     return moved;
   }
@@ -23627,16 +23723,32 @@ export function initLegacyApp() {
   // waterfall (rulings 4-6 as amended by AUTO-NOTES-PER-VIEW-PLAN.md R4: it stays in the month view while that view
   // shows it, and is switched off when it does not), a holiday hidden from the waterfall only (it stays in the month
   // view and stays a day off). True when one was.
-  function wfSwitchOffLines(wk, moving){
+  function wfSwitchOffLines(wk){
     let moved = false;
     sheetAutoNotesFor(wk).forEach(n=>{
       if(n.holiday && n.hid){ hideHolidayInWaterfall(n.hid); moved = true; }
       else if(isKindNote(n)){
-        if(moving) switchOffAutoNote(n.kind); else hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
+        hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
         moved = true;
       }
     });
     return moved;
+  }
+  // A week's automatic notes and holidays that carry a date, in EVERY view (sheetAutoNotesFor is the waterfall's only):
+  // the lines that are theirs, wherever a typed note holds them.
+  function wfWeekAutoItems(wk){
+    const sch = currentSchedule;
+    if(!sch || !sch.notesByIdx || !sch.weeks) return [];
+    const idx = sch.weeks.findIndex(w=> isoOf(w.date) === wk);
+    return idx >= 0 ? (sch.notesByIdx[idx] || []).filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n))) : [];
+  }
+  // `text` (the cell's, effectiveNoteText) less its month notes' lines and its holidays' and automatic notes' lines;
+  // null when it has none of them.
+  function wfNoteOwnLines(wk, text){
+    const drop = new Set(wfMonthLinesFor(wk).map(m=> m.line).concat(wfWeekAutoItems(wk).map(autoNoteLine)));
+    if(!drop.size) return null;
+    const ls = String(text || '').split('\n'), kept = ls.filter(l=> !drop.has(l.trim()));
+    return kept.length === ls.length ? null : kept.join('\n').trim();
   }
   // A note as it travels: its text as the cell shows it and (ruling Q2, "Text and its look") its highlight, size
   // and style-bar style. A note pinned to a day (the editor's Day picker) keeps its weekday, `dow`; `stamp` is the
@@ -23645,10 +23757,17 @@ export function initLegacyApp() {
   // step 4) travels in the look it is drawn in -- the week's own field where it has one, else the note's (wfLinkedLook),
   // plus the row height the note lends it -- and with that note's day and its "Show in month view". So a copy pasted
   // elsewhere, which lands as a plain note, looks as the cell did. A cell with no linked note: exactly as before.
+  // ⭐ `own` (November 2026 audit, AUD2-014, 13 Nov 2026): the cell's text WITHOUT the lines that keep their own day --
+  // its month notes' ("Show in waterfall"), its holidays' and its automatic notes'. A paste into another week writes this
+  // (wfPutNote), so none of them lands there as typed text still carrying its old date, a second copy beside the note
+  // itself in the month view and its PDF. Set only when it differs from `text`, which the clipboard keeps whole (what the
+  // cell shows, for Excel). A Cut leaves those notes in the month view (ruling R2), and a paste no longer copies them.
   function wfNoteItem(wk){
     const text = effectiveNoteText(wk, sheetAutoNotesFor(wk));
     const it = { text };
     if(!text) return it;
+    const own = wfNoteOwnLines(wk, text);
+    if(own !== null) it.own = own;
     const u = userNotes[wk];
     const d = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
     const w = parseDateUTC(wk);
@@ -23657,7 +23776,8 @@ export function initLegacyApp() {
     const ld = le && le.dated ? parseDateUTC(le.dayIso) : null;
     if((d || ld) && w){
       const day = d || ld, dow = Math.round((day - w) / DAY_MS);
-      if(dow >= 0 && dow <= 6){ it.dow = dow; if(text.endsWith(fmtShort(day))) it.stamp = fmtShort(day); }
+      // The stamp is looked for where a paste writes it: at the end of `own` when the cell has one.
+      if(dow >= 0 && dow <= 6){ it.dow = dow; if((own !== null ? own : text).endsWith(fmtShort(day))) it.stamp = fmtShort(day); }
     }
     const c = wfLinkedLook(wk, 'color', noteColors[wk] ? noteColors[wk] : undefined);
     if(c) it.color = c;
@@ -23678,7 +23798,17 @@ export function initLegacyApp() {
   // ⭐ A note pasted or dropped over automatic lines REPLACES them (AUTO-NOTE-RENAME-PLAN.md, ruling 6): they are taken
   // out as Delete takes them (wfSwitchOffLines), so none comes back beside it after a move. Not when the note IS the
   // week's automatic text (a copy pasted back where it came from), which stays automatic.
+  // ⭐ A note copied inside SPTCal with month, holiday or automatic lines (`own`, wfNoteItem; November 2026 audit,
+  // AUD2-014) writes only the rest: those notes keep their own day. A copy pasted back onto a cell still showing exactly
+  // that text keeps it whole (the rules below). One whose every line is such a line writes nothing, and leaves the week
+  // as it is rather than emptying it. Returns true when lines were left out, so the paste can say so.
   function wfPutNote(wk, it, look){
+    let left = false;
+    if(typeof it.own === 'string' && String(it.text || '').trim() !== effectiveNoteText(wk, sheetAutoNotesFor(wk)).trim()){
+      left = true;
+      if(!it.own.trim()) return left;
+      it = Object.assign({}, it, {text: it.own});
+    }
     // ⭐ Month notes the cell shows (R2, owner 4 Nov 2026) are replaced the same way: switched off for the waterfall. A
     // copy of the cell pasted back onto itself keeps them, and writes only the week's own part as its own.
     // ⭐ So are the notes LINKED TO A PHASE it shows (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4): deleted, as Delete deletes
@@ -23726,6 +23856,7 @@ export function initLegacyApp() {
       if(it.height !== undefined && String(text || '').trim()) rowHeightsByWeek[wk] = it.height;
     }
     if(!effectiveNoteText(wk, auto)){ delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk]; }
+    return left;
   }
   // A travelling note's look written on the linked note `lk` that lends a cell its look (wfPutNote's own rules: the item's
   // colour, size and style replace the note's, its "Show in month view" too, a lent row height goes with it), the week's
@@ -23782,6 +23913,9 @@ export function initLegacyApp() {
   // only reads plain text. Session UI: never saved.
   let wfNoteClip = null;
   const WF_CLIP_TYPE = 'application/x-sptcal-notes';
+  // What a paste says when it left lines out (AUD2-014: they keep their own day), and a drag when a holiday stayed.
+  const WF_KEEP_DAY_MSG = 'Holidays, automatic notes and month notes stay on their own dates';
+  const WF_KEEP_HOLIDAY_MSG = 'Holidays stay on their own dates';
   // Excel's text form: every cell's line ENDS in a line break (so an empty last week survives the trip), and a
   // cell holding a line break (or a tab) is in double quotes with its quotes doubled, so a two-line note pastes
   // back into ONE week -- here, or in Excel.
@@ -23846,6 +23980,8 @@ export function initLegacyApp() {
     if(!isPlainObj(it) || typeof it.text !== 'string') return null;
     const out = { text: stripXmlIllegal(it.text, '\n') };
     if(Number.isInteger(it.dow) && it.dow >= 0 && it.dow <= 6) out.dow = it.dow;
+    // The text a paste into another week writes (wfNoteItem's `own`, AUD2-014): the same rule as `text`.
+    if(typeof it.own === 'string') out.own = stripXmlIllegal(it.own, '\n');
     if(typeof it.stamp === 'string' && /^\d{1,2}\/\d{1,2}\/\d{2}$/.test(it.stamp)) out.stamp = it.stamp;
     if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
     const size = finiteNum(it.size);
@@ -23878,9 +24014,11 @@ export function initLegacyApp() {
       items.forEach((it, i)=>{ if(s >= 0 && s + i < seq.length) pairs.push([seq[s + i], it]); else dropped++; });
     }
     if(!pairs.length) return false;
-    wfNoteStep(()=> pairs.forEach(([w, it]) => wfPutNote(w, it, look)));
+    let leftOut = false;
+    wfNoteStep(()=> pairs.forEach(([w, it]) => { if(wfPutNote(w, it, look)) leftOut = true; }));
     wfHighlightWeeks(pairs.map(p => p[0]));
     if(dropped) flashTextSel(dropped === 1 ? '1 line did not fit after the last week' : dropped + ' lines did not fit after the last week');
+    else if(leftOut) flashTextSel(WF_KEEP_DAY_MSG);
     return true;
   }
 
@@ -23998,7 +24136,17 @@ export function initLegacyApp() {
     redrawTextSel(null);
     if(!drop || !drop.off) return;
     if(!drop.ok){ flashTextSel('Not enough weeks below for all of those notes'); return; }
-    const from = d.weeks, to = drop.to, items = from.map(wfNoteItem), parts = from.map(wfNoteParts);
+    // ⭐ WHAT A DRAG MOVES (November 2026 audit, AUD2-014, 13 Nov 2026; wfDragPlan): the user's own lines, and the month
+    // notes the cell shows, which move THEMSELVES to the same weekday of the new week (as the month view's drag moves
+    // one), never as a typed copy. A holiday cannot move: its line stays where it is. A cell holding nothing else does
+    // not move at all.
+    const items = d.weeks.map(wfNoteItem);
+    const moves = d.weeks.map((w, i)=> wfDragPlan(w, drop.to[i]));
+    const keep = moves.some(p=> p.stay.length);
+    const go = d.weeks.map((w, i)=> moves[i].moves || !!wfNoteParts(w));
+    const from = d.weeks.filter((w, i)=> go[i]), to = drop.to.filter((w, i)=> go[i]);
+    const src = items.filter((it, i)=> go[i]);
+    if(!from.length){ flashTextSel(WF_KEEP_HOLIDAY_MSG); return; }
     const leaving = new Set(from);
     const hit = to.filter(w => !leaving.has(w) && wfNoteShows(w));
     if(hit.length){
@@ -24009,19 +24157,96 @@ export function initLegacyApp() {
       // weeks still shown, and only notes still as they were when the drag began.
       if(!ok) return;
       const seq = new Set(wfNoteSeq());
-      if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== items[i].text)) return;
+      if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== src[i].text)) return;
     }
     wfNoteStep(()=>{
-      from.forEach(w => wfClearNote(w, true));
-      to.forEach((w, i) => parts[i] ? wfPutLinked(w, items[i], parts[i]) : wfPutNote(w, items[i], true));
+      // Read before anything changes: every cell's plan and linked notes, then lift them all, then land them all (a
+      // block dragged down by one lands on its own cells).
+      const plans = from.map((w, i)=> wfDragPlan(w, to[i])), parts = from.map(wfNoteParts);
+      const held = from.map((w, i)=> wfLiftNote(w, plans[i]));
+      to.forEach((w, i)=>{
+        const put = Object.assign({}, src[i], {text: plans[i].carry});
+        delete put.own; delete put.stamp;   // the pinned day's date is already moved (wfDragPlan)
+        if(parts[i]) wfPutLinked(w, put, Object.assign({}, parts[i], {own: plans[i].carry, ownDate: '', month: []}));
+        else wfPutNote(w, put, true);
+      });
+      // The month notes last, so no landing cell takes them for its own and switches them off.
+      held.forEach((list, i)=> list.forEach(m=>{
+        const nd = isoOf(addDays(parseDateUTC(to[i]), Math.round((parseDateUTC(m.iso) - parseDateUTC(from[i])) / DAY_MS)));
+        m.e.text = mvRetimeNote(m.e.text, m.iso, nd);
+        dayNotes[nd] = dayNoteList(nd).concat([m.e]);
+      }));
+      // A cell that was only month notes keeps its look: the landing above wrote no text, so it was dropped there.
+      to.forEach((w, i)=>{
+        const it = src[i];
+        if(parts[i] || plans[i].carry.trim() || !held[i].length) return;
+        if(it.color && it.color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) noteColors[w] = it.color;
+        if(it.size !== undefined && it.size !== 11) noteFontSize[w] = it.size;
+        if(it.style) textStyle.note[w] = Object.assign({}, it.style);
+      });
     });
-    wfHighlightWeeks(to, to[from.indexOf(d.grab)]);
+    wfHighlightWeeks(to, to[from.indexOf(d.grab)] || to[0]);
+    if(keep) flashTextSel(WF_KEEP_HOLIDAY_MSG);
+  }
+  // One dragged cell, week `wk` landing on week `toWk`, read before anything moves: {carry, stay, month, moves}.
+  //  - carry: what lands as the drop week's text. The user's own lines; the line the Day picker pinned has its date
+  //    moved to the same weekday of the drop week; an automatic note's line too (it is the user's own from now on: its
+  //    kind is switched off, wfLiftNote, moveWfLine's rule for the month view's drag), so none arrives dated outside it.
+  //  - stay: the holidays' lines, which stay in the cell (a holiday cannot move).
+  //  - month: the month notes the cell shows [{iso, e}], each moved as itself to the same weekday of the drop week.
+  //  - moves: whether the cell carries anything at all.
+  function wfDragPlan(wk, toWk){
+    const W = parseDateUTC(wk), T = parseDateUTC(toWk);
+    const shift = d => isoOf(addDays(T, Math.round((d - W) / DAY_MS)));
+    const lineOf = new Map(wfWeekAutoItems(wk).map(n=> [autoNoteLine(n), n]));
+    const u = userNotes[wk];
+    const od = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
+    const lines = wfOwnNoteText(wk, sheetAutoNotesFor(wk)).split('\n').filter(l=> l.trim());
+    let pin = -1;
+    if(od) lines.forEach((l, i)=>{ if(!lineOf.has(l.trim()) && stripTrailingDate(l, od) !== l.trim()) pin = i; });
+    const carry = [], stay = [];
+    lines.forEach((l, i)=>{
+      const t = l.trim(), n = lineOf.get(t);
+      if(n && n.holiday) stay.push(t);
+      else if(n) carry.push(mvRetimeWfLine(t, isoOf(n.date), shift(n.date)));
+      else if(i === pin) carry.push(stripTrailingDate(t, od) + ' ' + fmtShort(parseDateUTC(shift(od))));
+      else carry.push(l);
+    });
+    const month = (W && T) ? wfMonthLinesFor(wk).map(m=> ({iso: m.iso, e: dayNoteList(m.iso)[m.index]})).filter(m=> m.e) : [];
+    return {carry: carry.join('\n'), stay, month, moves: carry.length > 0 || month.length > 0};
+  }
+  // A dragged cell taken up (inside the drop's step): its month notes off their days, held for the landing; its linked
+  // notes deleted (wfPutLinked puts them down); its automatic notes switched off in both views (`moving`: the moved copy
+  // is the user's own, shown in both, so hidden from one only the other would show it twice); its typed text gone; and
+  // its look. Its holidays stay as they were (plan.stay); one the cell's text had left out is hidden from the waterfall,
+  // as before, so no week blank is left (ruling 6). Returns the held month notes.
+  function wfLiftNote(wk, plan){
+    const held = [];
+    plan.month.forEach(m=>{
+      const list = dayNoteList(m.iso).slice(), k = list.indexOf(m.e);
+      if(k < 0) return;
+      list.splice(k, 1);
+      if(list.length) dayNotes[m.iso] = list; else delete dayNotes[m.iso];
+      held.push(m);
+    });
+    wfLinkedNotesOff(wk);
+    const stay = new Set(plan.stay);
+    sheetAutoNotesFor(wk).forEach(n=>{
+      if(n.holiday && n.hid){ if(!stay.has(autoNoteLine(n))) hideHolidayInWaterfall(n.hid); }
+      else if(isKindNote(n)) switchOffAutoNote(n.kind);
+    });
+    const left = sheetAutoNotesFor(wk);
+    if(left.length === stay.size && left.every(n=> stay.has(autoNoteLine(n)))) delete userNotes[wk];
+    else saveNoteEdit(wk, plan.stay.join('\n'), left, '');
+    delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
+    return held;
   }
   // ⭐ A DRAGGED CELL THAT SHOWS NOTES LINKED TO A PHASE (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4). Each linked note keeps
   // its phase when that phase runs in the drop week -- re-linked to that week's n, its own fields (look, day, "Show in
   // month view") with it -- and otherwise lands there as plain text, its drawn date moved to the same weekday. The rest of
-  // the cell (its own text, typed or automatic, and its month notes' lines) lands as the plain note it always did. Taken
-  // when the drag lets go, before anything changes; null for a cell with no linked note, which moves exactly as before.
+  // the cell (its own text, typed or automatic) lands as the plain note it always did. Its month notes' lines did too
+  // until 13 Nov 2026; they move as themselves now (wfNoteDragEnd passes `month: []` and the cell's carried text, AUD2-014).
+  // Taken when the drag lets go, before anything changes; null for a cell with no linked note, which moves exactly as before.
   function wfNoteParts(wk){
     const links = wfLinkedLinesFor(wk).filter(e=> phaseNotes[e.key])
       .map(e=> ({e, kp: phaseNoteKeyParts(e.key), v: phaseNoteCopy(phaseNotes[e.key])})).filter(l=> l.kp);
