@@ -12477,6 +12477,26 @@ export function initLegacyApp() {
     });
   }
 
+  // ✅ PRODUCTION'S CARD NAMES WHAT SHOW INFO IS MISSING (audit 2026-11, AUD2-031; default: keep the Season rule, fix the
+  // message). Frozen render() writes its generic "Enter a <unit> to include this phase" whenever a start has no length,
+  // and for Production the unit is "shooting day count": a box that does not exist, because Production's length is Show
+  // info's episodes x days. The real reason ("missing: Season") sat 200 px further down the card, often off screen. So
+  // the line is rewritten from outside by the same observer as the two above (sanctioned pattern 2: showInfoStatus() is
+  // asked for the missing fields, so there is no second copy of the rule). Same idempotent shape: only the frozen
+  // sentence, word for word, is replaced, so the observer's own write finds nothing left to change. Its red stays.
+  const PROD_NO_LENGTH_META = 'Enter a shooting day count to include this phase';
+  function reflectProductionMissing(){
+    const el = document.getElementById('meta-production');
+    if(!el || el.textContent !== PROD_NO_LENGTH_META) return;
+    const info = showInfoStatus();
+    if(info.complete || !info.missing.length) return;
+    const m = info.missing;
+    el.textContent = (m.length === 1 && m[0] === 'Season')
+      ? 'Pick a Season in Show info to schedule Production'
+      : 'Fill in ' + (m.length === 1 ? m[0] : m.slice(0, -1).join(', ') + ' and ' + m[m.length - 1])
+        + ' in Show info to schedule Production';
+  }
+
   // ⚠️ HIDDEN since 2 Nov 2026: the counts under Production's span replaced this line on the card (owner, "D replaces
   // the whole line"; prodSpanParts). It is still written, as the readout of the walk's halves and days on the floor
   // that the halfworked, overrides and mvmenu legs read. Its "off" counts every Off mark in the shot range; the span's
@@ -27240,6 +27260,9 @@ export function initLegacyApp() {
     // paged without one (same height, so committed the ordinary way).
     pushMonthMap();
     render(currentSchedule);
+    // The recent calendars beside an empty preview (AUD2-030): shown or hidden in the same task as the render, so the
+    // grid fit's observer never measures a panel still holding the list. Not in render(), which is frozen.
+    reflectStartRecents();
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     reflectColMoveNotes();
@@ -29119,7 +29142,8 @@ export function initLegacyApp() {
   // Production's meta line under a half total (reflectHalfDayTotal), and every Weeks phase's ending on its Friday
   // (reflectWeeksMetaFriday): watched, because frozen render() rewrites them from many places. Custom phases'
   // cards are in #custom-phase-rows, a sibling, so both are observed.
-  const metaObserver = new MutationObserver(()=>{ reflectHalfDayTotal(); reflectWeeksMetaFriday(); });
+  // ...and Production's line naming what Show info is missing (reflectProductionMissing, AUD2-031).
+  const metaObserver = new MutationObserver(()=>{ reflectHalfDayTotal(); reflectWeeksMetaFriday(); reflectProductionMissing(); });
   ['phase-rows', 'custom-phase-rows'].forEach(cid=>
     metaObserver.observe(document.getElementById(cid), {childList: true, characterData: true, subtree: true}));
   refreshSimPostUI();
@@ -29836,6 +29860,10 @@ export function initLegacyApp() {
     // #table-wrap is drawn.
     clone.querySelectorAll('.side-col').forEach(el=>{ el.replaceChildren(); el.hidden = true; el.removeAttribute('style'); });
     { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.classList.remove('has-side-boxes'); }
+    // The recent calendars of an empty start (AUD2-030) are the SENDER's file names: never in a copy. Back to the shipped
+    // state, empty and hidden; the copy's own engine shows its own list, if any, when it opens.
+    clone.querySelectorAll('.start-recents').forEach(el=>{ el.replaceChildren(); el.hidden = true; });
+    { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.classList.remove('has-start-recents'); }
     // The header's cap ("THE HEADER ENDS WITH THE CALENDAR") is the sender's grid width; the copy's own
     // engine measures its own on its first render.
     { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.style.removeProperty('--wf-grid-w'); }
@@ -33654,6 +33682,16 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⌘O / Ctrl+O (audit 2026-11, AUD2-033): the File menu's Load…, word for word -- the menu shut, the unsaved-work
+  // question, then the picker. The menu's own item goes through the delegated handler in the header wiring, which this
+  // copies rather than reorganises (that handler's branch order is load-bearing).
+  async function loadViaPicker(){
+    if(!supportsFsAccess) return;
+    closeFileMenu();
+    if(isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
+    try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); uiAlert('Could not load a file: '+err.message); } }
+  }
+
   // "Load…" — pick any calendar from disk (either format) and load + track it.
   async function openFileViaPicker(){
     if(!supportsFsAccess) return;
@@ -33771,8 +33809,39 @@ export function initLegacyApp() {
       label: active ? active.name.replace(/\.html$/i,'') : 'Untitled',
       items: recentFiles.map(f => ({ id: f.id, name: f.name, active: f.id === activeFileId })),
     });
+    reflectStartRecents();
   }
   function closeFileMenu(){ chrome.fileMenu({ open: false }); }
+
+  // ⭐ THE RECENT CALENDARS ON AN EMPTY START (audit 2026-11, AUD2-030; default: shown in the empty preview, no reopening
+  // of the last file by itself, no intake screen). A cold start used to show only the frozen empty-state sentence, and
+  // the recent files were one click deeper under a button reading "Untitled". While the calendar is Untitled and has
+  // nothing to preview, they are listed in the preview panel with Load…, one click from work, as Excel and Outlook do.
+  // ⛔ BESIDE #table-wrap, NEVER INSIDE IT: the host .start-recents is a static sibling AFTER it (src/index.html), so the
+  // toolbar/#table-wrap sibling contract holds and frozen render() never meets it. React draws the rows
+  // (StartRecents.jsx); the engine decides when they show and sets the host's `hidden` itself, synchronously, so the
+  // list never outlives a render that drew a calendar. The rows carry no id and no input: nothing for
+  // collectFieldValues() to sweep. A click is the file menu's own delegated handler (header wiring above).
+  // Gated on startRecentsLive, a `var` set once the recents list has loaded: update() runs long before recentFiles and
+  // activeFileId are declared further down this file, and a `let` read before its line throws.
+  var startRecentsLive = false, startRecentsKey = '';
+  const START_RECENTS_MAX = 8;   // the File menu has the rest, with its search box
+  function reflectStartRecents(){
+    if(!startRecentsLive) return;
+    const host = document.querySelector('.start-recents');
+    if(!host) return;
+    const sch = currentSchedule;
+    const empty = !sch || !sch.weeks || (!sch.weeks.length && !sch.error);
+    const show = supportsFsAccess && !activeFileId && empty;
+    if(host.hidden === show) host.hidden = !show;
+    const panel = host.closest('.preview-panel');
+    if(panel) panel.classList.toggle('has-start-recents', show);
+    const items = show ? recentFiles.slice(0, START_RECENTS_MAX).map(f => ({ id: f.id, name: f.name })) : [];
+    const key = JSON.stringify(items);
+    if(key === startRecentsKey) return;   // update() runs on every keystroke: push only a change
+    startRecentsKey = key;
+    chrome.startRecents({ items });
+  }
 
   // On load: bring in the recent-files list, but do NOT adopt the last active file's handle.
   // A freshly-loaded page shows a blank calendar, so silently pointing Save at the previous
@@ -33786,6 +33855,7 @@ export function initLegacyApp() {
     activeFileId = null;   // nothing is open yet in this session
     savedFileHandle = null;
     handleNeedsPermission = false;
+    startRecentsLive = true;   // recentFiles and activeFileId now hold this session's values
     renderRecents();
     refreshSaveBtn();
   }) : Promise.resolve();
@@ -35145,8 +35215,12 @@ export function initLegacyApp() {
 
   // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save),
   // Cmd/Ctrl+Shift+S (Save As), Cmd/Ctrl+P (the current view's PDF export), and -- on the
-  // platform's own command key only, see isPlatformCommandKey() -- Cmd+N (New) and Cmd+Shift+E
-  // (Export).
+  // platform's own command key only, see isPlatformCommandKey() -- Cmd+N (New), Cmd+Shift+E
+  // (Export) and Cmd+O (Load); and Cmd/Ctrl+Y (redo, as Cmd/Ctrl+Shift+Z).
+  // ⚠️ Ctrl+N did not reach the page on Windows (audit 2026-11, WIN-2: Chrome on GitHub's Windows runner, two runs, no
+  // key event at all; Chrome keeps it for a new window). That was a browser window: an installed app window cannot be
+  // made by a test, so whether it arrives there is unmeasured. The handler still takes it if it arrives, but Help offers
+  // New's key as a Mac key only and points Windows at New in the File menu.
   // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
   // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
   // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
@@ -35211,7 +35285,7 @@ export function initLegacyApp() {
     // ⛔ Not while a hiatus drag waits on Keep or Undo (holdPersistence()). Cmd+S would save a move the
     // user may still refuse, and Cmd+Z would step back past the press underneath the open question.
     // Plain Cmd+S is not stopped by appDialogOpen() below, so the hold has to be checked here.
-    if(persistHold && (key === 's' || key === 'z')){ e.preventDefault(); return; }
+    if(persistHold && (key === 's' || key === 'z' || key === 'y')){ e.preventDefault(); return; }
     if(key === 's'){
       e.preventDefault();
       // ⛔ Not while one of the app's dialogs is open, plain Save included (19 Oct 2026, the dlgkeys
@@ -35243,6 +35317,16 @@ export function initLegacyApp() {
       if(btn) btn.click();
       return;
     }
+    // ⌘O / Ctrl+O is Load (audit 2026-11, AUD2-033): the File menu's Load…, unsaved-work question first. Left to the
+    // browser, it ran Chrome's own Open File. On the platform's own command key only, as ⌘N is: on a Mac ⌃O is "open
+    // a line" in the note editors. Not where there is no Load at all (no File System Access: the File menu is hidden).
+    if(key === 'o' && !e.shiftKey && !e.altKey && isPlatformCommandKey(e) && supportsFsAccess){
+      e.preventDefault();
+      if(e.repeat || appDialogOpen()) return;
+      blurLikeAPress();
+      loadViaPicker();
+      return;
+    }
     // ⛔ Cmd/Ctrl+P RUNS THE CURRENT VIEW'S OWN EXPORT (batch 5; owner ruling 30 Sep 2026, picker:
     // "A: route to real export"). Left to the browser it printed the APP -- header, notices, sidebar,
     // toolbar, then a grid clipped by its scroller: 2 pages in the waterfall, 3 in the month view
@@ -35262,7 +35346,10 @@ export function initLegacyApp() {
       if(btn) btn.click();
       return;
     }
-    if(key !== 'z') return;
+    // ⌘Y / Ctrl+Y is Redo too (audit 2026-11, AUD2-033): Excel's redo key on Windows, and Excel's on a Mac. It takes
+    // the same road as ⇧⌘Z below, field exemption and dialog guard included.
+    const redoKey = key === 'y' && !e.shiftKey && !e.altKey;
+    if(key !== 'z' && !redoKey) return;
     const active = document.activeElement;
     if(fieldOwnsUndoKeys(active) && active !== fieldUndoKeysStale) return;
     e.preventDefault();
@@ -35274,7 +35361,7 @@ export function initLegacyApp() {
     // undid the switch to Template with the editor still open. A field inside a dialog keeps its own
     // undo, because this check comes after the exemption.
     if(appDialogOpen()) return;
-    if(e.shiftKey) redo(); else undo();
+    if(redoKey || e.shiftKey) redo(); else undo();
   });
 
   // Header toolbar wiring: file dropdown, New, Save As.
@@ -35304,13 +35391,19 @@ export function initLegacyApp() {
     // The general rule this is an instance of: the engine must not capture React-rendered nodes at
     // evaluation time. Delegating from document costs nothing and cannot be defeated by a remount.
     {
+      // ⭐ .start-recents too (audit 2026-11, AUD2-030): the recent calendars an empty, Untitled start shows in the
+      // preview panel (StartRecents.jsx) carry the same data-id / data-action="open", so a click there takes this very
+      // path, unsaved-work question included.
       document.addEventListener('click', async (e)=>{
-        if(!e.target.closest || !e.target.closest('#file-menu')) return;
+        if(!e.target.closest || !e.target.closest('#file-menu, .start-recents')) return;
         const rm = e.target.closest('[data-remove]');
         if(rm){ e.stopPropagation(); await removeRecent(rm.getAttribute('data-remove')); return; }
-        const item = e.target.closest('.file-menu-item');
+        const item = e.target.closest('.file-menu-item, .start-recent-item');
         if(!item) return;
         closeFileMenu();
+        // New, in the File menu (audit 2026-11, WIN-2: Chrome on Windows keeps Ctrl+N for itself, so New needs a home
+        // that no key has to reach). It presses the New button, so New's own question and re-click guard come along.
+        if(item.dataset.action === 'new'){ if(newBtn) newBtn.click(); return; }
         // Export is not a navigation: it doesn't replace what's on screen, so it deliberately
         // sits above the unsaved-changes guard below.
         if(item.dataset.action === 'share'){

@@ -103,6 +103,7 @@ import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
+import { StartRecents } from './chrome/StartRecents.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -137,6 +138,9 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
+      {/* The recent calendars on an empty, Untitled start (audit 2026-11, AUD2-030), in the static host right AFTER
+          #table-wrap: beside the grid, never in it. The engine shows and hides the host; buildSavedHtml() empties it. */}
+      {portal(<StartRecents />, '.start-recents')}
       {/* The calendar range (owner ruling 3) is the Show tab's, so it stays in the sidebar. Its two ids are
           swept into fields.byId, ahead of the Settings window's Region ids, as on its own branch. */}
       {portal(<><ShowInfoCard /><CalendarRangeCard /></>, '#sidebar-static')}

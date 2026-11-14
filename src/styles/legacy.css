@@ -455,6 +455,10 @@
        (min-height:auto), and #table-wrap's min-height:0 gives up the room first. Name elements, never `*`. */
     body:has(#view-month-btn.active) .preview-panel{ display:flex; flex-direction:column; }
     body:has(#view-month-btn.active) .preview-panel > #table-wrap{ flex:1 1 0; min-height:0; overflow:auto; }
+    /* The recent calendars of an empty start (AUD2-030) sit UNDER #table-wrap, so while they show the box takes only
+       the empty-state sentence's height; otherwise it would push them to the window's foot. There is no calendar
+       then, so nothing in it can be measured differently. #table-wrap's own box only, as above. */
+    body:has(#view-month-btn.active) .preview-panel.has-start-recents > #table-wrap{ flex:0 0 auto; }
     /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
        content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the
        width it has at 100%, so the day columns keep their CSS width and every note its lines. --cal-zoom is
@@ -515,6 +519,7 @@
     .preview-panel.has-side-boxes > #table-wrap{ grid-area:main; min-width:0; }
     .preview-panel.has-side-boxes > .side-left{ grid-area:left; }
     .preview-panel.has-side-boxes > .side-right{ grid-area:right; }
+    .preview-panel.has-side-boxes > .start-recents{ grid-column:1 / -1; }
     /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
        the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
        solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
@@ -1623,6 +1628,24 @@
 
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
+
+  /* THE RECENT CALENDARS ON AN EMPTY START (audit 2026-11, AUD2-030; StartRecents.jsx). Under the empty-state sentence,
+     centred like it, in the file menu's look: a white list with hairlines, the name cut to one line (its title= shows
+     the whole of it), then Load…. Outside #table-wrap (a sibling after it), so no .sheet-* / .mv-* rule is touched. */
+  .start-recents:not([hidden]){ display:flex; justify-content:center; padding:0 0 40px; }
+  .sr-card{ width:320px; max-width:100%; display:flex; flex-direction:column; gap:6px; }
+  .sr-head{ padding:0 2px; }
+  .sr-list{ background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-md); overflow:hidden; }
+  .sr-row{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; padding:8px 12px;
+    font-size:var(--mantine-font-size-sm); color:var(--text); }
+  .sr-row + .sr-row{ border-top:1px solid var(--mantine-color-gray-2); }
+  .sr-row:hover{ background:var(--mantine-color-gray-0); }
+  .sr-row:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .sr-ic{ width:16px; height:16px; flex:none; color:var(--text-faint); }
+  .sr-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sr-load{ align-self:flex-start; margin-top:4px; }
+  .sr-card > .sr-load:first-child{ align-self:center; }   /* no recent calendars yet: Load… alone, under the sentence */
 
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
