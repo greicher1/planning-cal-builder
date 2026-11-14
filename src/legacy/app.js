@@ -17396,7 +17396,7 @@ export function initLegacyApp() {
                                                      : 'Renames it wherever it shows \u00b7 Its date follows the schedule') : '';
     pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-title">${escHtml(popTitle)}</div>${headBtn}</div>
       <div class="note-editor">
-      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (Shift+Enter for a new line)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
       ${linkRow}
       ${swatchRows}
@@ -17474,7 +17474,8 @@ export function initLegacyApp() {
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
                         hide: null,    // the note a Hide button hides (R2(b): set, then committed at once)
-                        link};         // what the Stays with row opened on (wfLinkContext), read on commit
+                        link,          // what the Stays with row opened on (wfLinkContext), read on commit
+                        escBase: textVal};   // what Esc compares the box with: it keeps a changed note (AUD2-040)
 
     // Stays with: the hint says what will happen (R1), the waiting message is R3(a)'s, and the "Also here" line R2(a)'s.
     // The Day list's empty choice reads "First day (default)" for a phase (R6(a)), "Mon (default)" for the week.
@@ -17522,7 +17523,7 @@ export function initLegacyApp() {
         }
       });
     });
-    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save. Read on commit.
+    // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save. Read on commit.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
     // The Day picker and the switch show as soon as the box holds a typed line (D4, D5), and go again if it stops.
@@ -17901,15 +17902,49 @@ export function initLegacyApp() {
     if(activeNoteEditor.pop && activeNoteEditor.pop.contains(e.target)) return;
     commitActiveNoteEditor();
   });
+  // ⭐ THE EXCEL AND OUTLOOK KEYS (November 2026 audit, AUD2-040; owner's decision D6 (a), 13 Nov 2026). Both note editors,
+  // this one and the month view's (openMvNoteEditor), take the same keys:
+  //   - ENTER SAVES, as Outlook's quick add and this app's own holiday, automatic-note and heading editors already did.
+  //     Until then plain Enter added a line here, and since the owner removed the keys line (12 Nov 2026) nothing on
+  //     screen said that Tab or Ctrl/Cmd+Enter saved. Only in the text box: Enter on the Day list or a button is theirs.
+  //   - SHIFT+ENTER OR ALT+ENTER STARTS A NEW LINE (Outlook's and Excel's). Inserted here (noteNewline) rather than left
+  //     to the browser, so both keys do the same thing on every platform.
+  //   - ESC KEEPS A CHANGED NOTE. Esc used to throw away whatever was typed, a NEW note included, and Undo could not bring
+  //     it back because it was never saved. Now Esc saves when the text box no longer says what it opened with and is not
+  //     empty (the finding's "keep the typed text"); unchanged, or emptied, it closes without saving as before, so Esc can
+  //     never delete a note. A colour picked alone is not text and is still dropped by Esc. ⚠️ The key that OPENED the
+  //     editor (typing on a highlighted note ADDS it at the end, plan §1 D5) counts as what it opened with (`escBase`):
+  //     a stray key and then Esc still leave the note exactly as it was. Keep typing, and Esc keeps all of it.
+  //   - Tab and Ctrl/Cmd+Enter still save. Nothing happens while an input method is composing (its Enter picks a word).
   document.addEventListener('keydown', e=>{
     if(!activeNoteEditor) return;
-    if(e.key==='Escape'){ closeWithoutSaving(); return; }
+    if(e.isComposing || e.keyCode === 229) return;
+    if(e.key==='Escape'){ if(noteTextChanged(activeNoteEditor.textarea, activeNoteEditor.escBase)) commitActiveNoteEditor(); else closeWithoutSaving(); return; }
     if(e.key==='Tab'){ e.preventDefault(); commitActiveNoteEditor(); return; }
-    // Ctrl+Enter or Cmd+Enter commits (plain Enter adds a newline in the textarea)
-    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){
-      e.preventDefault(); commitActiveNoteEditor();
-    }
+    if(e.key !== 'Enter') return;
+    if(e.ctrlKey || e.metaKey){ e.preventDefault(); commitActiveNoteEditor(); return; }
+    if(e.target !== activeNoteEditor.textarea) return;
+    e.preventDefault();
+    if(e.shiftKey || e.altKey) noteNewline(activeNoteEditor.textarea);
+    else commitActiveNoteEditor();
   });
+  // Has the note's text box changed since its editor opened (and does it still hold text)? Esc keeps such a note.
+  function noteTextChanged(textarea, initial){
+    const now = String(textarea ? textarea.value : '').trim();
+    return !!now && now !== String(initial == null ? '' : initial).trim();
+  }
+  // A line break at the caret, for Shift+Enter and Alt+Enter in a note editor. execCommand keeps the box's own undo
+  // (⌘Z inside the box takes the line back); where it does nothing, the text is set directly and the box told.
+  function noteNewline(textarea){
+    const before = textarea.value;
+    let done = false;
+    if(document.activeElement === textarea){ try { done = document.execCommand('insertText', false, '\n') && textarea.value !== before; } catch(_){ done = false; } }
+    if(!done){
+      const s = textarea.selectionStart, en = textarea.selectionEnd;
+      textarea.setRangeText('\n', s, en, 'end');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
 
   function readCfgForMeta(key){
     const start = document.getElementById('start-'+key).value;
@@ -23537,6 +23572,7 @@ export function initLegacyApp() {
       ta.value += typed;
       ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      ed.escBase = ta.value;   // a stray key then Esc leaves the note as it was (AUD2-040, beside the editor's keys)
     }
   }, true);
   // ⌘A over a live highlight takes in the whole grid -- only while something is highlighted, so ⌘A anywhere
@@ -24899,6 +24935,15 @@ export function initLegacyApp() {
     }
     if(e.metaKey || e.ctrlKey || e.altKey) return;
     if(e.key === 'Escape'){ clearMvSel(); setStyleTarget(null); return; }
+    // Delete or Backspace deletes the picked notes (AUD2-021: mvNotesDelete, below). With none of them deletable (a
+    // holiday, an automatic note, a bar) the key is not taken.
+    if(e.key === 'Delete' || e.key === 'Backspace'){
+      if(!mvDeletablePicks().length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      mvNotesDelete();
+      return;
+    }
     const typed = e.key.length === 1 ? e.key : null;
     if(e.key !== 'Enter' && !typed) return;
     if(e.key === 'Enter' && e.shiftKey) return;
@@ -24913,6 +24958,7 @@ export function initLegacyApp() {
       ta.value += typed;
       ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      activeMvNote.escBase = ta.value;   // a stray key then Esc leaves the note as it was (AUD2-040, the waterfall's rule)
     }
   }, true);
   // Every render replaces every bar: re-place the outlines (sanctioned pattern 3, observing mutates nothing), and
@@ -24924,6 +24970,236 @@ export function initLegacyApp() {
   }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
   window.addEventListener('scroll', ()=>{ if(mvSel.size) drawMvSel(); }, true);
   window.addEventListener('resize', ()=>{ if(mvSel.size) drawMvSel(); });
+
+  // ---- A picked month note takes Delete, ⌘C, ⌘X and ⌘V (November 2026 audit, AUD2-021; the owner's decision D6 (a)) ----
+  // The waterfall's keys (WATERFALL-KEYS-PLAN.md) never got a month twin: a picked note ignored Delete and the clipboard,
+  // so a note was deleted by double-click and Delete Note, and copied to another day only by typing it again.
+  //  - DELETE / BACKSPACE does to every picked note what its editor's Delete Note does: a day's own note leaves its day,
+  //    a Waterfall line leaves the Waterfall too, a note that stays with a phase is deleted. One undo step. A holiday and
+  //    an automatic note have no Delete Note (their editors offer Hide), so Delete leaves them, as it leaves a bar.
+  //  - ⌘C / ⌘X put the picked notes on the clipboard in the waterfall's shape (WF_CLIP_TYPE, wfClipWrite): plain text,
+  //    one note per line in Excel's form (tsvCell), and SPTCal's own data with each note's text, colour, month style
+  //    (`fmt`) and day. A note shown on several days is copied once. Cut is Copy, then Delete. The same data pastes into
+  //    the waterfall's Notes column as a typed note with its colour, and the waterfall's copies paste here.
+  //  - ⌘V PUTS THEM ON THE DAY LAST CLICKED (D6's default): a click on a note, a bar, a "+" or a day's number records the
+  //    day under it (mvPasteDay; a right-click too). Each lands as a new note of that day, after its notes, with its
+  //    colour and style and no place of its own; a date in it naming its old day becomes the new day's (mvRetimeNote,
+  //    the month drag's rule). A pasted note is the month view's only, as a note typed there starts. Text from anywhere
+  //    else is one note (3 lines; more join the third, wfLineToDayNote's rule). One undo step, and what landed is picked.
+  //  - Only while the month view shows, its note editor is closed, focus is on the page itself (a field, a dialog or an
+  //    editor owns its keys), no drag is running and no text is selected, and only with that day on screen. ⌘V is also
+  //    taken with the day menu open (a click on a day's number opens it with focus inside), and it closes the menu.
+  //    Otherwise the browser's own copy and paste run as they always have.
+  //  - ⛔ No right-click item (D6 (a), the owner's lean-menu rule). Session UI only: no id, no setting, no snapshot key.
+  let mvPasteDay = null;
+  // The day under a click on the month's weeks, or null (a click on a panel over it, the style bar, or outside them).
+  function mvDayUnder(e){
+    if(e.target && e.target.closest && e.target.closest(OVER_PANEL + ', .style-bar')) return null;
+    const body = document.querySelector('#table-wrap .mv-body');
+    const v = body && visibleRect(body);
+    if(!v || e.clientX < v.left || e.clientX >= v.right || e.clientY < v.top || e.clientY >= v.bottom) return null;
+    return dayAtPoint(e.clientX, e.clientY);
+  }
+  // Capture, beside the pick's own listener (a note's click stops there, but not before this one). A press that moved
+  // is a drag, whose ending click the note drag swallows anyway, so a dragged note's old day is never recorded.
+  document.addEventListener('click', e=>{
+    if(viewMode !== 'month' || e.button !== 0) return;
+    if(mvPress && Math.hypot(e.clientX - mvPress.x, e.clientY - mvPress.y) > MV_SEL_SLOP) return;
+    const iso = mvDayUnder(e);
+    if(iso) mvPasteDay = iso;
+  }, true);
+  document.addEventListener('contextmenu', e=>{
+    if(viewMode !== 'month') return;
+    const iso = mvDayUnder(e);
+    if(iso) mvPasteDay = iso;
+  }, true);
+  function mvDayOnScreen(iso){
+    return Array.prototype.some.call(document.querySelectorAll('#table-wrap .mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+      c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === iso; });
+  }
+  // What a Waterfall-owned line in the month view is, and its colour, as its editor would open it (openMvNoteEditor's
+  // order: a holiday, an automatic note, a note that stays with a phase, else a line of its week's Waterfall note).
+  function mvLineInfo(el){
+    const sch = currentSchedule, iso = el.getAttribute('data-note-day'), wk = el.getAttribute('data-note-week');
+    const said = (el.textContent || '').trim();
+    if(!sch) return null;
+    const h = mvHolidayLineInfo(sch, iso, said);
+    if(h) return {kind: 'holiday', color: holidayColors[h.hid] || noteColors[wk] || null};
+    const a = mvAutoLineInfo(sch, iso, said);
+    if(a) return {kind: 'auto', color: autoNoteColors[a.kind] || noteColors[wk] || null};
+    const l = mvLinkedLineInfo(sch, iso, said);
+    if(l){ const n = phaseNotes[l.key]; return {kind: 'linked', color: (n && n.color) || noteColors[wk] || null}; }
+    return {kind: 'wf', color: noteColors[wk] || null};
+  }
+  // The picked notes on screen, in reading order: [{key, els}] (a line shown on several days is one pick, outlined on each).
+  function mvPickedNotes(){
+    const idx = mvSelIndex();
+    return [...mvSel].filter(k=> (mvSelKind(k) === 'daynote' || mvSelKind(k) === 'wfnote') && idx.has(k))
+      .map(k=> ({key: k, els: idx.get(k)}))
+      .sort((a, b)=> (a.els[0].compareDocumentPosition(b.els[0]) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+  }
+  // Every outlined note Delete takes: [{el, kind, key}], kind 'day', 'wf' or 'linked'.
+  function mvDeletablePicks(){
+    const out = [];
+    mvPickedNotes().forEach(p=> p.els.forEach(el=>{
+      const kind = mvSelKind(p.key) === 'daynote' ? 'day' : (mvLineInfo(el) || {}).kind;
+      if(kind === 'day' || kind === 'wf' || kind === 'linked') out.push({el, kind, key: p.key});
+    }));
+    return out;
+  }
+  function mvNotesDelete(){
+    const del = mvDeletablePicks();
+    if(!del.length) return false;
+    pushUndoSnapshot();
+    // A day's own notes by their place in its list, the last first, so an earlier one's place still names it.
+    const days = new Map();
+    del.filter(d=> d.kind === 'day').forEach(d=>{
+      const k = mvSelKey(d.key), i = k.lastIndexOf('#');
+      const iso = k.slice(0, i), n = parseInt(k.slice(i + 1), 10);
+      if(!days.has(iso)) days.set(iso, new Set());
+      days.get(iso).add(n);
+    });
+    days.forEach((ns, iso)=>{
+      const list = dayNoteList(iso).slice();
+      [...ns].sort((a, b)=> b - a).forEach(n=>{ if(n >= 0 && n < list.length) list.splice(n, 1); });
+      if(list.length) dayNotes[iso] = list;
+      else { delete dayNotes[iso]; delete dayNoteColors[iso]; }
+    });
+    // A Waterfall line or a note that stays with a phase: its own editor's Delete Note, opened on it and closed again
+    // unseen (the box emptied, Stays with put back), so the key and the button can never disagree. The last on screen
+    // first, so two lines of one linked note go from its end; nothing renders between them, so each finds its line.
+    del.filter(d=> d.kind !== 'day').reverse().forEach(d=>{
+      if(!document.body.contains(d.el)) return;
+      openMvNoteEditor(d.el, d.el.dataset.noteWeek, d.el.dataset.noteDay, 'wf');
+      const am = activeMvNote;
+      if(am && (am.kind === 'wf' || am.kind === 'linked')){
+        am.textarea.value = '';
+        if(am.linkSel) am.linkSel.value = am.linkSel0 || '';
+        writeActiveMvNote();
+      }
+      closeMvNoteEditor();
+    });
+    clearMvSel(); setStyleTarget(null);
+    update();
+    pushUndoSnapshot();
+    markDirty();
+    return true;
+  }
+  // One picked note as it travels: {text, color?, fmt?, day}.
+  function mvNoteClipItem(p){
+    const el = p.els[0], kind = mvSelKind(p.key), key = mvSelKey(p.key);
+    let text, color, fmt;
+    if(kind === 'daynote'){
+      const e = mvPickEntry(key);
+      if(!e) return null;
+      text = String(e.text || ''); color = e.color || null; fmt = e.fmt;
+    } else {
+      text = (el.textContent || '').trim(); color = (mvLineInfo(el) || {}).color || null;
+      fmt = mvTextStyle.wfnote && mvTextStyle.wfnote[key];
+    }
+    if(!text.trim()) return null;
+    const it = {text};
+    if(color && color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) it.color = color;
+    if(isPlainObj(fmt)) it.fmt = JSON.parse(JSON.stringify(fmt));
+    const day = el.getAttribute('data-note-day');
+    if(/^\d{4}-\d\d-\d\d$/.test(day || '')) it.day = day;
+    return it;
+  }
+  function mvNotesCopy(){
+    const items = mvPickedNotes().map(mvNoteClipItem).filter(Boolean);
+    if(!items.length) return null;
+    wfNoteClip = { text: items.map(it=> tsvCell(it.text) + '\n').join(''), items };
+    return wfNoteClip;
+  }
+  // A travelling note read back from the clipboard (which anything can write), held to what a saved day note may hold.
+  // A waterfall cell's item brings its typed text only (`own`, AUD2-014's rule: holiday, automatic and month lines keep
+  // their own day).
+  function mvCleanClipItem(it){
+    if(!isPlainObj(it) || typeof it.text !== 'string') return null;
+    const out = { text: stripXmlIllegal(typeof it.own === 'string' ? it.own : it.text, '\n') };
+    if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
+    if(it.fmt !== undefined){ const f = cleanMvTextStyleEntry('daynote', null, it.fmt, { n: 0 }); if(f) out.fmt = f; }
+    if(typeof it.day === 'string' && /^\d{4}-\d\d-\d\d$/.test(it.day) && parseDateUTC(it.day)) out.day = it.day;
+    return out;
+  }
+  function mvNotesPaste(text, rich, iso){
+    const norm = wfClipNormal(text);
+    const own = (rich && typeof rich.text === 'string' && wfClipNormal(rich.text) === norm) ? rich
+              : (wfNoteClip && wfClipNormal(wfNoteClip.text) === norm ? wfNoteClip : null);
+    let items = (own && Array.isArray(own.items) && own.items.length) ? own.items.map(mvCleanClipItem) : null;
+    if(items && items.some(it=> !it)) items = null;
+    if(!items){ const ls = parseClipText(norm).filter(l=> l.trim()); items = ls.length ? [{ text: ls.join('\n') }] : []; }
+    const notes = items.map(it=>{
+      let ls = String(it.day ? mvRetimeNote(it.text, it.day, iso) : it.text).split('\n').map(l=> l.trim()).filter(Boolean);
+      if(ls.length > 3) ls = ls.slice(0, 2).concat([ls.slice(2).join(' ')]);
+      if(!ls.length) return null;
+      const e = { text: ls.join('\n'), lane: null, color: it.color || null };
+      if(e.color && e.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) e.color = null;
+      if(it.fmt) e.fmt = it.fmt;
+      return e;
+    }).filter(Boolean);
+    if(!notes.length) return false;
+    pushUndoSnapshot();
+    const list = dayNoteList(iso).slice(), at = list.length;
+    dayNotes[iso] = list.concat(notes);
+    render(currentSchedule);
+    pushUndoSnapshot();
+    markDirty();
+    // Excel picks what it pasted, and so does this.
+    const idx = mvSelIndex();
+    mvSel = new Set(notes.map((_, j)=> 'daynote:' + iso + '#' + (at + j)).filter(k=> idx.has(k)));
+    mvSelActive = [...mvSel].pop() || null;
+    if(mvSel.size && styleTarget !== 'month') setStyleTarget('month');
+    drawMvSel(); syncStyleBar();
+    return true;
+  }
+  function mvClipReady(){
+    if(viewMode !== 'month' || activeMvNote || appDialogOpen()) return false;
+    if(document.querySelector('.phase-edge-shield, .hiatus-drag-shield, .mv-drag-shield')) return false;
+    const a = document.activeElement;
+    if(a && a !== document.body) return false;
+    const s = window.getSelection && window.getSelection();
+    return !(s && !s.isCollapsed && String(s).trim());
+  }
+  // Where ⌘V goes, or null: the day last clicked, on screen, with focus on the page or in the day menu.
+  function mvPasteTarget(){
+    if(!mvPasteDay || viewMode !== 'month') return null;
+    const a = document.activeElement, inMenu = !!(a && a.closest && a.closest('.day-menu'));
+    if(inMenu ? (activeMvNote || appDialogOpen()) : !mvClipReady()) return null;
+    return mvDayOnScreen(mvPasteDay) ? mvPasteDay : null;
+  }
+  // The day menu takes focus when it opens; a paste closes it with its own key (Escape, twice for an open submenu).
+  function mvCloseDayMenu(){
+    for(let i = 0; i < 3; i++){
+      const a = document.activeElement;
+      if(!(a && a.closest && a.closest('.day-menu'))) return;
+      a.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    }
+  }
+  document.addEventListener('beforecopy', e=>{ if(mvClipReady() && mvPickedNotes().length) e.preventDefault(); });
+  document.addEventListener('beforecut', e=>{ if(mvClipReady() && mvPickedNotes().length) e.preventDefault(); });
+  document.addEventListener('beforepaste', e=>{ if(mvPasteTarget()) e.preventDefault(); });
+  document.addEventListener('copy', e=>{
+    if(!mvClipReady() || !e.clipboardData) return;
+    const clip = mvNotesCopy();
+    if(clip) wfClipWrite(e, clip);
+  });
+  document.addEventListener('cut', e=>{
+    if(!mvClipReady() || !e.clipboardData) return;
+    const clip = mvNotesCopy();
+    if(!clip) return;
+    wfClipWrite(e, clip);
+    mvNotesDelete();
+  });
+  document.addEventListener('paste', e=>{
+    const iso = mvPasteTarget();
+    if(!iso || !e.clipboardData) return;
+    e.preventDefault();
+    let rich = null;
+    try { rich = JSON.parse(e.clipboardData.getData(WF_CLIP_TYPE) || 'null'); } catch(_){ rich = null; }
+    mvCloseDayMenu();
+    mvNotesPaste(e.clipboardData.getData('text/plain'), isPlainObj(rich) ? rich : null, iso);
+  });
 
   // ---- The 'month' target's look and its writes (§3.3) ----
   // Each text's own look when unstyled: its weight as bold (bars 600 and the frame's 700 light B, notes' 500 do not:
@@ -40003,13 +40279,13 @@ export function initLegacyApp() {
       ${notePaletteRowsHtml(curColor)}
       <div class="mv-note-pop-hint">Renames this holiday wherever it shows \u00b7 Colour is for the month view \u00b7 Enter to save \u00b7 Esc to cancel</div>`
       : `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>${delNoteHtml}</div>
-      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (Shift+Enter for a new line)':' \u2014 Shift+Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       ${linkRow}
       ${notePaletteRowsHtml(curColor)}
       ${viewRow}`;
     // ⛔ No hint line on a typed month note (owner, 12 Nov 2026: "Delete this text in all places", of "Up to 3 lines ·
-    // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). The keys
-    // still work; the placeholder still says Enter makes a new line, up to 3.
+    // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). Since 13 Nov 2026
+    // (AUD2-040, D6 (a)) Enter saves, so the placeholder says Shift+Enter makes a new line, up to 3.
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
@@ -40056,11 +40332,7 @@ export function initLegacyApp() {
         if(lines.length > 3) textarea.value = lines.slice(0,3).join('\n');
       };
       textarea.addEventListener('input', cap3);
-      textarea.addEventListener('keydown', e=>{
-        if(e.key === 'Enter' && !e.metaKey && !e.ctrlKey && textarea.value.split('\n').length >= 3){
-          e.preventDefault(); // already at 3 lines -- don't add a 4th
-        }
-      });
+      // (A 4th line is refused by the keys listener below: Shift+Enter or Alt+Enter at 3 lines adds nothing.)
     }
     textarea.focus(); textarea.select();
     // A new day note TAKES the remembered colour unless another is picked, so it is pending from the start.
@@ -40078,6 +40350,8 @@ export function initLegacyApp() {
                     // What the editor opened with, so a waterfall note that was opened and left
                     // unchanged is not frozen into an override on the way out (audit M-13).
                     initialText: curText,
+                    // What Esc compares the box with (AUD2-040): what it opened with, plus a key that opened it.
+                    escBase: curText,
                     // The same descriptor shape relocateNoteAnchor() takes — captured now so the
                     // rebuild guard can re-find the equivalent node in a freshly-rendered grid.
                     anchorDesc: { week: weekKey, day: dayIso, kind: (isWf || isHol || isAuto || isLinked) ? 'wf' : 'day',
@@ -40092,7 +40366,7 @@ export function initLegacyApp() {
         pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
       });
     });
-    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save.
+    // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>e.preventDefault());
     // The Stays with row's one-line hint says what saving will do (R1's wording, the waterfall editor's).
@@ -40145,9 +40419,24 @@ export function initLegacyApp() {
       });
     }
     pop.addEventListener('click', e=>e.stopPropagation());
+    // The keys (AUD2-040, the owner's D6 (a)): the waterfall editor's, explained beside its keydown listener. On a typed
+    // note (a day's own, a waterfall line, a linked note) Enter saves, Shift+Enter or Alt+Enter adds a line (a day note
+    // holds 3), and Esc keeps changed text. A holiday's and an automatic note's editors keep theirs: Enter saves (above)
+    // and Esc cancels, as their hint line says (left by the owner's ruling of 12 Nov 2026).
+    const typedNote = !isHol && !isAuto, capped = !isWf && !isHol && !isAuto && !isLinked;
     textarea.addEventListener('keydown', e=>{
-      if(e.key === 'Escape'){ e.preventDefault(); closeMvNoteEditor(); }
+      if(e.isComposing || e.keyCode === 229) return;          // an input method's Enter picks a word
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        if(typedNote && activeMvNote && noteTextChanged(textarea, activeMvNote.escBase)) commitMvNoteEditor();
+        else closeMvNoteEditor();
+      }
       else if(e.key === 'Tab' || ((e.metaKey||e.ctrlKey) && e.key === 'Enter')){ e.preventDefault(); commitMvNoteEditor(); }
+      else if(typedNote && e.key === 'Enter'){
+        e.preventDefault();
+        if(!(e.shiftKey || e.altKey)) commitMvNoteEditor();
+        else if(!capped || textarea.value.split('\n').length < 3) noteNewline(textarea);
+      }
     });
   }
   document.getElementById('table-wrap').addEventListener('click', e=>{
