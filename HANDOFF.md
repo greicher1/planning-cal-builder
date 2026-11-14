@@ -4,6 +4,55 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔒 13 Nov 2026: AUDIT BATCH 1, ITEM 1.3 — A CRAFTED CALENDAR FILE CAN NO LONGER MISUSE A SAVED STYLE VALUE (AUD2-013). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/relaxed-chatterjee-80f293` (worktree `.claude/worktrees/relaxed-chatterjee-80f293`), a fast-forward of `audit-1-1` at `fa4e5d9`, so it holds 1.2, 1.1 and 1.3. No owner decision was needed. The owner tried it on localhost (launch entry `audit-1-3-8746`) and said *"Finish it"*. Tracker card `audit-1-3`
+- ⛔ **A security finding, and the repo is public.** The audit's write-up stays in the audit folder, outside the repo.
+  Keep the attack out of commit messages, the changelog and these docs: "a crafted file could misuse a saved style
+  value" is the level of detail. Do not push the `xss-proto*` fixtures before the fix (they travel together in the
+  batch's one push).
+- **The batch, where it stands:** 1.1, 1.2 and 1.3 built (1.3 on this branch). **1.5** is built on its own sibling
+  branch, `claude/recursing-cray-993c31` (`674d030`), also a fast-forward of `audit-1-1`. Merging the two conflicts at
+  the top of this file and of README.md: keep both entries. **1.4** waits for the owner's **D7**. Then ONE full gate
+  for the batch and one push on the owner's yes.
+- **As built** (`src/legacy/app.js`, beside `isPlainObj` in the "What a FILE may put into the stores" section;
+  nothing frozen, no save-format change):
+  - ⛔ **A file's JSON is read with `parseUntrustedJson()`, never a bare `JSON.parse`.** Its readers:
+    `parseCalendarText` (both formats), `restoreSavedState` (a shareable copy, crash recovery) and
+    `parseHeaderPresetText` (`.spthdr`). It drops three key names an object's own machinery answers to (`isProtoName`;
+    the app never writes one as a key) and counts them in a session-only WeakMap, so `sanitizeSnapshot`'s console note
+    and the preset import's "unrecognised entries" count still say something was ignored. **A new reader of a file, a
+    pasted blob or anything from another machine must use it.**
+  - `ownCopy()` makes `sanitizeSnapshot`'s and `unpackScenarioFile`'s copies: own values only, so a key the sanitizer
+    deletes is absent afterwards. It carries the parse's count to the copy.
+  - `textStyleCss` and `mvTextCss` draw a colour only when `isHexColor`, an alignment only when `isTextAlign`
+    (left / center / right), and the month's font size only when it is a number. The bar writes nothing else
+    (`<input type="color">`, its three align buttons), so every real calendar's markup is unchanged. `sideFmtCss` and
+    `headerFormatCss` already held theirs this way.
+- **Leg:** `hostile` (in `gate.sh`'s audit-fix loop) now runs TWICE: `hostile:xss-mixed:240` as before and
+  `hostile:xss-proto:240`, whose start (S0) is the shareable-copy path for the new files. New cases, last in the leg so
+  a calendar left on screen cannot colour R1 / P3: S2 loads `xss-proto.sptcal`, `xss-proto-refresh.sptcal`,
+  `xss-proto-legacy.html` and `xss-proto-scenarios.sptcal` (each must arrive by title and fire nothing in the waterfall
+  and the month view); S3 switches to the scenario file's parked tab. S0 also checks the month view now. Fixtures in
+  `tests/fixtures/README.md`. ⚠️ S2 waits for each file's own title and answers a late "Load another calendar?": on a
+  loaded machine the question came after `load()`'s 4 s look, and the NEXT load then answered it and read the wrong
+  title (it happened once, before that wait was added).
+- **Proof** (final build sha256 `1a3a958f…`, private port 8743):
+  - `hostile`: 7 cases red on the build before the fix (`83bdd7ef…`, item 1.1's), 18/18 after, from both starts.
+  - The audit's repro leg (copied in for the run and removed): 4 of 5 red before, 5/5 after. The audit's driver that
+    runs WITHOUT `?test=`, under the app's real Content-Security-Policy, with trusted clicks: every case it measures
+    works before and is blocked after, and the control file still loads.
+  - 27 saved calendars loaded through the real Load on both builds (every release fixture v1.0.0 to v1.13.0,
+    `v1.0.0-saved.html`, `parse-twoblocks.html`, `show-a`, `blocks`, `carry-rich`, `carry-heavy`, `carry-snap`,
+    `customunits`, `episodeprep-blocks`, `scenarios-3`, `sparse-generated`): the Save text and the grid signature
+    identical on all 27, no console error on either build.
+  - Green on the fixed build: `loadfail` 6, `loadcarry` 6, `sharecopy2`, `legacyparse` 7, `restore` (its gate check
+    against the baseline: 77 ids, grid identical), `textstyle`, `mvtextstyle` 23 and 6, `hdrpreset` (its gate check,
+    19), `scenarios` 23, `autonoteview` 18, `phasenotes` 21, `hdroverrides` 4, `hdrrow` 40, `sideboxes`,
+    `recoverfail` x4, `loadsparse` bare / scen / sixids, `backupslots` 5, `backuplink` 5, `cspproof` 15, `mvorder` 31.
+    `npm run check` 42/42.
+  - In the Browser pane, the built page under its real policy: `?state=xss-proto` opens as an ordinary calendar.
+- **Not verified:** the full gate (the batch's, at the end); a real shareable copy double-clicked from disk (the
+  startup path was driven through `?state=`, which fills the same block).
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`), cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`, so it holds both items. The owner tried it on localhost and said *"Yes, finish it"*. Tracker card `audit-typed-notes-follow-calendar`
 - **The batch, where it stands:** 1.1 and 1.2 built (this branch). **1.3** (AUD2-013, crafted files) and **1.5** (AUD2-007,
   the date picker's "today") need no decision and are not started. **1.4** (AUD2-006, the rollback note) waits for the

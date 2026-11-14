@@ -561,6 +561,8 @@ Any new persistent state must be added in **both** places or it will silently no
 
 `parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. It returns **`{format, snapshot}`** — the format is part of the contract because opening a legacy `.html` is the one moment the app can offer to upgrade it. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 
+⛔ **A file's JSON is read with `parseUntrustedJson()`, never a bare `JSON.parse`** (audit item 1.3, 13 Nov 2026): `parseCalendarText()` (both formats), `restoreSavedState()` and the `.spthdr` reader all go through it, and `sanitizeSnapshot()` copies with `ownCopy()`. A new reader of anything from another machine must do the same. HANDOFF's 13 Nov entry says why.
+
 ⛔ **What the clone must strip, and the one thing it must HIDE rather than strip.** The strip list is
 five classes — `.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop` — because each is
 a body-level panel that a Share click can catch mid-close (React commits after the synchronous

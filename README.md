@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a crafted calendar file can no longer misuse a saved style value (13 Nov 2026)
+
+A security fix from the November audit (Batch 1, item 1.3, finding AUD2-013). It is rare: it takes a file crafted on
+purpose, and no file the app writes can carry one.
+
+- **What it was:** a crafted calendar file could get a text-style value past the checks every loaded file goes through.
+- **Now**, three layers:
+  - every calendar file is read through one reader, `parseUntrustedJson()`;
+  - the load check copies only the values a file itself names (`ownCopy()`);
+  - the grid's and the month view's text styles draw only a `#rrggbb` colour and a left, centre or right alignment,
+    whatever reaches them (`textStyleCss`, `mvTextCss`, as `sideFmtCss` and `headerFormatCss` already did).
+- **Where:** File ▸ Load (`.sptcal` and legacy `.html`), a shareable copy opening itself, crash recovery, scenario tabs
+  and header presets (`.spthdr`).
+- **For a user:** nothing changes. **Save format:** no key added, renamed or removed. Nothing frozen was touched.
+- **Proof.**
+  - The `hostile` leg has four new inert fixtures (`tests/fixtures/xss-proto*`) and runs twice in `gate.sh`, the second
+    time from the startup path. Red on the build before the fix; 18/18 after, from both starts.
+  - The audit's own repro, and its driver that runs under the app's real security policy: red before, green after
+    (kept with the audit, not committed).
+  - 27 saved calendars (every release fixture v1.0.0 to v1.13.0, the legacy `.html` files, scenarios, blocks) load
+    and save byte for byte the same before and after, with the same grid.
+  - 24 related legs green: `loadfail`, `loadcarry`, `restore` (against its baseline), `sharecopy2`, `legacyparse`,
+    `cspproof`, `textstyle`, `mvtextstyle` x2, `hdrpreset`, `scenarios`, `autonoteview`, `phasenotes`, `hdroverrides`,
+    `hdrrow`, `sideboxes`, `recoverfail` x4, `loadsparse` x3, `backupslots`, `backuplink`, `mvorder`. `npm run check`
+    42/42.
+  - Tried in the browser by the owner ("Finish it").
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
 ### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
 
 The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":

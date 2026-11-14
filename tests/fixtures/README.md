@@ -97,6 +97,13 @@ they are a working demonstration against the live site. They ship in the same re
 | `xss-mixed.sptcal` | an episode id, custom-holiday ids, hiatus `start` / `weeks` | several at once |
 | `xss-grid.sptcal` | note and hiatus colours plus header formats | grid and header together |
 | `xss-legacy.html` | a crafted legacy `.html` with markup in stored strings and in its OWN scripts | its own scripts must never run; the stored strings are the same sinks |
+| `xss-proto.sptcal` | text-style and side-box values that a load must never read (audit item 1.3, 13 Nov 2026); title "SHOW XSS PROTO". Also the second `hostile` run's starting state | a grid or month text's `style` |
+| `xss-proto-refresh.sptcal` | the same, one value; its marker is an element that would navigate after 600 s, to a fragment of the same page | the same |
+| `xss-proto-legacy.html` | `xss-proto.sptcal`'s calendar inside a minimal legacy `.html` (the saved-state block only) | the same, through the legacy reader |
+| `xss-proto-scenarios.sptcal` | the same in a two-scenario file: the tab on screen and the parked tab `s2` | the same, on Load and on switching to `s2` |
+
+The four `xss-proto*` files were made from `show-a.sptcal`'s JSON by a script, not by a Save. Each one must still
+LOAD (its title arrives), which the `hostile` leg checks.
 
 ### Loads that fail partway (M-1)
 
