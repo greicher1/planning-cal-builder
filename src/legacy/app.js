@@ -31682,7 +31682,11 @@ export function initLegacyApp() {
   }
   function followUsable(sch){ return !!(sch && !sch.error && sch.weeks && sch.weeks.length); }
   // Remember every typed note not yet remembered, or changed since this hook last wrote it, against `live`.
-  function followRemember(live){
+  // `now` (optional): the lines as they stand after the edit. A line of the same week and the same note or holiday whose
+  // text differs there is ALSO known by that text (`alt`). The case is a rename in the waterfall's editor: the box saves
+  // "Camera Rolls 6/29/26" as a new note, and update() remembers it against lines that still read "Start Principal
+  // Photography 6/29/26". Without `alt` the renamed line would read as the user's own text and stop following.
+  function followRemember(live, now){
     if(!live) return;
     if(!followMem) followMem = new WeakMap();
     Object.keys(userNotes).forEach(k=>{
@@ -31690,14 +31694,19 @@ export function initLegacyApp() {
       if(followNoteText(v) === null) return;
       const json = JSON.stringify(v), m = followMem.get(v);
       if(m && m.written === json) return;
-      const base = live[k] || {s: [], m: []};
-      followMem.set(v, {orig: v.text, s: base.s, m: base.m, written: json});
+      const base = live[k] || {s: [], m: []}, after = (now && now[k]) || {s: [], m: []};
+      const alias = list => list.map(x=>{
+        const y = after.s.find(z => z.id === x.id) || after.m.find(z => z.id === x.id);
+        return (y && y.text !== x.text) ? {id: x.id, text: x.text, alt: y.text} : x;
+      });
+      followMem.set(v, {orig: v.text, s: alias(base.s), m: alias(base.m), written: json});
     });
   }
   // One note's text, rebuilt from its memory against its week's lines now (`cur`).
   function followRebuild(mem, cur){
     const wasSheet = new Set(mem.s.map(x => x.id)), used = new Set(), out = [];
-    const match = t => mem.s.find(x => x.text === t && !used.has(x.id)) || mem.m.find(x => x.text === t && !used.has(x.id));
+    const is = t => x => (x.text === t || x.alt === t) && !used.has(x.id);
+    const match = t => mem.s.find(is(t)) || mem.m.find(is(t));
     String(mem.orig).split('\n').forEach(line=>{
       const t = line.trim(), b = t ? match(t) : null;
       if(!b){ out.push({line, id: null}); return; }   // the user's own line
@@ -31723,7 +31732,7 @@ export function initLegacyApp() {
   function followAutoNotes(schedule, leftNow){
     if(!followUsable(schedule)) return false;   // a date half typed (year 0002) changes nothing, and is not remembered
     const cur = followLiveLines(schedule);
-    followRemember(leftNow || !followLive ? cur : followLive);
+    followRemember(leftNow || !followLive ? cur : followLive, cur);
     let changed = false;
     Object.keys(userNotes).forEach(k=>{
       const v = userNotes[k], mem = followNoteText(v) !== null ? followMem.get(v) : null;
@@ -39574,7 +39583,7 @@ export function initLegacyApp() {
         const mem = followMem && followMem.get(v);
         v.text = swap(v.text);
         if(mem){
-          const ren = list => list.map(x => x.text === oldLine ? {id: x.id, text: newLine} : x);
+          const ren = list => list.map(x => x.text === oldLine ? {id: x.id, text: newLine} : (x.alt === oldLine ? Object.assign({}, x, {alt: newLine}) : x));
           followMem.set(v, {orig: swap(mem.orig), s: ren(mem.s), m: ren(mem.m), written: JSON.stringify(v)});
         }
       }
