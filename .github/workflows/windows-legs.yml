@@ -27,11 +27,11 @@ jobs:
         # The list in five parts, so no job runs for hours and the Windows-only legs report first.
         # --from / --to count the list's non-comment lines; --only matches a leg's output name.
         part:
-          - { name: win, args: '--only ^win-' }
-          - { name: a, args: '--from 1 --to 85' }
-          - { name: b, args: '--from 86 --to 170' }
-          - { name: c, args: '--from 171 --to 255' }
-          - { name: d, args: '--from 256 --to 9999' }
+          # A recheck of the legs that differed between the two systems in the first full run, once with a
+          # focused page (as a user's window is) and once without. The full list in five parts is:
+          #   win '--only ^win-' | a '--from 1 --to 85' | b '--from 86 --to 170' | c '--from 171 --to 255' | d '--from 256 --to 9999'
+          - { name: focus, focus: 'on', args: '--only "^(win-|endsdate|prodends|autonoterename|interfonts|monthexport|monthwriter)"' }
+          - { name: nofocus, focus: 'off', args: '--only "^(win-env|win-keys|endsdate|prodends)"' }
     defaults:
       run:
         shell: bash
@@ -64,6 +64,8 @@ jobs:
         run: node -e "const c=require('crypto'),b=require('fs').readFileSync('dist/index.html');for(const a of ['sha256','sha1'])console.log(a+'  '+c.createHash(a).update(b).digest('hex')+'  dist/index.html  '+b.length+' bytes')"
 
       - name: Run the legs
+        env:
+          XLEG_FOCUS: ${{ matrix.part.focus }}
         run: node tests/harness/xgate.mjs --out xgate-out --cap 600 ${{ matrix.part.args }}
 
       # summary.json is written only when xgate finishes; if the job hits its timeout, rebuild it from the legs that ran.

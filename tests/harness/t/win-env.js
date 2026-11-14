@@ -64,6 +64,7 @@ window.addEventListener('load', function () { (async function () {
     } else tips = 'needs xleg (trusted hover)';
     measured.tooltips = tips;
     measured.isMacPlatform = /^mac/i.test(measured.uaPlatform || measured.platform || '');
+    measured.hasFocus = document.hasFocus();
     add('E3', 'modifier-key names in the UI copy measured', true, {copyKeys: measured.copyKeys, tooltips: tips, macPlatform: measured.isMacPlatform}, 'reported, not judged');
     add('E0', 'no console errors, no native alert', T.appHealth().errors.length === 0 && window.__alerts.length === 0,
         {errors: T.appHealth().errors, alerts: window.__alerts, modal: T.modalText()}, 'none');

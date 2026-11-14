@@ -231,6 +231,10 @@ try {
     return r.result.value;
   };
   await send('Page.enable');
+  // A headless page does not always count as focused (it did not on a hosted Windows runner), and the app reads
+  // document.hasFocus(): a date box is left as typed while "the window lost focus". Emulate a focused page, as a
+  // user's window is, unless XLEG_FOCUS=off (which shows what the unfocused page does).
+  if (process.env.XLEG_FOCUS !== 'off') await send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {});
   if (TZ) await send('Emulation.setTimezoneOverride', { timezoneId: TZ });
   // Nothing a leg exports may land in the runner's Downloads folder (legs capture exports in the page).
   await send('Page.setDownloadBehavior', { behavior: 'deny' }).catch(() => {});
