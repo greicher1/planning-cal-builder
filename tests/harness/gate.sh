@@ -2285,10 +2285,20 @@ done
 # then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
 # milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
 # D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
+# ⭐ ADDED 14 Nov 2026, the second audit's item 3.6 (rare set-ups that printed a wrong or missing line), no query, on
+# T.buildFixture: rangeheld (AUD2-055) a calendar-year range whose end sits in the locked Christmas break comes back
+# exactly after the toolbar's +1 / -1 (it stays with the break; R1, R2, C2 red before: 54 rows ending 1/4/27);
+# snapoffbreak (AUD2-071) a Weeks phase with Snap to Mon off beside the break delivers its whole weeks, counted in days
+# (S1-S5 and X1 red before: Post 12/23 x 2 drew three cells in the grid and Excel), and a start inside the break moves
+# from its Monday under the step-over (R1); wropensbreak (AUD2-072) a Writer's Room typed into the break opens 1/4/27 in
+# the waterfall, Excel, the waterfall PDF, the month view and the header (W1-W6 red before: the note was lost and the
+# header read 12.21.26); unlinkrange (AUD2-073) removing a custom phase whose linked note sits in a week a calendar range
+# cuts away keeps that week's "Start Principal Photography" (C2 red before).
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
               "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
-              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240"; do
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240" \
+              "rangeheld::240" "snapoffbreak::300" "wropensbreak::300" "unlinkrange::400"; do
   RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
   rm -f "$HERE/$RSLEG.json"
   HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1

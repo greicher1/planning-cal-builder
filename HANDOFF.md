@@ -4,6 +4,57 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 14 Nov 2026: AUDIT BATCH 3, ITEM 3.6 — RARE SET-UPS NO LONGER PRINT A WRONG OR MISSING LINE (AUD2-055, -071, -072, -073; no decision needed). **COMMITTED LOCALLY on `audit-3-6` (worktree `.claude/worktrees/audit-3-6`, cut from `audit-1-1` at `87553d1`; the fix is `2ea25f0`, the docs and gate wiring the commit after it; build `05fd74f3…`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.** Built overnight on the owner's tracker approval, with nobody to ask.
+- **AUD2-055, a calendar range in a held break grows after a shift.** `shiftCalendarDates` step 2b: under the step-over a
+  range date on a held break's week (`hf.obstacles`) stays with the break, as a note under a held band does; anywhere
+  else it moves N working weeks as before. Reference calendar, range 1/1/26-12/31/26, toolbar +1 / -1: was 12/31 ->
+  1/14/27 -> 1/7/27 (54 rows), now 12/31 throughout and 53 rows back.
+- **AUD2-071, Snap off beside a hiatus.** `extendEndForHiatus`: a start OFF A MONDAY counts days, 7 per week, skipping
+  each day a hiatus (all-phase or own) covers; end = the day after the last day counted. Identical to the old 7-day step
+  whenever no hiatus is in the way; a Monday start keeps the week walk, so every snapped phase is untouched. Three
+  followers of the same rule, so the movers agree with the new count: `phaseOpenDay` steps a day at a time for a
+  non-Monday start inside a hiatus (the {phase.open} tokens, Compare, key facts); `stepOverHeld(n, held, workStart)`
+  puts a phase START that sits inside a held break on the Monday it works from (the Shift form, the toolbar arrows, the
+  ripple, the phase arrows with Ripple on; and the Shift list's preview); `rippleNormaliseInside` puts such a start on
+  the Monday after the break, not on its weekday. `weeksStartForEnd` is unchanged: an Ends phase is always snapped, so
+  its week walk is exact. `startForWeeksEndingAt` (Build Around backwards) is unchanged: checked by hand, it is the
+  exact inverse of the new count for every cursor except one typed INSIDE a break (a snap-off or Dates successor typed
+  into a hiatus), left as it was.
+- **AUD2-072, Writer's Room typed into a break.** `computeSchedule`: "Writer's Room Opens" is dated on the room's first
+  DRAWN day (`drawn`, hoisted out of the phase-edge block so both use it), falling back to `seg.start`. The header's c3
+  (`computeHeaderDefaults`) and `{writersRoom.line}` both go through the new `wrHeaderOpenDay()`: the typed start's
+  Monday as always, unless the room's start is paused by a hiatus, then `phaseOpenDay`'s first worked day.
+- **AUD2-073, a custom phase removed under a range.** `sheetAutoNotesFor` reads `wholeCalendar(currentSchedule)`, so
+  `unlinkPhaseNotesOf` (and every waterfall writer) sees a cut week's automatic notes. A week the waterfall shows holds
+  the same notes in both lists, so nothing visible changes.
+- **Defaults and choices made for the owner (no one to ask):** AUD2-055 by HOLDING the range date (the finding's second
+  option; the first, "move by the nearest working week's distance", does not round-trip). AUD2-071 by counting
+  CALENDAR days not in a hiatus (the finding said "weeks x 5 working days, as the Days unit does": that would move a
+  weekend snap-off start's end by a day with no hiatus anywhere; this changes nothing a hiatus does not touch). AUD2-072:
+  the note uses the first drawn day for every room (as the task and the phase-edge notes do), so a snap-off room typed
+  on a Saturday or Sunday now opens on its Monday; the HEADER moves only for a paused start (least change: a snap-off
+  Wednesday still prints its Monday, as before). AUD2-073: the finding's first option.
+- **Seen, not changed:** the ripple's readout compares TYPED starts, so a phase typed inside a break that the ripple
+  pulls reads "Pushed 1 wk" (12/23 -> 12/28) although its work moved a week earlier. Pre-existing for any start typed
+  inside a break (a snapped 12/21 -> 12/28 reads the same); not this item's.
+- **Save format** unchanged; nothing frozen touched (`render()`'s meta line, both writers, `renderMonthView` read the
+  segment and notes as before).
+- **Proof:** four new legs, wired into `gate.sh` beside `autonotefollow` (the second audit's block): `rangeheld` 6/6,
+  `snapoffbreak` 11/11, `wropensbreak` 8/8, `unlinkrange` 5/5. Red on the build before: rangeheld R1, R2, C2;
+  snapoffbreak S1-S5, X1; wropensbreak W1-W6; unlinkrange C2. snapoffbreak R1 and P1 were red on a mutant without
+  `workStart` and with the old `rippleNormaliseInside`. Nearest legs, all green on the final build (port 8881, one at a
+  time): autonotefollow g=a/c/e/g 24/24, autonotekinds 16, phasekeys 18, hiatusripple 19, phasearrows 26,
+  phasearrowsripple 10, shiftheld 13, calrange 18, snapoff x3, autonotephases 27, autonote 9, hidewf 19, stalebandkey 9,
+  mvdragcarry 15, phasenotes 21, phaselink 14, phasemonth 21, phaselook 10, buildaround 36, anchorside 39, rebuildticks
+  20, buildalongside 8, endsdate 17, prodends 14, snaptools 14, autonoterename 24, autonoteview 18, wfnoteeditor 14,
+  noteviews 15, wfnotecolors 14, datepick 17, phiatuspick 12, simpostdays 14, comparehiatus 8, customunits x2,
+  phaseedge 23, hdrtemplate 25 (the gate's own judge), holidayenable 8. (autonotephases, autonote, hidewf, stalebandkey,
+  mvdragcarry and snapoff ran on the build before the last `rippleNormaliseInside` edit; they run with the ripple off.)
+  Gates 1-5, 10 and 13 run by hand (gate.sh's own sections, port 8881): 336 PASS, 0 FAIL: the reference waterfall PDF
+  and every Excel part unchanged, 0 clipped cells, the v1.0.0 restore and fields.byId identical, the month print
+  document on 11 calendars and the written month PDF on all 24 runs byte-identical to their baselines. `npm run check`
+  42/42. Not run: the full gate.
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
 - **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
   release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both
