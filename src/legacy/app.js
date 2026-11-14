@@ -26913,10 +26913,24 @@ export function initLegacyApp() {
   //   milestones come back), their colours and sizes. The Month view shows the same notes, so they
   //   reset there too.
   //   Month: the month's OWN notes only -- day notes, their legacy colours, the extra lanes.
+  // ⭐ THE NOTES LINKED TO A PHASE GO BY THE VIEW THEY SHOW IN (audit AUD2-070, item 3.5, 14 Nov 2026). D8 of
+  // PHASE-LINKED-NOTES-PLAN.md (5 Nov 2026) sent every linked note to the waterfall's reset, when every linked note was
+  // a waterfall note. Since R10(a) (10 Nov) a note linked from the MONTH view starts sheetHidden and shows there only,
+  // and the reset split by view the next day, so D8 had the waterfall's reset delete notes the waterfall never showed
+  // (nothing changed on screen, so nobody had a reason to Undo) and the month's leave them on the calendar. Each reset
+  // now clears the linked notes its own view shows: sheetHidden === true is the month's, any other the waterfall's
+  // (one hidden from the month view, monthHidden, is still the waterfall's, as before). Fresh objects, never a
+  // mutation: an undo step may still hold the old one.
+  function linkedNoteIsMonths(v){ return !!v && v.sheetHidden === true; }
+  function keepLinkedNotes(keep){
+    const out = {};
+    Object.keys(phaseNotes).forEach(k=>{ if(keep(phaseNotes[k])) out[k] = phaseNotes[k]; });
+    return out;
+  }
   function resetWaterfallNotes(){
     if(activeNoteEditor){ closeNoteEditorPop(); activeNoteEditor = null; }
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
-    phaseNotes = {};         // ...and the notes linked to a phase, which are waterfall notes too (PHASE-LINKED-NOTES-PLAN.md D8)
+    phaseNotes = keepLinkedNotes(linkedNoteIsMonths);   // ...and the linked notes the waterfall shows (AUD2-070 above)
     noteColors = {}; noteFontSize = {};
     textStyle.note = {};     // their text styles too, as their colours and sizes (TEXT-STYLE-BAR-PLAN.md §2)
     render(currentSchedule);
@@ -26925,6 +26939,7 @@ export function initLegacyApp() {
   function resetMonthNotes(){
     if(activeMvNote) closeMvNoteEditor();
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
+    phaseNotes = keepLinkedNotes(v=> !linkedNoteIsMonths(v));   // ...and the linked notes shown in the month view only (AUD2-070)
     dayNoteColors = {}; mvExtraLanes = {};
     mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
     mvTextStyle.wfnote = {};   // ...and their month styles; a day note's own style went with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
@@ -26944,12 +26959,69 @@ export function initLegacyApp() {
     mvTextStyle.band = {};   // the month view's band styles too (MONTH-TEXT-STYLE-PLAN.md §3.5)
     update();
   }
+  // ⭐ BOTH NOTES RESETS ASK FIRST (audit AUD2-054, item 3.5, 14 Nov 2026). The button sits in the app header beside
+  // Export PDF, and one press cleared every note at once with no word, while New, Load, Delete scenario and Reset
+  // holidays all ask; autosave then wrote the wiped calendar ten minutes later. "Kept as today, not asked" was a
+  // session's call, never a ruling. Now: the question (uiConfirm, danger style, as Reset holidays) names how many
+  // notes go, and is SKIPPED when there is nothing to clear, when the press does nothing at all: no render and no
+  // unsaved flag (a press on an empty calendar used to mark the file "Unsaved changes"). Undo still brings a reset
+  // back in one step. The hiatus bands' reset is not part of this and still runs at once.
+  // How many waterfall notes go back to automatic: each week holding anything of its own (typed text, a cleared
+  // automatic note from an older file, a colour, a size, a text style), plus each linked note the waterfall shows.
+  function waterfallNotesToReset(){
+    const weeks = new Set();
+    [userNotes, noteColors, noteFontSize, textStyle.note].forEach(o=> Object.keys(o || {}).forEach(k=> weeks.add(k)));
+    return weeks.size + Object.keys(phaseNotes).filter(k=> phaseNotes[k] && !linkedNoteIsMonths(phaseNotes[k])).length;
+  }
+  // The month's: the notes it DELETES (each day note with text, each month-only linked note), the notes whose month
+  // colour or place goes back to automatic (a holiday's, an automatic note's, a waterfall line's), and whether it would
+  // clear anything at all. What is left over (an extra row in a week, a key a delete left, a legacy colour) is cleared
+  // without a question, as before: nothing anyone typed goes with it, and nothing to name in plain words.
+  function monthNotesToReset(){
+    let added = 0;
+    Object.keys(dayNotes).forEach(iso=>{ added += dayNoteList(iso).filter(nt=> nt && String(nt.text || '').trim()).length; });
+    added += Object.keys(phaseNotes).filter(k=> linkedNoteIsMonths(phaseNotes[k])).length;
+    const lines = new Set(Object.keys(mvWfNotePlace).concat(Object.keys(mvTextStyle.wfnote || {})));
+    const restyled = lines.size + Object.keys(holidayColors).length + Object.keys(autoNoteColors).length;
+    const any = added > 0 || restyled > 0 || [dayNotes, dayNoteColors, mvExtraLanes].some(o=> Object.keys(o).length > 0);
+    return {added, restyled, any};
+  }
+  function plural(n, one, many){ return n + ' ' + (n === 1 ? one : many); }
+  async function askResetWaterfallNotes(){
+    const n = waterfallNotesToReset(), them = n === 1 ? 'it' : 'them';
+    if(!n) return false;
+    if(!(await uiConfirm('Reset ' + plural(n, 'waterfall note', 'waterfall notes') + ' to automatic text, colour and size? '
+                         + 'This clears ' + them + ' in the Month view too. Undo brings ' + them + ' back.',
+                         { title: 'Reset Waterfall Notes', confirmLabel: 'Reset', danger: true }))) return false;
+    resetWaterfallNotes();
+    return true;
+  }
+  async function askResetMonthNotes(){
+    const m = monthNotesToReset();
+    if(!m.any) return false;
+    if(m.added || m.restyled){
+      const msg = m.added
+        ? 'Delete ' + plural(m.added, 'note', 'notes') + ' added in the Month view?'
+          + (m.restyled ? ' The other notes there go back to their automatic colours and places.' : '')
+          + ' Waterfall notes stay. Undo brings ' + (m.added === 1 && !m.restyled ? 'it' : 'them') + ' back.'
+        : 'Return ' + plural(m.restyled, 'note', 'notes') + ' in the Month view to automatic colours and places? '
+          + 'Nothing is deleted. Undo brings them back.';
+      if(!(await uiConfirm(msg, { title: 'Reset Month Notes', confirmLabel: 'Reset', danger: true }))) return false;
+    }
+    resetMonthNotes();
+    return true;
+  }
   document.addEventListener('click', e=>{
     const t = e.target.closest && e.target.closest('#tb-notes-reset-btn, #hiatus-reset-btn');
     if(!t) return;
-    if(t.id === 'hiatus-reset-btn') resetHiatusBands();
-    else if(viewMode === 'month') resetMonthNotes();
-    else resetWaterfallNotes();
+    if(t.id === 'hiatus-reset-btn'){ resetHiatusBands(); return; }
+    // An open note editor is SAVED first, as any click away saves it, so the count is what is on the calendar and a
+    // Cancel keeps what was typed. (The waterfall editor's own click-away listener has already run by now; the month
+    // editor's runs after this one, so it is done here.) A Reset then clears it with the rest, as before.
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    if(viewMode === 'month') askResetMonthNotes();
+    else askResetWaterfallNotes();
   });
 
   // "5 Shooting Blocks" / "1 Shooting Block" -- r1's Blocks-mode half (ruling 6). '' without a count.

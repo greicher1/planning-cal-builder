@@ -450,11 +450,15 @@ window.addEventListener('load', function () { (async function () {
         !!k1 && k1.fs === '11px' && k1.i === 'italic' && !!k1c && k1c.c === 'rgb(255, 255, 0)', {phase: k1, band: k1c}, 'still styled');
       el('undo-btn').click(); await settle();
       await goTo('July 2026');
-      el('tb-notes-reset-btn').click(); await settle();
+      el('tb-notes-reset-btn').click();
+      // It asks first since 14 Nov 2026 (audit AUD2-054): answered Reset (the notesreset leg holds the question).
+      for(var k2g = 0; k2g < 30 && !/Reset Month Notes/.test(T.modalText()); k2g++) await T.sleep(100);
+      var k2asked = T.modalText();
+      T.clickModalButton('Reset'); await settle();
       var k2t = JSON.parse(await saveText());
       add('K2', 'Reset Month Notes clears the waterfall notes\' month styles and the day notes (and their `fmt`), and nothing else',
-        !(k2t.mvTextStyles || {}).wfnote && !(k2t.dayNotes || {})['2026-07-08'] && !!(k2t.mvTextStyles || {}).phase && !!(k2t.mvTextStyles || {}).band,
-        {kinds: Object.keys(k2t.mvTextStyles || {})}, 'wfnote gone');
+        /Reset Month Notes/.test(k2asked) && !(k2t.mvTextStyles || {}).wfnote && !(k2t.dayNotes || {})['2026-07-08'] && !!(k2t.mvTextStyles || {}).phase && !!(k2t.mvTextStyles || {}).band,
+        {kinds: Object.keys(k2t.mvTextStyles || {}), asked: k2asked.slice(0, 80)}, 'wfnote gone');
       el('undo-btn').click(); await settle();
       // The last episode's bars (Ep. 210) styled, then the episode count lowered to 9: its style goes with it.
       var ep10 = null;
