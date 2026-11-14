@@ -7,6 +7,9 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh launchtemp 240
 //
+// L5b and L9 were added by the 14 Nov 2026 review: a shareable copy's strip carried the launched file's NAME in its
+// (hidden) text, and the strip's Save As ran while a Save was still writing. Both red on the reviewed build.
+//
 // Like launchopen, it replaces window.launchQueue before the engine boots (this script runs ahead of the deferred
 // module) with a fake that delivers launches exactly as Chrome does, and uses the in-memory IndexedDB. The handles are
 // fakes; one can vanish (NotFoundError), standing for the mail app emptying its folder. The OS Save dialog is
@@ -25,6 +28,7 @@ window.__T.memoryIDB();
       getFile: async function(){ if(h.gone) throw gone(); return new File([txt], name, {type: 'application/json', lastModified: mtime}); },
       createWritable: async function(){
         if(h.gone) throw gone();
+        if(h.hold) await h.hold;   // L9: a write held open, so a Save stays in flight
         var parts = [];
         return { write: async function(c){ parts.push(typeof c === 'string' ? c : await c.text()); },
                  close: async function(){ txt = parts.join(''); mtime = Math.max(Date.now(), mtime + 1000); h.writes.push(txt); } };
@@ -108,6 +112,12 @@ window.addEventListener('load', function () { (async function () {
     var tag = (html.match(/<div id="launch-notice"[^>]*>/) || [null])[0];
     add('L5', 'a shareable copy exported while the strip is up carries it hidden', !!tag && /\shidden(\s|>|=)/.test(tag) && strip().up,
       {tag: tag, stillUpHere: strip().up}, 'hidden in the file; still up here');
+    // L5b (the 14 Nov 2026 review): hidden is not enough, the strip's TEXT still named the file the sender double-clicked.
+    var copyDoc = new DOMParser().parseFromString(html, 'text/html');
+    var copyText = copyDoc.querySelector('#launch-notice .ln-text');
+    add('L5b', '...and with its text emptied: the copy never carries the name of the file the sender double-clicked',
+      !!copyText && copyText.textContent.trim() === '' && copyText.children.length === 0 && /Show A\.sptcal/.test(strip().text),
+      {copyText: copyText && copyText.innerHTML, hereText: strip().text}, 'empty in the file; still "Show A.sptcal" here');
 
     // ---- L6: Load... and New put it away -------------------------------------------------------------------------
     window.showOpenFilePicker = async function(){ return [window.__mkHandle('Loaded.sptcal', 'A')]; };
@@ -167,6 +177,28 @@ window.addEventListener('load', function () { (async function () {
     add('L8b', '...and Save As keeps the work, suggesting the lost file\'s name',
       pick.calls[pick.calls.length - 1].suggestedName === 'Purged.sptcal' && written(new TextDecoder().decode(pick.files[2].bytes)) === '11' && /^Saved/.test(status()),
       {suggested: pick.calls[pick.calls.length - 1].suggestedName, written: written(new TextDecoder().decode(pick.files[2].bytes)), status: status()}, 'Purged.sptcal; 11; Saved');
+
+    // ---- L9 (the 14 Nov 2026 review): the strip's Save As does nothing while a Save is in flight, as the toolbar's Save ---
+    await saveFree();
+    var hE = window.__mkHandle('Held.sptcal', 'B');
+    window.__launch([hE]);
+    await T.until(function(){ return label() === 'Held.sptcal' && strip().up; }, 'a fifth launch', 200, 100);
+    T.set('weeks-post', '10'); await T.sleep(800);
+    var release = null; hE.hold = new Promise(function(r){ release = r; });
+    var calls0 = pick.calls.length, files0 = pick.files.length;
+    byId('save-file-btn').click();                       // Save, held at the write: in flight
+    await T.sleep(400);
+    byId('launch-notice').querySelector('.ln-go').click();
+    await T.sleep(1200);
+    var mid9 = {pickerCalls: pick.calls.length - calls0, files: pick.files.length - files0, strip: strip().up, label: label()};
+    release();
+    await T.until(function(){ return hE.writes.length === 1; }, 'the held Save to finish', 200, 100);
+    await T.sleep(600);
+    add('L9', 'while a Save is in flight the strip\'s Save As does nothing: no picker, no second file; the Save then writes back as before',
+      mid9.pickerCalls === 0 && mid9.files === 0 && mid9.strip && written(hE.writes[0]) === '10' && pick.calls.length === calls0 && label() === 'Held.sptcal'
+        && !byId('launch-notice').querySelector('.ln-go').disabled,
+      {during: mid9, written: written(hE.writes[0]), pickerCallsAfter: pick.calls.length - calls0, label: label(), goDisabled: byId('launch-notice').querySelector('.ln-go').disabled},
+      'nothing during the Save; 10 written to Held.sptcal');
 
     var errs = T.appHealth().errors.filter(function(e){ return e.indexOf('warn:') !== 0; });
     add('E0', 'no console errors or exceptions (warnings are the expected diagnostics)', errs.length === 0, {errors: T.appHealth().errors.slice(0, 8)}, '[]');

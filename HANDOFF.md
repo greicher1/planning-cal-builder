@@ -44,6 +44,14 @@
   passed 25/25. Watch it in the full gate.
   ⚠️ `t/sharecopy.js` (NOT in the gate) is stale and red on any current build: it looks for the share item in the file
   menu, which moved to Export App With Data long ago. Not this item's.
+- **🩹 Repaired on review (14 Nov 2026), two defects:** (1) `buildSavedHtml`'s clone hid `#launch-notice` but kept its
+  `.ln-text`, so a shareable copy's markup still named the file the SENDER double-clicked; the clone now empties
+  `.ln-text` too (as it ships; `showLaunchNotice` rewrites it). (2) The strip's Save As ran while a Save was writing;
+  its click now returns on `saveInFlight` (the toolbar Save's guard; `saveInFlight` is declared later in the IIFE, read
+  only at click time). `launchtemp` gained L5b and L9 (a fake handle's `hold` keeps a Save in flight), both red on the
+  reviewed build, 14/14 after (two runs; one earlier run timed out at L7b's 20 s wait, the known load flake below,
+  and passed alone). `savegone` 14/14, `sharecopy2` pass, `cspproof` 15/15, `npm run check` 42/42 on the repaired
+  build. The README entry's case count (13) was wrong: 12 then, 14 now.
 - **Not verified:** a real double-click launch, a real mail app's attachment folder, Chrome's real permission prompt
   after a revoke, and whether the transient activation of the Save click survives to `requestPermission` after the
   stamp read (if not, it throws, and the Save As offer follows; the legs stub all of these).

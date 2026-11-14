@@ -49,12 +49,16 @@ The November 2026 audit, item 2.6 (AUD2-039, AUD2-017; both reproduced here on t
   extra dialog, as before. A strip now says so once per such load: *"<file> was opened from another app, and Save
   writes back to that copy. If it came from an email, that copy may be temporary: use Save As to keep your own."* with
   **Save As…** and ×. It goes when anything else is loaded, on New, or after any Save As. Chrome never tells a page
-  where a file is, so the strip cannot name the folder. A shareable copy exported while it shows carries it hidden.
+  where a file is, so the strip cannot name the folder. A shareable copy exported while it shows carries it hidden,
+  with its text emptied, so the copy never names the file the sender double-clicked. The strip's Save As does nothing
+  while a Save is still writing, as Save itself does (both repaired on review, 14 Nov 2026).
 - Nothing frozen, no saved-file change: the strip is buttons only, no new saved key.
 - **Proof:** new legs `savegone` (14 cases: autosave, Save's message, Recents, Cancel, Save As with the file's name, the
-  new file linked, permission asked once / refused, a gone recent, a locked recent) and `launchtemp` (13: the strip,
+  new file linked, permission asked once / refused, a gone recent, a locked recent) and `launchtemp` (14: the strip,
   no extra dialog on the first Save, ×, once per launch, the shareable copy, Load and New, the strip's Save As, the
-  purge then Save As), grown from the audit's repro legs. Red on the build before at `savegone` G1, G2 and
+  purge then Save As; this said 13 when it had 12, and the review of 14 Nov 2026 added L5b, the copy's strip text
+  emptied, and L9, the strip's Save As still while a Save writes, both red on the reviewed build), grown from the
+  audit's repro legs. Red on the build before at `savegone` G1, G2 and
   `launchtemp` L1; green now. Nearest legs green: `launchopen` 16, `loadfail` 6, `backuplink` 5, `backuplinkstale` 3,
   `backupslots` 5, `conflict` 9, `sharecopy2`, `showfolder` 7, `legacyparse` 7, `nofsa` 7, `filekeys` 16, `dlgkeys` 16,
   `hostile` 13, `lastedited` 22; `cspproof` 15/15; `npm run check` 42/42. Not verified: a real double-click launch, a

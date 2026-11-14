@@ -29803,6 +29803,9 @@ export function initLegacyApp() {
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     // #launch-notice (audit item 2.6) too: it names the file the SENDER double-clicked.
     clone.querySelectorAll('#legacy-notice, #launch-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
+    // ...and its text EMPTIED, as it ships (the 14 Nov 2026 review of item 2.6): hidden, the strip still carried that
+    // file's name in the copy's markup, for anyone who opens its source. showLaunchNotice() writes it afresh when needed.
+    clone.querySelectorAll('#launch-notice .ln-text').forEach(el=>{ el.textContent = ''; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -33573,7 +33576,9 @@ export function initLegacyApp() {
     el.querySelector('.ln-x').addEventListener('click', hideLaunchNotice);
     el.querySelector('.ln-go').addEventListener('click', async ()=>{
       const btn = el.querySelector('.ln-go');
-      if(btn.disabled) return;
+      // Nothing while a Save is writing (saveInFlight, the toolbar Save's own guard; the 14 Nov 2026 review): a Save As
+      // then would race that write and relink the calendar under it.
+      if(saveInFlight || btn.disabled) return;
       btn.disabled = true;
       try {
         const r = await saveAsFile(launchNoticeHandle ? sptcalName(launchNoticeHandle.name) : undefined);

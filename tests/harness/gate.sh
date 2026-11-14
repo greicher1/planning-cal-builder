@@ -2118,7 +2118,9 @@ done
 # recent is taken off the list, a locked one is not (R1-R3). One 10-minute autosave tick, fast-forwarded. launchtemp: a
 # double-clicked (launchQueue) calendar raises the "opened from another app" strip once per load, the first Save still
 # writes back with no dialog, the strip goes on x / Load / New / Save As and travels hidden in a shareable copy, and a
-# purged attachment gets Save's Save As. Red on 2089aa5 at savegone G1 G2 and launchtemp L1.
+# purged attachment gets Save's Save As. Red on 2089aa5 at savegone G1 G2 and launchtemp L1. The review (14 Nov 2026)
+# added launchtemp L5b (the copy's strip text is emptied, so it never names the sender's file) and L9 (the strip's Save
+# As does nothing while a Save is in flight), both red on the reviewed build.
 # hoverexpand (owner, 6-10 Nov 2026: "draw a square around them on hover and ask Expand?", "It also needs the reverse to
 # unexpand"; FILL-INTENT-PLAN.md §11) rests a real pointermove on hover-expand.sptcal's blanks: one dashed box over the
 # run, "Expand?" in its centre, the click widening THOSE weeks only (the owner's "it also expanded test wk 1": Test wk 1
