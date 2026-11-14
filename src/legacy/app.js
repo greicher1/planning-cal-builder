@@ -28727,7 +28727,26 @@ export function initLegacyApp() {
     refreshEpisodesUI();
     // The new view's zoom BEFORE its render, so the render measures the box it will be drawn in.
     applyCalZoom();
-    update();
+    // ⛔ A VIEW SWITCH IS NOT AN UNSAVED CHANGE (the Nov 2026 audit's item 2.9, AUD2-022; its default, approved by
+    // the owner: "switching views does not count as an unsaved change; the view is still saved with the next real
+    // save"). update() ends in markDirty(), and viewMode is a captureSnapshot() key, so a file opened only to look at
+    // (or export) the other view read "Unsaved changes", armed the leave warning, and was rewritten by the 10-minute
+    // autosave with nobody having edited it. Excel does not mark a workbook changed for switching sheets, and paging
+    // months never did here. So on a CLEAN page the render runs under suppressDirty, as a Load's does: nothing is
+    // marked, and no crash backup or undo push is scheduled (the history leaves viewMode out anyway, undoStateJSON()).
+    // The Date Last Edited cannot move either (noteLastEdited() leaves viewMode out too). The view is still written by
+    // the next real Save, autosave or backup. ⚠️ So a calendar only switched to the other view and closed reopens in
+    // the view it was saved in: the price of the default, accepted with it.
+    // ⚠️ A page that already has unsaved work takes the old path on purpose: markDirty() re-arms the crash backup, so
+    // the recovery copy of that work records the view it was left in (undokeys X3).
+    // ⛔ Guarded HERE, not in markDirty() (which other work edits): every view switch comes through this function, the
+    // view buttons and the menus' "Show this week in the waterfall" / "Show this day in the month view" alike.
+    // Restored in `finally`, so a render that throws cannot leave dirty tracking off for the rest of the session (the
+    // hazard applyStateSnapshotAtomically() records). Leg viewclean.
+    const wasSuppressed = suppressDirty;
+    if(!isDirty) suppressDirty = true;
+    try { update(); }
+    finally { suppressDirty = wasSuppressed; }
   }
 
   // ⭐ CALENDAR ZOOM (owner, 20 Oct 2026: "a zoom in/zoom out slider in the bottom right corner of
