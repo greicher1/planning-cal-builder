@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — one bad saved preference no longer leaves a blank window; a backup is kept only while there is unsaved work (14 Nov 2026)
+
+The November audit's item 3.13: AUD2-078, and a shareable-copy hardening fix. Both on their audit defaults; no frozen
+code, no save-format change.
+
+- **What it was (AUD2-078).** Preferences (`sptcal.prefs`, on this computer) were checked only for being an object. A
+  header preset whose name was not text reached the Settings window's preset list, React threw while drawing it, and
+  with no error boundary the whole chrome unmounted: no header, no sidebar, no grid, on every launch, because the value
+  stays. Calendars were safe on disk but could not be opened.
+- **Now** each preference this build knows is held to the type it writes when it is read (`loadPrefs`), and a value of
+  another type is left out; a key it does not know is kept. A stored header preset needs a text id; a number name reads
+  as its digits and any other non-text name as "Unnamed preset"; a preset with no usable header, a second one under
+  the same id, or one using Default's id is left out. The next preference written repairs the store. And the chrome
+  has an error boundary: if it ever fails to draw, the window says "SPTCal could not start" with a **Reset
+  preferences** button (no id) that clears this computer's preferences and reloads, instead of going blank.
+- **A backup of unsaved work is kept only while there is some.** Loading another calendar over unsaved work (after
+  "Your unsaved changes will be lost") now deletes this window's backup, so the discarded calendar is no longer offered
+  back as "Recover unsaved work" at the next launch; and a window that closes with nothing unsaved deletes its own.
+  Unsaved work is still backed up, and kept through a close or a crash, as before.
+- **Proof:** two new legs, `prefsguard` (7 cases, all red on the build before: a 101-character blank window, React
+  error #31) and `sharecopyguard` (6 cases on a calendar opened as a shareable copy opens; C1 and C2 red before), both
+  in gate.sh. Kept green: prefs, hdrpreset, hdrfile, calzoom, hostile, settingswin, sharecopy2 and the backup and load
+  legs (HANDOFF lists them); `npm run check` 42/42. Not merged, not pushed: it waits for the release train's full gate.
+
 ### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
 
 The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes
