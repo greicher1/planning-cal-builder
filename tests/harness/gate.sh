@@ -2146,9 +2146,11 @@ done
 # (Production, a Days phase, episode prep; or the holiday is already off), is one list in date order, and marks the
 # holidays inside a phase that counts days with a strip in its colours ("Prod" when one row tall); a Production holiday
 # marked Work this day reads "Marked Working Day". Two runs: anchorside (Production) and customunits (Days phases).
+# hostile runs twice (13 Nov 2026, audit item 1.3): from xss-mixed, and from xss-proto, whose start is the shareable-copy
+# path for the xss-proto* files (S0). Both runs load every xss-* file through File > Load.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
-              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
+              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
