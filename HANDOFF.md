@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 13 Nov 2026: BUILD AROUND CARRIES A MOVED PHASE'S OWN BREAK; "ENDS BY" A SNAPPED SHOOT SEARCHES MONDAYS (audit AUD2-009, AUD2-010). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-2` (worktree `.claude/worktrees/audit-2-2`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.2; started on the owner's *"Yes, start both"*.
+- **AUD2-009:** `buildAround` wrote `start-<key>` only, so a moved phase's own hiatus and its `<week>|<key>` stores
+  stayed behind (Post carried past its own break lost it in the waterfall and the workbook and ended a week early).
+  Now every start the build writes goes through `placeBuilt`, and `carryBuilt` moves the phase's own hiatus and stores
+  by the weeks its start moved, through the card arrows' mover (`shiftCalendar`, `part` = the phases, `NUDGE_NO_WEEKS`,
+  `carryOnly`), inside the build's undo step and `asShootDayMove`. ⚠️ **Where it runs matters:** at the END of the
+  backward pass (no `update()` runs inside it, so the hiatus-name sync cannot claim the band's new weeks ahead of a
+  hand-typed label, which would then be dropped by `shiftKeyedMap`'s "arrivals yield"), and BEFORE each forward
+  recompute (the next phase chains off the real end, break counted). The solvers place a phase with its hiatus where it
+  will land: `startForWeeksEndingAtCarried`, `customStartEndingByCarried` (Days), Production's trials inside
+  `searchCarried` (`productionTrial` reads `buildCarrySearch`). A trial moves only the `phiatus-start-` fields;
+  `trialBuild` puts them back. `shiftCalendarDates` is CALLED, not changed (item 1.1 edits it on another branch).
+- **Default applied (owner-approved with the go-ahead):** typed week notes stay on their weeks, as documented; the
+  result line counts the ones inside the moved phases' old runs (`buildNotesStayed`): *"6 typed notes stayed on their
+  weeks."* Date-pinned notes count too. ⚠️ So every Build on a calendar with typed notes now ends with that sentence.
+- **AUD2-010:** with Snap to Mon on, "Production ends by" is `productionMondayEndingBy`: the latest Monday whose last
+  shoot day is on or before the date, walked back from the date's week like `productionStartEndingBy`. The day search
+  (`solveProductionEndsStart`) stays for snap off. 12/18/26 now gives 8/24/26 wrapping 12/16/26 (was 8/10 → 12/2). A
+  snapped pin now writes the MONDAY, never the first shoot day (a Labor Day start writes 9/7, not 9/8).
+- **Proof (build `894ae9f1…` sha1):** new legs `buildcarry` 17/17 (`tests/fixtures/buildcarry.sptcal` = the audit's
+  `audit-b2-mov.sptcal` + three Post-keyed stores; F1 adds a custom Days phase with its own break through the UI) and
+  `buildendsby` 21/21, both in `gate.sh`'s audit-fix list, red on `2089aa5` rebuilt (`0f0caf0d…`, the audited build:
+  buildcarry 6/17, A1-A5 B1 C1 C2 D1 D2 F1; buildendsby B0 B1). Nearest legs green: `buildaround` 36, `rebuildticks`
+  20, `buildalongside` 8, `buildaroundfresh` 5, `endsdate` 17, `prodends` 14, `phasenotes` 21, `phasearrows` 26,
+  `phasearrowsripple` 10, `shiftheld` 13, `paneldrag` 9, `anchorside` 39, `mvdragcarry` 15, `stalebandkey` 9,
+  `snaptools` 14, `overrides` 20, `datepick` 17, `hdrcontrols` 12, `stylebarplace` 14, `monthmap` ×3 20, `customunits`
+  and `builtindates` (both runs), `phaselink` 14; `npm run check` 42/42. A real Build on the fixture: 145–210 ms.
+  ⚠️ `phasenotes`' FIRST run in a long batch stalled (no result, wall-clock cap) while another session's legs ran; four
+  reruns alone gave 21/21 in 7 s each. Watch it in the full gate.
+- **Not verified:** an Ends-mode phase (or Production held by its wrap) with its own hiatus moved by Build Around was
+  not tried; a Days phase's "ends by" pin with its own hiatus has no case (its backward placement has, F1). No full gate.
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.
@@ -1390,11 +1422,14 @@
   - `buildAround(key, iso, {edge, before, after, leaveBefore, leaveAfter, trial})` runs `workBackwardsFrom` then
     `workForwardsFrom` from one pin under ONE `asShootDayMove` (nested, they defer). A side with nothing ticked is not
     run. `afterBlocked` = the pin has no length to end it with (Production, Show info unset).
-  - `pinStartEndingBy` ("ends by"): Production by `solveProductionEndsStart` (to the day), Days/Dates by
+  - `pinStartEndingBy` ("ends by"): Production by `solveProductionEndsStart` (to the day) — ⚠️ since 13 Nov 2026 only
+    with Snap to Mon OFF; snapped it is `productionMondayEndingBy` (whole Mondays, audit AUD2-010, see the 13 Nov
+    entry at the top) — Days/Dates by
     `customStartEndingBy(day after)`, Weeks by `startForWeeksEndingAt(mondayOf(date + 3 days))` (the Monday after the
-    last Friday on or before the date; snap off: the day after). The same landmark as Shift's ends by.
+    last Friday on or before the date; snap off: the day after). The same landmark as Shift's ends by. (Since 13 Nov
+    2026 each through its `…Carried` twin, which places a phase with its own hiatus where the build carries it.)
   - `trialBuild` (was `trialRebuild`) also writes the staged lengths into the fields for the trial and puts back
-    `weeks-` / `days-` with `start-` / `end-`. `saveTypedLengths` writes them for real with an `input` event (every
+    `weeks-` / `days-` with `start-` / `end-` (and, since 13 Nov 2026, `phiatus-start-`). `saveTypedLengths` writes them for real with an `input` event (every
     phase row binds that to `update()`), inside the tool's `asOneUndoStep`, before `buildAround`. `lengthFieldFor()`
     never returns Production's (R4) or a Dates phase's field.
   - The box: `solveDir` -1 / 0 / 1 (Before / Both / After, reset to Both on every opening), `solveTicks` the hand

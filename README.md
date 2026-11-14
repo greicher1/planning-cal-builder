@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
+
+The November 2026 audit, item 2.2 (AUD2-009, AUD2-010; both reproduced by a second agent, and again here before the
+fix).
+
+- **A phase's own hiatus now travels with it.** Build Around wrote each phase's start and nothing else, so a moved
+  phase's own break stayed on its old dates. Carried past it, the break vanished from the waterfall and the workbook and
+  the phase ended a week early, with nothing said (Post 2/15/27 with its 4/5/27 "Spring break", re-pinned behind a
+  shoot moved to 1/4/27: Post started 5/3/27, lost the break and ended 8/20/27 instead of 8/27/27). Now each phase the
+  build places takes its own break along by the weeks its start moved, with everything keyed to it: the band's label,
+  colour and size, its phase-cell text styles, its hand-widened cells and its column swaps. The same mover the phase
+  card's ▲ / ▼ use, in the build's one undo step. The solvers place a phase with its break where it will land, so a
+  phase built back from the next one ends where that one starts, and the phase after it starts from its real end.
+- **Typed notes stay on their weeks**, as documented (link a note to its phase to have it follow). The result line now
+  says how many: "6 typed notes stayed on their weeks."
+- **"Production ends by" with Snap to Mon on** (the default) now finds the latest Monday whose last shoot day is on or
+  before the date. It searched start days while every trial snapped to its Monday, and just before the Christmas break
+  it stopped two weeks short: ends by Fri 12/18/26 started the shoot 8/10/26 and wrapped it 12/2/26, where 8/24/26
+  wraps 12/16/26 (Shift's own "ends by" gives that). Snap off still lands to the day.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `buildcarry` (17 cases, on `tests/fixtures/buildcarry.sptcal`, the audit's fixture plus three
+  Post-keyed stores) and `buildendsby` (21 cases), both red on the audited build (`2089aa5`: buildcarry A1-A5, B1, C1,
+  C2, D1, D2, F1; buildendsby B0, B1) and green on this one; the nearest legs green (listed in HANDOFF.md); `npm run check`
+  42/42. Not yet through the full gate.
+
 ### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first

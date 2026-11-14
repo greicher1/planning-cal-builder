@@ -26,6 +26,8 @@
 //   D1-D3  Production given its own 1-week break 11/2/26 (four weeks in): pinned "ends by" 3/5/27 it wraps by then with
 //          the break kept four weeks in, and the next Monday would not (typed by hand, break moved with it); pinned Post
 //          6/7/27 places the shoot back with its break four weeks in, ending before Post
+//   F1     a custom DAYS phase with its own break, placed back from Localization 9/6/27: the latest working day from
+//          which its 6 days, the break carried with it, are done by then (Fri 8/20/27, break 8/23/27, to Fri 9/3/27)
 //   E0     no console errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -214,6 +216,28 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     add('D3', 'undo puts the shoot and its break back', val('start-production') === d0.start && val('phiatus-start-production') === d0.ph,
       {start: val('start-production'), ph: val('phiatus-start-production')}, d0);
+
+    // ===================== F: a custom DAYS phase with its own break, placed back from Localization =====================
+    T.closePops(); await T.sleep(150);
+    $('add-phase-btn').click(); await T.sleep(600);
+    var ck = qa('[id^="start-custom"]').map(function (e) { return e.id.slice(6); }).pop();
+    T.set('unit-' + ck, 'days'); await T.sleep(300);
+    T.set('days-' + ck, '6'); await T.sleep(300);
+    T.set('start-' + ck, '2027-06-03'); await T.sleep(400);
+    var cen = $('phiatus-en-' + ck); if(cen && !cen.checked){ cen.click(); await T.sleep(300); }
+    T.set('phiatus-start-' + ck, '2027-06-07'); await T.sleep(300);
+    T.set('phiatus-weeks-' + ck, '1'); await T.sleep(600); await settled();
+    var f0 = {key: ck, start: val('start-' + ck), ph: val('phiatus-start-' + ck), meta: txt($('unitmeta-' + ck))};
+    out.f0 = f0;
+    await pin('localization', 'start', '2027-09-06', true);
+    var prevC = rowDate(ck);
+    await build();
+    var f1 = {start: val('start-' + ck), ph: val('phiatus-start-' + ck), meta: txt($('unitmeta-' + ck)), band: run(ck).band, loc: val('start-localization'), prev: prevC};
+    out.f1 = f1;
+    add('F1', 'a Days phase (6 days, its own 1-week break the week after it starts) placed back from Localization 9/6/27: Fri 8/20/27, break 8/23/27, its sixth day Fri 9/3/27',
+      /Thu 6\/3\/27 → Thu 6\/17\/27/.test(f0.meta) && f1.loc === '2027-09-06' && f1.start === '2027-08-20' && f1.ph === '2027-08-23'
+        && f1.band.join() === '2027-08-23' && /6 working days · Fri 8\/20\/27 → Fri 9\/3\/27/.test(f1.meta) && prevC === mdy(f1.start),
+      {before: f0, after: f1}, 'start 2027-08-20, break 2027-08-23, Fri 8/20/27 → Fri 9/3/27, as previewed');
 
     add('E0', 'no console errors', T.appHealth().errors.length === 0, {errors: T.appHealth().errors, modal: T.modalText()}, 'none');
   } catch (e) { add('EX', 'the leg threw', false, String(e && e.stack || e).slice(0, 800), 'no exception'); }

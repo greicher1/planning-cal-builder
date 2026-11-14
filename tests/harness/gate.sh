@@ -1962,6 +1962,17 @@ done
 # so computeSchedule returns no `hiatuses`, and the backward pass must still count the default winter break
 # (hiatusRangesForSolve reads the rows). Writer's Rm 20 wks before Pre Prep 4/26/27 = 11/23/26; red (F1-F3) on the old
 # build, which gave 12/7/26 and ran the room two weeks into Pre Prep until a second Build.
+# buildcarry (audit AUD2-009, the Nov 2026 audit's item 2.2, 13 Nov 2026) is Build Around carrying each placed phase's
+# OWN hiatus and its "<week>|<key>" stores (band label, colour, phase-cell styles, hand-widened cells) by the weeks its
+# start moved, as Shift and the card arrows do, in the same undo step: Post keeps its break and its end (A1-A4),
+# Localization chains off Post's real end and the preview agrees (B1, B2), Post placed BACK from Localization is solved
+# with its break where it will land (C1, C2), and Production's own break holds through "ends by" and a backward
+# placement (D1, D2), and a custom Days phase with its own break is placed back the same way (F1). Typed notes stay on
+# their weeks and the line counts them (A5, the owner-approved default). Red on 2089aa5 at A1-A5 B1 C1 C2 D1 D2 F1. On
+# buildcarry.sptcal (the audit's audit-b2-mov.sptcal + three Post-keyed stores).
+# buildendsby (audit AUD2-010, same item) is Build Around's "Production ends by" with Snap to Mon on: the LATEST MONDAY
+# whose wrap is on or before the date. Red on 2089aa5 at B0 (12/18/26: 8/10/26 wrapping 12/2/26 for 8/24/26 wrapping
+# 12/16/26) and B1 (12/17/27), the two targets just before the Christmas break; snap off stays to the day (S0, S1).
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2198,6 +2209,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               anchorside:anchorside:400 \
               buildalongside:anchorside:200 \
               buildaroundfresh:-:120 \
+              buildcarry:buildcarry:600 \
+              buildendsby:-:900 \
               paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \
