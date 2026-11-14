@@ -27175,6 +27175,10 @@ export function initLegacyApp() {
     // costs a second computeSchedule() then and never again for that phase.
     if(noteMovedPhases(currentSchedule)) currentSchedule = computeSchedule(state);
     rememberPlacements(currentSchedule);
+    // ⭐ THE AUTOMATIC LINES IN A TYPED NOTES CELL FOLLOW THE CALENDAR (audit AUD2-001/002/003, D1 (a); followAutoNotes).
+    // HERE, before the column-swap gate and render(): both measure and draw the notes, so they must see the rebuilt text.
+    // A restore (every one raises suppressDirty) only takes its calendar's lines as the new baseline.
+    if(followSuppressed()) followRestored(currentSchedule); else followAutoNotes(currentSchedule, false);
     // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
     // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
     // update() is bound undebounced to the `input` event of every phase date/weeks field, so this is
@@ -31127,6 +31131,10 @@ export function initLegacyApp() {
 
   function markDirty(){
     if(suppressDirty) return;
+    // ⭐ Every edit ends here, so the typed notes follow what it changed (followAutoNotes): an edit that only repaints
+    // (a holiday's Waterfall or Month box, Toggle all) has no update() of its own. After update() this is a no-op. A
+    // note the edit changed is remembered as left, against the lines on screen now. Redrawn only when a note changed.
+    if(followAutoNotes(currentSchedule, true)) render(currentSchedule);
     isDirty = true;
     refreshSaveStatus();
     scheduleBackup();
@@ -31606,10 +31614,12 @@ export function initLegacyApp() {
   // day marks). One Ctrl+Z restores them with the dates: userNotes is in captureSnapshot(), and each
   // gesture's trailing push banks it.
   // ⚠️ Month-view DAY notes (dayNotes) are not touched. They belong to a date, as on every shift.
+  // ⛔ INERT SINCE 13 NOV 2026 (audit Batch 1 item 1.1; AUTONOTE-FOLLOW-PLAN.md §3.4, "one mechanism, not two"): every
+  // drag step's update() now runs followAutoNotes() (below), which does this job for every mover, recomputed from the
+  // note as the user left it. Kept live, this would put back its press copy AFTER that hook and win, re-keying the notes
+  // to fresh objects the hook no longer knows. The call sites stay (reapplyAutoNoteBaseline() treats null as nothing).
   function autoNoteBaseline(){
-    const stale = {};
-    Object.keys(userNotes).forEach(k=>{ stale[k] = weekAutoTexts(currentSchedule, k); });
-    return {notes: JSON.stringify(userNotes), stale};
+    return null;
   }
   // Call right after the gesture's update(). Re-renders only when the notes differ from what update()
   // just drew, so a drag over a calendar with no edited auto-note costs nothing. Returns whether it did.
@@ -31622,6 +31632,124 @@ export function initLegacyApp() {
     if(JSON.stringify(userNotes) === drawn) return false;
     render(currentSchedule);
     return true;
+  }
+
+  // ⭐ THE AUTOMATIC LINES IN A TYPED NOTES CELL FOLLOW THE CALENDAR (November 2026 audit, Batch 1 item 1.1: AUD2-001,
+  // AUD2-002, AUD2-003; the owner's decision D1 (a), 13 Nov 2026: "yes"). AUTONOTE-FOLLOW-PLAN.md's ruled hook (one hook
+  // in update(), rebuilt from a per-note memory; ruled 19 Oct 2026, never built), widened by D1 (a).
+  // A Notes cell the user types in stores its week's automatic and holiday lines as text, because the editor opens on
+  // them. That froze them: a milestone moved INTO a typed week was hidden by the text (AUD2-001), a line whose date or
+  // switch changed stayed printed (AUD2-002), and the movers re-dated a line only when the note OPENED with it (R5's
+  // rewriteMovedAutoNotes, AUD2-003). On screen, in Excel, in both PDFs and in the month view, with no warning.
+  // Now, after every edit, each typed note is rebuilt from the note AS THE USER LEFT IT, against the automatic lines its
+  // week showed THEN and the ones it shows NOW, matched by what each line IS (its kind, or its holiday), never by text:
+  //   - a line of the user's own stays as typed, where it is;
+  //   - an automatic line the week still shows is rewritten in its place (a new date, a new name);
+  //   - one that has left the week (moved, switched off, hidden from the waterfall, its holiday removed, another
+  //     Region) is taken out;
+  //   - one that has ARRIVED since (moved in, ticked into the waterfall, switched on) is added among the week's other
+  //     automatic lines in their order, else at the top, where the editor would have put it;
+  //   - one the user took out of the note while the week showed it stays out.
+  // ⭐ ALWAYS FROM THE NOTE AS LEFT, never chained one step to the next (the plan's §2): update() runs on every keystroke
+  // of a date, and those pass through other dates (06/30 typed over 06/29 passes 6/3). A start that leaves the week and
+  // comes back lands where it was, in its line's place.
+  // The memory is session only, never saved: a WeakMap keyed by the stored note OBJECT, so a Shift that re-keys
+  // userNotes (shiftKeyedMap keeps the objects) carries it with the note. It is forgotten on every restore (Load, Undo,
+  // recovery, a scenario switch, New: each runs update() under suppressDirty), so a Load rewrites nothing and a stale
+  // line a file was saved with stays as saved until the user edits that note.
+  // ⛔ No frozen code: every reader -- effectiveNoteText, the frozen renderer and writers, frozen notesForWaterfallDate's
+  // N1 / N2 -- reads userNotes as it always did, and that text is now right. No save-format change.
+  // ⚠️ var, not let/const: update() runs during the IIFE's evaluation, before these lines (the colKeep trap).
+  var followLive = null;   // weekIso -> {s, m}: each week's automatic lines [{id, text}], waterfall and month, at the last follow
+  var followMem = null;    // stored note object -> {orig, s, m, written}: the note as left, its week's lines then, our last write
+  function followLineId(n){ return n.holiday ? 'h:' + n.hid : (n.kind ? 'k:' + n.kind : 'l:' + (n.origLabel || n.label)); }
+  function followLiveLines(schedule){
+    const sch = wholeCalendar(schedule);
+    const weeks = (sch && sch.weeks) || [], by = (sch && sch.notesByIdx) || [];
+    const out = {};
+    weeks.forEach((w, i)=>{
+      const list = by[i];
+      if(!list || !list.length) return;
+      const row = n => ({id: followLineId(n), text: autoNoteLine(n)});
+      out[isoOf(w.date)] = {s: autoNotesForView(list, 'sheet').map(row), m: autoNotesForView(list, 'month').map(row)};
+    });
+    return out;
+  }
+  // The text of a note this follows: an object's own text. A legacy bare string or a {notes:[...]} list is left alone,
+  // as R5 leaves it.
+  function followNoteText(v){
+    return (v && typeof v === 'object' && !Array.isArray(v.notes) && typeof v.text === 'string') ? v.text : null;
+  }
+  function followUsable(sch){ return !!(sch && !sch.error && sch.weeks && sch.weeks.length); }
+  // Remember every typed note not yet remembered, or changed since this hook last wrote it, against `live`.
+  function followRemember(live){
+    if(!live) return;
+    if(!followMem) followMem = new WeakMap();
+    Object.keys(userNotes).forEach(k=>{
+      const v = userNotes[k];
+      if(followNoteText(v) === null) return;
+      const json = JSON.stringify(v), m = followMem.get(v);
+      if(m && m.written === json) return;
+      const base = live[k] || {s: [], m: []};
+      followMem.set(v, {orig: v.text, s: base.s, m: base.m, written: json});
+    });
+  }
+  // One note's text, rebuilt from its memory against its week's lines now (`cur`).
+  function followRebuild(mem, cur){
+    const wasSheet = new Set(mem.s.map(x => x.id)), used = new Set(), out = [];
+    const match = t => mem.s.find(x => x.text === t && !used.has(x.id)) || mem.m.find(x => x.text === t && !used.has(x.id));
+    String(mem.orig).split('\n').forEach(line=>{
+      const t = line.trim(), b = t ? match(t) : null;
+      if(!b){ out.push({line, id: null}); return; }   // the user's own line
+      used.add(b.id);
+      // Still in this week: shown in the waterfall now, or (a line an old month-view editor saved into the note, which
+      // frozen edit N1 never draws twice) month-only then and still in the month view.
+      const c = cur.s.find(x => x.id === b.id) || (!wasSheet.has(b.id) ? cur.m.find(x => x.id === b.id) : null);
+      if(c) out.push({line: c.text, id: b.id});
+    });
+    const at = id => out.findIndex(o => o.id === id);
+    cur.s.forEach((c, i)=>{
+      if(wasSheet.has(c.id) || at(c.id) >= 0 || out.some(o => o.line.trim() === c.text)) return;
+      let pos = -1;
+      for(let j = i - 1; j >= 0 && pos < 0; j--){ const p = at(cur.s[j].id); if(p >= 0) pos = p + 1; }
+      for(let j = i + 1; j < cur.s.length && pos < 0; j++){ const p = at(cur.s[j].id); if(p >= 0) pos = p; }
+      out.splice(pos < 0 ? 0 : pos, 0, {line: c.text, id: c.id});
+    });
+    return out.map(o => o.line).join('\n');
+  }
+  // The hook. `leftNow`: a note changed since the last follow was left against the lines on screen NOW (markDirty(),
+  // after an edit that moved nothing); otherwise against the lines of the last follow (update(), whose new schedule is
+  // not what the user was looking at). Returns whether a note changed.
+  function followAutoNotes(schedule, leftNow){
+    if(!followUsable(schedule)) return false;   // a date half typed (year 0002) changes nothing, and is not remembered
+    const cur = followLiveLines(schedule);
+    followRemember(leftNow || !followLive ? cur : followLive);
+    let changed = false;
+    Object.keys(userNotes).forEach(k=>{
+      const v = userNotes[k], mem = followNoteText(v) !== null ? followMem.get(v) : null;
+      if(!mem) return;
+      const now = cur[k] || {s: [], m: []}, next = followRebuild(mem, now);
+      if(next === v.text) return;
+      changed = true;
+      // Nothing left but the week's own automatic lines: back to plain automatic, saveNoteEdit's rule.
+      if(next.trim() === now.s.map(x => x.text).join('\n') && !v.date && !v.monthHidden){ delete userNotes[k]; return; }
+      const nv = Object.assign({}, v, {text: next});
+      userNotes[k] = nv;
+      followMem.set(nv, Object.assign({}, mem, {written: JSON.stringify(nv)}));
+    });
+    followLive = cur;
+    return changed;
+  }
+  // A restore REPLACES the calendar: forget every note, and take its lines as the new baseline. update() calls this
+  // under suppressDirty / applyingUndoRedo, which every restore path raises.
+  function followRestored(schedule){
+    followMem = null;
+    if(followUsable(schedule)) followLive = followLiveLines(schedule);
+  }
+  // update() runs during the IIFE's evaluation, before suppressDirty's and applyingUndoRedo's `let` lines: reading one
+  // then throws (its dead zone), and that early update() is the boot's own, a restore.
+  function followSuppressed(){
+    try { return !!(suppressDirty || applyingUndoRedo); } catch(e){ return true; }
   }
 
   // ---------- Day overrides travel BY SHOOT-DAY NUMBER (owner ruling R2; audit M-4) ----------
@@ -31964,6 +32092,10 @@ export function initLegacyApp() {
     // currentSchedule, which is still the PRE-shift schedule: nothing recomputes it until then.
     const staleAuto = {};
     Object.keys(userNotes).forEach(k=>{ if(!isPinnedWeek(k)) staleAuto[k] = weekAutoTexts(currentSchedule, k); });
+    // ...and the follow hook's memory of every note, taken on the weeks the notes are on NOW (a note loaded and never
+    // edited has none yet). It rides on the note objects, which the re-key below keeps, so after the move each note is
+    // rebuilt from its old week's lines against its new week's (followAutoNotes). R5 below then finds nothing to do.
+    followRemember(followLive || (followUsable(currentSchedule) ? followLiveLines(currentSchedule) : null));
     // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
     // rather than reassigned.
     const shiftedNotes = shiftKeyedMap(userNotes, move, isPinnedWeek, mergeNoteValues);
@@ -39436,7 +39568,16 @@ export function initLegacyApp() {
     if(typeof v === 'string') userNotes[wk] = swap(v);
     else if(v && typeof v === 'object'){
       if(Array.isArray(v.notes)) v.notes = v.notes.map(n => Object.assign({}, n, {text: swap(n.text)}));
-      else if(typeof v.text === 'string') v.text = swap(v.text);
+      else if(typeof v.text === 'string'){
+        // The follow hook's memory of this note is renamed with it, so the line is still known as that holiday's or
+        // note's (followAutoNotes). Re-remembered instead, it would read as the user's own text from here on.
+        const mem = followMem && followMem.get(v);
+        v.text = swap(v.text);
+        if(mem){
+          const ren = list => list.map(x => x.text === oldLine ? {id: x.id, text: newLine} : x);
+          followMem.set(v, {orig: swap(mem.orig), s: ren(mem.s), m: ren(mem.m), written: JSON.stringify(v)});
+        }
+      }
     }
     const oldKey = mvWfNoteKey(oldLine), newKey = mvWfNoteKey(newLine);
     if(oldKey !== newKey && MV_WFNOTE_KEY.test(newKey)){
