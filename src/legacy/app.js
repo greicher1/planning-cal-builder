@@ -5472,6 +5472,23 @@ export function initLegacyApp() {
       // extends the phase too (previously only hiatuses starting inside the range did).
       // A phase's OWN hiatus (phaseKey) pauses it the same way, so it too pushes the end out.
       const ownHi = phaseKey ? phaseHiatusRanges[phaseKey] : null;
+      // ⛔ A START OFF A MONDAY COUNTS DAYS (the second audit's AUD2-071, 14 Nov 2026). Every hiatus is whole
+      // Monday-to-Sunday weeks, so from a Monday each 7-day step below is wholly paused or wholly worked and the week
+      // walk is exact. From a snap-off Wednesday a step STRADDLES the break's first or last Monday, and testing only its
+      // first day counted it as all worked or all paused: Post 12/23 x 2 beside the 12/21 Christmas break ran to 1/19/27
+      // and drew three week cells in the grid and in Excel, 12/18 x 1 ended 12/24 inside the break, and 11/25 x 4 ended
+      // 12/22 having worked 18 of its 20 days. So: the phase's days, 7 per week, each day a hiatus covers skipped, and the
+      // end is the day after the last one counted. With no hiatus in the way that is exactly start + 7 x weeks, the old
+      // step's answer, so only a snap-off phase that meets a break moves (leg snapoffbreak). A Monday start keeps the walk.
+      if(start.getUTCDay() !== 1){
+        const paused = d => hiatuses.some(h => d >= h.start && d < h.end) || !!(ownHi && d >= ownHi.start && d < ownHi.end);
+        let left = weeksRequested * 7, day = start, guard = 0;
+        while(left > 0 && guard++ < 14000){
+          if(!paused(day)) left--;
+          day = addDays(day, 1);
+        }
+        return day;
+      }
       let delivered = 0, cur = start, safety = 0;
       while(delivered < weeksRequested && safety++ < 2000){
         const inHiatus = hiatuses.some(h => cur >= h.start && cur < h.end)
@@ -6120,8 +6137,20 @@ export function initLegacyApp() {
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     // Tagged with its phase, so autoNotesForView() leaves it out of the waterfall while that phase is hidden there
     // (PHASES-TAB-PLAN.md R4). Principal start and wrap are Production's, which can never be hidden.
+    // The first or last day the month view DRAWS a phase's bar, outside every hiatus (the phase-edge notes' rule, below).
+    const drawn = (s, from, step) => {
+      for(let d = from; d >= s.start && d < s.end; d = addDays(d, step))
+        if(segCoversDate(s, d) && !hiatuses.some(h=> d>=h.start && d<h.end) && !isPhaseHiatusDate(s, d)) return d;
+      return null;
+    };
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    if(wrSeg) addAutoNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
+    // ⛔ Dated on the room's FIRST DRAWN DAY (the second audit's AUD2-072, 14 Nov 2026), as each phase's Begins note is,
+    // never on seg.start. A room typed to start inside a hiatus is paused and works from the week after it; dated on its
+    // typed Monday the note sat on an all-phase hiatus row, which has no Notes cell, so it vanished from the waterfall,
+    // Excel and the waterfall PDF while the month view put it on a hiatus day. For a start on a weekday the room works
+    // (every snapped room outside a break) this is seg.start: same date, same week, same order. A snap-off room typed on
+    // a Saturday or Sunday opens on the Monday its bar starts, as its Begins note always has.
+    if(wrSeg) addAutoNote(drawn(wrSeg, wrSeg.start, 1) || wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens', phase:'writersRoom'});
     // Each phase's start and end (owner, 27 Oct 2026: "do the phase starts and ends. they should be disabled by
     // default"): the nine kinds in AUTO_NOTE_PHASE_EDGES, and each custom phase's pair (autoNoteEdgeDefs, 2 Nov
     // 2026). ⛔ OFF until ticked (autoNoteKindShown), so every
@@ -6133,11 +6162,6 @@ export function initLegacyApp() {
     // them with it (PHASES-TAB-PLAN.md R4). Added in date order, after the notes above, so a week holding two of
     // them lists them as they happen and no older note moves within its week.
     {
-      const drawn = (s, from, step) => {
-        for(let d = from; d >= s.start && d < s.end; d = addDays(d, step))
-          if(segCoversDate(s, d) && !hiatuses.some(h=> d>=h.start && d<h.end) && !isPhaseHiatusDate(s, d)) return d;
-        return null;
-      };
       const edges = [];
       autoNoteEdgeDefs().forEach(e=>{
         const s = segments.find(x=> x.key === e.phase);
@@ -17554,8 +17578,15 @@ export function initLegacyApp() {
   // The automatic notes the waterfall shows for a week, which is what decides whether a cleared note is stored
   // as an explicit clear (saveNoteEdit). One lookup for the note editor and for the keys, copy, paste and drag
   // (WATERFALL-KEYS-PLAN.md), so they can never disagree about what a week's automatic note is.
+  // ⛔ THE WHOLE CALENDAR, not the waterfall's rows (the second audit's AUD2-073, 14 Nov 2026). Under a calendar range (or a
+  // phase hidden in the waterfall) currentSchedule is the CUT row list, so a week cut away had no automatic notes here.
+  // A writer that builds a week's typed text on wfOwnNoteText(wk, sheetAutoNotesFor(wk)) then stored the bare text, and
+  // that typed note replaced the week's automatic lines everywhere: removing a custom phase whose linked note sat in a
+  // cut week (unlinkPhaseNotesOf) erased "Start Principal Photography" from the month view and the month PDF for good.
+  // The search is by week, and a week the waterfall shows holds the very same notes in both lists, so every visible week
+  // answers exactly as before (leg unlinkrange).
   function sheetAutoNotesFor(weekKey){
-    const sch = currentSchedule;
+    const sch = wholeCalendar(currentSchedule);
     if(!sch || !sch.notesByIdx || !sch.weeks) return [];
     const idx = sch.weeks.findIndex(w=>w.date.toISOString().slice(0,10)===weekKey);
     return idx>=0 ? autoNotesForView(sch.notesByIdx[idx]||[], 'sheet') : [];
@@ -26192,6 +26223,9 @@ export function initLegacyApp() {
   //   - The hiatuses that pause a phase: the all-phase ones (schedule.hiatuses) and its own (seg.phaseHiatus).
   //   - A Weeks phase steps 7 days, exactly as extendEndForHiatus() counts its delivered weeks -- the walk that sets
   //     seg.end, so .open and .close come from one rule. A snap-off Wednesday start stays a Wednesday.
+  //     ⚠️ Except a start OFF A MONDAY inside a hiatus (AUD2-071, 14 Nov 2026): extendEndForHiatus counts such a phase's
+  //     DAYS, so it works from the first day the break leaves, its Monday, and this steps a day at a time to it, as a
+  //     Dates phase does. Stepping 7 from a Wednesday named the Wednesday after, two days late.
   //   - A Dates phase keeps its typed dates and its days in a break are drawn blank (customUnitSpan, ruling 4): it
   //     steps a day at a time to the first weekday outside the break.
   //   - A segment with its own day list (a Days phase, Episodic Prep) already starts where it works, or is not a
@@ -26204,7 +26238,7 @@ export function initLegacyApp() {
     const own = seg.phaseHiatus;
     const paused = d => his.some(h => d >= h.start && d < h.end) || !!(own && d >= own.start && d < own.end);
     if(!paused(seg.start)) return seg.start;
-    const byDay = seg.unit === 'dates';
+    const byDay = seg.unit === 'dates' || seg.start.getUTCDay() !== 1;
     let d = seg.start;
     for(let guard = 0; guard < 4000; guard++){
       d = addDays(d, byDay ? 1 : 7);
@@ -26213,6 +26247,19 @@ export function initLegacyApp() {
       if(!paused(d) && !(byDay && (dow === 0 || dow === 6))) return d;
     }
     return seg.start;
+  }
+  // The day the auto header's "Writer's Room Opens" line names: computeHeaderDefaults()'s c3 and the {writersRoom.line}
+  // token, which copies it. The TYPED start's Monday, as it always was, unless the room's start is inside a hiatus that
+  // pauses it (the second audit's AUD2-072, 14 Nov 2026): then the room's first worked day, phaseOpenDay's answer and the
+  // {writersRoom.open} token's, which is where the waterfall's wk 1 and the Opens note sit. A room typed 12/21/26 into
+  // the winter break read "Writer's Room Opens: 12.21.26", a day it is on hiatus. ⛔ Only a paused start moves, so every
+  // other calendar prints exactly what it printed before (a snap-off Wednesday start still names its Monday).
+  function wrHeaderOpenDay(schedule, raw){
+    const parsed = raw ? parseDateUTC(raw) : null;
+    if(!parsed) return null;
+    const seg = schedule && (schedule.segments || []).find(s=> s.key === 'writersRoom');
+    const open = seg ? phaseOpenDay(schedule, seg) : null;
+    return (open && open.getTime() !== seg.start.getTime()) ? open : mondayOf(parsed);
   }
 
   // Every value a token can carry, built ONCE per render and handed to headerLine() on the defaults
@@ -26324,12 +26371,13 @@ export function initLegacyApp() {
       : '';
     // ⚠️ Read from the FIELD, not from the segment, because that is what c3 does: the entered date
     // snapped to its Monday. Deriving it from the segment would be a different number the day a
-    // hiatus or a solver moves the phase, and this token's contract is "verbatim c3".
+    // hiatus or a solver moves the phase, and this token's contract is "verbatim c3". Both go through
+    // wrHeaderOpenDay(), so a start inside a hiatus names the first worked day in both (AUD2-072).
     const wrRaw = val('start-writersRoom');
     let wrLine = '';
     if(wrRaw){
-      const parsed = parseDateUTC(wrRaw);
-      if(parsed) wrLine = `Writer's Room Opens: ${fmtHeaderDate(hdrDate(mondayOf(parsed), false), 'dot')}`;
+      const open = wrHeaderOpenDay(schedule, wrRaw);
+      if(open) wrLine = `Writer's Room Opens: ${fmtHeaderDate(hdrDate(open, false), 'dot')}`;
     }
     t['writersRoom.line'] = wrLine;
 
@@ -26973,8 +27021,8 @@ export function initLegacyApp() {
     const wrStartRaw = document.getElementById('start-writersRoom') ? document.getElementById('start-writersRoom').value : '';
     let wrLine = '';
     if(wrStartRaw){
-      const parsed = parseDateUTC(wrStartRaw);
-      if(parsed){ const mon = mondayOf(parsed); wrLine = `Writer's Room Opens: ${mon.getUTCMonth()+1}.${mon.getUTCDate()}.${String(mon.getUTCFullYear()).slice(2)}`; }
+      const mon = wrHeaderOpenDay(schedule, wrStartRaw);
+      if(mon) wrLine = `Writer's Room Opens: ${mon.getUTCMonth()+1}.${mon.getUTCDate()}.${String(mon.getUTCFullYear()).slice(2)}`;
     }
     let r1='', r2='', r3='';
     // dayCountVal, not parseInt: a 4.5-day episode prints "4.5-Day Shooting Schedule" (half days,
@@ -31448,18 +31496,24 @@ export function initLegacyApp() {
   //   * A date INSIDE a held break counts from the week the break ends -- where a phase typed there really works
   //     from (the walk skips the break's weeks; rippleNormaliseInside's rule).
   //   * The weekday is kept: a snap-off Wednesday start lands on a Wednesday.
+  //     ⚠️ Except a phase START inside a held break (`workStart`, AUD2-071 / AUD2-055, 14 Nov 2026): it lands on the
+  //     Monday. extendEndForHiatus counts a snap-off phase's days, so one typed Wed 12/23 into the Christmas break works
+  //     from Mon 1/4 (the week the break ends, from its first day); keeping the Wednesday moved its work 1 wk + 2 days
+  //     and +1 then -1 left it two days late. Every other date keeps its weekday (a Dates phase's END, a hiatus start),
+  //     and a snapped start is a Monday either way. The Shift form's list passes it too, so its preview agrees.
+  //     (The calendar range never comes here from inside a held break: it stays with the break, shiftCalendarDates 2b.)
   //   * Not for every mover: the Shift form, the toolbar arrows and (since 6 Nov 2026, HIATUS-RIPPLE-PLAN.md §12) the
   //     hiatus ripple opt in (`stepHeld`); the ripple's own hiatus is not an obstacle (`obstacles`, hiatusFatesFor).
   //     The phase card's ▲ / ▼ opt in too, but only while Ripple Hiatus is on (owner, 11 Nov 2026: "When ripple
   //     hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after the hiatus");
   //     with it off they move one calendar week, as built (PHASE-WEEK-ARROWS-PLAN.md).
-  function stepOverHeld(n, held){
+  function stepOverHeld(n, held, workStart){
     if(!held || !held.size) return d => addDays(d, n * 7);
     const isHeld = w => held.has(isoOf(w));
     const step = n > 0 ? 7 : -7;
     const cap = Math.abs(n) + held.size + 1;
     return d => {
-      const mon = mondayOf(d), off = Math.round((d - mon) / DAY_MS);
+      const mon = mondayOf(d), off = (workStart && isHeld(mon)) ? 0 : Math.round((d - mon) / DAY_MS);
       let w = mon, guard = 0;
       while(isHeld(w) && guard++ < cap) w = addDays(w, 7);
       for(let left = Math.abs(n); left > 0 && guard++ < cap * 2; ){ w = addDays(w, step); if(!isHeld(w)) left--; }
@@ -32030,6 +32084,8 @@ export function initLegacyApp() {
     const stepHeld = !!opts.stepHeld && !opts.carryOnly;
     // Where a date goes: `days` (a number) as always, or the step-over's mapping.
     const move = stepHeld ? stepOverHeld(n, hf.obstacles) : days;
+    // A phase START's own mapping: a start inside a held break lands on the Monday (stepOverHeld's `workStart`).
+    const startMove = stepHeld ? stepOverHeld(n, hf.obstacles, true) : days;
     // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
     const startsBefore = {};
 
@@ -32057,7 +32113,7 @@ export function initLegacyApp() {
         const from = parseDateUTC(startEl.value);
         // The step-over also hands setPhaseStart its mapping, for an Ends phase: its END goes N working weeks, which
         // is not the start's calendar distance when a held hiatus sits between them.
-        if(from && setPhaseStart(p.key, isoOf(moveDate(from, move)), stepHeld ? move : null)){ movedPhases++; startsBefore[p.key] = from; }
+        if(from && setPhaseStart(p.key, isoOf(moveDate(from, startMove)), stepHeld ? move : null)){ movedPhases++; startsBefore[p.key] = from; }
       }
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), move);
     });
@@ -32079,9 +32135,16 @@ export function initLegacyApp() {
     //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
     //     is on or after the cutoff (on a Shift form part move, inside its week window).
     //     Rebuild From never comes here, so it leaves them, as ruled.
+    //     ⛔ Under the step-over a range date on a HELD break's week stays with the break, as a note under a held band does
+    //     (step 3's onHeldBand), never pushed out of it (the second audit's AUD2-055, 14 Nov 2026). A calendar-year range
+    //     ends 12/31, inside the locked Christmas break: stepOverHeld counts a date there from the week the break ends,
+    //     which is right for a phase typed there (it works from that week) but not for a range edge. +1 wk took the end
+    //     to 1/14/27 and -1 wk brought it back only to 1/7/27, so the waterfall, Excel and both PDFs gained the week of
+    //     1/4/27. Held, +N then -N is exactly where it was. A range date anywhere else moves N working weeks, as before.
+    const rangeOnHeldBand = iso => { const d = parseDateUTC(iso); return !!d && hf.obstacles.has(isoOf(mondayOf(d))); };
     ['cal-range-start', 'cal-range-end'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, move);
+      if(el && el.value && inRange(el.value) && !(stepHeld && rangeOnHeldBand(el.value))) shiftDateFieldValue(el, move);
     });
 
     // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
@@ -32297,7 +32360,10 @@ export function initLegacyApp() {
     return out;
   }
   // §3.3: a phase that STARTS INSIDE the old hiatus really starts the week it ends (the walk skips the hiatus weeks),
-  // so it is moved there first, keeping its weekday. Without this, taking the hiatus out pulls it too far: a break in
+  // so it is moved there first, to that week's MONDAY. ⚠️ It kept its weekday until 14 Nov 2026; since AUD2-071 a
+  // snap-off phase counts its days and works from the first day the break leaves, its Monday, so a Wednesday kept would
+  // pull it two days late (stepOverHeld's `workStart`, the same rule). A Monday start lands where it always did.
+  // Without this, taking the hiatus out pulls it too far: a break in
   // weeks 10-11 and a phase typed into week 11 (working from week 12) would land in week 9 instead of week 10. An
   // all-phase hiatus only: a phase's own hiatus pauses nothing but its owner, which is held. Not an Ends phase (its
   // start is solved from its end), Production held by its wrap, or a Dates phase (its end is typed).
@@ -32309,9 +32375,7 @@ export function initLegacyApp() {
       if(!d || mondayOf(d) < old.start || mondayOf(d) >= end) return;
       if(phaseEndsOn(p.key) || customPhaseUnit(p.key) === 'dates') return;
       if(p.key === 'production' && productionEnds !== null) return;
-      let to = d;
-      while(to < end) to = addDays(to, 7);
-      setPhaseStart(p.key, isoOf(to));
+      setPhaseStart(p.key, isoOf(end));
     });
   }
   const rippleWks = n=> n + (n === 1 ? ' wk' : ' wks');
@@ -34591,7 +34655,7 @@ export function initLegacyApp() {
       const whole = toDate && key === ANCHOR_ALL;
       const n = toDate ? anchorDeltaNow() : 0;
       // Where each ticked phase lands: the move's own step-over, so a phase crossing a held break shows its real date.
-      const step = n ? stepOverHeld(n, heldForMove()) : null;
+      const step = n ? stepOverHeld(n, heldForMove(), true) : null;
       const rows = shiftRows();
       const mark = shiftMarkKey();
       const html = rows.map(r => {
