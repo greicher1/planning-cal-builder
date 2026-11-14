@@ -269,13 +269,15 @@ export function initLegacyApp() {
   //   colKeep[phaseKey] = the phase whose column it continued in the layout BEFORE it was first moved, '' when it had
   //   opened a column of its own (rule 5), or COL_KEEP_LANE when it had continued the Sim Post lane. Never a column
   //   number: `col` is handed out in start order and shifts with every date edit (the colFollow / swap-store trap).
-  //   - K1: only the phases the user MOVES. update() compares each phase's dates with the schedule before the edit and
-  //     sets the entry for a phase whose start or end changed, from the previous layout's relationships (colRel), and
-  //     only while it has none: the first remembered column is the one it keeps (K2 needs that).
+  //   - K1: only the phases the user MOVES. update() compares each phase's given start with the schedule before the
+  //     edit and sets the entry when exactly ONE phase's start changed (its arrows, a drag, a re-typed start; since audit
+  //     AUD2-057, 14 Nov 2026: never a length, a break, or a Shift that moves several), from the previous layout's
+  //     relationships (colRel), and only while it has none: the first remembered column is the one it keeps (K2).
   //   - K2: an entry that can't apply (the predecessor still running, or not on the calendar) leaves the phase to the
   //     rules and is KEPT, so nudging it back brings it home (colFollow's "a choice that can't apply is kept").
   //   - K3: kept beats the rules for that phase, rule 2's four-week gap and R-D included. Everything never moved is
-  //     placed by the rules, with one reservation (placeSegmentsByRules).
+  //     placed by the rules, with one reservation (placeSegmentsByRules). K5 / rule 23: any remembered column, its own
+  //     or a predecessor's, gives way when keeping it costs a column (since audit AUD2-057; its own only, before).
   //   - K4: no marker on screen. Reset Columns clears every entry with the other column choices.
   //   - ⛔ Written ONLY by noteMovedPhases() from update(), never in a trial (computeSchedule runs inside the swap gate,
   //     followRunFor, the year shapes and Production's backward search; the placement only READS this), and never on a
@@ -287,7 +289,8 @@ export function initLegacyApp() {
   let colKeep = {};
   const COL_KEEP_LANE = 'simPostLane';   // the value for "it continued the Sim Post lane": no phase key can be this
   let colKeepRestored = false;           // set by a restore / New; the next update() compares nothing
-  let colKeepBase = new Map();           // phase key -> {start, end, rel} where the layout last placed it (noteMovedPhases)
+  let colKeepQuiet = 0;                  // > 0 while the hiatus ripple pushes phases: a break is not a move (noteMovedPhases)
+  let colKeepBase = new Map();           // phase key -> {start, end, entered, rel} where the layout last placed it (noteMovedPhases)
   // ⭐ `colReuse` IS THE LAYOUT STAMP (LAYOUT-RULES.md §4, owner, 5 Nov 2026): a calendar carrying it lays out by
   // the layout rules -- placement (placeSegmentsByRules) and widths (computePhaseRowLayout's stamped branch); a
   // calendar without it keeps the placement and the widths it has today, byte for byte, forever. Read only through
@@ -5128,7 +5131,9 @@ export function initLegacyApp() {
   //      tried with the rest placed by the rules, and the one leaving the fewest columns (summed over the year blocks)
   //      is kept; a tie keeps the rules' pick, so a calendar they already lay out in the fewest columns is unchanged.
   //      A moved phase's column of its OWN (colKeep '') is one of those choices too: kept unless the rules' column
-  //      saves one (owner, 9 Nov 2026, "Give way"). See the pass at the end of this function.
+  //      saves one (owner, 9 Nov 2026, "Give way"). See the pass at the end of this function. And since 14 Nov 2026
+  //      (audit AUD2-057) EVERY remembered column, a predecessor's or the lane too, is ignored for a layout when
+  //      ignoring it leaves fewer columns (the give-way trial after the pass).
   //
   // Returns { moves, lane, rel, cost } -- moves as the reuse placement returned them ({ phaseKey: {ok, follows, reason?,
   // blocker?} } for every phase moved by hand, read by reflectColMoveNotes and followRunFor), lane = the lane's
@@ -5147,7 +5152,9 @@ export function initLegacyApp() {
     const cmpKey = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
     // One placement of every phase. `forced` (seg -> column, -1 = a new one) overrides the rules' pick at a choice; when
     // `points` is given, every choice the rules made unforced is recorded there in placement order (rule 23 below).
-    const pass = (forced, points) => {
+    // `drop` (a Set of phase keys) is the remembered columns this placement ignores, as if never remembered: the
+    // give-way at the end of this function tries them.
+    const pass = (forced, points, drop) => {
     // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment, occ: its occupants
     //             [{t: first row, y0, y1, first, end, seg, marker}] }
     const cols = [];
@@ -5157,7 +5164,7 @@ export function initLegacyApp() {
     let lane = null;
     // 10b. Kept phases (colKeep). keepOf: the entry, or undefined. keptCol: the column a non-empty entry names as things
     // stand -- its predecessor's column, or the lane -- or -1 while that is not placed.
-    const keepOf = s => (Object.prototype.hasOwnProperty.call(colKeep, s.key) && colKeep[s.key] !== s.key) ? colKeep[s.key] : undefined;
+    const keepOf = s => (Object.prototype.hasOwnProperty.call(colKeep, s.key) && colKeep[s.key] !== s.key && !drop.has(s.key)) ? colKeep[s.key] : undefined;
     const keptCol = tok => {
       if(tok === COL_KEEP_LANE) return lane ? lane.col : -1;
       const x = placed.get(tok);
@@ -5349,28 +5356,54 @@ export function initLegacyApp() {
     // by the rules, and the one that leaves the fewest columns is kept; a TIE KEEPS THE RULES' OWN PICK, so a calendar
     // where they already use the fewest is placed byte for byte as before (measured: all 15 pictures, every engine dump
     // identical). Choices only: a hand move (colFollow) and a remembered predecessor (colKeep) are not choices -- a
-    // remembered column of its own IS one since 9 Nov 2026 (the give-way above) -- and R-D still bounds
+    // remembered column of its own IS one since 9 Nov 2026 (the give-way above), and every memory is tried whole below
+    // since 14 Nov 2026 -- and R-D still bounds
     // what is allowed. Known consequences, both accepted: Post may leave the lane when that saves a column (layout-r21:
     // Post under Production, Localization later in the lane column), and a phase nobody moved can change column when
     // another moves far enough that the saving goes away (the twin: Casting slid into the shoot, three columns either
     // way, Prod Prep back in Pre-Prep's). Cost: one placement per allowed column at each choice, a few dozen at most;
     // computeSchedule runs this in its trials too (Production's backward search), which stays well inside a frame.
-    const forced = new Map();
-    for(let guard = 0; guard < 256; guard++){
-      const pts = [];
-      const run = pass(forced, pts);
-      const pt = pts[0];                       // the first choice still open, in placement order
-      if(!pt) return run;
-      let best = pt.g, bestCost = run.cost;    // the rules' own pick, everything after it by the rules
-      pt.cands.forEach(c => {
-        if(c === pt.g) return;
-        const f = new Map(forced); f.set(pt.seg, c);
-        const r = pass(f, null);
-        if(r.cost < bestCost){ bestCost = r.cost; best = c; }
-      });
-      forced.set(pt.seg, best);
-    }
-    return pass(forced, null);
+    const fewest = drop => {
+      const forced = new Map();
+      for(let guard = 0; guard < 256; guard++){
+        const pts = [];
+        const run = pass(forced, pts, drop);
+        const pt = pts[0];                       // the first choice still open, in placement order
+        if(!pt) return run;
+        let best = pt.g, bestCost = run.cost;    // the rules' own pick, everything after it by the rules
+        pt.cands.forEach(c => {
+          if(c === pt.g) return;
+          const f = new Map(forced); f.set(pt.seg, c);
+          const r = pass(f, null, drop);
+          if(r.cost < bestCost){ bestCost = r.cost; best = c; }
+        });
+        forced.set(pt.seg, best);
+      }
+      return pass(forced, null, drop);
+    };
+    // ⭐ EVERY REMEMBERED COLUMN GIVES WAY WHEN IT COSTS A COLUMN (audit AUD2-057, 14 Nov 2026; the owner's "Give way",
+    // K5, and rule 23's "We should always prioritize as few collumns as possible"). Until then only a column of a moved
+    // phase's OWN gave way (the choice above); a remembered PREDECESSOR (or the lane) always won, and with the
+    // reservation it holds for itself it could keep a whole extra column in a year: a calendar typed into the app
+    // remembered nearly every phase (noteMovedPhases, fixed the same day) and laid out a column wider than the same
+    // dates fresh. So each memory is tried both ways, in placement order: ignored (its reservation and its place in its
+    // week's group with it), everything else as decided so far, the year blocks summed as rule 23 counts them. Fewer
+    // columns without it: it is ignored for this layout. A TIE KEEPS IT, so every move that costs nothing still holds
+    // (stickycols, layout-r2g, layout-r2h). Ignored is not forgotten: the entry stays in colKeep (K2), so it applies
+    // again on its own once keeping it is free. Inert with no memories: one placement, exactly as before.
+    const NONE = new Set();
+    let best = fewest(NONE);
+    const memo = segments.filter(s => Object.prototype.hasOwnProperty.call(colKeep, s.key) && colKeep[s.key] !== s.key)
+      .sort((a, b) => (firstRow(a) - firstRow(b)) || (idxOf.get(a) - idxOf.get(b)));
+    if(!memo.length) return best;
+    let drop = NONE, bestCols = new Map(segCol);
+    memo.forEach(m => {
+      const d = new Set(drop); d.add(m.key);
+      const r = fewest(d);
+      if(r.cost < best.cost){ best = r; drop = d; bestCols = new Map(segCol); }
+    });
+    bestCols.forEach((c, seg) => segCol.set(seg, c));   // each trial wrote its own columns: put the chosen ones back
+    return best;
   }
   // Rule 9's order for every year block of a placed, stamped calendar, derived from the drawn cells: per block,
   // the columns with cells in it sorted by their top occupant's first row (the lane's, Production's first row,
@@ -27119,35 +27152,54 @@ export function initLegacyApp() {
   // (0002, 0020, 0203, 2031), and those schedules have no layout; compared only with the schedule just before, the
   // finished date would never read as a move. Rebuilt from nothing after a restore. (Declared beside colKeep, at the
   // top: update() runs during the IIFE's evaluation, and a `let` down here would be read in its dead zone.)
-  // `next` is the schedule just computed from the edited fields. Every placed phase whose start or end differs from its
-  // remembered placement, and that remembers no column yet, remembers the one it had. Returns true when colKeep
-  // changed, so update() places once more. A phase that already remembers a column keeps that one (K2: placed by the
-  // rules while it cannot fit, it must still return when nudged back, so the rules' column never overwrites it).
+  // `next` is the schedule just computed from the edited fields. ⭐ ONLY A DELIBERATE MOVE OF ONE PHASE is remembered
+  // (audit AUD2-057, 14 Nov 2026, the point of ruling K1, "Only the ones you move"): the edit must change the START the
+  // phase was given (its typed or derived start, `enteredDate`, never the start a holiday or a break lands it on) of
+  // exactly ONE placed phase -- its ▲ / ▼, a drag of its bar, a start re-typed once it is on the calendar, a Shift of
+  // that one phase. Until then every placed phase whose start OR END had changed was remembered: each length typed while
+  // a calendar was being built, every phase on a whole-calendar Shift, a phase a new break lengthened. A calendar made in
+  // the app ended with nearly every phase remembered, frozen in the shape it had while it was typed in (the plan's own
+  // warning), and carried an extra column the rules would not use. So a length, a break and a Shift or Build Around that
+  // moves several phases remember nothing now. That phase, if it remembers no column yet, remembers the one it had.
+  // Returns true when colKeep changed, so update() places once more. A phase that already remembers a column keeps that
+  // one (K2: placed by the rules while it cannot fit, it must still return when nudged back, so the rules' column never
+  // overwrites it). Entries already in a file are kept; the placement lets any of them give way when it costs a column
+  // (placeSegmentsByRules, the end of it).
   // ⛔ Never on a restore: Load, New, undo / redo, crash recovery, a scenario switch and the Compare probe REPLACE the
   // calendar, and against the previous one every phase would look moved. applyStateSnapshot() and New raise
   // colKeepRestored, which empties the baseline, and nothing is compared while suppressDirty holds (every restore path
   // raises it). Never in a trial: only update() calls this. Stamped calendars only (colRel exists only there).
   function noteMovedPhases(next){
     if(colKeepRestored){ colKeepRestored = false; colKeepBase = new Map(); return false; }
+    // The hiatus ripple (Ripple Hiatus, on by default) pushes the phases after an edited break: when only one starts
+    // after it, that would read as one phase moved. A break is not a move (audit AUD2-057), so nothing is remembered.
+    if(colKeepQuiet) return false;
     // ⚠️ suppressDirty LAST: it is declared ~4,000 lines below, and update() runs during the IIFE's evaluation before
     // that line (its temporal dead zone). Every update() before the boot's restore has no stamp and no colRel.
     if(!layoutStamped() || !next || !next.colRel || !next.segments || !colKeepBase.size || suppressDirty) return false;
-    const add = {};
-    next.segments.forEach(s => {
-      if(!s || !(s.key in next.colRel) || Object.prototype.hasOwnProperty.call(colKeep, s.key)) return;
+    // The phases whose given start this edit changed, among those placed both before and now.
+    const moved = next.segments.filter(s => {
+      if(!s || !(s.key in next.colRel)) return false;
       const b = colKeepBase.get(s.key);
-      if(!b || (b.start === s.start.getTime() && b.end === s.end.getTime())) return;
-      if(typeof b.rel === 'string' && b.rel !== s.key) add[s.key] = b.rel;
+      return !!b && b.entered !== placedEntered(s);
     });
-    if(!Object.keys(add).length) return false;
-    colKeep = Object.assign({}, colKeep, add);   // a fresh object: an undo step may hold the old one
+    if(moved.length !== 1) return false;   // nothing moved, or several did (a Shift, Build Around): not one phase's move
+    const s = moved[0], b = colKeepBase.get(s.key);
+    if(Object.prototype.hasOwnProperty.call(colKeep, s.key) || typeof b.rel !== 'string' || b.rel === s.key) return false;
+    colKeep = Object.assign({}, colKeep, { [s.key]: b.rel });   // a fresh object: an undo step may hold the old one
     return true;
+  }
+  // The start a phase was GIVEN, as a time: the typed (or, for an Ends phase, derived) date computeSchedule parsed,
+  // which a holiday or a break never moves; its drawn start where a segment carries none.
+  function placedEntered(s){
+    const d = s.enteredDate || s.start;
+    return d && d.getTime ? d.getTime() : null;
   }
   // The baseline's other half: after update() has placed the calendar, every placed phase's dates and column, kept.
   function rememberPlacements(sch){
     if(!layoutStamped() || !sch || !sch.colRel || !sch.segments) return;
     sch.segments.forEach(s => {
-      if(s && s.key in sch.colRel) colKeepBase.set(s.key, { start: s.start.getTime(), end: s.end.getTime(), rel: sch.colRel[s.key] });
+      if(s && s.key in sch.colRel) colKeepBase.set(s.key, { start: s.start.getTime(), end: s.end.getTime(), entered: placedEntered(s), rel: sch.colRel[s.key] });
     });
   }
   function update(){
@@ -28153,13 +28205,18 @@ export function initLegacyApp() {
   // ⭐ Hand-dragged column widths (ruled Q7): `y2026:s1` names a POSITION, so once a year's columns
   // change, a width would land on a different phase. The years whose columns change get automatic
   // widths again, in the same undo step; every other year keeps its own.
+  // ⭐ Typed headings FOLLOW THEIR PHASE instead (audit AUD2-077, 14 Nov 2026; headingsFollowPhases), in the same step.
   function setColReuse(next){
     next = !!next;
     if(colReuse === next) return;
+    let removed = [];
     asOneHeaderStep(()=>{
       const before = yearColumnShapes(currentSchedule);
+      const held = yearColumnHolders(layoutRowsNow());   // before the flip: the frozen layout reads the stores
       colReuse = next;
-      const after = yearColumnShapes(computeSchedule(readState()));
+      const now = computeSchedule(readState());
+      const after = yearColumnShapes(now);
+      removed = headingsFollowPhases(held, yearColumnHolders(now));
       const kept = {};
       let dropped = false;
       Object.keys(colWidths).forEach(k=>{
@@ -28172,6 +28229,7 @@ export function initLegacyApp() {
     reflectColReuse();
     update();
     markDirty();
+    reflectHeadingNotice(removed);
   }
   function reflectColReuse(){
     const b = document.getElementById('col-reuse-btn');
@@ -28197,6 +28255,123 @@ export function initLegacyApp() {
     });
     return out;
   }
+
+  // ---------- Typed headings follow their phase when the app rearranges the columns (audit AUD2-077) ----------
+  // A typed heading (headerRowLabels), its Split (headerRowSplits) and its text style (textStyle.heading) are keyed by
+  // column POSITION, `y2026:s3`, like a dragged width. The two buttons where the APP itself reshapes a year's columns,
+  // the strip's "Update layout" (setColReuse) and Reset Columns (resetColumns), used to leave them on their positions:
+  // a heading typed over one phase was then printed over another, on screen, in Excel and in the PDF, and a heading
+  // whose column went away stayed in the file, never drawn. Owner's default in the audit (no decision needed): typed
+  // headings FOLLOW THEIR PHASE. Hiding a phase, and Sim Post's lane (moveSimLaneStores), are not these moments: hiding
+  // is the owner's 24 Oct 2026 "accept and document" (PHASES-TAB-PLAN O2), and the lane has its own move.
+  //
+  // Who holds each position, per year: phase key -> the weeks it sits there (the Sim Post lane as COL_KEEP_LANE, for its
+  // marked weeks). Read off the drawn rows by CALLING the frozen layout, never by re-deriving it, as yearColumnShapes
+  // does. A year drawn in two blocks is left out (its positions are ambiguous), as simLaneMovedYears does.
+  function yearColumnHolders(schedule){
+    const out = {};
+    if(!schedule || !schedule.weeks || !schedule.weeks.length) return out;
+    const blocks = computeYearBlocks(schedule.weeks);      // FROZEN, read-only
+    const bl = computeBlockLayout(schedule, blocks);       // FROZEN, read-only
+    const seen = {};
+    blocks.forEach((b, bi)=>{
+      seen[b.year] = (seen[b.year] || 0) + 1;
+      const map = bl.blockSlotMaps[bi], sim = bl.blockSimSlot[bi];
+      const slots = Array.from({length: bl.blockMaxConcurrent[bi]}, ()=> new Map());
+      const add = (at, k)=>{ if(slots[at]) slots[at].set(k, (slots[at].get(k) || 0) + 1); };
+      for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+        const w = schedule.weeks[i];
+        w.cells.forEach(c=>{ if(c.col !== undefined && c.key && map.has(c.col)) add(map.get(c.col), c.key); });
+        if(w.simPost && sim >= 0) add(sim, COL_KEEP_LANE);
+      }
+      out[b.year] = slots;
+    });
+    Object.keys(seen).forEach(y=>{ if(seen[y] > 1) delete out[y]; });
+    return out;
+  }
+  // The waterfall's rows as they are drawn now: the schedule on screen, or in the Month view (whose schedule is the whole
+  // calendar laid back, update()'s wholeCalendar) the waterfall's own, computed afresh.
+  function layoutRowsNow(){
+    return viewMode === 'month' ? computeSchedule(readState()) : currentSchedule;
+  }
+  // Re-key the position-keyed heading stores of every year whose holders changed. Each old position's phase is the one
+  // with the most weeks there (a tie: the first key in order; the Sim Post lane only where no phase sits at all, since a
+  // heading names a phase and the lane marks the shoot's weeks beside Production); it goes to the position where that
+  // phase now has the most weeks (a tie: the left one). Two old positions landing on one new position: the one whose
+  // phase now leads it keeps it, else the one whose phase has more weeks there, else the left one; the other's heading
+  // is REMOVED (its column was merged into another), as are headings on a position that held nothing or no longer
+  // exists. Fresh objects, never a mutation: an undo step may hold the old ones. Returns the texts of the typed headings
+  // removed, for the one-line notice; a re-keyed heading needs none, it simply stays over its phase.
+  function headingsFollowPhases(before, after){
+    const lead = m => {
+      let k = null, n = 0;
+      m.forEach((v, kk)=>{ if(kk !== COL_KEEP_LANE && (v > n || (v === n && k !== null && kk < k))){ k = kk; n = v; } });
+      return k !== null ? k : (m.has(COL_KEEP_LANE) ? COL_KEEP_LANE : null);
+    };
+    const sig = slots => slots.map(m => [...m.keys()].sort().join(',')).join('|');
+    const maps = {};   // year -> [old position -> new position, or -1]
+    Object.keys(before).forEach(y=>{
+      const B = before[y], A = after[y];
+      if(!A || sig(B) === sig(A)) return;
+      const to = B.map(m=>{
+        const p = lead(m);
+        if(p === null) return -1;
+        let at = -1, n = 0;
+        A.forEach((am, j)=>{ const v = am.get(p) || 0; if(v > n){ at = j; n = v; } });
+        return at;
+      });
+      A.forEach((am, j)=>{
+        const claim = []; to.forEach((t, i)=>{ if(t === j) claim.push(i); });
+        if(claim.length < 2) return;
+        const top = lead(am);
+        claim.sort((a, b)=> ((lead(B[b]) === top) - (lead(B[a]) === top))
+          || ((am.get(lead(B[b])) || 0) - (am.get(lead(B[a])) || 0)) || (a - b));
+        claim.slice(1).forEach(i=>{ to[i] = -1; });
+      });
+      maps[y] = to;
+    });
+    if(!Object.keys(maps).length) return [];
+    const removed = [];
+    const follow = (store, isLabel)=>{
+      if(!store || !Object.keys(store).some(k=>{ const m = slotKeyParts(k); return !!(m && maps[m[1]]); })) return store;
+      const out = {};
+      Object.keys(store).forEach(k=>{
+        const m = slotKeyParts(k), to = m && maps[m[1]];
+        if(!to){ out[k] = store[k]; return; }
+        const j = +m[2] < to.length ? to[+m[2]] : -1;
+        if(j >= 0) out['y' + m[1] + ':s' + j] = store[k];
+        else if(isLabel) removed.push(String(store[k]));
+      });
+      return out;
+    };
+    headerRowLabels = follow(headerRowLabels, true);
+    headerRowSplits = follow(headerRowSplits, false);
+    const h = follow(textStyle.heading, false);
+    if(h !== textStyle.heading) textStyle = Object.assign({}, textStyle, { heading: h });
+    return removed;
+  }
+  // The one line, when a heading had to go: amber like the other "not what you expected" strips, dismissed with ×, and
+  // gone at the next Load, New, Undo or Redo (applyStateSnapshot). Session UI, never saved.
+  function reflectHeadingNotice(removed){
+    const el = document.getElementById('heading-notice');
+    if(!el) return;
+    if(!removed || !removed.length){ el.hidden = true; return; }
+    const short = t => { t = String(t).replace(/\s+/g, ' ').trim(); return t.length > 30 ? t.slice(0, 29) + '\u2026' : t; };
+    const names = removed.slice(0, 3).map(t => '\u201c' + short(t) + '\u201d').join(', ')
+      + (removed.length > 3 ? ' and ' + (removed.length - 3) + ' more' : '');
+    const one = removed.length === 1;
+    el.querySelector('.ln-text').textContent = (one ? 'Removed the column heading ' : 'Removed ' + removed.length + ' column headings (')
+      + names + (one ? '' : ')') + (one ? ': its column was merged with another.' : ': their columns were merged with others.')
+      + ' Undo brings ' + (one ? 'it' : 'them') + ' back.';
+    el.hidden = false;
+  }
+  function hideHeadingNotice(){
+    const el = document.getElementById('heading-notice');
+    if(el) el.hidden = true;
+  }
+  document.addEventListener('click', e=>{
+    if(e.target.closest && e.target.closest('#heading-notice .ln-x')) hideHeadingNotice();
+  });
 
   // ---------- Sim Post beside Production: position-keyed column stores follow their columns ----------
   // Frozen edit SP1 (computeBlockLayout, owner 2 Nov 2026) moved Simultaneous Post's lane, in a year where a
@@ -28362,7 +28537,8 @@ export function initLegacyApp() {
   // dragged cell width (cellSpans), every dragged column width in BOTH layouts (colWidths, colWidthsAlt: the Date and
   // Notes columns too, since the width model sizes those as well), every swap (gridColSwaps, gridStintSwaps) and every
   // phase moved by hand into a free column (colFollow). ⛔ It leaves alone what is not a column choice: dates, notes,
-  // row heights, typed headings and their styles, hidden Notes columns, Single Column Mode and the layout stamp itself
+  // row heights, typed headings and their styles (kept, and moved with their phase: resetColumns), hidden Notes columns,
+  // Single Column Mode and the layout stamp itself
   // (an unstamped calendar keeps its old layout; "Update layout" is the strip's job). Fresh objects throughout, never a
   // mutation: an undo step may still hold the old ones. update() ends in markDirty(), which banks the one undo step.
   // The button (#tb-cols-reset-btn, Header.jsx) shows in the Waterfall view only, and greys while this is false.
@@ -28370,12 +28546,18 @@ export function initLegacyApp() {
     return [phaseFill, cellSpans, colWidths, colWidthsAlt, gridColSwaps, gridStintSwaps, colFollow, colKeep]
       .some(o => !!o && Object.keys(o).length > 0);
   }
+  // ⭐ Typed headings stay, and since 14 Nov 2026 FOLLOW THEIR PHASE to wherever the automatic layout puts it (audit
+  // AUD2-077, headingsFollowPhases): the swaps and moves cleared here are what decided which phase sat under each one.
   function resetColumns(){
     if(!columnEditsExist()) return false;
+    // Who holds each column BEFORE the stores clear: the frozen layout reads the swaps when it maps columns to positions.
+    const held = yearColumnHolders(layoutRowsNow());
     phaseFill = {}; cellSpans = {}; colWidths = {}; colWidthsAlt = {};
     gridColSwaps = {}; gridStintSwaps = {}; colFollow = {};
     colKeep = {};   // every moved phase back on the rules (sticky columns, ruling K4)
+    const removed = headingsFollowPhases(held, yearColumnHolders(computeSchedule(readState())));
     update();
+    reflectHeadingNotice(removed);
     return true;
   }
   // Delegated, as the notes reset is: React owns the node. closest(), so a click on the icon lands too.
@@ -29801,7 +29983,7 @@ export function initLegacyApp() {
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
-    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
+    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -32193,17 +32375,21 @@ export function initLegacyApp() {
     const startsWas = phaseStartsNow();
     const results = [];
     takeShootDayMoveNote();   // a stale note from an earlier move must not be read as this one's
-    asShootDayMove(()=>{
-      if(before && h.kind === 'all') rippleNormaliseInside(before);
-      steps.forEach(st=>{
-        // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
-        // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
-        const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
-        if(r) results.push(r);
+    // A pushed phase remembers no column (colKeepQuiet): the user edited a break, not the phase (audit AUD2-057).
+    colKeepQuiet++;
+    try {
+      asShootDayMove(()=>{
+        if(before && h.kind === 'all') rippleNormaliseInside(before);
+        steps.forEach(st=>{
+          // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
+          // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
+          const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
+          if(r) results.push(r);
+        });
       });
-    });
-    // shiftCalendarDates ran update() inside the bracket, before the day marks were re-derived from their pins.
-    update();
+      // shiftCalendarDates ran update() inside the bracket, before the day marks were re-derived from their pins.
+      update();
+    } finally { colKeepQuiet--; }
     const startsNow = phaseStartsNow(), moves = [];
     Object.keys(startsNow).forEach(k=>{
       const a = parseDateUTC(startsWas[k] || ''), b = parseDateUTC(startsNow[k]);
@@ -41196,6 +41382,7 @@ export function initLegacyApp() {
   function applyStateSnapshot(snap){
     // ⛔ FIRST, before anything reads it: hold every value to the shape the app writes (audit H-1).
     snap = sanitizeSnapshot(snap);
+    hideHeadingNotice();   // "Undo brings them back": an Undo, a Redo, a Load or New answers the line (audit AUD2-077)
     // Assigned per restore, so an undo back onto a current-format file cannot inherit a stale true.
     restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
     // Same rule: assigned on every restore. Absent = a file saved before 29 Oct 2026 (version 1).
@@ -41831,7 +42018,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice'].forEach(id=>{
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice','heading-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
