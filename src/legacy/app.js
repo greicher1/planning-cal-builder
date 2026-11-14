@@ -29801,7 +29801,8 @@ export function initLegacyApp() {
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
-    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
+    // #launch-notice (audit item 2.6) too: it names the file the SENDER double-clicked.
+    clone.querySelectorAll('#legacy-notice, #launch-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -29932,6 +29933,9 @@ export function initLegacyApp() {
   // requires that click for security; it won't grant write access silently on page load).
   let savedFileHandle = null;
   let handleNeedsPermission = false; // true when we have a remembered handle but not yet permission
+  // The double-clicked file the "opened from another app" strip speaks of (showLaunchNotice, audit item 2.6). Declared
+  // HERE, ahead of every reader, because renderRecents() reads it. Session UI, never saved.
+  let launchNoticeHandle = null;
   const supportsFsAccess = (typeof window.showSaveFilePicker === 'function');
   // ⛔ AUDIT M-6 / owner ruling R4 ("pause and ask"). What the linked file looked like the last time
   // THIS app read or wrote it -- {lastModified, size}. Save and autosave used to write straight back
@@ -30755,9 +30759,32 @@ export function initLegacyApp() {
     // to convert, and their existing workflow is untouched.
     const legacy = handleIsLegacyHtml(savedFileHandle);
     const body = legacy ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
-    const writable = await savedFileHandle.createWritable();
-    await writable.write(body);
-    await writable.close();
+    const writeBack = async ()=>{
+      const writable = await savedFileHandle.createWritable();
+      await writable.write(body);
+      await writable.close();
+    };
+    try { await writeBack(); }
+    catch(err){
+      // ⭐ THE LINKED FILE CAN'T BE WRITTEN (audit AUD2-039 / AUD2-017, item 2.6). The status line has said "click
+      // Save" since autosave failed, and this used to answer that click with the browser's own words ("A requested
+      // file or directory could not be found...") on every press, never offering anywhere else to put the work.
+      // - A file the picker made a moment ago (isNew) is not "the linked file went away": its failure is reported as
+      //   before. So is a cancel.
+      // - Permission taken away since the load (NotAllowedError): a Save is a click, so ask ONCE and write again.
+      // - Anything still failing (the file moved, renamed or deleted, a drive no longer there, permission refused):
+      //   say so in plain words and offer Save As (linkedFileUnwritable). Nothing on screen is lost either way.
+      if(isNew || (err && err.name === 'AbortError')) throw err;
+      let failure = err;
+      if(err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')){
+        let perm = 'denied';
+        try { perm = await savedFileHandle.requestPermission({ mode: 'readwrite' }); } catch(e){ /* no gesture left: Save As below */ }
+        if(perm === 'granted'){
+          try { await writeBack(); failure = null; } catch(e2){ failure = e2; }
+        }
+      }
+      if(failure) return await linkedFileUnwritable(failure);
+    }
     // Mark clean the moment the bytes are on disk, BEFORE the recents bookkeeping. recordRecent()
     // awaits IndexedDB, and reporting the save only after that unrelated round-trip left the
     // status line still saying "unsaved" for as long as IDB took -- measured at ~1.2s in a test
@@ -30775,6 +30802,58 @@ export function initLegacyApp() {
     const entry = recentFiles.find(f => f.id === activeFileId)
                || { id: activeFileId, handle: savedFileHandle, name: savedFileHandle.name, savedAt: Date.now() };
     return !!(await openRecentFile(entry));
+  }
+  // ⭐ Save could not write the linked file (saveToFile; audit AUD2-039 / AUD2-017, item 2.6). Says why in plain words
+  // and offers Save As, suggesting the file's own name. Resolves 'saveas' once written to the new file, or 'cancelled'
+  // (the Save click handler then just restores the button); a cancelled picker throws AbortError, which it takes quietly.
+  // - NOT THERE (NotFoundError: moved, renamed, deleted, a drive or share gone, a mail app's attachment folder purged):
+  //   the file is taken off the recents list and unlinked FIRST (forgetMissingFile). It can be neither saved to nor
+  //   loaded again, so the list must stop offering it; and a cancelled Save As leaves an Untitled calendar whose next
+  //   Save opens the picker straight away, while the status line says autosave needs a file.
+  // - Still there but refused (permission, a lock): it stays linked and listed, and the next Save tries it again.
+  async function linkedFileUnwritable(err){
+    console.warn('Save could not write the linked file:', err);
+    const name = (savedFileHandle && savedFileHandle.name) || 'Calendar' + SAVE_EXT;
+    const why = err && err.name;
+    const keep = '\n\nYour changes are still here. Use Save As to keep them in a file you choose.';
+    let title = 'Couldn’t save', message;
+    if(why === 'NotFoundError'){
+      await forgetMissingFile(activeFileId);
+      title = 'File not found';
+      message = '“' + name + '” can’t be found. It may have been moved, renamed or deleted, or the drive it was on isn’t connected.' + keep;
+    } else if(why === 'NotAllowedError' || why === 'SecurityError'){
+      message = 'SPTCal isn’t allowed to change “' + name + '”, so your changes couldn’t be saved there.' + keep;
+    } else {
+      message = 'SPTCal couldn’t save to “' + name + '”.' + keep;
+    }
+    if(!(await uiConfirm(message, { title, confirmLabel: 'Save As…' }))) return 'cancelled';
+    // The Save As click above is a fresh gesture, so the picker may open (the conflict dialog's "Save a copy" relies
+    // on the same). Always the current format, as every Save As is.
+    return await saveAsFile(sptcalName(name));
+  }
+  // A file's name as a Save As offers it: its own name, in the current format (Save As always writes .sptcal).
+  function sptcalName(name){ return String(name || '').replace(/\.(sptcal|html?)$/i, '') + SAVE_EXT; }
+  // ⭐ A file that is NOT THERE any more (audit item 2.6): off the recents list, and unlinked when it is the linked file
+  // (no id: the linked file, whatever the list holds). Its unsaved work stays on screen and in the crash backup; with
+  // nothing linked, the status line says autosave needs a file. Session bookkeeping only: nothing reaches a save file.
+  async function forgetMissingFile(id){
+    if(!id || id === activeFileId){
+      savedFileHandle = null; handleNeedsPermission = false; savedFileStamp = null; fileConflict = false; activeFileId = null;
+      autosaveFailed = false;          // nothing is linked now, so no autosave has failed...
+      autosaveNeedsFile = isDirty;     // ...and unsaved work needs a file
+    }
+    if(id) recentFiles = recentFiles.filter(f => f.id !== id);
+    await persistRecents();
+    renderRecents();
+    refreshSaveBtn();
+    refreshSaveStatus();
+  }
+  // Load could not read a recent (openRecentFile). Only NotFoundError means the file is gone; anything else (a lock, a
+  // drive waking up) keeps the entry, with the message it always had.
+  async function recentUnreadable(entry, err){
+    if(!(err && err.name === 'NotFoundError')){ uiAlert('Could not read that file. It may have been moved or deleted.'); return; }
+    await forgetMissingFile(entry.id);
+    uiAlert('“' + entry.name + '” can’t be found. It may have been moved, renamed or deleted, so it’s been taken off your recent files.', { title: 'File not found' });
   }
 
   // ---------- Unsaved-change tracking, autosave, and crash/close recovery ----------
@@ -33274,13 +33353,15 @@ export function initLegacyApp() {
   // "Save As…" — always pick a NEW file and write the current calendar to it, then make that
   // new file the active one. This duplicates the current calendar (fork it to try a variation);
   // distinct from "New", which clears the calendar and starts blank.
-  async function saveAsFile(){
+  // `suggested` (optional): the name the picker offers. Save's "file not found" offer passes the lost file's own name
+  // (linkedFileUnwritable); every other caller takes the usual show-title-and-date name.
+  async function saveAsFile(suggested){
     if(!supportsFsAccess){
       downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
       return 'download';
     }
     const handle = await window.showSaveFilePicker({
-      suggestedName: buildSavedFileName(),
+      suggestedName: (typeof suggested === 'string' && suggested) || buildSavedFileName(),
       types: SAVE_TYPES,
     });
     // Save As always produces the current format, even when forking a legacy .html calendar --
@@ -33463,6 +33544,52 @@ export function initLegacyApp() {
     });
   })();
 
+  // ---------- The "opened from another app" strip (audit AUD2-017, item 2.6) ----------
+  // A calendar loaded by double-click (openLaunchedFiles) is the linked file like any other: Save and autosave write
+  // back to it with no picker (owner, 1 Oct 2026; leg launchopen L4), and that stays so: no extra dialog on the first
+  // Save (the audit's default). But a .sptcal double-clicked in a mail app is the MAIL APP'S copy, in a folder it may
+  // empty, and nothing said so. Chrome never tells a page a file's path, so this says what the app does know, once per
+  // such load, and offers Save As (suggesting the file's own name). It goes on its x, on a Save As, and the moment the
+  // linked file is anything but `launchNoticeHandle` (renderRecents: another load, New, any Save As, a recovered
+  // backup, the file found missing). Session UI: nothing here reaches captureSnapshot(), and the strip has no fields.
+  function showLaunchNotice(handle){
+    const el = document.getElementById('launch-notice');
+    if(!el || !handle) return;
+    launchNoticeHandle = handle;
+    el.querySelector('.ln-text').innerHTML =
+      '<strong>' + escHtml(handle.name || 'This calendar') + '</strong> was opened from another app, and Save writes back ' +
+      'to that copy. If it came from an email, that copy may be temporary: use <strong>Save As</strong> to keep your own.';
+    el.querySelector('.ln-go').disabled = false;
+    el.hidden = false;
+  }
+  function hideLaunchNotice(){
+    launchNoticeHandle = null;
+    const el = document.getElementById('launch-notice');
+    if(el) el.hidden = true;
+  }
+  (function wireLaunchNotice(){
+    const el = document.getElementById('launch-notice');
+    if(!el) return;
+    el.querySelector('.ln-x').addEventListener('click', hideLaunchNotice);
+    el.querySelector('.ln-go').addEventListener('click', async ()=>{
+      const btn = el.querySelector('.ln-go');
+      if(btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const r = await saveAsFile(launchNoticeHandle ? sptcalName(launchNoticeHandle.name) : undefined);
+        // A Save As links the new file, so renderRecents() has already hidden the strip; on the download fallback
+        // (no file linked) the advice still stands.
+        if(r === 'saveas'){ hideLaunchNotice(); flashSaveBtn('Saved \u2713'); }
+        else btn.disabled = false;
+      } catch(err){
+        btn.disabled = false;
+        if(err && err.name === 'AbortError') return;   // the picker was cancelled
+        console.error(err);
+        uiAlert('Could not save a copy: ' + err.message);
+      }
+    });
+  })();
+
   const saveBtn = document.getElementById('save-file-btn');
   const saveAsBtn = document.getElementById('save-as-btn');
   const saveBtnLabel = () => supportsFsAccess ? 'Save' : 'Save to File';
@@ -33566,7 +33693,7 @@ export function initLegacyApp() {
       // The file as we READ it is the baseline a later Save compares against (audit M-6).
       stamp = { lastModified: file.lastModified, size: file.size };
     }
-    catch(e){ uiAlert('Could not read that file. It may have been moved or deleted.'); return; }
+    catch(e){ await recentUnreadable(entry, e); return; }   // a file that is gone leaves the recents list (item 2.6)
     // Can Save write back to a launched file yet? Chromium's launch params default to READ-only
     // (launch_params.h: "files sent through the launch queue will only have read access"), but the
     // probe (1 Oct 2026, Chrome 154, PWA.launchFilesInApp) saw readwrite already granted -- so ask
@@ -33763,6 +33890,8 @@ export function initLegacyApp() {
   // while the notice strips used the app's escHtml() which does. Two escapers doing one job, with
   // one of them subtly weaker. JSX escapes, so neither is needed.
   function renderRecents(){
+    // The double-click strip speaks of ONE file: once anything else is linked (or nothing), it goes (item 2.6).
+    if(launchNoticeHandle && savedFileHandle !== launchNoticeHandle) hideLaunchNotice();
     if(!supportsFsAccess){ chrome.fileMenu({ visible: false }); return; }
     const active = recentFiles.find(f=>f.id === activeFileId);
     chrome.fileMenu({
@@ -33836,6 +33965,7 @@ export function initLegacyApp() {
     // The file menu's guard, word for word (owner, 1 Oct 2026: ask first, same window).
     if(isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
     const ok = await openHandle(files[0], { launched: true });
+    if(ok) showLaunchNotice(savedFileHandle);   // where Save will write: once per double-click (audit item 2.6)
     if(ok && files.length > 1){
       uiAlert('SPTCal loads one calendar at a time, so only “' + files[0].name + '” was loaded.');
     }
@@ -41831,7 +41961,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice'].forEach(id=>{
+    ['legacy-notice','launch-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
