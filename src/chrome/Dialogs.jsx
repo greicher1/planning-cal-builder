@@ -12,6 +12,8 @@
 // inline, the modal lives inside #react-root (before #print-root), where both print paths'
 // `body.printing-* > *:not(#print-root)` selectors already hide it.
 //
+// A dialog closed by ANOTHER dialog opening resolves undefined (see the dialog() below).
+//
 // Escape and outside-click both CANCEL a confirm — for a destructive decision, every ambiguous
 // dismissal must be the safe answer. For an alert they acknowledge.
 //
@@ -30,9 +32,14 @@ export function Dialogs() {
     installChrome({
       dialog: (opts) =>
         new Promise((resolve) => {
-          // A second dialog while one is open answers the first as cancelled rather than
-          // stacking — the engine never intentionally opens two at once.
-          if (resolveRef.current) resolveRef.current(false)
+          // A second dialog while one is open closes the first rather than stacking — the engine
+          // never intentionally opens two at once. It answers it UNDEFINED, not false (the 14 Nov
+          // 2026 review of audit item 3.7): falsy, so every `if(!(await uiConfirm(...)))` still
+          // reads it as the safe Cancel, but a caller that must tell "the user said No" from "the
+          // question was swept away" can. The crash-recovery question counts a No toward stopping
+          // asking (AUD2-056), and a question nobody answered must not count. A choice already
+          // resolves null for Cancel; a superseded one resolves undefined too, equally falsy.
+          if (resolveRef.current) resolveRef.current(undefined)
           resolveRef.current = resolve
           setDlg({ kind: 'confirm', ...opts })
         }),

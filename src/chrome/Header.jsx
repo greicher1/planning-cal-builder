@@ -94,7 +94,13 @@ export function Header() {
           the existing control flow keeps deciding, exactly as it reads. */}
       <Menu
           opened={menu.open}
-          onChange={(open) => { setMenu((s) => ({ ...s, open })); if (!open) setQ('') }}
+          /* 'sptcal-file-menu-open' (the 14 Nov 2026 review of audit item 3.7): the engine redraws the menu's
+             "Unsaved work" on it (refreshKeptBackups). Told on EVERY opening, however it opens: it used to listen
+             for a pointerdown on the button, so a menu opened from the keyboard (Enter, Space) showed a stale list. */
+          onChange={(open) => {
+            setMenu((s) => ({ ...s, open })); if (!open) setQ('')
+            if (open) document.dispatchEvent(new CustomEvent('sptcal-file-menu-open'))
+          }}
           withinPortal={false}
           keepMounted
           closeOnItemClick={false}

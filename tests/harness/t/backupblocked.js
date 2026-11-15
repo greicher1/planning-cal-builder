@@ -83,8 +83,9 @@ window.addEventListener('load', function () { (async function () {
     await T.until(cap.peek, 'the shareable-copy blob', 200, 100);
     var html = await cap.stop().text();
     var inCopy = new DOMParser().parseFromString(html, 'text/html').getElementById('storage-notice');
-    add('K5', 'a shareable copy carries the strip HIDDEN', !!inCopy && inCopy.hasAttribute('hidden'),
-      {inCopy: !!inCopy, hidden: !!inCopy && inCopy.hasAttribute('hidden')}, 'present, hidden');
+    var inCopyText = inCopy ? ((inCopy.querySelector('.ln-text') || inCopy).textContent || '').trim() : null;
+    add('K5', 'a shareable copy carries the strip HIDDEN, and empty as it ships', !!inCopy && inCopy.hasAttribute('hidden') && inCopyText === '',
+      {inCopy: !!inCopy, hidden: !!inCopy && inCopy.hasAttribute('hidden'), text: inCopyText}, 'present, hidden, empty');
 
     var x = document.querySelector('#storage-notice .ln-x');
     if(x) x.click();

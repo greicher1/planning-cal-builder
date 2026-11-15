@@ -29832,6 +29832,11 @@ export function initLegacyApp() {
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     // #backup-notice and #storage-notice (audit AUD2-076 / -075) too: both are about THIS browser's kept backups.
     clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #backup-notice, #storage-notice').forEach(el=>{ el.hidden = true; });
+    // ...and their text EMPTIED, as they ship (the 14 Nov 2026 review of item 3.7, after audit 2.6 did the same for
+    // #launch-notice): hidden, #backup-notice still carried "Unsaved work from <file> (<when>) was kept." in the copy's
+    // markup, naming another of the SENDER's files for anyone who opens its source. #storage-notice names nothing, but
+    // is about the sender's browser, so it ships empty too. showKeptWorkNotice() / storageUnavailable() write afresh.
+    clone.querySelectorAll('#backup-notice .ln-text, #storage-notice .ln-text').forEach(el=>{ el.textContent = ''; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -33438,6 +33443,13 @@ export function initLegacyApp() {
     if(cur && cur.state) await idbSet(x.key, Object.assign({}, cur, { declined: (cur.declined || 0) + 1 }));
     refreshKeptBackups();
   }
+  // ⛔ WHAT COUNTS AS A NO (the 14 Nov 2026 review of item 3.7). The user's own Cancel, Escape or outside click resolves
+  // the question false. A question closed because ANOTHER dialog opened over it resolves undefined (Dialogs.jsx: the
+  // app never stacks two), and that was counted as a No too: two launches whose question something else swept away and
+  // the launch never asked again, with the user having said nothing. Not counted now: the backup is kept as a Cancel
+  // keeps it, listed in the file menu, and asked again at the next launch. (The strip's x is the strip's own No, and
+  // counts: see wireKeptWorkNotice.)
+  function backupAnswerIsNo(ans){ return ans === false; }
   function backupWhich(b){ return b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar'; }
   function backupQuestion(b){
     return 'Recover unsaved work from ' + backupWhich(b) + ' (' + fmtBackupWhen(b.at) + ')?'
@@ -33483,10 +33495,12 @@ export function initLegacyApp() {
     if(fileLaunchSeen) return;
     if(!backupAskable(x)) return;   // declined twice: the file menu keeps it (AUD2-056)
     backupsAsked.add(x.key);
-    if(!(await uiConfirm(backupQuestion(x.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' }))){
+    const ans = await uiConfirm(backupQuestion(x.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' });
+    if(!ans){
       // Keep the backup rather than deleting it on a "No" -- an accidental decline shouldn't be irreversible.
-      // Counted, so a second No stops the launch asking; the file menu lists it either way.
-      declineBackup(x);
+      // Counted, so a second No stops the launch asking; the file menu lists it either way. Only the user's own No
+      // counts (backupAnswerIsNo): a question swept away by another dialog was never answered.
+      if(backupAnswerIsNo(ans)) declineBackup(x);
       return;
     }
     applyBackup(p);
@@ -33558,7 +33572,8 @@ export function initLegacyApp() {
   // The file menu's "Unsaved work" section lists every kept backup (keptBackups: never this page's, never an open
   // window's), newest first, as DATA through the bridge (Header.jsx draws it; data-backup / data-backup-discard are
   // what the menu's one delegated listener matches). Redrawn at launch, after any recover, decline or discard, and on
-  // every press of the file menu's button, so a window closed since is listed and one recovered elsewhere is gone.
+  // every opening of the file menu (mouse or keyboard), so a window closed since is listed and one recovered elsewhere
+  // is gone.
   let keptRefresh = 0;
   async function refreshKeptBackups(){
     const n = ++keptRefresh;
@@ -33615,7 +33630,8 @@ export function initLegacyApp() {
       await whenNoDialog();
       if(!isDirty && backupAskable(own)){
         backupsAsked.add(own.key);
-        if(!(await uiConfirm(backupQuestion(own.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' }))){ declineBackup(own); return; }
+        const ans = await uiConfirm(backupQuestion(own.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' });
+        if(!ans){ if(backupAnswerIsNo(ans)) declineBackup(own); return; }
         applyBackup(p);
         return;
       }
@@ -35746,12 +35762,11 @@ export function initLegacyApp() {
         }
         if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); uiAlert('Could not load that file: '+err.message); } }
       });
-      // Each press of the file menu's button redraws its "Unsaved work" (refreshKeptBackups): a window closed since
-      // the last draw leaves a backup to list, and one recovered in another window must go. By class: Mantine replaces
-      // the button's id (see the note at the top of this block).
-      document.addEventListener('pointerdown', (e)=>{
-        if(e.target.closest && e.target.closest('.file-menu-btn')) refreshKeptBackups();
-      }, true);
+      // Each opening of the file menu redraws its "Unsaved work" (refreshKeptBackups): a window closed since the last
+      // draw leaves a backup to list, and one recovered in another window must go. ⛔ On Header.jsx's own open event,
+      // never a pointerdown on the button (the 14 Nov 2026 review of item 3.7): Enter or Space on the focused button
+      // opens the menu with no pointer at all, and it then showed the list as it was at launch.
+      document.addEventListener('sptcal-file-menu-open', ()=>{ refreshKeptBackups(); });
     }
 
     // "Export shareable copy" moved out of the file menu to its own header button (owner's ask,
