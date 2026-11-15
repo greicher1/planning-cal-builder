@@ -2389,6 +2389,16 @@
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
   body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:var(--mvn-h2); }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1, D4 = a): a waterfall line ending in its date takes up to FOUR
+     lanes above 10 px (renderMonthView, mvNoteLineCountSized), so its three- and four-line boxes (each a line more than the
+     one before: --mvn-h2 - --mvn-h1 is one line) show three and four lines. Only such a line ever spans three or four lanes
+     at a note size, so "span 3" / "span 4" can never be "span 30". */
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{
+    height:calc(2 * var(--mvn-h2) - var(--mvn-h1)); -webkit-line-clamp:3;
+  }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{
+    height:calc(3 * var(--mvn-h2) - 2 * var(--mvn-h1)); -webkit-line-clamp:4;
+  }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill,
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-hiatus-bar{ height:17px; }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
@@ -2699,6 +2709,10 @@
   #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): the print rollback's twin of the rules above: three or four lines for a line
+     that keeps its date, as the direct writer draws every line of it (mvlKeepsDate). */
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ -webkit-line-clamp:3; }
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ -webkit-line-clamp:4; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned

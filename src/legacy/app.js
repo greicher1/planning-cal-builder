@@ -412,6 +412,39 @@ export function initLegacyApp() {
              clipped: need > budgetAt(px) };
   }
 
+  // ⛔ FROZEN EDIT R4 (PROPOSED, audit AUD2-044, item 3.1; the owner's D4 = a: "a Notes cell with two holiday lines takes
+  // the height it needs"). Every row is ROW_DEFAULT_PX unless dragged, which buys a Notes cell ONE line, so a week showing
+  // two holidays (Thanksgiving and the Day After) shrank both to the floor and still cut the second through its middle,
+  // on screen, in Excel and in the waterfall PDF, though nobody typed them. A row nobody sized by hand, holding in any of
+  // its year blocks a Notes cell that is ONLY holiday lines, two or more of them (no typed text, no size picked for it, no
+  // linked or month line added), is now as tall as those lines at the shrink floor need: two lines, 23 px instead of 20.
+  // Nothing is stored (it is not rowHeights, and a drag still sets one); a calendar with no such week has no such row,
+  // and every row reads exactly the number it read before. sheetRowPx(schedule, r) is what every reader of a row's height
+  // now asks (the renderer, exportExcel, buildWaterfallPdf, sideRowPtFn), so the three outputs keep agreeing.
+  const _autoRowPx = new WeakMap();
+  function autoRowPxFor(schedule){
+    if(!schedule || !schedule.weeks) return {};
+    let m = _autoRowPx.get(schedule);
+    if(m) return m;
+    m = {};
+    const notesByIdx = schedule.notesByIdx || {};
+    computeYearBlocks(schedule.weeks).forEach(b=>{
+      for(let r = 0; r < b.count; r++){
+        const idx = b.startIdx + r, w = schedule.weeks[idx], wk = isoOf(w.date);
+        if(userNotes[wk] !== undefined || noteFontSizeFor(wk) !== undefined) continue;
+        if(wfLinkedLinesFor(wk).length || wfMonthLinesFor(wk).length) continue;
+        const notes = autoNotesForView(notesByIdx[idx] || [], 'sheet');
+        if(notes.length < 2 || !notes.every(n=> n && n.holiday)) continue;
+        const lines = String(autoNotesText(notes)).split('\n').length;
+        const need = Math.ceil(lines * 11 * NOTE_SHRINK_FLOOR * SHEET_LINE_RATIO + ROW_TEXT_PAD_PX);
+        if(need > ROW_DEFAULT_PX) m[r] = Math.max(m[r] || 0, need);
+      }
+    });
+    _autoRowPx.set(schedule, m);
+    return m;
+  }
+  function sheetRowPx(schedule, r){ return rowHeights[r] || autoRowPxFor(schedule)[r] || ROW_DEFAULT_PX; }
+
   // screen px -> Excel char units, the inverse of charsToScreenPx
   function screenPxToChars(px){
     return Math.round(((px / SHEET_ZOOM) - EXCEL_CELL_PAD) / EXCEL_MDW * 100) / 100;
@@ -15016,9 +15049,15 @@ export function initLegacyApp() {
   // layer pads 3 px each side and shares the rest out by 7, so the box a note is drawn in is 6/7 px narrower (the month
   // PDF writer's MVL_GEOMETRY comment found the same). At 10 px that has never shown; at 14 px the probe (plan step 1)
   // found a note measured as one line at 158 px that wraps to two in its real 157.14 px box, its second line hidden.
-  function mvNoteLineCountSized(t, boxW, fmt, px){
+  // ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1; the owner's D4 = a: "holiday and automatic lines keep their date
+  // at note sizes 11 to 14"): `keep` (a waterfall line ending in its date, MV_NOTE_DATED) takes up to FOUR lanes, so the
+  // date the two-line cut took stays on screen and in the print rollback, as the direct writer keeps it (mvlKeepsDate).
+  // Four, not 10 px's three: measured at 12 and 14 px in an 1100 / 1280 px window, "Independence Day (Observed) 7/3/26"
+  // and "Principal Photography Wraps 10/27/26" wrap to four. Its key carries `|k`, so it never meets a two-lane count.
+  // Without `keep` nothing here changed.
+  function mvNoteLineCountSized(t, boxW, fmt, px, keep){
     const G = MV_NOTE_SIZES[px], f = fmt || {}, w = Math.max(24, boxW - 6 / 7);
-    const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '');
+    const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '') + (keep ? '|k' : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     const el = mvNoteMeasurer();
     el.style.width = w + 'px';
@@ -15027,16 +15066,18 @@ export function initLegacyApp() {
     el.style.fontStyle = f.italic ? 'italic' : 'normal';
     el.style.lineHeight = G.line + 'px';
     el.textContent = t;
-    const lines = Math.min(2, Math.max(1, Math.round((el.offsetHeight - 6) / G.line)));
+    const lines = Math.min(keep ? 4 : 2, Math.max(1, Math.round((el.offsetHeight - 6) / G.line)));
     if(_mvNoteLineCache.size > 800) _mvNoteLineCache.clear();
     _mvNoteLineCache.set(key, lines);
     return lines;
   }
-  function mvNoteLineCount(text, boxW, fmt){
+  // D1: a waterfall line ending in a date (the writer's MVL_DATED, the same pattern).
+  const MV_NOTE_DATED = /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/;
+  function mvNoteLineCount(text, boxW, fmt, keep){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
     const px = mvNoteEffPx(fmt);
-    if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px); }
+    if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px, !!keep); }
     const sig = mvMeasureSig(fmt);
     const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
@@ -15454,7 +15495,9 @@ export function initLegacyApp() {
               // .mv-note-mark class, whose CSS draws ↻ (an automatic note) or ⚑ (a holiday) in that room, so the text
               // never sits under the symbol or clips. Unmarked, and in every print or PDF render, both are what they were.
               const mark = b.mark || null;
-              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey));
+              // ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): a line ending in its date keeps it above 10 px (mvNoteLineCountSized).
+              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey),
+                                           MV_NOTE_DATED.test(String(n).trim()));
               // ⛔ FROZEN EDIT H1 (owner sign-off by picker, 30 Oct 2026, "Just that holiday": a colour picked on one
               // holiday colours that holiday alone). A holiday with its own month colour (holidayColors) is drawn in it;
               // mvDayNoteBlocks carries it in as `b.color`, and only for such a holiday, so every other line -- and every
@@ -16819,7 +16862,7 @@ export function initLegacyApp() {
 
     let bodyHtml = '';
     for(let r=0; r<maxRows; r++){
-      const rh = rowHeights[r];
+      const rh = sheetRowPx(schedule, r);   // R4 (PROPOSED): a two-holiday row's height, else ROW_DEFAULT_PX, as before
       // Written on EVERY row, not just dragged ones. Left to itself a row is only as tall as its
       // tallest cell, so heights drifted apart by a pixel here and there; and the workbook and the
       // PDF both lay the grid out as a flat rows x ROW_DEFAULT_PX, so a screen row that quietly
@@ -16845,7 +16888,7 @@ export function initLegacyApp() {
         // fmtWeekDate() is fmtShort() unless the calendar chose 1/6/2025.
         // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled date appends its style ('' unstyled).
         const dts = textStyleOf('date', w.date.toISOString().slice(0,10));
-        const dcss = dts ? ((dts.size ? textSizeCss(dts.size, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(dts)).trim() : '';
+        const dcss = dts ? ((dts.size ? textSizeCss(dts.size, sheetRowPx(schedule, r)) : '') + textStyleCss(dts)).trim() : '';
         bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}"${dcss ? ` style="${dcss}"` : ''}>${fmtWeekDate(w.date)}</td>`;
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
@@ -16862,12 +16905,12 @@ export function initLegacyApp() {
           // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled band is measured in its weight.
           const hts = textStyleOf('hiatus', hKey);
           const hFit = cellTextFit(hTxt, hAvail, Object.assign({
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: sheetRowPx(schedule, r)
           }, hts && hts.bold ? { bold: true } : {}));
           const hPx = 11 * hFit.scale;
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
-            + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+            + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
           bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+nCs}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${edgeLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
@@ -16907,7 +16950,7 @@ export function initLegacyApp() {
             const lf = cellTextFit(cell.label || '', availChars, lts ? textFitOpts(lts) : {});
             // Never wrap here: rows are a fixed height and a wrapped label would break the band.
             const lfCss = lts
-              ? (Math.abs(11 * lf.scale - 11) > 0.01 ? textSizeCss(11 * lf.scale, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(lts)
+              ? (Math.abs(11 * lf.scale - 11) > 0.01 ? textSizeCss(11 * lf.scale, sheetRowPx(schedule, r)) : '') + textStyleCss(lts)
               : (lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '');
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -16932,12 +16975,12 @@ export function initLegacyApp() {
               // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
               const phts = textStyleOf('hiatus', phKey);
               const phFit = cellTextFit(cell.label || '', availChars, Object.assign({
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: sheetRowPx(schedule, r)
               }, phts && phts.bold ? { bold: true } : {}));
               const phPx = 11 * phFit.scale;
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
-                + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+                + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
               // Same span-drag hooks a phase cell gets (own/lmin/rmax/a/b/nphases), so a hiatus
               // band can be double-clicked or dragged across its column exactly like an active
               // phase (owner, 1 Sep 2026). data-week here is deliberately the PLAIN date to match
@@ -16971,7 +17014,7 @@ export function initLegacyApp() {
             // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
             const nts = textStyleOf('note', weekDateKey);
             const fit = cellTextFit(noteText, colWidthsFor[bi].notes, Object.assign({
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: sheetRowPx(schedule, r)
             }, nts && nts.bold ? { bold: true } : {}));
             const fitPx = 11 * fit.scale;
             // pre keeps a single line single (and lets text-overflow put an ellipsis on it);
@@ -16980,7 +17023,7 @@ export function initLegacyApp() {
               + (Math.abs(fitPx - 11) > 0.01 ? ` font-size:${fitPx.toFixed(2)}px;` : '')
               // Every row caps its text now, not just a hand-dragged one: they all start at the
               // default height, so they all get the same line budget.
-              + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+              + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
             bodyHtml += `<td class="sheet-note-cell has-note" title="Double-click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(nts)}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Double-click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
@@ -18047,7 +18090,7 @@ export function initLegacyApp() {
     // out. Excel's own row autofit is still one click away for anyone who wants it.
     function applyRowHeight(row, r){
       // L-2: limited here too -- an old file's stored height is never rewritten, only written out valid.
-      row.height = Math.min(EXCEL_MAX_ROW_PT, Math.round((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT * 100) / 100);
+      row.height = Math.min(EXCEL_MAX_ROW_PT, Math.round((sheetRowPx(schedule, r)) * ROW_PX_TO_PT * 100) / 100);
     }
 
     const HEADER_FILL = 'D9D9D9';
@@ -18324,7 +18367,7 @@ export function initLegacyApp() {
           // F2: measured in its weight, as the screen's (F1).
           const hts = textStyleOf('hiatus', hKey);
           const hFit = cellTextFit(hTxt, hAvail, Object.assign({
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: sheetRowPx(schedule, r)
           }, hts && hts.bold ? { bold: true } : {}));
           baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')},
                                   size: Math.round(11 * hFit.scale * 100) / 100}});
@@ -18378,7 +18421,7 @@ export function initLegacyApp() {
               const phSize = hiatusFontSizeFor(phKey);
               const phts = textStyleOf('hiatus', phKey);   // F2
               const phFit = cellTextFit(item.label || '', availChars, Object.assign({
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: sheetRowPx(schedule, r)
               }, phts && phts.bold ? { bold: true } : {}));
               baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')},
                                      size: Math.round(11 * phFit.scale * 100) / 100}});
@@ -18418,7 +18461,7 @@ export function initLegacyApp() {
             const nSize = noteFontSizeFor(nKey);
             const nts = textStyleOf('note', nKey);   // F2
             const fit = cellTextFit(noteText, widths.notes, Object.assign({
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: sheetRowPx(schedule, r)
             }, nts && nts.bold ? { bold: true } : {}));
             // An un-pinned row must be tall enough for the lines the note actually uses:
             // Excel autofits a wrapped cell only when no explicit height is set, and that is
@@ -20428,7 +20471,7 @@ export function initLegacyApp() {
     if(schedule && schedule.weeks && schedule.weeks.length){
       maxRows = sheetRowCount(schedule, computeYearBlocks(schedule.weeks));
     }
-    const fn = i => ((i >= 1 && i <= maxRows) ? (rowHeights[i - 1] || ROW_DEFAULT_PX) : ROW_DEFAULT_PX) * ROW_PX_TO_PT;
+    const fn = i => ((i >= 1 && i <= maxRows) ? sheetRowPx(schedule, i - 1) : ROW_DEFAULT_PX) * ROW_PX_TO_PT;
     fn.maxRows = maxRows;
     return fn;
   }
@@ -37067,7 +37110,7 @@ export function initLegacyApp() {
     // able to turn the page over"). Now all three agree.
     const HDR_ROW_PT = ROW_DEFAULT_PX * ROW_PX_TO_PT;
     const rowPt = [];
-    for(let r=0;r<maxRows;r++) rowPt.push((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT);
+    for(let r=0;r<maxRows;r++) rowPt.push((sheetRowPx(schedule, r)) * ROW_PX_TO_PT);
     const gridH = rowPt.reduce((a,b)=>a+b, HDR_ROW_PT);
 
     // --- header block ------------------------------------------------------------------------
@@ -37461,7 +37504,7 @@ export function initLegacyApp() {
           const hs = hiatusFontSizeFor(hKey);
           const hts = textStyleOf('hiatus', hKey);   // F3
           const fit = cellTextFit(hTxt, av, Object.assign({ basePx: hs||11, manual: hs!==undefined,
-                                              rowPx: rowHeights[r] || ROW_DEFAULT_PX }, hts && hts.bold ? { bold: true } : {}));
+                                              rowPx: sheetRowPx(schedule, r) }, hts && hts.bold ? { bold: true } : {}));
           cellFill(bx + dw, ry, bandW, rh, hCol);    // SM1
           page.clipPush(bx + dw, ry, bandW, rh);
           if(hts) drawStyled(fit.wrap ? wrapLines(hTxt, av, 11*fit.scale, hts.bold) : String(hTxt).split('\n'),
@@ -37512,7 +37555,7 @@ export function initLegacyApp() {
               const ps = hiatusFontSizeFor(k);
               cts = textStyleOf('hiatus', k);   // F3
               fit = cellTextFit(cell.label||'', av, Object.assign({ basePx: ps||11, manual: ps!==undefined,
-                                                      rowPx: rowHeights[r] || ROW_DEFAULT_PX }, cts && cts.bold ? { bold: true } : {}));
+                                                      rowPx: sheetRowPx(schedule, r) }, cts && cts.bold ? { bold: true } : {}));
             } else {
               // F3: a styled phase week or Sim Post fits from its size in its weight (the screen's F1).
               cts = cell.kind === 'phase' ? (cell.own !== undefined && cell.cell ? textStyleOf('phase', wIsoP + '|' + cell.cell.key) : null)
@@ -37545,7 +37588,7 @@ export function initLegacyApp() {
           const nCol = noteColorFor(wk), ns = noteFontSizeFor(wk);
           const nts = textStyleOf('note', wk);   // F3
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
-                                  Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX },
+                                  Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: sheetRowPx(schedule, r) },
                                                 nts && nts.bold ? { bold: true } : {}));
           // ⛔ FROZEN EDIT NF2 (owner sign-off by picker, 28 Oct 2026, with NF1): a No fill note draws no rectangle;
           // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
