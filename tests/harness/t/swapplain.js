@@ -10,6 +10,9 @@
 //   P3  one undo puts them back
 //   P4  plain click a Notes cell, Alt+→: nothing moves, and a one-line reason says what to do          (red before)
 //   P5  nothing highlighted (Esc), Alt+→: nothing moves, no message, and the key is left to the page
+//   P6  a column HEADING highlighted (not a phase, Notes or date cell), Alt+←: no message, the key is left to the
+//       page (review slip on 2.12: the keys were claimed whenever ANY cell was highlighted)                (red before)
+//   P7  a DATE cell highlighted, Alt+←: the key is claimed and the one-line reason shows
 //
 // ⚠️ Run against the BUILD (HARNESS_PAGE=/dist/index.html).
 var T = window.__T, cases = [];
@@ -87,6 +90,30 @@ window.addEventListener('load', function () { (async function () {
     var prevented = alt(1); await T.sleep(300);
     C('P5', 'nothing highlighted, Alt+→: nothing moves, no message, the key stays the page\'s',
       leftOne() === 'prodPrep x4' && !chips().length && !prevented, {chips: chips(), prevented: prevented}, 'no chip, not prevented');
+    // P6: a heading. Plain click a <th> of the grid's heading row.
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); await T.sleep(150);
+    var th = document.querySelector('#table-wrap table.sheet-table thead th[colspan], #table-wrap table.sheet-table thead th');
+    var ths = qa('#table-wrap table.sheet-table thead th').filter(function (h) { return /\S/.test(txt(h)) && !/^Date$/i.test(txt(h)); });
+    th = ths[0] || th;
+    await plainClick(th);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var hlHeading = qa('.text-sel-box, .grid-text-sel, [class*="text-sel"]').length;
+    var prev6 = alt(-1); await T.sleep(300);
+    var said6 = chips();
+    await settle();
+    C('P6', 'a column heading highlighted, Alt+←: nothing moves, no message, the key stays the page\'s',
+      hlHeading > 0 && leftOne() === 'prodPrep x4' && !said6.length && !prev6, {heading: txt(th), highlightBoxes: hlHeading, said: said6, prevented: prev6}, 'highlighted; no chip, not prevented');
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); await T.sleep(150);
+    await T.sleep(4500);
+    // P7: a date cell (the first column of the 11/23/26 row).
+    var dateTd = qa('#table-wrap td.sheet-date').filter(function (d) { return /11\/23\/26/.test(txt(d)); })[0];
+    await plainClick(dateTd);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var prev7 = alt(-1); await T.sleep(300);
+    var said7 = chips();
+    await settle();
+    C('P7', 'a date cell highlighted, Alt+←: the key is claimed, nothing moves, and one line says what to do',
+      !!dateTd && prev7 && leftOne() === 'prodPrep x4' && said7.length === 1 && /phase cell/i.test(said7[0]), {date: txt(dateTd), said: said7, prevented: prev7}, 'prevented, "Select a phase cell first, ..."');
     C('E0', 'no console errors, no native alert', T.appHealth().errors.length === 0 && window.__alerts.length === 0, {errors: T.appHealth().errors.slice(0, 5), alerts: window.__alerts}, 'none');
   } catch (e) { C('EX', 'the leg threw', false, String(e && e.stack || e).slice(0, 600), 'no exception'); }
   T.done(out);
