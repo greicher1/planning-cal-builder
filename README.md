@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Export to Excel tries again when its Excel library hasn't loaded, and says why plainly (audit item 3.11, 14 Nov 2026)
+
+November 2026 audit, item 3.11 (AUD2-063, AUD2-064), under the owner's decision **D7 (a)**: SPTCal stays an online app
+(no service worker, no offline cache) and says so. Export to Excel needs one library that SPTCal downloads from the
+internet (ExcelJS, from `cdn.jsdelivr.net`), by one tag fetched once at launch. If that one fetch was refused, cut off or
+only slow, Export to Excel said *"failed to load from the CDN … ask IT to allow that domain"* at once (also for a library
+that arrived two seconds later), Compare's workbook said *"Check the internet connection"* on a computer that was online,
+and every press after said the same until SPTCal was relaunched, the network back or not: nothing fetched it again.
+
+- **Now** a press of Export to Excel, or of Compare's Export to Excel, with the library missing downloads it again, from
+  the launch tag's own address, integrity hash and settings (so the Content-Security-Policy is unchanged and no new
+  server is reached), and waits for it with the button busy, up to 15 s. It arrives: the workbook is written from that
+  same press. It fails: *"Export to Excel couldn't download its Excel library from cdn.jsdelivr.net. Try the export
+  again. If it keeps failing, this network may be blocking that address, and IT can allow it."* The computer is
+  offline: it says so and asks to connect. Still on its way: *"still downloading … try again in a moment"*, and the
+  next press waits on the same download. A shareable copy exported while one is on its way does not carry it.
+- **Help** says SPTCal needs an internet connection to start, and how Export to Excel gets its library.
+  `PROJECT-CONTEXT.md` no longer calls the app "fully offline-capable".
+- Not frozen: `exportExcel` and the workbook are untouched; the retry lives in the two click paths before it
+  (`loadExcelLib` / `ensureExcelLib`). No save-format change.
+- **Proof:** new CDP driver `tests/harness/excelretry.mjs` (in `gate.sh`, after `cspproof`), 10/10 on the build under the
+  real policy, the library refused, held and offline through CDP; red on the build before it at F1, F2, L1, L2, O1, C1
+  and C2; its S1 goes red with the copy's strip taken out. `cspproof` 15/15; `exportrefused` 5/5, `xlsxlimits` 5/5,
+  `xlsxdates` 5/5, `scenarios` 23/23, `hdrexcel` all green, `base` matches its baseline with the Excel parts identical;
+  `npm run check` 42/42.
+
 ### Unreleased — Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
 
 The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced here before the fix).

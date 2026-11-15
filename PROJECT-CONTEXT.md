@@ -68,7 +68,19 @@ is a global — see §11).
 **Google Fonts** (two `preconnect`s plus a `css2` stylesheet for Inter and IBM Plex Mono). ⚠️ The
 build has neither font dependency: IBM Plex Mono was dropped and Inter is embedded
 (`src/styles/inter.css`), so `dist/index.html` fetches nothing but ExcelJS. Everything else
-is inline. The app is otherwise fully offline-capable and makes no network requests.
+is inline, and apart from ExcelJS and the update check's `version.json` the build makes no network
+requests.
+
+⚠️ **That does NOT make the installed app work offline** (corrected 14 Nov 2026, November 2026 audit
+AUD2-063; it said "fully offline-capable" until then, which was true only of the old single file and
+of shareable copies opened from disk). The installed app is the hosted page with **no service worker**
+(deliberate since v1.2.0: an earlier one served a stale app), so it needs an internet connection to
+START; a launch with no connection gets the browser's offline page. The owner's decision D7 (a)
+(13 Nov 2026) keeps it that way and has the app say so (Help) rather than add an offline cache.
+Excel export needs the network too: ExcelJS is fetched at launch, and since the same audit (AUD2-064)
+a press of Export to Excel with it missing fetches it again and says plainly what happened
+(`loadExcelLib` / `ensureExcelLib` in `src/legacy/app.js`). A shareable copy opened from disk starts
+offline, but its Excel export still needs the network.
 
 **The DEPLOYED FILE has no build step.** ⚠️ The repo now has all four of the things this line used
 to deny: Vite + React 19 + Mantine 9.5.2 (`npm run dev` / `npm run build` → `dist/index.html`), a

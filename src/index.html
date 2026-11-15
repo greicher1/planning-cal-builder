@@ -635,7 +635,7 @@
     </div>
     <div id="help-body">
 
-      <p class="help-intro">Fill in the panel on the left and the schedule builds itself in the preview. Everything below explains what each control does and how the calendar is calculated. Nothing you enter leaves your computer.</p>
+      <p class="help-intro">Fill in the panel on the left and the schedule builds itself in the preview. Everything below explains what each control does and how the calendar is calculated. Nothing you enter leaves your computer. SPTCal does need an internet connection to start.</p>
 
       <h3>Show Info</h3>
       <p><strong>Title</strong> names the project. It appears in the printed Excel header and becomes the file name when you export or save (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
@@ -708,6 +708,7 @@
       <p><strong>In Month view the button becomes &ldquo;Export Calendar to PDF.&rdquo;</strong> It writes the PDF and asks where to save it. Every month from the first phase to the last prints, one per landscape Letter page, in full colour with the header, month and date. On screen the Month view&rsquo;s grid lines are drawn lighter; the PDF keeps its black lines.</p>
       <p><strong>Export PDF in Waterfall view</strong> first asks three things: the <strong>paper</strong> (Letter, Legal or Tabloid), with Letter or Legal marked <em>Recommended</em> for this calendar, the <strong>orientation</strong>, with the automatic choice marked <em>Recommended</em> and roughly how large each one prints the calendar, and the <strong>grid lines</strong>. The paper and the orientation are saved with the calendar, so Export to Excel uses them too; the grid lines stay on this computer. Bigger paper prints a long or wide calendar larger.</p>
       <p>Generates a styled <code>.xlsx</code> matching the Waterfall view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger, or you chose one when exporting the PDF. The workbook is set to print on the <strong>Paper</strong> chosen in Settings (US&nbsp;Letter unless you change it), centered on the page, with the print area pinned to the grid, so <em>File &rarr; Print &rarr; Save as PDF</em> straight out of Excel comes out the same for everyone regardless of their default printer. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
+      <p>Export to Excel uses an Excel library that SPTCal downloads from the internet (<code>cdn.jsdelivr.net</code>) when it starts. If it hasn&rsquo;t arrived, pressing Export to Excel downloads it again and waits for it; if it can&rsquo;t, it says why, and the next press tries again.</p>
 
       <h3>Files, saving &amp; loading</h3>
       <p>All the main actions live in the toolbar at the top: the <strong>file menu</strong> (showing the calendar you&rsquo;re currently in), <strong>New</strong>, <strong>Save</strong>, <strong>Save As</strong>, <strong>Export to Excel</strong>, and <strong>Reset</strong>.</p>
@@ -2240,8 +2241,13 @@ q4HDFv/gd5kawwI1fm+v48RJypj/z1Gqv6ZA/s7B5+TvurznH0YYrKje/wPUQLb8
 <!-- defer (audit L-4): without it the tag blocked the parser, and a CDN that silently drops packets
      kept the app from booting at all -- measured 30 Sep 2026 over CDP with every cdn.jsdelivr.net
      request held: no boot in 20 s (readyState "loading"). With defer the app boots in ~0.1 s and
-     ExcelJS is simply absent until it arrives, which Export already reports. On a normal network it
-     is loaded before the app's module runs, as before. -->
+     ExcelJS is simply absent until it arrives. On a normal network it is loaded before the app's module
+     runs, as before.
+     ⭐ Since the November 2026 audit (item 3.11, AUD2-064) a press of Export to Excel, or Compare's
+     workbook, with ExcelJS missing loads it AGAIN from THIS tag's src, integrity and crossorigin
+     (loadExcelLib in app.js) and waits for it, so a launch that missed it is no longer stuck for the
+     session. This tag stays the one source of the URL and the hash: change them here only, and the
+     CSP's script-src with them. -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
         integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
         crossorigin="anonymous" defer></script>

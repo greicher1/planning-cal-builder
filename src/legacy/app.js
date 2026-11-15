@@ -30215,6 +30215,9 @@ export function initLegacyApp() {
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
     clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    // A retry of the Excel library still on its way (loadExcelLib, audit item 3.11): the copy loads its own from the
+    // launch tag, so a kept one would be a second fetch of the same file.
+    clone.querySelectorAll('script[data-sptcal-retry]').forEach(el=>el.remove());
     // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
     // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
@@ -30888,8 +30891,17 @@ export function initLegacyApp() {
   // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
   // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
   // is a moved wrap's second chip ("1 more holiday", or ''), written beside its delta in both files.
+  let compareXlsxWaiting = false;   // a press waiting on the Excel library: a second press must not write a second file
   async function exportCompareExcel(model){
-    if(typeof ExcelJS === 'undefined'){ uiAlert('Excel export needs the ExcelJS library, which hasn’t loaded. Check the internet connection and try again.'); return; }
+    // The Excel library missing: load it again and wait for it (ensureExcelLib, audit item 3.11). Before, this said
+    // "Check the internet connection" whatever the cause, and never fetched it again.
+    if(typeof ExcelJS === 'undefined'){
+      if(compareXlsxWaiting) return;
+      compareXlsxWaiting = true;
+      let lib;
+      try { lib = await ensureExcelLib(); } finally { compareXlsxWaiting = false; }
+      if(lib !== 'ok'){ uiAlert(excelLibMessage(lib)); return; }
+    }
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Compare', {
       views: [{ state: 'frozen', xSplit: 1, ySplit: 3, showGridLines: false }],
@@ -36421,6 +36433,63 @@ export function initLegacyApp() {
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
   })();
 
+  // ⭐ THE EXCEL LIBRARY IS LOADED AGAIN WHEN AN EXPORT NEEDS IT (November 2026 audit, item 3.11: AUD2-064; the owner's
+  // decision D7 (a), 13 Nov 2026: SPTCal stays an online app, and says so). ExcelJS is the one script the app loads from
+  // another server, by ONE deferred <script> tag in index.html, fetched once at launch. Until this, if that one fetch was
+  // refused, cut off or only slow, Export to Excel said "failed to load from the CDN ... ask IT to allow that domain"
+  // (also while the library was merely LATE, a click that worked 2 s later), Compare's workbook said "Check the internet
+  // connection" on a computer that was online, and every click after said the same until the app was relaunched, the
+  // network back or not: nothing ever fetched it again.
+  // Now a press with the library missing loads it again, from the launch tag's OWN src, integrity and crossorigin (one
+  // source of truth, in index.html: the URL the Content-Security-Policy already allows, under the same integrity check,
+  // so a retry adds no origin and can never run different bytes), and waits up to EXCEL_LIB_WAIT_MS:
+  //   - it arrives (or the launch's own tag finishes first): the export goes ahead from that same press;
+  //   - it fails: say it could not be downloaded, from where, and that pressing again retries; offline
+  //     (navigator.onLine false), say that instead -- a block is only suggested when the computer is online;
+  //   - it is still on its way: say it is still downloading. The load keeps going, and the next press waits on it.
+  // ⛔ exportExcel is FROZEN: this runs in the two click paths before it (the Export button, Compare's workbook), and the
+  // library itself is untouched. The retry tag carries data-sptcal-retry and is removed once it settles;
+  // buildSavedHtml strips one still in flight, so a shareable copy never carries a second tag. The `excelretry` driver
+  // (tests/harness/excelretry.mjs) holds all of it under the real policy, the network failed, held and offline.
+  const EXCEL_LIB_WAIT_MS = 15000;
+  let excelLibLoad = null;   // the retry in flight: a Promise of 'ok' | 'failed'
+  function loadExcelLib(){
+    if(typeof ExcelJS !== 'undefined') return Promise.resolve('ok');
+    if(excelLibLoad) return excelLibLoad;
+    const tag = document.querySelector('script[src*="/exceljs@"]:not([data-sptcal-retry])');
+    if(!tag) return Promise.resolve('failed');
+    excelLibLoad = new Promise(resolve=>{
+      const s = document.createElement('script');
+      s.src = tag.src;
+      if(tag.integrity) s.integrity = tag.integrity;
+      if(tag.crossOrigin) s.crossOrigin = tag.crossOrigin;
+      s.setAttribute('data-sptcal-retry', '');
+      const settle = ()=>{ s.remove(); excelLibLoad = null; resolve(typeof ExcelJS !== 'undefined' ? 'ok' : 'failed'); };
+      s.addEventListener('load', settle);
+      s.addEventListener('error', settle);
+      document.head.appendChild(s);
+    });
+    return excelLibLoad;
+  }
+  // 'ok', 'failed', 'offline', or 'late' (EXCEL_LIB_WAIT_MS passed with the library still on its way).
+  async function ensureExcelLib(){
+    if(typeof ExcelJS !== 'undefined') return 'ok';
+    let timer = null, poll = null;
+    const r = await Promise.race([
+      loadExcelLib(),
+      new Promise(res=>{ timer = setTimeout(()=> res('late'), EXCEL_LIB_WAIT_MS); }),
+      // The launch's own tag may land first (late, not lost): its arrival ends the wait at once.
+      new Promise(res=>{ poll = setInterval(()=>{ if(typeof ExcelJS !== 'undefined') res('ok'); }, 200); }),
+    ]);
+    clearTimeout(timer); clearInterval(poll);
+    return (r === 'failed' && navigator.onLine === false) ? 'offline' : r;
+  }
+  function excelLibMessage(r){
+    if(r === 'offline') return 'This computer is offline. Export to Excel needs the internet to download its Excel library. Connect, then try the export again.';
+    if(r === 'late') return 'Export to Excel is still downloading its Excel library. Try the export again in a moment.';
+    return 'Export to Excel couldn’t download its Excel library from cdn.jsdelivr.net. Try the export again. If it keeps failing, this network may be blocking that address, and IT can allow it.';
+  }
+
   // ⛔ AUDIT N-3: Export with nothing to show SAYS WHY. While the preview is empty -- no dates yet,
   // or refused as too long -- frozen render() marks both export buttons disabled, and a disabled
   // button used to swallow the click: no file, no word. The buttons now keep only the disabled LOOK
@@ -36476,10 +36545,6 @@ export function initLegacyApp() {
       else await exportMonthPdfDirect();
       return;
     }
-    if(typeof ExcelJS === 'undefined'){
-      uiAlert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
-      return;
-    }
     // ⚠️ This used to be `const original = btn.textContent` … `finally { btn.textContent =
     // original }` -- a snapshot of a property render() ALSO writes. Under React a commit landing
     // between the snapshot and the restore could strand the button reading 'Building file...', or
@@ -36487,6 +36552,14 @@ export function initLegacyApp() {
     // viewMode, never captured. MANTINE-SEAM.md §3.1 names this specifically.
     chrome.exportBtn({ busy: true, disabled: true });
     try{
+      // The Excel library missing: load it again and wait for it, busy (ensureExcelLib, audit item 3.11). Before, one
+      // message here blamed the network or IT, also for a library that was only late, and no click ever retried.
+      if(typeof ExcelJS === 'undefined'){
+        const lib = await ensureExcelLib();
+        if(lib !== 'ok'){ uiAlert(excelLibMessage(lib)); return; }
+        // Switched to the Month view while it waited: each export runs only from its own view.
+        if(viewMode === 'month') return;
+      }
       await exportExcel(currentSchedule);
     } catch(err){
       console.error(err);
