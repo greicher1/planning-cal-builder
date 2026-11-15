@@ -4,6 +4,40 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026: AUDIT BATCH 3, ITEM 3.11 — EXPORT TO EXCEL TRIES AGAIN FOR ITS LIBRARY; THE APP SAYS IT NEEDS THE INTERNET (AUD2-063, AUD2-064; owner's decision **D7 (a)**). **COMMITTED LOCALLY on branch `audit-3-11`** (worktree `.claude/worktrees/audit-3-11`, from `origin/main` at `2089aa5`; `node_modules` is a copy). **NOT PUSHED.** No version cut.
+- **D7 (a) for this item:** SPTCal stays online-only. No service worker and no offline cache (that was options b/c);
+  say so, and stop Excel export failing for a whole session. Each finding's "Default (no decision needed)" applied.
+- **Cause (AUD2-064):** ExcelJS is the one script loaded from another server, by ONE deferred tag in `src/index.html`
+  fetched once at launch, with no loader. The Export button and Compare's workbook only tested `typeof ExcelJS`, so a
+  library that was late, refused or cut off gave one message that blamed the network or IT ("failed to load from the
+  CDN … ask IT"; Compare: "Check the internet connection" while online), and no click ever fetched it again.
+- **Fix (not frozen; `exportExcel` untouched):** `loadExcelLib()` / `ensureExcelLib()` / `excelLibMessage()` beside
+  `explainNothingToExport()` in `src/legacy/app.js`. A press with the library missing injects a second tag with the
+  launch tag's OWN src, integrity and crossorigin (read from the DOM: `src/index.html` stays the one place for the URL
+  and hash, so the CSP is unchanged), marked `data-sptcal-retry` and removed once it settles, and waits up to
+  `EXCEL_LIB_WAIT_MS` (15 s), busy, also polling `typeof ExcelJS` so the launch tag landing first ends the wait. Then:
+  write the workbook from that same press; or say "couldn't download … from cdn.jsdelivr.net. Try the export again …
+  this network may be blocking that address" (online), "This computer is offline …" (`navigator.onLine` false), or
+  "still downloading … try again in a moment" (the load keeps going; the next press awaits the same promise). If the
+  view switched to Month during the wait, nothing is written. Compare's press is guarded against a second press
+  writing a second file (`compareXlsxWaiting`). `buildSavedHtml` strips `script[data-sptcal-retry]` from the copy.
+- **AUD2-063 (docs + Help):** Help's intro says SPTCal needs an internet connection to start; the Exporting section says
+  how the Excel library arrives and retries. `PROJECT-CONTEXT.md` §2's "fully offline-capable" is corrected. ⛔ The
+  install-screen lines and the one-page IT sheet are item 2.7 (AUD2-018/-020/-067), NOT built here; the IT sheet should
+  name `cdn.jsdelivr.net` on the allow-list and state "needs an internet connection to start". Item 1.4 (branch
+  `audit-1-1`) only changed the rollback; nothing here touches it.
+- ⚠️ **Headless Chrome dedupes the retry with an in-flight launch fetch** (same URL): while the launch's request is held
+  there is ONE network request, and both tags settle when it does. That is why a late library needs no second request.
+- ⚠️ **Testing it:** the Export button is wrapped in `reClickGuard(600)`. A refused load answers in ~100 ms, so a script
+  that presses OK and Export again at machine speed lands inside the 600 ms and the press is dropped (it read as "the
+  second click does nothing" until measured). `excelretry.mjs` spaces its presses by 900 ms.
+- **Proof:** new CDP driver `tests/harness/excelretry.mjs`, in `gate.sh` right after `cspproof` (a Node script for the
+  same reason: the tag is parsed before any `t/` leg, and the retry must run under the real policy). 10/10 three times (9/9 once before S1 was added) on
+  the build; red on `origin/main`'s build at F1, F2, L1, L2, O1, C1, C2; S1 red with the copy strip taken out.
+  `cspproof` 15/15, `exportrefused` 5/5, `xlsxlimits` 5/5, `xlsxdates` 5/5, `scenarios` 23/23, `hdrexcel` green,
+  `base` = its baseline (Excel parts identical), `npm run check` 42/42. No full gate (the workbook writer is untouched).
+  ⚠️ The driver needs the internet for its "network back" steps (Fetch.continueRequest to the real CDN).
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.

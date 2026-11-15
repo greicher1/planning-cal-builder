@@ -2999,6 +2999,30 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYCS
 
+# ---- excelretry (audit item 3.11, AUD2-064; owner's decision D7 (a), 13 Nov 2026): Export to Excel when its library is missing ----
+# ⭐ ADDED 14 Nov 2026. A Node script for cspproof's reason: the Excel library is a <script> tag parsed before any t/ leg
+# exists, so only the NETWORK can make it fail, and a retry must load under the real policy, which srv.js strips on ?test=
+# pages. CDP's Fetch domain refuses, holds or passes every request for it (HTTP cache off). F1/F2 refused, then the
+# network back: the click loads it again and says plainly what happened, and the NEXT click writes the workbook; L1 late:
+# the click waits (busy) and writes it itself; S1 a shareable copy taken while a retry is in flight carries one tag; L2
+# never arrives: "still downloading", no blame; O1 offline; C1/C2 Compare's workbook; V0 zero CSP violations, P0 the
+# positive control. Red on the build before it at F1, F2, L1, L2, O1, C1, C2 (one message blamed the network or IT at
+# once, also for a library only late, and no click ever fetched it again). Needs the internet, as Export to Excel does.
+node "$HERE/excelretry.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/excelretry.json" "excelretry" <<'PYER' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 10 and all(c.get('pass') is True for c in cases) else 1)
+PYER
+
 # ---- customunits: a custom phase's length in Weeks, Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md) -----
 # Two runs. LIVE builds the synthetic calendar through the UI and asserts what a user sees while
 # editing (which boxes each unit shows, the select hit-testable, a unit switch that moves nothing and
